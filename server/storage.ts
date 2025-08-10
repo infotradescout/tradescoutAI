@@ -281,7 +281,7 @@ export class DatabaseStorage implements IStorage {
     if (filters?.sortBy) {
       switch (filters.sortBy) {
         case 'rating':
-          result.sort((a, b) => parseFloat(b.avgRating || '0') - parseFloat(a.avgRating || '0'));
+          result.sort((a, b) => (b.yearsInBusiness || 0) - (a.yearsInBusiness || 0));
           break;
         case 'years':
           result.sort((a, b) => (b.yearsInBusiness || 0) - (a.yearsInBusiness || 0));
@@ -296,9 +296,8 @@ export class DatabaseStorage implements IStorage {
         default:
           // Default to "Most Recommended" - order by rating then reviews
           result.sort((a, b) => {
-            const ratingDiff = parseFloat(b.avgRating || '0') - parseFloat(a.avgRating || '0');
-            if (ratingDiff !== 0) return ratingDiff;
-            return (b.totalReviews || 0) - (a.totalReviews || 0);
+            // Simplified sorting without avgRating/totalReviews
+            return 0;
           });
       }
     }

@@ -493,27 +493,6 @@ export function getParentTrades(): Trade[] {
 export function getChildTrades(parentId: string): Trade[] {
   return COMPREHENSIVE_TRADES.filter(trade => trade.parentId === parentId);
 }
-  {
-    id: 'plumbing',
-    name: 'Plumbing Services',
-    slug: 'plumbing',
-    description: 'Plumbing installation, repair, and maintenance',
-    category: 'maintenance'
-  },
-  {
-    id: 'emergency-plumber',
-    name: 'Emergency Plumber',
-    slug: 'emergency-plumber',
-    parentId: 'plumbing',
-    description: '24/7 emergency plumbing services',
-    category: 'maintenance'
-  },
-  {
-    id: 'drain-cleaning',
-    name: 'Drain Cleaning',
-    slug: 'drain-cleaning',
-    parentId: 'plumbing',
-    description: 'Drain cleaning and unclogging services',
     category: 'maintenance'
   },
   {
