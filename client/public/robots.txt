@@ -1,0 +1,32 @@
+User-agent: *
+Allow: /
+
+# Prioritize important pages
+Allow: /contractors/board
+Allow: /quote
+Allow: /contractors
+Allow: /workers
+
+# Prevent crawling of admin areas
+Disallow: /admin/
+Disallow: /api/
+Disallow: /login
+Disallow: /register
+Disallow: /profile-setup
+Disallow: /dashboard
+Disallow: /contractor-dashboard
+Disallow: /homeowner-dashboard
+Disallow: /chat/
+
+# Allow crawling of contractor profiles
+Allow: /contractors/*
+
+# Block test and temporary files
+Disallow: /*.json$
+Disallow: /*?test=*
+
+# Sitemap location
+Sitemap: https://trade-scout-pro-traderscornerll.replit.app/sitemap.xml
+
+# Crawl delay for better server performance
+Crawl-delay: 1

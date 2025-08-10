@@ -8,7 +8,7 @@ import { AdDisplay, useUserLocation } from "@/components/AdDisplay";
 import { AuthButtons } from "@/components/auth-buttons";
 import { AuthModal } from "@/components/auth-modal";
 import { TestingErrorReportButton } from "@/components/TestingErrorReportButton";
-import { PageHead } from "@/components/PageHead";
+import { SEOHelmet, createWebsiteStructuredData, createOrganizationStructuredData, createFAQStructuredData } from "@/components/SEOHelmet";
 
 export default function Landing() {
   const [selectedState, setSelectedState] = useState("");
@@ -25,12 +25,42 @@ export default function Landing() {
     setLocation('/contractors/board');
   };
 
+  // FAQ structured data for the landing page
+  const faqData = [
+    {
+      question: "How do I find contractors in my area?",
+      answer: "Simply select your state and county on Trade Scout, then browse verified contractors in your area. You can filter by service type, read reviews, and get instant quotes."
+    },
+    {
+      question: "Are all contractors on Trade Scout verified?",
+      answer: "Yes, all contractors on Trade Scout go through a comprehensive verification process including background checks, license verification, and insurance confirmation."
+    },
+    {
+      question: "How many free quotes can I get?",
+      answer: "You can get up to 3 free quotes from different contractors for your project, allowing you to compare prices and choose the best fit for your needs."
+    },
+    {
+      question: "What types of home improvement services are available?",
+      answer: "Trade Scout covers 75+ contractor specialties including roofing, plumbing, electrical, HVAC, flooring, kitchen remodeling, bathroom renovation, and general contracting."
+    }
+  ];
+
+  const structuredData = {
+    "@context": "https://schema.org",
+    "@graph": [
+      createWebsiteStructuredData(),
+      createOrganizationStructuredData(),
+      createFAQStructuredData(faqData)
+    ]
+  };
+
   return (
     <div className="min-h-screen gradient-bg">
-      <PageHead 
+      <SEOHelmet 
         title="Trade Scout - Find Trusted Local Contractors | Get 3 Free Quotes"
-        description="Connect with verified contractors in your county. Get instant quotes, read reviews, and hire with confidence. Local contractors for roofing, plumbing, electrical, and all home improvement projects."
-        keywords="local contractors, home improvement, verified contractors, free quotes, county contractors, trusted contractors, roofing, plumbing, electrical"
+        description="Connect with verified contractors in your county. Get 3 free quotes, read reviews, and hire with confidence. Local contractors for roofing, plumbing, electrical, and all home improvement projects."
+        keywords="local contractors, home improvement, verified contractors, free quotes, county contractors, trusted contractors, roofing contractors, plumbing contractors, electrical contractors, kitchen remodeling, bathroom renovation"
+        structuredData={structuredData}
       />
       {/* Hero Section */}
       <section className="py-12">

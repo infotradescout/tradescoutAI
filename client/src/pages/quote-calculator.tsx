@@ -16,6 +16,7 @@ import { useToast } from "@/hooks/use-toast";
 import { PageHead } from "@/components/PageHead";
 import { ProgressFeedback } from "@/components/ProgressFeedback";
 import { LoadingSkeleton } from "@/components/LoadingSkeleton";
+import { SEOHelmet, createBreadcrumbStructuredData } from "@/components/SEOHelmet";
 
 interface EstimateInputs {
   projectType: string;
@@ -274,15 +275,64 @@ export default function EstimateCalculator() {
     "Connect with Contractors"
   ];
 
+  // SEO structured data
+  const breadcrumbItems = [
+    { name: 'Home', url: '/' },
+    { name: 'Quote Calculator', url: '/quote' }
+  ];
+
+  const quoteStructuredData = {
+    "@context": "https://schema.org",
+    "@type": "WebApplication",
+    "name": "Trade Scout Quote Calculator",
+    "description": "Free home improvement cost calculator and contractor quote generator",
+    "url": window.location.href,
+    "applicationCategory": "UtilityApplication",
+    "operatingSystem": "Web",
+    "offers": {
+      "@type": "Offer",
+      "price": "0",
+      "priceCurrency": "USD",
+      "description": "Free project cost estimates and contractor quotes"
+    }
+  };
+
   return (
-    <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-      <PageHead 
-        title="Get Your Project Estimate - Trade Scout Calculator"
-        description="Get instant estimates for your home improvement project. Regional pricing based on your county and project details. Connect with verified contractors for accurate quotes."
-        keywords="project estimate, home improvement calculator, contractor quotes, regional pricing, project cost calculator"
+    <GuestGate>
+      <SEOHelmet 
+        title="Free Home Improvement Cost Calculator & Quote Generator | Trade Scout"
+        description="Calculate accurate project costs instantly. Get free quotes from verified local contractors for roofing, flooring, kitchen remodels, and more. Licensed and insured professionals."
+        keywords="home improvement calculator, project cost estimator, free contractor quotes, roofing cost calculator, kitchen remodel cost, flooring estimate"
+        structuredData={quoteStructuredData}
       />
-      <div className="text-center mb-12">
-        <h1 className="text-4xl font-bold text-white mb-4">Get Your Project Estimate</h1>
+      
+      <main className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+        <PageHead 
+          title="Get Your Project Estimate - Trade Scout Calculator"
+          description="Get instant estimates for your home improvement project. Regional pricing based on your county and project details. Connect with verified contractors for accurate quotes."
+          keywords="project estimate, home improvement calculator, contractor quotes, regional pricing, project cost calculator"
+        />
+        
+        {/* Breadcrumb Navigation */}
+        <nav aria-label="Breadcrumb" className="mb-8">
+          <ol className="flex items-center space-x-2 text-sm text-gray-400">
+            {breadcrumbItems.map((item, index) => (
+              <li key={item.url} className="flex items-center">
+                {index > 0 && <span className="mx-2 text-gray-500">/</span>}
+                {index === breadcrumbItems.length - 1 ? (
+                  <span className="text-orange-500 font-medium">{item.name}</span>
+                ) : (
+                  <Link href={item.url}>
+                    <span className="hover:text-white transition-colors cursor-pointer">{item.name}</span>
+                  </Link>
+                )}
+              </li>
+            ))}
+          </ol>
+        </nav>
+        
+        <header className="text-center mb-12">
+          <h1 className="text-4xl font-bold text-white mb-4">Get Your Project Estimate</h1>
         <p className="text-xl text-gray-300 mb-6">Regional pricing based on your county and project details</p>
         <div className="flex justify-center gap-6 text-sm text-gray-400">
           <div className="flex items-center gap-2">
@@ -298,7 +348,7 @@ export default function EstimateCalculator() {
             <span>Verified contractors only</span>
           </div>
         </div>
-      </div>
+        </header>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Calculator Form - Takes 2 columns */}
@@ -548,6 +598,7 @@ export default function EstimateCalculator() {
           </CardContent>
         </Card>
       </div>
-    </div>
+      </main>
+    </GuestGate>
   );
 }

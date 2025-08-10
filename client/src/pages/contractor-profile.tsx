@@ -7,6 +7,7 @@ import { Star, Phone, Mail, MapPin, Calendar, Clock, Shield, CheckCircle, Extern
 import { useAuth } from "@/hooks/useAuth";
 import { ChatButton } from "@/components/ChatButton";
 import type { Contractor, Recommendation } from "@shared/schema";
+import { SEOHelmet, createBreadcrumbStructuredData } from "@/components/SEOHelmet";
 
 interface ContractorProfileData {
   contractor: Contractor;
@@ -56,8 +57,65 @@ export default function ContractorProfile() {
   const { contractor, recommendations = [], ratingSummary } = contractorData;
   const companyInitials = contractor.companyName?.split(' ').map((word: string) => word[0]).join('').slice(0, 2).toUpperCase() || 'CC';
 
+  // SEO data generation
+  const breadcrumbItems = [
+    { name: 'Home', url: '/' },
+    { name: 'Find Contractors', url: '/contractors/board' },
+    { name: contractor.companyName, url: `/contractors/${slug}` }
+  ];
+
+  const contractorStructuredData = {
+    "@context": "https://schema.org",
+    "@type": "LocalBusiness",
+    "name": contractor.companyName,
+    "description": contractor.about || `Professional contractor services by ${contractor.companyName}`,
+    "url": window.location.href,
+    "telephone": contractor.phone || undefined,
+    "email": contractor.email || undefined,
+    "address": {
+      "@type": "PostalAddress",
+      "addressCountry": "US"
+    },
+    "aggregateRating": ratingSummary ? {
+      "@type": "AggregateRating",
+      "ratingValue": ratingSummary.average,
+      "reviewCount": ratingSummary.count
+    } : undefined,
+    "priceRange": "$$",
+    "serviceType": "Home Improvement Contractor",
+    "areaServed": "Local Area"
+  };
+
+  const seoTitle = `${contractor.companyName} - Verified Local Contractor | Trade Scout`;
+  const seoDescription = `Hire ${contractor.companyName} for quality home improvement services. ${ratingSummary ? `${ratingSummary.average} star rating` : 'Verified'} contractor${contractor.yearsInBusiness ? ` with ${contractor.yearsInBusiness} years experience` : ''}. Licensed and insured.`;
+
   return (
-    <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+    <>
+      <SEOHelmet 
+        title={seoTitle}
+        description={seoDescription}
+        keywords={`${contractor.companyName}, local contractor, home improvement, verified contractor, licensed contractor, free quotes`}
+        structuredData={contractorStructuredData}
+      />
+      
+      <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+        {/* Breadcrumb Navigation */}
+        <nav aria-label="Breadcrumb" className="mb-8">
+          <ol className="flex items-center space-x-2 text-sm text-gray-400">
+            {breadcrumbItems.map((item, index) => (
+              <li key={item.url} className="flex items-center">
+                {index > 0 && <span className="mx-2 text-gray-500">/</span>}
+                {index === breadcrumbItems.length - 1 ? (
+                  <span className="text-orange-500 font-medium">{item.name}</span>
+                ) : (
+                  <Link href={item.url}>
+                    <span className="hover:text-white transition-colors cursor-pointer">{item.name}</span>
+                  </Link>
+                )}
+              </li>
+            ))}
+          </ol>
+        </nav>
       {/* Profile Header */}
       <Card className="bg-navy-700 border-navy-600 mb-8">
         <CardContent className="p-8">
@@ -264,6 +322,7 @@ export default function ContractorProfile() {
           )}
         </div>
       </div>
-    </div>
+      </main>
+    </>
   );
 }

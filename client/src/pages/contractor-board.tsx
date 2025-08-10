@@ -12,6 +12,7 @@ import { GuestGate } from "@/components/guest-gate";
 import { MapPin, Search, Filter, SlidersHorizontal } from "lucide-react";
 import { Link } from "wouter";
 import type { Contractor, County, Trade } from "@shared/schema";
+import { SEOHelmet, createBreadcrumbStructuredData, createServiceStructuredData } from "@/components/SEOHelmet";
 
 export default function ContractorBoard() {
   const [selectedState, setSelectedState] = useState("");
@@ -168,16 +169,117 @@ export default function ContractorBoard() {
     );
   }
 
+  // Generate SEO data based on current filters
+  const selectedStateName = selectedState ? states.find(s => s.code === selectedState)?.name : '';
+  const selectedCountyName = selectedCounty ? counties.find(c => c.fips === selectedCounty)?.name : '';
+  const selectedTradeName = selectedTrade ? trades?.find(t => t.id === selectedTrade)?.name : '';
+  
+  const seoTitle = `Find ${selectedTradeName || 'Contractors'}${selectedStateName ? ` in ${selectedStateName}` : ''}${selectedCountyName ? `, ${selectedCountyName}` : ''} | Trade Scout`;
+  const seoDescription = `Find verified ${selectedTradeName || 'contractors'}${selectedStateName ? ` in ${selectedStateName}` : ''}${selectedCountyName ? `, ${selectedCountyName}` : ''}. Get 3 free quotes, read reviews, and hire with confidence. Licensed and insured contractors for all home improvement projects.`;
+  
+  const breadcrumbItems = [
+    { name: 'Home', url: '/' },
+    { name: 'Find Contractors', url: '/contractors/board' }
+  ];
+  
+  if (selectedStateName) {
+    breadcrumbItems.push({ name: selectedStateName, url: `/contractors/board?state=${selectedState}` });
+  }
+  if (selectedCountyName) {
+    breadcrumbItems.push({ name: selectedCountyName, url: `/contractors/board?state=${selectedState}&county=${selectedCounty}` });
+  }
+  if (selectedTradeName) {
+    breadcrumbItems.push({ name: selectedTradeName, url: `/contractors/board?state=${selectedState}&county=${selectedCounty}&trade=${selectedTrade}` });
+  }
+
+  const serviceStructuredData = selectedTradeName ? createServiceStructuredData({
+    name: `${selectedTradeName} Services`,
+    description: `Professional ${selectedTradeName.toLowerCase()} services in ${selectedStateName || 'your area'}`,
+    category: selectedTradeName,
+    areaServed: selectedStateName || 'United States',
+    provider: 'Trade Scout'
+  }) : null;
+
+  const contractorListStructuredData = {
+    "@context": "https://schema.org",
+    "@type": "ItemList",
+    "name": `${selectedTradeName || 'Contractors'} in ${selectedStateName || 'United States'}`,
+    "description": `Directory of verified ${selectedTradeName?.toLowerCase() || 'contractors'} serving ${selectedStateName || 'the United States'}`,
+    "numberOfItems": filteredContractors.length,
+    "itemListElement": filteredContractors.slice(0, 10).map((contractor, index) => ({
+      "@type": "ListItem",
+      "position": index + 1,
+      "item": {
+        "@type": "LocalBusiness",
+        "name": contractor.companyName,
+        "description": contractor.about,
+        "url": `${window.location.origin}/contractors/${contractor.id}`,
+        "address": {
+          "@type": "PostalAddress",
+          "addressLocality": selectedCountyName || "Local Area",
+          "addressRegion": selectedStateName || "US",
+          "addressCountry": "US"
+        }
+      }
+    }))
+  };
+
+  const combinedStructuredData = {
+    "@context": "https://schema.org",
+    "@graph": [
+      createBreadcrumbStructuredData(breadcrumbItems),
+      contractorListStructuredData,
+      ...(serviceStructuredData ? [serviceStructuredData] : [])
+    ]
+  };
+
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-      {/* Header */}
-      <div className="text-center mb-12">
-        <h1 className="text-4xl md:text-5xl font-bold text-white mb-6">
-          Find Contractors
-        </h1>
-        <p className="text-xl text-gray-300 mb-8">
-          Connect with verified, local contractors for your next project
-        </p>
+    <>
+      <SEOHelmet 
+        title={seoTitle}
+        description={seoDescription}
+        keywords={`${selectedTradeName || 'contractors'}, ${selectedStateName || 'local'} contractors, verified contractors, free quotes, home improvement${selectedTradeName ? `, ${selectedTradeName.toLowerCase()}` : ''}`}
+        structuredData={combinedStructuredData}
+      />
+      
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+        {/* Breadcrumb Navigation */}
+        <nav aria-label="Breadcrumb" className="mb-8">
+          <ol className="flex items-center space-x-2 text-sm text-gray-400">
+            {breadcrumbItems.map((item, index) => (
+              <li key={item.url} className="flex items-center">
+                {index > 0 && <span className="mx-2 text-gray-500">/</span>}
+                {index === breadcrumbItems.length - 1 ? (
+                  <span className="text-orange-500 font-medium">{item.name}</span>
+                ) : (
+                  <Link href={item.url}>
+                    <span className="hover:text-white transition-colors cursor-pointer">{item.name}</span>
+                  </Link>
+                )}
+              </li>
+            ))}
+          </ol>
+        </nav>
+
+        {/* Header */}
+        <header className="text-center mb-12">
+          <h1 className="text-4xl md:text-5xl font-bold text-white mb-6">
+            {selectedTradeName ? `Find ${selectedTradeName} Contractors` : 'Find Contractors'}
+            {selectedStateName && (
+              <span className="block text-3xl md:text-4xl text-orange-500 mt-2">
+                in {selectedStateName}
+              </span>
+            )}
+          </h1>
+          <p className="text-xl text-gray-300 mb-8">
+            Connect with verified, local contractors for your next project
+            {filteredContractors.length > 0 && (
+              <span className="block text-lg mt-2">
+                {filteredContractors.length} contractor{filteredContractors.length !== 1 ? 's' : ''} available
+              </span>
+            )}
+          </p>
+        </header>
         
         {/* State, County and Trade Quick Filters */}
         <div className="max-w-4xl mx-auto mb-8">
@@ -251,7 +353,6 @@ export default function ContractorBoard() {
             </div>
           </div>
         </div>
-      </div>
 
       {/* Search and Filters */}
       <div className="mb-8 space-y-4">
@@ -469,6 +570,7 @@ export default function ContractorBoard() {
           </CardContent>
         </Card>
       )}
-    </div>
+      </main>
+    </>
   );
 }
