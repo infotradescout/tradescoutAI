@@ -15,8 +15,6 @@ import { useToast } from "@/hooks/use-toast";
 interface EstimateInputs {
   projectType: string;
   squareFootage: string;
-  material: string;
-  complexity: string;
   urgency: string;
 }
 
@@ -26,8 +24,6 @@ export default function EstimateCalculator() {
   const [inputs, setInputs] = useState<EstimateInputs>({
     projectType: '',
     squareFootage: '',
-    material: '',
-    complexity: 'simple',
     urgency: 'planning'
   });
   const [estimate, setEstimate] = useState<any>(null);
@@ -39,12 +35,11 @@ export default function EstimateCalculator() {
   const calculateMutation = useMutation({
     mutationFn: async (data: EstimateInputs) => {
       // Mock calculation - in production this would use real pricing data
-      const basePrice = parseInt(data.squareFootage) * 8; // $8 per sq ft base
-      const materialMultiplier = data.material === 'metal' ? 1.5 : data.material === 'tile' ? 1.3 : 1;
-      const complexityMultiplier = data.complexity === 'complex' ? 1.4 : data.complexity === 'moderate' ? 1.2 : 1;
+      const basePrice = parseInt(data.squareFootage) * 12; // $12 per sq ft base for roofing
+      const urgencyMultiplier = data.urgency === 'urgent' ? 1.3 : data.urgency === 'soon' ? 1.1 : 1;
       
-      const low = Math.round(basePrice * materialMultiplier * complexityMultiplier * 0.8);
-      const high = Math.round(basePrice * materialMultiplier * complexityMultiplier * 1.2);
+      const low = Math.round(basePrice * urgencyMultiplier * 0.8);
+      const high = Math.round(basePrice * urgencyMultiplier * 1.2);
       
       return { low, high, projectType: data.projectType };
     },
@@ -99,7 +94,7 @@ export default function EstimateCalculator() {
 
     leadMutation.mutate({
       projectType: inputs.projectType,
-      description: `${inputs.squareFootage} sq ft ${inputs.projectType.toLowerCase()}, ${inputs.material} material`,
+      description: `${inputs.squareFootage} sq ft ${inputs.projectType.toLowerCase()}`,
       tradeId: 'roofing', // This would be dynamic based on project type
       countyId: '06037', // Los Angeles - would be dynamic
       estimatedValue: estimate ? (estimate.low + estimate.high) / 2 : null,
@@ -116,11 +111,11 @@ export default function EstimateCalculator() {
         <p className="text-xl text-gray-300">Regional pricing based on your county and project details</p>
       </div>
 
-      <Card className="bg-navy-700 border-navy-600">
-        <CardContent className="p-8">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+      <Card className="bg-navy-700 border-navy-600 overflow-hidden">
+        <CardContent className="p-0">
+          <div className="grid grid-cols-1 md:grid-cols-2">
             {/* Left: Calculator Form */}
-            <div>
+            <div className="p-8 border-r border-navy-600">
               <h3 className="text-xl font-semibold text-white mb-6 flex items-center gap-2">
                 <Calculator className="h-5 w-5" />
                 Project Details
@@ -154,44 +149,14 @@ export default function EstimateCalculator() {
                 </div>
 
                 <div>
-                  <Label className="block text-sm font-medium text-gray-300 mb-2">Roof Material</Label>
-                  <Select value={inputs.material} onValueChange={(value) => setInputs(prev => ({ ...prev, material: value }))}>
-                    <SelectTrigger className="form-field">
-                      <SelectValue placeholder="Select material..." />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="asphalt">Asphalt Shingles</SelectItem>
-                      <SelectItem value="metal">Metal Roofing</SelectItem>
-                      <SelectItem value="tile">Tile Roofing</SelectItem>
-                      <SelectItem value="slate">Slate</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div>
-                  <Label className="block text-sm font-medium text-gray-300 mb-2">Roof Complexity</Label>
-                  <Select value={inputs.complexity} onValueChange={(value) => setInputs(prev => ({ ...prev, complexity: value }))}>
-                    <SelectTrigger className="form-field">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="simple">Simple (1-2 levels)</SelectItem>
-                      <SelectItem value="moderate">Moderate (multiple angles)</SelectItem>
-                      <SelectItem value="complex">Complex (steep, multi-level)</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div>
                   <Label className="block text-sm font-medium text-gray-300 mb-2">Project Timeline</Label>
                   <Select value={inputs.urgency} onValueChange={(value) => setInputs(prev => ({ ...prev, urgency: value }))}>
                     <SelectTrigger className="form-field">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="immediate">Immediate (Emergency)</SelectItem>
-                      <SelectItem value="week">Within a week</SelectItem>
-                      <SelectItem value="month">Within a month</SelectItem>
+                      <SelectItem value="urgent">Urgent (Emergency)</SelectItem>
+                      <SelectItem value="soon">Within a month</SelectItem>
                       <SelectItem value="planning">Still planning</SelectItem>
                     </SelectContent>
                   </Select>
@@ -208,8 +173,11 @@ export default function EstimateCalculator() {
             </div>
 
             {/* Right: Estimate Results */}
-            <div>
-              <h3 className="text-xl font-semibold text-white mb-6">Your Estimate</h3>
+            <div className="bg-navy-600 p-8 flex flex-col justify-center">
+              <h3 className="text-xl font-semibold text-white mb-6 flex items-center gap-2">
+                <DollarSign className="h-5 w-5" />
+                Your Estimate
+              </h3>
               
               {estimate ? (
                 <div>
@@ -220,7 +188,7 @@ export default function EstimateCalculator() {
                         ${estimate.low.toLocaleString()} - ${estimate.high.toLocaleString()}
                       </div>
                       <p className="text-sm text-gray-400 mb-4">
-                        Based on Los Angeles County pricing for {inputs.material || 'standard'} {estimate.projectType?.replace('-', ' ')}
+                        Based on Los Angeles County pricing for {estimate.projectType?.replace('-', ' ')}
                       </p>
                       <Badge className="bg-amber-600 text-amber-100">
                         <Info className="h-3 w-3 mr-1" />
