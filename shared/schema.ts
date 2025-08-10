@@ -947,3 +947,18 @@ export const insertGrowthPackDownloadSchema = createInsertSchema(growthPackDownl
   id: true,
   createdAt: true,
 });
+
+export const insertErrorReportSchema = createInsertSchema(errorReports).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+  status: true,
+  priority: true,
+  assignedTo: true,
+  adminNotes: true,
+  resolution: true,
+  resolvedAt: true,
+});
+
+export type InsertErrorReport = typeof errorReports.$inferInsert;
+export type ErrorReport = typeof errorReports.$inferSelect;

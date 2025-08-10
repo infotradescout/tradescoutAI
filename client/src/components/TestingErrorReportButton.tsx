@@ -1,5 +1,6 @@
-import { useState } from "react";
-import { Bug, X, Send, TestTube, Zap } from "lucide-react";
+import { useState, useRef } from "react";
+import { Bug, X, Send, TestTube, Zap, Camera, Upload, Image, Loader2 } from "lucide-react";
+import html2canvas from 'html2canvas';
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
@@ -25,6 +26,10 @@ export function TestingErrorReportButton({
   const [description, setDescription] = useState("");
   const [errorType, setErrorType] = useState("bug");
   const [userEmail, setUserEmail] = useState("");
+  const [screenshot, setScreenshot] = useState<string | null>(null);
+  const [isCapturingScreenshot, setIsCapturingScreenshot] = useState(false);
+  const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
   const { user, isAuthenticated } = useAuth();
 
@@ -42,6 +47,8 @@ export function TestingErrorReportButton({
       setDescription("");
       setErrorType("bug");
       setUserEmail("");
+      setScreenshot(null);
+      setUploadedFiles([]);
     },
     onError: (error) => {
       toast({
@@ -51,6 +58,113 @@ export function TestingErrorReportButton({
       });
     },
   });
+
+  const captureScreenshot = async () => {
+    setIsCapturingScreenshot(true);
+    try {
+      // Hide the dialog temporarily to capture clean screenshot
+      setIsOpen(false);
+      
+      // Wait a moment for dialog to close
+      await new Promise(resolve => setTimeout(resolve, 200));
+      
+      const canvas = await html2canvas(document.body, {
+        height: window.innerHeight,
+        width: window.innerWidth,
+        scrollX: 0,
+        scrollY: 0,
+        useCORS: true,
+        allowTaint: true,
+      });
+      
+      const screenshotDataUrl = canvas.toDataURL('image/png');
+      setScreenshot(screenshotDataUrl);
+      
+      // Reopen the dialog
+      setIsOpen(true);
+      
+      toast({
+        title: "Screenshot Captured",
+        description: "Screenshot will be included with your report.",
+      });
+    } catch (error) {
+      console.error('Screenshot capture failed:', error);
+      toast({
+        title: "Screenshot Failed",
+        description: "Unable to capture screenshot, but you can still submit the report.",
+        variant: "destructive",
+      });
+      setIsOpen(true);
+    }
+    setIsCapturingScreenshot(false);
+  };
+
+  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = event.target.files;
+    if (files) {
+      const newFiles = Array.from(files).filter(file => {
+        // Limit file size to 5MB
+        if (file.size > 5 * 1024 * 1024) {
+          toast({
+            title: "File Too Large",
+            description: `${file.name} is too large. Max size is 5MB.`,
+            variant: "destructive",
+          });
+          return false;
+        }
+        return true;
+      });
+      setUploadedFiles(prev => [...prev, ...newFiles].slice(0, 3)); // Max 3 files
+    }
+  };
+
+  const removeFile = (index: number) => {
+    setUploadedFiles(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const uploadFilesToStorage = async (files: (File | string)[]): Promise<string[]> => {
+    const uploadedUrls: string[] = [];
+    
+    for (const file of files) {
+      try {
+        let uploadData;
+        
+        if (typeof file === 'string') {
+          // Screenshot data URL
+          const response = await fetch(file);
+          const blob = await response.blob();
+          uploadData = blob;
+        } else {
+          // Regular file
+          uploadData = file;
+        }
+        
+        // Get upload URL from backend
+        const uploadResponse = await apiRequest("POST", "/api/objects/upload");
+        const { uploadURL } = await uploadResponse.json();
+        
+        // Upload to object storage
+        await fetch(uploadURL, {
+          method: 'PUT',
+          body: uploadData,
+          headers: {
+            'Content-Type': typeof file === 'string' ? 'image/png' : file.type,
+          },
+        });
+        
+        uploadedUrls.push(uploadURL);
+      } catch (error) {
+        console.error('File upload failed:', error);
+        toast({
+          title: "Upload Failed",
+          description: "Some files couldn't be uploaded, but your report will still be submitted.",
+          variant: "destructive",
+        });
+      }
+    }
+    
+    return uploadedUrls;
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -64,6 +178,13 @@ export function TestingErrorReportButton({
       return;
     }
 
+    // Upload files if any
+    const filesToUpload = [];
+    if (screenshot) filesToUpload.push(screenshot);
+    if (uploadedFiles.length > 0) filesToUpload.push(...uploadedFiles);
+    
+    const attachmentUrls = filesToUpload.length > 0 ? await uploadFilesToStorage(filesToUpload) : [];
+
     const reportData = {
       title: title.trim(),
       description: description.trim(),
@@ -71,6 +192,7 @@ export function TestingErrorReportButton({
       userEmail: userEmail.trim() || user?.email || null,
       currentUrl: window.location.href,
       userAgent: navigator.userAgent,
+      attachments: attachmentUrls,
       browserInfo: {
         name: getBrowserName(),
         version: getBrowserVersion(),
@@ -256,6 +378,104 @@ export function TestingErrorReportButton({
                   />
                 </div>
               )}
+
+              {/* Screenshot and File Upload Section */}
+              <div className="space-y-4">
+                <div className="border-t border-navy-600 pt-4">
+                  <Label className="text-gray-300 text-sm font-semibold">Attachments</Label>
+                  <p className="text-gray-400 text-xs mb-3">Screenshots and files help us understand the issue better</p>
+                  
+                  <div className="flex gap-2 mb-3">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={captureScreenshot}
+                      disabled={isCapturingScreenshot}
+                      className="border-navy-500 text-gray-300 hover:bg-navy-600"
+                    >
+                      {isCapturingScreenshot ? (
+                        <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                      ) : (
+                        <Camera className="h-4 w-4 mr-1" />
+                      )}
+                      {isCapturingScreenshot ? 'Capturing...' : 'Take Screenshot'}
+                    </Button>
+                    
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => fileInputRef.current?.click()}
+                      className="border-navy-500 text-gray-300 hover:bg-navy-600"
+                    >
+                      <Upload className="h-4 w-4 mr-1" />
+                      Upload Files
+                    </Button>
+                  </div>
+
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    multiple
+                    accept="image/*,.pdf,.txt,.log"
+                    onChange={handleFileUpload}
+                    className="hidden"
+                  />
+
+                  {/* Screenshots Preview */}
+                  {screenshot && (
+                    <div className="bg-navy-700 rounded-lg p-3 mb-3">
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center gap-2">
+                          <Image className="h-4 w-4 text-green-400" />
+                          <span className="text-green-400 text-sm">Screenshot captured</span>
+                        </div>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setScreenshot(null)}
+                          className="text-gray-400 hover:text-white"
+                        >
+                          <X className="h-3 w-3" />
+                        </Button>
+                      </div>
+                      <img
+                        src={screenshot}
+                        alt="Screenshot preview"
+                        className="max-w-full h-32 object-cover rounded border border-navy-600"
+                      />
+                    </div>
+                  )}
+
+                  {/* Uploaded Files List */}
+                  {uploadedFiles.length > 0 && (
+                    <div className="space-y-2">
+                      {uploadedFiles.map((file, index) => (
+                        <div key={index} className="flex items-center justify-between bg-navy-700 rounded-lg p-2">
+                          <div className="flex items-center gap-2">
+                            <Upload className="h-4 w-4 text-blue-400" />
+                            <span className="text-white text-sm truncate">{file.name}</span>
+                            <span className="text-gray-400 text-xs">
+                              ({(file.size / 1024).toFixed(1)} KB)
+                            </span>
+                          </div>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => removeFile(index)}
+                            className="text-gray-400 hover:text-white"
+                          >
+                            <X className="h-3 w-3" />
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
 
               <div className="flex justify-end gap-3 pt-4">
                 <Button
