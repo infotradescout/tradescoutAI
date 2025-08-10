@@ -19,6 +19,7 @@ import HomeownerDashboard from "@/pages/homeowner-dashboard";
 import ContractorBoard from "@/pages/contractor-board";
 import ContractorProfile from "@/pages/contractor-profile";
 import EstimateCalculator from "@/pages/quote-calculator";
+import WorkerMarketplace from "@/pages/worker-marketplace";
 import GrowthPack from "@/pages/growth-pack";
 import ContractorApply from "@/pages/contractor-apply";
 import ContractorAccelerator from "@/pages/contractor-accelerator";
@@ -59,6 +60,8 @@ function Router() {
         <Route path="/quote" component={EstimateCalculator} />
         <Route path="/calculator" component={EstimateCalculator} />
         <Route path="/growth-pack" component={GrowthPack} />
+        <Route path="/workers" component={WorkerMarketplace} />
+        <Route path="/worker-marketplace" component={WorkerMarketplace} />
         
         {!isAuthenticated ? (
           <>

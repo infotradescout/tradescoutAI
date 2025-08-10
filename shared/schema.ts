@@ -451,6 +451,226 @@ export type Trade = typeof trades.$inferSelect;
 export type InsertGrowthPackDownload = typeof growthPackDownloads.$inferInsert;
 export type GrowthPackDownload = typeof growthPackDownloads.$inferSelect;
 
+// Worker marketplace system for task-based work
+export const workers = pgTable("workers", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull(),
+  firstName: varchar("first_name").notNull(),
+  lastName: varchar("last_name").notNull(),
+  phone: varchar("phone").notNull(),
+  email: varchar("email").notNull(),
+  profileImageUrl: varchar("profile_image_url"),
+  bio: text("bio"),
+  skills: jsonb("skills").$type<string[]>(),
+  hourlyRate: decimal("hourly_rate"),
+  availableHours: jsonb("available_hours").$type<{
+    monday?: { start: string; end: string };
+    tuesday?: { start: string; end: string };
+    wednesday?: { start: string; end: string };
+    thursday?: { start: string; end: string };
+    friday?: { start: string; end: string };
+    saturday?: { start: string; end: string };
+    sunday?: { start: string; end: string };
+  }>(),
+  transportationMethod: varchar("transportation_method"),
+  maxTravelDistance: integer("max_travel_distance"), // in miles
+  
+  // Verification status
+  isIdVerified: boolean("is_id_verified").default(false),
+  isBackgroundChecked: boolean("is_background_checked").default(false),
+  verificationDocuments: jsonb("verification_documents").$type<{
+    driversLicense?: string;
+    passport?: string;
+    backgroundCheck?: string;
+    references?: string[];
+  }>(),
+  verificationStatus: varchar("verification_status", { 
+    enum: ['pending', 'in_review', 'approved', 'rejected'] 
+  }).default('pending'),
+  verifiedAt: timestamp("verified_at"),
+  
+  // Work history and ratings
+  totalJobsCompleted: integer("total_jobs_completed").default(0),
+  averageRating: decimal("average_rating"),
+  totalEarnings: decimal("total_earnings").default("0"),
+  
+  // Account status
+  isActive: boolean("is_active").default(true),
+  isAvailable: boolean("is_available").default(true),
+  lastActiveAt: timestamp("last_active_at").defaultNow(),
+  
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const taskCategories = pgTable("task_categories", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  name: varchar("name").notNull(),
+  slug: varchar("slug").notNull().unique(),
+  description: text("description"),
+  iconName: varchar("icon_name"), // Lucide icon name
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const tasks = pgTable("tasks", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  posterId: varchar("poster_id").notNull(), // user who posted the task
+  posterType: varchar("poster_type", { enum: ['contractor', 'homeowner'] }).notNull(),
+  
+  title: varchar("title").notNull(),
+  description: text("description").notNull(),
+  categoryId: varchar("category_id"),
+  
+  // Location
+  address: varchar("address"),
+  city: varchar("city"),
+  stateCode: varchar("state_code", { length: 2 }),
+  zipCode: varchar("zip_code"),
+  countyFips: varchar("county_fips"),
+  
+  // Task details
+  taskType: varchar("task_type", { 
+    enum: ['one_time', 'recurring', 'project_based'] 
+  }).notNull(),
+  estimatedHours: decimal("estimated_hours"),
+  payType: varchar("pay_type", { 
+    enum: ['hourly', 'fixed', 'per_task'] 
+  }).notNull(),
+  payAmount: decimal("pay_amount").notNull(),
+  payMin: decimal("pay_min"),
+  payMax: decimal("pay_max"),
+  
+  // Requirements
+  requiredSkills: jsonb("required_skills").$type<string[]>(),
+  requiresTransportation: boolean("requires_transportation").default(false),
+  requiresTools: boolean("requires_tools").default(false),
+  toolsProvided: boolean("tools_provided").default(false),
+  physicalDemands: varchar("physical_demands", { 
+    enum: ['light', 'moderate', 'heavy'] 
+  }),
+  
+  // Scheduling
+  schedulingType: varchar("scheduling_type", { 
+    enum: ['asap', 'scheduled', 'flexible'] 
+  }).notNull(),
+  startDate: timestamp("start_date"),
+  endDate: timestamp("end_date"),
+  preferredTimes: jsonb("preferred_times").$type<{
+    weekdays?: boolean;
+    weekends?: boolean;
+    mornings?: boolean;
+    afternoons?: boolean;
+    evenings?: boolean;
+  }>(),
+  
+  // Verification requirements
+  requiresIdVerification: boolean("requires_id_verification").default(true),
+  requiresBackgroundCheck: boolean("requires_background_check").default(false),
+  minimumRating: decimal("minimum_rating"),
+  minimumJobsCompleted: integer("minimum_jobs_completed"),
+  
+  // Task status
+  status: varchar("status", { 
+    enum: ['open', 'assigned', 'in_progress', 'completed', 'cancelled'] 
+  }).default('open'),
+  assignedWorkerId: varchar("assigned_worker_id"),
+  assignedAt: timestamp("assigned_at"),
+  completedAt: timestamp("completed_at"),
+  
+  // Attachments
+  attachments: jsonb("attachments").$type<string[]>(),
+  
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const taskApplications = pgTable("task_applications", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  taskId: varchar("task_id").notNull(),
+  workerId: varchar("worker_id").notNull(),
+  
+  message: text("message"),
+  proposedRate: decimal("proposed_rate"),
+  estimatedDuration: varchar("estimated_duration"),
+  availableStartDate: timestamp("available_start_date"),
+  
+  status: varchar("status", { 
+    enum: ['pending', 'accepted', 'rejected', 'withdrawn'] 
+  }).default('pending'),
+  
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const workerReviews = pgTable("worker_reviews", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  taskId: varchar("task_id").notNull(),
+  workerId: varchar("worker_id").notNull(),
+  reviewerId: varchar("reviewer_id").notNull(), // poster who hired the worker
+  
+  rating: integer("rating").notNull(), // 1-5 stars
+  reviewText: text("review_text"),
+  
+  // Specific rating categories
+  qualityRating: integer("quality_rating"),
+  timelinessRating: integer("timeliness_rating"),
+  communicationRating: integer("communication_rating"),
+  professionalismRating: integer("professionalism_rating"),
+  
+  wouldHireAgain: boolean("would_hire_again"),
+  isPublic: boolean("is_public").default(true),
+  
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const verificationRequests = pgTable("verification_requests", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  workerId: varchar("worker_id").notNull(),
+  requestType: varchar("request_type", { 
+    enum: ['id_verification', 'background_check', 'reference_check'] 
+  }).notNull(),
+  
+  status: varchar("status", { 
+    enum: ['pending', 'in_review', 'approved', 'rejected', 'expired'] 
+  }).default('pending'),
+  
+  submittedDocuments: jsonb("submitted_documents").$type<{
+    documentType: string;
+    documentUrl: string;
+    uploadedAt: string;
+  }[]>(),
+  
+  reviewNotes: text("review_notes"),
+  reviewedBy: varchar("reviewed_by"),
+  reviewedAt: timestamp("reviewed_at"),
+  expiresAt: timestamp("expires_at"),
+  
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const workerServiceAreas = pgTable("worker_service_areas", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  workerId: varchar("worker_id").notNull(),
+  countyFips: varchar("county_fips").notNull(),
+  maxTravelTime: integer("max_travel_time"), // in minutes
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export type Worker = typeof workers.$inferSelect;
+export type InsertWorker = typeof workers.$inferInsert;
+export type Task = typeof tasks.$inferSelect;
+export type InsertTask = typeof tasks.$inferInsert;
+export type TaskCategory = typeof taskCategories.$inferSelect;
+export type InsertTaskCategory = typeof taskCategories.$inferInsert;
+export type TaskApplication = typeof taskApplications.$inferSelect;
+export type InsertTaskApplication = typeof taskApplications.$inferInsert;
+export type WorkerReview = typeof workerReviews.$inferSelect;
+export type InsertWorkerReview = typeof workerReviews.$inferInsert;
+export type VerificationRequest = typeof verificationRequests.$inferSelect;
+export type InsertVerificationRequest = typeof verificationRequests.$inferInsert;
+
 // Chat system tables
 export const conversations = pgTable("conversations", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),

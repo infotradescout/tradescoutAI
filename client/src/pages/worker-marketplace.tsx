@@ -1,0 +1,412 @@
+import { useState, useMemo } from "react";
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { 
+  Search, 
+  MapPin, 
+  Clock, 
+  DollarSign, 
+  Star, 
+  Shield, 
+  CheckCircle,
+  Users,
+  Briefcase,
+  Plus,
+  Filter
+} from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
+import { apiRequest } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
+import type { Worker, Task, TaskCategory } from "@shared/schema";
+
+export default function WorkerMarketplace() {
+  const { user, isAuthenticated } = useAuth();
+  const { toast } = useToast();
+  const [activeTab, setActiveTab] = useState("find-workers");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState("");
+  const [locationFilter, setLocationFilter] = useState("");
+  const [sortBy, setSortBy] = useState("rating");
+
+  // Fetch workers
+  const { data: workers, isLoading: workersLoading } = useQuery<Worker[]>({
+    queryKey: ['/api/workers', selectedCategory, locationFilter, sortBy],
+    queryFn: async () => {
+      const params = new URLSearchParams();
+      if (selectedCategory) params.append('category', selectedCategory);
+      if (locationFilter) params.append('location', locationFilter);
+      if (sortBy) params.append('sort', sortBy);
+      
+      const response = await fetch(`/api/workers?${params.toString()}`);
+      if (!response.ok) throw new Error('Failed to fetch workers');
+      return response.json();
+    },
+    enabled: activeTab === "find-workers",
+  });
+
+  // Fetch tasks
+  const { data: tasks, isLoading: tasksLoading } = useQuery<Task[]>({
+    queryKey: ['/api/tasks', selectedCategory, locationFilter],
+    queryFn: async () => {
+      const params = new URLSearchParams();
+      if (selectedCategory) params.append('category', selectedCategory);
+      if (locationFilter) params.append('location', locationFilter);
+      
+      const response = await fetch(`/api/tasks?${params.toString()}`);
+      if (!response.ok) throw new Error('Failed to fetch tasks');
+      return response.json();
+    },
+    enabled: activeTab === "find-tasks",
+  });
+
+  // Fetch task categories
+  const { data: categories } = useQuery<TaskCategory[]>({
+    queryKey: ['/api/task-categories'],
+  });
+
+  // Filter workers based on search
+  const filteredWorkers = useMemo(() => {
+    if (!workers) return [];
+    
+    return workers.filter(worker => {
+      const matchesSearch = !searchQuery || 
+        `${worker.firstName} ${worker.lastName}`.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        worker.bio?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        worker.skills?.some(skill => skill.toLowerCase().includes(searchQuery.toLowerCase()));
+      
+      return matchesSearch;
+    });
+  }, [workers, searchQuery]);
+
+  // Filter tasks based on search
+  const filteredTasks = useMemo(() => {
+    if (!tasks) return [];
+    
+    return tasks.filter(task => {
+      const matchesSearch = !searchQuery || 
+        task.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        task.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        task.requiredSkills?.some(skill => skill.toLowerCase().includes(searchQuery.toLowerCase()));
+      
+      return matchesSearch;
+    });
+  }, [tasks, searchQuery]);
+
+  return (
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+      {/* Header */}
+      <div className="mb-8">
+        <h1 className="text-4xl font-bold text-white mb-4">Worker Marketplace</h1>
+        <p className="text-xl text-gray-300 max-w-3xl">
+          Connect contractors with skilled workers and homeowners with verified task helpers.
+          All workers are ID verified and background checked for your peace of mind.
+        </p>
+      </div>
+
+      {/* Main Tabs */}
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="mb-8">
+        <TabsList className="grid w-full grid-cols-2 bg-navy-700 border-navy-600">
+          <TabsTrigger value="find-workers" className="data-[state=active]:bg-orange-500">
+            <Users className="h-4 w-4 mr-2" />
+            Find Workers
+          </TabsTrigger>
+          <TabsTrigger value="find-tasks" className="data-[state=active]:bg-orange-500">
+            <Briefcase className="h-4 w-4 mr-2" />
+            Find Tasks
+          </TabsTrigger>
+        </TabsList>
+
+        {/* Search and Filters */}
+        <div className="mt-6 mb-6">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+              <Input
+                placeholder={activeTab === "find-workers" ? "Search workers..." : "Search tasks..."}
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-10 bg-navy-600 border-navy-500 text-white"
+              />
+            </div>
+            
+            <Select value={selectedCategory} onValueChange={setSelectedCategory}>
+              <SelectTrigger className="bg-navy-600 border-navy-500 text-white">
+                <SelectValue placeholder="All categories" />
+              </SelectTrigger>
+              <SelectContent className="bg-navy-600 border-navy-500">
+                <SelectItem value="">All categories</SelectItem>
+                {categories?.map((category) => (
+                  <SelectItem key={category.id} value={category.id}>
+                    {category.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            <Input
+              placeholder="Location (city, zip)"
+              value={locationFilter}
+              onChange={(e) => setLocationFilter(e.target.value)}
+              className="bg-navy-600 border-navy-500 text-white"
+            />
+
+            {activeTab === "find-workers" && (
+              <Select value={sortBy} onValueChange={setSortBy}>
+                <SelectTrigger className="bg-navy-600 border-navy-500 text-white">
+                  <SelectValue placeholder="Sort by" />
+                </SelectTrigger>
+                <SelectContent className="bg-navy-600 border-navy-500">
+                  <SelectItem value="rating">Highest Rated</SelectItem>
+                  <SelectItem value="price-low">Price: Low to High</SelectItem>
+                  <SelectItem value="price-high">Price: High to Low</SelectItem>
+                  <SelectItem value="jobs-completed">Most Jobs Completed</SelectItem>
+                  <SelectItem value="newest">Newest Members</SelectItem>
+                </SelectContent>
+              </Select>
+            )}
+          </div>
+        </div>
+
+        {/* Find Workers Tab */}
+        <TabsContent value="find-workers">
+          {workersLoading ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {[...Array(6)].map((_, i) => (
+                <Card key={i} className="bg-navy-700 border-navy-600 animate-pulse">
+                  <CardContent className="p-6">
+                    <div className="h-4 bg-navy-600 rounded mb-4"></div>
+                    <div className="h-16 bg-navy-600 rounded mb-4"></div>
+                    <div className="h-4 bg-navy-600 rounded"></div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {filteredWorkers.map((worker) => (
+                <WorkerCard key={worker.id} worker={worker} />
+              ))}
+              {filteredWorkers.length === 0 && (
+                <div className="col-span-full">
+                  <Card className="bg-navy-700 border-navy-600">
+                    <CardContent className="p-8 text-center">
+                      <Users className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                      <h3 className="text-lg font-semibold text-white mb-2">No workers found</h3>
+                      <p className="text-gray-300">Try adjusting your search criteria or filters.</p>
+                    </CardContent>
+                  </Card>
+                </div>
+              )}
+            </div>
+          )}
+        </TabsContent>
+
+        {/* Find Tasks Tab */}
+        <TabsContent value="find-tasks">
+          {tasksLoading ? (
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {[...Array(4)].map((_, i) => (
+                <Card key={i} className="bg-navy-700 border-navy-600 animate-pulse">
+                  <CardContent className="p-6">
+                    <div className="h-4 bg-navy-600 rounded mb-4"></div>
+                    <div className="h-20 bg-navy-600 rounded mb-4"></div>
+                    <div className="h-4 bg-navy-600 rounded"></div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {filteredTasks.map((task) => (
+                <TaskCard key={task.id} task={task} />
+              ))}
+              {filteredTasks.length === 0 && (
+                <div className="col-span-full">
+                  <Card className="bg-navy-700 border-navy-600">
+                    <CardContent className="p-8 text-center">
+                      <Briefcase className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                      <h3 className="text-lg font-semibold text-white mb-2">No tasks found</h3>
+                      <p className="text-gray-300">Try adjusting your search criteria or filters.</p>
+                    </CardContent>
+                  </Card>
+                </div>
+              )}
+            </div>
+          )}
+        </TabsContent>
+      </Tabs>
+
+      {/* Call to Action */}
+      {isAuthenticated && (
+        <div className="mt-12">
+          <Card className="bg-gradient-to-r from-orange-500/20 to-amber-500/20 border-orange-500/50">
+            <CardContent className="p-8 text-center">
+              <h3 className="text-2xl font-bold text-white mb-4">Ready to get started?</h3>
+              <p className="text-gray-300 mb-6 max-w-2xl mx-auto">
+                {activeTab === "find-workers" 
+                  ? "Post a task to find qualified workers in your area, or become a verified worker yourself."
+                  : "Apply for tasks that match your skills, or create your worker profile to get started."
+                }
+              </p>
+              <div className="flex flex-col sm:flex-row gap-4 justify-center">
+                <Button className="bg-orange-500 hover:bg-orange-600">
+                  <Plus className="h-4 w-4 mr-2" />
+                  {activeTab === "find-workers" ? "Post a Task" : "Apply for Task"}
+                </Button>
+                <Button variant="outline" className="border-gray-300 text-gray-300 hover:bg-gray-300 hover:text-navy-800">
+                  {activeTab === "find-workers" ? "Become a Worker" : "Create Worker Profile"}
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function WorkerCard({ worker }: { worker: Worker }) {
+  return (
+    <Card className="bg-navy-700 border-navy-600 hover:border-orange-500/50 transition-colors">
+      <CardContent className="p-6">
+        <div className="flex items-start justify-between mb-4">
+          <div className="flex items-center">
+            <div className="w-12 h-12 bg-gray-600 rounded-full flex items-center justify-center mr-3">
+              <Users className="h-6 w-6 text-gray-300" />
+            </div>
+            <div>
+              <h3 className="text-lg font-semibold text-white">
+                {worker.firstName} {worker.lastName}
+              </h3>
+              <div className="flex items-center text-sm text-gray-300">
+                {worker.averageRating && (
+                  <>
+                    <Star className="h-4 w-4 text-yellow-500 mr-1" />
+                    <span className="mr-2">{parseFloat(worker.averageRating).toFixed(1)}</span>
+                  </>
+                )}
+                <span className="text-gray-400">•</span>
+                <span className="ml-2">{worker.totalJobsCompleted} jobs completed</span>
+              </div>
+            </div>
+          </div>
+          <div className="flex items-center space-x-1">
+            {worker.isIdVerified && (
+              <Badge className="bg-green-500/20 text-green-400 border-green-500/50">
+                <Shield className="h-3 w-3 mr-1" />
+                ID Verified
+              </Badge>
+            )}
+          </div>
+        </div>
+
+        <p className="text-gray-300 text-sm mb-4 line-clamp-2">
+          {worker.bio || "No bio available"}
+        </p>
+
+        <div className="flex flex-wrap gap-1 mb-4">
+          {worker.skills?.slice(0, 3).map((skill) => (
+            <Badge key={skill} variant="secondary" className="text-xs bg-navy-600 text-gray-300">
+              {skill.replace('-', ' ')}
+            </Badge>
+          ))}
+          {worker.skills && worker.skills.length > 3 && (
+            <Badge variant="secondary" className="text-xs bg-navy-600 text-gray-300">
+              +{worker.skills.length - 3} more
+            </Badge>
+          )}
+        </div>
+
+        <div className="flex items-center justify-between">
+          <div className="flex items-center text-sm text-gray-300">
+            <DollarSign className="h-4 w-4 mr-1" />
+            <span>${worker.hourlyRate}/hr</span>
+          </div>
+          <Button size="sm" className="bg-orange-500 hover:bg-orange-600">
+            Contact Worker
+          </Button>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+function TaskCard({ task }: { task: Task }) {
+  const getPayDisplay = () => {
+    if (task.payType === 'fixed') {
+      return `$${task.payAmount} fixed`;
+    } else if (task.payType === 'hourly') {
+      return `$${task.payAmount}/hr`;
+    } else {
+      return `$${task.payMin} - $${task.payMax}`;
+    }
+  };
+
+  return (
+    <Card className="bg-navy-700 border-navy-600 hover:border-orange-500/50 transition-colors">
+      <CardContent className="p-6">
+        <div className="flex items-start justify-between mb-4">
+          <div className="flex-1">
+            <h3 className="text-lg font-semibold text-white mb-2">{task.title}</h3>
+            <p className="text-gray-300 text-sm mb-3 line-clamp-2">
+              {task.description}
+            </p>
+          </div>
+          <Badge className={`ml-2 ${
+            task.status === 'open' ? 'bg-green-500/20 text-green-400 border-green-500/50' :
+            task.status === 'assigned' ? 'bg-blue-500/20 text-blue-400 border-blue-500/50' :
+            'bg-gray-500/20 text-gray-400 border-gray-500/50'
+          }`}>
+            {task.status.replace('_', ' ')}
+          </Badge>
+        </div>
+
+        <div className="flex flex-wrap gap-1 mb-4">
+          {task.requiredSkills?.slice(0, 3).map((skill) => (
+            <Badge key={skill} variant="secondary" className="text-xs bg-navy-600 text-gray-300">
+              {skill.replace('-', ' ')}
+            </Badge>
+          ))}
+          {task.requiredSkills && task.requiredSkills.length > 3 && (
+            <Badge variant="secondary" className="text-xs bg-navy-600 text-gray-300">
+              +{task.requiredSkills.length - 3} more
+            </Badge>
+          )}
+        </div>
+
+        <div className="grid grid-cols-2 gap-4 mb-4 text-sm text-gray-300">
+          <div className="flex items-center">
+            <DollarSign className="h-4 w-4 mr-1" />
+            <span>{getPayDisplay()}</span>
+          </div>
+          <div className="flex items-center">
+            <Clock className="h-4 w-4 mr-1" />
+            <span>{task.estimatedHours ? `${task.estimatedHours} hrs` : 'TBD'}</span>
+          </div>
+          <div className="flex items-center">
+            <MapPin className="h-4 w-4 mr-1" />
+            <span>{task.city || 'Remote'}</span>
+          </div>
+          <div className="flex items-center">
+            <Shield className="h-4 w-4 mr-1" />
+            <span>{task.requiresIdVerification ? 'ID Required' : 'No ID Required'}</span>
+          </div>
+        </div>
+
+        <div className="flex items-center justify-between">
+          <span className="text-xs text-gray-400">
+            Posted {new Date(task.createdAt).toLocaleDateString()}
+          </span>
+          <Button size="sm" className="bg-orange-500 hover:bg-orange-600" disabled={task.status !== 'open'}>
+            {task.status === 'open' ? 'Apply Now' : 'Not Available'}
+          </Button>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}

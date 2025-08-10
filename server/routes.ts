@@ -1328,6 +1328,81 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Worker marketplace endpoints
+  app.get("/api/workers", async (req, res) => {
+    try {
+      // For now, return empty array - will be populated when database is set up
+      res.json([]);
+    } catch (error) {
+      console.error("Error fetching workers:", error);
+      res.status(500).json({ message: "Failed to fetch workers" });
+    }
+  });
+
+  app.get("/api/tasks", async (req, res) => {
+    try {
+      // For now, return empty array - will be populated when database is set up
+      res.json([]);
+    } catch (error) {
+      console.error("Error fetching tasks:", error);
+      res.status(500).json({ message: "Failed to fetch tasks" });
+    }
+  });
+
+  app.get("/api/task-categories", async (req, res) => {
+    try {
+      const { TASK_CATEGORIES } = await import("@shared/task-categories");
+      res.json(TASK_CATEGORIES);
+    } catch (error) {
+      console.error("Error fetching task categories:", error);
+      res.status(500).json({ message: "Failed to fetch task categories" });
+    }
+  });
+
+  // Worker registration endpoint
+  app.post("/api/workers/register", async (req, res) => {
+    try {
+      // TODO: Implement worker registration when database is set up
+      res.json({ message: "Worker registration endpoint ready" });
+    } catch (error) {
+      console.error("Error registering worker:", error);
+      res.status(500).json({ message: "Failed to register worker" });
+    }
+  });
+
+  // Task posting endpoint
+  app.post("/api/tasks", async (req, res) => {
+    try {
+      // TODO: Implement task posting when database is set up
+      res.json({ message: "Task posting endpoint ready" });
+    } catch (error) {
+      console.error("Error creating task:", error);
+      res.status(500).json({ message: "Failed to create task" });
+    }
+  });
+
+  // Task application endpoint
+  app.post("/api/tasks/:taskId/apply", async (req, res) => {
+    try {
+      // TODO: Implement task application when database is set up
+      res.json({ message: "Task application endpoint ready" });
+    } catch (error) {
+      console.error("Error applying to task:", error);
+      res.status(500).json({ message: "Failed to apply to task" });
+    }
+  });
+
+  // Worker verification endpoint
+  app.post("/api/workers/:workerId/verify", async (req, res) => {
+    try {
+      // TODO: Implement verification when database is set up
+      res.json({ message: "Worker verification endpoint ready" });
+    } catch (error) {
+      console.error("Error verifying worker:", error);
+      res.status(500).json({ message: "Failed to verify worker" });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }

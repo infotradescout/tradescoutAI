@@ -28,6 +28,9 @@ Trade Scout is a full-stack contractor marketplace platform built with React, No
 - ✅ **Profile Setup Flow**: Comprehensive onboarding system with role-specific fields and automatic dashboard routing
 - ✅ **Comprehensive Trades System**: Expanded trades list to include 75+ contractor specialties across all categories (construction, exterior, interior, maintenance, specialty services)
 - ✅ **Enhanced Project Types**: Quote calculator now supports comprehensive project selection with categorized trade mapping for accurate contractor matching
+- ✅ **Worker Marketplace System**: Two-sided marketplace connecting contractors with workers AND homeowners with task helpers
+- ✅ **ID Verification Framework**: Comprehensive vetting system with ID verification, background checks, and document management for legal compliance
+- ✅ **Task Categories System**: 18 task categories from general labor to specialized services with skill-based matching
 
 # User Preferences
 
