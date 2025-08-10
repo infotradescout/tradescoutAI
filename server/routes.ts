@@ -9,7 +9,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Auth middleware
   await setupAuth(app);
 
-  // Auth routes are handled in auth.ts
+  // Auth user endpoint - critical for useAuth hook
+  app.get('/api/auth/user', async (req: any, res) => {
+    if (!req.user) {
+      return res.status(401).json({ message: "Not authenticated" });
+    }
+    
+    try {
+      const user = await storage.getUser(req.user.id);
+      res.json({ ...user, passwordHash: undefined });
+    } catch (error) {
+      console.error("Error fetching authenticated user:", error);
+      res.status(500).json({ message: "Failed to fetch user" });
+    }
+  });
   
   // User profile routes
   app.get('/api/user/profile', isAuthenticated, async (req: any, res) => {

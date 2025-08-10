@@ -1,499 +1,304 @@
 import { useState } from "react";
-import { useMutation } from "@tanstack/react-query";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
 import { Button } from "@/components/ui/button";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { Badge } from "@/components/ui/badge";
-import { Checkbox } from "@/components/ui/checkbox";
-import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
-import { isUnauthorizedError } from "@/lib/authUtils";
-import { 
-  Users, 
-  Phone, 
-  Mail, 
-  MapPin, 
-  Calculator,
-  Clock,
-  AlertCircle,
-  CheckCircle
-} from "lucide-react";
+
+const quoteFormSchema = z.object({
+  firstName: z.string().min(2, "First name must be at least 2 characters"),
+  lastName: z.string().min(2, "Last name must be at least 2 characters"),
+  email: z.string().email("Please enter a valid email address"),
+  phone: z.string().min(10, "Please enter a valid phone number"),
+  county: z.string().min(1, "Please select your county"),
+  projectType: z.string().min(1, "Please select a project type"),
+  projectDescription: z.string().optional(),
+  timeline: z.string().min(1, "Please select a timeline"),
+  budget: z.string().optional(),
+});
+
+type QuoteFormData = z.infer<typeof quoteFormSchema>;
 
 interface QuoteFormProps {
-  serviceType?: string;
-  estimateData?: any;
-  prefilledData?: {
-    projectType?: string;
-    description?: string;
-    location?: string;
-  };
   onSuccess?: () => void;
   compact?: boolean;
 }
 
-export default function QuoteForm({ 
-  serviceType = "general",
-  estimateData,
-  prefilledData,
-  onSuccess,
-  compact = false 
-}: QuoteFormProps) {
-  const { isAuthenticated } = useAuth();
+export default function QuoteForm({ onSuccess, compact = false }: QuoteFormProps) {
   const { toast } = useToast();
-  
-  const [formData, setFormData] = useState({
-    projectType: prefilledData?.projectType || '',
-    description: prefilledData?.description || '',
-    urgency: 'planning',
-    contactPreference: 'phone',
-    routingType: 'top3',
-    firstName: '',
-    lastName: '',
-    phone: '',
-    email: '',
-    zipCode: '',
-    agreedToTerms: false,
+  const [isSubmitted, setIsSubmitted] = useState(false);
+
+  const form = useForm<QuoteFormData>({
+    resolver: zodResolver(quoteFormSchema),
+    defaultValues: {
+      firstName: "",
+      lastName: "",
+      email: "",
+      phone: "",
+      county: "",
+      projectType: "",
+      projectDescription: "",
+      timeline: "",
+      budget: "",
+    },
   });
 
-  const [step, setStep] = useState(1);
-  const totalSteps = isAuthenticated ? 2 : 3;
+  // Fetch counties for dropdown
+  const { data: counties = [] } = useQuery({
+    queryKey: ["/api/counties"],
+    queryFn: async () => {
+      const response = await apiRequest("GET", "/api/counties?state=CA");
+      return response;
+    },
+  });
 
-  const leadMutation = useMutation({
-    mutationFn: async (data: any) => {
-      return apiRequest('POST', '/api/leads', data);
+  // Fetch trades for project types
+  const { data: trades = [] } = useQuery({
+    queryKey: ["/api/trades"],
+    queryFn: async () => {
+      const response = await apiRequest("GET", "/api/trades");
+      return response;
+    },
+  });
+
+  const submitQuoteMutation = useMutation({
+    mutationFn: async (data: QuoteFormData) => {
+      return apiRequest("POST", "/api/leads", data);
     },
     onSuccess: () => {
+      setIsSubmitted(true);
       toast({
-        title: "Request Submitted!",
-        description: "We'll connect you with qualified contractors shortly.",
+        title: "Quote Request Submitted!",
+        description: "We'll connect you with top contractors in your area within 1 hour.",
       });
-      if (onSuccess) onSuccess();
+      form.reset();
+      onSuccess?.();
     },
-    onError: (error) => {
-      if (isUnauthorizedError(error)) {
-        toast({
-          title: "Authentication Required",
-          description: "Please sign in to submit a quote request.",
-          variant: "destructive",
-        });
-        setTimeout(() => {
-          window.location.href = "/api/login";
-        }, 1000);
-        return;
-      }
+    onError: (error: any) => {
       toast({
-        title: "Submission Error",
-        description: "Failed to submit your request. Please try again.",
+        title: "Error",
+        description: error.message || "Failed to submit quote request. Please try again.",
         variant: "destructive",
       });
-    }
+    },
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!formData.agreedToTerms) {
-      toast({
-        title: "Terms Required",
-        description: "Please agree to the terms of service.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    const leadData = {
-      projectType: formData.projectType,
-      description: formData.description,
-      urgency: formData.urgency,
-      contactPreference: formData.contactPreference,
-      routingType: formData.routingType,
-      tradeId: 'general', // This would be determined by project type
-      countyId: '06037', // This would be determined by zip code lookup
-      estimatedValue: estimateData ? (estimateData.low + estimateData.high) / 2 : null,
-      calculatorData: estimateData || null,
-      // Include contact info if not authenticated
-      ...(!isAuthenticated && {
-        contactInfo: {
-          firstName: formData.firstName,
-          lastName: formData.lastName,
-          phone: formData.phone,
-          email: formData.email,
-          zipCode: formData.zipCode,
-        }
-      })
-    };
-
-    leadMutation.mutate(leadData);
+  const onSubmit = (data: QuoteFormData) => {
+    submitQuoteMutation.mutate(data);
   };
 
-  const nextStep = () => {
-    if (step < totalSteps) {
-      setStep(step + 1);
-    }
-  };
-
-  const prevStep = () => {
-    if (step > 1) {
-      setStep(step - 1);
-    }
-  };
+  if (isSubmitted) {
+    return (
+      <div className="text-center py-8">
+        <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+          <svg className="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+          </svg>
+        </div>
+        <h3 className="text-xl font-semibold text-white mb-2">Request Submitted!</h3>
+        <p className="text-gray-300 mb-4">
+          We'll connect you with the top 3 contractors in your area within 1 hour.
+        </p>
+        <Button
+          onClick={() => setIsSubmitted(false)}
+          variant="outline"
+          className="border-navy-500 text-gray-300 hover:bg-navy-600"
+        >
+          Submit Another Request
+        </Button>
+      </div>
+    );
+  }
 
   return (
-    <Card className="bg-navy-700 border-navy-600">
-      <CardHeader>
-        <div className="flex items-center justify-between">
-          <CardTitle className="text-white flex items-center gap-2">
-            {formData.routingType === 'top3' ? (
-              <>
-                <Users className="h-5 w-5" />
-                Get 3 Free Estimates
-              </>
-            ) : (
-              <>
-                <Phone className="h-5 w-5" />
-                Request Contact
-              </>
+    <Form {...form}>
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+        <div className={compact ? "grid grid-cols-2 gap-4" : "grid grid-cols-1 md:grid-cols-2 gap-4"}>
+          <FormField
+            control={form.control}
+            name="firstName"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel className="text-gray-300">First Name</FormLabel>
+                <FormControl>
+                  <Input
+                    placeholder="John"
+                    {...field}
+                    className="bg-navy-700 border-navy-600 text-white placeholder-gray-400"
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
             )}
-          </CardTitle>
-          <Badge variant="outline" className="text-orange-400 border-orange-400">
-            Step {step} of {totalSteps}
-          </Badge>
+          />
+          <FormField
+            control={form.control}
+            name="lastName"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel className="text-gray-300">Last Name</FormLabel>
+                <FormControl>
+                  <Input
+                    placeholder="Smith"
+                    {...field}
+                    className="bg-navy-700 border-navy-600 text-white placeholder-gray-400"
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
         </div>
-        
-        {estimateData && (
-          <div className="bg-orange-500/10 border border-orange-500/30 rounded-lg p-3 mt-4">
-            <div className="flex items-center gap-2 text-orange-400 text-sm">
-              <Calculator className="h-4 w-4" />
-              Estimated Range: ${estimateData.low?.toLocaleString()} - ${estimateData.high?.toLocaleString()}
-            </div>
-          </div>
-        )}
-      </CardHeader>
 
-      <CardContent>
-        <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Step 1: Project Details */}
-          {step === 1 && (
-            <div className="space-y-4">
-              <div>
-                <Label className="text-gray-300 mb-2 block">Project Type *</Label>
-                <Select 
-                  value={formData.projectType} 
-                  onValueChange={(value) => setFormData(prev => ({ ...prev, projectType: value }))}
-                >
-                  <SelectTrigger className="form-field">
-                    <SelectValue placeholder="Select your project type" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="roof-replacement">Roof Replacement</SelectItem>
-                    <SelectItem value="roof-repair">Roof Repair</SelectItem>
-                    <SelectItem value="plumbing-repair">Plumbing Repair</SelectItem>
-                    <SelectItem value="electrical-work">Electrical Work</SelectItem>
-                    <SelectItem value="hvac-installation">HVAC Installation</SelectItem>
-                    <SelectItem value="kitchen-remodel">Kitchen Remodel</SelectItem>
-                    <SelectItem value="bathroom-remodel">Bathroom Remodel</SelectItem>
-                    <SelectItem value="flooring">Flooring Installation</SelectItem>
-                    <SelectItem value="painting">Interior/Exterior Painting</SelectItem>
-                    <SelectItem value="other">Other</SelectItem>
+        <div className={compact ? "grid grid-cols-1 gap-4" : "grid grid-cols-1 md:grid-cols-2 gap-4"}>
+          <FormField
+            control={form.control}
+            name="email"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel className="text-gray-300">Email</FormLabel>
+                <FormControl>
+                  <Input
+                    type="email"
+                    placeholder="john@example.com"
+                    {...field}
+                    className="bg-navy-700 border-navy-600 text-white placeholder-gray-400"
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="phone"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel className="text-gray-300">Phone</FormLabel>
+                <FormControl>
+                  <Input
+                    type="tel"
+                    placeholder="(555) 123-4567"
+                    {...field}
+                    className="bg-navy-700 border-navy-600 text-white placeholder-gray-400"
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
+
+        <div className={compact ? "grid grid-cols-1 gap-4" : "grid grid-cols-1 md:grid-cols-2 gap-4"}>
+          <FormField
+            control={form.control}
+            name="county"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel className="text-gray-300">County</FormLabel>
+                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                  <FormControl>
+                    <SelectTrigger className="bg-navy-700 border-navy-600 text-white">
+                      <SelectValue placeholder="Select your county" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent className="bg-navy-700 border-navy-600">
+                    {counties.map((county: any) => (
+                      <SelectItem key={county.id} value={county.id} className="text-white hover:bg-navy-600">
+                        {county.name}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
-              </div>
-
-              <div>
-                <Label className="text-gray-300 mb-2 block">Project Description *</Label>
-                <Textarea
-                  placeholder="Describe your project in detail..."
-                  value={formData.description}
-                  onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
-                  className="form-field min-h-24"
-                  required
-                />
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <Label className="text-gray-300 mb-2 block">Timeline</Label>
-                  <Select 
-                    value={formData.urgency} 
-                    onValueChange={(value) => setFormData(prev => ({ ...prev, urgency: value }))}
-                  >
-                    <SelectTrigger className="form-field">
-                      <SelectValue />
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="projectType"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel className="text-gray-300">Project Type</FormLabel>
+                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                  <FormControl>
+                    <SelectTrigger className="bg-navy-700 border-navy-600 text-white">
+                      <SelectValue placeholder="Select project type" />
                     </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="immediate">
-                        <div className="flex items-center gap-2">
-                          <AlertCircle className="h-4 w-4 text-red-500" />
-                          Emergency (ASAP)
-                        </div>
+                  </FormControl>
+                  <SelectContent className="bg-navy-700 border-navy-600">
+                    {trades.map((trade: any) => (
+                      <SelectItem key={trade.id} value={trade.id} className="text-white hover:bg-navy-600">
+                        {trade.name}
                       </SelectItem>
-                      <SelectItem value="week">Within a week</SelectItem>
-                      <SelectItem value="month">Within a month</SelectItem>
-                      <SelectItem value="planning">Still planning</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
 
-                <div>
-                  <Label className="text-gray-300 mb-2 block">Preferred Contact</Label>
-                  <Select 
-                    value={formData.contactPreference} 
-                    onValueChange={(value) => setFormData(prev => ({ ...prev, contactPreference: value }))}
-                  >
-                    <SelectTrigger className="form-field">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="phone">
-                        <div className="flex items-center gap-2">
-                          <Phone className="h-4 w-4" />
-                          Phone Call
-                        </div>
-                      </SelectItem>
-                      <SelectItem value="email">
-                        <div className="flex items-center gap-2">
-                          <Mail className="h-4 w-4" />
-                          Email
-                        </div>
-                      </SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-
-              <div>
-                <Label className="text-gray-300 mb-3 block">How would you like to connect?</Label>
-                <div className="space-y-3">
-                  <div className="flex items-start space-x-3">
-                    <Checkbox
-                      id="top3"
-                      checked={formData.routingType === 'top3'}
-                      onCheckedChange={(checked) => {
-                        if (checked) setFormData(prev => ({ ...prev, routingType: 'top3' }));
-                      }}
-                      className="mt-1"
-                    />
-                    <div>
-                      <label htmlFor="top3" className="text-white font-medium cursor-pointer">
-                        Match me with 3 top contractors (Recommended)
-                      </label>
-                      <p className="text-gray-400 text-sm">
-                        We'll select the best 3 contractors based on your project and location
-                      </p>
-                    </div>
-                  </div>
-                  
-                  <div className="flex items-start space-x-3">
-                    <Checkbox
-                      id="browse"
-                      checked={formData.routingType === 'browse'}
-                      onCheckedChange={(checked) => {
-                        if (checked) setFormData(prev => ({ ...prev, routingType: 'browse' }));
-                      }}
-                      className="mt-1"
-                    />
-                    <div>
-                      <label htmlFor="browse" className="text-white font-medium cursor-pointer">
-                        I want to browse contractors myself
-                      </label>
-                      <p className="text-gray-400 text-sm">
-                        View all contractors in your area and contact them directly
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <Button 
-                type="button" 
-                onClick={nextStep}
-                disabled={!formData.projectType || !formData.description}
-                className="w-full bg-orange-500 hover:bg-orange-600 glow-effect"
-              >
-                Continue
-              </Button>
-            </div>
+        <FormField
+          control={form.control}
+          name="timeline"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel className="text-gray-300">Project Timeline</FormLabel>
+              <Select onValueChange={field.onChange} defaultValue={field.value}>
+                <FormControl>
+                  <SelectTrigger className="bg-navy-700 border-navy-600 text-white">
+                    <SelectValue placeholder="When do you want to start?" />
+                  </SelectTrigger>
+                </FormControl>
+                <SelectContent className="bg-navy-700 border-navy-600">
+                  <SelectItem value="asap" className="text-white hover:bg-navy-600">As soon as possible</SelectItem>
+                  <SelectItem value="1-month" className="text-white hover:bg-navy-600">Within 1 month</SelectItem>
+                  <SelectItem value="3-months" className="text-white hover:bg-navy-600">Within 3 months</SelectItem>
+                  <SelectItem value="6-months" className="text-white hover:bg-navy-600">Within 6 months</SelectItem>
+                  <SelectItem value="planning" className="text-white hover:bg-navy-600">Just planning/getting quotes</SelectItem>
+                </SelectContent>
+              </Select>
+              <FormMessage />
+            </FormItem>
           )}
+        />
 
-          {/* Step 2: Contact Info (if not authenticated) */}
-          {step === 2 && !isAuthenticated && (
-            <div className="space-y-4">
-              <div className="text-center mb-6">
-                <h3 className="text-lg font-semibold text-white mb-2">Contact Information</h3>
-                <p className="text-gray-400 text-sm">
-                  We need your contact info to connect you with contractors
-                </p>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <Label className="text-gray-300 mb-2 block">First Name *</Label>
-                  <Input
-                    type="text"
-                    placeholder="John"
-                    value={formData.firstName}
-                    onChange={(e) => setFormData(prev => ({ ...prev, firstName: e.target.value }))}
-                    className="form-field"
-                    required
+        {!compact && (
+          <FormField
+            control={form.control}
+            name="projectDescription"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel className="text-gray-300">Project Description (Optional)</FormLabel>
+                <FormControl>
+                  <Textarea
+                    placeholder="Tell us more about your project..."
+                    {...field}
+                    className="bg-navy-700 border-navy-600 text-white placeholder-gray-400 min-h-[100px]"
                   />
-                </div>
-                <div>
-                  <Label className="text-gray-300 mb-2 block">Last Name *</Label>
-                  <Input
-                    type="text"
-                    placeholder="Smith"
-                    value={formData.lastName}
-                    onChange={(e) => setFormData(prev => ({ ...prev, lastName: e.target.value }))}
-                    className="form-field"
-                    required
-                  />
-                </div>
-              </div>
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        )}
 
-              <div>
-                <Label className="text-gray-300 mb-2 block">Phone Number *</Label>
-                <Input
-                  type="tel"
-                  placeholder="(555) 123-4567"
-                  value={formData.phone}
-                  onChange={(e) => setFormData(prev => ({ ...prev, phone: e.target.value }))}
-                  className="form-field"
-                  required
-                />
-              </div>
-
-              <div>
-                <Label className="text-gray-300 mb-2 block">Email Address *</Label>
-                <Input
-                  type="email"
-                  placeholder="john@example.com"
-                  value={formData.email}
-                  onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
-                  className="form-field"
-                  required
-                />
-              </div>
-
-              <div>
-                <Label className="text-gray-300 mb-2 block">ZIP Code *</Label>
-                <Input
-                  type="text"
-                  placeholder="90210"
-                  value={formData.zipCode}
-                  onChange={(e) => setFormData(prev => ({ ...prev, zipCode: e.target.value }))}
-                  className="form-field"
-                  maxLength={5}
-                  required
-                />
-              </div>
-
-              <div className="flex space-x-3">
-                <Button 
-                  type="button" 
-                  onClick={prevStep}
-                  variant="outline"
-                  className="flex-1 border-navy-500 text-white hover:bg-navy-600"
-                >
-                  Back
-                </Button>
-                <Button 
-                  type="button" 
-                  onClick={nextStep}
-                  disabled={!formData.firstName || !formData.lastName || !formData.phone || !formData.email || !formData.zipCode}
-                  className="flex-1 bg-orange-500 hover:bg-orange-600 glow-effect"
-                >
-                  Continue
-                </Button>
-              </div>
-            </div>
-          )}
-
-          {/* Final Step: Confirmation */}
-          {step === totalSteps && (
-            <div className="space-y-4">
-              <div className="text-center mb-6">
-                <h3 className="text-lg font-semibold text-white mb-2">Review & Submit</h3>
-                <p className="text-gray-400 text-sm">
-                  Please review your request before submitting
-                </p>
-              </div>
-
-              {/* Summary */}
-              <div className="bg-navy-600 rounded-lg p-4 space-y-3">
-                <div>
-                  <span className="text-gray-400 text-sm">Project:</span>
-                  <p className="text-white">{formData.projectType}</p>
-                </div>
-                <div>
-                  <span className="text-gray-400 text-sm">Description:</span>
-                  <p className="text-white text-sm">{formData.description}</p>
-                </div>
-                <div>
-                  <span className="text-gray-400 text-sm">Timeline:</span>
-                  <p className="text-white">{formData.urgency}</p>
-                </div>
-                {formData.routingType === 'top3' && (
-                  <div className="flex items-center gap-2 text-green-400 text-sm">
-                    <CheckCircle className="h-4 w-4" />
-                    We'll match you with 3 top contractors
-                  </div>
-                )}
-              </div>
-
-              {/* Terms Agreement */}
-              <div className="flex items-start space-x-3">
-                <Checkbox
-                  id="terms"
-                  checked={formData.agreedToTerms}
-                  onCheckedChange={(checked) => setFormData(prev => ({ ...prev, agreedToTerms: !!checked }))}
-                  className="mt-1"
-                />
-                <label htmlFor="terms" className="text-gray-400 text-sm cursor-pointer">
-                  I agree to be contacted by contractors regarding my project and accept the{' '}
-                  <a href="/terms" className="text-orange-500 hover:text-orange-400">
-                    Terms of Service
-                  </a>{' '}
-                  and{' '}
-                  <a href="/privacy" className="text-orange-500 hover:text-orange-400">
-                    Privacy Policy
-                  </a>
-                </label>
-              </div>
-
-              <div className="flex space-x-3">
-                <Button 
-                  type="button" 
-                  onClick={prevStep}
-                  variant="outline"
-                  className="flex-1 border-navy-500 text-white hover:bg-navy-600"
-                >
-                  Back
-                </Button>
-                <Button 
-                  type="submit"
-                  disabled={leadMutation.isPending || !formData.agreedToTerms}
-                  className="flex-1 bg-orange-500 hover:bg-orange-600 glow-effect"
-                >
-                  {leadMutation.isPending ? (
-                    'Submitting...'
-                  ) : formData.routingType === 'top3' ? (
-                    <>
-                      <Users className="h-4 w-4 mr-2" />
-                      Get My 3 Quotes
-                    </>
-                  ) : (
-                    'Submit Request'
-                  )}
-                </Button>
-              </div>
-            </div>
-          )}
-        </form>
-      </CardContent>
-    </Card>
+        <Button
+          type="submit"
+          className="w-full bg-orange-500 hover:bg-orange-600 text-white py-3 font-semibold glow-effect"
+          disabled={submitQuoteMutation.isPending}
+        >
+          {submitQuoteMutation.isPending ? "Submitting..." : "Get My Free Quotes"}
+        </Button>
+      </form>
+    </Form>
   );
 }

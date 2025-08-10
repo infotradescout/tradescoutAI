@@ -51,6 +51,7 @@ function Router() {
         <Route path="/contractors/accelerator" component={ContractorAccelerator} />
         <Route path="/contractors/:slug" component={ContractorProfile} />
         <Route path="/quote" component={EstimateCalculator} />
+        <Route path="/calculator" component={EstimateCalculator} />
         <Route path="/growth-pack" component={GrowthPack} />
         
         {!isAuthenticated ? (
