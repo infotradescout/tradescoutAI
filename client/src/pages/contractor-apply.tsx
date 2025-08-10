@@ -1,0 +1,461 @@
+import { useState } from "react";
+import { useMutation } from "@tanstack/react-query";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Badge } from "@/components/ui/badge";
+import { Check, FileText, Users, Star, ArrowRight, Shield, Phone, Mail, MapPin, Building, Calendar } from "lucide-react";
+import { apiRequest } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
+
+export default function ContractorApply() {
+  const { toast } = useToast();
+  const [formData, setFormData] = useState({
+    companyName: '',
+    contactName: '',
+    email: '',
+    phone: '',
+    address: '',
+    city: '',
+    state: '',
+    zipCode: '',
+    primaryTrade: '',
+    secondaryTrades: '',
+    licenseNumber: '',
+    insuranceAmount: '',
+    yearsInBusiness: '',
+    employeeCount: '',
+    serviceRadius: '',
+    website: '',
+    description: '',
+    hasLicense: false,
+    hasInsurance: false,
+    hasConsented: false,
+  });
+
+  const applicationMutation = useMutation({
+    mutationFn: async (data: any) => {
+      const response = await apiRequest('POST', '/api/contractors/apply', data);
+      return response.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: "Application Submitted!",
+        description: "We'll review your application and get back to you within 2-3 business days.",
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to submit application. Please try again.",
+        variant: "destructive",
+      });
+    }
+  });
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!formData.companyName || !formData.email || !formData.phone || !formData.primaryTrade) {
+      toast({
+        title: "Missing Information",
+        description: "Please fill in all required fields.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!formData.hasLicense || !formData.hasInsurance || !formData.hasConsented) {
+      toast({
+        title: "Requirements Not Met",
+        description: "Please confirm license, insurance, and consent requirements.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    applicationMutation.mutate(formData);
+  };
+
+  return (
+    <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+      <div className="text-center mb-12">
+        <h1 className="text-4xl font-bold text-white mb-4">Join Trade Scout's Contractor Network</h1>
+        <p className="text-xl text-gray-300 mb-6">Connect with qualified homeowners and grow your business</p>
+        
+        <div className="flex justify-center gap-6 mb-8">
+          <div className="flex items-center gap-2 text-gray-300">
+            <Users className="h-5 w-5 text-orange-500" />
+            <span>10,000+ Active Homeowners</span>
+          </div>
+          <div className="flex items-center gap-2 text-gray-300">
+            <Star className="h-5 w-5 text-orange-500" />
+            <span>Premium Lead Quality</span>
+          </div>
+          <div className="flex items-center gap-2 text-gray-300">
+            <Shield className="h-5 w-5 text-orange-500" />
+            <span>Verified Professional Network</span>
+          </div>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        {/* Application Form */}
+        <div className="lg:col-span-2">
+          <Card className="bg-navy-700 border-navy-600">
+            <CardHeader>
+              <CardTitle className="text-white text-xl flex items-center gap-2">
+                <FileText className="h-5 w-5" />
+                Contractor Application
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <form onSubmit={handleSubmit} className="space-y-6">
+                {/* Company Information */}
+                <div className="space-y-4">
+                  <h3 className="text-lg font-semibold text-white flex items-center gap-2">
+                    <Building className="h-5 w-5" />
+                    Company Information
+                  </h3>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <Label className="text-gray-300">Company Name *</Label>
+                      <Input
+                        value={formData.companyName}
+                        onChange={(e) => setFormData(prev => ({ ...prev, companyName: e.target.value }))}
+                        className="form-field"
+                        placeholder="Your Company LLC"
+                      />
+                    </div>
+                    <div>
+                      <Label className="text-gray-300">Contact Name *</Label>
+                      <Input
+                        value={formData.contactName}
+                        onChange={(e) => setFormData(prev => ({ ...prev, contactName: e.target.value }))}
+                        className="form-field"
+                        placeholder="John Smith"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <Label className="text-gray-300">Email *</Label>
+                      <Input
+                        type="email"
+                        value={formData.email}
+                        onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
+                        className="form-field"
+                        placeholder="john@company.com"
+                      />
+                    </div>
+                    <div>
+                      <Label className="text-gray-300">Phone *</Label>
+                      <Input
+                        type="tel"
+                        value={formData.phone}
+                        onChange={(e) => setFormData(prev => ({ ...prev, phone: e.target.value }))}
+                        className="form-field"
+                        placeholder="(555) 123-4567"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <Label className="text-gray-300">Business Address</Label>
+                    <Input
+                      value={formData.address}
+                      onChange={(e) => setFormData(prev => ({ ...prev, address: e.target.value }))}
+                      className="form-field"
+                      placeholder="123 Main Street"
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                      <Label className="text-gray-300">City</Label>
+                      <Input
+                        value={formData.city}
+                        onChange={(e) => setFormData(prev => ({ ...prev, city: e.target.value }))}
+                        className="form-field"
+                        placeholder="Los Angeles"
+                      />
+                    </div>
+                    <div>
+                      <Label className="text-gray-300">State</Label>
+                      <Select value={formData.state} onValueChange={(value) => setFormData(prev => ({ ...prev, state: value }))}>
+                        <SelectTrigger className="form-field">
+                          <SelectValue placeholder="Select state" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="CA">California</SelectItem>
+                          <SelectItem value="TX">Texas</SelectItem>
+                          <SelectItem value="FL">Florida</SelectItem>
+                          <SelectItem value="NY">New York</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <Label className="text-gray-300">ZIP Code</Label>
+                      <Input
+                        value={formData.zipCode}
+                        onChange={(e) => setFormData(prev => ({ ...prev, zipCode: e.target.value }))}
+                        className="form-field"
+                        placeholder="90210"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Trade Information */}
+                <div className="space-y-4">
+                  <h3 className="text-lg font-semibold text-white">Trade Specialization</h3>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <Label className="text-gray-300">Primary Trade *</Label>
+                      <Select value={formData.primaryTrade} onValueChange={(value) => setFormData(prev => ({ ...prev, primaryTrade: value }))}>
+                        <SelectTrigger className="form-field">
+                          <SelectValue placeholder="Select primary trade" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="roofing">Roofing</SelectItem>
+                          <SelectItem value="plumbing">Plumbing</SelectItem>
+                          <SelectItem value="electrical">Electrical</SelectItem>
+                          <SelectItem value="hvac">HVAC</SelectItem>
+                          <SelectItem value="flooring">Flooring</SelectItem>
+                          <SelectItem value="general">General Contracting</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <Label className="text-gray-300">Secondary Trades</Label>
+                      <Input
+                        value={formData.secondaryTrades}
+                        onChange={(e) => setFormData(prev => ({ ...prev, secondaryTrades: e.target.value }))}
+                        className="form-field"
+                        placeholder="e.g., Electrical, Plumbing"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <Label className="text-gray-300">License Number</Label>
+                      <Input
+                        value={formData.licenseNumber}
+                        onChange={(e) => setFormData(prev => ({ ...prev, licenseNumber: e.target.value }))}
+                        className="form-field"
+                        placeholder="License #"
+                      />
+                    </div>
+                    <div>
+                      <Label className="text-gray-300">Service Radius (miles)</Label>
+                      <Input
+                        type="number"
+                        value={formData.serviceRadius}
+                        onChange={(e) => setFormData(prev => ({ ...prev, serviceRadius: e.target.value }))}
+                        className="form-field"
+                        placeholder="25"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Business Details */}
+                <div className="space-y-4">
+                  <h3 className="text-lg font-semibold text-white">Business Details</h3>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                      <Label className="text-gray-300">Years in Business</Label>
+                      <Input
+                        type="number"
+                        value={formData.yearsInBusiness}
+                        onChange={(e) => setFormData(prev => ({ ...prev, yearsInBusiness: e.target.value }))}
+                        className="form-field"
+                        placeholder="5"
+                      />
+                    </div>
+                    <div>
+                      <Label className="text-gray-300">Number of Employees</Label>
+                      <Input
+                        type="number"
+                        value={formData.employeeCount}
+                        onChange={(e) => setFormData(prev => ({ ...prev, employeeCount: e.target.value }))}
+                        className="form-field"
+                        placeholder="10"
+                      />
+                    </div>
+                    <div>
+                      <Label className="text-gray-300">Insurance Amount</Label>
+                      <Input
+                        value={formData.insuranceAmount}
+                        onChange={(e) => setFormData(prev => ({ ...prev, insuranceAmount: e.target.value }))}
+                        className="form-field"
+                        placeholder="$1,000,000"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <Label className="text-gray-300">Website (optional)</Label>
+                    <Input
+                      type="url"
+                      value={formData.website}
+                      onChange={(e) => setFormData(prev => ({ ...prev, website: e.target.value }))}
+                      className="form-field"
+                      placeholder="https://yourcompany.com"
+                    />
+                  </div>
+
+                  <div>
+                    <Label className="text-gray-300">Company Description</Label>
+                    <Textarea
+                      value={formData.description}
+                      onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
+                      className="form-field"
+                      rows={4}
+                      placeholder="Tell us about your company, experience, and what sets you apart..."
+                    />
+                  </div>
+                </div>
+
+                {/* Requirements */}
+                <div className="space-y-4">
+                  <h3 className="text-lg font-semibold text-white">Requirements</h3>
+                  
+                  <div className="space-y-3">
+                    <div className="flex items-center space-x-2">
+                      <Checkbox 
+                        id="license"
+                        checked={formData.hasLicense}
+                        onCheckedChange={(checked) => setFormData(prev => ({ ...prev, hasLicense: !!checked }))}
+                      />
+                      <Label htmlFor="license" className="text-gray-300">
+                        I have a valid business license for my trade
+                      </Label>
+                    </div>
+                    
+                    <div className="flex items-center space-x-2">
+                      <Checkbox 
+                        id="insurance"
+                        checked={formData.hasInsurance}
+                        onCheckedChange={(checked) => setFormData(prev => ({ ...prev, hasInsurance: !!checked }))}
+                      />
+                      <Label htmlFor="insurance" className="text-gray-300">
+                        I have general liability insurance (minimum $500,000)
+                      </Label>
+                    </div>
+                    
+                    <div className="flex items-center space-x-2">
+                      <Checkbox 
+                        id="consent"
+                        checked={formData.hasConsented}
+                        onCheckedChange={(checked) => setFormData(prev => ({ ...prev, hasConsented: !!checked }))}
+                      />
+                      <Label htmlFor="consent" className="text-gray-300">
+                        I agree to Trade Scout's terms and contractor guidelines
+                      </Label>
+                    </div>
+                  </div>
+                </div>
+
+                <Button 
+                  type="submit"
+                  disabled={applicationMutation.isPending}
+                  className="w-full bg-orange-500 hover:bg-orange-600 text-white py-3 rounded-lg font-semibold glow-effect transition-all duration-300"
+                >
+                  {applicationMutation.isPending ? 'Submitting Application...' : 'Submit Application'}
+                  <ArrowRight className="h-4 w-4 ml-2" />
+                </Button>
+              </form>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Benefits Sidebar */}
+        <div className="space-y-6">
+          <Card className="bg-navy-700 border-navy-600">
+            <CardHeader>
+              <CardTitle className="text-white text-lg">Why Join Trade Scout?</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex items-start gap-3">
+                <div className="w-8 h-8 bg-orange-500 rounded-full flex items-center justify-center flex-shrink-0">
+                  <Users className="h-4 w-4 text-white" />
+                </div>
+                <div>
+                  <h4 className="text-white font-semibold">Quality Leads</h4>
+                  <p className="text-gray-300 text-sm">Pre-qualified homeowners ready to hire</p>
+                </div>
+              </div>
+              
+              <div className="flex items-start gap-3">
+                <div className="w-8 h-8 bg-orange-500 rounded-full flex items-center justify-center flex-shrink-0">
+                  <MapPin className="h-4 w-4 text-white" />
+                </div>
+                <div>
+                  <h4 className="text-white font-semibold">Local Focus</h4>
+                  <p className="text-gray-300 text-sm">County-based lead routing in your service area</p>
+                </div>
+              </div>
+              
+              <div className="flex items-start gap-3">
+                <div className="w-8 h-8 bg-orange-500 rounded-full flex items-center justify-center flex-shrink-0">
+                  <Shield className="h-4 w-4 text-white" />
+                </div>
+                <div>
+                  <h4 className="text-white font-semibold">Professional Network</h4>
+                  <p className="text-gray-300 text-sm">Join verified, licensed contractors</p>
+                </div>
+              </div>
+              
+              <div className="flex items-start gap-3">
+                <div className="w-8 h-8 bg-orange-500 rounded-full flex items-center justify-center flex-shrink-0">
+                  <Star className="h-4 w-4 text-white" />
+                </div>
+                <div>
+                  <h4 className="text-white font-semibold">Build Your Reputation</h4>
+                  <p className="text-gray-300 text-sm">Customer reviews and ratings system</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-gradient-to-r from-orange-500/20 to-orange-600/20 border-orange-500/30">
+            <CardContent className="p-6">
+              <h3 className="text-lg font-semibold text-white mb-2">Application Process</h3>
+              <div className="space-y-3 text-sm">
+                <div className="flex items-center gap-2">
+                  <div className="w-6 h-6 bg-orange-500 rounded-full flex items-center justify-center text-white text-xs">1</div>
+                  <span className="text-gray-300">Submit application</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-6 h-6 bg-orange-500 rounded-full flex items-center justify-center text-white text-xs">2</div>
+                  <span className="text-gray-300">Document verification</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-6 h-6 bg-orange-500 rounded-full flex items-center justify-center text-white text-xs">3</div>
+                  <span className="text-gray-300">Background check</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-6 h-6 bg-orange-500 rounded-full flex items-center justify-center text-white text-xs">4</div>
+                  <span className="text-gray-300">Welcome to network</span>
+                </div>
+              </div>
+              <p className="text-gray-300 text-xs mt-4">
+                Typical approval time: 2-3 business days
+              </p>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    </div>
+  );
+}

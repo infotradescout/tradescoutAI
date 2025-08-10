@@ -309,6 +309,60 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Contractor application submission
+  app.post("/api/contractors/apply", async (req, res) => {
+    try {
+      const applicationData = req.body;
+      
+      // Store application (mock for now)
+      const application = {
+        id: Date.now().toString(),
+        ...applicationData,
+        status: 'pending',
+        submittedAt: new Date(),
+      };
+      
+      // In production, this would save to database and trigger verification workflow
+      console.log('New contractor application:', application);
+      
+      res.json({ 
+        message: "Application submitted successfully",
+        applicationId: application.id,
+        status: 'pending'
+      });
+    } catch (error) {
+      console.error("Error submitting contractor application:", error);
+      res.status(500).json({ message: "Failed to submit application" });
+    }
+  });
+
+  // Accelerator enrollment
+  app.post("/api/accelerator/enroll", async (req, res) => {
+    try {
+      const { planType } = req.body;
+      
+      // Store enrollment (mock for now)
+      const enrollment = {
+        id: Date.now().toString(),
+        planType,
+        enrolledAt: new Date(),
+        status: 'pending_payment'
+      };
+      
+      // In production, this would integrate with Stripe for payment processing
+      console.log('New accelerator enrollment:', enrollment);
+      
+      res.json({ 
+        message: "Enrollment initiated successfully",
+        enrollmentId: enrollment.id,
+        status: 'pending_payment'
+      });
+    } catch (error) {
+      console.error("Error processing accelerator enrollment:", error);
+      res.status(500).json({ message: "Failed to process enrollment" });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }

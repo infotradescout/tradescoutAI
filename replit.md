@@ -1,6 +1,14 @@
 # Overview
 
-Trade Scout is a full-stack contractor marketplace platform built with React, Node.js/Express, and PostgreSQL. The application connects homeowners with verified local contractors, featuring county-centric contractor boards, quote calculators, recommendation systems, and comprehensive admin tools. The platform includes both public-facing features for homeowners seeking contractors and private dashboards for contractors and administrators.
+Trade Scout is a full-stack contractor marketplace platform built with React, Node.js/Express, and PostgreSQL. The application connects homeowners with verified local contractors, featuring county-centric contractor boards, estimate calculators, recommendation systems, and comprehensive admin tools. The platform includes both public-facing features for homeowners seeking contractors and private dashboards for contractors and administrators.
+
+## Recent Changes (August 2025)
+- ✅ **Restored Missing Pages**: Added contractor application page (/contractors/apply) and Accelerator program page (/contractors/accelerator)
+- ✅ **Enhanced Navigation**: Created comprehensive navigation component with role-based menu items
+- ✅ **Simplified Estimate Calculator**: Streamlined to core fields (Project Type, Square Footage, Timeline) for better UX
+- ✅ **Fixed Routing**: Connected Growth Pack and contractor dashboard links to proper application/accelerator pages
+- ✅ **Added API Endpoints**: Implemented contractor application submission and Accelerator enrollment endpoints
+- ✅ **Terminology Updates**: Changed "Quote" to "Estimate" throughout platform while preserving key phrases like "Get 3 Free Quotes"
 
 # User Preferences
 

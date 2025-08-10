@@ -25,6 +25,7 @@ import {
   ArrowRight,
   Settings
 } from "lucide-react";
+import { Link } from "wouter";
 
 interface DashboardData {
   contractor: any;
@@ -412,10 +413,12 @@ export default function ContractorDashboard() {
                   <p className="text-gray-300 text-sm mb-4">
                     Join Accelerator for priority lead access and advanced tools.
                   </p>
-                  <Button className="w-full bg-orange-500 hover:bg-orange-600 glow-effect">
-                    Learn More
-                    <ArrowRight className="h-4 w-4 ml-2" />
-                  </Button>
+                  <Link href="/contractors/accelerator">
+                    <Button className="w-full bg-orange-500 hover:bg-orange-600 glow-effect">
+                      Learn More
+                      <ArrowRight className="h-4 w-4 ml-2" />
+                    </Button>
+                  </Link>
                 </CardContent>
               </Card>
             </div>

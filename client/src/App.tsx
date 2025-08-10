@@ -16,6 +16,8 @@ import ContractorBoard from "@/pages/contractor-board";
 import ContractorProfile from "@/pages/contractor-profile";
 import EstimateCalculator from "@/pages/quote-calculator";
 import GrowthPack from "@/pages/growth-pack";
+import ContractorApply from "@/pages/contractor-apply";
+import ContractorAccelerator from "@/pages/contractor-accelerator";
 import ContractorDashboard from "@/pages/contractor-dashboard";
 import AdminWorkspace from "@/pages/admin-workspace";
 
@@ -41,6 +43,8 @@ function Router() {
           <>
             <Route path="/" component={Landing} />
             <Route path="/contractors/board" component={ContractorBoard} />
+            <Route path="/contractors/apply" component={ContractorApply} />
+            <Route path="/contractors/accelerator" component={ContractorAccelerator} />
             <Route path="/contractors/:slug" component={ContractorProfile} />
             <Route path="/quote" component={EstimateCalculator} />
             <Route path="/growth-pack" component={GrowthPack} />
@@ -49,6 +53,8 @@ function Router() {
           <>
             <Route path="/" component={Home} />
             <Route path="/contractors/board" component={ContractorBoard} />
+            <Route path="/contractors/apply" component={ContractorApply} />
+            <Route path="/contractors/accelerator" component={ContractorAccelerator} />
             <Route path="/contractors/:slug" component={ContractorProfile} />
             <Route path="/quote" component={EstimateCalculator} />
             <Route path="/growth-pack" component={GrowthPack} />

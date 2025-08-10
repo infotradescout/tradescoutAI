@@ -97,7 +97,7 @@ export default function GrowthPack() {
                   Apply to Board
                 </Button>
               </Link>
-              <Link href="#accelerator">
+              <Link href="/contractors/accelerator">
                 <Button variant="outline" className="w-full border-orange-500 text-orange-500 hover:bg-orange-500 hover:text-white">
                   View Accelerator
                 </Button>
