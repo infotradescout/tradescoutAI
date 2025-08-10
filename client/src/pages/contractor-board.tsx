@@ -8,7 +8,8 @@ import { Input } from "@/components/ui/input";
 import ContractorCard from "@/components/contractor-card";
 import ContractorCardSkeleton from "@/components/contractor-card-skeleton";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
-import { MapPin, Search, Filter, SlidersHorizontal } from "lucide-react";
+import { MapPin, Search, Filter, SlidersHorizontal, Plus, Users, Star } from "lucide-react";
+import { Link } from "wouter";
 import type { Contractor, County, Trade } from "@shared/schema";
 
 export default function ContractorBoard() {
@@ -82,6 +83,46 @@ export default function ContractorBoard() {
         <h1 className="text-3xl font-bold text-white mb-2">Find Contractors</h1>
         <p className="text-gray-300">Discover verified contractors in your area</p>
       </div>
+
+      {/* Contractor Signup CTA */}
+      <Card className="bg-gradient-to-r from-orange-500/20 to-orange-600/20 border-orange-500/30 mb-8">
+        <CardContent className="p-6">
+          <div className="flex flex-col md:flex-row items-center justify-between gap-4">
+            <div className="text-center md:text-left">
+              <h3 className="text-xl font-semibold text-white mb-2 flex items-center gap-2 justify-center md:justify-start">
+                <Users className="h-5 w-5" />
+                Are you a contractor?
+              </h3>
+              <p className="text-gray-300 text-sm">
+                Join Trade Scout and get connected with homeowners looking for your services
+              </p>
+              <div className="flex items-center gap-4 mt-3 text-sm text-gray-400 justify-center md:justify-start">
+                <div className="flex items-center gap-1">
+                  <Star className="h-4 w-4 text-yellow-500" />
+                  <span>Build your reputation</span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <MapPin className="h-4 w-4 text-blue-500" />
+                  <span>Serve your county</span>
+                </div>
+              </div>
+            </div>
+            <div className="flex flex-col sm:flex-row gap-3">
+              <Link href="/growth-pack">
+                <Button className="bg-orange-500 hover:bg-orange-600 text-white px-6 py-2 glow-effect">
+                  <Plus className="h-4 w-4 mr-2" />
+                  Join Growth Pack
+                </Button>
+              </Link>
+              <Link href="/contractors/accelerator">
+                <Button variant="outline" className="border-orange-500 text-orange-500 hover:bg-orange-500 hover:text-white px-6 py-2">
+                  Learn About Accelerator
+                </Button>
+              </Link>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Search and Filters */}
       <div className="mb-8 space-y-4">
