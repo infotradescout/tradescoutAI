@@ -1,15 +1,24 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Check, Crown, Zap, Target, BarChart3, Users, Star, ArrowRight, Phone, Mail, MessageCircle } from "lucide-react";
+import { Check, Crown, Zap, Target, BarChart3, Users, Star, ArrowRight, Phone, Mail, MessageCircle, Shield } from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 
 export default function ContractorAccelerator() {
+  const { user, isAuthenticated, isLoading } = useAuth();
   const { toast } = useToast();
   const [selectedPlan, setSelectedPlan] = useState<'monthly' | 'annual'>('monthly');
+  const [showVerificationRequired, setShowVerificationRequired] = useState(false);
+
+  useEffect(() => {
+    if (!isLoading && isAuthenticated && user && user.role === 'contractor_user' && user.verificationStatus !== 'verified') {
+      setShowVerificationRequired(true);
+    }
+  }, [isAuthenticated, user, isLoading]);
 
   const enrollMutation = useMutation({
     mutationFn: async (planType: string) => {
@@ -34,6 +43,72 @@ export default function ContractorAccelerator() {
   const handleEnroll = (planType: string) => {
     enrollMutation.mutate(planType);
   };
+
+  // Show verification required message for unverified contractors
+  if (!isLoading && isAuthenticated && user && user.role === 'contractor_user' && user.verificationStatus !== 'verified') {
+    return (
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+        <Card className="bg-amber-900/20 border-amber-500/50">
+          <CardContent className="p-12 text-center">
+            <div className="w-20 h-20 bg-amber-500 rounded-full flex items-center justify-center mx-auto mb-6">
+              <Shield className="h-10 w-10 text-white" />
+            </div>
+            <h2 className="text-3xl font-bold text-white mb-4">Verification Required</h2>
+            <p className="text-gray-300 mb-8 max-w-2xl mx-auto">
+              To join the Accelerator program, you need to be a verified contractor. Complete your verification process first.
+            </p>
+            
+            <div className="space-y-4">
+              <Button 
+                onClick={() => window.location.href = '/contractors/apply'}
+                className="bg-orange-500 hover:bg-orange-600 text-white px-8 py-3"
+              >
+                Complete Verification
+              </Button>
+              <p className="text-sm text-gray-400">
+                Already submitted? We'll review your application within 2-3 business days.
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  // Show authentication required for guests
+  if (!isLoading && !isAuthenticated) {
+    return (
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+        <Card className="bg-navy-800 border-navy-700">
+          <CardContent className="p-12 text-center">
+            <div className="w-20 h-20 bg-orange-500 rounded-full flex items-center justify-center mx-auto mb-6">
+              <Crown className="h-10 w-10 text-white" />
+            </div>
+            <h2 className="text-3xl font-bold text-white mb-4">Contractor Account Required</h2>
+            <p className="text-gray-300 mb-8 max-w-2xl mx-auto">
+              The Accelerator program is exclusively for verified contractors. Create your contractor account to get started.
+            </p>
+            
+            <div className="space-y-4">
+              <Button 
+                onClick={() => window.location.href = '/register'}
+                className="bg-orange-500 hover:bg-orange-600 text-white px-8 py-3"
+              >
+                Create Contractor Account
+              </Button>
+              <Button 
+                onClick={() => window.location.href = '/login'}
+                variant="outline"
+                className="border-navy-600 text-gray-200 hover:bg-navy-700 px-8 py-3"
+              >
+                Sign In
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">

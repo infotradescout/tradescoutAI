@@ -637,11 +637,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Growth Pack download (no auth required initially)
-  app.post("/api/growth-pack", async (req, res) => {
+  // Growth Pack download (requires contractor account)
+  app.post("/api/growth-pack", isAuthenticated, async (req: any, res) => {
     try {
+      const userId = req.user?.id;
+      const user = await storage.getUser(userId);
+      
+      if (!user) {
+        return res.status(401).json({ message: "User not found" });
+      }
+
       const downloadToken = randomUUID();
-      const downloadData = { ...req.body, downloadToken };
+      const downloadData = { ...req.body, downloadToken, userId };
       
       const validatedDownload = insertGrowthPackDownloadSchema.parse(downloadData);
       const download = await storage.createGrowthPackDownload(validatedDownload);
@@ -649,6 +656,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       await storage.logEvent('growth_pack_requested', {
         email: download.email,
         companyName: download.companyName,
+        userId: userId,
       });
 
       res.json({ 
@@ -767,9 +775,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Contractor application submission
-  app.post("/api/contractors/apply", async (req, res) => {
+  app.post("/api/contractors/apply", isAuthenticated, async (req: any, res) => {
     try {
-      const applicationData = req.body;
+      const userId = req.user?.id;
+      const user = await storage.getUser(userId);
+      
+      if (!user) {
+        return res.status(401).json({ message: "User not found" });
+      }
+
+      const applicationData = { ...req.body, userId };
       
       // Store application (mock for now)
       const application = {
@@ -794,13 +809,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Accelerator enrollment
-  app.post("/api/accelerator/enroll", async (req, res) => {
+  app.post("/api/accelerator/enroll", isAuthenticated, async (req: any, res) => {
     try {
+      const userId = req.user?.id;
+      const user = await storage.getUser(userId);
+      
+      if (!user) {
+        return res.status(401).json({ message: "User not found" });
+      }
+
+      // Check if user is a verified contractor
+      if (user.role !== 'contractor_user') {
+        return res.status(403).json({ message: "Only contractors can join the Accelerator program" });
+      }
+
+      if (user.verificationStatus !== 'verified') {
+        return res.status(403).json({ message: "Contractor verification required to join Accelerator program" });
+      }
+
       const { planType } = req.body;
       
       // Store enrollment (mock for now)
       const enrollment = {
         id: Date.now().toString(),
+        userId,
         planType,
         enrolledAt: new Date(),
         status: 'pending_payment'

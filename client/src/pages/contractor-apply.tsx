@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -9,10 +9,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { Check, FileText, Users, Star, ArrowRight, Shield, Phone, Mail, MapPin, Building, Calendar } from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
+import { GuestGate } from "@/components/guest-gate";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 
 export default function ContractorApply() {
+  const { user, isAuthenticated, isLoading } = useAuth();
   const { toast } = useToast();
   const [formData, setFormData] = useState({
     companyName: '',
@@ -80,6 +83,31 @@ export default function ContractorApply() {
 
     applicationMutation.mutate(formData);
   };
+
+  // Show authentication required for guests
+  if (!isLoading && !isAuthenticated) {
+    return (
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+        <GuestGate
+          action="apply to the contractor board"
+          title="Create Contractor Account to Apply"
+          description="Join Trade Scout's verified contractor network and start receiving quality leads."
+        >
+          <Card className="bg-navy-800 border-navy-700">
+            <CardContent className="p-12 text-center">
+              <div className="w-20 h-20 bg-orange-500 rounded-full flex items-center justify-center mx-auto mb-6">
+                <Shield className="h-10 w-10 text-white" />
+              </div>
+              <h2 className="text-3xl font-bold text-white mb-4">Apply to Join Trade Scout</h2>
+              <p className="text-gray-300 mb-8 max-w-2xl mx-auto">
+                Join thousands of verified contractors growing their business with Trade Scout.
+              </p>
+            </CardContent>
+          </Card>
+        </GuestGate>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-12">

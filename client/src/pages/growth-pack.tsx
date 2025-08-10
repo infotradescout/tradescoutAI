@@ -8,10 +8,13 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { Download, Check, ArrowRight, Gift, Users, TrendingUp, Target } from "lucide-react";
 import { Link } from "wouter";
+import { useAuth } from "@/hooks/useAuth";
+import { GuestGate } from "@/components/guest-gate";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 
 export default function GrowthPack() {
+  const { isAuthenticated } = useAuth();
   const { toast } = useToast();
   const [formData, setFormData] = useState({
     email: '',
@@ -186,14 +189,19 @@ export default function GrowthPack() {
 
             {/* Right: Sign Up Form */}
             <div>
-              <Card className="bg-navy-600 border-navy-500">
-                <CardContent className="p-6">
-                  <h3 className="text-xl font-semibold text-white mb-6 flex items-center gap-2">
-                    <Download className="h-5 w-5" />
-                    Get Your FREE Growth Pack
-                  </h3>
-                  
-                  <form onSubmit={handleSubmit} className="space-y-4">
+              <GuestGate
+                action="download the free Growth Pack"
+                title="Create Account to Download Growth Pack"
+                description="Create a contractor account to access our comprehensive business growth resources."
+              >
+                <Card className="bg-navy-600 border-navy-500">
+                  <CardContent className="p-6">
+                    <h3 className="text-xl font-semibold text-white mb-6 flex items-center gap-2">
+                      <Download className="h-5 w-5" />
+                      Get Your FREE Growth Pack
+                    </h3>
+                    
+                    <form onSubmit={handleSubmit} className="space-y-4">
                     <div>
                       <Input
                         type="email"
@@ -291,9 +299,10 @@ export default function GrowthPack() {
                         </>
                       )}
                     </Button>
-                  </form>
-                </CardContent>
-              </Card>
+                    </form>
+                  </CardContent>
+                </Card>
+              </GuestGate>
             </div>
           </div>
         </CardContent>
