@@ -13,6 +13,11 @@ import {
   contractorCounties,
   leadAssignments,
   verificationDocuments,
+  conversations,
+  messages,
+  quotes,
+  schedules,
+  materialLists,
   type User,
   type InsertUser,
   type UpsertUser,
@@ -32,6 +37,16 @@ import {
   type InsertAcceleratorMembership,
   type PricingData,
   type InsertPricingData,
+  type Conversation,
+  type InsertConversation,
+  type Message,
+  type InsertMessage,
+  type Quote,
+  type InsertQuote,
+  type Schedule,
+  type InsertSchedule,
+  type MaterialList,
+  type InsertMaterialList,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, desc, asc, sql, inArray, like, gt } from "drizzle-orm";
@@ -93,6 +108,37 @@ export interface IStorage {
   // Analytics operations
   logEvent(eventType: string, data: any): Promise<void>;
   getEventStats(eventType: string, dateRange?: { from: Date; to: Date }): Promise<number>;
+
+  // Chat system operations
+  // Conversations
+  createConversation(conversation: InsertConversation): Promise<Conversation>;
+  getConversation(id: string): Promise<Conversation | undefined>;
+  getConversationsByUser(userId: string, userType: 'homeowner' | 'contractor'): Promise<Conversation[]>;
+  updateConversation(id: string, updates: Partial<Conversation>): Promise<Conversation>;
+  rateConversation(id: string, rating: number, feedback: string, raterType: 'homeowner' | 'contractor'): Promise<Conversation>;
+  
+  // Messages
+  createMessage(message: InsertMessage): Promise<Message>;
+  getMessagesByConversation(conversationId: string): Promise<Message[]>;
+  markMessageAsRead(messageId: string): Promise<Message>;
+  
+  // Quotes
+  createQuote(quote: InsertQuote): Promise<Quote>;
+  getQuote(id: string): Promise<Quote | undefined>;
+  getQuotesByConversation(conversationId: string): Promise<Quote[]>;
+  updateQuote(id: string, updates: Partial<Quote>): Promise<Quote>;
+  
+  // Schedules
+  createSchedule(schedule: InsertSchedule): Promise<Schedule>;
+  getSchedule(id: string): Promise<Schedule | undefined>;
+  getSchedulesByConversation(conversationId: string): Promise<Schedule[]>;
+  updateSchedule(id: string, updates: Partial<Schedule>): Promise<Schedule>;
+  
+  // Material Lists
+  createMaterialList(materialList: InsertMaterialList): Promise<MaterialList>;
+  getMaterialList(id: string): Promise<MaterialList | undefined>;
+  getMaterialListsByConversation(conversationId: string): Promise<MaterialList[]>;
+  updateMaterialList(id: string, updates: Partial<MaterialList>): Promise<MaterialList>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -446,6 +492,163 @@ export class DatabaseStorage implements IStorage {
     
     const [result] = await query;
     return result?.count || 0;
+  }
+
+  // Chat system implementations
+  // Conversations
+  async createConversation(conversationData: InsertConversation): Promise<Conversation> {
+    const [conversation] = await db.insert(conversations).values(conversationData).returning();
+    return conversation;
+  }
+
+  async getConversation(id: string): Promise<Conversation | undefined> {
+    const [conversation] = await db.select().from(conversations).where(eq(conversations.id, id));
+    return conversation;
+  }
+
+  async getConversationsByUser(userId: string, userType: 'homeowner' | 'contractor'): Promise<Conversation[]> {
+    const userField = userType === 'homeowner' ? conversations.homeownerId : conversations.contractorId;
+    return await db
+      .select()
+      .from(conversations)
+      .where(eq(userField, userId))
+      .orderBy(desc(conversations.lastMessageAt));
+  }
+
+  async updateConversation(id: string, updates: Partial<Conversation>): Promise<Conversation> {
+    const [conversation] = await db
+      .update(conversations)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(conversations.id, id))
+      .returning();
+    return conversation;
+  }
+
+  async rateConversation(id: string, rating: number, feedback: string, raterType: 'homeowner' | 'contractor'): Promise<Conversation> {
+    const updateData = raterType === 'homeowner' 
+      ? { homeownerRating: rating, homeownerFeedback: feedback }
+      : { contractorRating: rating, contractorFeedback: feedback };
+    
+    const [conversation] = await db
+      .update(conversations)
+      .set({ ...updateData, updatedAt: new Date() })
+      .where(eq(conversations.id, id))
+      .returning();
+    return conversation;
+  }
+
+  // Messages
+  async createMessage(messageData: InsertMessage): Promise<Message> {
+    const [message] = await db.insert(messages).values(messageData).returning();
+    
+    // Update conversation last message timestamp
+    await db
+      .update(conversations)
+      .set({ lastMessageAt: new Date() })
+      .where(eq(conversations.id, messageData.conversationId));
+    
+    return message;
+  }
+
+  async getMessagesByConversation(conversationId: string): Promise<Message[]> {
+    return await db
+      .select()
+      .from(messages)
+      .where(eq(messages.conversationId, conversationId))
+      .orderBy(asc(messages.createdAt));
+  }
+
+  async markMessageAsRead(messageId: string): Promise<Message> {
+    const [message] = await db
+      .update(messages)
+      .set({ readAt: new Date() })
+      .where(eq(messages.id, messageId))
+      .returning();
+    return message;
+  }
+
+  // Quotes
+  async createQuote(quoteData: InsertQuote): Promise<Quote> {
+    const [quote] = await db.insert(quotes).values(quoteData).returning();
+    return quote;
+  }
+
+  async getQuote(id: string): Promise<Quote | undefined> {
+    const [quote] = await db.select().from(quotes).where(eq(quotes.id, id));
+    return quote;
+  }
+
+  async getQuotesByConversation(conversationId: string): Promise<Quote[]> {
+    return await db
+      .select()
+      .from(quotes)
+      .where(eq(quotes.conversationId, conversationId))
+      .orderBy(desc(quotes.createdAt));
+  }
+
+  async updateQuote(id: string, updates: Partial<Quote>): Promise<Quote> {
+    const [quote] = await db
+      .update(quotes)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(quotes.id, id))
+      .returning();
+    return quote;
+  }
+
+  // Schedules
+  async createSchedule(scheduleData: InsertSchedule): Promise<Schedule> {
+    const [schedule] = await db.insert(schedules).values(scheduleData).returning();
+    return schedule;
+  }
+
+  async getSchedule(id: string): Promise<Schedule | undefined> {
+    const [schedule] = await db.select().from(schedules).where(eq(schedules.id, id));
+    return schedule;
+  }
+
+  async getSchedulesByConversation(conversationId: string): Promise<Schedule[]> {
+    return await db
+      .select()
+      .from(schedules)
+      .where(eq(schedules.conversationId, conversationId))
+      .orderBy(desc(schedules.createdAt));
+  }
+
+  async updateSchedule(id: string, updates: Partial<Schedule>): Promise<Schedule> {
+    const [schedule] = await db
+      .update(schedules)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(schedules.id, id))
+      .returning();
+    return schedule;
+  }
+
+  // Material Lists
+  async createMaterialList(materialListData: InsertMaterialList): Promise<MaterialList> {
+    const [materialList] = await db.insert(materialLists).values(materialListData).returning();
+    return materialList;
+  }
+
+  async getMaterialList(id: string): Promise<MaterialList | undefined> {
+    const [materialList] = await db.select().from(materialLists).where(eq(materialLists.id, id));
+    return materialList;
+  }
+
+  async getMaterialListsByConversation(conversationId: string): Promise<MaterialList[]> {
+    return await db
+      .select()
+      .from(materialLists)
+      .where(eq(materialLists.conversationId, conversationId))
+      .orderBy(desc(materialLists.createdAt));
+  }
+
+  async updateMaterialList(id: string, updates: Partial<MaterialList>): Promise<MaterialList> {
+    const [materialList] = await db
+      .update(materialLists)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(materialLists.id, id))
+      .returning();
+    return materialList;
   }
 }
 

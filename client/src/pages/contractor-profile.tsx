@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Star, Phone, Mail, MapPin, Calendar, Clock, Shield, CheckCircle, ExternalLink } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
+import { ChatButton } from "@/components/ChatButton";
 import type { Contractor, Recommendation } from "@shared/schema";
 
 interface ContractorProfileData {
@@ -106,6 +107,11 @@ export default function ContractorProfile() {
             </div>
             
             <div className="flex flex-col space-y-3">
+              <ChatButton 
+                contractorId={contractor.id}
+                className="bg-blue-500 hover:bg-blue-600 text-white px-6 py-3 rounded-lg font-semibold transition-all duration-300"
+              />
+              
               {contractor.phone && (
                 <Button className="bg-orange-500 hover:bg-orange-600 text-white px-6 py-3 rounded-lg font-semibold glow-effect transition-all duration-300">
                   <Phone className="h-4 w-4 mr-2" />

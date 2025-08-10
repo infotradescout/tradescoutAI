@@ -24,6 +24,7 @@ import ContractorApply from "@/pages/contractor-apply";
 import ContractorAccelerator from "@/pages/contractor-accelerator";
 import ContractorDashboard from "@/pages/contractor-dashboard";
 import AdminWorkspace from "@/pages/admin-workspace";
+import Chat from "@/pages/chat";
 
 function Router() {
   const { isAuthenticated, isLoading } = useAuth();
@@ -65,6 +66,7 @@ function Router() {
             <Route path="/homeowner-dashboard" component={HomeownerDashboard} />
             <Route path="/contractor-dashboard" component={ContractorDashboard} />
             <Route path="/admin" component={AdminWorkspace} />
+            <Route path="/chat/:conversationId?" component={Chat} />
           </>
         )}
         <Route component={NotFound} />

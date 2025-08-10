@@ -461,6 +461,205 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Chat system routes
+  // Conversations
+  app.post("/api/conversations", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const { contractorId, leadId } = req.body;
+      
+      const conversation = await storage.createConversation({
+        homeownerId: userId,
+        contractorId,
+        leadId,
+      });
+      res.json(conversation);
+    } catch (error) {
+      console.error("Error creating conversation:", error);
+      res.status(500).json({ message: "Failed to create conversation" });
+    }
+  });
+
+  app.get("/api/conversations", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const userType = req.query.userType || 'homeowner'; 
+      
+      const conversations = await storage.getConversationsByUser(userId, userType);
+      res.json(conversations);
+    } catch (error) {
+      console.error("Error fetching conversations:", error);
+      res.status(500).json({ message: "Failed to fetch conversations" });
+    }
+  });
+
+  app.get("/api/conversations/:id", isAuthenticated, async (req: any, res) => {
+    try {
+      const conversation = await storage.getConversation(req.params.id);
+      if (!conversation) {
+        return res.status(404).json({ message: "Conversation not found" });
+      }
+      
+      const userId = req.user.claims.sub;
+      if (conversation.homeownerId !== userId && conversation.contractorId !== userId) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+      
+      res.json(conversation);
+    } catch (error) {
+      console.error("Error fetching conversation:", error);
+      res.status(500).json({ message: "Failed to fetch conversation" });
+    }
+  });
+
+  app.post("/api/conversations/:id/rate", isAuthenticated, async (req: any, res) => {
+    try {
+      const { rating, feedback } = req.body;
+      const userId = req.user.claims.sub;
+      
+      const conversation = await storage.getConversation(req.params.id);
+      if (!conversation) {
+        return res.status(404).json({ message: "Conversation not found" });
+      }
+      
+      const raterType = conversation.homeownerId === userId ? 'homeowner' : 'contractor';
+      
+      const updatedConversation = await storage.rateConversation(
+        req.params.id,
+        rating,
+        feedback,
+        raterType
+      );
+      
+      res.json(updatedConversation);
+    } catch (error) {
+      console.error("Error rating conversation:", error);
+      res.status(500).json({ message: "Failed to rate conversation" });
+    }
+  });
+
+  // Messages
+  app.post("/api/conversations/:id/messages", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const { content, messageType, metadata } = req.body;
+      
+      const conversation = await storage.getConversation(req.params.id);
+      if (!conversation) {
+        return res.status(404).json({ message: "Conversation not found" });
+      }
+      
+      if (conversation.homeownerId !== userId && conversation.contractorId !== userId) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+      
+      const senderType = conversation.homeownerId === userId ? 'homeowner' : 'contractor';
+      
+      const message = await storage.createMessage({
+        conversationId: req.params.id,
+        senderId: userId,
+        senderType,
+        content,
+        messageType: messageType || 'text',
+        metadata,
+      });
+      
+      res.json(message);
+    } catch (error) {
+      console.error("Error creating message:", error);
+      res.status(500).json({ message: "Failed to send message" });
+    }
+  });
+
+  app.get("/api/conversations/:id/messages", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      
+      const conversation = await storage.getConversation(req.params.id);
+      if (!conversation) {
+        return res.status(404).json({ message: "Conversation not found" });
+      }
+      
+      if (conversation.homeownerId !== userId && conversation.contractorId !== userId) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+      
+      const messages = await storage.getMessagesByConversation(req.params.id);
+      res.json(messages);
+    } catch (error) {
+      console.error("Error fetching messages:", error);
+      res.status(500).json({ message: "Failed to fetch messages" });
+    }
+  });
+
+  // Quotes  
+  app.post("/api/quotes", isAuthenticated, async (req: any, res) => {
+    try {
+      const contractorId = req.user.claims.sub;
+      const quoteData = { ...req.body, contractorId };
+      
+      const quote = await storage.createQuote(quoteData);
+      res.json(quote);
+    } catch (error) {
+      console.error("Error creating quote:", error);
+      res.status(500).json({ message: "Failed to create quote" });
+    }
+  });
+
+  app.get("/api/conversations/:id/quotes", isAuthenticated, async (req: any, res) => {
+    try {
+      const quotes = await storage.getQuotesByConversation(req.params.id);
+      res.json(quotes);
+    } catch (error) {
+      console.error("Error fetching quotes:", error);
+      res.status(500).json({ message: "Failed to fetch quotes" });
+    }
+  });
+
+  app.put("/api/quotes/:id", isAuthenticated, async (req: any, res) => {
+    try {
+      const quote = await storage.updateQuote(req.params.id, req.body);
+      res.json(quote);
+    } catch (error) {
+      console.error("Error updating quote:", error);
+      res.status(500).json({ message: "Failed to update quote" });
+    }
+  });
+
+  // Material Lists
+  app.post("/api/material-lists", isAuthenticated, async (req: any, res) => {
+    try {
+      const contractorId = req.user.claims.sub;
+      const materialListData = { ...req.body, contractorId };
+      
+      const materialList = await storage.createMaterialList(materialListData);
+      res.json(materialList);
+    } catch (error) {
+      console.error("Error creating material list:", error);
+      res.status(500).json({ message: "Failed to create material list" });
+    }
+  });
+
+  app.get("/api/conversations/:id/material-lists", isAuthenticated, async (req: any, res) => {
+    try {
+      const materialLists = await storage.getMaterialListsByConversation(req.params.id);
+      res.json(materialLists);
+    } catch (error) {
+      console.error("Error fetching material lists:", error);
+      res.status(500).json({ message: "Failed to fetch material lists" });
+    }
+  });
+
+  app.put("/api/material-lists/:id", isAuthenticated, async (req: any, res) => {
+    try {
+      const materialList = await storage.updateMaterialList(req.params.id, req.body);
+      res.json(materialList);
+    } catch (error) {
+      console.error("Error updating material list:", error);
+      res.status(500).json({ message: "Failed to update material list" });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }

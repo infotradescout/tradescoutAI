@@ -351,6 +351,155 @@ export type Trade = typeof trades.$inferSelect;
 export type InsertGrowthPackDownload = typeof growthPackDownloads.$inferInsert;
 export type GrowthPackDownload = typeof growthPackDownloads.$inferSelect;
 
+// Chat system tables
+export const conversations = pgTable("conversations", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  homeownerId: varchar("homeowner_id").notNull().references(() => users.id),
+  contractorId: varchar("contractor_id").notNull().references(() => contractors.id),
+  leadId: varchar("lead_id").references(() => leads.id),
+  status: varchar("status", { enum: ["active", "closed", "archived"] }).default("active"),
+  lastMessageAt: timestamp("last_message_at").defaultNow(),
+  homeownerRating: integer("homeowner_rating"), // 1-5 stars
+  contractorRating: integer("contractor_rating"), // 1-5 stars
+  homeownerFeedback: text("homeowner_feedback"),
+  contractorFeedback: text("contractor_feedback"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const messages = pgTable("messages", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  conversationId: varchar("conversation_id").notNull().references(() => conversations.id),
+  senderId: varchar("sender_id").notNull().references(() => users.id),
+  senderType: varchar("sender_type", { enum: ["homeowner", "contractor"] }).notNull(),
+  content: text("content").notNull(),
+  messageType: varchar("message_type", { enum: ["text", "quote", "schedule", "materials", "image"] }).default("text"),
+  metadata: jsonb("metadata"), // For quotes, schedules, material lists
+  readAt: timestamp("read_at"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const quotes = pgTable("quotes", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  conversationId: varchar("conversation_id").notNull().references(() => conversations.id),
+  contractorId: varchar("contractor_id").notNull().references(() => contractors.id),
+  title: varchar("title").notNull(),
+  description: text("description"),
+  laborCost: decimal("labor_cost", { precision: 10, scale: 2 }),
+  materialCost: decimal("material_cost", { precision: 10, scale: 2 }),
+  totalCost: decimal("total_cost", { precision: 10, scale: 2 }).notNull(),
+  validUntil: timestamp("valid_until"),
+  status: varchar("status", { enum: ["draft", "sent", "accepted", "declined", "expired"] }).default("draft"),
+  terms: text("terms"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const schedules = pgTable("schedules", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  conversationId: varchar("conversation_id").notNull().references(() => conversations.id),
+  contractorId: varchar("contractor_id").notNull().references(() => contractors.id),
+  title: varchar("title").notNull(),
+  description: text("description"),
+  proposedDate: timestamp("proposed_date").notNull(),
+  duration: integer("duration_hours"), // Duration in hours
+  status: varchar("status", { enum: ["proposed", "accepted", "declined", "completed"] }).default("proposed"),
+  location: varchar("location"),
+  notes: text("notes"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const materialLists = pgTable("material_lists", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  conversationId: varchar("conversation_id").notNull().references(() => conversations.id),
+  contractorId: varchar("contractor_id").notNull().references(() => contractors.id),
+  title: varchar("title").notNull(),
+  description: text("description"),
+  items: jsonb("items").notNull(), // Array of {name, quantity, estimatedCost, vendor, sku}
+  totalEstimatedCost: decimal("total_estimated_cost", { precision: 10, scale: 2 }),
+  vendorInfo: jsonb("vendor_info"), // Store vendor details like Home Depot cart links
+  status: varchar("status", { enum: ["draft", "sent", "approved", "ordered"] }).default("draft"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Relations for chat system
+export const conversationsRelations = relations(conversations, ({ one, many }) => ({
+  homeowner: one(users, {
+    fields: [conversations.homeownerId],
+    references: [users.id],
+  }),
+  contractor: one(contractors, {
+    fields: [conversations.contractorId],
+    references: [contractors.id],
+  }),
+  lead: one(leads, {
+    fields: [conversations.leadId],
+    references: [leads.id],
+  }),
+  messages: many(messages),
+  quotes: many(quotes),
+  schedules: many(schedules),
+  materialLists: many(materialLists),
+}));
+
+export const messagesRelations = relations(messages, ({ one }) => ({
+  conversation: one(conversations, {
+    fields: [messages.conversationId],
+    references: [conversations.id],
+  }),
+  sender: one(users, {
+    fields: [messages.senderId],
+    references: [users.id],
+  }),
+}));
+
+export const quotesRelations = relations(quotes, ({ one }) => ({
+  conversation: one(conversations, {
+    fields: [quotes.conversationId],
+    references: [conversations.id],
+  }),
+  contractor: one(contractors, {
+    fields: [quotes.contractorId],
+    references: [contractors.id],
+  }),
+}));
+
+export const schedulesRelations = relations(schedules, ({ one }) => ({
+  conversation: one(conversations, {
+    fields: [schedules.conversationId],
+    references: [conversations.id],
+  }),
+  contractor: one(contractors, {
+    fields: [schedules.contractorId],
+    references: [contractors.id],
+  }),
+}));
+
+export const materialListsRelations = relations(materialLists, ({ one }) => ({
+  conversation: one(conversations, {
+    fields: [materialLists.conversationId],
+    references: [conversations.id],
+  }),
+  contractor: one(contractors, {
+    fields: [materialLists.contractorId],
+    references: [materialLists.id],
+  }),
+}));
+
+// Export types for chat system
+export type InsertConversation = typeof conversations.$inferInsert;
+export type Conversation = typeof conversations.$inferSelect;
+export type InsertMessage = typeof messages.$inferInsert;
+export type Message = typeof messages.$inferSelect;
+export type InsertQuote = typeof quotes.$inferInsert;
+export type Quote = typeof quotes.$inferSelect;
+export type InsertSchedule = typeof schedules.$inferInsert;
+export type Schedule = typeof schedules.$inferSelect;
+export type InsertMaterialList = typeof materialLists.$inferInsert;
+export type MaterialList = typeof materialLists.$inferSelect;
+
 export type InsertAcceleratorMembership = typeof acceleratorMemberships.$inferInsert;
 export type AcceleratorMembership = typeof acceleratorMemberships.$inferSelect;
 
