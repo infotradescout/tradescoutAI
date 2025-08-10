@@ -124,13 +124,13 @@ export default function Landing() {
                 </p>
                 <div className="flex flex-col sm:flex-row gap-4 justify-center">
                   <Link href="/contractors/board">
-                    <Button className="btn-primary">
+                    <Button className="bg-navy-600 hover:bg-navy-500 text-white px-8 py-3 rounded-lg font-semibold border border-navy-500">
                       Browse Contractors
                     </Button>
                   </Link>
-                  <Link href="/quote">
-                    <Button variant="outline" className="border-orange-500 text-orange-500 hover:bg-orange-500 hover:text-white">
-                      Get Quote Estimate
+                  <Link href="/calculator">
+                    <Button className="bg-orange-500 hover:bg-orange-600 text-white px-8 py-3 rounded-lg font-semibold glow-effect">
+                      Quote Calculator
                     </Button>
                   </Link>
                 </div>
