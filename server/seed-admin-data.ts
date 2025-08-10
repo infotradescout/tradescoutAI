@@ -74,8 +74,8 @@ export async function seedAdminData() {
       {
         category: "features",
         key: "golden_emblem_enabled",
-        value: { enabled: true, probability: 0.05 },
-        description: "Controls the golden emblem prize system",
+        value: { enabled: true, probability: 0.002 },
+        description: "Controls the golden emblem prize system (0.2% chance)",
         isActive: true,
       },
       {
