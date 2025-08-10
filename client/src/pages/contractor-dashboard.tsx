@@ -219,7 +219,7 @@ export default function ContractorDashboard() {
               </div>
             </div>
             <p className="text-gray-400 text-sm mt-2">
-              {stats?.ratingSummary?.count || 0} reviews
+              {stats?.ratingSummary?.count || 0} recommendations
             </p>
           </CardContent>
         </Card>
@@ -254,7 +254,7 @@ export default function ContractorDashboard() {
             Profile
           </TabsTrigger>
           <TabsTrigger value="reviews" className="data-[state=active]:bg-orange-500">
-            Reviews ({stats?.ratingSummary?.count || 0})
+            Recommendations ({stats?.ratingSummary?.count || 0})
           </TabsTrigger>
           <TabsTrigger value="analytics" className="data-[state=active]:bg-orange-500">
             Analytics
@@ -400,7 +400,7 @@ export default function ContractorDashboard() {
                   </Button>
                   <Button variant="outline" className="w-full justify-start border-navy-500 hover:bg-navy-600">
                     <ThumbsUp className="h-4 w-4 mr-2 text-orange-500" />
-                    Request Reviews
+                    Request Recommendations
                   </Button>
                 </CardContent>
               </Card>
@@ -501,29 +501,29 @@ export default function ContractorDashboard() {
           </Card>
         </TabsContent>
 
-        {/* Reviews Tab */}
+        {/* Recommendations Tab */}
         <TabsContent value="reviews">
           <Card className="bg-navy-700 border-navy-600">
             <CardHeader>
-              <CardTitle className="text-white">Customer Reviews</CardTitle>
+              <CardTitle className="text-white">Customer Recommendations</CardTitle>
             </CardHeader>
             <CardContent>
               {recommendations && recommendations.length > 0 ? (
                 <div className="space-y-6">
-                  {recommendations.map((review: any) => (
-                    <div key={review.id} className="border-b border-navy-600 pb-6 last:border-b-0">
+                  {recommendations.map((recommendation: any) => (
+                    <div key={recommendation.id} className="border-b border-navy-600 pb-6 last:border-b-0">
                       <div className="flex items-center justify-between mb-3">
                         <div className="flex text-yellow-400">
                           {[1, 2, 3, 4, 5].map((star) => (
-                            <Star key={star} className={`h-4 w-4 ${star <= review.rating ? 'fill-current' : ''}`} />
+                            <Star key={star} className={`h-4 w-4 ${star <= recommendation.rating ? 'fill-current' : ''}`} />
                           ))}
                         </div>
                         <span className="text-gray-400 text-sm">
-                          {new Date(review.createdAt).toLocaleDateString()}
+                          {new Date(recommendation.createdAt).toLocaleDateString()}
                         </span>
                       </div>
-                      {review.comment && (
-                        <p className="text-gray-300">{review.comment}</p>
+                      {recommendation.comment && (
+                        <p className="text-gray-300">{recommendation.comment}</p>
                       )}
                     </div>
                   ))}
@@ -531,13 +531,13 @@ export default function ContractorDashboard() {
               ) : (
                 <div className="text-center py-12">
                   <Star className="h-12 w-12 text-gray-500 mx-auto mb-4" />
-                  <h3 className="text-lg font-semibold text-white mb-2">No reviews yet</h3>
+                  <h3 className="text-lg font-semibold text-white mb-2">No recommendations yet</h3>
                   <p className="text-gray-400 mb-6">
-                    Customer reviews will appear here once you complete projects.
+                    Customer recommendations will appear here once you complete projects.
                   </p>
                   <Button className="bg-orange-500 hover:bg-orange-600">
                     <ThumbsUp className="h-4 w-4 mr-2" />
-                    Request Reviews
+                    Request Recommendations
                   </Button>
                 </div>
               )}
@@ -585,7 +585,7 @@ export default function ContractorDashboard() {
                     </span>
                   </div>
                   <div className="flex justify-between items-center">
-                    <span className="text-gray-400">Total Reviews</span>
+                    <span className="text-gray-400">Total Recommendations</span>
                     <span className="text-white font-semibold">{stats?.ratingSummary?.count || 0}</span>
                   </div>
                   <div className="flex justify-between items-center">

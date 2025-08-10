@@ -21,7 +21,7 @@ export default function Landing() {
               <span className="text-orange-500"> In Your County</span>
             </h1>
             <p className="text-xl text-gray-300 mb-8 max-w-3xl mx-auto">
-              Connect with verified, local contractors. Get quotes, read reviews, and hire with confidence.
+              Connect with verified, local contractors. Get quotes, read recommendations, and hire with confidence.
             </p>
             
             {/* County Search */}
@@ -108,8 +108,8 @@ export default function Landing() {
                 <div className="text-orange-500 text-3xl mb-4">
                   <Users className="h-8 w-8" />
                 </div>
-                <h3 className="text-xl font-semibold text-white mb-3">Real Reviews</h3>
-                <p className="text-gray-300">Read authentic reviews from homeowners in your area.</p>
+                <h3 className="text-xl font-semibold text-white mb-3">Real Recommendations</h3>
+                <p className="text-gray-300">Read authentic recommendations from homeowners in your area.</p>
               </CardContent>
             </Card>
           </div>

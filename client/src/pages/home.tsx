@@ -114,7 +114,7 @@ export default function Home() {
                       <Star className="h-4 w-4 fill-current" />
                       <Star className="h-4 w-4 fill-current" />
                     </div>
-                    <span className="text-gray-400 text-sm">4.9 (42 reviews)</span>
+                    <span className="text-gray-400 text-sm">4.9 (42 recommendations)</span>
                   </div>
                 </div>
                 <Badge variant="outline" className="text-green-400 border-green-400">
@@ -136,7 +136,7 @@ export default function Home() {
                       <Star className="h-4 w-4 fill-current" />
                       <Star className="h-4 w-4" />
                     </div>
-                    <span className="text-gray-400 text-sm">4.7 (28 reviews)</span>
+                    <span className="text-gray-400 text-sm">4.7 (28 recommendations)</span>
                   </div>
                 </div>
                 <Badge variant="outline" className="text-green-400 border-green-400">

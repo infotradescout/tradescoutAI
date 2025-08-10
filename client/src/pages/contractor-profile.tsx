@@ -79,7 +79,7 @@ export default function ContractorProfile() {
                     ))}
                   </div>
                   <span className="text-white font-semibold">{ratingSummary.average.toFixed(1)}</span>
-                  <span className="text-gray-300">({ratingSummary.count} reviews)</span>
+                  <span className="text-gray-300">({ratingSummary.count} recommendations)</span>
                 </div>
               )}
 
@@ -143,22 +143,22 @@ export default function ContractorProfile() {
           {recommendations.length > 0 && (
             <Card className="bg-navy-700 border-navy-600">
               <CardContent className="p-6">
-                <h3 className="text-xl font-semibold text-white mb-6">Recent Reviews</h3>
+                <h3 className="text-xl font-semibold text-white mb-6">Recent Recommendations</h3>
                 <div className="space-y-6">
-                  {recommendations.slice(0, 3).map((review: any, index: number) => (
-                    <div key={review.id} className={`${index < recommendations.length - 1 ? 'border-b border-navy-600 pb-6' : ''}`}>
+                  {recommendations.slice(0, 3).map((recommendation: any, index: number) => (
+                    <div key={recommendation.id} className={`${index < recommendations.length - 1 ? 'border-b border-navy-600 pb-6' : ''}`}>
                       <div className="flex items-center justify-between mb-3">
                         <div className="flex text-yellow-400">
                           {[1, 2, 3, 4, 5].map((star) => (
-                            <Star key={star} className={`h-4 w-4 ${star <= review.rating ? 'fill-current' : ''}`} />
+                            <Star key={star} className={`h-4 w-4 ${star <= recommendation.rating ? 'fill-current' : ''}`} />
                           ))}
                         </div>
                         <span className="text-gray-400 text-sm">
-                          {new Date(review.createdAt).toLocaleDateString()}
+                          {new Date(recommendation.createdAt).toLocaleDateString()}
                         </span>
                       </div>
-                      {review.comment && (
-                        <p className="text-gray-300 mb-2">{review.comment}</p>
+                      {recommendation.comment && (
+                        <p className="text-gray-300 mb-2">{recommendation.comment}</p>
                       )}
                     </div>
                   ))}
@@ -166,10 +166,10 @@ export default function ContractorProfile() {
                 
                 {!isAuthenticated && (
                   <div className="mt-6 p-4 bg-orange-500/10 border border-orange-500/30 rounded-lg">
-                    <p className="text-orange-400 text-sm mb-2">Want to leave a review?</p>
+                    <p className="text-orange-400 text-sm mb-2">Want to leave a recommendation?</p>
                     <Link href="/api/login">
                       <Button size="sm" className="bg-orange-500 hover:bg-orange-600">
-                        Sign In to Review
+                        Sign In to Recommend
                       </Button>
                     </Link>
                   </div>

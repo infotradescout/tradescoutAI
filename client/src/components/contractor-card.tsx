@@ -37,7 +37,7 @@ export default function ContractorCard({
 
   // Mock data for demonstration - in production this would come from the API
   const mockRating = 4.8;
-  const mockReviewCount = 42;
+  const mockRecommendationCount = 42;
   const mockServiceAreas = ['Los Angeles', 'Orange', 'Ventura'];
 
   return (
@@ -102,7 +102,7 @@ export default function ContractorCard({
           </span>
           <span className="flex items-center">
             <ThumbsUp className={`text-orange-500 mr-1 ${compact ? 'h-3 w-3' : 'h-4 w-4'}`} />
-            {mockReviewCount} reviews
+            {mockRecommendationCount} recommendations
           </span>
         </div>
 

@@ -253,7 +253,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json({
         contractor,
         leads: leads.slice(0, 5), // Recent leads
-        recommendations: recommendations.slice(0, 3), // Recent reviews
+        recommendations: recommendations.slice(0, 3), // Recent recommendations
         stats: {
           totalLeads: leads.length,
           newLeads: leads.filter(l => l.status === 'new').length,
