@@ -1,0 +1,731 @@
+Goal: Create a production-ready WordPress project tailored for Trade Scout with: county-centric contractor boards, recommendation sorting, regional quote calculators (CSV-driven), Facebook login, verified contractor onboarding, Accelerator checkout, lead routing, KPI tracking, and SEO schemas. Do not generate sample data. Only create code, settings pages, and importers that expect real files/IDs.
+
+High-Level Requirements
+Hosting: IONOS shared/managed WP, PHP ≥ 8.1.
+
+Deliverables:
+
+wp-content/themes/tradescout/ — lightweight, mobile-first theme (Tailwind compiled locally to static CSS; no runtime build needed on IONOS).
+
+wp-content/mu-plugins/tradescout-core/ — must-use plugin with all business logic:
+
+Custom Post Types (CPT): contractor, recommendation, service_guide (optional).
+
+Taxonomies: trade (hierarchical), county (flat; keyed by FIPS), state (flat).
+
+User Roles: homeowner, contractor_user, accelerator_member.
+
+County/Price CSV importers (+ scheduled re-import) — no seed data.
+
+Regional Quote Calculators (server-rendered forms + pure PHP validation).
+
+Lead Forms & Routing (performance-weighted round-robin with caps).
+
+Verification workflows (documents, statuses, audit log).
+
+Facebook Login integration hooks (works with Nextend Social or custom app).
+
+Payments (Stripe) for Accelerator (subscriptions + one-time), but features remain OFF until real keys provided.
+
+KPIs & Events (server-side tracking + JS enhancement if available).
+
+SEO: schema.org generators for boards (ItemList), contractors (LocalBusiness + aggregateRating), offers (Product/Offer), FAQ/HowTo.
+
+Security: nonce + CSRF, rate limits, Turnstile/hCaptcha support, re-verification reminders.
+
+Pages/Routes (create programmatically on activation if absent):
+
+/ (Home)
+
+/contractors/board — county/trade filters, sort by recommendations.
+
+/counties/{state}/{county} and /counties/{state}/{county}/{trade} — auto SEO landers.
+
+/contractors/{slug} — contractor profile.
+
+/quote — calculators + multi-path submit.
+
+/growth-pack — gated lead magnet for contractors.
+
+/contractors/apply — signup & verification.
+
+/contractors/verify — doc upload & status.
+
+/contractors/accelerator — sales page + checkout.
+
+/contractors/dashboard — profile/leads/billing (role-gated).
+
+System thank-you pages.
+
+Functional Specs (Implement Exactly)
+1) County & Trades (No fake data)
+county taxonomy stores: FIPS (term_meta fips), state code, county name, slug.
+
+Importer endpoint (admin): Upload CSV with columns:
+
+state_code, state_name, county_name, fips (5-digit), optional population
+
+Create/merge terms by fips. Log every change.
+
+Cron (2am server): re-import the most recent county CSV in /private_data/counties/ if file hash changed.
+
+2) Contractor Data Model
+CPT contractor fields (register via PHP, no ACF dependency):
+
+company_name (post_title), trades (taxonomy trade, multi), service areas (associate state/county terms), phone (E.164), email, website, years_in_business, license_number, insurance_doc URL (media), about, photos (gallery), min_job_size, availability_window, pricing_notes, response_time_sla, last_verified (date), verified flags (licensed, insured).
+
+Public card shows: logo, name, trades, counties served (top 3 + “+X more”), click-to-call, email link, recommendation count, avg rating, years, badges, response time, last verified.
+
+Detail page adds gallery, about, documents (if public), service tags.
+
+3) Recommendations
+CPT recommendation linked to contractor via post_meta; created by logged-in homeowner.
+
+Rating model: 1–5 stars + short text (max 500 chars) + optional photo.
+
+Aggregate rating (count, mean) computed and cached on contractor save; expose via REST for theme.
+
+4) Boards & Sorting
+/contractors/board and county pages render server-side list with filters:
+
+Filters: trade (multi), state, county; mobile-first sticky CTA.
+
+Sort options: default = Most Recommended, then Avg Rating, Years in Business, Last Verified. Tie-break: response_time_sla asc, then post_date desc.
+
+Pagination SSR, with progressive JS enhancement (fetch via REST) if JS available.
+
+5) Quote Calculators (CSV-driven, no sample data)
+Admin → Trade Scout → Calculators: define services (e.g., Painting, Roofing, Flooring).
+
+For each service, CSV importer required in /private_data/pricing/{service}.csv with columns (example schema — create code to read, do not include data):
+
+fips,service_code,input_1_name,input_1_unit,input_2_name,...,base_low,base_high,adj_factor_*…
+
+Calculator form builder maps inputs → formula:
+
+Compute low/mid/high using (base_low/base_high ± adj_factors) based on inputs and county FIPS.
+
+Output: range + “this is an estimate; contractors will confirm.”
+
+Option to attach calculator output to any lead submission.
+
+6) Lead Forms & Routing
+Single server-side form engine (no JS required) with routes:
+
+Call contractor now (reveals tel:; logs event).
+
+“Have this contractor call me” (sends to selected contractor).
+
+“Match me with top 3” (auto-selects three by performance-weighted round-robin within the county+trade, respecting daily caps and exclusion lists).
+
+Routing rules (configurable in admin):
+
+Weight = 50% quality (rating & verification freshness) + 30% recent acceptance rate + 20% speed to first response.
+
+Caps per contractor/day and per week; overflow to next in weight order.
+
+Notifications:
+
+Email (contractor + admin) via wp_mail; optional SMS via webhook (admin setting to paste real URL & secret).
+
+Homeowner confirmation email with board link and 3 contractors (for “top 3” flow).
+
+Webhooks/CRM:
+
+Admin UI to define POST endpoints + payload templates (must include fields for PII, calculator outputs, UTM).
+
+7) Authentication & Roles
+Integrate Nextend Social Login (Facebook) if installed; otherwise show settings to paste custom FB App ID/Secret (use WordPress OAuth hooks).
+
+Guests: can browse; form submits & downloads require login (email or Facebook).
+
+contractor_user can edit only their contractor post; changes go to moderation queue if “verified” flag is set.
+
+8) Verification Workflow
+/contractors/apply: multi-step (company info → docs upload → review).
+
+Required uploads: COI (PDF), license doc; optional ID.
+
+Admin review screen: approve, reject (with reasons), request changes; all actions logged.
+
+Re-verification scheduler: every 6 months; email + dashboard banner until completed; auto-hide badges if overdue.
+
+9) Accelerator Program (Stripe)
+/contractors/accelerator: sales page. Create Stripe settings page for:
+
+Products/prices (monthly, annual), optional add-ons (per-lead credits).
+
+Webhook endpoint for subscription status (activate/deactivate role accelerator_member).
+
+Accelerator dashboard: lead inbox (view/accept/decline), billing portal link, performance stats (CPL, acceptance rate).
+
+Feature flags remain OFF until real Stripe keys + product IDs provided.
+
+10) Free Growth Pack (Contractors)
+/growth-pack gated form:
+
+Required: email, company, trade(s), states/counties, size.
+
+Delivery: email unique link + immediate download if consented.
+
+Post-submit CTA: Apply to Board or View Accelerator.
+
+11) SEO & Performance
+Server-rendered HTML, critical CSS inline; defer non-critical.
+
+Auto sitemap.xml, canonical, robots.
+
+Schema generators:
+
+ItemList for boards, LocalBusiness for contractor, Product/Offer for Accelerator, FAQPage for Growth Pack.
+
+Image pipeline: compress to WebP on upload (PHP); srcset sizes.
+
+Targets baked into theme: LCP ≤ 2.5s (mobile), CLS ≤ 0.1, A11y ≥ 95.
+
+12) Security & Compliance
+Nonces on all forms; hCaptcha/Turnstile integration toggles.
+
+Rate limiting by IP & user; basic ASN blocklist support.
+
+PII retention & export/delete tools (GDPR/CCPA) in admin; configurable retention window.
+
+13) Analytics & Events
+Settings for GA4 ID and Meta pixel IDs; print server-side events + minimal JS enhancement.
+
+Standard events: view_contractor, click_call, submit_lead, quote_request, calculator_view, calculator_submit, share_board, login_success, apply_start/complete, verify_pass, accelerator_view/purchase, lead_received/accepted.
+
+Project Structure (create exactly)
+bash
+Copy
+Edit
+/.tradescout/
+  build_notes.md
+/private_data/.gitkeep           # place CSVs here (not committed)
+/wp-content/themes/tradescout/
+  functions.php
+  style.css
+  inc/
+    setup.php
+    seo.php
+    schema.php
+    shortcodes.php
+    templates.php
+    assets.php
+  templates/
+    page-home.php
+    page-growth-pack.php
+    page-contractors-board.php
+    page-quote.php
+    page-accelerator.php
+    page-verify.php
+    single-contractor.php
+    taxonomy-county.php
+    taxonomy-trade.php
+  assets/
+    css/tradescout.css           # compiled CSS (no runtime build)
+/wp-content/mu-plugins/tradescout-core/
+  tradescout-core.php
+  inc/
+    cpt-tax.php
+    roles.php
+    counties-importer.php
+    pricing-importer.php
+    calculators.php
+    forms-routing.php
+    verification.php
+    auth-hooks.php
+    accelerator.php
+    webhooks.php
+    kpis.php
+    security.php
+    cli.php                      # WP-CLI commands (importers, reverify)
+Admin Settings (build pages)
+Trade Scout → Settings tabs:
+
+General: brand name, contact emails, base URLs, county default.
+
+Auth: Nextend detection, or FB App ID/Secret inputs.
+
+Counties: upload & map CSV columns; cron toggle.
+
+Pricing: per-service CSV upload; field mapping; formula preview (no data stored).
+
+Routing: weights, caps, exclusions, top-3 rules.
+
+Notifications: email templates (twig-ish placeholders), SMS webhook URL/secret.
+
+Stripe: keys, product/price IDs, webhook secret.
+
+Security: hCaptcha/Turnstile keys, rate limits.
+
+Analytics: GA4, Meta, event toggles.
+
+Privacy: retention days, export/delete defaults.
+
+Theme Notes
+Use semantic HTML, accessible components (focus states, skip links).
+
+Mobile-first layout; sticky bottom CTA on mobile (e.g., “Get 3 Quotes”).
+
+Provide minimal vanilla JS enhancement; forms must function without JS.
+
+What NOT to do
+Do not seed or fabricate any county, pricing, contractor, or review data.
+
+Do not hardcode third-party keys.
+
+Do not require paid plugins. (Detect and integrate with Nextend if present, but work without it.)
+
+Post-Gen Tasks (script & docs)
+Print a build_notes.md with:
+
+Where to upload CSVs (/private_data/counties/*.csv, /private_data/pricing/*.csv)
+
+WP Admin paths to run importers and configure keys
+
+WP-CLI commands, e.g.:
+
+wp tradescout counties import /private_data/counties/us_counties.csv
+
+wp tradescout pricing import painting /private_data/pricing/painting.csv
+
+wp tradescout verify remind (sends re-verification emails)
+
+IONOS deployment steps (file permissions, PHP version, cron URL).
+
+yaml
+Copy
+Edit
+
+---
+
+If you want, I can also deliver a 1-click **IONOS deploy checklist** next.
+
+
+
+
+
+
+
+You said:
+
+This is a reference for the colors and style that I am going for
+
+ChatGPT said:
+Got it — the style here is a dark navy gradient background, high-contrast white text, and bright accent buttons (orange in your screenshot) with clean, boxed content sections and subtle drop-shadows.
+
+I’ll bake this exact color palette + style rules into your “Trade Scout” Replit prompt so:
+
+Backgrounds use the deep navy gradient.
+
+Cards/sections have slightly lighter navy with rounded corners and subtle shadows.
+
+Headings in bold white, body text in light gray for readability.
+
+Primary CTA buttons in bright orange with hover glow.
+
+Form inputs in darkened fields with lighter borders, matching the screenshot style.
+
+Do you want me to now update the full Replit build prompt I wrote earlier so that your entire site — contractor board, Growth Pack, Accelerator page — matches this exact style? That way everything launches already on-brand.
+
+
+
+
+
+
+
+
+You said:
+I also want my team to be able to use the website. 
+
+
+ChatGPT said:
+
+Thought for 6s
+Decision
+We’ll add a Team Workspace to Trade Scout with role-based access, dashboards, and guardrails so your staff can moderate, route leads, verify contractors, and run the Accelerator—without touching code.
+
+Why it works (psych + operational)
+Clear roles + least-privilege + simple queues reduce errors and raise speed-to-action (core KPI). Dashboards make performance visible (commitment consistency) and create tight feedback loops on what drives signups, verified profiles, and revenue.
+
+Next step(s)
+
+Confirm the role list below (or say “decide for me”).
+
+Send the real team emails—I'll script first-login invites with enforced 2FA.
+
+I’ll update the Replit prompt to generate these roles, dashboards, and queues automatically.
+
+Fail-safes
+Full audit logs, soft-deletes with restore, route-caps, and IP allowlisting for staff logins. Access revocation is one click.
+
+Team setup I’ll bake into the build
+Roles & permissions (WordPress capabilities)
+Owner (you): everything. Security & keys, routing weights, pricing importers.
+
+Ops Admin: all lead routing + contractor verification; no Stripe keys.
+
+Territory Manager: manage contractors/leads only in assigned counties; approve recommendations; export local reports.
+
+Contractor Success: handle applications, COI/license checks, re-verification reminders; no routing rules.
+
+Content/SEO: edit pages/blog, manage schema text blocks; no PII access.
+
+Analytics: read-only KPI dashboards & exports; no edits.
+
+Support: view tickets, trigger resend emails/SMS; can’t view full PII.
+
+Team dashboards (WP Admin → Trade Scout)
+Leads Queue: new → contacted → qualified → matched; SLA timer, assign/claim, caps, audit trail.
+
+Routing Control: weights, daily caps, exclusions, “first-accept” toggle, county overrides.
+
+Verification Queue: doc viewer (COI/license), approve/reject with reasons, renewal countdown.
+
+Contractor Directory Admin: bulk edit trades/counties, badge status, invite contractor user to claim profile.
+
+Accelerator Ops: member list, billing status (via Stripe webhook), lead inbox rules, pause/unpause accounts.
+
+FGP & Funnel: conversion rates, drop-off steps, resend access links.
+
+KPI Board: submit rate, quote rate, call clicks, time-on-site, acceptance rate, win rate by county/trade; export CSV.
+
+Access control & security
+Enforce 2FA for all staff roles (email + TOTP), IP allowlist option, session timeout.
+
+PII scopes: only Ops/Territory/Support see homeowner contact fields; masked by default with click-to-reveal (logged).
+
+Audit log for every change (who/what/when/where), with diff view and rollback on key records.
+
+Rate limits and role-based API endpoints (nonce + capability checks).
+
+Territory assignment
+Staff users map to states/counties; filters and permissions auto-apply everywhere (queues, exports, dashboards).
+
+Optional “county bundles” for managers covering many counties at once.
+
+Onboarding & offboarding
+Invite flow (email domain whitelist), forced password reset on first login, automatic role-based tour.
+
+One-click Suspend (locks login + hides user from assignees) and Transfer (reassign open items).
+
+Collaboration
+Internal notes on leads/contractors (not visible to homeowners).
+
+@mentions with email notifications.
+
+Saved filters (“My Queue,” “Overdue verifications,” etc.).
+
+Compliance
+Export/delete requests (GDPR/CCPA) processed from the PII console with approvals.
+
+TCPA-safe consent text embedded in all forms; logs kept per submission.
+
+If you approve, I’ll fold this into the Replit prompt so it generates:
+
+Custom roles/capabilities,
+
+Territory-based permission middleware,
+
+The admin pages/queues above,
+
+Audit logging, 2FA hooks, invite flow, and KPI dashboards.
+
+Reply “approve + here are the emails” (or “decide for me”) and I’ll ship the updated prompt.
+
+
+
+
+
+
+
+
+You said:
+approve, ill add emails later
+
+
+ChatGPT said:
+
+Thought for 6s
+Decision
+Approved. I’ll deliver a single, copy-paste Replit “Build Trade Scout” prompt that includes your team workspace, county-centric contractor board, calculators, Growth Pack, Accelerator, and the dark-navy/orange style you showed—no fake data.
+
+Why it works (psych + operational)
+One codebase: custom WP theme + mu-plugin with roles, queues, routing, verification, payments, CSV importers, and audit logs. Server-rendered forms (work even with JS off). Style tokens match your reference, so UI is consistent on day one.
+
+Next steps
+
+Paste the prompt below into Replit → “Create from Prompt.”
+
+Deploy to IONOS, then upload real CSVs (counties, pricing) in /private_data/.
+
+In WP Admin → Trade Scout → Settings, add keys (FB, Stripe), then invite team.
+
+Fail-safes
+No keys = feature hidden. Importers are idempotent with rollback. Role-gated PII + audit trails. 2FA enforced for staff.
+
+Replit Prompt — Build Trade Scout (WordPress + IONOS, Team-Ready)
+Goal: Generate a production-grade WordPress project for Trade Scout with: county-centric contractor boards, recommendation sorting, regional quote calculators (CSV-driven), Facebook login, verified contractor onboarding, Team Workspace (roles/queues), Growth Pack funnel, Accelerator checkout, KPI tracking, and SEO schemas. Never seed or fabricate data. Expect real files/IDs only.
+
+Deliverables
+Create a WP project with:
+
+Theme wp-content/themes/tradescout/ (mobile-first, dark-navy/orange design).
+
+Must-Use Plugin wp-content/mu-plugins/tradescout-core/ containing all business logic.
+
+Style tokens (match screenshot)
+Define CSS variables in the theme and use everywhere:
+
+css
+Copy
+Edit
+--bg: #0b1724;            /* deep navy */
+--bg-grad: linear-gradient(180deg,#0b1724 0%,#0d1d2e 100%);
+--surface: #122033;       /* card/nav */
+--surface-2: #172940;     /* hover/active */
+--text: #e6edf3;          /* primary text */
+--muted: #a6b0bf;         /* secondary text */
+--primary: #ff8a1f;       /* orange CTA */
+--primary-press: #e2791b;
+--success: #22c55e;       /* checkmarks */
+--warning: #f59e0b;
+--border: #22354e;
+--shadow: 0 10px 30px rgba(0,0,0,.35);
+--radius: 16px;
+Background uses --bg-grad.
+
+Cards/sections: --surface, rounded --radius, subtle --shadow.
+
+Inputs: dark fields, light borders, focus glow; buttons = orange with hover glow.
+
+Theme (key files)
+functions.php (enqueue one compiled CSS file; no runtime build).
+
+style.css + assets/css/tradescout.css (use variables above).
+
+Templates: page-home.php, page-contractors-board.php, taxonomy-county.php, taxonomy-trade.php, single-contractor.php, page-quote.php, page-growth-pack.php, page-accelerator.php, page-verify.php, single-post.php.
+
+Components: nav, footer, card, form, CTA block, KPI badges, pagination.
+
+Accessibility: skip links, focus states, color contrast ≥ WCAG AA.
+
+mu-plugin tradescout-core (create files)
+graphql
+Copy
+Edit
+tradescout-core.php
+inc/
+  cpt-tax.php            # CPTs & taxonomies
+  roles-perms.php        # roles & capabilities
+  counties-importer.php  # FIPS importer (CSV)
+  pricing-importer.php   # per-service pricing CSVs
+  calculators.php        # server-side calculators
+  forms-routing.php      # lead forms + routing logic
+  verification.php       # contractor verification flow
+  auth-hooks.php         # Facebook login + gates
+  accelerator.php        # Stripe products + webhooks
+  team-workspace.php     # dashboards/queues
+  kpis-analytics.php     # event logging + GA4/Meta hooks
+  seo-schema.php         # meta + schema.org
+  notifications.php      # email templates + SMS webhook
+  security.php           # nonces, captcha, rate limiting
+  cli.php                # WP-CLI commands
+Data model (no sample data)
+CPTs
+
+contractor (company_name = title).
+
+recommendation (child → contractor).
+
+service_guide (optional blog/guides).
+
+Taxonomies
+
+trade (hierarchical),
+
+state (flat),
+
+county (flat; term_meta: fips, state_code).
+
+Contractor fields (meta): trades[], states[], counties[], phone(E.164), email, website, years_in_business, license_number, insurance_doc(media), about, photos(gallery), min_job_size, availability_window, pricing_notes, response_time_sla, verified_licensed(bool), verified_insured(bool), last_verified(date).
+
+Counties importer
+Admin upload CSV with columns: state_code,state_name,county_name,fips,population?.
+
+Merge by fips; log adds/updates.
+
+Nightly cron (2am) re-imports most recent file in /private_data/counties/ if hash changed.
+
+WP-CLI: wp tradescout counties import /private_data/counties/us_counties.csv.
+
+Recommendations
+Logged-in homeowner can submit recommendation (1–5 stars, 500 chars, optional image).
+
+Aggregate stats (count, mean) cached on contractor; aggregateRating exposed for schema.
+
+Boards & sorting (SSR)
+/contractors/board + /counties/{state}/{county} and /counties/{state}/{county}/{trade}.
+
+Filters: state, county, trade(multi).
+
+Sorts: Most Recommended (default), Avg Rating, Years in Business, Last Verified; tie-breakers = response_time_sla asc, then post_date desc.
+
+Cards show logo, trades, “serves X counties,” badges, years, rating, rec count, click-to-call, email.
+
+Quote calculators (CSV-driven)
+Admin → Trade Scout → Calculators: define services (Painting/Roofing/Flooring, etc.).
+
+Per service CSV expected at /private_data/pricing/{service}.csv with columns (schema only):
+fips,service_code,input_1_name,input_1_unit,input_2_name,...,base_low,base_high,adj_factor_*
+
+Server-side forms compute low/mid/high using base + adj_factors for the selected county fips.
+
+Option to attach results to lead submissions.
+
+Lead forms & routing
+One SSR form engine supporting flows:
+
+Call now (reveals tel:; logs click_call).
+
+Have this contractor call me (single target).
+
+Match me with top 3 (county+trade; results emailed to homeowner; leads sent to 3).
+
+Performance-weighted round-robin within county+trade:
+
+Weight = 50% quality (rating + verification freshness) + 30% recent acceptance rate + 20% response speed.
+
+Daily/weekly caps; exclusion lists; overflow to next.
+
+Notifications: wp_mail templates (brandable), optional SMS via admin-supplied webhook (URL + secret).
+
+CRM/Webhooks: admin-defined POST endpoints with mappable payload (include UTM + calculator outputs).
+
+Auth & access
+Detect Nextend Social Login (Facebook). If absent, show settings for custom FB App ID/Secret; gate submits/downloads behind login (email or Facebook).
+
+Roles: homeowner, contractor_user, accelerator_member, plus staff roles below.
+
+Verification workflow
+/contractors/apply multi-step: company → trades/counties → documents (COI PDF, license) → submit.
+
+Admin review queue: approve/reject/request changes; reasons logged; email/SMS notifications.
+
+Re-verify every 6 months; badges auto-hide if overdue.
+
+Accelerator (Stripe)
+/contractors/accelerator page.
+
+Stripe settings: keys, product/price IDs (monthly/annual, optional add-ons).
+
+Webhook toggles accelerator_member role.
+
+Member dashboard: lead inbox (accept/decline within SLA), billing portal link, basic performance stats (CPL, acceptance rate).
+
+Features remain hidden until real keys present.
+
+Growth Pack (contractors)
+/growth-pack gated form (email, company, trades, states/counties, size, consent).
+
+Delivery via unique link email + optional instant download.
+
+Post-submit CTAs: Apply to Board and View Accelerator.
+
+Team Workspace (new)
+Roles & capabilities
+
+owner: all capabilities.
+
+ops_admin: routing + verification + imports; no Stripe keys.
+
+territory_manager: manage contractors/leads in assigned counties only; approve recommendations; export local reports.
+
+contractor_success: handle applications & re-verification; no routing rules.
+
+content_seo: edit pages/guides; no PII.
+
+analytics_read: read KPIs, exports; no edits.
+
+support: view tickets, resend emails/SMS; masked PII.
+
+Dashboards (WP Admin → Trade Scout)
+
+Leads Queue: statuses, SLA timers, assign/claim, caps, audit trail.
+
+Routing Control: weights, caps, exclusions, first-accept toggle, county overrides.
+
+Verification Queue: doc viewer, approve/reject, renewal countdown.
+
+Directory Admin: bulk edit trades/counties, badges, invite contractor to claim profile.
+
+Accelerator Ops: member list, pause/unpause, lead quotas.
+
+FGP Funnel: views, submits, conversion; resend links.
+
+KPI Board: submit rate, quote rate, call clicks, time-on-site, acceptance/win rate by county/trade; CSV export.
+
+Security
+
+Enforce 2FA for staff roles (email + TOTP), optional IP allowlist, session timeout.
+
+PII masking with click-to-reveal (logged).
+
+Full audit log (who/what/when/IP), diff view, soft-delete + restore.
+
+Rate limits per IP/user; ASN blocklist.
+
+Territory assignment
+
+Staff → states/counties arrays; permissions auto-filter queues, exports, editing.
+
+SEO & performance
+Auto sitemap, canonical, robots.
+
+Schema: ItemList (boards), LocalBusiness (contractors with aggregateRating), Product/Offer (Accelerator), FAQPage (Growth Pack).
+
+Critical CSS inline; images → WebP with srcset; LCP ≤ 2.5s, CLS ≤ 0.1.
+
+Analytics/events
+Settings for GA4 + Meta IDs.
+
+Server-side + JS events: view_contractor, click_call, submit_lead, quote_request, calculator_view, calculator_submit, share_board, login_success, apply_start/complete, verify_pass, accelerator_view/purchase, lead_received/accepted.
+
+Pages to auto-create on activation
+/, /contractors/board, /counties/{state}/{county}, /counties/{state}/{county}/{trade}, /contractors/{slug}, /quote, /growth-pack, /contractors/apply, /contractors/verify, /contractors/accelerator, /contractors/dashboard, plus thank-you pages.
+
+Admin Settings (create)
+Trade Scout → Settings tabs: General, Auth, Counties, Pricing, Routing, Notifications, Stripe, Team & Territories, Security, Analytics, Privacy.
+
+Security & compliance
+Nonces, hCaptcha/Turnstile support, CSRF checks, export/delete tools with approvals, TCPA consent logging on submit.
+
+Project layout
+swift
+Copy
+Edit
+/.tradescout/build_notes.md
+/private_data/.gitkeep
+/wp-content/themes/tradescout/...
+/wp-content/mu-plugins/tradescout-core/...
+Post-gen notes (write to build_notes.md)
+Where to upload CSVs:
+
+/private_data/counties/us_counties.csv
+
+/private_data/pricing/{service}.csv
+
+WP Admin paths to run importers & configure keys.
+
+WP-CLI:
+
+wp tradescout counties import /private_data/counties/us_counties.csv
+
+wp tradescout pricing import painting /private_data/pricing/painting.csv
+
+wp tradescout verify remind
+
+IONOS deploy steps: set PHP ≥ 8.1, file perms, cron URL for nightly imports.
+
+Do not: include seed data, hardcode third-party keys, require paid plugins. Everything must run server-side; JS is progressive enhancement only.
