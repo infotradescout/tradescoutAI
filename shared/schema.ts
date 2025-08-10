@@ -333,6 +333,70 @@ export type InsertUser = typeof users.$inferInsert;
 export type UpsertUser = typeof users.$inferInsert;
 export type User = typeof users.$inferSelect;
 
+// Admin configuration tables for dynamic content management
+export const siteSettings = pgTable("site_settings", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  category: varchar("category").notNull(), // 'prizes', 'ads', 'features', 'content'
+  key: varchar("key").notNull(),
+  value: jsonb("value").notNull(),
+  description: varchar("description"),
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const prizeConfigurations = pgTable("prize_configurations", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  name: varchar("name").notNull(),
+  description: text("description"),
+  prizeType: varchar("prize_type").notNull(), // 'gift_card', 'discount', 'premium_features'
+  value: varchar("value").notNull(), // Amount or percentage
+  vendor: varchar("vendor"), // Home Depot, Lowes, etc.
+  isActive: boolean("is_active").default(true),
+  probability: decimal("probability", { precision: 5, scale: 4 }).default("0.0500"), // 5% default
+  terms: text("terms"),
+  expirationDays: integer("expiration_days").default(30),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const advertisements = pgTable("advertisements", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  title: varchar("title").notNull(),
+  content: text("content").notNull(),
+  imageUrl: varchar("image_url"),
+  linkUrl: varchar("link_url"),
+  placement: varchar("placement").notNull(), // 'banner', 'sidebar', 'popup', 'footer'
+  targetAudience: varchar("target_audience").default("all"), // 'homeowners', 'contractors', 'all'
+  isActive: boolean("is_active").default(true),
+  startDate: timestamp("start_date"),
+  endDate: timestamp("end_date"),
+  clickCount: integer("click_count").default(0),
+  viewCount: integer("view_count").default(0),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const contractorSettings = pgTable("contractor_settings", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  category: varchar("category").notNull(), // 'verification', 'pricing', 'lead_routing'
+  setting: varchar("setting").notNull(),
+  value: jsonb("value").notNull(),
+  description: text("description"),
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export type SiteSetting = typeof siteSettings.$inferSelect;
+export type InsertSiteSetting = typeof siteSettings.$inferInsert;
+export type PrizeConfiguration = typeof prizeConfigurations.$inferSelect;
+export type InsertPrizeConfiguration = typeof prizeConfigurations.$inferInsert;
+export type Advertisement = typeof advertisements.$inferSelect;
+export type InsertAdvertisement = typeof advertisements.$inferInsert;
+export type ContractorSetting = typeof contractorSettings.$inferSelect;
+export type InsertContractorSetting = typeof contractorSettings.$inferInsert;
+
 export type InsertContractor = typeof contractors.$inferInsert;
 export type Contractor = typeof contractors.$inferSelect;
 
@@ -495,7 +559,7 @@ export const materialListsRelations = relations(materialLists, ({ one }) => ({
   }),
   contractor: one(contractors, {
     fields: [materialLists.contractorId],
-    references: [materialLists.id],
+    references: [contractors.id],
   }),
 }));
 

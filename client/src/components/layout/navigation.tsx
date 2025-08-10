@@ -23,7 +23,10 @@ export default function Navigation() {
 
   const authenticatedNavItems = [
     ...(isContractor ? [{ href: "/contractors/dashboard", label: "Dashboard" }] : []),
-    ...(isAdmin ? [{ href: "/admin", label: "Admin" }] : []),
+    ...(isAdmin ? [
+      { href: "/admin", label: "Admin" },
+      { href: "/admin/panel", label: "Admin Panel" }
+    ] : []),
   ];
 
   const closeMobileMenu = () => setIsMobileMenuOpen(false);

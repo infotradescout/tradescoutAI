@@ -18,6 +18,10 @@ import {
   quotes,
   schedules,
   materialLists,
+  siteSettings,
+  prizeConfigurations,
+  advertisements,
+  contractorSettings,
   type User,
   type InsertUser,
   type UpsertUser,
@@ -47,6 +51,14 @@ import {
   type InsertSchedule,
   type MaterialList,
   type InsertMaterialList,
+  type SiteSetting,
+  type InsertSiteSetting,
+  type PrizeConfiguration,
+  type InsertPrizeConfiguration,
+  type Advertisement,
+  type InsertAdvertisement,
+  type ContractorSetting,
+  type InsertContractorSetting,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, desc, asc, sql, inArray, like, gt } from "drizzle-orm";
@@ -724,6 +736,118 @@ export class DatabaseStorage implements IStorage {
       .returning();
 
     return updatedList;
+  }
+
+  // Admin configuration operations
+  async getSiteSettings(category?: string): Promise<SiteSetting[]> {
+    if (category) {
+      return await db.select().from(siteSettings).where(eq(siteSettings.category, category));
+    }
+    return await db.select().from(siteSettings).orderBy(siteSettings.category, siteSettings.key);
+  }
+
+  async updateSiteSetting(id: string, updates: Partial<InsertSiteSetting>): Promise<SiteSetting> {
+    const [setting] = await db
+      .update(siteSettings)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(siteSettings.id, id))
+      .returning();
+    return setting;
+  }
+
+  async createSiteSetting(setting: InsertSiteSetting): Promise<SiteSetting> {
+    const [newSetting] = await db.insert(siteSettings).values(setting).returning();
+    return newSetting;
+  }
+
+  async deleteSiteSetting(id: string): Promise<void> {
+    await db.delete(siteSettings).where(eq(siteSettings.id, id));
+  }
+
+  async getPrizeConfigurations(): Promise<PrizeConfiguration[]> {
+    return await db.select().from(prizeConfigurations).orderBy(desc(prizeConfigurations.createdAt));
+  }
+
+  async updatePrizeConfiguration(id: string, updates: Partial<InsertPrizeConfiguration>): Promise<PrizeConfiguration> {
+    const [prize] = await db
+      .update(prizeConfigurations)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(prizeConfigurations.id, id))
+      .returning();
+    return prize;
+  }
+
+  async createPrizeConfiguration(prize: InsertPrizeConfiguration): Promise<PrizeConfiguration> {
+    const [newPrize] = await db.insert(prizeConfigurations).values(prize).returning();
+    return newPrize;
+  }
+
+  async deletePrizeConfiguration(id: string): Promise<void> {
+    await db.delete(prizeConfigurations).where(eq(prizeConfigurations.id, id));
+  }
+
+  async getAdvertisements(placement?: string): Promise<Advertisement[]> {
+    if (placement) {
+      return await db.select().from(advertisements).where(eq(advertisements.placement, placement));
+    }
+    return await db.select().from(advertisements).orderBy(desc(advertisements.createdAt));
+  }
+
+  async updateAdvertisement(id: string, updates: Partial<InsertAdvertisement>): Promise<Advertisement> {
+    const [ad] = await db
+      .update(advertisements)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(advertisements.id, id))
+      .returning();
+    return ad;
+  }
+
+  async createAdvertisement(ad: InsertAdvertisement): Promise<Advertisement> {
+    const [newAd] = await db.insert(advertisements).values(ad).returning();
+    return newAd;
+  }
+
+  async deleteAdvertisement(id: string): Promise<void> {
+    await db.delete(advertisements).where(eq(advertisements.id, id));
+  }
+
+  async incrementAdViews(id: string): Promise<void> {
+    await db
+      .update(advertisements)
+      .set({ viewCount: sql`${advertisements.viewCount} + 1` })
+      .where(eq(advertisements.id, id));
+  }
+
+  async incrementAdClicks(id: string): Promise<void> {
+    await db
+      .update(advertisements)
+      .set({ clickCount: sql`${advertisements.clickCount} + 1` })
+      .where(eq(advertisements.id, id));
+  }
+
+  async getContractorSettings(category?: string): Promise<ContractorSetting[]> {
+    if (category) {
+      return await db.select().from(contractorSettings).where(eq(contractorSettings.category, category));
+    }
+    return await db.select().from(contractorSettings).orderBy(contractorSettings.category, contractorSettings.setting);
+  }
+
+  async updateContractorSetting(id: string, updates: Partial<InsertContractorSetting>): Promise<ContractorSetting> {
+    const [setting] = await db
+      .update(contractorSettings)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(contractorSettings.id, id))
+      .returning();
+    return setting;
+  }
+
+  async createContractorSetting(setting: InsertContractorSetting): Promise<ContractorSetting> {
+    const [newSetting] = await db.insert(contractorSettings).values(setting).returning();
+    return newSetting;
+  }
+
+  async deleteContractorSetting(id: string): Promise<void> {
+    await db.delete(contractorSettings).where(eq(contractorSettings.id, id));
   }
 }
 

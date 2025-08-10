@@ -723,6 +723,181 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Admin panel routes (require admin access)
+  const requireAdmin = (req: any, res: any, next: any) => {
+    if (!req.user || !['owner', 'ops_admin'].includes(req.user.claims?.role)) {
+      return res.status(403).json({ message: "Admin access required" });
+    }
+    next();
+  };
+
+  // Site settings management
+  app.get("/api/admin/site-settings", isAuthenticated, requireAdmin, async (req, res) => {
+    try {
+      const { category } = req.query;
+      const settings = await storage.getSiteSettings(category as string);
+      res.json(settings);
+    } catch (error) {
+      console.error("Error fetching site settings:", error);
+      res.status(500).json({ message: "Failed to fetch site settings" });
+    }
+  });
+
+  app.post("/api/admin/site-settings", isAuthenticated, requireAdmin, async (req, res) => {
+    try {
+      const setting = await storage.createSiteSetting(req.body);
+      res.json(setting);
+    } catch (error) {
+      console.error("Error creating site setting:", error);
+      res.status(500).json({ message: "Failed to create site setting" });
+    }
+  });
+
+  app.put("/api/admin/site-settings/:id", isAuthenticated, requireAdmin, async (req, res) => {
+    try {
+      const setting = await storage.updateSiteSetting(req.params.id, req.body);
+      res.json(setting);
+    } catch (error) {
+      console.error("Error updating site setting:", error);
+      res.status(500).json({ message: "Failed to update site setting" });
+    }
+  });
+
+  app.delete("/api/admin/site-settings/:id", isAuthenticated, requireAdmin, async (req, res) => {
+    try {
+      await storage.deleteSiteSetting(req.params.id);
+      res.status(204).send();
+    } catch (error) {
+      console.error("Error deleting site setting:", error);
+      res.status(500).json({ message: "Failed to delete site setting" });
+    }
+  });
+
+  // Prize configuration management
+  app.get("/api/admin/prizes", isAuthenticated, requireAdmin, async (req, res) => {
+    try {
+      const prizes = await storage.getPrizeConfigurations();
+      res.json(prizes);
+    } catch (error) {
+      console.error("Error fetching prizes:", error);
+      res.status(500).json({ message: "Failed to fetch prizes" });
+    }
+  });
+
+  app.post("/api/admin/prizes", isAuthenticated, requireAdmin, async (req, res) => {
+    try {
+      const prize = await storage.createPrizeConfiguration(req.body);
+      res.json(prize);
+    } catch (error) {
+      console.error("Error creating prize:", error);
+      res.status(500).json({ message: "Failed to create prize" });
+    }
+  });
+
+  app.put("/api/admin/prizes/:id", isAuthenticated, requireAdmin, async (req, res) => {
+    try {
+      const prize = await storage.updatePrizeConfiguration(req.params.id, req.body);
+      res.json(prize);
+    } catch (error) {
+      console.error("Error updating prize:", error);
+      res.status(500).json({ message: "Failed to update prize" });
+    }
+  });
+
+  app.delete("/api/admin/prizes/:id", isAuthenticated, requireAdmin, async (req, res) => {
+    try {
+      await storage.deletePrizeConfiguration(req.params.id);
+      res.status(204).send();
+    } catch (error) {
+      console.error("Error deleting prize:", error);
+      res.status(500).json({ message: "Failed to delete prize" });
+    }
+  });
+
+  // Advertisement management
+  app.get("/api/admin/advertisements", isAuthenticated, requireAdmin, async (req, res) => {
+    try {
+      const { placement } = req.query;
+      const ads = await storage.getAdvertisements(placement as string);
+      res.json(ads);
+    } catch (error) {
+      console.error("Error fetching advertisements:", error);
+      res.status(500).json({ message: "Failed to fetch advertisements" });
+    }
+  });
+
+  app.post("/api/admin/advertisements", isAuthenticated, requireAdmin, async (req, res) => {
+    try {
+      const ad = await storage.createAdvertisement(req.body);
+      res.json(ad);
+    } catch (error) {
+      console.error("Error creating advertisement:", error);
+      res.status(500).json({ message: "Failed to create advertisement" });
+    }
+  });
+
+  app.put("/api/admin/advertisements/:id", isAuthenticated, requireAdmin, async (req, res) => {
+    try {
+      const ad = await storage.updateAdvertisement(req.params.id, req.body);
+      res.json(ad);
+    } catch (error) {
+      console.error("Error updating advertisement:", error);
+      res.status(500).json({ message: "Failed to update advertisement" });
+    }
+  });
+
+  app.delete("/api/admin/advertisements/:id", isAuthenticated, requireAdmin, async (req, res) => {
+    try {
+      await storage.deleteAdvertisement(req.params.id);
+      res.status(204).send();
+    } catch (error) {
+      console.error("Error deleting advertisement:", error);
+      res.status(500).json({ message: "Failed to delete advertisement" });
+    }
+  });
+
+  // Contractor settings management
+  app.get("/api/admin/contractor-settings", isAuthenticated, requireAdmin, async (req, res) => {
+    try {
+      const { category } = req.query;
+      const settings = await storage.getContractorSettings(category as string);
+      res.json(settings);
+    } catch (error) {
+      console.error("Error fetching contractor settings:", error);
+      res.status(500).json({ message: "Failed to fetch contractor settings" });
+    }
+  });
+
+  app.post("/api/admin/contractor-settings", isAuthenticated, requireAdmin, async (req, res) => {
+    try {
+      const setting = await storage.createContractorSetting(req.body);
+      res.json(setting);
+    } catch (error) {
+      console.error("Error creating contractor setting:", error);
+      res.status(500).json({ message: "Failed to create contractor setting" });
+    }
+  });
+
+  app.put("/api/admin/contractor-settings/:id", isAuthenticated, requireAdmin, async (req, res) => {
+    try {
+      const setting = await storage.updateContractorSetting(req.params.id, req.body);
+      res.json(setting);
+    } catch (error) {
+      console.error("Error updating contractor setting:", error);
+      res.status(500).json({ message: "Failed to update contractor setting" });
+    }
+  });
+
+  app.delete("/api/admin/contractor-settings/:id", isAuthenticated, requireAdmin, async (req, res) => {
+    try {
+      await storage.deleteContractorSetting(req.params.id);
+      res.status(204).send();
+    } catch (error) {
+      console.error("Error deleting contractor setting:", error);
+      res.status(500).json({ message: "Failed to delete contractor setting" });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }
