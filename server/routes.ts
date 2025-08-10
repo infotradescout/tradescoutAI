@@ -126,6 +126,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Seed database endpoint (development only)
+  app.post("/api/seed-database", async (req, res) => {
+    try {
+      if (process.env.NODE_ENV === 'production') {
+        return res.status(403).json({ message: "Not allowed in production" });
+      }
+      
+      const { seedDatabase } = await import("./seed-data");
+      await seedDatabase();
+      res.json({ message: "Database seeded successfully" });
+    } catch (error) {
+      console.error("Error seeding database:", error);
+      res.status(500).json({ message: "Failed to seed database" });
+    }
+  });
+
   // Individual contractor profile
   app.get("/api/contractors/:slug", async (req, res) => {
     try {

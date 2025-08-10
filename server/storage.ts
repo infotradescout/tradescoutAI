@@ -144,27 +144,13 @@ export class DatabaseStorage implements IStorage {
     limit?: number;
     offset?: number;
   }): Promise<Contractor[]> {
-    let conditions = [eq(contractors.isActive, true)];
-    let joinClause = db.select().from(contractors);
-
-    if (filters?.countyId) {
-      joinClause = joinClause
-        .innerJoin(contractorCounties, eq(contractors.id, contractorCounties.contractorId));
-      conditions.push(eq(contractorCounties.countyId, filters.countyId));
-    }
-
-    if (filters?.tradeIds?.length) {
-      joinClause = joinClause
-        .innerJoin(contractorTrades, eq(contractors.id, contractorTrades.contractorId));
-      conditions.push(inArray(contractorTrades.tradeId, filters.tradeIds));
-    }
-
-    let query = joinClause.where(and(...conditions));
+    // Start with basic contractor query
+    let query = db.select().from(contractors).where(eq(contractors.isActive, true));
 
     // Apply sorting
     switch (filters?.sortBy) {
       case 'rating':
-        query = query.orderBy(desc(contractors.lastVerified));
+        query = query.orderBy(desc(contractors.avgRating));
         break;
       case 'years':
         query = query.orderBy(desc(contractors.yearsInBusiness));
@@ -173,8 +159,8 @@ export class DatabaseStorage implements IStorage {
         query = query.orderBy(desc(contractors.lastVerified));
         break;
       default:
-        // Default to "Most Recommended" - would need recommendation count calculation
-        query = query.orderBy(desc(contractors.createdAt));
+        // Default to "Most Recommended" - order by rating then reviews
+        query = query.orderBy(desc(contractors.avgRating), desc(contractors.totalReviews));
     }
 
     if (filters?.limit) {
@@ -185,7 +171,29 @@ export class DatabaseStorage implements IStorage {
       query = query.offset(filters.offset);
     }
 
-    return await query;
+    let result = await query;
+
+    // Filter by county if specified
+    if (filters?.countyId) {
+      const contractorIds = await db.select({
+        contractorId: contractorCounties.contractorId
+      }).from(contractorCounties).where(eq(contractorCounties.countyId, filters.countyId));
+      
+      const validIds = contractorIds.map(row => row.contractorId);
+      result = result.filter(contractor => validIds.includes(contractor.id));
+    }
+
+    // Filter by trade if specified
+    if (filters?.tradeIds?.length) {
+      const contractorIds = await db.select({
+        contractorId: contractorTrades.contractorId
+      }).from(contractorTrades).where(inArray(contractorTrades.tradeId, filters.tradeIds));
+      
+      const validIds = contractorIds.map(row => row.contractorId);
+      result = result.filter(contractor => validIds.includes(contractor.id));
+    }
+
+    return result;
   }
 
   async getContractorBySlug(slug: string): Promise<Contractor | undefined> {
