@@ -749,8 +749,7 @@ export type WorkerReview = typeof workerReviews.$inferSelect;
 export type InsertWorkerReview = typeof workerReviews.$inferInsert;
 export type VerificationRequest = typeof verificationRequests.$inferSelect;
 export type InsertVerificationRequest = typeof verificationRequests.$inferInsert;
-export type ErrorReport = typeof errorReports.$inferSelect;
-export type InsertErrorReport = typeof errorReports.$inferInsert;
+
 
 // Chat system tables
 export const conversations = pgTable("conversations", {
