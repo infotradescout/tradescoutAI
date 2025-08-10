@@ -355,7 +355,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const userId = (req.user as any)?.claims?.sub;
       const user = await storage.getUser(userId);
       
-      if (!user || !['owner', 'ops_admin'].includes(user.role || '')) {
+      if (!user || !['head_admin', 'moderator', 'ops_admin'].includes(user.role || '')) {
         return res.status(403).json({ message: "Admin access required" });
       }
 
@@ -366,6 +366,124 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error triggering reminders:", error);
       res.status(500).json({ message: "Failed to trigger reminders" });
+    }
+  });
+
+  // Profile setup endpoint
+  app.post('/api/auth/setup-profile', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user?.id;
+      const { role, phone, address, city, state, zipCode, companyName, businessDescription, licenseNumber, yearsInBusiness, serviceAreas } = req.body;
+
+      // Update user profile
+      const updatedUser = await storage.updateUser(userId, {
+        role,
+        phone,
+        address,
+        city,
+        state,
+        zipCode,
+        onboardingCompleted: true,
+      });
+
+      // If contractor, create contractor profile
+      if (role === 'contractor_user' && companyName) {
+        await storage.createContractor({
+          userId,
+          companyName,
+          slug: companyName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, ''),
+          description: businessDescription,
+          licenseNumber,
+          yearsInBusiness: yearsInBusiness || 0,
+          serviceAreas: serviceAreas || [],
+          isVerified: false,
+          phone,
+          address,
+          city,
+          state,
+          zipCode,
+        });
+      }
+
+      res.json(updatedUser);
+    } catch (error) {
+      console.error("Error setting up profile:", error);
+      res.status(500).json({ message: "Failed to setup profile" });
+    }
+  });
+
+  // Admin user management endpoints
+  app.get("/api/admin/users", isAuthenticated, async (req, res) => {
+    try {
+      const userId = req.user?.id;
+      const user = await storage.getUser(userId);
+      
+      if (!user || !['head_admin', 'moderator', 'ops_admin'].includes(user.role || '')) {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+
+      const users = await storage.getAllUsers();
+      res.json(users);
+    } catch (error) {
+      console.error("Error fetching users:", error);
+      res.status(500).json({ message: "Failed to fetch users" });
+    }
+  });
+
+  app.put("/api/admin/users/:userId/role", isAuthenticated, async (req, res) => {
+    try {
+      const adminUserId = req.user?.id;
+      const adminUser = await storage.getUser(adminUserId);
+      const { userId } = req.params;
+      const { role } = req.body;
+      
+      if (!adminUser || !['head_admin', 'moderator', 'ops_admin'].includes(adminUser.role || '')) {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+
+      // Only head_admin can promote to head_admin or modify other head_admins
+      if (role === 'head_admin' && adminUser.role !== 'head_admin') {
+        return res.status(403).json({ message: "Only head admin can promote to head admin" });
+      }
+
+      const targetUser = await storage.getUser(userId);
+      if (targetUser?.role === 'head_admin' && adminUser.role !== 'head_admin') {
+        return res.status(403).json({ message: "Only head admin can modify other head admins" });
+      }
+
+      const updatedUser = await storage.updateUser(userId, { role });
+      res.json(updatedUser);
+    } catch (error) {
+      console.error("Error updating user role:", error);
+      res.status(500).json({ message: "Failed to update user role" });
+    }
+  });
+
+  app.delete("/api/admin/users/:userId", isAuthenticated, async (req, res) => {
+    try {
+      const adminUserId = req.user?.id;
+      const adminUser = await storage.getUser(adminUserId);
+      const { userId } = req.params;
+      
+      if (!adminUser || !['head_admin', 'moderator'].includes(adminUser.role || '')) {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+
+      const targetUser = await storage.getUser(userId);
+      if (targetUser?.role === 'head_admin' && adminUser.role !== 'head_admin') {
+        return res.status(403).json({ message: "Only head admin can delete other head admins" });
+      }
+
+      // Prevent self-deletion
+      if (userId === adminUserId) {
+        return res.status(400).json({ message: "Cannot delete your own account" });
+      }
+
+      await storage.deleteUser(userId);
+      res.status(204).send();
+    } catch (error) {
+      console.error("Error deleting user:", error);
+      res.status(500).json({ message: "Failed to delete user" });
     }
   });
 

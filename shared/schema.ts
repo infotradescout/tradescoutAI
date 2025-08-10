@@ -31,8 +31,9 @@ export const userRoleEnum = pgEnum('user_role', [
   'homeowner',
   'contractor_user', 
   'accelerator_member',
-  'owner',
+  'moderator',
   'ops_admin',
+  'head_admin', // Ultimate admin with power over all including moderators
   'territory_manager',
   'contractor_success',
   'content_seo',

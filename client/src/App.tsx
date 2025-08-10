@@ -27,6 +27,9 @@ import AdminWorkspace from "@/pages/admin-workspace";
 import AdminPanel from "@/pages/admin-panel";
 import Chat from "@/pages/chat";
 import SavedAds from "@/pages/saved-ads";
+import ProfileSetup from "@/pages/profile-setup";
+import AdminUsers from "@/pages/admin-users";
+import { ProfileSetupRedirect } from "@/components/profile-setup-redirect";
 
 function Router() {
   const { isAuthenticated, isLoading } = useAuth();
@@ -63,12 +66,30 @@ function Router() {
           </>
         ) : (
           <>
-            <Route path="/" component={Dashboard} />
-            <Route path="/dashboard" component={Dashboard} />
-            <Route path="/homeowner-dashboard" component={HomeownerDashboard} />
-            <Route path="/contractor-dashboard" component={ContractorDashboard} />
+            <Route path="/profile-setup" component={ProfileSetup} />
+            <Route path="/">
+              <ProfileSetupRedirect>
+                <Dashboard />
+              </ProfileSetupRedirect>
+            </Route>
+            <Route path="/dashboard">
+              <ProfileSetupRedirect>
+                <Dashboard />
+              </ProfileSetupRedirect>
+            </Route>
+            <Route path="/homeowner-dashboard">
+              <ProfileSetupRedirect>
+                <HomeownerDashboard />
+              </ProfileSetupRedirect>
+            </Route>
+            <Route path="/contractor-dashboard">
+              <ProfileSetupRedirect>
+                <ContractorDashboard />
+              </ProfileSetupRedirect>
+            </Route>
             <Route path="/admin" component={AdminWorkspace} />
             <Route path="/admin/panel" component={AdminPanel} />
+            <Route path="/admin/users" component={AdminUsers} />
             <Route path="/chat/:conversationId?" component={Chat} />
             <Route path="/saved-ads" component={SavedAds} />
           </>

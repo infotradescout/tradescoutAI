@@ -22,6 +22,10 @@ Trade Scout is a full-stack contractor marketplace platform built with React, No
 - ✅ **Periodic Notification System**: Automated reminder system for saved ads with email and in-app notifications
 - ✅ **NotificationBell Component**: Real-time notification center with unread counts and interactive management
 - ✅ **Intelligent Reminder Logic**: First reminder after 3 days, then daily reminders (max 3 total) with progressive messaging
+- ✅ **Profile Selection System**: Critical Contractor vs Homeowner role selection during registration for targeted user experience
+- ✅ **Head Admin Hierarchy**: Implemented hierarchical admin system with head_admin powers to manage moderators and all users
+- ✅ **User Management Interface**: Complete admin user management at /admin/users with role updates and permissions enforcement
+- ✅ **Profile Setup Flow**: Comprehensive onboarding system with role-specific fields and automatic dashboard routing
 
 # User Preferences
 
@@ -59,8 +63,10 @@ Preferred communication style: Simple, everyday language.
 ## Authentication & Authorization
 - **Provider**: Replit OpenID Connect for secure authentication
 - **Session Storage**: PostgreSQL-backed session storage for scalability
-- **Role-Based Access**: Multi-tier user roles with granular permissions
-- **Security**: CSRF protection, secure session cookies, and role-based route protection
+- **Role-Based Access**: Hierarchical user roles (homeowner, contractor_user, accelerator_member, moderator, ops_admin, head_admin)
+- **Profile Selection**: Critical Contractor vs Homeowner role selection during registration for targeted user experience
+- **Admin Hierarchy**: Head admin has ultimate authority to manage all users including moderators; moderators can manage all except head admins
+- **Security**: CSRF protection, secure session cookies, and role-based route protection with profile setup flow
 
 ## File Upload & Storage
 - **Cloud Storage**: Google Cloud Storage integration for contractor documents and media
