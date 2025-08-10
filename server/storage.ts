@@ -24,6 +24,7 @@ import {
   contractorSettings,
   savedAds,
   notifications,
+  errorReports,
   type User,
   type InsertUser,
   type UpsertUser,
@@ -179,6 +180,11 @@ export interface IStorage {
   markAllNotificationsAsRead(userId: string): Promise<void>;
   getSavedAdsForReminders(): Promise<Array<SavedAd & { user: User; ad: Advertisement }>>;
   updateSavedAdReminderStatus(savedAdId: string, reminderCount: number): Promise<void>;
+  
+  // Error Report operations
+  createErrorReport(report: any): Promise<any>;
+  updateErrorReport(id: string, updates: any): Promise<any>;
+  getErrorReports(): Promise<any[]>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -238,24 +244,8 @@ export class DatabaseStorage implements IStorage {
     limit?: number;
     offset?: number;
   }): Promise<Contractor[]> {
-    // Start with basic contractor query
+    // Start with basic contractor query without ordering for now
     let query = db.select().from(contractors).where(eq(contractors.isActive, true));
-
-    // Apply sorting
-    switch (filters?.sortBy) {
-      case 'rating':
-        query = query.orderBy(desc(contractors.avgRating));
-        break;
-      case 'years':
-        query = query.orderBy(desc(contractors.yearsInBusiness));
-        break;
-      case 'verified':
-        query = query.orderBy(desc(contractors.lastVerified));
-        break;
-      default:
-        // Default to "Most Recommended" - order by rating then reviews
-        query = query.orderBy(desc(contractors.avgRating), desc(contractors.totalReviews));
-    }
 
     if (filters?.limit) {
       query = query.limit(filters.limit);
@@ -285,6 +275,32 @@ export class DatabaseStorage implements IStorage {
       
       const validIds = contractorIds.map(row => row.contractorId);
       result = result.filter(contractor => validIds.includes(contractor.id));
+    }
+
+    // Apply sorting in memory for now
+    if (filters?.sortBy) {
+      switch (filters.sortBy) {
+        case 'rating':
+          result.sort((a, b) => parseFloat(b.avgRating || '0') - parseFloat(a.avgRating || '0'));
+          break;
+        case 'years':
+          result.sort((a, b) => (b.yearsInBusiness || 0) - (a.yearsInBusiness || 0));
+          break;
+        case 'verified':
+          result.sort((a, b) => {
+            const aDate = a.lastVerified ? new Date(a.lastVerified).getTime() : 0;
+            const bDate = b.lastVerified ? new Date(b.lastVerified).getTime() : 0;
+            return bDate - aDate;
+          });
+          break;
+        default:
+          // Default to "Most Recommended" - order by rating then reviews
+          result.sort((a, b) => {
+            const ratingDiff = parseFloat(b.avgRating || '0') - parseFloat(a.avgRating || '0');
+            if (ratingDiff !== 0) return ratingDiff;
+            return (b.totalReviews || 0) - (a.totalReviews || 0);
+          });
+      }
     }
 
     return result;
@@ -1100,6 +1116,40 @@ export class DatabaseStorage implements IStorage {
 
   async deleteContractorSetting(id: string): Promise<void> {
     await db.delete(contractorSettings).where(eq(contractorSettings.id, id));
+  }
+
+  // Error Report operations
+  async createErrorReport(report: any): Promise<any> {
+    const [errorReport] = await db.insert(errorReports).values({
+      id: report.id,
+      userId: report.userId,
+      userEmail: report.userEmail,
+      title: report.title,
+      description: report.description,
+      errorType: report.errorType,
+      currentUrl: report.currentUrl,
+      userAgent: report.userAgent,
+      browserInfo: report.browserInfo,
+      attachments: report.attachments,
+      status: report.status,
+      priority: report.priority,
+    }).returning();
+    return errorReport;
+  }
+
+  async updateErrorReport(id: string, updates: any): Promise<any> {
+    const [errorReport] = await db.update(errorReports)
+      .set({
+        ...updates,
+        updatedAt: new Date(),
+      })
+      .where(eq(errorReports.id, id))
+      .returning();
+    return errorReport;
+  }
+
+  async getErrorReports(): Promise<any[]> {
+    return await db.select().from(errorReports).orderBy(desc(errorReports.createdAt));
   }
 }
 

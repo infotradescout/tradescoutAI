@@ -10,6 +10,8 @@ import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import Navigation from "@/components/layout/navigation";
 import MobileCTA from "@/components/mobile-cta";
 import NotFound from "@/pages/not-found";
+import Login from "@/pages/login";
+import Register from "@/pages/register";
 import Landing from "@/pages/landing";
 import Home from "@/pages/home";
 import LoginPage from "@/pages/login";
