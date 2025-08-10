@@ -43,6 +43,10 @@ export default function ContractorBoard() {
     queryKey: ['/api/trades'],
   });
 
+  const { data: mainTrades } = useQuery<Trade[]>({
+    queryKey: ['/api/trades', { main: true }],
+  });
+
   // Filter contractors based on search query
   const filteredContractors = useMemo(() => {
     if (!contractors) return [];
@@ -238,9 +242,9 @@ export default function ContractorBoard() {
                     <SelectTrigger className="bg-navy-600 border-navy-500 text-white">
                       <SelectValue placeholder="All trades" />
                     </SelectTrigger>
-                    <SelectContent className="bg-navy-600 border-navy-500">
+                    <SelectContent className="bg-navy-600 border-navy-500 max-h-80">
                       <SelectItem value="">All trades</SelectItem>
-                      {trades?.map((trade) => (
+                      {mainTrades?.map((trade) => (
                         <SelectItem key={trade.id} value={trade.id}>
                           {trade.name}
                         </SelectItem>

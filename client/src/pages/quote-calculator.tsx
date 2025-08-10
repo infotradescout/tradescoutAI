@@ -114,16 +114,77 @@ export default function EstimateCalculator() {
 
   const getTradeIdFromProjectType = (projectType: string): string => {
     const tradeMap: { [key: string]: string } = {
+      // Roofing & Exterior
       'roof-repair': 'roofing',
       'roof-replacement': 'roofing',
-      'kitchen-remodel': 'general-contractor',
-      'bathroom-remodel': 'general-contractor',
-      'flooring': 'flooring',
-      'plumbing': 'plumbing',
-      'electrical': 'electrical',
-      'hvac': 'hvac',
-      'painting': 'painting',
+      'new-roof': 'roofing',
+      'gutter-installation': 'gutter-contractor',
+      'siding-replacement': 'siding-contractor',
+      'window-replacement': 'window-contractor',
+      'door-installation': 'door-contractor',
+      'deck-construction': 'deck-contractor',
+      'fence-installation': 'fence-contractor',
+      'concrete-work': 'concrete-contractor',
+      'masonry-work': 'masonry-contractor',
+      
+      // Interior Renovations
+      'kitchen-remodel': 'kitchen-remodel',
+      'bathroom-remodel': 'bathroom-remodel',
+      'basement-finishing': 'basement-finishing',
+      'attic-conversion': 'attic-conversion',
+      
+      // Flooring
+      'hardwood-flooring': 'hardwood-flooring',
+      'carpet-installation': 'carpet-installation',
+      'tile-installation': 'tile-contractor',
+      'laminate-flooring': 'laminate-flooring',
+      
+      // Plumbing & HVAC
+      'plumbing-repair': 'plumbing',
+      'water-heater-installation': 'water-heater',
+      'hvac-installation': 'hvac',
+      'air-conditioning-repair': 'air-conditioning',
+      'heating-system': 'heating-contractor',
+      
+      // Electrical
+      'electrical-work': 'electrical',
+      'panel-upgrade': 'panel-upgrade',
+      'lighting-installation': 'lighting-contractor',
+      'ceiling-fan-installation': 'ceiling-fan-installation',
+      
+      // Painting & Finishing
+      'interior-painting': 'interior-painting',
+      'exterior-painting': 'exterior-painting',
+      'cabinet-painting': 'cabinet-painting',
+      'drywall-work': 'drywall-contractor',
+      
+      // Landscaping & Outdoor
       'landscaping': 'landscaping',
+      'lawn-care': 'lawn-care',
+      'tree-service': 'tree-service',
+      'irrigation-system': 'irrigation',
+      'pool-installation': 'pool-contractor',
+      
+      // Specialty Services
+      'insulation-installation': 'insulation-contractor',
+      'solar-installation': 'solar-contractor',
+      'security-system': 'security-systems',
+      'smart-home-automation': 'smart-home',
+      'garage-door-repair': 'garage-door',
+      'chimney-services': 'chimney-services',
+      
+      // Maintenance & Cleaning
+      'house-cleaning': 'house-cleaning',
+      'carpet-cleaning': 'carpet-cleaning',
+      'pressure-washing': 'pressure-washing',
+      'pest-control': 'pest-control',
+      'mold-remediation': 'mold-remediation',
+      'handyman-services': 'handyman',
+      
+      // General Construction
+      'home-addition': 'addition-contractor',
+      'general-remodeling': 'remodeling-contractor',
+      'custom-home-building': 'custom-home-builder',
     };
     return tradeMap[projectType] || 'general-contractor';
   };
@@ -206,11 +267,78 @@ export default function EstimateCalculator() {
                     <SelectTrigger className="form-field">
                       <SelectValue placeholder="Select project type..." />
                     </SelectTrigger>
-                    <SelectContent>
+                    <SelectContent className="max-h-80">
+                      {/* ROOFING & EXTERIOR */}
                       <SelectItem value="roof-replacement">Roof Replacement</SelectItem>
                       <SelectItem value="roof-repair">Roof Repair</SelectItem>
                       <SelectItem value="new-roof">New Roof Installation</SelectItem>
-                      <SelectItem value="roof-maintenance">Roof Maintenance</SelectItem>
+                      <SelectItem value="gutter-installation">Gutter Installation & Repair</SelectItem>
+                      <SelectItem value="siding-replacement">Siding Installation & Repair</SelectItem>
+                      <SelectItem value="window-replacement">Window Replacement</SelectItem>
+                      <SelectItem value="door-installation">Door Installation</SelectItem>
+                      <SelectItem value="deck-construction">Deck & Patio Construction</SelectItem>
+                      <SelectItem value="fence-installation">Fence Installation</SelectItem>
+                      <SelectItem value="concrete-work">Concrete Work</SelectItem>
+                      <SelectItem value="masonry-work">Masonry & Stonework</SelectItem>
+                      
+                      {/* INTERIOR RENOVATIONS */}
+                      <SelectItem value="kitchen-remodel">Kitchen Remodeling</SelectItem>
+                      <SelectItem value="bathroom-remodel">Bathroom Remodeling</SelectItem>
+                      <SelectItem value="basement-finishing">Basement Finishing</SelectItem>
+                      <SelectItem value="attic-conversion">Attic Conversion</SelectItem>
+                      
+                      {/* FLOORING */}
+                      <SelectItem value="hardwood-flooring">Hardwood Flooring</SelectItem>
+                      <SelectItem value="carpet-installation">Carpet Installation</SelectItem>
+                      <SelectItem value="tile-installation">Tile Installation</SelectItem>
+                      <SelectItem value="laminate-flooring">Laminate/Vinyl Flooring</SelectItem>
+                      
+                      {/* PLUMBING & HVAC */}
+                      <SelectItem value="plumbing-repair">Plumbing Repair</SelectItem>
+                      <SelectItem value="water-heater-installation">Water Heater Installation</SelectItem>
+                      <SelectItem value="hvac-installation">HVAC Installation</SelectItem>
+                      <SelectItem value="air-conditioning-repair">AC Repair & Installation</SelectItem>
+                      <SelectItem value="heating-system">Heating System Services</SelectItem>
+                      
+                      {/* ELECTRICAL */}
+                      <SelectItem value="electrical-work">Electrical Services</SelectItem>
+                      <SelectItem value="panel-upgrade">Electrical Panel Upgrade</SelectItem>
+                      <SelectItem value="lighting-installation">Lighting Installation</SelectItem>
+                      <SelectItem value="ceiling-fan-installation">Ceiling Fan Installation</SelectItem>
+                      
+                      {/* PAINTING & FINISHING */}
+                      <SelectItem value="interior-painting">Interior Painting</SelectItem>
+                      <SelectItem value="exterior-painting">Exterior Painting</SelectItem>
+                      <SelectItem value="cabinet-painting">Cabinet Painting & Refinishing</SelectItem>
+                      <SelectItem value="drywall-work">Drywall Installation & Repair</SelectItem>
+                      
+                      {/* LANDSCAPING & OUTDOOR */}
+                      <SelectItem value="landscaping">Landscaping Services</SelectItem>
+                      <SelectItem value="lawn-care">Lawn Care & Maintenance</SelectItem>
+                      <SelectItem value="tree-service">Tree Services</SelectItem>
+                      <SelectItem value="irrigation-system">Irrigation & Sprinkler Systems</SelectItem>
+                      <SelectItem value="pool-installation">Pool Installation</SelectItem>
+                      
+                      {/* SPECIALTY SERVICES */}
+                      <SelectItem value="insulation-installation">Insulation Services</SelectItem>
+                      <SelectItem value="solar-installation">Solar Panel Installation</SelectItem>
+                      <SelectItem value="security-system">Security System Installation</SelectItem>
+                      <SelectItem value="smart-home-automation">Smart Home Automation</SelectItem>
+                      <SelectItem value="garage-door-repair">Garage Door Services</SelectItem>
+                      <SelectItem value="chimney-services">Chimney Services</SelectItem>
+                      
+                      {/* MAINTENANCE & CLEANING */}
+                      <SelectItem value="house-cleaning">House Cleaning</SelectItem>
+                      <SelectItem value="carpet-cleaning">Carpet Cleaning</SelectItem>
+                      <SelectItem value="pressure-washing">Pressure Washing</SelectItem>
+                      <SelectItem value="pest-control">Pest Control</SelectItem>
+                      <SelectItem value="mold-remediation">Mold Remediation</SelectItem>
+                      <SelectItem value="handyman-services">Handyman Services</SelectItem>
+                      
+                      {/* GENERAL CONSTRUCTION */}
+                      <SelectItem value="home-addition">Home Addition</SelectItem>
+                      <SelectItem value="general-remodeling">General Remodeling</SelectItem>
+                      <SelectItem value="custom-home-building">Custom Home Building</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
