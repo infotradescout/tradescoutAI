@@ -275,7 +275,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "State parameter is required" });
       }
       
-      const { getCountiesForState } = await import("@shared/us-states-counties");
+      const { getCountiesForState } = await import("@shared/us-counties-complete");
       const counties = getCountiesForState(state as string);
       res.json(counties);
     } catch (error) {
