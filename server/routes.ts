@@ -92,6 +92,40 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get top contractors in area (for lead assignment)
+  app.get("/api/contractors/top", async (req, res) => {
+    try {
+      const { county, trade, limit = 3 } = req.query;
+      
+      if (!county || !trade) {
+        return res.status(400).json({ message: "County and trade are required" });
+      }
+      
+      const filters: any = {
+        limit: parseInt(limit as string),
+        sortBy: 'rating', // Sort by highest rated contractors
+      };
+
+      // Get county by FIPS code
+      const countyRecord = await storage.getCountyByFips(county as string);
+      if (countyRecord) {
+        filters.countyId = countyRecord.id;
+      }
+
+      // Get trade by slug
+      const tradeRecord = await storage.getTradeBySlug(trade as string);
+      if (tradeRecord) {
+        filters.tradeIds = [tradeRecord.id];
+      }
+      
+      const contractors = await storage.getContractors(filters);
+      res.json(contractors);
+    } catch (error) {
+      console.error("Error fetching top contractors:", error);
+      res.status(500).json({ message: "Failed to fetch top contractors" });
+    }
+  });
+
   // Individual contractor profile
   app.get("/api/contractors/:slug", async (req, res) => {
     try {

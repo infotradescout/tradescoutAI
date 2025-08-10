@@ -6,7 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { Calculator, DollarSign, Info, Users } from "lucide-react";
+import { Calculator, DollarSign, Info, Users, CheckCircle, Clock, Phone, MapPin } from "lucide-react";
 import { Link } from "wouter";
 import { useAuth } from "@/hooks/useAuth";
 import { apiRequest } from "@/lib/queryClient";
@@ -59,11 +59,13 @@ export default function EstimateCalculator() {
     mutationFn: async (data: any) => {
       return apiRequest('POST', '/api/leads', data);
     },
-    onSuccess: () => {
+    onSuccess: (response) => {
       toast({
         title: "Success!",
-        description: "We'll connect you with up to 3 contractors for detailed quotes.",
+        description: "We're connecting you with the top 3 contractors in your area.",
       });
+      // Show success state with next steps
+      setShowLeadSuccess(true);
     },
     onError: (error) => {
       toast({
@@ -73,6 +75,8 @@ export default function EstimateCalculator() {
       });
     }
   });
+
+  const [showLeadSuccess, setShowLeadSuccess] = useState(false);
 
   const handleCalculate = () => {
     if (!inputs.projectType || !inputs.squareFootage) {
@@ -88,21 +92,91 @@ export default function EstimateCalculator() {
 
   const handleGetEstimates = async () => {
     if (!isAuthenticated) {
-      window.location.href = "/api/login";
+      window.location.href = "/login";
       return;
     }
 
     leadMutation.mutate({
       projectType: inputs.projectType,
       description: `${inputs.squareFootage} sq ft ${inputs.projectType.toLowerCase()}`,
-      tradeId: 'roofing', // This would be dynamic based on project type
-      countyId: '06037', // Los Angeles - would be dynamic
+      tradeId: getTradeIdFromProjectType(inputs.projectType),
+      countyId: '06037', // Los Angeles - would be dynamic based on user location
       estimatedValue: estimate ? (estimate.low + estimate.high) / 2 : null,
       urgency: inputs.urgency,
       routingType: 'top3',
       calculatorData: { ...inputs, estimate },
     });
   };
+
+  const getTradeIdFromProjectType = (projectType: string): string => {
+    const tradeMap: { [key: string]: string } = {
+      'roof-repair': 'roofing',
+      'roof-replacement': 'roofing',
+      'kitchen-remodel': 'general-contractor',
+      'bathroom-remodel': 'general-contractor',
+      'flooring': 'flooring',
+      'plumbing': 'plumbing',
+      'electrical': 'electrical',
+      'hvac': 'hvac',
+      'painting': 'painting',
+      'landscaping': 'landscaping',
+    };
+    return tradeMap[projectType] || 'general-contractor';
+  };
+
+  if (showLeadSuccess) {
+    return (
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+        <Card className="bg-navy-700 border-navy-600">
+          <CardContent className="p-8 text-center">
+            <div className="w-16 h-16 bg-green-500/20 rounded-lg flex items-center justify-center mx-auto mb-6">
+              <CheckCircle className="h-8 w-8 text-green-500" />
+            </div>
+            
+            <h1 className="text-3xl font-bold text-white mb-4">Request Submitted Successfully!</h1>
+            <p className="text-xl text-gray-300 mb-8">
+              We're connecting you with the top 3 contractors in your area for detailed quotes.
+            </p>
+            
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+              <div className="bg-navy-600 p-6 rounded-lg">
+                <Clock className="h-8 w-8 text-orange-500 mx-auto mb-3" />
+                <h3 className="text-white font-semibold mb-2">Within 1 Hour</h3>
+                <p className="text-gray-300 text-sm">Top contractors will review your project details</p>
+              </div>
+              <div className="bg-navy-600 p-6 rounded-lg">
+                <Phone className="h-8 w-8 text-orange-500 mx-auto mb-3" />
+                <h3 className="text-white font-semibold mb-2">Within 24 Hours</h3>
+                <p className="text-gray-300 text-sm">You'll receive calls with detailed quotes</p>
+              </div>
+              <div className="bg-navy-600 p-6 rounded-lg">
+                <MapPin className="h-8 w-8 text-orange-500 mx-auto mb-3" />
+                <h3 className="text-white font-semibold mb-2">Schedule Visits</h3>
+                <p className="text-gray-300 text-sm">Arrange on-site consultations with your preferred contractors</p>
+              </div>
+            </div>
+            
+            <div className="space-y-4">
+              <Link href="/contractors/board">
+                <Button className="bg-orange-500 hover:bg-orange-600 text-white">
+                  Browse All Contractors
+                </Button>
+              </Link>
+              <div>
+                <Button 
+                  variant="outline" 
+                  className="border-navy-400 text-gray-300 hover:bg-navy-600"
+                  onClick={() => setShowLeadSuccess(false)}
+                >
+                  Calculate Another Estimate
+                </Button>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
@@ -205,20 +279,42 @@ export default function EstimateCalculator() {
                         Get Accurate Estimates
                       </h4>
                       <p className="text-gray-300 text-sm mb-4">
-                        Connect with verified contractors in your area for detailed, personalized estimates.
+                        Choose how you'd like to connect with verified contractors in your area.
                       </p>
-                      <Button 
-                        onClick={handleGetEstimates}
-                        disabled={leadMutation.isPending}
-                        className="w-full bg-orange-500 hover:bg-orange-600 text-white py-3 rounded-lg font-semibold glow-effect transition-all duration-300"
-                      >
-                        {leadMutation.isPending ? 'Submitting...' : (
-                          <>
-                            <Users className="h-4 w-4 mr-2" />
-                            Get 3 Free Quotes
-                          </>
-                        )}
-                      </Button>
+                      
+                      <div className="space-y-3">
+                        <Button 
+                          onClick={handleGetEstimates}
+                          disabled={leadMutation.isPending}
+                          className="w-full bg-orange-500 hover:bg-orange-600 text-white py-3 rounded-lg font-semibold glow-effect transition-all duration-300"
+                        >
+                          {leadMutation.isPending ? 'Connecting...' : (
+                            <>
+                              <Users className="h-4 w-4 mr-2" />
+                              Get 3 Free Quotes (Recommended)
+                            </>
+                          )}
+                        </Button>
+                        
+                        <div className="text-center text-gray-400 text-sm">or</div>
+                        
+                        <Link href="/contractors/board">
+                          <Button 
+                            variant="outline"
+                            className="w-full border-navy-400 text-gray-300 hover:bg-navy-600"
+                          >
+                            Browse All Contractors
+                          </Button>
+                        </Link>
+                      </div>
+                      
+                      <div className="mt-4 p-3 bg-navy-600/50 rounded-lg">
+                        <p className="text-xs text-gray-400">
+                          ✓ All contractors are verified and licensed<br/>
+                          ✓ Free quotes with no obligation<br/>
+                          ✓ Top-rated contractors in your area
+                        </p>
+                      </div>
                     </CardContent>
                   </Card>
                 </div>
