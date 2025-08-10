@@ -31,7 +31,9 @@ import Chat from "@/pages/chat";
 import SavedAds from "@/pages/saved-ads";
 import ProfileSetup from "@/pages/profile-setup";
 import AdminUsers from "@/pages/admin-users";
+import AdminErrorReports from "@/pages/admin-error-reports";
 import { ProfileSetupRedirect } from "@/components/profile-setup-redirect";
+import { ErrorReportButton } from "@/components/ErrorReportButton";
 
 function Router() {
   const { isAuthenticated, isLoading } = useAuth();
@@ -97,6 +99,8 @@ function Router() {
             <Route path="/admin" component={AdminWorkspace} />
             <Route path="/admin/panel" component={AdminPanel} />
             <Route path="/admin/users" component={AdminUsers} />
+            <Route path="/admin/workspace" component={AdminWorkspace} />
+            <Route path="/admin/error-reports" component={AdminErrorReports} />
             <Route path="/chat/:conversationId?" component={Chat} />
             <Route path="/saved-ads" component={SavedAds} />
           </>
@@ -104,6 +108,7 @@ function Router() {
         <Route component={NotFound} />
       </Switch>
       <MobileCTA />
+      <ErrorReportButton />
     </div>
   );
 }

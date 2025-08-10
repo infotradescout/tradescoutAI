@@ -268,6 +268,7 @@ export const usersRelations = relations(users, ({ one, many }) => ({
   recommendations: many(recommendations),
   leads: many(leads),
   territory: one(territories),
+  errorReports: many(errorReports),
 }));
 
 export const contractorsRelations = relations(contractors, ({ one, many }) => ({
@@ -684,6 +685,50 @@ export const verificationRequests = pgTable("verification_requests", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
+export const errorReports = pgTable("error_reports", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  
+  // User information
+  userId: varchar("user_id"), // nullable for anonymous reports
+  userEmail: varchar("user_email"),
+  
+  // Error details
+  title: varchar("title", { length: 200 }).notNull(),
+  description: text("description").notNull(),
+  errorType: varchar("error_type", {
+    enum: ['bug', 'ui_issue', 'performance', 'feature_request', 'other']
+  }).default('bug'),
+  
+  // Technical details
+  currentUrl: text("current_url"),
+  userAgent: text("user_agent"),
+  browserInfo: jsonb("browser_info").$type<{
+    name?: string;
+    version?: string;
+    platform?: string;
+    mobile?: boolean;
+  }>(),
+  
+  // Screenshots/attachments
+  attachments: jsonb("attachments").$type<string[]>(),
+  
+  // Admin management
+  status: varchar("status", {
+    enum: ['open', 'in_progress', 'resolved', 'closed', 'duplicate']
+  }).default('open'),
+  priority: varchar("priority", {
+    enum: ['low', 'medium', 'high', 'critical']
+  }).default('medium'),
+  
+  assignedTo: varchar("assigned_to"),
+  adminNotes: text("admin_notes"),
+  resolution: text("resolution"),
+  resolvedAt: timestamp("resolved_at"),
+  
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
 export const workerServiceAreas = pgTable("worker_service_areas", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   workerId: varchar("worker_id").notNull(),
@@ -704,6 +749,8 @@ export type WorkerReview = typeof workerReviews.$inferSelect;
 export type InsertWorkerReview = typeof workerReviews.$inferInsert;
 export type VerificationRequest = typeof verificationRequests.$inferSelect;
 export type InsertVerificationRequest = typeof verificationRequests.$inferInsert;
+export type ErrorReport = typeof errorReports.$inferSelect;
+export type InsertErrorReport = typeof errorReports.$inferInsert;
 
 // Chat system tables
 export const conversations = pgTable("conversations", {

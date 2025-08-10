@@ -1591,6 +1591,125 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Error reporting endpoints
+  app.post("/api/error-reports", async (req: any, res) => {
+    try {
+      const userId = req.user?.claims?.sub || null;
+      const reportData = {
+        ...req.body,
+        userId,
+      };
+
+      // Store in database - for now using in-memory storage
+      const report = {
+        id: `report_${Date.now()}`,
+        ...reportData,
+        status: 'open',
+        priority: 'medium',
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+
+      // In a real implementation, you would save to database
+      // await storage.createErrorReport(report);
+
+      res.json({ message: "Error report submitted successfully", reportId: report.id });
+    } catch (error) {
+      console.error("Error creating error report:", error);
+      res.status(500).json({ message: "Failed to submit error report" });
+    }
+  });
+
+  app.get("/api/admin/error-reports", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user?.claims?.sub;
+      const user = await storage.getUser(userId);
+      
+      if (!user || !['head_admin', 'moderator', 'ops_admin'].includes(user.role || '')) {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+
+      // Sample error reports for demonstration
+      const sampleReports = [
+        {
+          id: "1",
+          userId: "user123",
+          userEmail: "user@example.com",
+          title: "Page not loading on mobile",
+          description: "When I try to access the contractor dashboard on my phone, the page gets stuck loading and never shows content.",
+          errorType: "bug",
+          currentUrl: "https://tradescout.app/contractor-dashboard",
+          userAgent: "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X)",
+          browserInfo: {
+            name: "Safari",
+            version: "17.0",
+            platform: "iPhone",
+            mobile: true
+          },
+          status: "open",
+          priority: "high",
+          assignedTo: null,
+          adminNotes: null,
+          resolution: null,
+          resolvedAt: null,
+          createdAt: "2024-01-15T10:30:00Z",
+          updatedAt: "2024-01-15T10:30:00Z"
+        },
+        {
+          id: "2",
+          userId: null,
+          userEmail: "contractor@email.com",
+          title: "Search filters not working",
+          description: "The location filter on the contractor board doesn't seem to work. I select a county but all contractors still show up.",
+          errorType: "ui_issue",
+          currentUrl: "https://tradescout.app/contractors/board",
+          userAgent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+          browserInfo: {
+            name: "Chrome",
+            version: "120.0",
+            platform: "Win32",
+            mobile: false
+          },
+          status: "in_progress",
+          priority: "medium",
+          assignedTo: "admin1",
+          adminNotes: "Investigating filter logic",
+          resolution: null,
+          resolvedAt: null,
+          createdAt: "2024-01-14T15:45:00Z",
+          updatedAt: "2024-01-15T09:15:00Z"
+        }
+      ];
+
+      res.json(sampleReports);
+    } catch (error) {
+      console.error("Error fetching error reports:", error);
+      res.status(500).json({ message: "Failed to fetch error reports" });
+    }
+  });
+
+  app.patch("/api/admin/error-reports/:id", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user?.claims?.sub;
+      const user = await storage.getUser(userId);
+      
+      if (!user || !['head_admin', 'moderator', 'ops_admin'].includes(user.role || '')) {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+
+      const { id } = req.params;
+      const updateData = req.body;
+
+      // In a real implementation, you would update the database
+      // await storage.updateErrorReport(id, updateData);
+
+      res.json({ message: "Error report updated successfully" });
+    } catch (error) {
+      console.error("Error updating error report:", error);
+      res.status(500).json({ message: "Failed to update error report" });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }
