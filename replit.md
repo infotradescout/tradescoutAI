@@ -37,6 +37,13 @@ Trade Scout is a full-stack contractor marketplace platform built with React, No
 - ✅ **Dropdown Styling Improvements**: Fixed SelectContent background styling issues with proper navy theme colors and readable text throughout platform
 - ✅ **Expanded Trade Options**: Added 50+ additional trade specialties including emergency services, restoration, and specialty contractors for comprehensive coverage
 
+## Deployment & Admin Setup
+- **Admin System**: Hierarchical admin roles (head_admin, ops_admin, moderator, etc.) with role-based permissions
+- **Admin Panel**: Complete admin interface at /admin/panel for managing all platform operations
+- **User Management**: Admin user management at /admin/users with role updates and permissions enforcement
+- **Security**: Role-based access control with head_admin having ultimate authority over all users including moderators
+- **Setup Guide**: Created setup-admin.md with deployment and admin configuration instructions
+
 # User Preferences
 
 Preferred communication style: Simple, everyday language.
