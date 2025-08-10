@@ -1,0 +1,132 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  /* Trade Scout Brand Colors */
+  --bg-primary: hsl(213, 35%, 8%);
+  --bg-secondary: hsl(211, 24%, 14%);
+  --bg-tertiary: hsl(210, 21%, 20%);
+  --bg-quaternary: hsl(209, 18%, 27%);
+  
+  --text-primary: hsl(210, 20%, 89%);
+  --text-secondary: hsl(210, 14%, 71%);
+  --text-muted: hsl(210, 10%, 62%);
+  
+  --orange-primary: hsl(15, 100%, 60%);
+  --orange-secondary: hsl(15, 79%, 54%);
+  --orange-tertiary: hsl(15, 100%, 65%);
+  
+  --success: hsl(142, 76%, 46%);
+  --warning: hsl(38, 92%, 50%);
+  --error: hsl(0, 84%, 60%);
+  
+  --border-primary: hsl(210, 18%, 27%);
+  --border-secondary: hsl(209, 14%, 37%);
+  
+  --shadow-card: 0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -1px rgba(0, 0, 0, 0.2);
+  --shadow-glow: 0 0 20px rgba(255, 107, 53, 0.4);
+  
+  /* shadcn/ui compatibility */
+  --background: var(--bg-primary);
+  --foreground: var(--text-primary);
+  --card: var(--bg-secondary);
+  --card-foreground: var(--text-primary);
+  --popover: var(--bg-secondary);
+  --popover-foreground: var(--text-primary);
+  --primary: var(--orange-primary);
+  --primary-foreground: hsl(0, 0%, 100%);
+  --secondary: var(--bg-tertiary);
+  --secondary-foreground: var(--text-primary);
+  --muted: var(--bg-tertiary);
+  --muted-foreground: var(--text-muted);
+  --accent: var(--bg-quaternary);
+  --accent-foreground: var(--text-primary);
+  --destructive: var(--error);
+  --destructive-foreground: hsl(0, 0%, 100%);
+  --border: var(--border-primary);
+  --input: var(--bg-tertiary);
+  --ring: var(--orange-primary);
+  
+  --radius: 0.75rem;
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  
+  body {
+    @apply font-sans antialiased;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+  }
+
+  /* Custom gradient background */
+  .gradient-bg {
+    background: linear-gradient(135deg, hsl(211, 24%, 14%) 0%, hsl(213, 35%, 8%) 100%);
+    min-height: 100vh;
+  }
+
+  /* Card shadow utility */
+  .card-shadow {
+    box-shadow: var(--shadow-card);
+  }
+
+  /* Glow effect for CTAs */
+  .glow-effect {
+    transition: box-shadow 0.3s ease;
+  }
+  
+  .glow-effect:hover {
+    box-shadow: var(--shadow-glow);
+  }
+
+  /* Mobile sticky positioning */
+  .sticky-bottom {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 50;
+  }
+}
+
+@layer components {
+  /* Button variants matching design */
+  .btn-primary {
+    @apply bg-orange-500 hover:bg-orange-600 text-white font-semibold py-3 px-6 rounded-lg transition-all duration-300 glow-effect;
+  }
+  
+  .btn-secondary {
+    @apply bg-navy-600 hover:bg-navy-500 text-white font-medium py-2 px-4 rounded-lg border border-navy-500 transition-colors;
+  }
+
+  /* Form field styling */
+  .form-field {
+    @apply w-full bg-navy-600 border border-navy-500 rounded-lg px-4 py-3 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-orange-500;
+  }
+
+  /* Navigation styling */
+  .nav-glass {
+    @apply bg-navy-700/90 backdrop-blur-sm border-b border-navy-600;
+  }
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: hsl(211, 24%, 14%);
+}
+
+::-webkit-scrollbar-thumb {
+  background: hsl(209, 18%, 27%);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: hsl(208, 16%, 35%);
+}
