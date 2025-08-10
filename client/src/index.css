@@ -151,6 +151,20 @@
   100% { background-position: 0% 50%; }
 }
 
+/* Animation for the golden emblem */
+@keyframes spin-slow {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.animate-spin-slow {
+  animation: spin-slow 4s linear infinite;
+}
+
 /* Enhanced card styles */
 .card-enhanced {
   background: rgba(30, 41, 59, 0.8);
