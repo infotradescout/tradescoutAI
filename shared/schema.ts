@@ -43,11 +43,26 @@ export const userRoleEnum = pgEnum('user_role', [
 // Users table
 export const users = pgTable("users", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  email: varchar("email").unique(),
+  email: varchar("email").unique().notNull(),
+  passwordHash: varchar("password_hash"), // for local auth
   firstName: varchar("first_name"),
   lastName: varchar("last_name"),
   profileImageUrl: varchar("profile_image_url"),
+  phone: varchar("phone"),
+  address: text("address"),
+  city: varchar("city"),
+  state: varchar("state"),
+  zipCode: varchar("zip_code"),
   role: userRoleEnum("role").default('homeowner'),
+  provider: varchar("provider").default('local'), // 'local', 'facebook', 'google'
+  providerId: varchar("provider_id"), // social login ID
+  emailVerified: boolean("email_verified").default(false),
+  onboardingCompleted: boolean("onboarding_completed").default(false),
+  preferences: jsonb("preferences").$type<{
+    emailNotifications?: boolean;
+    smsNotifications?: boolean;
+    marketingEmails?: boolean;
+  }>(),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
@@ -314,6 +329,7 @@ export const leadsRelations = relations(leads, ({ one, many }) => ({
 }));
 
 // Type exports
+export type InsertUser = typeof users.$inferInsert;
 export type UpsertUser = typeof users.$inferInsert;
 export type User = typeof users.$inferSelect;
 

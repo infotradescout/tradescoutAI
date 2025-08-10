@@ -12,6 +12,10 @@ import MobileCTA from "@/components/mobile-cta";
 import NotFound from "@/pages/not-found";
 import Landing from "@/pages/landing";
 import Home from "@/pages/home";
+import Login from "@/pages/login";
+import Register from "@/pages/register";
+import Dashboard from "@/pages/dashboard";
+import HomeownerDashboard from "@/pages/homeowner-dashboard";
 import ContractorBoard from "@/pages/contractor-board";
 import ContractorProfile from "@/pages/contractor-profile";
 import EstimateCalculator from "@/pages/quote-calculator";
@@ -39,26 +43,26 @@ function Router() {
     <div className="min-h-screen gradient-bg text-gray-100">
       <Navigation />
       <Switch>
+        {/* Public routes available to all users */}
+        <Route path="/login" component={Login} />
+        <Route path="/register" component={Register} />
+        <Route path="/contractors/board" component={ContractorBoard} />
+        <Route path="/contractors/apply" component={ContractorApply} />
+        <Route path="/contractors/accelerator" component={ContractorAccelerator} />
+        <Route path="/contractors/:slug" component={ContractorProfile} />
+        <Route path="/quote" component={EstimateCalculator} />
+        <Route path="/growth-pack" component={GrowthPack} />
+        
         {!isAuthenticated ? (
           <>
             <Route path="/" component={Landing} />
-            <Route path="/contractors/board" component={ContractorBoard} />
-            <Route path="/contractors/apply" component={ContractorApply} />
-            <Route path="/contractors/accelerator" component={ContractorAccelerator} />
-            <Route path="/contractors/:slug" component={ContractorProfile} />
-            <Route path="/quote" component={EstimateCalculator} />
-            <Route path="/growth-pack" component={GrowthPack} />
           </>
         ) : (
           <>
-            <Route path="/" component={Home} />
-            <Route path="/contractors/board" component={ContractorBoard} />
-            <Route path="/contractors/apply" component={ContractorApply} />
-            <Route path="/contractors/accelerator" component={ContractorAccelerator} />
-            <Route path="/contractors/:slug" component={ContractorProfile} />
-            <Route path="/quote" component={EstimateCalculator} />
-            <Route path="/growth-pack" component={GrowthPack} />
-            <Route path="/contractors/dashboard" component={ContractorDashboard} />
+            <Route path="/" component={Dashboard} />
+            <Route path="/dashboard" component={Dashboard} />
+            <Route path="/homeowner-dashboard" component={HomeownerDashboard} />
+            <Route path="/contractor-dashboard" component={ContractorDashboard} />
             <Route path="/admin" component={AdminWorkspace} />
           </>
         )}

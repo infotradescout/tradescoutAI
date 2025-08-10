@@ -1,7 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { setupAuth, isAuthenticated } from "./replitAuth";
+import { setupAuth, isAuthenticated, isContractor, isAdmin } from "./auth";
 import { insertLeadSchema, insertRecommendationSchema, insertGrowthPackDownloadSchema } from "@shared/schema";
 import { randomUUID } from "crypto";
 
@@ -9,15 +9,50 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Auth middleware
   await setupAuth(app);
 
-  // Auth routes
-  app.get('/api/auth/user', isAuthenticated, async (req: any, res) => {
+  // Auth routes are handled in auth.ts
+  
+  // User profile routes
+  app.get('/api/user/profile', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
-      const user = await storage.getUser(userId);
-      res.json(user);
+      const user = await storage.getUser(req.user.id);
+      res.json({ ...user, passwordHash: undefined });
     } catch (error) {
-      console.error("Error fetching user:", error);
-      res.status(500).json({ message: "Failed to fetch user" });
+      console.error("Error fetching user profile:", error);
+      res.status(500).json({ message: "Failed to fetch user profile" });
+    }
+  });
+
+  app.put('/api/user/profile', isAuthenticated, async (req: any, res) => {
+    try {
+      const { firstName, lastName, phone, address, city, state, zipCode, preferences } = req.body;
+      const user = await storage.updateUser(req.user.id, {
+        firstName,
+        lastName,
+        phone,
+        address,
+        city,
+        state,
+        zipCode,
+        preferences,
+        updatedAt: new Date(),
+      });
+      res.json({ ...user, passwordHash: undefined });
+    } catch (error) {
+      console.error("Error updating user profile:", error);
+      res.status(500).json({ message: "Failed to update user profile" });
+    }
+  });
+
+  app.post('/api/user/complete-onboarding', isAuthenticated, async (req: any, res) => {
+    try {
+      const user = await storage.updateUser(req.user.id, {
+        onboardingCompleted: true,
+        updatedAt: new Date(),
+      });
+      res.json({ ...user, passwordHash: undefined });
+    } catch (error) {
+      console.error("Error completing onboarding:", error);
+      res.status(500).json({ message: "Failed to complete onboarding" });
     }
   });
 
