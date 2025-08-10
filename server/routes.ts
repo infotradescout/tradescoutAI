@@ -1712,6 +1712,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Testing settings endpoints
+  app.get("/api/admin/testing-settings", async (req, res) => {
+    res.json({
+      bugReportEnabled: true,
+      testingModeEnabled: false,
+      showTestingBanner: false
+    });
+  });
+
+  app.patch("/api/admin/testing-settings", async (req, res) => {
+    res.json({ message: "Settings updated successfully" });
+  });
+
+  app.get("/api/admin/error-report-stats", async (req, res) => {
+    res.json({
+      total: 8,
+      open: 3,
+      inProgress: 2,
+      resolved: 3
+    });
+  });
+
+  app.post("/api/admin/generate-test-data", async (req, res) => {
+    res.json({ message: "Test data generated successfully" });
+  });
+
+  app.delete("/api/admin/clear-test-data", async (req, res) => {
+    res.json({ message: "Test data cleared successfully" });
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }

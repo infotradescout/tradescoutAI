@@ -7,6 +7,7 @@ import { Shield, Calculator, Users, ArrowRight } from "lucide-react";
 import { AdDisplay, useUserLocation } from "@/components/AdDisplay";
 import { AuthButtons } from "@/components/auth-buttons";
 import { AuthModal } from "@/components/auth-modal";
+import { TestingErrorReportButton } from "@/components/TestingErrorReportButton";
 
 export default function Landing() {
   const [selectedState, setSelectedState] = useState("");
@@ -164,6 +165,9 @@ export default function Landing() {
           </div>
         </div>
       </section>
+
+      {/* Testing Bug Report System */}
+      <TestingErrorReportButton variant="banner" />
 
       {/* Authentication Modal */}
       <AuthModal 
