@@ -1085,12 +1085,7 @@ export class DatabaseStorage implements IStorage {
       .where(eq(advertisements.id, id));
   }
 
-  async incrementAdClicks(id: string): Promise<void> {
-    await db
-      .update(advertisements)
-      .set({ clickCount: sql`${advertisements.clickCount} + 1` })
-      .where(eq(advertisements.id, id));
-  }
+
 
   async getContractorSettings(category?: string): Promise<ContractorSetting[]> {
     if (category) {
