@@ -9,6 +9,9 @@ Trade Scout is a full-stack contractor marketplace platform built with React, No
 - ✅ **Fixed Routing**: Connected Growth Pack and contractor dashboard links to proper application/accelerator pages
 - ✅ **Added API Endpoints**: Implemented contractor application submission and Accelerator enrollment endpoints
 - ✅ **Terminology Updates**: Changed "Quote" to "Estimate" throughout platform while preserving key phrases like "Get 3 Free Quotes"
+- ✅ **Enhanced Material Lists**: Implemented collaborative "Home Depot shopping cart" style material lists with customer suggestion and contractor approval workflow
+- ✅ **Collaborative Features**: Added suggestion status tracking (pending, approved, denied), denial reasons, and role-based approval buttons
+- ✅ **Database Schema Updates**: Enhanced material list items to support suggestion metadata, user roles, and approval workflow
 
 # User Preferences
 
@@ -60,6 +63,8 @@ Preferred communication style: Simple, everyday language.
 - **Lead Routing**: Performance-weighted round-robin lead distribution with contractor capacity management
 - **Verification System**: Document upload and status tracking for contractor verification workflows
 - **Growth Pack**: Lead magnet system for contractor acquisition with gated content delivery
+- **Collaborative Material Lists**: Home Depot-style shopping cart system with customer suggestions and contractor approval workflow
+- **Chat Integration**: Full-featured chat system with quote requests, scheduling, material list creation, and rating capabilities
 
 # External Dependencies
 

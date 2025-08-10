@@ -650,6 +650,81 @@ export class DatabaseStorage implements IStorage {
       .returning();
     return materialList;
   }
+
+  // Update material list item status (approve/deny suggestions)
+  async updateMaterialListItemStatus(
+    materialListId: string, 
+    itemId: string, 
+    status: 'approved' | 'denied', 
+    denialReason?: string
+  ): Promise<MaterialList> {
+    const [existingList] = await db.select().from(materialLists).where(eq(materialLists.id, materialListId));
+    if (!existingList) {
+      throw new Error("Material list not found");
+    }
+
+    const items = existingList.items as any[];
+    const updatedItems = items.map(item => {
+      if (item.id === itemId) {
+        return {
+          ...item,
+          status,
+          denialReason: status === 'denied' ? denialReason : undefined
+        };
+      }
+      return item;
+    });
+
+    const [updatedList] = await db
+      .update(materialLists)
+      .set({ 
+        items: updatedItems,
+        updatedAt: new Date()
+      })
+      .where(eq(materialLists.id, materialListId))
+      .returning();
+
+    return updatedList;
+  }
+
+  // Add item suggestion to material list
+  async addMaterialListItemSuggestion(
+    materialListId: string,
+    suggestion: {
+      id: string;
+      name: string;
+      quantity: number;
+      estimatedCost: number;
+      vendor?: string;
+      sku?: string;
+      suggestedBy: 'homeowner' | 'contractor';
+      notes?: string;
+    }
+  ): Promise<MaterialList> {
+    const [existingList] = await db.select().from(materialLists).where(eq(materialLists.id, materialListId));
+    if (!existingList) {
+      throw new Error("Material list not found");
+    }
+
+    const items = existingList.items as any[];
+    const newItem = {
+      ...suggestion,
+      status: 'pending' as const
+    };
+
+    const updatedItems = [...items, newItem];
+
+    const [updatedList] = await db
+      .update(materialLists)
+      .set({ 
+        items: updatedItems,
+        updatedAt: new Date()
+      })
+      .where(eq(materialLists.id, materialListId))
+      .returning();
+
+    return updatedList;
+  }
 }
 
 export const storage = new DatabaseStorage();

@@ -416,7 +416,18 @@ export const materialLists = pgTable("material_lists", {
   contractorId: varchar("contractor_id").notNull().references(() => contractors.id),
   title: varchar("title").notNull(),
   description: text("description"),
-  items: jsonb("items").notNull(), // Array of {name, quantity, estimatedCost, vendor, sku}
+  items: jsonb("items").$type<Array<{
+    id: string;
+    name: string;
+    quantity: number;
+    estimatedCost: number;
+    vendor?: string;
+    sku?: string;
+    suggestedBy: 'homeowner' | 'contractor';
+    status: 'pending' | 'approved' | 'denied';
+    denialReason?: string;
+    notes?: string;
+  }>>().notNull().default([]),
   totalEstimatedCost: decimal("total_estimated_cost", { precision: 10, scale: 2 }),
   vendorInfo: jsonb("vendor_info"), // Store vendor details like Home Depot cart links
   status: varchar("status", { enum: ["draft", "sent", "approved", "ordered"] }).default("draft"),

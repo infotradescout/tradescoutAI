@@ -30,6 +30,7 @@ import {
   Mail
 } from "lucide-react";
 import { format } from "date-fns";
+import { MaterialListBuilder } from "@/components/MaterialListBuilder";
 
 interface Conversation {
   id: string;
@@ -505,6 +506,105 @@ export default function Chat() {
               >
                 Submit Rating
               </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Materials Dialog */}
+      <Dialog open={showMaterialsDialog} onOpenChange={setShowMaterialsDialog}>
+        <DialogContent className="bg-navy-700 border-navy-600 max-w-6xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="text-white">Material Lists & Collaborative Shopping</DialogTitle>
+          </DialogHeader>
+          
+          <div className="space-y-6">
+            {/* Existing Material Lists */}
+            {materialLists.length > 0 && (
+              <div>
+                <h3 className="text-lg font-semibold text-white mb-4">Existing Material Lists</h3>
+                <div className="space-y-4">
+                  {materialLists.map((materialList: any) => (
+                    <Card key={materialList.id} className="bg-navy-600 border-navy-500">
+                      <CardHeader>
+                        <div className="flex items-center justify-between">
+                          <CardTitle className="text-white">{materialList.title}</CardTitle>
+                          <Badge variant="secondary" className="text-xs">
+                            {materialList.status || 'draft'}
+                          </Badge>
+                        </div>
+                        {materialList.description && (
+                          <p className="text-gray-400 text-sm">{materialList.description}</p>
+                        )}
+                      </CardHeader>
+                      <CardContent>
+                        <div className="space-y-3">
+                          {materialList.items?.map((item: any, index: number) => (
+                            <div key={index} className="flex items-center justify-between p-3 bg-navy-700 rounded-lg border border-navy-500">
+                              <div className="flex-1">
+                                <div className="flex items-center gap-2 mb-1">
+                                  <span className="font-medium text-white">{item.name}</span>
+                                  <Badge 
+                                    variant={
+                                      item.status === 'approved' ? 'default' : 
+                                      item.status === 'denied' ? 'destructive' : 
+                                      'secondary'
+                                    }
+                                    className="text-xs"
+                                  >
+                                    {item.status === 'pending' && `Suggested by ${item.suggestedBy}`}
+                                    {item.status === 'approved' && 'Approved'}
+                                    {item.status === 'denied' && 'Denied'}
+                                  </Badge>
+                                </div>
+                                <div className="text-sm text-gray-400">
+                                  Qty: {item.quantity} | ${item.estimatedCost} each
+                                  {item.vendor && ` | ${item.vendor}`}
+                                </div>
+                                {item.status === 'denied' && item.denialReason && (
+                                  <div className="mt-1 text-xs text-red-400">
+                                    Denied: {item.denialReason}
+                                  </div>
+                                )}
+                              </div>
+                              <div className="text-right">
+                                <div className="text-sm font-medium text-orange-400">
+                                  ${(item.quantity * item.estimatedCost).toFixed(2)}
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                        
+                        {materialList.totalEstimatedCost && (
+                          <div className="mt-4 pt-4 border-t border-navy-500">
+                            <div className="flex justify-between items-center">
+                              <span className="text-lg font-semibold text-white">Total:</span>
+                              <span className="text-xl font-bold text-orange-400">
+                                ${Number(materialList.totalEstimatedCost).toFixed(2)}
+                              </span>
+                            </div>
+                          </div>
+                        )}
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Create New Material List */}
+            <div>
+              <h3 className="text-lg font-semibold text-white mb-4">
+                {materialLists.length === 0 ? 'Create Material List' : 'Create New List'}
+              </h3>
+              {conversationId && (
+                <MaterialListBuilder 
+                  conversationId={conversationId} 
+                  userRole={user?.role === 'contractor_user' ? 'contractor' : 'homeowner'}
+                  onClose={() => setShowMaterialsDialog(false)}
+                />
+              )}
             </div>
           </div>
         </DialogContent>

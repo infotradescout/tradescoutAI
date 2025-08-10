@@ -660,6 +660,69 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Add item suggestion to material list
+  app.post("/api/material-lists/:materialListId/suggestions", isAuthenticated, async (req: any, res) => {
+    try {
+      const { materialListId } = req.params;
+      const { name, quantity, estimatedCost, vendor, sku, notes } = req.body;
+      const userId = req.user?.claims?.sub;
+
+      if (!name || !quantity || estimatedCost === undefined) {
+        return res.status(400).json({ message: "Name, quantity, and estimated cost are required" });
+      }
+
+      // Generate unique ID for the suggestion
+      const { randomUUID } = await import("crypto");
+      const suggestionId = randomUUID();
+      
+      // Determine who is suggesting (homeowner or contractor)
+      const suggestion = {
+        id: suggestionId,
+        name,
+        quantity: Number(quantity),
+        estimatedCost: Number(estimatedCost),
+        vendor: vendor || 'Home Depot',
+        sku,
+        suggestedBy: 'homeowner' as const, // This should be determined based on user role
+        notes,
+      };
+
+      const updatedMaterialList = await storage.addMaterialListItemSuggestion(materialListId, suggestion);
+      res.json(updatedMaterialList);
+    } catch (error) {
+      console.error("Error adding suggestion:", error);
+      res.status(500).json({ message: "Failed to add suggestion" });
+    }
+  });
+
+  // Approve or deny item suggestion
+  app.patch("/api/material-lists/:materialListId/items/:itemId/status", isAuthenticated, async (req: any, res) => {
+    try {
+      const { materialListId, itemId } = req.params;
+      const { status, denialReason } = req.body;
+
+      if (!['approved', 'denied'].includes(status)) {
+        return res.status(400).json({ message: "Status must be 'approved' or 'denied'" });
+      }
+
+      if (status === 'denied' && !denialReason) {
+        return res.status(400).json({ message: "Denial reason is required when denying a suggestion" });
+      }
+
+      const updatedMaterialList = await storage.updateMaterialListItemStatus(
+        materialListId,
+        itemId,
+        status,
+        denialReason
+      );
+
+      res.json(updatedMaterialList);
+    } catch (error) {
+      console.error("Error updating item status:", error);
+      res.status(500).json({ message: "Failed to update item status" });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }

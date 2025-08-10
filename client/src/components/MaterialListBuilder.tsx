@@ -10,28 +10,56 @@ import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { ShoppingCart, Plus, Trash2, DollarSign, Package, ExternalLink } from "lucide-react";
 
+// Add crypto for UUID generation
+const crypto = globalThis.crypto;
+
 interface MaterialItem {
+  id: string;
   name: string;
   quantity: number;
   estimatedCost: number;
   vendor?: string;
   sku?: string;
+  suggestedBy: 'homeowner' | 'contractor';
+  status: 'pending' | 'approved' | 'denied';
+  denialReason?: string;
+  notes?: string;
 }
 
 interface MaterialListBuilderProps {
   conversationId: string;
+  materialListId?: string;
+  existingMaterialList?: any;
+  userRole?: 'homeowner' | 'contractor';
   onClose?: () => void;
 }
 
-export function MaterialListBuilder({ conversationId, onClose }: MaterialListBuilderProps) {
+export function MaterialListBuilder({ 
+  conversationId, 
+  materialListId, 
+  existingMaterialList, 
+  userRole = 'homeowner',
+  onClose 
+}: MaterialListBuilderProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
-  const [items, setItems] = useState<MaterialItem[]>([
-    { name: "", quantity: 1, estimatedCost: 0, vendor: "Home Depot", sku: "" }
-  ]);
+  const [items, setItems] = useState<MaterialItem[]>(
+    existingMaterialList?.items || [
+      { 
+        id: crypto.randomUUID(),
+        name: "", 
+        quantity: 1, 
+        estimatedCost: 0, 
+        vendor: "Home Depot", 
+        sku: "",
+        suggestedBy: userRole,
+        status: 'pending'
+      }
+    ]
+  );
   const [isOpen, setIsOpen] = useState(false);
 
   const createMaterialListMutation = useMutation({
@@ -62,11 +90,29 @@ export function MaterialListBuilder({ conversationId, onClose }: MaterialListBui
   const resetForm = () => {
     setTitle("");
     setDescription("");
-    setItems([{ name: "", quantity: 1, estimatedCost: 0, vendor: "Home Depot", sku: "" }]);
+    setItems([{ 
+      id: crypto.randomUUID(),
+      name: "", 
+      quantity: 1, 
+      estimatedCost: 0, 
+      vendor: "Home Depot", 
+      sku: "",
+      suggestedBy: userRole,
+      status: 'pending'
+    }]);
   };
 
   const addItem = () => {
-    setItems([...items, { name: "", quantity: 1, estimatedCost: 0, vendor: "Home Depot", sku: "" }]);
+    setItems([...items, { 
+      id: crypto.randomUUID(),
+      name: "", 
+      quantity: 1, 
+      estimatedCost: 0, 
+      vendor: "Home Depot", 
+      sku: "",
+      suggestedBy: userRole,
+      status: 'pending'
+    }]);
   };
 
   const removeItem = (index: number) => {
@@ -82,8 +128,62 @@ export function MaterialListBuilder({ conversationId, onClose }: MaterialListBui
   };
 
   const calculateTotal = () => {
-    return items.reduce((total, item) => total + (item.quantity * item.estimatedCost), 0);
+    return items
+      .filter(item => item.status === 'approved' || item.status === 'pending')
+      .reduce((total, item) => total + (item.quantity * item.estimatedCost), 0);
   };
+
+  // Suggestion and approval mutations
+  const addSuggestionMutation = useMutation({
+    mutationFn: async (suggestionData: any) => {
+      return apiRequest("POST", `/api/material-lists/${materialListId}/suggestions`, suggestionData);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ 
+        queryKey: ["/api/conversations", conversationId, "material-lists"] 
+      });
+      toast({
+        title: "Success",
+        description: "Item suggestion added successfully!",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: "Failed to add suggestion. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const updateItemStatusMutation = useMutation({
+    mutationFn: async ({ itemId, status, denialReason }: { 
+      itemId: string; 
+      status: 'approved' | 'denied'; 
+      denialReason?: string 
+    }) => {
+      return apiRequest("PATCH", `/api/material-lists/${materialListId}/items/${itemId}/status`, {
+        status,
+        denialReason
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ 
+        queryKey: ["/api/conversations", conversationId, "material-lists"] 
+      });
+      toast({
+        title: "Success",
+        description: "Item status updated successfully!",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: "Failed to update item status. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
 
   const handleSubmit = () => {
     if (!title.trim()) {
@@ -179,15 +279,41 @@ export function MaterialListBuilder({ conversationId, onClose }: MaterialListBui
           <div>
             <div className="flex items-center justify-between mb-4">
               <h4 className="text-lg font-semibold text-white">Materials</h4>
-              <Button
-                onClick={addItem}
-                variant="outline"
-                size="sm"
-                className="border-green-500 text-green-500 hover:bg-green-500 hover:text-white"
-              >
-                <Plus className="h-4 w-4 mr-1" />
-                Add Item
-              </Button>
+              {/* Show different buttons based on context */}
+              {materialListId ? (
+                <Button
+                  onClick={() => {
+                    const newItem = { 
+                      id: crypto.randomUUID(),
+                      name: "", 
+                      quantity: 1, 
+                      estimatedCost: 0, 
+                      vendor: "Home Depot", 
+                      sku: "",
+                      suggestedBy: userRole,
+                      status: 'pending',
+                      notes: ""
+                    };
+                    setItems([...items, newItem]);
+                  }}
+                  variant="outline"
+                  size="sm"
+                  className="border-green-500 text-green-500 hover:bg-green-500 hover:text-white"
+                >
+                  <Plus className="h-4 w-4 mr-1" />
+                  {userRole === 'homeowner' ? 'Suggest Item' : 'Add Item'}
+                </Button>
+              ) : (
+                <Button
+                  onClick={addItem}
+                  variant="outline"
+                  size="sm"
+                  className="border-green-500 text-green-500 hover:bg-green-500 hover:text-white"
+                >
+                  <Plus className="h-4 w-4 mr-1" />
+                  Add Item
+                </Button>
+              )}
             </div>
             
             <div className="space-y-4">
@@ -275,11 +401,68 @@ export function MaterialListBuilder({ conversationId, onClose }: MaterialListBui
                           <Package className="h-3 w-3 mr-1" />
                           {item.vendor || "Home Depot"}
                         </Badge>
+                        
+                        {/* Status badge */}
+                        <Badge 
+                          variant={
+                            item.status === 'approved' ? 'default' : 
+                            item.status === 'denied' ? 'destructive' : 
+                            'secondary'
+                          }
+                          className="text-xs"
+                        >
+                          {item.status === 'pending' && `Suggested by ${item.suggestedBy}`}
+                          {item.status === 'approved' && 'Approved'}
+                          {item.status === 'denied' && 'Denied'}
+                        </Badge>
+
+                        {/* Approval buttons for contractors */}
+                        {userRole === 'contractor' && item.status === 'pending' && item.suggestedBy === 'homeowner' && (
+                          <div className="flex gap-1">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => updateItemStatusMutation.mutate({ 
+                                itemId: item.id, 
+                                status: 'approved' 
+                              })}
+                              className="border-green-500 text-green-500 hover:bg-green-500 hover:text-white h-6 px-2"
+                            >
+                              Approve
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => updateItemStatusMutation.mutate({ 
+                                itemId: item.id, 
+                                status: 'denied',
+                                denialReason: 'Not suitable for this project'
+                              })}
+                              className="border-red-500 text-red-500 hover:bg-red-500 hover:text-white h-6 px-2"
+                            >
+                              Deny
+                            </Button>
+                          </div>
+                        )}
                       </div>
                       <div className="text-sm font-medium text-orange-400">
                         Subtotal: ${(item.quantity * item.estimatedCost).toFixed(2)}
                       </div>
                     </div>
+
+                    {/* Show denial reason if denied */}
+                    {item.status === 'denied' && item.denialReason && (
+                      <div className="mt-2 p-2 bg-red-900/20 border border-red-500/30 rounded text-xs text-red-400">
+                        <strong>Denial reason:</strong> {item.denialReason}
+                      </div>
+                    )}
+
+                    {/* Show notes if any */}
+                    {item.notes && (
+                      <div className="mt-2 p-2 bg-blue-900/20 border border-blue-500/30 rounded text-xs text-blue-400">
+                        <strong>Notes:</strong> {item.notes}
+                      </div>
+                    )}
                   </CardContent>
                 </Card>
               ))}
