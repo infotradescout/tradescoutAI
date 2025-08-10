@@ -8,6 +8,8 @@ interface AuthButtonsProps {
   title?: string;
   description?: string;
   showSignUp?: boolean;
+  showGuestOption?: boolean;
+  onGuestContinue?: () => void;
   className?: string;
 }
 
@@ -15,18 +17,20 @@ export function AuthButtons({
   title = "Join Trade Scout", 
   description = "Connect with verified contractors or grow your business",
   showSignUp = true,
+  showGuestOption = true,
+  onGuestContinue,
   className = ""
 }: AuthButtonsProps) {
   const [, setLocation] = useLocation();
 
   const handleFacebookLogin = () => {
     // Redirect to Facebook OAuth
-    window.location.href = "/api/auth/facebook";
+    window.location.href = "/auth/facebook";
   };
 
   const handleGoogleLogin = () => {
     // Redirect to Google OAuth  
-    window.location.href = "/api/auth/google";
+    window.location.href = "/auth/google";
   };
 
   const handleEmailSignUp = () => {
@@ -98,6 +102,27 @@ export function AuthButtons({
             Sign In with Email
           </Button>
         </div>
+
+        {/* Guest Option */}
+        {showGuestOption && (
+          <>
+            <div className="relative">
+              <Separator className="bg-navy-600" />
+              <div className="absolute inset-0 flex items-center justify-center">
+                <span className="bg-navy-800 px-3 text-sm text-gray-400">or</span>
+              </div>
+            </div>
+            
+            <Button
+              variant="ghost"
+              onClick={onGuestContinue}
+              className="w-full text-gray-400 hover:text-white hover:bg-navy-700 py-4"
+            >
+              Continue as Guest
+              <span className="text-xs ml-2">(Limited access)</span>
+            </Button>
+          </>
+        )}
 
         {/* Terms */}
         <p className="text-xs text-gray-400 text-center leading-relaxed">

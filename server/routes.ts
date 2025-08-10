@@ -4,10 +4,86 @@ import { storage } from "./storage";
 import { setupAuth, isAuthenticated, isContractor, isAdmin } from "./auth";
 import { insertLeadSchema, insertRecommendationSchema, insertGrowthPackDownloadSchema } from "@shared/schema";
 import { randomUUID } from "crypto";
+import passport from "passport";
+import FacebookStrategy from "passport-facebook";
+import { Strategy as GoogleStrategy } from "passport-google-oauth20";
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Configure OAuth strategies
+  if (process.env.FACEBOOK_APP_ID && process.env.FACEBOOK_APP_SECRET) {
+    passport.use(new FacebookStrategy({
+      clientID: process.env.FACEBOOK_APP_ID,
+      clientSecret: process.env.FACEBOOK_APP_SECRET,
+      callbackURL: "/auth/facebook/callback",
+      profileFields: ['id', 'name', 'email']
+    }, async (accessToken, refreshToken, profile, done) => {
+      try {
+        let user = await storage.getUserByEmail(profile.emails?.[0]?.value);
+        
+        if (!user) {
+          user = await storage.createUser({
+            email: profile.emails?.[0]?.value || '',
+            firstName: profile.name?.givenName || '',
+            lastName: profile.name?.familyName || '',
+            facebookId: profile.id,
+            role: 'homeowner'
+          });
+        } else if (!user.facebookId) {
+          user = await storage.updateUser(user.id, { facebookId: profile.id });
+        }
+        
+        return done(null, user);
+      } catch (error) {
+        return done(error, null);
+      }
+    }));
+  }
+
+  if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
+    passport.use(new GoogleStrategy({
+      clientID: process.env.GOOGLE_CLIENT_ID,
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+      callbackURL: "/auth/google/callback"
+    }, async (accessToken, refreshToken, profile, done) => {
+      try {
+        let user = await storage.getUserByEmail(profile.emails?.[0]?.value);
+        
+        if (!user) {
+          user = await storage.createUser({
+            email: profile.emails?.[0]?.value || '',
+            firstName: profile.name?.givenName || '',
+            lastName: profile.name?.familyName || '',
+            googleId: profile.id,
+            role: 'homeowner'
+          });
+        } else if (!user.googleId) {
+          user = await storage.updateUser(user.id, { googleId: profile.id });
+        }
+        
+        return done(null, user);
+      } catch (error) {
+        return done(error, null);
+      }
+    }));
+  }
+
   // Auth middleware
   await setupAuth(app);
+
+  // OAuth routes
+  app.get('/auth/facebook', passport.authenticate('facebook', { scope: ['email'] }));
+  app.get('/auth/facebook/callback', 
+    passport.authenticate('facebook', { failureRedirect: '/login' }),
+    (req, res) => {
+      res.redirect('/profile-setup');
+    });
+
+  app.get('/auth/google', passport.authenticate('google', { scope: ['profile', 'email'] }));
+  app.get('/auth/google/callback',
+    passport.authenticate('google', { failureRedirect: '/login' }),
+    (req, res) => {
+      res.redirect('/profile-setup');
+    });
 
   // Auth user endpoint - critical for useAuth hook
   app.get('/api/auth/user', async (req: any, res) => {

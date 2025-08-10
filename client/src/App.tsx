@@ -12,8 +12,8 @@ import MobileCTA from "@/components/mobile-cta";
 import NotFound from "@/pages/not-found";
 import Landing from "@/pages/landing";
 import Home from "@/pages/home";
-import Login from "@/pages/login";
-import Register from "@/pages/register";
+import LoginPage from "@/pages/login";
+import RegisterPage from "@/pages/register";
 import Dashboard from "@/pages/dashboard";
 import HomeownerDashboard from "@/pages/homeowner-dashboard";
 import ContractorBoard from "@/pages/contractor-board";
@@ -29,8 +29,6 @@ import Chat from "@/pages/chat";
 import SavedAds from "@/pages/saved-ads";
 import ProfileSetup from "@/pages/profile-setup";
 import AdminUsers from "@/pages/admin-users";
-import Login from "@/pages/login";
-import Register from "@/pages/register";
 import { ProfileSetupRedirect } from "@/components/profile-setup-redirect";
 
 function Router() {
@@ -52,8 +50,8 @@ function Router() {
       <Navigation />
       <Switch>
         {/* Public routes available to all users */}
-        <Route path="/login" component={Login} />
-        <Route path="/register" component={Register} />
+        <Route path="/login" component={LoginPage} />
+        <Route path="/register" component={RegisterPage} />
         <Route path="/contractors/board" component={ContractorBoard} />
         <Route path="/contractors/apply" component={ContractorApply} />
         <Route path="/contractors/accelerator" component={ContractorAccelerator} />
@@ -65,8 +63,8 @@ function Router() {
         {!isAuthenticated ? (
           <>
             <Route path="/" component={Landing} />
-            <Route path="/register" component={Register} />
-            <Route path="/login" component={Login} />
+            <Route path="/register" component={RegisterPage} />
+            <Route path="/login" component={LoginPage} />
           </>
         ) : (
           <>

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent } from "@/components/ui/card";
@@ -13,7 +13,15 @@ export default function Landing() {
   const [selectedCounty, setSelectedCounty] = useState("");
   const [selectedTrade, setSelectedTrade] = useState("");
   const [showAuthModal, setShowAuthModal] = useState(false);
+  const [isGuestMode, setIsGuestMode] = useState(false);
+  const [, setLocation] = useLocation();
   const userLocation = useUserLocation();
+
+  const handleGuestContinue = () => {
+    setIsGuestMode(true);
+    localStorage.setItem('guestMode', 'true');
+    setLocation('/contractors/board');
+  };
 
   return (
     <div className="min-h-screen gradient-bg">
@@ -164,6 +172,8 @@ export default function Landing() {
         title="Join Trade Scout Today"
         description="Connect with verified contractors or grow your business"
         trigger="landing_page"
+        showGuestOption={true}
+        onGuestContinue={handleGuestContinue}
       />
     </div>
   );

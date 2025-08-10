@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import ContractorCard from "@/components/contractor-card";
 import ContractorCardSkeleton from "@/components/contractor-card-skeleton";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
+import { GuestGate } from "@/components/guest-gate";
 import { MapPin, Search, Filter, SlidersHorizontal } from "lucide-react";
 import { Link } from "wouter";
 import type { Contractor, County, Trade } from "@shared/schema";
@@ -272,11 +273,17 @@ export default function ContractorBoard() {
 
       {/* Results */}
       {filteredContractors && filteredContractors.length > 0 ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredContractors.map((contractor: Contractor) => (
-            <ContractorCard key={contractor.id} contractor={contractor} />
-          ))}
-        </div>
+        <GuestGate
+          action="contact contractors"
+          title="Create Account to Contact Contractors"
+          description="Connect directly with verified contractors, request quotes, and save your favorite professionals."
+        >
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {filteredContractors.map((contractor: Contractor) => (
+              <ContractorCard key={contractor.id} contractor={contractor} />
+            ))}
+          </div>
+        </GuestGate>
       ) : (
         <Card className="bg-navy-700 border-navy-600">
           <CardContent className="p-12 text-center">

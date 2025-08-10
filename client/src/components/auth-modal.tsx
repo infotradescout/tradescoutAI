@@ -16,6 +16,8 @@ interface AuthModalProps {
   title?: string;
   description?: string;
   trigger?: string; // Track what triggered the modal for analytics
+  showGuestOption?: boolean;
+  onGuestContinue?: () => void;
 }
 
 export function AuthModal({ 
@@ -23,7 +25,9 @@ export function AuthModal({
   onClose, 
   title = "Join Trade Scout Today",
   description = "Get started with finding contractors or growing your business",
-  trigger = "unknown"
+  trigger = "unknown",
+  showGuestOption = true,
+  onGuestContinue
 }: AuthModalProps) {
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -50,6 +54,11 @@ export function AuthModal({
           <AuthButtons 
             title=""
             description=""
+            showGuestOption={showGuestOption}
+            onGuestContinue={() => {
+              onGuestContinue?.();
+              onClose();
+            }}
             className="bg-transparent border-0 shadow-none"
           />
         </div>

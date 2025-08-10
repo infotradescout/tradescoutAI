@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Calculator, DollarSign, Info, Users, CheckCircle, Clock, Phone, MapPin } from "lucide-react";
 import { Link } from "wouter";
 import { useAuth } from "@/hooks/useAuth";
+import { GuestGate } from "@/components/guest-gate";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 
@@ -272,51 +273,57 @@ export default function EstimateCalculator() {
                   </Card>
 
                   {/* Get Quotes CTA */}
-                  <Card className="bg-orange-500/10 border-orange-500/30">
-                    <CardContent className="p-6">
-                      <h4 className="text-lg font-semibold text-white mb-3 flex items-center gap-2">
-                        <Users className="h-5 w-5" />
-                        Get Accurate Estimates
-                      </h4>
-                      <p className="text-gray-300 text-sm mb-4">
-                        Choose how you'd like to connect with verified contractors in your area.
-                      </p>
-                      
-                      <div className="space-y-3">
-                        <Button 
-                          onClick={handleGetEstimates}
-                          disabled={leadMutation.isPending}
-                          className="w-full bg-orange-500 hover:bg-orange-600 text-white py-3 rounded-lg font-semibold glow-effect transition-all duration-300"
-                        >
-                          {leadMutation.isPending ? 'Connecting...' : (
-                            <>
-                              <Users className="h-4 w-4 mr-2" />
-                              Get 3 Free Quotes (Recommended)
-                            </>
-                          )}
-                        </Button>
-                        
-                        <div className="text-center text-gray-400 text-sm">or</div>
-                        
-                        <Link href="/contractors/board">
-                          <Button 
-                            variant="outline"
-                            className="w-full border-navy-400 text-gray-300 hover:bg-navy-600"
-                          >
-                            Browse All Contractors
-                          </Button>
-                        </Link>
-                      </div>
-                      
-                      <div className="mt-4 p-3 bg-navy-600/50 rounded-lg">
-                        <p className="text-xs text-gray-400">
-                          ✓ All contractors are verified and licensed<br/>
-                          ✓ Free quotes with no obligation<br/>
-                          ✓ Top-rated contractors in your area
+                  <GuestGate
+                    action="get free quotes"
+                    title="Create Account to Get Free Quotes"
+                    description="Connect with verified contractors and receive personalized quotes based on your project."
+                  >
+                    <Card className="bg-orange-500/10 border-orange-500/30">
+                      <CardContent className="p-6">
+                        <h4 className="text-lg font-semibold text-white mb-3 flex items-center gap-2">
+                          <Users className="h-5 w-5" />
+                          Get Accurate Estimates
+                        </h4>
+                        <p className="text-gray-300 text-sm mb-4">
+                          Choose how you'd like to connect with verified contractors in your area.
                         </p>
-                      </div>
-                    </CardContent>
-                  </Card>
+                        
+                        <div className="space-y-3">
+                          <Button 
+                            onClick={handleGetEstimates}
+                            disabled={leadMutation.isPending}
+                            className="w-full bg-orange-500 hover:bg-orange-600 text-white py-3 rounded-lg font-semibold glow-effect transition-all duration-300"
+                          >
+                            {leadMutation.isPending ? 'Connecting...' : (
+                              <>
+                                <Users className="h-4 w-4 mr-2" />
+                                Get 3 Free Quotes (Recommended)
+                              </>
+                            )}
+                          </Button>
+                          
+                          <div className="text-center text-gray-400 text-sm">or</div>
+                          
+                          <Link href="/contractors/board">
+                            <Button 
+                              variant="outline"
+                              className="w-full border-navy-400 text-gray-300 hover:bg-navy-600"
+                            >
+                              Browse All Contractors
+                            </Button>
+                          </Link>
+                        </div>
+                        
+                        <div className="mt-4 p-3 bg-navy-600/50 rounded-lg">
+                          <p className="text-xs text-gray-400">
+                            ✓ All contractors are verified and licensed<br/>
+                            ✓ Free quotes with no obligation<br/>
+                            ✓ Top-rated contractors in your area
+                          </p>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </GuestGate>
                 </div>
               ) : (
                 <Card className="bg-navy-600 border-navy-500">
