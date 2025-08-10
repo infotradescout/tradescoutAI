@@ -20,7 +20,7 @@ export default function Navigation() {
     { href: "/contractors/board", label: "Find Contractors", public: true },
     { href: "/workers", label: "Worker Marketplace", public: true },
     { href: "/quote", label: "Get Estimate", public: true },
-    { href: "/growth-pack", label: "For Contractors", public: true },
+    { href: "/growth-pack", label: "Free Growth Pack", public: true },
   ];
 
   const authenticatedNavItems = [

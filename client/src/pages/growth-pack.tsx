@@ -94,17 +94,30 @@ export default function GrowthPack() {
               Your FREE contractor Growth Pack is ready. We've also sent a download link to your email.
             </p>
             
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-2xl mx-auto">
-              <Link href="/contractors/apply">
-                <Button className="w-full bg-orange-500 hover:bg-orange-600">
-                  Apply to Board
-                </Button>
-              </Link>
-              <Link href="/contractors/accelerator">
-                <Button variant="outline" className="w-full border-orange-500 text-orange-500 hover:bg-orange-500 hover:text-white">
-                  View Accelerator
-                </Button>
-              </Link>
+            <div className="space-y-4 max-w-2xl mx-auto">
+              <div className="text-center mb-6">
+                <h3 className="text-xl font-semibold text-white mb-2">Next Steps for Growth</h3>
+                <p className="text-gray-300">Ready to take your business to the next level?</p>
+              </div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <Link href="/contractors/apply">
+                  <Button className="w-full bg-orange-500 hover:bg-orange-600 h-16">
+                    <div className="text-center">
+                      <div className="font-semibold">Join Contractor Board</div>
+                      <div className="text-sm opacity-90">Get verified leads</div>
+                    </div>
+                  </Button>
+                </Link>
+                <Link href="/contractors/accelerator">
+                  <Button variant="outline" className="w-full border-orange-500 text-orange-500 hover:bg-orange-500 hover:text-white h-16">
+                    <div className="text-center">
+                      <div className="font-semibold">Accelerator Program</div>
+                      <div className="text-sm opacity-90">Premium growth tools</div>
+                    </div>
+                  </Button>
+                </Link>
+              </div>
             </div>
           </CardContent>
         </Card>
@@ -308,17 +321,26 @@ export default function GrowthPack() {
         </CardContent>
       </Card>
 
-      {/* Upgrade CTA */}
-      <Card id="accelerator" className="bg-gradient-to-r from-orange-500/20 to-orange-600/20 border-orange-500/30">
+      {/* Next Steps CTA */}
+      <Card className="bg-gradient-to-r from-orange-500/20 to-orange-600/20 border-orange-500/30">
         <CardContent className="p-8 text-center">
-          <h3 className="text-2xl font-bold text-white mb-4">Ready to take it to the next level?</h3>
+          <h3 className="text-2xl font-bold text-white mb-4">Ready to start getting leads?</h3>
           <p className="text-gray-300 mb-6">
-            Join our Accelerator program for exclusive lead access and premium contractor tools
+            Join our contractor board to get connected with homeowners looking for your services
           </p>
-          <Button className="bg-orange-500 hover:bg-orange-600 text-white px-8 py-3 rounded-lg font-semibold glow-effect transition-all duration-300">
-            Learn About Accelerator
-            <ArrowRight className="h-4 w-4 ml-2" />
-          </Button>
+          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            <Link href="/contractors/apply">
+              <Button className="bg-orange-500 hover:bg-orange-600 text-white px-8 py-3 rounded-lg font-semibold glow-effect transition-all duration-300">
+                Join Contractor Board
+                <ArrowRight className="h-4 w-4 ml-2" />
+              </Button>
+            </Link>
+            <Link href="/contractors/accelerator">
+              <Button variant="outline" className="border-orange-500 text-orange-500 hover:bg-orange-500 hover:text-white px-8 py-3 rounded-lg font-semibold transition-all duration-300">
+                View Accelerator Program
+              </Button>
+            </Link>
+          </div>
         </CardContent>
       </Card>
 
