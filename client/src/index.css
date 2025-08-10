@@ -113,6 +113,85 @@
   }
 }
 
+/* Enhanced Glow Effects */
+.glow-orange {
+  box-shadow: 0 0 20px rgba(251, 146, 60, 0.4), 0 0 40px rgba(251, 146, 60, 0.2);
+}
+
+.glow-orange-strong {
+  box-shadow: 0 0 30px rgba(251, 146, 60, 0.6), 0 0 60px rgba(251, 146, 60, 0.3);
+}
+
+/* Loading animations */
+@keyframes shimmer {
+  0% {
+    background-position: -468px 0;
+  }
+  100% {
+    background-position: 468px 0;
+  }
+}
+
+.shimmer {
+  animation: shimmer 2s linear infinite;
+  background: linear-gradient(to right, transparent 0%, rgba(255,255,255,0.1) 50%, transparent 100%);
+  background-size: 1000px 100%;
+}
+
+/* Improved gradients */
+.gradient-bg-enhanced {
+  background: linear-gradient(135deg, #0f172a 0%, #1e293b 25%, #0f172a 50%, #1e293b 75%, #0f172a 100%);
+  background-size: 400% 400%;
+  animation: gradientShift 15s ease infinite;
+}
+
+@keyframes gradientShift {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+/* Enhanced card styles */
+.card-enhanced {
+  background: rgba(30, 41, 59, 0.8);
+  border: 1px solid rgba(51, 65, 85, 0.5);
+  backdrop-filter: blur(10px);
+  transition: all 0.3s ease;
+}
+
+.card-enhanced:hover {
+  background: rgba(30, 41, 59, 0.9);
+  border-color: rgba(251, 146, 60, 0.3);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3), 0 0 20px rgba(251, 146, 60, 0.1);
+}
+
+/* Enhanced button styles */
+.btn-orange-enhanced {
+  background: linear-gradient(135deg, #f97316 0%, #ea580c 100%);
+  border: none;
+  box-shadow: 0 4px 15px rgba(251, 146, 60, 0.3);
+  transition: all 0.3s ease;
+}
+
+.btn-orange-enhanced:hover {
+  background: linear-gradient(135deg, #ea580c 0%, #dc2626 100%);
+  box-shadow: 0 6px 20px rgba(251, 146, 60, 0.4);
+  transform: translateY(-1px);
+}
+
+/* Loading states */
+.skeleton-enhanced {
+  background: linear-gradient(90deg, rgba(51, 65, 85, 0.4) 25%, rgba(71, 85, 105, 0.6) 50%, rgba(51, 65, 85, 0.4) 75%);
+  background-size: 200% 100%;
+  animation: loading 1.5s infinite;
+}
+
+@keyframes loading {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
 /* Custom scrollbar */
 ::-webkit-scrollbar {
   width: 8px;

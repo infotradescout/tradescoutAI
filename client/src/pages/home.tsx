@@ -3,7 +3,19 @@ import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Calendar, MapPin, Star, Clock } from "lucide-react";
+import { 
+  Calendar, 
+  MapPin, 
+  Star, 
+  Clock, 
+  Calculator,
+  Users,
+  ChevronRight,
+  Zap,
+  Target,
+  Award,
+  TrendingUp
+} from "lucide-react";
 
 export default function Home() {
   const { user } = useAuth();
@@ -20,52 +32,109 @@ export default function Home() {
       {/* Quick Actions */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
         <Link href="/contractors/board">
-          <Card className="bg-navy-700 border-navy-600 hover:bg-navy-600 transition-colors cursor-pointer">
+          <Card className="bg-navy-700 border-navy-600 card-enhanced cursor-pointer">
             <CardContent className="p-6">
-              <div className="flex items-center space-x-3">
-                <div className="w-12 h-12 bg-orange-500/20 rounded-lg flex items-center justify-center">
-                  <MapPin className="h-6 w-6 text-orange-500" />
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-3">
+                  <div className="w-12 h-12 bg-orange-500/20 rounded-lg flex items-center justify-center glow-orange">
+                    <MapPin className="h-6 w-6 text-orange-500" />
+                  </div>
+                  <div>
+                    <h3 className="text-white font-semibold">Find Contractors</h3>
+                    <p className="text-gray-400 text-sm">Search verified contractors in your area</p>
+                  </div>
                 </div>
-                <div>
-                  <h3 className="text-white font-semibold">Find Contractors</h3>
-                  <p className="text-gray-400 text-sm">Search verified contractors in your area</p>
-                </div>
+                <ChevronRight className="h-5 w-5 text-gray-400" />
               </div>
             </CardContent>
           </Card>
         </Link>
 
         <Link href="/quote">
-          <Card className="bg-navy-700 border-navy-600 hover:bg-navy-600 transition-colors cursor-pointer">
+          <Card className="bg-navy-700 border-navy-600 card-enhanced cursor-pointer">
             <CardContent className="p-6">
-              <div className="flex items-center space-x-3">
-                <div className="w-12 h-12 bg-orange-500/20 rounded-lg flex items-center justify-center">
-                  <Calendar className="h-6 w-6 text-orange-500" />
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-3">
+                  <div className="w-12 h-12 bg-orange-500/20 rounded-lg flex items-center justify-center glow-orange">
+                    <Calculator className="h-6 w-6 text-orange-500" />
+                  </div>
+                  <div>
+                    <h3 className="text-white font-semibold">Get Quote</h3>
+                    <p className="text-gray-400 text-sm">Calculate project estimates</p>
+                  </div>
                 </div>
-                <div>
-                  <h3 className="text-white font-semibold">Get Quote</h3>
-                  <p className="text-gray-400 text-sm">Calculate project estimates</p>
-                </div>
+                <ChevronRight className="h-5 w-5 text-gray-400" />
               </div>
             </CardContent>
           </Card>
         </Link>
 
         <Link href="/growth-pack">
-          <Card className="bg-gradient-to-r from-orange-500/20 to-orange-600/20 border-orange-500/30 hover:from-orange-500/30 hover:to-orange-600/30 transition-colors cursor-pointer">
+          <Card className="bg-gradient-to-r from-orange-500/20 to-orange-600/20 border-orange-500/30 card-enhanced cursor-pointer glow-orange">
             <CardContent className="p-6">
-              <div className="flex items-center space-x-3">
-                <div className="w-12 h-12 bg-orange-500/30 rounded-lg flex items-center justify-center">
-                  <Star className="h-6 w-6 text-orange-500" />
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-3">
+                  <div className="w-12 h-12 bg-orange-500/30 rounded-lg flex items-center justify-center glow-orange-strong">
+                    <TrendingUp className="h-6 w-6 text-orange-500" />
+                  </div>
+                  <div>
+                    <h3 className="text-white font-semibold">For Contractors</h3>
+                    <p className="text-gray-400 text-sm">FREE Growth Pack resources</p>
+                  </div>
                 </div>
-                <div>
-                  <h3 className="text-white font-semibold">For Contractors</h3>
-                  <p className="text-gray-400 text-sm">FREE Growth Pack resources</p>
-                </div>
+                <Badge className="bg-orange-500 text-white">
+                  FREE
+                </Badge>
               </div>
             </CardContent>
           </Card>
         </Link>
+      </div>
+
+      {/* Platform Statistics */}
+      <div className="mb-8">
+        <h2 className="text-xl font-semibold text-white mb-4">Platform Updates</h2>
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+          <Card className="bg-navy-700 border-navy-600 text-center card-enhanced">
+            <CardContent className="p-4">
+              <div className="w-8 h-8 bg-green-500/20 rounded-lg flex items-center justify-center mx-auto mb-2">
+                <Zap className="h-4 w-4 text-green-500" />
+              </div>
+              <p className="text-2xl font-bold text-white">100%</p>
+              <p className="text-sm text-gray-400">Loading Speed</p>
+            </CardContent>
+          </Card>
+          
+          <Card className="bg-navy-700 border-navy-600 text-center card-enhanced">
+            <CardContent className="p-4">
+              <div className="w-8 h-8 bg-blue-500/20 rounded-lg flex items-center justify-center mx-auto mb-2">
+                <Target className="h-4 w-4 text-blue-500" />
+              </div>
+              <p className="text-2xl font-bold text-white">Enhanced</p>
+              <p className="text-sm text-gray-400">User Experience</p>
+            </CardContent>
+          </Card>
+          
+          <Card className="bg-navy-700 border-navy-600 text-center card-enhanced">
+            <CardContent className="p-4">
+              <div className="w-8 h-8 bg-purple-500/20 rounded-lg flex items-center justify-center mx-auto mb-2">
+                <Award className="h-4 w-4 text-purple-500" />
+              </div>
+              <p className="text-2xl font-bold text-white">New</p>
+              <p className="text-sm text-gray-400">Visual Design</p>
+            </CardContent>
+          </Card>
+          
+          <Card className="bg-navy-700 border-navy-600 text-center card-enhanced">
+            <CardContent className="p-4">
+              <div className="w-8 h-8 bg-orange-500/20 rounded-lg flex items-center justify-center mx-auto mb-2">
+                <Users className="h-4 w-4 text-orange-500" />
+              </div>
+              <p className="text-2xl font-bold text-white">Fixed</p>
+              <p className="text-sm text-gray-400">TypeScript Issues</p>
+            </CardContent>
+          </Card>
+        </div>
       </div>
 
       {/* Recent Activity */}

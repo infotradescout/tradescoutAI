@@ -4,6 +4,8 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { useAuth } from "@/hooks/useAuth";
+import { ErrorBoundary } from "@/components/ui/error-boundary";
+import { LoadingSpinner } from "@/components/ui/loading-spinner";
 
 import Navigation from "@/components/layout/navigation";
 import MobileCTA from "@/components/mobile-cta";
@@ -23,7 +25,10 @@ function Router() {
   if (isLoading) {
     return (
       <div className="min-h-screen gradient-bg flex items-center justify-center">
-        <div className="animate-spin w-8 h-8 border-4 border-orange-500 border-t-transparent rounded-full" />
+        <div className="text-center">
+          <LoadingSpinner size="lg" className="text-orange-500 mx-auto mb-4" />
+          <p className="text-gray-300">Loading Trade Scout...</p>
+        </div>
       </div>
     );
   }
@@ -62,8 +67,10 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
-        <Toaster />
-        <Router />
+        <ErrorBoundary>
+          <Toaster />
+          <Router />
+        </ErrorBoundary>
       </TooltipProvider>
     </QueryClientProvider>
   );
