@@ -366,13 +366,17 @@ export const advertisements = pgTable("advertisements", {
   content: text("content").notNull(),
   imageUrl: varchar("image_url"),
   linkUrl: varchar("link_url"),
-  placement: varchar("placement").notNull(), // 'banner', 'sidebar', 'popup', 'footer'
+  placement: varchar("placement").notNull(), // 'banner', 'sidebar', 'popup', 'footer', 'site_visit'
   targetAudience: varchar("target_audience").default("all"), // 'homeowners', 'contractors', 'all'
+  targetLocation: varchar("target_location").notNull().default("national"), // 'national', 'state:CA', 'county:06001'
+  priority: integer("priority").default(0), // Higher priority ads shown first
   isActive: boolean("is_active").default(true),
+  isAffiliate: boolean("is_affiliate").default(false),
   startDate: timestamp("start_date"),
   endDate: timestamp("end_date"),
   clickCount: integer("click_count").default(0),
   viewCount: integer("view_count").default(0),
+  impressions: integer("impressions").default(0),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });

@@ -41,31 +41,58 @@ export async function seedAdminData() {
       }
     ]).onConflictDoNothing();
 
-    // Seed advertisements
+    // Seed advertisements with location targeting
     await db.insert(advertisements).values([
       {
         title: "Get 3 Free Quotes Today!",
         content: "Connect with verified contractors in your area and get competitive estimates for your project.",
-        placement: "banner",
+        placement: "site_visit",
         targetAudience: "homeowners",
+        targetLocation: "national",
+        priority: 5,
         isActive: true,
         linkUrl: "/quote",
       },
       {
         title: "Join Our Contractor Network",
         content: "Grow your business with quality leads from homeowners ready to hire.",
-        placement: "sidebar",
+        placement: "site_visit",
         targetAudience: "contractors",
+        targetLocation: "national",
+        priority: 5,
         isActive: true,
         linkUrl: "/contractors/apply",
       },
       {
-        title: "Contractor Accelerator Program",
-        content: "Take your contracting business to the next level with our proven growth system.",
-        placement: "popup",
+        title: "California Contractors: Special Incentives Available",
+        content: "Limited time offer for California-based contractors. Get premium leads and grow your business.",
+        placement: "site_visit",
         targetAudience: "contractors",
-        isActive: false,
+        targetLocation: "state:CA",
+        priority: 10,
+        isActive: true,
         linkUrl: "/contractors/accelerator",
+      },
+      {
+        title: "Los Angeles County Home Improvement Guide",
+        content: "Free guide with local permit requirements, recommended contractors, and cost estimates.",
+        placement: "site_visit",
+        targetAudience: "homeowners",
+        targetLocation: "county:06037",
+        priority: 15,
+        isActive: true,
+        linkUrl: "/growth-pack",
+      },
+      {
+        title: "Partner Affiliate: Home Depot Pro Services",
+        content: "Professional installation services for your next project. Get quality materials and expert installation.",
+        placement: "site_visit",
+        targetAudience: "all",
+        targetLocation: "national",
+        priority: 3,
+        isAffiliate: true,
+        isActive: true,
+        linkUrl: "https://www.homedepot.com/services/",
       }
     ]).onConflictDoNothing();
 

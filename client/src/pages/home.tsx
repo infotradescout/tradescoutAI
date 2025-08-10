@@ -16,9 +16,11 @@ import {
   Award,
   TrendingUp
 } from "lucide-react";
+import { AdDisplay, useUserLocation } from "@/components/AdDisplay";
 
 export default function Home() {
   const { user } = useAuth();
+  const userLocation = useUserLocation();
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
@@ -215,6 +217,14 @@ export default function Home() {
             </div>
           </CardContent>
         </Card>
+      </div>
+
+      {/* Location-aware Advertisement */}
+      <div className="mt-8">
+        <AdDisplay 
+          className="max-w-2xl mx-auto"
+          userLocation={userLocation}
+        />
       </div>
     </div>
   );

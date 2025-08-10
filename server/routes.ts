@@ -204,6 +204,51 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Ad delivery for site visits with location targeting
+  app.get("/api/ads/site-visit", async (req, res) => {
+    try {
+      const { userType, state, county } = req.query;
+      const ad = await storage.getTargetedAd({
+        audience: userType as string || 'all',
+        state: state as string,
+        county: county as string,
+      });
+      
+      if (!ad) {
+        return res.status(404).json({ message: "No ads available" });
+      }
+      
+      res.json(ad);
+    } catch (error) {
+      console.error("Error fetching targeted ad:", error);
+      res.status(500).json({ message: "Failed to fetch ad" });
+    }
+  });
+
+  // Track ad impressions
+  app.post("/api/ads/track-impression", async (req, res) => {
+    try {
+      const { adId } = req.body;
+      await storage.incrementAdImpressions(adId);
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error tracking impression:", error);
+      res.status(500).json({ message: "Failed to track impression" });
+    }
+  });
+
+  // Track ad clicks
+  app.post("/api/ads/track-click", async (req, res) => {
+    try {
+      const { adId } = req.body;
+      await storage.incrementAdClicks(adId);
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error tracking click:", error);
+      res.status(500).json({ message: "Failed to track click" });
+    }
+  });
+
   // Quote calculator pricing
   app.get("/api/pricing/:service", async (req, res) => {
     try {

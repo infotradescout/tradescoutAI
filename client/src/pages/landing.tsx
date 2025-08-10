@@ -4,11 +4,13 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent } from "@/components/ui/card";
 import { Shield, Calculator, Users } from "lucide-react";
+import { AdDisplay, useUserLocation } from "@/components/AdDisplay";
 
 export default function Landing() {
   const [selectedState, setSelectedState] = useState("");
   const [selectedCounty, setSelectedCounty] = useState("");
   const [selectedTrade, setSelectedTrade] = useState("");
+  const userLocation = useUserLocation();
 
   return (
     <div className="min-h-screen gradient-bg">
@@ -112,6 +114,14 @@ export default function Landing() {
                 <p className="text-gray-300">Read authentic recommendations from homeowners in your area.</p>
               </CardContent>
             </Card>
+          </div>
+
+          {/* Targeted Advertisement */}
+          <div className="mb-8">
+            <AdDisplay 
+              className="max-w-lg mx-auto"
+              userLocation={userLocation}
+            />
           </div>
 
           {/* CTA Section */}

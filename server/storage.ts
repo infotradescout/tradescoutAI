@@ -811,6 +811,62 @@ export class DatabaseStorage implements IStorage {
     await db.delete(advertisements).where(eq(advertisements.id, id));
   }
 
+  // Get targeted ad based on audience and location
+  async getTargetedAd(criteria: { 
+    audience: string; 
+    state?: string; 
+    county?: string; 
+  }): Promise<Advertisement | null> {
+    // Build location targeting filters
+    const locationFilters = ['national'];
+    
+    if (criteria.state) {
+      locationFilters.push(`state:${criteria.state}`);
+    }
+    
+    if (criteria.county) {
+      locationFilters.push(`county:${criteria.county}`);
+    }
+
+    // Query for active ads matching audience and location
+    const ads = await db
+      .select()
+      .from(advertisements)
+      .where(
+        and(
+          eq(advertisements.isActive, true),
+          eq(advertisements.placement, 'site_visit'),
+          inArray(advertisements.targetLocation, locationFilters),
+          criteria.audience !== 'all' 
+            ? eq(advertisements.targetAudience, criteria.audience)
+            : sql`1=1`
+        )
+      )
+      .orderBy(desc(advertisements.priority), sql`RANDOM()`)
+      .limit(1);
+
+    return ads[0] || null;
+  }
+
+  async incrementAdImpressions(adId: string): Promise<void> {
+    await db
+      .update(advertisements)
+      .set({ 
+        impressions: sql`${advertisements.impressions} + 1`,
+        viewCount: sql`${advertisements.viewCount} + 1`
+      })
+      .where(eq(advertisements.id, adId));
+  }
+
+  async incrementAdClicks(adId: string): Promise<void> {
+    await db
+      .update(advertisements)
+      .set({ 
+        clickCount: sql`${advertisements.clickCount} + 1`
+      })
+      .where(eq(advertisements.id, adId));
+  }
+
   async incrementAdViews(id: string): Promise<void> {
     await db
       .update(advertisements)
