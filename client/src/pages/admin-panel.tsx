@@ -27,7 +27,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Edit, Trash2, Gift, Settings, Megaphone, Users } from "lucide-react";
+import { Plus, Edit, Trash2, Gift, Settings, Megaphone, Users, Bell } from "lucide-react";
 
 type SiteSetting = {
   id: string;

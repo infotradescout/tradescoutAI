@@ -4,8 +4,9 @@ import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/hooks/useAuth";
-import { Menu, X, Settings, LogOut, User, Crown } from "lucide-react";
+import { Menu, X, Settings, LogOut, User, Crown, Bookmark } from "lucide-react";
 import { ConstructionEmblem } from "@/components/ConstructionEmblem";
+import { NotificationBell } from "@/components/NotificationBell";
 
 export default function Navigation() {
   const [location] = useLocation();
@@ -95,6 +96,19 @@ export default function Navigation() {
                 )}
 
                 <div className="flex items-center space-x-2">
+                  <NotificationBell />
+                  
+                  <Link href="/saved-ads">
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      className="border-navy-500 text-gray-300 hover:bg-navy-600 hover:text-white"
+                    >
+                      <Bookmark className="h-4 w-4 mr-1" />
+                      Saved Ads
+                    </Button>
+                  </Link>
+                  
                   <Link href="/profile">
                     <Button 
                       variant="outline" 
@@ -183,6 +197,16 @@ export default function Navigation() {
                           </Badge>
                         )}
 
+                        <Link href="/saved-ads" onClick={closeMobileMenu}>
+                          <Button 
+                            variant="outline" 
+                            className="w-full justify-start border-navy-500 text-gray-300 hover:bg-navy-600 hover:text-white"
+                          >
+                            <Bookmark className="h-4 w-4 mr-2" />
+                            Saved Ads
+                          </Button>
+                        </Link>
+                        
                         <Link href="/profile" onClick={closeMobileMenu}>
                           <Button 
                             variant="outline" 

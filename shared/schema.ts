@@ -407,10 +407,30 @@ export const savedAds = pgTable("saved_ads", {
   userId: varchar("user_id").notNull().references(() => users.id),
   adId: varchar("ad_id").notNull().references(() => advertisements.id),
   savedAt: timestamp("saved_at").defaultNow(),
+  lastReminderSent: timestamp("last_reminder_sent"),
+  reminderCount: integer("reminder_count").default(0),
+  isActive: boolean("is_active").default(true),
 });
 
 export type SavedAd = typeof savedAds.$inferSelect;
 export type InsertSavedAd = typeof savedAds.$inferInsert;
+
+// Notification system for saved ad reminders
+export const notifications = pgTable("notifications", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  type: varchar("type").notNull(), // 'saved_ad_reminder', 'system', etc.
+  title: varchar("title").notNull(),
+  content: text("content").notNull(),
+  relatedId: varchar("related_id"), // savedAd ID, ad ID, etc.
+  isRead: boolean("is_read").default(false),
+  scheduledFor: timestamp("scheduled_for"),
+  sentAt: timestamp("sent_at"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export type Notification = typeof notifications.$inferSelect;
+export type InsertNotification = typeof notifications.$inferInsert;
 
 export type InsertContractor = typeof contractors.$inferInsert;
 export type Contractor = typeof contractors.$inferSelect;

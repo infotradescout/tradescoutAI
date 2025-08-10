@@ -23,6 +23,7 @@ import {
   advertisements,
   contractorSettings,
   savedAds,
+  notifications,
   type User,
   type InsertUser,
   type UpsertUser,
@@ -62,6 +63,8 @@ import {
   type InsertContractorSetting,
   type SavedAd,
   type InsertSavedAd,
+  type Notification,
+  type InsertNotification,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, desc, asc, sql, inArray, like, gt } from "drizzle-orm";
@@ -166,6 +169,14 @@ export interface IStorage {
   saveAdForUser(userId: string, adId: string): Promise<SavedAd>;
   getSavedAdsForUser(userId: string): Promise<Advertisement[]>;
   removeSavedAd(userId: string, adId: string): Promise<void>;
+  
+  // Notification operations
+  createNotification(notification: InsertNotification): Promise<Notification>;
+  getUserNotifications(userId: string, unreadOnly?: boolean): Promise<Notification[]>;
+  markNotificationAsRead(notificationId: string): Promise<void>;
+  markAllNotificationsAsRead(userId: string): Promise<void>;
+  getSavedAdsForReminders(): Promise<Array<SavedAd & { user: User; ad: Advertisement }>>;
+  updateSavedAdReminderStatus(savedAdId: string, reminderCount: number): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -935,6 +946,111 @@ export class DatabaseStorage implements IStorage {
     await db
       .delete(savedAds)
       .where(and(eq(savedAds.userId, userId), eq(savedAds.adId, adId)));
+  }
+
+  // Notification system operations
+  async createNotification(notification: InsertNotification): Promise<Notification> {
+    const [newNotification] = await db
+      .insert(notifications)
+      .values(notification)
+      .returning();
+    return newNotification;
+  }
+
+  async getUserNotifications(userId: string, unreadOnly: boolean = false): Promise<Notification[]> {
+    let query = db
+      .select()
+      .from(notifications)
+      .where(eq(notifications.userId, userId))
+      .orderBy(desc(notifications.createdAt));
+
+    if (unreadOnly) {
+      query = query.where(and(eq(notifications.userId, userId), eq(notifications.isRead, false)));
+    }
+
+    return await query;
+  }
+
+  async markNotificationAsRead(notificationId: string): Promise<void> {
+    await db
+      .update(notifications)
+      .set({ isRead: true })
+      .where(eq(notifications.id, notificationId));
+  }
+
+  async markAllNotificationsAsRead(userId: string): Promise<void> {
+    await db
+      .update(notifications)
+      .set({ isRead: true })
+      .where(eq(notifications.userId, userId));
+  }
+
+  async getSavedAdsForReminders(): Promise<Array<SavedAd & { user: User; ad: Advertisement }>> {
+    const threeDaysAgo = new Date(Date.now() - 3 * 24 * 60 * 60 * 1000);
+    const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+
+    const results = await db
+      .select({
+        id: savedAds.id,
+        userId: savedAds.userId,
+        adId: savedAds.adId,
+        savedAt: savedAds.savedAt,
+        lastReminderSent: savedAds.lastReminderSent,
+        reminderCount: savedAds.reminderCount,
+        isActive: savedAds.isActive,
+        user: {
+          id: users.id,
+          email: users.email,
+          firstName: users.firstName,
+          lastName: users.lastName,
+        },
+        ad: {
+          id: advertisements.id,
+          title: advertisements.title,
+          content: advertisements.content,
+          linkUrl: advertisements.linkUrl,
+          isAffiliate: advertisements.isAffiliate,
+          endDate: advertisements.endDate,
+        }
+      })
+      .from(savedAds)
+      .innerJoin(users, eq(savedAds.userId, users.id))
+      .innerJoin(advertisements, eq(savedAds.adId, advertisements.id))
+      .where(
+        and(
+          eq(savedAds.isActive, true),
+          eq(advertisements.isActive, true),
+          or(
+            isNull(advertisements.endDate),
+            gt(advertisements.endDate, new Date())
+          ),
+          or(
+            // First reminder: 3 days after saving
+            and(
+              isNull(savedAds.lastReminderSent),
+              lt(savedAds.savedAt, threeDaysAgo)
+            ),
+            // Subsequent reminders: every 24 hours (max 3 total)
+            and(
+              isNotNull(savedAds.lastReminderSent),
+              lt(savedAds.lastReminderSent, oneDayAgo),
+              lt(savedAds.reminderCount, 3)
+            )
+          )
+        )
+      );
+
+    return results as Array<SavedAd & { user: User; ad: Advertisement }>;
+  }
+
+  async updateSavedAdReminderStatus(savedAdId: string, reminderCount: number): Promise<void> {
+    await db
+      .update(savedAds)
+      .set({ 
+        lastReminderSent: new Date(),
+        reminderCount: reminderCount
+      })
+      .where(eq(savedAds.id, savedAdId));
   }
 
   async incrementAdViews(id: string): Promise<void> {

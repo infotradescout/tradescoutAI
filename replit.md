@@ -18,6 +18,10 @@ Trade Scout is a full-stack contractor marketplace platform built with React, No
 - ✅ **Comprehensive Admin Panel**: Full admin interface at /admin/panel for managing prizes, advertisements, site settings, and contractor configurations
 - ✅ **Admin-Editable Prizes**: Prize system now fully configurable through admin panel with probability weights and terms
 - ✅ **Automated Random Rotation**: Emblems rotate every 8 seconds with random selection (no user control, admin-only configuration)
+- ✅ **Enhanced Ad System**: Complete "Save for Later" functionality with database storage and user authentication
+- ✅ **Periodic Notification System**: Automated reminder system for saved ads with email and in-app notifications
+- ✅ **NotificationBell Component**: Real-time notification center with unread counts and interactive management
+- ✅ **Intelligent Reminder Logic**: First reminder after 3 days, then daily reminders (max 3 total) with progressive messaging
 
 # User Preferences
 
@@ -74,6 +78,8 @@ Preferred communication style: Simple, everyday language.
 - **Authentic Construction Emblem System**: Automated rotation of 20 construction tool emblems (hard hat, hammer, wrench, drill, etc.) with no user control
 - **Rare Golden Emblem Rewards**: 0.2% probability golden emblems that trigger admin-configurable prize system with gift cards and affiliate deals
 - **Comprehensive Admin Panel**: Full content management system at /admin/panel for prizes, advertisements, site settings, and contractor configurations
+- **Smart Advertisement System**: Location-aware ads with "Save for Later" functionality and periodic reminder notifications
+- **Notification Center**: Real-time notification system with email integration via SendGrid for saved ad reminders and system alerts
 
 # External Dependencies
 

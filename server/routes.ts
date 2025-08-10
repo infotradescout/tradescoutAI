@@ -302,6 +302,73 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get user notifications
+  app.get("/api/notifications", isAuthenticated, async (req, res) => {
+    try {
+      const userId = (req.user as any)?.claims?.sub;
+      const unreadOnly = req.query.unread === 'true';
+      
+      if (!userId) {
+        return res.status(401).json({ message: "User ID not found" });
+      }
+
+      const notifications = await storage.getUserNotifications(userId, unreadOnly);
+      res.json(notifications);
+    } catch (error) {
+      console.error("Error fetching notifications:", error);
+      res.status(500).json({ message: "Failed to fetch notifications" });
+    }
+  });
+
+  // Mark notification as read
+  app.put("/api/notifications/:notificationId/read", isAuthenticated, async (req, res) => {
+    try {
+      const { notificationId } = req.params;
+      await storage.markNotificationAsRead(notificationId);
+      res.status(204).send();
+    } catch (error) {
+      console.error("Error marking notification as read:", error);
+      res.status(500).json({ message: "Failed to mark notification as read" });
+    }
+  });
+
+  // Mark all notifications as read
+  app.put("/api/notifications/mark-all-read", isAuthenticated, async (req, res) => {
+    try {
+      const userId = (req.user as any)?.claims?.sub;
+      
+      if (!userId) {
+        return res.status(401).json({ message: "User ID not found" });
+      }
+
+      await storage.markAllNotificationsAsRead(userId);
+      res.status(204).send();
+    } catch (error) {
+      console.error("Error marking all notifications as read:", error);
+      res.status(500).json({ message: "Failed to mark all notifications as read" });
+    }
+  });
+
+  // Admin endpoint to trigger reminder notifications (for testing)
+  app.post("/api/admin/trigger-reminders", isAuthenticated, async (req, res) => {
+    try {
+      const userId = (req.user as any)?.claims?.sub;
+      const user = await storage.getUser(userId);
+      
+      if (!user || !['owner', 'ops_admin'].includes(user.role || '')) {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+
+      const { notificationService } = await import('./notification-service');
+      await notificationService.triggerReminders();
+      
+      res.json({ message: "Reminder processing triggered successfully" });
+    } catch (error) {
+      console.error("Error triggering reminders:", error);
+      res.status(500).json({ message: "Failed to trigger reminders" });
+    }
+  });
+
   // Quote calculator pricing
   app.get("/api/pricing/:service", async (req, res) => {
     try {
