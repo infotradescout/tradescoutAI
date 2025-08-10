@@ -16,7 +16,7 @@ export default function Navigation() {
 
   const navItems = [
     { href: "/contractors/board", label: "Find Contractors", public: true },
-    { href: "/quote", label: "Get Quote", public: true },
+    { href: "/quote", label: "Get Estimate", public: true },
     { href: "/growth-pack", label: "For Contractors", public: true },
   ];
 

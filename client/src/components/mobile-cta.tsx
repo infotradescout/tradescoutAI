@@ -29,7 +29,7 @@ const getCTAConfig = (location: string) => {
   if (location === '/quote') {
     return {
       type: 'quote-calculator',
-      text: 'Get 3 Free Quotes',
+      text: 'Get 3 Free Estimates',
       icon: Users,
       color: 'bg-orange-500 hover:bg-orange-600'
     };
@@ -130,7 +130,7 @@ export default function MobileCTA() {
                 <SheetTitle className="text-white text-xl">
                   {ctaConfig.type === 'contractor-profile' 
                     ? 'Contact This Contractor' 
-                    : 'Get Free Quotes'
+                    : 'Get Free Estimates'
                   }
                 </SheetTitle>
               </SheetHeader>

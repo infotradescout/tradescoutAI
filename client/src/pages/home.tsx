@@ -59,7 +59,7 @@ export default function Home() {
                     <Calculator className="h-6 w-6 text-orange-500" />
                   </div>
                   <div>
-                    <h3 className="text-white font-semibold">Get Quote</h3>
+                    <h3 className="text-white font-semibold">Get Estimate</h3>
                     <p className="text-gray-400 text-sm">Calculate project estimates</p>
                   </div>
                 </div>
@@ -147,7 +147,7 @@ export default function Home() {
             <div className="space-y-4">
               <div className="flex items-center justify-between p-3 bg-navy-600 rounded-lg">
                 <div>
-                  <p className="text-white font-medium">Roof Replacement Quote</p>
+                  <p className="text-white font-medium">Roof Replacement Estimate</p>
                   <p className="text-gray-400 text-sm">Requested 2 days ago</p>
                 </div>
                 <Badge variant="secondary">Pending</Badge>

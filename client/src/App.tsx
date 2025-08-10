@@ -14,7 +14,7 @@ import Landing from "@/pages/landing";
 import Home from "@/pages/home";
 import ContractorBoard from "@/pages/contractor-board";
 import ContractorProfile from "@/pages/contractor-profile";
-import QuoteCalculator from "@/pages/quote-calculator";
+import EstimateCalculator from "@/pages/quote-calculator";
 import GrowthPack from "@/pages/growth-pack";
 import ContractorDashboard from "@/pages/contractor-dashboard";
 import AdminWorkspace from "@/pages/admin-workspace";
@@ -42,7 +42,7 @@ function Router() {
             <Route path="/" component={Landing} />
             <Route path="/contractors/board" component={ContractorBoard} />
             <Route path="/contractors/:slug" component={ContractorProfile} />
-            <Route path="/quote" component={QuoteCalculator} />
+            <Route path="/quote" component={EstimateCalculator} />
             <Route path="/growth-pack" component={GrowthPack} />
           </>
         ) : (
@@ -50,7 +50,7 @@ function Router() {
             <Route path="/" component={Home} />
             <Route path="/contractors/board" component={ContractorBoard} />
             <Route path="/contractors/:slug" component={ContractorProfile} />
-            <Route path="/quote" component={QuoteCalculator} />
+            <Route path="/quote" component={EstimateCalculator} />
             <Route path="/growth-pack" component={GrowthPack} />
             <Route path="/contractors/dashboard" component={ContractorDashboard} />
             <Route path="/admin" component={AdminWorkspace} />

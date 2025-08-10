@@ -12,7 +12,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 
-interface QuoteInputs {
+interface EstimateInputs {
   projectType: string;
   squareFootage: string;
   material: string;
@@ -20,10 +20,10 @@ interface QuoteInputs {
   urgency: string;
 }
 
-export default function QuoteCalculator() {
+export default function EstimateCalculator() {
   const { isAuthenticated } = useAuth();
   const { toast } = useToast();
-  const [inputs, setInputs] = useState<QuoteInputs>({
+  const [inputs, setInputs] = useState<EstimateInputs>({
     projectType: '',
     squareFootage: '',
     material: '',
@@ -37,7 +37,7 @@ export default function QuoteCalculator() {
   });
 
   const calculateMutation = useMutation({
-    mutationFn: async (data: QuoteInputs) => {
+    mutationFn: async (data: EstimateInputs) => {
       // Mock calculation - in production this would use real pricing data
       const basePrice = parseInt(data.squareFootage) * 8; // $8 per sq ft base
       const materialMultiplier = data.material === 'metal' ? 1.5 : data.material === 'tile' ? 1.3 : 1;
@@ -91,7 +91,7 @@ export default function QuoteCalculator() {
     calculateMutation.mutate(inputs);
   };
 
-  const handleGetQuotes = async () => {
+  const handleGetEstimates = async () => {
     if (!isAuthenticated) {
       window.location.href = "/api/login";
       return;
@@ -234,13 +234,13 @@ export default function QuoteCalculator() {
                     <CardContent className="p-6">
                       <h4 className="text-lg font-semibold text-white mb-3 flex items-center gap-2">
                         <Users className="h-5 w-5" />
-                        Get Accurate Quotes
+                        Get Accurate Estimates
                       </h4>
                       <p className="text-gray-300 text-sm mb-4">
-                        Connect with verified contractors in your area for detailed, personalized quotes.
+                        Connect with verified contractors in your area for detailed, personalized estimates.
                       </p>
                       <Button 
-                        onClick={handleGetQuotes}
+                        onClick={handleGetEstimates}
                         disabled={leadMutation.isPending}
                         className="w-full bg-orange-500 hover:bg-orange-600 text-white py-3 rounded-lg font-semibold glow-effect transition-all duration-300"
                       >

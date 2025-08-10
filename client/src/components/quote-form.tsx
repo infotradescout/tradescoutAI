@@ -150,7 +150,7 @@ export default function QuoteForm({
             {formData.routingType === 'top3' ? (
               <>
                 <Users className="h-5 w-5" />
-                Get 3 Free Quotes
+                Get 3 Free Estimates
               </>
             ) : (
               <>
