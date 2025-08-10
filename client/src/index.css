@@ -73,6 +73,78 @@
     box-shadow: var(--shadow-card);
   }
 
+  /* Mobile-friendly touch targets */
+  .touch-target {
+    min-height: 44px;
+    min-width: 44px;
+    padding: 12px;
+  }
+
+  /* Smooth scrolling for better mobile experience */
+  html {
+    scroll-behavior: smooth;
+  }
+
+  /* Enhanced mobile tap highlights */
+  * {
+    -webkit-tap-highlight-color: rgba(255, 107, 53, 0.2);
+  }
+
+  /* Mobile-optimized input fields */
+  @media (max-width: 768px) {
+    input, textarea, select {
+      font-size: 16px; /* Prevents zoom on iOS */
+    }
+  }
+
+  /* Engagement animations */
+  .pulse-glow {
+    animation: pulseGlow 2s ease-in-out infinite;
+  }
+
+  @keyframes pulseGlow {
+    0%, 100% { box-shadow: 0 0 5px rgba(255, 107, 53, 0.3); }
+    50% { box-shadow: 0 0 20px rgba(255, 107, 53, 0.6); }
+  }
+
+  .notification-bounce {
+    animation: notificationBounce 0.6s ease-out;
+  }
+
+  @keyframes notificationBounce {
+    0% { transform: scale(0.3) translateY(-50px); opacity: 0; }
+    50% { transform: scale(1.05); }
+    70% { transform: scale(0.9); }
+    100% { transform: scale(1) translateY(0); opacity: 1; }
+  }
+
+  /* Progress bar animation */
+  .progress-fill {
+    transition: width 0.3s ease-in-out;
+  }
+
+  /* Card hover enhancements */
+  .card-enhanced {
+    transition: all 0.3s ease;
+  }
+
+  .card-enhanced:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.4);
+  }
+
+  /* Loading skeleton animation */
+  .skeleton {
+    background: linear-gradient(90deg, rgba(255,255,255,0.1) 25%, rgba(255,255,255,0.2) 50%, rgba(255,255,255,0.1) 75%);
+    background-size: 200% 100%;
+    animation: loading 1.5s infinite;
+  }
+
+  @keyframes loading {
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+  }
+
   /* Glow effect for CTAs */
   .glow-effect {
     transition: box-shadow 0.3s ease;

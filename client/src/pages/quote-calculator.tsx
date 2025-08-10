@@ -13,6 +13,9 @@ import { GuestGate } from "@/components/guest-gate";
 import { StateCountySelector } from "@/components/state-county-selector";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { PageHead } from "@/components/PageHead";
+import { ProgressFeedback } from "@/components/ProgressFeedback";
+import { LoadingSkeleton } from "@/components/LoadingSkeleton";
 
 interface EstimateInputs {
   projectType: string;
@@ -258,8 +261,26 @@ export default function EstimateCalculator() {
     );
   }
 
+  const currentStep = !inputs.projectType ? 0 : 
+                     !inputs.squareFootage ? 1 :
+                     !inputs.stateCode ? 2 : 
+                     !estimate ? 3 : 4;
+
+  const stepLabels = [
+    "Select Project Type",
+    "Enter Square Footage", 
+    "Choose Location",
+    "Calculate Estimate",
+    "Connect with Contractors"
+  ];
+
   return (
     <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+      <PageHead 
+        title="Get Your Project Estimate - Trade Scout Calculator"
+        description="Get instant estimates for your home improvement project. Regional pricing based on your county and project details. Connect with verified contractors for accurate quotes."
+        keywords="project estimate, home improvement calculator, contractor quotes, regional pricing, project cost calculator"
+      />
       <div className="text-center mb-12">
         <h1 className="text-4xl font-bold text-white mb-4">Get Your Project Estimate</h1>
         <p className="text-xl text-gray-300 mb-6">Regional pricing based on your county and project details</p>

@@ -8,6 +8,7 @@ import { AdDisplay, useUserLocation } from "@/components/AdDisplay";
 import { AuthButtons } from "@/components/auth-buttons";
 import { AuthModal } from "@/components/auth-modal";
 import { TestingErrorReportButton } from "@/components/TestingErrorReportButton";
+import { PageHead } from "@/components/PageHead";
 
 export default function Landing() {
   const [selectedState, setSelectedState] = useState("");
@@ -26,6 +27,11 @@ export default function Landing() {
 
   return (
     <div className="min-h-screen gradient-bg">
+      <PageHead 
+        title="Trade Scout - Find Trusted Local Contractors | Get 3 Free Quotes"
+        description="Connect with verified contractors in your county. Get instant quotes, read reviews, and hire with confidence. Local contractors for roofing, plumbing, electrical, and all home improvement projects."
+        keywords="local contractors, home improvement, verified contractors, free quotes, county contractors, trusted contractors, roofing, plumbing, electrical"
+      />
       {/* Hero Section */}
       <section className="py-12">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
