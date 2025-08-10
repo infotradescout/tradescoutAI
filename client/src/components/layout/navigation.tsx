@@ -20,7 +20,7 @@ export default function Navigation() {
   // Show Growth Pack to guests and contractors only, not homeowners
   const navItems = [
     { href: "/contractors/board", label: "Find Contractors", public: true },
-    { href: "/workers", label: "Worker Marketplace", public: true },
+    { href: "/workers", label: "Helpers", public: true },
     { href: "/quote", label: "Get Estimate", public: true },
     ...(!isHomeowner ? [{ href: "/growth-pack", label: "Free Growth Pack", public: true }] : []),
   ];

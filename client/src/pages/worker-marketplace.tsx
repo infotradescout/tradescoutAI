@@ -101,10 +101,10 @@ export default function WorkerMarketplace() {
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
       {/* Header */}
       <div className="mb-8">
-        <h1 className="text-4xl font-bold text-white mb-4">Worker Marketplace</h1>
+        <h1 className="text-4xl font-bold text-white mb-4">Helpers</h1>
         <p className="text-xl text-gray-300 max-w-3xl">
-          Connect contractors with skilled workers and homeowners with verified task helpers.
-          All workers are ID verified and background checked for your peace of mind.
+          Connect contractors with skilled helpers and homeowners with verified task helpers.
+          All helpers are ID verified and background checked for your peace of mind.
         </p>
       </div>
 
@@ -113,7 +113,7 @@ export default function WorkerMarketplace() {
         <TabsList className="grid w-full grid-cols-2 bg-navy-700 border-navy-600">
           <TabsTrigger value="find-workers" className="data-[state=active]:bg-orange-500">
             <Users className="h-4 w-4 mr-2" />
-            Find Workers
+            Find Helpers
           </TabsTrigger>
           <TabsTrigger value="find-tasks" className="data-[state=active]:bg-orange-500">
             <Briefcase className="h-4 w-4 mr-2" />
@@ -127,7 +127,7 @@ export default function WorkerMarketplace() {
             <div className="relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
               <Input
-                placeholder={activeTab === "find-workers" ? "Search workers..." : "Search tasks..."}
+                placeholder={activeTab === "find-workers" ? "Search helpers..." : "Search tasks..."}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="pl-10 bg-navy-600 border-navy-500 text-white"
@@ -172,7 +172,7 @@ export default function WorkerMarketplace() {
           </div>
         </div>
 
-        {/* Find Workers Tab */}
+        {/* Find Helpers Tab */}
         <TabsContent value="find-workers">
           {workersLoading ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -189,14 +189,14 @@ export default function WorkerMarketplace() {
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {filteredWorkers.map((worker) => (
-                <WorkerCard key={worker.id} worker={worker} />
+                <HelperCard key={worker.id} worker={worker} />
               ))}
               {filteredWorkers.length === 0 && (
                 <div className="col-span-full">
                   <Card className="bg-navy-700 border-navy-600">
                     <CardContent className="p-8 text-center">
                       <Users className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                      <h3 className="text-lg font-semibold text-white mb-2">No workers found</h3>
+                      <h3 className="text-lg font-semibold text-white mb-2">No helpers found</h3>
                       <p className="text-gray-300">Try adjusting your search criteria or filters.</p>
                     </CardContent>
                   </Card>
@@ -249,8 +249,8 @@ export default function WorkerMarketplace() {
               <h3 className="text-2xl font-bold text-white mb-4">Ready to get started?</h3>
               <p className="text-gray-300 mb-6 max-w-2xl mx-auto">
                 {activeTab === "find-workers" 
-                  ? "Post a task to find qualified workers in your area, or become a verified worker yourself."
-                  : "Apply for tasks that match your skills, or create your worker profile to get started."
+                  ? "Post a task to find qualified helpers in your area, or become a verified helper yourself."
+                  : "Apply for tasks that match your skills, or create your helper profile to get started."
                 }
               </p>
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
@@ -259,7 +259,7 @@ export default function WorkerMarketplace() {
                   {activeTab === "find-workers" ? "Post a Task" : "Apply for Task"}
                 </Button>
                 <Button variant="outline" className="border-gray-300 text-gray-300 hover:bg-gray-300 hover:text-navy-800">
-                  {activeTab === "find-workers" ? "Become a Worker" : "Create Worker Profile"}
+                  {activeTab === "find-workers" ? "Become a Helper" : "Create Helper Profile"}
                 </Button>
               </div>
             </CardContent>
@@ -270,7 +270,7 @@ export default function WorkerMarketplace() {
   );
 }
 
-function WorkerCard({ worker }: { worker: Worker }) {
+function HelperCard({ worker }: { worker: Worker }) {
   return (
     <Card className="bg-navy-700 border-navy-600 hover:border-orange-500/50 transition-colors">
       <CardContent className="p-6">
@@ -328,7 +328,7 @@ function WorkerCard({ worker }: { worker: Worker }) {
             <span>${worker.hourlyRate}/hr</span>
           </div>
           <Button size="sm" className="bg-orange-500 hover:bg-orange-600">
-            Contact Worker
+            Contact Helper
           </Button>
         </div>
       </CardContent>
