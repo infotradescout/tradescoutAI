@@ -218,7 +218,7 @@ export default function ForContractors() {
                 {!isContractor && (
                   <Link href="/contractors/apply">
                     <Button variant="outline" className="border-white text-white hover:bg-white hover:text-navy-800 px-8 py-3 text-lg">
-                      Apply to Join Platform
+                      Accelerator Program
                     </Button>
                   </Link>
                 )}
