@@ -22,18 +22,18 @@ export default function Navigation() {
   const [location] = useLocation();
 
   const isContractor = user?.role === 'contractor_user';
-  const isAdmin = ['owner', 'ops_admin', 'analytics_read'].includes(user?.role);
+  const isAdmin = user?.role ? ['owner', 'ops_admin', 'analytics_read'].includes(user.role) : false;
 
   const publicNavItems = [
     { href: "/", label: "Home", icon: Home },
-    { href: "/quote", label: "Get Estimate", icon: Calculator },
+    { href: "/quote-calculator", label: "Estimate Calculator", icon: Calculator },
     { href: "/contractors/board", label: "Find Contractors", icon: Users },
     { href: "/growth-pack", label: "Growth Pack", icon: Gift },
   ];
 
   const authNavItems = [
     { href: "/", label: "Dashboard", icon: Home },
-    { href: "/quote", label: "Get Estimate", icon: Calculator },
+    { href: "/quote-calculator", label: "Estimate Calculator", icon: Calculator },
     { href: "/contractors/board", label: "Contractors", icon: Users },
     ...(isContractor ? [
       { href: "/contractors/dashboard", label: "My Dashboard", icon: Building },

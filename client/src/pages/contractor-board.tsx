@@ -96,6 +96,48 @@ export default function ContractorBoard() {
         <p className="text-xl text-gray-300 mb-8">
           Connect with verified, local contractors for your next project
         </p>
+        
+        {/* County and Trade Quick Filters */}
+        <div className="max-w-2xl mx-auto mb-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-2">
+                <MapPin className="inline h-4 w-4 mr-1" />
+                Select Your County
+              </label>
+              <Select value={selectedCounty} onValueChange={setSelectedCounty}>
+                <SelectTrigger className="bg-navy-700 border-navy-600 text-white">
+                  <SelectValue placeholder="Choose your county..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {counties?.map((county) => (
+                    <SelectItem key={county.id} value={county.id}>
+                      {county.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-2">
+                Service Needed
+              </label>
+              <Select value={selectedTrade} onValueChange={setSelectedTrade}>
+                <SelectTrigger className="bg-navy-700 border-navy-600 text-white">
+                  <SelectValue placeholder="What service do you need?" />
+                </SelectTrigger>
+                <SelectContent>
+                  {trades?.map((trade) => (
+                    <SelectItem key={trade.id} value={trade.id}>
+                      {trade.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* Search and Filters */}
