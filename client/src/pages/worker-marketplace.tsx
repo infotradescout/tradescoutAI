@@ -134,12 +134,12 @@ export default function WorkerMarketplace() {
               />
             </div>
             
-            <Select value={selectedCategory} onValueChange={setSelectedCategory}>
+            <Select value={selectedCategory || "all"} onValueChange={(value) => setSelectedCategory(value === "all" ? "" : value)}>
               <SelectTrigger className="bg-navy-600 border-navy-500 text-white">
                 <SelectValue placeholder="All categories" />
               </SelectTrigger>
               <SelectContent className="bg-navy-600 border-navy-500">
-                <SelectItem value="">All categories</SelectItem>
+                <SelectItem value="all">All categories</SelectItem>
                 {categories?.map((category) => (
                   <SelectItem key={category.id} value={category.id}>
                     {category.name}
@@ -362,7 +362,7 @@ function TaskCard({ task }: { task: Task }) {
             task.status === 'assigned' ? 'bg-blue-500/20 text-blue-400 border-blue-500/50' :
             'bg-gray-500/20 text-gray-400 border-gray-500/50'
           }`}>
-            {task.status.replace('_', ' ')}
+            {task.status?.replace('_', ' ') || 'Unknown'}
           </Badge>
         </div>
 
@@ -400,7 +400,7 @@ function TaskCard({ task }: { task: Task }) {
 
         <div className="flex items-center justify-between">
           <span className="text-xs text-gray-400">
-            Posted {new Date(task.createdAt).toLocaleDateString()}
+            Posted {task.createdAt ? new Date(task.createdAt).toLocaleDateString() : 'Unknown'}
           </span>
           <Button size="sm" className="bg-orange-500 hover:bg-orange-600" disabled={task.status !== 'open'}>
             {task.status === 'open' ? 'Apply Now' : 'Not Available'}
