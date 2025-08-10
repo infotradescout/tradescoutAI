@@ -3,13 +3,16 @@ import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent } from "@/components/ui/card";
-import { Shield, Calculator, Users } from "lucide-react";
+import { Shield, Calculator, Users, ArrowRight } from "lucide-react";
 import { AdDisplay, useUserLocation } from "@/components/AdDisplay";
+import { AuthButtons } from "@/components/auth-buttons";
+import { AuthModal } from "@/components/auth-modal";
 
 export default function Landing() {
   const [selectedState, setSelectedState] = useState("");
   const [selectedCounty, setSelectedCounty] = useState("");
   const [selectedTrade, setSelectedTrade] = useState("");
+  const [showAuthModal, setShowAuthModal] = useState(false);
   const userLocation = useUserLocation();
 
   return (
@@ -73,11 +76,13 @@ export default function Landing() {
                       </Select>
                     </div>
                   </div>
-                  <Link href="/contractors/board">
-                    <Button className="w-full bg-orange-500 hover:bg-orange-600 text-white py-3 rounded-lg font-semibold mt-6 glow-effect transition-all duration-300">
-                      Find Contractors
-                    </Button>
-                  </Link>
+                  <Button 
+                    className="w-full bg-orange-500 hover:bg-orange-600 text-white py-3 rounded-lg font-semibold mt-6 glow-effect transition-all duration-300"
+                    onClick={() => setShowAuthModal(true)}
+                  >
+                    Find Contractors
+                    <ArrowRight className="ml-2 w-4 h-4" />
+                  </Button>
                 </CardContent>
               </Card>
             </div>
@@ -133,22 +138,33 @@ export default function Landing() {
                   Join thousands of homeowners who have found trusted contractors through Trade Scout.
                 </p>
                 <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                  <Link href="/contractors/board">
-                    <Button className="bg-navy-600 hover:bg-navy-500 text-white px-8 py-3 rounded-lg font-semibold border border-navy-500">
-                      Browse Contractors
-                    </Button>
-                  </Link>
-                  <Link href="/calculator">
-                    <Button className="bg-orange-500 hover:bg-orange-600 text-white px-8 py-3 rounded-lg font-semibold glow-effect">
-                      Quote Calculator
-                    </Button>
-                  </Link>
+                  <Button 
+                    className="bg-navy-600 hover:bg-navy-500 text-white px-8 py-3 rounded-lg font-semibold border border-navy-500"
+                    onClick={() => setShowAuthModal(true)}
+                  >
+                    Browse Contractors
+                  </Button>
+                  <Button 
+                    className="bg-orange-500 hover:bg-orange-600 text-white px-8 py-3 rounded-lg font-semibold glow-effect"
+                    onClick={() => setShowAuthModal(true)}
+                  >
+                    Quote Calculator
+                  </Button>
                 </div>
               </CardContent>
             </Card>
           </div>
         </div>
       </section>
+
+      {/* Authentication Modal */}
+      <AuthModal 
+        isOpen={showAuthModal}
+        onClose={() => setShowAuthModal(false)}
+        title="Join Trade Scout Today"
+        description="Connect with verified contractors or grow your business"
+        trigger="landing_page"
+      />
     </div>
   );
 }

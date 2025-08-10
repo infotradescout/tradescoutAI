@@ -1,225 +1,173 @@
 import { useState } from "react";
-import { Link, useLocation } from "wouter";
-import { useMutation } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Facebook, Mail, Eye, EyeOff, Building, User, Briefcase } from "lucide-react";
-import { apiRequest } from "@/lib/queryClient";
-import { useToast } from "@/hooks/use-toast";
+import { Facebook, ArrowLeft } from "lucide-react";
+import { useLocation } from "wouter";
+import { AuthButtons } from "@/components/auth-buttons";
 
 export default function Register() {
   const [, setLocation] = useLocation();
-  const { toast } = useToast();
-  const [showPassword, setShowPassword] = useState(false);
-  const [formData, setFormData] = useState({
-    email: "",
-    password: "",
-    firstName: "",
-    lastName: "",
-    role: "homeowner" as 'homeowner' | 'contractor_user',
-  });
-  const [error, setError] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
 
-  const registerMutation = useMutation({
-    mutationFn: async (data: typeof formData) => {
-      return apiRequest('POST', '/auth/register', data);
-    },
-    onSuccess: () => {
-      toast({
-        title: "Welcome to Trade Scout!",
-        description: "Your account has been created successfully.",
-      });
-      setLocation('/dashboard');
-    },
-    onError: (error: any) => {
-      setError(error.message || 'Registration failed. Please try again.');
-    }
-  });
-
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleEmailRegister = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError("");
+    setIsLoading(true);
     
-    if (formData.password.length < 6) {
-      setError("Password must be at least 6 characters long.");
-      return;
+    try {
+      // TODO: Implement email registration
+      console.log("Email registration:", { email, password, firstName, lastName });
+      // After successful registration, redirect to profile setup
+      setLocation('/profile-setup');
+    } catch (error) {
+      console.error("Registration failed:", error);
+    } finally {
+      setIsLoading(false);
     }
-    
-    registerMutation.mutate(formData);
-  };
-
-  const handleSocialLogin = (provider: 'facebook' | 'google') => {
-    window.location.href = `/auth/${provider}`;
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-navy-900 py-12 px-4 sm:px-6 lg:px-8">
-      <Card className="w-full max-w-md bg-navy-800 border-navy-600">
-        <CardHeader className="text-center">
-          <div className="flex items-center justify-center mb-4">
-            <div className="w-12 h-12 bg-orange-500 rounded-lg flex items-center justify-center">
-              <Building className="h-6 w-6 text-white" />
-            </div>
-          </div>
-          <CardTitle className="text-2xl font-bold text-white">Join Trade Scout</CardTitle>
-          <p className="text-gray-300">Create your account to get started</p>
-        </CardHeader>
-        
-        <CardContent className="space-y-6">
-          {/* Social Login Buttons */}
-          <div className="space-y-3">
-            <Button
-              type="button"
-              variant="outline"
-              className="w-full bg-[#1877F2] border-[#1877F2] text-white hover:bg-[#166FE5]"
-              onClick={() => handleSocialLogin('facebook')}
-            >
-              <Facebook className="h-4 w-4 mr-2" />
-              Continue with Facebook
-            </Button>
-            
-            <Button
-              type="button"
-              variant="outline"
-              className="w-full bg-white border-gray-300 text-gray-700 hover:bg-gray-50"
-              onClick={() => handleSocialLogin('google')}
-            >
-              <Mail className="h-4 w-4 mr-2" />
-              Continue with Google
-            </Button>
-          </div>
+    <div className="min-h-screen gradient-bg flex items-center justify-center py-12 px-4">
+      <div className="w-full max-w-md">
+        {/* Back to Landing */}
+        <Button
+          variant="ghost"
+          onClick={() => setLocation("/")}
+          className="mb-6 text-gray-300 hover:text-white"
+        >
+          <ArrowLeft className="w-4 h-4 mr-2" />
+          Back to Home
+        </Button>
 
-          <div className="relative">
-            <Separator className="bg-navy-600" />
-            <span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-navy-800 px-2 text-sm text-gray-400">
-              or create account with email
-            </span>
-          </div>
-
-          {/* Registration Form */}
-          <form onSubmit={handleSubmit} className="space-y-4">
-            {error && (
-              <Alert className="bg-red-900/20 border-red-500/50">
-                <AlertDescription className="text-red-400">{error}</AlertDescription>
-              </Alert>
-            )}
-            
-            {/* Account Type Selection */}
-            <div>
-              <Label htmlFor="role" className="text-gray-300">I am a...</Label>
-              <Select 
-                value={formData.role} 
-                onValueChange={(value: 'homeowner' | 'contractor_user') => 
-                  setFormData(prev => ({ ...prev, role: value }))
-                }
+        <Card className="bg-navy-800 border-navy-700">
+          <CardHeader className="text-center">
+            <CardTitle className="text-white text-2xl">Create Your Account</CardTitle>
+            <CardDescription className="text-gray-300">
+              Join Trade Scout and connect with the best contractors
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            {/* Social Registration Options */}
+            <div className="space-y-3">
+              <Button
+                onClick={() => window.location.href = "/api/auth/facebook"}
+                className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-6 text-base"
               >
-                <SelectTrigger className="bg-navy-700 border-navy-600 text-white">
-                  <SelectValue placeholder="Select account type" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="homeowner">
-                    <div className="flex items-center">
-                      <User className="h-4 w-4 mr-2" />
-                      Homeowner
-                    </div>
-                  </SelectItem>
-                  <SelectItem value="contractor_user">
-                    <div className="flex items-center">
-                      <Briefcase className="h-4 w-4 mr-2" />
-                      Contractor
-                    </div>
-                  </SelectItem>
-                </SelectContent>
-              </Select>
+                <Facebook className="w-5 h-5 mr-3" />
+                Sign up with Facebook
+              </Button>
+              
+              <Button
+                onClick={() => window.location.href = "/api/auth/google"}
+                variant="outline"
+                className="w-full border-gray-600 text-gray-200 hover:bg-gray-700 font-medium py-6 text-base"
+              >
+                <svg className="w-5 h-5 mr-3" viewBox="0 0 24 24">
+                  <path fill="currentColor" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                  <path fill="currentColor" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                  <path fill="currentColor" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+                  <path fill="currentColor" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+                </svg>
+                Sign up with Google
+              </Button>
             </div>
-            
-            <div className="grid grid-cols-2 gap-3">
+
+            {/* Divider */}
+            <div className="relative">
+              <Separator className="bg-navy-600" />
+              <div className="absolute inset-0 flex items-center justify-center">
+                <span className="bg-navy-800 px-3 text-sm text-gray-400">or</span>
+              </div>
+            </div>
+
+            {/* Email Registration Form */}
+            <form onSubmit={handleEmailRegister} className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="firstName" className="text-gray-300">First Name</Label>
+                  <Input
+                    id="firstName"
+                    type="text"
+                    value={firstName}
+                    onChange={(e) => setFirstName(e.target.value)}
+                    className="form-field mt-1"
+                    required
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="lastName" className="text-gray-300">Last Name</Label>
+                  <Input
+                    id="lastName"
+                    type="text"
+                    value={lastName}
+                    onChange={(e) => setLastName(e.target.value)}
+                    className="form-field mt-1"
+                    required
+                  />
+                </div>
+              </div>
+              
               <div>
-                <Label htmlFor="firstName" className="text-gray-300">First Name</Label>
+                <Label htmlFor="email" className="text-gray-300">Email Address</Label>
                 <Input
-                  id="firstName"
-                  type="text"
+                  id="email"
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="form-field mt-1"
                   required
-                  value={formData.firstName}
-                  onChange={(e) => setFormData(prev => ({ ...prev, firstName: e.target.value }))}
-                  className="bg-navy-700 border-navy-600 text-white placeholder-gray-400"
-                  placeholder="First name"
                 />
               </div>
               
               <div>
-                <Label htmlFor="lastName" className="text-gray-300">Last Name</Label>
-                <Input
-                  id="lastName"
-                  type="text"
-                  required
-                  value={formData.lastName}
-                  onChange={(e) => setFormData(prev => ({ ...prev, lastName: e.target.value }))}
-                  className="bg-navy-700 border-navy-600 text-white placeholder-gray-400"
-                  placeholder="Last name"
-                />
-              </div>
-            </div>
-            
-            <div>
-              <Label htmlFor="email" className="text-gray-300">Email</Label>
-              <Input
-                id="email"
-                type="email"
-                required
-                value={formData.email}
-                onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
-                className="bg-navy-700 border-navy-600 text-white placeholder-gray-400"
-                placeholder="Enter your email"
-              />
-            </div>
-            
-            <div>
-              <Label htmlFor="password" className="text-gray-300">Password</Label>
-              <div className="relative">
+                <Label htmlFor="password" className="text-gray-300">Password</Label>
                 <Input
                   id="password"
-                  type={showPassword ? "text" : "password"}
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="form-field mt-1"
                   required
-                  value={formData.password}
-                  onChange={(e) => setFormData(prev => ({ ...prev, password: e.target.value }))}
-                  className="bg-navy-700 border-navy-600 text-white placeholder-gray-400 pr-10"
-                  placeholder="Create a password (min 6 characters)"
                 />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white"
-                >
-                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                </button>
               </div>
+
+              <Button 
+                type="submit" 
+                className="w-full bg-orange-500 hover:bg-orange-600 text-white font-medium py-6 text-base"
+                disabled={isLoading}
+              >
+                {isLoading ? "Creating Account..." : "Create Account"}
+              </Button>
+            </form>
+
+            {/* Login Link */}
+            <div className="text-center">
+              <span className="text-gray-400">Already have an account? </span>
+              <Button
+                variant="link"
+                onClick={() => setLocation("/login")}
+                className="text-orange-400 hover:text-orange-300 p-0"
+              >
+                Sign in
+              </Button>
             </div>
 
-            <Button
-              type="submit"
-              className="w-full bg-orange-500 hover:bg-orange-600 text-white"
-              disabled={registerMutation.isPending}
-            >
-              {registerMutation.isPending ? "Creating Account..." : "Create Account"}
-            </Button>
-          </form>
-
-          <div className="text-center">
-            <p className="text-gray-400 text-sm">
-              Already have an account?{" "}
-              <Link href="/login" className="text-orange-500 hover:text-orange-400">
-                Sign in
-              </Link>
+            {/* Terms */}
+            <p className="text-xs text-gray-400 text-center leading-relaxed">
+              By creating an account, you agree to Trade Scout's{" "}
+              <a href="/terms" className="text-orange-400 hover:text-orange-300">Terms of Service</a>{" "}
+              and{" "}
+              <a href="/privacy" className="text-orange-400 hover:text-orange-300">Privacy Policy</a>
             </p>
-          </div>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 }

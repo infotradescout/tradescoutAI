@@ -29,6 +29,8 @@ import Chat from "@/pages/chat";
 import SavedAds from "@/pages/saved-ads";
 import ProfileSetup from "@/pages/profile-setup";
 import AdminUsers from "@/pages/admin-users";
+import Login from "@/pages/login";
+import Register from "@/pages/register";
 import { ProfileSetupRedirect } from "@/components/profile-setup-redirect";
 
 function Router() {
@@ -63,6 +65,8 @@ function Router() {
         {!isAuthenticated ? (
           <>
             <Route path="/" component={Landing} />
+            <Route path="/register" component={Register} />
+            <Route path="/login" component={Login} />
           </>
         ) : (
           <>
