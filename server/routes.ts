@@ -256,11 +256,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // States endpoint
+  app.get("/api/states", async (req, res) => {
+    try {
+      const { US_STATES } = await import("@shared/us-states-counties");
+      res.json(US_STATES);
+    } catch (error) {
+      console.error("Error fetching states:", error);
+      res.status(500).json({ message: "Failed to fetch states" });
+    }
+  });
+
   // Counties endpoint
   app.get("/api/counties", async (req, res) => {
     try {
       const { state } = req.query;
-      const counties = await storage.getCounties(state as string);
+      if (!state) {
+        return res.status(400).json({ message: "State parameter is required" });
+      }
+      
+      const { getCountiesForState } = await import("@shared/us-states-counties");
+      const counties = getCountiesForState(state as string);
       res.json(counties);
     } catch (error) {
       console.error("Error fetching counties:", error);

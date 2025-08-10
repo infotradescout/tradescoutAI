@@ -10,6 +10,7 @@ import { Calculator, DollarSign, Info, Users, CheckCircle, Clock, Phone, MapPin 
 import { Link } from "wouter";
 import { useAuth } from "@/hooks/useAuth";
 import { GuestGate } from "@/components/guest-gate";
+import { StateCountySelector } from "@/components/state-county-selector";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 
@@ -17,6 +18,8 @@ interface EstimateInputs {
   projectType: string;
   squareFootage: string;
   urgency: string;
+  stateCode: string;
+  countyFips: string;
 }
 
 export default function EstimateCalculator() {
@@ -25,13 +28,13 @@ export default function EstimateCalculator() {
   const [inputs, setInputs] = useState<EstimateInputs>({
     projectType: '',
     squareFootage: '',
-    urgency: 'planning'
+    urgency: 'planning',
+    stateCode: '',
+    countyFips: ''
   });
   const [estimate, setEstimate] = useState<any>(null);
 
-  const { data: counties } = useQuery({
-    queryKey: ['/api/counties?state=CA'],
-  });
+  // Remove the hardcoded counties query since StateCountySelector handles this
 
   const calculateMutation = useMutation({
     mutationFn: async (data: EstimateInputs) => {
@@ -80,10 +83,10 @@ export default function EstimateCalculator() {
   const [showLeadSuccess, setShowLeadSuccess] = useState(false);
 
   const handleCalculate = () => {
-    if (!inputs.projectType || !inputs.squareFootage) {
+    if (!inputs.projectType || !inputs.squareFootage || !inputs.stateCode || !inputs.countyFips) {
       toast({
         title: "Missing Information",
-        description: "Please fill in project type and square footage.",
+        description: "Please fill in all required fields including your location.",
         variant: "destructive",
       });
       return;
@@ -101,7 +104,7 @@ export default function EstimateCalculator() {
       projectType: inputs.projectType,
       description: `${inputs.squareFootage} sq ft ${inputs.projectType.toLowerCase()}`,
       tradeId: getTradeIdFromProjectType(inputs.projectType),
-      countyId: '06037', // Los Angeles - would be dynamic based on user location
+      countyId: inputs.countyFips,
       estimatedValue: estimate ? (estimate.low + estimate.high) / 2 : null,
       urgency: inputs.urgency,
       routingType: 'top3',
@@ -212,6 +215,16 @@ export default function EstimateCalculator() {
                   </Select>
                 </div>
 
+                {/* Location Selector */}
+                <div>
+                  <StateCountySelector
+                    selectedState={inputs.stateCode}
+                    selectedCounty={inputs.countyFips}
+                    onStateChange={(stateCode) => setInputs(prev => ({ ...prev, stateCode }))}
+                    onCountyChange={(countyFips) => setInputs(prev => ({ ...prev, countyFips }))}
+                  />
+                </div>
+
                 <div>
                   <Label className="block text-sm font-medium text-gray-300 mb-2">Square Footage</Label>
                   <Input
@@ -239,7 +252,7 @@ export default function EstimateCalculator() {
 
                 <Button 
                   onClick={handleCalculate}
-                  disabled={calculateMutation.isPending}
+                  disabled={!inputs.projectType || !inputs.squareFootage || !inputs.stateCode || !inputs.countyFips || calculateMutation.isPending}
                   className="w-full bg-orange-500 hover:bg-orange-600 text-white py-3 rounded-lg font-semibold glow-effect transition-all duration-300"
                 >
                   {calculateMutation.isPending ? 'Calculating...' : 'Calculate Estimate'}
@@ -263,7 +276,7 @@ export default function EstimateCalculator() {
                         ${estimate.low.toLocaleString()} - ${estimate.high.toLocaleString()}
                       </div>
                       <p className="text-sm text-gray-400 mb-4">
-                        Based on Los Angeles County pricing for {estimate.projectType?.replace('-', ' ')}
+                        Based on selected location pricing for {estimate.projectType?.replace('-', ' ')}
                       </p>
                       <Badge className="bg-amber-600 text-amber-100">
                         <Info className="h-3 w-3 mr-1" />
