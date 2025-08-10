@@ -132,9 +132,13 @@ export default function ContractorBoard() {
                 <SelectTrigger className="bg-navy-700 border-navy-600 text-white">
                   <SelectValue placeholder="What service do you need?" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="bg-navy-700 border-navy-600 text-white max-h-[300px] overflow-y-auto">
                   {trades?.map((trade) => (
-                    <SelectItem key={trade.id} value={trade.id}>
+                    <SelectItem 
+                      key={trade.id} 
+                      value={trade.id}
+                      className="text-white hover:bg-navy-600 focus:bg-navy-600 focus:text-white"
+                    >
                       {trade.name}
                     </SelectItem>
                   ))}
@@ -223,10 +227,14 @@ export default function ContractorBoard() {
                     <SelectTrigger className="bg-navy-600 border-navy-500 text-white">
                       <SelectValue placeholder="All counties" />
                     </SelectTrigger>
-                    <SelectContent className="bg-navy-600 border-navy-500">
-                      <SelectItem value="">All counties</SelectItem>
+                    <SelectContent className="bg-navy-700 border-navy-600 text-white max-h-[300px] overflow-y-auto">
+                      <SelectItem value="" className="text-white hover:bg-navy-600 focus:bg-navy-600 focus:text-white">All counties</SelectItem>
                       {counties?.map((county) => (
-                        <SelectItem key={county.id} value={county.id}>
+                        <SelectItem 
+                          key={county.fips} 
+                          value={county.fips}
+                          className="text-white hover:bg-navy-600 focus:bg-navy-600 focus:text-white"
+                        >
                           {county.name}
                         </SelectItem>
                       ))}
@@ -242,10 +250,14 @@ export default function ContractorBoard() {
                     <SelectTrigger className="bg-navy-600 border-navy-500 text-white">
                       <SelectValue placeholder="All trades" />
                     </SelectTrigger>
-                    <SelectContent className="bg-navy-600 border-navy-500 max-h-80">
-                      <SelectItem value="">All trades</SelectItem>
+                    <SelectContent className="bg-navy-700 border-navy-600 text-white max-h-[300px] overflow-y-auto">
+                      <SelectItem value="" className="text-white hover:bg-navy-600 focus:bg-navy-600 focus:text-white">All trades</SelectItem>
                       {mainTrades?.map((trade) => (
-                        <SelectItem key={trade.id} value={trade.id}>
+                        <SelectItem 
+                          key={trade.id} 
+                          value={trade.id}
+                          className="text-white hover:bg-navy-600 focus:bg-navy-600 focus:text-white"
+                        >
                           {trade.name}
                         </SelectItem>
                       ))}
@@ -261,11 +273,11 @@ export default function ContractorBoard() {
                     <SelectTrigger className="bg-navy-600 border-navy-500 text-white">
                       <SelectValue />
                     </SelectTrigger>
-                    <SelectContent className="bg-navy-600 border-navy-500">
-                      <SelectItem value="recommended">Recommended</SelectItem>
-                      <SelectItem value="rating">Highest Rated</SelectItem>
-                      <SelectItem value="reviews">Most Reviews</SelectItem>
-                      <SelectItem value="newest">Newest</SelectItem>
+                    <SelectContent className="bg-navy-700 border-navy-600 text-white max-h-[300px] overflow-y-auto">
+                      <SelectItem value="recommended" className="text-white hover:bg-navy-600 focus:bg-navy-600 focus:text-white">Recommended</SelectItem>
+                      <SelectItem value="rating" className="text-white hover:bg-navy-600 focus:bg-navy-600 focus:text-white">Highest Rated</SelectItem>
+                      <SelectItem value="reviews" className="text-white hover:bg-navy-600 focus:bg-navy-600 focus:text-white">Most Reviews</SelectItem>
+                      <SelectItem value="newest" className="text-white hover:bg-navy-600 focus:bg-navy-600 focus:text-white">Newest</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>

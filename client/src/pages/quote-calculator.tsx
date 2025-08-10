@@ -267,78 +267,78 @@ export default function EstimateCalculator() {
                     <SelectTrigger className="form-field">
                       <SelectValue placeholder="Select project type..." />
                     </SelectTrigger>
-                    <SelectContent className="max-h-80">
+                    <SelectContent className="bg-navy-700 border-navy-600 text-white max-h-[300px] overflow-y-auto">
                       {/* ROOFING & EXTERIOR */}
-                      <SelectItem value="roof-replacement">Roof Replacement</SelectItem>
-                      <SelectItem value="roof-repair">Roof Repair</SelectItem>
-                      <SelectItem value="new-roof">New Roof Installation</SelectItem>
-                      <SelectItem value="gutter-installation">Gutter Installation & Repair</SelectItem>
-                      <SelectItem value="siding-replacement">Siding Installation & Repair</SelectItem>
-                      <SelectItem value="window-replacement">Window Replacement</SelectItem>
-                      <SelectItem value="door-installation">Door Installation</SelectItem>
-                      <SelectItem value="deck-construction">Deck & Patio Construction</SelectItem>
-                      <SelectItem value="fence-installation">Fence Installation</SelectItem>
-                      <SelectItem value="concrete-work">Concrete Work</SelectItem>
-                      <SelectItem value="masonry-work">Masonry & Stonework</SelectItem>
+                      <SelectItem value="roof-replacement" className="text-white hover:bg-navy-600 focus:bg-navy-600 focus:text-white">Roof Replacement</SelectItem>
+                      <SelectItem value="roof-repair" className="text-white hover:bg-navy-600 focus:bg-navy-600 focus:text-white">Roof Repair</SelectItem>
+                      <SelectItem value="new-roof" className="text-white hover:bg-navy-600 focus:bg-navy-600 focus:text-white">New Roof Installation</SelectItem>
+                      <SelectItem value="gutter-installation" className="text-white hover:bg-navy-600 focus:bg-navy-600 focus:text-white">Gutter Installation & Repair</SelectItem>
+                      <SelectItem value="siding-replacement" className="text-white hover:bg-navy-600 focus:bg-navy-600 focus:text-white">Siding Installation & Repair</SelectItem>
+                      <SelectItem value="window-replacement" className="text-white hover:bg-navy-600 focus:bg-navy-600 focus:text-white">Window Replacement</SelectItem>
+                      <SelectItem value="door-installation" className="text-white hover:bg-navy-600 focus:bg-navy-600 focus:text-white">Door Installation</SelectItem>
+                      <SelectItem value="deck-construction" className="text-white hover:bg-navy-600 focus:bg-navy-600 focus:text-white">Deck & Patio Construction</SelectItem>
+                      <SelectItem value="fence-installation" className="text-white hover:bg-navy-600 focus:bg-navy-600 focus:text-white">Fence Installation</SelectItem>
+                      <SelectItem value="concrete-work" className="text-white hover:bg-navy-600 focus:bg-navy-600 focus:text-white">Concrete Work</SelectItem>
+                      <SelectItem value="masonry-work" className="text-white hover:bg-navy-600 focus:bg-navy-600 focus:text-white">Masonry & Stonework</SelectItem>
                       
                       {/* INTERIOR RENOVATIONS */}
-                      <SelectItem value="kitchen-remodel">Kitchen Remodeling</SelectItem>
-                      <SelectItem value="bathroom-remodel">Bathroom Remodeling</SelectItem>
-                      <SelectItem value="basement-finishing">Basement Finishing</SelectItem>
-                      <SelectItem value="attic-conversion">Attic Conversion</SelectItem>
+                      <SelectItem value="kitchen-remodel" className="text-white hover:bg-navy-600 focus:bg-navy-600 focus:text-white">Kitchen Remodeling</SelectItem>
+                      <SelectItem value="bathroom-remodel" className="text-white hover:bg-navy-600 focus:bg-navy-600 focus:text-white">Bathroom Remodeling</SelectItem>
+                      <SelectItem value="basement-finishing" className="text-white hover:bg-navy-600 focus:bg-navy-600 focus:text-white">Basement Finishing</SelectItem>
+                      <SelectItem value="attic-conversion" className="text-white hover:bg-navy-600 focus:bg-navy-600 focus:text-white">Attic Conversion</SelectItem>
                       
                       {/* FLOORING */}
-                      <SelectItem value="hardwood-flooring">Hardwood Flooring</SelectItem>
-                      <SelectItem value="carpet-installation">Carpet Installation</SelectItem>
-                      <SelectItem value="tile-installation">Tile Installation</SelectItem>
-                      <SelectItem value="laminate-flooring">Laminate/Vinyl Flooring</SelectItem>
+                      <SelectItem value="hardwood-flooring" className="text-white hover:bg-navy-600 focus:bg-navy-600 focus:text-white">Hardwood Flooring</SelectItem>
+                      <SelectItem value="carpet-installation" className="text-white hover:bg-navy-600 focus:bg-navy-600 focus:text-white">Carpet Installation</SelectItem>
+                      <SelectItem value="tile-installation" className="text-white hover:bg-navy-600 focus:bg-navy-600 focus:text-white">Tile Installation</SelectItem>
+                      <SelectItem value="laminate-flooring" className="text-white hover:bg-navy-600 focus:bg-navy-600 focus:text-white">Laminate/Vinyl Flooring</SelectItem>
                       
                       {/* PLUMBING & HVAC */}
-                      <SelectItem value="plumbing-repair">Plumbing Repair</SelectItem>
-                      <SelectItem value="water-heater-installation">Water Heater Installation</SelectItem>
-                      <SelectItem value="hvac-installation">HVAC Installation</SelectItem>
-                      <SelectItem value="air-conditioning-repair">AC Repair & Installation</SelectItem>
-                      <SelectItem value="heating-system">Heating System Services</SelectItem>
+                      <SelectItem value="plumbing-repair" className="text-white hover:bg-navy-600 focus:bg-navy-600 focus:text-white">Plumbing Repair</SelectItem>
+                      <SelectItem value="water-heater-installation" className="text-white hover:bg-navy-600 focus:bg-navy-600 focus:text-white">Water Heater Installation</SelectItem>
+                      <SelectItem value="hvac-installation" className="text-white hover:bg-navy-600 focus:bg-navy-600 focus:text-white">HVAC Installation</SelectItem>
+                      <SelectItem value="air-conditioning-repair" className="text-white hover:bg-navy-600 focus:bg-navy-600 focus:text-white">AC Repair & Installation</SelectItem>
+                      <SelectItem value="heating-system" className="text-white hover:bg-navy-600 focus:bg-navy-600 focus:text-white">Heating System Services</SelectItem>
                       
                       {/* ELECTRICAL */}
-                      <SelectItem value="electrical-work">Electrical Services</SelectItem>
-                      <SelectItem value="panel-upgrade">Electrical Panel Upgrade</SelectItem>
-                      <SelectItem value="lighting-installation">Lighting Installation</SelectItem>
-                      <SelectItem value="ceiling-fan-installation">Ceiling Fan Installation</SelectItem>
+                      <SelectItem value="electrical-work" className="text-white hover:bg-navy-600 focus:bg-navy-600 focus:text-white">Electrical Services</SelectItem>
+                      <SelectItem value="panel-upgrade" className="text-white hover:bg-navy-600 focus:bg-navy-600 focus:text-white">Electrical Panel Upgrade</SelectItem>
+                      <SelectItem value="lighting-installation" className="text-white hover:bg-navy-600 focus:bg-navy-600 focus:text-white">Lighting Installation</SelectItem>
+                      <SelectItem value="ceiling-fan-installation" className="text-white hover:bg-navy-600 focus:bg-navy-600 focus:text-white">Ceiling Fan Installation</SelectItem>
                       
                       {/* PAINTING & FINISHING */}
-                      <SelectItem value="interior-painting">Interior Painting</SelectItem>
-                      <SelectItem value="exterior-painting">Exterior Painting</SelectItem>
-                      <SelectItem value="cabinet-painting">Cabinet Painting & Refinishing</SelectItem>
-                      <SelectItem value="drywall-work">Drywall Installation & Repair</SelectItem>
+                      <SelectItem value="interior-painting" className="text-white hover:bg-navy-600 focus:bg-navy-600 focus:text-white">Interior Painting</SelectItem>
+                      <SelectItem value="exterior-painting" className="text-white hover:bg-navy-600 focus:bg-navy-600 focus:text-white">Exterior Painting</SelectItem>
+                      <SelectItem value="cabinet-painting" className="text-white hover:bg-navy-600 focus:bg-navy-600 focus:text-white">Cabinet Painting & Refinishing</SelectItem>
+                      <SelectItem value="drywall-work" className="text-white hover:bg-navy-600 focus:bg-navy-600 focus:text-white">Drywall Installation & Repair</SelectItem>
                       
                       {/* LANDSCAPING & OUTDOOR */}
-                      <SelectItem value="landscaping">Landscaping Services</SelectItem>
-                      <SelectItem value="lawn-care">Lawn Care & Maintenance</SelectItem>
-                      <SelectItem value="tree-service">Tree Services</SelectItem>
-                      <SelectItem value="irrigation-system">Irrigation & Sprinkler Systems</SelectItem>
-                      <SelectItem value="pool-installation">Pool Installation</SelectItem>
+                      <SelectItem value="landscaping" className="text-white hover:bg-navy-600 focus:bg-navy-600 focus:text-white">Landscaping Services</SelectItem>
+                      <SelectItem value="lawn-care" className="text-white hover:bg-navy-600 focus:bg-navy-600 focus:text-white">Lawn Care & Maintenance</SelectItem>
+                      <SelectItem value="tree-service" className="text-white hover:bg-navy-600 focus:bg-navy-600 focus:text-white">Tree Services</SelectItem>
+                      <SelectItem value="irrigation-system" className="text-white hover:bg-navy-600 focus:bg-navy-600 focus:text-white">Irrigation & Sprinkler Systems</SelectItem>
+                      <SelectItem value="pool-installation" className="text-white hover:bg-navy-600 focus:bg-navy-600 focus:text-white">Pool Installation</SelectItem>
                       
                       {/* SPECIALTY SERVICES */}
-                      <SelectItem value="insulation-installation">Insulation Services</SelectItem>
-                      <SelectItem value="solar-installation">Solar Panel Installation</SelectItem>
-                      <SelectItem value="security-system">Security System Installation</SelectItem>
-                      <SelectItem value="smart-home-automation">Smart Home Automation</SelectItem>
-                      <SelectItem value="garage-door-repair">Garage Door Services</SelectItem>
-                      <SelectItem value="chimney-services">Chimney Services</SelectItem>
+                      <SelectItem value="insulation-installation" className="text-white hover:bg-navy-600 focus:bg-navy-600 focus:text-white">Insulation Services</SelectItem>
+                      <SelectItem value="solar-installation" className="text-white hover:bg-navy-600 focus:bg-navy-600 focus:text-white">Solar Panel Installation</SelectItem>
+                      <SelectItem value="security-system" className="text-white hover:bg-navy-600 focus:bg-navy-600 focus:text-white">Security System Installation</SelectItem>
+                      <SelectItem value="smart-home-automation" className="text-white hover:bg-navy-600 focus:bg-navy-600 focus:text-white">Smart Home Automation</SelectItem>
+                      <SelectItem value="garage-door-repair" className="text-white hover:bg-navy-600 focus:bg-navy-600 focus:text-white">Garage Door Services</SelectItem>
+                      <SelectItem value="chimney-services" className="text-white hover:bg-navy-600 focus:bg-navy-600 focus:text-white">Chimney Services</SelectItem>
                       
                       {/* MAINTENANCE & CLEANING */}
-                      <SelectItem value="house-cleaning">House Cleaning</SelectItem>
-                      <SelectItem value="carpet-cleaning">Carpet Cleaning</SelectItem>
-                      <SelectItem value="pressure-washing">Pressure Washing</SelectItem>
-                      <SelectItem value="pest-control">Pest Control</SelectItem>
-                      <SelectItem value="mold-remediation">Mold Remediation</SelectItem>
-                      <SelectItem value="handyman-services">Handyman Services</SelectItem>
+                      <SelectItem value="house-cleaning" className="text-white hover:bg-navy-600 focus:bg-navy-600 focus:text-white">House Cleaning</SelectItem>
+                      <SelectItem value="carpet-cleaning" className="text-white hover:bg-navy-600 focus:bg-navy-600 focus:text-white">Carpet Cleaning</SelectItem>
+                      <SelectItem value="pressure-washing" className="text-white hover:bg-navy-600 focus:bg-navy-600 focus:text-white">Pressure Washing</SelectItem>
+                      <SelectItem value="pest-control" className="text-white hover:bg-navy-600 focus:bg-navy-600 focus:text-white">Pest Control</SelectItem>
+                      <SelectItem value="mold-remediation" className="text-white hover:bg-navy-600 focus:bg-navy-600 focus:text-white">Mold Remediation</SelectItem>
+                      <SelectItem value="handyman-services" className="text-white hover:bg-navy-600 focus:bg-navy-600 focus:text-white">Handyman Services</SelectItem>
                       
                       {/* GENERAL CONSTRUCTION */}
-                      <SelectItem value="home-addition">Home Addition</SelectItem>
-                      <SelectItem value="general-remodeling">General Remodeling</SelectItem>
-                      <SelectItem value="custom-home-building">Custom Home Building</SelectItem>
+                      <SelectItem value="home-addition" className="text-white hover:bg-navy-600 focus:bg-navy-600 focus:text-white">Home Addition</SelectItem>
+                      <SelectItem value="general-remodeling" className="text-white hover:bg-navy-600 focus:bg-navy-600 focus:text-white">General Remodeling</SelectItem>
+                      <SelectItem value="custom-home-building" className="text-white hover:bg-navy-600 focus:bg-navy-600 focus:text-white">Custom Home Building</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
