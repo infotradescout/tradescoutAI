@@ -21,6 +21,7 @@ import ContractorProfile from "@/pages/contractor-profile";
 import EstimateCalculator from "@/pages/quote-calculator";
 import WorkerMarketplace from "@/pages/worker-marketplace";
 import GrowthPack from "@/pages/growth-pack";
+import ForContractors from "@/pages/contractors";
 import ContractorApply from "@/pages/contractor-apply";
 import ContractorAccelerator from "@/pages/contractor-accelerator";
 import ContractorDashboard from "@/pages/contractor-dashboard";
@@ -53,6 +54,7 @@ function Router() {
         {/* Public routes available to all users */}
         <Route path="/login" component={LoginPage} />
         <Route path="/register" component={RegisterPage} />
+        <Route path="/contractors" component={ForContractors} />
         <Route path="/contractors/board" component={ContractorBoard} />
         <Route path="/contractors/apply" component={ContractorApply} />
         <Route path="/contractors/accelerator" component={ContractorAccelerator} />

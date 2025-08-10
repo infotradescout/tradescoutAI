@@ -17,11 +17,10 @@ export default function Navigation() {
   const isContractor = user && user.role && ['contractor_user', 'accelerator_member'].includes(user.role);
   const isHomeowner = user && user.role === 'homeowner';
 
-  // Show Growth Pack to guests and contractors only, not homeowners
   const navItems = [
     { href: "/contractors/board", label: "Find Contractors", public: true },
     { href: "/quote", label: "Get Estimate", public: true },
-    ...(!isHomeowner ? [{ href: "/growth-pack", label: "Free Growth Pack", public: true }] : []),
+    ...(!isHomeowner ? [{ href: "/contractors", label: "For Contractors", public: true }] : []),
     { href: "/workers", label: "Helpers", public: true },
   ];
 
