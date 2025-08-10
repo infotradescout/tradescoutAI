@@ -272,13 +272,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/counties", async (req, res) => {
     try {
       const { state } = req.query;
-      if (!state) {
-        return res.status(400).json({ message: "State parameter is required" });
-      }
       
-      const { getCountiesForState } = await import("@shared/us-counties-complete");
-      const counties = getCountiesForState(state as string);
-      res.json(counties);
+      if (state) {
+        // Get counties for specific state
+        const { getCountiesForState } = await import("@shared/us-counties-complete");
+        const counties = getCountiesForState(state as string);
+        res.json(counties);
+      } else {
+        // Get all counties (fallback for compatibility)
+        const { getAllCounties } = await import("@shared/us-counties-complete");
+        const counties = getAllCounties();
+        res.json(counties);
+      }
     } catch (error) {
       console.error("Error fetching counties:", error);
       res.status(500).json({ message: "Failed to fetch counties" });

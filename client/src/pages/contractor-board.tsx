@@ -14,6 +14,7 @@ import { Link } from "wouter";
 import type { Contractor, County, Trade } from "@shared/schema";
 
 export default function ContractorBoard() {
+  const [selectedState, setSelectedState] = useState("");
   const [selectedCounty, setSelectedCounty] = useState("");
   const [selectedTrade, setSelectedTrade] = useState("");
   const [sortBy, setSortBy] = useState("recommended");
@@ -35,9 +36,85 @@ export default function ContractorBoard() {
     enabled: true,
   });
 
-  const { data: counties } = useQuery<County[]>({
-    queryKey: ['/api/counties?state=CA'],
+  // Get all counties when we have a selected state
+  const { data: allCounties } = useQuery<County[]>({
+    queryKey: ['/api/counties', selectedState],
+    queryFn: async () => {
+      if (!selectedState) return [];
+      const response = await fetch(`/api/counties?state=${selectedState}`);
+      if (!response.ok) throw new Error('Failed to fetch counties');
+      return response.json();
+    },
+    enabled: !!selectedState,
   });
+
+  // Counties come pre-filtered from API
+  const counties = allCounties || [];
+
+  // Reset county when state changes
+  useEffect(() => {
+    if (selectedState && selectedCounty) {
+      // Check if current county belongs to new state
+      const countyExists = counties.some(county => county.fips === selectedCounty);
+      if (!countyExists) {
+        setSelectedCounty("");
+      }
+    }
+  }, [selectedState, selectedCounty, counties]);
+
+  // US States list
+  const states = [
+    { code: 'AL', name: 'Alabama' },
+    { code: 'AK', name: 'Alaska' },
+    { code: 'AZ', name: 'Arizona' },
+    { code: 'AR', name: 'Arkansas' },
+    { code: 'CA', name: 'California' },
+    { code: 'CO', name: 'Colorado' },
+    { code: 'CT', name: 'Connecticut' },
+    { code: 'DE', name: 'Delaware' },
+    { code: 'FL', name: 'Florida' },
+    { code: 'GA', name: 'Georgia' },
+    { code: 'HI', name: 'Hawaii' },
+    { code: 'ID', name: 'Idaho' },
+    { code: 'IL', name: 'Illinois' },
+    { code: 'IN', name: 'Indiana' },
+    { code: 'IA', name: 'Iowa' },
+    { code: 'KS', name: 'Kansas' },
+    { code: 'KY', name: 'Kentucky' },
+    { code: 'LA', name: 'Louisiana' },
+    { code: 'ME', name: 'Maine' },
+    { code: 'MD', name: 'Maryland' },
+    { code: 'MA', name: 'Massachusetts' },
+    { code: 'MI', name: 'Michigan' },
+    { code: 'MN', name: 'Minnesota' },
+    { code: 'MS', name: 'Mississippi' },
+    { code: 'MO', name: 'Missouri' },
+    { code: 'MT', name: 'Montana' },
+    { code: 'NE', name: 'Nebraska' },
+    { code: 'NV', name: 'Nevada' },
+    { code: 'NH', name: 'New Hampshire' },
+    { code: 'NJ', name: 'New Jersey' },
+    { code: 'NM', name: 'New Mexico' },
+    { code: 'NY', name: 'New York' },
+    { code: 'NC', name: 'North Carolina' },
+    { code: 'ND', name: 'North Dakota' },
+    { code: 'OH', name: 'Ohio' },
+    { code: 'OK', name: 'Oklahoma' },
+    { code: 'OR', name: 'Oregon' },
+    { code: 'PA', name: 'Pennsylvania' },
+    { code: 'RI', name: 'Rhode Island' },
+    { code: 'SC', name: 'South Carolina' },
+    { code: 'SD', name: 'South Dakota' },
+    { code: 'TN', name: 'Tennessee' },
+    { code: 'TX', name: 'Texas' },
+    { code: 'UT', name: 'Utah' },
+    { code: 'VT', name: 'Vermont' },
+    { code: 'VA', name: 'Virginia' },
+    { code: 'WA', name: 'Washington' },
+    { code: 'WV', name: 'West Virginia' },
+    { code: 'WI', name: 'Wisconsin' },
+    { code: 'WY', name: 'Wyoming' }
+  ];
 
   const { data: trades } = useQuery<Trade[]>({
     queryKey: ['/api/trades'],
@@ -60,7 +137,7 @@ export default function ContractorBoard() {
     });
   }, [contractors, searchQuery]);
 
-  const activeFiltersCount = [selectedCounty, selectedTrade].filter(Boolean).length;
+  const activeFiltersCount = [selectedState, selectedCounty, selectedTrade].filter(Boolean).length;
 
   if (isLoading) {
     return (
@@ -102,21 +179,48 @@ export default function ContractorBoard() {
           Connect with verified, local contractors for your next project
         </p>
         
-        {/* County and Trade Quick Filters */}
-        <div className="max-w-2xl mx-auto mb-8">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {/* State, County and Trade Quick Filters */}
+        <div className="max-w-4xl mx-auto mb-8">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-2">
+                <MapPin className="inline h-4 w-4 mr-1" />
+                Select Your State
+              </label>
+              <Select value={selectedState} onValueChange={setSelectedState}>
+                <SelectTrigger className="bg-navy-700 border-navy-600 text-white">
+                  <SelectValue placeholder="Choose your state..." />
+                </SelectTrigger>
+                <SelectContent className="bg-navy-700 border-navy-600 text-white max-h-[300px] overflow-y-auto">
+                  {states.map((state) => (
+                    <SelectItem 
+                      key={state.code} 
+                      value={state.code}
+                      className="text-white hover:bg-navy-600 focus:bg-navy-600 focus:text-white"
+                    >
+                      {state.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            
             <div>
               <label className="block text-sm font-medium text-gray-300 mb-2">
                 <MapPin className="inline h-4 w-4 mr-1" />
                 Select Your County
               </label>
-              <Select value={selectedCounty} onValueChange={setSelectedCounty}>
-                <SelectTrigger className="bg-navy-700 border-navy-600 text-white">
-                  <SelectValue placeholder="Choose your county..." />
+              <Select value={selectedCounty} onValueChange={setSelectedCounty} disabled={!selectedState}>
+                <SelectTrigger className="bg-navy-700 border-navy-600 text-white disabled:opacity-50">
+                  <SelectValue placeholder={selectedState ? "Choose your county..." : "Select state first"} />
                 </SelectTrigger>
-                <SelectContent>
-                  {counties?.map((county) => (
-                    <SelectItem key={county.id} value={county.id}>
+                <SelectContent className="bg-navy-700 border-navy-600 text-white max-h-[300px] overflow-y-auto">
+                  {counties.map((county) => (
+                    <SelectItem 
+                      key={county.fips} 
+                      value={county.fips}
+                      className="text-white hover:bg-navy-600 focus:bg-navy-600 focus:text-white"
+                    >
                       {county.name}
                     </SelectItem>
                   ))}
@@ -181,9 +285,21 @@ export default function ContractorBoard() {
             </Button>
 
             {/* Active Filter Pills */}
+            {selectedState && (
+              <Badge variant="secondary" className="bg-navy-600 text-white">
+                {states.find(s => s.code === selectedState)?.name}
+                <button
+                  onClick={() => setSelectedState("")}
+                  className="ml-1 hover:text-red-400"
+                >
+                  ×
+                </button>
+              </Badge>
+            )}
+            
             {selectedCounty && (
               <Badge variant="secondary" className="bg-navy-600 text-white">
-                {counties?.find(c => c.id === selectedCounty)?.name}
+                {counties.find(c => c.fips === selectedCounty)?.name}
                 <button
                   onClick={() => setSelectedCounty("")}
                   className="ml-1 hover:text-red-400"
@@ -221,15 +337,39 @@ export default function ContractorBoard() {
                 <div>
                   <label className="block text-sm font-medium text-gray-300 mb-2">
                     <MapPin className="inline h-4 w-4 mr-1" />
+                    State
+                  </label>
+                  <Select value={selectedState} onValueChange={setSelectedState}>
+                    <SelectTrigger className="bg-navy-600 border-navy-500 text-white">
+                      <SelectValue placeholder="All states" />
+                    </SelectTrigger>
+                    <SelectContent className="bg-navy-700 border-navy-600 text-white max-h-[300px] overflow-y-auto">
+                      <SelectItem value="" className="text-white hover:bg-navy-600 focus:bg-navy-600 focus:text-white">All states</SelectItem>
+                      {states.map((state) => (
+                        <SelectItem 
+                          key={state.code} 
+                          value={state.code}
+                          className="text-white hover:bg-navy-600 focus:bg-navy-600 focus:text-white"
+                        >
+                          {state.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">
+                    <MapPin className="inline h-4 w-4 mr-1" />
                     County
                   </label>
-                  <Select value={selectedCounty} onValueChange={setSelectedCounty}>
-                    <SelectTrigger className="bg-navy-600 border-navy-500 text-white">
-                      <SelectValue placeholder="All counties" />
+                  <Select value={selectedCounty} onValueChange={setSelectedCounty} disabled={!selectedState}>
+                    <SelectTrigger className="bg-navy-600 border-navy-500 text-white disabled:opacity-50">
+                      <SelectValue placeholder={selectedState ? "All counties" : "Select state first"} />
                     </SelectTrigger>
                     <SelectContent className="bg-navy-700 border-navy-600 text-white max-h-[300px] overflow-y-auto">
                       <SelectItem value="" className="text-white hover:bg-navy-600 focus:bg-navy-600 focus:text-white">All counties</SelectItem>
-                      {counties?.map((county) => (
+                      {counties.map((county) => (
                         <SelectItem 
                           key={county.fips} 
                           value={county.fips}
