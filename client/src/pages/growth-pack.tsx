@@ -14,8 +14,33 @@ import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 
 export default function GrowthPack() {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, user } = useAuth();
+  const isHomeowner = user && user.role === 'homeowner';
   const { toast } = useToast();
+
+  // Redirect homeowners away from Growth Pack
+  if (isHomeowner) {
+    return (
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12 text-center">
+        <h1 className="text-3xl font-bold text-white mb-6">Page Not Available</h1>
+        <p className="text-gray-300 mb-8">
+          The Growth Pack is designed specifically for contractors. As a homeowner, you can:
+        </p>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-2xl mx-auto">
+          <Link href="/contractors/board">
+            <Button className="w-full bg-orange-500 hover:bg-orange-600">
+              Find Contractors
+            </Button>
+          </Link>
+          <Link href="/quote">
+            <Button variant="outline" className="w-full border-orange-500 text-orange-500 hover:bg-orange-500 hover:text-white">
+              Get Estimate
+            </Button>
+          </Link>
+        </div>
+      </div>
+    );
+  }
   const [formData, setFormData] = useState({
     email: '',
     companyName: '',
@@ -109,14 +134,16 @@ export default function GrowthPack() {
                     </div>
                   </Button>
                 </Link>
-                <Link href="/contractors/accelerator">
-                  <Button variant="outline" className="w-full border-orange-500 text-orange-500 hover:bg-orange-500 hover:text-white h-16">
-                    <div className="text-center">
-                      <div className="font-semibold">Accelerator Program</div>
-                      <div className="text-sm opacity-90">Premium growth tools</div>
-                    </div>
-                  </Button>
-                </Link>
+                {!isHomeowner && (
+                  <Link href="/contractors/accelerator">
+                    <Button variant="outline" className="w-full border-orange-500 text-orange-500 hover:bg-orange-500 hover:text-white h-16">
+                      <div className="text-center">
+                        <div className="font-semibold">Accelerator Program</div>
+                        <div className="text-sm opacity-90">Premium growth tools</div>
+                      </div>
+                    </Button>
+                  </Link>
+                )}
               </div>
             </div>
           </CardContent>
@@ -335,11 +362,13 @@ export default function GrowthPack() {
                 <ArrowRight className="h-4 w-4 ml-2" />
               </Button>
             </Link>
-            <Link href="/contractors/accelerator">
-              <Button variant="outline" className="border-orange-500 text-orange-500 hover:bg-orange-500 hover:text-white px-8 py-3 rounded-lg font-semibold transition-all duration-300">
-                View Accelerator Program
-              </Button>
-            </Link>
+            {!isHomeowner && (
+              <Link href="/contractors/accelerator">
+                <Button variant="outline" className="border-orange-500 text-orange-500 hover:bg-orange-500 hover:text-white px-8 py-3 rounded-lg font-semibold transition-all duration-300">
+                  View Accelerator Program
+                </Button>
+              </Link>
+            )}
           </div>
         </CardContent>
       </Card>

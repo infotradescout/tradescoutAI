@@ -15,12 +15,14 @@ export default function Navigation() {
 
   const isAdmin = user && user.role && ['owner', 'ops_admin', 'analytics_read', 'territory_manager', 'contractor_success'].includes(user.role);
   const isContractor = user && user.role && ['contractor_user', 'accelerator_member'].includes(user.role);
+  const isHomeowner = user && user.role === 'homeowner';
 
+  // Show Growth Pack to guests and contractors only, not homeowners
   const navItems = [
     { href: "/contractors/board", label: "Find Contractors", public: true },
     { href: "/workers", label: "Worker Marketplace", public: true },
     { href: "/quote", label: "Get Estimate", public: true },
-    { href: "/growth-pack", label: "Free Growth Pack", public: true },
+    ...(!isHomeowner ? [{ href: "/growth-pack", label: "Free Growth Pack", public: true }] : []),
   ];
 
   const authenticatedNavItems = [
