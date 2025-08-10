@@ -63,7 +63,7 @@ export default function QuoteForm({ onSuccess, compact = false }: QuoteFormProps
     queryKey: ["/api/trades"],
     queryFn: async () => {
       const response = await apiRequest("GET", "/api/trades");
-      return response;
+      return Array.isArray(response) ? response : [];
     },
   });
 
@@ -233,7 +233,7 @@ export default function QuoteForm({ onSuccess, compact = false }: QuoteFormProps
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent className="bg-navy-700 border-navy-600">
-                    {trades.map((trade: any) => (
+                    {Array.isArray(trades) && trades.map((trade: any) => (
                       <SelectItem key={trade.id} value={trade.id} className="text-white hover:bg-navy-600">
                         {trade.name}
                       </SelectItem>
