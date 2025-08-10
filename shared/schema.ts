@@ -401,6 +401,17 @@ export type InsertAdvertisement = typeof advertisements.$inferInsert;
 export type ContractorSetting = typeof contractorSettings.$inferSelect;
 export type InsertContractorSetting = typeof contractorSettings.$inferInsert;
 
+// Saved ads for users
+export const savedAds = pgTable("saved_ads", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  adId: varchar("ad_id").notNull().references(() => advertisements.id),
+  savedAt: timestamp("saved_at").defaultNow(),
+});
+
+export type SavedAd = typeof savedAds.$inferSelect;
+export type InsertSavedAd = typeof savedAds.$inferInsert;
+
 export type InsertContractor = typeof contractors.$inferInsert;
 export type Contractor = typeof contractors.$inferSelect;
 

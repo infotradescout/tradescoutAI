@@ -22,6 +22,7 @@ import {
   prizeConfigurations,
   advertisements,
   contractorSettings,
+  savedAds,
   type User,
   type InsertUser,
   type UpsertUser,
@@ -59,6 +60,8 @@ import {
   type InsertAdvertisement,
   type ContractorSetting,
   type InsertContractorSetting,
+  type SavedAd,
+  type InsertSavedAd,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, desc, asc, sql, inArray, like, gt } from "drizzle-orm";
@@ -151,6 +154,18 @@ export interface IStorage {
   getMaterialList(id: string): Promise<MaterialList | undefined>;
   getMaterialListsByConversation(conversationId: string): Promise<MaterialList[]>;
   updateMaterialList(id: string, updates: Partial<MaterialList>): Promise<MaterialList>;
+
+  // Advertisement operations
+  getAdvertisements(placement?: string): Promise<Advertisement[]>;
+  createAdvertisement(ad: InsertAdvertisement): Promise<Advertisement>;
+  updateAdvertisement(id: string, updates: Partial<Advertisement>): Promise<Advertisement>;
+  deleteAdvertisement(id: string): Promise<void>;
+  getTargetedAd(criteria: { audience: string; state?: string; county?: string; }): Promise<Advertisement | null>;
+  incrementAdImpressions(adId: string): Promise<void>;
+  incrementAdClicks(adId: string): Promise<void>;
+  saveAdForUser(userId: string, adId: string): Promise<SavedAd>;
+  getSavedAdsForUser(userId: string): Promise<Advertisement[]>;
+  removeSavedAd(userId: string, adId: string): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -865,6 +880,61 @@ export class DatabaseStorage implements IStorage {
         clickCount: sql`${advertisements.clickCount} + 1`
       })
       .where(eq(advertisements.id, adId));
+  }
+
+  // Saved ads functionality
+  async saveAdForUser(userId: string, adId: string): Promise<SavedAd> {
+    // Check if already saved
+    const [existing] = await db
+      .select()
+      .from(savedAds)
+      .where(and(eq(savedAds.userId, userId), eq(savedAds.adId, adId)));
+    
+    if (existing) {
+      return existing;
+    }
+
+    const [savedAd] = await db
+      .insert(savedAds)
+      .values({ userId, adId })
+      .returning();
+    return savedAd;
+  }
+
+  async getSavedAdsForUser(userId: string): Promise<Advertisement[]> {
+    const results = await db
+      .select({
+        id: advertisements.id,
+        title: advertisements.title,
+        content: advertisements.content,
+        imageUrl: advertisements.imageUrl,
+        linkUrl: advertisements.linkUrl,
+        placement: advertisements.placement,
+        targetAudience: advertisements.targetAudience,
+        targetLocation: advertisements.targetLocation,
+        priority: advertisements.priority,
+        isActive: advertisements.isActive,
+        isAffiliate: advertisements.isAffiliate,
+        startDate: advertisements.startDate,
+        endDate: advertisements.endDate,
+        clickCount: advertisements.clickCount,
+        viewCount: advertisements.viewCount,
+        impressions: advertisements.impressions,
+        createdAt: advertisements.createdAt,
+        updatedAt: advertisements.updatedAt,
+      })
+      .from(savedAds)
+      .innerJoin(advertisements, eq(savedAds.adId, advertisements.id))
+      .where(eq(savedAds.userId, userId))
+      .orderBy(desc(savedAds.savedAt));
+
+    return results;
+  }
+
+  async removeSavedAd(userId: string, adId: string): Promise<void> {
+    await db
+      .delete(savedAds)
+      .where(and(eq(savedAds.userId, userId), eq(savedAds.adId, adId)));
   }
 
   async incrementAdViews(id: string): Promise<void> {

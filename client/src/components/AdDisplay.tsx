@@ -1,9 +1,10 @@
 import { useState, useEffect } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/useAuth";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { X } from "lucide-react";
+import { X, Bookmark, ExternalLink } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 
 interface AdDisplayProps {
   className?: string;
@@ -25,6 +26,8 @@ interface Advertisement {
 
 export function AdDisplay({ className = "", userLocation }: AdDisplayProps) {
   const { user } = useAuth();
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
   const [dismissedAds, setDismissedAds] = useState<string[]>([]);
   const [currentAd, setCurrentAd] = useState<Advertisement | null>(null);
 
@@ -64,6 +67,49 @@ export function AdDisplay({ className = "", userLocation }: AdDisplayProps) {
       }).catch(console.error);
       
       window.open(currentAd.linkUrl, '_blank');
+    }
+  };
+
+  // Save ad for later functionality
+  const saveAdMutation = useMutation({
+    mutationFn: async (adId: string) => {
+      const response = await fetch('/api/ads/save', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ adId })
+      });
+      if (!response.ok) throw new Error('Failed to save ad');
+      return response.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: "Ad Saved",
+        description: "This ad has been saved to your profile for later viewing.",
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/saved-ads"] });
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to save ad. Please try again.",
+        variant: "destructive",
+      });
+    }
+  });
+
+  const handleSaveForLater = () => {
+    if (currentAd) {
+      if (user) {
+        saveAdMutation.mutate(currentAd.id);
+        setDismissedAds(prev => [...prev, currentAd.id]);
+        setCurrentAd(null);
+      } else {
+        toast({
+          title: "Login Required",
+          description: "Please log in to save ads for later viewing.",
+          variant: "destructive",
+        });
+      }
     }
   };
 
@@ -109,15 +155,29 @@ export function AdDisplay({ className = "", userLocation }: AdDisplayProps) {
             {currentAd.content}
           </p>
           
-          {currentAd.linkUrl && (
+          <div className="flex flex-wrap gap-2">
+            {currentAd.linkUrl && (
+              <Button 
+                onClick={handleAdClick}
+                className="bg-orange-500 hover:bg-orange-600 text-white text-sm"
+                size="sm"
+              >
+                <ExternalLink className="h-3 w-3 mr-1" />
+                Learn More
+              </Button>
+            )}
+            
             <Button 
-              onClick={handleAdClick}
-              className="bg-orange-500 hover:bg-orange-600 text-white text-sm"
+              onClick={handleSaveForLater}
+              variant="outline"
               size="sm"
+              className="text-sm border-gray-300 text-gray-600 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-800"
+              disabled={saveAdMutation.isPending}
             >
-              Learn More
+              <Bookmark className="h-3 w-3 mr-1" />
+              {saveAdMutation.isPending ? 'Saving...' : 'Save for Later'}
             </Button>
-          )}
+          </div>
           
           {currentAd.isAffiliate && (
             <div className="mt-2">

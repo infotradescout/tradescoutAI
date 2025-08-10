@@ -26,6 +26,7 @@ import ContractorDashboard from "@/pages/contractor-dashboard";
 import AdminWorkspace from "@/pages/admin-workspace";
 import AdminPanel from "@/pages/admin-panel";
 import Chat from "@/pages/chat";
+import SavedAds from "@/pages/saved-ads";
 
 function Router() {
   const { isAuthenticated, isLoading } = useAuth();
@@ -69,6 +70,7 @@ function Router() {
             <Route path="/admin" component={AdminWorkspace} />
             <Route path="/admin/panel" component={AdminPanel} />
             <Route path="/chat/:conversationId?" component={Chat} />
+            <Route path="/saved-ads" component={SavedAds} />
           </>
         )}
         <Route component={NotFound} />

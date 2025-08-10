@@ -249,6 +249,59 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Save ad for later (authenticated users only)
+  app.post("/api/ads/save", isAuthenticated, async (req, res) => {
+    try {
+      const { adId } = req.body;
+      const userId = (req.user as any)?.claims?.sub;
+      
+      if (!userId) {
+        return res.status(401).json({ message: "User ID not found" });
+      }
+
+      const savedAd = await storage.saveAdForUser(userId, adId);
+      res.json(savedAd);
+    } catch (error) {
+      console.error("Error saving ad:", error);
+      res.status(500).json({ message: "Failed to save ad" });
+    }
+  });
+
+  // Get saved ads for user
+  app.get("/api/saved-ads", isAuthenticated, async (req, res) => {
+    try {
+      const userId = (req.user as any)?.claims?.sub;
+      
+      if (!userId) {
+        return res.status(401).json({ message: "User ID not found" });
+      }
+
+      const savedAds = await storage.getSavedAdsForUser(userId);
+      res.json(savedAds);
+    } catch (error) {
+      console.error("Error fetching saved ads:", error);
+      res.status(500).json({ message: "Failed to fetch saved ads" });
+    }
+  });
+
+  // Remove saved ad
+  app.delete("/api/ads/save/:adId", isAuthenticated, async (req, res) => {
+    try {
+      const { adId } = req.params;
+      const userId = (req.user as any)?.claims?.sub;
+      
+      if (!userId) {
+        return res.status(401).json({ message: "User ID not found" });
+      }
+
+      await storage.removeSavedAd(userId, adId);
+      res.status(204).send();
+    } catch (error) {
+      console.error("Error removing saved ad:", error);
+      res.status(500).json({ message: "Failed to remove saved ad" });
+    }
+  });
+
   // Quote calculator pricing
   app.get("/api/pricing/:service", async (req, res) => {
     try {
