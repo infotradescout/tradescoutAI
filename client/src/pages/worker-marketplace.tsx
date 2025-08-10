@@ -103,7 +103,8 @@ export default function WorkerMarketplace() {
       <div className="mb-8">
         <h1 className="text-4xl font-bold text-white mb-4">Helpers</h1>
         <p className="text-xl text-gray-300 max-w-3xl">
-          Connect contractors with skilled helpers and homeowners with verified task helpers.
+          Two-way marketplace: Contractors can hire helpers as employees for ongoing work, 
+          and homeowners can hire helpers for odd jobs and one-time tasks. 
           All helpers are ID verified and background checked for your peace of mind.
         </p>
       </div>
@@ -231,7 +232,7 @@ export default function WorkerMarketplace() {
                     <CardContent className="p-8 text-center">
                       <Briefcase className="h-12 w-12 text-gray-400 mx-auto mb-4" />
                       <h3 className="text-lg font-semibold text-white mb-2">No tasks found</h3>
-                      <p className="text-gray-300">Try adjusting your search criteria or filters.</p>
+                      <p className="text-gray-300">Try adjusting your search criteria or filters. Tasks include both contractor employment opportunities and homeowner odd jobs.</p>
                     </CardContent>
                   </Card>
                 </div>
@@ -249,8 +250,8 @@ export default function WorkerMarketplace() {
               <h3 className="text-2xl font-bold text-white mb-4">Ready to get started?</h3>
               <p className="text-gray-300 mb-6 max-w-2xl mx-auto">
                 {activeTab === "find-workers" 
-                  ? "Post a task to find qualified helpers in your area, or become a verified helper yourself."
-                  : "Apply for tasks that match your skills, or create your helper profile to get started."
+                  ? "Contractors: Hire helpers as employees for ongoing work. Homeowners: Find helpers for odd jobs and one-time tasks."
+                  : "Apply for employment opportunities with contractors or one-time tasks from homeowners that match your skills."
                 }
               </p>
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
@@ -259,7 +260,7 @@ export default function WorkerMarketplace() {
                   {activeTab === "find-workers" ? "Post a Task" : "Apply for Task"}
                 </Button>
                 <Button variant="outline" className="border-gray-300 text-gray-300 hover:bg-gray-300 hover:text-navy-800">
-                  {activeTab === "find-workers" ? "Become a Helper" : "Create Helper Profile"}
+                  {activeTab === "find-workers" ? "Join as Helper" : "Create Helper Profile"}
                 </Button>
               </div>
             </CardContent>
