@@ -22,6 +22,7 @@ import {
 import { useAuth } from "@/hooks/useAuth";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { HelperProfileModal } from "@/components/HelperProfileModal";
 import type { Worker, Task, TaskCategory } from "@shared/schema";
 
 export default function WorkerMarketplace() {
@@ -32,6 +33,8 @@ export default function WorkerMarketplace() {
   const [selectedCategory, setSelectedCategory] = useState("");
   const [locationFilter, setLocationFilter] = useState("");
   const [sortBy, setSortBy] = useState("rating");
+  const [selectedHelper, setSelectedHelper] = useState<Worker | null>(null);
+  const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
 
   // Fetch workers
   const { data: workers, isLoading: workersLoading } = useQuery<Worker[]>({
@@ -190,7 +193,14 @@ export default function WorkerMarketplace() {
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {filteredWorkers.map((worker) => (
-                <HelperCard key={worker.id} worker={worker} />
+                <HelperCard 
+                  key={worker.id} 
+                  worker={worker} 
+                  onViewProfile={() => {
+                    setSelectedHelper(worker);
+                    setIsProfileModalOpen(true);
+                  }}
+                />
               ))}
               {filteredWorkers.length === 0 && (
                 <div className="col-span-full">
@@ -267,13 +277,28 @@ export default function WorkerMarketplace() {
           </Card>
         </div>
       )}
+
+      {/* Helper Profile Modal */}
+      {selectedHelper && (
+        <HelperProfileModal
+          helper={selectedHelper}
+          isOpen={isProfileModalOpen}
+          onClose={() => {
+            setIsProfileModalOpen(false);
+            setSelectedHelper(null);
+          }}
+        />
+      )}
     </div>
   );
 }
 
-function HelperCard({ worker }: { worker: Worker }) {
+function HelperCard({ worker, onViewProfile }: { worker: Worker; onViewProfile: () => void }) {
   return (
-    <Card className="bg-navy-700 border-navy-600 hover:border-orange-500/50 transition-colors">
+    <Card 
+      className="bg-navy-700 border-navy-600 hover:border-orange-500/50 transition-colors cursor-pointer" 
+      onClick={onViewProfile}
+    >
       <CardContent className="p-6">
         <div className="flex items-start justify-between mb-4">
           <div className="flex items-center">
@@ -328,8 +353,15 @@ function HelperCard({ worker }: { worker: Worker }) {
             <DollarSign className="h-4 w-4 mr-1" />
             <span>${worker.hourlyRate}/hr</span>
           </div>
-          <Button size="sm" className="bg-orange-500 hover:bg-orange-600">
-            Contact Helper
+          <Button 
+            size="sm" 
+            className="bg-orange-500 hover:bg-orange-600"
+            onClick={(e) => {
+              e.stopPropagation();
+              // Handle contact action separately
+            }}
+          >
+            View Profile
           </Button>
         </div>
       </CardContent>

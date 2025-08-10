@@ -494,6 +494,40 @@ export const workers = pgTable("workers", {
   averageRating: decimal("average_rating"),
   totalEarnings: decimal("total_earnings").default("0"),
   
+  // Resume information
+  workExperience: jsonb("work_experience").$type<Array<{
+    jobTitle: string;
+    company: string;
+    startDate: string;
+    endDate?: string;
+    description: string;
+    isCurrentJob: boolean;
+    fromPlatform: boolean; // If this job was obtained through Trade Scout
+    taskId?: string; // Reference to platform task if applicable
+  }>>(),
+  education: jsonb("education").$type<Array<{
+    degree: string;
+    school: string;
+    graduationYear?: number;
+    fieldOfStudy?: string;
+  }>>(),
+  certifications: jsonb("certifications").$type<Array<{
+    name: string;
+    issuer: string;
+    issueDate: string;
+    expirationDate?: string;
+    credentialId?: string;
+  }>>(),
+  portfolioItems: jsonb("portfolio_items").$type<Array<{
+    title: string;
+    description: string;
+    imageUrl?: string;
+    completionDate: string;
+    skills: string[];
+    fromPlatform: boolean;
+    taskId?: string;
+  }>>(),
+  
   // Account status
   isActive: boolean("is_active").default(true),
   isAvailable: boolean("is_available").default(true),

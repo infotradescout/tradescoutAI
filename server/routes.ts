@@ -1331,8 +1331,196 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Worker marketplace endpoints
   app.get("/api/workers", async (req, res) => {
     try {
-      // For now, return empty array - will be populated when database is set up
-      res.json([]);
+      // Sample workers with resume data for demonstration
+      const sampleWorkers = [
+        {
+          id: "1",
+          userId: "user1",
+          firstName: "Maria",
+          lastName: "Rodriguez",
+          phone: "(555) 123-4567",
+          email: "maria.rodriguez@email.com",
+          profileImageUrl: null,
+          bio: "Experienced construction helper with 5+ years in residential and commercial projects. Skilled in carpentry, painting, and general labor. Reliable and detail-oriented.",
+          skills: ["carpentry", "painting", "drywall", "electrical-basic", "plumbing-basic"],
+          hourlyRate: "25.00",
+          availableHours: {
+            monday: { start: "08:00", end: "17:00" },
+            tuesday: { start: "08:00", end: "17:00" },
+            wednesday: { start: "08:00", end: "17:00" },
+            thursday: { start: "08:00", end: "17:00" },
+            friday: { start: "08:00", end: "17:00" }
+          },
+          transportationMethod: "Own vehicle",
+          maxTravelDistance: 25,
+          isIdVerified: true,
+          isBackgroundChecked: true,
+          verificationStatus: "approved",
+          totalJobsCompleted: 47,
+          averageRating: "4.8",
+          totalEarnings: "15750.00",
+          workExperience: [
+            {
+              jobTitle: "Kitchen Cabinet Installation",
+              company: "Johnson Family",
+              startDate: "2024-01-15",
+              endDate: "2024-01-22",
+              description: "Installed custom kitchen cabinets, including hardware mounting and adjustment. Completed on time with excellent customer feedback.",
+              isCurrentJob: false,
+              fromPlatform: true,
+              taskId: "task-123"
+            },
+            {
+              jobTitle: "Bathroom Renovation Assistant",
+              company: "Smith Contractors",
+              startDate: "2023-08-01",
+              endDate: "2024-12-31",
+              description: "Assist lead contractor with bathroom renovations, tile installation, and fixture mounting. Regular employment position.",
+              isCurrentJob: true,
+              fromPlatform: true,
+              taskId: "task-456"
+            },
+            {
+              jobTitle: "Construction Helper",
+              company: "ABC Construction Co.",
+              startDate: "2019-03-01",
+              endDate: "2023-07-15",
+              description: "General construction labor including framing, concrete work, and site cleanup. Promoted to crew lead after 2 years.",
+              isCurrentJob: false,
+              fromPlatform: false
+            }
+          ],
+          education: [
+            {
+              degree: "Certificate in Construction Technology",
+              school: "City Community College",
+              graduationYear: 2019,
+              fieldOfStudy: "Construction and Building Trades"
+            }
+          ],
+          certifications: [
+            {
+              name: "OSHA 10-Hour Construction Safety",
+              issuer: "OSHA",
+              issueDate: "2023-01-15",
+              expirationDate: "2026-01-15",
+              credentialId: "OSHA-123456"
+            },
+            {
+              name: "First Aid/CPR Certified",
+              issuer: "American Red Cross",
+              issueDate: "2023-06-01",
+              expirationDate: "2025-06-01"
+            }
+          ],
+          portfolioItems: [
+            {
+              title: "Custom Kitchen Cabinet Installation",
+              description: "Complete kitchen cabinet installation including crown molding and under-cabinet lighting preparation.",
+              completionDate: "2024-01-22",
+              skills: ["carpentry", "measurements", "hardware-installation"],
+              fromPlatform: true,
+              taskId: "task-123"
+            },
+            {
+              title: "Deck Repair and Staining",
+              description: "Repaired loose boards, replaced damaged sections, and applied weatherproof stain to 400 sq ft deck.",
+              completionDate: "2023-11-15",
+              skills: ["carpentry", "wood-treatment", "painting"],
+              fromPlatform: true,
+              taskId: "task-789"
+            }
+          ],
+          isActive: true,
+          isAvailable: true,
+          city: "Los Angeles",
+          createdAt: "2023-01-01T00:00:00Z",
+          updatedAt: "2024-01-22T00:00:00Z"
+        },
+        {
+          id: "2",
+          userId: "user2", 
+          firstName: "James",
+          lastName: "Thompson",
+          phone: "(555) 987-6543",
+          email: "james.thompson@email.com",
+          profileImageUrl: null,
+          bio: "Professional handyman specializing in electrical work and home repairs. Licensed electrician's assistant with 3+ years experience.",
+          skills: ["electrical", "wiring", "outlets", "lighting", "troubleshooting"],
+          hourlyRate: "30.00",
+          availableHours: {
+            monday: { start: "09:00", end: "18:00" },
+            tuesday: { start: "09:00", end: "18:00" },
+            wednesday: { start: "09:00", end: "18:00" },
+            thursday: { start: "09:00", end: "18:00" },
+            friday: { start: "09:00", end: "18:00" },
+            saturday: { start: "10:00", end: "15:00" }
+          },
+          transportationMethod: "Own truck",
+          maxTravelDistance: 40,
+          isIdVerified: true,
+          isBackgroundChecked: true,
+          verificationStatus: "approved",
+          totalJobsCompleted: 23,
+          averageRating: "4.9",
+          totalEarnings: "8950.00",
+          workExperience: [
+            {
+              jobTitle: "Ceiling Fan Installation",
+              company: "Davis Household",
+              startDate: "2024-01-10",
+              endDate: "2024-01-10",
+              description: "Installed 3 ceiling fans with remote controls, including electrical wiring and wall switch installation.",
+              isCurrentJob: false,
+              fromPlatform: true,
+              taskId: "task-321"
+            },
+            {
+              jobTitle: "Electrical Assistant",
+              company: "Martinez Electric LLC",
+              startDate: "2021-06-01",
+              endDate: "2023-12-31",
+              description: "Assisted master electrician with residential and commercial electrical installations. Learned advanced wiring techniques.",
+              isCurrentJob: false,
+              fromPlatform: false
+            }
+          ],
+          education: [
+            {
+              degree: "Electrical Technology Diploma",
+              school: "Technical Trade Institute",
+              graduationYear: 2021,
+              fieldOfStudy: "Electrical Systems"
+            }
+          ],
+          certifications: [
+            {
+              name: "Electrical Helper License",
+              issuer: "State Licensing Board",
+              issueDate: "2021-05-15",
+              expirationDate: "2025-05-15",
+              credentialId: "EH-789123"
+            }
+          ],
+          portfolioItems: [
+            {
+              title: "Home Office Electrical Upgrade",
+              description: "Upgraded electrical panel and installed dedicated circuits for home office equipment.",
+              completionDate: "2023-09-30",
+              skills: ["electrical", "panel-work", "circuit-installation"],
+              fromPlatform: true,
+              taskId: "task-654"
+            }
+          ],
+          isActive: true,
+          isAvailable: true,
+          city: "Orange County",
+          createdAt: "2023-03-15T00:00:00Z",
+          updatedAt: "2024-01-10T00:00:00Z"
+        }
+      ];
+
+      res.json(sampleWorkers);
     } catch (error) {
       console.error("Error fetching workers:", error);
       res.status(500).json({ message: "Failed to fetch workers" });
