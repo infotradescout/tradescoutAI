@@ -29,7 +29,7 @@ export default function EstimateCalculator() {
   const [estimate, setEstimate] = useState<any>(null);
 
   const { data: counties } = useQuery({
-    queryKey: ['/api/counties', { state: 'CA' }],
+    queryKey: ['/api/counties?state=CA'],
   });
 
   const calculateMutation = useMutation({

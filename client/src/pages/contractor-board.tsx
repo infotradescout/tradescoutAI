@@ -20,12 +20,22 @@ export default function ContractorBoard() {
   const [showFilters, setShowFilters] = useState(false);
 
   const { data: contractors, isLoading, error } = useQuery<Contractor[]>({
-    queryKey: ['/api/contractors', { county: selectedCounty, trade: selectedTrade, sort: sortBy }],
+    queryKey: ['/api/contractors', selectedCounty, selectedTrade, sortBy],
+    queryFn: async () => {
+      const params = new URLSearchParams();
+      if (selectedCounty) params.append('county', selectedCounty);
+      if (selectedTrade) params.append('trade', selectedTrade);
+      if (sortBy) params.append('sort', sortBy);
+      
+      const response = await fetch(`/api/contractors?${params.toString()}`);
+      if (!response.ok) throw new Error('Failed to fetch contractors');
+      return response.json();
+    },
     enabled: true,
   });
 
   const { data: counties } = useQuery<County[]>({
-    queryKey: ['/api/counties', { state: 'CA' }],
+    queryKey: ['/api/counties?state=CA'],
   });
 
   const { data: trades } = useQuery<Trade[]>({
