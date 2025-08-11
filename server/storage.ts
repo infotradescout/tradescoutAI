@@ -25,6 +25,8 @@ import {
   savedAds,
   notifications,
   errorReports,
+  contractorPromos,
+  promoInteractions,
   type User,
   type InsertUser,
   type UpsertUser,
@@ -66,6 +68,10 @@ import {
   type InsertSavedAd,
   type Notification,
   type InsertNotification,
+  type ContractorPromo,
+  type InsertContractorPromo,
+  type PromoInteraction,
+  type InsertPromoInteraction,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, desc, asc, sql, inArray, like, gt, or, lt, isNull, isNotNull } from "drizzle-orm";
@@ -197,6 +203,27 @@ export interface IStorage {
     latitude: number;
     longitude: number;
   }>>;
+
+  // Contractor Promo operations
+  createContractorPromo(promo: InsertContractorPromo): Promise<ContractorPromo>;
+  getContractorPromo(id: string): Promise<ContractorPromo | undefined>;
+  getContractorPromoBySlug(slug: string): Promise<ContractorPromo | undefined>;
+  getContractorPromos(contractorId: string): Promise<ContractorPromo[]>;
+  updateContractorPromo(id: string, updates: Partial<ContractorPromo>): Promise<ContractorPromo>;
+  deleteContractorPromo(id: string): Promise<void>;
+  generatePromoSlug(title: string): Promise<string>;
+  
+  // Promo analytics
+  recordPromoInteraction(interaction: InsertPromoInteraction): Promise<PromoInteraction>;
+  getPromoAnalytics(promoId: string): Promise<{
+    totalViews: number;
+    totalClicks: number;
+    totalLeads: number;
+    recentInteractions: PromoInteraction[];
+  }>;
+  incrementPromoView(promoId: string): Promise<void>;
+  incrementPromoClick(promoId: string): Promise<void>;
+  getActivePromosInArea(countyFips: string): Promise<ContractorPromo[]>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -1238,6 +1265,165 @@ export class DatabaseStorage implements IStorage {
     ];
 
     return sampleData;
+  }
+
+  // Contractor Promo Operations
+  async createContractorPromo(promo: InsertContractorPromo): Promise<ContractorPromo> {
+    const slug = await this.generatePromoSlug(promo.title);
+    const [newPromo] = await db
+      .insert(contractorPromos)
+      .values({ ...promo, slug })
+      .returning();
+    return newPromo;
+  }
+
+  async getContractorPromo(id: string): Promise<ContractorPromo | undefined> {
+    const [promo] = await db
+      .select()
+      .from(contractorPromos)
+      .where(eq(contractorPromos.id, id));
+    return promo;
+  }
+
+  async getContractorPromoBySlug(slug: string): Promise<ContractorPromo | undefined> {
+    const [promo] = await db
+      .select()
+      .from(contractorPromos)
+      .where(eq(contractorPromos.slug, slug));
+    return promo;
+  }
+
+  async getContractorPromos(contractorId: string): Promise<ContractorPromo[]> {
+    return await db
+      .select()
+      .from(contractorPromos)
+      .where(eq(contractorPromos.contractorId, contractorId))
+      .orderBy(desc(contractorPromos.createdAt));
+  }
+
+  async updateContractorPromo(id: string, updates: Partial<ContractorPromo>): Promise<ContractorPromo> {
+    const [updatedPromo] = await db
+      .update(contractorPromos)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(contractorPromos.id, id))
+      .returning();
+    return updatedPromo;
+  }
+
+  async deleteContractorPromo(id: string): Promise<void> {
+    await db
+      .delete(contractorPromos)
+      .where(eq(contractorPromos.id, id));
+  }
+
+  async generatePromoSlug(title: string): Promise<string> {
+    const baseSlug = title
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '')
+      .substring(0, 50);
+    
+    let slug = baseSlug;
+    let counter = 1;
+    
+    while (true) {
+      const existing = await db
+        .select({ id: contractorPromos.id })
+        .from(contractorPromos)
+        .where(eq(contractorPromos.slug, slug))
+        .limit(1);
+      
+      if (existing.length === 0) {
+        return slug;
+      }
+      
+      slug = `${baseSlug}-${counter}`;
+      counter++;
+    }
+  }
+
+  // Promo Analytics
+  async recordPromoInteraction(interaction: InsertPromoInteraction): Promise<PromoInteraction> {
+    const [newInteraction] = await db
+      .insert(promoInteractions)
+      .values(interaction)
+      .returning();
+    return newInteraction;
+  }
+
+  async getPromoAnalytics(promoId: string): Promise<{
+    totalViews: number;
+    totalClicks: number;
+    totalLeads: number;
+    recentInteractions: PromoInteraction[];
+  }> {
+    const [stats] = await db
+      .select({
+        totalViews: sql<number>`count(case when ${promoInteractions.interactionType} = 'view' then 1 end)`,
+        totalClicks: sql<number>`count(case when ${promoInteractions.interactionType} = 'click' then 1 end)`,
+        totalLeads: sql<number>`count(case when ${promoInteractions.interactionType} = 'lead_generated' then 1 end)`,
+      })
+      .from(promoInteractions)
+      .where(eq(promoInteractions.promoId, promoId));
+
+    const recentInteractions = await db
+      .select()
+      .from(promoInteractions)
+      .where(eq(promoInteractions.promoId, promoId))
+      .orderBy(desc(promoInteractions.createdAt))
+      .limit(50);
+
+    return {
+      totalViews: stats.totalViews || 0,
+      totalClicks: stats.totalClicks || 0,
+      totalLeads: stats.totalLeads || 0,
+      recentInteractions,
+    };
+  }
+
+  async incrementPromoView(promoId: string): Promise<void> {
+    await db
+      .update(contractorPromos)
+      .set({ 
+        viewCount: sql`${contractorPromos.viewCount} + 1`,
+        updatedAt: new Date()
+      })
+      .where(eq(contractorPromos.id, promoId));
+  }
+
+  async incrementPromoClick(promoId: string): Promise<void> {
+    await db
+      .update(contractorPromos)
+      .set({ 
+        clickCount: sql`${contractorPromos.clickCount} + 1`,
+        updatedAt: new Date()
+      })
+      .where(eq(contractorPromos.id, promoId));
+  }
+
+  async getActivePromosInArea(countyFips: string): Promise<ContractorPromo[]> {
+    const now = new Date();
+    return await db
+      .select()
+      .from(contractorPromos)
+      .where(
+        and(
+          eq(contractorPromos.isActive, true),
+          or(
+            sql`${contractorPromos.serviceAreas} ? ${countyFips}`,
+            sql`${contractorPromos.serviceAreas} is null`
+          ),
+          or(
+            isNull(contractorPromos.expiresAt),
+            gt(contractorPromos.expiresAt, now)
+          ),
+          or(
+            isNull(contractorPromos.maxUses),
+            sql`${contractorPromos.currentUses} < ${contractorPromos.maxUses}`
+          )
+        )
+      )
+      .orderBy(desc(contractorPromos.createdAt));
   }
 }
 

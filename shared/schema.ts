@@ -732,6 +732,79 @@ export const errorReports = pgTable("error_reports", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
+// Contractor promotional campaigns
+export const contractorPromos = pgTable("contractor_promos", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  contractorId: varchar("contractor_id").notNull().references(() => contractors.id),
+  
+  // Promo details
+  title: varchar("title", { length: 100 }).notNull(),
+  description: text("description").notNull(),
+  offerDetails: text("offer_details").notNull(), // "20% off all roofing jobs", "Free estimate + 10% discount"
+  
+  // Discount structure
+  discountType: varchar("discount_type", {
+    enum: ['percentage', 'fixed_amount', 'free_service', 'bundle_deal']
+  }).notNull(),
+  discountValue: decimal("discount_value", { precision: 10, scale: 2 }), // 20 for 20%, 500 for $500 off
+  minimumJobValue: decimal("minimum_job_value", { precision: 10, scale: 2 }), // Minimum job size to qualify
+  
+  // Promo settings
+  promoCode: varchar("promo_code", { length: 20 }), // Optional promo code
+  isActive: boolean("is_active").default(true),
+  maxUses: integer("max_uses"), // null = unlimited
+  currentUses: integer("current_uses").default(0),
+  
+  // Targeting
+  serviceAreas: jsonb("service_areas").$type<string[]>(), // County FIPS codes
+  tradeCategories: jsonb("trade_categories").$type<string[]>(), // Trade IDs this promo applies to
+  
+  // Timing
+  startsAt: timestamp("starts_at").defaultNow(),
+  expiresAt: timestamp("expires_at"),
+  
+  // Tracking
+  slug: varchar("slug").notNull().unique(), // For shareable URLs
+  viewCount: integer("view_count").default(0),
+  clickCount: integer("click_count").default(0),
+  leadCount: integer("lead_count").default(0), // Leads generated from this promo
+  
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Track promo interactions for analytics
+export const promoInteractions = pgTable("promo_interactions", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  promoId: varchar("promo_id").notNull().references(() => contractorPromos.id),
+  
+  // Interaction details
+  interactionType: varchar("interaction_type", {
+    enum: ['view', 'click', 'share', 'lead_generated', 'contact_made']
+  }).notNull(),
+  
+  // User/visitor info
+  userId: varchar("user_id"), // nullable for anonymous visitors
+  sessionId: varchar("session_id"),
+  ipAddress: varchar("ip_address"),
+  userAgent: text("user_agent"),
+  referrer: text("referrer"),
+  
+  // Location data
+  county: varchar("county"),
+  state: varchar("state"),
+  city: varchar("city"),
+  
+  // Metadata
+  metadata: jsonb("metadata").$type<{
+    source?: string; // 'facebook', 'google', 'direct', 'referral'
+    campaign?: string;
+    medium?: string;
+  }>(),
+  
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
 export const workerServiceAreas = pgTable("worker_service_areas", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   workerId: varchar("worker_id").notNull(),
@@ -920,6 +993,27 @@ export type AcceleratorMembership = typeof acceleratorMemberships.$inferSelect;
 export type InsertPricingData = typeof pricingData.$inferInsert;
 export type PricingData = typeof pricingData.$inferSelect;
 
+export type InsertContractorPromo = typeof contractorPromos.$inferInsert;
+export type ContractorPromo = typeof contractorPromos.$inferSelect;
+export type InsertPromoInteraction = typeof promoInteractions.$inferInsert;
+export type PromoInteraction = typeof promoInteractions.$inferSelect;
+
+// Relations for promo system
+export const contractorPromosRelations = relations(contractorPromos, ({ one, many }) => ({
+  contractor: one(contractors, {
+    fields: [contractorPromos.contractorId],
+    references: [contractors.id],
+  }),
+  interactions: many(promoInteractions),
+}));
+
+export const promoInteractionsRelations = relations(promoInteractions, ({ one }) => ({
+  promo: one(contractorPromos, {
+    fields: [promoInteractions.promoId],
+    references: [contractorPromos.id],
+  }),
+}));
+
 // Zod schemas for validation
 export const insertUserSchema = createInsertSchema(users).omit({
   id: true,
@@ -946,6 +1040,22 @@ export const insertLeadSchema = createInsertSchema(leads).omit({
 });
 
 export const insertGrowthPackDownloadSchema = createInsertSchema(growthPackDownloads).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertContractorPromoSchema = createInsertSchema(contractorPromos).omit({
+  id: true,
+  slug: true,
+  viewCount: true,
+  clickCount: true,
+  leadCount: true,
+  currentUses: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertPromoInteractionSchema = createInsertSchema(promoInteractions).omit({
   id: true,
   createdAt: true,
 });

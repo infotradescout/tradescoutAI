@@ -25,7 +25,10 @@ export default function Navigation() {
   ];
 
   const authenticatedNavItems = [
-    ...(isContractor ? [{ href: "/contractors/dashboard", label: "Dashboard" }] : []),
+    ...(isContractor ? [
+      { href: "/contractor-dashboard", label: "Dashboard" },
+      { href: "/contractor-promos", label: "My Promos" }
+    ] : []),
     ...(isAdmin ? [
       { href: "/admin", label: "Admin" },
       { href: "/admin/panel", label: "Admin Panel" }

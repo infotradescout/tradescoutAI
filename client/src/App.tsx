@@ -29,6 +29,8 @@ import ContractorAccelerator from "@/pages/contractor-accelerator";
 import ContractorDashboard from "@/pages/contractor-dashboard";
 import AdminWorkspace from "@/pages/admin-workspace";
 import AdminPanel from "@/pages/admin-panel";
+import ContractorPromos from "@/pages/contractor-promos";
+import PromoPublic from "@/pages/promo-public";
 import Chat from "@/pages/chat";
 import SavedAds from "@/pages/saved-ads";
 import ProfileSetup from "@/pages/profile-setup";
@@ -70,6 +72,7 @@ function Router() {
         <Route path="/growth-pack" component={GrowthPack} />
         <Route path="/workers" component={WorkerMarketplace} />
         <Route path="/worker-marketplace" component={WorkerMarketplace} />
+        <Route path="/promo/:slug" component={PromoPublic} />
         
         {!isAuthenticated ? (
           <>
@@ -98,6 +101,11 @@ function Router() {
             <Route path="/contractor-dashboard">
               <ProfileSetupRedirect>
                 <ContractorDashboard />
+              </ProfileSetupRedirect>
+            </Route>
+            <Route path="/contractor-promos">
+              <ProfileSetupRedirect>
+                <ContractorPromos />
               </ProfileSetupRedirect>
             </Route>
             <Route path="/admin" component={AdminWorkspace} />

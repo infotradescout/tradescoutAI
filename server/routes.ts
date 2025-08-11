@@ -2,7 +2,7 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { setupAuth, isAuthenticated, isContractor, isAdmin } from "./auth";
-import { insertLeadSchema, insertRecommendationSchema, insertGrowthPackDownloadSchema, insertErrorReportSchema } from "@shared/schema";
+import { insertLeadSchema, insertRecommendationSchema, insertGrowthPackDownloadSchema, insertErrorReportSchema, insertContractorPromoSchema, insertPromoInteractionSchema } from "@shared/schema";
 import { ObjectStorageService } from "./objectStorage";
 import { randomUUID } from "crypto";
 import passport from "passport";
@@ -1817,6 +1817,250 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error creating error report:", error);
       res.status(500).json({ message: "Failed to submit error report" });
+    }
+  });
+
+  // ===== CONTRACTOR PROMO ROUTES =====
+  
+  // Create new promo (contractor users only)
+  app.post("/api/contractor-promos", isAuthenticated, isContractor, async (req: any, res) => {
+    try {
+      const userId = req.user?.claims?.sub;
+      
+      // Get contractor ID for the authenticated user
+      const contractor = await storage.getContractorByUserId(userId);
+      if (!contractor) {
+        return res.status(403).json({ message: "You must be a verified contractor to create promos" });
+      }
+
+      const promoData = {
+        ...req.body,
+        contractorId: contractor.id
+      };
+      
+      const validatedPromo = insertContractorPromoSchema.parse(promoData);
+      const promo = await storage.createContractorPromo(validatedPromo);
+      
+      res.json(promo);
+    } catch (error) {
+      console.error("Error creating contractor promo:", error);
+      res.status(500).json({ message: "Failed to create promo" });
+    }
+  });
+
+  // Get contractor's promos
+  app.get("/api/contractor-promos", isAuthenticated, isContractor, async (req: any, res) => {
+    try {
+      const userId = req.user?.claims?.sub;
+      
+      const contractor = await storage.getContractorByUserId(userId);
+      if (!contractor) {
+        return res.status(403).json({ message: "Contractor not found" });
+      }
+
+      const promos = await storage.getContractorPromos(contractor.id);
+      res.json(promos);
+    } catch (error) {
+      console.error("Error fetching contractor promos:", error);
+      res.status(500).json({ message: "Failed to fetch promos" });
+    }
+  });
+
+  // Update promo
+  app.put("/api/contractor-promos/:promoId", isAuthenticated, isContractor, async (req: any, res) => {
+    try {
+      const { promoId } = req.params;
+      const userId = req.user?.claims?.sub;
+      
+      const contractor = await storage.getContractorByUserId(userId);
+      if (!contractor) {
+        return res.status(403).json({ message: "Contractor not found" });
+      }
+
+      // Verify ownership
+      const existingPromo = await storage.getContractorPromo(promoId);
+      if (!existingPromo || existingPromo.contractorId !== contractor.id) {
+        return res.status(403).json({ message: "You can only edit your own promos" });
+      }
+
+      const updatedPromo = await storage.updateContractorPromo(promoId, req.body);
+      res.json(updatedPromo);
+    } catch (error) {
+      console.error("Error updating contractor promo:", error);
+      res.status(500).json({ message: "Failed to update promo" });
+    }
+  });
+
+  // Delete promo
+  app.delete("/api/contractor-promos/:promoId", isAuthenticated, isContractor, async (req: any, res) => {
+    try {
+      const { promoId } = req.params;
+      const userId = req.user?.claims?.sub;
+      
+      const contractor = await storage.getContractorByUserId(userId);
+      if (!contractor) {
+        return res.status(403).json({ message: "Contractor not found" });
+      }
+
+      // Verify ownership
+      const existingPromo = await storage.getContractorPromo(promoId);
+      if (!existingPromo || existingPromo.contractorId !== contractor.id) {
+        return res.status(403).json({ message: "You can only delete your own promos" });
+      }
+
+      await storage.deleteContractorPromo(promoId);
+      res.status(204).send();
+    } catch (error) {
+      console.error("Error deleting contractor promo:", error);
+      res.status(500).json({ message: "Failed to delete promo" });
+    }
+  });
+
+  // Public promo viewing (by slug) 
+  app.get("/promo/:slug", async (req: any, res) => {
+    try {
+      const { slug } = req.params;
+      
+      const promo = await storage.getContractorPromoBySlug(slug);
+      if (!promo) {
+        return res.status(404).json({ message: "Promo not found" });
+      }
+
+      // Check if promo is active and not expired
+      const now = new Date();
+      if (!promo.isActive || (promo.expiresAt && promo.expiresAt < now)) {
+        return res.status(410).json({ message: "Promo has expired" });
+      }
+
+      // Check if promo has reached max uses
+      if (promo.maxUses && promo.currentUses >= promo.maxUses) {
+        return res.status(410).json({ message: "Promo has reached maximum uses" });
+      }
+
+      // Track promo view
+      await storage.incrementPromoView(promo.id);
+      
+      // Record interaction
+      await storage.recordPromoInteraction({
+        promoId: promo.id,
+        interactionType: 'view',
+        sessionId: req.sessionID,
+        ipAddress: req.ip,
+        userAgent: req.get('User-Agent'),
+        referrer: req.get('Referer'),
+        county: req.locality?.county,
+        state: req.locality?.state,
+        city: req.locality?.city,
+      });
+
+      // Get contractor details
+      const contractor = await storage.getContractor(promo.contractorId);
+      
+      res.json({
+        promo,
+        contractor: contractor ? {
+          id: contractor.id,
+          companyName: contractor.companyName,
+          slug: contractor.slug,
+          phone: contractor.phone,
+          email: contractor.email,
+          about: contractor.about,
+          photos: contractor.photos,
+          yearsInBusiness: contractor.yearsInBusiness,
+          verifiedLicensed: contractor.verifiedLicensed,
+          verifiedInsured: contractor.verifiedInsured,
+        } : null
+      });
+    } catch (error) {
+      console.error("Error fetching promo:", error);
+      res.status(500).json({ message: "Failed to fetch promo" });
+    }
+  });
+
+  // Track promo click
+  app.post("/api/promo/:slug/click", async (req: any, res) => {
+    try {
+      const { slug } = req.params;
+      
+      const promo = await storage.getContractorPromoBySlug(slug);
+      if (!promo) {
+        return res.status(404).json({ message: "Promo not found" });
+      }
+
+      // Track promo click
+      await storage.incrementPromoClick(promo.id);
+      
+      // Record interaction
+      await storage.recordPromoInteraction({
+        promoId: promo.id,
+        interactionType: 'click',
+        sessionId: req.sessionID,
+        ipAddress: req.ip,
+        userAgent: req.get('User-Agent'),
+        referrer: req.get('Referer'),
+        county: req.locality?.county,
+        state: req.locality?.state,
+        city: req.locality?.city,
+      });
+
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error tracking promo click:", error);
+      res.status(500).json({ message: "Failed to track click" });
+    }
+  });
+
+  // Get promo analytics (contractor only)
+  app.get("/api/contractor-promos/:promoId/analytics", isAuthenticated, isContractor, async (req: any, res) => {
+    try {
+      const { promoId } = req.params;
+      const userId = req.user?.claims?.sub;
+      
+      const contractor = await storage.getContractorByUserId(userId);
+      if (!contractor) {
+        return res.status(403).json({ message: "Contractor not found" });
+      }
+
+      // Verify ownership
+      const promo = await storage.getContractorPromo(promoId);
+      if (!promo || promo.contractorId !== contractor.id) {
+        return res.status(403).json({ message: "You can only view analytics for your own promos" });
+      }
+
+      const analytics = await storage.getPromoAnalytics(promoId);
+      res.json(analytics);
+    } catch (error) {
+      console.error("Error fetching promo analytics:", error);
+      res.status(500).json({ message: "Failed to fetch analytics" });
+    }
+  });
+
+  // Get active promos in area (public)
+  app.get("/api/promos/area/:countyFips", async (req: any, res) => {
+    try {
+      const { countyFips } = req.params;
+      const promos = await storage.getActivePromosInArea(countyFips);
+      
+      // Get contractor details for each promo
+      const promosWithContractors = await Promise.all(
+        promos.map(async (promo) => {
+          const contractor = await storage.getContractor(promo.contractorId);
+          return {
+            ...promo,
+            contractor: contractor ? {
+              companyName: contractor.companyName,
+              slug: contractor.slug,
+              verifiedLicensed: contractor.verifiedLicensed,
+              verifiedInsured: contractor.verifiedInsured,
+            } : null
+          };
+        })
+      );
+      
+      res.json(promosWithContractors);
+    } catch (error) {
+      console.error("Error fetching area promos:", error);
+      res.status(500).json({ message: "Failed to fetch area promos" });
     }
   });
 
