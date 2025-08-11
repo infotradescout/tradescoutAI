@@ -24,9 +24,12 @@ import {
   Bike,
   Hammer,
   Fish,
+  Apple,
   TrendingUp,
   Shield,
-  Target
+  Target,
+  CheckCircle,
+  AlertCircle
 } from "lucide-react";
 import type { MarketplaceListing, MarketplaceCategory } from "@shared/schema";
 
@@ -41,6 +44,7 @@ const categoryIcons = {
   Bike,
   Hammer,
   Fish,
+  Apple,
   Tractor: Package // Fallback since Tractor isn't in lucide-react
 };
 
@@ -146,6 +150,54 @@ export default function Marketplace() {
       </div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Food Category Verification Notice */}
+        {categories.some(cat => cat.requiresVerification) && (
+          <Card className="mb-8 border-emerald-200 bg-emerald-50 dark:bg-emerald-950 dark:border-emerald-800">
+            <CardContent className="p-6">
+              <div className="flex items-start space-x-4">
+                <div className="flex-shrink-0">
+                  <CheckCircle className="h-8 w-8 text-emerald-600" />
+                </div>
+                <div className="flex-1">
+                  <h3 className="text-lg font-semibold text-emerald-900 dark:text-emerald-100 mb-2">
+                    Local Food & Artisan Goods - Verification Required
+                  </h3>
+                  <p className="text-emerald-800 dark:text-emerald-200 mb-4">
+                    For food safety and legal compliance, all buyers and sellers in the Local Food & Artisan Goods category must complete identity verification and provide proof of following all applicable laws.
+                  </p>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="bg-white dark:bg-gray-800 p-4 rounded-lg border border-emerald-200 dark:border-emerald-700">
+                      <h4 className="font-medium text-gray-900 dark:text-white mb-2">For Sellers:</h4>
+                      <ul className="text-sm text-gray-600 dark:text-gray-300 space-y-1">
+                        <li>• Valid ID or Driver's License</li>
+                        <li>• Food Handler's Permit (if applicable)</li>
+                        <li>• Kitchen Inspection Certificate</li>
+                        <li>• Proof of Legal Compliance</li>
+                      </ul>
+                    </div>
+                    <div className="bg-white dark:bg-gray-800 p-4 rounded-lg border border-emerald-200 dark:border-emerald-700">
+                      <h4 className="font-medium text-gray-900 dark:text-white mb-2">For Buyers:</h4>
+                      <ul className="text-sm text-gray-600 dark:text-gray-300 space-y-1">
+                        <li>• Valid ID or Driver's License</li>
+                        <li>• Age verification (18+)</li>
+                        <li>• Address verification</li>
+                      </ul>
+                    </div>
+                  </div>
+                  <div className="mt-4 flex flex-wrap gap-2">
+                    <Button size="sm" className="bg-emerald-600 hover:bg-emerald-700">
+                      Start Verification Process
+                    </Button>
+                    <Button size="sm" variant="outline" className="border-emerald-600 text-emerald-600 hover:bg-emerald-50">
+                      Learn More About Requirements
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
           {/* Filters Sidebar */}
           <div className="lg:col-span-1">
@@ -180,9 +232,17 @@ export default function Marketplace() {
                       <SelectItem value="">All Asset Classes</SelectItem>
                       {categories.map((category) => (
                         <SelectItem key={category.id} value={category.id}>
-                          <div className="flex items-center">
-                            {getCategoryIcon(category.iconName)}
-                            <span className="ml-2">{category.name}</span>
+                          <div className="flex items-center justify-between w-full">
+                            <div className="flex items-center">
+                              {getCategoryIcon(category.iconName)}
+                              <span className="ml-2">{category.name}</span>
+                            </div>
+                            {category.requiresVerification && (
+                              <Badge variant="secondary" className="ml-2 text-xs">
+                                <CheckCircle className="h-3 w-3 mr-1" />
+                                Verified Required
+                              </Badge>
+                            )}
                           </div>
                         </SelectItem>
                       ))}

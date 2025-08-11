@@ -32,6 +32,8 @@ import {
   marketplaceInquiries,
   marketplaceFavorites,
   marketplaceReports,
+  vendorVerifications,
+  buyerVerifications,
   type User,
   type InsertUser,
   type UpsertUser,
@@ -87,6 +89,10 @@ import {
   type InsertMarketplaceFavorite,
   type MarketplaceReport,
   type InsertMarketplaceReport,
+  type VendorVerification,
+  type InsertVendorVerification,
+  type BuyerVerification,
+  type InsertBuyerVerification,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, desc, asc, sql, inArray, like, gt, or, lt, isNull, isNotNull } from "drizzle-orm";
@@ -285,6 +291,14 @@ export interface IStorage {
   createMarketplaceReport(report: InsertMarketplaceReport): Promise<MarketplaceReport>;
   getMarketplaceReports(): Promise<MarketplaceReport[]>;
   updateMarketplaceReport(id: string, updates: Partial<MarketplaceReport>): Promise<MarketplaceReport>;
+  
+  // Marketplace Verification
+  createVendorVerification(verification: InsertVendorVerification): Promise<VendorVerification>;
+  createBuyerVerification(verification: InsertBuyerVerification): Promise<BuyerVerification>;
+  getVendorVerificationByUserId(userId: string): Promise<VendorVerification | undefined>;
+  getBuyerVerificationByUserId(userId: string): Promise<BuyerVerification | undefined>;
+  getVerifications(filters: { type: string; status: string }): Promise<(VendorVerification | BuyerVerification)[]>;
+  updateVerification(id: string, updates: any): Promise<VendorVerification | BuyerVerification>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -1836,6 +1850,80 @@ export class DatabaseStorage implements IStorage {
       .where(eq(marketplaceReports.id, id))
       .returning();
     return report;
+  }
+
+  // Marketplace Verification
+  async createVendorVerification(verificationData: InsertVendorVerification): Promise<VendorVerification> {
+    const [verification] = await db.insert(vendorVerifications).values(verificationData).returning();
+    return verification;
+  }
+
+  async createBuyerVerification(verificationData: InsertBuyerVerification): Promise<BuyerVerification> {
+    const [verification] = await db.insert(buyerVerifications).values(verificationData).returning();
+    return verification;
+  }
+
+  async getVendorVerificationByUserId(userId: string): Promise<VendorVerification | undefined> {
+    const [verification] = await db
+      .select()
+      .from(vendorVerifications)
+      .where(eq(vendorVerifications.userId, userId))
+      .orderBy(desc(vendorVerifications.createdAt));
+    return verification;
+  }
+
+  async getBuyerVerificationByUserId(userId: string): Promise<BuyerVerification | undefined> {
+    const [verification] = await db
+      .select()
+      .from(buyerVerifications)
+      .where(eq(buyerVerifications.userId, userId))
+      .orderBy(desc(buyerVerifications.createdAt));
+    return verification;
+  }
+
+  async getVerifications(filters: { type: string; status: string }): Promise<(VendorVerification | BuyerVerification)[]> {
+    const results: (VendorVerification | BuyerVerification)[] = [];
+    
+    if (filters.type === 'all' || filters.type === 'vendor') {
+      let vendorQuery = db.select().from(vendorVerifications);
+      if (filters.status !== 'all') {
+        vendorQuery = vendorQuery.where(eq(vendorVerifications.status, filters.status)) as any;
+      }
+      const vendorResults = await vendorQuery.orderBy(desc(vendorVerifications.createdAt));
+      results.push(...vendorResults);
+    }
+    
+    if (filters.type === 'all' || filters.type === 'buyer') {
+      let buyerQuery = db.select().from(buyerVerifications);
+      if (filters.status !== 'all') {
+        buyerQuery = buyerQuery.where(eq(buyerVerifications.status, filters.status)) as any;
+      }
+      const buyerResults = await buyerQuery.orderBy(desc(buyerVerifications.createdAt));
+      results.push(...buyerResults);
+    }
+    
+    return results.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  }
+
+  async updateVerification(id: string, updates: any): Promise<VendorVerification | BuyerVerification> {
+    // Try vendor verification first
+    try {
+      const [vendorVerification] = await db
+        .update(vendorVerifications)
+        .set(updates)
+        .where(eq(vendorVerifications.id, id))
+        .returning();
+      if (vendorVerification) return vendorVerification;
+    } catch (error) {
+      // If vendor update fails, try buyer verification
+    }
+    
+    const [buyerVerification] = await db
+      .update(buyerVerifications)
+      .set(updates)
+      .where(eq(buyerVerifications.id, id))
+      .returning();
+    return buyerVerification;
   }
 }
 

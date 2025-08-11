@@ -13,7 +13,9 @@ import {
   insertMarketplaceListingSchema,
   insertMarketplaceInquirySchema,
   insertMarketplaceFavoriteSchema,
-  insertMarketplaceReportSchema
+  insertMarketplaceReportSchema,
+  insertVendorVerificationSchema,
+  insertBuyerVerificationSchema
 } from "@shared/schema";
 import { ObjectStorageService } from "./objectStorage";
 import { randomUUID } from "crypto";
@@ -2580,6 +2582,97 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error updating marketplace report:", error);
       res.status(400).json({ message: "Failed to update report" });
+    }
+  });
+
+  // Marketplace Verification Endpoints
+  app.post("/api/marketplace/vendor-verification", isAuthenticated, async (req, res) => {
+    try {
+      const user = req.user as any;
+      const validatedData = insertVendorVerificationSchema.parse(req.body);
+      
+      const verification = await storage.createVendorVerification({
+        ...validatedData,
+        userId: user.id,
+      });
+      
+      res.status(201).json(verification);
+    } catch (error) {
+      console.error("Error creating vendor verification:", error);
+      res.status(400).json({ message: "Failed to create vendor verification" });
+    }
+  });
+
+  app.post("/api/marketplace/buyer-verification", isAuthenticated, async (req, res) => {
+    try {
+      const user = req.user as any;
+      const validatedData = insertBuyerVerificationSchema.parse(req.body);
+      
+      const verification = await storage.createBuyerVerification({
+        ...validatedData,
+        userId: user.id,
+      });
+      
+      res.status(201).json(verification);
+    } catch (error) {
+      console.error("Error creating buyer verification:", error);
+      res.status(400).json({ message: "Failed to create buyer verification" });
+    }
+  });
+
+  app.get("/api/marketplace/verification/status", isAuthenticated, async (req, res) => {
+    try {
+      const user = req.user as any;
+      
+      const vendorVerification = await storage.getVendorVerificationByUserId(user.id);
+      const buyerVerification = await storage.getBuyerVerificationByUserId(user.id);
+      
+      res.json({
+        vendor: vendorVerification || null,
+        buyer: buyerVerification || null,
+        isVendorVerified: vendorVerification?.status === 'approved',
+        isBuyerVerified: buyerVerification?.status === 'approved'
+      });
+    } catch (error) {
+      console.error("Error fetching verification status:", error);
+      res.status(500).json({ message: "Failed to fetch verification status" });
+    }
+  });
+
+  app.get("/api/marketplace/admin/verifications", isAuthenticated, isAdmin, async (req, res) => {
+    try {
+      const { type = 'all', status = 'all' } = req.query;
+      
+      const verifications = await storage.getVerifications({
+        type: type as string,
+        status: status as string
+      });
+      
+      res.json(verifications);
+    } catch (error) {
+      console.error("Error fetching verifications:", error);
+      res.status(500).json({ message: "Failed to fetch verifications" });
+    }
+  });
+
+  app.put("/api/marketplace/admin/verifications/:id", isAuthenticated, isAdmin, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { status, adminNotes } = req.body;
+      const user = req.user as any;
+      
+      const updates = {
+        status,
+        adminNotes,
+        reviewedBy: user.id,
+        reviewedAt: new Date()
+      };
+      
+      const verification = await storage.updateVerification(id, updates);
+      res.json(verification);
+    } catch (error) {
+      console.error("Error updating verification:", error);
+      res.status(400).json({ message: "Failed to update verification" });
     }
   });
 

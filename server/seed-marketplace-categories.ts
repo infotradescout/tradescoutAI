@@ -58,6 +58,19 @@ const defaultCategories = [
     sortOrder: 90
   },
   {
+    name: "Local Food & Artisan Goods",
+    description: "Farm-fresh produce, honey, home-baked goods, and artisan food products",
+    iconName: "Apple",
+    sortOrder: 15,
+    requiresVerification: true,
+    verificationRequirements: {
+      identityVerification: true,
+      foodHandlersPermit: true,
+      kitchenInspection: true,
+      requiredDocuments: ["ID or Driver's License", "Proof of following all applicable food safety laws"]
+    }
+  },
+  {
     name: "Other High-Value Items",
     description: "Expensive items that don't fit other categories",
     iconName: "Package",
@@ -81,7 +94,11 @@ export async function seedMarketplaceCategories() {
         await db.insert(marketplaceCategories).values(category);
         console.log(`Created category: ${category.name}`);
       } else {
-        console.log(`Category already exists: ${category.name}`);
+        // Update existing category to include verification requirements
+        await db.update(marketplaceCategories)
+          .set(category)
+          .where(eq(marketplaceCategories.name, category.name));
+        console.log(`Updated category: ${category.name}`);
       }
     }
     

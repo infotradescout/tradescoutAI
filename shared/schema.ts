@@ -1082,6 +1082,15 @@ export const marketplaceCategories = pgTable("marketplace_categories", {
   description: text("description"),
   iconName: varchar("icon_name"), // Lucide icon name
   parentCategoryId: varchar("parent_category_id"), // For subcategories
+  requiresVerification: boolean("requires_verification").default(false), // For food/regulated items
+  verificationRequirements: jsonb("verification_requirements").$type<{
+    identityVerification?: boolean;
+    businessLicense?: boolean;
+    foodHandlersPermit?: boolean;
+    kitchenInspection?: boolean;
+    insuranceCertificate?: boolean;
+    requiredDocuments?: string[];
+  }>(),
   isActive: boolean("is_active").default(true),
   sortOrder: integer("sort_order").default(0),
   createdAt: timestamp("created_at").defaultNow(),
@@ -1157,6 +1166,18 @@ export const marketplaceListings = pgTable("marketplace_listings", {
     vaccinated?: boolean;
     registered?: boolean;
     
+    // Food & Artisan specific
+    ingredients?: string[];
+    allergens?: string[];
+    nutritionalInfo?: string;
+    expirationDate?: string;
+    harvestDate?: string;
+    organic?: boolean;
+    locallySourced?: boolean;
+    preparationMethod?: string;
+    storageInstructions?: string;
+    servingSize?: string;
+    
     // General custom fields
     [key: string]: any;
   }>(),
@@ -1165,6 +1186,15 @@ export const marketplaceListings = pgTable("marketplace_listings", {
   images: jsonb("images").$type<string[]>().default([]),
   primaryImageIndex: integer("primary_image_index").default(0),
   videoUrl: varchar("video_url"),
+  
+  // Verification (for regulated items like food)
+  requiresBuyerVerification: boolean("requires_buyer_verification").default(false),
+  isSellerVerified: boolean("is_seller_verified").default(false),
+  verificationStatus: varchar("verification_status", {
+    enum: ['none_required', 'pending', 'approved', 'rejected']
+  }).default('none_required'),
+  verificationNotes: text("verification_notes"),
+  verifiedAt: timestamp("verified_at"),
   
   // Listing management
   status: varchar("status", {
@@ -1244,6 +1274,87 @@ export const marketplaceReports = pgTable("marketplace_reports", {
   resolvedAt: timestamp("resolved_at"),
   
   createdAt: timestamp("created_at").defaultNow(),
+});
+
+// Vendor verification for food marketplace and other regulated categories
+export const vendorVerifications = pgTable("vendor_verifications", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  categoryId: varchar("category_id").notNull().references(() => marketplaceCategories.id),
+  
+  // Identity verification (required for all)
+  identityDocumentType: varchar("identity_document_type", {
+    enum: ['drivers_license', 'passport', 'state_id']
+  }),
+  identityDocumentUrl: varchar("identity_document_url"),
+  identityVerified: boolean("identity_verified").default(false),
+  
+  // Business verification (for commercial sellers)
+  businessName: varchar("business_name"),
+  businessLicenseUrl: varchar("business_license_url"),
+  businessLicenseNumber: varchar("business_license_number"),
+  businessLicenseExpiry: timestamp("business_license_expiry"),
+  
+  // Food-specific certifications
+  foodHandlersPermitUrl: varchar("food_handlers_permit_url"),
+  foodHandlersPermitExpiry: timestamp("food_handlers_permit_expiry"),
+  kitchenInspectionUrl: varchar("kitchen_inspection_url"),
+  kitchenInspectionExpiry: timestamp("kitchen_inspection_expiry"),
+  insuranceCertificateUrl: varchar("insurance_certificate_url"),
+  insuranceExpiry: timestamp("insurance_expiry"),
+  
+  // Legal compliance attestation
+  legalComplianceAttestation: text("legal_compliance_attestation"),
+  hasAttestedCompliance: boolean("has_attested_compliance").default(false),
+  attestationDate: timestamp("attestation_date"),
+  
+  // Verification status
+  status: varchar("status", {
+    enum: ['pending', 'in_review', 'approved', 'rejected', 'expired']
+  }).default('pending'),
+  reviewedBy: varchar("reviewed_by"),
+  reviewedAt: timestamp("reviewed_at"),
+  rejectionReason: text("rejection_reason"),
+  adminNotes: text("admin_notes"),
+  
+  // Approval tracking
+  approvedUntil: timestamp("approved_until"),
+  requiresRenewal: boolean("requires_renewal").default(false),
+  renewalReminderSent: boolean("renewal_reminder_sent").default(false),
+  
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Buyer verification for restricted purchases
+export const buyerVerifications = pgTable("buyer_verifications", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  
+  // Identity verification
+  identityDocumentType: varchar("identity_document_type", {
+    enum: ['drivers_license', 'passport', 'state_id']
+  }),
+  identityDocumentUrl: varchar("identity_document_url"),
+  identityVerified: boolean("identity_verified").default(false),
+  
+  // Age verification (for certain purchases)
+  isOver18: boolean("is_over_18").default(false),
+  isOver21: boolean("is_over_21").default(false),
+  
+  // Address verification
+  addressVerified: boolean("address_verified").default(false),
+  
+  // Verification status
+  status: varchar("status", {
+    enum: ['pending', 'in_review', 'approved', 'rejected']
+  }).default('pending'),
+  reviewedBy: varchar("reviewed_by"),
+  reviewedAt: timestamp("reviewed_at"),
+  rejectionReason: text("rejection_reason"),
+  
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
 });
 
 // Relations for marketplace
@@ -1362,3 +1473,39 @@ export type InsertMarketplaceFavorite = z.infer<typeof insertMarketplaceFavorite
 
 export type MarketplaceReport = typeof marketplaceReports.$inferSelect;
 export type InsertMarketplaceReport = z.infer<typeof insertMarketplaceReportSchema>;
+
+// Verification schemas  
+export const insertVendorVerificationSchema = createInsertSchema(vendorVerifications).omit({
+  id: true,
+  identityVerified: true,
+  status: true,
+  reviewedBy: true,
+  reviewedAt: true,
+  rejectionReason: true,
+  adminNotes: true,
+  approvedUntil: true,
+  requiresRenewal: true,
+  renewalReminderSent: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertBuyerVerificationSchema = createInsertSchema(buyerVerifications).omit({
+  id: true,
+  identityVerified: true,
+  isOver18: true,
+  isOver21: true,
+  addressVerified: true,
+  status: true,
+  reviewedBy: true,
+  reviewedAt: true,
+  rejectionReason: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type VendorVerification = typeof vendorVerifications.$inferSelect;
+export type InsertVendorVerification = z.infer<typeof insertVendorVerificationSchema>;
+
+export type BuyerVerification = typeof buyerVerifications.$inferSelect;
+export type InsertBuyerVerification = z.infer<typeof insertBuyerVerificationSchema>;
