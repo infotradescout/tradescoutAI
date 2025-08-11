@@ -156,14 +156,56 @@ const categoryIcons = {
   package: Package
 };
 
-// Featured categories for quick access
+// Featured categories optimized for contractor value and growth
 const featuredCategories = [
-  { id: 'vehicles', name: 'Vehicles', icon: 'car', color: 'blue' },
-  { id: 'tools', name: 'Tools & Equipment', icon: 'tools', color: 'orange' },
-  { id: 'electronics', name: 'Electronics', icon: 'electronics', color: 'purple' },
-  { id: 'home', name: 'Home & Garden', icon: 'home', color: 'green' },
-  { id: 'food', name: 'Local Food', icon: 'food', color: 'red' },
-  { id: 'business', name: 'Business', icon: 'business', color: 'indigo' }
+  { 
+    id: 'professional_tools', 
+    name: 'Professional Tools', 
+    icon: 'tools', 
+    color: 'orange',
+    description: 'Premium tools that pay for themselves',
+    valueProposition: 'Upgrade your capabilities'
+  },
+  { 
+    id: 'work_vehicles', 
+    name: 'Work Vehicles', 
+    icon: 'truck', 
+    color: 'blue',
+    description: 'Reliable vehicles for serious contractors',
+    valueProposition: 'Expand your service radius'
+  },
+  { 
+    id: 'heavy_equipment', 
+    name: 'Heavy Equipment', 
+    icon: 'construction', 
+    color: 'amber',
+    description: 'Equipment that opens bigger opportunities',
+    valueProposition: 'Take on larger projects'
+  },
+  { 
+    id: 'specialty_materials', 
+    name: 'Quality Materials', 
+    icon: 'package', 
+    color: 'emerald',
+    description: 'Premium materials for quality results',
+    valueProposition: 'Deliver superior craftsmanship'
+  },
+  { 
+    id: 'business_assets', 
+    name: 'Business Equipment', 
+    icon: 'briefcase', 
+    color: 'purple',
+    description: 'Equipment that builds your reputation',
+    valueProposition: 'Professional presentation'
+  },
+  { 
+    id: 'local_marketplace', 
+    name: 'Local Exchange', 
+    icon: 'users', 
+    color: 'red',
+    description: 'Community-verified quality items',
+    valueProposition: 'Trusted local network'
+  }
 ];
 
 // Price ranges for quick filtering
@@ -289,8 +331,17 @@ export default function Marketplace() {
   };
 
   const getFeaturedCategoryIcon = (iconName: string) => {
-    const IconComponent = categoryIcons[iconName as keyof typeof categoryIcons] || Package;
-    return <IconComponent className="h-6 w-6" />;
+    const iconMap = {
+      tools: Wrench,
+      truck: Truck,
+      construction: Building,
+      package: Package,
+      briefcase: Briefcase,
+      users: Users,
+      ...categoryIcons
+    };
+    const IconComponent = iconMap[iconName as keyof typeof iconMap] || Package;
+    return <IconComponent className="h-6 w-6 text-orange-600" />;
   };
 
   const clearFilters = () => {
@@ -306,21 +357,34 @@ export default function Marketplace() {
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-      {/* Trust & Quality Banner */}
-      <div className="bg-gradient-to-r from-emerald-600 to-blue-600 text-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-center">
-            <div className="flex items-center justify-center">
-              <TrendingUp className="h-5 w-5 mr-2" />
-              <span className="text-sm font-medium">Quality Items from Trusted Sellers</span>
+      {/* Value Proposition Banner */}
+      <div className="bg-gradient-to-r from-orange-600 via-amber-600 to-orange-500 text-white">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+          <div className="text-center mb-4">
+            <h2 className="text-xl font-bold mb-2">Tools That Build Success</h2>
+            <p className="text-orange-100">Quality equipment from contractors who've grown their business</p>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="flex items-center justify-center bg-white/10 rounded-lg p-4">
+              <Award className="h-6 w-6 mr-3" />
+              <div className="text-left">
+                <div className="font-semibold">Proven Performance</div>
+                <div className="text-sm text-orange-100">Equipment tested by professionals</div>
+              </div>
             </div>
-            <div className="flex items-center justify-center">
-              <Shield className="h-5 w-5 mr-2" />
-              <span className="text-sm font-medium">Verified Quality & Authenticity</span>
+            <div className="flex items-center justify-center bg-white/10 rounded-lg p-4">
+              <TrendingUp className="h-6 w-6 mr-3" />
+              <div className="text-left">
+                <div className="font-semibold">Value Appreciation</div>
+                <div className="text-sm text-orange-100">Quality tools hold their worth</div>
+              </div>
             </div>
-            <div className="flex items-center justify-center">
-              <Target className="h-5 w-5 mr-2" />
-              <span className="text-sm font-medium">Professional-Grade Equipment</span>
+            <div className="flex items-center justify-center bg-white/10 rounded-lg p-4">
+              <Users className="h-6 w-6 mr-3" />
+              <div className="text-left">
+                <div className="font-semibold">Contractor Network</div>
+                <div className="text-sm text-orange-100">Connect with proven professionals</div>
+              </div>
             </div>
           </div>
         </div>
@@ -330,60 +394,91 @@ export default function Marketplace() {
         {/* Header */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
-              Exchange Hub
+            <h1 className="text-4xl font-bold text-gray-900 dark:text-white mb-3">
+              Professional Exchange
             </h1>
-            <p className="text-gray-600 dark:text-gray-300">
-              Quality equipment, vehicles, and items from trusted sellers
+            <p className="text-lg text-gray-600 dark:text-gray-300 mb-4">
+              Where contractors find the tools that grow their business
             </p>
-            <div className="flex items-center gap-4 mt-2">
-              <div className="flex items-center text-sm text-emerald-600">
-                <DollarSign className="h-4 w-4 mr-1" />
-                Competitive pricing
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+              <div className="flex items-center text-sm bg-orange-50 dark:bg-orange-900/20 text-orange-700 dark:text-orange-300 px-3 py-2 rounded-lg">
+                <Wrench className="h-4 w-4 mr-2" />
+                Professional Grade
               </div>
-              <div className="flex items-center text-sm text-blue-600">
-                <CheckCircle className="h-4 w-4 mr-1" />
-                Quality equipment
+              <div className="flex items-center text-sm bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 px-3 py-2 rounded-lg">
+                <Shield className="h-4 w-4 mr-2" />
+                Contractor Verified
+              </div>
+              <div className="flex items-center text-sm bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-300 px-3 py-2 rounded-lg">
+                <TrendingUp className="h-4 w-4 mr-2" />
+                Value Retention
+              </div>
+              <div className="flex items-center text-sm bg-purple-50 dark:bg-purple-900/20 text-purple-700 dark:text-purple-300 px-3 py-2 rounded-lg">
+                <Award className="h-4 w-4 mr-2" />
+                Success Stories
               </div>
             </div>
           </div>
           
           {isAuthenticated && (
-            <Button 
-              onClick={() => setLocation('/marketplace/list')}
-              className="bg-emerald-600 hover:bg-emerald-700 text-white"
-            >
-              <Plus className="h-4 w-4 mr-2" />
-              List Item
-            </Button>
+            <div className="flex flex-col gap-2 mt-4 sm:mt-0">
+              <Button 
+                onClick={() => setLocation('/marketplace/list')}
+                className="bg-orange-600 hover:bg-orange-700 text-white"
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                List Equipment
+              </Button>
+              <p className="text-xs text-gray-500 text-center">
+                Turn your gear into opportunity
+              </p>
+            </div>
           )}
         </div>
 
         {/* Featured Categories */}
         <div className="mb-8">
-          <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
-            Browse Categories
-          </h2>
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+          <div className="flex items-center justify-between mb-6">
+            <div>
+              <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
+                Equipment That Builds Careers
+              </h2>
+              <p className="text-gray-600 dark:text-gray-400">
+                Find the tools and equipment that successful contractors recommend
+              </p>
+            </div>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {featuredCategories.map((category) => (
               <Card 
                 key={category.id}
-                className={`cursor-pointer transition-all hover:shadow-lg border-2 ${
+                className={`cursor-pointer transition-all hover:shadow-xl hover:scale-105 border-2 group ${
                   selectedCategory === category.id 
-                    ? `border-${category.color}-500 bg-${category.color}-50 dark:bg-${category.color}-900/20`
-                    : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
+                    ? `border-orange-500 bg-orange-50 dark:bg-orange-900/20 shadow-lg`
+                    : 'border-gray-200 dark:border-gray-700 hover:border-orange-300 dark:hover:border-orange-600'
                 }`}
                 onClick={() => {
                   setSelectedCategory(selectedCategory === category.id ? '' : category.id);
                 }}
               >
-                <CardContent className="p-4 text-center">
-                  <div className={`mx-auto mb-2 w-12 h-12 rounded-lg bg-${category.color}-100 dark:bg-${category.color}-900/30 flex items-center justify-center`}>
-                    {getFeaturedCategoryIcon(category.icon)}
+                <CardContent className="p-6">
+                  <div className="flex items-start gap-4">
+                    <div className={`flex-shrink-0 w-14 h-14 rounded-xl bg-gradient-to-br from-orange-100 to-orange-200 dark:from-orange-900/30 dark:to-orange-800/30 flex items-center justify-center group-hover:scale-110 transition-transform`}>
+                      {getFeaturedCategoryIcon(category.icon)}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <h3 className="font-bold text-lg text-gray-900 dark:text-white mb-1">
+                        {category.name}
+                      </h3>
+                      <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
+                        {category.description}
+                      </p>
+                      <div className="flex items-center text-sm font-medium text-orange-600 dark:text-orange-400">
+                        <TrendingUp className="h-4 w-4 mr-1" />
+                        {category.valueProposition}
+                      </div>
+                    </div>
                   </div>
-                  <h3 className="font-medium text-sm text-gray-900 dark:text-white">
-                    {category.name}
-                  </h3>
                 </CardContent>
               </Card>
             ))}
@@ -565,50 +660,103 @@ export default function Marketplace() {
           </CardContent>
         </Card>
 
-        {/* Verification Notice for Food Category */}
-        {selectedCategory === 'food' && (
-          <Card className="mb-6 border-emerald-200 bg-emerald-50 dark:bg-emerald-900/20 dark:border-emerald-800">
+        {/* Verification Notice for Local Exchange Category */}
+        {selectedCategory === 'local_marketplace' && (
+          <Card className="mb-6 border-blue-200 bg-blue-50 dark:bg-blue-900/20 dark:border-blue-800">
             <CardContent className="p-6">
               <div className="flex items-start gap-4">
                 <div className="flex-shrink-0">
-                  <CheckCircle className="h-6 w-6 text-emerald-600" />
+                  <Shield className="h-6 w-6 text-blue-600" />
                 </div>
                 <div className="flex-1">
-                  <h3 className="font-semibold text-emerald-900 dark:text-emerald-100 mb-2">
-                    Local Food & Artisan Goods - Verification Required
+                  <h3 className="font-semibold text-blue-900 dark:text-blue-100 mb-2">
+                    Local Exchange - Community Verified
                   </h3>
-                  <p className="text-emerald-800 dark:text-emerald-200 text-sm mb-4">
-                    For food safety and legal compliance, all buyers and sellers in the Local Food & Artisan Goods 
-                    category must complete identity verification and provide proof of following all applicable laws.
+                  <p className="text-blue-800 dark:text-blue-200 text-sm mb-4">
+                    Our local exchange connects verified community members for safe, trusted transactions. 
+                    All participants must complete address verification for security.
                   </p>
                   
                   <div className="grid md:grid-cols-2 gap-4">
                     <div className="bg-white dark:bg-gray-800 p-4 rounded-lg">
-                      <h4 className="font-medium text-gray-900 dark:text-white mb-2">For Sellers:</h4>
+                      <h4 className="font-medium text-gray-900 dark:text-white mb-2">Trust & Safety:</h4>
                       <ul className="text-sm text-gray-600 dark:text-gray-300 space-y-1">
-                        <li>• Valid ID or Driver's License</li>
-                        <li>• Food Handler's Permit (if applicable)</li>
-                        <li>• Kitchen Inspection Certificate</li>
-                        <li>• Proof of Legal Compliance</li>
+                        <li>• Address verification required</li>
+                        <li>• Community reputation scores</li>
+                        <li>• Secure local meetup suggestions</li>
+                        <li>• Transaction protection guidance</li>
                       </ul>
                     </div>
                     <div className="bg-white dark:bg-gray-800 p-4 rounded-lg">
-                      <h4 className="font-medium text-gray-900 dark:text-white mb-2">For Buyers:</h4>
+                      <h4 className="font-medium text-gray-900 dark:text-white mb-2">Community Benefits:</h4>
                       <ul className="text-sm text-gray-600 dark:text-gray-300 space-y-1">
-                        <li>• Valid ID or Driver's License</li>
-                        <li>• Age verification (18+)</li>
-                        <li>• Address verification</li>
+                        <li>• Support local contractors</li>
+                        <li>• Reduce transportation costs</li>
+                        <li>• Build neighborhood connections</li>
+                        <li>• Quick local pickup options</li>
                       </ul>
                     </div>
                   </div>
                   
                   <div className="flex gap-3 mt-4">
-                    <Button size="sm" className="bg-emerald-600 hover:bg-emerald-700">
-                      Start Verification Process
+                    <Button size="sm" className="bg-blue-600 hover:bg-blue-700">
+                      Complete Verification
                     </Button>
                     <Button variant="outline" size="sm">
-                      Learn More About Requirements
+                      Learn About Safety
                     </Button>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Professional Equipment Notice */}
+        {(selectedCategory === 'professional_tools' || selectedCategory === 'heavy_equipment') && (
+          <Card className="mb-6 border-orange-200 bg-orange-50 dark:bg-orange-900/20 dark:border-orange-800">
+            <CardContent className="p-6">
+              <div className="flex items-start gap-4">
+                <div className="flex-shrink-0">
+                  <Award className="h-6 w-6 text-orange-600" />
+                </div>
+                <div className="flex-1">
+                  <h3 className="font-semibold text-orange-900 dark:text-orange-100 mb-2">
+                    Professional Equipment Exchange
+                  </h3>
+                  <p className="text-orange-800 dark:text-orange-200 text-sm mb-4">
+                    These tools come from established contractors who understand quality. Each listing includes 
+                    maintenance history and performance details to help you make informed decisions.
+                  </p>
+                  
+                  <div className="grid md:grid-cols-3 gap-4">
+                    <div className="bg-white dark:bg-gray-800 p-4 rounded-lg">
+                      <h4 className="font-medium text-gray-900 dark:text-white mb-2 flex items-center">
+                        <CheckCircle className="h-4 w-4 mr-2 text-green-600" />
+                        Quality Assured
+                      </h4>
+                      <p className="text-sm text-gray-600 dark:text-gray-300">
+                        Equipment inspected and verified by working contractors
+                      </p>
+                    </div>
+                    <div className="bg-white dark:bg-gray-800 p-4 rounded-lg">
+                      <h4 className="font-medium text-gray-900 dark:text-white mb-2 flex items-center">
+                        <TrendingUp className="h-4 w-4 mr-2 text-blue-600" />
+                        Value Retention
+                      </h4>
+                      <p className="text-sm text-gray-600 dark:text-gray-300">
+                        Professional tools hold their value and perform consistently
+                      </p>
+                    </div>
+                    <div className="bg-white dark:bg-gray-800 p-4 rounded-lg">
+                      <h4 className="font-medium text-gray-900 dark:text-white mb-2 flex items-center">
+                        <Users className="h-4 w-4 mr-2 text-purple-600" />
+                        Expert Network
+                      </h4>
+                      <p className="text-sm text-gray-600 dark:text-gray-300">
+                        Connect with contractors who've used this equipment successfully
+                      </p>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -657,27 +805,46 @@ export default function Marketplace() {
             ))}
           </div>
         ) : listings.length === 0 ? (
-          <Card className="text-center py-12">
+          <Card className="text-center py-16 bg-gradient-to-br from-orange-50 to-amber-50 dark:from-orange-900/20 dark:to-amber-900/20">
             <CardContent>
               <div className="flex flex-col items-center justify-center">
-                <div className="w-24 h-24 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center mb-4">
-                  <TrendingUp className="h-8 w-8 text-emerald-500" />
+                <div className="w-32 h-32 bg-gradient-to-br from-orange-100 to-amber-100 dark:from-orange-900/30 dark:to-amber-900/30 rounded-full flex items-center justify-center mb-6">
+                  <Wrench className="h-12 w-12 text-orange-600" />
                 </div>
-                <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
-                  No items found
+                <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-3">
+                  Quality Equipment Awaits
                 </h3>
-                <p className="text-gray-600 dark:text-gray-300 mb-6 max-w-md">
-                  Adjust your search criteria or be the first to list an item for sale.
+                <p className="text-gray-600 dark:text-gray-300 mb-6 max-w-lg text-lg">
+                  The professional tools and equipment that build successful contracting careers are just a listing away.
                 </p>
-                {isAuthenticated && (
-                  <Button 
-                    onClick={() => setLocation('/marketplace/list')}
-                    className="bg-emerald-600 hover:bg-emerald-700"
-                  >
-                    <Plus className="h-4 w-4 mr-2" />
-                    List Your First Item
-                  </Button>
-                )}
+                <div className="flex flex-col sm:flex-row gap-4 items-center">
+                  {isAuthenticated ? (
+                    <>
+                      <Button 
+                        onClick={() => setLocation('/marketplace/list')}
+                        className="bg-orange-600 hover:bg-orange-700 text-white px-8 py-3"
+                      >
+                        <Plus className="h-5 w-5 mr-2" />
+                        List Your Equipment
+                      </Button>
+                      <p className="text-sm text-gray-500">
+                        Turn your unused tools into opportunity for others
+                      </p>
+                    </>
+                  ) : (
+                    <>
+                      <Button 
+                        onClick={() => setLocation('/api/login')}
+                        className="bg-orange-600 hover:bg-orange-700 text-white px-8 py-3"
+                      >
+                        Join the Exchange
+                      </Button>
+                      <p className="text-sm text-gray-500">
+                        Connect with contractors in your area
+                      </p>
+                    </>
+                  )}
+                </div>
               </div>
             </CardContent>
           </Card>
@@ -726,23 +893,45 @@ export default function Marketplace() {
                         {listing.description}
                       </p>
                       <div className="flex items-center justify-between">
-                        <span className="text-lg font-bold text-emerald-600">
-                          {formatPrice(parseFloat(listing.price), listing.priceType)}
-                        </span>
-                        <div className="flex items-center text-xs text-gray-500">
-                          <MapPin className="h-3 w-3 mr-1" />
-                          {formatLocationString(listing)}
+                        <div>
+                          <span className="text-lg font-bold text-orange-600">
+                            {formatPrice(parseFloat(listing.price), listing.priceType)}
+                          </span>
+                          {listing.originalPrice && parseFloat(listing.originalPrice) > parseFloat(listing.price) && (
+                            <div className="text-sm text-gray-500 line-through">
+                              {formatCurrency(parseFloat(listing.originalPrice))}
+                            </div>
+                          )}
+                        </div>
+                        <div className="text-right">
+                          <div className="flex items-center text-xs text-gray-500 mb-1">
+                            <MapPin className="h-3 w-3 mr-1" />
+                            {formatLocationString(listing)}
+                          </div>
+                          {listing.sellerType === 'contractor' && (
+                            <Badge variant="outline" className="text-xs border-orange-200 text-orange-700">
+                              Pro Seller
+                            </Badge>
+                          )}
                         </div>
                       </div>
                       <div className="flex items-center justify-between mt-3 pt-3 border-t">
-                        <div className="flex items-center text-xs text-gray-500">
-                          <Clock className="h-3 w-3 mr-1" />
-                          {new Date(listing.createdAt || '').toLocaleDateString()}
+                        <div className="flex items-center gap-3">
+                          <div className="flex items-center text-xs text-gray-500">
+                            <Clock className="h-3 w-3 mr-1" />
+                            {new Date(listing.createdAt || '').toLocaleDateString()}
+                          </div>
+                          <div className="flex items-center text-xs text-gray-500">
+                            <Eye className="h-3 w-3 mr-1" />
+                            {listing.viewCount || 0}
+                          </div>
                         </div>
-                        <div className="flex items-center text-xs text-gray-500">
-                          <Eye className="h-3 w-3 mr-1" />
-                          {listing.viewCount || 0}
-                        </div>
+                        {listing.isHighValue && (
+                          <Badge className="text-xs bg-amber-100 text-amber-800 border-amber-200">
+                            <Star className="h-3 w-3 mr-1" />
+                            Quality Pick
+                          </Badge>
+                        )}
                       </div>
                     </CardContent>
                   </>
