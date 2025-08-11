@@ -75,7 +75,7 @@ export default function MasterAdminSetup() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800 flex items-center justify-center px-4">
       <div className="max-w-md w-full">
-        <Card className="shadow-xl border-0">
+        <Card className="shadow-xl border-0 bg-white dark:bg-gray-900">
           <CardHeader className="text-center pb-8">
             <div className="mx-auto w-16 h-16 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-full flex items-center justify-center mb-4">
               <Shield className="h-8 w-8 text-white" />
@@ -104,7 +104,7 @@ export default function MasterAdminSetup() {
                   <Input
                     id="firstName"
                     {...form.register("firstName")}
-                    className="mt-1"
+                    className="mt-1 bg-white dark:bg-gray-800 text-gray-900 dark:text-white border-gray-300 dark:border-gray-600"
                     placeholder="John"
                   />
                   {form.formState.errors.firstName && (
@@ -117,7 +117,7 @@ export default function MasterAdminSetup() {
                   <Input
                     id="lastName"
                     {...form.register("lastName")}
-                    className="mt-1"
+                    className="mt-1 bg-white dark:bg-gray-800 text-gray-900 dark:text-white border-gray-300 dark:border-gray-600"
                     placeholder="Smith"
                   />
                   {form.formState.errors.lastName && (
@@ -135,7 +135,7 @@ export default function MasterAdminSetup() {
                   id="email"
                   type="email"
                   {...form.register("email")}
-                  className="mt-1"
+                  className="mt-1 bg-white dark:bg-gray-800 text-gray-900 dark:text-white border-gray-300 dark:border-gray-600"
                   placeholder="admin@tradescout.com"
                 />
                 {form.formState.errors.email && (
@@ -153,6 +153,7 @@ export default function MasterAdminSetup() {
                     id="password"
                     type={showPassword ? "text" : "password"}
                     {...form.register("password")}
+                    className="bg-white dark:bg-gray-800 text-gray-900 dark:text-white border-gray-300 dark:border-gray-600"
                     placeholder="Create a strong password"
                   />
                   <button
@@ -179,6 +180,7 @@ export default function MasterAdminSetup() {
                     id="confirmPassword"
                     type={showConfirmPassword ? "text" : "password"}
                     {...form.register("confirmPassword")}
+                    className="bg-white dark:bg-gray-800 text-gray-900 dark:text-white border-gray-300 dark:border-gray-600"
                     placeholder="Confirm your password"
                   />
                   <button
