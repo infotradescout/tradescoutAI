@@ -31,7 +31,12 @@ export function EnhancedNavigation({ className = "" }: EnhancedNavigationProps) 
             <div className="w-10 h-10 bg-gradient-to-br from-orange-500 via-orange-600 to-red-600 rounded-xl flex items-center justify-center shadow-lg">
               <span className="text-white font-bold text-lg">TS</span>
             </div>
-            <span className="text-2xl font-bold text-white tracking-tight">TradeScout</span>
+            <div className="flex items-center space-x-2">
+              <span className="text-2xl font-bold text-white tracking-tight">TradeScout</span>
+              <div className="w-8 h-8 bg-gradient-to-br from-yellow-400 to-yellow-600 rounded-full flex items-center justify-center shadow-md border-2 border-yellow-300/20">
+                <span className="text-lg">🏅</span>
+              </div>
+            </div>
           </div>
         </Link>
 
