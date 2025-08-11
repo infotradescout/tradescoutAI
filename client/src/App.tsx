@@ -36,7 +36,6 @@ import AdminUsers from "@/pages/admin-users";
 import AdminErrorReports from "@/pages/admin-error-reports";
 import AdminTestingControls from "@/pages/admin-testing-controls";
 import { ProfileSetupRedirect } from "@/components/profile-setup-redirect";
-import { ErrorReportButton } from "@/components/ErrorReportButton";
 import { FloatingBugReport } from "@/components/FloatingBugReport";
 
 function Router() {
@@ -113,7 +112,6 @@ function Router() {
         <Route component={NotFound} />
       </Switch>
       <MobileCTA />
-      <ErrorReportButton />
       <FloatingBugReport />
     </div>
   );
