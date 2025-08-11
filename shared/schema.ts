@@ -1074,3 +1074,291 @@ export const insertErrorReportSchema = createInsertSchema(errorReports).omit({
 
 export type InsertErrorReport = typeof errorReports.$inferInsert;
 export type ErrorReport = typeof errorReports.$inferSelect;
+
+// Buy/Sell Marketplace System for high-value items
+export const marketplaceCategories = pgTable("marketplace_categories", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  name: varchar("name", { length: 100 }).notNull().unique(),
+  description: text("description"),
+  iconName: varchar("icon_name"), // Lucide icon name
+  parentCategoryId: varchar("parent_category_id"), // For subcategories
+  isActive: boolean("is_active").default(true),
+  sortOrder: integer("sort_order").default(0),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const marketplaceListings = pgTable("marketplace_listings", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  sellerId: varchar("seller_id").notNull().references(() => users.id),
+  categoryId: varchar("category_id").notNull().references(() => marketplaceCategories.id),
+  
+  // Basic listing info
+  title: varchar("title", { length: 200 }).notNull(),
+  description: text("description").notNull(),
+  
+  // Pricing
+  price: decimal("price", { precision: 12, scale: 2 }).notNull(),
+  priceType: varchar("price_type", {
+    enum: ['fixed', 'negotiable', 'auction', 'best_offer']
+  }).default('fixed'),
+  originalPrice: decimal("original_price", { precision: 12, scale: 2 }), // For showing savings
+  
+  // Location
+  county: varchar("county").notNull(),
+  state: varchar("state").notNull(),
+  city: varchar("city"),
+  zipCode: varchar("zip_code"),
+  isLocalPickupOnly: boolean("is_local_pickup_only").default(false),
+  willShip: boolean("will_ship").default(false),
+  shippingCost: decimal("shipping_cost", { precision: 10, scale: 2 }),
+  
+  // Item details
+  condition: varchar("condition", {
+    enum: ['new', 'like_new', 'excellent', 'good', 'fair', 'poor', 'parts_only']
+  }).notNull(),
+  brand: varchar("brand", { length: 100 }),
+  model: varchar("model", { length: 100 }),
+  year: integer("year"),
+  mileage: integer("mileage"), // For vehicles
+  hours: integer("hours"), // For equipment
+  
+  // Specifications (flexible JSON for different item types)
+  specifications: jsonb("specifications").$type<{
+    // Common fields
+    color?: string;
+    weight?: string;
+    dimensions?: string;
+    
+    // Vehicle specific
+    make?: string;
+    engine?: string;
+    transmission?: string;
+    fuelType?: string;
+    vin?: string;
+    
+    // Equipment specific
+    powerSource?: string;
+    capacity?: string;
+    attachments?: string[];
+    
+    // Real estate specific
+    bedrooms?: number;
+    bathrooms?: number;
+    squareFeet?: number;
+    lotSize?: string;
+    propertyType?: string;
+    
+    // Animal specific
+    breed?: string;
+    age?: string;
+    gender?: string;
+    weight?: string;
+    vaccinated?: boolean;
+    registered?: boolean;
+    
+    // General custom fields
+    [key: string]: any;
+  }>(),
+  
+  // Media
+  images: jsonb("images").$type<string[]>().default([]),
+  primaryImageIndex: integer("primary_image_index").default(0),
+  videoUrl: varchar("video_url"),
+  
+  // Listing management
+  status: varchar("status", {
+    enum: ['draft', 'active', 'sold', 'expired', 'removed', 'flagged']
+  }).default('draft'),
+  isPromoted: boolean("is_promoted").default(false),
+  promotedUntil: timestamp("promoted_until"),
+  
+  // Interaction tracking
+  viewCount: integer("view_count").default(0),
+  favoriteCount: integer("favorite_count").default(0),
+  contactCount: integer("contact_count").default(0),
+  
+  // SEO
+  slug: varchar("slug").unique(), // Generated from title
+  metaDescription: text("meta_description"),
+  tags: jsonb("tags").$type<string[]>().default([]),
+  
+  // Timestamps
+  expiresAt: timestamp("expires_at"), // Auto-expire after X days
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const marketplaceInquiries = pgTable("marketplace_inquiries", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  listingId: varchar("listing_id").notNull().references(() => marketplaceListings.id),
+  buyerId: varchar("buyer_id").notNull().references(() => users.id),
+  sellerId: varchar("seller_id").notNull().references(() => users.id),
+  
+  // Inquiry details
+  message: text("message").notNull(),
+  offerAmount: decimal("offer_amount", { precision: 12, scale: 2 }),
+  
+  // Contact info (from buyer)
+  buyerPhone: varchar("buyer_phone"),
+  buyerEmail: varchar("buyer_email"),
+  preferredContactMethod: varchar("preferred_contact_method", {
+    enum: ['phone', 'email', 'message']
+  }).default('message'),
+  
+  // Status tracking
+  status: varchar("status", {
+    enum: ['pending', 'replied', 'accepted', 'declined', 'completed']
+  }).default('pending'),
+  
+  sellerResponse: text("seller_response"),
+  respondedAt: timestamp("responded_at"),
+  
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const marketplaceFavorites = pgTable("marketplace_favorites", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  listingId: varchar("listing_id").notNull().references(() => marketplaceListings.id),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const marketplaceReports = pgTable("marketplace_reports", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  listingId: varchar("listing_id").notNull().references(() => marketplaceListings.id),
+  reporterId: varchar("reporter_id").references(() => users.id),
+  
+  reason: varchar("reason", {
+    enum: ['spam', 'fraud', 'inappropriate_content', 'wrong_category', 'duplicate', 'overpriced', 'other']
+  }).notNull(),
+  description: text("description"),
+  
+  status: varchar("status", {
+    enum: ['pending', 'investigating', 'resolved', 'dismissed']
+  }).default('pending'),
+  
+  adminNotes: text("admin_notes"),
+  resolvedBy: varchar("resolved_by"),
+  resolvedAt: timestamp("resolved_at"),
+  
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// Relations for marketplace
+export const marketplaceCategoriesRelations = relations(marketplaceCategories, ({ one, many }) => ({
+  parentCategory: one(marketplaceCategories, {
+    fields: [marketplaceCategories.parentCategoryId],
+    references: [marketplaceCategories.id],
+  }),
+  subcategories: many(marketplaceCategories),
+  listings: many(marketplaceListings),
+}));
+
+export const marketplaceListingsRelations = relations(marketplaceListings, ({ one, many }) => ({
+  seller: one(users, {
+    fields: [marketplaceListings.sellerId],
+    references: [users.id],
+  }),
+  category: one(marketplaceCategories, {
+    fields: [marketplaceListings.categoryId],
+    references: [marketplaceCategories.id],
+  }),
+  inquiries: many(marketplaceInquiries),
+  favorites: many(marketplaceFavorites),
+  reports: many(marketplaceReports),
+}));
+
+export const marketplaceInquiriesRelations = relations(marketplaceInquiries, ({ one }) => ({
+  listing: one(marketplaceListings, {
+    fields: [marketplaceInquiries.listingId],
+    references: [marketplaceListings.id],
+  }),
+  buyer: one(users, {
+    fields: [marketplaceInquiries.buyerId],
+    references: [users.id],
+  }),
+  seller: one(users, {
+    fields: [marketplaceInquiries.sellerId],
+    references: [users.id],
+  }),
+}));
+
+export const marketplaceFavoritesRelations = relations(marketplaceFavorites, ({ one }) => ({
+  user: one(users, {
+    fields: [marketplaceFavorites.userId],
+    references: [users.id],
+  }),
+  listing: one(marketplaceListings, {
+    fields: [marketplaceFavorites.listingId],
+    references: [marketplaceListings.id],
+  }),
+}));
+
+export const marketplaceReportsRelations = relations(marketplaceReports, ({ one }) => ({
+  listing: one(marketplaceListings, {
+    fields: [marketplaceReports.listingId],
+    references: [marketplaceListings.id],
+  }),
+  reporter: one(users, {
+    fields: [marketplaceReports.reporterId],
+    references: [users.id],
+  }),
+}));
+
+// Marketplace schemas for validation
+export const insertMarketplaceCategorySchema = createInsertSchema(marketplaceCategories).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertMarketplaceListingSchema = createInsertSchema(marketplaceListings).omit({
+  id: true,
+  viewCount: true,
+  favoriteCount: true,
+  contactCount: true,
+  createdAt: true,
+  updatedAt: true,
+  slug: true,
+});
+
+export const insertMarketplaceInquirySchema = createInsertSchema(marketplaceInquiries).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+  status: true,
+  sellerResponse: true,
+  respondedAt: true,
+});
+
+export const insertMarketplaceFavoriteSchema = createInsertSchema(marketplaceFavorites).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertMarketplaceReportSchema = createInsertSchema(marketplaceReports).omit({
+  id: true,
+  createdAt: true,
+  status: true,
+  adminNotes: true,
+  resolvedBy: true,
+  resolvedAt: true,
+});
+
+// Marketplace types
+export type MarketplaceCategory = typeof marketplaceCategories.$inferSelect;
+export type InsertMarketplaceCategory = z.infer<typeof insertMarketplaceCategorySchema>;
+
+export type MarketplaceListing = typeof marketplaceListings.$inferSelect;
+export type InsertMarketplaceListing = z.infer<typeof insertMarketplaceListingSchema>;
+
+export type MarketplaceInquiry = typeof marketplaceInquiries.$inferSelect;
+export type InsertMarketplaceInquiry = z.infer<typeof insertMarketplaceInquirySchema>;
+
+export type MarketplaceFavorite = typeof marketplaceFavorites.$inferSelect;
+export type InsertMarketplaceFavorite = z.infer<typeof insertMarketplaceFavoriteSchema>;
+
+export type MarketplaceReport = typeof marketplaceReports.$inferSelect;
+export type InsertMarketplaceReport = z.infer<typeof insertMarketplaceReportSchema>;

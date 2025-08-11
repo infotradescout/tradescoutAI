@@ -2,7 +2,19 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { setupAuth, isAuthenticated, isContractor, isAdmin } from "./auth";
-import { insertLeadSchema, insertRecommendationSchema, insertGrowthPackDownloadSchema, insertErrorReportSchema, insertContractorPromoSchema, insertPromoInteractionSchema } from "@shared/schema";
+import { 
+  insertLeadSchema, 
+  insertRecommendationSchema, 
+  insertGrowthPackDownloadSchema, 
+  insertErrorReportSchema, 
+  insertContractorPromoSchema, 
+  insertPromoInteractionSchema,
+  insertMarketplaceCategorySchema,
+  insertMarketplaceListingSchema,
+  insertMarketplaceInquirySchema,
+  insertMarketplaceFavoriteSchema,
+  insertMarketplaceReportSchema
+} from "@shared/schema";
 import { ObjectStorageService } from "./objectStorage";
 import { randomUUID } from "crypto";
 import passport from "passport";
@@ -2247,6 +2259,328 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.delete("/api/admin/clear-test-data", async (req, res) => {
     res.json({ message: "Test data cleared successfully" });
+  });
+
+  // Marketplace routes
+  // Categories
+  app.get("/api/marketplace/categories", async (req, res) => {
+    try {
+      const categories = await storage.getMarketplaceCategories();
+      res.json(categories);
+    } catch (error) {
+      console.error("Error fetching marketplace categories:", error);
+      res.status(500).json({ message: "Failed to fetch categories" });
+    }
+  });
+
+  app.post("/api/marketplace/categories", isAuthenticated, isAdmin, async (req, res) => {
+    try {
+      const validatedData = insertMarketplaceCategorySchema.parse(req.body);
+      const category = await storage.createMarketplaceCategory(validatedData);
+      res.status(201).json(category);
+    } catch (error) {
+      console.error("Error creating marketplace category:", error);
+      res.status(400).json({ message: "Failed to create category" });
+    }
+  });
+
+  // Listings
+  app.get("/api/marketplace/listings", async (req, res) => {
+    try {
+      const filters = {
+        categoryId: req.query.categoryId as string,
+        county: req.query.county as string,
+        state: req.query.state as string,
+        priceMin: req.query.priceMin ? Number(req.query.priceMin) : undefined,
+        priceMax: req.query.priceMax ? Number(req.query.priceMax) : undefined,
+        condition: req.query.condition as string,
+        searchQuery: req.query.search as string,
+        sortBy: req.query.sortBy as 'price_asc' | 'price_desc' | 'date_desc' | 'date_asc',
+        limit: req.query.limit ? Number(req.query.limit) : 20,
+        offset: req.query.offset ? Number(req.query.offset) : 0,
+      };
+
+      const listings = await storage.getMarketplaceListings(filters);
+      res.json(listings);
+    } catch (error) {
+      console.error("Error fetching marketplace listings:", error);
+      res.status(500).json({ message: "Failed to fetch listings" });
+    }
+  });
+
+  app.get("/api/marketplace/listings/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const listing = await storage.getMarketplaceListing(id);
+      
+      if (!listing) {
+        return res.status(404).json({ message: "Listing not found" });
+      }
+
+      // Increment view count
+      await storage.incrementListingView(id);
+      
+      res.json(listing);
+    } catch (error) {
+      console.error("Error fetching marketplace listing:", error);
+      res.status(500).json({ message: "Failed to fetch listing" });
+    }
+  });
+
+  app.get("/api/marketplace/listings/slug/:slug", async (req, res) => {
+    try {
+      const { slug } = req.params;
+      const listing = await storage.getMarketplaceListingBySlug(slug);
+      
+      if (!listing) {
+        return res.status(404).json({ message: "Listing not found" });
+      }
+
+      // Increment view count
+      await storage.incrementListingView(listing.id);
+      
+      res.json(listing);
+    } catch (error) {
+      console.error("Error fetching marketplace listing by slug:", error);
+      res.status(500).json({ message: "Failed to fetch listing" });
+    }
+  });
+
+  app.post("/api/marketplace/listings", isAuthenticated, async (req, res) => {
+    try {
+      const user = req.user as any;
+      const validatedData = insertMarketplaceListingSchema.parse(req.body);
+      
+      const listing = await storage.createMarketplaceListing({
+        ...validatedData,
+        sellerId: user.id,
+      });
+      
+      res.status(201).json(listing);
+    } catch (error) {
+      console.error("Error creating marketplace listing:", error);
+      res.status(400).json({ message: "Failed to create listing" });
+    }
+  });
+
+  app.put("/api/marketplace/listings/:id", isAuthenticated, async (req, res) => {
+    try {
+      const user = req.user as any;
+      const { id } = req.params;
+      
+      // Check if user owns the listing
+      const existingListing = await storage.getMarketplaceListing(id);
+      if (!existingListing || existingListing.sellerId !== user.id) {
+        return res.status(403).json({ message: "Not authorized to edit this listing" });
+      }
+
+      const updates = req.body;
+      const listing = await storage.updateMarketplaceListing(id, updates);
+      res.json(listing);
+    } catch (error) {
+      console.error("Error updating marketplace listing:", error);
+      res.status(400).json({ message: "Failed to update listing" });
+    }
+  });
+
+  app.delete("/api/marketplace/listings/:id", isAuthenticated, async (req, res) => {
+    try {
+      const user = req.user as any;
+      const { id } = req.params;
+      
+      // Check if user owns the listing or is admin
+      const existingListing = await storage.getMarketplaceListing(id);
+      if (!existingListing || (existingListing.sellerId !== user.id && !['head_admin', 'moderator', 'ops_admin'].includes(user.role || ''))) {
+        return res.status(403).json({ message: "Not authorized to delete this listing" });
+      }
+
+      await storage.deleteMarketplaceListing(id);
+      res.json({ message: "Listing deleted successfully" });
+    } catch (error) {
+      console.error("Error deleting marketplace listing:", error);
+      res.status(500).json({ message: "Failed to delete listing" });
+    }
+  });
+
+  // User's own listings
+  app.get("/api/marketplace/my-listings", isAuthenticated, async (req, res) => {
+    try {
+      const user = req.user as any;
+      const listings = await storage.getUserListings(user.id);
+      res.json(listings);
+    } catch (error) {
+      console.error("Error fetching user listings:", error);
+      res.status(500).json({ message: "Failed to fetch listings" });
+    }
+  });
+
+  // Inquiries
+  app.post("/api/marketplace/inquiries", isAuthenticated, async (req, res) => {
+    try {
+      const user = req.user as any;
+      const validatedData = insertMarketplaceInquirySchema.parse(req.body);
+      
+      // Get the listing to find the seller
+      const listing = await storage.getMarketplaceListing(validatedData.listingId);
+      if (!listing) {
+        return res.status(404).json({ message: "Listing not found" });
+      }
+
+      const inquiry = await storage.createMarketplaceInquiry({
+        ...validatedData,
+        buyerId: user.id,
+        sellerId: listing.sellerId,
+      });
+      
+      res.status(201).json(inquiry);
+    } catch (error) {
+      console.error("Error creating marketplace inquiry:", error);
+      res.status(400).json({ message: "Failed to create inquiry" });
+    }
+  });
+
+  app.get("/api/marketplace/inquiries/sent", isAuthenticated, async (req, res) => {
+    try {
+      const user = req.user as any;
+      const inquiries = await storage.getUserInquiries(user.id, 'sent');
+      res.json(inquiries);
+    } catch (error) {
+      console.error("Error fetching sent inquiries:", error);
+      res.status(500).json({ message: "Failed to fetch inquiries" });
+    }
+  });
+
+  app.get("/api/marketplace/inquiries/received", isAuthenticated, async (req, res) => {
+    try {
+      const user = req.user as any;
+      const inquiries = await storage.getUserInquiries(user.id, 'received');
+      res.json(inquiries);
+    } catch (error) {
+      console.error("Error fetching received inquiries:", error);
+      res.status(500).json({ message: "Failed to fetch inquiries" });
+    }
+  });
+
+  app.get("/api/marketplace/listings/:id/inquiries", isAuthenticated, async (req, res) => {
+    try {
+      const user = req.user as any;
+      const { id } = req.params;
+      
+      // Check if user owns the listing
+      const listing = await storage.getMarketplaceListing(id);
+      if (!listing || listing.sellerId !== user.id) {
+        return res.status(403).json({ message: "Not authorized to view inquiries for this listing" });
+      }
+
+      const inquiries = await storage.getListingInquiries(id);
+      res.json(inquiries);
+    } catch (error) {
+      console.error("Error fetching listing inquiries:", error);
+      res.status(500).json({ message: "Failed to fetch inquiries" });
+    }
+  });
+
+  app.put("/api/marketplace/inquiries/:id", isAuthenticated, async (req, res) => {
+    try {
+      const user = req.user as any;
+      const { id } = req.params;
+      
+      // Check if user owns the inquiry (seller side)
+      const inquiry = await storage.getMarketplaceInquiry(id);
+      if (!inquiry || inquiry.sellerId !== user.id) {
+        return res.status(403).json({ message: "Not authorized to update this inquiry" });
+      }
+
+      const updates = req.body;
+      const updatedInquiry = await storage.updateMarketplaceInquiry(id, updates);
+      res.json(updatedInquiry);
+    } catch (error) {
+      console.error("Error updating marketplace inquiry:", error);
+      res.status(400).json({ message: "Failed to update inquiry" });
+    }
+  });
+
+  // Favorites
+  app.post("/api/marketplace/favorites", isAuthenticated, async (req, res) => {
+    try {
+      const user = req.user as any;
+      const validatedData = insertMarketplaceFavoriteSchema.parse(req.body);
+      
+      const favorite = await storage.createMarketplaceFavorite({
+        ...validatedData,
+        userId: user.id,
+      });
+      
+      res.status(201).json(favorite);
+    } catch (error) {
+      console.error("Error creating marketplace favorite:", error);
+      res.status(400).json({ message: "Failed to add to favorites" });
+    }
+  });
+
+  app.delete("/api/marketplace/favorites/:listingId", isAuthenticated, async (req, res) => {
+    try {
+      const user = req.user as any;
+      const { listingId } = req.params;
+      
+      await storage.removeMarketplaceFavorite(user.id, listingId);
+      res.json({ message: "Removed from favorites" });
+    } catch (error) {
+      console.error("Error removing marketplace favorite:", error);
+      res.status(500).json({ message: "Failed to remove from favorites" });
+    }
+  });
+
+  app.get("/api/marketplace/favorites", isAuthenticated, async (req, res) => {
+    try {
+      const user = req.user as any;
+      const favorites = await storage.getUserFavorites(user.id);
+      res.json(favorites);
+    } catch (error) {
+      console.error("Error fetching marketplace favorites:", error);
+      res.status(500).json({ message: "Failed to fetch favorites" });
+    }
+  });
+
+  // Reports
+  app.post("/api/marketplace/reports", async (req, res) => {
+    try {
+      const user = req.user as any;
+      const validatedData = insertMarketplaceReportSchema.parse(req.body);
+      
+      const report = await storage.createMarketplaceReport({
+        ...validatedData,
+        reporterId: user?.id || null,
+      });
+      
+      res.status(201).json(report);
+    } catch (error) {
+      console.error("Error creating marketplace report:", error);
+      res.status(400).json({ message: "Failed to create report" });
+    }
+  });
+
+  app.get("/api/marketplace/admin/reports", isAuthenticated, isAdmin, async (req, res) => {
+    try {
+      const reports = await storage.getMarketplaceReports();
+      res.json(reports);
+    } catch (error) {
+      console.error("Error fetching marketplace reports:", error);
+      res.status(500).json({ message: "Failed to fetch reports" });
+    }
+  });
+
+  app.put("/api/marketplace/admin/reports/:id", isAuthenticated, isAdmin, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const updates = req.body;
+      
+      const report = await storage.updateMarketplaceReport(id, updates);
+      res.json(report);
+    } catch (error) {
+      console.error("Error updating marketplace report:", error);
+      res.status(400).json({ message: "Failed to update report" });
+    }
   });
 
   const httpServer = createServer(app);

@@ -20,6 +20,7 @@ export default function Navigation() {
   const navItems = [
     { href: "/contractors/board", label: "Find Contractors", public: true },
     { href: "/quote", label: "Get Estimate", public: true },
+    { href: "/marketplace", label: "Marketplace", public: true },
     ...(!isHomeowner ? [{ href: "/contractors", label: "For Contractors", public: true }] : []),
     { href: "/workers", label: "Helpers", public: true },
   ];

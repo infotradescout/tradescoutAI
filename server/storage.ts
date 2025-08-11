@@ -27,6 +27,11 @@ import {
   errorReports,
   contractorPromos,
   promoInteractions,
+  marketplaceCategories,
+  marketplaceListings,
+  marketplaceInquiries,
+  marketplaceFavorites,
+  marketplaceReports,
   type User,
   type InsertUser,
   type UpsertUser,
@@ -72,6 +77,16 @@ import {
   type InsertContractorPromo,
   type PromoInteraction,
   type InsertPromoInteraction,
+  type MarketplaceCategory,
+  type InsertMarketplaceCategory,
+  type MarketplaceListing,
+  type InsertMarketplaceListing,
+  type MarketplaceInquiry,
+  type InsertMarketplaceInquiry,
+  type MarketplaceFavorite,
+  type InsertMarketplaceFavorite,
+  type MarketplaceReport,
+  type InsertMarketplaceReport,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, desc, asc, sql, inArray, like, gt, or, lt, isNull, isNotNull } from "drizzle-orm";
@@ -224,6 +239,52 @@ export interface IStorage {
   incrementPromoView(promoId: string): Promise<void>;
   incrementPromoClick(promoId: string): Promise<void>;
   getActivePromosInArea(countyFips: string): Promise<ContractorPromo[]>;
+  
+  // Marketplace operations
+  // Categories
+  getMarketplaceCategories(): Promise<MarketplaceCategory[]>;
+  createMarketplaceCategory(category: InsertMarketplaceCategory): Promise<MarketplaceCategory>;
+  updateMarketplaceCategory(id: string, updates: Partial<MarketplaceCategory>): Promise<MarketplaceCategory>;
+  deleteMarketplaceCategory(id: string): Promise<void>;
+  
+  // Listings
+  getMarketplaceListings(filters?: {
+    categoryId?: string;
+    county?: string;
+    state?: string;
+    priceMin?: number;
+    priceMax?: number;
+    condition?: string;
+    searchQuery?: string;
+    sortBy?: 'price_asc' | 'price_desc' | 'date_desc' | 'date_asc';
+    limit?: number;
+    offset?: number;
+  }): Promise<MarketplaceListing[]>;
+  getMarketplaceListing(id: string): Promise<MarketplaceListing | undefined>;
+  getMarketplaceListingBySlug(slug: string): Promise<MarketplaceListing | undefined>;
+  createMarketplaceListing(listing: InsertMarketplaceListing): Promise<MarketplaceListing>;
+  updateMarketplaceListing(id: string, updates: Partial<MarketplaceListing>): Promise<MarketplaceListing>;
+  deleteMarketplaceListing(id: string): Promise<void>;
+  getUserListings(userId: string): Promise<MarketplaceListing[]>;
+  incrementListingView(listingId: string): Promise<void>;
+  generateListingSlug(title: string): Promise<string>;
+  
+  // Inquiries
+  createMarketplaceInquiry(inquiry: InsertMarketplaceInquiry): Promise<MarketplaceInquiry>;
+  getMarketplaceInquiry(id: string): Promise<MarketplaceInquiry | undefined>;
+  getListingInquiries(listingId: string): Promise<MarketplaceInquiry[]>;
+  getUserInquiries(userId: string, type: 'sent' | 'received'): Promise<MarketplaceInquiry[]>;
+  updateMarketplaceInquiry(id: string, updates: Partial<MarketplaceInquiry>): Promise<MarketplaceInquiry>;
+  
+  // Favorites
+  createMarketplaceFavorite(favorite: InsertMarketplaceFavorite): Promise<MarketplaceFavorite>;
+  removeMarketplaceFavorite(userId: string, listingId: string): Promise<void>;
+  getUserFavorites(userId: string): Promise<MarketplaceListing[]>;
+  
+  // Reports
+  createMarketplaceReport(report: InsertMarketplaceReport): Promise<MarketplaceReport>;
+  getMarketplaceReports(): Promise<MarketplaceReport[]>;
+  updateMarketplaceReport(id: string, updates: Partial<MarketplaceReport>): Promise<MarketplaceReport>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -1424,6 +1485,357 @@ export class DatabaseStorage implements IStorage {
         )
       )
       .orderBy(desc(contractorPromos.createdAt));
+  }
+
+  // Marketplace operations
+  // Categories
+  async getMarketplaceCategories(): Promise<MarketplaceCategory[]> {
+    return await db
+      .select()
+      .from(marketplaceCategories)
+      .where(eq(marketplaceCategories.isActive, true))
+      .orderBy(asc(marketplaceCategories.sortOrder), asc(marketplaceCategories.name));
+  }
+
+  async createMarketplaceCategory(categoryData: InsertMarketplaceCategory): Promise<MarketplaceCategory> {
+    const [category] = await db.insert(marketplaceCategories).values(categoryData).returning();
+    return category;
+  }
+
+  async updateMarketplaceCategory(id: string, updates: Partial<MarketplaceCategory>): Promise<MarketplaceCategory> {
+    const [category] = await db
+      .update(marketplaceCategories)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(marketplaceCategories.id, id))
+      .returning();
+    return category;
+  }
+
+  async deleteMarketplaceCategory(id: string): Promise<void> {
+    await db.delete(marketplaceCategories).where(eq(marketplaceCategories.id, id));
+  }
+
+  // Listings
+  async getMarketplaceListings(filters: {
+    categoryId?: string;
+    county?: string;
+    state?: string;
+    priceMin?: number;
+    priceMax?: number;
+    condition?: string;
+    searchQuery?: string;
+    sortBy?: 'price_asc' | 'price_desc' | 'date_desc' | 'date_asc';
+    limit?: number;
+    offset?: number;
+  } = {}): Promise<MarketplaceListing[]> {
+    let query = db
+      .select()
+      .from(marketplaceListings)
+      .where(eq(marketplaceListings.status, 'active'));
+
+    // Apply filters
+    const conditions = [eq(marketplaceListings.status, 'active')];
+
+    if (filters.categoryId) {
+      conditions.push(eq(marketplaceListings.categoryId, filters.categoryId));
+    }
+    if (filters.county) {
+      conditions.push(eq(marketplaceListings.county, filters.county));
+    }
+    if (filters.state) {
+      conditions.push(eq(marketplaceListings.state, filters.state));
+    }
+    if (filters.condition) {
+      conditions.push(eq(marketplaceListings.condition, filters.condition));
+    }
+    if (filters.priceMin !== undefined) {
+      conditions.push(sql`${marketplaceListings.price} >= ${filters.priceMin}`);
+    }
+    if (filters.priceMax !== undefined) {
+      conditions.push(sql`${marketplaceListings.price} <= ${filters.priceMax}`);
+    }
+    if (filters.searchQuery) {
+      conditions.push(
+        or(
+          like(marketplaceListings.title, `%${filters.searchQuery}%`),
+          like(marketplaceListings.description, `%${filters.searchQuery}%`),
+          like(marketplaceListings.brand, `%${filters.searchQuery}%`),
+          like(marketplaceListings.model, `%${filters.searchQuery}%`)
+        )
+      );
+    }
+
+    query = query.where(and(...conditions));
+
+    // Apply sorting
+    switch (filters.sortBy) {
+      case 'price_asc':
+        query = query.orderBy(asc(marketplaceListings.price));
+        break;
+      case 'price_desc':
+        query = query.orderBy(desc(marketplaceListings.price));
+        break;
+      case 'date_asc':
+        query = query.orderBy(asc(marketplaceListings.createdAt));
+        break;
+      case 'date_desc':
+      default:
+        query = query.orderBy(desc(marketplaceListings.createdAt));
+        break;
+    }
+
+    // Apply pagination
+    if (filters.offset) {
+      query = query.offset(filters.offset);
+    }
+    if (filters.limit) {
+      query = query.limit(filters.limit);
+    }
+
+    return await query;
+  }
+
+  async getMarketplaceListing(id: string): Promise<MarketplaceListing | undefined> {
+    const [listing] = await db
+      .select()
+      .from(marketplaceListings)
+      .where(eq(marketplaceListings.id, id));
+    return listing;
+  }
+
+  async getMarketplaceListingBySlug(slug: string): Promise<MarketplaceListing | undefined> {
+    const [listing] = await db
+      .select()
+      .from(marketplaceListings)
+      .where(eq(marketplaceListings.slug, slug));
+    return listing;
+  }
+
+  async createMarketplaceListing(listingData: InsertMarketplaceListing): Promise<MarketplaceListing> {
+    // Generate slug from title
+    const slug = await this.generateListingSlug(listingData.title);
+    
+    const [listing] = await db
+      .insert(marketplaceListings)
+      .values({ ...listingData, slug })
+      .returning();
+    return listing;
+  }
+
+  async updateMarketplaceListing(id: string, updates: Partial<MarketplaceListing>): Promise<MarketplaceListing> {
+    const [listing] = await db
+      .update(marketplaceListings)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(marketplaceListings.id, id))
+      .returning();
+    return listing;
+  }
+
+  async deleteMarketplaceListing(id: string): Promise<void> {
+    await db.delete(marketplaceListings).where(eq(marketplaceListings.id, id));
+  }
+
+  async getUserListings(userId: string): Promise<MarketplaceListing[]> {
+    return await db
+      .select()
+      .from(marketplaceListings)
+      .where(eq(marketplaceListings.sellerId, userId))
+      .orderBy(desc(marketplaceListings.createdAt));
+  }
+
+  async incrementListingView(listingId: string): Promise<void> {
+    await db
+      .update(marketplaceListings)
+      .set({ 
+        viewCount: sql`${marketplaceListings.viewCount} + 1`,
+        updatedAt: new Date()
+      })
+      .where(eq(marketplaceListings.id, listingId));
+  }
+
+  async generateListingSlug(title: string): Promise<string> {
+    const baseSlug = title
+      .toLowerCase()
+      .replace(/[^a-z0-9\s-]/g, '')
+      .replace(/\s+/g, '-')
+      .replace(/-+/g, '-')
+      .slice(0, 60);
+
+    let slug = baseSlug;
+    let counter = 0;
+
+    while (true) {
+      const existing = await db
+        .select()
+        .from(marketplaceListings)
+        .where(eq(marketplaceListings.slug, slug))
+        .limit(1);
+
+      if (existing.length === 0) {
+        return slug;
+      }
+
+      counter++;
+      slug = `${baseSlug}-${counter}`;
+    }
+  }
+
+  // Inquiries
+  async createMarketplaceInquiry(inquiryData: InsertMarketplaceInquiry): Promise<MarketplaceInquiry> {
+    const [inquiry] = await db.insert(marketplaceInquiries).values(inquiryData).returning();
+    
+    // Increment contact count for the listing
+    await db
+      .update(marketplaceListings)
+      .set({ 
+        contactCount: sql`${marketplaceListings.contactCount} + 1`,
+        updatedAt: new Date()
+      })
+      .where(eq(marketplaceListings.id, inquiryData.listingId));
+    
+    return inquiry;
+  }
+
+  async getMarketplaceInquiry(id: string): Promise<MarketplaceInquiry | undefined> {
+    const [inquiry] = await db
+      .select()
+      .from(marketplaceInquiries)
+      .where(eq(marketplaceInquiries.id, id));
+    return inquiry;
+  }
+
+  async getListingInquiries(listingId: string): Promise<MarketplaceInquiry[]> {
+    return await db
+      .select()
+      .from(marketplaceInquiries)
+      .where(eq(marketplaceInquiries.listingId, listingId))
+      .orderBy(desc(marketplaceInquiries.createdAt));
+  }
+
+  async getUserInquiries(userId: string, type: 'sent' | 'received'): Promise<MarketplaceInquiry[]> {
+    const condition = type === 'sent' 
+      ? eq(marketplaceInquiries.buyerId, userId)
+      : eq(marketplaceInquiries.sellerId, userId);
+
+    return await db
+      .select()
+      .from(marketplaceInquiries)
+      .where(condition)
+      .orderBy(desc(marketplaceInquiries.createdAt));
+  }
+
+  async updateMarketplaceInquiry(id: string, updates: Partial<MarketplaceInquiry>): Promise<MarketplaceInquiry> {
+    const [inquiry] = await db
+      .update(marketplaceInquiries)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(marketplaceInquiries.id, id))
+      .returning();
+    return inquiry;
+  }
+
+  // Favorites
+  async createMarketplaceFavorite(favoriteData: InsertMarketplaceFavorite): Promise<MarketplaceFavorite> {
+    const [favorite] = await db.insert(marketplaceFavorites).values(favoriteData).returning();
+    
+    // Increment favorite count for the listing
+    await db
+      .update(marketplaceListings)
+      .set({ 
+        favoriteCount: sql`${marketplaceListings.favoriteCount} + 1`,
+        updatedAt: new Date()
+      })
+      .where(eq(marketplaceListings.id, favoriteData.listingId));
+    
+    return favorite;
+  }
+
+  async removeMarketplaceFavorite(userId: string, listingId: string): Promise<void> {
+    await db
+      .delete(marketplaceFavorites)
+      .where(
+        and(
+          eq(marketplaceFavorites.userId, userId),
+          eq(marketplaceFavorites.listingId, listingId)
+        )
+      );
+    
+    // Decrement favorite count for the listing
+    await db
+      .update(marketplaceListings)
+      .set({ 
+        favoriteCount: sql`${marketplaceListings.favoriteCount} - 1`,
+        updatedAt: new Date()
+      })
+      .where(eq(marketplaceListings.id, listingId));
+  }
+
+  async getUserFavorites(userId: string): Promise<MarketplaceListing[]> {
+    return await db
+      .select({
+        id: marketplaceListings.id,
+        sellerId: marketplaceListings.sellerId,
+        categoryId: marketplaceListings.categoryId,
+        title: marketplaceListings.title,
+        description: marketplaceListings.description,
+        price: marketplaceListings.price,
+        priceType: marketplaceListings.priceType,
+        originalPrice: marketplaceListings.originalPrice,
+        county: marketplaceListings.county,
+        state: marketplaceListings.state,
+        city: marketplaceListings.city,
+        zipCode: marketplaceListings.zipCode,
+        isLocalPickupOnly: marketplaceListings.isLocalPickupOnly,
+        willShip: marketplaceListings.willShip,
+        shippingCost: marketplaceListings.shippingCost,
+        condition: marketplaceListings.condition,
+        brand: marketplaceListings.brand,
+        model: marketplaceListings.model,
+        year: marketplaceListings.year,
+        mileage: marketplaceListings.mileage,
+        hours: marketplaceListings.hours,
+        specifications: marketplaceListings.specifications,
+        images: marketplaceListings.images,
+        primaryImageIndex: marketplaceListings.primaryImageIndex,
+        videoUrl: marketplaceListings.videoUrl,
+        status: marketplaceListings.status,
+        isPromoted: marketplaceListings.isPromoted,
+        promotedUntil: marketplaceListings.promotedUntil,
+        viewCount: marketplaceListings.viewCount,
+        favoriteCount: marketplaceListings.favoriteCount,
+        contactCount: marketplaceListings.contactCount,
+        slug: marketplaceListings.slug,
+        metaDescription: marketplaceListings.metaDescription,
+        tags: marketplaceListings.tags,
+        expiresAt: marketplaceListings.expiresAt,
+        createdAt: marketplaceListings.createdAt,
+        updatedAt: marketplaceListings.updatedAt,
+      })
+      .from(marketplaceFavorites)
+      .innerJoin(marketplaceListings, eq(marketplaceFavorites.listingId, marketplaceListings.id))
+      .where(eq(marketplaceFavorites.userId, userId))
+      .orderBy(desc(marketplaceFavorites.createdAt));
+  }
+
+  // Reports
+  async createMarketplaceReport(reportData: InsertMarketplaceReport): Promise<MarketplaceReport> {
+    const [report] = await db.insert(marketplaceReports).values(reportData).returning();
+    return report;
+  }
+
+  async getMarketplaceReports(): Promise<MarketplaceReport[]> {
+    return await db
+      .select()
+      .from(marketplaceReports)
+      .orderBy(desc(marketplaceReports.createdAt));
+  }
+
+  async updateMarketplaceReport(id: string, updates: Partial<MarketplaceReport>): Promise<MarketplaceReport> {
+    const [report] = await db
+      .update(marketplaceReports)
+      .set(updates)
+      .where(eq(marketplaceReports.id, id))
+      .returning();
+    return report;
   }
 }
 

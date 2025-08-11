@@ -32,6 +32,7 @@ import AdminPanel from "@/pages/admin-panel";
 import ContractorPromos from "@/pages/contractor-promos";
 import PromoPublic from "@/pages/promo-public";
 import Chat from "@/pages/chat";
+import Marketplace from "@/pages/marketplace";
 import SavedAds from "@/pages/saved-ads";
 import ProfileSetup from "@/pages/profile-setup";
 import AdminUsers from "@/pages/admin-users";
@@ -72,6 +73,7 @@ function Router() {
         <Route path="/growth-pack" component={GrowthPack} />
         <Route path="/workers" component={WorkerMarketplace} />
         <Route path="/worker-marketplace" component={WorkerMarketplace} />
+        <Route path="/marketplace" component={Marketplace} />
         <Route path="/promo/:slug" component={PromoPublic} />
         
         {!isAuthenticated ? (
