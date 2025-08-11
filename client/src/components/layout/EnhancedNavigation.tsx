@@ -5,6 +5,7 @@ import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { RoleBasedNavigation, UserMenu } from "@/components/navigation/RoleBasedNavigation";
 import { useAuth } from "@/hooks/useAuth";
 import { Menu, X } from "lucide-react";
+import { ConstructionEmblem } from "@/components/ConstructionEmblem";
 
 interface EnhancedNavigationProps {
   className?: string;
@@ -33,8 +34,8 @@ export function EnhancedNavigation({ className = "" }: EnhancedNavigationProps) 
             </div>
             <div className="flex items-center space-x-2">
               <span className="text-2xl font-bold text-white tracking-tight">TradeScout</span>
-              <div className="w-8 h-8 bg-gradient-to-br from-yellow-400 to-yellow-600 rounded-full flex items-center justify-center shadow-md border-2 border-yellow-300/20">
-                <span className="text-lg">🏅</span>
+              <div className="w-8 h-8">
+                <ConstructionEmblem className="w-full h-full" />
               </div>
             </div>
           </div>
