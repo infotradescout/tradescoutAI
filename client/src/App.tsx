@@ -119,6 +119,7 @@ function Router() {
         <Route path="/community" component={Community} />
         <Route path="/community/moderation" component={CommunityModerationDemo} />
         <Route path="/register" component={Register} />
+        <Route path="/setup" component={MasterAdminSetup} />
         <Route path="/foundation" component={Foundation} />
         <Route path="/promo/:slug" component={PromoPublic} />
         
