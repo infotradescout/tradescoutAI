@@ -95,7 +95,7 @@ export function StrategicAdPlacement({
         };
       case 'contractor-list':
         return {
-          title: 'Protect Your Investment',
+          title: 'Protect Your Purchase',
           description: 'Home warranty coverage for all contractor work',
           cta: 'Get Protected',
           partner: 'HomeGuard Warranty'

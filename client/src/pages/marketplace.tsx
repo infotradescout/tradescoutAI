@@ -116,7 +116,7 @@ export default function Marketplace() {
           <div className="flex items-center justify-center space-x-8 text-sm">
             <span className="flex items-center">
               <TrendingUp className="h-4 w-4 mr-2" />
-              High-Value Items from Trusted Sellers
+              Quality Items from Trusted Sellers
             </span>
             <span className="flex items-center">
               <Shield className="h-4 w-4 mr-2" />
@@ -139,7 +139,7 @@ export default function Marketplace() {
                 Exchange Hub
               </h1>
               <p className="text-gray-600 dark:text-gray-300 mt-1">
-                Premium equipment, vehicles, and valuable items from trusted sellers
+                Quality equipment, vehicles, and items from trusted sellers
               </p>
               <div className="flex items-center space-x-6 mt-2 text-sm text-green-600 dark:text-green-400">
                 <span className="flex items-center">
@@ -234,18 +234,18 @@ export default function Marketplace() {
                 </div>
 
                 <div>
-                  <label className="text-sm font-medium mb-2 block">Asset Class</label>
+                  <label className="text-sm font-medium mb-2 block">Category</label>
                   <Select value={selectedCategory} onValueChange={setSelectedCategory}>
                     <SelectTrigger>
-                      <SelectValue placeholder="All Asset Classes" />
+                      <SelectValue placeholder="All Categories" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="all">All Asset Classes</SelectItem>
+                      <SelectItem value="all">All Categories</SelectItem>
                       {categories.map((category) => (
                         <SelectItem key={category.id} value={category.id}>
                           <div className="flex items-center justify-between w-full">
                             <div className="flex items-center">
-                              {getCategoryIcon(category.iconName)}
+                              {getCategoryIcon(category.iconName || 'Package')}
                               <span className="ml-2">{category.name}</span>
                             </div>
                             {category.requiresVerification && (
@@ -262,33 +262,33 @@ export default function Marketplace() {
                 </div>
 
                 <div>
-                  <label className="text-sm font-medium mb-2 block">Asset Quality</label>
+                  <label className="text-sm font-medium mb-2 block">Condition</label>
                   <Select value={selectedCondition} onValueChange={setSelectedCondition}>
                     <SelectTrigger>
                       <SelectValue placeholder="All Conditions" />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="all">All Conditions</SelectItem>
-                      <SelectItem value="new">Premium (New)</SelectItem>
-                      <SelectItem value="like_new">Excellent (Like New)</SelectItem>
-                      <SelectItem value="good">Solid Investment (Good)</SelectItem>
-                      <SelectItem value="fair">Value Opportunity (Fair)</SelectItem>
-                      <SelectItem value="poor">Project Asset (Poor)</SelectItem>
+                      <SelectItem value="new">New</SelectItem>
+                      <SelectItem value="like_new">Like New</SelectItem>
+                      <SelectItem value="good">Good</SelectItem>
+                      <SelectItem value="fair">Fair</SelectItem>
+                      <SelectItem value="poor">Needs Work</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
 
                 <div>
-                  <label className="text-sm font-medium mb-2 block">Investment Range</label>
+                  <label className="text-sm font-medium mb-2 block">Price Range</label>
                   <div className="grid grid-cols-2 gap-2">
                     <Input
-                      placeholder="Min Investment"
+                      placeholder="Min Price"
                       value={priceMin}
                       onChange={(e) => setPriceMin(e.target.value)}
                       type="number"
                     />
                     <Input
-                      placeholder="Max Investment"
+                      placeholder="Max Price"
                       value={priceMax}
                       onChange={(e) => setPriceMax(e.target.value)}
                       type="number"
@@ -314,10 +314,10 @@ export default function Marketplace() {
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="date_desc">Latest Opportunities</SelectItem>
-                      <SelectItem value="date_asc">Established Assets</SelectItem>
-                      <SelectItem value="price_asc">Entry-Level Investments</SelectItem>
-                      <SelectItem value="price_desc">Premium Assets</SelectItem>
+                      <SelectItem value="date_desc">Newest First</SelectItem>
+                      <SelectItem value="date_asc">Oldest First</SelectItem>
+                      <SelectItem value="price_asc">Price: Low to High</SelectItem>
+                      <SelectItem value="price_desc">Price: High to Low</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -345,14 +345,14 @@ export default function Marketplace() {
                 <CardContent>
                   <TrendingUp className="h-12 w-12 text-emerald-400 mx-auto mb-4" />
                   <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
-                    No investment opportunities found
+                    No items found
                   </h3>
                   <p className="text-gray-600 dark:text-gray-300 mb-4">
-                    Adjust your investment criteria or be the first to list a high-value asset for wealth building.
+                    Adjust your search criteria or be the first to list an item for sale.
                   </p>
                   <Button onClick={() => setLocation("/marketplace/sell")} className="bg-emerald-600 hover:bg-emerald-700">
                     <Plus className="h-4 w-4 mr-2" />
-                    List Investment Asset
+                    List Item
                   </Button>
                 </CardContent>
               </Card>
@@ -388,13 +388,13 @@ export default function Marketplace() {
                           {formatLocationString(listing)}
                         </div>
                         
-                        {/* Investment Metrics */}
+                        {/* Quality Indicators */}
                         <div className="flex space-x-1 mb-3">
                           <Badge variant="outline" className="text-xs text-green-600 border-green-300 bg-green-50 dark:bg-green-900/20">
-                            Tax Benefits
+                            Quality Item
                           </Badge>
                           <Badge variant="outline" className="text-xs text-blue-600 border-blue-300 bg-blue-50 dark:bg-blue-900/20">
-                            Appreciation Asset
+                            Verified Seller
                           </Badge>
                         </div>
                         
@@ -402,10 +402,10 @@ export default function Marketplace() {
                           <div className="space-y-1">
                             <div className="flex items-center text-lg font-bold text-emerald-600 dark:text-emerald-400">
                               <DollarSign className="h-4 w-4" />
-                              {formatPrice(Number(listing.price), listing.priceType)}
+                              {formatPrice(Number(listing.price), listing.priceType || 'fixed')}
                             </div>
                             <div className="text-xs text-green-600 dark:text-green-400">
-                              Smart Investment
+                              Great Deal
                             </div>
                           </div>
                           <div className="text-right space-y-1">
@@ -420,19 +420,19 @@ export default function Marketplace() {
                               </div>
                             </div>
                             <div className="text-xs text-emerald-600 dark:text-emerald-400">
-                              Est. 8-12% ROI
+                              Quality Rated
                             </div>
                           </div>
                         </div>
                         <div className="mt-3 flex justify-between items-center">
                           <Badge variant="secondary" className="capitalize">
-                            {listing.condition === 'new' ? 'Premium Asset' :
-                             listing.condition === 'like_new' ? 'Excellent Quality' :
-                             listing.condition === 'good' ? 'Solid Investment' :
-                             listing.condition === 'fair' ? 'Value Opportunity' : 'Project Asset'}
+                            {listing.condition === 'new' ? 'New' :
+                             listing.condition === 'like_new' ? 'Like New' :
+                             listing.condition === 'good' ? 'Good Condition' :
+                             listing.condition === 'fair' ? 'Fair Condition' : 'Needs Work'}
                           </Badge>
                           <div className="text-xs text-gray-500">
-                            Wealth Building
+                            Quality Item
                           </div>
                         </div>
                       </CardContent>
