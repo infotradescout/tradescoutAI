@@ -6,6 +6,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { useAuth } from "@/hooks/useAuth";
 import { ErrorBoundary } from "@/components/ui/error-boundary";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
+import { lazy } from "react";
 
 import Navigation from "@/components/layout/navigation";
 import MobileCTA from "@/components/mobile-cta";
@@ -47,6 +48,7 @@ import { ProfileSetupRedirect } from "@/components/profile-setup-redirect";
 import { FloatingBugReport } from "@/components/FloatingBugReport";
 import { BetaNotificationPopup } from "@/components/BetaNotificationPopup";
 import { AddressVerificationBanner } from "@/components/AddressVerificationBanner";
+import { LegalFooter } from "@/components/footer/legal-footer";
 
 function Router() {
   const { isAuthenticated, isLoading } = useAuth();
@@ -84,6 +86,12 @@ function Router() {
         <Route path="/leaderboard" component={Leaderboard} />
         <Route path="/community" component={Community} />
         <Route path="/promo/:slug" component={PromoPublic} />
+        
+        {/* Legal Pages */}
+        <Route path="/legal/privacy-policy" component={lazy(() => import("./pages/legal/privacy-policy"))} />
+        <Route path="/legal/terms-of-service" component={lazy(() => import("./pages/legal/terms-of-service"))} />
+        <Route path="/legal/compliance" component={lazy(() => import("./pages/legal/compliance"))} />
+        <Route path="/legal/cookie-policy" component={lazy(() => import("./pages/legal/cookie-policy"))} />
         
         {!isAuthenticated ? (
           <>
@@ -136,6 +144,7 @@ function Router() {
       <MobileCTA />
       <FloatingBugReport />
       <BetaNotificationPopup />
+      <LegalFooter />
     </div>
   );
 }
