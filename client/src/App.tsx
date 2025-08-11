@@ -4,6 +4,7 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { useAuth } from "@/hooks/useAuth";
+import { useSetupStatus } from "@/hooks/useSetupStatus";
 import { ErrorBoundary } from "@/components/ui/error-boundary";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { lazy } from "react";
@@ -16,7 +17,7 @@ import Landing from "@/pages/landing";
 import SafeLanding from "@/pages/safe-landing";
 import Home from "@/pages/home";
 import Foundation from "@/pages/foundation";
-import { MasterAdminSetup } from "@/components/MasterAdminSetup";
+import MasterAdminSetup from "@/components/auth/MasterAdminSetup";
 import RoleDirectory from "@/pages/RoleDirectory";
 import Dashboard from "@/pages/dashboard";
 import HomeownerDashboard from "@/pages/homeowner-dashboard";
@@ -71,8 +72,9 @@ import { LegalFooter } from "@/components/footer/legal-footer";
 
 function Router() {
   const { isAuthenticated, isLoading } = useAuth();
+  const { needsSetup, isLoading: setupLoading } = useSetupStatus();
 
-  if (isLoading) {
+  if (isLoading || setupLoading) {
     return (
       <div className="min-h-screen gradient-bg flex items-center justify-center">
         <div className="text-center">
@@ -83,13 +85,19 @@ function Router() {
     );
   }
 
+  // If platform needs setup and we're not already on the setup page, redirect to setup
+  if (needsSetup && window.location.pathname !== '/setup') {
+    window.location.href = '/setup';
+    return <LoadingSpinner />;
+  }
+
   return (
     <div className="min-h-screen gradient-bg text-gray-100">
       <EnhancedNavigation />
       {isAuthenticated && <AddressVerificationBanner />}
       <Switch>
         {/* Master Admin Setup - Only shows if no admin exists */}
-        <Route path="/setup" component={() => <MasterAdminSetup />} />
+        <Route path="/setup" component={MasterAdminSetup} />
         
         {/* Authentication routes */}
         <Route path="/login" component={Login} />

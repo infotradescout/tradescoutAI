@@ -256,6 +256,7 @@ export interface IStorage {
   getUserByEmail(email: string): Promise<User | undefined>;
   getUserByRole(role: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
+  createMasterAdmin(email: string, password: string, firstName: string, lastName: string): Promise<User>;
   updateUser(id: string, updates: Partial<User>): Promise<User>;
   upsertUser(user: UpsertUser): Promise<User>;
   deleteUser(userId: string): Promise<void>;
@@ -721,6 +722,24 @@ export class DatabaseStorage implements IStorage {
 
   async getAllUsers(): Promise<User[]> {
     return await db.select().from(users).orderBy(desc(users.createdAt));
+  }
+
+  async createMasterAdmin(email: string, password: string, firstName: string, lastName: string): Promise<User> {
+    const hashedPassword = await bcrypt.hash(password, 10);
+    const [user] = await db
+      .insert(users)
+      .values({
+        email,
+        password: hashedPassword,
+        firstName,
+        lastName,
+        role: 'head_admin',
+        emailVerified: true, // Master admin is pre-verified
+        addressVerified: true,
+        address: 'Platform Administrator' // Default address for master admin
+      })
+      .returning();
+    return user;
   }
 
   // Contractor operations

@@ -160,7 +160,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     });
   });
 
-  app.get("/auth/user", (req, res) => {
+  app.get("/api/auth/user", (req, res) => {
     if (req.isAuthenticated()) {
       res.json(req.user);
     } else {
@@ -168,8 +168,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Check if platform setup is needed
+  app.get("/api/auth/setup-status", async (req, res) => {
+    try {
+      const existingHeadAdmin = await storage.getUserByRole('head_admin');
+      res.json({ needsSetup: !existingHeadAdmin });
+    } catch (error) {
+      console.error("Setup status check error:", error);
+      res.status(500).json({ message: "Failed to check setup status" });
+    }
+  });
+
   // Master admin setup route (only works if no head_admin exists)
-  app.post("/auth/setup-master", async (req, res) => {
+  app.post("/api/auth/setup-master", async (req, res) => {
     try {
       const { email, password, firstName, lastName } = req.body;
       
@@ -179,7 +190,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).json({ message: "Master admin already exists" });
       }
 
-      const masterAdmin = await createMasterAdmin(email, password, firstName, lastName);
+      const masterAdmin = await storage.createMasterAdmin(email, password, firstName, lastName);
       
       // Auto-login the master admin
       req.login(masterAdmin, (err) => {
