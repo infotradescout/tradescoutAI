@@ -1,0 +1,160 @@
+2025-08-10 19:12:55.29
+ea5428ff
+User
+internalQuery: undefined,
+2025-08-10 19:12:55.29
+ea5428ff
+User
+where: undefined,
+2025-08-10 19:12:55.29
+ea5428ff
+User
+schema: undefined,
+2025-08-10 19:12:55.29
+ea5428ff
+User
+table: undefined,
+2025-08-10 19:12:55.29
+ea5428ff
+User
+column: undefined,
+2025-08-10 19:12:55.29
+ea5428ff
+User
+dataType: undefined,
+2025-08-10 19:12:55.29
+ea5428ff
+User
+constraint: undefined,
+2025-08-10 19:12:55.29
+ea5428ff
+User
+file: 'parse_relation.c',
+2025-08-10 19:12:55.29
+ea5428ff
+User
+line: '1449',
+2025-08-10 19:12:55.29
+ea5428ff
+User
+routine: 'parserOpenTable'
+2025-08-10 19:12:55.29
+ea5428ff
+User
+}
+2025-08-10 19:12:55.29
+ea5428ff
+User
+12:12:55 AM [express] POST /api/error-reports 500 in 202ms :: {"message":"Failed to submit error repo…
+2025-08-10 19:15:41.54
+ea5428ff
+User
+12:15:41 AM [express] GET /api/ads/site-visit/homeowners/CA/Los%20Angeles%20County 304 in 1ms
+2025-08-10 19:18:47.67
+ea5428ff
+User
+12:18:47 AM [express] GET /api/auth/user 401 in 1ms :: {"message":"Not authenticated"}
+2025-08-10 19:18:47.86
+ea5428ff
+User
+12:18:47 AM [express] GET /api/admin/prizes 401 in 1ms :: {"message":"Authentication required"}
+2025-08-10 19:18:47.88
+ea5428ff
+User
+12:18:47 AM [express] GET /api/admin/site-settings 401 in 1ms :: {"message":"Authentication required"}
+2025-08-10 19:18:47.98
+ea5428ff
+User
+12:18:47 AM [express] GET /api/ads/site-visit/homeowners/ 200 in 3ms
+2025-08-10 19:18:47.98
+ea5428ff
+User
+12:18:47 AM [express] GET /api/ads/site-visit/homeowners/CA/Los%20Angeles%20County 200 in 3ms
+2025-08-10 19:38:56.99
+ea5428ff
+User
+Processing saved ad reminders...
+2025-08-10 19:38:58.13
+ea5428ff
+User
+No saved ads requiring reminders
+2025-08-10 19:49:03.54
+ea5428ff
+User
+12:49:03 AM [express] GET /api/auth/user 401 in 0ms :: {"message":"Not authenticated"}
+2025-08-10 19:49:03.71
+ea5428ff
+User
+12:49:03 AM [express] GET /api/admin/prizes 401 in 1ms :: {"message":"Authentication required"}
+2025-08-10 19:49:03.73
+ea5428ff
+User
+12:49:03 AM [express] GET /api/admin/site-settings 401 in 0ms :: {"message":"Authentication required"}
+2025-08-10 19:49:03.75
+ea5428ff
+User
+12:49:03 AM [express] GET /api/ads/site-visit/homeowners/CA/Los%20Angeles%20County 200 in 1ms
+2025-08-10 19:49:03.83
+ea5428ff
+User
+12:49:03 AM [express] GET /api/ads/site-visit/homeowners/ 200 in 2ms
+2025-08-10 20:05:11.22
+ea5428ff
+User
+1:05:11 AM [express] GET /api/auth/user 401 in 3ms :: {"message":"Not authenticated"}
+2025-08-10 20:05:11.32
+ea5428ff
+User
+1:05:11 AM [express] GET /api/admin/site-settings 401 in 2ms :: {"message":"Authentication required"}
+2025-08-10 20:05:11.32
+ea5428ff
+User
+1:05:11 AM [express] GET /api/admin/prizes 401 in 0ms :: {"message":"Authentication required"}
+2025-08-10 20:05:11.41
+ea5428ff
+User
+1:05:11 AM [express] GET /api/ads/site-visit/homeowners/CA/Los%20Angeles%20County 200 in 8ms
+2025-08-10 20:05:11.41
+ea5428ff
+User
+1:05:11 AM [express] GET /api/ads/site-visit/homeowners/ 200 in 9ms
+2025-08-10 20:05:20.17
+ea5428ff
+User
+1:05:20 AM [express] GET /api/trades 200 in 1ms :: [{"id":"general-contractor","name":"General Contr…
+2025-08-10 20:05:20.17
+ea5428ff
+User
+1:05:20 AM [express] GET /api/trades/[object%20Object] 200 in 3ms
+2025-08-10 20:05:20.18
+ea5428ff
+User
+1:05:20 AM [express] GET /api/counties 200 in 3ms :: [{"name":"Alameda County","fips":"06001","state…
+2025-08-10 20:05:20.75
+ea5428ff
+User
+1:05:20 AM [express] GET /api/contractors 200 in 584ms :: [{"id":"elite-roofing-la","userId":null,"c…
+2025-08-10 20:05:35.54
+ea5428ff
+User
+1:05:35 AM [express] GET /api/auth/user 401 in 1ms :: {"message":"Not authenticated"}
+2025-08-10 20:05:35.61
+ea5428ff
+User
+1:05:35 AM [express] GET /api/admin/prizes 401 in 1ms :: {"message":"Authentication required"}
+2025-08-10 20:05:35.61
+ea5428ff
+User
+1:05:35 AM [express] GET /api/admin/site-settings 401 in 1ms :: {"message":"Authentication required"}
+2025-08-10 20:05:35.63
+ea5428ff
+User
+1:05:35 AM [express] GET /api/ads/site-visit/homeowners/CA/Los%20Angeles%20County 200 in 3ms
+2025-08-10 20:05:35.69
+ea5428ff
+User
+1:05:35 AM [express] GET /api/ads/site-visit/homeowners/ 200 in 2ms
+2025-08-10 20:05:37.22
+ea5428ff
+User
+1:05:37 

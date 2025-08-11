@@ -1237,7 +1237,7 @@ export const marketplaceListings = pgTable("marketplace_listings", {
     breed?: string;
     age?: string;
     gender?: string;
-    weight?: string;
+    animalWeight?: string;
     vaccinated?: boolean;
     registered?: boolean;
     

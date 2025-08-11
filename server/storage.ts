@@ -210,9 +210,11 @@ export interface IStorage {
   
   // Leaderboard operations
   updateContractorLeaderboardStats(contractorId: string, rating: number): Promise<void>;
-  getMonthlyLeaderboard(month: number, year: number, limit: number): Promise<any[]>;
-  getLifetimeLeaderboard(limit: number): Promise<any[]>;
+  getMonthlyLeaderboard(month: number, year: number, limit: number, state?: string, county?: string): Promise<any[]>;
+  getLifetimeLeaderboard(limit: number, state?: string, county?: string): Promise<any[]>;
   getContractorLeaderboardPosition(contractorId: string): Promise<any>;
+  getAllStates(): Promise<{ code: string; name: string }[]>;
+  getCountiesByState(stateCode: string): Promise<{ id: string; name: string; stateCode: string }[]>;
   
   // Lead operations
   createLead(lead: InsertLead): Promise<Lead>;
@@ -3200,101 +3202,124 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getMonthlyLeaderboard(month: number, year: number, limit: number, state?: string, county?: string): Promise<any[]> {
-    let query = db
-      .select({
-        contractorId: contractorLeaderboardStats.contractorId,
-        companyName: contractors.companyName,
-        slug: contractors.slug,
-        monthlyRecommendations: contractorLeaderboardStats.monthlyRecommendations,
-        monthlyRating: contractorLeaderboardStats.monthlyRating,
-        lifetimeRecommendations: contractorLeaderboardStats.lifetimeRecommendations,
-        location: sql<string>`CASE 
-          WHEN ${contractors.city} IS NOT NULL AND ${contractors.state} IS NOT NULL 
-          THEN CONCAT(${contractors.city}, ', ', ${contractors.state})
-          WHEN ${contractors.state} IS NOT NULL 
-          THEN ${contractors.state}
-          ELSE NULL
-        END`.as('location'),
-        county: contractors.primaryCounty,
-        state: contractors.state,
-      })
-      .from(contractorLeaderboardStats)
-      .innerJoin(contractors, eq(contractorLeaderboardStats.contractorId, contractors.id));
+    try {
+      // Use direct SQL with pool.query to avoid Drizzle issues
+      const { Pool } = await import('@neondatabase/serverless');
+      const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+      
+      let query = `
+        SELECT 
+          cls.contractor_id,
+          c.company_name,
+          c.slug,
+          cls.monthly_recommendations,
+          cls.monthly_rating,
+          cls.lifetime_recommendations,
+          u.city,
+          u.state
+        FROM contractor_leaderboard_stats cls
+        INNER JOIN contractors c ON cls.contractor_id = c.id
+        LEFT JOIN users u ON c.user_id = u.id
+        WHERE cls.month = $1 
+          AND cls.year = $2 
+          AND c.is_active = true
+      `;
 
-    // Build where conditions
-    const conditions = [
-      eq(contractorLeaderboardStats.month, month),
-      eq(contractorLeaderboardStats.year, year),
-      eq(contractors.isActive, true)
-    ];
+      const params = [month, year];
+      if (state && state !== "all") {
+        query += ` AND u.state = $${params.length + 1}`;
+        params.push(state);
+      }
+      if (county && county !== "all") {
+        query += ` AND u.city = $${params.length + 1}`;
+        params.push(county);
+      }
 
-    // Add geographic filtering
-    if (state && state !== "all") {
-      conditions.push(eq(contractors.state, state));
+      query += `
+        ORDER BY cls.monthly_recommendations DESC, cls.monthly_rating DESC
+        LIMIT $${params.length + 1}
+      `;
+      params.push(limit);
+
+      const result = await pool.query(query, params);
+      const rows = result.rows || [];
+      
+      return rows.map((row: any, index: number) => ({
+        rank: index + 1,
+        contractorId: row.contractor_id,
+        companyName: row.company_name,
+        slug: row.slug,
+        monthlyRecommendations: parseInt(row.monthly_recommendations) || 0,
+        monthlyRating: parseFloat(row.monthly_rating) || 0,
+        lifetimeRecommendations: parseInt(row.lifetime_recommendations) || 0,
+        city: row.city,
+        state: row.state,
+        county: row.city,
+        location: row.city && row.state ? `${row.city}, ${row.state}` : row.state || null,
+      }));
+    } catch (error) {
+      console.error("Error in getMonthlyLeaderboard:", error);
+      return [];
     }
-    if (county && county !== "all") {
-      conditions.push(eq(contractors.primaryCounty, county));
-    }
-
-    const result = await query
-      .where(and(...conditions))
-      .orderBy(
-        desc(contractorLeaderboardStats.monthlyRecommendations),
-        desc(contractorLeaderboardStats.monthlyRating)
-      )
-      .limit(limit);
-
-    return result.map((row, index) => ({
-      rank: index + 1,
-      ...row,
-    }));
   }
 
   async getLifetimeLeaderboard(limit: number, state?: string, county?: string): Promise<any[]> {
-    let query = db
-      .select({
-        contractorId: contractorLeaderboardStats.contractorId,
-        companyName: contractors.companyName,
-        slug: contractors.slug,
-        lifetimeRecommendations: sql<number>`MAX(${contractorLeaderboardStats.lifetimeRecommendations})`.as('lifetimeRecommendations'),
-        lifetimeRating: sql<string>`AVG(${contractorLeaderboardStats.lifetimeRating})`.as('lifetimeRating'),
-        location: sql<string>`CASE 
-          WHEN ${contractors.city} IS NOT NULL AND ${contractors.state} IS NOT NULL 
-          THEN CONCAT(${contractors.city}, ', ', ${contractors.state})
-          WHEN ${contractors.state} IS NOT NULL 
-          THEN ${contractors.state}
-          ELSE NULL
-        END`.as('location'),
-        county: contractors.primaryCounty,
-        state: contractors.state,
-      })
-      .from(contractorLeaderboardStats)
-      .innerJoin(contractors, eq(contractorLeaderboardStats.contractorId, contractors.id));
+    try {
+      // Use direct SQL with pool.query to avoid Drizzle issues
+      const { Pool } = await import('@neondatabase/serverless');
+      const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+      
+      let query = `
+        SELECT 
+          cls.contractor_id,
+          c.company_name,
+          c.slug,
+          MAX(cls.lifetime_recommendations) as lifetime_recommendations,
+          AVG(cls.lifetime_rating) as lifetime_rating,
+          u.city,
+          u.state
+        FROM contractor_leaderboard_stats cls
+        INNER JOIN contractors c ON cls.contractor_id = c.id
+        LEFT JOIN users u ON c.user_id = u.id
+        WHERE c.is_active = true
+      `;
 
-    // Build where conditions
-    const conditions = [eq(contractors.isActive, true)];
+      const params = [];
+      if (state && state !== "all") {
+        query += ` AND u.state = $${params.length + 1}`;
+        params.push(state);
+      }
+      if (county && county !== "all") {
+        query += ` AND u.city = $${params.length + 1}`;
+        params.push(county);
+      }
 
-    // Add geographic filtering
-    if (state && state !== "all") {
-      conditions.push(eq(contractors.state, state));
+      query += `
+        GROUP BY cls.contractor_id, c.company_name, c.slug, u.city, u.state
+        ORDER BY MAX(cls.lifetime_recommendations) DESC, AVG(cls.lifetime_rating) DESC
+        LIMIT $${params.length + 1}
+      `;
+      params.push(limit);
+
+      const result = await pool.query(query, params);
+      const rows = result.rows || [];
+      
+      return rows.map((row: any, index: number) => ({
+        rank: index + 1,
+        contractorId: row.contractor_id,
+        companyName: row.company_name,
+        slug: row.slug,
+        lifetimeRecommendations: parseInt(row.lifetime_recommendations) || 0,
+        lifetimeRating: parseFloat(row.lifetime_rating) || 0,
+        city: row.city,
+        state: row.state,
+        county: row.city,
+        location: row.city && row.state ? `${row.city}, ${row.state}` : row.state || null,
+      }));
+    } catch (error) {
+      console.error("Error in getLifetimeLeaderboard:", error);
+      return [];
     }
-    if (county && county !== "all") {
-      conditions.push(eq(contractors.primaryCounty, county));
-    }
-
-    const result = await query
-      .where(and(...conditions))
-      .groupBy(contractorLeaderboardStats.contractorId, contractors.companyName, contractors.slug, contractors.city, contractors.state, contractors.primaryCounty)
-      .orderBy(
-        desc(sql`MAX(${contractorLeaderboardStats.lifetimeRecommendations})`),
-        desc(sql`AVG(${contractorLeaderboardStats.lifetimeRating})`)
-      )
-      .limit(limit);
-
-    return result.map((row, index) => ({
-      rank: index + 1,
-      ...row,
-    }));
   }
 
   async getContractorLeaderboardPosition(contractorId: string): Promise<any> {
