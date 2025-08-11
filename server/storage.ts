@@ -4640,69 +4640,106 @@ export class DatabaseStorage implements IStorage {
 
   // Recent donations (public feed)
   async getRecentDonations(limit: number = 20): Promise<any[]> {
-    return await db
-      .select({
-        id: foundationDonations.id,
-        amount: foundationDonations.amount,
-        isAnonymous: foundationDonations.isAnonymous,
-        donorMessage: foundationDonations.donorMessage,
-        createdAt: foundationDonations.createdAt,
-        donor: {
-          firstName: users.firstName,
-          lastName: users.lastName,
-        },
-        cause: {
-          name: foundationCauses.name,
-          category: foundationCauses.category,
-          county: {
-            name: counties.name,
-            state: counties.state,
-          }
-        }
-      })
+    const donations = await db
+      .select()
       .from(foundationDonations)
-      .leftJoin(users, eq(foundationDonations.userId, users.id))
-      .leftJoin(foundationCauses, eq(foundationDonations.causeId, foundationCauses.id))
-      .leftJoin(counties, eq(foundationCauses.countyId, counties.id))
       .where(eq(foundationDonations.status, 'completed'))
       .orderBy(desc(foundationDonations.createdAt))
       .limit(limit);
+
+    // Fetch related data separately to avoid complex join issues
+    const results = [];
+    for (const donation of donations) {
+      const cause = await this.getFoundationCause(donation.causeId);
+      let county = null;
+      if (cause && cause.countyId) {
+        const [countyResult] = await db
+          .select()
+          .from(counties)
+          .where(eq(counties.id, cause.countyId));
+        county = countyResult;
+      }
+
+      let donor = null;
+      if (donation.userId) {
+        const [userResult] = await db
+          .select({ firstName: users.firstName, lastName: users.lastName })
+          .from(users)
+          .where(eq(users.id, donation.userId));
+        donor = userResult;
+      }
+
+      results.push({
+        id: donation.id,
+        amount: donation.amount,
+        isAnonymous: donation.isAnonymous,
+        donorMessage: donation.donorMessage,
+        createdAt: donation.createdAt,
+        donor,
+        cause: cause ? {
+          name: cause.name,
+          category: cause.category,
+          county: county ? {
+            name: county.name,
+            state: county.state,
+          } : null
+        } : null
+      });
+    }
+
+    return results;
   }
 
   // Foundation impact reports
   async getFoundationImpactReports(causeId?: string): Promise<any[]> {
-    let query = db
-      .select({
-        id: foundationImpactReports.id,
-        reportingPeriod: foundationImpactReports.reportingPeriod,
-        totalDonationsReceived: foundationImpactReports.totalDonationsReceived,
-        totalDonorsCount: foundationImpactReports.totalDonorsCount,
-        totalBeneficiaries: foundationImpactReports.totalBeneficiaries,
-        impactMetrics: foundationImpactReports.impactMetrics,
-        storytelling: foundationImpactReports.storytelling,
-        mediaUrls: foundationImpactReports.mediaUrls,
-        publishedAt: foundationImpactReports.publishedAt,
-        createdAt: foundationImpactReports.createdAt,
-        cause: {
-          id: foundationCauses.id,
-          name: foundationCauses.name,
-          category: foundationCauses.category,
-          county: {
-            name: counties.name,
-            state: counties.state,
-          }
-        }
-      })
+    let baseQuery = db
+      .select()
       .from(foundationImpactReports)
-      .leftJoin(foundationCauses, eq(foundationImpactReports.causeId, foundationCauses.id))
-      .leftJoin(counties, eq(foundationCauses.countyId, counties.id))
       .where(isNotNull(foundationImpactReports.publishedAt));
 
     if (causeId) {
-      query = query.where(eq(foundationImpactReports.causeId, causeId));
+      baseQuery = baseQuery.where(eq(foundationImpactReports.causeId, causeId));
     }
 
-    return await query.orderBy(desc(foundationImpactReports.publishedAt));
+    const reports = await baseQuery.orderBy(desc(foundationImpactReports.publishedAt));
+
+    // Fetch related data separately to avoid complex join issues
+    const results = [];
+    for (const report of reports) {
+      const cause = await this.getFoundationCause(report.causeId);
+      let county = null;
+      if (cause && cause.countyId) {
+        const [countyResult] = await db
+          .select()
+          .from(counties)
+          .where(eq(counties.id, cause.countyId));
+        county = countyResult;
+      }
+
+      results.push({
+        id: report.id,
+        reportingPeriod: report.reportingPeriod,
+        totalDonationsReceived: report.totalDonationsReceived,
+        totalDonorsCount: report.totalDonorsCount,
+        totalBeneficiaries: report.totalBeneficiaries,
+        impactMetrics: report.impactMetrics,
+        storytelling: report.storytelling,
+        mediaUrls: report.mediaUrls,
+        publishedAt: report.publishedAt,
+        createdAt: report.createdAt,
+        cause: cause ? {
+          id: cause.id,
+          name: cause.name,
+          category: cause.category,
+          county: county ? {
+            name: county.name,
+            state: county.state,
+          } : null
+        } : null
+      });
+    }
+
+    return results;
   }
 
   async createFoundationImpactReport(data: InsertFoundationImpactReport): Promise<FoundationImpactReport> {
