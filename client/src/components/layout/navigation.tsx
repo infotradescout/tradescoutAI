@@ -19,11 +19,11 @@ export default function Navigation() {
 
   const navItems = [
     { href: "/contractors/board", label: "Find Contractors", public: true },
-    { href: "/quote", label: "Get Estimate", public: true },
-    { href: "/marketplace", label: "Asset Exchange", public: true },
-    { href: "/community", label: "Community", public: true },
+    { href: "/quote", label: "Quote Calculator", public: true },
     ...(!isHomeowner ? [{ href: "/contractors", label: "For Contractors", public: true }] : []),
     { href: "/workers", label: "Helpers", public: true },
+    { href: "/marketplace", label: "Exchange", public: true },
+    { href: "/community", label: "Community", public: true },
   ];
 
   const authenticatedNavItems = [
