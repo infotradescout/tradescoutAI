@@ -256,23 +256,26 @@ export function ConstructionEmblem({ className = "" }: ConstructionEmblemProps) 
   );
   const goldenProbability = goldenSettings?.value?.probability || 0.001; // 0.1% default (1 in 1000)
 
+  // Check for golden emblem on page visit (1 in 1000 chance)
   useEffect(() => {
-    // Rotate emblem every 8 seconds
+    // Only check for golden emblem once per component mount (page visit)
+    const isGoldenRoll = Math.random() < goldenProbability;
+    setIsGolden(isGoldenRoll);
+    
+    if (isGoldenRoll && !showPrizeDialog) {
+      handleGoldenEmblemClick();
+    }
+  }, [goldenProbability, showPrizeDialog]);
+
+  useEffect(() => {
+    // Rotate emblem every 8 seconds (separate from golden emblem logic)
     const interval = setInterval(() => {
       const nextIndex = Math.floor(Math.random() * constructionEmblems.length);
       setCurrentEmblemIndex(nextIndex);
-      
-      // Check for golden emblem (very rare)
-      const isGoldenRoll = Math.random() < goldenProbability;
-      setIsGolden(isGoldenRoll);
-      
-      if (isGoldenRoll && !showPrizeDialog) {
-        handleGoldenEmblemClick();
-      }
     }, 8000);
 
     return () => clearInterval(interval);
-  }, [goldenProbability, showPrizeDialog]);
+  }, []);
 
   const handleGoldenEmblemClick = () => {
     if (!isGolden) return;

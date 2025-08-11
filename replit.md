@@ -24,6 +24,7 @@ TradeScout is a full-stack contractor marketplace platform built with React, Nod
 - ✅ **Comprehensive Admin Panel**: Full admin interface at /admin/panel for managing prizes, advertisements, site settings, and contractor configurations
 - ✅ **Admin-Editable Prizes**: Prize system now fully configurable through admin panel with probability weights and terms
 - ✅ **Automated Random Rotation**: Emblems rotate every 8 seconds with random selection (no user control, admin-only configuration)
+- ✅ **Visit-Based Golden Emblem**: Changed golden emblem probability from rotation-based (every 8 seconds) to visit-based (1 in 1000 website visits) for more meaningful rewards
 - ✅ **Enhanced Ad System**: Complete "Save for Later" functionality with database storage and user authentication
 - ✅ **Periodic Notification System**: Automated reminder system for saved ads with email and in-app notifications
 - ✅ **NotificationBell Component**: Real-time notification center with unread counts and interactive management
