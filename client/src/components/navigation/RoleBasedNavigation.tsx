@@ -58,23 +58,12 @@ const NAVIGATION_ITEMS: NavigationItem[] = [
     icon: Home,
   },
   
-  // Customer Features
-  {
-    label: "Find Contractors",
-    href: "/contractors",
-    icon: Search,
-  },
-  {
-    label: "Get Quote",
-    href: "/quote",
-    icon: FileText,
-  },
+  // Marketplace Features (avoid duplicating what's in main nav)
   {
     label: "Marketplace",
     href: "/marketplace",
     icon: Briefcase,
     children: [
-      { label: "Browse", href: "/marketplace", icon: Search },
       { label: "List Item", href: "/marketplace/list", icon: UserPlus },
       { label: "Property Listing", href: "/property-listing", icon: Building },
       { label: "Business Listing", href: "/business-listing", icon: Building },
@@ -109,29 +98,14 @@ const NAVIGATION_ITEMS: NavigationItem[] = [
     requiredRoles: ['car_salesman'],
   },
   
-  // Community Features
+  // Community Features (avoid duplicating what's in main nav)
   {
-    label: "Community",
-    href: "/community",
-    icon: Users,
-    children: [
-      { label: "Forums", href: "/community", icon: MessageSquare },
-      { label: "Leaderboard", href: "/leaderboard", icon: Star },
-      { label: "Foundation", href: "/foundation", icon: Heart },
-    ],
+    label: "Foundation",
+    href: "/foundation",
+    icon: Heart,
   },
   
-  // Communication
-  {
-    label: "Messages",
-    href: "/chat",
-    icon: MessageSquare,
-  },
-  {
-    label: "Conversations",
-    href: "/conversations", 
-    icon: MessageSquare,
-  },
+  // Communication - These should be embedded elsewhere, not in header navigation
   
   // Staff & Moderation
   {
@@ -159,27 +133,7 @@ const NAVIGATION_ITEMS: NavigationItem[] = [
     ],
   },
   
-  // Account Features
-  {
-    label: "Notifications",
-    href: "/notifications",
-    icon: Bell,
-  },
-  {
-    label: "Saved Ads",
-    href: "/saved-ads",
-    icon: Star,
-  },
-  {
-    label: "Payment History",
-    href: "/payments/history",
-    icon: CreditCard,
-  },
-  {
-    label: "Affiliate Program",
-    href: "/affiliate",
-    icon: UserPlus,
-  },
+  // Account Features - These should be embedded elsewhere, not in header navigation
 ];
 
 interface RoleBasedNavigationProps {

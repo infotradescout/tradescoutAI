@@ -35,118 +35,64 @@ export function EnhancedNavigation({ className = "" }: EnhancedNavigationProps) 
           </div>
         </Link>
 
-        {/* Desktop Navigation - Full Comprehensive Navigation */}
-        <nav className="hidden lg:flex items-center space-x-1 flex-1 justify-center max-w-none overflow-x-auto px-4 nav-scrollbar"
+        {/* Desktop Navigation - Core Site Navigation Only */}
+        <nav className="hidden lg:flex items-center space-x-2 flex-1 justify-center max-w-none overflow-x-auto px-4 nav-scrollbar"
              style={{ minWidth: 0 }}>
-          {/* Core Services */}
+          {/* Core Site Navigation */}
           <Link href="/contractors">
-            <Button variant={isActive("/contractors") ? "secondary" : "ghost"} size="sm" className="flex items-center space-x-1 px-3 py-2 rounded-lg nav-button hover:bg-slate-800/60 whitespace-nowrap">
+            <Button variant={isActive("/contractors") ? "secondary" : "ghost"} size="sm" className="flex items-center space-x-2 px-4 py-2 rounded-lg nav-button hover:bg-slate-800/60 whitespace-nowrap">
               <span>🔨</span>
-              <span className="hidden lg:inline">Find Contractors</span>
+              <span className="hidden xl:inline">Find Contractors</span>
             </Button>
           </Link>
           <Link href="/contractors/for-contractors">
-            <Button variant={isActive("/contractors/for-contractors") ? "secondary" : "ghost"} size="sm" className="flex items-center space-x-1 px-3 py-2 rounded-lg nav-button hover:bg-slate-800/60 whitespace-nowrap">
+            <Button variant={isActive("/contractors/for-contractors") ? "secondary" : "ghost"} size="sm" className="flex items-center space-x-2 px-4 py-2 rounded-lg nav-button hover:bg-slate-800/60 whitespace-nowrap">
               <span>💼</span>
-              <span className="hidden lg:inline">For Contractors</span>
+              <span className="hidden xl:inline">For Contractors</span>
             </Button>
           </Link>
           <Link href="/quote">
-            <Button variant={isActive("/quote") ? "secondary" : "ghost"} size="sm" className="flex items-center space-x-1 px-3 py-2 rounded-lg nav-button hover:bg-slate-800/60 whitespace-nowrap">
+            <Button variant={isActive("/quote") ? "secondary" : "ghost"} size="sm" className="flex items-center space-x-2 px-4 py-2 rounded-lg nav-button hover:bg-slate-800/60 whitespace-nowrap">
               <span>📊</span>
-              <span className="hidden lg:inline">Calculator</span>
+              <span className="hidden xl:inline">Calculator</span>
             </Button>
           </Link>
           <Link href="/marketplace">
-            <Button variant={isActive("/marketplace") ? "secondary" : "ghost"} size="sm" className="flex items-center space-x-1 px-3 py-2 rounded-lg nav-button hover:bg-slate-800/60 whitespace-nowrap">
+            <Button variant={isActive("/marketplace") ? "secondary" : "ghost"} size="sm" className="flex items-center space-x-2 px-4 py-2 rounded-lg nav-button hover:bg-slate-800/60 whitespace-nowrap">
               <span>🏪</span>
-              <span className="hidden lg:inline">Marketplace</span>
+              <span className="hidden xl:inline">Marketplace</span>
             </Button>
           </Link>
           <Link href="/community">
-            <Button variant={isActive("/community") ? "secondary" : "ghost"} size="sm" className="flex items-center space-x-1 px-3 py-2 rounded-lg nav-button hover:bg-slate-800/60 whitespace-nowrap">
+            <Button variant={isActive("/community") ? "secondary" : "ghost"} size="sm" className="flex items-center space-x-2 px-4 py-2 rounded-lg nav-button hover:bg-slate-800/60 whitespace-nowrap">
               <span>👥</span>
-              <span className="hidden lg:inline">Community</span>
+              <span className="hidden xl:inline">Community</span>
             </Button>
           </Link>
           <Link href="/leaderboard">
-            <Button variant={isActive("/leaderboard") ? "secondary" : "ghost"} size="sm" className="flex items-center space-x-1 px-3 py-2 rounded-lg nav-button hover:bg-slate-800/60 whitespace-nowrap">
+            <Button variant={isActive("/leaderboard") ? "secondary" : "ghost"} size="sm" className="flex items-center space-x-2 px-4 py-2 rounded-lg nav-button hover:bg-slate-800/60 whitespace-nowrap">
               <span>🏆</span>
-              <span className="hidden lg:inline">Leaderboard</span>
+              <span className="hidden xl:inline">Leaderboard</span>
             </Button>
           </Link>
           <Link href="/workers">
-            <Button variant={isActive("/workers") ? "secondary" : "ghost"} size="sm" className="flex items-center space-x-1 px-3 py-2 rounded-lg nav-button hover:bg-slate-800/60 whitespace-nowrap">
+            <Button variant={isActive("/workers") ? "secondary" : "ghost"} size="sm" className="flex items-center space-x-2 px-4 py-2 rounded-lg nav-button hover:bg-slate-800/60 whitespace-nowrap">
               <span>👷</span>
-              <span className="hidden lg:inline">Helpers</span>
-            </Button>
-          </Link>
-          <Link href="/ads">
-            <Button variant={isActive("/ads") ? "secondary" : "ghost"} size="sm" className="flex items-center space-x-1 px-3 py-2 rounded-lg nav-button hover:bg-slate-800/60 whitespace-nowrap">
-              <span>📢</span>
-              <span className="hidden lg:inline">Ads</span>
+              <span className="hidden xl:inline">Helpers</span>
             </Button>
           </Link>
           <Link href="/growth-pack">
-            <Button variant={isActive("/growth-pack") ? "secondary" : "ghost"} size="sm" className="flex items-center space-x-1 px-3 py-2 rounded-lg nav-button hover:bg-slate-800/60 whitespace-nowrap">
+            <Button variant={isActive("/growth-pack") ? "secondary" : "ghost"} size="sm" className="flex items-center space-x-2 px-4 py-2 rounded-lg nav-button hover:bg-slate-800/60 whitespace-nowrap">
               <span>📦</span>
-              <span className="hidden lg:inline">Growth Pack</span>
+              <span className="hidden xl:inline">Growth Pack</span>
             </Button>
           </Link>
           <Link href="/emblem">
-            <Button variant={isActive("/emblem") ? "secondary" : "ghost"} size="sm" className="flex items-center space-x-1 px-3 py-2 rounded-lg nav-button hover:bg-slate-800/60 whitespace-nowrap">
+            <Button variant={isActive("/emblem") ? "secondary" : "ghost"} size="sm" className="flex items-center space-x-2 px-4 py-2 rounded-lg nav-button hover:bg-slate-800/60 whitespace-nowrap">
               <span>🏅</span>
-              <span className="hidden lg:inline">Emblem</span>
+              <span className="hidden xl:inline">Emblem</span>
             </Button>
           </Link>
-          <Link href="/verify">
-            <Button variant={isActive("/verify") ? "secondary" : "ghost"} size="sm" className="flex items-center space-x-1 px-3 py-2 rounded-lg nav-button hover:bg-slate-800/60 whitespace-nowrap">
-              <span>✅</span>
-              <span className="hidden lg:inline">Verify</span>
-            </Button>
-          </Link>
-          <Link href="/legal">
-            <Button variant={isActive("/legal") ? "secondary" : "ghost"} size="sm" className="flex items-center space-x-1 px-3 py-2 rounded-lg nav-button hover:bg-slate-800/60 whitespace-nowrap">
-              <span>⚖️</span>
-              <span className="hidden lg:inline">Legal</span>
-            </Button>
-          </Link>
-          <Link href="/analytics">
-            <Button variant={isActive("/analytics") ? "secondary" : "ghost"} size="sm" className="flex items-center space-x-1 px-3 py-2 rounded-lg nav-button hover:bg-slate-800/60 whitespace-nowrap">
-              <span>📈</span>
-              <span className="hidden lg:inline">Analytics</span>
-            </Button>
-          </Link>
-          
-          {/* Additional Features for Authenticated Users */}
-          {isAuthenticated && (
-            <>
-              <Link href="/chat">
-                <Button variant={isActive("/chat") ? "secondary" : "ghost"} size="sm" className="flex items-center space-x-1 px-3 py-2 rounded-lg nav-button hover:bg-slate-800/60 whitespace-nowrap">
-                  <span>💬</span>
-                  <span className="hidden lg:inline">Chat</span>
-                </Button>
-              </Link>
-              <Link href="/notifications">
-                <Button variant={isActive("/notifications") ? "secondary" : "ghost"} size="sm" className="flex items-center space-x-1 px-3 py-2 rounded-lg nav-button hover:bg-slate-800/60 whitespace-nowrap">
-                  <span>🔔</span>
-                  <span className="hidden lg:inline">Notifications</span>
-                </Button>
-              </Link>
-              <Link href="/search">
-                <Button variant={isActive("/search") ? "secondary" : "ghost"} size="sm" className="flex items-center space-x-1 px-3 py-2 rounded-lg nav-button hover:bg-slate-800/60 whitespace-nowrap">
-                  <span>🔍</span>
-                  <span className="hidden lg:inline">Search</span>
-                </Button>
-              </Link>
-              <Link href="/dashboard">
-                <Button variant={isActive("/dashboard") ? "secondary" : "ghost"} size="sm" className="flex items-center space-x-1 px-3 py-2 rounded-lg nav-button hover:bg-slate-800/60 whitespace-nowrap">
-                  <span>📊</span>
-                  <span className="hidden lg:inline">Dashboard</span>
-                </Button>
-              </Link>
-            </>
-          )}
           
           {/* Authenticated Navigation */}
           {isAuthenticated && <RoleBasedNavigation />}
@@ -196,102 +142,79 @@ export function EnhancedNavigation({ className = "" }: EnhancedNavigationProps) 
               </div>
               
               <div className="space-y-4">
-                {/* Public Links */}
+                {/* Core Navigation */}
                 <div className="space-y-2">
                   <h3 className="text-sm font-semibold text-gray-400 uppercase tracking-wider">
-                    Explore
+                    Navigate
                   </h3>
                   <Link href="/contractors" onClick={() => setIsMobileMenuOpen(false)}>
-                    <Button variant="ghost" className="w-full justify-start">
-                      <span className="mr-2">🔨</span>Find Contractors
+                    <Button variant="ghost" className="w-full justify-start text-slate-200 hover:text-white hover:bg-slate-800/60">
+                      <span className="mr-3">🔨</span>Find Contractors
                     </Button>
                   </Link>
                   <Link href="/contractors/for-contractors" onClick={() => setIsMobileMenuOpen(false)}>
-                    <Button variant="ghost" className="w-full justify-start">
-                      <span className="mr-2">💼</span>For Contractors
+                    <Button variant="ghost" className="w-full justify-start text-slate-200 hover:text-white hover:bg-slate-800/60">
+                      <span className="mr-3">💼</span>For Contractors
                     </Button>
                   </Link>
                   <Link href="/quote" onClick={() => setIsMobileMenuOpen(false)}>
-                    <Button variant="ghost" className="w-full justify-start">
-                      <span className="mr-2">📊</span>Calculator
+                    <Button variant="ghost" className="w-full justify-start text-slate-200 hover:text-white hover:bg-slate-800/60">
+                      <span className="mr-3">📊</span>Calculator
                     </Button>
                   </Link>
                   <Link href="/marketplace" onClick={() => setIsMobileMenuOpen(false)}>
-                    <Button variant="ghost" className="w-full justify-start">
-                      <span className="mr-2">🏪</span>Marketplace
+                    <Button variant="ghost" className="w-full justify-start text-slate-200 hover:text-white hover:bg-slate-800/60">
+                      <span className="mr-3">🏪</span>Marketplace
                     </Button>
                   </Link>
                   <Link href="/community" onClick={() => setIsMobileMenuOpen(false)}>
-                    <Button variant="ghost" className="w-full justify-start">
-                      <span className="mr-2">👥</span>Community
+                    <Button variant="ghost" className="w-full justify-start text-slate-200 hover:text-white hover:bg-slate-800/60">
+                      <span className="mr-3">👥</span>Community
                     </Button>
                   </Link>
                   <Link href="/leaderboard" onClick={() => setIsMobileMenuOpen(false)}>
-                    <Button variant="ghost" className="w-full justify-start">
-                      <span className="mr-2">🏆</span>Leaderboard
+                    <Button variant="ghost" className="w-full justify-start text-slate-200 hover:text-white hover:bg-slate-800/60">
+                      <span className="mr-3">🏆</span>Leaderboard
                     </Button>
                   </Link>
                   <Link href="/workers" onClick={() => setIsMobileMenuOpen(false)}>
-                    <Button variant="ghost" className="w-full justify-start">
-                      <span className="mr-2">👷</span>Helpers
+                    <Button variant="ghost" className="w-full justify-start text-slate-200 hover:text-white hover:bg-slate-800/60">
+                      <span className="mr-3">👷</span>Helpers
                     </Button>
                   </Link>
-                  {!isAuthenticated && (
-                    <Link href="/register" onClick={() => setIsMobileMenuOpen(false)}>
-                      <Button variant="ghost" className="w-full justify-start">
-                        <span className="mr-2">📝</span>Register
-                      </Button>
-                    </Link>
-                  )}
+                  <Link href="/growth-pack" onClick={() => setIsMobileMenuOpen(false)}>
+                    <Button variant="ghost" className="w-full justify-start text-slate-200 hover:text-white hover:bg-slate-800/60">
+                      <span className="mr-3">📦</span>Growth Pack
+                    </Button>
+                  </Link>
+                  <Link href="/emblem" onClick={() => setIsMobileMenuOpen(false)}>
+                    <Button variant="ghost" className="w-full justify-start text-slate-200 hover:text-white hover:bg-slate-800/60">
+                      <span className="mr-3">🏅</span>Emblem
+                    </Button>
+                  </Link>
                 </div>
 
-                {/* Authenticated Features */}
-                {isAuthenticated && (
-                  <div className="space-y-2">
-                    <h3 className="text-sm font-semibold text-gray-400 uppercase tracking-wider">
-                      Your Account
-                    </h3>
-                    <Link href="/chat" onClick={() => setIsMobileMenuOpen(false)}>
-                      <Button variant="ghost" className="w-full justify-start">
-                        <span className="mr-2">💬</span>Chat
-                      </Button>
-                    </Link>
-                    <Link href="/notifications" onClick={() => setIsMobileMenuOpen(false)}>
-                      <Button variant="ghost" className="w-full justify-start">
-                        <span className="mr-2">🔔</span>Notifications
-                      </Button>
-                    </Link>
-                    <Link href="/search" onClick={() => setIsMobileMenuOpen(false)}>
-                      <Button variant="ghost" className="w-full justify-start">
-                        <span className="mr-2">🔍</span>Search
-                      </Button>
-                    </Link>
-                    <Link href="/saved-ads" onClick={() => setIsMobileMenuOpen(false)}>
-                      <Button variant="ghost" className="w-full justify-start">
-                        <span className="mr-2">💾</span>Saved Ads
-                      </Button>
-                    </Link>
-                  </div>
-                )}
-
                 {/* Authentication */}
-                {!isAuthenticated ? (
+                {!isAuthenticated && (
                   <div className="space-y-2 border-t border-slate-700 pt-4">
                     <h3 className="text-sm font-semibold text-gray-400 uppercase tracking-wider">
                       Account
                     </h3>
                     <Link href="/login" onClick={() => setIsMobileMenuOpen(false)}>
-                      <Button variant="ghost" className="w-full justify-start">
+                      <Button variant="ghost" className="w-full justify-start text-slate-200 hover:text-white hover:bg-slate-800/60">
                         Sign In
                       </Button>
                     </Link>
                     <Link href="/setup" onClick={() => setIsMobileMenuOpen(false)}>
-                      <Button variant="outline" className="w-full justify-start">
+                      <Button variant="outline" className="w-full justify-start border-orange-500/50 text-orange-400 hover:bg-orange-500/10">
                         Get Started
                       </Button>
                     </Link>
                   </div>
-                ) : (
+                )}
+                
+                {/* Role-based Admin Navigation */}
+                {isAuthenticated && (
                   <div className="border-t border-slate-700 pt-4">
                     <RoleBasedNavigation isMobile />
                   </div>
