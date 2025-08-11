@@ -254,7 +254,7 @@ export function ConstructionEmblem({ className = "" }: ConstructionEmblemProps) 
   const goldenSettings = (siteSettings as any[]).find(setting => 
     setting.category === "features" && setting.key === "golden_emblem_enabled"
   );
-  const goldenProbability = goldenSettings?.value?.probability || 0.005; // 0.5% default
+  const goldenProbability = goldenSettings?.value?.probability || 0.001; // 0.1% default (1 in 1000)
 
   useEffect(() => {
     // Rotate emblem every 8 seconds
