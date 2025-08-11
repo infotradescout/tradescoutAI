@@ -379,43 +379,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { state } = req.query;
       
-      if (state) {
-        // Get counties for specific state
-        const { getCountiesForState } = await import("@shared/us-counties-complete");
-        const counties = getCountiesForState(state as string);
-        res.json(counties);
-      } else {
-        // Get all counties (fallback for compatibility)
-        const { getAllCounties } = await import("@shared/us-counties-complete");
-        const counties = getAllCounties();
-        res.json(counties);
-      }
+      // Use the database storage method instead of imports
+      const counties = await storage.getCounties(state as string);
+      res.json(counties);
     } catch (error) {
       console.error("Error fetching counties:", error);
       res.status(500).json({ message: "Failed to fetch counties" });
-    }
-  });
-
-  // Trades endpoint
-  app.get("/api/trades", async (req, res) => {
-    try {
-      const { category, parent } = req.query;
-      const { COMPREHENSIVE_TRADES, getTradesByCategory, getSubTrades, getMainTrades } = await import("@shared/trades-data");
-      
-      let trades = COMPREHENSIVE_TRADES;
-      
-      if (category) {
-        trades = getTradesByCategory(category as string);
-      } else if (parent) {
-        trades = getSubTrades(parent as string);
-      } else if (req.query.main === 'true') {
-        trades = getMainTrades();
-      }
-      
-      res.json(trades);
-    } catch (error) {
-      console.error("Error fetching trades:", error);
-      res.status(500).json({ message: "Failed to fetch trades" });
     }
   });
 
