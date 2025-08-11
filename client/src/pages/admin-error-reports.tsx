@@ -69,8 +69,49 @@ export default function AdminErrorReports() {
       case 'performance': return <Clock className="h-4 w-4" />;
       case 'ui_issue': return <Monitor className="h-4 w-4" />;
       case 'feature_request': return <AlertTriangle className="h-4 w-4" />;
+      case 'automatic_screenshot': return <Smartphone className="h-4 w-4" />;
       default: return <Bug className="h-4 w-4" />;
     }
+  };
+
+  const renderScreenshot = (attachments: any) => {
+    if (!attachments || !Array.isArray(attachments) || attachments.length === 0) {
+      return null;
+    }
+
+    const screenshot = attachments.find((att: any) => att.type === 'screenshot');
+    if (!screenshot || !screenshot.data) {
+      return null;
+    }
+
+    return (
+      <div className="mt-4">
+        <Label className="text-sm font-medium text-gray-300 mb-2 block">Screenshot</Label>
+        <div className="border border-gray-600 rounded-lg overflow-hidden">
+          <img 
+            src={screenshot.data} 
+            alt="Bug report screenshot" 
+            className="w-full h-auto max-h-96 object-contain bg-gray-800"
+            style={{ imageRendering: 'auto' }}
+          />
+        </div>
+        <Button
+          variant="outline"
+          size="sm"
+          className="mt-2"
+          onClick={() => {
+            const link = document.createElement('a');
+            link.href = screenshot.data;
+            link.download = `bug-report-screenshot-${selectedReport?.id}.jpeg`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+          }}
+        >
+          Download Screenshot
+        </Button>
+      </div>
+    );
   };
 
   const handleStatusChange = (reportId: string, newStatus: string) => {
@@ -304,6 +345,9 @@ export default function AdminErrorReports() {
                   </p>
                 </div>
               )}
+
+              {/* Screenshot Display */}
+              {renderScreenshot(selectedReport.attachments)}
 
               {selectedReport.adminNotes && (
                 <div>
