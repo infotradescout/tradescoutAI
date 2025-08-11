@@ -5,7 +5,7 @@ import { eq } from "drizzle-orm";
 const defaultCategories = [
   {
     name: "Real Estate",
-    description: "Houses, land, commercial properties, and investment properties",
+    description: "Houses, land, commercial properties, and premium properties",
     iconName: "Home",
     sortOrder: 10
   },

@@ -104,21 +104,21 @@ export default function Marketplace() {
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-      {/* Investment Benefits Banner */}
+      {/* Benefits Banner */}
       <div className="bg-gradient-to-r from-emerald-600 to-blue-600 text-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3">
           <div className="flex items-center justify-center space-x-8 text-sm">
             <span className="flex items-center">
               <TrendingUp className="h-4 w-4 mr-2" />
-              Build Wealth Through Smart Asset Acquisition
+              High-Value Items from Trusted Sellers
             </span>
             <span className="flex items-center">
               <Shield className="h-4 w-4 mr-2" />
-              Tax-Advantaged Investment Opportunities
+              Verified Quality & Authenticity
             </span>
             <span className="flex items-center">
               <Target className="h-4 w-4 mr-2" />
-              Professional Equipment for Income Generation
+              Professional-Grade Equipment
             </span>
           </div>
         </div>
@@ -130,25 +130,25 @@ export default function Marketplace() {
           <div className="flex justify-between items-center">
             <div>
               <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
-                Asset Exchange Hub
+                Exchange Hub
               </h1>
               <p className="text-gray-600 dark:text-gray-300 mt-1">
-                Smart investments in premium equipment, vehicles, and high-value assets
+                Premium equipment, vehicles, and valuable items from trusted sellers
               </p>
               <div className="flex items-center space-x-6 mt-2 text-sm text-green-600 dark:text-green-400">
                 <span className="flex items-center">
                   <DollarSign className="h-4 w-4 mr-1" />
-                  Tax-advantaged purchases
+                  Competitive pricing
                 </span>
                 <span className="flex items-center">
                   <Building className="h-4 w-4 mr-1" />
-                  Asset appreciation potential
+                  Quality equipment
                 </span>
               </div>
             </div>
             <Button onClick={() => setLocation("/marketplace/sell")} className="bg-emerald-600 hover:bg-emerald-700">
               <Plus className="h-4 w-4 mr-2" />
-              List Asset
+              List Item
             </Button>
           </div>
         </div>
@@ -210,16 +210,16 @@ export default function Marketplace() {
               <CardHeader>
                 <CardTitle className="flex items-center">
                   <Filter className="h-4 w-4 mr-2" />
-                  Investment Filters
+                  Search Filters
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div>
-                  <label className="text-sm font-medium mb-2 block">Search Assets</label>
+                  <label className="text-sm font-medium mb-2 block">Search Items</label>
                   <div className="relative">
                     <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
                     <Input
-                      placeholder="Find your next investment..."
+                      placeholder="Find valuable items..."
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
                       className="pl-10"

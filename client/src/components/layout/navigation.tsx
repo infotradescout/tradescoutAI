@@ -27,7 +27,7 @@ export default function Navigation() {
     { href: "/quote", label: "Quote Calculator", icon: Calculator, public: true, description: "Get instant project estimates" },
     ...(!isHomeowner ? [{ href: "/contractors", label: "For Contractors", icon: Wrench, public: true, description: "Join our contractor network" }] : []),
     { href: "/workers", label: "Helpers", icon: Users, public: true, description: "Find skilled helpers" },
-    { href: "/marketplace", label: "Asset Exchange", icon: Package, public: true, description: "Strategic equipment & investment opportunities" },
+    { href: "/marketplace", label: "Exchange", icon: Package, public: true, description: "Premium equipment & valuable items" },
     { href: "/leaderboard", label: "Leaderboard", icon: Trophy, public: true, description: "Top contractors by recommendations" },
     { href: "/community", label: "Community", icon: MessageCircle, public: true, description: "Connect with neighbors" },
   ];

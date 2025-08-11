@@ -5,6 +5,7 @@ TradeScout is a full-stack contractor marketplace platform connecting homeowners
 # User Preferences
 
 Preferred communication style: Simple, everyday language.
+Marketplace language preference: Avoid explicit "investment" or "asset" terminology - let users naturally discover the value-building potential through subtle language and quality indicators.
 
 # System Architecture
 
