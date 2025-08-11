@@ -41,6 +41,21 @@ export const userRoleEnum = pgEnum('user_role', [
   'support'
 ]);
 
+// Invitation status enum
+export const invitationStatusEnum = pgEnum('invitation_status', [
+  'pending',
+  'accepted',
+  'declined',
+  'expired'
+]);
+
+// Invitation type enum
+export const invitationTypeEnum = pgEnum('invitation_type', [
+  'email',
+  'referral_code',
+  'direct_link'
+]);
+
 // Address verification status enum
 export const addressVerificationStatusEnum = pgEnum('address_verification_status', [
   'pending',
@@ -70,6 +85,8 @@ export const users = pgTable("users", {
   addressVerified: boolean("address_verified").default(false),
   addressVerificationDeadline: timestamp("address_verification_deadline"),
   onboardingCompleted: boolean("onboarding_completed").default(false),
+  referralCode: varchar("referral_code"),
+  invitedBy: varchar("invited_by").references(() => users.id),
   preferences: jsonb("preferences").$type<{
     emailNotifications?: boolean;
     smsNotifications?: boolean;
@@ -1096,6 +1113,8 @@ export const insertUserSchema = createInsertSchema(users).omit({
   updatedAt: true,
 });
 
+
+
 export const insertContractorSchema = createInsertSchema(contractors).omit({
   id: true,
   createdAt: true,
@@ -1571,6 +1590,66 @@ export const userFollows = pgTable("user_follows", {
   followingId: varchar("following_id").notNull().references(() => users.id),
   createdAt: timestamp("created_at").defaultNow(),
 });
+
+// Invitations table for tracking user invitations
+export const invitations = pgTable("invitations", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  inviterId: varchar("inviter_id").notNull().references(() => users.id),
+  inviteeEmail: varchar("invitee_email").notNull(),
+  inviteeId: varchar("invitee_id").references(() => users.id), // Set when invitation is accepted
+  
+  // Invitation details
+  type: invitationTypeEnum("type").notNull().default('email'),
+  status: invitationStatusEnum("status").notNull().default('pending'),
+  targetRole: userRoleEnum("target_role").notNull(), // What role the invitee should have
+  
+  // Invitation content
+  personalMessage: text("personal_message"),
+  invitationCode: varchar("invitation_code").unique().notNull(),
+  
+  // Tracking
+  sentAt: timestamp("sent_at").defaultNow(),
+  acceptedAt: timestamp("accepted_at"),
+  expiresAt: timestamp("expires_at").notNull(),
+  
+  // Location context (for location-based matching)
+  inviterCity: varchar("inviter_city"),
+  inviterState: varchar("inviter_state"),
+  inviterCounty: varchar("inviter_county"),
+  
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => [
+  index("invitations_inviter_id_idx").on(table.inviterId),
+  index("invitations_email_idx").on(table.inviteeEmail),
+  index("invitations_code_idx").on(table.invitationCode),
+  index("invitations_status_idx").on(table.status),
+]);
+
+// Referral tracking and rewards
+export const referralStats = pgTable("referral_stats", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  
+  // Statistics
+  totalInvitationsSent: integer("total_invitations_sent").default(0),
+  totalInvitationsAccepted: integer("total_invitations_accepted").default(0),
+  homeownersReferred: integer("homeowners_referred").default(0),
+  contractorsReferred: integer("contractors_referred").default(0),
+  
+  // Rewards tracking
+  rewardPointsEarned: integer("reward_points_earned").default(0),
+  rewardPointsRedeemed: integer("reward_points_redeemed").default(0),
+  
+  // Monthly tracking
+  currentMonthInvitations: integer("current_month_invitations").default(0),
+  lastMonthReset: timestamp("last_month_reset").defaultNow(),
+  
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => [
+  index("referral_stats_user_id_idx").on(table.userId),
+]);
 
 export const communityGroups = pgTable("community_groups", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -2656,3 +2735,27 @@ export type InsertModerationReportType = z.infer<typeof insertModerationReportSc
 export type InsertModerationVoteType = z.infer<typeof insertModerationVoteSchema>;
 export type InsertModerationActionType = z.infer<typeof insertModerationActionSchema>;
 export type InsertModerationAppealType = z.infer<typeof insertModerationAppealSchema>;
+
+// Invitation system types
+export type Invitation = typeof invitations.$inferSelect;
+export type InsertInvitation = typeof invitations.$inferInsert;
+export type ReferralStats = typeof referralStats.$inferSelect;
+export type InsertReferralStats = typeof referralStats.$inferInsert;
+
+// Invitation schemas
+export const insertInvitationSchema = createInsertSchema(invitations).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+  sentAt: true,
+  acceptedAt: true,
+});
+
+export const insertReferralStatsSchema = createInsertSchema(referralStats).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type InsertInvitationType = z.infer<typeof insertInvitationSchema>;
+export type InsertReferralStatsType = z.infer<typeof insertReferralStatsSchema>;

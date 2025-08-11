@@ -42,6 +42,7 @@ import AdminTestingControls from "@/pages/admin-testing-controls";
 import AddressVerification from "@/pages/address-verification";
 import Community from "@/pages/community";
 import Leaderboard from "@/pages/leaderboard";
+import InvitePage from "@/pages/invite";
 
 import ModerationCenter from "@/pages/moderation-center";
 import { ProfileSetupRedirect } from "@/components/profile-setup-redirect";
@@ -135,6 +136,7 @@ function Router() {
             <Route path="/admin/error-reports" component={AdminErrorReports} />
             <Route path="/admin/testing" component={AdminTestingControls} />
             <Route path="/chat/:conversationId?" component={Chat} />
+            <Route path="/invite" component={InvitePage} />
             <Route path="/moderation" component={ModerationCenter} />
             <Route path="/saved-ads" component={SavedAds} />
           </>

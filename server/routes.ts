@@ -71,7 +71,8 @@ import {
   insertAddressVerificationSchema,
   insertModerationReportSchema,
   insertModerationVoteSchema,
-  insertModerationAppealSchema
+  insertModerationAppealSchema,
+  insertInvitationSchema
 } from "@shared/schema";
 import { ObjectStorageService } from "./objectStorage";
 import { randomUUID } from "crypto";
@@ -3697,6 +3698,202 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error fetching moderation settings:", error);
       res.status(500).json({ message: "Failed to fetch settings" });
+    }
+  });
+
+  // Invitation System API Routes
+  
+  // Send email invitation
+  app.post("/api/invitations/send", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user?.claims?.sub;
+      const { email, targetRole, personalMessage } = req.body;
+      
+      // Validate required fields
+      if (!email || !targetRole) {
+        return res.status(400).json({ message: "Email and target role are required" });
+      }
+      
+      // Check if user already exists
+      const existingUser = await storage.getUserByEmail(email);
+      if (existingUser) {
+        return res.status(400).json({ message: "User with this email already exists" });
+      }
+      
+      // Generate invitation code
+      const invitationCode = await storage.generateInvitationCode();
+      
+      // Create invitation
+      const invitation = await storage.createInvitation({
+        code: invitationCode,
+        email,
+        targetRole,
+        personalMessage: personalMessage || null,
+        invitedBy: userId,
+        status: 'pending'
+      });
+      
+      // Update user's referral stats
+      await storage.incrementInvitationsSent(userId);
+      
+      // TODO: Send email notification (when email service is setup)
+      
+      res.status(201).json(invitation);
+    } catch (error) {
+      console.error("Error sending invitation:", error);
+      res.status(500).json({ message: "Failed to send invitation" });
+    }
+  });
+  
+  // Get user's invitations
+  app.get("/api/invitations/my", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user?.claims?.sub;
+      const invitations = await storage.getUserInvitations(userId);
+      res.json(invitations);
+    } catch (error) {
+      console.error("Error fetching user invitations:", error);
+      res.status(500).json({ message: "Failed to fetch invitations" });
+    }
+  });
+  
+  // Accept invitation (public endpoint)
+  app.post("/api/invitations/accept/:code", async (req, res) => {
+    try {
+      const { code } = req.params;
+      const { userId } = req.body;
+      
+      if (!userId) {
+        return res.status(400).json({ message: "User ID is required" });
+      }
+      
+      // Get invitation
+      const invitation = await storage.getInvitationByCode(code);
+      if (!invitation) {
+        return res.status(404).json({ message: "Invalid invitation code" });
+      }
+      
+      if (invitation.status !== 'pending') {
+        return res.status(400).json({ message: "Invitation has already been used or expired" });
+      }
+      
+      // Accept invitation
+      const acceptedInvitation = await storage.acceptInvitation(code, userId);
+      
+      // Update inviter's stats
+      if (invitation.invitedBy) {
+        await storage.incrementInvitationsAccepted(
+          invitation.invitedBy, 
+          invitation.targetRole as 'homeowner' | 'contractor_user'
+        );
+      }
+      
+      res.json(acceptedInvitation);
+    } catch (error) {
+      console.error("Error accepting invitation:", error);
+      res.status(500).json({ message: "Failed to accept invitation" });
+    }
+  });
+  
+  // Validate invitation code (public endpoint for signup page)
+  app.get("/api/invitations/validate/:code", async (req, res) => {
+    try {
+      const { code } = req.params;
+      
+      const invitation = await storage.getInvitationByCode(code);
+      if (!invitation) {
+        return res.status(404).json({ 
+          message: "Invalid invitation code",
+          valid: false 
+        });
+      }
+      
+      if (invitation.status !== 'pending') {
+        return res.status(400).json({ 
+          message: "Invitation has already been used or expired",
+          valid: false 
+        });
+      }
+      
+      res.json({
+        valid: true,
+        email: invitation.email,
+        targetRole: invitation.targetRole,
+        personalMessage: invitation.personalMessage
+      });
+    } catch (error) {
+      console.error("Error validating invitation:", error);
+      res.status(500).json({ message: "Failed to validate invitation" });
+    }
+  });
+  
+  // Generate or get user's referral code
+  app.post("/api/referrals/generate-code", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user?.claims?.sub;
+      const user = await storage.getUser(userId);
+      
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      
+      let referralCode = user.referralCode;
+      
+      // Generate code if user doesn't have one
+      if (!referralCode) {
+        referralCode = await storage.generateUserReferralCode(userId);
+      }
+      
+      res.json({ referralCode });
+    } catch (error) {
+      console.error("Error generating referral code:", error);
+      res.status(500).json({ message: "Failed to generate referral code" });
+    }
+  });
+  
+  // Get user's referral stats
+  app.get("/api/referrals/stats", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user?.claims?.sub;
+      const stats = await storage.getReferralStats(userId);
+      
+      if (!stats) {
+        // Return default stats if none exist
+        return res.json({
+          totalInvitationsSent: 0,
+          totalInvitationsAccepted: 0,
+          contractorReferrals: 0,
+          homeownerReferrals: 0
+        });
+      }
+      
+      res.json(stats);
+    } catch (error) {
+      console.error("Error fetching referral stats:", error);
+      res.status(500).json({ message: "Failed to fetch referral stats" });
+    }
+  });
+  
+  // Get top referrers leaderboard
+  app.get("/api/referrals/leaderboard", async (req, res) => {
+    try {
+      const limit = parseInt(req.query.limit as string) || 10;
+      const topReferrers = await storage.getTopReferrers(limit);
+      res.json(topReferrers);
+    } catch (error) {
+      console.error("Error fetching referral leaderboard:", error);
+      res.status(500).json({ message: "Failed to fetch leaderboard" });
+    }
+  });
+  
+  // Cleanup expired invitations (internal endpoint)
+  app.post("/api/invitations/cleanup", isAuthenticated, isAdmin, async (req, res) => {
+    try {
+      await storage.expireOldInvitations();
+      res.json({ message: "Expired invitations cleaned up successfully" });
+    } catch (error) {
+      console.error("Error cleaning up invitations:", error);
+      res.status(500).json({ message: "Failed to cleanup invitations" });
     }
   });
 

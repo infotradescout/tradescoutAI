@@ -58,6 +58,9 @@ import {
   moderationActions,
   moderationAppeals,
   moderationSettings,
+  // Invitation system
+  invitations,
+  referralStats,
   type User,
   type InsertUser,
   type UpsertUser,
@@ -162,6 +165,11 @@ import {
   type InsertModerationAppeal,
   type ModerationSettings,
   type InsertModerationSettings,
+  // Invitation types
+  type Invitation,
+  type InsertInvitation,
+  type ReferralStats,
+  type InsertReferralStats,
   // Leaderboard
   contractorLeaderboardStats,
   type ContractorLeaderboardStats,
@@ -435,6 +443,26 @@ export interface IStorage {
   canUserVoteOnReport(userId: string, reportId: string): Promise<boolean>;
   calculateLocalVoterWeight(voterCounty: string, voterState: string, contentCounty: string, contentState: string): Promise<number>;
   processVoteResult(reportId: string): Promise<void>;
+  
+  // Invitation system operations
+  // Invitations
+  createInvitation(invitation: InsertInvitation): Promise<Invitation>;
+  getInvitation(id: string): Promise<Invitation | undefined>;
+  getInvitationByCode(code: string): Promise<Invitation | undefined>;
+  getUserInvitations(userId: string): Promise<Invitation[]>;
+  updateInvitation(id: string, updates: Partial<Invitation>): Promise<Invitation>;
+  acceptInvitation(code: string, userId: string): Promise<Invitation>;
+  expireOldInvitations(): Promise<void>;
+  generateInvitationCode(): Promise<string>;
+  generateUserReferralCode(userId: string): Promise<string>;
+  
+  // Referral stats
+  getReferralStats(userId: string): Promise<ReferralStats | undefined>;
+  createReferralStats(stats: InsertReferralStats): Promise<ReferralStats>;
+  updateReferralStats(userId: string, updates: Partial<ReferralStats>): Promise<ReferralStats>;
+  incrementInvitationsSent(userId: string): Promise<void>;
+  incrementInvitationsAccepted(userId: string, targetRole: 'homeowner' | 'contractor_user'): Promise<void>;
+  getTopReferrers(limit: number): Promise<(ReferralStats & { user: User })[]>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -3423,6 +3451,205 @@ export class DatabaseStorage implements IStorage {
       .orderBy(asc(counties.name));
 
     return result;
+  }
+
+  // Invitation system implementation
+  async createInvitation(invitationData: InsertInvitation): Promise<Invitation> {
+    const [invitation] = await db.insert(invitations).values(invitationData).returning();
+    return invitation;
+  }
+
+  async getInvitation(id: string): Promise<Invitation | undefined> {
+    const [invitation] = await db.select().from(invitations).where(eq(invitations.id, id));
+    return invitation;
+  }
+
+  async getInvitationByCode(code: string): Promise<Invitation | undefined> {
+    const [invitation] = await db.select().from(invitations).where(eq(invitations.code, code));
+    return invitation;
+  }
+
+  async getUserInvitations(userId: string): Promise<Invitation[]> {
+    return await db.select().from(invitations).where(eq(invitations.invitedBy, userId)).orderBy(desc(invitations.createdAt));
+  }
+
+  async updateInvitation(id: string, updates: Partial<Invitation>): Promise<Invitation> {
+    const [invitation] = await db
+      .update(invitations)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(invitations.id, id))
+      .returning();
+    return invitation;
+  }
+
+  async acceptInvitation(code: string, userId: string): Promise<Invitation> {
+    const [invitation] = await db
+      .update(invitations)
+      .set({ 
+        status: 'accepted', 
+        acceptedBy: userId, 
+        acceptedAt: new Date(),
+        updatedAt: new Date() 
+      })
+      .where(eq(invitations.code, code))
+      .returning();
+    return invitation;
+  }
+
+  async expireOldInvitations(): Promise<void> {
+    const expiryDate = new Date();
+    expiryDate.setDate(expiryDate.getDate() - 30); // Expire after 30 days
+
+    await db
+      .update(invitations)
+      .set({ status: 'expired', updatedAt: new Date() })
+      .where(
+        and(
+          eq(invitations.status, 'pending'),
+          lt(invitations.createdAt, expiryDate)
+        )
+      );
+  }
+
+  async generateInvitationCode(): Promise<string> {
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+    let code: string;
+    let exists = true;
+
+    while (exists) {
+      code = '';
+      for (let i = 0; i < 8; i++) {
+        code += chars.charAt(Math.floor(Math.random() * chars.length));
+      }
+      
+      const existingInvitation = await this.getInvitationByCode(code);
+      exists = !!existingInvitation;
+    }
+
+    return code!;
+  }
+
+  async generateUserReferralCode(userId: string): Promise<string> {
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+    let code: string;
+    let exists = true;
+
+    while (exists) {
+      code = '';
+      for (let i = 0; i < 6; i++) {
+        code += chars.charAt(Math.floor(Math.random() * chars.length));
+      }
+      
+      const [existingUser] = await db.select().from(users).where(eq(users.referralCode, code));
+      exists = !!existingUser;
+    }
+
+    // Update user with referral code
+    await this.updateUser(userId, { referralCode: code! });
+    return code!;
+  }
+
+  // Referral stats implementation
+  async getReferralStats(userId: string): Promise<ReferralStats | undefined> {
+    const [stats] = await db.select().from(referralStats).where(eq(referralStats.userId, userId));
+    return stats;
+  }
+
+  async createReferralStats(statsData: InsertReferralStats): Promise<ReferralStats> {
+    const [stats] = await db.insert(referralStats).values(statsData).returning();
+    return stats;
+  }
+
+  async updateReferralStats(userId: string, updates: Partial<ReferralStats>): Promise<ReferralStats> {
+    const [stats] = await db
+      .update(referralStats)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(referralStats.userId, userId))
+      .returning();
+    return stats;
+  }
+
+  async incrementInvitationsSent(userId: string): Promise<void> {
+    const existingStats = await this.getReferralStats(userId);
+    
+    if (existingStats) {
+      await this.updateReferralStats(userId, {
+        totalInvitationsSent: existingStats.totalInvitationsSent + 1
+      });
+    } else {
+      await this.createReferralStats({
+        userId,
+        totalInvitationsSent: 1,
+        totalInvitationsAccepted: 0,
+        contractorReferrals: 0,
+        homeownerReferrals: 0
+      });
+    }
+  }
+
+  async incrementInvitationsAccepted(userId: string, targetRole: 'homeowner' | 'contractor_user'): Promise<void> {
+    const existingStats = await this.getReferralStats(userId);
+    
+    if (existingStats) {
+      const updates: Partial<ReferralStats> = {
+        totalInvitationsAccepted: existingStats.totalInvitationsAccepted + 1
+      };
+      
+      if (targetRole === 'contractor_user') {
+        updates.contractorReferrals = existingStats.contractorReferrals + 1;
+      } else {
+        updates.homeownerReferrals = existingStats.homeownerReferrals + 1;
+      }
+      
+      await this.updateReferralStats(userId, updates);
+    } else {
+      await this.createReferralStats({
+        userId,
+        totalInvitationsSent: 0,
+        totalInvitationsAccepted: 1,
+        contractorReferrals: targetRole === 'contractor_user' ? 1 : 0,
+        homeownerReferrals: targetRole === 'homeowner' ? 1 : 0
+      });
+    }
+  }
+
+  async getTopReferrers(limit: number): Promise<(ReferralStats & { user: User })[]> {
+    const result = await db
+      .select({
+        userId: referralStats.userId,
+        totalInvitationsSent: referralStats.totalInvitationsSent,
+        totalInvitationsAccepted: referralStats.totalInvitationsAccepted,
+        contractorReferrals: referralStats.contractorReferrals,
+        homeownerReferrals: referralStats.homeownerReferrals,
+        createdAt: referralStats.createdAt,
+        updatedAt: referralStats.updatedAt,
+        user: {
+          id: users.id,
+          username: users.username,
+          email: users.email,
+          firstName: users.firstName,
+          lastName: users.lastName,
+          profileImageUrl: users.profileImageUrl,
+          role: users.role,
+          createdAt: users.createdAt,
+          updatedAt: users.updatedAt
+        }
+      })
+      .from(referralStats)
+      .innerJoin(users, eq(referralStats.userId, users.id))
+      .orderBy(desc(referralStats.totalInvitationsAccepted))
+      .limit(limit);
+
+    return result.map(row => ({
+      userId: row.userId,
+      totalInvitationsSent: row.totalInvitationsSent,
+      totalInvitationsAccepted: row.totalInvitationsAccepted,
+      contractorReferrals: row.contractorReferrals,
+      homeownerReferrals: row.homeownerReferrals,
+      createdAt: row.createdAt,
+      updatedAt: row.updatedAt,
+      user: row.user as User
+    }));
   }
 }
 

@@ -8,7 +8,7 @@ import {
   Menu, X, Settings, LogOut, User, Crown, Bookmark, 
   Search, Calculator, Users, Package, Palette, 
   MessageCircle, Shield, Layout, Wrench, Home,
-  ChevronDown, Zap, Star, Trophy
+  ChevronDown, Zap, Star, Trophy, UserPlus
 } from "lucide-react";
 import { ConstructionEmblem } from "@/components/ConstructionEmblem";
 import { NotificationBell } from "@/components/NotificationBell";
@@ -33,6 +33,7 @@ export default function Navigation() {
   ];
 
   const authenticatedNavItems = [
+    { href: "/invite", label: "Invite Friends", icon: UserPlus, description: "Invite friends to join TradeScout" },
     { href: "/moderation", label: "Moderation", icon: Shield, description: "Community moderation" },
     ...(isContractor ? [
       { href: "/contractor-dashboard", label: "Dashboard", icon: Layout, description: "Your contractor hub" },
