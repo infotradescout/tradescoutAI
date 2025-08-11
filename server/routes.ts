@@ -1,7 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { setupAuth, isAuthenticated, isContractor, isAdmin } from "./auth";
+import { setupAuth, isAuthenticated, isContractor, isAdmin, requireRole, isHeadAdmin, hashPassword, createMasterAdmin } from "./auth";
 import type { AuthenticatedRequest } from "./types";
 import { WebSocketManager } from "./websocket";
 import { paymentService } from "./payment-service";
@@ -97,11 +97,100 @@ import { ObjectStorageService } from "./objectStorage";
 import { randomUUID } from "crypto";
 import passport from "passport";
 import { LocalityTracker, localityTrackingMiddleware } from "./localityTracking";
+import passport from "passport";
 import FacebookStrategy from "passport-facebook";
 import { Strategy as GoogleStrategy } from "passport-google-oauth20";
 import { dataManagementService } from "./data-management";
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Setup authentication
+  await setupAuth(app);
+
+  // Authentication routes
+  app.post("/auth/login", passport.authenticate('local'), (req, res) => {
+    res.json({ user: req.user, message: "Login successful" });
+  });
+
+  app.post("/auth/register", async (req, res) => {
+    try {
+      const { email, password, firstName, lastName, role = 'homeowner' } = req.body;
+      
+      // Check if user already exists
+      const existingUser = await storage.getUserByEmail(email);
+      if (existingUser) {
+        return res.status(400).json({ message: "User already exists" });
+      }
+
+      // Hash password
+      const passwordHash = await hashPassword(password);
+      
+      // Create user
+      const user = await storage.createUser({
+        email,
+        passwordHash,
+        firstName,
+        lastName,
+        role: role as any,
+        emailVerified: false,
+        addressVerified: false,
+      });
+
+      // Auto-login after registration
+      req.login(user, (err) => {
+        if (err) {
+          return res.status(500).json({ message: "Registration successful but login failed" });
+        }
+        res.json({ user, message: "Registration successful" });
+      });
+    } catch (error) {
+      console.error("Registration error:", error);
+      res.status(500).json({ message: "Registration failed" });
+    }
+  });
+
+  app.post("/auth/logout", (req, res) => {
+    req.logout((err) => {
+      if (err) {
+        return res.status(500).json({ message: "Logout failed" });
+      }
+      res.json({ message: "Logout successful" });
+    });
+  });
+
+  app.get("/auth/user", (req, res) => {
+    if (req.isAuthenticated()) {
+      res.json(req.user);
+    } else {
+      res.status(401).json({ message: "Not authenticated" });
+    }
+  });
+
+  // Master admin setup route (only works if no head_admin exists)
+  app.post("/auth/setup-master", async (req, res) => {
+    try {
+      const { email, password, firstName, lastName } = req.body;
+      
+      // Check if any head_admin already exists
+      const existingHeadAdmin = await storage.getUserByRole('head_admin');
+      if (existingHeadAdmin) {
+        return res.status(403).json({ message: "Master admin already exists" });
+      }
+
+      const masterAdmin = await createMasterAdmin(email, password, firstName, lastName);
+      
+      // Auto-login the master admin
+      req.login(masterAdmin, (err) => {
+        if (err) {
+          return res.status(500).json({ message: "Master admin created but login failed" });
+        }
+        res.json({ user: masterAdmin, message: "Master admin setup complete" });
+      });
+    } catch (error) {
+      console.error("Master admin setup error:", error);
+      res.status(500).json({ message: "Master admin setup failed" });
+    }
+  });
+
   // Configure OAuth strategies
   if (process.env.FACEBOOK_APP_ID && process.env.FACEBOOK_APP_SECRET) {
     passport.use(new FacebookStrategy({

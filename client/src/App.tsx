@@ -11,13 +11,11 @@ import { lazy } from "react";
 import Navigation from "@/components/layout/navigation";
 import MobileCTA from "@/components/mobile-cta";
 import NotFound from "@/pages/not-found";
-import Login from "@/pages/login";
-import Register from "@/pages/register";
+import Login from "@/pages/Login";
 import Landing from "@/pages/landing";
 import Home from "@/pages/home";
 import Foundation from "@/pages/foundation";
-import LoginPage from "@/pages/login";
-import RegisterPage from "@/pages/register";
+import { MasterAdminSetup } from "@/components/MasterAdminSetup";
 import Dashboard from "@/pages/dashboard";
 import HomeownerDashboard from "@/pages/homeowner-dashboard";
 import ContractorBoard from "@/pages/contractor-board";
@@ -85,9 +83,13 @@ function Router() {
       <Navigation />
       {isAuthenticated && <AddressVerificationBanner />}
       <Switch>
+        {/* Master Admin Setup - Only shows if no admin exists */}
+        <Route path="/setup" component={MasterAdminSetup} />
+        
+        {/* Authentication routes */}
+        <Route path="/login" component={Login} />
+        
         {/* Public routes available to all users */}
-        <Route path="/login" component={LoginPage} />
-        <Route path="/register" component={RegisterPage} />
         <Route path="/contractors" component={ForContractors} />
         <Route path="/contractors/board" component={ContractorBoard} />
         <Route path="/contractors/apply" component={ContractorApply} />
@@ -116,8 +118,6 @@ function Router() {
         {!isAuthenticated ? (
           <>
             <Route path="/" component={Landing} />
-            <Route path="/register" component={RegisterPage} />
-            <Route path="/login" component={LoginPage} />
           </>
         ) : (
           <>
