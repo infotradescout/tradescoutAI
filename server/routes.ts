@@ -4865,5 +4865,280 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // ==================== FOUNDATION SYSTEM ROUTES ====================
+
+  // Get foundation statistics
+  app.get('/api/foundation/stats', async (req, res) => {
+    try {
+      const stats = await storage.getFoundationStats();
+      res.json(stats);
+    } catch (error) {
+      console.error('Error fetching foundation stats:', error);
+      res.status(500).json({ message: 'Failed to fetch foundation statistics' });
+    }
+  });
+
+  // Get foundation causes with filters
+  app.get('/api/foundation/causes', async (req, res) => {
+    try {
+      const { category, countyId, isActive } = req.query;
+      const filters = {
+        category: category as string,
+        countyId: countyId as string,
+        isActive: isActive === 'true' ? true : isActive === 'false' ? false : undefined,
+      };
+      
+      const causes = await storage.getFoundationCauses(filters);
+      res.json(causes);
+    } catch (error) {
+      console.error('Error fetching foundation causes:', error);
+      res.status(500).json({ message: 'Failed to fetch foundation causes' });
+    }
+  });
+
+  // Get single foundation cause
+  app.get('/api/foundation/causes/:id', async (req, res) => {
+    try {
+      const { id } = req.params;
+      const cause = await storage.getFoundationCause(id);
+      
+      if (!cause) {
+        return res.status(404).json({ message: 'Cause not found' });
+      }
+      
+      res.json(cause);
+    } catch (error) {
+      console.error('Error fetching foundation cause:', error);
+      res.status(500).json({ message: 'Failed to fetch foundation cause' });
+    }
+  });
+
+  // Create foundation donation
+  app.post('/api/foundation/donate', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const {
+        causeId,
+        amount,
+        type = 'one_time',
+        isAnonymous = false,
+        donorMessage,
+        isRoundupDonation = false,
+        originalAmount,
+        relatedTransactionId,
+        relatedTransactionType
+      } = req.body;
+
+      // Validate required fields
+      if (!causeId || !amount || amount < 1) {
+        return res.status(400).json({ 
+          message: 'Invalid donation data. Cause ID and minimum $1 amount required.' 
+        });
+      }
+
+      // Verify cause exists
+      const cause = await storage.getFoundationCause(causeId);
+      if (!cause) {
+        return res.status(404).json({ message: 'Cause not found' });
+      }
+
+      // Create Stripe payment intent for the donation
+      const paymentIntent = await stripe.paymentIntents.create({
+        amount: Math.round(amount * 100), // Convert to cents
+        currency: 'usd',
+        metadata: {
+          type: 'foundation_donation',
+          causeId,
+          userId,
+          isRoundupDonation: isRoundupDonation.toString(),
+          ...(originalAmount && { originalAmount: originalAmount.toString() })
+        }
+      });
+
+      // Create donation record
+      const donation = await storage.createFoundationDonation({
+        userId,
+        causeId,
+        amount: amount.toString(),
+        type: type as any,
+        isAnonymous,
+        donorMessage: donorMessage?.trim() || undefined,
+        isRoundupDonation,
+        originalAmount: originalAmount?.toString(),
+        relatedTransactionId,
+        relatedTransactionType,
+        stripePaymentIntentId: paymentIntent.id,
+        status: 'pending'
+      });
+
+      res.json({
+        donationId: donation.id,
+        clientSecret: paymentIntent.client_secret,
+        message: 'Donation payment intent created successfully'
+      });
+
+    } catch (error) {
+      console.error('Error creating donation:', error);
+      res.status(500).json({ message: 'Failed to process donation' });
+    }
+  });
+
+  // Handle donation payment success (webhook or confirmation)
+  app.post('/api/foundation/donations/:id/confirm', isAuthenticated, async (req: any, res) => {
+    try {
+      const { id } = req.params;
+      const userId = req.user.claims.sub;
+      const { stripePaymentIntentId } = req.body;
+
+      // Get and verify donation
+      const donation = await storage.getFoundationDonation(id);
+      if (!donation || donation.userId !== userId) {
+        return res.status(404).json({ message: 'Donation not found' });
+      }
+
+      // Verify payment with Stripe
+      const paymentIntent = await stripe.paymentIntents.retrieve(stripePaymentIntentId);
+      
+      if (paymentIntent.status === 'succeeded') {
+        // Update donation status
+        const updatedDonation = await storage.updateFoundationDonation(id, {
+          status: 'completed',
+          completedAt: new Date(),
+          stripeChargeId: paymentIntent.latest_charge as string,
+          paymentMethod: paymentIntent.payment_method_types[0],
+          processingFee: (paymentIntent.application_fee_amount || 0) / 100,
+          netAmount: (paymentIntent.amount - (paymentIntent.application_fee_amount || 0)) / 100
+        });
+
+        // Update cause raised amount
+        await storage.updateCauseRaisedAmount(donation.causeId, Number(donation.amount));
+
+        res.json({
+          donation: updatedDonation,
+          message: 'Donation completed successfully'
+        });
+      } else {
+        res.status(400).json({ message: 'Payment not successful' });
+      }
+
+    } catch (error) {
+      console.error('Error confirming donation:', error);
+      res.status(500).json({ message: 'Failed to confirm donation' });
+    }
+  });
+
+  // Get user's donations
+  app.get('/api/foundation/my-donations', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const { status, type } = req.query;
+      
+      const filters = {
+        status: status as string,
+        type: type as string
+      };
+      
+      const donations = await storage.getUserDonations(userId, filters);
+      res.json(donations);
+    } catch (error) {
+      console.error('Error fetching user donations:', error);
+      res.status(500).json({ message: 'Failed to fetch donations' });
+    }
+  });
+
+  // Get/Update user donation preferences
+  app.get('/api/foundation/preferences', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const preferences = await storage.getUserDonationPreferences(userId);
+      res.json(preferences || {});
+    } catch (error) {
+      console.error('Error fetching donation preferences:', error);
+      res.status(500).json({ message: 'Failed to fetch preferences' });
+    }
+  });
+
+  app.put('/api/foundation/preferences', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const preferences = await storage.upsertUserDonationPreferences(userId, req.body);
+      res.json(preferences);
+    } catch (error) {
+      console.error('Error updating donation preferences:', error);
+      res.status(500).json({ message: 'Failed to update preferences' });
+    }
+  });
+
+  // Get recent donations (public feed)
+  app.get('/api/foundation/recent-donations', async (req, res) => {
+    try {
+      const limit = parseInt(req.query.limit as string) || 20;
+      const donations = await storage.getRecentDonations(limit);
+      res.json(donations);
+    } catch (error) {
+      console.error('Error fetching recent donations:', error);
+      res.status(500).json({ message: 'Failed to fetch recent donations' });
+    }
+  });
+
+  // Get foundation impact reports
+  app.get('/api/foundation/impact-reports', async (req, res) => {
+    try {
+      const { causeId } = req.query;
+      const reports = await storage.getFoundationImpactReports(causeId as string);
+      res.json(reports);
+    } catch (error) {
+      console.error('Error fetching impact reports:', error);
+      res.status(500).json({ message: 'Failed to fetch impact reports' });
+    }
+  });
+
+  // Admin: Create foundation cause
+  app.post('/api/admin/foundation/causes', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      
+      // Check admin permissions
+      const user = await storage.getUser(userId);
+      if (!user || !['head_admin', 'ops_admin'].includes(user.role)) {
+        return res.status(403).json({ message: 'Admin access required' });
+      }
+
+      const causeData = {
+        ...req.body,
+        createdBy: userId
+      };
+
+      const cause = await storage.createFoundationCause(causeData);
+      res.json(cause);
+    } catch (error) {
+      console.error('Error creating foundation cause:', error);
+      res.status(500).json({ message: 'Failed to create cause' });
+    }
+  });
+
+  // Admin: Create impact report
+  app.post('/api/admin/foundation/impact-reports', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      
+      // Check admin permissions
+      const user = await storage.getUser(userId);
+      if (!user || !['head_admin', 'ops_admin'].includes(user.role)) {
+        return res.status(403).json({ message: 'Admin access required' });
+      }
+
+      const report = await storage.createFoundationImpactReport({
+        ...req.body,
+        publishedAt: new Date()
+      });
+      
+      res.json(report);
+    } catch (error) {
+      console.error('Error creating impact report:', error);
+      res.status(500).json({ message: 'Failed to create impact report' });
+    }
+  });
+
   return httpServer;
 }

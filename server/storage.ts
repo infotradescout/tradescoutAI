@@ -216,6 +216,15 @@ import {
   type InsertPaymentConfiguration,
   type ContractorPayment,
   type InsertContractorPayment,
+  // Foundation system types
+  type FoundationCause,
+  type InsertFoundationCause,
+  type FoundationDonation,
+  type InsertFoundationDonation,
+  type UserDonationPreferences,
+  type InsertUserDonationPreferences,
+  type FoundationImpactReport,
+  type InsertFoundationImpactReport,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, desc, asc, sql, inArray, like, gt, or, lt, isNull, isNotNull, ne, gte, lte } from "drizzle-orm";
@@ -4443,6 +4452,289 @@ export class DatabaseStorage implements IStorage {
       .where(eq(marketplaceTransactions.id, id))
       .returning();
     return transaction;
+  }
+
+  // ==================== FOUNDATION SYSTEM METHODS ====================
+
+  // Foundation causes
+  async getFoundationCauses(filters?: { category?: string; countyId?: string; isActive?: boolean }): Promise<any[]> {
+    let query = db
+      .select({
+        id: foundationCauses.id,
+        name: foundationCauses.name,
+        description: foundationCauses.description,
+        category: foundationCauses.category,
+        isActive: foundationCauses.isActive,
+        targetAmount: foundationCauses.targetAmount,
+        raisedAmount: foundationCauses.raisedAmount,
+        imageUrl: foundationCauses.imageUrl,
+        websiteUrl: foundationCauses.websiteUrl,
+        verifiedNonprofit: foundationCauses.verifiedNonprofit,
+        createdAt: foundationCauses.createdAt,
+        county: {
+          id: counties.id,
+          name: counties.name,
+          state: counties.state,
+        }
+      })
+      .from(foundationCauses)
+      .leftJoin(counties, eq(foundationCauses.countyId, counties.id));
+
+    if (filters?.category && filters.category !== 'all') {
+      query = query.where(eq(foundationCauses.category, filters.category));
+    }
+    if (filters?.countyId) {
+      query = query.where(eq(foundationCauses.countyId, filters.countyId));
+    }
+    if (filters?.isActive !== undefined) {
+      query = query.where(eq(foundationCauses.isActive, filters.isActive));
+    }
+
+    return await query.orderBy(desc(foundationCauses.createdAt));
+  }
+
+  async getFoundationCause(id: string): Promise<any | undefined> {
+    const [cause] = await db
+      .select({
+        id: foundationCauses.id,
+        name: foundationCauses.name,
+        description: foundationCauses.description,
+        category: foundationCauses.category,
+        isActive: foundationCauses.isActive,
+        targetAmount: foundationCauses.targetAmount,
+        raisedAmount: foundationCauses.raisedAmount,
+        imageUrl: foundationCauses.imageUrl,
+        websiteUrl: foundationCauses.websiteUrl,
+        contactEmail: foundationCauses.contactEmail,
+        verifiedNonprofit: foundationCauses.verifiedNonprofit,
+        taxId: foundationCauses.taxId,
+        createdAt: foundationCauses.createdAt,
+        county: {
+          id: counties.id,
+          name: counties.name,
+          state: counties.state,
+        }
+      })
+      .from(foundationCauses)
+      .leftJoin(counties, eq(foundationCauses.countyId, counties.id))
+      .where(eq(foundationCauses.id, id));
+
+    return cause;
+  }
+
+  async createFoundationCause(data: InsertFoundationCause): Promise<FoundationCause> {
+    const [cause] = await db
+      .insert(foundationCauses)
+      .values(data)
+      .returning();
+    return cause;
+  }
+
+  // Foundation donations
+  async createFoundationDonation(data: InsertFoundationDonation): Promise<FoundationDonation> {
+    const [donation] = await db
+      .insert(foundationDonations)
+      .values(data)
+      .returning();
+    return donation;
+  }
+
+  async getFoundationDonation(id: string): Promise<FoundationDonation | undefined> {
+    const [donation] = await db
+      .select()
+      .from(foundationDonations)
+      .where(eq(foundationDonations.id, id));
+    return donation;
+  }
+
+  async updateFoundationDonation(id: string, data: Partial<FoundationDonation>): Promise<FoundationDonation | undefined> {
+    const [donation] = await db
+      .update(foundationDonations)
+      .set({ ...data, updatedAt: new Date() })
+      .where(eq(foundationDonations.id, id))
+      .returning();
+    return donation;
+  }
+
+  async getUserDonations(userId: string, filters?: { status?: string; type?: string }): Promise<any[]> {
+    let query = db
+      .select({
+        id: foundationDonations.id,
+        amount: foundationDonations.amount,
+        type: foundationDonations.type,
+        status: foundationDonations.status,
+        isRoundupDonation: foundationDonations.isRoundupDonation,
+        originalAmount: foundationDonations.originalAmount,
+        isAnonymous: foundationDonations.isAnonymous,
+        donorMessage: foundationDonations.donorMessage,
+        createdAt: foundationDonations.createdAt,
+        completedAt: foundationDonations.completedAt,
+        cause: {
+          id: foundationCauses.id,
+          name: foundationCauses.name,
+          category: foundationCauses.category,
+          county: {
+            name: counties.name,
+            state: counties.state,
+          }
+        }
+      })
+      .from(foundationDonations)
+      .leftJoin(foundationCauses, eq(foundationDonations.causeId, foundationCauses.id))
+      .leftJoin(counties, eq(foundationCauses.countyId, counties.id))
+      .where(eq(foundationDonations.userId, userId));
+
+    if (filters?.status) {
+      query = query.where(eq(foundationDonations.status, filters.status as any));
+    }
+    if (filters?.type) {
+      query = query.where(eq(foundationDonations.type, filters.type as any));
+    }
+
+    return await query.orderBy(desc(foundationDonations.createdAt));
+  }
+
+  // Update cause raised amount after successful donation
+  async updateCauseRaisedAmount(causeId: string, additionalAmount: number): Promise<void> {
+    await db
+      .update(foundationCauses)
+      .set({
+        raisedAmount: sql`${foundationCauses.raisedAmount} + ${additionalAmount}`,
+        updatedAt: new Date()
+      })
+      .where(eq(foundationCauses.id, causeId));
+  }
+
+  // User donation preferences
+  async getUserDonationPreferences(userId: string): Promise<UserDonationPreferences | undefined> {
+    const [preferences] = await db
+      .select()
+      .from(userDonationPreferences)
+      .where(eq(userDonationPreferences.userId, userId));
+    return preferences;
+  }
+
+  async createUserDonationPreferences(data: InsertUserDonationPreferences): Promise<UserDonationPreferences> {
+    const [preferences] = await db
+      .insert(userDonationPreferences)
+      .values(data)
+      .returning();
+    return preferences;
+  }
+
+  async updateUserDonationPreferences(userId: string, data: Partial<UserDonationPreferences>): Promise<UserDonationPreferences | undefined> {
+    const [preferences] = await db
+      .update(userDonationPreferences)
+      .set({ ...data, updatedAt: new Date() })
+      .where(eq(userDonationPreferences.userId, userId))
+      .returning();
+    return preferences;
+  }
+
+  async upsertUserDonationPreferences(userId: string, data: Partial<UserDonationPreferences>): Promise<UserDonationPreferences> {
+    const [preferences] = await db
+      .insert(userDonationPreferences)
+      .values({ ...data, userId })
+      .onConflictDoUpdate({
+        target: userDonationPreferences.userId,
+        set: { ...data, updatedAt: new Date() }
+      })
+      .returning();
+    return preferences;
+  }
+
+  // Foundation statistics
+  async getFoundationStats(): Promise<any> {
+    const [stats] = await db
+      .select({
+        totalRaised: sql<number>`COALESCE(SUM(${foundationDonations.amount}), 0)`,
+        totalDonors: sql<number>`COUNT(DISTINCT ${foundationDonations.userId})`,
+        activeCauses: sql<number>`COUNT(DISTINCT ${foundationCauses.id})`,
+        countiesSupported: sql<number>`COUNT(DISTINCT ${foundationCauses.countyId})`
+      })
+      .from(foundationDonations)
+      .leftJoin(foundationCauses, eq(foundationDonations.causeId, foundationCauses.id))
+      .where(and(
+        eq(foundationDonations.status, 'completed'),
+        eq(foundationCauses.isActive, true)
+      ));
+
+    return stats;
+  }
+
+  // Recent donations (public feed)
+  async getRecentDonations(limit: number = 20): Promise<any[]> {
+    return await db
+      .select({
+        id: foundationDonations.id,
+        amount: foundationDonations.amount,
+        isAnonymous: foundationDonations.isAnonymous,
+        donorMessage: foundationDonations.donorMessage,
+        createdAt: foundationDonations.createdAt,
+        donor: {
+          firstName: users.firstName,
+          lastName: users.lastName,
+        },
+        cause: {
+          name: foundationCauses.name,
+          category: foundationCauses.category,
+          county: {
+            name: counties.name,
+            state: counties.state,
+          }
+        }
+      })
+      .from(foundationDonations)
+      .leftJoin(users, eq(foundationDonations.userId, users.id))
+      .leftJoin(foundationCauses, eq(foundationDonations.causeId, foundationCauses.id))
+      .leftJoin(counties, eq(foundationCauses.countyId, counties.id))
+      .where(eq(foundationDonations.status, 'completed'))
+      .orderBy(desc(foundationDonations.createdAt))
+      .limit(limit);
+  }
+
+  // Foundation impact reports
+  async getFoundationImpactReports(causeId?: string): Promise<any[]> {
+    let query = db
+      .select({
+        id: foundationImpactReports.id,
+        reportingPeriod: foundationImpactReports.reportingPeriod,
+        totalDonationsReceived: foundationImpactReports.totalDonationsReceived,
+        totalDonorsCount: foundationImpactReports.totalDonorsCount,
+        totalBeneficiaries: foundationImpactReports.totalBeneficiaries,
+        impactMetrics: foundationImpactReports.impactMetrics,
+        storytelling: foundationImpactReports.storytelling,
+        mediaUrls: foundationImpactReports.mediaUrls,
+        publishedAt: foundationImpactReports.publishedAt,
+        createdAt: foundationImpactReports.createdAt,
+        cause: {
+          id: foundationCauses.id,
+          name: foundationCauses.name,
+          category: foundationCauses.category,
+          county: {
+            name: counties.name,
+            state: counties.state,
+          }
+        }
+      })
+      .from(foundationImpactReports)
+      .leftJoin(foundationCauses, eq(foundationImpactReports.causeId, foundationCauses.id))
+      .leftJoin(counties, eq(foundationCauses.countyId, counties.id))
+      .where(isNotNull(foundationImpactReports.publishedAt));
+
+    if (causeId) {
+      query = query.where(eq(foundationImpactReports.causeId, causeId));
+    }
+
+    return await query.orderBy(desc(foundationImpactReports.publishedAt));
+  }
+
+  async createFoundationImpactReport(data: InsertFoundationImpactReport): Promise<FoundationImpactReport> {
+    const [report] = await db
+      .insert(foundationImpactReports)
+      .values(data)
+      .returning();
+    return report;
   }
 }
 

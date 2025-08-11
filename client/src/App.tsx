@@ -15,6 +15,7 @@ import Login from "@/pages/login";
 import Register from "@/pages/register";
 import Landing from "@/pages/landing";
 import Home from "@/pages/home";
+import Foundation from "@/pages/foundation";
 import LoginPage from "@/pages/login";
 import RegisterPage from "@/pages/register";
 import Dashboard from "@/pages/dashboard";
@@ -167,6 +168,7 @@ function Router() {
             <Route path="/payments/history" component={PaymentHistory} />
             <Route path="/search" component={AdvancedSearch} />
             <Route path="/notifications" component={Notifications} />
+            <Route path="/foundation" component={Foundation} />
           </>
         )}
         <Route component={NotFound} />

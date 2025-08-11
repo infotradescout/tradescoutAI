@@ -3321,3 +3321,248 @@ export type InsertRealTimeNotificationType = z.infer<typeof insertRealTimeNotifi
 export type InsertSavedSearchType = z.infer<typeof insertSavedSearchSchema>;
 export type InsertSearchAnalyticsType = z.infer<typeof insertSearchAnalyticsSchema>;
 export type InsertPlatformAnalyticsType = z.infer<typeof insertPlatformAnalyticsSchema>;
+
+// ==================== TRADESCOUT FOUNDATION SYSTEM ====================
+
+// Donation status enum
+export const donationStatusEnum = pgEnum('donation_status', [
+  'pending',
+  'processing',
+  'completed',
+  'failed',
+  'refunded'
+]);
+
+// Donation type enum
+export const donationTypeEnum = pgEnum('donation_type', [
+  'one_time',
+  'roundup',
+  'recurring'
+]);
+
+// Foundation causes (county-level charitable causes)
+export const foundationCauses = pgTable("foundation_causes", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  name: varchar("name", { length: 255 }).notNull(),
+  description: text("description").notNull(),
+  category: varchar("category", { length: 100 }).notNull(), // education, environment, health, etc.
+  countyId: varchar("county_id").references(() => counties.id),
+  isActive: boolean("is_active").default(true),
+  targetAmount: decimal("target_amount", { precision: 10, scale: 2 }),
+  raisedAmount: decimal("raised_amount", { precision: 10, scale: 2 }).default('0'),
+  imageUrl: varchar("image_url", { length: 500 }),
+  websiteUrl: varchar("website_url", { length: 500 }),
+  contactEmail: varchar("contact_email", { length: 255 }),
+  verifiedNonprofit: boolean("verified_nonprofit").default(false),
+  taxId: varchar("tax_id", { length: 20 }), // EIN number
+  createdBy: varchar("created_by").references(() => users.id),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// User donations to foundation causes
+export const foundationDonations = pgTable("foundation_donations", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  causeId: varchar("cause_id").notNull().references(() => foundationCauses.id),
+  amount: decimal("amount", { precision: 10, scale: 2 }).notNull(),
+  type: donationTypeEnum("type").notNull().default('one_time'),
+  status: donationStatusEnum("status").notNull().default('pending'),
+  
+  // Payment processing
+  stripePaymentIntentId: varchar("stripe_payment_intent_id", { length: 255 }),
+  stripeChargeId: varchar("stripe_charge_id", { length: 255 }),
+  paymentMethod: varchar("payment_method", { length: 50 }), // card, bank_transfer, etc.
+  
+  // Transaction reference (for roundup donations)
+  relatedTransactionId: varchar("related_transaction_id"), // contractor payment or marketplace transaction
+  relatedTransactionType: varchar("related_transaction_type"), // 'contractor' or 'marketplace'
+  isRoundupDonation: boolean("is_roundup_donation").default(false),
+  originalAmount: decimal("original_amount", { precision: 10, scale: 2 }), // original transaction amount
+  
+  // Recurring donations
+  isRecurring: boolean("is_recurring").default(false),
+  recurringFrequency: varchar("recurring_frequency", { length: 20 }), // monthly, weekly, etc.
+  nextDonationDate: timestamp("next_donation_date"),
+  
+  // Tax and receipt information
+  isAnonymous: boolean("is_anonymous").default(false),
+  taxDeductible: boolean("tax_deductible").default(true),
+  receiptSent: boolean("receipt_sent").default(false),
+  receiptUrl: varchar("receipt_url", { length: 500 }),
+  
+  // Processing metadata
+  processingFee: decimal("processing_fee", { precision: 10, scale: 2 }).default('0'),
+  netAmount: decimal("net_amount", { precision: 10, scale: 2 }), // amount after fees
+  donorMessage: text("donor_message"), // optional message from donor
+  
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+  completedAt: timestamp("completed_at"),
+});
+
+// Foundation donation matching (corporate or admin matching programs)
+export const donationMatching = pgTable("donation_matching", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  donationId: varchar("donation_id").notNull().references(() => foundationDonations.id),
+  matchingAmount: decimal("matching_amount", { precision: 10, scale: 2 }).notNull(),
+  matchingRatio: decimal("matching_ratio", { precision: 3, scale: 2 }), // 1.00 = 100% match
+  sponsorName: varchar("sponsor_name", { length: 255 }), // company or individual matching
+  sponsorMessage: text("sponsor_message"),
+  isActive: boolean("is_active").default(true),
+  expiresAt: timestamp("expires_at"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// User donation preferences (for roundup and recurring)
+export const userDonationPreferences = pgTable("user_donation_preferences", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  
+  // Roundup preferences
+  enableRoundupDonations: boolean("enable_roundup_donations").default(false),
+  roundupThreshold: decimal("roundup_threshold", { precision: 5, scale: 2 }).default('1.00'), // max roundup amount
+  defaultCauseId: varchar("default_cause_id").references(() => foundationCauses.id),
+  
+  // Notification preferences
+  emailReceipts: boolean("email_receipts").default(true),
+  monthlyReports: boolean("monthly_reports").default(true),
+  impactUpdates: boolean("impact_updates").default(true),
+  
+  // Geographic preferences
+  preferLocalCauses: boolean("prefer_local_causes").default(true),
+  maxDistanceFromUser: integer("max_distance_from_user").default(50), // miles
+  
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Foundation impact reporting
+export const foundationImpactReports = pgTable("foundation_impact_reports", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  causeId: varchar("cause_id").notNull().references(() => foundationCauses.id),
+  reportingPeriod: varchar("reporting_period", { length: 50 }), // monthly, quarterly, annual
+  totalDonationsReceived: decimal("total_donations_received", { precision: 12, scale: 2 }),
+  totalDonorsCount: integer("total_donors_count"),
+  totalBeneficiaries: integer("total_beneficiaries"),
+  
+  // Impact metrics (flexible JSON for different cause types)
+  impactMetrics: jsonb("impact_metrics"), // { "meals_provided": 1000, "trees_planted": 50, etc. }
+  storytelling: text("storytelling"), // narrative impact report
+  mediaUrls: jsonb("media_urls"), // photos, videos of impact
+  
+  // Financial transparency
+  adminCosts: decimal("admin_costs", { precision: 10, scale: 2 }),
+  programCosts: decimal("program_costs", { precision: 10, scale: 2 }),
+  fundraisingCosts: decimal("fundraising_costs", { precision: 10, scale: 2 }),
+  
+  publishedAt: timestamp("published_at"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// Relations for foundation system
+export const foundationCausesRelations = relations(foundationCauses, ({ one, many }) => ({
+  county: one(counties, {
+    fields: [foundationCauses.countyId],
+    references: [counties.id],
+  }),
+  creator: one(users, {
+    fields: [foundationCauses.createdBy],
+    references: [users.id],
+  }),
+  donations: many(foundationDonations),
+  impactReports: many(foundationImpactReports),
+}));
+
+export const foundationDonationsRelations = relations(foundationDonations, ({ one, many }) => ({
+  user: one(users, {
+    fields: [foundationDonations.userId],
+    references: [users.id],
+  }),
+  cause: one(foundationCauses, {
+    fields: [foundationDonations.causeId],
+    references: [foundationCauses.id],
+  }),
+  matching: many(donationMatching),
+}));
+
+export const donationMatchingRelations = relations(donationMatching, ({ one }) => ({
+  donation: one(foundationDonations, {
+    fields: [donationMatching.donationId],
+    references: [foundationDonations.id],
+  }),
+}));
+
+export const userDonationPreferencesRelations = relations(userDonationPreferences, ({ one }) => ({
+  user: one(users, {
+    fields: [userDonationPreferences.userId],
+    references: [users.id],
+  }),
+  defaultCause: one(foundationCauses, {
+    fields: [userDonationPreferences.defaultCauseId],
+    references: [foundationCauses.id],
+  }),
+}));
+
+export const foundationImpactReportsRelations = relations(foundationImpactReports, ({ one }) => ({
+  cause: one(foundationCauses, {
+    fields: [foundationImpactReports.causeId],
+    references: [foundationCauses.id],
+  }),
+}));
+
+// Foundation system types
+export type FoundationCause = typeof foundationCauses.$inferSelect;
+export type InsertFoundationCause = typeof foundationCauses.$inferInsert;
+
+export type FoundationDonation = typeof foundationDonations.$inferSelect;
+export type InsertFoundationDonation = typeof foundationDonations.$inferInsert;
+
+export type DonationMatching = typeof donationMatching.$inferSelect;
+export type InsertDonationMatching = typeof donationMatching.$inferInsert;
+
+export type UserDonationPreferences = typeof userDonationPreferences.$inferSelect;
+export type InsertUserDonationPreferences = typeof userDonationPreferences.$inferInsert;
+
+export type FoundationImpactReport = typeof foundationImpactReports.$inferSelect;
+export type InsertFoundationImpactReport = typeof foundationImpactReports.$inferInsert;
+
+// Foundation system Zod schemas
+export const insertFoundationCauseSchema = createInsertSchema(foundationCauses).omit({
+  id: true,
+  raisedAmount: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertFoundationDonationSchema = createInsertSchema(foundationDonations).omit({
+  id: true,
+  status: true,
+  stripePaymentIntentId: true,
+  stripeChargeId: true,
+  receiptSent: true,
+  receiptUrl: true,
+  processingFee: true,
+  netAmount: true,
+  completedAt: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertUserDonationPreferencesSchema = createInsertSchema(userDonationPreferences).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertFoundationImpactReportSchema = createInsertSchema(foundationImpactReports).omit({
+  id: true,
+  publishedAt: true,
+  createdAt: true,
+});
+
+// Foundation system form types
+export type InsertFoundationCauseType = z.infer<typeof insertFoundationCauseSchema>;
+export type InsertFoundationDonationType = z.infer<typeof insertFoundationDonationSchema>;
+export type InsertUserDonationPreferencesType = z.infer<typeof insertUserDonationPreferencesSchema>;
+export type InsertFoundationImpactReportType = z.infer<typeof insertFoundationImpactReportSchema>;
