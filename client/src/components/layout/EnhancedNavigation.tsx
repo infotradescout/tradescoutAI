@@ -79,6 +79,39 @@ export function EnhancedNavigation({ className = "" }: EnhancedNavigationProps) 
             </Button>
           </Link>
           
+          {/* Additional Features */}
+          {isAuthenticated ? (
+            <>
+              <Link href="/chat">
+                <Button variant={isActive("/chat") ? "secondary" : "ghost"} size="sm" className="flex items-center space-x-1">
+                  <span>💬</span>
+                  <span>Chat</span>
+                </Button>
+              </Link>
+              <Link href="/notifications">
+                <Button variant={isActive("/notifications") ? "secondary" : "ghost"} size="sm" className="flex items-center space-x-1">
+                  <span>🔔</span>
+                  <span>Notifications</span>
+                </Button>
+              </Link>
+              <Link href="/search">
+                <Button variant={isActive("/search") ? "secondary" : "ghost"} size="sm" className="flex items-center space-x-1">
+                  <span>🔍</span>
+                  <span>Search</span>
+                </Button>
+              </Link>
+            </>
+          ) : (
+            <>
+              <Link href="/register">
+                <Button variant={isActive("/register") ? "secondary" : "ghost"} size="sm" className="flex items-center space-x-1">
+                  <span>📝</span>
+                  <span>Register</span>
+                </Button>
+              </Link>
+            </>
+          )}
+          
           {/* Authenticated Navigation */}
           {isAuthenticated && <RoleBasedNavigation />}
         </div>
@@ -167,7 +200,43 @@ export function EnhancedNavigation({ className = "" }: EnhancedNavigationProps) 
                       <span className="mr-2">👷</span>Helpers
                     </Button>
                   </Link>
+                  {!isAuthenticated && (
+                    <Link href="/register" onClick={() => setIsMobileMenuOpen(false)}>
+                      <Button variant="ghost" className="w-full justify-start">
+                        <span className="mr-2">📝</span>Register
+                      </Button>
+                    </Link>
+                  )}
                 </div>
+
+                {/* Authenticated Features */}
+                {isAuthenticated && (
+                  <div className="space-y-2">
+                    <h3 className="text-sm font-semibold text-gray-400 uppercase tracking-wider">
+                      Your Account
+                    </h3>
+                    <Link href="/chat" onClick={() => setIsMobileMenuOpen(false)}>
+                      <Button variant="ghost" className="w-full justify-start">
+                        <span className="mr-2">💬</span>Chat
+                      </Button>
+                    </Link>
+                    <Link href="/notifications" onClick={() => setIsMobileMenuOpen(false)}>
+                      <Button variant="ghost" className="w-full justify-start">
+                        <span className="mr-2">🔔</span>Notifications
+                      </Button>
+                    </Link>
+                    <Link href="/search" onClick={() => setIsMobileMenuOpen(false)}>
+                      <Button variant="ghost" className="w-full justify-start">
+                        <span className="mr-2">🔍</span>Search
+                      </Button>
+                    </Link>
+                    <Link href="/saved-ads" onClick={() => setIsMobileMenuOpen(false)}>
+                      <Button variant="ghost" className="w-full justify-start">
+                        <span className="mr-2">💾</span>Saved Ads
+                      </Button>
+                    </Link>
+                  </div>
+                )}
 
                 {/* Authentication */}
                 {!isAuthenticated ? (
