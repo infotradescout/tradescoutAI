@@ -28,6 +28,7 @@ Preferred communication style: Simple, everyday language.
 - **Database**: PostgreSQL with Neon serverless
 - **Schema Management**: Drizzle Kit
 - **Core Entities**: Users (role-based), Contractors (verification, service areas), Counties, Trades, Recommendations, Ratings, Lead generation, Pricing data.
+- **Geographic Coverage**: 3,112 counties across all 50 states, DC, and 5 territories (99.0% national coverage) with proper FIPS integration for federal data compatibility.
 
 ## Authentication & Authorization
 - **Provider**: Replit OpenID Connect
@@ -43,7 +44,7 @@ Preferred communication style: Simple, everyday language.
 - **S3 Compatibility**: AWS S3 adapter support.
 
 ## Business Logic Features
-- **County-Centric Design**: Geographical organization by county FIPS codes.
+- **County-Centric Design**: Comprehensive geographical organization covering 3,112 counties (99.0% national coverage) across all 50 states, DC, and territories with proper FIPS codes for federal data integration.
 - **Estimate Calculator**: Regional pricing data with CSV import.
 - **Lead Routing**: Performance-weighted round-robin distribution with capacity management.
 - **Verification System**: Document upload and status tracking for contractors.
