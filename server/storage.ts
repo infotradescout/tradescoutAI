@@ -802,6 +802,18 @@ export class DatabaseStorage implements IStorage {
     return contractor;
   }
 
+  async getContractorByUserId(userId: string): Promise<Contractor | undefined> {
+    const [contractor] = await db
+      .select()
+      .from(contractors)
+      .where(eq(contractors.userId, userId));
+    return contractor;
+  }
+
+  async getContractor(id: string): Promise<Contractor | undefined> {
+    return this.getContractorById(id);
+  }
+
   async createContractor(contractor: InsertContractor): Promise<Contractor> {
     const [newContractor] = await db
       .insert(contractors)

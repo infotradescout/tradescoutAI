@@ -67,6 +67,16 @@ export const addressVerificationStatusEnum = pgEnum('address_verification_status
   'expired'
 ]);
 
+// Professional verification status enum
+export const verificationStatusEnum = pgEnum('verification_status', [
+  'pending',
+  'under_review',
+  'approved',
+  'rejected',
+  'expired',
+  'suspended'
+]);
+
 // Users table
 export const users = pgTable("users", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -79,13 +89,17 @@ export const users = pgTable("users", {
   address: text("address"),
   city: varchar("city"),
   state: varchar("state"),
+  county: varchar("county"), // Add county field
   zipCode: varchar("zip_code"),
   role: userRoleEnum("role").default('homeowner'),
   provider: varchar("provider").default('local'), // 'local', 'facebook', 'google'
   providerId: varchar("provider_id"), // social login ID
+  facebookId: varchar("facebook_id"), // Add facebookId field
+  googleId: varchar("google_id"), // Add googleId field
   emailVerified: boolean("email_verified").default(false),
   addressVerified: boolean("address_verified").default(false),
   addressVerificationDeadline: timestamp("address_verification_deadline"),
+  verificationStatus: verificationStatusEnum("verification_status").default('pending'), // Add verificationStatus
   onboardingCompleted: boolean("onboarding_completed").default(false),
   referralCode: varchar("referral_code"),
   invitedBy: varchar("invited_by"),
@@ -97,16 +111,6 @@ export const users = pgTable("users", {
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
-
-// Professional verification status enum
-export const verificationStatusEnum = pgEnum('verification_status', [
-  'pending',
-  'under_review',
-  'approved',
-  'rejected',
-  'expired',
-  'suspended'
-]);
 
 // Realtor profiles
 export const realtorProfiles = pgTable("realtor_profiles", {
