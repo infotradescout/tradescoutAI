@@ -1283,6 +1283,16 @@ export const insertErrorReportSchema = createInsertSchema(errorReports).omit({
 export type InsertErrorReport = typeof errorReports.$inferInsert;
 export type ErrorReport = typeof errorReports.$inferSelect;
 
+// Export types for data privacy and security
+export type InsertUserDataRequest = typeof userDataRequests.$inferInsert;
+export type UserDataRequest = typeof userDataRequests.$inferSelect;
+export type InsertDataAccessLog = typeof dataAccessLogs.$inferInsert;
+export type DataAccessLog = typeof dataAccessLogs.$inferSelect;
+export type InsertSecurityIncident = typeof securityIncidents.$inferInsert;
+export type SecurityIncident = typeof securityIncidents.$inferSelect;
+export type InsertUserPrivacySettings = typeof userPrivacySettings.$inferInsert;
+export type UserPrivacySettings = typeof userPrivacySettings.$inferSelect;
+
 // Buy/Sell Marketplace System for high-value items
 export const marketplaceCategories = pgTable("marketplace_categories", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -1624,6 +1634,105 @@ export const addressVerifications = pgTable("address_verifications", {
   
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Data Privacy and Security Management Tables
+export const userDataRequests = pgTable("user_data_requests", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  requestType: varchar("request_type", { 
+    enum: ['data_export', 'data_deletion', 'privacy_report', 'account_closure'] 
+  }).notNull(),
+  status: varchar("status", { 
+    enum: ['pending', 'processing', 'completed', 'failed', 'rejected'] 
+  }).default('pending'),
+  requestedBy: varchar("requested_by").notNull(), // Who made the request (user or admin)
+  reason: text("reason"),
+  adminNotes: text("admin_notes"),
+  completedBy: varchar("completed_by"), // Admin who processed
+  completedAt: timestamp("completed_at"),
+  expiresAt: timestamp("expires_at"), // For automatic processing
+  verificationCode: varchar("verification_code"), // Security verification
+  isVerified: boolean("is_verified").default(false),
+  downloadUrl: varchar("download_url"), // For data exports
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const dataAccessLogs = pgTable("data_access_logs", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id"), // User whose data was accessed
+  accessorId: varchar("accessor_id").notNull(), // Who accessed the data
+  accessorRole: varchar("accessor_role").notNull(),
+  actionType: varchar("action_type", {
+    enum: ['view', 'edit', 'delete', 'export', 'login_attempt', 'password_reset', 'profile_update']
+  }).notNull(),
+  resourceType: varchar("resource_type", {
+    enum: ['profile', 'messages', 'leads', 'recommendations', 'payments', 'documents', 'analytics']
+  }),
+  resourceId: varchar("resource_id"),
+  ipAddress: varchar("ip_address"),
+  userAgent: text("user_agent"),
+  location: jsonb("location").$type<{
+    country?: string;
+    state?: string;
+    city?: string;
+  }>(),
+  success: boolean("success").default(true),
+  errorMessage: text("error_message"),
+  metadata: jsonb("metadata"),
+  timestamp: timestamp("timestamp").defaultNow(),
+});
+
+export const securityIncidents = pgTable("security_incidents", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id"), // Affected user (if applicable)
+  incidentType: varchar("incident_type", {
+    enum: ['unauthorized_access', 'data_breach', 'failed_login_attempts', 'suspicious_activity', 'phishing_attempt', 'malware_detection']
+  }).notNull(),
+  severity: varchar("severity", { enum: ['low', 'medium', 'high', 'critical'] }).notNull(),
+  status: varchar("status", { enum: ['open', 'investigating', 'resolved', 'false_positive'] }).default('open'),
+  description: text("description").notNull(),
+  affectedData: jsonb("affected_data").$type<{
+    userIds?: string[];
+    dataTypes?: string[];
+    recordCount?: number;
+  }>(),
+  sourceIp: varchar("source_ip"),
+  detectionMethod: varchar("detection_method"), // 'automated', 'user_report', 'admin_review'
+  assignedTo: varchar("assigned_to"), // Admin handling the incident
+  resolutionNotes: text("resolution_notes"),
+  resolvedAt: timestamp("resolved_at"),
+  notificationsSent: boolean("notifications_sent").default(false),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const userPrivacySettings = pgTable("user_privacy_settings", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  profileVisibility: varchar("profile_visibility", { 
+    enum: ['public', 'contractors_only', 'private'] 
+  }).default('public'),
+  showContactInfo: boolean("show_contact_info").default(true),
+  allowDirectMessages: boolean("allow_direct_messages").default(true),
+  shareActivityStatus: boolean("share_activity_status").default(true),
+  allowAnalytics: boolean("allow_analytics").default(true),
+  allowThirdPartySharing: boolean("allow_third_party_sharing").default(false),
+  emailNotifications: boolean("email_notifications").default(true),
+  smsNotifications: boolean("sms_notifications").default(true),
+  marketingEmails: boolean("marketing_emails").default(false),
+  dataRetentionConsent: boolean("data_retention_consent").default(true),
+  privacyPolicyAccepted: timestamp("privacy_policy_accepted"),
+  termsOfServiceAccepted: timestamp("terms_of_service_accepted"),
+  cookieConsent: jsonb("cookie_consent").$type<{
+    essential?: boolean;
+    analytics?: boolean;
+    marketing?: boolean;
+    functional?: boolean;
+  }>(),
+  lastUpdated: timestamp("last_updated").defaultNow(),
+  createdAt: timestamp("created_at").defaultNow(),
 });
 
 // Social Feed and Community Features

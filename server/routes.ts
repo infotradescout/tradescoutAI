@@ -99,6 +99,7 @@ import passport from "passport";
 import { LocalityTracker, localityTrackingMiddleware } from "./localityTracking";
 import FacebookStrategy from "passport-facebook";
 import { Strategy as GoogleStrategy } from "passport-google-oauth20";
+import { dataManagementService } from "./data-management";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Configure OAuth strategies
@@ -5504,6 +5505,238 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error('Error creating impact report:', error);
       res.status(500).json({ message: 'Failed to create impact report' });
+    }
+  });
+
+  // Data Privacy and Security Management Routes
+  app.get("/api/user/privacy-settings", isAuthenticated, async (req, res) => {
+    try {
+      const user = req.user as any;
+      await dataManagementService.logDataAccess({
+        userId: user.id,
+        accessorId: user.id,
+        accessorRole: user.role,
+        actionType: 'view',
+        resourceType: 'profile',
+        ipAddress: req.ip,
+        userAgent: req.get('User-Agent')
+      });
+      
+      const settings = await dataManagementService.getUserPrivacySettings(user.id);
+      res.json(settings);
+    } catch (error) {
+      console.error("Error fetching privacy settings:", error);
+      res.status(500).json({ message: "Failed to fetch privacy settings" });
+    }
+  });
+
+  app.put("/api/user/privacy-settings", isAuthenticated, async (req, res) => {
+    try {
+      const user = req.user as any;
+      await dataManagementService.logDataAccess({
+        userId: user.id,
+        accessorId: user.id,
+        accessorRole: user.role,
+        actionType: 'edit',
+        resourceType: 'profile',
+        ipAddress: req.ip,
+        userAgent: req.get('User-Agent')
+      });
+      
+      const settings = await dataManagementService.updateUserPrivacySettings(user.id, req.body);
+      res.json(settings);
+    } catch (error) {
+      console.error("Error updating privacy settings:", error);
+      res.status(500).json({ message: "Failed to update privacy settings" });
+    }
+  });
+
+  app.post("/api/user/data-export-request", isAuthenticated, async (req, res) => {
+    try {
+      const user = req.user as any;
+      const request = await dataManagementService.createDataRequest({
+        userId: user.id,
+        requestType: 'data_export',
+        reason: req.body.reason,
+        requestedBy: user.id,
+      });
+
+      await dataManagementService.logDataAccess({
+        userId: user.id,
+        accessorId: user.id,
+        accessorRole: user.role,
+        actionType: 'export',
+        resourceType: 'profile',
+        ipAddress: req.ip,
+        userAgent: req.get('User-Agent'),
+        metadata: { requestId: request.id }
+      });
+
+      res.json({
+        message: "Data export request created successfully.",
+        requestId: request.id
+      });
+    } catch (error) {
+      console.error("Error creating data export request:", error);
+      res.status(500).json({ message: "Failed to create data export request" });
+    }
+  });
+
+  app.post("/api/user/account-deletion-request", isAuthenticated, async (req, res) => {
+    try {
+      const user = req.user as any;
+      const request = await dataManagementService.createDataRequest({
+        userId: user.id,
+        requestType: 'account_closure',
+        reason: req.body.reason,
+        requestedBy: user.id,
+      });
+
+      await dataManagementService.logDataAccess({
+        userId: user.id,
+        accessorId: user.id,
+        accessorRole: user.role,
+        actionType: 'delete',
+        resourceType: 'profile',
+        ipAddress: req.ip,
+        userAgent: req.get('User-Agent'),
+        metadata: { requestId: request.id }
+      });
+
+      res.json({
+        message: "Account deletion request created. This requires admin approval.",
+        requestId: request.id
+      });
+    } catch (error) {
+      console.error("Error creating account deletion request:", error);
+      res.status(500).json({ message: "Failed to create account deletion request" });
+    }
+  });
+
+  // Admin Data Management Routes
+  app.get("/api/admin/data-requests", isAuthenticated, isAdmin, async (req, res) => {
+    try {
+      const user = req.user as any;
+      const { status } = req.query;
+      
+      await dataManagementService.logDataAccess({
+        accessorId: user.id,
+        accessorRole: user.role,
+        actionType: 'view',
+        resourceType: 'analytics',
+        ipAddress: req.ip,
+        userAgent: req.get('User-Agent')
+      });
+
+      const requests = await dataManagementService.getAllDataRequests(status as string);
+      res.json(requests);
+    } catch (error) {
+      console.error("Error fetching data requests:", error);
+      res.status(500).json({ message: "Failed to fetch data requests" });
+    }
+  });
+
+  app.post("/api/admin/process-data-export/:id", isAuthenticated, isAdmin, async (req, res) => {
+    try {
+      const user = req.user as any;
+      const { id } = req.params;
+      
+      const requests = await dataManagementService.getAllDataRequests();
+      const request = requests.find(r => r.id === id);
+      
+      if (!request || request.requestType !== 'data_export') {
+        return res.status(404).json({ message: "Data export request not found" });
+      }
+
+      await dataManagementService.logDataAccess({
+        userId: request.userId,
+        accessorId: user.id,
+        accessorRole: user.role,
+        actionType: 'export',
+        resourceType: 'profile',
+        ipAddress: req.ip,
+        userAgent: req.get('User-Agent'),
+        metadata: { adminProcessed: true, requestId: id }
+      });
+
+      const exportData = await dataManagementService.exportUserData(request.userId);
+      const zipBuffer = await dataManagementService.createDataExportFile(exportData);
+
+      res.setHeader('Content-Type', 'application/zip');
+      res.setHeader('Content-Disposition', `attachment; filename="tradescout-data-export-${request.userId}.zip"`);
+      res.send(zipBuffer);
+
+    } catch (error) {
+      console.error("Error processing data export:", error);
+      res.status(500).json({ message: "Failed to process data export" });
+    }
+  });
+
+  app.post("/api/admin/approve-account-deletion/:id", isAuthenticated, isAdmin, async (req, res) => {
+    try {
+      const user = req.user as any;
+      const { id } = req.params;
+      
+      const requests = await dataManagementService.getAllDataRequests();
+      const request = requests.find(r => r.id === id);
+      
+      if (!request || request.requestType !== 'account_closure') {
+        return res.status(404).json({ message: "Account deletion request not found" });
+      }
+
+      await dataManagementService.deleteUserData(request.userId, user.id);
+      
+      res.json({ message: "Account successfully deleted" });
+
+    } catch (error) {
+      console.error("Error processing account deletion:", error);
+      res.status(500).json({ message: "Failed to process account deletion" });
+    }
+  });
+
+  app.get("/api/admin/security-incidents", isAuthenticated, isAdmin, async (req, res) => {
+    try {
+      const user = req.user as any;
+      const { status } = req.query;
+      
+      await dataManagementService.logDataAccess({
+        accessorId: user.id,
+        accessorRole: user.role,
+        actionType: 'view',
+        resourceType: 'analytics',
+        ipAddress: req.ip,
+        userAgent: req.get('User-Agent')
+      });
+
+      const incidents = await dataManagementService.getSecurityIncidents(status as string);
+      res.json(incidents);
+    } catch (error) {
+      console.error("Error fetching security incidents:", error);
+      res.status(500).json({ message: "Failed to fetch security incidents" });
+    }
+  });
+
+  app.get("/api/admin/user-access-logs/:userId", isAuthenticated, isAdmin, async (req, res) => {
+    try {
+      const user = req.user as any;
+      const { userId } = req.params;
+      const { limit = 100 } = req.query;
+      
+      await dataManagementService.logDataAccess({
+        userId: userId,
+        accessorId: user.id,
+        accessorRole: user.role,
+        actionType: 'view',
+        resourceType: 'analytics',
+        ipAddress: req.ip,
+        userAgent: req.get('User-Agent')
+      });
+
+      const logs = await dataManagementService.getUserAccessLogs(userId, parseInt(limit as string));
+      res.json(logs);
+    } catch (error) {
+      console.error("Error fetching user access logs:", error);
+      res.status(500).json({ message: "Failed to fetch access logs" });
     }
   });
 
