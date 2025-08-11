@@ -99,6 +99,33 @@
     overflow-x: auto; /* Allow horizontal scroll if needed */
     width: 100%;
   }
+  
+  /* Enhanced header navigation styling */
+  .nav-button {
+    @apply transition-all duration-200 ease-in-out;
+  }
+  
+  .nav-button:hover {
+    @apply transform translate-y-[-1px] shadow-sm;
+  }
+  
+  /* Navigation scrollbar styling */
+  .nav-scrollbar::-webkit-scrollbar {
+    height: 2px;
+  }
+  
+  .nav-scrollbar::-webkit-scrollbar-track {
+    background: rgba(148, 163, 184, 0.1);
+  }
+  
+  .nav-scrollbar::-webkit-scrollbar-thumb {
+    background: rgba(251, 146, 60, 0.5);
+    border-radius: 2px;
+  }
+  
+  .nav-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: rgba(251, 146, 60, 0.8);
+  }
 
   /* Mobile-optimized input fields */
   @media (max-width: 768px) {

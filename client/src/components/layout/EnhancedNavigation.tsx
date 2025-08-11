@@ -23,96 +23,96 @@ export function EnhancedNavigation({ className = "" }: EnhancedNavigationProps) 
   };
 
   return (
-    <header className={`sticky top-0 z-50 w-full border-b border-slate-700 bg-slate-900/95 backdrop-blur ${className}`}>
-      <div className="w-full flex items-center justify-between px-4 py-3">
+    <header className={`sticky top-0 z-50 w-full border-b border-slate-700/50 bg-slate-900/98 backdrop-blur-xl shadow-lg ${className}`}>
+      <div className="w-full flex items-center justify-between px-6 py-4">
         {/* Logo */}
         <Link href="/">
-          <div className="flex items-center space-x-2">
-            <div className="w-8 h-8 bg-gradient-to-br from-orange-500 to-red-600 rounded-lg flex items-center justify-center">
-              <span className="text-white font-bold text-sm">TS</span>
+          <div className="flex items-center space-x-3 transition-transform hover:scale-105">
+            <div className="w-10 h-10 bg-gradient-to-br from-orange-500 via-orange-600 to-red-600 rounded-xl flex items-center justify-center shadow-lg">
+              <span className="text-white font-bold text-lg">TS</span>
             </div>
-            <span className="text-xl font-bold text-white">TradeScout</span>
+            <span className="text-2xl font-bold text-white tracking-tight">TradeScout</span>
           </div>
         </Link>
 
         {/* Desktop Navigation - Full Comprehensive Navigation */}
-        <div className="hidden lg:flex items-center space-x-1 flex-1 justify-center max-w-none overflow-x-auto"
+        <nav className="hidden lg:flex items-center space-x-1 flex-1 justify-center max-w-none overflow-x-auto px-4 nav-scrollbar"
              style={{ minWidth: 0 }}>
           {/* Core Services */}
           <Link href="/contractors">
-            <Button variant={isActive("/contractors") ? "secondary" : "ghost"} size="sm" className="flex items-center space-x-1 px-2">
+            <Button variant={isActive("/contractors") ? "secondary" : "ghost"} size="sm" className="flex items-center space-x-1 px-3 py-2 rounded-lg nav-button hover:bg-slate-800/60 whitespace-nowrap">
               <span>🔨</span>
               <span className="hidden lg:inline">Find Contractors</span>
             </Button>
           </Link>
           <Link href="/contractors/for-contractors">
-            <Button variant={isActive("/contractors/for-contractors") ? "secondary" : "ghost"} size="sm" className="flex items-center space-x-1 px-2">
+            <Button variant={isActive("/contractors/for-contractors") ? "secondary" : "ghost"} size="sm" className="flex items-center space-x-1 px-3 py-2 rounded-lg nav-button hover:bg-slate-800/60 whitespace-nowrap">
               <span>💼</span>
               <span className="hidden lg:inline">For Contractors</span>
             </Button>
           </Link>
           <Link href="/quote">
-            <Button variant={isActive("/quote") ? "secondary" : "ghost"} size="sm" className="flex items-center space-x-1 px-2">
+            <Button variant={isActive("/quote") ? "secondary" : "ghost"} size="sm" className="flex items-center space-x-1 px-3 py-2 rounded-lg nav-button hover:bg-slate-800/60 whitespace-nowrap">
               <span>📊</span>
               <span className="hidden lg:inline">Calculator</span>
             </Button>
           </Link>
           <Link href="/marketplace">
-            <Button variant={isActive("/marketplace") ? "secondary" : "ghost"} size="sm" className="flex items-center space-x-1 px-2">
+            <Button variant={isActive("/marketplace") ? "secondary" : "ghost"} size="sm" className="flex items-center space-x-1 px-3 py-2 rounded-lg nav-button hover:bg-slate-800/60 whitespace-nowrap">
               <span>🏪</span>
               <span className="hidden lg:inline">Marketplace</span>
             </Button>
           </Link>
           <Link href="/community">
-            <Button variant={isActive("/community") ? "secondary" : "ghost"} size="sm" className="flex items-center space-x-1 px-2">
+            <Button variant={isActive("/community") ? "secondary" : "ghost"} size="sm" className="flex items-center space-x-1 px-3 py-2 rounded-lg nav-button hover:bg-slate-800/60 whitespace-nowrap">
               <span>👥</span>
               <span className="hidden lg:inline">Community</span>
             </Button>
           </Link>
           <Link href="/leaderboard">
-            <Button variant={isActive("/leaderboard") ? "secondary" : "ghost"} size="sm" className="flex items-center space-x-1 px-2">
+            <Button variant={isActive("/leaderboard") ? "secondary" : "ghost"} size="sm" className="flex items-center space-x-1 px-3 py-2 rounded-lg nav-button hover:bg-slate-800/60 whitespace-nowrap">
               <span>🏆</span>
               <span className="hidden lg:inline">Leaderboard</span>
             </Button>
           </Link>
           <Link href="/workers">
-            <Button variant={isActive("/workers") ? "secondary" : "ghost"} size="sm" className="flex items-center space-x-1 px-2">
+            <Button variant={isActive("/workers") ? "secondary" : "ghost"} size="sm" className="flex items-center space-x-1 px-3 py-2 rounded-lg nav-button hover:bg-slate-800/60 whitespace-nowrap">
               <span>👷</span>
               <span className="hidden lg:inline">Helpers</span>
             </Button>
           </Link>
           <Link href="/ads">
-            <Button variant={isActive("/ads") ? "secondary" : "ghost"} size="sm" className="flex items-center space-x-1 px-2">
+            <Button variant={isActive("/ads") ? "secondary" : "ghost"} size="sm" className="flex items-center space-x-1 px-3 py-2 rounded-lg nav-button hover:bg-slate-800/60 whitespace-nowrap">
               <span>📢</span>
               <span className="hidden lg:inline">Ads</span>
             </Button>
           </Link>
           <Link href="/growth-pack">
-            <Button variant={isActive("/growth-pack") ? "secondary" : "ghost"} size="sm" className="flex items-center space-x-1 px-2">
+            <Button variant={isActive("/growth-pack") ? "secondary" : "ghost"} size="sm" className="flex items-center space-x-1 px-3 py-2 rounded-lg nav-button hover:bg-slate-800/60 whitespace-nowrap">
               <span>📦</span>
               <span className="hidden lg:inline">Growth Pack</span>
             </Button>
           </Link>
           <Link href="/emblem">
-            <Button variant={isActive("/emblem") ? "secondary" : "ghost"} size="sm" className="flex items-center space-x-1 px-2">
+            <Button variant={isActive("/emblem") ? "secondary" : "ghost"} size="sm" className="flex items-center space-x-1 px-3 py-2 rounded-lg nav-button hover:bg-slate-800/60 whitespace-nowrap">
               <span>🏅</span>
               <span className="hidden lg:inline">Emblem</span>
             </Button>
           </Link>
           <Link href="/verify">
-            <Button variant={isActive("/verify") ? "secondary" : "ghost"} size="sm" className="flex items-center space-x-1 px-2">
+            <Button variant={isActive("/verify") ? "secondary" : "ghost"} size="sm" className="flex items-center space-x-1 px-3 py-2 rounded-lg nav-button hover:bg-slate-800/60 whitespace-nowrap">
               <span>✅</span>
               <span className="hidden lg:inline">Verify</span>
             </Button>
           </Link>
           <Link href="/legal">
-            <Button variant={isActive("/legal") ? "secondary" : "ghost"} size="sm" className="flex items-center space-x-1 px-2">
+            <Button variant={isActive("/legal") ? "secondary" : "ghost"} size="sm" className="flex items-center space-x-1 px-3 py-2 rounded-lg nav-button hover:bg-slate-800/60 whitespace-nowrap">
               <span>⚖️</span>
               <span className="hidden lg:inline">Legal</span>
             </Button>
           </Link>
           <Link href="/analytics">
-            <Button variant={isActive("/analytics") ? "secondary" : "ghost"} size="sm" className="flex items-center space-x-1 px-2">
+            <Button variant={isActive("/analytics") ? "secondary" : "ghost"} size="sm" className="flex items-center space-x-1 px-3 py-2 rounded-lg nav-button hover:bg-slate-800/60 whitespace-nowrap">
               <span>📈</span>
               <span className="hidden lg:inline">Analytics</span>
             </Button>
@@ -122,25 +122,25 @@ export function EnhancedNavigation({ className = "" }: EnhancedNavigationProps) 
           {isAuthenticated && (
             <>
               <Link href="/chat">
-                <Button variant={isActive("/chat") ? "secondary" : "ghost"} size="sm" className="flex items-center space-x-1 px-2">
+                <Button variant={isActive("/chat") ? "secondary" : "ghost"} size="sm" className="flex items-center space-x-1 px-3 py-2 rounded-lg nav-button hover:bg-slate-800/60 whitespace-nowrap">
                   <span>💬</span>
                   <span className="hidden lg:inline">Chat</span>
                 </Button>
               </Link>
               <Link href="/notifications">
-                <Button variant={isActive("/notifications") ? "secondary" : "ghost"} size="sm" className="flex items-center space-x-1 px-2">
+                <Button variant={isActive("/notifications") ? "secondary" : "ghost"} size="sm" className="flex items-center space-x-1 px-3 py-2 rounded-lg nav-button hover:bg-slate-800/60 whitespace-nowrap">
                   <span>🔔</span>
                   <span className="hidden lg:inline">Notifications</span>
                 </Button>
               </Link>
               <Link href="/search">
-                <Button variant={isActive("/search") ? "secondary" : "ghost"} size="sm" className="flex items-center space-x-1 px-2">
+                <Button variant={isActive("/search") ? "secondary" : "ghost"} size="sm" className="flex items-center space-x-1 px-3 py-2 rounded-lg nav-button hover:bg-slate-800/60 whitespace-nowrap">
                   <span>🔍</span>
                   <span className="hidden lg:inline">Search</span>
                 </Button>
               </Link>
               <Link href="/dashboard">
-                <Button variant={isActive("/dashboard") ? "secondary" : "ghost"} size="sm" className="flex items-center space-x-1 px-2">
+                <Button variant={isActive("/dashboard") ? "secondary" : "ghost"} size="sm" className="flex items-center space-x-1 px-3 py-2 rounded-lg nav-button hover:bg-slate-800/60 whitespace-nowrap">
                   <span>📊</span>
                   <span className="hidden lg:inline">Dashboard</span>
                 </Button>
@@ -150,21 +150,21 @@ export function EnhancedNavigation({ className = "" }: EnhancedNavigationProps) 
           
           {/* Authenticated Navigation */}
           {isAuthenticated && <RoleBasedNavigation />}
-        </div>
+        </nav>
 
         {/* User Menu / Auth Buttons */}
-        <div className="flex items-center space-x-3">
+        <div className="flex items-center space-x-4">
           {isAuthenticated ? (
             <UserMenu />
           ) : (
-            <div className="hidden md:flex items-center space-x-2">
+            <div className="hidden md:flex items-center space-x-3">
               <Link href="/login">
-                <Button variant="ghost" size="sm">
+                <Button variant="ghost" size="sm" className="text-slate-300 hover:text-white hover:bg-slate-800/60">
                   Sign In
                 </Button>
               </Link>
               <Link href="/setup">
-                <Button variant="outline" size="sm">
+                <Button variant="outline" size="sm" className="border-orange-500/50 text-orange-400 hover:bg-orange-500/10 hover:border-orange-500">
                   Get Started
                 </Button>
               </Link>
@@ -173,9 +173,9 @@ export function EnhancedNavigation({ className = "" }: EnhancedNavigationProps) 
 
           {/* Mobile Menu */}
           <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
-            <SheetTrigger asChild className="md:hidden">
-              <Button variant="ghost" size="sm">
-                <Menu className="h-5 w-5" />
+            <SheetTrigger asChild className="lg:hidden">
+              <Button variant="ghost" size="sm" className="text-slate-300 hover:text-white hover:bg-slate-800/60 p-2">
+                <Menu className="h-6 w-6" />
               </Button>
             </SheetTrigger>
             <SheetContent side="right" className="w-80 bg-slate-900 border-slate-700">
