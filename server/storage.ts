@@ -93,6 +93,10 @@ import {
   type InsertAffiliateCommission,
   type AffiliatePayout,
   type InsertAffiliatePayout,
+  // Trusted devices
+  trustedDevices,
+  type TrustedDevice,
+  type InsertTrustedDevice,
   type User,
   type InsertUser,
   type UpsertUser,
@@ -249,6 +253,7 @@ import {
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, desc, asc, sql, inArray, like, gt, or, lt, isNull, isNotNull, ne, gte, lte } from "drizzle-orm";
+import bcrypt from "bcrypt";
 
 export interface IStorage {
   // User operations

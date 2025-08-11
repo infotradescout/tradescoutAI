@@ -5862,57 +5862,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Device management endpoints for master admin
-  app.get("/api/auth/trusted-devices", requireAuth, async (req: any, res) => {
-    try {
-      if (req.user.role !== 'head_admin') {
-        return res.status(403).json({ message: "Access denied" });
-      }
-      
-      const devices = await DeviceAuthService.getUserTrustedDevices(req.user.id);
-      res.json({ devices });
-    } catch (error) {
-      console.error("Error fetching trusted devices:", error);
-      res.status(500).json({ message: "Failed to fetch trusted devices" });
-    }
-  });
-
-  app.delete("/api/auth/trusted-devices/:sessionToken", requireAuth, async (req: any, res) => {
-    try {
-      if (req.user.role !== 'head_admin') {
-        return res.status(403).json({ message: "Access denied" });
-      }
-      
-      await DeviceAuthService.deactivateDevice(req.params.sessionToken);
-      res.json({ message: "Device removed successfully" });
-    } catch (error) {
-      console.error("Error removing trusted device:", error);
-      res.status(500).json({ message: "Failed to remove device" });
-    }
-  });
-
-  app.post("/api/auth/register-device", requireAuth, async (req: any, res) => {
-    try {
-      if (req.user.role !== 'head_admin') {
-        return res.status(403).json({ message: "Access denied" });
-      }
-      
-      const sessionToken = await DeviceAuthService.registerTrustedDevice(req.user.id, req);
-      
-      // Set secure cookie
-      res.cookie('trusted_session', sessionToken, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: 'strict',
-        maxAge: 30 * 24 * 60 * 60 * 1000 // 30 days
-      });
-      
-      res.json({ message: "Device registered successfully", sessionToken });
-    } catch (error) {
-      console.error("Error registering device:", error);
-      res.status(500).json({ message: "Failed to register device" });
-    }
-  });
+  // Device management endpoints for master admin - temporarily removed for debugging
 
   // Register social media routes
   registerSocialRoutes(app);
