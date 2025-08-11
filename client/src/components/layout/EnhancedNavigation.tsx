@@ -42,6 +42,12 @@ export function EnhancedNavigation({ className = "" }: EnhancedNavigationProps) 
               <span>Find Contractors</span>
             </Button>
           </Link>
+          <Link href="/contractors/accelerator">
+            <Button variant={isActive("/contractors/accelerator") ? "secondary" : "ghost"} size="sm" className="flex items-center space-x-1">
+              <span>💼</span>
+              <span>For Contractors</span>
+            </Button>
+          </Link>
           <Link href="/quote">
             <Button variant={isActive("/quote") ? "secondary" : "ghost"} size="sm" className="flex items-center space-x-1">
               <span>📊</span>
@@ -129,6 +135,11 @@ export function EnhancedNavigation({ className = "" }: EnhancedNavigationProps) 
                   <Link href="/contractors" onClick={() => setIsMobileMenuOpen(false)}>
                     <Button variant="ghost" className="w-full justify-start">
                       <span className="mr-2">🔨</span>Find Contractors
+                    </Button>
+                  </Link>
+                  <Link href="/contractors/accelerator" onClick={() => setIsMobileMenuOpen(false)}>
+                    <Button variant="ghost" className="w-full justify-start">
+                      <span className="mr-2">💼</span>For Contractors
                     </Button>
                   </Link>
                   <Link href="/quote" onClick={() => setIsMobileMenuOpen(false)}>
