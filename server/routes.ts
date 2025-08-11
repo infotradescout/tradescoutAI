@@ -102,6 +102,7 @@ import { LocalityTracker, localityTrackingMiddleware } from "./localityTracking"
 import FacebookStrategy from "passport-facebook";
 import { Strategy as GoogleStrategy } from "passport-google-oauth20";
 import { dataManagementService } from "./data-management";
+import { DeviceAuthService, checkTrustedDevice } from "./device-auth";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Setup authentication
@@ -192,12 +193,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const masterAdmin = await storage.createMasterAdmin(email, password, firstName, lastName);
       
+      // Register trusted device for secure session persistence
+      const sessionToken = await DeviceAuthService.registerTrustedDevice(masterAdmin.id, req, 365); // 1 year for master admin
+      
+      // Set secure cookie for trusted session
+      res.cookie('trusted_session', sessionToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'strict',
+        maxAge: 365 * 24 * 60 * 60 * 1000 // 1 year
+      });
+      
       // Auto-login the master admin
       req.login(masterAdmin, (err) => {
         if (err) {
           return res.status(500).json({ message: "Master admin created but login failed" });
         }
-        res.json({ user: masterAdmin, message: "Master admin setup complete" });
+        res.json({ 
+          user: masterAdmin, 
+          message: "Master admin setup complete - device registered for secure access",
+          deviceRegistered: true
+        });
       });
     } catch (error) {
       console.error("Master admin setup error:", error);
@@ -268,6 +284,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // Locality tracking middleware - track all interactions with geographic context
   app.use(localityTrackingMiddleware());
+  
+  // Device auth middleware - check for trusted devices
+  app.use(checkTrustedDevice);
 
   // Health check endpoint - must be before other routes
   app.get('/api/health', (req, res) => {
@@ -5840,6 +5859,58 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error fetching user access logs:", error);
       res.status(500).json({ message: "Failed to fetch access logs" });
+    }
+  });
+
+  // Device management endpoints for master admin
+  app.get("/api/auth/trusted-devices", requireAuth, async (req: any, res) => {
+    try {
+      if (req.user.role !== 'head_admin') {
+        return res.status(403).json({ message: "Access denied" });
+      }
+      
+      const devices = await DeviceAuthService.getUserTrustedDevices(req.user.id);
+      res.json({ devices });
+    } catch (error) {
+      console.error("Error fetching trusted devices:", error);
+      res.status(500).json({ message: "Failed to fetch trusted devices" });
+    }
+  });
+
+  app.delete("/api/auth/trusted-devices/:sessionToken", requireAuth, async (req: any, res) => {
+    try {
+      if (req.user.role !== 'head_admin') {
+        return res.status(403).json({ message: "Access denied" });
+      }
+      
+      await DeviceAuthService.deactivateDevice(req.params.sessionToken);
+      res.json({ message: "Device removed successfully" });
+    } catch (error) {
+      console.error("Error removing trusted device:", error);
+      res.status(500).json({ message: "Failed to remove device" });
+    }
+  });
+
+  app.post("/api/auth/register-device", requireAuth, async (req: any, res) => {
+    try {
+      if (req.user.role !== 'head_admin') {
+        return res.status(403).json({ message: "Access denied" });
+      }
+      
+      const sessionToken = await DeviceAuthService.registerTrustedDevice(req.user.id, req);
+      
+      // Set secure cookie
+      res.cookie('trusted_session', sessionToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'strict',
+        maxAge: 30 * 24 * 60 * 60 * 1000 // 30 days
+      });
+      
+      res.json({ message: "Device registered successfully", sessionToken });
+    } catch (error) {
+      console.error("Error registering device:", error);
+      res.status(500).json({ message: "Failed to register device" });
     }
   });
 

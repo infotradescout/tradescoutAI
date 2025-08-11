@@ -252,6 +252,25 @@ export const users = pgTable("users", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
+// Trusted devices table for master admin persistent sessions
+export const trustedDevices = pgTable("trusted_devices", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: 'cascade' }),
+  deviceFingerprint: varchar("device_fingerprint").notNull(),
+  deviceName: varchar("device_name"), // User-friendly name like "Chrome on Windows"
+  userAgent: text("user_agent"),
+  ipAddress: varchar("ip_address"),
+  lastUsed: timestamp("last_used").defaultNow(),
+  isActive: boolean("is_active").default(true),
+  sessionToken: varchar("session_token").notNull().unique(),
+  expiresAt: timestamp("expires_at").notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+}, (table) => [
+  index("idx_trusted_devices_user").on(table.userId),
+  index("idx_trusted_devices_fingerprint").on(table.deviceFingerprint),
+  index("idx_trusted_devices_session").on(table.sessionToken),
+]);
+
 // Realtor profiles
 export const realtorProfiles = pgTable("realtor_profiles", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -618,6 +637,8 @@ export const leadsRelations = relations(leads, ({ one, many }) => ({
 export type InsertUser = typeof users.$inferInsert;
 export type UpsertUser = typeof users.$inferInsert;
 export type User = typeof users.$inferSelect;
+export type TrustedDevice = typeof trustedDevices.$inferSelect;
+export type InsertTrustedDevice = typeof trustedDevices.$inferInsert;
 
 // Social Posts table
 export const socialPosts = pgTable("social_posts", {
