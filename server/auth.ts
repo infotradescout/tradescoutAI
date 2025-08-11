@@ -6,6 +6,8 @@ import type { Express, RequestHandler } from "express";
 import connectPg from "connect-pg-simple";
 import { storage } from "./storage";
 import type { User } from "@shared/schema";
+import { getRolePermissions, getRoleHierarchyLevel, canUserPerformAction } from "@shared/roles";
+import type { UserRole } from "@shared/roles";
 
 // Configure session
 export function getSession() {
@@ -86,29 +88,65 @@ export const isAuthenticated: RequestHandler = (req, res, next) => {
   res.status(401).json({ message: "Authentication required" });
 };
 
-// Role-based authorization middleware
-export const requireRole = (roles: string | string[]): RequestHandler => {
+// Enhanced role-based authorization middleware with hierarchy support
+export const requireRole = (allowedRoles: UserRole[]): RequestHandler => {
   return (req, res, next) => {
     if (!req.isAuthenticated()) {
       return res.status(401).json({ message: "Authentication required" });
     }
 
     const user = req.user as User;
-    const allowedRoles = Array.isArray(roles) ? roles : [roles];
+    const userRole = user.role as UserRole;
     
-    if (allowedRoles.includes(user.role)) {
-      return next();
+    if (!userRole) {
+      return res.status(403).json({ message: "No role assigned" });
     }
 
-    res.status(403).json({ message: "Insufficient permissions" });
+    const userLevel = getRoleHierarchyLevel(userRole);
+    const hasPermission = allowedRoles.some(role => {
+      const requiredLevel = getRoleHierarchyLevel(role);
+      return userLevel >= requiredLevel;
+    });
+
+    if (!hasPermission) {
+      return res.status(403).json({ message: "Insufficient permissions" });
+    }
+
+    next();
   };
 };
 
-// Specific role middleware
-export const isAdmin: RequestHandler = requireRole(['ops_admin', 'head_admin', 'moderator']);
-export const isHeadAdmin: RequestHandler = requireRole('head_admin');
-export const isModerator: RequestHandler = requireRole(['moderator', 'ops_admin', 'head_admin']);
+// Permission-based authorization middleware
+export const requirePermission = (permission: keyof ReturnType<typeof getRolePermissions>): RequestHandler => {
+  return (req, res, next) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "Authentication required" });
+    }
+
+    const user = req.user as User;
+    const userRole = user.role as UserRole;
+    
+    if (!userRole) {
+      return res.status(403).json({ message: "No role assigned" });
+    }
+
+    const permissions = getRolePermissions(userRole);
+    if (!permissions[permission]) {
+      return res.status(403).json({ message: `Permission denied: ${permission}` });
+    }
+
+    next();
+  };
+};
+
+// Specific role middleware with hierarchy
+export const isAdmin: RequestHandler = requireRole(['moderator', 'ops_admin', 'super_admin', 'head_admin']);
+export const isHeadAdmin: RequestHandler = requireRole(['head_admin']);
+export const isSuperAdmin: RequestHandler = requireRole(['super_admin', 'head_admin']);
+export const isModerator: RequestHandler = requireRole(['moderator', 'ops_admin', 'super_admin', 'head_admin']);
+export const isStaff: RequestHandler = requireRole(['support_agent', 'content_moderator', 'territory_manager', 'contractor_success', 'content_seo', 'analytics_specialist', 'marketing_specialist', 'moderator', 'ops_admin', 'super_admin', 'head_admin']);
 export const isContractor: RequestHandler = requireRole(['contractor_user', 'accelerator_member']);
+export const isCommunityModerator: RequestHandler = requireRole(['community_moderator', 'community_leader', 'moderator', 'ops_admin', 'super_admin', 'head_admin']);
 
 // Password hashing utilities
 export async function hashPassword(password: string): Promise<string> {

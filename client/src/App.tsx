@@ -8,7 +8,7 @@ import { ErrorBoundary } from "@/components/ui/error-boundary";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { lazy } from "react";
 
-import Navigation from "@/components/layout/navigation";
+import { EnhancedNavigation } from "@/components/layout/EnhancedNavigation";
 import MobileCTA from "@/components/mobile-cta";
 import NotFound from "@/pages/not-found";
 import Login from "@/pages/Login";
@@ -16,6 +16,7 @@ import Landing from "@/pages/landing";
 import Home from "@/pages/home";
 import Foundation from "@/pages/foundation";
 import { MasterAdminSetup } from "@/components/MasterAdminSetup";
+import RoleDirectory from "@/pages/RoleDirectory";
 import Dashboard from "@/pages/dashboard";
 import HomeownerDashboard from "@/pages/homeowner-dashboard";
 import ContractorBoard from "@/pages/contractor-board";
@@ -80,7 +81,7 @@ function Router() {
 
   return (
     <div className="min-h-screen gradient-bg text-gray-100">
-      <Navigation />
+      <EnhancedNavigation />
       {isAuthenticated && <AddressVerificationBanner />}
       <Switch>
         {/* Master Admin Setup - Only shows if no admin exists */}
@@ -114,6 +115,9 @@ function Router() {
         <Route path="/legal/terms-of-service" component={lazy(() => import("./pages/legal/terms-of-service"))} />
         <Route path="/legal/compliance" component={lazy(() => import("./pages/legal/compliance"))} />
         <Route path="/legal/cookie-policy" component={lazy(() => import("./pages/legal/cookie-policy"))} />
+        
+        {/* Role Directory - Public access */}
+        <Route path="/roles" component={RoleDirectory} />
         
         {!isAuthenticated ? (
           <>

@@ -26,21 +26,115 @@ export const sessions = pgTable(
   (table) => [index("IDX_session_expire").on(table.expire)],
 );
 
-// User roles enum
+// User roles enum - Hierarchical structure
 export const userRoleEnum = pgEnum('user_role', [
+  // Customer roles
   'homeowner',
-  'contractor_user', 
+  'property_manager',
+  'business_owner',
+  
+  // Service provider roles  
+  'contractor_user',
   'accelerator_member',
   'realtor',
   'car_salesman',
-  'moderator',
-  'ops_admin',
-  'head_admin', // Ultimate admin with power over all including moderators
+  'insurance_agent',
+  'mortgage_broker',
+  
+  // Community roles
+  'community_member',
+  'community_moderator',
+  'community_leader',
+  
+  // Platform staff roles (ascending hierarchy)
+  'support_agent',
+  'content_moderator',
   'territory_manager',
   'contractor_success',
   'content_seo',
-  'analytics_read',
-  'support'
+  'analytics_specialist',
+  'marketing_specialist',
+  
+  // Admin roles (ascending hierarchy)
+  'moderator',           // Basic moderation powers
+  'ops_admin',          // Operations and platform management
+  'super_admin',        // Full platform control except user management
+  'head_admin'          // Ultimate authority - can manage all users and admins
+]);
+
+// Trade categories enum for contractor specializations
+export const tradeCategoryEnum = pgEnum('trade_category', [
+  // Construction & General
+  'general_contractor',
+  'construction_manager',
+  'project_manager',
+  
+  // Structural & Foundation
+  'concrete_contractor',
+  'foundation_specialist',
+  'masonry_contractor',
+  'structural_engineer',
+  
+  // Building Envelope
+  'roofing_contractor',
+  'siding_contractor',
+  'window_installer',
+  'door_installer',
+  'insulation_contractor',
+  
+  // Electrical & Technology
+  'electrician',
+  'low_voltage_technician',
+  'solar_installer',
+  'security_system_installer',
+  'smart_home_specialist',
+  
+  // Plumbing & HVAC
+  'plumber',
+  'hvac_contractor',
+  'refrigeration_technician',
+  'water_heater_specialist',
+  'septic_contractor',
+  
+  // Interior Finishing
+  'flooring_contractor',
+  'tile_contractor',
+  'carpet_installer',
+  'painter',
+  'drywall_contractor',
+  'cabinet_maker',
+  'countertop_installer',
+  
+  // Kitchen & Bath
+  'kitchen_remodeler',
+  'bathroom_remodeler',
+  'appliance_installer',
+  
+  // Outdoor & Landscaping
+  'landscaper',
+  'hardscape_contractor',
+  'pool_contractor',
+  'fence_contractor',
+  'deck_builder',
+  'outdoor_lighting',
+  
+  // Specialty Services
+  'home_inspector',
+  'mold_remediation',
+  'water_damage_restoration',
+  'pest_control',
+  'cleaning_service',
+  'handyman',
+  'maintenance_contractor'
+]);
+
+// Permission levels enum
+export const permissionLevelEnum = pgEnum('permission_level', [
+  'none',
+  'read',
+  'write', 
+  'admin',
+  'owner'
 ]);
 
 // Invitation status enum
