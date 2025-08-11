@@ -57,28 +57,16 @@ export function EnhancedNavigation({ className = "" }: EnhancedNavigationProps) 
               <span className="hidden xl:inline">Calculator</span>
             </Button>
           </Link>
-          <Link href="/marketplace">
-            <Button variant={isActive("/marketplace") ? "secondary" : "ghost"} size="sm" className="flex items-center space-x-2 px-4 py-2 rounded-lg nav-button hover:bg-slate-800/60 whitespace-nowrap">
-              <span>🏪</span>
-              <span className="hidden xl:inline">Marketplace</span>
-            </Button>
-          </Link>
-          <Link href="/community">
-            <Button variant={isActive("/community") ? "secondary" : "ghost"} size="sm" className="flex items-center space-x-2 px-4 py-2 rounded-lg nav-button hover:bg-slate-800/60 whitespace-nowrap">
-              <span>👥</span>
-              <span className="hidden xl:inline">Community</span>
-            </Button>
-          </Link>
           <Link href="/leaderboard">
             <Button variant={isActive("/leaderboard") ? "secondary" : "ghost"} size="sm" className="flex items-center space-x-2 px-4 py-2 rounded-lg nav-button hover:bg-slate-800/60 whitespace-nowrap">
               <span>🏆</span>
               <span className="hidden xl:inline">Leaderboard</span>
             </Button>
           </Link>
-          <Link href="/workers">
-            <Button variant={isActive("/workers") ? "secondary" : "ghost"} size="sm" className="flex items-center space-x-2 px-4 py-2 rounded-lg nav-button hover:bg-slate-800/60 whitespace-nowrap">
-              <span>👷</span>
-              <span className="hidden xl:inline">Helpers</span>
+          <Link href="/emblem">
+            <Button variant={isActive("/emblem") ? "secondary" : "ghost"} size="sm" className="flex items-center space-x-2 px-4 py-2 rounded-lg nav-button hover:bg-slate-800/60 whitespace-nowrap">
+              <span>🏅</span>
+              <span className="hidden xl:inline">Emblem</span>
             </Button>
           </Link>
           <Link href="/growth-pack">
@@ -87,10 +75,22 @@ export function EnhancedNavigation({ className = "" }: EnhancedNavigationProps) 
               <span className="hidden xl:inline">Growth Pack</span>
             </Button>
           </Link>
-          <Link href="/emblem">
-            <Button variant={isActive("/emblem") ? "secondary" : "ghost"} size="sm" className="flex items-center space-x-2 px-4 py-2 rounded-lg nav-button hover:bg-slate-800/60 whitespace-nowrap">
-              <span>🏅</span>
-              <span className="hidden xl:inline">Emblem</span>
+          <Link href="/marketplace">
+            <Button variant={isActive("/marketplace") ? "secondary" : "ghost"} size="sm" className="flex items-center space-x-2 px-4 py-2 rounded-lg nav-button hover:bg-slate-800/60 whitespace-nowrap">
+              <span>🏪</span>
+              <span className="hidden xl:inline">Marketplace</span>
+            </Button>
+          </Link>
+          <Link href="/workers">
+            <Button variant={isActive("/workers") ? "secondary" : "ghost"} size="sm" className="flex items-center space-x-2 px-4 py-2 rounded-lg nav-button hover:bg-slate-800/60 whitespace-nowrap">
+              <span>👷</span>
+              <span className="hidden xl:inline">Helpers</span>
+            </Button>
+          </Link>
+          <Link href="/community">
+            <Button variant={isActive("/community") ? "secondary" : "ghost"} size="sm" className="flex items-center space-x-2 px-4 py-2 rounded-lg nav-button hover:bg-slate-800/60 whitespace-nowrap">
+              <span>👥</span>
+              <span className="hidden xl:inline">Community</span>
             </Button>
           </Link>
           
@@ -162,24 +162,14 @@ export function EnhancedNavigation({ className = "" }: EnhancedNavigationProps) 
                       <span className="mr-3">📊</span>Calculator
                     </Button>
                   </Link>
-                  <Link href="/marketplace" onClick={() => setIsMobileMenuOpen(false)}>
-                    <Button variant="ghost" className="w-full justify-start text-slate-200 hover:text-white hover:bg-slate-800/60">
-                      <span className="mr-3">🏪</span>Marketplace
-                    </Button>
-                  </Link>
-                  <Link href="/community" onClick={() => setIsMobileMenuOpen(false)}>
-                    <Button variant="ghost" className="w-full justify-start text-slate-200 hover:text-white hover:bg-slate-800/60">
-                      <span className="mr-3">👥</span>Community
-                    </Button>
-                  </Link>
                   <Link href="/leaderboard" onClick={() => setIsMobileMenuOpen(false)}>
                     <Button variant="ghost" className="w-full justify-start text-slate-200 hover:text-white hover:bg-slate-800/60">
                       <span className="mr-3">🏆</span>Leaderboard
                     </Button>
                   </Link>
-                  <Link href="/workers" onClick={() => setIsMobileMenuOpen(false)}>
+                  <Link href="/emblem" onClick={() => setIsMobileMenuOpen(false)}>
                     <Button variant="ghost" className="w-full justify-start text-slate-200 hover:text-white hover:bg-slate-800/60">
-                      <span className="mr-3">👷</span>Helpers
+                      <span className="mr-3">🏅</span>Emblem
                     </Button>
                   </Link>
                   <Link href="/growth-pack" onClick={() => setIsMobileMenuOpen(false)}>
@@ -187,9 +177,19 @@ export function EnhancedNavigation({ className = "" }: EnhancedNavigationProps) 
                       <span className="mr-3">📦</span>Growth Pack
                     </Button>
                   </Link>
-                  <Link href="/emblem" onClick={() => setIsMobileMenuOpen(false)}>
+                  <Link href="/marketplace" onClick={() => setIsMobileMenuOpen(false)}>
                     <Button variant="ghost" className="w-full justify-start text-slate-200 hover:text-white hover:bg-slate-800/60">
-                      <span className="mr-3">🏅</span>Emblem
+                      <span className="mr-3">🏪</span>Marketplace
+                    </Button>
+                  </Link>
+                  <Link href="/workers" onClick={() => setIsMobileMenuOpen(false)}>
+                    <Button variant="ghost" className="w-full justify-start text-slate-200 hover:text-white hover:bg-slate-800/60">
+                      <span className="mr-3">👷</span>Helpers
+                    </Button>
+                  </Link>
+                  <Link href="/community" onClick={() => setIsMobileMenuOpen(false)}>
+                    <Button variant="ghost" className="w-full justify-start text-slate-200 hover:text-white hover:bg-slate-800/60">
+                      <span className="mr-3">👥</span>Community
                     </Button>
                   </Link>
                 </div>
