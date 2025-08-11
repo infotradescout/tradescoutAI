@@ -136,10 +136,10 @@ export default function Leaderboard() {
     <div className="container mx-auto px-4 py-8 max-w-6xl">
       <div className="mb-8">
         <h1 className="text-4xl font-bold mb-4 bg-gradient-to-r from-orange-600 to-orange-400 bg-clip-text text-transparent">
-          Top Investment Partners
+          Contractor Leaderboard
         </h1>
         <p className="text-lg text-gray-600 dark:text-gray-400">
-          Meet the asset specialists who consistently deliver exceptional value and client returns
+          Celebrating our top-performing contractors based on customer recommendations
         </p>
       </div>
 
