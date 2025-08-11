@@ -38,9 +38,11 @@ import ProfileSetup from "@/pages/profile-setup";
 import AdminUsers from "@/pages/admin-users";
 import AdminErrorReports from "@/pages/admin-error-reports";
 import AdminTestingControls from "@/pages/admin-testing-controls";
+import AddressVerification from "@/pages/address-verification";
 import { ProfileSetupRedirect } from "@/components/profile-setup-redirect";
 import { FloatingBugReport } from "@/components/FloatingBugReport";
 import { BetaNotificationPopup } from "@/components/BetaNotificationPopup";
+import { AddressVerificationBanner } from "@/components/AddressVerificationBanner";
 
 function Router() {
   const { isAuthenticated, isLoading } = useAuth();
@@ -59,6 +61,7 @@ function Router() {
   return (
     <div className="min-h-screen gradient-bg text-gray-100">
       <Navigation />
+      {isAuthenticated && <AddressVerificationBanner />}
       <Switch>
         {/* Public routes available to all users */}
         <Route path="/login" component={LoginPage} />
@@ -84,6 +87,7 @@ function Router() {
           </>
         ) : (
           <>
+            <Route path="/address-verification" component={AddressVerification} />
             <Route path="/profile-setup" component={ProfileSetup} />
             <Route path="/">
               <ProfileSetupRedirect>

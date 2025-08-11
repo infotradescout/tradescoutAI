@@ -2,6 +2,58 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { setupAuth, isAuthenticated, isContractor, isAdmin } from "./auth";
+
+// Middleware to check address verification requirement
+const requireAddressVerification = async (req: any, res: any, next: any) => {
+  try {
+    const user = req.user;
+    
+    // Skip for admin endpoints and certain public routes
+    if (req.path.startsWith('/api/admin') || 
+        req.path.startsWith('/api/address-verification') ||
+        req.path.includes('/api/auth/') ||
+        req.path.includes('/public-objects/')) {
+      return next();
+    }
+    
+    // Check if user's address is already verified
+    if (user.addressVerified) {
+      return next();
+    }
+    
+    // Calculate if user is within the 14-day grace period
+    const userCreatedAt = new Date(user.createdAt);
+    const deadline = new Date(userCreatedAt);
+    deadline.setDate(deadline.getDate() + 14);
+    const now = new Date();
+    
+    // If deadline has passed and address not verified, block access
+    if (now > deadline) {
+      return res.status(403).json({ 
+        message: "Address verification required. Your 14-day grace period has expired.",
+        requiresAddressVerification: true,
+        deadline: deadline.toISOString(),
+        expired: true
+      });
+    }
+    
+    // If within grace period, allow access but include warning
+    const daysRemaining = Math.ceil((deadline.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+    res.locals.addressVerificationWarning = {
+      daysRemaining,
+      deadline: deadline.toISOString(),
+      required: true
+    };
+    
+    next();
+  } catch (error) {
+    console.error("Error checking address verification:", error);
+    next(); // Don't block on errors
+  }
+};
+import { db } from "./db";
+import { eq, desc, and, or, isNull, isNotNull, sql } from "drizzle-orm";
+import { addressVerifications, users } from "@shared/schema";
 import { 
   insertLeadSchema, 
   insertRecommendationSchema, 
@@ -15,7 +67,8 @@ import {
   insertMarketplaceFavoriteSchema,
   insertMarketplaceReportSchema,
   insertVendorVerificationSchema,
-  insertBuyerVerificationSchema
+  insertBuyerVerificationSchema,
+  insertAddressVerificationSchema
 } from "@shared/schema";
 import { ObjectStorageService } from "./objectStorage";
 import { randomUUID } from "crypto";
@@ -2672,6 +2725,188 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(verification);
     } catch (error) {
       console.error("Error updating verification:", error);
+      res.status(400).json({ message: "Failed to update verification" });
+    }
+  });
+
+  // Address Verification Endpoints
+  app.post("/api/address-verification", isAuthenticated, async (req, res) => {
+    try {
+      const user = req.user as any;
+      const validatedData = insertAddressVerificationSchema.parse(req.body);
+      
+      // Calculate deadline (14 days from user creation)
+      const userCreatedAt = new Date(user.createdAt);
+      const deadline = new Date(userCreatedAt);
+      deadline.setDate(deadline.getDate() + 14);
+      
+      const verification = await storage.createAddressVerification({
+        ...validatedData,
+        userId: user.id,
+        deadline
+      });
+      
+      res.status(201).json(verification);
+    } catch (error) {
+      console.error("Error creating address verification:", error);
+      res.status(400).json({ message: "Failed to create address verification" });
+    }
+  });
+
+  app.get("/api/address-verification/status", isAuthenticated, async (req, res) => {
+    try {
+      const user = req.user as any;
+      const verification = await storage.getAddressVerificationByUserId(user.id);
+      
+      // Calculate deadline if no verification exists
+      const userCreatedAt = new Date(user.createdAt);
+      const deadline = new Date(userCreatedAt);
+      deadline.setDate(deadline.getDate() + 14);
+      
+      const daysRemaining = Math.max(0, Math.ceil((deadline.getTime() - Date.now()) / (1000 * 60 * 60 * 24)));
+      const isExpired = daysRemaining === 0 && !user.addressVerified;
+      
+      res.json({
+        verification: verification || null,
+        isVerified: user.addressVerified || false,
+        deadline: deadline.toISOString(),
+        daysRemaining,
+        isExpired,
+        requiresVerification: !user.addressVerified
+      });
+    } catch (error) {
+      console.error("Error fetching address verification status:", error);
+      res.status(500).json({ message: "Failed to fetch verification status" });
+    }
+  });
+
+  app.post("/api/address-verification/postcard/request", isAuthenticated, async (req, res) => {
+    try {
+      const user = req.user as any;
+      
+      // Generate 6-digit verification code
+      const code = Math.floor(100000 + Math.random() * 900000).toString();
+      
+      await storage.sendAddressVerificationPostcard(user.id, code);
+      
+      // In a real implementation, you would send the postcard via USPS API
+      console.log(`Postcard verification code for ${user.id}: ${code}`);
+      
+      res.json({ 
+        message: "Verification postcard has been sent to your address. It should arrive within 5-7 business days.",
+        estimatedDelivery: "5-7 business days"
+      });
+    } catch (error) {
+      console.error("Error requesting postcard verification:", error);
+      res.status(500).json({ message: "Failed to request postcard verification" });
+    }
+  });
+
+  app.post("/api/address-verification/postcard/verify", isAuthenticated, async (req, res) => {
+    try {
+      const user = req.user as any;
+      const { code } = req.body;
+      
+      if (!code || code.length !== 6) {
+        return res.status(400).json({ message: "Valid 6-digit code is required" });
+      }
+      
+      const success = await storage.verifyAddressWithPostcard(user.id, code);
+      
+      if (success) {
+        res.json({ 
+          message: "Address verified successfully! You now have full access to the platform.",
+          verified: true
+        });
+      } else {
+        res.status(400).json({ 
+          message: "Invalid verification code. Please check the code on your postcard and try again.",
+          verified: false
+        });
+      }
+    } catch (error) {
+      console.error("Error verifying postcard code:", error);
+      res.status(500).json({ message: "Failed to verify postcard code" });
+    }
+  });
+
+  app.put("/api/address-verification/:id", isAuthenticated, async (req, res) => {
+    try {
+      const user = req.user as any;
+      const { id } = req.params;
+      const updates = req.body;
+      
+      // Verify the user owns this verification
+      const existingVerification = await storage.getAddressVerificationByUserId(user.id);
+      if (!existingVerification || existingVerification.id !== id) {
+        return res.status(403).json({ message: "Not authorized to update this verification" });
+      }
+      
+      const verification = await storage.updateAddressVerification(id, {
+        ...updates,
+        submittedAt: new Date(),
+        status: 'submitted'
+      });
+      
+      res.json(verification);
+    } catch (error) {
+      console.error("Error updating address verification:", error);
+      res.status(400).json({ message: "Failed to update verification" });
+    }
+  });
+
+  // Admin endpoints for address verification
+  app.get("/api/admin/address-verifications", isAuthenticated, isAdmin, async (req, res) => {
+    try {
+      const { status = 'all' } = req.query;
+      
+      let query = db.select({
+        verification: addressVerifications,
+        user: users
+      })
+      .from(addressVerifications)
+      .leftJoin(users, eq(addressVerifications.userId, users.id));
+      
+      if (status !== 'all') {
+        query = query.where(eq(addressVerifications.status, status as string)) as any;
+      }
+      
+      const results = await query.orderBy(desc(addressVerifications.createdAt));
+      
+      res.json(results);
+    } catch (error) {
+      console.error("Error fetching address verifications:", error);
+      res.status(500).json({ message: "Failed to fetch verifications" });
+    }
+  });
+
+  app.put("/api/admin/address-verifications/:id", isAuthenticated, isAdmin, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { status, adminNotes } = req.body;
+      const user = req.user as any;
+      
+      const updates: any = {
+        status,
+        adminNotes,
+        reviewedBy: user.id,
+        reviewedAt: new Date()
+      };
+      
+      if (status === 'approved') {
+        updates.approvedAt = new Date();
+        
+        // Get verification record to find the user
+        const [verification] = await db.select().from(addressVerifications).where(eq(addressVerifications.id, id));
+        if (verification) {
+          await storage.updateUser(verification.userId, { addressVerified: true });
+        }
+      }
+      
+      const verification = await storage.updateAddressVerification(id, updates);
+      res.json(verification);
+    } catch (error) {
+      console.error("Error updating address verification:", error);
       res.status(400).json({ message: "Failed to update verification" });
     }
   });

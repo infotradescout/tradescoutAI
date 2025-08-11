@@ -41,6 +41,15 @@ export const userRoleEnum = pgEnum('user_role', [
   'support'
 ]);
 
+// Address verification status enum
+export const addressVerificationStatusEnum = pgEnum('address_verification_status', [
+  'pending',
+  'submitted',
+  'approved',
+  'rejected',
+  'expired'
+]);
+
 // Users table
 export const users = pgTable("users", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -58,6 +67,8 @@ export const users = pgTable("users", {
   provider: varchar("provider").default('local'), // 'local', 'facebook', 'google'
   providerId: varchar("provider_id"), // social login ID
   emailVerified: boolean("email_verified").default(false),
+  addressVerified: boolean("address_verified").default(false),
+  addressVerificationDeadline: timestamp("address_verification_deadline"),
   onboardingCompleted: boolean("onboarding_completed").default(false),
   preferences: jsonb("preferences").$type<{
     emailNotifications?: boolean;
@@ -1357,6 +1368,59 @@ export const buyerVerifications = pgTable("buyer_verifications", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
+// Address verification for all users (similar to Nextdoor)
+export const addressVerifications = pgTable("address_verifications", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  
+  // Address details to verify
+  fullAddress: text("full_address").notNull(),
+  city: varchar("city").notNull(),
+  state: varchar("state").notNull(),
+  zipCode: varchar("zip_code").notNull(),
+  
+  // Verification methods
+  verificationMethod: varchar("verification_method", {
+    enum: ['utility_bill', 'bank_statement', 'lease_agreement', 'property_deed', 'postcard', 'phone_verification']
+  }),
+  
+  // Document uploads for verification
+  documentUrl: varchar("document_url"),
+  documentType: varchar("document_type"),
+  
+  // Postcard verification (like Nextdoor)
+  postcardCode: varchar("postcard_code", { length: 6 }),
+  postcardSentAt: timestamp("postcard_sent_at"),
+  postcardVerifiedAt: timestamp("postcard_verified_at"),
+  
+  // Phone verification
+  phoneNumber: varchar("phone_number"),
+  phoneVerificationCode: varchar("phone_verification_code", { length: 6 }),
+  phoneVerifiedAt: timestamp("phone_verified_at"),
+  
+  // Verification status and timeline
+  status: addressVerificationStatusEnum("status").default('pending'),
+  submittedAt: timestamp("submitted_at"),
+  reviewedBy: varchar("reviewed_by"),
+  reviewedAt: timestamp("reviewed_at"),
+  approvedAt: timestamp("approved_at"),
+  rejectionReason: text("rejection_reason"),
+  adminNotes: text("admin_notes"),
+  
+  // Deadline tracking (14 days from account creation)
+  deadline: timestamp("deadline").notNull(),
+  remindersSent: integer("reminders_sent").default(0),
+  lastReminderSent: timestamp("last_reminder_sent"),
+  
+  // Address validation
+  addressValidated: boolean("address_validated").default(false),
+  addressValidationProvider: varchar("address_validation_provider"), // USPS, Google, etc.
+  addressValidationResponse: jsonb("address_validation_response"),
+  
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
 // Relations for marketplace
 export const marketplaceCategoriesRelations = relations(marketplaceCategories, ({ one, many }) => ({
   parentCategory: one(marketplaceCategories, {
@@ -1509,3 +1573,30 @@ export type InsertVendorVerification = z.infer<typeof insertVendorVerificationSc
 
 export type BuyerVerification = typeof buyerVerifications.$inferSelect;
 export type InsertBuyerVerification = z.infer<typeof insertBuyerVerificationSchema>;
+
+// Address verification schema
+export const insertAddressVerificationSchema = createInsertSchema(addressVerifications).omit({
+  id: true,
+  postcardCode: true,
+  postcardSentAt: true,
+  postcardVerifiedAt: true,
+  phoneVerificationCode: true,
+  phoneVerifiedAt: true,
+  status: true,
+  submittedAt: true,
+  reviewedBy: true,
+  reviewedAt: true,
+  approvedAt: true,
+  rejectionReason: true,
+  adminNotes: true,
+  remindersSent: true,
+  lastReminderSent: true,
+  addressValidated: true,
+  addressValidationProvider: true,
+  addressValidationResponse: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type AddressVerification = typeof addressVerifications.$inferSelect;
+export type InsertAddressVerification = z.infer<typeof insertAddressVerificationSchema>;

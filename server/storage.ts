@@ -34,6 +34,7 @@ import {
   marketplaceReports,
   vendorVerifications,
   buyerVerifications,
+  addressVerifications,
   type User,
   type InsertUser,
   type UpsertUser,
@@ -93,6 +94,8 @@ import {
   type InsertVendorVerification,
   type BuyerVerification,
   type InsertBuyerVerification,
+  type AddressVerification,
+  type InsertAddressVerification,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, desc, asc, sql, inArray, like, gt, or, lt, isNull, isNotNull } from "drizzle-orm";
@@ -299,6 +302,15 @@ export interface IStorage {
   getBuyerVerificationByUserId(userId: string): Promise<BuyerVerification | undefined>;
   getVerifications(filters: { type: string; status: string }): Promise<(VendorVerification | BuyerVerification)[]>;
   updateVerification(id: string, updates: any): Promise<VendorVerification | BuyerVerification>;
+  
+  // Address Verification
+  createAddressVerification(verification: InsertAddressVerification): Promise<AddressVerification>;
+  getAddressVerificationByUserId(userId: string): Promise<AddressVerification | undefined>;
+  updateAddressVerification(id: string, updates: Partial<AddressVerification>): Promise<AddressVerification>;
+  getAddressVerificationsNeedingReminders(): Promise<AddressVerification[]>;
+  getExpiredAddressVerifications(): Promise<AddressVerification[]>;
+  sendAddressVerificationPostcard(userId: string, code: string): Promise<void>;
+  verifyAddressWithPostcard(userId: string, code: string): Promise<boolean>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -1924,6 +1936,112 @@ export class DatabaseStorage implements IStorage {
       .where(eq(buyerVerifications.id, id))
       .returning();
     return buyerVerification;
+  }
+
+  // Address Verification
+  async createAddressVerification(verificationData: InsertAddressVerification): Promise<AddressVerification> {
+    const [verification] = await db.insert(addressVerifications).values(verificationData).returning();
+    return verification;
+  }
+
+  async getAddressVerificationByUserId(userId: string): Promise<AddressVerification | undefined> {
+    const [verification] = await db
+      .select()
+      .from(addressVerifications)
+      .where(eq(addressVerifications.userId, userId))
+      .orderBy(desc(addressVerifications.createdAt));
+    return verification;
+  }
+
+  async updateAddressVerification(id: string, updates: Partial<AddressVerification>): Promise<AddressVerification> {
+    const [verification] = await db
+      .update(addressVerifications)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(addressVerifications.id, id))
+      .returning();
+    return verification;
+  }
+
+  async getAddressVerificationsNeedingReminders(): Promise<AddressVerification[]> {
+    const threeDaysFromNow = new Date();
+    threeDaysFromNow.setDate(threeDaysFromNow.getDate() + 3);
+    
+    return await db
+      .select()
+      .from(addressVerifications)
+      .where(
+        and(
+          eq(addressVerifications.status, 'pending'),
+          sql`${addressVerifications.deadline} <= ${threeDaysFromNow}`,
+          or(
+            isNull(addressVerifications.lastReminderSent),
+            sql`${addressVerifications.lastReminderSent} < NOW() - INTERVAL '24 hours'`
+          )
+        )
+      );
+  }
+
+  async getExpiredAddressVerifications(): Promise<AddressVerification[]> {
+    return await db
+      .select()
+      .from(addressVerifications)
+      .where(
+        and(
+          eq(addressVerifications.status, 'pending'),
+          sql`${addressVerifications.deadline} < NOW()`
+        )
+      );
+  }
+
+  async sendAddressVerificationPostcard(userId: string, code: string): Promise<void> {
+    await db
+      .update(addressVerifications)
+      .set({
+        postcardCode: code,
+        postcardSentAt: new Date(),
+        verificationMethod: 'postcard',
+        updatedAt: new Date()
+      })
+      .where(eq(addressVerifications.userId, userId));
+  }
+
+  async verifyAddressWithPostcard(userId: string, code: string): Promise<boolean> {
+    const [verification] = await db
+      .select()
+      .from(addressVerifications)
+      .where(
+        and(
+          eq(addressVerifications.userId, userId),
+          eq(addressVerifications.postcardCode, code),
+          isNotNull(addressVerifications.postcardSentAt)
+        )
+      );
+
+    if (!verification) {
+      return false;
+    }
+
+    // Update verification as approved
+    await db
+      .update(addressVerifications)
+      .set({
+        status: 'approved',
+        postcardVerifiedAt: new Date(),
+        approvedAt: new Date(),
+        updatedAt: new Date()
+      })
+      .where(eq(addressVerifications.id, verification.id));
+
+    // Update user's address verification status
+    await db
+      .update(users)
+      .set({
+        addressVerified: true,
+        updatedAt: new Date()
+      })
+      .where(eq(users.id, userId));
+
+    return true;
   }
 }
 

@@ -36,6 +36,7 @@ Preferred communication style: Simple, everyday language.
 - **Role-Based Access**: Hierarchical user roles (homeowner, contractor_user, accelerator_member, moderator, ops_admin, head_admin)
 - **Profile Selection**: Critical Contractor vs. Homeowner role selection during registration.
 - **Admin Hierarchy**: Head admin manages all users; moderators manage non-head admins.
+- **Address Verification**: Platform-wide address verification requirement with 14-day grace period, multiple verification methods (postcard, document upload), and middleware enforcement.
 - **Security**: CSRF protection, secure session cookies, role-based route protection.
 
 ## File Upload & Storage
@@ -60,6 +61,7 @@ Preferred communication style: Simple, everyday language.
 - **Helpers Marketplace System**: Two-sided marketplace connecting contractors with helpers and homeowners with task helpers.
 - **ID Verification Framework**: Vetting system with ID verification, background checks, and document management.
 - **Comprehensive SEO Implementation**: Structured data, meta tags, breadcrumbs, and AI-friendly content (LLM-optimized).
+- **Platform-Wide Address Verification**: Nextdoor-style address verification requirement for all users within 14 days of account creation, with postcard verification, document upload options, and graduated access restrictions.
 
 # External Dependencies
 
