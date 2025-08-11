@@ -369,11 +369,23 @@ export default function CommunityModerationDemo() {
                 Join the Community
               </h3>
               <p className="text-orange-700 dark:text-orange-300 mb-4">
-                Log in to vote on posts and help moderate your neighborhood community!
+                Create an account to vote on posts and help moderate your neighborhood community!
               </p>
-              <Button className="bg-orange-600 hover:bg-orange-700 text-white">
-                Sign Up / Login
-              </Button>
+              <div className="space-x-4">
+                <Button 
+                  className="bg-blue-600 hover:bg-blue-700 text-white"
+                  onClick={() => window.location.href = '/register'}
+                >
+                  Create Account
+                </Button>
+                <Button 
+                  variant="outline"
+                  onClick={() => window.location.href = '/login'}
+                  className="border-orange-300 text-orange-700 hover:bg-orange-100"
+                >
+                  Login
+                </Button>
+              </div>
             </CardContent>
           </Card>
         )}

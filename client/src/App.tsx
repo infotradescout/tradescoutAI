@@ -52,6 +52,7 @@ import AddressVerification from "@/pages/address-verification";
 import Community from "@/pages/community";
 import CommunityFeed from "@/pages/CommunityFeed";
 import CommunityModerationDemo from "@/pages/CommunityModerationDemo";
+import Register from "@/pages/register";
 import Leaderboard from "@/pages/leaderboard";
 import InvitePage from "@/pages/invite";
 import AffiliatePage from "@/pages/affiliate";
@@ -111,6 +112,7 @@ function Router() {
         <Route path="/leaderboard" component={Leaderboard} />
         <Route path="/community" component={Community} />
         <Route path="/community/moderation" component={CommunityModerationDemo} />
+        <Route path="/register" component={Register} />
         <Route path="/foundation" component={Foundation} />
         <Route path="/promo/:slug" component={PromoPublic} />
         
