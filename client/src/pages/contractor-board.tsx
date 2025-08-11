@@ -272,10 +272,10 @@ export default function ContractorBoard() {
             )}
           </h1>
           <p className="text-xl text-gray-300 mb-8">
-            Connect with verified, local contractors for your next project
+            Partner with verified asset specialists to maximize your property's growth potential
             {filteredContractors.length > 0 && (
               <span className="block text-lg mt-2">
-                {filteredContractors.length} contractor{filteredContractors.length !== 1 ? 's' : ''} available
+                {filteredContractors.length} investment partner{filteredContractors.length !== 1 ? 's' : ''} available
               </span>
             )}
           </p>

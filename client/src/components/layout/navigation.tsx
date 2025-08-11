@@ -23,13 +23,13 @@ export default function Navigation() {
   const isHomeowner = user && user.role === 'homeowner';
 
   const navItems = [
-    { href: "/contractors/board", label: "Find Contractors", icon: Search, public: true, description: "Find verified local contractors" },
-    { href: "/quote", label: "Quote Calculator", icon: Calculator, public: true, description: "Get instant project estimates" },
-    ...(!isHomeowner ? [{ href: "/contractors", label: "For Contractors", icon: Wrench, public: true, description: "Join our contractor network" }] : []),
+    { href: "/contractors/board", label: "Asset Specialists", icon: Search, public: true, description: "Connect with elite property value experts" },
+    { href: "/quote", label: "ROI Calculator", icon: Calculator, public: true, description: "Calculate investment returns and market analysis" },
+    ...(!isHomeowner ? [{ href: "/contractors", label: "Join Elite Network", icon: Wrench, public: true, description: "Become a verified asset specialist" }] : []),
     { href: "/workers", label: "Helpers", icon: Users, public: true, description: "Find skilled helpers" },
-    { href: "/marketplace", label: "Exchange", icon: Package, public: true, description: "Buy & sell equipment & handmade items" },
-    { href: "/leaderboard", label: "Leaderboard", icon: Trophy, public: true, description: "Top contractors by recommendations" },
-    { href: "/community", label: "Community", icon: MessageCircle, public: true, description: "Connect with neighbors" },
+    { href: "/marketplace", label: "Asset Exchange", icon: Package, public: true, description: "Strategic equipment & investment opportunities" },
+    { href: "/leaderboard", label: "Top Performers", icon: Trophy, public: true, description: "Elite specialists ranked by client returns" },
+    { href: "/community", label: "Smart Network", icon: MessageCircle, public: true, description: "Connect with strategic property owners" },
   ];
 
   const authenticatedNavItems = [

@@ -298,7 +298,7 @@ export default function EstimateCalculator() {
   };
 
   return (
-    <GuestGate>
+    <GuestGate action="calculate investment returns">
       <SEOHelmet 
         title="Free Home Improvement Cost Calculator & Quote Generator | TradeScout"
         description="Calculate accurate project costs instantly. Get free quotes from verified local contractors for roofing, flooring, kitchen remodels, and more. Licensed and insured professionals."
@@ -308,8 +308,8 @@ export default function EstimateCalculator() {
       
       <main className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <PageHead 
-          title="Get Your Project Estimate - TradeScout Calculator"
-          description="Get instant estimates for your home improvement project. Regional pricing based on your county and project details. Connect with verified contractors for accurate quotes."
+          title="Property Investment Calculator - TradeScout ROI Analysis"
+          description="Calculate your property investment returns with expert contractor insights. Regional market data helps you make smart financing decisions for maximum home value growth."
           keywords="project estimate, home improvement calculator, contractor quotes, regional pricing, project cost calculator"
         />
         
@@ -332,8 +332,8 @@ export default function EstimateCalculator() {
         </nav>
         
         <header className="text-center mb-12">
-          <h1 className="text-4xl font-bold text-white mb-4">Get Your Project Estimate</h1>
-        <p className="text-xl text-gray-300 mb-6">Regional pricing based on your county and project details</p>
+          <h1 className="text-4xl font-bold text-white mb-4">Calculate Your Property Investment Return</h1>
+        <p className="text-xl text-gray-300 mb-6">Smart financing decisions backed by regional market data and expert contractor insights</p>
         <div className="flex justify-center gap-6 text-sm text-gray-400">
           <div className="flex items-center gap-2">
             <TrendingUp className="h-4 w-4 text-orange-500" />

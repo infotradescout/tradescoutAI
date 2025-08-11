@@ -68,11 +68,11 @@ export default function Landing() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
             <h1 className="text-4xl md:text-6xl font-bold text-white mb-6">
-              Find Trusted Contractors
-              <span className="text-orange-500"> In Your Community</span>
+              Build Your Property's
+              <span className="text-orange-500"> Future Value</span>
             </h1>
             <p className="text-xl text-gray-300 mb-8 max-w-3xl mx-auto">
-              Connect with verified, local contractors. Get quotes, read recommendations, and hire with confidence.
+              Smart property decisions start with verified local contractors. Build equity, increase value, and secure your asset's growth potential.
             </p>
             
             {/* County Search */}
@@ -645,8 +645,8 @@ export default function Landing() {
                 <div className="text-orange-500 text-3xl mb-4">
                   <Shield className="h-8 w-8" />
                 </div>
-                <h3 className="text-xl font-semibold text-white mb-3">Verified Contractors</h3>
-                <p className="text-gray-300">All contractors are license-verified with current insurance documentation.</p>
+                <h3 className="text-xl font-semibold text-white mb-3">Elite Asset Partners</h3>
+                <p className="text-gray-300">Pre-screened specialists committed to maximizing your property's value potential.</p>
               </CardContent>
             </Card>
             
@@ -655,8 +655,8 @@ export default function Landing() {
                 <div className="text-orange-500 text-3xl mb-4">
                   <Calculator className="h-8 w-8" />
                 </div>
-                <h3 className="text-xl font-semibold text-white mb-3">Regional Pricing</h3>
-                <p className="text-gray-300">Get accurate cost estimates based on your specific county and project type.</p>
+                <h3 className="text-xl font-semibold text-white mb-3">Smart Investment Analysis</h3>
+                <p className="text-gray-300">Strategic market data to guide optimal allocation and maximize your property portfolio returns.</p>
               </CardContent>
             </Card>
             
@@ -665,8 +665,8 @@ export default function Landing() {
                 <div className="text-orange-500 text-3xl mb-4">
                   <Users className="h-8 w-8" />
                 </div>
-                <h3 className="text-xl font-semibold text-white mb-3">Real Recommendations</h3>
-                <p className="text-gray-300">Read authentic recommendations from homeowners in your area.</p>
+                <h3 className="text-xl font-semibold text-white mb-3">Performance Tracking</h3>
+                <p className="text-gray-300">Data-driven insights from smart property owners who've achieved exceptional returns.</p>
               </CardContent>
             </Card>
           </div>
