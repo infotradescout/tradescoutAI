@@ -859,11 +859,7 @@ export const moderationVotesRelations = relations(moderationVotes, ({ one }) => 
 }));
 
 export const moderationScoresRelations = relations(moderationScores, ({ many }) => ({
-  votes: many(moderationVotes, { 
-    relationName: "moderationTarget",
-    fields: [moderationScores.targetType, moderationScores.targetId],
-    references: [moderationVotes.targetType, moderationVotes.targetId] 
-  }),
+  votes: many(moderationVotes),
 }));
 
 export const userReputationRelations = relations(userReputation, ({ one }) => ({
@@ -3324,9 +3320,6 @@ export const moderationAppealsRelations = relations(moderationAppeals, ({ one })
 // Types for moderation system
 export type ModerationReport = typeof moderationReports.$inferSelect;
 export type InsertModerationReport = typeof moderationReports.$inferInsert;
-
-export type ModerationVote = typeof moderationVotes.$inferSelect;
-export type InsertModerationVote = typeof moderationVotes.$inferInsert;
 
 export type UserModerationReputation = typeof userModerationReputation.$inferSelect;
 export type InsertUserModerationReputation = typeof userModerationReputation.$inferInsert;

@@ -18,7 +18,7 @@ import SafeLanding from "@/pages/safe-landing";
 import Home from "@/pages/home";
 import Foundation from "@/pages/foundation";
 import MasterAdminSetup from "@/components/auth/MasterAdminSetup";
-import RoleDirectory from "@/pages/RoleDirectory";
+
 import Dashboard from "@/pages/dashboard";
 import HomeownerDashboard from "@/pages/homeowner-dashboard";
 import ContractorBoard from "@/pages/contractor-board";
@@ -127,9 +127,6 @@ function Router() {
         <Route path="/legal/terms-of-service" component={lazy(() => import("./pages/legal/terms-of-service"))} />
         <Route path="/legal/compliance" component={lazy(() => import("./pages/legal/compliance"))} />
         <Route path="/legal/cookie-policy" component={lazy(() => import("./pages/legal/cookie-policy"))} />
-        
-        {/* Role Directory - Public access */}
-        <Route path="/roles" component={RoleDirectory} />
         
         {!isAuthenticated ? (
           <>

@@ -17,6 +17,8 @@ export function EnhancedNavigation({ className = "" }: EnhancedNavigationProps) 
 
   const isActive = (path: string) => {
     if (path === "/") return location === "/";
+    // Prevent /contractors from matching /contractors/for-contractors
+    if (path === "/contractors") return location === "/contractors" || location === "/contractors/";
     return location.startsWith(path);
   };
 
