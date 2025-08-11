@@ -40,7 +40,7 @@ import AdminErrorReports from "@/pages/admin-error-reports";
 import AdminTestingControls from "@/pages/admin-testing-controls";
 import AddressVerification from "@/pages/address-verification";
 import Community from "@/pages/community";
-import HandmadeMarketplace from "@/pages/handmade-marketplace";
+
 import ModerationCenter from "@/pages/moderation-center";
 import { ProfileSetupRedirect } from "@/components/profile-setup-redirect";
 import { FloatingBugReport } from "@/components/FloatingBugReport";
@@ -80,7 +80,6 @@ function Router() {
         <Route path="/workers" component={WorkerMarketplace} />
         <Route path="/worker-marketplace" component={WorkerMarketplace} />
         <Route path="/marketplace" component={Marketplace} />
-        <Route path="/handmade" component={HandmadeMarketplace} />
         <Route path="/promo/:slug" component={PromoPublic} />
         
         {!isAuthenticated ? (

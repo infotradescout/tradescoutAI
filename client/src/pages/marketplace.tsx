@@ -63,17 +63,22 @@ export default function Marketplace() {
     queryKey: ["/api/marketplace/categories"],
   });
 
+  // Build query parameters
+  const buildQueryParams = () => {
+    const params = new URLSearchParams();
+    if (searchQuery) params.append('search', searchQuery);
+    if (selectedCategory && selectedCategory !== 'all') params.append('categoryId', selectedCategory);
+    if (selectedState) params.append('state', selectedState);
+    if (selectedCondition && selectedCondition !== 'all') params.append('condition', selectedCondition);
+    if (sortBy) params.append('sortBy', sortBy);
+    if (priceMin) params.append('priceMin', priceMin);
+    if (priceMax) params.append('priceMax', priceMax);
+    return params.toString();
+  };
+
   // Fetch listings with filters
   const { data: listings = [], isLoading } = useQuery<MarketplaceListing[]>({
-    queryKey: ["/api/marketplace/listings", {
-      search: searchQuery,
-      categoryId: selectedCategory,
-      state: selectedState,
-      condition: selectedCondition,
-      sortBy,
-      priceMin: priceMin ? Number(priceMin) : undefined,
-      priceMax: priceMax ? Number(priceMax) : undefined,
-    }],
+    queryKey: ["/api/marketplace/listings", buildQueryParams()],
   });
 
   const formatPrice = (price: number, priceType: string) => {
@@ -229,7 +234,7 @@ export default function Marketplace() {
                       <SelectValue placeholder="All Asset Classes" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">All Asset Classes</SelectItem>
+                      <SelectItem value="all">All Asset Classes</SelectItem>
                       {categories.map((category) => (
                         <SelectItem key={category.id} value={category.id}>
                           <div className="flex items-center justify-between w-full">
@@ -257,7 +262,7 @@ export default function Marketplace() {
                       <SelectValue placeholder="All Conditions" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">All Conditions</SelectItem>
+                      <SelectItem value="all">All Conditions</SelectItem>
                       <SelectItem value="new">Premium (New)</SelectItem>
                       <SelectItem value="like_new">Excellent (Like New)</SelectItem>
                       <SelectItem value="good">Solid Investment (Good)</SelectItem>
