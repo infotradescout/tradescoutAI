@@ -1,0 +1,601 @@
+import { useState } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useLocation } from "wouter";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import {
+  Form,
+  FormControl,
+  FormDescription,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
+import { useToast } from "@/hooks/use-toast";
+import { apiRequest } from "@/lib/queryClient";
+import { Home, MapPin, DollarSign, Camera, Building } from "lucide-react";
+
+// Property listing form schema
+const propertyListingSchema = z.object({
+  title: z.string().min(10, "Title must be at least 10 characters"),
+  description: z.string().min(50, "Description must be at least 50 characters"),
+  price: z.string().min(1, "Price is required"),
+  priceType: z.enum(["fixed", "negotiable", "best_offer"]),
+  propertyType: z.enum(["house", "condo", "townhouse", "land", "commercial", "multifamily"]),
+  address: z.string().min(5, "Address is required"),
+  city: z.string().min(2, "City is required"),
+  state: z.string().min(2, "State is required"),
+  zipCode: z.string().min(5, "Zip code is required"),
+  bedrooms: z.string().optional(),
+  bathrooms: z.string().optional(),
+  squareFeet: z.string().optional(),
+  lotSize: z.string().optional(),
+  yearBuilt: z.string().optional(),
+  condition: z.enum(["new", "excellent", "good", "fair", "needs_work"]),
+  isForSale: z.boolean().default(true),
+  isForRent: z.boolean().default(false),
+  monthlyRent: z.string().optional(),
+  features: z.array(z.string()).default([]),
+});
+
+type PropertyListingForm = z.infer<typeof propertyListingSchema>;
+
+const propertyTypes = [
+  { value: "house", label: "Single Family House" },
+  { value: "condo", label: "Condominium" },
+  { value: "townhouse", label: "Townhouse" },
+  { value: "land", label: "Land/Lot" },
+  { value: "commercial", label: "Commercial Property" },
+  { value: "multifamily", label: "Multi-Family" },
+];
+
+const conditionOptions = [
+  { value: "new", label: "New Construction" },
+  { value: "excellent", label: "Excellent" },
+  { value: "good", label: "Good" },
+  { value: "fair", label: "Fair" },
+  { value: "needs_work", label: "Needs Work" },
+];
+
+const propertyFeatures = [
+  "Garage",
+  "Pool",
+  "Fireplace",
+  "Hardwood Floors",
+  "Updated Kitchen",
+  "Central Air",
+  "Basement",
+  "Deck/Patio",
+  "Fenced Yard",
+  "Mountain View",
+  "Ocean View",
+  "City View",
+  "Recently Renovated",
+  "Move-in Ready",
+];
+
+export default function PropertyListing() {
+  const [, setLocation] = useLocation();
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const [selectedFeatures, setSelectedFeatures] = useState<string[]>([]);
+
+  const form = useForm<PropertyListingForm>({
+    resolver: zodResolver(propertyListingSchema),
+    defaultValues: {
+      priceType: "fixed",
+      propertyType: "house",
+      condition: "good",
+      isForSale: true,
+      isForRent: false,
+      features: [],
+    },
+  });
+
+  const createListingMutation = useMutation({
+    mutationFn: async (data: PropertyListingForm) => {
+      // First get the Real Estate category ID
+      const categoriesResponse = await apiRequest("GET", "/api/marketplace/categories");
+      const categories = await categoriesResponse.json();
+      const realEstateCategory = categories.find((cat: any) => cat.name === "Real Estate");
+      
+      if (!realEstateCategory) {
+        throw new Error("Real Estate category not found");
+      }
+
+      const listingData = {
+        categoryId: realEstateCategory.id,
+        title: data.title,
+        description: data.description,
+        price: parseFloat(data.price),
+        priceType: data.priceType,
+        county: data.city, // Using city as county for now
+        state: data.state,
+        city: data.city,
+        zipCode: data.zipCode,
+        condition: data.condition,
+        specifications: {
+          propertyType: data.propertyType,
+          bedrooms: data.bedrooms ? parseInt(data.bedrooms) : undefined,
+          bathrooms: data.bathrooms ? parseFloat(data.bathrooms) : undefined,
+          squareFeet: data.squareFeet ? parseInt(data.squareFeet) : undefined,
+          lotSize: data.lotSize,
+          yearBuilt: data.yearBuilt ? parseInt(data.yearBuilt) : undefined,
+          isForSale: data.isForSale,
+          isForRent: data.isForRent,
+          monthlyRent: data.monthlyRent ? parseFloat(data.monthlyRent) : undefined,
+          features: selectedFeatures,
+          address: data.address,
+        },
+        isLocalPickupOnly: true,
+        willShip: false,
+      };
+
+      return apiRequest("POST", "/api/marketplace/listings", listingData);
+    },
+    onSuccess: () => {
+      toast({
+        title: "Property Listed Successfully!",
+        description: "Your property has been added to the marketplace.",
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/marketplace/listings"] });
+      setLocation("/marketplace");
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error Creating Listing",
+        description: error.message || "Something went wrong. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const onSubmit = (data: PropertyListingForm) => {
+    const formData = { ...data, features: selectedFeatures };
+    createListingMutation.mutate(formData);
+  };
+
+  const handleFeatureToggle = (feature: string) => {
+    setSelectedFeatures(prev => 
+      prev.includes(feature) 
+        ? prev.filter(f => f !== feature)
+        : [...prev, feature]
+    );
+  };
+
+  return (
+    <div className="container mx-auto px-4 py-8 max-w-4xl">
+      <div className="mb-8">
+        <div className="flex items-center gap-3 mb-4">
+          <Home className="h-8 w-8 text-orange-600" />
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
+              List Your Property
+            </h1>
+            <p className="text-gray-600 dark:text-gray-400">
+              Share your quality property with our trusted community
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Building className="h-5 w-5 text-orange-600" />
+            Property Details
+          </CardTitle>
+          <CardDescription>
+            Provide comprehensive information to help buyers understand your property's value
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+              {/* Basic Information */}
+              <div className="space-y-4">
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                  Basic Information
+                </h3>
+                
+                <FormField
+                  control={form.control}
+                  name="title"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Property Title</FormLabel>
+                      <FormControl>
+                        <Input 
+                          placeholder="e.g., Beautiful 3BR Home in Prime Location" 
+                          {...field} 
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="description"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Description</FormLabel>
+                      <FormControl>
+                        <Textarea 
+                          placeholder="Describe your property's features, location benefits, and what makes it special..."
+                          className="min-h-32"
+                          {...field} 
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="propertyType"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Property Type</FormLabel>
+                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select property type" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {propertyTypes.map((type) => (
+                              <SelectItem key={type.value} value={type.value}>
+                                {type.label}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="condition"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Condition</FormLabel>
+                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select condition" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {conditionOptions.map((condition) => (
+                              <SelectItem key={condition.value} value={condition.value}>
+                                {condition.label}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+              </div>
+
+              {/* Location */}
+              <div className="space-y-4">
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                  <MapPin className="h-5 w-5 text-orange-600" />
+                  Location
+                </h3>
+                
+                <FormField
+                  control={form.control}
+                  name="address"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Address</FormLabel>
+                      <FormControl>
+                        <Input placeholder="123 Main Street" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="city"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>City</FormLabel>
+                        <FormControl>
+                          <Input placeholder="City" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="state"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>State</FormLabel>
+                        <FormControl>
+                          <Input placeholder="CA" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="zipCode"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Zip Code</FormLabel>
+                        <FormControl>
+                          <Input placeholder="90210" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+              </div>
+
+              {/* Property Details */}
+              <div className="space-y-4">
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                  Property Details
+                </h3>
+                
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="bedrooms"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Bedrooms</FormLabel>
+                        <FormControl>
+                          <Input type="number" placeholder="3" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="bathrooms"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Bathrooms</FormLabel>
+                        <FormControl>
+                          <Input type="number" step="0.5" placeholder="2.5" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="squareFeet"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Square Feet</FormLabel>
+                        <FormControl>
+                          <Input type="number" placeholder="2000" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="yearBuilt"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Year Built</FormLabel>
+                        <FormControl>
+                          <Input type="number" placeholder="2020" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+
+                <FormField
+                  control={form.control}
+                  name="lotSize"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Lot Size</FormLabel>
+                      <FormControl>
+                        <Input placeholder="0.25 acres or 10,000 sq ft" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+
+              {/* Pricing */}
+              <div className="space-y-4">
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                  <DollarSign className="h-5 w-5 text-orange-600" />
+                  Pricing
+                </h3>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="price"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Sale Price</FormLabel>
+                        <FormControl>
+                          <Input type="number" placeholder="500000" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="priceType"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Price Type</FormLabel>
+                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            <SelectItem value="fixed">Fixed Price</SelectItem>
+                            <SelectItem value="negotiable">Negotiable</SelectItem>
+                            <SelectItem value="best_offer">Best Offer</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+
+                <div className="flex items-center space-x-4">
+                  <FormField
+                    control={form.control}
+                    name="isForSale"
+                    render={({ field }) => (
+                      <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                        <FormControl>
+                          <Checkbox
+                            checked={field.value}
+                            onCheckedChange={field.onChange}
+                          />
+                        </FormControl>
+                        <FormLabel>For Sale</FormLabel>
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="isForRent"
+                    render={({ field }) => (
+                      <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                        <FormControl>
+                          <Checkbox
+                            checked={field.value}
+                            onCheckedChange={field.onChange}
+                          />
+                        </FormControl>
+                        <FormLabel>For Rent</FormLabel>
+                      </FormItem>
+                    )}
+                  />
+                </div>
+
+                {form.watch("isForRent") && (
+                  <FormField
+                    control={form.control}
+                    name="monthlyRent"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Monthly Rent</FormLabel>
+                        <FormControl>
+                          <Input type="number" placeholder="3000" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                )}
+              </div>
+
+              {/* Property Features */}
+              <div className="space-y-4">
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                  Property Features
+                </h3>
+                <p className="text-sm text-gray-600 dark:text-gray-400">
+                  Select features that make your property special
+                </p>
+                
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+                  {propertyFeatures.map((feature) => (
+                    <div key={feature} className="flex items-center space-x-2">
+                      <Checkbox
+                        id={feature}
+                        checked={selectedFeatures.includes(feature)}
+                        onCheckedChange={() => handleFeatureToggle(feature)}
+                      />
+                      <label
+                        htmlFor={feature}
+                        className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                      >
+                        {feature}
+                      </label>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="flex justify-between pt-6">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setLocation("/marketplace")}
+                >
+                  Cancel
+                </Button>
+                <Button 
+                  type="submit" 
+                  disabled={createListingMutation.isPending}
+                  className="bg-orange-600 hover:bg-orange-700"
+                >
+                  {createListingMutation.isPending ? "Creating Listing..." : "List Property"}
+                </Button>
+              </div>
+            </form>
+          </Form>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}

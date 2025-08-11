@@ -153,7 +153,11 @@ const categoryIcons = {
   antiques: Award,
   
   // Default fallback
-  package: Package
+  package: Package,
+  
+  // Property icons
+  property_listings: Home,
+  real_estate: Building
 };
 
 // Featured categories optimized for both contractors and homeowners with smart value messaging
@@ -202,6 +206,15 @@ const featuredCategories = [
     description: 'Unique items with documented provenance and quality',
     valueProposition: 'Distinctive finds',
     benefits: ['Authenticated quality', 'Unique character', 'Value appreciation']
+  },
+  { 
+    id: 'property_listings', 
+    name: 'Property Listings', 
+    icon: 'home', 
+    color: 'violet',
+    description: 'Quality homes and properties from trusted sellers',
+    valueProposition: 'Real estate opportunities',
+    benefits: ['Market value pricing', 'Detailed property info', 'Local expertise']
   },
   { 
     id: 'local_marketplace', 
@@ -926,6 +939,65 @@ export default function Marketplace() {
           </Card>
         )}
 
+        {/* Property Listings Notice */}
+        {selectedCategory === 'property_listings' && (
+          <Card className="mb-6 border-violet-200 bg-violet-50 dark:bg-violet-900/20 dark:border-violet-800">
+            <CardContent className="p-6">
+              <div className="flex items-start gap-4">
+                <div className="flex-shrink-0">
+                  <Home className="h-6 w-6 text-violet-600" />
+                </div>
+                <div className="flex-1">
+                  <h3 className="font-semibold text-violet-900 dark:text-violet-100 mb-2">
+                    Property Listings & Real Estate
+                  </h3>
+                  <p className="text-violet-800 dark:text-violet-200 text-sm mb-4">
+                    Quality homes and properties listed by trusted community members and real estate professionals. 
+                    Find your next home or property opportunity with comprehensive details and fair pricing.
+                  </p>
+                  
+                  <div className="grid md:grid-cols-3 gap-4">
+                    <div className="bg-white dark:bg-gray-800 p-4 rounded-lg">
+                      <h4 className="font-medium text-gray-900 dark:text-white mb-2 flex items-center">
+                        <TrendingUp className="h-4 w-4 mr-2 text-violet-600" />
+                        Market Value
+                      </h4>
+                      <p className="text-sm text-gray-600 dark:text-gray-300">
+                        Competitive pricing based on local market conditions
+                      </p>
+                    </div>
+                    <div className="bg-white dark:bg-gray-800 p-4 rounded-lg">
+                      <h4 className="font-medium text-gray-900 dark:text-white mb-2 flex items-center">
+                        <CheckCircle className="h-4 w-4 mr-2 text-emerald-600" />
+                        Detailed Information
+                      </h4>
+                      <p className="text-sm text-gray-600 dark:text-gray-300">
+                        Complete property details and neighborhood insights
+                      </p>
+                    </div>
+                    <div className="bg-white dark:bg-gray-800 p-4 rounded-lg">
+                      <h4 className="font-medium text-gray-900 dark:text-white mb-2 flex items-center">
+                        <Shield className="h-4 w-4 mr-2 text-blue-600" />
+                        Trusted Sellers
+                      </h4>
+                      <p className="text-sm text-gray-600 dark:text-gray-300">
+                        Verified property owners and licensed agents
+                      </p>
+                    </div>
+                  </div>
+                  
+                  <div className="mt-4 p-3 bg-amber-50 dark:bg-amber-900/20 rounded-lg border border-amber-200 dark:border-amber-800">
+                    <p className="text-sm text-amber-800 dark:text-amber-200 flex items-center">
+                      <Star className="h-4 w-4 mr-2 text-amber-600" />
+                      <strong>Property Investment Opportunity:</strong> Quality properties in desirable neighborhoods often appreciate over time, making smart purchases both a home and a valuable long-term decision.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
         {/* Results Section */}
         <div className="flex justify-between items-center mb-6">
           <div className="flex items-center gap-4">
@@ -1071,13 +1143,22 @@ export default function Marketplace() {
                 <div className="flex flex-col sm:flex-row gap-4 items-center">
                   {isAuthenticated ? (
                     <>
-                      <Button 
-                        onClick={() => setLocation('/marketplace/list')}
-                        className="bg-orange-600 hover:bg-orange-700 text-white px-8 py-3"
-                      >
-                        <Plus className="h-5 w-5 mr-2" />
-                        Share Your Quality Items
-                      </Button>
+                      <div className="flex flex-col sm:flex-row gap-3">
+                        <Button 
+                          onClick={() => setLocation('/marketplace/list')}
+                          className="bg-orange-600 hover:bg-orange-700 text-white px-6 py-3"
+                        >
+                          <Plus className="h-5 w-5 mr-2" />
+                          List Items
+                        </Button>
+                        <Button 
+                          onClick={() => setLocation('/property-listing')}
+                          className="bg-violet-600 hover:bg-violet-700 text-white px-6 py-3"
+                        >
+                          <Home className="h-5 w-5 mr-2" />
+                          List Property
+                        </Button>
+                      </div>
                       <p className="text-sm text-gray-500">
                         Help others discover the value you've experienced
                       </p>

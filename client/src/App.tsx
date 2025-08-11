@@ -34,6 +34,7 @@ import ContractorPromos from "@/pages/contractor-promos";
 import PromoPublic from "@/pages/promo-public";
 import Chat from "@/pages/chat";
 import Marketplace from "@/pages/marketplace";
+import PropertyListing from "@/pages/property-listing";
 import SavedAds from "@/pages/saved-ads";
 import ProfileSetup from "@/pages/profile-setup";
 import AdminUsers from "@/pages/admin-users";
@@ -84,6 +85,7 @@ function Router() {
         <Route path="/workers" component={WorkerMarketplace} />
         <Route path="/worker-marketplace" component={WorkerMarketplace} />
         <Route path="/marketplace" component={Marketplace} />
+        <Route path="/property-listing" component={PropertyListing} />
         <Route path="/leaderboard" component={Leaderboard} />
         <Route path="/community" component={Community} />
         <Route path="/promo/:slug" component={PromoPublic} />
