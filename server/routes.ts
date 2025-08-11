@@ -21,6 +21,7 @@ import {
   type InsertCarSalesmanProfile,
   affiliatePrograms
 } from "@shared/schema";
+import { setupModerationRoutes } from "./moderation";
 
 // Middleware to check address verification requirement
 const requireAddressVerification = async (req: any, res: any, next: any) => {
@@ -5831,6 +5832,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Register social media routes
   registerSocialRoutes(app);
+
+  // Set up community moderation routes
+  setupModerationRoutes(app);
 
   return httpServer;
 }

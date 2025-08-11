@@ -728,6 +728,60 @@ export const contentReports = pgTable("content_reports", {
   index("idx_content_reports_status").on(table.status),
 ]);
 
+// Community moderation votes - for upvoting/downvoting posts and comments
+export const moderationVotes = pgTable("moderation_votes", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  voterId: varchar("voter_id").notNull().references(() => users.id, { onDelete: 'cascade' }),
+  targetType: varchar("target_type").notNull(), // 'post', 'comment', 'report'
+  targetId: varchar("target_id").notNull(), // ID of the post, comment, or report
+  voteType: varchar("vote_type").notNull(), // 'upvote', 'downvote', 'flag', 'hide'
+  reason: varchar("reason"), // optional reason for moderation action
+  weight: integer("weight").default(1), // vote weight (based on user reputation)
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+}, (table) => [
+  index("idx_moderation_votes_target").on(table.targetType, table.targetId),
+  index("idx_moderation_votes_voter").on(table.voterId),
+]);
+
+// Community moderation thresholds and scores
+export const moderationScores = pgTable("moderation_scores", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  targetType: varchar("target_type").notNull(), // 'post', 'comment'
+  targetId: varchar("target_id").notNull(),
+  upvoteCount: integer("upvote_count").default(0),
+  downvoteCount: integer("downvote_count").default(0),
+  flagCount: integer("flag_count").default(0),
+  hideCount: integer("hide_count").default(0),
+  communityScore: integer("community_score").default(0), // calculated score
+  isHidden: boolean("is_hidden").default(false), // hidden by community votes
+  isFlagged: boolean("is_flagged").default(false), // flagged for review
+  lastCalculated: timestamp("last_calculated").defaultNow(),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => [
+  index("idx_moderation_scores_target").on(table.targetType, table.targetId),
+  index("idx_moderation_scores_score").on(table.communityScore),
+  index("idx_moderation_scores_flagged").on(table.isFlagged),
+]);
+
+// User reputation for voting weight
+export const userReputation = pgTable("user_reputation", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: 'cascade' }),
+  reputationScore: integer("reputation_score").default(100), // starting reputation
+  helpfulVotes: integer("helpful_votes").default(0), // votes marked as helpful
+  harmfulVotes: integer("harmful_votes").default(0), // votes marked as harmful
+  moderationAccuracy: decimal("moderation_accuracy", { precision: 5, scale: 4 }).default("0.5000"), // 50% default
+  voteWeight: decimal("vote_weight", { precision: 3, scale: 2 }).default("1.00"), // calculated weight
+  isTrustedModerator: boolean("is_trusted_moderator").default(false),
+  lastUpdated: timestamp("last_updated").defaultNow(),
+  createdAt: timestamp("created_at").defaultNow(),
+}, (table) => [
+  index("idx_user_reputation_user").on(table.userId),
+  index("idx_user_reputation_score").on(table.reputationScore),
+]);
+
 // Neighborhood boundaries table
 export const neighborhoods = pgTable("neighborhoods", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -799,6 +853,23 @@ export const neighborhoodsRelations = relations(neighborhoods, ({ many }) => ({
   posts: many(socialPosts),
 }));
 
+// Moderation system relations
+export const moderationVotesRelations = relations(moderationVotes, ({ one }) => ({
+  voter: one(users, { fields: [moderationVotes.voterId], references: [users.id] }),
+}));
+
+export const moderationScoresRelations = relations(moderationScores, ({ many }) => ({
+  votes: many(moderationVotes, { 
+    relationName: "moderationTarget",
+    fields: [moderationScores.targetType, moderationScores.targetId],
+    references: [moderationVotes.targetType, moderationVotes.targetId] 
+  }),
+}));
+
+export const userReputationRelations = relations(userReputation, ({ one }) => ({
+  user: one(users, { fields: [userReputation.userId], references: [users.id] }),
+}));
+
 // Insert schemas for forms
 export const insertSocialPostSchema = createInsertSchema(socialPosts).omit({ 
   id: true, 
@@ -855,27 +926,55 @@ export type InsertPostReaction = z.infer<typeof insertPostReactionSchema>;
 export type InsertPostShare = z.infer<typeof insertPostShareSchema>;
 export type InsertContentReport = z.infer<typeof insertContentReportSchema>;
 
+// Moderation schemas
+export const insertModerationVoteSchema = createInsertSchema(moderationVotes).omit({ 
+  id: true, 
+  createdAt: true,
+  isActive: true,
+  weight: true 
+});
+
+export const insertModerationScoreSchema = createInsertSchema(moderationScores).omit({ 
+  id: true, 
+  createdAt: true, 
+  updatedAt: true,
+  lastCalculated: true,
+  communityScore: true 
+});
+
+export const insertUserReputationSchema = createInsertSchema(userReputation).omit({ 
+  id: true, 
+  createdAt: true,
+  lastUpdated: true,
+  voteWeight: true,
+  moderationAccuracy: true 
+});
+
+// Moderation types
+export type ModerationVote = typeof moderationVotes.$inferSelect;
+export type InsertModerationVote = z.infer<typeof insertModerationVoteSchema>;
+
+export type ModerationScore = typeof moderationScores.$inferSelect;
+export type InsertModerationScore = z.infer<typeof insertModerationScoreSchema>;
+
+export type UserReputation = typeof userReputation.$inferSelect;
+export type InsertUserReputation = z.infer<typeof insertUserReputationSchema>;
+
 // Marketplace conversation types
 export type MarketplaceConversation = typeof marketplaceConversations.$inferSelect;
 export type InsertMarketplaceConversation = typeof marketplaceConversations.$inferInsert;
 export type MarketplaceMessage = typeof marketplaceMessages.$inferSelect;
 export type InsertMarketplaceMessage = typeof marketplaceMessages.$inferInsert;
 
-// Social feature types
+// Additional social feature types (avoiding duplicates)
 export type CommunityPost = typeof communityPosts.$inferSelect;
 export type InsertCommunityPost = typeof communityPosts.$inferInsert;
-
-export type PostComment = typeof postComments.$inferSelect;
-export type InsertPostComment = typeof postComments.$inferInsert;
 
 export type PostLike = typeof postLikes.$inferSelect;
 export type InsertPostLike = typeof postLikes.$inferInsert;
 
 export type CommentLike = typeof commentLikes.$inferSelect;
 export type InsertCommentLike = typeof commentLikes.$inferInsert;
-
-export type UserFollow = typeof userFollows.$inferSelect;
-export type InsertUserFollow = typeof userFollows.$inferInsert;
 
 export type CommunityGroup = typeof communityGroups.$inferSelect;
 export type InsertCommunityGroup = typeof communityGroups.$inferInsert;
@@ -3025,28 +3124,7 @@ export const moderationReports = pgTable("moderation_reports", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
-// Community votes on moderation reports
-export const moderationVotes = pgTable("moderation_votes", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  reportId: varchar("report_id").notNull().references(() => moderationReports.id),
-  voterId: varchar("voter_id").notNull().references(() => users.id),
-  
-  vote: voteTypeEnum("vote").notNull(),
-  comment: text("comment"), // Optional explanation for vote
-  
-  // Geographic context for local voting weight
-  voterCounty: varchar("voter_county"),
-  voterState: varchar("voter_state"),
-  
-  // Vote weight (local users get higher weight)
-  voteWeight: decimal("vote_weight", { precision: 3, scale: 2 }).default("1.0"),
-  isLocalVoter: boolean("is_local_voter").default(false), // Same county/region as content
-  
-  createdAt: timestamp("created_at").defaultNow(),
-}, (table) => [
-  index("moderation_votes_report_id_idx").on(table.reportId),
-  index("moderation_votes_voter_id_idx").on(table.voterId),
-]);
+// This duplicate moderationVotes table has been removed - using the one defined earlier in the file
 
 // User voting eligibility and reputation
 export const userModerationReputation = pgTable("user_moderation_reputation", {
@@ -3199,16 +3277,7 @@ export const moderationReportsRelations = relations(moderationReports, ({ one, m
   actions: many(moderationActions),
 }));
 
-export const moderationVotesRelations = relations(moderationVotes, ({ one }) => ({
-  report: one(moderationReports, {
-    fields: [moderationVotes.reportId],
-    references: [moderationReports.id],
-  }),
-  voter: one(users, {
-    fields: [moderationVotes.voterId],
-    references: [users.id],
-  }),
-}));
+// Duplicate moderationVotesRelations removed - using the one defined earlier
 
 export const userModerationReputationRelations = relations(userModerationReputation, ({ one }) => ({
   user: one(users, {
@@ -3287,12 +3356,7 @@ export const insertModerationReportSchema = createInsertSchema(moderationReports
   updatedAt: true,
 });
 
-export const insertModerationVoteSchema = createInsertSchema(moderationVotes).omit({
-  id: true,
-  voteWeight: true,
-  isLocalVoter: true,
-  createdAt: true,
-});
+// Duplicate insertModerationVoteSchema removed - using the one defined earlier
 
 export const insertModerationActionSchema = createInsertSchema(moderationActions).omit({
   id: true,

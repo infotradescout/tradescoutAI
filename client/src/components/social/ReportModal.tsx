@@ -33,16 +33,7 @@ import { Label } from "@/components/ui/label";
 import { useAuth } from "@/hooks/useAuth";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import {
-  Flag,
-  AlertTriangle,
-  Shield,
-  MessageSquare,
-  Spam,
-  Eye,
-  Ban,
-  FileText,
-} from "lucide-react";
+// Removed duplicate lucide imports - using the ones already imported above
 
 const reportSchema = z.object({
   reason: z.enum([
@@ -123,7 +114,7 @@ export function ReportModal({ open, onOpenChange, contentId, contentType }: Repo
       value: 'spam',
       label: 'Spam',
       description: 'Unwanted commercial content or repetitive posts',
-      icon: Spam,
+      icon: Flag,
     },
     {
       value: 'harassment',

@@ -50,6 +50,7 @@ import RealtorApplication from "@/pages/realtor-application";
 import CarSalesmanApplication from "@/pages/car-salesman-application";
 import AddressVerification from "@/pages/address-verification";
 import Community from "@/pages/community";
+import CommunityFeed from "@/pages/CommunityFeed";
 import Leaderboard from "@/pages/leaderboard";
 import InvitePage from "@/pages/invite";
 import AffiliatePage from "@/pages/affiliate";
@@ -175,6 +176,7 @@ function Router() {
             <Route path="/payments/history" component={PaymentHistory} />
             <Route path="/search" component={AdvancedSearch} />
             <Route path="/notifications" component={Notifications} />
+            <Route path="/community/feed" component={CommunityFeed} />
             <Route path="/foundation" component={Foundation} />
             <Route path="/affiliate" component={AffiliatePage} />
           </>
