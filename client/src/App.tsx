@@ -37,6 +37,7 @@ import AdminErrorReports from "@/pages/admin-error-reports";
 import AdminTestingControls from "@/pages/admin-testing-controls";
 import { ProfileSetupRedirect } from "@/components/profile-setup-redirect";
 import { FloatingBugReport } from "@/components/FloatingBugReport";
+import { BetaNotificationPopup } from "@/components/BetaNotificationPopup";
 
 function Router() {
   const { isAuthenticated, isLoading } = useAuth();
@@ -113,6 +114,7 @@ function Router() {
       </Switch>
       <MobileCTA />
       <FloatingBugReport />
+      <BetaNotificationPopup />
     </div>
   );
 }
