@@ -1,0 +1,145 @@
+54 AM [express] GET /api/ads/site-visit/homeowners/CA/Los%20Angeles%20County 304 in 1ms
+2025-08-10 19:11:54.96
+ea5428ff
+User
+12:11:54 AM [express] GET /api/ads/site-visit/homeowners/ 304 in 1ms
+2025-08-10 19:12:47.24
+ea5428ff
+User
+internalPosition: undefined,
+2025-08-10 19:12:47.24
+ea5428ff
+User
+internalQuery: undefined,
+2025-08-10 19:12:47.24
+ea5428ff
+User
+where: undefined,
+2025-08-10 19:12:47.24
+ea5428ff
+User
+schema: undefined,
+2025-08-10 19:12:47.24
+ea5428ff
+User
+table: undefined,
+2025-08-10 19:12:47.24
+ea5428ff
+User
+column: undefined,
+2025-08-10 19:12:47.24
+ea5428ff
+User
+dataType: undefined,
+2025-08-10 19:12:47.24
+ea5428ff
+User
+constraint: undefined,
+2025-08-10 19:12:47.24
+ea5428ff
+User
+file: 'parse_relation.c',
+2025-08-10 19:12:47.24
+ea5428ff
+User
+line: '1449',
+2025-08-10 19:12:47.24
+ea5428ff
+User
+routine: 'parserOpenTable'
+2025-08-10 19:12:47.24
+ea5428ff
+User
+}
+2025-08-10 19:12:47.24
+ea5428ff
+User
+12:12:47 AM [express] POST /api/error-reports 500 in 530ms :: {"message":"Failed to submit error repo…
+2025-08-10 19:12:51.86
+ea5428ff
+User
+Error creating error report: error: relation "error_reports" does not exist
+2025-08-10 19:12:51.86
+ea5428ff
+User
+at file:///home/runner/workspace/node_modules/@neondatabase/serverless/index.mjs:1345:74
+2025-08-10 19:12:51.86
+ea5428ff
+User
+at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+2025-08-10 19:12:51.86
+ea5428ff
+User
+at async NeonPreparedQuery.execute (file:///home/runner/workspace/node_modules/drizzle-orm/neon-serverless/session.js:76:20)
+2025-08-10 19:12:51.86
+ea5428ff
+User
+at async DatabaseStorage.createErrorReport (file:///home/runner/workspace/dist/index.js:1431:31)
+2025-08-10 19:12:51.86
+ea5428ff
+User
+at async file:///home/runner/workspace/dist/index.js:5945:7 {
+2025-08-10 19:12:51.86
+ea5428ff
+User
+length: 112,
+2025-08-10 19:12:51.86
+ea5428ff
+User
+severity: 'ERROR',
+2025-08-10 19:12:51.86
+ea5428ff
+User
+code: '42P01',
+2025-08-10 19:12:51.86
+ea5428ff
+User
+detail: undefined,
+2025-08-10 19:12:51.86
+ea5428ff
+User
+hint: undefined,
+2025-08-10 19:12:51.86
+ea5428ff
+User
+position: '13',
+2025-08-10 19:12:51.86
+ea5428ff
+User
+internalPosition: undefined,
+2025-08-10 19:12:51.86
+ea5428ff
+User
+internalQuery: undefined,
+2025-08-10 19:12:51.86
+ea5428ff
+User
+where: undefined,
+2025-08-10 19:12:51.86
+ea5428ff
+User
+schema: undefined,
+2025-08-10 19:12:51.86
+ea5428ff
+User
+table: undefined,
+2025-08-10 19:12:51.86
+ea5428ff
+User
+column: undefined,
+2025-08-10 19:12:51.86
+ea5428ff
+User
+dataType: undefined,
+2025-08-10 19:12:51.86
+ea5428ff
+User
+constraint: undefined,
+2025-08-10 19:12:51.86
+ea5428ff
+User
+file: 'parse_relation.c',
+2025-08-10 19:12:51.86
+ea5428ff
+User
+line: '1449',
