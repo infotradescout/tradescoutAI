@@ -2916,3 +2916,251 @@ export const insertReferralStatsSchema = createInsertSchema(referralStats).omit(
 
 export type InsertInvitationType = z.infer<typeof insertInvitationSchema>;
 export type InsertReferralStatsType = z.infer<typeof insertReferralStatsSchema>;
+
+// Marketplace transaction tables
+export const transactionStatusEnum = pgEnum('transaction_status', [
+  'pending',
+  'payment_processing', 
+  'payment_confirmed',
+  'in_escrow',
+  'shipped',
+  'delivered',
+  'completed',
+  'cancelled',
+  'disputed',
+  'refunded'
+]);
+
+export const marketplaceTransactions = pgTable("marketplace_transactions", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  listingId: varchar("listing_id").notNull().references(() => marketplaceListings.id),
+  buyerId: varchar("buyer_id").notNull().references(() => users.id),
+  sellerId: varchar("seller_id").notNull().references(() => users.id),
+  amount: decimal("amount", { precision: 10, scale: 2 }).notNull(),
+  platformFee: decimal("platform_fee", { precision: 10, scale: 2 }).notNull(),
+  sellerAmount: decimal("seller_amount", { precision: 10, scale: 2 }).notNull(),
+  stripePaymentIntentId: varchar("stripe_payment_intent_id"),
+  escrowReleaseDate: timestamp("escrow_release_date"),
+  status: transactionStatusEnum("status").notNull().default('pending'),
+  notes: text("notes"),
+  trackingNumber: varchar("tracking_number"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const transactionDisputes = pgTable("transaction_disputes", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  transactionId: varchar("transaction_id").notNull().references(() => marketplaceTransactions.id),
+  initiatorId: varchar("initiator_id").notNull().references(() => users.id),
+  reason: varchar("reason").notNull(),
+  description: text("description").notNull(),
+  status: varchar("status").notNull().default('open'), // open, investigating, resolved, escalated
+  resolution: text("resolution"),
+  resolvedBy: varchar("resolved_by").references(() => users.id),
+  resolvedAt: timestamp("resolved_at"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// User reviews and ratings
+export const userReviews = pgTable("user_reviews", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  transactionId: varchar("transaction_id").references(() => marketplaceTransactions.id),
+  reviewerId: varchar("reviewer_id").notNull().references(() => users.id),
+  revieweeId: varchar("reviewee_id").notNull().references(() => users.id),
+  rating: integer("rating").notNull(), // 1-5 stars
+  title: varchar("title"),
+  content: text("content"),
+  isVerifiedPurchase: boolean("is_verified_purchase").default(false),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// Professional verification enhancements - using existing table
+
+// Real-time notifications
+export const realTimeNotifications = pgTable("real_time_notifications", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  type: varchar("type").notNull(), // message, transaction, listing, review
+  title: varchar("title").notNull(),
+  message: text("message").notNull(),
+  actionUrl: varchar("action_url"),
+  isRead: boolean("is_read").default(false),
+  sentViaEmail: boolean("sent_via_email").default(false),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// Search and discovery
+export const savedSearches = pgTable("saved_searches", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  searchType: varchar("search_type").notNull(), // marketplace, contractors
+  searchQuery: varchar("search_query"),
+  filters: jsonb("filters"), // JSON object of search filters
+  alertsEnabled: boolean("alerts_enabled").default(true),
+  lastNotified: timestamp("last_notified"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const searchAnalytics = pgTable("search_analytics", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").references(() => users.id),
+  sessionId: varchar("session_id"),
+  searchQuery: varchar("search_query"),
+  searchType: varchar("search_type").notNull(),
+  filters: jsonb("filters"),
+  resultsCount: integer("results_count"),
+  clickedResultId: varchar("clicked_result_id"),
+  timestamp: timestamp("timestamp").defaultNow(),
+});
+
+// Business analytics
+export const platformAnalytics = pgTable("platform_analytics", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  date: timestamp("date").notNull(),
+  activeUsers: integer("active_users").default(0),
+  newUsers: integer("new_users").default(0),
+  listingsCreated: integer("listings_created").default(0),
+  transactionsCompleted: integer("transactions_completed").default(0),
+  revenue: decimal("revenue", { precision: 12, scale: 2 }).default('0'),
+  topCategories: jsonb("top_categories"),
+  topLocations: jsonb("top_locations"),
+});
+
+// Additional type exports
+export type MarketplaceTransaction = typeof marketplaceTransactions.$inferSelect;
+export type InsertMarketplaceTransaction = typeof marketplaceTransactions.$inferInsert;
+export type TransactionDispute = typeof transactionDisputes.$inferSelect;
+export type InsertTransactionDispute = typeof transactionDisputes.$inferInsert;
+export type UserReview = typeof userReviews.$inferSelect;
+export type InsertUserReview = typeof userReviews.$inferInsert;
+
+export type RealTimeNotification = typeof realTimeNotifications.$inferSelect;
+export type InsertRealTimeNotification = typeof realTimeNotifications.$inferInsert;
+export type SavedSearch = typeof savedSearches.$inferSelect;
+export type InsertSavedSearch = typeof savedSearches.$inferInsert;
+export type SearchAnalytics = typeof searchAnalytics.$inferSelect;
+export type InsertSearchAnalytics = typeof searchAnalytics.$inferInsert;
+export type PlatformAnalytics = typeof platformAnalytics.$inferSelect;
+export type InsertPlatformAnalytics = typeof platformAnalytics.$inferInsert;
+
+// Relations for new tables
+export const marketplaceTransactionsRelations = relations(marketplaceTransactions, ({ one, many }) => ({
+  listing: one(marketplaceListings, {
+    fields: [marketplaceTransactions.listingId],
+    references: [marketplaceListings.id],
+  }),
+  buyer: one(users, {
+    fields: [marketplaceTransactions.buyerId],
+    references: [users.id],
+  }),
+  seller: one(users, {
+    fields: [marketplaceTransactions.sellerId],
+    references: [users.id],
+  }),
+  disputes: many(transactionDisputes),
+  reviews: many(userReviews),
+}));
+
+export const transactionDisputesRelations = relations(transactionDisputes, ({ one }) => ({
+  transaction: one(marketplaceTransactions, {
+    fields: [transactionDisputes.transactionId],
+    references: [marketplaceTransactions.id],
+  }),
+  initiator: one(users, {
+    fields: [transactionDisputes.initiatorId],
+    references: [users.id],
+  }),
+  resolver: one(users, {
+    fields: [transactionDisputes.resolvedBy],
+    references: [users.id],
+  }),
+}));
+
+export const userReviewsRelations = relations(userReviews, ({ one }) => ({
+  transaction: one(marketplaceTransactions, {
+    fields: [userReviews.transactionId],
+    references: [marketplaceTransactions.id],
+  }),
+  reviewer: one(users, {
+    fields: [userReviews.reviewerId],
+    references: [users.id],
+  }),
+  reviewee: one(users, {
+    fields: [userReviews.revieweeId],
+    references: [users.id],
+  }),
+}));
+
+
+
+export const realTimeNotificationsRelations = relations(realTimeNotifications, ({ one }) => ({
+  user: one(users, {
+    fields: [realTimeNotifications.userId],
+    references: [users.id],
+  }),
+}));
+
+export const savedSearchesRelations = relations(savedSearches, ({ one }) => ({
+  user: one(users, {
+    fields: [savedSearches.userId],
+    references: [users.id],
+  }),
+}));
+
+export const searchAnalyticsRelations = relations(searchAnalytics, ({ one }) => ({
+  user: one(users, {
+    fields: [searchAnalytics.userId],
+    references: [users.id],
+  }),
+}));
+
+// Zod schemas for new tables
+export const insertMarketplaceTransactionSchema = createInsertSchema(marketplaceTransactions).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertUserReviewSchema = createInsertSchema(userReviews).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertTransactionDisputeSchema = createInsertSchema(transactionDisputes).omit({
+  id: true,
+  createdAt: true,
+  resolvedAt: true,
+  resolvedBy: true,
+});
+
+
+
+export const insertRealTimeNotificationSchema = createInsertSchema(realTimeNotifications).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertSavedSearchSchema = createInsertSchema(savedSearches).omit({
+  id: true,
+  createdAt: true,
+  lastNotified: true,
+});
+
+export const insertSearchAnalyticsSchema = createInsertSchema(searchAnalytics).omit({
+  id: true,
+  timestamp: true,
+});
+
+export const insertPlatformAnalyticsSchema = createInsertSchema(platformAnalytics).omit({
+  id: true,
+});
+
+// Type exports for schema forms
+export type InsertMarketplaceTransactionType = z.infer<typeof insertMarketplaceTransactionSchema>;
+export type InsertUserReviewType = z.infer<typeof insertUserReviewSchema>;
+export type InsertTransactionDisputeType = z.infer<typeof insertTransactionDisputeSchema>;
+
+export type InsertRealTimeNotificationType = z.infer<typeof insertRealTimeNotificationSchema>;
+export type InsertSavedSearchType = z.infer<typeof insertSavedSearchSchema>;
+export type InsertSearchAnalyticsType = z.infer<typeof insertSearchAnalyticsSchema>;
+export type InsertPlatformAnalyticsType = z.infer<typeof insertPlatformAnalyticsSchema>;

@@ -2,6 +2,16 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { setupAuth, isAuthenticated, isContractor, isAdmin } from "./auth";
+import { WebSocketManager } from "./websocket";
+import Stripe from "stripe";
+
+// Initialize Stripe (will be available when secrets are provided)
+let stripe: Stripe | null = null;
+if (process.env.STRIPE_SECRET_KEY) {
+  stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
+    apiVersion: "2023-10-16",
+  });
+}
 import { 
   insertRealtorProfileSchema, 
   insertCarSalesmanProfileSchema,
@@ -4303,6 +4313,325 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Initialize WebSocket server
   const httpServer = createServer(app);
+  const wsManager = new WebSocketManager(httpServer);
+
+  // Advanced marketplace transaction routes
+  
+  // Create payment intent for marketplace purchase
+  app.post("/api/create-payment-intent", isAuthenticated, async (req, res) => {
+    try {
+      if (!stripe) {
+        return res.status(500).json({ 
+          message: "Payment processing not configured. Stripe keys needed." 
+        });
+      }
+
+      const { listingId } = req.body;
+      const listing = await storage.getMarketplaceListing(listingId);
+      
+      if (!listing) {
+        return res.status(404).json({ message: "Listing not found" });
+      }
+
+      const platformFee = Math.round(listing.price * 0.05 * 100); // 5% platform fee in cents
+      const totalAmount = Math.round(listing.price * 100) + platformFee; // Total in cents
+
+      const paymentIntent = await stripe.paymentIntents.create({
+        amount: totalAmount,
+        currency: "usd",
+        metadata: {
+          listingId: listing.id,
+          sellerId: listing.sellerId,
+          buyerId: req.user.claims.sub,
+          platformFee: platformFee.toString(),
+        },
+      });
+
+      res.json({ clientSecret: paymentIntent.client_secret });
+    } catch (error: any) {
+      console.error("Error creating payment intent:", error);
+      res.status(500).json({ message: "Error creating payment intent: " + error.message });
+    }
+  });
+
+  // Create marketplace transaction
+  app.post("/api/marketplace/transactions", isAuthenticated, async (req, res) => {
+    try {
+      const transactionData = {
+        ...req.body,
+        buyerId: req.user.claims.sub,
+      };
+      
+      const transaction = await storage.createMarketplaceTransaction(transactionData);
+      
+      // Send notifications to both buyer and seller
+      const sellerNotification = {
+        userId: transaction.sellerId,
+        type: 'transaction',
+        title: 'New Purchase',
+        message: `Someone purchased your item for $${transaction.totalAmount}`,
+        actionUrl: `/transactions/${transaction.id}`,
+      };
+      
+      const buyerNotification = {
+        userId: transaction.buyerId,
+        type: 'transaction',
+        title: 'Purchase Confirmed',
+        message: `Your purchase of $${transaction.totalAmount} has been confirmed`,
+        actionUrl: `/transactions/${transaction.id}`,
+      };
+
+      await Promise.all([
+        storage.createNotification(sellerNotification),
+        storage.createNotification(buyerNotification),
+      ]);
+
+      // Send real-time notifications
+      wsManager.sendNotificationToUser(transaction.sellerId, sellerNotification);
+      wsManager.sendNotificationToUser(transaction.buyerId, buyerNotification);
+
+      res.json(transaction);
+    } catch (error) {
+      console.error("Error creating transaction:", error);
+      res.status(500).json({ message: "Failed to create transaction" });
+    }
+  });
+
+  // Get user transactions
+  app.get("/api/marketplace/transactions", isAuthenticated, async (req, res) => {
+    try {
+      const { role = 'buyer' } = req.query;
+      const userId = req.user.claims.sub;
+      
+      const transactions = await storage.getMarketplaceTransactionsByUser(userId, role as 'buyer' | 'seller');
+      res.json(transactions);
+    } catch (error) {
+      console.error("Error fetching transactions:", error);
+      res.status(500).json({ message: "Failed to fetch transactions" });
+    }
+  });
+
+  // Update transaction status
+  app.put("/api/marketplace/transactions/:id", isAuthenticated, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const transaction = await storage.updateMarketplaceTransaction(id, req.body);
+      
+      // Send real-time update
+      wsManager.sendTransactionUpdate(transaction.buyerId, transaction);
+      wsManager.sendTransactionUpdate(transaction.sellerId, transaction);
+      
+      res.json(transaction);
+    } catch (error) {
+      console.error("Error updating transaction:", error);
+      res.status(500).json({ message: "Failed to update transaction" });
+    }
+  });
+
+  // Create user review
+  app.post("/api/reviews", isAuthenticated, async (req, res) => {
+    try {
+      const reviewData = {
+        ...req.body,
+        reviewerId: req.user.claims.sub,
+      };
+      
+      const review = await storage.createUserReview(reviewData);
+      
+      // Send notification to reviewee
+      const notification = {
+        userId: review.revieweeId,
+        type: 'review',
+        title: 'New Review Received',
+        message: `You received a ${review.rating}-star review`,
+        actionUrl: `/profile/reviews`,
+      };
+
+      await storage.createNotification(notification);
+      wsManager.sendNotificationToUser(review.revieweeId, notification);
+
+      res.json(review);
+    } catch (error) {
+      console.error("Error creating review:", error);
+      res.status(500).json({ message: "Failed to create review" });
+    }
+  });
+
+  // Get user reviews
+  app.get("/api/reviews/:userId", async (req, res) => {
+    try {
+      const { userId } = req.params;
+      const { role = 'reviewee' } = req.query;
+      
+      const reviews = await storage.getUserReviews(userId, role as 'reviewer' | 'reviewee');
+      const ratings = await storage.getUserRatings(userId);
+      
+      res.json({ reviews, ratings });
+    } catch (error) {
+      console.error("Error fetching reviews:", error);
+      res.status(500).json({ message: "Failed to fetch reviews" });
+    }
+  });
+
+  // Real-time notifications endpoints
+  app.get("/api/notifications", isAuthenticated, async (req, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const { unreadOnly } = req.query;
+      
+      const notifications = await storage.getUserNotifications(userId, unreadOnly === 'true');
+      res.json(notifications);
+    } catch (error) {
+      console.error("Error fetching notifications:", error);
+      res.status(500).json({ message: "Failed to fetch notifications" });
+    }
+  });
+
+  app.put("/api/notifications/:id/read", isAuthenticated, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const notification = await storage.markNotificationAsRead(id);
+      res.json(notification);
+    } catch (error) {
+      console.error("Error marking notification as read:", error);
+      res.status(500).json({ message: "Failed to mark notification as read" });
+    }
+  });
+
+  app.put("/api/notifications/mark-all-read", isAuthenticated, async (req, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      await storage.markAllNotificationsAsRead(userId);
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error marking all notifications as read:", error);
+      res.status(500).json({ message: "Failed to mark all notifications as read" });
+    }
+  });
+
+  // Advanced search and discovery
+  app.get("/api/marketplace/search", async (req, res) => {
+    try {
+      const {
+        query,
+        category,
+        minPrice,
+        maxPrice,
+        location,
+        condition,
+        verifiedOnly,
+        freeShipping,
+        buyerProtection,
+        sortBy = 'date_desc'
+      } = req.query;
+
+      // Log search analytics if user is authenticated
+      if (req.user) {
+        await storage.logSearchAnalytics({
+          userId: req.user.claims.sub,
+          searchQuery: query as string,
+          searchType: 'marketplace',
+          filters: {
+            category,
+            minPrice: minPrice ? parseInt(minPrice as string) : undefined,
+            maxPrice: maxPrice ? parseInt(maxPrice as string) : undefined,
+            location,
+            condition,
+            verifiedOnly: verifiedOnly === 'true',
+            freeShipping: freeShipping === 'true',
+            buyerProtection: buyerProtection === 'true',
+            sortBy
+          },
+          resultsCount: 0, // Will be updated after search
+        });
+      }
+
+      // Perform search with filters
+      const searchResults = await storage.searchMarketplaceListings({
+        query: query as string,
+        category: category as string,
+        minPrice: minPrice ? parseInt(minPrice as string) : undefined,
+        maxPrice: maxPrice ? parseInt(maxPrice as string) : undefined,
+        location: location as string,
+        condition: condition as string,
+        verifiedOnly: verifiedOnly === 'true',
+        freeShipping: freeShipping === 'true',
+        buyerProtection: buyerProtection === 'true',
+        sortBy: sortBy as string,
+      });
+
+      res.json(searchResults);
+    } catch (error) {
+      console.error("Error performing search:", error);
+      res.status(500).json({ message: "Failed to perform search" });
+    }
+  });
+
+  // Saved searches
+  app.post("/api/saved-searches", isAuthenticated, async (req, res) => {
+    try {
+      const searchData = {
+        ...req.body,
+        userId: req.user.claims.sub,
+      };
+      
+      const savedSearch = await storage.createSavedSearch(searchData);
+      res.json(savedSearch);
+    } catch (error) {
+      console.error("Error saving search:", error);
+      res.status(500).json({ message: "Failed to save search" });
+    }
+  });
+
+  app.get("/api/saved-searches", isAuthenticated, async (req, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const savedSearches = await storage.getUserSavedSearches(userId);
+      res.json(savedSearches);
+    } catch (error) {
+      console.error("Error fetching saved searches:", error);
+      res.status(500).json({ message: "Failed to fetch saved searches" });
+    }
+  });
+
+  app.delete("/api/saved-searches/:id", isAuthenticated, async (req, res) => {
+    try {
+      const { id } = req.params;
+      await storage.deleteSavedSearch(id);
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error deleting saved search:", error);
+      res.status(500).json({ message: "Failed to delete saved search" });
+    }
+  });
+
+  // Transaction disputes
+  app.post("/api/disputes", isAuthenticated, async (req, res) => {
+    try {
+      const disputeData = {
+        ...req.body,
+        initiatorId: req.user.claims.sub,
+      };
+      
+      const dispute = await storage.createTransactionDispute(disputeData);
+      
+      // Notify relevant parties
+      const notification = {
+        userId: dispute.transactionId, // Will need to get the other party's ID
+        type: 'dispute',
+        title: 'Transaction Dispute Opened',
+        message: 'A dispute has been opened for one of your transactions',
+        actionUrl: `/disputes/${dispute.id}`,
+      };
+
+      res.json(dispute);
+    } catch (error) {
+      console.error("Error creating dispute:", error);
+      res.status(500).json({ message: "Failed to create dispute" });
+    }
+  });
+
   return httpServer;
 }

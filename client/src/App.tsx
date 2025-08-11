@@ -53,6 +53,9 @@ import Leaderboard from "@/pages/leaderboard";
 import InvitePage from "@/pages/invite";
 
 import ModerationCenter from "@/pages/moderation-center";
+import Checkout from "@/pages/checkout";
+import AdvancedSearch from "@/pages/advanced-search";
+import Notifications from "@/pages/notifications";
 import { ProfileSetupRedirect } from "@/components/profile-setup-redirect";
 import { FloatingBugReport } from "@/components/FloatingBugReport";
 import { BetaNotificationPopup } from "@/components/BetaNotificationPopup";
@@ -155,6 +158,9 @@ function Router() {
             <Route path="/saved-ads" component={SavedAds} />
             <Route path="/realtor-application" component={RealtorApplication} />
             <Route path="/car-salesman-application" component={CarSalesmanApplication} />
+            <Route path="/checkout" component={Checkout} />
+            <Route path="/search" component={AdvancedSearch} />
+            <Route path="/notifications" component={Notifications} />
           </>
         )}
         <Route component={NotFound} />

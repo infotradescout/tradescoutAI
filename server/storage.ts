@@ -64,6 +64,16 @@ import {
   // Professional profiles
   realtorProfiles,
   carSalesmanProfiles,
+  // New marketplace features
+  marketplaceTransactions,
+  transactionDisputes,
+  userReviews,
+  realTimeNotifications,
+  savedSearches,
+  searchAnalytics,
+  platformAnalytics,
+  marketplaceConversations,
+  marketplaceMessages,
   type User,
   type InsertUser,
   type UpsertUser,
@@ -182,9 +192,28 @@ import {
   contractorLeaderboardStats,
   type ContractorLeaderboardStats,
   type InsertContractorLeaderboardStats,
+  // New marketplace features types
+  type MarketplaceTransaction,
+  type InsertMarketplaceTransaction,
+  type TransactionDispute,
+  type InsertTransactionDispute,
+  type UserReview,
+  type InsertUserReview,
+  type RealTimeNotification,
+  type InsertRealTimeNotification,
+  type SavedSearch,
+  type InsertSavedSearch,
+  type SearchAnalytics,
+  type InsertSearchAnalytics,
+  type PlatformAnalytics,
+  type InsertPlatformAnalytics,
+  type MarketplaceConversation,
+  type InsertMarketplaceConversation,
+  type MarketplaceMessage,
+  type InsertMarketplaceMessage,
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, and, desc, asc, sql, inArray, like, gt, or, lt, isNull, isNotNull } from "drizzle-orm";
+import { eq, and, desc, asc, sql, inArray, like, gt, or, lt, isNull, isNotNull, ne, gte, lte } from "drizzle-orm";
 
 export interface IStorage {
   // User operations
@@ -507,6 +536,43 @@ export interface IStorage {
     reviewedBy: string;
     reviewedAt: Date;
   }): Promise<CarSalesmanProfile>;
+
+  // Advanced marketplace transaction operations
+  createMarketplaceTransaction(transaction: InsertMarketplaceTransaction): Promise<MarketplaceTransaction>;
+  getMarketplaceTransaction(id: string): Promise<MarketplaceTransaction | undefined>;
+  getMarketplaceTransactionsByUser(userId: string, role: 'buyer' | 'seller'): Promise<MarketplaceTransaction[]>;
+  updateMarketplaceTransaction(id: string, updates: Partial<MarketplaceTransaction>): Promise<MarketplaceTransaction>;
+  
+  // Transaction dispute operations
+  createTransactionDispute(dispute: InsertTransactionDispute): Promise<TransactionDispute>;
+  getTransactionDispute(id: string): Promise<TransactionDispute | undefined>;
+  getTransactionDisputes(transactionId?: string): Promise<TransactionDispute[]>;
+  updateTransactionDispute(id: string, updates: Partial<TransactionDispute>): Promise<TransactionDispute>;
+  
+  // User review operations
+  createUserReview(review: InsertUserReview): Promise<UserReview>;
+  getUserReviews(userId: string, role: 'reviewer' | 'reviewee'): Promise<UserReview[]>;
+  getUserRatings(userId: string): Promise<{ count: number; average: number }>;
+  
+  // Real-time notification operations
+  createNotification(notification: InsertRealTimeNotification): Promise<RealTimeNotification>;
+  getUserNotifications(userId: string, unreadOnly?: boolean): Promise<RealTimeNotification[]>;
+  markNotificationAsRead(id: string): Promise<RealTimeNotification>;
+  markAllNotificationsAsRead(userId: string): Promise<void>;
+  
+  // Search and discovery operations
+  createSavedSearch(search: InsertSavedSearch): Promise<SavedSearch>;
+  getUserSavedSearches(userId: string): Promise<SavedSearch[]>;
+  deleteSavedSearch(id: string): Promise<void>;
+  logSearchAnalytics(analytics: InsertSearchAnalytics): Promise<SearchAnalytics>;
+  
+  // Platform analytics operations
+  updatePlatformAnalytics(date: Date, updates: Partial<InsertPlatformAnalytics>): Promise<PlatformAnalytics>;
+  getPlatformAnalytics(fromDate: Date, toDate: Date): Promise<PlatformAnalytics[]>;
+  
+  // Enhanced marketplace conversation operations
+  getMarketplaceConversationByListing(listingId: string, buyerId: string): Promise<MarketplaceConversation | undefined>;
+  markMarketplaceMessageAsRead(id: string): Promise<MarketplaceMessage>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -4021,6 +4087,234 @@ export class DatabaseStorage implements IStorage {
         .set(updateData)
         .where(eq(marketplaceConversations.id, conversationId));
     }
+  }
+
+  // Advanced marketplace transaction operations
+  async createMarketplaceTransaction(transaction: InsertMarketplaceTransaction): Promise<MarketplaceTransaction> {
+    const [newTransaction] = await db
+      .insert(marketplaceTransactions)
+      .values(transaction)
+      .returning();
+    return newTransaction;
+  }
+
+  async getMarketplaceTransaction(id: string): Promise<MarketplaceTransaction | undefined> {
+    const [transaction] = await db
+      .select()
+      .from(marketplaceTransactions)
+      .where(eq(marketplaceTransactions.id, id));
+    return transaction;
+  }
+
+  async getMarketplaceTransactionsByUser(userId: string, role: 'buyer' | 'seller'): Promise<MarketplaceTransaction[]> {
+    const column = role === 'buyer' ? marketplaceTransactions.buyerId : marketplaceTransactions.sellerId;
+    return await db
+      .select()
+      .from(marketplaceTransactions)
+      .where(eq(column, userId))
+      .orderBy(desc(marketplaceTransactions.createdAt));
+  }
+
+  async updateMarketplaceTransaction(id: string, updates: Partial<MarketplaceTransaction>): Promise<MarketplaceTransaction> {
+    const [transaction] = await db
+      .update(marketplaceTransactions)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(marketplaceTransactions.id, id))
+      .returning();
+    return transaction;
+  }
+
+  // Transaction dispute operations
+  async createTransactionDispute(dispute: InsertTransactionDispute): Promise<TransactionDispute> {
+    const [newDispute] = await db
+      .insert(transactionDisputes)
+      .values(dispute)
+      .returning();
+    return newDispute;
+  }
+
+  async getTransactionDispute(id: string): Promise<TransactionDispute | undefined> {
+    const [dispute] = await db
+      .select()
+      .from(transactionDisputes)
+      .where(eq(transactionDisputes.id, id));
+    return dispute;
+  }
+
+  async getTransactionDisputes(transactionId?: string): Promise<TransactionDispute[]> {
+    if (transactionId) {
+      return await db
+        .select()
+        .from(transactionDisputes)
+        .where(eq(transactionDisputes.transactionId, transactionId));
+    }
+    return await db
+      .select()
+      .from(transactionDisputes)
+      .orderBy(desc(transactionDisputes.createdAt));
+  }
+
+  async updateTransactionDispute(id: string, updates: Partial<TransactionDispute>): Promise<TransactionDispute> {
+    const [dispute] = await db
+      .update(transactionDisputes)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(transactionDisputes.id, id))
+      .returning();
+    return dispute;
+  }
+
+  // User review operations
+  async createUserReview(review: InsertUserReview): Promise<UserReview> {
+    const [newReview] = await db
+      .insert(userReviews)
+      .values(review)
+      .returning();
+    return newReview;
+  }
+
+  async getUserReviews(userId: string, role: 'reviewer' | 'reviewee'): Promise<UserReview[]> {
+    const column = role === 'reviewer' ? userReviews.reviewerId : userReviews.revieweeId;
+    return await db
+      .select()
+      .from(userReviews)
+      .where(eq(column, userId))
+      .orderBy(desc(userReviews.createdAt));
+  }
+
+  async getUserRatings(userId: string): Promise<{ count: number; average: number }> {
+    const result = await db
+      .select({
+        count: sql<number>`count(*)::int`,
+        average: sql<number>`avg(${userReviews.rating})::float`
+      })
+      .from(userReviews)
+      .where(eq(userReviews.revieweeId, userId));
+    
+    return {
+      count: result[0]?.count || 0,
+      average: result[0]?.average || 0
+    };
+  }
+
+  // Real-time notification operations
+  async createNotification(notification: InsertRealTimeNotification): Promise<RealTimeNotification> {
+    const [newNotification] = await db
+      .insert(realTimeNotifications)
+      .values(notification)
+      .returning();
+    return newNotification;
+  }
+
+  async getUserNotifications(userId: string, unreadOnly?: boolean): Promise<RealTimeNotification[]> {
+    let query = db.select().from(realTimeNotifications).where(eq(realTimeNotifications.userId, userId));
+    
+    if (unreadOnly) {
+      query = query.where(isNull(realTimeNotifications.readAt)) as any;
+    }
+    
+    return await query.orderBy(desc(realTimeNotifications.createdAt));
+  }
+
+  async markNotificationAsRead(id: string): Promise<RealTimeNotification> {
+    const [notification] = await db
+      .update(realTimeNotifications)
+      .set({ readAt: new Date() })
+      .where(eq(realTimeNotifications.id, id))
+      .returning();
+    return notification;
+  }
+
+  async markAllNotificationsAsRead(userId: string): Promise<void> {
+    await db
+      .update(realTimeNotifications)
+      .set({ readAt: new Date() })
+      .where(
+        and(
+          eq(realTimeNotifications.userId, userId),
+          isNull(realTimeNotifications.readAt)
+        )
+      );
+  }
+
+  // Search and discovery operations
+  async createSavedSearch(search: InsertSavedSearch): Promise<SavedSearch> {
+    const [newSearch] = await db
+      .insert(savedSearches)
+      .values(search)
+      .returning();
+    return newSearch;
+  }
+
+  async getUserSavedSearches(userId: string): Promise<SavedSearch[]> {
+    return await db
+      .select()
+      .from(savedSearches)
+      .where(eq(savedSearches.userId, userId))
+      .orderBy(desc(savedSearches.createdAt));
+  }
+
+  async deleteSavedSearch(id: string): Promise<void> {
+    await db.delete(savedSearches).where(eq(savedSearches.id, id));
+  }
+
+  async logSearchAnalytics(analytics: InsertSearchAnalytics): Promise<SearchAnalytics> {
+    const [newAnalytics] = await db
+      .insert(searchAnalytics)
+      .values(analytics)
+      .returning();
+    return newAnalytics;
+  }
+
+  // Platform analytics operations
+  async updatePlatformAnalytics(date: Date, updates: Partial<InsertPlatformAnalytics>): Promise<PlatformAnalytics> {
+    const [analytics] = await db
+      .insert(platformAnalytics)
+      .values({ 
+        date: date.toISOString().split('T')[0], // Convert to YYYY-MM-DD
+        ...updates 
+      })
+      .onConflictDoUpdate({
+        target: platformAnalytics.date,
+        set: updates
+      })
+      .returning();
+    return analytics;
+  }
+
+  async getPlatformAnalytics(fromDate: Date, toDate: Date): Promise<PlatformAnalytics[]> {
+    return await db
+      .select()
+      .from(platformAnalytics)
+      .where(
+        and(
+          gte(platformAnalytics.date, fromDate.toISOString().split('T')[0]),
+          lte(platformAnalytics.date, toDate.toISOString().split('T')[0])
+        )
+      )
+      .orderBy(asc(platformAnalytics.date));
+  }
+
+  // Enhanced marketplace conversation operations
+  async getMarketplaceConversationByListing(listingId: string, buyerId: string): Promise<MarketplaceConversation | undefined> {
+    const [conversation] = await db
+      .select()
+      .from(marketplaceConversations)
+      .where(
+        and(
+          eq(marketplaceConversations.listingId, listingId),
+          eq(marketplaceConversations.buyerId, buyerId)
+        )
+      );
+    return conversation;
+  }
+
+  async markMarketplaceMessageAsRead(id: string): Promise<MarketplaceMessage> {
+    const [message] = await db
+      .update(marketplaceMessages)
+      .set({ readAt: new Date() })
+      .where(eq(marketplaceMessages.id, id))
+      .returning();
+    return message;
   }
 }
 
