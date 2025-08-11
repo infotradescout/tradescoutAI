@@ -63,7 +63,7 @@ const DonationForm = ({ causeId, isRoundup = false, originalAmount, onSuccess }:
   const [selectedCause, setSelectedCause] = useState(causeId || "");
   const { toast } = useToast();
 
-  const { data: causes } = useQuery({
+  const { data: causes = [] } = useQuery({
     queryKey: ["/api/foundation/causes"],
   });
 
@@ -148,7 +148,7 @@ const DonationForm = ({ causeId, isRoundup = false, originalAmount, onSuccess }:
                 <SelectValue placeholder="Choose a cause to support" />
               </SelectTrigger>
               <SelectContent>
-                {causes?.map((cause: any) => {
+                {causes.map((cause: any) => {
                   const IconComponent = categoryIcons[cause.category] || categoryIcons.default;
                   const progress = cause.targetAmount ? (Number(cause.raisedAmount) / Number(cause.targetAmount)) * 100 : 0;
                   
@@ -287,20 +287,20 @@ export default function Foundation() {
     queryKey: ["/api/foundation/stats"],
   });
 
-  const { data: causes, isLoading: causesLoading } = useQuery({
+  const { data: causes = [], isLoading: causesLoading } = useQuery({
     queryKey: ["/api/foundation/causes", { category: selectedCategory }],
   });
 
-  const { data: userPreferences } = useQuery({
+  const { data: userPreferences = {} } = useQuery({
     queryKey: ["/api/foundation/preferences"],
     enabled: isAuthenticated,
   });
 
-  const { data: recentDonations } = useQuery({
+  const { data: recentDonations = [] } = useQuery({
     queryKey: ["/api/foundation/recent-donations"],
   });
 
-  const { data: impactReports } = useQuery({
+  const { data: impactReports = [] } = useQuery({
     queryKey: ["/api/foundation/impact-reports"],
   });
 
@@ -349,19 +349,19 @@ export default function Foundation() {
             {foundationStats && (
               <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mt-12">
                 <div className="text-center">
-                  <div className="text-3xl font-bold">${foundationStats.totalRaised?.toLocaleString()}</div>
+                  <div className="text-3xl font-bold">${((foundationStats as any)?.totalRaised || 0).toLocaleString()}</div>
                   <div className="text-sm opacity-80">Total Raised</div>
                 </div>
                 <div className="text-center">
-                  <div className="text-3xl font-bold">{foundationStats.totalDonors?.toLocaleString()}</div>
+                  <div className="text-3xl font-bold">{((foundationStats as any)?.totalDonors || 0).toLocaleString()}</div>
                   <div className="text-sm opacity-80">Active Donors</div>
                 </div>
                 <div className="text-center">
-                  <div className="text-3xl font-bold">{foundationStats.activeCauses}</div>
+                  <div className="text-3xl font-bold">{(foundationStats as any)?.activeCauses || 0}</div>
                   <div className="text-sm opacity-80">Active Causes</div>
                 </div>
                 <div className="text-center">
-                  <div className="text-3xl font-bold">{foundationStats.countiesSupported}</div>
+                  <div className="text-3xl font-bold">{(foundationStats as any)?.countiesSupported || 0}</div>
                   <div className="text-sm opacity-80">Counties Supported</div>
                 </div>
               </div>
@@ -611,12 +611,12 @@ export default function Foundation() {
                       </div>
                       <Switch
                         id="enable-roundup"
-                        checked={userPreferences?.enableRoundupDonations || false}
+                        checked={(userPreferences as any)?.enableRoundupDonations || false}
                         onCheckedChange={(checked) => toggleRoundupPreference.mutate(checked)}
                       />
                     </div>
 
-                    {userPreferences?.enableRoundupDonations && (
+                    {(userPreferences as any)?.enableRoundupDonations && (
                       <div className="space-y-4 pt-4 border-t">
                         <div>
                           <Label htmlFor="roundup-threshold">Maximum Roundup Amount</Label>
@@ -625,7 +625,7 @@ export default function Foundation() {
                             type="number"
                             step="0.01"
                             max="10.00"
-                            defaultValue={userPreferences.roundupThreshold || "1.00"}
+                            defaultValue={(userPreferences as any)?.roundupThreshold || "1.00"}
                             className="mt-1"
                           />
                           <p className="text-xs text-gray-500 mt-1">
@@ -636,14 +636,14 @@ export default function Foundation() {
                         <div>
                           <Label>Default Cause for Roundups</Label>
                           <Select 
-                            defaultValue={userPreferences.defaultCauseId || ""}
+                            defaultValue={(userPreferences as any)?.defaultCauseId || ""}
                           >
                             <SelectTrigger className="mt-1">
                               <SelectValue placeholder="Choose default cause" />
                             </SelectTrigger>
                             <SelectContent>
                               <SelectItem value="">Let me choose each time</SelectItem>
-                              {causes?.map((cause: any) => (
+                              {causes.map((cause: any) => (
                                 <SelectItem key={cause.id} value={cause.id}>
                                   {cause.name} - {cause.county?.name}, {cause.county?.state}
                                 </SelectItem>
@@ -671,7 +671,7 @@ export default function Foundation() {
                         <Label>Email Receipts</Label>
                         <p className="text-sm text-gray-600">Get email confirmations for donations</p>
                       </div>
-                      <Switch defaultChecked={userPreferences?.emailReceipts} />
+                      <Switch defaultChecked={(userPreferences as any)?.emailReceipts || false} />
                     </div>
 
                     <div className="flex items-center justify-between">
@@ -679,7 +679,7 @@ export default function Foundation() {
                         <Label>Monthly Reports</Label>
                         <p className="text-sm text-gray-600">Receive monthly impact summaries</p>
                       </div>
-                      <Switch defaultChecked={userPreferences?.monthlyReports} />
+                      <Switch defaultChecked={(userPreferences as any)?.monthlyReports || false} />
                     </div>
 
                     <div className="flex items-center justify-between">
@@ -687,7 +687,7 @@ export default function Foundation() {
                         <Label>Impact Updates</Label>
                         <p className="text-sm text-gray-600">Get updates when causes reach milestones</p>
                       </div>
-                      <Switch defaultChecked={userPreferences?.impactUpdates} />
+                      <Switch defaultChecked={(userPreferences as any)?.impactUpdates || false} />
                     </div>
                   </CardContent>
                 </Card>

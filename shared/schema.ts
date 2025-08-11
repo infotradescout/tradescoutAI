@@ -88,7 +88,7 @@ export const users = pgTable("users", {
   addressVerificationDeadline: timestamp("address_verification_deadline"),
   onboardingCompleted: boolean("onboarding_completed").default(false),
   referralCode: varchar("referral_code"),
-  invitedBy: varchar("invited_by").references(() => users.id),
+  invitedBy: varchar("invited_by"),
   preferences: jsonb("preferences").$type<{
     emailNotifications?: boolean;
     smsNotifications?: boolean;

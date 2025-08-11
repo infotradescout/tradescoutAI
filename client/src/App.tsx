@@ -103,6 +103,7 @@ function Router() {
         <Route path="/business-listing" component={BusinessListing} />
         <Route path="/leaderboard" component={Leaderboard} />
         <Route path="/community" component={Community} />
+        <Route path="/foundation" component={Foundation} />
         <Route path="/promo/:slug" component={PromoPublic} />
         
         {/* Legal Pages */}

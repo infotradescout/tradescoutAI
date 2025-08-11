@@ -74,6 +74,12 @@ import {
   platformAnalytics,
   marketplaceConversations,
   marketplaceMessages,
+  // Foundation system
+  foundationCauses,
+  foundationDonations,
+  foundationDonorPreferences,
+  foundationImpactReports,
+  foundationMatching,
   type User,
   type InsertUser,
   type UpsertUser,
@@ -220,6 +226,13 @@ import {
   type FoundationCause,
   type InsertFoundationCause,
   type FoundationDonation,
+  type InsertFoundationDonation,
+  type FoundationDonorPreferences,
+  type InsertFoundationDonorPreferences,
+  type FoundationImpactReport,
+  type InsertFoundationImpactReport,
+  type FoundationMatching,
+  type InsertFoundationMatching,
   type InsertFoundationDonation,
   type UserDonationPreferences,
   type InsertUserDonationPreferences,
@@ -4457,68 +4470,31 @@ export class DatabaseStorage implements IStorage {
   // ==================== FOUNDATION SYSTEM METHODS ====================
 
   // Foundation causes
-  async getFoundationCauses(filters?: { category?: string; countyId?: string; isActive?: boolean }): Promise<any[]> {
-    let query = db
-      .select({
-        id: foundationCauses.id,
-        name: foundationCauses.name,
-        description: foundationCauses.description,
-        category: foundationCauses.category,
-        isActive: foundationCauses.isActive,
-        targetAmount: foundationCauses.targetAmount,
-        raisedAmount: foundationCauses.raisedAmount,
-        imageUrl: foundationCauses.imageUrl,
-        websiteUrl: foundationCauses.websiteUrl,
-        verifiedNonprofit: foundationCauses.verifiedNonprofit,
-        createdAt: foundationCauses.createdAt,
-        county: {
-          id: counties.id,
-          name: counties.name,
-          state: counties.state,
-        }
-      })
-      .from(foundationCauses)
-      .leftJoin(counties, eq(foundationCauses.countyId, counties.id));
+  async getFoundationCauses(filters?: { category?: string; countyId?: string; isActive?: boolean }): Promise<FoundationCause[]> {
+    let query = db.select().from(foundationCauses);
+
+    const conditions = [eq(foundationCauses.isActive, true)];
 
     if (filters?.category && filters.category !== 'all') {
-      query = query.where(eq(foundationCauses.category, filters.category));
+      conditions.push(eq(foundationCauses.category, filters.category));
     }
     if (filters?.countyId) {
-      query = query.where(eq(foundationCauses.countyId, filters.countyId));
+      conditions.push(eq(foundationCauses.countyId, filters.countyId));
     }
     if (filters?.isActive !== undefined) {
-      query = query.where(eq(foundationCauses.isActive, filters.isActive));
+      conditions.push(eq(foundationCauses.isActive, filters.isActive));
     }
 
-    return await query.orderBy(desc(foundationCauses.createdAt));
+    return await query
+      .where(and(...conditions))
+      .orderBy(desc(foundationCauses.createdAt));
   }
 
-  async getFoundationCause(id: string): Promise<any | undefined> {
+  async getFoundationCause(id: string): Promise<FoundationCause | undefined> {
     const [cause] = await db
-      .select({
-        id: foundationCauses.id,
-        name: foundationCauses.name,
-        description: foundationCauses.description,
-        category: foundationCauses.category,
-        isActive: foundationCauses.isActive,
-        targetAmount: foundationCauses.targetAmount,
-        raisedAmount: foundationCauses.raisedAmount,
-        imageUrl: foundationCauses.imageUrl,
-        websiteUrl: foundationCauses.websiteUrl,
-        contactEmail: foundationCauses.contactEmail,
-        verifiedNonprofit: foundationCauses.verifiedNonprofit,
-        taxId: foundationCauses.taxId,
-        createdAt: foundationCauses.createdAt,
-        county: {
-          id: counties.id,
-          name: counties.name,
-          state: counties.state,
-        }
-      })
+      .select()
       .from(foundationCauses)
-      .leftJoin(counties, eq(foundationCauses.countyId, counties.id))
       .where(eq(foundationCauses.id, id));
-
     return cause;
   }
 
