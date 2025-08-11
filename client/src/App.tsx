@@ -82,6 +82,7 @@ function Router() {
         <Route path="/worker-marketplace" component={WorkerMarketplace} />
         <Route path="/marketplace" component={Marketplace} />
         <Route path="/leaderboard" component={Leaderboard} />
+        <Route path="/community" component={Community} />
         <Route path="/promo/:slug" component={PromoPublic} />
         
         {!isAuthenticated ? (
@@ -126,7 +127,6 @@ function Router() {
             <Route path="/admin/error-reports" component={AdminErrorReports} />
             <Route path="/admin/testing" component={AdminTestingControls} />
             <Route path="/chat/:conversationId?" component={Chat} />
-            <Route path="/community" component={Community} />
             <Route path="/moderation" component={ModerationCenter} />
             <Route path="/saved-ads" component={SavedAds} />
           </>
