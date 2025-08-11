@@ -46,6 +46,12 @@ const defaultCategories = [
     sortOrder: 70
   },
   {
+    name: "Sell Your Business",
+    description: "Complete businesses, franchises, and business opportunities",
+    iconName: "Building2",
+    sortOrder: 5
+  },
+  {
     name: "Recreational Vehicles",
     description: "RVs, ATVs, motorcycles, and recreational equipment",
     iconName: "Bike",

@@ -45,7 +45,13 @@ const categoryIcons = {
   Hammer,
   Fish,
   Apple,
-  Tractor: Package // Fallback since Tractor isn't in lucide-react
+  Tractor: Package, // Fallback since Tractor isn't in lucide-react
+  Building2: Building,
+  Sofa: Package,
+  Monitor: Package,
+  Trophy: Package,
+  Palette: Package,
+  Gem: Package
 };
 
 export default function Marketplace() {
