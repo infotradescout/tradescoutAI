@@ -52,6 +52,7 @@ import AddressVerification from "@/pages/address-verification";
 import Community from "@/pages/community";
 import Leaderboard from "@/pages/leaderboard";
 import InvitePage from "@/pages/invite";
+import AffiliatePage from "@/pages/affiliate";
 
 import ModerationCenter from "@/pages/moderation-center";
 import Checkout from "@/pages/checkout";
@@ -170,6 +171,7 @@ function Router() {
             <Route path="/search" component={AdvancedSearch} />
             <Route path="/notifications" component={Notifications} />
             <Route path="/foundation" component={Foundation} />
+            <Route path="/affiliate" component={AffiliatePage} />
           </>
         )}
         <Route component={NotFound} />

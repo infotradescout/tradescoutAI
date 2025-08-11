@@ -3561,6 +3561,165 @@ export const insertFoundationImpactReportSchema = createInsertSchema(foundationI
   createdAt: true,
 });
 
+// ==================== AFFILIATE SYSTEM ====================
+
+// Affiliate program participation
+export const affiliatePrograms = pgTable("affiliate_programs", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  
+  // Affiliate tracking
+  affiliateCode: varchar("affiliate_code", { length: 20 }).unique().notNull(), // e.g., "JOHN2024ABC"
+  referralUrl: varchar("referral_url", { length: 500 }).notNull(), // https://tradescout.com/?ref=JOHN2024ABC
+  
+  // Commission settings
+  commissionRate: decimal("commission_rate", { precision: 5, scale: 2 }).default('25.00'), // 25% default
+  isActive: boolean("is_active").default(true),
+  
+  // Performance tracking
+  totalReferrals: integer("total_referrals").default(0),
+  totalCommissionEarned: decimal("total_commission_earned", { precision: 12, scale: 2 }).default('0'),
+  totalCommissionPaid: decimal("total_commission_paid", { precision: 12, scale: 2 }).default('0'),
+  
+  // Payment info
+  paymentMethod: varchar("payment_method", { length: 50 }), // paypal, bank_transfer, crypto, etc.
+  paymentDetails: jsonb("payment_details"), // encrypted payment info
+  
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Referral tracking - tracks when someone clicks an affiliate link
+export const affiliateReferrals = pgTable("affiliate_referrals", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  affiliateProgramId: varchar("affiliate_program_id").notNull().references(() => affiliatePrograms.id),
+  referredUserId: varchar("referred_user_id").references(() => users.id), // null until they sign up
+  
+  // Tracking data
+  affiliateCode: varchar("affiliate_code", { length: 20 }).notNull(),
+  clickedAt: timestamp("clicked_at").defaultNow(),
+  convertedAt: timestamp("converted_at"), // when they signed up
+  ipAddress: varchar("ip_address", { length: 45 }),
+  userAgent: text("user_agent"),
+  utmSource: varchar("utm_source", { length: 100 }),
+  utmMedium: varchar("utm_medium", { length: 100 }),
+  utmCampaign: varchar("utm_campaign", { length: 100 }),
+  
+  // Status tracking
+  status: varchar("status", { length: 20 }).default('clicked'), // clicked, converted, churned
+  firstPurchaseAt: timestamp("first_purchase_at"),
+  
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// Commission tracking - tracks earnings from each referred user
+export const affiliateCommissions = pgTable("affiliate_commissions", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  affiliateProgramId: varchar("affiliate_program_id").notNull().references(() => affiliatePrograms.id),
+  referralId: varchar("referral_id").notNull().references(() => affiliateReferrals.id),
+  
+  // Revenue source tracking
+  revenueSource: varchar("revenue_source", { length: 50 }).notNull(), // contractor_fee, marketplace_transaction, foundation_donation, subscription
+  sourceTransactionId: varchar("source_transaction_id", { length: 255 }), // link to original transaction
+  
+  // Commission calculation
+  originalAmount: decimal("original_amount", { precision: 12, scale: 2 }).notNull(), // TradeScout's revenue
+  commissionRate: decimal("commission_rate", { precision: 5, scale: 2 }).notNull(),
+  commissionAmount: decimal("commission_amount", { precision: 12, scale: 2 }).notNull(),
+  
+  // Payment tracking
+  status: varchar("status", { length: 20 }).default('pending'), // pending, approved, paid, disputed
+  approvedAt: timestamp("approved_at"),
+  paidAt: timestamp("paid_at"),
+  paymentMethod: varchar("payment_method", { length: 50 }),
+  paymentReference: varchar("payment_reference", { length: 255 }),
+  
+  // Metadata
+  description: text("description"), // "Commission from contractor listing fee"
+  isRecurring: boolean("is_recurring").default(false), // for subscription-based commissions
+  recurringPeriod: varchar("recurring_period", { length: 20 }), // monthly, yearly
+  
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Commission payouts - batch payments to affiliates  
+export const affiliatePayouts = pgTable("affiliate_payouts", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  affiliateProgramId: varchar("affiliate_program_id").notNull().references(() => affiliatePrograms.id),
+  
+  // Payout details
+  totalAmount: decimal("total_amount", { precision: 12, scale: 2 }).notNull(),
+  commissionCount: integer("commission_count").notNull(), // number of commissions included
+  payoutPeriodStart: timestamp("payout_period_start").notNull(),
+  payoutPeriodEnd: timestamp("payout_period_end").notNull(),
+  
+  // Payment processing
+  paymentMethod: varchar("payment_method", { length: 50 }).notNull(),
+  paymentReference: varchar("payment_reference", { length: 255 }),
+  processingFee: decimal("processing_fee", { precision: 10, scale: 2 }).default('0'),
+  netAmount: decimal("net_amount", { precision: 12, scale: 2 }).notNull(),
+  
+  // Status
+  status: varchar("status", { length: 20 }).default('pending'), // pending, processing, completed, failed
+  processedAt: timestamp("processed_at"),
+  failureReason: text("failure_reason"),
+  
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Relations for affiliate system
+export const affiliateProgramsRelations = relations(affiliatePrograms, ({ one, many }) => ({
+  user: one(users, {
+    fields: [affiliatePrograms.userId],
+    references: [users.id],
+  }),
+  referrals: many(affiliateReferrals),
+  commissions: many(affiliateCommissions),
+  payouts: many(affiliatePayouts),
+}));
+
+export const affiliateReferralsRelations = relations(affiliateReferrals, ({ one, many }) => ({
+  affiliateProgram: one(affiliatePrograms, {
+    fields: [affiliateReferrals.affiliateProgramId],
+    references: [affiliatePrograms.id],
+  }),
+  referredUser: one(users, {
+    fields: [affiliateReferrals.referredUserId],
+    references: [users.id],
+  }),
+  commissions: many(affiliateCommissions),
+}));
+
+export const affiliateCommissionsRelations = relations(affiliateCommissions, ({ one }) => ({
+  affiliateProgram: one(affiliatePrograms, {
+    fields: [affiliateCommissions.affiliateProgramId],
+    references: [affiliatePrograms.id],
+  }),
+  referral: one(affiliateReferrals, {
+    fields: [affiliateCommissions.referralId],
+    references: [affiliateReferrals.id],
+  }),
+}));
+
+export const affiliatePayoutsRelations = relations(affiliatePayouts, ({ one }) => ({
+  affiliateProgram: one(affiliatePrograms, {
+    fields: [affiliatePayouts.affiliateProgramId],
+    references: [affiliatePrograms.id],
+  }),
+}));
+
+// Affiliate system types
+export type AffiliateProgram = typeof affiliatePrograms.$inferSelect;
+export type InsertAffiliateProgram = typeof affiliatePrograms.$inferInsert;
+export type AffiliateReferral = typeof affiliateReferrals.$inferSelect;
+export type InsertAffiliateReferral = typeof affiliateReferrals.$inferInsert;
+export type AffiliateCommission = typeof affiliateCommissions.$inferSelect;
+export type InsertAffiliateCommission = typeof affiliateCommissions.$inferInsert;
+export type AffiliatePayout = typeof affiliatePayouts.$inferSelect;
+export type InsertAffiliatePayout = typeof affiliatePayouts.$inferInsert;
+
 // Foundation system form types
 export type InsertFoundationCauseType = z.infer<typeof insertFoundationCauseSchema>;
 export type InsertFoundationDonationType = z.infer<typeof insertFoundationDonationSchema>;

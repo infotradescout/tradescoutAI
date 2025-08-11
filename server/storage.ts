@@ -77,9 +77,22 @@ import {
   // Foundation system
   foundationCauses,
   foundationDonations,
-  foundationDonorPreferences,
+  userDonationPreferences,
   foundationImpactReports,
-  foundationMatching,
+  donationMatching,
+  // Affiliate system
+  affiliatePrograms,
+  affiliateReferrals,
+  affiliateCommissions,
+  affiliatePayouts,
+  type AffiliateProgram,
+  type InsertAffiliateProgram,
+  type AffiliateReferral,
+  type InsertAffiliateReferral,
+  type AffiliateCommission,
+  type InsertAffiliateCommission,
+  type AffiliatePayout,
+  type InsertAffiliatePayout,
   type User,
   type InsertUser,
   type UpsertUser,
@@ -227,17 +240,12 @@ import {
   type InsertFoundationCause,
   type FoundationDonation,
   type InsertFoundationDonation,
-  type FoundationDonorPreferences,
-  type InsertFoundationDonorPreferences,
-  type FoundationImpactReport,
-  type InsertFoundationImpactReport,
-  type FoundationMatching,
-  type InsertFoundationMatching,
-  type InsertFoundationDonation,
   type UserDonationPreferences,
   type InsertUserDonationPreferences,
   type FoundationImpactReport,
   type InsertFoundationImpactReport,
+  type DonationMatching,
+  type InsertDonationMatching,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, desc, asc, sql, inArray, like, gt, or, lt, isNull, isNotNull, ne, gte, lte } from "drizzle-orm";
@@ -625,6 +633,39 @@ export interface IStorage {
   // Enhanced marketplace conversation operations
   getMarketplaceConversationByListing(listingId: string, buyerId: string): Promise<MarketplaceConversation | undefined>;
   markMarketplaceMessageAsRead(id: string): Promise<MarketplaceMessage>;
+  
+  // Affiliate system methods
+  // Affiliate program management
+  getAffiliateProgram(userId: string): Promise<AffiliateProgram | undefined>;
+  createAffiliateProgram(program: InsertAffiliateProgram): Promise<AffiliateProgram>;
+  updateAffiliateProgram(id: string, updates: Partial<InsertAffiliateProgram>): Promise<AffiliateProgram>;
+  generateAffiliateCode(userId: string): Promise<string>;
+  
+  // Referral tracking
+  trackReferralClick(data: InsertAffiliateReferral): Promise<AffiliateReferral>;
+  convertReferral(affiliateCode: string, userId: string): Promise<void>;
+  getReferralsByAffiliate(affiliateProgramId: string): Promise<AffiliateReferral[]>;
+  getReferralByReferredUserId(userId: string): Promise<AffiliateReferral | undefined>;
+  
+  // Commission management
+  createCommission(commission: InsertAffiliateCommission): Promise<AffiliateCommission>;
+  getCommissionsForAffiliate(affiliateProgramId: string): Promise<AffiliateCommission[]>;
+  approveCommission(commissionId: string): Promise<void>;
+  getUnpaidCommissions(affiliateProgramId: string): Promise<AffiliateCommission[]>;
+  
+  // Payout management
+  createPayout(payout: InsertAffiliatePayout): Promise<AffiliatePayout>;
+  getPayoutsForAffiliate(affiliateProgramId: string): Promise<AffiliatePayout[]>;
+  updatePayoutStatus(payoutId: string, status: string): Promise<void>;
+  
+  // Analytics
+  getAffiliateStats(affiliateProgramId: string): Promise<{
+    totalReferrals: number;
+    convertedReferrals: number;
+    totalCommissionEarned: string;
+    totalCommissionPaid: string;
+    conversionRate: number;
+  }>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -4748,6 +4789,216 @@ export class DatabaseStorage implements IStorage {
       .values(data)
       .returning();
     return report;
+  }
+
+  // ==================== AFFILIATE SYSTEM IMPLEMENTATION ====================
+
+  // Affiliate program management
+  async getAffiliateProgram(userId: string): Promise<AffiliateProgram | undefined> {
+    const [program] = await db
+      .select()
+      .from(affiliatePrograms)
+      .where(eq(affiliatePrograms.userId, userId));
+    return program;
+  }
+
+  async createAffiliateProgram(data: InsertAffiliateProgram): Promise<AffiliateProgram> {
+    const [program] = await db
+      .insert(affiliatePrograms)
+      .values(data)
+      .returning();
+    return program;
+  }
+
+  async updateAffiliateProgram(id: string, updates: Partial<InsertAffiliateProgram>): Promise<AffiliateProgram> {
+    const [program] = await db
+      .update(affiliatePrograms)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(affiliatePrograms.id, id))
+      .returning();
+    return program;
+  }
+
+  async generateAffiliateCode(userId: string): Promise<string> {
+    // Generate a unique affiliate code (e.g., JOHN2024ABC)
+    const user = await this.getUser(userId);
+    if (!user) throw new Error('User not found');
+    
+    const year = new Date().getFullYear();
+    const randomSuffix = Math.random().toString(36).substring(2, 5).toUpperCase();
+    const baseName = (user.firstName || user.email?.split('@')[0] || 'USER').substring(0, 4).toUpperCase();
+    
+    return `${baseName}${year}${randomSuffix}`;
+  }
+
+  // Referral tracking
+  async trackReferralClick(data: InsertAffiliateReferral): Promise<AffiliateReferral> {
+    const [referral] = await db
+      .insert(affiliateReferrals)
+      .values(data)
+      .returning();
+    return referral;
+  }
+
+  async convertReferral(affiliateCode: string, userId: string): Promise<void> {
+    await db
+      .update(affiliateReferrals)
+      .set({ 
+        referredUserId: userId, 
+        convertedAt: new Date(),
+        status: 'converted'
+      })
+      .where(and(
+        eq(affiliateReferrals.affiliateCode, affiliateCode),
+        isNull(affiliateReferrals.referredUserId)
+      ));
+  }
+
+  async getReferralsByAffiliate(affiliateProgramId: string): Promise<AffiliateReferral[]> {
+    return await db
+      .select()
+      .from(affiliateReferrals)
+      .where(eq(affiliateReferrals.affiliateProgramId, affiliateProgramId))
+      .orderBy(desc(affiliateReferrals.createdAt));
+  }
+
+  async getReferralByReferredUserId(userId: string): Promise<AffiliateReferral | undefined> {
+    const [referral] = await db
+      .select()
+      .from(affiliateReferrals)
+      .where(and(
+        eq(affiliateReferrals.referredUserId, userId),
+        eq(affiliateReferrals.status, 'converted')
+      ));
+    return referral;
+  }
+
+  // Commission management
+  async createCommission(data: InsertAffiliateCommission): Promise<AffiliateCommission> {
+    const [commission] = await db
+      .insert(affiliateCommissions)
+      .values(data)
+      .returning();
+    
+    // Update affiliate program stats
+    await db
+      .update(affiliatePrograms)
+      .set({
+        totalCommissionEarned: sql`${affiliatePrograms.totalCommissionEarned} + ${data.commissionAmount}`,
+        updatedAt: new Date()
+      })
+      .where(eq(affiliatePrograms.id, data.affiliateProgramId));
+    
+    return commission;
+  }
+
+  async getCommissionsForAffiliate(affiliateProgramId: string): Promise<AffiliateCommission[]> {
+    return await db
+      .select()
+      .from(affiliateCommissions)
+      .where(eq(affiliateCommissions.affiliateProgramId, affiliateProgramId))
+      .orderBy(desc(affiliateCommissions.createdAt));
+  }
+
+  async approveCommission(commissionId: string): Promise<void> {
+    await db
+      .update(affiliateCommissions)
+      .set({ 
+        status: 'approved', 
+        approvedAt: new Date(),
+        updatedAt: new Date()
+      })
+      .where(eq(affiliateCommissions.id, commissionId));
+  }
+
+  async getUnpaidCommissions(affiliateProgramId: string): Promise<AffiliateCommission[]> {
+    return await db
+      .select()
+      .from(affiliateCommissions)
+      .where(and(
+        eq(affiliateCommissions.affiliateProgramId, affiliateProgramId),
+        eq(affiliateCommissions.status, 'approved'),
+        isNull(affiliateCommissions.paidAt)
+      ))
+      .orderBy(desc(affiliateCommissions.createdAt));
+  }
+
+  // Payout management
+  async createPayout(data: InsertAffiliatePayout): Promise<AffiliatePayout> {
+    const [payout] = await db
+      .insert(affiliatePayouts)
+      .values(data)
+      .returning();
+    
+    // Update affiliate program paid stats
+    await db
+      .update(affiliatePrograms)
+      .set({
+        totalCommissionPaid: sql`${affiliatePrograms.totalCommissionPaid} + ${data.totalAmount}`,
+        updatedAt: new Date()
+      })
+      .where(eq(affiliatePrograms.id, data.affiliateProgramId));
+    
+    return payout;
+  }
+
+  async getPayoutsForAffiliate(affiliateProgramId: string): Promise<AffiliatePayout[]> {
+    return await db
+      .select()
+      .from(affiliatePayouts)
+      .where(eq(affiliatePayouts.affiliateProgramId, affiliateProgramId))
+      .orderBy(desc(affiliatePayouts.createdAt));
+  }
+
+  async updatePayoutStatus(payoutId: string, status: string): Promise<void> {
+    const updateData: any = { status, updatedAt: new Date() };
+    
+    if (status === 'completed') {
+      updateData.processedAt = new Date();
+    }
+    
+    await db
+      .update(affiliatePayouts)
+      .set(updateData)
+      .where(eq(affiliatePayouts.id, payoutId));
+  }
+
+  // Analytics
+  async getAffiliateStats(affiliateProgramId: string): Promise<{
+    totalReferrals: number;
+    convertedReferrals: number;
+    totalCommissionEarned: string;
+    totalCommissionPaid: string;
+    conversionRate: number;
+  }> {
+    const [program] = await db
+      .select()
+      .from(affiliatePrograms)
+      .where(eq(affiliatePrograms.id, affiliateProgramId));
+    
+    if (!program) {
+      throw new Error('Affiliate program not found');
+    }
+    
+    const [referralStats] = await db
+      .select({
+        totalReferrals: sql<number>`count(*)`,
+        convertedReferrals: sql<number>`count(*) filter (where status = 'converted')`
+      })
+      .from(affiliateReferrals)
+      .where(eq(affiliateReferrals.affiliateProgramId, affiliateProgramId));
+    
+    const conversionRate = referralStats.totalReferrals > 0 
+      ? (referralStats.convertedReferrals / referralStats.totalReferrals) * 100 
+      : 0;
+    
+    return {
+      totalReferrals: referralStats.totalReferrals || 0,
+      convertedReferrals: referralStats.convertedReferrals || 0,
+      totalCommissionEarned: program.totalCommissionEarned || '0',
+      totalCommissionPaid: program.totalCommissionPaid || '0',
+      conversionRate: Math.round(conversionRate * 100) / 100
+    };
   }
 }
 

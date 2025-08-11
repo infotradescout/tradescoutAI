@@ -61,6 +61,48 @@ export class PaymentService {
     };
   }
 
+  // Track affiliate commission when payment is processed
+  async trackAffiliateCommission(
+    userId: string, 
+    amount: number, 
+    paymentType: string,
+    referenceId: string
+  ) {
+    try {
+      // Check if user was referred by looking for referrals where this user is the referred user
+      const referralRecord = await storage.getReferralByReferredUserId(userId);
+      if (!referralRecord) return null;
+
+      const affiliateProgram = await storage.getAffiliateProgram(referralRecord.affiliateProgramId);
+      if (!affiliateProgram || !affiliateProgram.isActive) return null;
+
+      // Calculate commission (25% of platform fees)
+      const fees = await this.calculatePaymentFees(amount, paymentType);
+      const commissionRate = 0.25; // 25%
+      const commissionAmount = fees.platformFee * commissionRate;
+
+      // Create commission record
+      const commission = await storage.createCommission({
+        affiliateProgramId: affiliateProgram.id,
+        referralId: referralRecord.id,
+        revenueSource: paymentType,
+        sourceTransactionId: referenceId,
+        originalAmount: amount.toString(),
+        commissionRate: commissionRate.toString(),
+        commissionAmount: commissionAmount.toString(),
+        status: 'pending',
+        description: `Commission from ${paymentType} payment`,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      });
+
+      return commission;
+    } catch (error) {
+      console.error('Error tracking affiliate commission:', error);
+      return null;
+    }
+  }
+
   // Create Stripe payment intent for contractor payments
   async createContractorPaymentIntent(payment: ContractorPayment) {
     if (!this.stripe || payment.isOffPlatform) {

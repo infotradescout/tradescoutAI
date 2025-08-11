@@ -17,7 +17,8 @@ import {
   insertRealtorProfileSchema, 
   insertCarSalesmanProfileSchema,
   type InsertRealtorProfile,
-  type InsertCarSalesmanProfile
+  type InsertCarSalesmanProfile,
+  affiliatePrograms
 } from "@shared/schema";
 
 // Middleware to check address verification requirement
@@ -4314,6 +4315,326 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // ==================== AFFILIATE SYSTEM ROUTES ====================
+
+  // Create or get affiliate program for user
+  app.post("/api/affiliate/join", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user?.claims?.sub;
+      
+      // Check if user already has an affiliate program
+      const existingProgram = await storage.getAffiliateProgram(userId);
+      if (existingProgram) {
+        return res.json(existingProgram);
+      }
+      
+      // Generate unique affiliate code
+      const affiliateCode = await storage.generateAffiliateCode(userId);
+      
+      // Create new affiliate program
+      const program = await storage.createAffiliateProgram({
+        userId,
+        affiliateCode,
+        commissionRate: '25.00', // 25% commission rate
+        status: 'active',
+        referralLink: `${req.protocol}://${req.get('host')}?ref=${affiliateCode}`,
+        totalCommissionEarned: '0',
+        totalCommissionPaid: '0'
+      });
+      
+      res.status(201).json(program);
+    } catch (error) {
+      console.error("Error joining affiliate program:", error);
+      res.status(500).json({ message: "Failed to join affiliate program" });
+    }
+  });
+
+  // Get affiliate dashboard data
+  app.get("/api/affiliate/dashboard", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user?.claims?.sub;
+      
+      const program = await storage.getAffiliateProgram(userId);
+      if (!program) {
+        return res.status(404).json({ message: "Affiliate program not found" });
+      }
+      
+      const [stats, referrals, commissions, payouts] = await Promise.all([
+        storage.getAffiliateStats(program.id),
+        storage.getReferralsByAffiliate(program.id),
+        storage.getCommissionsForAffiliate(program.id),
+        storage.getPayoutsForAffiliate(program.id)
+      ]);
+      
+      res.json({
+        program,
+        stats,
+        referrals: referrals.slice(0, 10), // Last 10 referrals
+        commissions: commissions.slice(0, 10), // Last 10 commissions
+        payouts: payouts.slice(0, 5) // Last 5 payouts
+      });
+    } catch (error) {
+      console.error("Error fetching affiliate dashboard:", error);
+      res.status(500).json({ message: "Failed to fetch affiliate dashboard" });
+    }
+  });
+
+  // Track referral click (public endpoint)
+  app.post("/api/affiliate/track-click", async (req: any, res) => {
+    try {
+      const { affiliateCode, sourceUrl, utm } = req.body;
+      
+      if (!affiliateCode) {
+        return res.status(400).json({ message: "Affiliate code is required" });
+      }
+      
+      // Find affiliate program by code
+      const programs = await db
+        .select()
+        .from(affiliatePrograms)
+        .where(eq(affiliatePrograms.affiliateCode, affiliateCode))
+        .limit(1);
+      
+      const program = programs[0];
+      if (!program) {
+        return res.status(404).json({ message: "Invalid affiliate code" });
+      }
+      
+      // Track the referral click
+      const referral = await storage.trackReferralClick({
+        affiliateProgramId: program.id,
+        affiliateCode,
+        sourceUrl: sourceUrl || req.get('Referer'),
+        utmSource: utm?.source,
+        utmMedium: utm?.medium,
+        utmCampaign: utm?.campaign,
+        ipAddress: req.ip,
+        userAgent: req.get('User-Agent'),
+        status: 'clicked'
+      });
+      
+      res.json({ success: true, referralId: referral.id });
+    } catch (error) {
+      console.error("Error tracking referral click:", error);
+      res.status(500).json({ message: "Failed to track referral" });
+    }
+  });
+
+  // Convert referral when user signs up
+  app.post("/api/affiliate/convert", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user?.claims?.sub;
+      const { affiliateCode } = req.body;
+      
+      if (!affiliateCode) {
+        return res.status(400).json({ message: "Affiliate code is required" });
+      }
+      
+      // Convert the referral
+      await storage.convertReferral(affiliateCode, userId);
+      
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error converting referral:", error);
+      res.status(500).json({ message: "Failed to convert referral" });
+    }
+  });
+
+  // Process commission (internal use - called when revenue is generated)
+  app.post("/api/affiliate/commission", isAuthenticated, async (req: any, res) => {
+    try {
+      const { 
+        affiliateProgramId, 
+        referralId, 
+        transactionId, 
+        revenueAmount, 
+        commissionAmount, 
+        description 
+      } = req.body;
+      
+      if (!affiliateProgramId || !revenueAmount || !commissionAmount) {
+        return res.status(400).json({ 
+          message: "Affiliate program ID, revenue amount, and commission amount are required" 
+        });
+      }
+      
+      const commission = await storage.createCommission({
+        affiliateProgramId,
+        referralId,
+        transactionId,
+        revenueAmount: revenueAmount.toString(),
+        commissionAmount: commissionAmount.toString(),
+        description: description || 'Commission earned',
+        status: 'pending'
+      });
+      
+      res.status(201).json(commission);
+    } catch (error) {
+      console.error("Error creating commission:", error);
+      res.status(500).json({ message: "Failed to create commission" });
+    }
+  });
+
+  // Get referrals for affiliate
+  app.get("/api/affiliate/referrals", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user?.claims?.sub;
+      
+      const program = await storage.getAffiliateProgram(userId);
+      if (!program) {
+        return res.status(404).json({ message: "Affiliate program not found" });
+      }
+      
+      const referrals = await storage.getReferralsByAffiliate(program.id);
+      res.json(referrals);
+    } catch (error) {
+      console.error("Error fetching referrals:", error);
+      res.status(500).json({ message: "Failed to fetch referrals" });
+    }
+  });
+
+  // Get commissions for affiliate
+  app.get("/api/affiliate/commissions", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user?.claims?.sub;
+      
+      const program = await storage.getAffiliateProgram(userId);
+      if (!program) {
+        return res.status(404).json({ message: "Affiliate program not found" });
+      }
+      
+      const commissions = await storage.getCommissionsForAffiliate(program.id);
+      res.json(commissions);
+    } catch (error) {
+      console.error("Error fetching commissions:", error);
+      res.status(500).json({ message: "Failed to fetch commissions" });
+    }
+  });
+
+  // Get payouts for affiliate
+  app.get("/api/affiliate/payouts", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user?.claims?.sub;
+      
+      const program = await storage.getAffiliateProgram(userId);
+      if (!program) {
+        return res.status(404).json({ message: "Affiliate program not found" });
+      }
+      
+      const payouts = await storage.getPayoutsForAffiliate(program.id);
+      res.json(payouts);
+    } catch (error) {
+      console.error("Error fetching payouts:", error);
+      res.status(500).json({ message: "Failed to fetch payouts" });
+    }
+  });
+
+  // Admin: Approve commission
+  app.put("/api/admin/affiliate/commissions/:commissionId/approve", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user?.claims?.sub;
+      const user = await storage.getUser(userId);
+      
+      // Check admin permissions
+      if (!user || !['ops_admin', 'head_admin'].includes(user.role)) {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+      
+      const { commissionId } = req.params;
+      await storage.approveCommission(commissionId);
+      
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error approving commission:", error);
+      res.status(500).json({ message: "Failed to approve commission" });
+    }
+  });
+
+  // Admin: Create payout
+  app.post("/api/admin/affiliate/payouts", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user?.claims?.sub;
+      const user = await storage.getUser(userId);
+      
+      // Check admin permissions
+      if (!user || !['ops_admin', 'head_admin'].includes(user.role)) {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+      
+      const { affiliateProgramId, totalAmount, payoutMethod, notes } = req.body;
+      
+      if (!affiliateProgramId || !totalAmount) {
+        return res.status(400).json({ 
+          message: "Affiliate program ID and total amount are required" 
+        });
+      }
+      
+      const payout = await storage.createPayout({
+        affiliateProgramId,
+        totalAmount: totalAmount.toString(),
+        payoutMethod: payoutMethod || 'manual',
+        status: 'pending',
+        notes
+      });
+      
+      res.status(201).json(payout);
+    } catch (error) {
+      console.error("Error creating payout:", error);
+      res.status(500).json({ message: "Failed to create payout" });
+    }
+  });
+
+  // Admin: Update payout status
+  app.put("/api/admin/affiliate/payouts/:payoutId/status", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user?.claims?.sub;
+      const user = await storage.getUser(userId);
+      
+      // Check admin permissions
+      if (!user || !['ops_admin', 'head_admin'].includes(user.role)) {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+      
+      const { payoutId } = req.params;
+      const { status } = req.body;
+      
+      if (!status || !['pending', 'processing', 'completed', 'failed'].includes(status)) {
+        return res.status(400).json({ message: "Valid status is required" });
+      }
+      
+      await storage.updatePayoutStatus(payoutId, status);
+      
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error updating payout status:", error);
+      res.status(500).json({ message: "Failed to update payout status" });
+    }
+  });
+
+  // Update affiliate program settings
+  app.put("/api/affiliate/settings", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user?.claims?.sub;
+      
+      const program = await storage.getAffiliateProgram(userId);
+      if (!program) {
+        return res.status(404).json({ message: "Affiliate program not found" });
+      }
+      
+      const { payoutMethod, payoutDetails } = req.body;
+      
+      const updatedProgram = await storage.updateAffiliateProgram(program.id, {
+        payoutMethod,
+        payoutDetails
+      });
+      
+      res.json(updatedProgram);
+    } catch (error) {
+      console.error("Error updating affiliate settings:", error);
+      res.status(500).json({ message: "Failed to update affiliate settings" });
+    }
+  });
+
   // Initialize WebSocket server
   const httpServer = createServer(app);
   const wsManager = new WebSocketManager(httpServer);
@@ -5012,6 +5333,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
         // Update cause raised amount
         await storage.updateCauseRaisedAmount(donation.causeId, Number(donation.amount));
+
+        // Track affiliate commission for successful donation
+        try {
+          await paymentService.trackAffiliateCommission(
+            userId,
+            Number(donation.amount),
+            'foundation_donation',
+            donation.id
+          );
+        } catch (commissionError) {
+          console.error('Error tracking affiliate commission for donation:', commissionError);
+          // Don't fail the donation if commission tracking fails
+        }
 
         res.json({
           donation: updatedDonation,
