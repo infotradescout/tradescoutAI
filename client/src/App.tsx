@@ -51,6 +51,7 @@ import CarSalesmanApplication from "@/pages/car-salesman-application";
 import AddressVerification from "@/pages/address-verification";
 import Community from "@/pages/community";
 import CommunityFeed from "@/pages/CommunityFeed";
+import CommunityModerationDemo from "@/pages/CommunityModerationDemo";
 import Leaderboard from "@/pages/leaderboard";
 import InvitePage from "@/pages/invite";
 import AffiliatePage from "@/pages/affiliate";
@@ -109,6 +110,7 @@ function Router() {
         <Route path="/business-listing" component={BusinessListing} />
         <Route path="/leaderboard" component={Leaderboard} />
         <Route path="/community" component={Community} />
+        <Route path="/community/moderation" component={CommunityModerationDemo} />
         <Route path="/foundation" component={Foundation} />
         <Route path="/promo/:slug" component={PromoPublic} />
         

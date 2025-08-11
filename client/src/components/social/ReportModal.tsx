@@ -33,7 +33,14 @@ import { Label } from "@/components/ui/label";
 import { useAuth } from "@/hooks/useAuth";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-// Removed duplicate lucide imports - using the ones already imported above
+import {
+  Flag,
+  AlertTriangle,
+  Shield,
+  Eye,
+  Ban,
+  FileText,
+} from "lucide-react";
 
 const reportSchema = z.object({
   reason: z.enum([
