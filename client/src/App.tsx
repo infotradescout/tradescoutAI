@@ -33,6 +33,7 @@ import AdminPanel from "@/pages/admin-panel";
 import ContractorPromos from "@/pages/contractor-promos";
 import PromoPublic from "@/pages/promo-public";
 import Chat from "@/pages/chat";
+import Conversations from "@/pages/conversations";
 import Marketplace from "@/pages/marketplace";
 import PropertyListing from "@/pages/property-listing";
 import BusinessListing from "@/pages/business-listing";
@@ -148,6 +149,7 @@ function Router() {
             <Route path="/admin/listings" component={AdminListings} />
             <Route path="/admin/professional-verification" component={AdminProfessionalVerification} />
             <Route path="/chat/:conversationId?" component={Chat} />
+            <Route path="/conversations" component={Conversations} />
             <Route path="/invite" component={InvitePage} />
             <Route path="/moderation" component={ModerationCenter} />
             <Route path="/saved-ads" component={SavedAds} />

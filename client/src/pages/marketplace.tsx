@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { ProfessionalBadge, ProfessionalNetworkLinks } from "@/components/professional-badges";
+import { ConversationStarter, QuickContactButton } from "@/components/conversation-starter";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
@@ -1368,6 +1369,32 @@ export default function Marketplace() {
                           </Badge>
                         )}
                       </div>
+                      {/* Contact Seller Button */}
+                      <div 
+                        className="mt-3 pt-3 border-t"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <QuickContactButton
+                          listingId={listing.id}
+                          sellerId={listing.sellerId}
+                          sellerName={listing.sellerName || 'Seller'}
+                          listingTitle={listing.title}
+                          className="w-full"
+                        />
+                      </div>
+                      {/* Contact Seller Button */}
+                      <div 
+                        className="mt-3 pt-3 border-t"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <QuickContactButton
+                          listingId={listing.id}
+                          sellerId={listing.sellerId}
+                          sellerName={listing.sellerName || 'Seller'}
+                          listingTitle={listing.title}
+                          className="w-full"
+                        />
+                      </div>
                     </CardContent>
                   </>
                 ) : (
@@ -1415,6 +1442,19 @@ export default function Marketplace() {
                                 verificationStatus="approved"
                                 size="sm"
                                 showText={false}
+                              />
+                            </div>
+                            {/* Contact Seller Button */}
+                            <div 
+                              className="mt-3"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              <QuickContactButton
+                                listingId={listing.id}
+                                sellerId={listing.sellerId}
+                                sellerName={listing.sellerName || 'Seller'}
+                                listingTitle={listing.title}
+                                className="text-xs"
                               />
                             </div>
                           </div>

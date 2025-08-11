@@ -388,6 +388,15 @@ export interface IStorage {
   createMarketplaceReport(report: InsertMarketplaceReport): Promise<MarketplaceReport>;
   getMarketplaceReports(): Promise<MarketplaceReport[]>;
   updateMarketplaceReport(id: string, updates: Partial<MarketplaceReport>): Promise<MarketplaceReport>;
+
+  // Marketplace Conversation operations
+  createMarketplaceConversation(data: InsertMarketplaceConversation): Promise<MarketplaceConversation>;
+  getMarketplaceConversation(id: string): Promise<MarketplaceConversation | undefined>;
+  getMarketplaceConversationByParticipants(listingId: string, buyerId: string, sellerId: string): Promise<MarketplaceConversation | undefined>;
+  getUserMarketplaceConversations(userId: string): Promise<any[]>;
+  createMarketplaceMessage(data: InsertMarketplaceMessage): Promise<MarketplaceMessage>;
+  getMarketplaceMessages(conversationId: string): Promise<MarketplaceMessage[]>;
+  markMarketplaceMessagesAsRead(conversationId: string, userId: string): Promise<void>;
   
   // Marketplace Verification
   createVendorVerification(verification: InsertVendorVerification): Promise<VendorVerification>;
@@ -3849,6 +3858,169 @@ export class DatabaseStorage implements IStorage {
       .where(eq(carSalesmanProfiles.id, profileId))
       .returning();
     return updatedProfile;
+  }
+
+  // Marketplace conversation operations
+  async createMarketplaceConversation(data: InsertMarketplaceConversation): Promise<MarketplaceConversation> {
+    const [conversation] = await db
+      .insert(marketplaceConversations)
+      .values(data)
+      .returning();
+    return conversation;
+  }
+
+  async getMarketplaceConversation(id: string): Promise<MarketplaceConversation | undefined> {
+    const [conversation] = await db
+      .select()
+      .from(marketplaceConversations)
+      .where(eq(marketplaceConversations.id, id));
+    return conversation;
+  }
+
+  async getMarketplaceConversationByParticipants(
+    listingId: string, 
+    buyerId: string, 
+    sellerId: string
+  ): Promise<MarketplaceConversation | undefined> {
+    const [conversation] = await db
+      .select()
+      .from(marketplaceConversations)
+      .where(
+        and(
+          eq(marketplaceConversations.listingId, listingId),
+          eq(marketplaceConversations.buyerId, buyerId),
+          eq(marketplaceConversations.sellerId, sellerId)
+        )
+      );
+    return conversation;
+  }
+
+  async getUserMarketplaceConversations(userId: string): Promise<any[]> {
+    const conversationsData = await db
+      .select({
+        conversation: marketplaceConversations,
+        listing: {
+          id: marketplaceListings.id,
+          title: marketplaceListings.title,
+          price: marketplaceListings.price,
+          images: marketplaceListings.images,
+          status: marketplaceListings.status
+        },
+        buyer: {
+          id: sql<string>`buyer.id`,
+          firstName: sql<string>`buyer.first_name`,
+          lastName: sql<string>`buyer.last_name`,
+          profileImageUrl: sql<string>`buyer.profile_image_url`
+        },
+        seller: {
+          id: sql<string>`seller.id`,
+          firstName: sql<string>`seller.first_name`,
+          lastName: sql<string>`seller.last_name`,
+          profileImageUrl: sql<string>`seller.profile_image_url`
+        }
+      })
+      .from(marketplaceConversations)
+      .innerJoin(marketplaceListings, eq(marketplaceConversations.listingId, marketplaceListings.id))
+      .innerJoin(users.as('buyer'), eq(marketplaceConversations.buyerId, sql`buyer.id`))
+      .innerJoin(users.as('seller'), eq(marketplaceConversations.sellerId, sql`seller.id`))
+      .where(
+        or(
+          eq(marketplaceConversations.buyerId, userId),
+          eq(marketplaceConversations.sellerId, userId)
+        )
+      )
+      .orderBy(desc(marketplaceConversations.lastMessageAt));
+
+    // Get last message and unread count for each conversation
+    const conversationsWithDetails = await Promise.all(
+      conversationsData.map(async (conv) => {
+        const [lastMessage] = await db
+          .select()
+          .from(marketplaceMessages)
+          .where(eq(marketplaceMessages.conversationId, conv.conversation.id))
+          .orderBy(desc(marketplaceMessages.createdAt))
+          .limit(1);
+
+        const [unreadCount] = await db
+          .select({ count: sql<number>`count(*)` })
+          .from(marketplaceMessages)
+          .where(
+            and(
+              eq(marketplaceMessages.conversationId, conv.conversation.id),
+              ne(marketplaceMessages.senderId, userId),
+              isNull(marketplaceMessages.readAt)
+            )
+          );
+
+        return {
+          ...conv.conversation,
+          listing: conv.listing,
+          buyer: conv.buyer,
+          seller: conv.seller,
+          lastMessage,
+          unreadCount: unreadCount?.count || 0
+        };
+      })
+    );
+
+    return conversationsWithDetails;
+  }
+
+  async createMarketplaceMessage(data: InsertMarketplaceMessage): Promise<MarketplaceMessage> {
+    const [message] = await db
+      .insert(marketplaceMessages)
+      .values(data)
+      .returning();
+
+    // Update conversation's lastMessageAt
+    await db
+      .update(marketplaceConversations)
+      .set({ 
+        lastMessageAt: new Date(),
+        updatedAt: new Date()
+      })
+      .where(eq(marketplaceConversations.id, data.conversationId));
+
+    return message;
+  }
+
+  async getMarketplaceMessages(conversationId: string): Promise<MarketplaceMessage[]> {
+    const messages = await db
+      .select()
+      .from(marketplaceMessages)
+      .where(eq(marketplaceMessages.conversationId, conversationId))
+      .orderBy(asc(marketplaceMessages.createdAt));
+    
+    return messages;
+  }
+
+  async markMarketplaceMessagesAsRead(conversationId: string, userId: string): Promise<void> {
+    await db
+      .update(marketplaceMessages)
+      .set({ readAt: new Date() })
+      .where(
+        and(
+          eq(marketplaceMessages.conversationId, conversationId),
+          ne(marketplaceMessages.senderId, userId),
+          isNull(marketplaceMessages.readAt)
+        )
+      );
+
+    // Update read status in conversation
+    const conversation = await this.getMarketplaceConversation(conversationId);
+    if (conversation) {
+      const updateData: any = { updatedAt: new Date() };
+      if (conversation.buyerId === userId) {
+        updateData.isReadByBuyer = true;
+      } else if (conversation.sellerId === userId) {
+        updateData.isReadBySeller = true;
+      }
+
+      await db
+        .update(marketplaceConversations)
+        .set(updateData)
+        .where(eq(marketplaceConversations.id, conversationId));
+    }
   }
 }
 

@@ -1619,6 +1619,123 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Marketplace conversation endpoints
+  app.get("/api/marketplace/conversations", isAuthenticated, async (req, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const conversations = await storage.getUserMarketplaceConversations(userId);
+      res.json(conversations);
+    } catch (error) {
+      console.error("Error fetching conversations:", error);
+      res.status(500).json({ message: "Failed to fetch conversations" });
+    }
+  });
+
+  app.post("/api/marketplace/conversations", isAuthenticated, async (req, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const { listingId, sellerId, initialMessage } = req.body;
+
+      // Check if conversation already exists
+      const existingConversation = await storage.getMarketplaceConversationByParticipants(
+        listingId, userId, sellerId
+      );
+
+      if (existingConversation) {
+        return res.status(400).json({ message: "Conversation already exists" });
+      }
+
+      // Create conversation
+      const conversation = await storage.createMarketplaceConversation({
+        listingId,
+        buyerId: userId,
+        sellerId,
+        status: 'active'
+      });
+
+      // Send initial message
+      await storage.createMarketplaceMessage({
+        conversationId: conversation.id,
+        senderId: userId,
+        senderType: 'buyer',
+        content: initialMessage,
+        messageType: 'text'
+      });
+
+      res.json(conversation);
+    } catch (error) {
+      console.error("Error creating conversation:", error);
+      res.status(500).json({ message: "Failed to create conversation" });
+    }
+  });
+
+  app.get("/api/marketplace/conversations/:conversationId/messages", isAuthenticated, async (req, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const { conversationId } = req.params;
+
+      // Verify user is part of conversation
+      const conversation = await storage.getMarketplaceConversation(conversationId);
+      if (!conversation || (conversation.buyerId !== userId && conversation.sellerId !== userId)) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+
+      const messages = await storage.getMarketplaceMessages(conversationId);
+      res.json(messages);
+    } catch (error) {
+      console.error("Error fetching messages:", error);
+      res.status(500).json({ message: "Failed to fetch messages" });
+    }
+  });
+
+  app.post("/api/marketplace/conversations/:conversationId/messages", isAuthenticated, async (req, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const { conversationId } = req.params;
+      const { content, messageType = 'text' } = req.body;
+
+      // Verify user is part of conversation
+      const conversation = await storage.getMarketplaceConversation(conversationId);
+      if (!conversation || (conversation.buyerId !== userId && conversation.sellerId !== userId)) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+
+      const senderType = conversation.buyerId === userId ? 'buyer' : 'seller';
+
+      const message = await storage.createMarketplaceMessage({
+        conversationId,
+        senderId: userId,
+        senderType,
+        content,
+        messageType
+      });
+
+      res.json(message);
+    } catch (error) {
+      console.error("Error sending message:", error);
+      res.status(500).json({ message: "Failed to send message" });
+    }
+  });
+
+  app.put("/api/marketplace/conversations/:conversationId/read", isAuthenticated, async (req, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const { conversationId } = req.params;
+
+      // Verify user is part of conversation
+      const conversation = await storage.getMarketplaceConversation(conversationId);
+      if (!conversation || (conversation.buyerId !== userId && conversation.sellerId !== userId)) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+
+      await storage.markMarketplaceMessagesAsRead(conversationId, userId);
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error marking messages as read:", error);
+      res.status(500).json({ message: "Failed to mark messages as read" });
+    }
+  });
+
   // Professional verification endpoints
   app.get("/api/admin/professional/pending", isAuthenticated, async (req: any, res) => {
     if (!["head_admin", "ops_admin", "moderator"].includes(req.user?.claims?.role)) {

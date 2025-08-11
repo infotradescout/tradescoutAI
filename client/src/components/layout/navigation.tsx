@@ -33,6 +33,7 @@ export default function Navigation() {
   ];
 
   const authenticatedNavItems = [
+    { href: "/conversations", label: "Messages", icon: MessageCircle, description: "Your marketplace conversations" },
     { href: "/invite", label: "Invite Friends", icon: UserPlus, description: "Invite friends to join TradeScout" },
     { href: "/moderation", label: "Moderation", icon: Shield, description: "Community moderation" },
     ...(isContractor ? [

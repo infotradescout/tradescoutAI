@@ -475,6 +475,12 @@ export type InsertUser = typeof users.$inferInsert;
 export type UpsertUser = typeof users.$inferInsert;
 export type User = typeof users.$inferSelect;
 
+// Marketplace conversation types
+export type MarketplaceConversation = typeof marketplaceConversations.$inferSelect;
+export type InsertMarketplaceConversation = typeof marketplaceConversations.$inferInsert;
+export type MarketplaceMessage = typeof marketplaceMessages.$inferSelect;
+export type InsertMarketplaceMessage = typeof marketplaceMessages.$inferInsert;
+
 // Social feature types
 export type CommunityPost = typeof communityPosts.$inferSelect;
 export type InsertCommunityPost = typeof communityPosts.$inferInsert;
@@ -1016,6 +1022,37 @@ export const messages = pgTable("messages", {
   content: text("content").notNull(),
   messageType: varchar("message_type", { enum: ["text", "quote", "schedule", "materials", "image"] }).default("text"),
   metadata: jsonb("metadata"), // For quotes, schedules, material lists
+  readAt: timestamp("read_at"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// Marketplace conversations between buyers and sellers
+export const marketplaceConversations = pgTable("marketplace_conversations", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  listingId: varchar("listing_id").notNull().references(() => marketplaceListings.id),
+  buyerId: varchar("buyer_id").notNull().references(() => users.id),
+  sellerId: varchar("seller_id").notNull().references(() => users.id),
+  status: varchar("status", { enum: ["active", "closed", "archived"] }).default("active"),
+  lastMessageAt: timestamp("last_message_at").defaultNow(),
+  buyerRating: integer("buyer_rating"), // 1-5 stars
+  sellerRating: integer("seller_rating"), // 1-5 stars
+  buyerFeedback: text("buyer_feedback"),
+  sellerFeedback: text("seller_feedback"),
+  isReadByBuyer: boolean("is_read_by_buyer").default(false),
+  isReadBySeller: boolean("is_read_by_seller").default(false),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Messages for marketplace conversations
+export const marketplaceMessages = pgTable("marketplace_messages", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  conversationId: varchar("conversation_id").notNull().references(() => marketplaceConversations.id),
+  senderId: varchar("sender_id").notNull().references(() => users.id),
+  senderType: varchar("sender_type", { enum: ["buyer", "seller"] }).notNull(),
+  content: text("content").notNull(),
+  messageType: varchar("message_type", { enum: ["text", "offer", "counter_offer", "acceptance", "image", "meeting_request"] }).default("text"),
+  metadata: jsonb("metadata"), // For offers, meeting details, etc.
   readAt: timestamp("read_at"),
   createdAt: timestamp("created_at").defaultNow(),
 });
