@@ -80,13 +80,13 @@ export function setupModerationRoutes(app: Express) {
         ));
 
       res.json(score || {
-        upvoteCount: 0,
-        downvoteCount: 0,
-        flagCount: 0,
-        hideCount: 0,
-        communityScore: 0,
-        isHidden: false,
-        isFlagged: false
+        upvote_count: 0,
+        downvote_count: 0,
+        flag_count: 0,
+        hide_count: 0,
+        community_score: 0,
+        is_hidden: false,
+        is_flagged: false
       });
     } catch (error) {
       console.error("Error fetching moderation score:", error);

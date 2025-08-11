@@ -49,7 +49,7 @@ export default function Register() {
 
   const registerMutation = useMutation({
     mutationFn: async (data: Omit<RegisterFormData, "confirmPassword">) => {
-      const response = await apiRequest('POST', '/api/auth/register', data);
+      const response = await apiRequest('POST', '/auth/register', data);
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(errorData.message || 'Registration failed');
