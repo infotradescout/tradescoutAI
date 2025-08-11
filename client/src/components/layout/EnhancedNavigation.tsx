@@ -23,8 +23,8 @@ export function EnhancedNavigation({ className = "" }: EnhancedNavigationProps) 
   };
 
   return (
-    <header className={`sticky top-0 z-50 w-full border-b border-slate-700 bg-slate-900/95 backdrop-blur ${className}`}>
-      <div className="container mx-auto flex items-center justify-between px-4 py-3">
+    <header className={`sticky top-0 z-50 w-full border-b border-slate-700 bg-slate-900/95 backdrop-blur overflow-x-hidden ${className}`}>
+      <div className="max-w-7xl mx-auto flex items-center justify-between px-4 py-3">
         {/* Logo */}
         <Link href="/">
           <div className="flex items-center space-x-2">
@@ -36,7 +36,7 @@ export function EnhancedNavigation({ className = "" }: EnhancedNavigationProps) 
         </Link>
 
         {/* Desktop Navigation */}
-        <div className="hidden lg:flex items-center space-x-4">
+        <div className="hidden lg:flex items-center space-x-2 max-w-none overflow-hidden">
           {/* Core Services */}
           <Link href="/contractors">
             <Button variant={isActive("/contractors") ? "secondary" : "ghost"} size="sm" className="flex items-center space-x-1">
