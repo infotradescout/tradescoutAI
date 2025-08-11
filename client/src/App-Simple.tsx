@@ -70,11 +70,8 @@ function Router() {
     );
   }
 
-  // If platform needs setup, redirect to setup
-  if (needsSetup && window.location.pathname !== '/setup') {
-    window.location.href = '/setup';
-    return <LoadingSpinner />;
-  }
+  // Only redirect to setup if explicitly accessing setup route
+  // For demo purposes, allow access to community even if setup is needed
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
