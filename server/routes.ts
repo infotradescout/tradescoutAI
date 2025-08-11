@@ -1701,7 +1701,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // One-tap bug report with screenshot
   app.post("/api/bug-reports", async (req: any, res) => {
     try {
-      const { userAgent, url, timestamp, viewport, type } = req.body;
+      const { title, description, screenshot, userAgent, url, timestamp, viewport, type } = req.body;
       
       // Generate unique report ID
       const reportId = `BUG-${Date.now()}-${Math.random().toString(36).substr(2, 6).toUpperCase()}`;
@@ -1712,18 +1712,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
         projectType: 'user_feedback'
       });
       
-      // Store bug report data
+      // Debug log the incoming data
+      console.log("Bug report data received:", { 
+        title, 
+        description, 
+        type, 
+        url, 
+        userAgent, 
+        viewport,
+        hasScreenshot: !!screenshot 
+      });
+      
+      // Store bug report data with proper field mapping
       const bugReport = {
         id: reportId,
-        type: type || 'screenshot',
-        url,
-        userAgent,
-        timestamp: timestamp || new Date().toISOString(),
-        viewport,
         userId: req.user?.claims?.sub || 'anonymous',
-        sessionId: req.sessionID,
-        ipAddress: req.ip,
-        submittedAt: new Date(),
+        userEmail: req.user?.email || null,
+        title: title || 'One-Tap Bug Report',
+        description: description || 'Automatically generated bug report with screenshot',
+        errorType: type || 'bug',
+        currentUrl: url,
+        userAgent,
+        browserInfo: viewport ? { viewport } : null,
+        attachments: screenshot ? [{ type: 'screenshot', data: screenshot }] : null,
         status: 'open',
         priority: 'medium'
       };

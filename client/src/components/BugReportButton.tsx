@@ -44,19 +44,25 @@ export function BugReportButton({ className }: BugReportButtonProps) {
       const timestamp = new Date().toISOString();
       const viewport = `${window.innerWidth}x${window.innerHeight}`;
       
-      // Create form data
-      const formData = new FormData();
-      formData.append('screenshot', blob, `bug-report-${Date.now()}.jpg`);
-      formData.append('userAgent', userAgent);
-      formData.append('url', url);
-      formData.append('timestamp', timestamp);
-      formData.append('viewport', viewport);
-      formData.append('type', 'automatic_screenshot');
+      // Convert screenshot to base64 for JSON submission
+      const base64Screenshot = canvas.toDataURL('image/jpeg', 0.8);
       
-      // Submit bug report
+      // Submit bug report with JSON payload
       const response = await fetch('/api/bug-reports', {
         method: 'POST',
-        body: formData,
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          title: 'One-Tap Bug Report',
+          description: 'Automatically captured screenshot and page context',
+          screenshot: base64Screenshot,
+          userAgent,
+          url,
+          timestamp,
+          viewport,
+          type: 'automatic_screenshot'
+        }),
       });
       
       if (!response.ok) {
@@ -118,10 +124,11 @@ export function BugReportButton({ className }: BugReportButtonProps) {
       variant="outline"
       size="sm"
       className={`
-        bg-red-50 hover:bg-red-100 
-        border-red-200 hover:border-red-300 
-        text-red-700 hover:text-red-800
+        bg-red-500 hover:bg-red-600 
+        border-red-500 hover:border-red-600 
+        text-white hover:text-white
         transition-all duration-200
+        shadow-lg hover:shadow-xl
         ${className}
       `}
       title="One-tap screenshot bug report"
