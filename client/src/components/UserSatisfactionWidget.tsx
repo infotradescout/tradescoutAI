@@ -65,7 +65,7 @@ export function UserSatisfactionWidget({
     } catch (error) {
       toast({
         title: "Thanks for your feedback!",
-        description: "Your input helps us make Trade Scout better.",
+        description: "Your input helps us make TradeScout better.",
       });
       setStep('thanks');
     }
@@ -210,7 +210,7 @@ export function UserSatisfactionWidget({
                   Thank you!
                 </h3>
                 <p className="text-sm text-gray-300">
-                  Your feedback helps us make Trade Scout better for everyone.
+                  Your feedback helps us make TradeScout better for everyone.
                 </p>
                 {rating >= 4 && (
                   <Badge className="bg-green-500/20 text-green-400 mt-2">

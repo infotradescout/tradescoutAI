@@ -14,7 +14,7 @@ interface AuthButtonsProps {
 }
 
 export function AuthButtons({ 
-  title = "Join Trade Scout", 
+  title = "Join TradeScout", 
   description = "Connect with verified contractors or grow your business",
   showSignUp = true,
   showGuestOption = true,
@@ -126,7 +126,7 @@ export function AuthButtons({
 
         {/* Terms */}
         <p className="text-xs text-gray-400 text-center leading-relaxed">
-          By continuing, you agree to Trade Scout's{" "}
+          By continuing, you agree to TradeScout's{" "}
           <a href="/terms" className="text-orange-400 hover:text-orange-300">Terms of Service</a>{" "}
           and{" "}
           <a href="/privacy" className="text-orange-400 hover:text-orange-300">Privacy Policy</a>

@@ -143,7 +143,7 @@ export default function SavedAds() {
             </p>
             <Link href="/">
               <Button className="bg-orange-500 hover:bg-orange-600 text-white">
-                Browse Trade Scout
+                Browse TradeScout
               </Button>
             </Link>
           </CardContent>

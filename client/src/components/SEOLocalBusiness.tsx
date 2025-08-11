@@ -97,7 +97,7 @@ export function createServiceCategoryStructuredData(services: string[], location
     "serviceType": "Home Improvement Services",
     "provider": {
       "@type": "Organization",
-      "name": "Trade Scout",
+      "name": "TradeScout",
       "url": "https://trade-scout-pro-traderscornerll.replit.app"
     },
     "areaServed": {
@@ -137,7 +137,7 @@ export function createJobPostingStructuredData(projectType: string, location?: {
     "description": `Homeowner seeking qualified contractor for ${projectType.toLowerCase()} services`,
     "hiringOrganization": {
       "@type": "Organization",
-      "name": "Trade Scout",
+      "name": "TradeScout",
       "sameAs": "https://trade-scout-pro-traderscornerll.replit.app"
     },
     "jobLocation": {

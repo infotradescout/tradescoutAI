@@ -23,7 +23,7 @@ interface AuthModalProps {
 export function AuthModal({ 
   isOpen, 
   onClose, 
-  title = "Join Trade Scout Today",
+  title = "Join TradeScout Today",
   description = "Get started with finding contractors or growing your business",
   trigger = "unknown",
   showGuestOption = true,

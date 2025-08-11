@@ -48,7 +48,7 @@ export function EmailPasswordAuth() {
       
       toast({
         title: isLogin ? "Signed In Successfully" : "Account Created Successfully",
-        description: `Welcome to Trade Scout${result.user?.firstName ? `, ${result.user.firstName}` : ''}!`,
+        description: `Welcome to TradeScout${result.user?.firstName ? `, ${result.user.firstName}` : ''}!`,
       });
 
       // Redirect to dashboard or profile setup
@@ -70,7 +70,7 @@ export function EmailPasswordAuth() {
     <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
-          <CardTitle className="text-2xl font-bold">Trade Scout</CardTitle>
+          <CardTitle className="text-2xl font-bold">TradeScout</CardTitle>
           <CardDescription>
             Connect with verified contractors and grow your business
           </CardDescription>

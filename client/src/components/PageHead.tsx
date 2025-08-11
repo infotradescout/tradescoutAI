@@ -9,7 +9,7 @@ interface PageHeadProps {
 }
 
 export function PageHead({ 
-  title = "Trade Scout - Find Trusted Local Contractors", 
+  title = "TradeScout - Find Trusted Local Contractors", 
   description = "Connect with verified contractors in your county. Get instant quotes, read reviews, and hire with confidence for all your home improvement projects.",
   keywords = "contractors, home improvement, quotes, local contractors, verified contractors",
   ogImage = "/og-image.jpg",

@@ -207,7 +207,7 @@ export default function ForContractors() {
                 Ready to Grow Your Business?
               </h2>
               <p className="text-xl text-gray-300 mb-6 max-w-2xl mx-auto">
-                Join thousands of contractors who have transformed their businesses with Trade Scout.
+                Join thousands of contractors who have transformed their businesses with TradeScout.
               </p>
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
                 <Link href="/growth-pack">

@@ -53,7 +53,7 @@ export default function Navigation() {
               <div className="w-8 h-8 bg-orange-500 rounded-lg flex items-center justify-center">
                 <Building className="h-5 w-5 text-white" />
               </div>
-              <span className="text-xl font-bold text-white">Trade Scout</span>
+              <span className="text-xl font-bold text-white">TradeScout</span>
             </Link>
           </div>
 

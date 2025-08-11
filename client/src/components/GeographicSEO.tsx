@@ -78,7 +78,7 @@ export function GeographicSEO({ state, county, serviceType, contractorCount }: G
       title += ` in ${state}`;
     }
     
-    title += ' | Trade Scout';
+    title += ' | TradeScout';
     
     return title;
   };

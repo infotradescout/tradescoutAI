@@ -162,7 +162,7 @@ export default function AdminWorkspace() {
       {/* Admin Header */}
       <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center mb-8">
         <div>
-          <h1 className="text-3xl font-bold text-white mb-2">Trade Scout Admin</h1>
+          <h1 className="text-3xl font-bold text-white mb-2">TradeScout Admin</h1>
           <p className="text-gray-300">System overview and management tools</p>
         </div>
         <div className="flex space-x-4 mt-4 lg:mt-0">

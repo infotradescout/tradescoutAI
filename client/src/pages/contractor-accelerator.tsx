@@ -124,7 +124,7 @@ export default function ContractorAccelerator() {
           Supercharge Your <span className="text-orange-500">Growth</span>
         </h1>
         <p className="text-xl text-gray-300 mb-8 max-w-3xl mx-auto">
-          Join Trade Scout's elite contractor program for premium leads, advanced tools, 
+          Join TradeScout's elite contractor program for premium leads, advanced tools, 
           and priority placement. Transform your business with our most powerful platform.
         </p>
         

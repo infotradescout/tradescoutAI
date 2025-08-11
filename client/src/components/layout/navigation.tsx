@@ -44,7 +44,7 @@ export default function Navigation() {
               <div className="flex-shrink-0 flex items-center gap-3">
                 <ConstructionEmblem className="w-8 h-8" />
                 <h1 className="text-2xl font-bold text-white cursor-pointer hover:text-orange-400 transition-colors">
-                  Trade Scout
+                  TradeScout
                 </h1>
               </div>
             </Link>

@@ -12,7 +12,7 @@ export default {
         background: "hsl(var(--background))",
         foreground: "hsl(var(--foreground))",
         
-        // Trade Scout specific colors
+        // TradeScout specific colors
         'navy-900': 'hsl(213, 35%, 8%)',
         'navy-800': 'hsl(211, 24%, 14%)',
         'navy-700': 'hsl(210, 21%, 20%)',

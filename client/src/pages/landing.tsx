@@ -30,11 +30,11 @@ export default function Landing() {
   const faqData = [
     {
       question: "How do I find contractors in my area?",
-      answer: "Simply select your state and county on Trade Scout, then browse verified contractors in your area. You can filter by service type, read reviews, and get instant quotes."
+      answer: "Simply select your state and county on TradeScout, then browse verified contractors in your area. You can filter by service type, read reviews, and get instant quotes."
     },
     {
-      question: "Are all contractors on Trade Scout verified?",
-      answer: "Yes, all contractors on Trade Scout go through a comprehensive verification process including background checks, license verification, and insurance confirmation."
+      question: "Are all contractors on TradeScout verified?",
+      answer: "Yes, all contractors on TradeScout go through a comprehensive verification process including background checks, license verification, and insurance confirmation."
     },
     {
       question: "How many free quotes can I get?",
@@ -42,7 +42,7 @@ export default function Landing() {
     },
     {
       question: "What types of home improvement services are available?",
-      answer: "Trade Scout covers 75+ contractor specialties including roofing, plumbing, electrical, HVAC, flooring, kitchen remodeling, bathroom renovation, and general contracting."
+      answer: "TradeScout covers 75+ contractor specialties including roofing, plumbing, electrical, HVAC, flooring, kitchen remodeling, bathroom renovation, and general contracting."
     }
   ];
 
@@ -58,7 +58,7 @@ export default function Landing() {
   return (
     <div className="min-h-screen gradient-bg">
       <SEOHelmet 
-        title="Trade Scout - Find Trusted Local Contractors | Get 3 Free Quotes"
+        title="TradeScout - Find Trusted Local Contractors | Get 3 Free Quotes"
         description="Connect with verified contractors in your county. Get 3 free quotes, read reviews, and hire with confidence. Local contractors for roofing, plumbing, electrical, and all home improvement projects."
         keywords="local contractors, home improvement, verified contractors, free quotes, county contractors, trusted contractors, roofing contractors, plumbing contractors, electrical contractors, kitchen remodeling, bathroom renovation"
         structuredData={structuredData}
@@ -685,7 +685,7 @@ export default function Landing() {
               <CardContent className="p-8">
                 <h3 className="text-2xl font-bold text-white mb-4">Ready to find your contractor?</h3>
                 <p className="text-gray-300 mb-6">
-                  Join thousands of homeowners who have found trusted contractors through Trade Scout.
+                  Join thousands of homeowners who have found trusted contractors through TradeScout.
                 </p>
                 <div className="flex flex-col sm:flex-row gap-4 justify-center">
                   <Button 
@@ -716,7 +716,7 @@ export default function Landing() {
       <AuthModal 
         isOpen={showAuthModal}
         onClose={() => setShowAuthModal(false)}
-        title="Join Trade Scout Today"
+        title="Join TradeScout Today"
         description="Connect with verified contractors or grow your business"
         trigger="landing_page"
         showGuestOption={true}

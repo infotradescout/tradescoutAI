@@ -94,16 +94,16 @@ export default function ContractorApply() {
         <GuestGate
           action="apply to the contractor board"
           title="Create Contractor Account to Apply"
-          description="Join Trade Scout's verified contractor network and start receiving quality leads."
+          description="Join TradeScout's verified contractor network and start receiving quality leads."
         >
           <Card className="bg-navy-800 border-navy-700">
             <CardContent className="p-12 text-center">
               <div className="w-20 h-20 bg-orange-500 rounded-full flex items-center justify-center mx-auto mb-6">
                 <Shield className="h-10 w-10 text-white" />
               </div>
-              <h2 className="text-3xl font-bold text-white mb-4">Apply to Join Trade Scout</h2>
+              <h2 className="text-3xl font-bold text-white mb-4">Apply to Join TradeScout</h2>
               <p className="text-gray-300 mb-8 max-w-2xl mx-auto">
-                Join thousands of verified contractors growing their business with Trade Scout.
+                Join thousands of verified contractors growing their business with TradeScout.
               </p>
             </CardContent>
           </Card>
@@ -115,7 +115,7 @@ export default function ContractorApply() {
   return (
     <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
       <div className="text-center mb-12">
-        <h1 className="text-4xl font-bold text-white mb-4">Join Trade Scout's Contractor Network</h1>
+        <h1 className="text-4xl font-bold text-white mb-4">Join TradeScout's Contractor Network</h1>
         <p className="text-xl text-gray-300 mb-6">Connect with qualified homeowners and grow your business</p>
         
         <div className="flex justify-center gap-6 mb-8">
@@ -432,7 +432,7 @@ export default function ContractorApply() {
                         onCheckedChange={(checked) => setFormData(prev => ({ ...prev, hasConsented: !!checked }))}
                       />
                       <Label htmlFor="consent" className="text-gray-300">
-                        I agree to Trade Scout's terms and contractor guidelines
+                        I agree to TradeScout's terms and contractor guidelines
                       </Label>
                     </div>
                   </div>
@@ -455,7 +455,7 @@ export default function ContractorApply() {
         <div className="space-y-6">
           <Card className="bg-navy-700 border-navy-600">
             <CardHeader>
-              <CardTitle className="text-white text-lg">Why Join Trade Scout?</CardTitle>
+              <CardTitle className="text-white text-lg">Why Join TradeScout?</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="flex items-start gap-3">

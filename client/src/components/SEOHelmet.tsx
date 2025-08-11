@@ -13,7 +13,7 @@ interface SEOHelmetProps {
 }
 
 export function SEOHelmet({
-  title = "Trade Scout - Find Trusted Local Contractors | Get 3 Free Quotes",
+  title = "TradeScout - Find Trusted Local Contractors | Get 3 Free Quotes",
   description = "Connect with verified contractors in your county. Get instant quotes, read reviews, and hire with confidence. Local contractors for roofing, plumbing, electrical, and all home improvement projects.",
   keywords = "local contractors, home improvement, verified contractors, free quotes, county contractors, trusted contractors, roofing, plumbing, electrical",
   canonical,
@@ -41,7 +41,7 @@ export function SEOHelmet({
     updateMetaTag('og:type', ogType, 'property');
     updateMetaTag('og:url', currentUrl, 'property');
     updateMetaTag('og:image', `${window.location.origin}${ogImage}`, 'property');
-    updateMetaTag('og:site_name', 'Trade Scout', 'property');
+    updateMetaTag('og:site_name', 'TradeScout', 'property');
     
     // Twitter Card
     updateMetaTag('twitter:card', 'summary_large_image', 'name');
@@ -52,7 +52,7 @@ export function SEOHelmet({
     
     // Additional SEO tags
     updateMetaTag('theme-color', '#FF6B35', 'name');
-    updateMetaTag('apple-mobile-web-app-title', 'Trade Scout', 'name');
+    updateMetaTag('apple-mobile-web-app-title', 'TradeScout', 'name');
     
     // Canonical link
     updateCanonicalLink(finalCanonical);
@@ -114,7 +114,7 @@ function updateStructuredData(data: Record<string, any>) {
 export const createWebsiteStructuredData = () => ({
   "@context": "https://schema.org",
   "@type": "WebSite",
-  "name": "Trade Scout",
+  "name": "TradeScout",
   "description": "Connect with verified contractors in your county. Get instant quotes, read reviews, and hire with confidence.",
   "url": window.location.origin,
   "potentialAction": {
@@ -132,7 +132,7 @@ export const createWebsiteStructuredData = () => ({
 export const createOrganizationStructuredData = () => ({
   "@context": "https://schema.org",
   "@type": "Organization",
-  "name": "Trade Scout",
+  "name": "TradeScout",
   "description": "Leading contractor marketplace connecting homeowners with verified local contractors",
   "url": window.location.origin,
   "logo": `${window.location.origin}/logo.png`,
@@ -168,7 +168,7 @@ export const createServiceStructuredData = (service: {
   "category": service.category,
   "provider": {
     "@type": "Organization",
-    "name": service.provider || "Trade Scout",
+    "name": service.provider || "TradeScout",
     "url": window.location.origin
   },
   "areaServed": service.areaServed || "United States",

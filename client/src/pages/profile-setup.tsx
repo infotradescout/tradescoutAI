@@ -72,8 +72,8 @@ export default function ProfileSetup() {
       toast({
         title: "Profile Setup Complete!",
         description: selectedRole === 'contractor_user' 
-          ? "Welcome to Trade Scout! Your contractor profile has been created."
-          : "Welcome to Trade Scout! You can now find and connect with contractors.",
+          ? "Welcome to TradeScout! Your contractor profile has been created."
+          : "Welcome to TradeScout! You can now find and connect with contractors.",
       });
       queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
       // Redirect to appropriate dashboard
@@ -114,7 +114,7 @@ export default function ProfileSetup() {
       <div className="container mx-auto px-4 max-w-4xl">
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold text-white mb-2">Complete Your Profile</h1>
-          <p className="text-gray-300">Tell us about yourself to get the best Trade Scout experience</p>
+          <p className="text-gray-300">Tell us about yourself to get the best TradeScout experience</p>
         </div>
 
         {!selectedRole ? (

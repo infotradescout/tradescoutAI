@@ -31,7 +31,7 @@ export default function Dashboard() {
         <Card className="bg-navy-700 border-navy-600 text-center">
           <CardContent className="p-12">
             <User className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-            <h2 className="text-2xl font-bold text-white mb-4">Welcome to Trade Scout</h2>
+            <h2 className="text-2xl font-bold text-white mb-4">Welcome to TradeScout</h2>
             <p className="text-gray-300 mb-6">Please sign in to access your dashboard</p>
             <div className="space-y-3">
               <Link href="/login">
@@ -64,7 +64,7 @@ export default function Dashboard() {
                 <User className="h-8 w-8 text-orange-500" />
               )}
             </div>
-            <h2 className="text-2xl font-bold text-white mb-4">Welcome to Trade Scout!</h2>
+            <h2 className="text-2xl font-bold text-white mb-4">Welcome to TradeScout!</h2>
             <p className="text-gray-300 mb-6">
               Let's complete your profile to get the most out of your {user.role === 'contractor_user' ? 'contractor' : 'homeowner'} experience.
             </p>

@@ -83,7 +83,7 @@ export function GuestGate({
           isOpen={showAuthModal}
           onClose={() => setShowAuthModal(false)}
           title={`Create Account to ${action}`}
-          description="Join thousands of homeowners and contractors on Trade Scout"
+          description="Join thousands of homeowners and contractors on TradeScout"
           trigger="guest_gate"
           showGuestOption={false}
         />

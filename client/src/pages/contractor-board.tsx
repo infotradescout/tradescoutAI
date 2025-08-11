@@ -174,7 +174,7 @@ export default function ContractorBoard() {
   const selectedCountyName = selectedCounty ? counties.find(c => c.fips === selectedCounty)?.name : '';
   const selectedTradeName = selectedTrade ? trades?.find(t => t.id === selectedTrade)?.name : '';
   
-  const seoTitle = `Find ${selectedTradeName || 'Contractors'}${selectedStateName ? ` in ${selectedStateName}` : ''}${selectedCountyName ? `, ${selectedCountyName}` : ''} | Trade Scout`;
+  const seoTitle = `Find ${selectedTradeName || 'Contractors'}${selectedStateName ? ` in ${selectedStateName}` : ''}${selectedCountyName ? `, ${selectedCountyName}` : ''} | TradeScout`;
   const seoDescription = `Find verified ${selectedTradeName || 'contractors'}${selectedStateName ? ` in ${selectedStateName}` : ''}${selectedCountyName ? `, ${selectedCountyName}` : ''}. Get 3 free quotes, read reviews, and hire with confidence. Licensed and insured contractors for all home improvement projects.`;
   
   const breadcrumbItems = [
@@ -197,7 +197,7 @@ export default function ContractorBoard() {
     description: `Professional ${selectedTradeName.toLowerCase()} services in ${selectedStateName || 'your area'}`,
     category: selectedTradeName,
     areaServed: selectedStateName || 'United States',
-    provider: 'Trade Scout'
+    provider: 'TradeScout'
   }) : null;
 
   const contractorListStructuredData = {

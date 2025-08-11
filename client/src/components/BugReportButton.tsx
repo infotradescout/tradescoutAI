@@ -73,7 +73,7 @@ export function BugReportButton({ className }: BugReportButtonProps) {
       
       toast({
         title: "Bug Report Sent!",
-        description: `Report #${result.reportId} submitted successfully. Thank you for helping improve Trade Scout!`,
+        description: `Report #${result.reportId} submitted successfully. Thank you for helping improve TradeScout!`,
         duration: 4000,
       });
       

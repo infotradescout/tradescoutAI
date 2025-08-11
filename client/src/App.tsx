@@ -46,7 +46,7 @@ function Router() {
       <div className="min-h-screen gradient-bg flex items-center justify-center">
         <div className="text-center">
           <LoadingSpinner size="lg" className="text-orange-500 mx-auto mb-4" />
-          <p className="text-gray-300">Loading Trade Scout...</p>
+          <p className="text-gray-300">Loading TradeScout...</p>
         </div>
       </div>
     );

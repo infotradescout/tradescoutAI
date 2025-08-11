@@ -284,7 +284,7 @@ export default function EstimateCalculator() {
   const quoteStructuredData = {
     "@context": "https://schema.org",
     "@type": "WebApplication",
-    "name": "Trade Scout Quote Calculator",
+    "name": "TradeScout Quote Calculator",
     "description": "Free home improvement cost calculator and contractor quote generator",
     "url": window.location.href,
     "applicationCategory": "UtilityApplication",
@@ -300,7 +300,7 @@ export default function EstimateCalculator() {
   return (
     <GuestGate>
       <SEOHelmet 
-        title="Free Home Improvement Cost Calculator & Quote Generator | Trade Scout"
+        title="Free Home Improvement Cost Calculator & Quote Generator | TradeScout"
         description="Calculate accurate project costs instantly. Get free quotes from verified local contractors for roofing, flooring, kitchen remodels, and more. Licensed and insured professionals."
         keywords="home improvement calculator, project cost estimator, free contractor quotes, roofing cost calculator, kitchen remodel cost, flooring estimate"
         structuredData={quoteStructuredData}
@@ -308,7 +308,7 @@ export default function EstimateCalculator() {
       
       <main className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <PageHead 
-          title="Get Your Project Estimate - Trade Scout Calculator"
+          title="Get Your Project Estimate - TradeScout Calculator"
           description="Get instant estimates for your home improvement project. Regional pricing based on your county and project details. Connect with verified contractors for accurate quotes."
           keywords="project estimate, home improvement calculator, contractor quotes, regional pricing, project cost calculator"
         />

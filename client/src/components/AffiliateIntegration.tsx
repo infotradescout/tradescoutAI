@@ -279,7 +279,7 @@ export function AffiliateStoreBanner() {
       <CardContent className="p-6">
         <div className="flex items-center justify-between">
           <div>
-            <h3 className="text-xl font-bold mb-2">Trade Scout Store</h3>
+            <h3 className="text-xl font-bold mb-2">TradeScout Store</h3>
             <p className="opacity-90">Professional tools and materials at contractor prices</p>
             <div className="flex items-center gap-4 mt-3">
               <Badge className="bg-white text-orange-600">Free Shipping</Badge>

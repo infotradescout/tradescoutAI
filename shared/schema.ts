@@ -506,7 +506,7 @@ export const workers = pgTable("workers", {
     endDate?: string;
     description: string;
     isCurrentJob: boolean;
-    fromPlatform: boolean; // If this job was obtained through Trade Scout
+    fromPlatform: boolean; // If this job was obtained through TradeScout
     taskId?: string; // Reference to platform task if applicable
   }>>(),
   education: jsonb("education").$type<Array<{

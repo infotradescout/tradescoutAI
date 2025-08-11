@@ -269,7 +269,7 @@ export function HelperProfileModal({ helper, isOpen, onClose }: HelperProfileMod
               {/* Recent Platform Jobs */}
               {platformJobs.length > 0 && (
                 <div>
-                  <h3 className="text-lg font-semibold text-white mb-3">Recent Trade Scout Jobs</h3>
+                  <h3 className="text-lg font-semibold text-white mb-3">Recent TradeScout Jobs</h3>
                   <div className="space-y-3">
                     {platformJobs.slice(0, 3).map((job, index) => (
                       <div key={index} className="bg-navy-700 p-4 rounded-lg border border-navy-600">
@@ -279,7 +279,7 @@ export function HelperProfileModal({ helper, isOpen, onClose }: HelperProfileMod
                             <p className="text-orange-400 text-sm">{job.company}</p>
                           </div>
                           <Badge className="bg-orange-500/20 text-orange-400 border-orange-500/50">
-                            Trade Scout
+                            TradeScout
                           </Badge>
                         </div>
                         <p className="text-gray-300 text-sm mb-2">{job.description}</p>
@@ -301,7 +301,7 @@ export function HelperProfileModal({ helper, isOpen, onClose }: HelperProfileMod
                 <div>
                   <h3 className="text-lg font-semibold text-white mb-4 flex items-center">
                     <Briefcase className="h-5 w-5 mr-2 text-orange-500" />
-                    Trade Scout Experience
+                    TradeScout Experience
                   </h3>
                   <div className="space-y-4">
                     {platformJobs.map((job, index) => (
@@ -428,7 +428,7 @@ export function HelperProfileModal({ helper, isOpen, onClose }: HelperProfileMod
                         <h4 className="font-medium text-white">{item.title}</h4>
                         {item.fromPlatform && (
                           <Badge className="bg-orange-500/20 text-orange-400 border-orange-500/50">
-                            Trade Scout
+                            TradeScout
                           </Badge>
                         )}
                       </div>

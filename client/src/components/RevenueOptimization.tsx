@@ -40,7 +40,7 @@ export function AcceleratorPromotion({ placement }: { placement: 'sidebar' | 'in
         <CardContent className="p-6">
           <div className="flex items-center gap-2 mb-3">
             <Crown className="h-6 w-6" />
-            <h3 className="font-bold text-lg">Trade Scout Pro</h3>
+            <h3 className="font-bold text-lg">TradeScout Pro</h3>
           </div>
           <p className="text-sm opacity-90 mb-4">
             Join our elite contractor network and boost your business by 300%
@@ -65,7 +65,7 @@ export function AcceleratorPromotion({ placement }: { placement: 'sidebar' | 'in
     <Alert className="border-amber-500 bg-amber-50 dark:bg-amber-950/20">
       <Crown className="h-4 w-4 text-amber-600" />
       <AlertDescription className="text-amber-800 dark:text-amber-200">
-        <strong>Ready to grow your business?</strong> Join Trade Scout Pro and get 3x more leads.{' '}
+        <strong>Ready to grow your business?</strong> Join TradeScout Pro and get 3x more leads.{' '}
         <Button variant="link" className="text-amber-600 p-0 h-auto">
           Learn more →
         </Button>

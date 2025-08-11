@@ -86,7 +86,7 @@ export default function ContractorProfile() {
     "areaServed": "Local Area"
   };
 
-  const seoTitle = `${contractor.companyName} - Verified Local Contractor | Trade Scout`;
+  const seoTitle = `${contractor.companyName} - Verified Local Contractor | TradeScout`;
   const seoDescription = `Hire ${contractor.companyName} for quality home improvement services. ${ratingSummary ? `${ratingSummary.average} star rating` : 'Verified'} contractor${contractor.yearsInBusiness ? ` with ${contractor.yearsInBusiness} years experience` : ''}. Licensed and insured.`;
 
   return (

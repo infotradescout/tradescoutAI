@@ -133,7 +133,7 @@ export class NotificationService {
       const emailContent = `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
           <div style="background: linear-gradient(135deg, #1e3a8a 0%, #1e40af 100%); padding: 30px; text-align: center;">
-            <h1 style="color: #f97316; margin: 0; font-size: 28px;">Trade Scout</h1>
+            <h1 style="color: #f97316; margin: 0; font-size: 28px;">TradeScout</h1>
             <p style="color: white; margin: 10px 0 0 0; font-size: 16px;">Contractor Marketplace</p>
           </div>
           
@@ -161,7 +161,7 @@ export class NotificationService {
             ` : ''}
             
             <p style="color: #64748b; font-size: 14px; margin-bottom: 0;">
-              You're receiving this because you saved this ad on Trade Scout. 
+              You're receiving this because you saved this ad on TradeScout. 
               <a href="${process.env.FRONTEND_URL || 'https://tradescout.replit.app'}/saved-ads" style="color: #f97316;">Manage your saved ads</a>
             </p>
           </div>
@@ -171,7 +171,7 @@ export class NotificationService {
       await mailService.send({
         to: user.email!,
         from: process.env.FROM_EMAIL || 'noreply@tradescout.app',
-        subject: `Trade Scout: ${title}`,
+        subject: `TradeScout: ${title}`,
         html: emailContent,
       });
 
