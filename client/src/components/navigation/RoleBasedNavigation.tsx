@@ -306,30 +306,20 @@ export function UserMenu() {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" className="flex items-center gap-3 px-3 py-2 h-auto hover:bg-slate-800/60 transition-colors">
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-gradient-to-br from-orange-500 to-red-600 rounded-full flex items-center justify-center text-white font-semibold text-sm">
-              {user.firstName?.charAt(0)}{user.lastName?.charAt(0)}
-            </div>
-            <div className="flex flex-col items-start">
-              <span className="text-sm font-medium text-slate-200">{user.firstName} {user.lastName}</span>
-              <RoleBadge role={userRole} size="sm" />
-            </div>
+        <Button variant="ghost" className="flex items-center gap-2">
+          <div className="flex flex-col items-end">
+            <span className="text-sm font-medium">{user.firstName} {user.lastName}</span>
+            <RoleBadge role={userRole} size="sm" />
           </div>
-          <ChevronDown className="h-3 w-3 text-slate-400" />
+          <ChevronDown className="h-3 w-3" />
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-64 bg-slate-800 border-slate-700">
+      <DropdownMenuContent align="end" className="w-56">
         <DropdownMenuLabel>
-          <div className="flex items-center space-x-3 p-2">
-            <div className="w-10 h-10 bg-gradient-to-br from-orange-500 to-red-600 rounded-full flex items-center justify-center text-white font-semibold">
-              {user.firstName?.charAt(0)}{user.lastName?.charAt(0)}
-            </div>
-            <div className="flex flex-col space-y-1">
-              <span className="font-medium text-slate-200">{user.firstName} {user.lastName}</span>
-              <span className="text-sm text-slate-400">{user.email}</span>
-              <RoleBadge role={userRole} size="sm" />
-            </div>
+          <div className="flex flex-col space-y-1">
+            <span className="font-medium">{user.firstName} {user.lastName}</span>
+            <span className="text-sm text-muted-foreground">{user.email}</span>
+            <RoleBadge role={userRole} size="sm" />
           </div>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
