@@ -161,6 +161,7 @@ const categoryIcons = {
   real_estate: Building,
   
   // Business icons
+  business_opportunities: Building2,
   business_sales: Building2,
   sell_your_business: Building2
 };
@@ -222,13 +223,13 @@ const featuredCategories = [
     benefits: ['Market value pricing', 'Detailed property info', 'Local expertise']
   },
   { 
-    id: 'business_sales', 
-    name: 'Business Sales', 
+    id: 'business_opportunities', 
+    name: 'Business Opportunities', 
     icon: 'building2', 
     color: 'emerald',
-    description: 'Established businesses and franchises with proven track records',
+    description: 'Complete businesses, franchises, and business packages with proven systems',
     valueProposition: 'Income-generating opportunities',
-    benefits: ['Revenue history', 'Asset valuation', 'Growth potential']
+    benefits: ['Revenue history', 'Proven systems', 'Growth potential']
   },
   { 
     id: 'local_marketplace', 
@@ -953,8 +954,8 @@ export default function Marketplace() {
           </Card>
         )}
 
-        {/* Business Sales Notice */}
-        {selectedCategory === 'business_sales' && (
+        {/* Business Opportunities Notice */}
+        {(selectedCategory === 'business_opportunities' || selectedCategory === 'business_sales') && (
           <Card className="mb-6 border-emerald-200 bg-emerald-50 dark:bg-emerald-900/20 dark:border-emerald-800">
             <CardContent className="p-6">
               <div className="flex items-start gap-4">
@@ -963,38 +964,47 @@ export default function Marketplace() {
                 </div>
                 <div className="flex-1">
                   <h3 className="font-semibold text-emerald-900 dark:text-emerald-100 mb-2">
-                    Business Sales & Opportunities
+                    Business Opportunities & Sales
                   </h3>
                   <p className="text-emerald-800 dark:text-emerald-200 text-sm mb-4">
-                    Established businesses with proven revenue streams and growth potential. Connect with entrepreneurs ready to transfer successful operations to dedicated new owners.
+                    Complete businesses, proven business packages, and franchises with established revenue streams. Find turnkey operations, tested business models, and growth-ready opportunities from experienced entrepreneurs.
                   </p>
                   
-                  <div className="grid md:grid-cols-3 gap-4">
+                  <div className="grid md:grid-cols-4 gap-4">
                     <div className="bg-white dark:bg-gray-800 p-4 rounded-lg">
                       <h4 className="font-medium text-gray-900 dark:text-white mb-2 flex items-center">
                         <TrendingUp className="h-4 w-4 mr-2 text-emerald-600" />
-                        Revenue History
+                        Complete Businesses
                       </h4>
                       <p className="text-sm text-gray-600 dark:text-gray-300">
-                        Documented financial performance and growth patterns
+                        Established operations with proven revenue streams
                       </p>
                     </div>
                     <div className="bg-white dark:bg-gray-800 p-4 rounded-lg">
                       <h4 className="font-medium text-gray-900 dark:text-white mb-2 flex items-center">
                         <CheckCircle className="h-4 w-4 mr-2 text-blue-600" />
-                        Asset Valuation
+                        Business Packages
                       </h4>
                       <p className="text-sm text-gray-600 dark:text-gray-300">
-                        Complete inventory, equipment, and goodwill assessment
+                        Tested business models with systems and training
                       </p>
                     </div>
                     <div className="bg-white dark:bg-gray-800 p-4 rounded-lg">
                       <h4 className="font-medium text-gray-900 dark:text-white mb-2 flex items-center">
                         <Users className="h-4 w-4 mr-2 text-purple-600" />
-                        Transfer Support
+                        Franchises
                       </h4>
                       <p className="text-sm text-gray-600 dark:text-gray-300">
-                        Training and transition assistance from current owners
+                        Proven brands with ongoing support and territory rights
+                      </p>
+                    </div>
+                    <div className="bg-white dark:bg-gray-800 p-4 rounded-lg">
+                      <h4 className="font-medium text-gray-900 dark:text-white mb-2 flex items-center">
+                        <Star className="h-4 w-4 mr-2 text-amber-600" />
+                        Turnkey Solutions
+                      </h4>
+                      <p className="text-sm text-gray-600 dark:text-gray-300">
+                        Ready-to-operate opportunities with full documentation
                       </p>
                     </div>
                   </div>
@@ -1002,7 +1012,7 @@ export default function Marketplace() {
                   <div className="mt-4 p-3 bg-amber-50 dark:bg-amber-900/20 rounded-lg border border-amber-200 dark:border-amber-800">
                     <p className="text-sm text-amber-800 dark:text-amber-200 flex items-center">
                       <Star className="h-4 w-4 mr-2 text-amber-600" />
-                      <strong>Business Value Opportunity:</strong> Established businesses with strong customer bases and proven systems provide immediate income potential and long-term wealth building through ownership.
+                      <strong>Income & Wealth Building:</strong> From complete businesses with established revenue to proven business packages and franchises - find opportunities that generate immediate income while building long-term value through business ownership.
                     </p>
                   </div>
                 </div>

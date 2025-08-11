@@ -41,7 +41,8 @@ const businessListingSchema = z.object({
   description: z.string().min(100, "Description must be at least 100 characters"),
   price: z.string().min(1, "Price is required"),
   priceType: z.enum(["fixed", "negotiable", "best_offer"]),
-  businessType: z.enum(["restaurant", "retail", "service", "manufacturing", "technology", "franchise", "online", "other"]),
+  businessType: z.enum(["restaurant", "retail", "service", "manufacturing", "technology", "franchise", "online", "business_package", "other"]),
+  offeringType: z.enum(["complete_business", "business_package", "franchise_opportunity"]),
   industry: z.string().min(2, "Industry is required"),
   location: z.string().min(5, "Location is required"),
   city: z.string().min(2, "City is required"),
@@ -70,7 +71,14 @@ const businessTypes = [
   { value: "technology", label: "Technology/Software" },
   { value: "franchise", label: "Franchise" },
   { value: "online", label: "Online Business" },
+  { value: "business_package", label: "Business Package/Model" },
   { value: "other", label: "Other" },
+];
+
+const offeringTypes = [
+  { value: "complete_business", label: "Complete Business Sale" },
+  { value: "business_package", label: "Business Package/System" },
+  { value: "franchise_opportunity", label: "Franchise Opportunity" },
 ];
 
 const businessFeatures = [
@@ -86,6 +94,12 @@ const businessFeatures = [
   "Updated Equipment",
   "Strong Brand Recognition",
   "Multiple Revenue Streams",
+  "Proven Business Model",
+  "Comprehensive Training",
+  "Marketing Systems",
+  "Operations Manual",
+  "Territory Protection",
+  "Ongoing Support",
 ];
 
 export default function BusinessListing() {
@@ -99,6 +113,7 @@ export default function BusinessListing() {
     defaultValues: {
       priceType: "negotiable",
       businessType: "other",
+      offeringType: "complete_business",
       includesTraining: false,
       includesInventory: false,
       includesEquipment: false,
@@ -131,6 +146,7 @@ export default function BusinessListing() {
         zipCode: data.zipCode,
         condition: "excellent", // Default for businesses
         specifications: {
+          offeringType: data.offeringType,
           businessType: data.businessType,
           industry: data.industry,
           yearEstablished: data.yearEstablished ? parseInt(data.yearEstablished) : undefined,
@@ -189,10 +205,10 @@ export default function BusinessListing() {
           <Building2 className="h-8 w-8 text-emerald-600" />
           <div>
             <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
-              List Your Business for Sale
+              List Your Business Opportunity
             </h1>
             <p className="text-gray-600 dark:text-gray-400">
-              Connect with qualified buyers looking for established business opportunities
+              Sell complete businesses, business packages, or franchise opportunities to qualified buyers
             </p>
           </div>
         </div>
@@ -247,6 +263,34 @@ export default function BusinessListing() {
                           {...field} 
                         />
                       </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="offeringType"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>What Are You Offering?</FormLabel>
+                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select offering type" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {offeringTypes.map((type) => (
+                            <SelectItem key={type.value} value={type.value}>
+                              {type.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormDescription>
+                        Choose between selling an existing business, proven business model/package, or franchise opportunity
+                      </FormDescription>
                       <FormMessage />
                     </FormItem>
                   )}
