@@ -56,7 +56,10 @@ export default function MasterAdminSetup() {
         title: "Success!",
         description: "Master admin account created successfully. You are now logged in.",
       });
-      navigate('/dashboard'); // Redirect to admin dashboard
+      // Force page refresh to update auth state and routing
+      setTimeout(() => {
+        window.location.href = '/';
+      }, 1000);
     },
     onError: (error: Error) => {
       toast({
