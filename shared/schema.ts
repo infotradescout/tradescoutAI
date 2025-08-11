@@ -166,6 +166,24 @@ export const recommendations = pgTable("recommendations", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
+// Contractor leaderboard statistics tracking
+export const contractorLeaderboardStats = pgTable("contractor_leaderboard_stats", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  contractorId: varchar("contractor_id").notNull().references(() => contractors.id),
+  month: integer("month").notNull(), // 1-12
+  year: integer("year").notNull(),
+  monthlyRecommendations: integer("monthly_recommendations").default(0),
+  lifetimeRecommendations: integer("lifetime_recommendations").default(0),
+  monthlyRating: decimal("monthly_rating", { precision: 3, scale: 2 }), // Average rating for the month
+  lifetimeRating: decimal("lifetime_rating", { precision: 3, scale: 2 }), // Overall average rating
+  lastUpdated: timestamp("last_updated").defaultNow(),
+  createdAt: timestamp("created_at").defaultNow(),
+}, (table) => [
+  index("contractor_leaderboard_month_year_idx").on(table.contractorId, table.month, table.year),
+  index("leaderboard_monthly_ranking_idx").on(table.month, table.year, table.monthlyRecommendations),
+  index("leaderboard_lifetime_ranking_idx").on(table.lifetimeRecommendations),
+]);
+
 // Leads management
 export const leads = pgTable("leads", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -306,6 +324,14 @@ export const contractorsRelations = relations(contractors, ({ one, many }) => ({
   leads: many(leads),
   verificationDocs: many(verificationDocuments),
   acceleratorMembership: one(acceleratorMemberships),
+  leaderboardStats: many(contractorLeaderboardStats),
+}));
+
+export const contractorLeaderboardStatsRelations = relations(contractorLeaderboardStats, ({ one }) => ({
+  contractor: one(contractors, {
+    fields: [contractorLeaderboardStats.contractorId],
+    references: [contractors.id],
+  }),
 }));
 
 export const countiesRelations = relations(counties, ({ many }) => ({
@@ -488,6 +514,9 @@ export type Contractor = typeof contractors.$inferSelect;
 
 export type InsertRecommendation = typeof recommendations.$inferInsert;
 export type Recommendation = typeof recommendations.$inferSelect;
+
+export type InsertContractorLeaderboardStats = typeof contractorLeaderboardStats.$inferInsert;
+export type ContractorLeaderboardStats = typeof contractorLeaderboardStats.$inferSelect;
 
 export type InsertLead = typeof leads.$inferInsert;
 export type Lead = typeof leads.$inferSelect;

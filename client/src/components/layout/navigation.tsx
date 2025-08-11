@@ -8,7 +8,7 @@ import {
   Menu, X, Settings, LogOut, User, Crown, Bookmark, 
   Search, Calculator, Users, Package, Palette, 
   MessageCircle, Shield, Layout, Wrench, Home,
-  ChevronDown, Zap, Star
+  ChevronDown, Zap, Star, Trophy
 } from "lucide-react";
 import { ConstructionEmblem } from "@/components/ConstructionEmblem";
 import { NotificationBell } from "@/components/NotificationBell";
@@ -28,6 +28,7 @@ export default function Navigation() {
     ...(!isHomeowner ? [{ href: "/contractors", label: "For Contractors", icon: Wrench, public: true, description: "Join our contractor network" }] : []),
     { href: "/workers", label: "Helpers", icon: Users, public: true, description: "Find skilled helpers" },
     { href: "/marketplace", label: "Exchange", icon: Package, public: true, description: "Buy & sell equipment & handmade items" },
+    { href: "/leaderboard", label: "Leaderboard", icon: Trophy, public: true, description: "Top contractors by recommendations" },
     { href: "/community", label: "Community", icon: MessageCircle, public: true, description: "Connect with neighbors" },
   ];
 

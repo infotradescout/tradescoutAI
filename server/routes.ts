@@ -884,6 +884,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const validatedRecommendation = insertRecommendationSchema.parse(recommendationData);
       const recommendation = await storage.createRecommendation(validatedRecommendation);
       
+      // Update leaderboard stats when recommendation is created
+      await storage.updateContractorLeaderboardStats(recommendationData.contractorId, recommendationData.rating);
+      
       await storage.logEvent('recommendation_submitted', {
         recommendationId: recommendation.id,
         contractorId: recommendation.contractorId,
@@ -894,6 +897,43 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error creating recommendation:", error);
       res.status(500).json({ message: "Failed to create recommendation" });
+    }
+  });
+
+  // Contractor leaderboards
+  app.get("/api/leaderboard/monthly", async (req, res) => {
+    try {
+      const month = req.query.month ? Number(req.query.month) : new Date().getMonth() + 1;
+      const year = req.query.year ? Number(req.query.year) : new Date().getFullYear();
+      const limit = req.query.limit ? Number(req.query.limit) : 20;
+      
+      const leaderboard = await storage.getMonthlyLeaderboard(month, year, limit);
+      res.json(leaderboard);
+    } catch (error) {
+      console.error("Error fetching monthly leaderboard:", error);
+      res.status(500).json({ message: "Failed to fetch monthly leaderboard" });
+    }
+  });
+
+  app.get("/api/leaderboard/lifetime", async (req, res) => {
+    try {
+      const limit = req.query.limit ? Number(req.query.limit) : 20;
+      const leaderboard = await storage.getLifetimeLeaderboard(limit);
+      res.json(leaderboard);
+    } catch (error) {
+      console.error("Error fetching lifetime leaderboard:", error);
+      res.status(500).json({ message: "Failed to fetch lifetime leaderboard" });
+    }
+  });
+
+  app.get("/api/leaderboard/contractor/:contractorId", async (req, res) => {
+    try {
+      const { contractorId } = req.params;
+      const stats = await storage.getContractorLeaderboardPosition(contractorId);
+      res.json(stats);
+    } catch (error) {
+      console.error("Error fetching contractor leaderboard position:", error);
+      res.status(500).json({ message: "Failed to fetch contractor position" });
     }
   });
 

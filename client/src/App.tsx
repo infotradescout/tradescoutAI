@@ -40,6 +40,7 @@ import AdminErrorReports from "@/pages/admin-error-reports";
 import AdminTestingControls from "@/pages/admin-testing-controls";
 import AddressVerification from "@/pages/address-verification";
 import Community from "@/pages/community";
+import Leaderboard from "@/pages/leaderboard";
 
 import ModerationCenter from "@/pages/moderation-center";
 import { ProfileSetupRedirect } from "@/components/profile-setup-redirect";
@@ -80,6 +81,7 @@ function Router() {
         <Route path="/workers" component={WorkerMarketplace} />
         <Route path="/worker-marketplace" component={WorkerMarketplace} />
         <Route path="/marketplace" component={Marketplace} />
+        <Route path="/leaderboard" component={Leaderboard} />
         <Route path="/promo/:slug" component={PromoPublic} />
         
         {!isAuthenticated ? (

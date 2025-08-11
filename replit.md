@@ -62,6 +62,7 @@ Preferred communication style: Simple, everyday language.
 - **ID Verification Framework**: Vetting system with ID verification, background checks, and document management.
 - **Comprehensive SEO Implementation**: Structured data, meta tags, breadcrumbs, and AI-friendly content (LLM-optimized).
 - **Platform-Wide Address Verification**: Nextdoor-style address verification requirement for all users within 14 days of account creation, with postcard verification, document upload options, and graduated access restrictions.
+- **Contractor Recommendations Leaderboard System**: Monthly and lifetime contractor ranking based on customer recommendations, with automatic monthly resets and persistent lifetime tracking.
 
 # External Dependencies
 

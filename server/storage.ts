@@ -162,6 +162,10 @@ import {
   type InsertModerationAppeal,
   type ModerationSettings,
   type InsertModerationSettings,
+  // Leaderboard
+  contractorLeaderboardStats,
+  type ContractorLeaderboardStats,
+  type InsertContractorLeaderboardStats,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, desc, asc, sql, inArray, like, gt, or, lt, isNull, isNotNull } from "drizzle-orm";
@@ -203,6 +207,12 @@ export interface IStorage {
   getRecommendations(contractorId: string): Promise<Recommendation[]>;
   createRecommendation(recommendation: InsertRecommendation): Promise<Recommendation>;
   getContractorRatings(contractorId: string): Promise<{ count: number; average: number }>;
+  
+  // Leaderboard operations
+  updateContractorLeaderboardStats(contractorId: string, rating: number): Promise<void>;
+  getMonthlyLeaderboard(month: number, year: number, limit: number): Promise<any[]>;
+  getLifetimeLeaderboard(limit: number): Promise<any[]>;
+  getContractorLeaderboardPosition(contractorId: string): Promise<any>;
   
   // Lead operations
   createLead(lead: InsertLead): Promise<Lead>;
@@ -3107,6 +3117,213 @@ export class DatabaseStorage implements IStorage {
       actionReason: `Community vote completed: ${report.removeVotes}/${report.totalVotes} removal votes (${Math.round(removalPercentage * 100)}%)`,
       resolvedAt: new Date(),
     });
+  }
+
+  // Leaderboard operations
+  async updateContractorLeaderboardStats(contractorId: string, rating: number): Promise<void> {
+    const now = new Date();
+    const month = now.getMonth() + 1;
+    const year = now.getFullYear();
+
+    try {
+      // Get existing stats for this month/year
+      const [existingStats] = await db
+        .select()
+        .from(contractorLeaderboardStats)
+        .where(
+          and(
+            eq(contractorLeaderboardStats.contractorId, contractorId),
+            eq(contractorLeaderboardStats.month, month),
+            eq(contractorLeaderboardStats.year, year)
+          )
+        );
+
+      if (existingStats) {
+        // Update existing record
+        const newMonthlyCount = existingStats.monthlyRecommendations + 1;
+        const newLifetimeCount = existingStats.lifetimeRecommendations + 1;
+        
+        // Calculate new ratings
+        const currentMonthlyTotal = (existingStats.monthlyRating || 0) * existingStats.monthlyRecommendations;
+        const currentLifetimeTotal = (existingStats.lifetimeRating || 0) * existingStats.lifetimeRecommendations;
+        
+        const newMonthlyRating = (currentMonthlyTotal + rating) / newMonthlyCount;
+        const newLifetimeRating = (currentLifetimeTotal + rating) / newLifetimeCount;
+
+        await db
+          .update(contractorLeaderboardStats)
+          .set({
+            monthlyRecommendations: newMonthlyCount,
+            lifetimeRecommendations: newLifetimeCount,
+            monthlyRating: newMonthlyRating.toString(),
+            lifetimeRating: newLifetimeRating.toString(),
+            lastUpdated: now,
+          })
+          .where(eq(contractorLeaderboardStats.id, existingStats.id));
+      } else {
+        // Create new record
+        await db.insert(contractorLeaderboardStats).values({
+          contractorId,
+          month,
+          year,
+          monthlyRecommendations: 1,
+          lifetimeRecommendations: 1,
+          monthlyRating: rating.toString(),
+          lifetimeRating: rating.toString(),
+          lastUpdated: now,
+        });
+      }
+
+      // Also update any previous months' lifetime totals
+      await db
+        .update(contractorLeaderboardStats)
+        .set({
+          lifetimeRecommendations: sql`${contractorLeaderboardStats.lifetimeRecommendations} + 1`,
+          lifetimeRating: sql`(${contractorLeaderboardStats.lifetimeRating} * ${contractorLeaderboardStats.lifetimeRecommendations} + ${rating}) / (${contractorLeaderboardStats.lifetimeRecommendations} + 1)`,
+          lastUpdated: now,
+        })
+        .where(
+          and(
+            eq(contractorLeaderboardStats.contractorId, contractorId),
+            or(
+              lt(contractorLeaderboardStats.year, year),
+              and(
+                eq(contractorLeaderboardStats.year, year),
+                lt(contractorLeaderboardStats.month, month)
+              )
+            )
+          )
+        );
+    } catch (error) {
+      console.error("Error updating leaderboard stats:", error);
+    }
+  }
+
+  async getMonthlyLeaderboard(month: number, year: number, limit: number): Promise<any[]> {
+    const result = await db
+      .select({
+        contractorId: contractorLeaderboardStats.contractorId,
+        companyName: contractors.companyName,
+        slug: contractors.slug,
+        monthlyRecommendations: contractorLeaderboardStats.monthlyRecommendations,
+        monthlyRating: contractorLeaderboardStats.monthlyRating,
+        lifetimeRecommendations: contractorLeaderboardStats.lifetimeRecommendations,
+      })
+      .from(contractorLeaderboardStats)
+      .innerJoin(contractors, eq(contractorLeaderboardStats.contractorId, contractors.id))
+      .where(
+        and(
+          eq(contractorLeaderboardStats.month, month),
+          eq(contractorLeaderboardStats.year, year),
+          eq(contractors.isActive, true)
+        )
+      )
+      .orderBy(
+        desc(contractorLeaderboardStats.monthlyRecommendations),
+        desc(contractorLeaderboardStats.monthlyRating)
+      )
+      .limit(limit);
+
+    return result.map((row, index) => ({
+      rank: index + 1,
+      ...row,
+    }));
+  }
+
+  async getLifetimeLeaderboard(limit: number): Promise<any[]> {
+    const result = await db
+      .select({
+        contractorId: contractorLeaderboardStats.contractorId,
+        companyName: contractors.companyName,
+        slug: contractors.slug,
+        lifetimeRecommendations: sql<number>`MAX(${contractorLeaderboardStats.lifetimeRecommendations})`.as('lifetimeRecommendations'),
+        lifetimeRating: sql<string>`AVG(${contractorLeaderboardStats.lifetimeRating})`.as('lifetimeRating'),
+      })
+      .from(contractorLeaderboardStats)
+      .innerJoin(contractors, eq(contractorLeaderboardStats.contractorId, contractors.id))
+      .where(eq(contractors.isActive, true))
+      .groupBy(contractorLeaderboardStats.contractorId, contractors.companyName, contractors.slug)
+      .orderBy(
+        desc(sql`MAX(${contractorLeaderboardStats.lifetimeRecommendations})`),
+        desc(sql`AVG(${contractorLeaderboardStats.lifetimeRating})`)
+      )
+      .limit(limit);
+
+    return result.map((row, index) => ({
+      rank: index + 1,
+      ...row,
+    }));
+  }
+
+  async getContractorLeaderboardPosition(contractorId: string): Promise<any> {
+    const now = new Date();
+    const month = now.getMonth() + 1;
+    const year = now.getFullYear();
+
+    // Get current month stats
+    const [monthlyStats] = await db
+      .select()
+      .from(contractorLeaderboardStats)
+      .where(
+        and(
+          eq(contractorLeaderboardStats.contractorId, contractorId),
+          eq(contractorLeaderboardStats.month, month),
+          eq(contractorLeaderboardStats.year, year)
+        )
+      );
+
+    // Get lifetime stats (latest record)
+    const [lifetimeStats] = await db
+      .select()
+      .from(contractorLeaderboardStats)
+      .where(eq(contractorLeaderboardStats.contractorId, contractorId))
+      .orderBy(desc(contractorLeaderboardStats.lastUpdated))
+      .limit(1);
+
+    // Calculate monthly rank
+    let monthlyRank = null;
+    if (monthlyStats) {
+      const [rankResult] = await db
+        .select({ rank: sql<number>`COUNT(*) + 1` })
+        .from(contractorLeaderboardStats)
+        .where(
+          and(
+            eq(contractorLeaderboardStats.month, month),
+            eq(contractorLeaderboardStats.year, year),
+            gt(contractorLeaderboardStats.monthlyRecommendations, monthlyStats.monthlyRecommendations)
+          )
+        );
+      monthlyRank = rankResult?.rank || 1;
+    }
+
+    // Calculate lifetime rank
+    let lifetimeRank = null;
+    if (lifetimeStats) {
+      const [rankResult] = await db
+        .select({ rank: sql<number>`COUNT(DISTINCT ${contractorLeaderboardStats.contractorId}) + 1` })
+        .from(contractorLeaderboardStats)
+        .where(
+          gt(sql`MAX(${contractorLeaderboardStats.lifetimeRecommendations})`, lifetimeStats.lifetimeRecommendations)
+        )
+        .groupBy(contractorLeaderboardStats.contractorId);
+      lifetimeRank = rankResult?.rank || 1;
+    }
+
+    return {
+      contractorId,
+      monthly: monthlyStats ? {
+        rank: monthlyRank,
+        recommendations: monthlyStats.monthlyRecommendations,
+        rating: monthlyStats.monthlyRating,
+        month,
+        year,
+      } : null,
+      lifetime: lifetimeStats ? {
+        rank: lifetimeRank,
+        recommendations: lifetimeStats.lifetimeRecommendations,
+        rating: lifetimeStats.lifetimeRating,
+      } : null,
+    };
   }
 }
 
