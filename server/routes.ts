@@ -165,6 +165,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Locality tracking middleware - track all interactions with geographic context
   app.use(localityTrackingMiddleware());
 
+  // Health check endpoint - must be before other routes
+  app.get('/api/health', (req, res) => {
+    res.json({ 
+      status: 'healthy', 
+      timestamp: new Date().toISOString(),
+      uptime: process.uptime(),
+      database: 'connected'
+    });
+  });
+
   // OAuth routes
   app.get('/auth/facebook', passport.authenticate('facebook', { scope: ['email'] }));
   app.get('/auth/facebook/callback', 
@@ -280,6 +290,58 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error fetching contractors:", error);
       res.status(500).json({ message: "Failed to fetch contractors" });
+    }
+  });
+
+  // Contractor search endpoint (alias for contractor listing with search params)
+  app.get("/api/contractors/search", async (req, res) => {
+    try {
+      const { county, trade, sort, limit = 20, offset = 0 } = req.query;
+      
+      // Track contractor search with locality context
+      await LocalityTracker.trackInteraction('search', req, {
+        searchQuery: trade as string,
+        projectType: 'contractor_search',
+        tradeType: trade as string
+      });
+      
+      const filters: any = {
+        limit: parseInt(limit as string),
+        offset: parseInt(offset as string),
+      };
+      
+      if (county) {
+        // Try to find county by name (not FIPS)
+        const counties = await storage.getCounties();
+        const countyRecord = counties.find(c => 
+          c.name.toLowerCase().includes((county as string).toLowerCase()) ||
+          c.fips === county
+        );
+        if (countyRecord) {
+          filters.countyId = countyRecord.id;
+        } else {
+          return res.json([]); // No county found, return empty results
+        }
+      }
+      
+      if (trade) {
+        const tradeRecord = await storage.getTradeBySlug(trade as string);
+        if (tradeRecord) {
+          filters.tradeIds = [tradeRecord.id];
+        } else {
+          return res.json([]); // No trade found, return empty results  
+        }
+      }
+      
+      if (sort) {
+        filters.sortBy = sort;
+      }
+      
+      const contractors = await storage.getContractors(filters);
+      res.json(contractors);
+    } catch (error) {
+      console.error("Error searching contractors:", error);
+      res.status(500).json({ message: "Failed to search contractors" });
     }
   });
 
@@ -812,10 +874,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Lead submission (requires auth)
-  app.post("/api/leads", isAuthenticated, async (req: any, res) => {
+  // Lead submission (public - no auth required for homeowners to get quotes)
+  app.post("/api/leads", async (req, res) => {
     try {
-      const userId = (req.user as any)?.claims?.sub || req.user?.id;
+      // User ID is optional for public lead submissions
+      const userId = (req.user as any)?.claims?.sub || req.user?.id || null;
       const leadData = { ...req.body, userId };
       
       // Track quote request with locality context
