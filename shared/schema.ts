@@ -137,6 +137,52 @@ export const permissionLevelEnum = pgEnum('permission_level', [
   'owner'
 ]);
 
+// Social post types enum
+export const postTypeEnum = pgEnum('post_type', [
+  'general',
+  'announcement',
+  'question',
+  'recommendation',
+  'for_sale',
+  'lost_found',
+  'safety_alert',
+  'event',
+  'service_request',
+  'neighborhood_news'
+]);
+
+// Reaction types enum
+export const reactionTypeEnum = pgEnum('reaction_type', [
+  'like',
+  'love',
+  'laugh',
+  'wow',
+  'sad',
+  'angry',
+  'helpful',
+  'thanks'
+]);
+
+// Privacy levels enum
+export const privacyLevelEnum = pgEnum('privacy_level', [
+  'public',
+  'neighborhood',
+  'friends',
+  'private'
+]);
+
+// Report reasons enum
+export const reportReasonEnum = pgEnum('report_reason', [
+  'spam',
+  'harassment',
+  'hate_speech',
+  'violence',
+  'misinformation',
+  'inappropriate_content',
+  'scam',
+  'other'
+]);
+
 // Invitation status enum
 export const invitationStatusEnum = pgEnum('invitation_status', [
   'pending',
@@ -572,6 +618,242 @@ export const leadsRelations = relations(leads, ({ one, many }) => ({
 export type InsertUser = typeof users.$inferInsert;
 export type UpsertUser = typeof users.$inferInsert;
 export type User = typeof users.$inferSelect;
+
+// Social Posts table
+export const socialPosts = pgTable("social_posts", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  authorId: varchar("author_id").notNull().references(() => users.id, { onDelete: 'cascade' }),
+  content: text("content").notNull(),
+  postType: postTypeEnum("post_type").default('general'),
+  privacyLevel: privacyLevelEnum("privacy_level").default('neighborhood'),
+  images: jsonb("images").$type<string[]>(),
+  location: varchar("location"), // neighborhood/area reference
+  county: varchar("county"),
+  state: varchar("state"),
+  tags: jsonb("tags").$type<string[]>(),
+  mentionedUsers: jsonb("mentioned_users").$type<string[]>(),
+  isEdited: boolean("is_edited").default(false),
+  editedAt: timestamp("edited_at"),
+  isPinned: boolean("is_pinned").default(false),
+  isArchived: boolean("is_archived").default(false),
+  viewCount: integer("view_count").default(0),
+  shareCount: integer("share_count").default(0),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Post reactions table
+export const postReactions = pgTable("post_reactions", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  postId: varchar("post_id").notNull().references(() => socialPosts.id, { onDelete: 'cascade' }),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: 'cascade' }),
+  reactionType: reactionTypeEnum("reaction_type").notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+}, (table) => [
+  index("idx_post_reactions_post").on(table.postId),
+  index("idx_post_reactions_user").on(table.userId),
+]);
+
+// Post comments table
+export const postComments = pgTable("post_comments", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  postId: varchar("post_id").notNull().references(() => socialPosts.id, { onDelete: 'cascade' }),
+  authorId: varchar("author_id").notNull().references(() => users.id, { onDelete: 'cascade' }),
+  parentCommentId: varchar("parent_comment_id"), // for reply threads
+  content: text("content").notNull(),
+  images: jsonb("images").$type<string[]>(),
+  mentionedUsers: jsonb("mentioned_users").$type<string[]>(),
+  isEdited: boolean("is_edited").default(false),
+  editedAt: timestamp("edited_at"),
+  likeCount: integer("like_count").default(0),
+  replyCount: integer("reply_count").default(0),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => [
+  index("idx_post_comments_post").on(table.postId),
+  index("idx_post_comments_parent").on(table.parentCommentId),
+]);
+
+// Comment reactions table
+export const commentReactions = pgTable("comment_reactions", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  commentId: varchar("comment_id").notNull().references(() => postComments.id, { onDelete: 'cascade' }),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: 'cascade' }),
+  reactionType: reactionTypeEnum("reaction_type").notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+}, (table) => [
+  index("idx_comment_reactions_comment").on(table.commentId),
+  index("idx_comment_reactions_user").on(table.userId),
+]);
+
+// Post shares table
+export const postShares = pgTable("post_shares", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  postId: varchar("post_id").notNull().references(() => socialPosts.id, { onDelete: 'cascade' }),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: 'cascade' }),
+  shareMessage: text("share_message"),
+  privacyLevel: privacyLevelEnum("privacy_level").default('neighborhood'),
+  createdAt: timestamp("created_at").defaultNow(),
+}, (table) => [
+  index("idx_post_shares_post").on(table.postId),
+  index("idx_post_shares_user").on(table.userId),
+]);
+
+// Following relationships table
+export const userFollows = pgTable("user_follows", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  followerId: varchar("follower_id").notNull().references(() => users.id, { onDelete: 'cascade' }),
+  followingId: varchar("following_id").notNull().references(() => users.id, { onDelete: 'cascade' }),
+  createdAt: timestamp("created_at").defaultNow(),
+}, (table) => [
+  index("idx_user_follows_follower").on(table.followerId),
+  index("idx_user_follows_following").on(table.followingId),
+]);
+
+// Content reports table
+export const contentReports = pgTable("content_reports", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  reporterId: varchar("reporter_id").notNull().references(() => users.id, { onDelete: 'cascade' }),
+  reportedUserId: varchar("reported_user_id").references(() => users.id, { onDelete: 'cascade' }),
+  postId: varchar("post_id").references(() => socialPosts.id, { onDelete: 'cascade' }),
+  commentId: varchar("comment_id").references(() => postComments.id, { onDelete: 'cascade' }),
+  reason: reportReasonEnum("reason").notNull(),
+  description: text("description"),
+  status: varchar("status").default('pending'), // pending, reviewed, resolved, dismissed
+  reviewedBy: varchar("reviewed_by").references(() => users.id),
+  reviewedAt: timestamp("reviewed_at"),
+  createdAt: timestamp("created_at").defaultNow(),
+}, (table) => [
+  index("idx_content_reports_reporter").on(table.reporterId),
+  index("idx_content_reports_status").on(table.status),
+]);
+
+// Neighborhood boundaries table
+export const neighborhoods = pgTable("neighborhoods", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  name: varchar("name").notNull(),
+  county: varchar("county").notNull(),
+  state: varchar("state").notNull(),
+  zipCodes: jsonb("zip_codes").$type<string[]>(),
+  boundaries: jsonb("boundaries"), // GeoJSON polygon data
+  centerLat: decimal("center_lat"),
+  centerLng: decimal("center_lng"),
+  memberCount: integer("member_count").default(0),
+  moderatorIds: jsonb("moderator_ids").$type<string[]>(),
+  description: text("description"),
+  guidelines: text("guidelines"),
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => [
+  index("idx_neighborhoods_county_state").on(table.county, table.state),
+]);
+
+// Relations for social features
+export const socialPostsRelations = relations(socialPosts, ({ one, many }) => ({
+  author: one(users, { fields: [socialPosts.authorId], references: [users.id] }),
+  reactions: many(postReactions),
+  comments: many(postComments),
+  shares: many(postShares),
+  reports: many(contentReports),
+}));
+
+export const postReactionsRelations = relations(postReactions, ({ one }) => ({
+  post: one(socialPosts, { fields: [postReactions.postId], references: [socialPosts.id] }),
+  user: one(users, { fields: [postReactions.userId], references: [users.id] }),
+}));
+
+export const postCommentsRelations = relations(postComments, ({ one, many }) => ({
+  post: one(socialPosts, { fields: [postComments.postId], references: [socialPosts.id] }),
+  author: one(users, { fields: [postComments.authorId], references: [users.id] }),
+  parentComment: one(postComments, { fields: [postComments.parentCommentId], references: [postComments.id] }),
+  replies: many(postComments),
+  reactions: many(commentReactions),
+  reports: many(contentReports),
+}));
+
+export const commentReactionsRelations = relations(commentReactions, ({ one }) => ({
+  comment: one(postComments, { fields: [commentReactions.commentId], references: [postComments.id] }),
+  user: one(users, { fields: [commentReactions.userId], references: [users.id] }),
+}));
+
+export const postSharesRelations = relations(postShares, ({ one }) => ({
+  post: one(socialPosts, { fields: [postShares.postId], references: [socialPosts.id] }),
+  user: one(users, { fields: [postShares.userId], references: [users.id] }),
+}));
+
+export const userFollowsRelations = relations(userFollows, ({ one }) => ({
+  follower: one(users, { fields: [userFollows.followerId], references: [users.id] }),
+  following: one(users, { fields: [userFollows.followingId], references: [users.id] }),
+}));
+
+export const contentReportsRelations = relations(contentReports, ({ one }) => ({
+  reporter: one(users, { fields: [contentReports.reporterId], references: [users.id] }),
+  reportedUser: one(users, { fields: [contentReports.reportedUserId], references: [users.id] }),
+  post: one(socialPosts, { fields: [contentReports.postId], references: [socialPosts.id] }),
+  comment: one(postComments, { fields: [contentReports.commentId], references: [postComments.id] }),
+  reviewer: one(users, { fields: [contentReports.reviewedBy], references: [users.id] }),
+}));
+
+export const neighborhoodsRelations = relations(neighborhoods, ({ many }) => ({
+  posts: many(socialPosts),
+}));
+
+// Insert schemas for forms
+export const insertSocialPostSchema = createInsertSchema(socialPosts).omit({ 
+  id: true, 
+  createdAt: true, 
+  updatedAt: true,
+  viewCount: true,
+  shareCount: true,
+  isEdited: true,
+  editedAt: true,
+  isPinned: true,
+  isArchived: true
+});
+
+export const insertPostCommentSchema = createInsertSchema(postComments).omit({ 
+  id: true, 
+  createdAt: true, 
+  updatedAt: true,
+  likeCount: true,
+  replyCount: true,
+  isEdited: true,
+  editedAt: true
+});
+
+export const insertPostReactionSchema = createInsertSchema(postReactions).omit({ 
+  id: true, 
+  createdAt: true 
+});
+
+export const insertPostShareSchema = createInsertSchema(postShares).omit({ 
+  id: true, 
+  createdAt: true 
+});
+
+export const insertContentReportSchema = createInsertSchema(contentReports).omit({ 
+  id: true, 
+  createdAt: true,
+  status: true,
+  reviewedBy: true,
+  reviewedAt: true
+});
+
+// Types
+export type SocialPost = typeof socialPosts.$inferSelect;
+export type PostComment = typeof postComments.$inferSelect;
+export type PostReaction = typeof postReactions.$inferSelect;
+export type PostShare = typeof postShares.$inferSelect;
+export type UserFollow = typeof userFollows.$inferSelect;
+export type ContentReport = typeof contentReports.$inferSelect;
+export type Neighborhood = typeof neighborhoods.$inferSelect;
+
+export type InsertSocialPost = z.infer<typeof insertSocialPostSchema>;
+export type InsertPostComment = z.infer<typeof insertPostCommentSchema>;
+export type InsertPostReaction = z.infer<typeof insertPostReactionSchema>;
+export type InsertPostShare = z.infer<typeof insertPostShareSchema>;
+export type InsertContentReport = z.infer<typeof insertContentReportSchema>;
 
 // Marketplace conversation types
 export type MarketplaceConversation = typeof marketplaceConversations.$inferSelect;
@@ -1880,27 +2162,7 @@ export const postLikes = pgTable("post_likes", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
-export const postComments = pgTable("post_comments", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  postId: varchar("post_id").notNull().references(() => communityPosts.id),
-  authorId: varchar("author_id").notNull().references(() => users.id),
-  parentCommentId: varchar("parent_comment_id"), // For threaded comments
-  
-  content: text("content").notNull(),
-  imageUrls: text("image_urls").array(),
-  
-  // Engagement
-  likeCount: integer("like_count").default(0),
-  
-  // Moderation
-  isHidden: boolean("is_hidden").default(false),
-  moderatorNotes: text("moderator_notes"),
-  moderatedBy: varchar("moderated_by"),
-  moderatedAt: timestamp("moderated_at"),
-  
-  createdAt: timestamp("created_at").defaultNow(),
-  updatedAt: timestamp("updated_at").defaultNow(),
-});
+
 
 export const commentLikes = pgTable("comment_likes", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -1909,12 +2171,7 @@ export const commentLikes = pgTable("comment_likes", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
-export const userFollows = pgTable("user_follows", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  followerId: varchar("follower_id").notNull().references(() => users.id),
-  followingId: varchar("following_id").notNull().references(() => users.id),
-  createdAt: timestamp("created_at").defaultNow(),
-});
+
 
 // Invitations table for tracking user invitations
 export const invitations = pgTable("invitations", {
@@ -2071,25 +2328,7 @@ export const postLikesRelations = relations(postLikes, ({ one }) => ({
   }),
 }));
 
-export const postCommentsRelations = relations(postComments, ({ one, many }) => ({
-  post: one(communityPosts, {
-    fields: [postComments.postId],
-    references: [communityPosts.id],
-  }),
-  author: one(users, {
-    fields: [postComments.authorId],
-    references: [users.id],
-  }),
-  parentComment: one(postComments, {
-    fields: [postComments.parentCommentId],
-    references: [postComments.id],
-    relationName: "CommentReplies",
-  }),
-  replies: many(postComments, {
-    relationName: "CommentReplies",
-  }),
-  likes: many(commentLikes),
-}));
+
 
 export const commentLikesRelations = relations(commentLikes, ({ one }) => ({
   comment: one(postComments, {
@@ -2102,18 +2341,7 @@ export const commentLikesRelations = relations(commentLikes, ({ one }) => ({
   }),
 }));
 
-export const userFollowsRelations = relations(userFollows, ({ one }) => ({
-  follower: one(users, {
-    fields: [userFollows.followerId],
-    references: [users.id],
-    relationName: "UserFollowing",
-  }),
-  following: one(users, {
-    fields: [userFollows.followingId],
-    references: [users.id],
-    relationName: "UserFollowers",
-  }),
-}));
+
 
 export const communityGroupsRelations = relations(communityGroups, ({ one, many }) => ({
   creator: one(users, {
@@ -2731,21 +2959,7 @@ export const contentTypeEnum = pgEnum('content_type', [
   'conversation_message'
 ]);
 
-// Moderation report reasons
-export const reportReasonEnum = pgEnum('report_reason', [
-  'spam',
-  'harassment', 
-  'inappropriate_content',
-  'fraud',
-  'fake_listing',
-  'wrong_category',
-  'duplicate_content',
-  'price_manipulation',
-  'offensive_language',
-  'copyright_violation',
-  'privacy_violation',
-  'other'
-]);
+// Using the reportReasonEnum defined earlier in the file
 
 // Vote types for community moderation
 export const voteTypeEnum = pgEnum('vote_type', [

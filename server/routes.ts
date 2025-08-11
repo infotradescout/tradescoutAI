@@ -73,6 +73,7 @@ const requireAddressVerification = async (req: any, res: any, next: any) => {
 import { db } from "./db";
 import { eq, desc, and, or, isNull, isNotNull, sql } from "drizzle-orm";
 import { addressVerifications, users } from "@shared/schema";
+import { registerSocialRoutes } from "./social-routes";
 import { 
   insertLeadSchema, 
   insertRecommendationSchema, 
@@ -5827,6 +5828,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ message: "Failed to fetch access logs" });
     }
   });
+
+  // Register social media routes
+  registerSocialRoutes(app);
 
   return httpServer;
 }

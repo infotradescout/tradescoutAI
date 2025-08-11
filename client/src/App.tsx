@@ -13,6 +13,8 @@ import MobileCTA from "@/components/mobile-cta";
 import NotFound from "@/pages/not-found";
 import Login from "@/pages/Login";
 import Landing from "@/pages/landing";
+import SimpleLanding from "@/pages/simple-landing";
+import TestPage from "@/pages/test-page";
 import Home from "@/pages/home";
 import Foundation from "@/pages/foundation";
 import { MasterAdminSetup } from "@/components/MasterAdminSetup";
@@ -121,7 +123,8 @@ function Router() {
         
         {!isAuthenticated ? (
           <>
-            <Route path="/" component={Landing} />
+            <Route path="/" component={TestPage} />
+            <Route path="/simple" component={SimpleLanding} />
           </>
         ) : (
           <>

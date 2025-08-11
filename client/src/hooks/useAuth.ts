@@ -15,9 +15,9 @@ export interface User {
 
 export function useAuth() {
   const { data: user, isLoading, error } = useQuery({
-    queryKey: ["/auth/user"],
+    queryKey: ["/api/auth/user"],
     queryFn: async () => {
-      const response = await fetch('/auth/user', {
+      const response = await fetch('/api/auth/user', {
         credentials: 'include',
       });
       if (!response.ok) {
