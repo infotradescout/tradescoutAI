@@ -156,55 +156,61 @@ const categoryIcons = {
   package: Package
 };
 
-// Featured categories optimized for contractor value and growth
+// Featured categories optimized for both contractors and homeowners with smart value messaging
 const featuredCategories = [
   { 
     id: 'professional_tools', 
-    name: 'Professional Tools', 
+    name: 'Quality Tools', 
     icon: 'tools', 
     color: 'orange',
-    description: 'Premium tools that pay for themselves',
-    valueProposition: 'Upgrade your capabilities'
+    description: 'Tools that maintain their value and perform reliably',
+    valueProposition: 'Smart long-term choices',
+    benefits: ['Proven durability', 'Reliable performance', 'Value retention']
   },
   { 
     id: 'work_vehicles', 
-    name: 'Work Vehicles', 
+    name: 'Reliable Vehicles', 
     icon: 'truck', 
     color: 'blue',
-    description: 'Reliable vehicles for serious contractors',
-    valueProposition: 'Expand your service radius'
+    description: 'Well-maintained vehicles from trusted owners',
+    valueProposition: 'Dependable transportation',
+    benefits: ['Service history included', 'Local maintenance records', 'Fair pricing']
   },
   { 
     id: 'heavy_equipment', 
-    name: 'Heavy Equipment', 
+    name: 'Equipment & Machinery', 
     icon: 'construction', 
     color: 'amber',
-    description: 'Equipment that opens bigger opportunities',
-    valueProposition: 'Take on larger projects'
+    description: 'Professional-grade equipment with maintenance records',
+    valueProposition: 'Capability expansion',
+    benefits: ['Professional grade', 'Maintenance tracked', 'Performance verified']
   },
   { 
-    id: 'specialty_materials', 
-    name: 'Quality Materials', 
-    icon: 'package', 
+    id: 'home_improvement', 
+    name: 'Home & Garden', 
+    icon: 'home', 
     color: 'emerald',
-    description: 'Premium materials for quality results',
-    valueProposition: 'Deliver superior craftsmanship'
+    description: 'Quality items for homeowners who value craftsmanship',
+    valueProposition: 'Enhance your property',
+    benefits: ['Quality materials', 'Lasting results', 'Property value boost']
   },
   { 
-    id: 'business_assets', 
-    name: 'Business Equipment', 
-    icon: 'briefcase', 
+    id: 'specialty_items', 
+    name: 'Specialty & Collectibles', 
+    icon: 'gem', 
     color: 'purple',
-    description: 'Equipment that builds your reputation',
-    valueProposition: 'Professional presentation'
+    description: 'Unique items with documented provenance and quality',
+    valueProposition: 'Distinctive finds',
+    benefits: ['Authenticated quality', 'Unique character', 'Value appreciation']
   },
   { 
     id: 'local_marketplace', 
-    name: 'Local Exchange', 
+    name: 'Community Exchange', 
     icon: 'users', 
-    color: 'red',
-    description: 'Community-verified quality items',
-    valueProposition: 'Trusted local network'
+    color: 'blue',
+    description: 'Local community members sharing quality items',
+    valueProposition: 'Neighborhood connections',
+    benefits: ['Local pickup', 'Community verified', 'Support neighbors']
   }
 ];
 
@@ -338,6 +344,8 @@ export default function Marketplace() {
       package: Package,
       briefcase: Briefcase,
       users: Users,
+      home: Home,
+      gem: Gem,
       ...categoryIcons
     };
     const IconComponent = iconMap[iconName as keyof typeof iconMap] || Package;
@@ -357,33 +365,40 @@ export default function Marketplace() {
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-      {/* Value Proposition Banner */}
+      {/* Smart Value Banner */}
       <div className="bg-gradient-to-r from-orange-600 via-amber-600 to-orange-500 text-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
           <div className="text-center mb-4">
-            <h2 className="text-xl font-bold mb-2">Tools That Build Success</h2>
-            <p className="text-orange-100">Quality equipment from contractors who've grown their business</p>
+            <h2 className="text-xl font-bold mb-2">Quality Items, Smart Decisions</h2>
+            <p className="text-orange-100">Where quality meets value from trusted community members</p>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <div className="flex items-center justify-center bg-white/10 rounded-lg p-4">
-              <Award className="h-6 w-6 mr-3" />
+              <Award className="h-5 w-5 mr-3" />
               <div className="text-left">
-                <div className="font-semibold">Proven Performance</div>
-                <div className="text-sm text-orange-100">Equipment tested by professionals</div>
+                <div className="font-semibold text-sm">Quality Verified</div>
+                <div className="text-xs text-orange-100">Items vetted by experts</div>
               </div>
             </div>
             <div className="flex items-center justify-center bg-white/10 rounded-lg p-4">
-              <TrendingUp className="h-6 w-6 mr-3" />
+              <TrendingUp className="h-5 w-5 mr-3" />
               <div className="text-left">
-                <div className="font-semibold">Value Appreciation</div>
-                <div className="text-sm text-orange-100">Quality tools hold their worth</div>
+                <div className="font-semibold text-sm">Value Focused</div>
+                <div className="text-xs text-orange-100">Smart pricing decisions</div>
               </div>
             </div>
             <div className="flex items-center justify-center bg-white/10 rounded-lg p-4">
-              <Users className="h-6 w-6 mr-3" />
+              <Shield className="h-5 w-5 mr-3" />
               <div className="text-left">
-                <div className="font-semibold">Contractor Network</div>
-                <div className="text-sm text-orange-100">Connect with proven professionals</div>
+                <div className="font-semibold text-sm">Trust Protected</div>
+                <div className="text-xs text-orange-100">Verified seller network</div>
+              </div>
+            </div>
+            <div className="flex items-center justify-center bg-white/10 rounded-lg p-4">
+              <Users className="h-5 w-5 mr-3" />
+              <div className="text-left">
+                <div className="font-semibold text-sm">Community Driven</div>
+                <div className="text-xs text-orange-100">Local connections matter</div>
               </div>
             </div>
           </div>
@@ -395,27 +410,27 @@ export default function Marketplace() {
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8">
           <div>
             <h1 className="text-4xl font-bold text-gray-900 dark:text-white mb-3">
-              Professional Exchange
+              Quality Exchange
             </h1>
             <p className="text-lg text-gray-600 dark:text-gray-300 mb-4">
-              Where contractors find the tools that grow their business
+              Where smart buyers and quality sellers connect for lasting value
             </p>
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
               <div className="flex items-center text-sm bg-orange-50 dark:bg-orange-900/20 text-orange-700 dark:text-orange-300 px-3 py-2 rounded-lg">
-                <Wrench className="h-4 w-4 mr-2" />
-                Professional Grade
+                <CheckCircle className="h-4 w-4 mr-2" />
+                Quality Assured
               </div>
               <div className="flex items-center text-sm bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 px-3 py-2 rounded-lg">
                 <Shield className="h-4 w-4 mr-2" />
-                Contractor Verified
+                Trust Protected
               </div>
               <div className="flex items-center text-sm bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-300 px-3 py-2 rounded-lg">
                 <TrendingUp className="h-4 w-4 mr-2" />
-                Value Retention
+                Smart Pricing
               </div>
               <div className="flex items-center text-sm bg-purple-50 dark:bg-purple-900/20 text-purple-700 dark:text-purple-300 px-3 py-2 rounded-lg">
-                <Award className="h-4 w-4 mr-2" />
-                Success Stories
+                <Heart className="h-4 w-4 mr-2" />
+                Community Focused
               </div>
             </div>
           </div>
@@ -427,10 +442,10 @@ export default function Marketplace() {
                 className="bg-orange-600 hover:bg-orange-700 text-white"
               >
                 <Plus className="h-4 w-4 mr-2" />
-                List Equipment
+                List Your Item
               </Button>
               <p className="text-xs text-gray-500 text-center">
-                Turn your gear into opportunity
+                Share quality with your community
               </p>
             </div>
           )}
@@ -441,11 +456,38 @@ export default function Marketplace() {
           <div className="flex items-center justify-between mb-6">
             <div>
               <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
-                Equipment That Builds Careers
+                Smart Choices for Every Need
               </h2>
               <p className="text-gray-600 dark:text-gray-400">
-                Find the tools and equipment that successful contractors recommend
+                Quality items from trusted community members who understand value
               </p>
+            </div>
+          </div>
+          
+          {/* Value Decision Psychology Banner */}
+          <div className="mb-6 p-4 bg-gradient-to-r from-blue-50 via-indigo-50 to-purple-50 dark:from-blue-900/10 dark:via-indigo-900/10 dark:to-purple-900/10 rounded-lg border border-blue-200 dark:border-blue-800">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                <div className="flex-shrink-0">
+                  <CheckCircle className="h-6 w-6 text-blue-600" />
+                </div>
+                <div>
+                  <h3 className="font-semibold text-gray-900 dark:text-white">Smart Value Decisions</h3>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">
+                    Whether you're building a business or enhancing your home, quality choices lead to lasting satisfaction
+                  </p>
+                </div>
+              </div>
+              <div className="hidden md:flex items-center gap-2">
+                <Badge variant="outline" className="text-xs">
+                  <TrendingUp className="h-3 w-3 mr-1" />
+                  Value Appreciation
+                </Badge>
+                <Badge variant="outline" className="text-xs">
+                  <Shield className="h-3 w-3 mr-1" />
+                  Quality Assured
+                </Badge>
+              </div>
             </div>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -470,12 +512,19 @@ export default function Marketplace() {
                       <h3 className="font-bold text-lg text-gray-900 dark:text-white mb-1">
                         {category.name}
                       </h3>
-                      <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
+                      <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
                         {category.description}
                       </p>
-                      <div className="flex items-center text-sm font-medium text-orange-600 dark:text-orange-400">
+                      <div className="flex items-center text-sm font-medium text-orange-600 dark:text-orange-400 mb-2">
                         <TrendingUp className="h-4 w-4 mr-1" />
                         {category.valueProposition}
+                      </div>
+                      <div className="flex flex-wrap gap-1">
+                        {category.benefits.map((benefit, index) => (
+                          <Badge key={index} variant="outline" className="text-xs border-gray-300 text-gray-600">
+                            {benefit}
+                          </Badge>
+                        ))}
                       </div>
                     </div>
                   </div>
@@ -712,7 +761,7 @@ export default function Marketplace() {
           </Card>
         )}
 
-        {/* Professional Equipment Notice */}
+        {/* Quality Tools & Equipment Notice */}
         {(selectedCategory === 'professional_tools' || selectedCategory === 'heavy_equipment') && (
           <Card className="mb-6 border-orange-200 bg-orange-50 dark:bg-orange-900/20 dark:border-orange-800">
             <CardContent className="p-6">
@@ -722,39 +771,152 @@ export default function Marketplace() {
                 </div>
                 <div className="flex-1">
                   <h3 className="font-semibold text-orange-900 dark:text-orange-100 mb-2">
-                    Professional Equipment Exchange
+                    Quality Tools & Equipment
                   </h3>
                   <p className="text-orange-800 dark:text-orange-200 text-sm mb-4">
-                    These tools come from established contractors who understand quality. Each listing includes 
-                    maintenance history and performance details to help you make informed decisions.
+                    These items come from experienced owners who understand quality and maintenance. Each listing includes 
+                    usage history and care details to help you make confident purchasing decisions.
                   </p>
                   
-                  <div className="grid md:grid-cols-3 gap-4">
+                  <div className="grid md:grid-cols-4 gap-4">
                     <div className="bg-white dark:bg-gray-800 p-4 rounded-lg">
                       <h4 className="font-medium text-gray-900 dark:text-white mb-2 flex items-center">
                         <CheckCircle className="h-4 w-4 mr-2 text-green-600" />
-                        Quality Assured
+                        Quality Verified
                       </h4>
                       <p className="text-sm text-gray-600 dark:text-gray-300">
-                        Equipment inspected and verified by working contractors
+                        Items checked by knowledgeable owners
                       </p>
                     </div>
                     <div className="bg-white dark:bg-gray-800 p-4 rounded-lg">
                       <h4 className="font-medium text-gray-900 dark:text-white mb-2 flex items-center">
                         <TrendingUp className="h-4 w-4 mr-2 text-blue-600" />
-                        Value Retention
+                        Smart Value
                       </h4>
                       <p className="text-sm text-gray-600 dark:text-gray-300">
-                        Professional tools hold their value and perform consistently
+                        Quality items maintain worth over time
                       </p>
                     </div>
                     <div className="bg-white dark:bg-gray-800 p-4 rounded-lg">
                       <h4 className="font-medium text-gray-900 dark:text-white mb-2 flex items-center">
                         <Users className="h-4 w-4 mr-2 text-purple-600" />
+                        Owner Stories
+                      </h4>
+                      <p className="text-sm text-gray-600 dark:text-gray-300">
+                        Learn from experienced equipment owners
+                      </p>
+                    </div>
+                    <div className="bg-white dark:bg-gray-800 p-4 rounded-lg">
+                      <h4 className="font-medium text-gray-900 dark:text-white mb-2 flex items-center">
+                        <Shield className="h-4 w-4 mr-2 text-emerald-600" />
+                        Trust Network
+                      </h4>
+                      <p className="text-sm text-gray-600 dark:text-gray-300">
+                        Community-verified seller ratings
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Home & Garden Notice */}
+        {selectedCategory === 'home_improvement' && (
+          <Card className="mb-6 border-emerald-200 bg-emerald-50 dark:bg-emerald-900/20 dark:border-emerald-800">
+            <CardContent className="p-6">
+              <div className="flex items-start gap-4">
+                <div className="flex-shrink-0">
+                  <Home className="h-6 w-6 text-emerald-600" />
+                </div>
+                <div className="flex-1">
+                  <h3 className="font-semibold text-emerald-900 dark:text-emerald-100 mb-2">
+                    Home & Garden Excellence
+                  </h3>
+                  <p className="text-emerald-800 dark:text-emerald-200 text-sm mb-4">
+                    Quality home improvement items from homeowners and professionals who value lasting results. 
+                    Find materials and tools that enhance property value and deliver lasting satisfaction.
+                  </p>
+                  
+                  <div className="grid md:grid-cols-3 gap-4">
+                    <div className="bg-white dark:bg-gray-800 p-4 rounded-lg">
+                      <h4 className="font-medium text-gray-900 dark:text-white mb-2 flex items-center">
+                        <TrendingUp className="h-4 w-4 mr-2 text-emerald-600" />
+                        Property Value
+                      </h4>
+                      <p className="text-sm text-gray-600 dark:text-gray-300">
+                        Quality improvements that add lasting value
+                      </p>
+                    </div>
+                    <div className="bg-white dark:bg-gray-800 p-4 rounded-lg">
+                      <h4 className="font-medium text-gray-900 dark:text-white mb-2 flex items-center">
+                        <Award className="h-4 w-4 mr-2 text-blue-600" />
+                        Proven Results
+                      </h4>
+                      <p className="text-sm text-gray-600 dark:text-gray-300">
+                        Items with track records of performance
+                      </p>
+                    </div>
+                    <div className="bg-white dark:bg-gray-800 p-4 rounded-lg">
+                      <h4 className="font-medium text-gray-900 dark:text-white mb-2 flex items-center">
+                        <Users className="h-4 w-4 mr-2 text-purple-600" />
+                        Community Tips
+                      </h4>
+                      <p className="text-sm text-gray-600 dark:text-gray-300">
+                        Installation and usage advice included
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Specialty & Collectibles Notice */}
+        {selectedCategory === 'specialty_items' && (
+          <Card className="mb-6 border-purple-200 bg-purple-50 dark:bg-purple-900/20 dark:border-purple-800">
+            <CardContent className="p-6">
+              <div className="flex items-start gap-4">
+                <div className="flex-shrink-0">
+                  <Gem className="h-6 w-6 text-purple-600" />
+                </div>
+                <div className="flex-1">
+                  <h3 className="font-semibold text-purple-900 dark:text-purple-100 mb-2">
+                    Specialty & Collectibles
+                  </h3>
+                  <p className="text-purple-800 dark:text-purple-200 text-sm mb-4">
+                    Unique items with verified authenticity and documented history. These pieces often appreciate in value 
+                    when properly maintained and cared for by knowledgeable owners.
+                  </p>
+                  
+                  <div className="grid md:grid-cols-3 gap-4">
+                    <div className="bg-white dark:bg-gray-800 p-4 rounded-lg">
+                      <h4 className="font-medium text-gray-900 dark:text-white mb-2 flex items-center">
+                        <CheckCircle className="h-4 w-4 mr-2 text-purple-600" />
+                        Authenticated Items
+                      </h4>
+                      <p className="text-sm text-gray-600 dark:text-gray-300">
+                        Verified provenance and quality documentation
+                      </p>
+                    </div>
+                    <div className="bg-white dark:bg-gray-800 p-4 rounded-lg">
+                      <h4 className="font-medium text-gray-900 dark:text-white mb-2 flex items-center">
+                        <TrendingUp className="h-4 w-4 mr-2 text-emerald-600" />
+                        Value Appreciation
+                      </h4>
+                      <p className="text-sm text-gray-600 dark:text-gray-300">
+                        Quality pieces that often gain worth over time
+                      </p>
+                    </div>
+                    <div className="bg-white dark:bg-gray-800 p-4 rounded-lg">
+                      <h4 className="font-medium text-gray-900 dark:text-white mb-2 flex items-center">
+                        <Users className="h-4 w-4 mr-2 text-blue-600" />
                         Expert Network
                       </h4>
                       <p className="text-sm text-gray-600 dark:text-gray-300">
-                        Connect with contractors who've used this equipment successfully
+                        Connect with knowledgeable collectors and enthusiasts
                       </p>
                     </div>
                   </div>
@@ -805,17 +967,106 @@ export default function Marketplace() {
             ))}
           </div>
         ) : listings.length === 0 ? (
-          <Card className="text-center py-16 bg-gradient-to-br from-orange-50 to-amber-50 dark:from-orange-900/20 dark:to-amber-900/20">
-            <CardContent>
+          <>
+            {/* Smart Marketplace Insights Section */}
+            <div className="mb-8">
+              <Card className="border-2 border-dashed border-orange-200 bg-gradient-to-br from-orange-50 via-white to-amber-50 dark:from-orange-900/10 dark:via-gray-800 dark:to-amber-900/10">
+                <CardContent className="p-8">
+                  <div className="text-center mb-6">
+                    <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">
+                      Smart Marketplace Insights
+                    </h3>
+                    <p className="text-gray-600 dark:text-gray-400">
+                      Learn what makes a quality marketplace transaction
+                    </p>
+                  </div>
+                  
+                  <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+                    <div className="text-center">
+                      <div className="w-12 h-12 mx-auto mb-3 bg-orange-100 dark:bg-orange-900/30 rounded-full flex items-center justify-center">
+                        <TrendingUp className="h-6 w-6 text-orange-600" />
+                      </div>
+                      <h4 className="font-semibold text-gray-900 dark:text-white mb-2">Value Retention</h4>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">
+                        Quality items maintain their worth and can appreciate over time through proper care
+                      </p>
+                    </div>
+                    
+                    <div className="text-center">
+                      <div className="w-12 h-12 mx-auto mb-3 bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center">
+                        <CheckCircle className="h-6 w-6 text-blue-600" />
+                      </div>
+                      <h4 className="font-semibold text-gray-900 dark:text-white mb-2">Quality Indicators</h4>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">
+                        Look for maintenance records, original documentation, and honest condition reports
+                      </p>
+                    </div>
+                    
+                    <div className="text-center">
+                      <div className="w-12 h-12 mx-auto mb-3 bg-emerald-100 dark:bg-emerald-900/30 rounded-full flex items-center justify-center">
+                        <Users className="h-6 w-6 text-emerald-600" />
+                      </div>
+                      <h4 className="font-semibold text-gray-900 dark:text-white mb-2">Seller Reputation</h4>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">
+                        Connect with verified community members who have established track records
+                      </p>
+                    </div>
+                    
+                    <div className="text-center">
+                      <div className="w-12 h-12 mx-auto mb-3 bg-purple-100 dark:bg-purple-900/30 rounded-full flex items-center justify-center">
+                        <Award className="h-6 w-6 text-purple-600" />
+                      </div>
+                      <h4 className="font-semibold text-gray-900 dark:text-white mb-2">Smart Timing</h4>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">
+                        The best opportunities often come from upgrading owners, not desperate sellers
+                      </p>
+                    </div>
+                  </div>
+                  
+                  <div className="mt-8 p-6 bg-gradient-to-r from-orange-100 to-amber-100 dark:from-orange-900/20 dark:to-amber-900/20 rounded-lg">
+                    <div className="flex items-start gap-4">
+                      <div className="flex-shrink-0">
+                        <Star className="h-6 w-6 text-orange-600" />
+                      </div>
+                      <div className="flex-1">
+                        <h4 className="font-semibold text-orange-900 dark:text-orange-100 mb-2">
+                          The TradeScout Advantage
+                        </h4>
+                        <p className="text-orange-800 dark:text-orange-200 text-sm mb-4">
+                          Our marketplace connects quality-minded buyers with sellers who understand the true value of their items. 
+                          Whether you're building a business, improving your home, or finding unique pieces, smart decisions start here.
+                        </p>
+                        <div className="flex flex-wrap gap-2">
+                          <Badge className="bg-white text-orange-700 border-orange-200">
+                            <Shield className="h-3 w-3 mr-1" />
+                            Verified Sellers
+                          </Badge>
+                          <Badge className="bg-white text-orange-700 border-orange-200">
+                            <TrendingUp className="h-3 w-3 mr-1" />
+                            Value Focus
+                          </Badge>
+                          <Badge className="bg-white text-orange-700 border-orange-200">
+                            <Users className="h-3 w-3 mr-1" />
+                            Community Trust
+                          </Badge>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+            <Card className="text-center py-16 bg-gradient-to-br from-orange-50 to-amber-50 dark:from-orange-900/20 dark:to-amber-900/20">
+              <CardContent>
               <div className="flex flex-col items-center justify-center">
                 <div className="w-32 h-32 bg-gradient-to-br from-orange-100 to-amber-100 dark:from-orange-900/30 dark:to-amber-900/30 rounded-full flex items-center justify-center mb-6">
                   <Wrench className="h-12 w-12 text-orange-600" />
                 </div>
                 <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-3">
-                  Quality Equipment Awaits
+                  Quality Items Await Discovery
                 </h3>
                 <p className="text-gray-600 dark:text-gray-300 mb-6 max-w-lg text-lg">
-                  The professional tools and equipment that build successful contracting careers are just a listing away.
+                  Smart buyers and quality sellers connect here to share items that deliver lasting value and satisfaction.
                 </p>
                 <div className="flex flex-col sm:flex-row gap-4 items-center">
                   {isAuthenticated ? (
@@ -825,10 +1076,10 @@ export default function Marketplace() {
                         className="bg-orange-600 hover:bg-orange-700 text-white px-8 py-3"
                       >
                         <Plus className="h-5 w-5 mr-2" />
-                        List Your Equipment
+                        Share Your Quality Items
                       </Button>
                       <p className="text-sm text-gray-500">
-                        Turn your unused tools into opportunity for others
+                        Help others discover the value you've experienced
                       </p>
                     </>
                   ) : (
@@ -837,10 +1088,10 @@ export default function Marketplace() {
                         onClick={() => setLocation('/api/login')}
                         className="bg-orange-600 hover:bg-orange-700 text-white px-8 py-3"
                       >
-                        Join the Exchange
+                        Join Our Community
                       </Button>
                       <p className="text-sm text-gray-500">
-                        Connect with contractors in your area
+                        Connect with quality-minded neighbors
                       </p>
                     </>
                   )}
@@ -848,6 +1099,7 @@ export default function Marketplace() {
               </div>
             </CardContent>
           </Card>
+          </>
         ) : (
           <div className={
             viewMode === 'grid' 
