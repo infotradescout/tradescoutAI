@@ -4,45 +4,45 @@ import { eq } from "drizzle-orm";
 
 const defaultCategories = [
   {
-    name: "Construction Equipment",
-    description: "Heavy machinery and construction tools",
-    iconName: "Hammer",
+    name: "Real Estate",
+    description: "Houses, land, commercial properties, and investment properties",
+    iconName: "Home",
     sortOrder: 10
   },
   {
     name: "Vehicles",
-    description: "Cars, trucks, motorcycles, and other vehicles",
+    description: "Cars, trucks, motorcycles, boats, and all motor vehicles",
     iconName: "Car",
     sortOrder: 20
+  },
+  {
+    name: "Construction Equipment",
+    description: "Heavy machinery, construction tools, and contractor equipment",
+    iconName: "Hammer",
+    sortOrder: 30
+  },
+  {
+    name: "Tools & Hardware",
+    description: "Hand tools, power tools, and hardware supplies in good condition",
+    iconName: "Wrench",
+    sortOrder: 40
+  },
+  {
+    name: "Furniture & Home Goods",
+    description: "Furniture, appliances, home decor, and household items",
+    iconName: "Sofa",
+    sortOrder: 50
   },
   {
     name: "Farm Equipment",
     description: "Tractors, harvesters, and agricultural machinery",
     iconName: "Tractor",
-    sortOrder: 30
-  },
-  {
-    name: "Real Estate",
-    description: "Houses, land, and commercial properties",
-    iconName: "Home",
-    sortOrder: 40
-  },
-  {
-    name: "Farm Animals",
-    description: "Livestock, poultry, and farm animals",
-    iconName: "Fish", // Using Fish as a placeholder for livestock
-    sortOrder: 50
-  },
-  {
-    name: "Tools & Hardware",
-    description: "Hand tools, power tools, and hardware supplies",
-    iconName: "Wrench",
     sortOrder: 60
   },
   {
-    name: "Boats & Marine",
-    description: "Boats, jet skis, and marine equipment",
-    iconName: "Anchor",
+    name: "Business Equipment",
+    description: "Office equipment, industrial machinery, and business assets",
+    iconName: "Building",
     sortOrder: 70
   },
   {
@@ -52,10 +52,16 @@ const defaultCategories = [
     sortOrder: 80
   },
   {
-    name: "Business Equipment",
-    description: "Office equipment, industrial machinery, and business assets",
-    iconName: "Building",
+    name: "Boats & Marine",
+    description: "Boats, jet skis, and marine equipment",
+    iconName: "Anchor",
     sortOrder: 90
+  },
+  {
+    name: "Farm Animals",
+    description: "Livestock, poultry, and farm animals",
+    iconName: "Fish", // Using Fish as a placeholder for livestock
+    sortOrder: 100
   },
   {
     name: "Local Food & Artisan Goods",
@@ -71,10 +77,34 @@ const defaultCategories = [
     }
   },
   {
+    name: "Electronics & Technology",
+    description: "Computers, phones, electronics, and tech equipment",
+    iconName: "Monitor",
+    sortOrder: 110
+  },
+  {
+    name: "Sports & Recreation",
+    description: "Sports equipment, outdoor gear, and recreational items",
+    iconName: "Trophy",
+    sortOrder: 120
+  },
+  {
+    name: "Art & Collectibles",
+    description: "Artwork, antiques, collectibles, and unique items",
+    iconName: "Palette",
+    sortOrder: 130
+  },
+  {
+    name: "Jewelry & Luxury Items",
+    description: "Fine jewelry, watches, and luxury goods",
+    iconName: "Gem",
+    sortOrder: 140
+  },
+  {
     name: "Other High-Value Items",
     description: "Expensive items that don't fit other categories",
     iconName: "Package",
-    sortOrder: 100
+    sortOrder: 150
   }
 ];
 
