@@ -1698,6 +1698,60 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // One-tap bug report with screenshot
+  app.post("/api/bug-reports", async (req: any, res) => {
+    try {
+      const { userAgent, url, timestamp, viewport, type } = req.body;
+      
+      // Generate unique report ID
+      const reportId = `BUG-${Date.now()}-${Math.random().toString(36).substr(2, 6).toUpperCase()}`;
+      
+      // Track bug report submission with locality
+      await LocalityTracker.trackInteraction('page_view', req, {
+        searchQuery: 'bug_report_submission',
+        projectType: 'user_feedback'
+      });
+      
+      // Store bug report data
+      const bugReport = {
+        id: reportId,
+        type: type || 'screenshot',
+        url,
+        userAgent,
+        timestamp: timestamp || new Date().toISOString(),
+        viewport,
+        userId: req.user?.claims?.sub || 'anonymous',
+        sessionId: req.sessionID,
+        ipAddress: req.ip,
+        submittedAt: new Date(),
+        status: 'open',
+        priority: 'medium'
+      };
+      
+      // Log detailed bug report
+      console.log("🐛 One-Tap Bug Report:", {
+        reportId,
+        url,
+        viewport,
+        userAgent: userAgent?.substring(0, 50) + '...',
+        timestamp,
+        hasScreenshot: !!req.files?.screenshot || !!req.body.screenshot
+      });
+      
+      // Save to database
+      await storage.createErrorReport(bugReport);
+      
+      res.json({ 
+        message: "Bug report submitted successfully", 
+        reportId,
+        status: 'received'
+      });
+    } catch (error) {
+      console.error("Error processing bug report:", error);
+      res.status(500).json({ message: "Failed to process bug report" });
+    }
+  });
+
   app.get("/api/admin/error-reports", isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user?.claims?.sub;

@@ -8,6 +8,7 @@ import { AdDisplay, useUserLocation } from "@/components/AdDisplay";
 import { AuthButtons } from "@/components/auth-buttons";
 import { AuthModal } from "@/components/auth-modal";
 import { TestingErrorReportButton } from "@/components/TestingErrorReportButton";
+import { BugReportButton } from "@/components/BugReportButton";
 import { SEOHelmet, createWebsiteStructuredData, createOrganizationStructuredData, createFAQStructuredData } from "@/components/SEOHelmet";
 
 export default function Landing() {
@@ -708,6 +709,8 @@ export default function Landing() {
 
       {/* Testing Bug Report System */}
       <TestingErrorReportButton variant="banner" />
+
+
 
       {/* Authentication Modal */}
       <AuthModal 
