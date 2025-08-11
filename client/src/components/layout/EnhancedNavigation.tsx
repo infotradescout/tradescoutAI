@@ -51,28 +51,10 @@ export function EnhancedNavigation({ className = "" }: EnhancedNavigationProps) 
               <span className="hidden xl:inline">For Contractors</span>
             </Button>
           </Link>
-          <Link href="/quote">
-            <Button variant={isActive("/quote") ? "secondary" : "ghost"} size="sm" className="flex items-center space-x-2 px-4 py-2 rounded-lg nav-button hover:bg-slate-800/60 whitespace-nowrap">
+          <Link href="/dashboard">
+            <Button variant={isActive("/dashboard") ? "secondary" : "ghost"} size="sm" className="flex items-center space-x-2 px-4 py-2 rounded-lg nav-button hover:bg-slate-800/60 whitespace-nowrap">
               <span>📊</span>
-              <span className="hidden xl:inline">Calculator</span>
-            </Button>
-          </Link>
-          <Link href="/leaderboard">
-            <Button variant={isActive("/leaderboard") ? "secondary" : "ghost"} size="sm" className="flex items-center space-x-2 px-4 py-2 rounded-lg nav-button hover:bg-slate-800/60 whitespace-nowrap">
-              <span>🏆</span>
-              <span className="hidden xl:inline">Leaderboard</span>
-            </Button>
-          </Link>
-          <Link href="/emblem">
-            <Button variant={isActive("/emblem") ? "secondary" : "ghost"} size="sm" className="flex items-center space-x-2 px-4 py-2 rounded-lg nav-button hover:bg-slate-800/60 whitespace-nowrap">
-              <span>🏅</span>
-              <span className="hidden xl:inline">Emblem</span>
-            </Button>
-          </Link>
-          <Link href="/growth-pack">
-            <Button variant={isActive("/growth-pack") ? "secondary" : "ghost"} size="sm" className="flex items-center space-x-2 px-4 py-2 rounded-lg nav-button hover:bg-slate-800/60 whitespace-nowrap">
-              <span>📦</span>
-              <span className="hidden xl:inline">Growth Pack</span>
+              <span className="hidden xl:inline">Dashboard</span>
             </Button>
           </Link>
           <Link href="/marketplace">
@@ -81,16 +63,22 @@ export function EnhancedNavigation({ className = "" }: EnhancedNavigationProps) 
               <span className="hidden xl:inline">Marketplace</span>
             </Button>
           </Link>
-          <Link href="/workers">
-            <Button variant={isActive("/workers") ? "secondary" : "ghost"} size="sm" className="flex items-center space-x-2 px-4 py-2 rounded-lg nav-button hover:bg-slate-800/60 whitespace-nowrap">
-              <span>👷</span>
-              <span className="hidden xl:inline">Helpers</span>
-            </Button>
-          </Link>
           <Link href="/community">
             <Button variant={isActive("/community") ? "secondary" : "ghost"} size="sm" className="flex items-center space-x-2 px-4 py-2 rounded-lg nav-button hover:bg-slate-800/60 whitespace-nowrap">
               <span>👥</span>
               <span className="hidden xl:inline">Community</span>
+            </Button>
+          </Link>
+          <Link href="/exchange">
+            <Button variant={isActive("/exchange") ? "secondary" : "ghost"} size="sm" className="flex items-center space-x-2 px-4 py-2 rounded-lg nav-button hover:bg-slate-800/60 whitespace-nowrap">
+              <span>🔄</span>
+              <span className="hidden xl:inline">Exchange</span>
+            </Button>
+          </Link>
+          <Link href="/foundation">
+            <Button variant={isActive("/foundation") ? "secondary" : "ghost"} size="sm" className="flex items-center space-x-2 px-4 py-2 rounded-lg nav-button hover:bg-slate-800/60 whitespace-nowrap">
+              <span>🏛️</span>
+              <span className="hidden xl:inline">Foundation</span>
             </Button>
           </Link>
           
@@ -157,24 +145,9 @@ export function EnhancedNavigation({ className = "" }: EnhancedNavigationProps) 
                       <span className="mr-3">💼</span>For Contractors
                     </Button>
                   </Link>
-                  <Link href="/quote" onClick={() => setIsMobileMenuOpen(false)}>
+                  <Link href="/dashboard" onClick={() => setIsMobileMenuOpen(false)}>
                     <Button variant="ghost" className="w-full justify-start text-slate-200 hover:text-white hover:bg-slate-800/60">
-                      <span className="mr-3">📊</span>Calculator
-                    </Button>
-                  </Link>
-                  <Link href="/leaderboard" onClick={() => setIsMobileMenuOpen(false)}>
-                    <Button variant="ghost" className="w-full justify-start text-slate-200 hover:text-white hover:bg-slate-800/60">
-                      <span className="mr-3">🏆</span>Leaderboard
-                    </Button>
-                  </Link>
-                  <Link href="/emblem" onClick={() => setIsMobileMenuOpen(false)}>
-                    <Button variant="ghost" className="w-full justify-start text-slate-200 hover:text-white hover:bg-slate-800/60">
-                      <span className="mr-3">🏅</span>Emblem
-                    </Button>
-                  </Link>
-                  <Link href="/growth-pack" onClick={() => setIsMobileMenuOpen(false)}>
-                    <Button variant="ghost" className="w-full justify-start text-slate-200 hover:text-white hover:bg-slate-800/60">
-                      <span className="mr-3">📦</span>Growth Pack
+                      <span className="mr-3">📊</span>Dashboard
                     </Button>
                   </Link>
                   <Link href="/marketplace" onClick={() => setIsMobileMenuOpen(false)}>
@@ -182,14 +155,19 @@ export function EnhancedNavigation({ className = "" }: EnhancedNavigationProps) 
                       <span className="mr-3">🏪</span>Marketplace
                     </Button>
                   </Link>
-                  <Link href="/workers" onClick={() => setIsMobileMenuOpen(false)}>
-                    <Button variant="ghost" className="w-full justify-start text-slate-200 hover:text-white hover:bg-slate-800/60">
-                      <span className="mr-3">👷</span>Helpers
-                    </Button>
-                  </Link>
                   <Link href="/community" onClick={() => setIsMobileMenuOpen(false)}>
                     <Button variant="ghost" className="w-full justify-start text-slate-200 hover:text-white hover:bg-slate-800/60">
                       <span className="mr-3">👥</span>Community
+                    </Button>
+                  </Link>
+                  <Link href="/exchange" onClick={() => setIsMobileMenuOpen(false)}>
+                    <Button variant="ghost" className="w-full justify-start text-slate-200 hover:text-white hover:bg-slate-800/60">
+                      <span className="mr-3">🔄</span>Exchange
+                    </Button>
+                  </Link>
+                  <Link href="/foundation" onClick={() => setIsMobileMenuOpen(false)}>
+                    <Button variant="ghost" className="w-full justify-start text-slate-200 hover:text-white hover:bg-slate-800/60">
+                      <span className="mr-3">🏛️</span>Foundation
                     </Button>
                   </Link>
                 </div>
