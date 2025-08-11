@@ -9,7 +9,7 @@ import { ErrorBoundary } from "@/components/ui/error-boundary";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { lazy } from "react";
 
-import { SimpleNavigation } from "@/components/layout/SimpleNavigation";
+import { EnhancedNavigation } from "@/components/layout/EnhancedNavigation";
 import MobileCTA from "@/components/mobile-cta";
 import NotFound from "@/pages/not-found";
 import Login from "@/pages/login";
@@ -89,8 +89,9 @@ function Router() {
   // Allow access to public pages even if setup is needed
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-950 to-slate-900 text-white">
-      <SimpleNavigation />
+    <div className="min-h-screen gradient-bg text-gray-100">
+      <EnhancedNavigation />
+      {isAuthenticated && <AddressVerificationBanner />}
       <Switch>
         {/* Master Admin Setup - Only shows if no admin exists */}
         <Route path="/setup" component={MasterAdminSetup} />
@@ -131,7 +132,7 @@ function Router() {
         
         {!isAuthenticated ? (
           <>
-            <Route path="/" component={SafeLanding} />
+            <Route path="/" component={Landing} />
           </>
         ) : (
           <>
@@ -191,7 +192,10 @@ function Router() {
         )}
         <Route component={NotFound} />
       </Switch>
+      <MobileCTA />
       <FloatingBugReport />
+      <BetaNotificationPopup />
+      <LegalFooter />
     </div>
   );
 }
