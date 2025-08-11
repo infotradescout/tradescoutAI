@@ -27,7 +27,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Edit, Trash2, Gift, Settings, Megaphone, Users, Bell } from "lucide-react";
+import { UserHeatmap } from "@/components/UserHeatmap";
+import { Plus, Edit, Trash2, Gift, Settings, Megaphone, Users, Bell, Map } from "lucide-react";
 
 type SiteSetting = {
   id: string;
@@ -87,7 +88,7 @@ export default function AdminPanel() {
   const { user, isAuthenticated } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const [selectedTab, setSelectedTab] = useState("prizes");
+  const [selectedTab, setSelectedTab] = useState("heatmap");
   const [editingItem, setEditingItem] = useState<any>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
 
@@ -224,7 +225,11 @@ export default function AdminPanel() {
         </div>
 
         <Tabs value={selectedTab} onValueChange={setSelectedTab} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-4 bg-slate-800">
+          <TabsList className="grid w-full grid-cols-5 bg-slate-800">
+            <TabsTrigger value="heatmap" className="flex items-center gap-2">
+              <Map className="w-4 h-4" />
+              User Heatmap
+            </TabsTrigger>
             <TabsTrigger value="prizes" className="flex items-center gap-2">
               <Gift className="w-4 h-4" />
               Prizes
@@ -242,6 +247,10 @@ export default function AdminPanel() {
               Contractor Settings
             </TabsTrigger>
           </TabsList>
+
+          <TabsContent value="heatmap" className="space-y-4">
+            <UserHeatmap />
+          </TabsContent>
 
           <TabsContent value="prizes" className="space-y-4">
             <div className="flex justify-between items-center">

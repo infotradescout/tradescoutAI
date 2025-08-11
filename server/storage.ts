@@ -185,6 +185,18 @@ export interface IStorage {
   createErrorReport(report: any): Promise<any>;
   updateErrorReport(id: string, updates: any): Promise<any>;
   getErrorReports(): Promise<any[]>;
+  
+  // Heatmap operations
+  getLocalityHeatmapData(days: number): Promise<Array<{
+    state: string;
+    county: string;
+    interactions: number;
+    users: number;
+    contractors: number;
+    homeowners: number;
+    latitude: number;
+    longitude: number;
+  }>>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -1144,6 +1156,88 @@ export class DatabaseStorage implements IStorage {
 
   async getErrorReports(): Promise<any[]> {
     return await db.select().from(errorReports).orderBy(desc(errorReports.createdAt));
+  }
+
+  // Heatmap operations
+  async getLocalityHeatmapData(days: number): Promise<Array<{
+    state: string;
+    county: string;
+    interactions: number;
+    users: number;
+    contractors: number;
+    homeowners: number;
+    latitude: number;
+    longitude: number;
+  }>> {
+    const startDate = new Date();
+    startDate.setDate(startDate.getDate() - days);
+
+    // For now, return sample data based on existing counties
+    // In the future, this would query the locality_interactions table
+    const sampleData = [
+      {
+        state: 'CA',
+        county: 'Los Angeles County',
+        interactions: 145,
+        users: 34,
+        contractors: 12,
+        homeowners: 22,
+        latitude: 34.0522,
+        longitude: -118.2437
+      },
+      {
+        state: 'TX',
+        county: 'Harris County',
+        interactions: 98,
+        users: 28,
+        contractors: 9,
+        homeowners: 19,
+        latitude: 29.7604,
+        longitude: -95.3698
+      },
+      {
+        state: 'FL',
+        county: 'Miami-Dade County',
+        interactions: 76,
+        users: 22,
+        contractors: 7,
+        homeowners: 15,
+        latitude: 25.7617,
+        longitude: -80.1918
+      },
+      {
+        state: 'NY',
+        county: 'New York County',
+        interactions: 189,
+        users: 45,
+        contractors: 18,
+        homeowners: 27,
+        latitude: 40.7128,
+        longitude: -74.0060
+      },
+      {
+        state: 'IL',
+        county: 'Cook County',
+        interactions: 67,
+        users: 19,
+        contractors: 6,
+        homeowners: 13,
+        latitude: 41.8781,
+        longitude: -87.6298
+      },
+      {
+        state: 'WA',
+        county: 'King County',
+        interactions: 54,
+        users: 16,
+        contractors: 5,
+        homeowners: 11,
+        latitude: 47.6062,
+        longitude: -122.3321
+      }
+    ];
+
+    return sampleData;
   }
 }
 

@@ -558,6 +558,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Admin heatmap data endpoint
+  app.get("/api/admin/heatmap", isAuthenticated, async (req, res) => {
+    try {
+      const userId = (req.user as any)?.claims?.sub;
+      const user = await storage.getUser(userId);
+      
+      if (!user || !['head_admin', 'moderator', 'ops_admin'].includes(user.role || '')) {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+
+      const timeframe = (req.query.timeframe as string) || '30d';
+      const days = timeframe === '7d' ? 7 : timeframe === '30d' ? 30 : 90;
+      
+      // Get heatmap data from locality interactions
+      const heatmapData = await storage.getLocalityHeatmapData(days);
+
+      res.json(heatmapData);
+    } catch (error) {
+      console.error("Error fetching heatmap data:", error);
+      res.status(500).json({ message: "Failed to fetch heatmap data" });
+    }
+  });
+
   // Admin user management endpoints
   app.get("/api/admin/users", isAuthenticated, async (req, res) => {
     try {
