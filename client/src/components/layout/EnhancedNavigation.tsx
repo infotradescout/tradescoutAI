@@ -34,21 +34,48 @@ export function EnhancedNavigation({ className = "" }: EnhancedNavigationProps) 
         </Link>
 
         {/* Desktop Navigation */}
-        <div className="hidden md:flex items-center space-x-6">
-          {/* Public Links */}
+        <div className="hidden lg:flex items-center space-x-4">
+          {/* Core Services */}
           <Link href="/contractors">
-            <Button variant={isActive("/contractors") ? "secondary" : "ghost"} size="sm">
-              Find Contractors
+            <Button variant={isActive("/contractors") ? "secondary" : "ghost"} size="sm" className="flex items-center space-x-1">
+              <span>🔨</span>
+              <span>Find Contractors</span>
+            </Button>
+          </Link>
+          <Link href="/quote">
+            <Button variant={isActive("/quote") ? "secondary" : "ghost"} size="sm" className="flex items-center space-x-1">
+              <span>📊</span>
+              <span>Calculator</span>
             </Button>
           </Link>
           <Link href="/marketplace">
-            <Button variant={isActive("/marketplace") ? "secondary" : "ghost"} size="sm">
-              Marketplace
+            <Button variant={isActive("/marketplace") ? "secondary" : "ghost"} size="sm" className="flex items-center space-x-1">
+              <span>🏪</span>
+              <span>Marketplace</span>
+            </Button>
+          </Link>
+          <Link href="/community">
+            <Button variant={isActive("/community") ? "secondary" : "ghost"} size="sm" className="flex items-center space-x-1">
+              <span>👥</span>
+              <span>Community</span>
+            </Button>
+          </Link>
+          <Link href="/leaderboard">
+            <Button variant={isActive("/leaderboard") ? "secondary" : "ghost"} size="sm" className="flex items-center space-x-1">
+              <span>🏆</span>
+              <span>Leaderboard</span>
+            </Button>
+          </Link>
+          <Link href="/workers">
+            <Button variant={isActive("/workers") ? "secondary" : "ghost"} size="sm" className="flex items-center space-x-1">
+              <span>👷</span>
+              <span>Helpers</span>
             </Button>
           </Link>
           <Link href="/roles">
-            <Button variant={isActive("/roles") ? "secondary" : "ghost"} size="sm">
-              Role Directory
+            <Button variant={isActive("/roles") ? "secondary" : "ghost"} size="sm" className="flex items-center space-x-1">
+              <span>📋</span>
+              <span>Roles</span>
             </Button>
           </Link>
           
@@ -107,17 +134,37 @@ export function EnhancedNavigation({ className = "" }: EnhancedNavigationProps) 
                   </h3>
                   <Link href="/contractors" onClick={() => setIsMobileMenuOpen(false)}>
                     <Button variant="ghost" className="w-full justify-start">
-                      Find Contractors
+                      <span className="mr-2">🔨</span>Find Contractors
+                    </Button>
+                  </Link>
+                  <Link href="/quote" onClick={() => setIsMobileMenuOpen(false)}>
+                    <Button variant="ghost" className="w-full justify-start">
+                      <span className="mr-2">📊</span>Calculator
                     </Button>
                   </Link>
                   <Link href="/marketplace" onClick={() => setIsMobileMenuOpen(false)}>
                     <Button variant="ghost" className="w-full justify-start">
-                      Marketplace
+                      <span className="mr-2">🏪</span>Marketplace
+                    </Button>
+                  </Link>
+                  <Link href="/community" onClick={() => setIsMobileMenuOpen(false)}>
+                    <Button variant="ghost" className="w-full justify-start">
+                      <span className="mr-2">👥</span>Community
+                    </Button>
+                  </Link>
+                  <Link href="/leaderboard" onClick={() => setIsMobileMenuOpen(false)}>
+                    <Button variant="ghost" className="w-full justify-start">
+                      <span className="mr-2">🏆</span>Leaderboard
+                    </Button>
+                  </Link>
+                  <Link href="/workers" onClick={() => setIsMobileMenuOpen(false)}>
+                    <Button variant="ghost" className="w-full justify-start">
+                      <span className="mr-2">👷</span>Helpers
                     </Button>
                   </Link>
                   <Link href="/roles" onClick={() => setIsMobileMenuOpen(false)}>
                     <Button variant="ghost" className="w-full justify-start">
-                      Role Directory
+                      <span className="mr-2">📋</span>Role Directory
                     </Button>
                   </Link>
                 </div>
