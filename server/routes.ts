@@ -6,6 +6,7 @@ import { insertLeadSchema, insertRecommendationSchema, insertGrowthPackDownloadS
 import { ObjectStorageService } from "./objectStorage";
 import { randomUUID } from "crypto";
 import passport from "passport";
+import { LocalityTracker, localityTrackingMiddleware } from "./localityTracking";
 import FacebookStrategy from "passport-facebook";
 import { Strategy as GoogleStrategy } from "passport-google-oauth20";
 
@@ -70,6 +71,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Auth middleware
   await setupAuth(app);
+  
+  // Locality tracking middleware - track all interactions with geographic context
+  app.use(localityTrackingMiddleware());
 
   // OAuth routes
   app.get('/auth/facebook', passport.authenticate('facebook', { scope: ['email'] }));
@@ -150,6 +154,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/contractors", async (req, res) => {
     try {
       const { county, trade, sort, limit = 20, offset = 0 } = req.query;
+      
+      // Track contractor search with locality context
+      await LocalityTracker.trackInteraction('search', req, {
+        searchQuery: trade as string,
+        projectType: 'contractor_search',
+        tradeType: trade as string
+      });
       
       const filters: any = {
         limit: parseInt(limit as string),
@@ -237,6 +248,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { slug } = req.params;
       const contractor = await storage.getContractorBySlug(slug);
+      
+      // Track contractor profile view with locality context
+      await LocalityTracker.trackInteraction('contractor_view', req, {
+        contractorId: contractor?.id,
+        searchQuery: slug
+      });
       
       if (!contractor) {
         return res.status(404).json({ message: "Contractor not found" });
@@ -350,6 +367,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/ads/track-impression", async (req, res) => {
     try {
       const { adId } = req.body;
+      
+      // Track ad view with locality context
+      await LocalityTracker.trackAdInteraction(req, adId, 'view');
+      
       await storage.incrementAdImpressions(adId);
       res.json({ success: true });
     } catch (error) {
@@ -362,6 +383,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/ads/track-click", async (req, res) => {
     try {
       const { adId } = req.body;
+      
+      // Track ad click with locality context
+      await LocalityTracker.trackAdInteraction(req, adId, 'click');
+      
       await storage.incrementAdClicks(adId);
       res.json({ success: true });
     } catch (error) {
@@ -628,6 +653,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const userId = req.user.claims.sub;
       const leadData = { ...req.body, userId };
       
+      // Track quote request with locality context
+      await LocalityTracker.trackInteraction('quote_request', req, {
+        projectType: leadData.projectType,
+        tradeType: leadData.trade,
+        quoteAmount: leadData.budget
+      });
+      
       // Validate lead data
       const validatedLead = insertLeadSchema.parse(leadData);
       
@@ -665,6 +697,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const userId = req.user.claims.sub;
       const recommendationData = { ...req.body, userId };
+      
+      // Track rating submission with locality context
+      await LocalityTracker.trackInteraction('rating_submit', req, {
+        contractorId: recommendationData.contractorId,
+        rating: recommendationData.rating,
+        projectType: 'recommendation'
+      });
       
       const validatedRecommendation = insertRecommendationSchema.parse(recommendationData);
       const recommendation = await storage.createRecommendation(validatedRecommendation);
@@ -831,6 +870,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(401).json({ message: "User not found" });
       }
 
+      // Track contractor application with locality context
+      await LocalityTracker.trackInteraction('profile_create', req, {
+        searchQuery: 'contractor_application',
+        projectType: 'contractor_signup'
+      });
+
       const applicationData = { ...req.body, userId };
       
       // Store application (mock for now)
@@ -875,6 +920,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const { planType } = req.body;
+      
+      // Track accelerator enrollment with locality context
+      await LocalityTracker.trackInteraction('accelerator_inquiry', req, {
+        searchQuery: planType,
+        projectType: 'accelerator_enrollment'
+      });
       
       // Store enrollment (mock for now)
       const enrollment = {
@@ -1035,6 +1086,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const contractorId = req.user.claims.sub;
       const quoteData = { ...req.body, contractorId };
+      
+      // Track contractor quote submission with locality context
+      await LocalityTracker.trackInteraction('lead_assignment', req, {
+        contractorId,
+        projectType: 'quote_submission',
+        quoteAmount: quoteData.amount
+      });
       
       const quote = await storage.createQuote(quoteData);
       res.json(quote);

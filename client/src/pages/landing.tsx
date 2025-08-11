@@ -605,7 +605,7 @@ export default function Landing() {
                             </>
                           )}
                           {!selectedState && (
-                            <SelectItem value="" className="text-gray-400">Select a state first</SelectItem>
+                            <SelectItem value="none" className="text-gray-400">Select a state first</SelectItem>
                           )}
                         </SelectContent>
                       </Select>
