@@ -72,12 +72,6 @@ export function EnhancedNavigation({ className = "" }: EnhancedNavigationProps) 
               <span>Helpers</span>
             </Button>
           </Link>
-          <Link href="/roles">
-            <Button variant={isActive("/roles") ? "secondary" : "ghost"} size="sm" className="flex items-center space-x-1">
-              <span>📋</span>
-              <span>Roles</span>
-            </Button>
-          </Link>
           
           {/* Authenticated Navigation */}
           {isAuthenticated && <RoleBasedNavigation />}
@@ -160,11 +154,6 @@ export function EnhancedNavigation({ className = "" }: EnhancedNavigationProps) 
                   <Link href="/workers" onClick={() => setIsMobileMenuOpen(false)}>
                     <Button variant="ghost" className="w-full justify-start">
                       <span className="mr-2">👷</span>Helpers
-                    </Button>
-                  </Link>
-                  <Link href="/roles" onClick={() => setIsMobileMenuOpen(false)}>
-                    <Button variant="ghost" className="w-full justify-start">
-                      <span className="mr-2">📋</span>Role Directory
                     </Button>
                   </Link>
                 </div>
