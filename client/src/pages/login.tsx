@@ -1,7 +1,6 @@
 import { useEffect } from "react";
+import { EmailPasswordAuth } from "@/components/EmailPasswordAuth";
 import { useAuth } from "@/hooks/useAuth";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
 export default function Login() {
   const { isAuthenticated, isLoading } = useAuth();
@@ -20,28 +19,5 @@ export default function Login() {
     );
   }
 
-  return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
-      <Card className="w-full max-w-md">
-        <CardHeader className="text-center">
-          <CardTitle className="text-2xl font-bold">Sign In to Trade Scout</CardTitle>
-          <CardDescription>
-            Connect with verified contractors and grow your business
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <Button 
-            onClick={() => window.location.href = "/api/login"}
-            className="w-full"
-            size="lg"
-          >
-            Sign In with Replit
-          </Button>
-          <p className="text-center text-sm text-gray-600">
-            Don't have an account? Signing in will create one automatically.
-          </p>
-        </CardContent>
-      </Card>
-    </div>
-  );
+  return <EmailPasswordAuth />;
 }
