@@ -23,6 +23,7 @@ export default function Navigation() {
     ...(!isHomeowner ? [{ href: "/contractors", label: "For Contractors", public: true }] : []),
     { href: "/workers", label: "Helpers", public: true },
     { href: "/marketplace", label: "Exchange", public: true },
+    { href: "/handmade", label: "Handmade", public: true },
     { href: "/community", label: "Community", public: true },
   ];
 

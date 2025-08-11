@@ -3059,6 +3059,319 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Handmade Marketplace Routes
+
+  // Categories
+  app.get("/api/handmade/categories", async (req, res) => {
+    try {
+      const categories = await storage.getHandmadeCategories();
+      res.json(categories);
+    } catch (error) {
+      console.error("Error fetching handmade categories:", error);
+      res.status(500).json({ message: "Failed to fetch categories" });
+    }
+  });
+
+  // Products
+  app.get("/api/handmade/products", async (req, res) => {
+    try {
+      const filters = {
+        categoryId: req.query.categoryId as string,
+        sellerId: req.query.sellerId as string,
+        featured: req.query.featured === 'true',
+        location: {
+          state: req.query.state as string,
+          county: req.query.county as string,
+        },
+        priceRange: {
+          min: req.query.minPrice ? parseFloat(req.query.minPrice as string) : undefined,
+          max: req.query.maxPrice ? parseFloat(req.query.maxPrice as string) : undefined,
+        },
+        materials: req.query.materials ? (req.query.materials as string).split(',') : undefined,
+        inStock: req.query.inStock === 'true',
+        search: req.query.search as string,
+        limit: req.query.limit ? parseInt(req.query.limit as string) : 20,
+        offset: req.query.offset ? parseInt(req.query.offset as string) : 0,
+      };
+      
+      const products = await storage.getHandmadeProducts(filters);
+      res.json(products);
+    } catch (error) {
+      console.error("Error fetching handmade products:", error);
+      res.status(500).json({ message: "Failed to fetch products" });
+    }
+  });
+
+  app.get("/api/handmade/products/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const product = await storage.getHandmadeProduct(id);
+      
+      if (!product) {
+        return res.status(404).json({ message: "Product not found" });
+      }
+
+      // Increment view count
+      await storage.incrementProductViews(id);
+      
+      res.json(product);
+    } catch (error) {
+      console.error("Error fetching product:", error);
+      res.status(500).json({ message: "Failed to fetch product" });
+    }
+  });
+
+  app.post("/api/handmade/products", isAuthenticated, requireAddressVerification, async (req, res) => {
+    try {
+      const userId = req.user?.id;
+      const productData = {
+        ...req.body,
+        sellerId: userId,
+      };
+      
+      const product = await storage.createHandmadeProduct(productData);
+      res.status(201).json(product);
+    } catch (error) {
+      console.error("Error creating product:", error);
+      res.status(500).json({ message: "Failed to create product" });
+    }
+  });
+
+  app.put("/api/handmade/products/:id", isAuthenticated, requireAddressVerification, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const userId = req.user?.id;
+      
+      // Check if user owns the product
+      const product = await storage.getHandmadeProduct(id);
+      if (!product || product.sellerId !== userId) {
+        return res.status(403).json({ message: "Unauthorized" });
+      }
+      
+      const updatedProduct = await storage.updateHandmadeProduct(id, req.body);
+      res.json(updatedProduct);
+    } catch (error) {
+      console.error("Error updating product:", error);
+      res.status(500).json({ message: "Failed to update product" });
+    }
+  });
+
+  // Product Favorites
+  app.post("/api/handmade/products/:id/favorite", isAuthenticated, requireAddressVerification, async (req, res) => {
+    try {
+      const { id: productId } = req.params;
+      const userId = req.user?.id;
+      
+      const result = await storage.toggleProductFavorite(userId, productId);
+      res.json(result);
+    } catch (error) {
+      console.error("Error toggling favorite:", error);
+      res.status(500).json({ message: "Failed to toggle favorite" });
+    }
+  });
+
+  app.get("/api/handmade/favorites", isAuthenticated, async (req, res) => {
+    try {
+      const userId = req.user?.id;
+      const favorites = await storage.getUserFavoriteProducts(userId);
+      res.json(favorites);
+    } catch (error) {
+      console.error("Error fetching favorites:", error);
+      res.status(500).json({ message: "Failed to fetch favorites" });
+    }
+  });
+
+  // Product Orders
+  app.post("/api/handmade/orders", isAuthenticated, requireAddressVerification, async (req, res) => {
+    try {
+      const userId = req.user?.id;
+      const orderData = {
+        ...req.body,
+        buyerId: userId,
+      };
+      
+      const order = await storage.createProductOrder(orderData);
+      res.status(201).json(order);
+    } catch (error) {
+      console.error("Error creating order:", error);
+      res.status(500).json({ message: "Failed to create order" });
+    }
+  });
+
+  app.get("/api/handmade/orders", isAuthenticated, async (req, res) => {
+    try {
+      const userId = req.user?.id;
+      const type = req.query.type as 'buyer' | 'seller' || 'buyer';
+      
+      const orders = await storage.getUserOrders(userId, type);
+      res.json(orders);
+    } catch (error) {
+      console.error("Error fetching orders:", error);
+      res.status(500).json({ message: "Failed to fetch orders" });
+    }
+  });
+
+  app.get("/api/handmade/orders/:id", isAuthenticated, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const userId = req.user?.id;
+      
+      const order = await storage.getProductOrder(id);
+      if (!order) {
+        return res.status(404).json({ message: "Order not found" });
+      }
+      
+      // Check if user is buyer or seller
+      if (order.buyerId !== userId && order.sellerId !== userId) {
+        return res.status(403).json({ message: "Unauthorized" });
+      }
+      
+      res.json(order);
+    } catch (error) {
+      console.error("Error fetching order:", error);
+      res.status(500).json({ message: "Failed to fetch order" });
+    }
+  });
+
+  app.put("/api/handmade/orders/:id", isAuthenticated, requireAddressVerification, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const userId = req.user?.id;
+      
+      const order = await storage.getProductOrder(id);
+      if (!order) {
+        return res.status(404).json({ message: "Order not found" });
+      }
+      
+      // Check if user is buyer or seller
+      if (order.buyerId !== userId && order.sellerId !== userId) {
+        return res.status(403).json({ message: "Unauthorized" });
+      }
+      
+      const updatedOrder = await storage.updateProductOrder(id, req.body);
+      res.json(updatedOrder);
+    } catch (error) {
+      console.error("Error updating order:", error);
+      res.status(500).json({ message: "Failed to update order" });
+    }
+  });
+
+  // Product Reviews
+  app.post("/api/handmade/reviews", isAuthenticated, requireAddressVerification, async (req, res) => {
+    try {
+      const userId = req.user?.id;
+      const reviewData = {
+        ...req.body,
+        buyerId: userId,
+      };
+      
+      const review = await storage.createProductReview(reviewData);
+      res.status(201).json(review);
+    } catch (error) {
+      console.error("Error creating review:", error);
+      res.status(500).json({ message: "Failed to create review" });
+    }
+  });
+
+  app.get("/api/handmade/products/:id/reviews", async (req, res) => {
+    try {
+      const { id: productId } = req.params;
+      const reviews = await storage.getProductReviews(productId);
+      res.json(reviews);
+    } catch (error) {
+      console.error("Error fetching reviews:", error);
+      res.status(500).json({ message: "Failed to fetch reviews" });
+    }
+  });
+
+  app.get("/api/handmade/products/:id/rating", async (req, res) => {
+    try {
+      const { id: productId } = req.params;
+      const rating = await storage.getProductRatingSummary(productId);
+      res.json(rating);
+    } catch (error) {
+      console.error("Error fetching rating:", error);
+      res.status(500).json({ message: "Failed to fetch rating" });
+    }
+  });
+
+  // Seller Profiles
+  app.get("/api/handmade/sellers/:userId", async (req, res) => {
+    try {
+      const { userId } = req.params;
+      const profile = await storage.getSellerProfile(userId);
+      
+      if (!profile) {
+        return res.status(404).json({ message: "Seller profile not found" });
+      }
+      
+      res.json(profile);
+    } catch (error) {
+      console.error("Error fetching seller profile:", error);
+      res.status(500).json({ message: "Failed to fetch seller profile" });
+    }
+  });
+
+  app.post("/api/handmade/seller-profile", isAuthenticated, requireAddressVerification, async (req, res) => {
+    try {
+      const userId = req.user?.id;
+      const profileData = {
+        ...req.body,
+        userId,
+      };
+      
+      const profile = await storage.createSellerProfile(profileData);
+      res.status(201).json(profile);
+    } catch (error) {
+      console.error("Error creating seller profile:", error);
+      res.status(500).json({ message: "Failed to create seller profile" });
+    }
+  });
+
+  app.put("/api/handmade/seller-profile", isAuthenticated, requireAddressVerification, async (req, res) => {
+    try {
+      const userId = req.user?.id;
+      const profile = await storage.updateSellerProfile(userId, req.body);
+      res.json(profile);
+    } catch (error) {
+      console.error("Error updating seller profile:", error);
+      res.status(500).json({ message: "Failed to update seller profile" });
+    }
+  });
+
+  app.get("/api/handmade/seller-profile", isAuthenticated, async (req, res) => {
+    try {
+      const userId = req.user?.id;
+      const profile = await storage.getSellerProfile(userId);
+      res.json(profile);
+    } catch (error) {
+      console.error("Error fetching seller profile:", error);
+      res.status(500).json({ message: "Failed to fetch seller profile" });
+    }
+  });
+
+  app.get("/api/handmade/sellers/:userId/products", async (req, res) => {
+    try {
+      const { userId } = req.params;
+      const products = await storage.getSellerProducts(userId);
+      res.json(products);
+    } catch (error) {
+      console.error("Error fetching seller products:", error);
+      res.status(500).json({ message: "Failed to fetch seller products" });
+    }
+  });
+
+  app.get("/api/handmade/sellers/:userId/ratings", async (req, res) => {
+    try {
+      const { userId } = req.params;
+      const ratings = await storage.getSellerRatings(userId);
+      res.json(ratings);
+    } catch (error) {
+      console.error("Error fetching seller ratings:", error);
+      res.status(500).json({ message: "Failed to fetch seller ratings" });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }

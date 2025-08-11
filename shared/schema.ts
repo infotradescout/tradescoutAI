@@ -1889,3 +1889,358 @@ export const insertAddressVerificationSchema = createInsertSchema(addressVerific
 
 export type AddressVerification = typeof addressVerifications.$inferSelect;
 export type InsertAddressVerification = z.infer<typeof insertAddressVerificationSchema>;
+
+// Handmade Products Marketplace Tables
+export const handmadeCategories = pgTable("handmade_categories", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  name: varchar("name").notNull(),
+  slug: varchar("slug").notNull().unique(),
+  description: text("description"),
+  iconName: varchar("icon_name"), // Lucide icon name
+  parentId: varchar("parent_id"), // For subcategories
+  isActive: boolean("is_active").default(true),
+  sortOrder: integer("sort_order").default(0),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const handmadeProducts = pgTable("handmade_products", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  sellerId: varchar("seller_id").notNull().references(() => users.id),
+  
+  // Product details
+  title: varchar("title", { length: 200 }).notNull(),
+  description: text("description").notNull(),
+  categoryId: varchar("category_id").notNull().references(() => handmadeCategories.id),
+  tags: jsonb("tags").$type<string[]>(),
+  
+  // Pricing
+  price: decimal("price", { precision: 10, scale: 2 }).notNull(),
+  compareAtPrice: decimal("compare_at_price", { precision: 10, scale: 2 }), // Original price for discounts
+  currency: varchar("currency", { length: 3 }).default("USD"),
+  
+  // Product details
+  materials: jsonb("materials").$type<string[]>(), // Wood, fabric, metal, etc.
+  dimensions: jsonb("dimensions").$type<{
+    length?: number;
+    width?: number;
+    height?: number;
+    weight?: number;
+    unit?: string;
+  }>(),
+  colors: jsonb("colors").$type<string[]>(),
+  customizable: boolean("customizable").default(false),
+  customizationOptions: text("customization_options"),
+  
+  // Inventory
+  inStock: boolean("in_stock").default(true),
+  quantityAvailable: integer("quantity_available").default(1),
+  madeToOrder: boolean("made_to_order").default(false),
+  processingTime: varchar("processing_time"), // "1-2 weeks", "3-5 business days"
+  
+  // Images
+  primaryImageUrl: varchar("primary_image_url"),
+  images: jsonb("images").$type<string[]>(),
+  
+  // Location
+  city: varchar("city"),
+  stateCode: varchar("state_code", { length: 2 }),
+  countyFips: varchar("county_fips"),
+  shippingFrom: varchar("shipping_from"),
+  
+  // Shipping
+  freeShipping: boolean("free_shipping").default(false),
+  shippingCost: decimal("shipping_cost", { precision: 10, scale: 2 }),
+  localPickupAvailable: boolean("local_pickup_available").default(false),
+  shipsNationwide: boolean("ships_nationwide").default(true),
+  shippingRegions: jsonb("shipping_regions").$type<string[]>(), // States/regions they ship to
+  
+  // Status and metrics
+  status: varchar("status", { 
+    enum: ['draft', 'active', 'paused', 'sold', 'archived'] 
+  }).default('draft'),
+  featured: boolean("featured").default(false),
+  viewCount: integer("view_count").default(0),
+  favoriteCount: integer("favorite_count").default(0),
+  
+  // SEO
+  seoTitle: varchar("seo_title"),
+  seoDescription: text("seo_description"),
+  
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const productFavorites = pgTable("product_favorites", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  productId: varchar("product_id").notNull().references(() => handmadeProducts.id),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const productOrders = pgTable("product_orders", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  buyerId: varchar("buyer_id").notNull().references(() => users.id),
+  sellerId: varchar("seller_id").notNull().references(() => users.id),
+  productId: varchar("product_id").notNull().references(() => handmadeProducts.id),
+  
+  // Order details
+  quantity: integer("quantity").default(1),
+  unitPrice: decimal("unit_price", { precision: 10, scale: 2 }).notNull(),
+  totalPrice: decimal("total_price", { precision: 10, scale: 2 }).notNull(),
+  shippingCost: decimal("shipping_cost", { precision: 10, scale: 2 }).default("0"),
+  taxAmount: decimal("tax_amount", { precision: 10, scale: 2 }).default("0"),
+  finalTotal: decimal("final_total", { precision: 10, scale: 2 }).notNull(),
+  
+  // Customization
+  customizationRequest: text("customization_request"),
+  customizationNotes: text("customization_notes"),
+  
+  // Status tracking
+  status: varchar("status", {
+    enum: ['pending', 'confirmed', 'in_progress', 'ready_to_ship', 'shipped', 'delivered', 'completed', 'cancelled', 'refunded']
+  }).default('pending'),
+  
+  // Shipping
+  shippingMethod: varchar("shipping_method"),
+  trackingNumber: varchar("tracking_number"),
+  shippingAddress: jsonb("shipping_address").$type<{
+    name: string;
+    address1: string;
+    address2?: string;
+    city: string;
+    state: string;
+    zipCode: string;
+    country: string;
+    phone?: string;
+  }>(),
+  
+  // Timeline
+  confirmedAt: timestamp("confirmed_at"),
+  shippedAt: timestamp("shipped_at"),
+  deliveredAt: timestamp("delivered_at"),
+  completedAt: timestamp("completed_at"),
+  
+  // Payment
+  paymentIntentId: varchar("payment_intent_id"),
+  paymentStatus: varchar("payment_status", {
+    enum: ['pending', 'paid', 'failed', 'refunded']
+  }).default('pending'),
+  
+  // Communication
+  buyerNotes: text("buyer_notes"),
+  sellerNotes: text("seller_notes"),
+  
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const productReviews = pgTable("product_reviews", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  productId: varchar("product_id").notNull().references(() => handmadeProducts.id),
+  orderId: varchar("order_id").notNull().references(() => productOrders.id),
+  buyerId: varchar("buyer_id").notNull().references(() => users.id),
+  sellerId: varchar("seller_id").notNull().references(() => users.id),
+  
+  // Review content
+  rating: integer("rating").notNull(), // 1-5 stars
+  title: varchar("title"),
+  reviewText: text("review_text"),
+  images: jsonb("images").$type<string[]>(),
+  
+  // Detailed ratings
+  qualityRating: integer("quality_rating"), // 1-5
+  shippingRating: integer("shipping_rating"), // 1-5
+  serviceRating: integer("service_rating"), // 1-5
+  
+  // Review metadata
+  isVerifiedPurchase: boolean("is_verified_purchase").default(true),
+  isPublic: boolean("is_public").default(true),
+  wouldRecommend: boolean("would_recommend"),
+  
+  // Admin moderation
+  isModerated: boolean("is_moderated").default(false),
+  moderationNotes: text("moderation_notes"),
+  
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const sellerProfiles = pgTable("seller_profiles", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  
+  // Business details
+  businessName: varchar("business_name"),
+  bio: text("bio"),
+  specialty: varchar("specialty"), // Woodworking, jewelry, art, etc.
+  yearsOfExperience: integer("years_of_experience"),
+  
+  // Contact & location
+  website: varchar("website"),
+  socialMediaLinks: jsonb("social_media_links").$type<{
+    instagram?: string;
+    facebook?: string;
+    etsy?: string;
+    website?: string;
+  }>(),
+  
+  // Seller metrics (calculated)
+  averageRating: decimal("average_rating", { precision: 3, scale: 2 }),
+  totalReviews: integer("total_reviews").default(0),
+  totalSales: integer("total_sales").default(0),
+  
+  // Seller settings
+  acceptsCustomOrders: boolean("accepts_custom_orders").default(true),
+  minimumOrderAmount: decimal("minimum_order_amount", { precision: 10, scale: 2 }),
+  returnsPolicy: text("returns_policy"),
+  processingTime: varchar("processing_time").default("1-2 weeks"),
+  
+  // Verification
+  isVerified: boolean("is_verified").default(false),
+  verificationBadges: jsonb("verification_badges").$type<string[]>(), // handmade, eco-friendly, local
+  
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Relations for handmade marketplace
+export const handmadeCategoriesRelations = relations(handmadeCategories, ({ one, many }) => ({
+  parent: one(handmadeCategories, {
+    fields: [handmadeCategories.parentId],
+    references: [handmadeCategories.id],
+  }),
+  children: many(handmadeCategories),
+  products: many(handmadeProducts),
+}));
+
+export const handmadeProductsRelations = relations(handmadeProducts, ({ one, many }) => ({
+  seller: one(users, {
+    fields: [handmadeProducts.sellerId],
+    references: [users.id],
+  }),
+  category: one(handmadeCategories, {
+    fields: [handmadeProducts.categoryId],
+    references: [handmadeCategories.id],
+  }),
+  favorites: many(productFavorites),
+  orders: many(productOrders),
+  reviews: many(productReviews),
+}));
+
+export const productOrdersRelations = relations(productOrders, ({ one }) => ({
+  buyer: one(users, {
+    fields: [productOrders.buyerId],
+    references: [users.id],
+  }),
+  seller: one(users, {
+    fields: [productOrders.sellerId],
+    references: [users.id],
+  }),
+  product: one(handmadeProducts, {
+    fields: [productOrders.productId],
+    references: [handmadeProducts.id],
+  }),
+  review: one(productReviews),
+}));
+
+export const productReviewsRelations = relations(productReviews, ({ one }) => ({
+  product: one(handmadeProducts, {
+    fields: [productReviews.productId],
+    references: [handmadeProducts.id],
+  }),
+  order: one(productOrders, {
+    fields: [productReviews.orderId],
+    references: [productOrders.id],
+  }),
+  buyer: one(users, {
+    fields: [productReviews.buyerId],
+    references: [users.id],
+  }),
+  seller: one(users, {
+    fields: [productReviews.sellerId],
+    references: [users.id],
+  }),
+}));
+
+export const sellerProfilesRelations = relations(sellerProfiles, ({ one }) => ({
+  user: one(users, {
+    fields: [sellerProfiles.userId],
+    references: [users.id],
+  }),
+}));
+
+// Types for handmade marketplace
+export type HandmadeCategory = typeof handmadeCategories.$inferSelect;
+export type InsertHandmadeCategory = typeof handmadeCategories.$inferInsert;
+
+export type HandmadeProduct = typeof handmadeProducts.$inferSelect;
+export type InsertHandmadeProduct = typeof handmadeProducts.$inferInsert;
+
+export type ProductFavorite = typeof productFavorites.$inferSelect;
+export type InsertProductFavorite = typeof productFavorites.$inferInsert;
+
+export type ProductOrder = typeof productOrders.$inferSelect;
+export type InsertProductOrder = typeof productOrders.$inferInsert;
+
+export type ProductReview = typeof productReviews.$inferSelect;
+export type InsertProductReview = typeof productReviews.$inferInsert;
+
+export type SellerProfile = typeof sellerProfiles.$inferSelect;
+export type InsertSellerProfile = typeof sellerProfiles.$inferInsert;
+
+// Zod schemas for handmade marketplace
+export const insertHandmadeCategorySchema = createInsertSchema(handmadeCategories).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertHandmadeProductSchema = createInsertSchema(handmadeProducts).omit({
+  id: true,
+  viewCount: true,
+  favoriteCount: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertProductFavoriteSchema = createInsertSchema(productFavorites).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertProductOrderSchema = createInsertSchema(productOrders).omit({
+  id: true,
+  confirmedAt: true,
+  shippedAt: true,
+  deliveredAt: true,
+  completedAt: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertProductReviewSchema = createInsertSchema(productReviews).omit({
+  id: true,
+  isVerifiedPurchase: true,
+  isModerated: true,
+  moderationNotes: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertSellerProfileSchema = createInsertSchema(sellerProfiles).omit({
+  id: true,
+  averageRating: true,
+  totalReviews: true,
+  totalSales: true,
+  isVerified: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type InsertHandmadeCategoryType = z.infer<typeof insertHandmadeCategorySchema>;
+export type InsertHandmadeProductType = z.infer<typeof insertHandmadeProductSchema>;
+export type InsertProductFavoriteType = z.infer<typeof insertProductFavoriteSchema>;
+export type InsertProductOrderType = z.infer<typeof insertProductOrderSchema>;
+export type InsertProductReviewType = z.infer<typeof insertProductReviewSchema>;
+export type InsertSellerProfileType = z.infer<typeof insertSellerProfileSchema>;

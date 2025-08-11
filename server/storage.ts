@@ -35,6 +35,13 @@ import {
   vendorVerifications,
   buyerVerifications,
   addressVerifications,
+  // Handmade marketplace
+  handmadeCategories,
+  handmadeProducts,
+  productFavorites,
+  productOrders,
+  productReviews,
+  sellerProfiles,
   // Social features
   communityPosts,
   postComments,
@@ -105,6 +112,19 @@ import {
   type InsertBuyerVerification,
   type AddressVerification,
   type InsertAddressVerification,
+  // Handmade marketplace
+  type HandmadeCategory,
+  type InsertHandmadeCategory,
+  type HandmadeProduct,
+  type InsertHandmadeProduct,
+  type ProductFavorite,
+  type InsertProductFavorite,
+  type ProductOrder,
+  type InsertProductOrder,
+  type ProductReview,
+  type InsertProductReview,
+  type SellerProfile,
+  type InsertSellerProfile,
   // Social features
   type CommunityPost,
   type InsertCommunityPost,
@@ -2243,6 +2263,358 @@ export class DatabaseStorage implements IStorage {
       .orderBy(desc(regions.isOfficial), asc(regions.name))
       .limit(filters?.limit || 50)
       .offset(filters?.offset || 0);
+  }
+
+  // Handmade Marketplace Methods
+
+  // Categories
+  async getHandmadeCategories(): Promise<HandmadeCategory[]> {
+    return await db
+      .select()
+      .from(handmadeCategories)
+      .where(eq(handmadeCategories.isActive, true))
+      .orderBy(asc(handmadeCategories.sortOrder), asc(handmadeCategories.name));
+  }
+
+  async createHandmadeCategory(categoryData: InsertHandmadeCategory): Promise<HandmadeCategory> {
+    const [category] = await db
+      .insert(handmadeCategories)
+      .values(categoryData)
+      .returning();
+    return category;
+  }
+
+  // Products
+  async getHandmadeProducts(filters?: {
+    categoryId?: string;
+    sellerId?: string;
+    featured?: boolean;
+    location?: { state?: string; county?: string };
+    priceRange?: { min?: number; max?: number };
+    materials?: string[];
+    inStock?: boolean;
+    search?: string;
+    limit?: number;
+    offset?: number;
+  }): Promise<HandmadeProduct[]> {
+    let query = db.select().from(handmadeProducts);
+    
+    const conditions = [eq(handmadeProducts.status, 'active')];
+    
+    if (filters?.categoryId) {
+      conditions.push(eq(handmadeProducts.categoryId, filters.categoryId));
+    }
+    if (filters?.sellerId) {
+      conditions.push(eq(handmadeProducts.sellerId, filters.sellerId));
+    }
+    if (filters?.featured) {
+      conditions.push(eq(handmadeProducts.featured, true));
+    }
+    if (filters?.location?.state) {
+      conditions.push(eq(handmadeProducts.stateCode, filters.location.state));
+    }
+    if (filters?.location?.county) {
+      conditions.push(eq(handmadeProducts.countyFips, filters.location.county));
+    }
+    if (filters?.inStock !== undefined) {
+      conditions.push(eq(handmadeProducts.inStock, filters.inStock));
+    }
+    if (filters?.priceRange?.min) {
+      conditions.push(sql`${handmadeProducts.price} >= ${filters.priceRange.min}`);
+    }
+    if (filters?.priceRange?.max) {
+      conditions.push(sql`${handmadeProducts.price} <= ${filters.priceRange.max}`);
+    }
+    if (filters?.search) {
+      conditions.push(
+        sql`(${handmadeProducts.title} ILIKE ${`%${filters.search}%`} OR ${handmadeProducts.description} ILIKE ${`%${filters.search}%`})`
+      );
+    }
+    if (filters?.materials && filters.materials.length > 0) {
+      conditions.push(sql`${handmadeProducts.materials} @> ${JSON.stringify(filters.materials)}`);
+    }
+
+    return await query
+      .where(and(...conditions))
+      .orderBy(desc(handmadeProducts.featured), desc(handmadeProducts.createdAt))
+      .limit(filters?.limit || 20)
+      .offset(filters?.offset || 0);
+  }
+
+  async getHandmadeProduct(id: string): Promise<HandmadeProduct | undefined> {
+    const [product] = await db
+      .select()
+      .from(handmadeProducts)
+      .where(eq(handmadeProducts.id, id));
+    return product;
+  }
+
+  async createHandmadeProduct(productData: InsertHandmadeProduct): Promise<HandmadeProduct> {
+    const [product] = await db
+      .insert(handmadeProducts)
+      .values(productData)
+      .returning();
+    return product;
+  }
+
+  async updateHandmadeProduct(id: string, updates: Partial<HandmadeProduct>): Promise<HandmadeProduct> {
+    const [product] = await db
+      .update(handmadeProducts)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(handmadeProducts.id, id))
+      .returning();
+    return product;
+  }
+
+  async incrementProductViews(id: string): Promise<void> {
+    await db
+      .update(handmadeProducts)
+      .set({ viewCount: sql`${handmadeProducts.viewCount} + 1` })
+      .where(eq(handmadeProducts.id, id));
+  }
+
+  // Product Favorites
+  async toggleProductFavorite(userId: string, productId: string): Promise<{ action: 'added' | 'removed' }> {
+    const existing = await db
+      .select()
+      .from(productFavorites)
+      .where(
+        and(
+          eq(productFavorites.userId, userId),
+          eq(productFavorites.productId, productId)
+        )
+      );
+
+    if (existing.length > 0) {
+      await db
+        .delete(productFavorites)
+        .where(
+          and(
+            eq(productFavorites.userId, userId),
+            eq(productFavorites.productId, productId)
+          )
+        );
+      
+      // Decrement favorite count
+      await db
+        .update(handmadeProducts)
+        .set({ favoriteCount: sql`${handmadeProducts.favoriteCount} - 1` })
+        .where(eq(handmadeProducts.id, productId));
+      
+      return { action: 'removed' };
+    } else {
+      await db
+        .insert(productFavorites)
+        .values({ userId, productId });
+      
+      // Increment favorite count
+      await db
+        .update(handmadeProducts)
+        .set({ favoriteCount: sql`${handmadeProducts.favoriteCount} + 1` })
+        .where(eq(handmadeProducts.id, productId));
+      
+      return { action: 'added' };
+    }
+  }
+
+  async getUserFavoriteProducts(userId: string): Promise<HandmadeProduct[]> {
+    return await db
+      .select({
+        id: handmadeProducts.id,
+        sellerId: handmadeProducts.sellerId,
+        title: handmadeProducts.title,
+        description: handmadeProducts.description,
+        categoryId: handmadeProducts.categoryId,
+        tags: handmadeProducts.tags,
+        price: handmadeProducts.price,
+        compareAtPrice: handmadeProducts.compareAtPrice,
+        currency: handmadeProducts.currency,
+        materials: handmadeProducts.materials,
+        dimensions: handmadeProducts.dimensions,
+        colors: handmadeProducts.colors,
+        customizable: handmadeProducts.customizable,
+        customizationOptions: handmadeProducts.customizationOptions,
+        inStock: handmadeProducts.inStock,
+        quantityAvailable: handmadeProducts.quantityAvailable,
+        madeToOrder: handmadeProducts.madeToOrder,
+        processingTime: handmadeProducts.processingTime,
+        primaryImageUrl: handmadeProducts.primaryImageUrl,
+        images: handmadeProducts.images,
+        city: handmadeProducts.city,
+        stateCode: handmadeProducts.stateCode,
+        countyFips: handmadeProducts.countyFips,
+        shippingFrom: handmadeProducts.shippingFrom,
+        freeShipping: handmadeProducts.freeShipping,
+        shippingCost: handmadeProducts.shippingCost,
+        localPickupAvailable: handmadeProducts.localPickupAvailable,
+        shipsNationwide: handmadeProducts.shipsNationwide,
+        shippingRegions: handmadeProducts.shippingRegions,
+        status: handmadeProducts.status,
+        featured: handmadeProducts.featured,
+        viewCount: handmadeProducts.viewCount,
+        favoriteCount: handmadeProducts.favoriteCount,
+        seoTitle: handmadeProducts.seoTitle,
+        seoDescription: handmadeProducts.seoDescription,
+        createdAt: handmadeProducts.createdAt,
+        updatedAt: handmadeProducts.updatedAt,
+      })
+      .from(handmadeProducts)
+      .innerJoin(productFavorites, eq(productFavorites.productId, handmadeProducts.id))
+      .where(eq(productFavorites.userId, userId))
+      .orderBy(desc(productFavorites.createdAt));
+  }
+
+  // Product Orders
+  async createProductOrder(orderData: InsertProductOrder): Promise<ProductOrder> {
+    const [order] = await db
+      .insert(productOrders)
+      .values(orderData)
+      .returning();
+    return order;
+  }
+
+  async getProductOrder(id: string): Promise<ProductOrder | undefined> {
+    const [order] = await db
+      .select()
+      .from(productOrders)
+      .where(eq(productOrders.id, id));
+    return order;
+  }
+
+  async getUserOrders(userId: string, type: 'buyer' | 'seller'): Promise<ProductOrder[]> {
+    const field = type === 'buyer' ? productOrders.buyerId : productOrders.sellerId;
+    return await db
+      .select()
+      .from(productOrders)
+      .where(eq(field, userId))
+      .orderBy(desc(productOrders.createdAt));
+  }
+
+  async updateProductOrder(id: string, updates: Partial<ProductOrder>): Promise<ProductOrder> {
+    const [order] = await db
+      .update(productOrders)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(productOrders.id, id))
+      .returning();
+    return order;
+  }
+
+  // Product Reviews
+  async createProductReview(reviewData: InsertProductReview): Promise<ProductReview> {
+    const [review] = await db
+      .insert(productReviews)
+      .values(reviewData)
+      .returning();
+    
+    // Update product and seller ratings
+    await this.updateProductRatings(reviewData.productId);
+    await this.updateSellerRatings(reviewData.sellerId);
+    
+    return review;
+  }
+
+  async getProductReviews(productId: string): Promise<ProductReview[]> {
+    return await db
+      .select()
+      .from(productReviews)
+      .where(
+        and(
+          eq(productReviews.productId, productId),
+          eq(productReviews.isPublic, true)
+        )
+      )
+      .orderBy(desc(productReviews.createdAt));
+  }
+
+  async getProductRatingSummary(productId: string): Promise<{ average: number; count: number }> {
+    const [result] = await db
+      .select({
+        count: sql<number>`count(*)`,
+        average: sql<number>`avg(${productReviews.rating})`,
+      })
+      .from(productReviews)
+      .where(
+        and(
+          eq(productReviews.productId, productId),
+          eq(productReviews.isPublic, true)
+        )
+      );
+    
+    return {
+      count: result?.count || 0,
+      average: result?.average || 0,
+    };
+  }
+
+  private async updateProductRatings(productId: string): Promise<void> {
+    const summary = await this.getProductRatingSummary(productId);
+    // Products don't have rating fields, but we could add them if needed
+  }
+
+  // Seller Profiles
+  async getSellerProfile(userId: string): Promise<SellerProfile | undefined> {
+    const [profile] = await db
+      .select()
+      .from(sellerProfiles)
+      .where(eq(sellerProfiles.userId, userId));
+    return profile;
+  }
+
+  async createSellerProfile(profileData: InsertSellerProfile): Promise<SellerProfile> {
+    const [profile] = await db
+      .insert(sellerProfiles)
+      .values(profileData)
+      .returning();
+    return profile;
+  }
+
+  async updateSellerProfile(userId: string, updates: Partial<SellerProfile>): Promise<SellerProfile> {
+    const [profile] = await db
+      .update(sellerProfiles)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(sellerProfiles.userId, userId))
+      .returning();
+    return profile;
+  }
+
+  async getSellerRatings(userId: string): Promise<{ average: number; count: number }> {
+    const [result] = await db
+      .select({
+        count: sql<number>`count(*)`,
+        average: sql<number>`avg(${productReviews.rating})`,
+      })
+      .from(productReviews)
+      .where(
+        and(
+          eq(productReviews.sellerId, userId),
+          eq(productReviews.isPublic, true)
+        )
+      );
+    
+    return {
+      count: result?.count || 0,
+      average: result?.average || 0,
+    };
+  }
+
+  private async updateSellerRatings(sellerId: string): Promise<void> {
+    const ratings = await this.getSellerRatings(sellerId);
+    await db
+      .update(sellerProfiles)
+      .set({
+        averageRating: ratings.average.toString(),
+        totalReviews: ratings.count,
+        updatedAt: new Date(),
+      })
+      .where(eq(sellerProfiles.userId, sellerId));
+  }
+
+  async getSellerProducts(sellerId: string): Promise<HandmadeProduct[]> {
+    return await db
+      .select()
+      .from(handmadeProducts)
+      .where(eq(handmadeProducts.sellerId, sellerId))
+      .orderBy(desc(handmadeProducts.featured), desc(handmadeProducts.createdAt));
   }
 }
 
