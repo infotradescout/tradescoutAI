@@ -306,43 +306,73 @@ export function UserMenu() {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" className="flex items-center gap-2">
-          <div className="flex flex-col items-end">
-            <span className="text-sm font-medium">{user.firstName} {user.lastName}</span>
-            <RoleBadge role={userRole} size="sm" />
+        <Button variant="ghost" className="flex items-center gap-3 px-3 py-2 h-auto hover:bg-slate-800/60 transition-colors">
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 bg-gradient-to-br from-orange-500 to-red-600 rounded-full flex items-center justify-center text-white font-semibold text-sm">
+              {user.firstName?.charAt(0)}{user.lastName?.charAt(0)}
+            </div>
+            <div className="flex flex-col items-start">
+              <span className="text-sm font-medium text-slate-200">{user.firstName} {user.lastName}</span>
+              <RoleBadge role={userRole} size="sm" />
+            </div>
           </div>
-          <ChevronDown className="h-3 w-3" />
+          <ChevronDown className="h-3 w-3 text-slate-400" />
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-56">
+      <DropdownMenuContent align="end" className="w-64 bg-slate-800 border-slate-700">
         <DropdownMenuLabel>
-          <div className="flex flex-col space-y-1">
-            <span className="font-medium">{user.firstName} {user.lastName}</span>
-            <span className="text-sm text-muted-foreground">{user.email}</span>
-            <RoleBadge role={userRole} size="sm" />
+          <div className="flex items-center space-x-3 p-2">
+            <div className="w-10 h-10 bg-gradient-to-br from-orange-500 to-red-600 rounded-full flex items-center justify-center text-white font-semibold">
+              {user.firstName?.charAt(0)}{user.lastName?.charAt(0)}
+            </div>
+            <div className="flex flex-col space-y-1">
+              <span className="font-medium text-slate-200">{user.firstName} {user.lastName}</span>
+              <span className="text-sm text-slate-400">{user.email}</span>
+              <RoleBadge role={userRole} size="sm" />
+            </div>
           </div>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
         <DropdownMenuItem asChild>
-          <Link href="/profile" className="flex items-center gap-2 cursor-pointer">
+          <Link href="/profile" className="flex items-center gap-3 cursor-pointer text-slate-200 hover:text-white px-3 py-2 hover:bg-slate-700/60">
             <Users className="h-4 w-4" />
             Profile
           </Link>
         </DropdownMenuItem>
+        <DropdownMenuSeparator className="bg-slate-700" />
         <DropdownMenuItem asChild>
-          <Link href="/notifications" className="flex items-center gap-2 cursor-pointer">
+          <Link href="/notifications" className="flex items-center gap-3 cursor-pointer text-slate-200 hover:text-white px-3 py-2 hover:bg-slate-700/60">
             <Bell className="h-4 w-4" />
             Notifications
           </Link>
         </DropdownMenuItem>
         <DropdownMenuItem asChild>
-          <Link href="/payments/history" className="flex items-center gap-2 cursor-pointer">
+          <Link href="/chat" className="flex items-center gap-3 cursor-pointer text-slate-200 hover:text-white px-3 py-2 hover:bg-slate-700/60">
+            <MessageSquare className="h-4 w-4" />
+            Messages
+          </Link>
+        </DropdownMenuItem>
+        <DropdownMenuItem asChild>
+          <Link href="/conversations" className="flex items-center gap-3 cursor-pointer text-slate-200 hover:text-white px-3 py-2 hover:bg-slate-700/60">
+            <MessageSquare className="h-4 w-4" />
+            Conversations
+          </Link>
+        </DropdownMenuItem>
+        <DropdownMenuItem asChild>
+          <Link href="/saved-ads" className="flex items-center gap-3 cursor-pointer text-slate-200 hover:text-white px-3 py-2 hover:bg-slate-700/60">
+            <Star className="h-4 w-4" />
+            Saved Ads
+          </Link>
+        </DropdownMenuItem>
+        <DropdownMenuSeparator className="bg-slate-700" />
+        <DropdownMenuItem asChild>
+          <Link href="/payments/history" className="flex items-center gap-3 cursor-pointer text-slate-200 hover:text-white px-3 py-2 hover:bg-slate-700/60">
             <CreditCard className="h-4 w-4" />
             Payment History
           </Link>
         </DropdownMenuItem>
-        <DropdownMenuSeparator />
-        <DropdownMenuItem onClick={handleLogout} className="flex items-center gap-2 cursor-pointer text-destructive">
+        <DropdownMenuSeparator className="bg-slate-700" />
+        <DropdownMenuItem onClick={handleLogout} className="flex items-center gap-3 cursor-pointer text-red-400 hover:text-red-300 px-3 py-2 hover:bg-red-500/10">
           <LogOut className="h-4 w-4" />
           Sign Out
         </DropdownMenuItem>
