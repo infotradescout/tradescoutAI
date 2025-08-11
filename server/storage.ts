@@ -61,6 +61,9 @@ import {
   // Invitation system
   invitations,
   referralStats,
+  // Professional profiles
+  realtorProfiles,
+  carSalesmanProfiles,
   type User,
   type InsertUser,
   type UpsertUser,
@@ -170,6 +173,11 @@ import {
   type InsertInvitation,
   type ReferralStats,
   type InsertReferralStats,
+  // Professional profile types
+  type RealtorProfile,
+  type InsertRealtorProfile,
+  type CarSalesmanProfile,
+  type InsertCarSalesmanProfile,
   // Leaderboard
   contractorLeaderboardStats,
   type ContractorLeaderboardStats,
@@ -3658,6 +3666,162 @@ export class DatabaseStorage implements IStorage {
       updatedAt: row.updatedAt,
       user: row.user as User
     }));
+  }
+
+  // Professional Profile Methods
+
+  async createRealtorProfile(profile: InsertRealtorProfile): Promise<RealtorProfile> {
+    const [newProfile] = await db
+      .insert(realtorProfiles)
+      .values(profile)
+      .returning();
+    return newProfile;
+  }
+
+  async getRealtorProfile(userId: string): Promise<RealtorProfile | undefined> {
+    const [profile] = await db
+      .select()
+      .from(realtorProfiles)
+      .where(eq(realtorProfiles.userId, userId));
+    return profile;
+  }
+
+  async createCarSalesmanProfile(profile: InsertCarSalesmanProfile): Promise<CarSalesmanProfile> {
+    const [newProfile] = await db
+      .insert(carSalesmanProfiles)
+      .values(profile)
+      .returning();
+    return newProfile;
+  }
+
+  async getCarSalesmanProfile(userId: string): Promise<CarSalesmanProfile | undefined> {
+    const [profile] = await db
+      .select()
+      .from(carSalesmanProfiles)
+      .where(eq(carSalesmanProfiles.userId, userId));
+    return profile;
+  }
+
+  async updateUserRole(userId: string, role: 'realtor' | 'car_salesman'): Promise<void> {
+    await db
+      .update(users)
+      .set({ role, updatedAt: new Date() })
+      .where(eq(users.id, userId));
+  }
+
+  async getPendingRealtorApplications(): Promise<(RealtorProfile & { user: User })[]> {
+    const result = await db
+      .select({
+        id: realtorProfiles.id,
+        userId: realtorProfiles.userId,
+        licenseNumber: realtorProfiles.licenseNumber,
+        brokerageName: realtorProfiles.brokerageName,
+        mlsId: realtorProfiles.mlsId,
+        specializations: realtorProfiles.specializations,
+        yearsExperience: realtorProfiles.yearsExperience,
+        transactionsCompleted: realtorProfiles.transactionsCompleted,
+        averageTransactionValue: realtorProfiles.averageTransactionValue,
+        serviceAreas: realtorProfiles.serviceAreas,
+        licenseState: realtorProfiles.licenseState,
+        licenseExpiration: realtorProfiles.licenseExpiration,
+        verificationStatus: realtorProfiles.verificationStatus,
+        verificationDocuments: realtorProfiles.verificationDocuments,
+        isActive: realtorProfiles.isActive,
+        createdAt: realtorProfiles.createdAt,
+        updatedAt: realtorProfiles.updatedAt,
+        user: {
+          id: users.id,
+          email: users.email,
+          firstName: users.firstName,
+          lastName: users.lastName,
+          profileImageUrl: users.profileImageUrl,
+          role: users.role,
+          createdAt: users.createdAt
+        }
+      })
+      .from(realtorProfiles)
+      .innerJoin(users, eq(realtorProfiles.userId, users.id))
+      .where(eq(realtorProfiles.verificationStatus, 'pending'));
+
+    return result.map(row => ({
+      ...row,
+      user: row.user as User
+    }));
+  }
+
+  async getPendingCarSalesmanApplications(): Promise<(CarSalesmanProfile & { user: User })[]> {
+    const result = await db
+      .select({
+        id: carSalesmanProfiles.id,
+        userId: carSalesmanProfiles.userId,
+        dealershipName: carSalesmanProfiles.dealershipName,
+        dealerLicense: carSalesmanProfiles.dealerLicense,
+        salesmanLicense: carSalesmanProfiles.salesmanLicense,
+        specializations: carSalesmanProfiles.specializations,
+        yearsExperience: carSalesmanProfiles.yearsExperience,
+        vehiclesSold: carSalesmanProfiles.vehiclesSold,
+        averageVehicleValue: carSalesmanProfiles.averageVehicleValue,
+        brandsSpecialty: carSalesmanProfiles.brandsSpecialty,
+        serviceAreas: carSalesmanProfiles.serviceAreas,
+        licenseState: carSalesmanProfiles.licenseState,
+        licenseExpiration: carSalesmanProfiles.licenseExpiration,
+        verificationStatus: carSalesmanProfiles.verificationStatus,
+        verificationDocuments: carSalesmanProfiles.verificationDocuments,
+        isActive: carSalesmanProfiles.isActive,
+        createdAt: carSalesmanProfiles.createdAt,
+        updatedAt: carSalesmanProfiles.updatedAt,
+        user: {
+          id: users.id,
+          email: users.email,
+          firstName: users.firstName,
+          lastName: users.lastName,
+          profileImageUrl: users.profileImageUrl,
+          role: users.role,
+          createdAt: users.createdAt
+        }
+      })
+      .from(carSalesmanProfiles)
+      .innerJoin(users, eq(carSalesmanProfiles.userId, users.id))
+      .where(eq(carSalesmanProfiles.verificationStatus, 'pending'));
+
+    return result.map(row => ({
+      ...row,
+      user: row.user as User
+    }));
+  }
+
+  async updateRealtorVerificationStatus(
+    profileId: string, 
+    status: 'approved' | 'rejected',
+    adminId: string,
+    notes?: string
+  ): Promise<RealtorProfile> {
+    const [updatedProfile] = await db
+      .update(realtorProfiles)
+      .set({ 
+        verificationStatus: status,
+        updatedAt: new Date()
+      })
+      .where(eq(realtorProfiles.id, profileId))
+      .returning();
+    return updatedProfile;
+  }
+
+  async updateCarSalesmanVerificationStatus(
+    profileId: string, 
+    status: 'approved' | 'rejected',
+    adminId: string,
+    notes?: string
+  ): Promise<CarSalesmanProfile> {
+    const [updatedProfile] = await db
+      .update(carSalesmanProfiles)
+      .set({ 
+        verificationStatus: status,
+        updatedAt: new Date()
+      })
+      .where(eq(carSalesmanProfiles.id, profileId))
+      .returning();
+    return updatedProfile;
   }
 }
 

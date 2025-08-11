@@ -43,6 +43,8 @@ import AdminErrorReports from "@/pages/admin-error-reports";
 import AdminTestingControls from "@/pages/admin-testing-controls";
 import AdminListings from "@/pages/admin-listings";
 import MarketplaceListing from "@/pages/marketplace-listing";
+import RealtorApplication from "@/pages/realtor-application";
+import CarSalesmanApplication from "@/pages/car-salesman-application";
 import AddressVerification from "@/pages/address-verification";
 import Community from "@/pages/community";
 import Leaderboard from "@/pages/leaderboard";
@@ -147,6 +149,8 @@ function Router() {
             <Route path="/invite" component={InvitePage} />
             <Route path="/moderation" component={ModerationCenter} />
             <Route path="/saved-ads" component={SavedAds} />
+            <Route path="/realtor-application" component={RealtorApplication} />
+            <Route path="/car-salesman-application" component={CarSalesmanApplication} />
           </>
         )}
         <Route component={NotFound} />

@@ -2,6 +2,12 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { setupAuth, isAuthenticated, isContractor, isAdmin } from "./auth";
+import { 
+  insertRealtorProfileSchema, 
+  insertCarSalesmanProfileSchema,
+  type InsertRealtorProfile,
+  type InsertCarSalesmanProfile
+} from "@shared/schema";
 
 // Middleware to check address verification requirement
 const requireAddressVerification = async (req: any, res: any, next: any) => {
@@ -3972,6 +3978,142 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error cleaning up invitations:", error);
       res.status(500).json({ message: "Failed to cleanup invitations" });
+    }
+  });
+
+  // Professional Network Applications
+  
+  // Realtor application submission
+  app.post("/api/realtor/application", isAuthenticated, requireAddressVerification, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      
+      // Check if user already has a realtor profile
+      const existingProfile = await storage.getRealtorProfile(userId);
+      if (existingProfile) {
+        return res.status(400).json({ message: "You already have a realtor profile" });
+      }
+      
+      const validatedData = insertRealtorProfileSchema.parse(req.body);
+      const realtorProfile = await storage.createRealtorProfile(validatedData);
+      
+      // Update user role to realtor
+      await storage.updateUserRole(userId, 'realtor');
+      
+      await storage.logEvent('realtor_application_submitted', {
+        profileId: realtorProfile.id,
+        userId,
+      });
+
+      res.json({ 
+        message: "Realtor application submitted successfully", 
+        profileId: realtorProfile.id 
+      });
+    } catch (error) {
+      console.error("Error submitting realtor application:", error);
+      res.status(500).json({ message: "Failed to submit realtor application" });
+    }
+  });
+
+  // Car salesman application submission
+  app.post("/api/car-salesman/application", isAuthenticated, requireAddressVerification, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      
+      // Check if user already has a car salesman profile
+      const existingProfile = await storage.getCarSalesmanProfile(userId);
+      if (existingProfile) {
+        return res.status(400).json({ message: "You already have a car salesman profile" });
+      }
+      
+      const validatedData = insertCarSalesmanProfileSchema.parse(req.body);
+      const carSalesmanProfile = await storage.createCarSalesmanProfile(validatedData);
+      
+      // Update user role to car_salesman
+      await storage.updateUserRole(userId, 'car_salesman');
+      
+      await storage.logEvent('car_salesman_application_submitted', {
+        profileId: carSalesmanProfile.id,
+        userId,
+      });
+
+      res.json({ 
+        message: "Car salesman application submitted successfully", 
+        profileId: carSalesmanProfile.id 
+      });
+    } catch (error) {
+      console.error("Error submitting car salesman application:", error);
+      res.status(500).json({ message: "Failed to submit car salesman application" });
+    }
+  });
+
+  // Professional verification endpoints for admins
+  app.get("/api/admin/professional/pending", isAuthenticated, isAdmin, async (req, res) => {
+    try {
+      const pendingRealtors = await storage.getPendingRealtorApplications();
+      const pendingCarSalesmen = await storage.getPendingCarSalesmanApplications();
+      
+      res.json({
+        realtors: pendingRealtors,
+        carSalesmen: pendingCarSalesmen
+      });
+    } catch (error) {
+      console.error("Error fetching pending applications:", error);
+      res.status(500).json({ message: "Failed to fetch pending applications" });
+    }
+  });
+
+  app.post("/api/admin/realtor/verify/:profileId", isAuthenticated, isAdmin, async (req: any, res) => {
+    try {
+      const { profileId } = req.params;
+      const { approved, notes } = req.body;
+      const adminId = req.user.claims.sub;
+      
+      const result = await storage.updateRealtorVerificationStatus(
+        profileId, 
+        approved ? 'approved' : 'rejected',
+        adminId,
+        notes
+      );
+      
+      await storage.logEvent('realtor_verification_decision', {
+        profileId,
+        adminId,
+        approved,
+        notes
+      });
+
+      res.json(result);
+    } catch (error) {
+      console.error("Error updating realtor verification:", error);
+      res.status(500).json({ message: "Failed to update verification status" });
+    }
+  });
+
+  app.post("/api/admin/car-salesman/verify/:profileId", isAuthenticated, isAdmin, async (req: any, res) => {
+    try {
+      const { profileId } = req.params;
+      const { approved, notes } = req.body;
+      const adminId = req.user.claims.sub;
+      
+      const result = await storage.updateCarSalesmanVerificationStatus(
+        profileId, 
+        approved ? 'approved' : 'rejected',
+        adminId,
+        notes
+      );
+      
+      await storage.logEvent('car_salesman_verification_decision', {
+        profileId,
+        adminId,
+        approved,
+        notes
+      });
+
+      res.json(result);
+    } catch (error) {
+      console.error("Error updating car salesman verification:", error);
+      res.status(500).json({ message: "Failed to update verification status" });
     }
   });
 

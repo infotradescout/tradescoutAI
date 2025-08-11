@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
+import { ProfessionalBadge, ProfessionalNetworkLinks } from "@/components/professional-badges";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
@@ -475,6 +476,10 @@ export default function Marketplace() {
               <p className="text-xs text-gray-500 text-center">
                 Share quality with your community
               </p>
+              {/* Professional Network Access */}
+              <div className="mt-4">
+                <ProfessionalNetworkLinks />
+              </div>
             </div>
           )}
         </div>
@@ -1330,11 +1335,19 @@ export default function Marketplace() {
                             <MapPin className="h-3 w-3 mr-1" />
                             {formatLocationString(listing)}
                           </div>
-                          {listing.sellerType === 'contractor' && (
-                            <Badge variant="outline" className="text-xs border-orange-200 text-orange-700">
-                              Pro Seller
-                            </Badge>
-                          )}
+                          <div className="flex flex-col gap-1">
+                            {listing.sellerType === 'contractor' && (
+                              <Badge variant="outline" className="text-xs border-orange-200 text-orange-700">
+                                Pro Seller
+                              </Badge>
+                            )}
+                            <ProfessionalBadge 
+                              userRole={listing.sellerRole} 
+                              verificationStatus="approved"
+                              size="sm"
+                              showText={false}
+                            />
+                          </div>
                         </div>
                       </div>
                       <div className="flex items-center justify-between mt-3 pt-3 border-t">
@@ -1393,9 +1406,17 @@ export default function Marketplace() {
                             <div className="text-lg font-bold text-emerald-600 mb-1">
                               {formatPrice(parseFloat(listing.price), listing.priceType)}
                             </div>
-                            <Badge variant="secondary" className="text-xs">
-                              {listing.condition}
-                            </Badge>
+                            <div className="flex flex-col gap-1">
+                              <Badge variant="secondary" className="text-xs">
+                                {listing.condition}
+                              </Badge>
+                              <ProfessionalBadge 
+                                userRole={listing.sellerRole} 
+                                verificationStatus="approved"
+                                size="sm"
+                                showText={false}
+                              />
+                            </div>
                           </div>
                         </div>
                       </div>
