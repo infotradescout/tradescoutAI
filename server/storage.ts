@@ -821,13 +821,18 @@ export class DatabaseStorage implements IStorage {
 
   // County operations
   async getCounties(stateCode?: string): Promise<County[]> {
-    let query = db.select().from(counties);
-    
     if (stateCode) {
-      query = query.where(eq(counties.stateCode, stateCode));
+      return await db
+        .select()
+        .from(counties)
+        .where(eq(counties.stateCode, stateCode))
+        .orderBy(asc(counties.name));
     }
     
-    return await query.orderBy(asc(counties.name));
+    return await db
+      .select()
+      .from(counties)
+      .orderBy(asc(counties.name));
   }
 
   async getCountyByFips(fips: string): Promise<County | undefined> {
@@ -849,15 +854,19 @@ export class DatabaseStorage implements IStorage {
 
   // Trade operations
   async getTrades(parentId?: string): Promise<Trade[]> {
-    let query = db.select().from(trades);
-    
     if (parentId) {
-      query = query.where(eq(trades.parentId, parentId));
-    } else {
-      query = query.where(sql`${trades.parentId} IS NULL`);
+      return await db
+        .select()
+        .from(trades)
+        .where(eq(trades.parentId, parentId))
+        .orderBy(asc(trades.name));
     }
     
-    return await query.orderBy(asc(trades.name));
+    return await db
+      .select()
+      .from(trades)
+      .where(sql`${trades.parentId} IS NULL`)
+      .orderBy(asc(trades.name));
   }
 
   async getTradeBySlug(slug: string): Promise<Trade | undefined> {
@@ -909,8 +918,6 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getLeads(contractorId?: string, status?: string): Promise<Lead[]> {
-    let query = db.select().from(leads);
-    
     const conditions = [];
     if (contractorId) {
       conditions.push(eq(leads.contractorId, contractorId));
@@ -919,11 +926,15 @@ export class DatabaseStorage implements IStorage {
       conditions.push(eq(leads.status, status));
     }
     
+    const baseQuery = db.select().from(leads);
+    
     if (conditions.length > 0) {
-      query = query.where(and(...conditions));
+      return await baseQuery
+        .where(and(...conditions))
+        .orderBy(desc(leads.createdAt));
     }
     
-    return await query.orderBy(desc(leads.createdAt));
+    return await baseQuery.orderBy(desc(leads.createdAt));
   }
 
   async updateLeadStatus(id: string, status: string): Promise<Lead> {
@@ -981,19 +992,20 @@ export class DatabaseStorage implements IStorage {
 
   // Pricing operations
   async getPricingData(service: string, fips?: string): Promise<PricingData[]> {
-    let query = db
+    if (fips) {
+      return await db
+        .select()
+        .from(pricingData)
+        .where(and(
+          eq(pricingData.service, service),
+          eq(pricingData.fips, fips)
+        ));
+    }
+    
+    return await db
       .select()
       .from(pricingData)
       .where(eq(pricingData.service, service));
-    
-    if (fips) {
-      query = query.where(and(
-        eq(pricingData.service, service),
-        eq(pricingData.fips, fips)
-      ));
-    }
-    
-    return await query;
   }
 
   async upsertPricingData(data: InsertPricingData): Promise<PricingData> {
@@ -1021,20 +1033,21 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getEventStats(eventType: string, dateRange?: { from: Date; to: Date }): Promise<number> {
-    let query = db
+    let baseQuery = db
       .select({ count: sql<number>`count(*)` })
-      .from(events)
-      .where(eq(events.eventType, eventType));
+      .from(events);
     
     if (dateRange) {
-      query = query.where(and(
-        eq(events.eventType, eventType),
-        gt(events.createdAt, dateRange.from),
-        sql`${events.createdAt} < ${dateRange.to}`
-      ));
+      const [result] = await baseQuery
+        .where(and(
+          eq(events.eventType, eventType),
+          gt(events.createdAt, dateRange.from),
+          sql`${events.createdAt} < ${dateRange.to}`
+        ));
+      return result?.count || 0;
     }
     
-    const [result] = await query;
+    const [result] = await baseQuery.where(eq(events.eventType, eventType));
     return result?.count || 0;
   }
 
@@ -1464,17 +1477,19 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getUserNotifications(userId: string, unreadOnly: boolean = false): Promise<Notification[]> {
-    let query = db
+    if (unreadOnly) {
+      return await db
+        .select()
+        .from(notifications)
+        .where(and(eq(notifications.userId, userId), eq(notifications.isRead, false)))
+        .orderBy(desc(notifications.createdAt));
+    }
+
+    return await db
       .select()
       .from(notifications)
       .where(eq(notifications.userId, userId))
       .orderBy(desc(notifications.createdAt));
-
-    if (unreadOnly) {
-      query = query.where(and(eq(notifications.userId, userId), eq(notifications.isRead, false)));
-    }
-
-    return await query;
   }
 
   async markNotificationAsRead(notificationId: string): Promise<void> {

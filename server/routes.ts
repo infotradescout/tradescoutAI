@@ -2,6 +2,7 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { setupAuth, isAuthenticated, isContractor, isAdmin } from "./auth";
+import type { AuthenticatedRequest } from "./types";
 import { WebSocketManager } from "./websocket";
 import { paymentService } from "./payment-service";
 import Stripe from "stripe";
@@ -10,7 +11,7 @@ import Stripe from "stripe";
 let stripe: Stripe | null = null;
 if (process.env.STRIPE_SECRET_KEY) {
   stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
-    apiVersion: "2023-10-16",
+    apiVersion: "2025-07-30.basil",
   });
 }
 import { 
@@ -814,7 +815,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Lead submission (requires auth)
   app.post("/api/leads", isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = (req.user as any)?.claims?.sub || req.user?.id;
       const leadData = { ...req.body, userId };
       
       // Track quote request with locality context
@@ -859,7 +860,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Recommendations (requires auth)
   app.post("/api/recommendations", isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = (req.user as any)?.claims?.sub || req.user?.id;
       const recommendationData = { ...req.body, userId };
       
       // Track rating submission with locality context
@@ -1018,7 +1019,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Contractor dashboard (requires contractor auth)
   app.get("/api/contractor/dashboard", isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = (req.user as any)?.claims?.sub || req.user?.id;
       
       // Get contractor profile for this user
       const contractors = await storage.getContractors({ limit: 1 });
@@ -1202,7 +1203,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Conversations
   app.post("/api/conversations", isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = (req.user as any)?.claims?.sub || req.user?.id;
       const { contractorId, leadId } = req.body;
       
       const conversation = await storage.createConversation({
@@ -1219,7 +1220,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get("/api/conversations", isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = (req.user as any)?.claims?.sub || req.user?.id;
       const userType = req.query.userType || 'homeowner'; 
       
       const conversations = await storage.getConversationsByUser(userId, userType);
@@ -1237,7 +1238,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Conversation not found" });
       }
       
-      const userId = req.user.claims.sub;
+      const userId = (req.user as any)?.claims?.sub || req.user?.id;
       if (conversation.homeownerId !== userId && conversation.contractorId !== userId) {
         return res.status(403).json({ message: "Access denied" });
       }
@@ -1252,7 +1253,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/conversations/:id/rate", isAuthenticated, async (req: any, res) => {
     try {
       const { rating, feedback } = req.body;
-      const userId = req.user.claims.sub;
+      const userId = (req.user as any)?.claims?.sub || req.user?.id;
       
       const conversation = await storage.getConversation(req.params.id);
       if (!conversation) {
@@ -1278,7 +1279,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Messages
   app.post("/api/conversations/:id/messages", isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = (req.user as any)?.claims?.sub || req.user?.id;
       const { content, messageType, metadata } = req.body;
       
       const conversation = await storage.getConversation(req.params.id);
@@ -1310,7 +1311,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get("/api/conversations/:id/messages", isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = (req.user as any)?.claims?.sub || req.user?.id;
       
       const conversation = await storage.getConversation(req.params.id);
       if (!conversation) {
@@ -1332,7 +1333,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Quotes  
   app.post("/api/quotes", isAuthenticated, async (req: any, res) => {
     try {
-      const contractorId = req.user.claims.sub;
+      const contractorId = (req.user as any)?.claims?.sub || req.user?.id;
       const quoteData = { ...req.body, contractorId };
       
       // Track contractor quote submission with locality context
@@ -1373,7 +1374,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Material Lists
   app.post("/api/material-lists", isAuthenticated, async (req: any, res) => {
     try {
-      const contractorId = req.user.claims.sub;
+      const contractorId = (req.user as any)?.claims?.sub || req.user?.id;
       const materialListData = { ...req.body, contractorId };
       
       const materialList = await storage.createMaterialList(materialListData);
@@ -1603,7 +1604,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Marketplace conversation endpoints
   app.get("/api/marketplace/conversations", isAuthenticated, async (req, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = (req.user as any)?.claims?.sub || req.user?.id;
       const conversations = await storage.getUserMarketplaceConversations(userId);
       res.json(conversations);
     } catch (error) {
@@ -1614,7 +1615,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/marketplace/conversations", isAuthenticated, async (req, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = (req.user as any)?.claims?.sub || req.user?.id;
       const { listingId, sellerId, initialMessage } = req.body;
 
       // Check if conversation already exists
@@ -1652,7 +1653,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get("/api/marketplace/conversations/:conversationId/messages", isAuthenticated, async (req, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = (req.user as any)?.claims?.sub || req.user?.id;
       const { conversationId } = req.params;
 
       // Verify user is part of conversation
@@ -1671,7 +1672,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/marketplace/conversations/:conversationId/messages", isAuthenticated, async (req, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = (req.user as any)?.claims?.sub || req.user?.id;
       const { conversationId } = req.params;
       const { content, messageType = 'text' } = req.body;
 
@@ -1700,7 +1701,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.put("/api/marketplace/conversations/:conversationId/read", isAuthenticated, async (req, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = (req.user as any)?.claims?.sub || req.user?.id;
       const { conversationId } = req.params;
 
       // Verify user is part of conversation
@@ -1745,7 +1746,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { profileId } = req.params;
       const { approved, notes } = req.body;
-      const adminId = req.user.claims.sub;
+      const adminId = (req.user as any)?.claims?.sub || req.user?.id;
 
       const result = await storage.updateRealtorVerificationStatus(
         profileId,
@@ -1770,7 +1771,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { profileId } = req.params;
       const { approved, notes } = req.body;
-      const adminId = req.user.claims.sub;
+      const adminId = (req.user as any)?.claims?.sub || req.user?.id;
 
       const result = await storage.updateCarSalesmanVerificationStatus(
         profileId,
@@ -4153,7 +4154,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Realtor application submission
   app.post("/api/realtor/application", isAuthenticated, requireAddressVerification, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = (req.user as any)?.claims?.sub || req.user?.id;
       
       // Check if user already has a realtor profile
       const existingProfile = await storage.getRealtorProfile(userId);
@@ -4185,7 +4186,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Car salesman application submission
   app.post("/api/car-salesman/application", isAuthenticated, requireAddressVerification, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = (req.user as any)?.claims?.sub || req.user?.id;
       
       // Check if user already has a car salesman profile
       const existingProfile = await storage.getCarSalesmanProfile(userId);
@@ -4234,7 +4235,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { profileId } = req.params;
       const { approved, notes } = req.body;
-      const adminId = req.user.claims.sub;
+      const adminId = (req.user as any)?.claims?.sub || req.user?.id;
       
       const result = await storage.updateRealtorVerificationStatus(
         profileId, 
@@ -4261,7 +4262,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { profileId } = req.params;
       const { approved, notes } = req.body;
-      const adminId = req.user.claims.sub;
+      const adminId = (req.user as any)?.claims?.sub || req.user?.id;
       
       const result = await storage.updateCarSalesmanVerificationStatus(
         profileId, 
@@ -4635,7 +4636,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         metadata: {
           listingId: listing.id,
           sellerId: listing.sellerId,
-          buyerId: req.user.claims.sub,
+          buyerId: (req.user as any)?.claims?.sub || req.user?.id,
           platformFee: platformFee.toString(),
         },
       });
@@ -4652,7 +4653,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const transactionData = {
         ...req.body,
-        buyerId: req.user.claims.sub,
+        buyerId: (req.user as any)?.claims?.sub || req.user?.id,
       };
       
       const transaction = await storage.createMarketplaceTransaction(transactionData);
@@ -4694,7 +4695,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/marketplace/transactions", isAuthenticated, async (req, res) => {
     try {
       const { role = 'buyer' } = req.query;
-      const userId = req.user.claims.sub;
+      const userId = (req.user as any)?.claims?.sub || req.user?.id;
       
       const transactions = await storage.getMarketplaceTransactionsByUser(userId, role as 'buyer' | 'seller');
       res.json(transactions);
@@ -4726,7 +4727,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const reviewData = {
         ...req.body,
-        reviewerId: req.user.claims.sub,
+        reviewerId: (req.user as any)?.claims?.sub || req.user?.id,
       };
       
       const review = await storage.createUserReview(reviewData);
@@ -4769,7 +4770,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Real-time notifications endpoints
   app.get("/api/notifications", isAuthenticated, async (req, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = (req.user as any)?.claims?.sub || req.user?.id;
       const { unreadOnly } = req.query;
       
       const notifications = await storage.getUserNotifications(userId, unreadOnly === 'true');
@@ -4793,7 +4794,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.put("/api/notifications/mark-all-read", isAuthenticated, async (req, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = (req.user as any)?.claims?.sub || req.user?.id;
       await storage.markAllNotificationsAsRead(userId);
       res.json({ success: true });
     } catch (error) {
@@ -4821,7 +4822,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Log search analytics if user is authenticated
       if (req.user) {
         await storage.logSearchAnalytics({
-          userId: req.user.claims.sub,
+          userId: (req.user as any)?.claims?.sub || req.user?.id,
           searchQuery: query as string,
           searchType: 'marketplace',
           filters: {
@@ -4865,7 +4866,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const searchData = {
         ...req.body,
-        userId: req.user.claims.sub,
+        userId: (req.user as any)?.claims?.sub || req.user?.id,
       };
       
       const savedSearch = await storage.createSavedSearch(searchData);
@@ -4878,7 +4879,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get("/api/saved-searches", isAuthenticated, async (req, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = (req.user as any)?.claims?.sub || req.user?.id;
       const savedSearches = await storage.getUserSavedSearches(userId);
       res.json(savedSearches);
     } catch (error) {
@@ -4903,7 +4904,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const disputeData = {
         ...req.body,
-        initiatorId: req.user.claims.sub,
+        initiatorId: (req.user as any)?.claims?.sub || req.user?.id,
       };
       
       const dispute = await storage.createTransactionDispute(disputeData);
@@ -5206,7 +5207,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Create foundation donation
   app.post('/api/foundation/donate', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = (req.user as any)?.claims?.sub || req.user?.id;
       const {
         causeId,
         amount,
@@ -5277,7 +5278,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post('/api/foundation/donations/:id/confirm', isAuthenticated, async (req: any, res) => {
     try {
       const { id } = req.params;
-      const userId = req.user.claims.sub;
+      const userId = (req.user as any)?.claims?.sub || req.user?.id;
       const { stripePaymentIntentId } = req.body;
 
       // Get and verify donation
@@ -5333,7 +5334,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get user's donations
   app.get('/api/foundation/my-donations', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = (req.user as any)?.claims?.sub || req.user?.id;
       const { status, type } = req.query;
       
       const filters = {
@@ -5352,7 +5353,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get/Update user donation preferences
   app.get('/api/foundation/preferences', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = (req.user as any)?.claims?.sub || req.user?.id;
       const preferences = await storage.getUserDonationPreferences(userId);
       res.json(preferences || {});
     } catch (error) {
@@ -5363,7 +5364,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.put('/api/foundation/preferences', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = (req.user as any)?.claims?.sub || req.user?.id;
       const preferences = await storage.upsertUserDonationPreferences(userId, req.body);
       res.json(preferences);
     } catch (error) {
@@ -5399,7 +5400,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Admin: Create foundation cause
   app.post('/api/admin/foundation/causes', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = (req.user as any)?.claims?.sub || req.user?.id;
       
       // Check admin permissions
       const user = await storage.getUser(userId);
@@ -5423,7 +5424,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Admin: Create impact report
   app.post('/api/admin/foundation/impact-reports', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = (req.user as any)?.claims?.sub || req.user?.id;
       
       // Check admin permissions
       const user = await storage.getUser(userId);
