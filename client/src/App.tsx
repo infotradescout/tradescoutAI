@@ -85,11 +85,8 @@ function Router() {
     );
   }
 
-  // If platform needs setup and we're not already on the setup page, redirect to setup
-  if (needsSetup && window.location.pathname !== '/setup') {
-    window.location.href = '/setup';
-    return <LoadingSpinner />;
-  }
+  // Only redirect to setup if explicitly accessing setup route
+  // Allow access to public pages even if setup is needed
 
   return (
     <div className="min-h-screen gradient-bg text-gray-100">
