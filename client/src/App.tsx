@@ -85,8 +85,14 @@ function Router() {
     );
   }
 
-  // Only redirect to setup if explicitly accessing setup route
-  // Allow access to public pages even if setup is needed
+  // If setup is needed and user is not on setup page, redirect to setup
+  if (needsSetup) {
+    return (
+      <div className="min-h-screen gradient-bg text-gray-100">
+        <MasterAdminSetup />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen gradient-bg text-gray-100">
