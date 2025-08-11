@@ -13,6 +13,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Users, HardHat, Phone, MapPin, Building } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
 import { useLocation } from "wouter";
 
 const profileSetupSchema = z.object({
@@ -28,6 +29,9 @@ const profileSetupSchema = z.object({
   licenseNumber: z.string().optional(),
   yearsInBusiness: z.number().optional(),
   serviceAreas: z.array(z.string()).optional(),
+  isGeneralContractor: z.boolean().optional(),
+  isResidentialContractor: z.boolean().optional(),
+  acceptsSubcontractWork: z.boolean().optional(),
 });
 
 type ProfileSetupData = z.infer<typeof profileSetupSchema>;
@@ -53,6 +57,9 @@ export default function ProfileSetup() {
       licenseNumber: '',
       yearsInBusiness: 0,
       serviceAreas: [],
+      isGeneralContractor: false,
+      isResidentialContractor: false,
+      acceptsSubcontractWork: false,
     },
   });
 
@@ -350,6 +357,83 @@ export default function ProfileSetup() {
                             </FormItem>
                           )}
                         />
+
+                        {/* Contractor Type */}
+                        <div className="border-t border-navy-600 pt-4">
+                          <h4 className="text-md font-semibold text-white mb-3">Contractor Type</h4>
+                          <p className="text-gray-400 text-sm mb-4">Select all that apply to describe your business</p>
+                          
+                          <div className="space-y-3">
+                            <FormField
+                              control={form.control}
+                              name="isGeneralContractor"
+                              render={({ field }) => (
+                                <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                                  <FormControl>
+                                    <Checkbox
+                                      checked={field.value}
+                                      onCheckedChange={field.onChange}
+                                    />
+                                  </FormControl>
+                                  <div className="space-y-1 leading-none">
+                                    <FormLabel className="text-gray-300">
+                                      General Contractor
+                                    </FormLabel>
+                                    <p className="text-sm text-gray-400">
+                                      I manage complete construction projects and coordinate with other trades
+                                    </p>
+                                  </div>
+                                </FormItem>
+                              )}
+                            />
+                            
+                            <FormField
+                              control={form.control}
+                              name="isResidentialContractor"
+                              render={({ field }) => (
+                                <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                                  <FormControl>
+                                    <Checkbox
+                                      checked={field.value}
+                                      onCheckedChange={field.onChange}
+                                    />
+                                  </FormControl>
+                                  <div className="space-y-1 leading-none">
+                                    <FormLabel className="text-gray-300">
+                                      Residential Contractor
+                                    </FormLabel>
+                                    <p className="text-sm text-gray-400">
+                                      I specialize in home improvement and residential projects
+                                    </p>
+                                  </div>
+                                </FormItem>
+                              )}
+                            />
+                            
+                            <FormField
+                              control={form.control}
+                              name="acceptsSubcontractWork"
+                              render={({ field }) => (
+                                <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                                  <FormControl>
+                                    <Checkbox
+                                      checked={field.value}
+                                      onCheckedChange={field.onChange}
+                                    />
+                                  </FormControl>
+                                  <div className="space-y-1 leading-none">
+                                    <FormLabel className="text-gray-300">
+                                      Accept Subcontract Work
+                                    </FormLabel>
+                                    <p className="text-sm text-gray-400">
+                                      I'm available to work as a subcontractor for other contractors
+                                    </p>
+                                  </div>
+                                </FormItem>
+                              )}
+                            />
+                          </div>
+                        </div>
                       </div>
                     </>
                   )}

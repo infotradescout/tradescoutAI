@@ -519,7 +519,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post('/api/auth/setup-profile', isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user?.id;
-      const { role, phone, address, city, state, zipCode, companyName, businessDescription, licenseNumber, yearsInBusiness, serviceAreas } = req.body;
+      const { role, phone, address, city, state, zipCode, companyName, businessDescription, licenseNumber, yearsInBusiness, serviceAreas, isGeneralContractor, isResidentialContractor, acceptsSubcontractWork } = req.body;
 
       // Update user profile
       const updatedUser = await storage.updateUser(userId, {
@@ -548,6 +548,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
           city,
           state,
           zipCode,
+          isGeneralContractor: isGeneralContractor || false,
+          isResidentialContractor: isResidentialContractor || false,
+          acceptsSubcontractWork: acceptsSubcontractWork || false,
         });
       }
 
@@ -981,21 +984,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const applicationData = { ...req.body, userId };
       
-      // Store application (mock for now)
-      const application = {
-        id: Date.now().toString(),
-        ...applicationData,
-        status: 'pending',
-        submittedAt: new Date(),
-      };
+      // Create contractor profile from application data
+      const contractor = await storage.createContractor({
+        userId,
+        companyName: applicationData.companyName,
+        slug: applicationData.companyName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, ''),
+        phone: applicationData.phone,
+        email: applicationData.email,
+        website: applicationData.website,
+        yearsInBusiness: parseInt(applicationData.yearsInBusiness) || 0,
+        licenseNumber: applicationData.licenseNumber,
+        about: applicationData.description,
+        isGeneralContractor: applicationData.isGeneralContractor || false,
+        isResidentialContractor: applicationData.isResidentialContractor || false,
+        acceptsSubcontractWork: applicationData.acceptsSubcontractWork || false,
+        verifiedLicensed: false,
+        verifiedInsured: false,
+        isActive: true,
+      });
       
-      // In production, this would save to database and trigger verification workflow
-      console.log('New contractor application:', application);
+      // Update user role to contractor_user
+      await storage.updateUser(userId, { 
+        role: 'contractor_user',
+        onboardingCompleted: true 
+      });
+      
+      console.log('New contractor application created:', contractor.id);
       
       res.json({ 
         message: "Application submitted successfully",
-        applicationId: application.id,
-        status: 'pending'
+        contractorId: contractor.id,
+        status: 'pending_verification'
       });
     } catch (error) {
       console.error("Error submitting contractor application:", error);

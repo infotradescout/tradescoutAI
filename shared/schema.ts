@@ -115,6 +115,9 @@ export const contractors = pgTable("contractors", {
   availabilityWindow: varchar("availability_window"),
   pricingNotes: text("pricing_notes"),
   responseTimeSla: integer("response_time_sla"), // in hours
+  isGeneralContractor: boolean("is_general_contractor").default(false),
+  isResidentialContractor: boolean("is_residential_contractor").default(false),
+  acceptsSubcontractWork: boolean("accepts_subcontract_work").default(false),
   verifiedLicensed: boolean("verified_licensed").default(false),
   verifiedInsured: boolean("verified_insured").default(false),
   lastVerified: timestamp("last_verified"),

@@ -38,6 +38,9 @@ export default function ContractorApply() {
     hasLicense: false,
     hasInsurance: false,
     hasConsented: false,
+    isGeneralContractor: false,
+    isResidentialContractor: false,
+    acceptsSubcontractWork: false,
   });
 
   const applicationMutation = useMutation({
@@ -291,6 +294,47 @@ export default function ContractorApply() {
                         className="form-field"
                         placeholder="25"
                       />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Contractor Type */}
+                <div className="space-y-4">
+                  <h3 className="text-lg font-semibold text-white">Contractor Type</h3>
+                  <p className="text-gray-300 text-sm">Select all that apply to describe your business</p>
+                  
+                  <div className="space-y-3">
+                    <div className="flex items-center space-x-2">
+                      <Checkbox 
+                        id="generalContractor"
+                        checked={formData.isGeneralContractor}
+                        onCheckedChange={(checked) => setFormData(prev => ({ ...prev, isGeneralContractor: !!checked }))}
+                      />
+                      <Label htmlFor="generalContractor" className="text-gray-300">
+                        General Contractor - I manage complete construction projects and coordinate with other trades
+                      </Label>
+                    </div>
+                    
+                    <div className="flex items-center space-x-2">
+                      <Checkbox 
+                        id="residentialContractor"
+                        checked={formData.isResidentialContractor}
+                        onCheckedChange={(checked) => setFormData(prev => ({ ...prev, isResidentialContractor: !!checked }))}
+                      />
+                      <Label htmlFor="residentialContractor" className="text-gray-300">
+                        Residential Contractor - I specialize in home improvement and residential projects
+                      </Label>
+                    </div>
+                    
+                    <div className="flex items-center space-x-2">
+                      <Checkbox 
+                        id="acceptsSubcontractWork"
+                        checked={formData.acceptsSubcontractWork}
+                        onCheckedChange={(checked) => setFormData(prev => ({ ...prev, acceptsSubcontractWork: !!checked }))}
+                      />
+                      <Label htmlFor="acceptsSubcontractWork" className="text-gray-300">
+                        Accept Subcontract Work - I'm available to work as a subcontractor for other contractors
+                      </Label>
                     </div>
                   </div>
                 </div>
