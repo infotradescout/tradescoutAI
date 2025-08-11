@@ -28,8 +28,9 @@ Marketplace language preference: Avoid explicit "investment" or "asset" terminol
 ## Database Architecture
 - **Database**: PostgreSQL with Neon serverless
 - **Schema Management**: Drizzle Kit
-- **Core Entities**: Users (role-based), Contractors (verification, service areas), Counties, Trades, Recommendations, Ratings, Lead generation, Pricing data.
+- **Core Entities**: Users (role-based), Contractors (verification, service areas), Counties, Trades, Recommendations, Ratings, Lead generation, Pricing data, Marketplace conversations and messages.
 - **Geographic Coverage**: 3,112 counties across all 50 states, DC, and 5 territories (99.0% national coverage) with proper FIPS integration for federal data compatibility.
+- **Dual Conversation Systems**: Complete contractor-homeowner chat system and marketplace buyer-seller conversation system with separate database tables and API endpoints.
 
 ## Authentication & Authorization
 - **Provider**: Replit OpenID Connect

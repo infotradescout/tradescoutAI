@@ -1382,19 +1382,6 @@ export default function Marketplace() {
                           className="w-full"
                         />
                       </div>
-                      {/* Contact Seller Button */}
-                      <div 
-                        className="mt-3 pt-3 border-t"
-                        onClick={(e) => e.stopPropagation()}
-                      >
-                        <QuickContactButton
-                          listingId={listing.id}
-                          sellerId={listing.sellerId}
-                          sellerName={listing.sellerName || 'Seller'}
-                          listingTitle={listing.title}
-                          className="w-full"
-                        />
-                      </div>
                     </CardContent>
                   </>
                 ) : (
