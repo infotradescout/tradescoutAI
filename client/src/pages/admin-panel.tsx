@@ -28,7 +28,7 @@ import {
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { UserHeatmap } from "@/components/UserHeatmap";
-import { Plus, Edit, Trash2, Gift, Settings, Megaphone, Users, Bell, Map } from "lucide-react";
+import { Plus, Edit, Trash2, Gift, Settings, Megaphone, Users, Bell, Map, CheckCircle } from "lucide-react";
 
 type SiteSetting = {
   id: string;

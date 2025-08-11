@@ -33,7 +33,8 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
-import { Building2, DollarSign, Users, TrendingUp, FileText } from "lucide-react";
+import { Building2, DollarSign, Users, TrendingUp, FileText, Info } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 // Business listing form schema
 const businessListingSchema = z.object({
@@ -170,11 +171,11 @@ export default function BusinessListing() {
     },
     onSuccess: () => {
       toast({
-        title: "Business Listed Successfully!",
-        description: "Your business has been added to the marketplace.",
+        title: "Business Submitted Successfully!",
+        description: "Your business has been submitted for admin review. It will appear in the marketplace once approved.",
       });
       queryClient.invalidateQueries({ queryKey: ["/api/marketplace/listings"] });
-      setLocation("/marketplace");
+      form.reset();
     },
     onError: (error: any) => {
       toast({
@@ -213,6 +214,16 @@ export default function BusinessListing() {
           </div>
         </div>
       </div>
+
+      {/* Approval Notice */}
+      <Alert className="mb-8 border-blue-500/20 bg-blue-500/10">
+        <Info className="h-4 w-4 text-blue-400" />
+        <AlertDescription className="text-blue-100">
+          <strong>Approval Process:</strong> All business listings require admin approval before going live. 
+          This ensures authenticity and helps maintain our trusted marketplace environment. 
+          You'll be notified once your listing is reviewed.
+        </AlertDescription>
+      </Alert>
 
       <Card>
         <CardHeader>

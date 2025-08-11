@@ -2411,7 +2411,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Listings
+  // Listings (public - only shows approved listings)
   app.get("/api/marketplace/listings", async (req, res) => {
     try {
       const filters = {
@@ -2425,6 +2425,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         sortBy: req.query.sortBy as 'price_asc' | 'price_desc' | 'date_desc' | 'date_asc',
         limit: req.query.limit ? Number(req.query.limit) : 20,
         offset: req.query.offset ? Number(req.query.offset) : 0,
+        status: 'active', // Only show approved/active listings to public
       };
 
       const listings = await storage.getMarketplaceListings(filters);
@@ -2478,12 +2479,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const user = req.user as any;
       const validatedData = insertMarketplaceListingSchema.parse(req.body);
       
+      // All new listings require admin/moderator approval before going live
       const listing = await storage.createMarketplaceListing({
         ...validatedData,
         sellerId: user.id,
+        status: 'pending_approval', // Require approval for all new listings
       });
       
-      res.status(201).json(listing);
+      res.status(201).json({
+        ...listing,
+        message: "Listing submitted successfully and is pending admin approval."
+      });
     } catch (error) {
       console.error("Error creating marketplace listing:", error);
       res.status(400).json({ message: "Failed to create listing" });
@@ -2526,6 +2532,78 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error deleting marketplace listing:", error);
       res.status(500).json({ message: "Failed to delete listing" });
+    }
+  });
+
+  // Admin/Moderator endpoints for listing approval
+  
+  // Get all pending listings for admin review
+  app.get("/api/admin/marketplace/pending", isAuthenticated, isAdmin, async (req, res) => {
+    try {
+      const filters = {
+        status: 'pending_approval',
+        limit: req.query.limit ? Number(req.query.limit) : 50,
+        offset: req.query.offset ? Number(req.query.offset) : 0,
+      };
+
+      const listings = await storage.getMarketplaceListings(filters);
+      res.json(listings);
+    } catch (error) {
+      console.error("Error fetching pending listings:", error);
+      res.status(500).json({ message: "Failed to fetch pending listings" });
+    }
+  });
+
+  // Approve a listing
+  app.post("/api/admin/marketplace/listings/:id/approve", isAuthenticated, isAdmin, async (req, res) => {
+    try {
+      const user = req.user as any;
+      const { id } = req.params;
+      const { notes } = req.body;
+
+      const listing = await storage.updateMarketplaceListing(id, {
+        status: 'active',
+        approvedBy: user.id,
+        approvedAt: new Date(),
+        moderationNotes: notes,
+      });
+
+      res.json({ 
+        message: "Listing approved successfully",
+        listing 
+      });
+    } catch (error) {
+      console.error("Error approving listing:", error);
+      res.status(400).json({ message: "Failed to approve listing" });
+    }
+  });
+
+  // Reject a listing
+  app.post("/api/admin/marketplace/listings/:id/reject", isAuthenticated, isAdmin, async (req, res) => {
+    try {
+      const user = req.user as any;
+      const { id } = req.params;
+      const { reason, notes } = req.body;
+
+      if (!reason) {
+        return res.status(400).json({ message: "Rejection reason is required" });
+      }
+
+      const listing = await storage.updateMarketplaceListing(id, {
+        status: 'rejected',
+        rejectedBy: user.id,
+        rejectedAt: new Date(),
+        rejectionReason: reason,
+        moderationNotes: notes,
+      });
+
+      res.json({ 
+        message: "Listing rejected successfully",
+        listing 
+      });
+    } catch (error) {
+      console.error("Error rejecting listing:", error);
+      res.status(400).json({ message: "Failed to reject listing" });
     }
   });
 

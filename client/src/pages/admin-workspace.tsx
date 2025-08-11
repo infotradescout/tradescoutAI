@@ -240,6 +240,80 @@ export default function AdminWorkspace() {
         </Card>
       </div>
 
+      {/* Admin Quick Actions */}
+      <div className="mb-8">
+        <h2 className="text-xl font-semibold text-white mb-4">Quick Actions</h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <Card 
+            className="bg-navy-700 border-navy-600 hover:bg-navy-600 transition-colors cursor-pointer" 
+            onClick={() => window.location.href = '/admin/listings'}
+          >
+            <CardContent className="p-4">
+              <div className="flex items-center space-x-3">
+                <div className="w-10 h-10 bg-blue-500/20 rounded-lg flex items-center justify-center">
+                  <CheckCircle className="h-5 w-5 text-blue-500" />
+                </div>
+                <div>
+                  <h3 className="font-medium text-white">Listings Approval</h3>
+                  <p className="text-sm text-gray-400">Review marketplace submissions</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          
+          <Card 
+            className="bg-navy-700 border-navy-600 hover:bg-navy-600 transition-colors cursor-pointer" 
+            onClick={() => window.location.href = '/admin/panel'}
+          >
+            <CardContent className="p-4">
+              <div className="flex items-center space-x-3">
+                <div className="w-10 h-10 bg-orange-500/20 rounded-lg flex items-center justify-center">
+                  <Settings className="h-5 w-5 text-orange-500" />
+                </div>
+                <div>
+                  <h3 className="font-medium text-white">Site Settings</h3>
+                  <p className="text-sm text-gray-400">Configure prizes & ads</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          
+          <Card 
+            className="bg-navy-700 border-navy-600 hover:bg-navy-600 transition-colors cursor-pointer" 
+            onClick={() => window.location.href = '/admin/users'}
+          >
+            <CardContent className="p-4">
+              <div className="flex items-center space-x-3">
+                <div className="w-10 h-10 bg-green-500/20 rounded-lg flex items-center justify-center">
+                  <Users className="h-5 w-5 text-green-500" />
+                </div>
+                <div>
+                  <h3 className="font-medium text-white">User Management</h3>
+                  <p className="text-sm text-gray-400">Manage user accounts</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          
+          <Card 
+            className="bg-navy-700 border-navy-600 hover:bg-navy-600 transition-colors cursor-pointer" 
+            onClick={() => window.location.href = '/moderation'}
+          >
+            <CardContent className="p-4">
+              <div className="flex items-center space-x-3">
+                <div className="w-10 h-10 bg-purple-500/20 rounded-lg flex items-center justify-center">
+                  <Eye className="h-5 w-5 text-purple-500" />
+                </div>
+                <div>
+                  <h3 className="font-medium text-white">Moderation</h3>
+                  <p className="text-sm text-gray-400">Community oversight</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+
       {/* Admin Tabs */}
       <Card className="bg-navy-700 border-navy-600">
         <Tabs value={activeTab} onValueChange={setActiveTab}>

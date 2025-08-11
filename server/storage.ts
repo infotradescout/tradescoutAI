@@ -1705,17 +1705,25 @@ export class DatabaseStorage implements IStorage {
     sortBy?: 'price_asc' | 'price_desc' | 'date_desc' | 'date_asc';
     limit?: number;
     offset?: number;
+    status?: string;
+    sellerId?: string;
   } = {}): Promise<MarketplaceListing[]> {
+    // Default to active status unless specified
+    const statusFilter = filters.status || 'active';
+    
     let query = db
       .select()
       .from(marketplaceListings)
-      .where(eq(marketplaceListings.status, 'active'));
+      .where(eq(marketplaceListings.status, statusFilter));
 
     // Apply filters
-    const conditions = [eq(marketplaceListings.status, 'active')];
+    const conditions = [eq(marketplaceListings.status, statusFilter)];
 
     if (filters.categoryId) {
       conditions.push(eq(marketplaceListings.categoryId, filters.categoryId));
+    }
+    if (filters.sellerId) {
+      conditions.push(eq(marketplaceListings.sellerId, filters.sellerId));
     }
     if (filters.county) {
       conditions.push(eq(marketplaceListings.county, filters.county));

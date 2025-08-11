@@ -1292,10 +1292,18 @@ export const marketplaceListings = pgTable("marketplace_listings", {
   
   // Listing management
   status: varchar("status", {
-    enum: ['draft', 'active', 'sold', 'expired', 'removed', 'flagged']
+    enum: ['draft', 'pending_approval', 'active', 'sold', 'expired', 'removed', 'flagged', 'rejected']
   }).default('draft'),
   isPromoted: boolean("is_promoted").default(false),
   promotedUntil: timestamp("promoted_until"),
+  
+  // Approval workflow
+  approvedBy: varchar("approved_by").references(() => users.id),
+  approvedAt: timestamp("approved_at"),
+  rejectedBy: varchar("rejected_by").references(() => users.id),
+  rejectedAt: timestamp("rejected_at"),
+  rejectionReason: text("rejection_reason"),
+  moderationNotes: text("moderation_notes"),
   
   // Interaction tracking
   viewCount: integer("view_count").default(0),
