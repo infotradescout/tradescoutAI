@@ -39,6 +39,7 @@ import AdminUsers from "@/pages/admin-users";
 import AdminErrorReports from "@/pages/admin-error-reports";
 import AdminTestingControls from "@/pages/admin-testing-controls";
 import AddressVerification from "@/pages/address-verification";
+import Community from "@/pages/community";
 import { ProfileSetupRedirect } from "@/components/profile-setup-redirect";
 import { FloatingBugReport } from "@/components/FloatingBugReport";
 import { BetaNotificationPopup } from "@/components/BetaNotificationPopup";
@@ -121,6 +122,7 @@ function Router() {
             <Route path="/admin/error-reports" component={AdminErrorReports} />
             <Route path="/admin/testing" component={AdminTestingControls} />
             <Route path="/chat/:conversationId?" component={Chat} />
+            <Route path="/community" component={Community} />
             <Route path="/saved-ads" component={SavedAds} />
           </>
         )}

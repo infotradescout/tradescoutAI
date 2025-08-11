@@ -2911,6 +2911,154 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Social Features API Routes
+
+  // Community Posts
+  app.get("/api/community/posts", async (req, res) => {
+    try {
+      const filters = {
+        scope: req.query.scope as string,
+        stateCode: req.query.stateCode as string,
+        countyFips: req.query.countyFips as string,
+        category: req.query.category as string,
+        authorId: req.query.authorId as string,
+        limit: req.query.limit ? parseInt(req.query.limit as string) : 20,
+        offset: req.query.offset ? parseInt(req.query.offset as string) : 0,
+      };
+      
+      const posts = await storage.getCommunityPosts(filters);
+      res.json(posts);
+    } catch (error) {
+      console.error("Error fetching community posts:", error);
+      res.status(500).json({ message: "Failed to fetch posts" });
+    }
+  });
+
+  app.post("/api/community/posts", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user?.claims?.sub;
+      const { title, content, category, scope, stateCode, countyFips, images } = req.body;
+      
+      const newPost = await storage.createCommunityPost({
+        title,
+        content,
+        category,
+        scope,
+        stateCode,
+        countyFips,
+        images,
+        authorId: userId,
+        isPublished: true,
+        isHidden: false,
+        likeCount: 0,
+        commentCount: 0
+      });
+      
+      res.status(201).json(newPost);
+    } catch (error) {
+      console.error("Error creating community post:", error);
+      res.status(500).json({ message: "Failed to create post" });
+    }
+  });
+
+  app.get("/api/community/posts/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const post = await storage.getCommunityPost(id);
+      
+      if (!post) {
+        return res.status(404).json({ message: "Post not found" });
+      }
+      
+      res.json(post);
+    } catch (error) {
+      console.error("Error fetching community post:", error);
+      res.status(500).json({ message: "Failed to fetch post" });
+    }
+  });
+
+  // Post Interactions
+  app.post("/api/community/posts/:id/like", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user?.claims?.sub;
+      const { id: postId } = req.params;
+      
+      const result = await storage.togglePostLike(userId, postId);
+      res.json(result);
+    } catch (error) {
+      console.error("Error toggling post like:", error);
+      res.status(500).json({ message: "Failed to toggle like" });
+    }
+  });
+
+  app.post("/api/community/posts/:id/comments", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user?.claims?.sub;
+      const { id: postId } = req.params;
+      const { content } = req.body;
+      
+      const comment = await storage.createPostComment({
+        postId,
+        authorId: userId,
+        content,
+        isHidden: false
+      });
+      
+      res.status(201).json(comment);
+    } catch (error) {
+      console.error("Error creating comment:", error);
+      res.status(500).json({ message: "Failed to create comment" });
+    }
+  });
+
+  app.get("/api/community/posts/:id/comments", async (req, res) => {
+    try {
+      const { id: postId } = req.params;
+      const comments = await storage.getPostComments(postId);
+      res.json(comments);
+    } catch (error) {
+      console.error("Error fetching post comments:", error);
+      res.status(500).json({ message: "Failed to fetch comments" });
+    }
+  });
+
+  // Community Groups
+  app.get("/api/community/groups", async (req, res) => {
+    try {
+      const filters = {
+        scope: req.query.scope as string,
+        stateCode: req.query.stateCode as string,
+        countyFips: req.query.countyFips as string,
+        limit: req.query.limit ? parseInt(req.query.limit as string) : 20,
+        offset: req.query.offset ? parseInt(req.query.offset as string) : 0,
+      };
+      
+      const groups = await storage.getCommunityGroups(filters);
+      res.json(groups);
+    } catch (error) {
+      console.error("Error fetching community groups:", error);
+      res.status(500).json({ message: "Failed to fetch groups" });
+    }
+  });
+
+  // Regions
+  app.get("/api/regions", async (req, res) => {
+    try {
+      const filters = {
+        stateCode: req.query.stateCode as string,
+        isOfficial: req.query.isOfficial === 'true',
+        limit: req.query.limit ? parseInt(req.query.limit as string) : 50,
+        offset: req.query.offset ? parseInt(req.query.offset as string) : 0,
+      };
+      
+      const regions = await storage.getRegions(filters);
+      res.json(regions);
+    } catch (error) {
+      console.error("Error fetching regions:", error);
+      res.status(500).json({ message: "Failed to fetch regions" });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }

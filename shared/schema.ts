@@ -283,6 +283,16 @@ export const usersRelations = relations(users, ({ one, many }) => ({
   leads: many(leads),
   territory: one(territories),
   errorReports: many(errorReports),
+  // Social features
+  communityPosts: many(communityPosts),
+  postLikes: many(postLikes),
+  commentLikes: many(commentLikes),
+  postComments: many(postComments),
+  followers: many(userFollows, { relationName: "UserFollowers" }),
+  following: many(userFollows, { relationName: "UserFollowing" }),
+  groupMemberships: many(groupMembers),
+  createdGroups: many(communityGroups),
+  createdRegions: many(regions),
 }));
 
 export const contractorsRelations = relations(contractors, ({ one, many }) => ({
@@ -348,6 +358,31 @@ export const leadsRelations = relations(leads, ({ one, many }) => ({
 export type InsertUser = typeof users.$inferInsert;
 export type UpsertUser = typeof users.$inferInsert;
 export type User = typeof users.$inferSelect;
+
+// Social feature types
+export type CommunityPost = typeof communityPosts.$inferSelect;
+export type InsertCommunityPost = typeof communityPosts.$inferInsert;
+
+export type PostComment = typeof postComments.$inferSelect;
+export type InsertPostComment = typeof postComments.$inferInsert;
+
+export type PostLike = typeof postLikes.$inferSelect;
+export type InsertPostLike = typeof postLikes.$inferInsert;
+
+export type CommentLike = typeof commentLikes.$inferSelect;
+export type InsertCommentLike = typeof commentLikes.$inferInsert;
+
+export type UserFollow = typeof userFollows.$inferSelect;
+export type InsertUserFollow = typeof userFollows.$inferInsert;
+
+export type CommunityGroup = typeof communityGroups.$inferSelect;
+export type InsertCommunityGroup = typeof communityGroups.$inferInsert;
+
+export type GroupMember = typeof groupMembers.$inferSelect;
+export type InsertGroupMember = typeof groupMembers.$inferInsert;
+
+export type Region = typeof regions.$inferSelect;
+export type InsertRegion = typeof regions.$inferInsert;
 
 // Admin configuration tables for dynamic content management
 export const siteSettings = pgTable("site_settings", {
@@ -1420,6 +1455,260 @@ export const addressVerifications = pgTable("address_verifications", {
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
+
+// Social Feed and Community Features
+export const communityPosts = pgTable("community_posts", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  authorId: varchar("author_id").notNull().references(() => users.id),
+  
+  // Post content
+  title: varchar("title", { length: 200 }),
+  content: text("content").notNull(),
+  imageUrls: text("image_urls").array(),
+  attachmentUrls: text("attachment_urls").array(),
+  
+  // Geographic targeting
+  scope: varchar("scope", {
+    enum: ['national', 'state', 'region', 'county', 'city']
+  }).default('county'),
+  stateCode: varchar("state_code", { length: 2 }),
+  countyFips: varchar("county_fips", { length: 5 }),
+  cityName: varchar("city_name"),
+  regionName: varchar("region_name"), // Custom regions like "Bay Area", "Northeast", etc.
+  
+  // Post categorization
+  category: varchar("category", {
+    enum: ['general', 'projects', 'recommendations', 'questions', 'marketplace', 'events', 'announcements']
+  }).default('general'),
+  tags: text("tags").array(),
+  
+  // Engagement metrics
+  viewCount: integer("view_count").default(0),
+  likeCount: integer("like_count").default(0),
+  commentCount: integer("comment_count").default(0),
+  shareCount: integer("share_count").default(0),
+  
+  // Moderation
+  isPublished: boolean("is_published").default(true),
+  isPinned: boolean("is_pinned").default(false),
+  isHidden: boolean("is_hidden").default(false),
+  moderatorNotes: text("moderator_notes"),
+  moderatedBy: varchar("moderated_by"),
+  moderatedAt: timestamp("moderated_at"),
+  
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const postLikes = pgTable("post_likes", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  postId: varchar("post_id").notNull().references(() => communityPosts.id),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const postComments = pgTable("post_comments", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  postId: varchar("post_id").notNull().references(() => communityPosts.id),
+  authorId: varchar("author_id").notNull().references(() => users.id),
+  parentCommentId: varchar("parent_comment_id"), // For threaded comments
+  
+  content: text("content").notNull(),
+  imageUrls: text("image_urls").array(),
+  
+  // Engagement
+  likeCount: integer("like_count").default(0),
+  
+  // Moderation
+  isHidden: boolean("is_hidden").default(false),
+  moderatorNotes: text("moderator_notes"),
+  moderatedBy: varchar("moderated_by"),
+  moderatedAt: timestamp("moderated_at"),
+  
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const commentLikes = pgTable("comment_likes", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  commentId: varchar("comment_id").notNull().references(() => postComments.id),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const userFollows = pgTable("user_follows", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  followerId: varchar("follower_id").notNull().references(() => users.id),
+  followingId: varchar("following_id").notNull().references(() => users.id),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const communityGroups = pgTable("community_groups", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  name: varchar("name").notNull(),
+  description: text("description"),
+  slug: varchar("slug").notNull().unique(),
+  imageUrl: varchar("image_url"),
+  bannerUrl: varchar("banner_url"),
+  
+  // Geographic scope
+  scope: varchar("scope", {
+    enum: ['national', 'state', 'region', 'county', 'city', 'trade_specific']
+  }).default('county'),
+  stateCode: varchar("state_code", { length: 2 }),
+  countyFips: varchar("county_fips", { length: 5 }),
+  cityName: varchar("city_name"),
+  regionName: varchar("region_name"),
+  
+  // Group settings
+  isPrivate: boolean("is_private").default(false),
+  requiresApproval: boolean("requires_approval").default(false),
+  allowPostApproval: boolean("allow_post_approval").default(false),
+  
+  // Stats
+  memberCount: integer("member_count").default(0),
+  postCount: integer("post_count").default(0),
+  
+  // Management
+  createdBy: varchar("created_by").notNull().references(() => users.id),
+  isActive: boolean("is_active").default(true),
+  
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const groupMembers = pgTable("group_members", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  groupId: varchar("group_id").notNull().references(() => communityGroups.id),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  
+  role: varchar("role", {
+    enum: ['member', 'moderator', 'admin', 'owner']
+  }).default('member'),
+  
+  joinedAt: timestamp("joined_at").defaultNow(),
+  approvedBy: varchar("approved_by"),
+  approvedAt: timestamp("approved_at"),
+  
+  isActive: boolean("is_active").default(true),
+  isBanned: boolean("is_banned").default(false),
+  bannedReason: text("banned_reason"),
+  bannedBy: varchar("banned_by"),
+  bannedAt: timestamp("banned_at"),
+});
+
+export const regions = pgTable("regions", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  name: varchar("name").notNull(), // e.g., "Bay Area", "Northeast", "Southern California"
+  slug: varchar("slug").notNull().unique(),
+  description: text("description"),
+  
+  // Geographic bounds
+  statesCovered: text("states_covered").array(), // State codes
+  countiesCovered: text("counties_covered").array(), // FIPS codes
+  citiesCovered: text("cities_covered").array(),
+  
+  // Metadata
+  population: integer("population"),
+  isOfficial: boolean("is_official").default(false), // Admin-created vs user-created
+  createdBy: varchar("created_by").references(() => users.id),
+  
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Relations for social features
+export const communityPostsRelations = relations(communityPosts, ({ one, many }) => ({
+  author: one(users, {
+    fields: [communityPosts.authorId],
+    references: [users.id],
+  }),
+  likes: many(postLikes),
+  comments: many(postComments),
+}));
+
+export const postLikesRelations = relations(postLikes, ({ one }) => ({
+  post: one(communityPosts, {
+    fields: [postLikes.postId],
+    references: [communityPosts.id],
+  }),
+  user: one(users, {
+    fields: [postLikes.userId],
+    references: [users.id],
+  }),
+}));
+
+export const postCommentsRelations = relations(postComments, ({ one, many }) => ({
+  post: one(communityPosts, {
+    fields: [postComments.postId],
+    references: [communityPosts.id],
+  }),
+  author: one(users, {
+    fields: [postComments.authorId],
+    references: [users.id],
+  }),
+  parentComment: one(postComments, {
+    fields: [postComments.parentCommentId],
+    references: [postComments.id],
+    relationName: "CommentReplies",
+  }),
+  replies: many(postComments, {
+    relationName: "CommentReplies",
+  }),
+  likes: many(commentLikes),
+}));
+
+export const commentLikesRelations = relations(commentLikes, ({ one }) => ({
+  comment: one(postComments, {
+    fields: [commentLikes.commentId],
+    references: [postComments.id],
+  }),
+  user: one(users, {
+    fields: [commentLikes.userId],
+    references: [users.id],
+  }),
+}));
+
+export const userFollowsRelations = relations(userFollows, ({ one }) => ({
+  follower: one(users, {
+    fields: [userFollows.followerId],
+    references: [users.id],
+    relationName: "UserFollowing",
+  }),
+  following: one(users, {
+    fields: [userFollows.followingId],
+    references: [users.id],
+    relationName: "UserFollowers",
+  }),
+}));
+
+export const communityGroupsRelations = relations(communityGroups, ({ one, many }) => ({
+  creator: one(users, {
+    fields: [communityGroups.createdBy],
+    references: [users.id],
+  }),
+  members: many(groupMembers),
+}));
+
+export const groupMembersRelations = relations(groupMembers, ({ one }) => ({
+  group: one(communityGroups, {
+    fields: [groupMembers.groupId],
+    references: [communityGroups.id],
+  }),
+  user: one(users, {
+    fields: [groupMembers.userId],
+    references: [users.id],
+  }),
+}));
+
+export const regionsRelations = relations(regions, ({ one }) => ({
+  creator: one(users, {
+    fields: [regions.createdBy],
+    references: [users.id],
+  }),
+}));
+
+
 
 // Relations for marketplace
 export const marketplaceCategoriesRelations = relations(marketplaceCategories, ({ one, many }) => ({

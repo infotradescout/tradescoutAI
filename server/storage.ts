@@ -35,6 +35,15 @@ import {
   vendorVerifications,
   buyerVerifications,
   addressVerifications,
+  // Social features
+  communityPosts,
+  postComments,
+  postLikes,
+  commentLikes,
+  userFollows,
+  communityGroups,
+  groupMembers,
+  regions,
   type User,
   type InsertUser,
   type UpsertUser,
@@ -96,6 +105,23 @@ import {
   type InsertBuyerVerification,
   type AddressVerification,
   type InsertAddressVerification,
+  // Social features
+  type CommunityPost,
+  type InsertCommunityPost,
+  type PostComment,
+  type InsertPostComment,
+  type PostLike,
+  type InsertPostLike,
+  type CommentLike,
+  type InsertCommentLike,
+  type UserFollow,
+  type InsertUserFollow,
+  type CommunityGroup,
+  type InsertCommunityGroup,
+  type GroupMember,
+  type InsertGroupMember,
+  type Region,
+  type InsertRegion,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, desc, asc, sql, inArray, like, gt, or, lt, isNull, isNotNull } from "drizzle-orm";
@@ -2042,6 +2068,181 @@ export class DatabaseStorage implements IStorage {
       .where(eq(users.id, userId));
 
     return true;
+  }
+
+  // Social Features Operations
+  async createCommunityPost(post: InsertCommunityPost): Promise<CommunityPost> {
+    const [newPost] = await db
+      .insert(communityPosts)
+      .values(post)
+      .returning();
+    return newPost;
+  }
+
+  async getCommunityPosts(filters?: {
+    scope?: string;
+    stateCode?: string;
+    countyFips?: string;
+    category?: string;
+    authorId?: string;
+    limit?: number;
+    offset?: number;
+  }): Promise<CommunityPost[]> {
+    let query = db.select().from(communityPosts);
+    
+    if (filters?.scope) {
+      query = query.where(eq(communityPosts.scope, filters.scope));
+    }
+    if (filters?.stateCode) {
+      query = query.where(eq(communityPosts.stateCode, filters.stateCode));
+    }
+    if (filters?.countyFips) {
+      query = query.where(eq(communityPosts.countyFips, filters.countyFips));
+    }
+    if (filters?.category) {
+      query = query.where(eq(communityPosts.category, filters.category));
+    }
+    if (filters?.authorId) {
+      query = query.where(eq(communityPosts.authorId, filters.authorId));
+    }
+
+    return await query
+      .where(eq(communityPosts.isPublished, true))
+      .where(eq(communityPosts.isHidden, false))
+      .orderBy(desc(communityPosts.createdAt))
+      .limit(filters?.limit || 20)
+      .offset(filters?.offset || 0);
+  }
+
+  async getCommunityPost(id: string): Promise<CommunityPost | undefined> {
+    const [post] = await db
+      .select()
+      .from(communityPosts)
+      .where(eq(communityPosts.id, id));
+    return post;
+  }
+
+  async togglePostLike(userId: string, postId: string): Promise<{ liked: boolean; likeCount: number }> {
+    // Check if like exists
+    const [existingLike] = await db
+      .select()
+      .from(postLikes)
+      .where(eq(postLikes.userId, userId))
+      .where(eq(postLikes.postId, postId));
+
+    if (existingLike) {
+      // Remove like
+      await db
+        .delete(postLikes)
+        .where(eq(postLikes.id, existingLike.id));
+      
+      await db
+        .update(communityPosts)
+        .set({ 
+          likeCount: sql`${communityPosts.likeCount} - 1`,
+          updatedAt: new Date()
+        })
+        .where(eq(communityPosts.id, postId));
+      
+      const [post] = await db
+        .select({ likeCount: communityPosts.likeCount })
+        .from(communityPosts)
+        .where(eq(communityPosts.id, postId));
+      
+      return { liked: false, likeCount: post.likeCount };
+    } else {
+      // Add like
+      await db.insert(postLikes).values({ userId, postId });
+      
+      await db
+        .update(communityPosts)
+        .set({ 
+          likeCount: sql`${communityPosts.likeCount} + 1`,
+          updatedAt: new Date()
+        })
+        .where(eq(communityPosts.id, postId));
+      
+      const [post] = await db
+        .select({ likeCount: communityPosts.likeCount })
+        .from(communityPosts)
+        .where(eq(communityPosts.id, postId));
+      
+      return { liked: true, likeCount: post.likeCount };
+    }
+  }
+
+  async createPostComment(comment: InsertPostComment): Promise<PostComment> {
+    const [newComment] = await db
+      .insert(postComments)
+      .values(comment)
+      .returning();
+    
+    // Update comment count on the post
+    await db
+      .update(communityPosts)
+      .set({ 
+        commentCount: sql`${communityPosts.commentCount} + 1`,
+        updatedAt: new Date()
+      })
+      .where(eq(communityPosts.id, comment.postId));
+    
+    return newComment;
+  }
+
+  async getPostComments(postId: string): Promise<PostComment[]> {
+    return await db
+      .select()
+      .from(postComments)
+      .where(eq(postComments.postId, postId))
+      .where(eq(postComments.isHidden, false))
+      .orderBy(asc(postComments.createdAt));
+  }
+
+  async getCommunityGroups(filters?: {
+    scope?: string;
+    stateCode?: string;
+    countyFips?: string;
+    limit?: number;
+    offset?: number;
+  }): Promise<CommunityGroup[]> {
+    let query = db.select().from(communityGroups);
+    
+    if (filters?.scope) {
+      query = query.where(eq(communityGroups.scope, filters.scope));
+    }
+    if (filters?.stateCode) {
+      query = query.where(eq(communityGroups.stateCode, filters.stateCode));
+    }
+    if (filters?.countyFips) {
+      query = query.where(eq(communityGroups.countyFips, filters.countyFips));
+    }
+
+    return await query
+      .where(eq(communityGroups.isActive, true))
+      .orderBy(desc(communityGroups.memberCount), desc(communityGroups.createdAt))
+      .limit(filters?.limit || 20)
+      .offset(filters?.offset || 0);
+  }
+
+  async getRegions(filters?: {
+    stateCode?: string;
+    isOfficial?: boolean;
+    limit?: number;
+    offset?: number;
+  }): Promise<Region[]> {
+    let query = db.select().from(regions);
+    
+    if (filters?.stateCode) {
+      query = query.where(sql`${filters.stateCode} = ANY(${regions.statesCovered})`);
+    }
+    if (filters?.isOfficial !== undefined) {
+      query = query.where(eq(regions.isOfficial, filters.isOfficial));
+    }
+
+    return await query
+      .orderBy(desc(regions.isOfficial), asc(regions.name))
+      .limit(filters?.limit || 50)
+      .offset(filters?.offset || 0);
   }
 }
 
