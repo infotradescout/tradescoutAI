@@ -3199,8 +3199,8 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
-  async getMonthlyLeaderboard(month: number, year: number, limit: number): Promise<any[]> {
-    const result = await db
+  async getMonthlyLeaderboard(month: number, year: number, limit: number, state?: string, county?: string): Promise<any[]> {
+    let query = db
       .select({
         contractorId: contractorLeaderboardStats.contractorId,
         companyName: contractors.companyName,
@@ -3208,16 +3208,36 @@ export class DatabaseStorage implements IStorage {
         monthlyRecommendations: contractorLeaderboardStats.monthlyRecommendations,
         monthlyRating: contractorLeaderboardStats.monthlyRating,
         lifetimeRecommendations: contractorLeaderboardStats.lifetimeRecommendations,
+        location: sql<string>`CASE 
+          WHEN ${contractors.city} IS NOT NULL AND ${contractors.state} IS NOT NULL 
+          THEN CONCAT(${contractors.city}, ', ', ${contractors.state})
+          WHEN ${contractors.state} IS NOT NULL 
+          THEN ${contractors.state}
+          ELSE NULL
+        END`.as('location'),
+        county: contractors.primaryCounty,
+        state: contractors.state,
       })
       .from(contractorLeaderboardStats)
-      .innerJoin(contractors, eq(contractorLeaderboardStats.contractorId, contractors.id))
-      .where(
-        and(
-          eq(contractorLeaderboardStats.month, month),
-          eq(contractorLeaderboardStats.year, year),
-          eq(contractors.isActive, true)
-        )
-      )
+      .innerJoin(contractors, eq(contractorLeaderboardStats.contractorId, contractors.id));
+
+    // Build where conditions
+    const conditions = [
+      eq(contractorLeaderboardStats.month, month),
+      eq(contractorLeaderboardStats.year, year),
+      eq(contractors.isActive, true)
+    ];
+
+    // Add geographic filtering
+    if (state && state !== "all") {
+      conditions.push(eq(contractors.state, state));
+    }
+    if (county && county !== "all") {
+      conditions.push(eq(contractors.primaryCounty, county));
+    }
+
+    const result = await query
+      .where(and(...conditions))
       .orderBy(
         desc(contractorLeaderboardStats.monthlyRecommendations),
         desc(contractorLeaderboardStats.monthlyRating)
@@ -3230,19 +3250,41 @@ export class DatabaseStorage implements IStorage {
     }));
   }
 
-  async getLifetimeLeaderboard(limit: number): Promise<any[]> {
-    const result = await db
+  async getLifetimeLeaderboard(limit: number, state?: string, county?: string): Promise<any[]> {
+    let query = db
       .select({
         contractorId: contractorLeaderboardStats.contractorId,
         companyName: contractors.companyName,
         slug: contractors.slug,
         lifetimeRecommendations: sql<number>`MAX(${contractorLeaderboardStats.lifetimeRecommendations})`.as('lifetimeRecommendations'),
         lifetimeRating: sql<string>`AVG(${contractorLeaderboardStats.lifetimeRating})`.as('lifetimeRating'),
+        location: sql<string>`CASE 
+          WHEN ${contractors.city} IS NOT NULL AND ${contractors.state} IS NOT NULL 
+          THEN CONCAT(${contractors.city}, ', ', ${contractors.state})
+          WHEN ${contractors.state} IS NOT NULL 
+          THEN ${contractors.state}
+          ELSE NULL
+        END`.as('location'),
+        county: contractors.primaryCounty,
+        state: contractors.state,
       })
       .from(contractorLeaderboardStats)
-      .innerJoin(contractors, eq(contractorLeaderboardStats.contractorId, contractors.id))
-      .where(eq(contractors.isActive, true))
-      .groupBy(contractorLeaderboardStats.contractorId, contractors.companyName, contractors.slug)
+      .innerJoin(contractors, eq(contractorLeaderboardStats.contractorId, contractors.id));
+
+    // Build where conditions
+    const conditions = [eq(contractors.isActive, true)];
+
+    // Add geographic filtering
+    if (state && state !== "all") {
+      conditions.push(eq(contractors.state, state));
+    }
+    if (county && county !== "all") {
+      conditions.push(eq(contractors.primaryCounty, county));
+    }
+
+    const result = await query
+      .where(and(...conditions))
+      .groupBy(contractorLeaderboardStats.contractorId, contractors.companyName, contractors.slug, contractors.city, contractors.state, contractors.primaryCounty)
       .orderBy(
         desc(sql`MAX(${contractorLeaderboardStats.lifetimeRecommendations})`),
         desc(sql`AVG(${contractorLeaderboardStats.lifetimeRating})`)
@@ -3324,6 +3366,38 @@ export class DatabaseStorage implements IStorage {
         rating: lifetimeStats.lifetimeRating,
       } : null,
     };
+  }
+
+  // Geographic data methods for leaderboard filtering
+  async getAllStates(): Promise<{ code: string; name: string }[]> {
+    const result = await db
+      .select({
+        code: counties.stateCode,
+        name: counties.stateName,
+      })
+      .from(counties)
+      .groupBy(counties.stateCode, counties.stateName)
+      .orderBy(asc(counties.stateName));
+
+    return result;
+  }
+
+  async getCountiesByState(stateCode: string): Promise<{ id: string; name: string; stateCode: string }[]> {
+    if (!stateCode || stateCode === "all") {
+      return [];
+    }
+
+    const result = await db
+      .select({
+        id: counties.id,
+        name: counties.name,
+        stateCode: counties.stateCode,
+      })
+      .from(counties)
+      .where(eq(counties.stateCode, stateCode))
+      .orderBy(asc(counties.name));
+
+    return result;
   }
 }
 

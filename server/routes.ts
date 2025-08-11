@@ -906,8 +906,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const month = req.query.month ? Number(req.query.month) : new Date().getMonth() + 1;
       const year = req.query.year ? Number(req.query.year) : new Date().getFullYear();
       const limit = req.query.limit ? Number(req.query.limit) : 20;
+      const state = req.query.state as string;
+      const county = req.query.county as string;
       
-      const leaderboard = await storage.getMonthlyLeaderboard(month, year, limit);
+      const leaderboard = await storage.getMonthlyLeaderboard(month, year, limit, state, county);
       res.json(leaderboard);
     } catch (error) {
       console.error("Error fetching monthly leaderboard:", error);
@@ -918,7 +920,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/leaderboard/lifetime", async (req, res) => {
     try {
       const limit = req.query.limit ? Number(req.query.limit) : 20;
-      const leaderboard = await storage.getLifetimeLeaderboard(limit);
+      const state = req.query.state as string;
+      const county = req.query.county as string;
+      
+      const leaderboard = await storage.getLifetimeLeaderboard(limit, state, county);
       res.json(leaderboard);
     } catch (error) {
       console.error("Error fetching lifetime leaderboard:", error);
@@ -934,6 +939,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error fetching contractor leaderboard position:", error);
       res.status(500).json({ message: "Failed to fetch contractor position" });
+    }
+  });
+
+  // States API for geographic filtering
+  app.get("/api/states", async (req, res) => {
+    try {
+      const states = await storage.getAllStates();
+      res.json(states);
+    } catch (error) {
+      console.error("Error fetching states:", error);
+      res.status(500).json({ message: "Failed to fetch states" });
+    }
+  });
+
+  // Counties API for geographic filtering
+  app.get("/api/counties", async (req, res) => {
+    try {
+      const state = req.query.state as string;
+      const counties = await storage.getCountiesByState(state);
+      res.json(counties);
+    } catch (error) {
+      console.error("Error fetching counties:", error);
+      res.status(500).json({ message: "Failed to fetch counties" });
     }
   });
 

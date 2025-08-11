@@ -14,7 +14,10 @@ import {
   Users, 
   Calendar,
   TrendingUp,
-  Crown
+  Crown,
+  Globe,
+  MapPin,
+  Building
 } from "lucide-react";
 
 interface LeaderboardEntry {
@@ -26,20 +29,61 @@ interface LeaderboardEntry {
   lifetimeRecommendations: number;
   monthlyRating?: string;
   lifetimeRating: string;
+  location?: string;
+  county?: string;
+  state?: string;
+}
+
+interface State {
+  code: string;
+  name: string;
+}
+
+interface County {
+  id: string;
+  name: string;
+  stateCode: string;
 }
 
 export default function Leaderboard() {
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth() + 1);
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
+  const [selectedState, setSelectedState] = useState<string>("all");
+  const [selectedCounty, setSelectedCounty] = useState<string>("all");
+  const [geographicLevel, setGeographicLevel] = useState<"national" | "state" | "county">("national");
+
+  // Fetch states for geographic filtering
+  const { data: states = [] } = useQuery<State[]>({
+    queryKey: ["/api/states"],
+  });
+
+  // Fetch counties for selected state
+  const { data: counties = [] } = useQuery<County[]>({
+    queryKey: ["/api/counties", { state: selectedState }],
+    enabled: selectedState !== "all",
+  });
+
+  // Build query params for geographic filtering
+  const getGeographicParams = () => {
+    const params: any = { month: selectedMonth, year: selectedYear, limit: 20 };
+    
+    if (geographicLevel === "state" && selectedState !== "all") {
+      params.state = selectedState;
+    } else if (geographicLevel === "county" && selectedCounty !== "all") {
+      params.county = selectedCounty;
+    }
+    
+    return params;
+  };
 
   // Fetch monthly leaderboard
   const { data: monthlyLeaderboard = [], isLoading: monthlyLoading } = useQuery<LeaderboardEntry[]>({
-    queryKey: ["/api/leaderboard/monthly", { month: selectedMonth, year: selectedYear, limit: 20 }],
+    queryKey: ["/api/leaderboard/monthly", getGeographicParams()],
   });
 
   // Fetch lifetime leaderboard
   const { data: lifetimeLeaderboard = [], isLoading: lifetimeLoading } = useQuery<LeaderboardEntry[]>({
-    queryKey: ["/api/leaderboard/lifetime", { limit: 20 }],
+    queryKey: ["/api/leaderboard/lifetime", { ...getGeographicParams(), excludeMonth: true }],
   });
 
   const getRankIcon = (rank: number) => {
@@ -85,6 +129,32 @@ export default function Leaderboard() {
 
   const years = Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - i);
 
+  const getGeographicLevelIcon = (level: string) => {
+    switch (level) {
+      case "national":
+        return <Globe className="w-4 h-4" />;
+      case "state":
+        return <Building className="w-4 h-4" />;
+      case "county":
+        return <MapPin className="w-4 h-4" />;
+      default:
+        return <Globe className="w-4 h-4" />;
+    }
+  };
+
+  const getGeographicLevelTitle = () => {
+    switch (geographicLevel) {
+      case "national":
+        return "National";
+      case "state":
+        return selectedState !== "all" ? states.find(s => s.code === selectedState)?.name || "State" : "State";
+      case "county":
+        return selectedCounty !== "all" ? counties.find(c => c.id === selectedCounty)?.name || "County" : "County";
+      default:
+        return "National";
+    }
+  };
+
   const renderLeaderboardEntry = (entry: LeaderboardEntry, type: 'monthly' | 'lifetime') => {
     const recommendations = type === 'monthly' ? entry.monthlyRecommendations || 0 : entry.lifetimeRecommendations;
     const rating = type === 'monthly' ? entry.monthlyRating : entry.lifetimeRating;
@@ -110,6 +180,12 @@ export default function Leaderboard() {
                 {entry.companyName}
               </h3>
             </Link>
+            {entry.location && (
+              <p className="text-sm text-gray-500 dark:text-gray-400 flex items-center mt-1">
+                <MapPin className="w-3 h-3 mr-1" />
+                {entry.location}
+              </p>
+            )}
           </div>
 
           <div className="flex items-center space-x-6 text-sm">
@@ -136,12 +212,113 @@ export default function Leaderboard() {
     <div className="container mx-auto px-4 py-8 max-w-6xl">
       <div className="mb-8">
         <h1 className="text-4xl font-bold mb-4 bg-gradient-to-r from-orange-600 to-orange-400 bg-clip-text text-transparent">
-          Contractor Leaderboard
+          {getGeographicLevelTitle()} Contractor Leaderboard
         </h1>
         <p className="text-lg text-gray-600 dark:text-gray-400">
           Celebrating our top-performing contractors based on customer recommendations
         </p>
       </div>
+
+      {/* Geographic Level Selector */}
+      <Card className="mb-6">
+        <CardContent className="pt-6">
+          <div className="space-y-4">
+            <div className="flex flex-wrap gap-2">
+              <Button
+                variant={geographicLevel === "national" ? "default" : "outline"}
+                onClick={() => {
+                  setGeographicLevel("national");
+                  setSelectedState("all");
+                  setSelectedCounty("all");
+                }}
+                className="flex items-center gap-2"
+              >
+                <Globe className="w-4 h-4" />
+                National
+              </Button>
+              <Button
+                variant={geographicLevel === "state" ? "default" : "outline"}
+                onClick={() => {
+                  setGeographicLevel("state");
+                  setSelectedCounty("all");
+                }}
+                className="flex items-center gap-2"
+              >
+                <Building className="w-4 h-4" />
+                State
+              </Button>
+              <Button
+                variant={geographicLevel === "county" ? "default" : "outline"}
+                onClick={() => setGeographicLevel("county")}
+                className="flex items-center gap-2"
+              >
+                <MapPin className="w-4 h-4" />
+                County
+              </Button>
+            </div>
+
+            {/* Geographic Filters */}
+            {geographicLevel !== "national" && (
+              <div className="flex flex-wrap gap-4">
+                {geographicLevel === "state" && (
+                  <Select value={selectedState} onValueChange={setSelectedState}>
+                    <SelectTrigger className="w-48">
+                      <SelectValue placeholder="Select State" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All States</SelectItem>
+                      {states.map((state) => (
+                        <SelectItem key={state.code} value={state.code}>
+                          {state.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+
+                {geographicLevel === "county" && (
+                  <>
+                    <Select 
+                      value={selectedState} 
+                      onValueChange={(value) => {
+                        setSelectedState(value);
+                        setSelectedCounty("all");
+                      }}
+                    >
+                      <SelectTrigger className="w-48">
+                        <SelectValue placeholder="Select State" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {states.map((state) => (
+                          <SelectItem key={state.code} value={state.code}>
+                            {state.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+
+                    {selectedState !== "all" && (
+                      <Select value={selectedCounty} onValueChange={setSelectedCounty}>
+                        <SelectTrigger className="w-48">
+                          <SelectValue placeholder="Select County" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">All Counties</SelectItem>
+                          {counties.map((county) => (
+                            <SelectItem key={county.id} value={county.id}>
+                              {county.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    )}
+                  </>
+                )}
+              </div>
+            )}
+          </div>
+        </CardContent>
+      </Card>
 
       <Tabs defaultValue="monthly" className="space-y-6">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
@@ -190,10 +367,11 @@ export default function Leaderboard() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Trophy className="w-5 h-5 text-yellow-500" />
-                Monthly Leaders - {months.find(m => m.value === selectedMonth)?.label} {selectedYear}
+                {getGeographicLevelIcon(geographicLevel)}
+                {getGeographicLevelTitle()} Monthly Leaders - {months.find(m => m.value === selectedMonth)?.label} {selectedYear}
               </CardTitle>
               <CardDescription>
-                Rankings reset every month. Contractors are ranked by total recommendations received.
+                Rankings reset every month. Contractors are ranked by total recommendations received in {getGeographicLevelTitle().toLowerCase()}.
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -225,10 +403,11 @@ export default function Leaderboard() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Crown className="w-5 h-5 text-yellow-500" />
-                All-Time Champions
+                {getGeographicLevelIcon(geographicLevel)}
+                {getGeographicLevelTitle()} All-Time Champions
               </CardTitle>
               <CardDescription>
-                Hall of fame showing contractors with the most recommendations throughout their TradeScout journey.
+                Hall of fame showing contractors with the most recommendations throughout their TradeScout journey in {getGeographicLevelTitle().toLowerCase()}.
               </CardDescription>
             </CardHeader>
             <CardContent>
