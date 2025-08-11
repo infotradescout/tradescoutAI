@@ -471,6 +471,33 @@ export interface IStorage {
   incrementInvitationsSent(userId: string): Promise<void>;
   incrementInvitationsAccepted(userId: string, targetRole: 'homeowner' | 'contractor_user'): Promise<void>;
   getTopReferrers(limit: number): Promise<(ReferralStats & { user: User })[]>;
+  
+  // Professional profile operations
+  createRealtorProfile(profile: InsertRealtorProfile): Promise<RealtorProfile>;
+  getRealtorProfile(id: string): Promise<RealtorProfile | undefined>;
+  getRealtorProfileByUserId(userId: string): Promise<RealtorProfile | undefined>;
+  updateRealtorProfile(id: string, profileData: Partial<RealtorProfile>): Promise<RealtorProfile>;
+  
+  createCarSalesmanProfile(profile: InsertCarSalesmanProfile): Promise<CarSalesmanProfile>;
+  getCarSalesmanProfile(id: string): Promise<CarSalesmanProfile | undefined>;
+  getCarSalesmanProfileByUserId(userId: string): Promise<CarSalesmanProfile | undefined>;
+  updateCarSalesmanProfile(id: string, profileData: Partial<CarSalesmanProfile>): Promise<CarSalesmanProfile>;
+  
+  // Professional verification methods
+  getPendingRealtorApplications(): Promise<RealtorProfile[]>;
+  getPendingCarSalesmanApplications(): Promise<CarSalesmanProfile[]>;
+  updateRealtorVerificationStatus(profileId: string, verificationData: {
+    approved: boolean;
+    notes: string;
+    reviewedBy: string;
+    reviewedAt: Date;
+  }): Promise<RealtorProfile>;
+  updateCarSalesmanVerificationStatus(profileId: string, verificationData: {
+    approved: boolean;
+    notes: string;
+    reviewedBy: string;
+    reviewedAt: Date;
+  }): Promise<CarSalesmanProfile>;
 }
 
 export class DatabaseStorage implements IStorage {

@@ -1619,6 +1619,75 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Professional verification endpoints
+  app.get("/api/admin/professional/pending", isAuthenticated, async (req: any, res) => {
+    if (!["head_admin", "ops_admin", "moderator"].includes(req.user?.claims?.role)) {
+      return res.status(403).json({ message: "Admin access required" });
+    }
+
+    try {
+      const [realtors, carSalesmen] = await Promise.all([
+        storage.getPendingRealtorApplications(),
+        storage.getPendingCarSalesmanApplications()
+      ]);
+
+      res.json({ realtors, carSalesmen });
+    } catch (error) {
+      console.error("Error fetching pending applications:", error);
+      res.status(500).json({ message: "Failed to fetch pending applications" });
+    }
+  });
+
+  // Realtor verification
+  app.post("/api/admin/realtor/verify/:profileId", isAuthenticated, async (req: any, res) => {
+    if (!["head_admin", "ops_admin", "moderator"].includes(req.user?.claims?.role)) {
+      return res.status(403).json({ message: "Admin access required" });
+    }
+
+    try {
+      const { profileId } = req.params;
+      const { approved, notes } = req.body;
+      const adminId = req.user.claims.sub;
+
+      const result = await storage.updateRealtorVerificationStatus(
+        profileId,
+        approved ? 'approved' : 'rejected',
+        adminId,
+        notes
+      );
+
+      res.json(result);
+    } catch (error) {
+      console.error("Error updating realtor verification:", error);
+      res.status(500).json({ message: "Failed to update verification status" });
+    }
+  });
+
+  // Car salesman verification
+  app.post("/api/admin/car-salesman/verify/:profileId", isAuthenticated, async (req: any, res) => {
+    if (!["head_admin", "ops_admin", "moderator"].includes(req.user?.claims?.role)) {
+      return res.status(403).json({ message: "Admin access required" });
+    }
+
+    try {
+      const { profileId } = req.params;
+      const { approved, notes } = req.body;
+      const adminId = req.user.claims.sub;
+
+      const result = await storage.updateCarSalesmanVerificationStatus(
+        profileId,
+        approved ? 'approved' : 'rejected',
+        adminId,
+        notes
+      );
+
+      res.json(result);
+    } catch (error) {
+      console.error("Error updating car salesman verification:", error);
+      res.status(500).json({ message: "Failed to update verification status" });
+    }
+  });
+
   // Contractor settings management
   app.get("/api/admin/contractor-settings", isAuthenticated, requireAdmin, async (req, res) => {
     try {

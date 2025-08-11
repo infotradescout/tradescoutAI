@@ -42,6 +42,7 @@ import AdminUsers from "@/pages/admin-users";
 import AdminErrorReports from "@/pages/admin-error-reports";
 import AdminTestingControls from "@/pages/admin-testing-controls";
 import AdminListings from "@/pages/admin-listings";
+import AdminProfessionalVerification from "@/pages/admin-professional-verification";
 import MarketplaceListing from "@/pages/marketplace-listing";
 import RealtorApplication from "@/pages/realtor-application";
 import CarSalesmanApplication from "@/pages/car-salesman-application";
@@ -145,6 +146,7 @@ function Router() {
             <Route path="/admin/error-reports" component={AdminErrorReports} />
             <Route path="/admin/testing" component={AdminTestingControls} />
             <Route path="/admin/listings" component={AdminListings} />
+            <Route path="/admin/professional-verification" component={AdminProfessionalVerification} />
             <Route path="/chat/:conversationId?" component={Chat} />
             <Route path="/invite" component={InvitePage} />
             <Route path="/moderation" component={ModerationCenter} />
