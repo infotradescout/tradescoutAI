@@ -68,7 +68,10 @@ import {
   insertMarketplaceReportSchema,
   insertVendorVerificationSchema,
   insertBuyerVerificationSchema,
-  insertAddressVerificationSchema
+  insertAddressVerificationSchema,
+  insertModerationReportSchema,
+  insertModerationVoteSchema,
+  insertModerationAppealSchema
 } from "@shared/schema";
 import { ObjectStorageService } from "./objectStorage";
 import { randomUUID } from "crypto";
@@ -3369,6 +3372,263 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error fetching seller ratings:", error);
       res.status(500).json({ message: "Failed to fetch seller ratings" });
+    }
+  });
+
+  // ===== COMMUNITY MODERATION API ROUTES =====
+
+  // Report content for moderation
+  app.post("/api/moderation/reports", isAuthenticated, requireAddressVerification, async (req: any, res) => {
+    try {
+      const userId = req.user?.claims?.sub;
+      const user = await storage.getUser(userId);
+      
+      if (!user) {
+        return res.status(401).json({ message: "User not found" });
+      }
+
+      const reportData = {
+        ...req.body,
+        reporterId: userId,
+        reporterCounty: user.county,
+        reporterState: user.state,
+      };
+
+      const validatedReport = insertModerationReportSchema.parse(reportData);
+      const report = await storage.createModerationReport(validatedReport);
+
+      res.json(report);
+    } catch (error) {
+      console.error("Error creating moderation report:", error);
+      res.status(500).json({ message: "Failed to create report" });
+    }
+  });
+
+  // Get moderation reports for a user's location
+  app.get("/api/moderation/reports", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user?.claims?.sub;
+      const user = await storage.getUser(userId);
+      
+      if (!user) {
+        return res.status(401).json({ message: "User not found" });
+      }
+
+      const filters = {
+        status: req.query.status as string,
+        contentType: req.query.contentType as string,
+        county: req.query.county as string || user.county,
+        state: req.query.state as string || user.state,
+        limit: req.query.limit ? parseInt(req.query.limit as string) : 20,
+        offset: req.query.offset ? parseInt(req.query.offset as string) : 0,
+      };
+
+      const reports = await storage.getModerationReports(filters);
+      res.json(reports);
+    } catch (error) {
+      console.error("Error fetching moderation reports:", error);
+      res.status(500).json({ message: "Failed to fetch reports" });
+    }
+  });
+
+  // Get specific moderation report
+  app.get("/api/moderation/reports/:reportId", isAuthenticated, async (req: any, res) => {
+    try {
+      const { reportId } = req.params;
+      const report = await storage.getModerationReport(reportId);
+      
+      if (!report) {
+        return res.status(404).json({ message: "Report not found" });
+      }
+
+      res.json(report);
+    } catch (error) {
+      console.error("Error fetching moderation report:", error);
+      res.status(500).json({ message: "Failed to fetch report" });
+    }
+  });
+
+  // Vote on a moderation report
+  app.post("/api/moderation/reports/:reportId/vote", isAuthenticated, requireAddressVerification, async (req: any, res) => {
+    try {
+      const { reportId } = req.params;
+      const { vote } = req.body;
+      const userId = req.user?.claims?.sub;
+      const user = await storage.getUser(userId);
+      
+      if (!user) {
+        return res.status(401).json({ message: "User not found" });
+      }
+
+      // Check if user can vote on this report
+      const canVote = await storage.canUserVoteOnReport(userId, reportId);
+      if (!canVote) {
+        return res.status(403).json({ message: "You are not eligible to vote on this report" });
+      }
+
+      const voteData = {
+        reportId,
+        voterId: userId,
+        vote,
+        voterCounty: user.county,
+        voterState: user.state,
+      };
+
+      const validatedVote = insertModerationVoteSchema.parse(voteData);
+      const moderationVote = await storage.createModerationVote(validatedVote);
+
+      res.json(moderationVote);
+    } catch (error) {
+      console.error("Error creating moderation vote:", error);
+      
+      if (error.message === 'User has already voted on this report') {
+        return res.status(400).json({ message: error.message });
+      }
+      
+      res.status(500).json({ message: "Failed to create vote" });
+    }
+  });
+
+  // Get votes for a specific report
+  app.get("/api/moderation/reports/:reportId/votes", isAuthenticated, async (req: any, res) => {
+    try {
+      const { reportId } = req.params;
+      const votes = await storage.getReportVotes(reportId);
+      res.json(votes);
+    } catch (error) {
+      console.error("Error fetching report votes:", error);
+      res.status(500).json({ message: "Failed to fetch votes" });
+    }
+  });
+
+  // Check if user can vote on a report
+  app.get("/api/moderation/reports/:reportId/can-vote", isAuthenticated, async (req: any, res) => {
+    try {
+      const { reportId } = req.params;
+      const userId = req.user?.claims?.sub;
+      
+      const canVote = await storage.canUserVoteOnReport(userId, reportId);
+      res.json({ canVote });
+    } catch (error) {
+      console.error("Error checking vote eligibility:", error);
+      res.status(500).json({ message: "Failed to check vote eligibility" });
+    }
+  });
+
+  // Create moderation appeal
+  app.post("/api/moderation/appeals", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user?.claims?.sub;
+      
+      const appealData = {
+        ...req.body,
+        appellantId: userId,
+      };
+
+      const validatedAppeal = insertModerationAppealSchema.parse(appealData);
+      const appeal = await storage.createModerationAppeal(validatedAppeal);
+
+      res.json(appeal);
+    } catch (error) {
+      console.error("Error creating moderation appeal:", error);
+      res.status(500).json({ message: "Failed to create appeal" });
+    }
+  });
+
+  // Get user's moderation appeals
+  app.get("/api/moderation/appeals", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user?.claims?.sub;
+      const appeals = await storage.getAppealsByUser(userId);
+      res.json(appeals);
+    } catch (error) {
+      console.error("Error fetching moderation appeals:", error);
+      res.status(500).json({ message: "Failed to fetch appeals" });
+    }
+  });
+
+  // Get specific moderation appeal
+  app.get("/api/moderation/appeals/:appealId", isAuthenticated, async (req: any, res) => {
+    try {
+      const { appealId } = req.params;
+      const userId = req.user?.claims?.sub;
+      
+      const appeal = await storage.getModerationAppeal(appealId);
+      
+      if (!appeal) {
+        return res.status(404).json({ message: "Appeal not found" });
+      }
+
+      // Only allow access to own appeals or admin users
+      if (appeal.appellantId !== userId && !req.user.isAdmin) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+
+      res.json(appeal);
+    } catch (error) {
+      console.error("Error fetching moderation appeal:", error);
+      res.status(500).json({ message: "Failed to fetch appeal" });
+    }
+  });
+
+  // Get user's moderation reputation
+  app.get("/api/moderation/reputation", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user?.claims?.sub;
+      const reputation = await storage.getUserModerationReputation(userId);
+      
+      if (!reputation) {
+        // Create default reputation for new users
+        const defaultReputation = {
+          userId,
+          reputationScore: 100,
+          canVote: true,
+          canReport: true,
+          isSuspended: false,
+          totalReportsSubmitted: 0,
+          totalVotesCast: 0,
+          accurateReports: 0,
+          inaccurateReports: 0,
+        };
+        
+        const newReputation = await storage.createUserModerationReputation(defaultReputation);
+        return res.json(newReputation);
+      }
+
+      res.json(reputation);
+    } catch (error) {
+      console.error("Error fetching moderation reputation:", error);
+      res.status(500).json({ message: "Failed to fetch reputation" });
+    }
+  });
+
+  // Get moderation actions for content
+  app.get("/api/moderation/actions/:contentType/:contentId", isAuthenticated, async (req: any, res) => {
+    try {
+      const { contentType, contentId } = req.params;
+      const actions = await storage.getModerationActions(contentType, contentId);
+      res.json(actions);
+    } catch (error) {
+      console.error("Error fetching moderation actions:", error);
+      res.status(500).json({ message: "Failed to fetch actions" });
+    }
+  });
+
+  // Get moderation settings for location
+  app.get("/api/moderation/settings", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user?.claims?.sub;
+      const user = await storage.getUser(userId);
+      
+      if (!user) {
+        return res.status(401).json({ message: "User not found" });
+      }
+
+      const settings = await storage.getModerationSettings(user.county, user.state);
+      res.json(settings);
+    } catch (error) {
+      console.error("Error fetching moderation settings:", error);
+      res.status(500).json({ message: "Failed to fetch settings" });
     }
   });
 

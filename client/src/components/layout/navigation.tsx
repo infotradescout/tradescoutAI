@@ -28,6 +28,7 @@ export default function Navigation() {
   ];
 
   const authenticatedNavItems = [
+    { href: "/moderation", label: "Moderation" },
     ...(isContractor ? [
       { href: "/contractor-dashboard", label: "Dashboard" },
       { href: "/contractor-promos", label: "My Promos" }

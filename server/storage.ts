@@ -51,6 +51,13 @@ import {
   communityGroups,
   groupMembers,
   regions,
+  // Community moderation
+  moderationReports,
+  moderationVotes,
+  userModerationReputation,
+  moderationActions,
+  moderationAppeals,
+  moderationSettings,
   type User,
   type InsertUser,
   type UpsertUser,
@@ -142,6 +149,19 @@ import {
   type InsertGroupMember,
   type Region,
   type InsertRegion,
+  // Community moderation types
+  type ModerationReport,
+  type InsertModerationReport,
+  type ModerationVote,
+  type InsertModerationVote,
+  type UserModerationReputation,
+  type InsertUserModerationReputation,
+  type ModerationAction,
+  type InsertModerationAction,
+  type ModerationAppeal,
+  type InsertModerationAppeal,
+  type ModerationSettings,
+  type InsertModerationSettings,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, desc, asc, sql, inArray, like, gt, or, lt, isNull, isNotNull } from "drizzle-orm";
@@ -357,6 +377,52 @@ export interface IStorage {
   getExpiredAddressVerifications(): Promise<AddressVerification[]>;
   sendAddressVerificationPostcard(userId: string, code: string): Promise<void>;
   verifyAddressWithPostcard(userId: string, code: string): Promise<boolean>;
+  
+  // Community Moderation operations
+  // Reports
+  createModerationReport(report: InsertModerationReport): Promise<ModerationReport>;
+  getModerationReport(id: string): Promise<ModerationReport | undefined>;
+  getModerationReports(filters?: {
+    status?: string;
+    contentType?: string;
+    county?: string;
+    state?: string;
+    reporterId?: string;
+    limit?: number;
+    offset?: number;
+  }): Promise<ModerationReport[]>;
+  updateModerationReport(id: string, updates: Partial<ModerationReport>): Promise<ModerationReport>;
+  
+  // Votes
+  createModerationVote(vote: InsertModerationVote): Promise<ModerationVote>;
+  getModerationVote(reportId: string, voterId: string): Promise<ModerationVote | undefined>;
+  getReportVotes(reportId: string): Promise<ModerationVote[]>;
+  updateVoteCounts(reportId: string): Promise<void>;
+  
+  // User reputation
+  getUserModerationReputation(userId: string): Promise<UserModerationReputation | undefined>;
+  createUserModerationReputation(reputation: InsertUserModerationReputation): Promise<UserModerationReputation>;
+  updateUserModerationReputation(userId: string, updates: Partial<UserModerationReputation>): Promise<UserModerationReputation>;
+  
+  // Actions
+  createModerationAction(action: InsertModerationAction): Promise<ModerationAction>;
+  getModerationActions(contentType: string, contentId: string): Promise<ModerationAction[]>;
+  
+  // Appeals
+  createModerationAppeal(appeal: InsertModerationAppeal): Promise<ModerationAppeal>;
+  getModerationAppeal(id: string): Promise<ModerationAppeal | undefined>;
+  getAppealsByUser(userId: string): Promise<ModerationAppeal[]>;
+  updateModerationAppeal(id: string, updates: Partial<ModerationAppeal>): Promise<ModerationAppeal>;
+  
+  // Settings
+  getModerationSettings(county?: string, state?: string): Promise<ModerationSettings | undefined>;
+  createModerationSettings(settings: InsertModerationSettings): Promise<ModerationSettings>;
+  updateModerationSettings(id: string, updates: Partial<ModerationSettings>): Promise<ModerationSettings>;
+  
+  // Utility methods
+  canUserVoteOnReport(userId: string, reportId: string): Promise<boolean>;
+  calculateLocalVoterWeight(voterCounty: string, voterState: string, contentCounty: string, contentState: string): Promise<number>;
+  processVoteResult(reportId: string): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -2615,6 +2681,432 @@ export class DatabaseStorage implements IStorage {
       .from(handmadeProducts)
       .where(eq(handmadeProducts.sellerId, sellerId))
       .orderBy(desc(handmadeProducts.featured), desc(handmadeProducts.createdAt));
+  }
+
+  // ===== COMMUNITY MODERATION IMPLEMENTATIONS =====
+
+  // Reports
+  async createModerationReport(reportData: InsertModerationReport): Promise<ModerationReport> {
+    const [report] = await db
+      .insert(moderationReports)
+      .values(reportData)
+      .returning();
+    return report;
+  }
+
+  async getModerationReport(id: string): Promise<ModerationReport | undefined> {
+    const [report] = await db
+      .select()
+      .from(moderationReports)
+      .where(eq(moderationReports.id, id));
+    return report;
+  }
+
+  async getModerationReports(filters?: {
+    status?: string;
+    contentType?: string;
+    county?: string;
+    state?: string;
+    reporterId?: string;
+    limit?: number;
+    offset?: number;
+  }): Promise<ModerationReport[]> {
+    let query = db.select().from(moderationReports);
+    
+    if (filters?.status) {
+      query = query.where(eq(moderationReports.status, filters.status));
+    }
+    if (filters?.contentType) {
+      query = query.where(eq(moderationReports.contentType, filters.contentType));
+    }
+    if (filters?.county) {
+      query = query.where(eq(moderationReports.contentCounty, filters.county));
+    }
+    if (filters?.state) {
+      query = query.where(eq(moderationReports.contentState, filters.state));
+    }
+    if (filters?.reporterId) {
+      query = query.where(eq(moderationReports.reporterId, filters.reporterId));
+    }
+    
+    query = query.orderBy(desc(moderationReports.createdAt));
+    
+    if (filters?.limit) {
+      query = query.limit(filters.limit);
+    }
+    if (filters?.offset) {
+      query = query.offset(filters.offset);
+    }
+    
+    return await query;
+  }
+
+  async updateModerationReport(id: string, updates: Partial<ModerationReport>): Promise<ModerationReport> {
+    const [report] = await db
+      .update(moderationReports)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(moderationReports.id, id))
+      .returning();
+    return report;
+  }
+
+  // Votes
+  async createModerationVote(voteData: InsertModerationVote): Promise<ModerationVote> {
+    // Check if user already voted on this report
+    const existingVote = await this.getModerationVote(voteData.reportId, voteData.voterId);
+    if (existingVote) {
+      throw new Error('User has already voted on this report');
+    }
+
+    // Calculate vote weight based on location
+    const report = await this.getModerationReport(voteData.reportId);
+    if (!report) {
+      throw new Error('Report not found');
+    }
+
+    const voteWeight = await this.calculateLocalVoterWeight(
+      voteData.voterCounty || '',
+      voteData.voterState || '',
+      report.contentCounty || '',
+      report.contentState || ''
+    );
+
+    const isLocalVoter = voteData.voterCounty === report.contentCounty && 
+                        voteData.voterState === report.contentState;
+
+    const [vote] = await db
+      .insert(moderationVotes)
+      .values({
+        ...voteData,
+        voteWeight: voteWeight.toString(),
+        isLocalVoter,
+      })
+      .returning();
+
+    // Update vote counts
+    await this.updateVoteCounts(voteData.reportId);
+    
+    return vote;
+  }
+
+  async getModerationVote(reportId: string, voterId: string): Promise<ModerationVote | undefined> {
+    const [vote] = await db
+      .select()
+      .from(moderationVotes)
+      .where(
+        and(
+          eq(moderationVotes.reportId, reportId),
+          eq(moderationVotes.voterId, voterId)
+        )
+      );
+    return vote;
+  }
+
+  async getReportVotes(reportId: string): Promise<ModerationVote[]> {
+    return await db
+      .select()
+      .from(moderationVotes)
+      .where(eq(moderationVotes.reportId, reportId))
+      .orderBy(desc(moderationVotes.createdAt));
+  }
+
+  async updateVoteCounts(reportId: string): Promise<void> {
+    const votes = await this.getReportVotes(reportId);
+    
+    let totalVotes = 0;
+    let removeVotes = 0;
+    let keepVotes = 0;
+    let reviewVotes = 0;
+
+    votes.forEach(vote => {
+      const weight = parseFloat(vote.voteWeight || '1.0');
+      totalVotes += weight;
+      
+      switch (vote.vote) {
+        case 'remove':
+          removeVotes += weight;
+          break;
+        case 'keep':
+          keepVotes += weight;
+          break;
+        case 'needs_review':
+          reviewVotes += weight;
+          break;
+      }
+    });
+
+    await db
+      .update(moderationReports)
+      .set({
+        totalVotes: Math.round(totalVotes),
+        removeVotes: Math.round(removeVotes),
+        keepVotes: Math.round(keepVotes),
+        reviewVotes: Math.round(reviewVotes),
+        updatedAt: new Date(),
+      })
+      .where(eq(moderationReports.id, reportId));
+
+    // Check if voting threshold reached and process result
+    await this.processVoteResult(reportId);
+  }
+
+  // User reputation
+  async getUserModerationReputation(userId: string): Promise<UserModerationReputation | undefined> {
+    const [reputation] = await db
+      .select()
+      .from(userModerationReputation)
+      .where(eq(userModerationReputation.userId, userId));
+    return reputation;
+  }
+
+  async createUserModerationReputation(reputationData: InsertUserModerationReputation): Promise<UserModerationReputation> {
+    const [reputation] = await db
+      .insert(userModerationReputation)
+      .values(reputationData)
+      .returning();
+    return reputation;
+  }
+
+  async updateUserModerationReputation(userId: string, updates: Partial<UserModerationReputation>): Promise<UserModerationReputation> {
+    const [reputation] = await db
+      .update(userModerationReputation)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(userModerationReputation.userId, userId))
+      .returning();
+    return reputation;
+  }
+
+  // Actions
+  async createModerationAction(actionData: InsertModerationAction): Promise<ModerationAction> {
+    const [action] = await db
+      .insert(moderationActions)
+      .values(actionData)
+      .returning();
+    return action;
+  }
+
+  async getModerationActions(contentType: string, contentId: string): Promise<ModerationAction[]> {
+    return await db
+      .select()
+      .from(moderationActions)
+      .where(
+        and(
+          eq(moderationActions.contentType, contentType),
+          eq(moderationActions.contentId, contentId)
+        )
+      )
+      .orderBy(desc(moderationActions.createdAt));
+  }
+
+  // Appeals
+  async createModerationAppeal(appealData: InsertModerationAppeal): Promise<ModerationAppeal> {
+    const [appeal] = await db
+      .insert(moderationAppeals)
+      .values(appealData)
+      .returning();
+    return appeal;
+  }
+
+  async getModerationAppeal(id: string): Promise<ModerationAppeal | undefined> {
+    const [appeal] = await db
+      .select()
+      .from(moderationAppeals)
+      .where(eq(moderationAppeals.id, id));
+    return appeal;
+  }
+
+  async getAppealsByUser(userId: string): Promise<ModerationAppeal[]> {
+    return await db
+      .select()
+      .from(moderationAppeals)
+      .where(eq(moderationAppeals.appellantId, userId))
+      .orderBy(desc(moderationAppeals.createdAt));
+  }
+
+  async updateModerationAppeal(id: string, updates: Partial<ModerationAppeal>): Promise<ModerationAppeal> {
+    const [appeal] = await db
+      .update(moderationAppeals)
+      .set(updates)
+      .where(eq(moderationAppeals.id, id))
+      .returning();
+    return appeal;
+  }
+
+  // Settings
+  async getModerationSettings(county?: string, state?: string): Promise<ModerationSettings | undefined> {
+    let query = db.select().from(moderationSettings);
+    
+    if (county && state) {
+      query = query.where(
+        and(
+          eq(moderationSettings.county, county),
+          eq(moderationSettings.state, state),
+          eq(moderationSettings.isActive, true)
+        )
+      );
+    } else if (state) {
+      query = query.where(
+        and(
+          eq(moderationSettings.state, state),
+          eq(moderationSettings.isStatewide, true),
+          eq(moderationSettings.isActive, true)
+        )
+      );
+    } else {
+      // Return default settings
+      query = query.where(
+        and(
+          isNull(moderationSettings.county),
+          isNull(moderationSettings.state),
+          eq(moderationSettings.isActive, true)
+        )
+      );
+    }
+    
+    const [settings] = await query;
+    return settings;
+  }
+
+  async createModerationSettings(settingsData: InsertModerationSettings): Promise<ModerationSettings> {
+    const [settings] = await db
+      .insert(moderationSettings)
+      .values(settingsData)
+      .returning();
+    return settings;
+  }
+
+  async updateModerationSettings(id: string, updates: Partial<ModerationSettings>): Promise<ModerationSettings> {
+    const [settings] = await db
+      .update(moderationSettings)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(moderationSettings.id, id))
+      .returning();
+    return settings;
+  }
+
+  // Utility methods
+  async canUserVoteOnReport(userId: string, reportId: string): Promise<boolean> {
+    // Check if user already voted
+    const existingVote = await this.getModerationVote(reportId, userId);
+    if (existingVote) {
+      return false;
+    }
+
+    // Check user's moderation reputation
+    const reputation = await this.getUserModerationReputation(userId);
+    if (!reputation || !reputation.canVote || reputation.isSuspended) {
+      return false;
+    }
+
+    // Check if user is the content owner or reporter
+    const report = await this.getModerationReport(reportId);
+    if (!report) {
+      return false;
+    }
+
+    if (report.contentOwnerId === userId || report.reporterId === userId) {
+      return false;
+    }
+
+    // Check account age and verification requirements
+    const user = await this.getUser(userId);
+    if (!user) {
+      return false;
+    }
+
+    const settings = await this.getModerationSettings(
+      report.contentCounty || undefined,
+      report.contentState || undefined
+    );
+
+    if (settings?.requiresAddressVerification && !user.addressVerified) {
+      return false;
+    }
+
+    // Check account age (minimum days)
+    const accountAgeDays = Math.floor(
+      (Date.now() - new Date(user.createdAt).getTime()) / (1000 * 60 * 60 * 24)
+    );
+    
+    if (accountAgeDays < (settings?.minAccountAge || 30)) {
+      return false;
+    }
+
+    return true;
+  }
+
+  async calculateLocalVoterWeight(
+    voterCounty: string,
+    voterState: string,
+    contentCounty: string,
+    contentState: string
+  ): Promise<number> {
+    // Same county gets highest weight
+    if (voterCounty === contentCounty && voterState === contentState) {
+      return 1.5;
+    }
+    
+    // Same state gets moderate weight
+    if (voterState === contentState) {
+      return 1.2;
+    }
+    
+    // Different state gets base weight
+    return 1.0;
+  }
+
+  async processVoteResult(reportId: string): Promise<void> {
+    const report = await this.getModerationReport(reportId);
+    if (!report || report.status !== 'pending') {
+      return;
+    }
+
+    // Check if minimum votes reached
+    if (report.totalVotes < report.votesRequired) {
+      return;
+    }
+
+    const removalThreshold = parseFloat(report.removalThreshold || '0.60');
+    const removalPercentage = report.removeVotes / report.totalVotes;
+
+    let finalAction: string;
+    let actionTakenBy = 'community_vote';
+
+    if (removalPercentage >= removalThreshold) {
+      finalAction = 'content_removed';
+      
+      // Create moderation action
+      await this.createModerationAction({
+        reportId: report.id,
+        contentType: report.contentType,
+        contentId: report.contentId,
+        contentOwnerId: report.contentOwnerId,
+        action: 'removed',
+        actionBy: 'community_vote',
+        reason: `Content removed by community vote (${Math.round(removalPercentage * 100)}% removal votes)`,
+        isReversible: true,
+        canAppeal: true,
+        appealDeadline: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days
+      });
+    } else if (report.reviewVotes / report.totalVotes >= 0.3) {
+      // If 30% or more votes are "needs review", escalate to moderators
+      finalAction = 'content_flagged';
+      await this.updateModerationReport(reportId, {
+        status: 'escalated',
+      });
+      return;
+    } else {
+      finalAction = 'no_action';
+    }
+
+    // Update report with final result
+    await this.updateModerationReport(reportId, {
+      status: 'resolved',
+      finalAction,
+      actionTakenBy,
+      actionReason: `Community vote completed: ${report.removeVotes}/${report.totalVotes} removal votes (${Math.round(removalPercentage * 100)}%)`,
+      resolvedAt: new Date(),
+    });
   }
 }
 

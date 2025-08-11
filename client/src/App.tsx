@@ -41,6 +41,7 @@ import AdminTestingControls from "@/pages/admin-testing-controls";
 import AddressVerification from "@/pages/address-verification";
 import Community from "@/pages/community";
 import HandmadeMarketplace from "@/pages/handmade-marketplace";
+import ModerationCenter from "@/pages/moderation-center";
 import { ProfileSetupRedirect } from "@/components/profile-setup-redirect";
 import { FloatingBugReport } from "@/components/FloatingBugReport";
 import { BetaNotificationPopup } from "@/components/BetaNotificationPopup";
@@ -125,6 +126,7 @@ function Router() {
             <Route path="/admin/testing" component={AdminTestingControls} />
             <Route path="/chat/:conversationId?" component={Chat} />
             <Route path="/community" component={Community} />
+            <Route path="/moderation" component={ModerationCenter} />
             <Route path="/saved-ads" component={SavedAds} />
           </>
         )}

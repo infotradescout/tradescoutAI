@@ -2244,3 +2244,386 @@ export type InsertProductFavoriteType = z.infer<typeof insertProductFavoriteSche
 export type InsertProductOrderType = z.infer<typeof insertProductOrderSchema>;
 export type InsertProductReviewType = z.infer<typeof insertProductReviewSchema>;
 export type InsertSellerProfileType = z.infer<typeof insertSellerProfileSchema>;
+
+// ===== COMMUNITY MODERATION SYSTEM =====
+
+// Content types that can be reported
+export const contentTypeEnum = pgEnum('content_type', [
+  'marketplace_listing',
+  'handmade_product', 
+  'community_post',
+  'post_comment',
+  'product_review',
+  'user_profile',
+  'seller_profile',
+  'conversation_message'
+]);
+
+// Moderation report reasons
+export const reportReasonEnum = pgEnum('report_reason', [
+  'spam',
+  'harassment', 
+  'inappropriate_content',
+  'fraud',
+  'fake_listing',
+  'wrong_category',
+  'duplicate_content',
+  'price_manipulation',
+  'offensive_language',
+  'copyright_violation',
+  'privacy_violation',
+  'other'
+]);
+
+// Vote types for community moderation
+export const voteTypeEnum = pgEnum('vote_type', [
+  'remove',
+  'keep',
+  'needs_review'
+]);
+
+// Community moderation reports
+export const moderationReports = pgTable("moderation_reports", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  reporterId: varchar("reporter_id").references(() => users.id),
+  
+  // Content being reported
+  contentType: contentTypeEnum("content_type").notNull(),
+  contentId: varchar("content_id").notNull(), // ID of the reported content
+  contentOwnerId: varchar("content_owner_id").references(() => users.id),
+  
+  // Report details
+  reason: reportReasonEnum("reason").notNull(),
+  description: text("description"),
+  additionalContext: jsonb("additional_context").$type<{
+    screenshots?: string[];
+    relatedUrls?: string[];
+    previousReports?: string[];
+  }>(),
+  
+  // Geographic context for local moderation
+  reporterCounty: varchar("reporter_county"),
+  reporterState: varchar("reporter_state"),
+  contentCounty: varchar("content_county"), 
+  contentState: varchar("content_state"),
+  
+  // Status tracking
+  status: varchar("status", {
+    enum: ['pending', 'under_review', 'resolved', 'dismissed', 'escalated']
+  }).default('pending'),
+  
+  // Community voting results
+  totalVotes: integer("total_votes").default(0),
+  removeVotes: integer("remove_votes").default(0),
+  keepVotes: integer("keep_votes").default(0),
+  reviewVotes: integer("review_votes").default(0),
+  
+  // Voting thresholds (configurable per content type/region)
+  votesRequired: integer("votes_required").default(5),
+  removalThreshold: decimal("removal_threshold", { precision: 3, scale: 2 }).default("0.60"), // 60% to remove
+  
+  // Resolution
+  finalAction: varchar("final_action", {
+    enum: ['content_removed', 'content_hidden', 'content_flagged', 'warning_issued', 'no_action', 'user_suspended']
+  }),
+  actionTakenBy: varchar("action_taken_by"), // 'community_vote', 'moderator', 'admin'
+  actionReason: text("action_reason"),
+  resolvedAt: timestamp("resolved_at"),
+  
+  // Moderator override
+  moderatorId: varchar("moderator_id").references(() => users.id),
+  moderatorNotes: text("moderator_notes"),
+  isModeratorOverride: boolean("is_moderator_override").default(false),
+  
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Community votes on moderation reports
+export const moderationVotes = pgTable("moderation_votes", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  reportId: varchar("report_id").notNull().references(() => moderationReports.id),
+  voterId: varchar("voter_id").notNull().references(() => users.id),
+  
+  vote: voteTypeEnum("vote").notNull(),
+  comment: text("comment"), // Optional explanation for vote
+  
+  // Geographic context for local voting weight
+  voterCounty: varchar("voter_county"),
+  voterState: varchar("voter_state"),
+  
+  // Vote weight (local users get higher weight)
+  voteWeight: decimal("vote_weight", { precision: 3, scale: 2 }).default("1.0"),
+  isLocalVoter: boolean("is_local_voter").default(false), // Same county/region as content
+  
+  createdAt: timestamp("created_at").defaultNow(),
+}, (table) => [
+  index("moderation_votes_report_id_idx").on(table.reportId),
+  index("moderation_votes_voter_id_idx").on(table.voterId),
+]);
+
+// User voting eligibility and reputation
+export const userModerationReputation = pgTable("user_moderation_reputation", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  
+  // Voting eligibility
+  canVote: boolean("can_vote").default(true),
+  votingPower: decimal("voting_power", { precision: 3, scale: 2 }).default("1.0"),
+  
+  // Reputation metrics
+  accurateVotes: integer("accurate_votes").default(0),
+  totalVotes: integer("total_votes").default(0),
+  accuracyRate: decimal("accuracy_rate", { precision: 3, scale: 2 }),
+  
+  // Geographic voting areas
+  primaryCounty: varchar("primary_county"),
+  primaryState: varchar("primary_state"),
+  additionalCounties: jsonb("additional_counties").$type<string[]>(),
+  
+  // Suspension/penalties
+  isSuspended: boolean("is_suspended").default(false),
+  suspendedUntil: timestamp("suspended_until"),
+  suspensionReason: text("suspension_reason"),
+  
+  // Activity tracking
+  lastVoteAt: timestamp("last_vote_at"),
+  joinedModerationAt: timestamp("joined_moderation_at").defaultNow(),
+  
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Content moderation actions taken
+export const moderationActions = pgTable("moderation_actions", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  reportId: varchar("report_id").references(() => moderationReports.id),
+  
+  // Content being acted upon
+  contentType: contentTypeEnum("content_type").notNull(),
+  contentId: varchar("content_id").notNull(),
+  contentOwnerId: varchar("content_owner_id").references(() => users.id),
+  
+  // Action details
+  action: varchar("action", {
+    enum: ['removed', 'hidden', 'flagged', 'warning', 'no_action', 'user_suspended', 'user_banned']
+  }).notNull(),
+  
+  // Who took the action
+  actionBy: varchar("action_by", {
+    enum: ['community_vote', 'moderator', 'admin', 'automated']
+  }).notNull(),
+  actionUserId: varchar("action_user_id").references(() => users.id), // If taken by specific user
+  
+  // Action context
+  reason: text("reason"),
+  isReversible: boolean("is_reversible").default(true),
+  expiresAt: timestamp("expires_at"), // For temporary actions
+  
+  // Appeal process
+  canAppeal: boolean("can_appeal").default(true),
+  appealDeadline: timestamp("appeal_deadline"),
+  
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// Appeals against moderation actions
+export const moderationAppeals = pgTable("moderation_appeals", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  actionId: varchar("action_id").notNull().references(() => moderationActions.id),
+  reportId: varchar("report_id").references(() => moderationReports.id),
+  appellantId: varchar("appellant_id").notNull().references(() => users.id),
+  
+  // Appeal details
+  reason: text("reason").notNull(),
+  additionalEvidence: jsonb("additional_evidence").$type<{
+    documents?: string[];
+    screenshots?: string[];
+    witnessStatements?: string[];
+  }>(),
+  
+  // Status
+  status: varchar("status", {
+    enum: ['pending', 'under_review', 'approved', 'denied', 'escalated']
+  }).default('pending'),
+  
+  // Review
+  reviewedBy: varchar("reviewed_by").references(() => users.id),
+  reviewNotes: text("review_notes"),
+  decision: varchar("decision", {
+    enum: ['appeal_granted', 'appeal_denied', 'action_modified', 'no_change']
+  }),
+  newAction: varchar("new_action"),
+  
+  reviewedAt: timestamp("reviewed_at"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// Moderation settings per geographic region
+export const moderationSettings = pgTable("moderation_settings", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  
+  // Geographic scope (null values allow global settings)
+  county: varchar("county"),
+  state: varchar("state"),
+  isStatewide: boolean("is_statewide").default(false),
+  
+  // Voting thresholds
+  minVotesRequired: integer("min_votes_required").default(5),
+  removalThreshold: decimal("removal_threshold", { precision: 3, scale: 2 }).default("0.60"),
+  localVoterWeight: decimal("local_voter_weight", { precision: 3, scale: 2 }).default("1.5"),
+  
+  // Content-specific settings
+  contentTypeSettings: jsonb("content_type_settings").$type<{
+    [contentType: string]: {
+      minVotes?: number;
+      threshold?: number;
+      autoRemoveAfterVotes?: number;
+      requiresHumanReview?: boolean;
+    };
+  }>(),
+  
+  // User eligibility
+  minAccountAge: integer("min_account_age_days").default(30), // Days
+  minLocalActivity: integer("min_local_activity_days").default(7), // Days active in area
+  requiresAddressVerification: boolean("requires_address_verification").default(true),
+  
+  // Active/inactive
+  isActive: boolean("is_active").default(true),
+  
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Relations for moderation system
+export const moderationReportsRelations = relations(moderationReports, ({ one, many }) => ({
+  reporter: one(users, {
+    fields: [moderationReports.reporterId],
+    references: [users.id],
+  }),
+  contentOwner: one(users, {
+    fields: [moderationReports.contentOwnerId],
+    references: [users.id],
+  }),
+  moderator: one(users, {
+    fields: [moderationReports.moderatorId],
+    references: [users.id],
+  }),
+  votes: many(moderationVotes),
+  actions: many(moderationActions),
+}));
+
+export const moderationVotesRelations = relations(moderationVotes, ({ one }) => ({
+  report: one(moderationReports, {
+    fields: [moderationVotes.reportId],
+    references: [moderationReports.id],
+  }),
+  voter: one(users, {
+    fields: [moderationVotes.voterId],
+    references: [users.id],
+  }),
+}));
+
+export const userModerationReputationRelations = relations(userModerationReputation, ({ one }) => ({
+  user: one(users, {
+    fields: [userModerationReputation.userId],
+    references: [users.id],
+  }),
+}));
+
+export const moderationActionsRelations = relations(moderationActions, ({ one, many }) => ({
+  report: one(moderationReports, {
+    fields: [moderationActions.reportId],
+    references: [moderationReports.id],
+  }),
+  contentOwner: one(users, {
+    fields: [moderationActions.contentOwnerId],
+    references: [users.id],
+  }),
+  actionUser: one(users, {
+    fields: [moderationActions.actionUserId],
+    references: [users.id],
+  }),
+  appeals: many(moderationAppeals),
+}));
+
+export const moderationAppealsRelations = relations(moderationAppeals, ({ one }) => ({
+  action: one(moderationActions, {
+    fields: [moderationAppeals.actionId],
+    references: [moderationActions.id],
+  }),
+  report: one(moderationReports, {
+    fields: [moderationAppeals.reportId],
+    references: [moderationReports.id],
+  }),
+  appellant: one(users, {
+    fields: [moderationAppeals.appellantId],
+    references: [users.id],
+  }),
+  reviewer: one(users, {
+    fields: [moderationAppeals.reviewedBy],
+    references: [users.id],
+  }),
+}));
+
+// Types for moderation system
+export type ModerationReport = typeof moderationReports.$inferSelect;
+export type InsertModerationReport = typeof moderationReports.$inferInsert;
+
+export type ModerationVote = typeof moderationVotes.$inferSelect;
+export type InsertModerationVote = typeof moderationVotes.$inferInsert;
+
+export type UserModerationReputation = typeof userModerationReputation.$inferSelect;
+export type InsertUserModerationReputation = typeof userModerationReputation.$inferInsert;
+
+export type ModerationAction = typeof moderationActions.$inferSelect;
+export type InsertModerationAction = typeof moderationActions.$inferInsert;
+
+export type ModerationAppeal = typeof moderationAppeals.$inferSelect;
+export type InsertModerationAppeal = typeof moderationAppeals.$inferInsert;
+
+export type ModerationSettings = typeof moderationSettings.$inferSelect;
+export type InsertModerationSettings = typeof moderationSettings.$inferInsert;
+
+// Zod schemas for moderation system
+export const insertModerationReportSchema = createInsertSchema(moderationReports).omit({
+  id: true,
+  totalVotes: true,
+  removeVotes: true,
+  keepVotes: true,
+  reviewVotes: true,
+  finalAction: true,
+  actionTakenBy: true,
+  actionReason: true,
+  resolvedAt: true,
+  isModeratorOverride: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertModerationVoteSchema = createInsertSchema(moderationVotes).omit({
+  id: true,
+  voteWeight: true,
+  isLocalVoter: true,
+  createdAt: true,
+});
+
+export const insertModerationActionSchema = createInsertSchema(moderationActions).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertModerationAppealSchema = createInsertSchema(moderationAppeals).omit({
+  id: true,
+  reviewedBy: true,
+  reviewNotes: true,
+  decision: true,
+  newAction: true,
+  reviewedAt: true,
+  createdAt: true,
+});
+
+export type InsertModerationReportType = z.infer<typeof insertModerationReportSchema>;
+export type InsertModerationVoteType = z.infer<typeof insertModerationVoteSchema>;
+export type InsertModerationActionType = z.infer<typeof insertModerationActionSchema>;
+export type InsertModerationAppealType = z.infer<typeof insertModerationAppealSchema>;

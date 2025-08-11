@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
+import { ReportContentModal } from "@/components/ReportContentModal";
 
 interface HandmadeProduct {
   id: string;
@@ -191,6 +192,17 @@ export default function HandmadeMarketplace() {
           </div>
         </div>
       </CardContent>
+      
+      {isAuthenticated && (
+        <CardFooter className="pt-0 px-4 pb-4">
+          <ReportContentModal
+            contentType="handmade_product"
+            contentId={product.id}
+            contentOwnerId={product.sellerId}
+            triggerClassName="ml-auto"
+          />
+        </CardFooter>
+      )}
     </Card>
   );
 
