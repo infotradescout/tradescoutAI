@@ -68,7 +68,7 @@ export default function Landing() {
           <div className="text-center mb-16">
             <h1 className="text-4xl md:text-6xl font-bold text-white mb-6">
               Find Trusted Contractors
-              <span className="text-orange-500"> In Your County</span>
+              <span className="text-orange-500"> In Your Community</span>
             </h1>
             <p className="text-xl text-gray-300 mb-8 max-w-3xl mx-auto">
               Connect with verified, local contractors. Get quotes, read recommendations, and hire with confidence.
