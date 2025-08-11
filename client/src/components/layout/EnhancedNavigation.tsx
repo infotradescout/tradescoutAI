@@ -23,8 +23,8 @@ export function EnhancedNavigation({ className = "" }: EnhancedNavigationProps) 
   };
 
   return (
-    <header className={`sticky top-0 z-50 w-full border-b border-slate-700 bg-slate-900/95 backdrop-blur overflow-x-hidden ${className}`}>
-      <div className="max-w-7xl mx-auto flex items-center justify-between px-4 py-3">
+    <header className={`sticky top-0 z-50 w-full border-b border-slate-700 bg-slate-900/95 backdrop-blur ${className}`}>
+      <div className="w-full flex items-center justify-between px-4 py-3">
         {/* Logo */}
         <Link href="/">
           <div className="flex items-center space-x-2">
@@ -35,80 +35,114 @@ export function EnhancedNavigation({ className = "" }: EnhancedNavigationProps) 
           </div>
         </Link>
 
-        {/* Desktop Navigation */}
-        <div className="hidden lg:flex items-center space-x-2 max-w-none overflow-hidden">
+        {/* Desktop Navigation - Full Comprehensive Navigation */}
+        <div className="hidden lg:flex items-center space-x-1 flex-1 justify-center max-w-none overflow-x-auto"
+             style={{ minWidth: 0 }}>
           {/* Core Services */}
           <Link href="/contractors">
-            <Button variant={isActive("/contractors") ? "secondary" : "ghost"} size="sm" className="flex items-center space-x-1">
+            <Button variant={isActive("/contractors") ? "secondary" : "ghost"} size="sm" className="flex items-center space-x-1 px-2">
               <span>🔨</span>
-              <span>Find Contractors</span>
+              <span className="hidden lg:inline">Find Contractors</span>
             </Button>
           </Link>
           <Link href="/contractors/for-contractors">
-            <Button variant={isActive("/contractors/for-contractors") ? "secondary" : "ghost"} size="sm" className="flex items-center space-x-1">
+            <Button variant={isActive("/contractors/for-contractors") ? "secondary" : "ghost"} size="sm" className="flex items-center space-x-1 px-2">
               <span>💼</span>
-              <span>For Contractors</span>
+              <span className="hidden lg:inline">For Contractors</span>
             </Button>
           </Link>
           <Link href="/quote">
-            <Button variant={isActive("/quote") ? "secondary" : "ghost"} size="sm" className="flex items-center space-x-1">
+            <Button variant={isActive("/quote") ? "secondary" : "ghost"} size="sm" className="flex items-center space-x-1 px-2">
               <span>📊</span>
-              <span>Calculator</span>
+              <span className="hidden lg:inline">Calculator</span>
             </Button>
           </Link>
           <Link href="/marketplace">
-            <Button variant={isActive("/marketplace") ? "secondary" : "ghost"} size="sm" className="flex items-center space-x-1">
+            <Button variant={isActive("/marketplace") ? "secondary" : "ghost"} size="sm" className="flex items-center space-x-1 px-2">
               <span>🏪</span>
-              <span>Marketplace</span>
+              <span className="hidden lg:inline">Marketplace</span>
             </Button>
           </Link>
           <Link href="/community">
-            <Button variant={isActive("/community") ? "secondary" : "ghost"} size="sm" className="flex items-center space-x-1">
+            <Button variant={isActive("/community") ? "secondary" : "ghost"} size="sm" className="flex items-center space-x-1 px-2">
               <span>👥</span>
-              <span>Community</span>
+              <span className="hidden lg:inline">Community</span>
             </Button>
           </Link>
           <Link href="/leaderboard">
-            <Button variant={isActive("/leaderboard") ? "secondary" : "ghost"} size="sm" className="flex items-center space-x-1">
+            <Button variant={isActive("/leaderboard") ? "secondary" : "ghost"} size="sm" className="flex items-center space-x-1 px-2">
               <span>🏆</span>
-              <span>Leaderboard</span>
+              <span className="hidden lg:inline">Leaderboard</span>
             </Button>
           </Link>
           <Link href="/workers">
-            <Button variant={isActive("/workers") ? "secondary" : "ghost"} size="sm" className="flex items-center space-x-1">
+            <Button variant={isActive("/workers") ? "secondary" : "ghost"} size="sm" className="flex items-center space-x-1 px-2">
               <span>👷</span>
-              <span>Helpers</span>
+              <span className="hidden lg:inline">Helpers</span>
+            </Button>
+          </Link>
+          <Link href="/ads">
+            <Button variant={isActive("/ads") ? "secondary" : "ghost"} size="sm" className="flex items-center space-x-1 px-2">
+              <span>📢</span>
+              <span className="hidden lg:inline">Ads</span>
+            </Button>
+          </Link>
+          <Link href="/growth-pack">
+            <Button variant={isActive("/growth-pack") ? "secondary" : "ghost"} size="sm" className="flex items-center space-x-1 px-2">
+              <span>📦</span>
+              <span className="hidden lg:inline">Growth Pack</span>
+            </Button>
+          </Link>
+          <Link href="/emblem">
+            <Button variant={isActive("/emblem") ? "secondary" : "ghost"} size="sm" className="flex items-center space-x-1 px-2">
+              <span>🏅</span>
+              <span className="hidden lg:inline">Emblem</span>
+            </Button>
+          </Link>
+          <Link href="/verify">
+            <Button variant={isActive("/verify") ? "secondary" : "ghost"} size="sm" className="flex items-center space-x-1 px-2">
+              <span>✅</span>
+              <span className="hidden lg:inline">Verify</span>
+            </Button>
+          </Link>
+          <Link href="/legal">
+            <Button variant={isActive("/legal") ? "secondary" : "ghost"} size="sm" className="flex items-center space-x-1 px-2">
+              <span>⚖️</span>
+              <span className="hidden lg:inline">Legal</span>
+            </Button>
+          </Link>
+          <Link href="/analytics">
+            <Button variant={isActive("/analytics") ? "secondary" : "ghost"} size="sm" className="flex items-center space-x-1 px-2">
+              <span>📈</span>
+              <span className="hidden lg:inline">Analytics</span>
             </Button>
           </Link>
           
-          {/* Additional Features */}
-          {isAuthenticated ? (
+          {/* Additional Features for Authenticated Users */}
+          {isAuthenticated && (
             <>
               <Link href="/chat">
-                <Button variant={isActive("/chat") ? "secondary" : "ghost"} size="sm" className="flex items-center space-x-1">
+                <Button variant={isActive("/chat") ? "secondary" : "ghost"} size="sm" className="flex items-center space-x-1 px-2">
                   <span>💬</span>
-                  <span>Chat</span>
+                  <span className="hidden lg:inline">Chat</span>
                 </Button>
               </Link>
               <Link href="/notifications">
-                <Button variant={isActive("/notifications") ? "secondary" : "ghost"} size="sm" className="flex items-center space-x-1">
+                <Button variant={isActive("/notifications") ? "secondary" : "ghost"} size="sm" className="flex items-center space-x-1 px-2">
                   <span>🔔</span>
-                  <span>Notifications</span>
+                  <span className="hidden lg:inline">Notifications</span>
                 </Button>
               </Link>
               <Link href="/search">
-                <Button variant={isActive("/search") ? "secondary" : "ghost"} size="sm" className="flex items-center space-x-1">
+                <Button variant={isActive("/search") ? "secondary" : "ghost"} size="sm" className="flex items-center space-x-1 px-2">
                   <span>🔍</span>
-                  <span>Search</span>
+                  <span className="hidden lg:inline">Search</span>
                 </Button>
               </Link>
-            </>
-          ) : (
-            <>
-              <Link href="/register">
-                <Button variant={isActive("/register") ? "secondary" : "ghost"} size="sm" className="flex items-center space-x-1">
-                  <span>📝</span>
-                  <span>Register</span>
+              <Link href="/dashboard">
+                <Button variant={isActive("/dashboard") ? "secondary" : "ghost"} size="sm" className="flex items-center space-x-1 px-2">
+                  <span>📊</span>
+                  <span className="hidden lg:inline">Dashboard</span>
                 </Button>
               </Link>
             </>
