@@ -24,6 +24,7 @@ import {
   Home,
   Wrench,
   Building,
+  Building2,
   Fish,
   Apple,
   TrendingUp,
@@ -157,7 +158,11 @@ const categoryIcons = {
   
   // Property icons
   property_listings: Home,
-  real_estate: Building
+  real_estate: Building,
+  
+  // Business icons
+  business_sales: Building2,
+  sell_your_business: Building2
 };
 
 // Featured categories optimized for both contractors and homeowners with smart value messaging
@@ -215,6 +220,15 @@ const featuredCategories = [
     description: 'Quality homes and properties from trusted sellers',
     valueProposition: 'Real estate opportunities',
     benefits: ['Market value pricing', 'Detailed property info', 'Local expertise']
+  },
+  { 
+    id: 'business_sales', 
+    name: 'Business Sales', 
+    icon: 'building2', 
+    color: 'emerald',
+    description: 'Established businesses and franchises with proven track records',
+    valueProposition: 'Income-generating opportunities',
+    benefits: ['Revenue history', 'Asset valuation', 'Growth potential']
   },
   { 
     id: 'local_marketplace', 
@@ -939,6 +953,64 @@ export default function Marketplace() {
           </Card>
         )}
 
+        {/* Business Sales Notice */}
+        {selectedCategory === 'business_sales' && (
+          <Card className="mb-6 border-emerald-200 bg-emerald-50 dark:bg-emerald-900/20 dark:border-emerald-800">
+            <CardContent className="p-6">
+              <div className="flex items-start gap-4">
+                <div className="flex-shrink-0">
+                  <Building2 className="h-6 w-6 text-emerald-600" />
+                </div>
+                <div className="flex-1">
+                  <h3 className="font-semibold text-emerald-900 dark:text-emerald-100 mb-2">
+                    Business Sales & Opportunities
+                  </h3>
+                  <p className="text-emerald-800 dark:text-emerald-200 text-sm mb-4">
+                    Established businesses with proven revenue streams and growth potential. Connect with entrepreneurs ready to transfer successful operations to dedicated new owners.
+                  </p>
+                  
+                  <div className="grid md:grid-cols-3 gap-4">
+                    <div className="bg-white dark:bg-gray-800 p-4 rounded-lg">
+                      <h4 className="font-medium text-gray-900 dark:text-white mb-2 flex items-center">
+                        <TrendingUp className="h-4 w-4 mr-2 text-emerald-600" />
+                        Revenue History
+                      </h4>
+                      <p className="text-sm text-gray-600 dark:text-gray-300">
+                        Documented financial performance and growth patterns
+                      </p>
+                    </div>
+                    <div className="bg-white dark:bg-gray-800 p-4 rounded-lg">
+                      <h4 className="font-medium text-gray-900 dark:text-white mb-2 flex items-center">
+                        <CheckCircle className="h-4 w-4 mr-2 text-blue-600" />
+                        Asset Valuation
+                      </h4>
+                      <p className="text-sm text-gray-600 dark:text-gray-300">
+                        Complete inventory, equipment, and goodwill assessment
+                      </p>
+                    </div>
+                    <div className="bg-white dark:bg-gray-800 p-4 rounded-lg">
+                      <h4 className="font-medium text-gray-900 dark:text-white mb-2 flex items-center">
+                        <Users className="h-4 w-4 mr-2 text-purple-600" />
+                        Transfer Support
+                      </h4>
+                      <p className="text-sm text-gray-600 dark:text-gray-300">
+                        Training and transition assistance from current owners
+                      </p>
+                    </div>
+                  </div>
+                  
+                  <div className="mt-4 p-3 bg-amber-50 dark:bg-amber-900/20 rounded-lg border border-amber-200 dark:border-amber-800">
+                    <p className="text-sm text-amber-800 dark:text-amber-200 flex items-center">
+                      <Star className="h-4 w-4 mr-2 text-amber-600" />
+                      <strong>Business Value Opportunity:</strong> Established businesses with strong customer bases and proven systems provide immediate income potential and long-term wealth building through ownership.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
         {/* Property Listings Notice */}
         {selectedCategory === 'property_listings' && (
           <Card className="mb-6 border-violet-200 bg-violet-50 dark:bg-violet-900/20 dark:border-violet-800">
@@ -1143,20 +1215,27 @@ export default function Marketplace() {
                 <div className="flex flex-col sm:flex-row gap-4 items-center">
                   {isAuthenticated ? (
                     <>
-                      <div className="flex flex-col sm:flex-row gap-3">
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 w-full max-w-2xl">
                         <Button 
                           onClick={() => setLocation('/marketplace/list')}
-                          className="bg-orange-600 hover:bg-orange-700 text-white px-6 py-3"
+                          className="bg-orange-600 hover:bg-orange-700 text-white px-4 py-3 text-sm"
                         >
-                          <Plus className="h-5 w-5 mr-2" />
+                          <Plus className="h-4 w-4 mr-2" />
                           List Items
                         </Button>
                         <Button 
                           onClick={() => setLocation('/property-listing')}
-                          className="bg-violet-600 hover:bg-violet-700 text-white px-6 py-3"
+                          className="bg-violet-600 hover:bg-violet-700 text-white px-4 py-3 text-sm"
                         >
-                          <Home className="h-5 w-5 mr-2" />
+                          <Home className="h-4 w-4 mr-2" />
                           List Property
+                        </Button>
+                        <Button 
+                          onClick={() => setLocation('/business-listing')}
+                          className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-3 text-sm"
+                        >
+                          <Building2 className="h-4 w-4 mr-2" />
+                          List Business
                         </Button>
                       </div>
                       <p className="text-sm text-gray-500">
