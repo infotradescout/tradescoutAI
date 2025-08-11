@@ -97,7 +97,6 @@ import { ObjectStorageService } from "./objectStorage";
 import { randomUUID } from "crypto";
 import passport from "passport";
 import { LocalityTracker, localityTrackingMiddleware } from "./localityTracking";
-import passport from "passport";
 import FacebookStrategy from "passport-facebook";
 import { Strategy as GoogleStrategy } from "passport-google-oauth20";
 import { dataManagementService } from "./data-management";
