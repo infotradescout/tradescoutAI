@@ -2917,6 +2917,8 @@ export const insertReferralStatsSchema = createInsertSchema(referralStats).omit(
 export type InsertInvitationType = z.infer<typeof insertInvitationSchema>;
 export type InsertReferralStatsType = z.infer<typeof insertReferralStatsSchema>;
 
+// Payment system types will be added later after table definitions
+
 // Marketplace transaction tables
 export const transactionStatusEnum = pgEnum('transaction_status', [
   'pending',
@@ -2931,19 +2933,53 @@ export const transactionStatusEnum = pgEnum('transaction_status', [
   'refunded'
 ]);
 
+// Enhanced marketplace transactions with flexible payment options
 export const marketplaceTransactions = pgTable("marketplace_transactions", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   listingId: varchar("listing_id").notNull().references(() => marketplaceListings.id),
   buyerId: varchar("buyer_id").notNull().references(() => users.id),
   sellerId: varchar("seller_id").notNull().references(() => users.id),
-  amount: decimal("amount", { precision: 10, scale: 2 }).notNull(),
-  platformFee: decimal("platform_fee", { precision: 10, scale: 2 }).notNull(),
+  
+  // Payment amounts
+  totalAmount: decimal("total_amount", { precision: 10, scale: 2 }).notNull(),
+  platformFee: decimal("platform_fee", { precision: 10, scale: 2 }).default('0'),
+  processingFee: decimal("processing_fee", { precision: 10, scale: 2 }).default('0'),
+  buyerFeeShare: decimal("buyer_fee_share", { precision: 10, scale: 2 }).default('0'),
+  sellerFeeShare: decimal("seller_fee_share", { precision: 10, scale: 2 }).default('0'),
   sellerAmount: decimal("seller_amount", { precision: 10, scale: 2 }).notNull(),
+  
+  // Payment method and processing
+  paymentMethod: varchar("payment_method", { 
+    enum: ['on_platform_stripe', 'off_platform_direct', 'off_platform_cash', 'off_platform_check', 'off_platform_venmo', 'off_platform_other'] 
+  }).notNull(),
+  isOffPlatform: boolean("is_off_platform").default(false),
+  offPlatformMethod: varchar("off_platform_method"), // "Venmo", "Cash", "Check", etc.
+  offPlatformNotes: text("off_platform_notes"),
+  offPlatformConfirmedBy: varchar("off_platform_confirmed_by"),
+  offPlatformConfirmedAt: timestamp("off_platform_confirmed_at"),
+  
+  // Stripe integration
   stripePaymentIntentId: varchar("stripe_payment_intent_id"),
+  stripeTransferId: varchar("stripe_transfer_id"),
+  
+  // Escrow and delivery
   escrowReleaseDate: timestamp("escrow_release_date"),
+  trackingNumber: varchar("tracking_number"),
+  deliveryConfirmedAt: timestamp("delivery_confirmed_at"),
+  
+  // Transaction status and management
   status: transactionStatusEnum("status").notNull().default('pending'),
   notes: text("notes"),
-  trackingNumber: varchar("tracking_number"),
+  internalNotes: text("internal_notes"), // Admin notes
+  
+  // Communication preferences
+  buyerPreferredContact: varchar("buyer_preferred_contact", {
+    enum: ['platform_messages', 'email', 'phone', 'text']
+  }).default('platform_messages'),
+  sellerPreferredContact: varchar("seller_preferred_contact", {
+    enum: ['platform_messages', 'email', 'phone', 'text']
+  }).default('platform_messages'),
+  
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
@@ -3013,6 +3049,110 @@ export const searchAnalytics = pgTable("search_analytics", {
   timestamp: timestamp("timestamp").defaultNow(),
 });
 
+// Payment configuration and fee structures
+export const paymentConfigurations = pgTable("payment_configurations", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  
+  // Configuration type
+  configType: varchar("config_type", { 
+    enum: ['marketplace_transaction', 'contractor_service', 'premium_subscription'] 
+  }).notNull(),
+  
+  // Platform fees (TradeScout's revenue)
+  platformFeeType: varchar("platform_fee_type", { 
+    enum: ['percentage', 'fixed', 'tiered'] 
+  }).default('percentage'),
+  platformFeeValue: decimal("platform_fee_value", { precision: 5, scale: 4 }).default('0.025'), // 2.5% default
+  platformFeeMin: decimal("platform_fee_min", { precision: 10, scale: 2 }).default('0.50'),
+  platformFeeMax: decimal("platform_fee_max", { precision: 10, scale: 2 }).default('25.00'),
+  
+  // Processing fee split (how Stripe fees are divided)
+  processingFeeSplitType: varchar("processing_fee_split_type", { 
+    enum: ['50_50', 'buyer_pays_all', 'seller_pays_all', 'platform_absorbs'] 
+  }).default('50_50'),
+  
+  // Transaction limits
+  minTransactionAmount: decimal("min_transaction_amount", { precision: 10, scale: 2 }).default('1.00'),
+  maxTransactionAmount: decimal("max_transaction_amount", { precision: 10, scale: 2 }).default('50000.00'),
+  
+  // Off-platform payment settings
+  allowOffPlatformPayments: boolean("allow_off_platform_payments").default(true),
+  offPlatformPaymentMethods: jsonb("off_platform_payment_methods").$type<string[]>().default(['cash', 'check', 'venmo', 'zelle', 'direct']),
+  
+  // Configuration metadata
+  isActive: boolean("is_active").default(true),
+  description: text("description"),
+  lastModifiedBy: varchar("last_modified_by").references(() => users.id),
+  
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Comprehensive contractor payment system
+export const contractorPayments = pgTable("contractor_payments", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  
+  // Participants
+  homeownerId: varchar("homeowner_id").notNull().references(() => users.id),
+  contractorId: varchar("contractor_id").notNull().references(() => contractors.id),
+  leadId: varchar("lead_id").references(() => leads.id),
+  quoteId: varchar("quote_id"),
+  
+  // Payment details
+  serviceDescription: text("service_description").notNull(),
+  totalAmount: decimal("total_amount", { precision: 10, scale: 2 }).notNull(),
+  currency: varchar("currency", { length: 3 }).default('USD'),
+  
+  // Payment method and processing
+  paymentMethod: varchar("payment_method", { 
+    enum: ['on_platform_stripe', 'off_platform_cash', 'off_platform_check', 'off_platform_bank_transfer', 'off_platform_other'] 
+  }).notNull(),
+  isOffPlatform: boolean("is_off_platform").default(false),
+  offPlatformMethod: varchar("off_platform_method"),
+  offPlatformNotes: text("off_platform_notes"),
+  
+  // Fee structure (only for on-platform payments)
+  platformFeeAmount: decimal("platform_fee_amount", { precision: 10, scale: 2 }).default('0'),
+  processingFeeAmount: decimal("processing_fee_amount", { precision: 10, scale: 2 }).default('0'),
+  homeownerFeeShare: decimal("homeowner_fee_share", { precision: 10, scale: 2 }).default('0'),
+  contractorFeeShare: decimal("contractor_fee_share", { precision: 10, scale: 2 }).default('0'),
+  netAmountToContractor: decimal("net_amount_to_contractor", { precision: 10, scale: 2 }),
+  
+  // Stripe integration
+  stripePaymentIntentId: varchar("stripe_payment_intent_id"),
+  stripeTransferId: varchar("stripe_transfer_id"),
+  
+  // Payment status and timeline
+  status: varchar("status", { 
+    enum: ['pending', 'processing', 'completed', 'failed', 'refunded', 'cancelled', 'disputed'] 
+  }).default('pending'),
+  
+  // Milestones and escrow (for larger jobs)
+  hasEscrow: boolean("has_escrow").default(false),
+  escrowReleaseConditions: text("escrow_release_conditions"),
+  milestones: jsonb("milestones").$type<{
+    description: string;
+    amount: number;
+    dueDate?: string;
+    completed?: boolean;
+    completedAt?: string;
+  }[]>(),
+  
+  // Confirmation and verification
+  serviceCompletedAt: timestamp("service_completed_at"),
+  homeownerConfirmedAt: timestamp("homeowner_confirmed_at"),
+  contractorConfirmedAt: timestamp("contractor_confirmed_at"),
+  
+  // Documentation
+  invoiceNumber: varchar("invoice_number"),
+  receiptUrl: varchar("receipt_url"),
+  workPhotos: jsonb("work_photos").$type<string[]>(),
+  
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+  completedAt: timestamp("completed_at"),
+});
+
 // Business analytics
 export const platformAnalytics = pgTable("platform_analytics", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -3022,6 +3162,9 @@ export const platformAnalytics = pgTable("platform_analytics", {
   listingsCreated: integer("listings_created").default(0),
   transactionsCompleted: integer("transactions_completed").default(0),
   revenue: decimal("revenue", { precision: 12, scale: 2 }).default('0'),
+  onPlatformPayments: integer("on_platform_payments").default(0),
+  offPlatformPayments: integer("off_platform_payments").default(0),
+  onPlatformRevenue: decimal("on_platform_revenue", { precision: 12, scale: 2 }).default('0'),
   topCategories: jsonb("top_categories"),
   topLocations: jsonb("top_locations"),
 });
@@ -3114,12 +3257,7 @@ export const searchAnalyticsRelations = relations(searchAnalytics, ({ one }) => 
   }),
 }));
 
-// Zod schemas for new tables
-export const insertMarketplaceTransactionSchema = createInsertSchema(marketplaceTransactions).omit({
-  id: true,
-  createdAt: true,
-  updatedAt: true,
-});
+// Zod schemas for new tables (duplicate removed - using earlier definition)
 
 export const insertUserReviewSchema = createInsertSchema(userReviews).omit({
   id: true,
@@ -3155,8 +3293,27 @@ export const insertPlatformAnalyticsSchema = createInsertSchema(platformAnalytic
   id: true,
 });
 
+// Payment system insert schemas and types
+export const insertPaymentConfigurationSchema = createInsertSchema(paymentConfigurations).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertContractorPaymentSchema = createInsertSchema(contractorPayments).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+  completedAt: true,
+});
+
+// Enhanced payment types
+export type PaymentConfiguration = typeof paymentConfigurations.$inferSelect;
+export type ContractorPayment = typeof contractorPayments.$inferSelect;
+export type InsertPaymentConfiguration = z.infer<typeof insertPaymentConfigurationSchema>;
+export type InsertContractorPayment = z.infer<typeof insertContractorPaymentSchema>;
+
 // Type exports for schema forms
-export type InsertMarketplaceTransactionType = z.infer<typeof insertMarketplaceTransactionSchema>;
 export type InsertUserReviewType = z.infer<typeof insertUserReviewSchema>;
 export type InsertTransactionDisputeType = z.infer<typeof insertTransactionDisputeSchema>;
 

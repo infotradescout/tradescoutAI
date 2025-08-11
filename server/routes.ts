@@ -3,6 +3,7 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { setupAuth, isAuthenticated, isContractor, isAdmin } from "./auth";
 import { WebSocketManager } from "./websocket";
+import { paymentService } from "./payment-service";
 import Stripe from "stripe";
 
 // Initialize Stripe (will be available when secrets are provided)
@@ -4630,6 +4631,237 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error creating dispute:", error);
       res.status(500).json({ message: "Failed to create dispute" });
+    }
+  });
+
+  // ==================== PAYMENT SYSTEM ROUTES ====================
+  
+  // Payment methods and configurations
+  app.get("/api/payments/methods", isAuthenticated, (req, res) => {
+    try {
+      const methods = paymentService.getAvailablePaymentMethods(true);
+      res.json(methods);
+    } catch (error) {
+      console.error("Error fetching payment methods:", error);
+      res.status(500).json({ message: "Failed to fetch payment methods" });
+    }
+  });
+
+  // Create contractor payment intent
+  app.post("/api/payments/contractor/create-intent", isAuthenticated, async (req: any, res) => {
+    try {
+      const { contractorPaymentId } = req.body;
+      
+      if (!contractorPaymentId) {
+        return res.status(400).json({ message: "Payment ID required" });
+      }
+
+      const payment = await storage.getContractorPayment(contractorPaymentId);
+      if (!payment) {
+        return res.status(404).json({ message: "Payment not found" });
+      }
+
+      // Verify user authorization (either homeowner or contractor)
+      const user = req.user;
+      if (payment.homeownerId !== user.id && payment.contractorId !== user.id) {
+        return res.status(403).json({ message: "Not authorized to access this payment" });
+      }
+
+      const result = await paymentService.createContractorPaymentIntent(payment);
+      res.json(result);
+    } catch (error) {
+      console.error("Error creating contractor payment intent:", error);
+      res.status(500).json({ message: "Failed to create payment intent" });
+    }
+  });
+
+  // Create marketplace payment intent
+  app.post("/api/payments/marketplace/create-intent", isAuthenticated, async (req: any, res) => {
+    try {
+      const { transactionId } = req.body;
+      
+      if (!transactionId) {
+        return res.status(400).json({ message: "Transaction ID required" });
+      }
+
+      const transaction = await storage.getMarketplaceTransaction(transactionId);
+      if (!transaction) {
+        return res.status(404).json({ message: "Transaction not found" });
+      }
+
+      // Verify user authorization (either buyer or seller)
+      const user = req.user;
+      if (transaction.buyerId !== user.id && transaction.sellerId !== user.id) {
+        return res.status(403).json({ message: "Not authorized to access this transaction" });
+      }
+
+      const result = await paymentService.createMarketplacePaymentIntent(transaction);
+      res.json(result);
+    } catch (error) {
+      console.error("Error creating marketplace payment intent:", error);
+      res.status(500).json({ message: "Failed to create payment intent" });
+    }
+  });
+
+  // Confirm off-platform payment
+  app.post("/api/payments/confirm-off-platform", isAuthenticated, async (req: any, res) => {
+    try {
+      const { paymentId, paymentType, confirmationData } = req.body;
+      
+      if (!paymentId || !paymentType || !confirmationData) {
+        return res.status(400).json({ message: "Missing required fields" });
+      }
+
+      const user = req.user;
+      const result = await paymentService.confirmOffPlatformPayment(
+        paymentId, 
+        paymentType, 
+        {
+          ...confirmationData,
+          confirmedBy: user.id
+        }
+      );
+
+      res.json(result);
+    } catch (error) {
+      console.error("Error confirming off-platform payment:", error);
+      res.status(500).json({ message: "Failed to confirm payment" });
+    }
+  });
+
+  // Get payment details
+  app.get("/api/payments/contractor/:paymentId", isAuthenticated, async (req: any, res) => {
+    try {
+      const { paymentId } = req.params;
+      const payment = await storage.getContractorPayment(paymentId);
+      
+      if (!payment) {
+        return res.status(404).json({ message: "Payment not found" });
+      }
+
+      // Verify user authorization
+      const user = req.user;
+      if (payment.homeownerId !== user.id && payment.contractorId !== user.id) {
+        return res.status(403).json({ message: "Not authorized" });
+      }
+
+      res.json(payment);
+    } catch (error) {
+      console.error("Error fetching contractor payment:", error);
+      res.status(500).json({ message: "Failed to fetch payment" });
+    }
+  });
+
+  app.get("/api/payments/marketplace/:transactionId", isAuthenticated, async (req: any, res) => {
+    try {
+      const { transactionId } = req.params;
+      const transaction = await storage.getMarketplaceTransaction(transactionId);
+      
+      if (!transaction) {
+        return res.status(404).json({ message: "Transaction not found" });
+      }
+
+      // Verify user authorization
+      const user = req.user;
+      if (transaction.buyerId !== user.id && transaction.sellerId !== user.id) {
+        return res.status(403).json({ message: "Not authorized" });
+      }
+
+      res.json(transaction);
+    } catch (error) {
+      console.error("Error fetching marketplace transaction:", error);
+      res.status(500).json({ message: "Failed to fetch transaction" });
+    }
+  });
+
+  // Get user payment history
+  app.get("/api/payments/history", isAuthenticated, async (req: any, res) => {
+    try {
+      const user = req.user;
+      const { type = 'all' } = req.query;
+
+      const history: any = {};
+
+      if (type === 'all' || type === 'contractor') {
+        // Get contractor payments where user is homeowner
+        const homeownerPayments = await storage.getContractorPaymentsByHomeowner(user.id);
+        // Get contractor payments where user is contractor  
+        const contractorPayments = await storage.getContractorPaymentsByContractor(user.id);
+        history.contractorPayments = {
+          asHomeowner: homeownerPayments,
+          asContractor: contractorPayments
+        };
+      }
+
+      if (type === 'all' || type === 'marketplace') {
+        // Get marketplace transactions where user is buyer
+        const buyerTransactions = await storage.getMarketplaceTransactionsByUser(user.id, 'buyer');
+        // Get marketplace transactions where user is seller
+        const sellerTransactions = await storage.getMarketplaceTransactionsByUser(user.id, 'seller');
+        history.marketplaceTransactions = {
+          asBuyer: buyerTransactions,
+          asSeller: sellerTransactions
+        };
+      }
+
+      res.json(history);
+    } catch (error) {
+      console.error("Error fetching payment history:", error);
+      res.status(500).json({ message: "Failed to fetch payment history" });
+    }
+  });
+
+  // Calculate payment fees
+  app.post("/api/payments/calculate-fees", async (req, res) => {
+    try {
+      const { amount, paymentType = 'contractor_service' } = req.body;
+      
+      if (!amount || amount <= 0) {
+        return res.status(400).json({ message: "Valid amount required" });
+      }
+
+      const fees = await paymentService.calculatePaymentFees(amount, paymentType);
+      res.json(fees);
+    } catch (error) {
+      console.error("Error calculating fees:", error);
+      res.status(500).json({ message: "Failed to calculate fees" });
+    }
+  });
+
+  // Stripe webhook endpoint
+  app.post("/api/payments/webhook", async (req, res) => {
+    try {
+      // In production, you should verify the webhook signature
+      const event = req.body;
+      
+      await paymentService.handleStripeWebhook(event);
+      res.json({ received: true });
+    } catch (error) {
+      console.error("Error handling webhook:", error);
+      res.status(500).json({ message: "Webhook handler failed" });
+    }
+  });
+
+  // Admin payment configuration routes
+  app.get("/api/admin/payment-config", isAuthenticated, isAdmin, async (req, res) => {
+    try {
+      const { configType = 'contractor_service' } = req.query;
+      const config = await storage.getPaymentConfiguration(configType as string);
+      res.json(config || {});
+    } catch (error) {
+      console.error("Error fetching payment config:", error);
+      res.status(500).json({ message: "Failed to fetch configuration" });
+    }
+  });
+
+  app.post("/api/admin/payment-config", isAuthenticated, isAdmin, async (req, res) => {
+    try {
+      const configData = req.body;
+      const config = await storage.createPaymentConfiguration(configData);
+      res.status(201).json(config);
+    } catch (error) {
+      console.error("Error creating payment config:", error);
+      res.status(500).json({ message: "Failed to create configuration" });
     }
   });
 

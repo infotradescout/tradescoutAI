@@ -54,6 +54,8 @@ import InvitePage from "@/pages/invite";
 
 import ModerationCenter from "@/pages/moderation-center";
 import Checkout from "@/pages/checkout";
+import PaymentSuccess from "@/pages/payment-success";
+import PaymentHistory from "@/pages/payment-history";
 import AdvancedSearch from "@/pages/advanced-search";
 import Notifications from "@/pages/notifications";
 import { ProfileSetupRedirect } from "@/components/profile-setup-redirect";
@@ -159,6 +161,10 @@ function Router() {
             <Route path="/realtor-application" component={RealtorApplication} />
             <Route path="/car-salesman-application" component={CarSalesmanApplication} />
             <Route path="/checkout" component={Checkout} />
+            <Route path="/checkout/:type/:id" component={Checkout} />
+            <Route path="/payment-success" component={PaymentSuccess} />
+            <Route path="/payments/success" component={PaymentSuccess} />
+            <Route path="/payments/history" component={PaymentHistory} />
             <Route path="/search" component={AdvancedSearch} />
             <Route path="/notifications" component={Notifications} />
           </>

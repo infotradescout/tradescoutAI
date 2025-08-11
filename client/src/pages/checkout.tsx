@@ -1,432 +1,351 @@
-import { useState, useEffect } from "react";
-import { useQuery } from "@tanstack/react-query";
-import { apiRequest } from "@/lib/queryClient";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
-import { useToast } from "@/hooks/use-toast";
-import { useAuth } from "@/hooks/useAuth";
-import { Elements, PaymentElement, useStripe, useElements } from '@stripe/react-stripe-js';
+import { useStripe, Elements, PaymentElement, useElements } from '@stripe/react-stripe-js';
 import { loadStripe } from '@stripe/stripe-js';
-import { 
-  CreditCard, 
-  Shield, 
-  Truck, 
-  Star, 
-  ArrowLeft,
-  CheckCircle,
-  AlertCircle
-} from "lucide-react";
-import { Link, useLocation } from "wouter";
+import { useEffect, useState } from 'react';
+import { apiRequest } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Separator } from "@/components/ui/separator";
+import { Badge } from "@/components/ui/badge";
+import { AlertCircle, CreditCard, DollarSign, Shield } from "lucide-react";
+import { useLocation, useRoute } from "wouter";
+import { useQuery } from "@tanstack/react-query";
 
-// Initialize Stripe - will need VITE_STRIPE_PUBLIC_KEY
+// Make sure to call `loadStripe` outside of a component's render to avoid
+// recreating the `Stripe` object on every render.
 const stripePromise = import.meta.env.VITE_STRIPE_PUBLIC_KEY 
   ? loadStripe(import.meta.env.VITE_STRIPE_PUBLIC_KEY)
   : null;
 
 interface CheckoutFormProps {
-  listingId: string;
-  onSuccess: () => void;
+  paymentType: 'contractor' | 'marketplace';
+  paymentId: string;
+  amount: number;
+  description: string;
+  isOffPlatform?: boolean;
+  onSuccess?: () => void;
+  onCancel?: () => void;
 }
 
-function CheckoutForm({ listingId, onSuccess }: CheckoutFormProps) {
+const CheckoutForm = ({ 
+  paymentType, 
+  paymentId, 
+  amount, 
+  description, 
+  isOffPlatform = false,
+  onSuccess, 
+  onCancel 
+}: CheckoutFormProps) => {
   const stripe = useStripe();
   const elements = useElements();
   const { toast } = useToast();
-  const [isProcessing, setIsProcessing] = useState(false);
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-
-    if (!stripe || !elements) {
-      return;
-    }
-
-    setIsProcessing(true);
-
-    try {
-      const { error } = await stripe.confirmPayment({
-        elements,
-        confirmParams: {
-          return_url: `${window.location.origin}/checkout/success`,
-        },
-      });
-
-      if (error) {
-        toast({
-          title: "Payment Failed",
-          description: error.message,
-          variant: "destructive",
-        });
-      } else {
-        // Payment succeeded
-        onSuccess();
-        toast({
-          title: "Payment Successful",
-          description: "Your purchase has been completed!",
-        });
-      }
-    } catch (error) {
-      toast({
-        title: "Payment Error",
-        description: "An unexpected error occurred during payment",
-        variant: "destructive",
-      });
-    } finally {
-      setIsProcessing(false);
-    }
-  };
-
-  return (
-    <form onSubmit={handleSubmit} className="space-y-6">
-      <div className="space-y-4">
-        <h3 className="text-lg font-semibold">Payment Information</h3>
-        <PaymentElement />
-      </div>
-      
-      <Button 
-        type="submit" 
-        className="w-full" 
-        disabled={!stripe || isProcessing}
-        size="lg"
-      >
-        {isProcessing ? (
-          "Processing Payment..."
-        ) : (
-          <>
-            <CreditCard className="h-4 w-4 mr-2" />
-            Complete Purchase
-          </>
-        )}
-      </Button>
-    </form>
-  );
-}
-
-export default function Checkout() {
-  const { toast } = useToast();
-  const { user } = useAuth();
-  const [, setLocation] = useLocation();
+  const [isLoading, setIsLoading] = useState(false);
   const [clientSecret, setClientSecret] = useState("");
-  const [listingId, setListingId] = useState("");
-
-  // Get listing ID from URL params or localStorage
-  useEffect(() => {
-    const urlParams = new URLSearchParams(window.location.search);
-    const listingIdParam = urlParams.get('listing');
-    
-    if (listingIdParam) {
-      setListingId(listingIdParam);
-    } else {
-      // Redirect back if no listing specified
-      toast({
-        title: "No Item Selected",
-        description: "Please select an item to purchase",
-        variant: "destructive",
-      });
-      setLocation("/marketplace");
-    }
-  }, []);
-
-  // Fetch listing details
-  const { data: listing, isLoading: isLoadingListing } = useQuery({
-    queryKey: ["/api/marketplace/listings", listingId],
-    enabled: !!listingId,
+  
+  // Get payment methods
+  const { data: paymentMethods } = useQuery({
+    queryKey: ["/api/payments/methods"],
   });
 
-  // Create payment intent
+  // Get fee calculation
+  const { data: feeData } = useQuery({
+    queryKey: ["/api/payments/calculate-fees"],
+    queryFn: () => apiRequest("POST", "/api/payments/calculate-fees", {
+      amount,
+      paymentType: paymentType === 'contractor' ? 'contractor_service' : 'marketplace_transaction'
+    }).then(res => res.json())
+  });
+
   useEffect(() => {
-    if (listingId && listing) {
-      apiRequest("POST", "/api/create-payment-intent", { listingId })
-        .then((response) => response.json())
+    if (!isOffPlatform && !clientSecret) {
+      // Create PaymentIntent as soon as the page loads
+      const endpoint = paymentType === 'contractor' 
+        ? "/api/payments/contractor/create-intent"
+        : "/api/payments/marketplace/create-intent";
+      
+      const bodyKey = paymentType === 'contractor' ? 'contractorPaymentId' : 'transactionId';
+      
+      apiRequest("POST", endpoint, { [bodyKey]: paymentId })
+        .then(res => res.json())
         .then((data) => {
           setClientSecret(data.clientSecret);
         })
-        .catch((error) => {
-          console.error("Error creating payment intent:", error);
+        .catch(error => {
+          console.error('Failed to create payment intent:', error);
           toast({
-            title: "Payment Setup Error",
+            title: "Setup Failed",
             description: "Unable to initialize payment. Please try again.",
             variant: "destructive",
           });
         });
     }
-  }, [listingId, listing]);
+  }, [paymentType, paymentId, isOffPlatform, clientSecret]);
 
-  const handlePaymentSuccess = async () => {
-    try {
-      // Create transaction record
-      await apiRequest("POST", "/api/marketplace/transactions", {
-        listingId: listing.id,
-        sellerId: listing.sellerId,
-        totalAmount: listing.price,
-        status: 'completed',
-        paymentMethod: 'stripe',
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (isOffPlatform) {
+      // Handle off-platform payment confirmation
+      const result = await apiRequest("POST", "/api/payments/confirm-off-platform", {
+        paymentId,
+        paymentType,
+        confirmationData: {
+          method: "direct_payment", // This would come from a form
+          notes: "Payment completed off-platform"
+        }
       });
 
-      // Redirect to success page
-      setLocation(`/checkout/success?transaction=${listing.id}`);
-    } catch (error) {
-      console.error("Error creating transaction:", error);
+      if (result.ok) {
+        toast({
+          title: "Payment Confirmed",
+          description: "Off-platform payment has been recorded.",
+        });
+        onSuccess?.();
+      } else {
+        toast({
+          title: "Confirmation Failed",
+          description: "Unable to confirm off-platform payment.",
+          variant: "destructive",
+        });
+      }
+      return;
+    }
+
+    if (!stripe || !elements) {
+      return;
+    }
+
+    setIsLoading(true);
+
+    const { error } = await stripe.confirmPayment({
+      elements,
+      confirmParams: {
+        return_url: `${window.location.origin}/payment-success`,
+      },
+    });
+
+    if (error) {
       toast({
-        title: "Transaction Error",
-        description: "Payment successful but failed to record transaction",
+        title: "Payment Failed",
+        description: error.message,
         variant: "destructive",
       });
+    } else {
+      toast({
+        title: "Payment Successful",
+        description: "Your payment has been processed successfully!",
+      });
+      onSuccess?.();
     }
+
+    setIsLoading(false);
   };
 
-  if (!stripePromise) {
+  if (!isOffPlatform && !clientSecret && stripePromise) {
     return (
-      <div className="min-h-screen bg-background">
-        <div className="container mx-auto px-4 py-8 max-w-2xl">
-          <Card>
-            <CardContent className="p-12 text-center">
-              <AlertCircle className="h-12 w-12 mx-auto text-yellow-500 mb-4" />
-              <h3 className="text-lg font-semibold mb-2">Payment Not Available</h3>
-              <p className="text-muted-foreground mb-4">
-                Payment processing is not configured. Stripe keys are required.
-              </p>
-              <Link href="/marketplace">
-                <Button>Return to Marketplace</Button>
-              </Link>
-            </CardContent>
-          </Card>
-        </div>
-      </div>
-    );
-  }
-
-  if (isLoadingListing) {
-    return (
-      <div className="min-h-screen bg-background">
-        <div className="container mx-auto px-4 py-8 max-w-4xl">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-            <Card className="animate-pulse">
-              <div className="aspect-square bg-muted rounded-t-lg" />
-              <CardContent className="p-6">
-                <div className="space-y-3">
-                  <div className="h-6 bg-muted rounded" />
-                  <div className="h-4 bg-muted rounded w-3/4" />
-                  <div className="h-8 bg-muted rounded w-1/2" />
-                </div>
-              </CardContent>
-            </Card>
-            <Card className="animate-pulse">
-              <CardContent className="p-6">
-                <div className="space-y-4">
-                  <div className="h-6 bg-muted rounded" />
-                  <div className="h-32 bg-muted rounded" />
-                  <div className="h-12 bg-muted rounded" />
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  if (!listing) {
-    return (
-      <div className="min-h-screen bg-background">
-        <div className="container mx-auto px-4 py-8 max-w-2xl">
-          <Card>
-            <CardContent className="p-12 text-center">
-              <AlertCircle className="h-12 w-12 mx-auto text-red-500 mb-4" />
-              <h3 className="text-lg font-semibold mb-2">Item Not Found</h3>
-              <p className="text-muted-foreground mb-4">
-                The item you're trying to purchase could not be found.
-              </p>
-              <Link href="/marketplace">
-                <Button>Return to Marketplace</Button>
-              </Link>
-            </CardContent>
-          </Card>
-        </div>
+      <div className="h-screen flex items-center justify-center">
+        <div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full" aria-label="Loading"/>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      <div className="container mx-auto px-4 py-8 max-w-4xl">
-        {/* Header */}
-        <div className="flex items-center gap-4 mb-8">
-          <Link href={`/marketplace/${listing.id}`}>
-            <Button variant="ghost" size="sm">
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              Back to Item
-            </Button>
-          </Link>
-          <div>
-            <h1 className="text-3xl font-bold">Secure Checkout</h1>
-            <p className="text-muted-foreground">
-              Complete your purchase safely and securely
-            </p>
+    <div className="max-w-2xl mx-auto p-6">
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <CreditCard className="w-5 h-5" />
+            Complete Payment
+          </CardTitle>
+          <CardDescription>
+            {description}
+          </CardDescription>
+        </CardHeader>
+        
+        <CardContent className="space-y-6">
+          {/* Payment Summary */}
+          <div className="bg-gray-50 dark:bg-gray-800 p-4 rounded-lg">
+            <div className="flex justify-between items-center">
+              <span className="font-medium">Amount</span>
+              <span className="text-xl font-bold">${amount.toFixed(2)}</span>
+            </div>
+            
+            {feeData && !isOffPlatform && (
+              <>
+                <Separator className="my-3" />
+                <div className="space-y-2 text-sm">
+                  <div className="flex justify-between">
+                    <span>Platform Fee</span>
+                    <span>${feeData.platformFee}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Processing Fee</span>
+                    <span>${feeData.stripeFee}</span>
+                  </div>
+                  <div className="flex justify-between font-medium">
+                    <span>Total Fees</span>
+                    <span>${feeData.totalFees}</span>
+                  </div>
+                </div>
+              </>
+            )}
+            
+            {isOffPlatform && (
+              <div className="mt-3">
+                <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+                  <DollarSign className="w-3 h-3 mr-1" />
+                  No Platform Fees
+                </Badge>
+              </div>
+            )}
           </div>
-        </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          {/* Order Summary */}
-          <div className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Order Summary</CardTitle>
-                <CardDescription>Review your purchase details</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                <div className="flex gap-4">
-                  <img
-                    src={listing.images?.[0] || "/placeholder-image.jpg"}
-                    alt={listing.title}
-                    className="w-20 h-20 object-cover rounded-lg"
-                  />
-                  <div className="flex-1">
-                    <h3 className="font-semibold">{listing.title}</h3>
-                    <p className="text-sm text-muted-foreground">
-                      {listing.description?.substring(0, 100)}...
-                    </p>
-                    <div className="flex items-center gap-2 mt-2">
-                      <Badge variant="secondary">{listing.condition}</Badge>
-                      {listing.isVerifiedSeller && (
-                        <Badge variant="default">
-                          <Shield className="h-3 w-3 mr-1" />
-                          Verified Seller
-                        </Badge>
-                      )}
+          {/* Payment Method Selection */}
+          {paymentMethods && (
+            <div className="space-y-3">
+              <h4 className="font-medium">Available Payment Methods</h4>
+              <div className="grid gap-3">
+                {paymentMethods.map((method: any) => (
+                  <div key={method.id} 
+                       className={`p-3 border rounded-lg cursor-pointer transition-colors ${
+                         method.recommended ? 'border-primary bg-primary/5' : 'border-gray-200 hover:bg-gray-50'
+                       }`}>
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <div className="font-medium flex items-center gap-2">
+                          {method.name}
+                          {method.recommended && (
+                            <Badge variant="default" className="text-xs">Recommended</Badge>
+                          )}
+                        </div>
+                        <p className="text-sm text-gray-600">{method.description}</p>
+                        <p className="text-xs text-gray-500 mt-1">{method.fees}</p>
+                      </div>
                     </div>
                   </div>
-                  <div className="text-right">
-                    <div className="text-2xl font-bold text-primary">
-                      ${listing.price}
-                    </div>
-                  </div>
-                </div>
-
-                <Separator />
-
-                <div className="space-y-3">
-                  <div className="flex justify-between">
-                    <span>Item Price</span>
-                    <span>${listing.price}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>Platform Fee (5%)</span>
-                    <span>${(listing.price * 0.05).toFixed(2)}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>Shipping</span>
-                    <span>
-                      {listing.freeShipping ? (
-                        <Badge variant="secondary">Free</Badge>
-                      ) : (
-                        `$${listing.shippingCost || 0}`
-                      )}
-                    </span>
-                  </div>
-                  
-                  <Separator />
-                  
-                  <div className="flex justify-between text-lg font-semibold">
-                    <span>Total</span>
-                    <span className="text-primary">
-                      ${(listing.price * 1.05 + (listing.shippingCost || 0)).toFixed(2)}
-                    </span>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Security Features */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Shield className="h-5 w-5" />
-                  Buyer Protection
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="flex items-start gap-3">
-                  <CheckCircle className="h-5 w-5 text-green-500 mt-0.5" />
-                  <div>
-                    <h4 className="font-medium">Secure Payment</h4>
-                    <p className="text-sm text-muted-foreground">
-                      Your payment is processed securely through Stripe
-                    </p>
-                  </div>
-                </div>
-                
-                <div className="flex items-start gap-3">
-                  <Truck className="h-5 w-5 text-blue-500 mt-0.5" />
-                  <div>
-                    <h4 className="font-medium">Shipping Protection</h4>
-                    <p className="text-sm text-muted-foreground">
-                      Tracked shipping with delivery confirmation
-                    </p>
-                  </div>
-                </div>
-                
-                <div className="flex items-start gap-3">
-                  <Star className="h-5 w-5 text-yellow-500 mt-0.5" />
-                  <div>
-                    <h4 className="font-medium">Quality Guarantee</h4>
-                    <p className="text-sm text-muted-foreground">
-                      30-day return policy for qualifying items
-                    </p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* Payment Form */}
-          <div className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Payment Details</CardTitle>
-                <CardDescription>
-                  Enter your payment information to complete the purchase
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                {clientSecret ? (
-                  <Elements stripe={stripePromise} options={{ clientSecret }}>
-                    <CheckoutForm listingId={listingId} onSuccess={handlePaymentSuccess} />
-                  </Elements>
-                ) : (
-                  <div className="text-center py-8">
-                    <div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full mx-auto mb-4" />
-                    <p className="text-muted-foreground">Preparing secure checkout...</p>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
+          <form onSubmit={handleSubmit} className="space-y-4">
+            {!isOffPlatform && stripePromise && clientSecret && (
+              <div className="border p-4 rounded-lg">
+                <PaymentElement />
+              </div>
+            )}
 
-            {/* Contact Information */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Contact Information</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
+            {isOffPlatform && (
+              <div className="p-4 border rounded-lg bg-blue-50 dark:bg-blue-900/20">
+                <div className="flex items-start gap-3">
+                  <AlertCircle className="w-5 h-5 text-blue-600 mt-0.5" />
                   <div>
-                    <label className="text-sm font-medium">Email</label>
-                    <div className="text-sm text-muted-foreground">{user?.email}</div>
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium">Name</label>
-                    <div className="text-sm text-muted-foreground">
-                      {user?.firstName} {user?.lastName}
-                    </div>
+                    <h4 className="font-medium text-blue-900 dark:text-blue-100">
+                      Off-Platform Payment
+                    </h4>
+                    <p className="text-sm text-blue-700 dark:text-blue-200">
+                      Please complete payment directly with the service provider and confirm below.
+                    </p>
                   </div>
                 </div>
-              </CardContent>
-            </Card>
-          </div>
-        </div>
-      </div>
+              </div>
+            )}
+
+            {/* Security Notice */}
+            <div className="flex items-center gap-2 text-sm text-gray-600">
+              <Shield className="w-4 h-4" />
+              <span>Your payment information is secured with industry-standard encryption</span>
+            </div>
+          </form>
+        </CardContent>
+
+        <CardFooter className="flex gap-3">
+          <Button 
+            onClick={onCancel} 
+            variant="outline" 
+            className="flex-1"
+            disabled={isLoading}
+          >
+            Cancel
+          </Button>
+          <Button 
+            onClick={handleSubmit}
+            disabled={(!stripe && !isOffPlatform) || isLoading} 
+            className="flex-1"
+          >
+            {isLoading ? "Processing..." : isOffPlatform ? "Confirm Payment" : "Pay Now"}
+          </Button>
+        </CardFooter>
+      </Card>
     </div>
+  );
+};
+
+export default function Checkout() {
+  const [location] = useLocation();
+  const [match, params] = useRoute("/checkout/:type/:id");
+  
+  const paymentType = params?.type as 'contractor' | 'marketplace';
+  const paymentId = params?.id;
+  
+  // Parse URL parameters for payment details
+  const urlParams = new URLSearchParams(location.split('?')[1] || '');
+  const amount = Number(urlParams.get('amount')) || 0;
+  const description = urlParams.get('description') || 'Payment';
+  const isOffPlatform = urlParams.get('off_platform') === 'true';
+
+  if (!match || !paymentType || !paymentId) {
+    return (
+      <div className="max-w-md mx-auto p-6 text-center">
+        <Card>
+          <CardContent className="pt-6">
+            <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
+            <h2 className="text-lg font-semibold mb-2">Invalid Payment Link</h2>
+            <p className="text-gray-600">
+              The payment link appears to be invalid. Please contact support if this issue persists.
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  const handleSuccess = () => {
+    window.location.href = '/payments/success';
+  };
+
+  const handleCancel = () => {
+    window.history.back();
+  };
+
+  // Render without Stripe Elements for off-platform payments
+  if (isOffPlatform || !stripePromise) {
+    return (
+      <CheckoutForm
+        paymentType={paymentType}
+        paymentId={paymentId}
+        amount={amount}
+        description={description}
+        isOffPlatform={true}
+        onSuccess={handleSuccess}
+        onCancel={handleCancel}
+      />
+    );
+  }
+
+  // Render with Stripe Elements for on-platform payments
+  return (
+    <Elements stripe={stripePromise}>
+      <CheckoutForm
+        paymentType={paymentType}
+        paymentId={paymentId}
+        amount={amount}
+        description={description}
+        isOffPlatform={false}
+        onSuccess={handleSuccess}
+        onCancel={handleCancel}
+      />
+    </Elements>
   );
 }

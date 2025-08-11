@@ -211,6 +211,11 @@ import {
   type InsertMarketplaceConversation,
   type MarketplaceMessage,
   type InsertMarketplaceMessage,
+  // Payment system types
+  type PaymentConfiguration,
+  type InsertPaymentConfiguration,
+  type ContractorPayment,
+  type InsertContractorPayment,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, desc, asc, sql, inArray, like, gt, or, lt, isNull, isNotNull, ne, gte, lte } from "drizzle-orm";
@@ -569,6 +574,31 @@ export interface IStorage {
   // Platform analytics operations
   updatePlatformAnalytics(date: Date, updates: Partial<InsertPlatformAnalytics>): Promise<PlatformAnalytics>;
   getPlatformAnalytics(fromDate: Date, toDate: Date): Promise<PlatformAnalytics[]>;
+  
+  // Payment system operations
+  createPaymentConfiguration(config: InsertPaymentConfiguration): Promise<PaymentConfiguration>;
+  getPaymentConfiguration(configType: string): Promise<PaymentConfiguration | undefined>;
+  updatePaymentConfiguration(id: string, updates: Partial<InsertPaymentConfiguration>): Promise<PaymentConfiguration>;
+  
+  // Contractor payment operations  
+  createContractorPayment(payment: InsertContractorPayment): Promise<ContractorPayment>;
+  getContractorPayment(id: string): Promise<ContractorPayment | undefined>;
+  getContractorPaymentsByHomeowner(homeownerId: string): Promise<ContractorPayment[]>;
+  getContractorPaymentsByContractor(contractorId: string): Promise<ContractorPayment[]>;
+  updateContractorPayment(id: string, updates: Partial<ContractorPayment>): Promise<ContractorPayment>;
+  
+  // Enhanced marketplace transaction operations
+  updateMarketplaceTransactionPayment(id: string, updates: {
+    paymentMethod: string;
+    isOffPlatform: boolean;
+    offPlatformMethod?: string;
+    offPlatformNotes?: string;
+    processingFee?: string;
+    buyerFeeShare?: string;
+    sellerFeeShare?: string;
+    stripePaymentIntentId?: string;
+    status?: string;
+  }): Promise<MarketplaceTransaction>;
   
   // Enhanced marketplace conversation operations
   getMarketplaceConversationByListing(listingId: string, buyerId: string): Promise<MarketplaceConversation | undefined>;
@@ -4315,6 +4345,104 @@ export class DatabaseStorage implements IStorage {
       .where(eq(marketplaceMessages.id, id))
       .returning();
     return message;
+  }
+
+  // Payment system operations
+  async createPaymentConfiguration(config: InsertPaymentConfiguration): Promise<PaymentConfiguration> {
+    const [newConfig] = await db
+      .insert(paymentConfigurations)
+      .values(config)
+      .returning();
+    return newConfig;
+  }
+
+  async getPaymentConfiguration(configType: string): Promise<PaymentConfiguration | undefined> {
+    const [config] = await db
+      .select()
+      .from(paymentConfigurations)
+      .where(
+        and(
+          eq(paymentConfigurations.configType, configType),
+          eq(paymentConfigurations.isActive, true)
+        )
+      )
+      .orderBy(desc(paymentConfigurations.createdAt));
+    return config;
+  }
+
+  async updatePaymentConfiguration(id: string, updates: Partial<InsertPaymentConfiguration>): Promise<PaymentConfiguration> {
+    const [config] = await db
+      .update(paymentConfigurations)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(paymentConfigurations.id, id))
+      .returning();
+    return config;
+  }
+
+  // Contractor payment operations
+  async createContractorPayment(payment: InsertContractorPayment): Promise<ContractorPayment> {
+    const [newPayment] = await db
+      .insert(contractorPayments)
+      .values(payment)
+      .returning();
+    return newPayment;
+  }
+
+  async getContractorPayment(id: string): Promise<ContractorPayment | undefined> {
+    const [payment] = await db
+      .select()
+      .from(contractorPayments)
+      .where(eq(contractorPayments.id, id));
+    return payment;
+  }
+
+  async getContractorPaymentsByHomeowner(homeownerId: string): Promise<ContractorPayment[]> {
+    return await db
+      .select()
+      .from(contractorPayments)
+      .where(eq(contractorPayments.homeownerId, homeownerId))
+      .orderBy(desc(contractorPayments.createdAt));
+  }
+
+  async getContractorPaymentsByContractor(contractorId: string): Promise<ContractorPayment[]> {
+    return await db
+      .select()
+      .from(contractorPayments)
+      .where(eq(contractorPayments.contractorId, contractorId))
+      .orderBy(desc(contractorPayments.createdAt));
+  }
+
+  async updateContractorPayment(id: string, updates: Partial<ContractorPayment>): Promise<ContractorPayment> {
+    const [payment] = await db
+      .update(contractorPayments)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(contractorPayments.id, id))
+      .returning();
+    return payment;
+  }
+
+  // Enhanced marketplace transaction operations
+  async updateMarketplaceTransactionPayment(id: string, updates: {
+    paymentMethod: string;
+    isOffPlatform: boolean;
+    offPlatformMethod?: string;
+    offPlatformNotes?: string;
+    processingFee?: string;
+    buyerFeeShare?: string;
+    sellerFeeShare?: string;
+    stripePaymentIntentId?: string;
+    status?: string;
+  }): Promise<MarketplaceTransaction> {
+    const [transaction] = await db
+      .update(marketplaceTransactions)
+      .set({ 
+        ...updates, 
+        updatedAt: new Date(),
+        ...(updates.status === 'completed' ? { completedAt: new Date() } : {})
+      })
+      .where(eq(marketplaceTransactions.id, id))
+      .returning();
+    return transaction;
   }
 }
 
