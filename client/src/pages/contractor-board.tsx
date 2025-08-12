@@ -9,7 +9,7 @@ import ContractorCard from "@/components/contractor-card";
 import ContractorCardSkeleton from "@/components/contractor-card-skeleton";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { GuestGate } from "@/components/guest-gate";
-import { MapPin, Search, Filter, SlidersHorizontal } from "lucide-react";
+import { MapPin, Search, Filter, SlidersHorizontal, Calculator } from "lucide-react";
 import { Link } from "wouter";
 import type { Contractor, County, Trade } from "@shared/schema";
 import { SEOHelmet, createBreadcrumbStructuredData, createServiceStructuredData } from "@/components/SEOHelmet";
@@ -590,6 +590,49 @@ export default function ContractorBoard() {
           </CardContent>
         </Card>
       )}
+      
+      {/* Quote Calculator CTA */}
+      <Card className="bg-gradient-to-r from-orange-600 to-orange-700 border-orange-500 mt-12">
+        <CardContent className="p-8 text-center">
+          <div className="flex flex-col items-center space-y-4">
+            <div className="bg-white/20 rounded-full p-3">
+              <Calculator className="h-8 w-8 text-white" />
+            </div>
+            <div>
+              <h3 className="text-2xl font-bold text-white mb-2">
+                Get Instant Project Estimates
+              </h3>
+              <p className="text-orange-100 max-w-2xl mx-auto">
+                Not sure about project costs? Use our smart calculator to get accurate estimates for your home improvement projects. 
+                Compare prices and plan your budget before contacting contractors.
+              </p>
+            </div>
+            <Link href="/calculator">
+              <Button 
+                size="lg" 
+                className="bg-white text-orange-600 hover:bg-orange-50 font-semibold px-8 py-3 text-lg shadow-lg transform hover:scale-105 transition-all duration-200"
+              >
+                <Calculator className="mr-2 h-5 w-5" />
+                Calculate Project Cost
+              </Button>
+            </Link>
+            <div className="flex items-center space-x-6 text-orange-100 text-sm">
+              <div className="flex items-center">
+                <span className="w-2 h-2 bg-orange-200 rounded-full mr-2"></span>
+                Instant estimates
+              </div>
+              <div className="flex items-center">
+                <span className="w-2 h-2 bg-orange-200 rounded-full mr-2"></span>
+                Regional pricing
+              </div>
+              <div className="flex items-center">
+                <span className="w-2 h-2 bg-orange-200 rounded-full mr-2"></span>
+                Material breakdown
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
       </main>
     </>
   );
