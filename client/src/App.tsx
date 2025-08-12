@@ -53,6 +53,7 @@ import SavedAds from "@/pages/saved-ads";
 import ProfileSetup from "@/pages/profile-setup";
 import AdminUsers from "@/pages/admin-users";
 import AdminErrorReports from "@/pages/admin-error-reports";
+import AdminAttachments from "@/pages/admin-attachments";
 import AdminTestingControls from "@/pages/admin-testing-controls";
 import AdminListings from "@/pages/admin-listings";
 import AdminProfessionalVerification from "@/pages/admin-professional-verification";
@@ -248,7 +249,8 @@ const Router = memo(function Router() {
             <Route path="/admin/workspace" component={AdminWorkspace} />
             <Route path="/admin/create-account" component={AdminCreateAccount} />
             <Route path="/admin/error-reports" component={AdminErrorReports} />
-            <Route path="/admin/testing" component={AdminTestingControls} />
+            <Route path="/admin/attachments" component={AdminAttachments} />
+            <Route path="/admin/testing-controls" component={AdminTestingControls} />
             <Route path="/admin/listings" component={AdminListings} />
             <Route path="/admin/professional-verification" component={AdminProfessionalVerification} />
             <Route path="/chat/:conversationId?" component={Chat} />

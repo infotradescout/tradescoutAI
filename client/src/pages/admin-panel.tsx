@@ -29,7 +29,9 @@ import {
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { UserHeatmap } from "@/components/UserHeatmap";
-import { Plus, Edit, Trash2, Gift, Settings, Megaphone, Users, Bell, Map, CheckCircle } from "lucide-react";
+import { Plus, Edit, Trash2, Gift, Settings, Megaphone, Users, Bell, Map, CheckCircle, Bug, Image } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+
 
 type SiteSetting = {
   id: string;
@@ -89,6 +91,7 @@ export default function AdminPanel() {
   const { user, isAuthenticated } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
   const [selectedTab, setSelectedTab] = useState("heatmap");
   const [editingItem, setEditingItem] = useState<any>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -206,7 +209,7 @@ export default function AdminPanel() {
 
   const handleSubmit = (formData: any) => {
     const type = selectedTab === "contractor-settings" ? "contractor-settings" : selectedTab;
-    
+
     if (editingItem) {
       updateMutation.mutate({ type, id: editingItem.id, data: formData });
     } else {
@@ -226,7 +229,7 @@ export default function AdminPanel() {
         </div>
 
         <Tabs value={selectedTab} onValueChange={setSelectedTab} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-6 bg-slate-800">
+          <TabsList className="grid w-full grid-cols-7 bg-slate-800">
             <TabsTrigger value="heatmap" className="flex items-center gap-2">
               <Map className="w-4 h-4" />
               User Heatmap
@@ -250,6 +253,10 @@ export default function AdminPanel() {
             <TabsTrigger value="monitoring" className="flex items-center gap-2">
               <Bell className="w-4 h-4" />
               AI Monitoring
+            </TabsTrigger>
+            <TabsTrigger value="error-reports" className="flex items-center gap-2">
+              <Bug className="w-4 h-4" />
+              Error Reports
             </TabsTrigger>
           </TabsList>
 
@@ -535,6 +542,13 @@ export default function AdminPanel() {
 
           <TabsContent value="monitoring" className="space-y-4">
             <UIMonitoringDashboard />
+          </TabsContent>
+
+          <TabsContent value="error-reports" className="space-y-4">
+            <div className="flex justify-between items-center">
+              <h2 className="text-xl font-semibold">User Error Reports</h2>
+            </div>
+            {/* TODO: Add error reports table */}
           </TabsContent>
         </Tabs>
 
