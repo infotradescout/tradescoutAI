@@ -261,7 +261,7 @@ export default function Helpers() {
                     <div className="flex items-center justify-between mb-4">
                       <div className="flex items-center text-sm text-gray-400">
                         <MapPin className="h-4 w-4 mr-1" />
-                        {worker.address || 'Location not specified'}
+                        'Location not specified'
                       </div>
                       <div className="flex items-center text-sm text-gray-400">
                         <DollarSign className="h-4 w-4 mr-1" />
@@ -337,7 +337,7 @@ export default function Helpers() {
                   <CardContent className="p-6">
                     <div className="flex items-start justify-between mb-4">
                       <h3 className="font-semibold text-white text-lg">{task.title}</h3>
-                      {getUrgencyBadge(task.urgencyLevel || 'standard')}
+                      {getUrgencyBadge('standard')}
                     </div>
 
                     <p className="text-gray-300 mb-4 line-clamp-3">{task.description}</p>
@@ -364,7 +364,7 @@ export default function Helpers() {
                     <div className="flex items-center justify-between">
                       <div className="flex items-center">
                         <DollarSign className="h-5 w-5 text-green-500 mr-1" />
-                        <span className="text-lg font-semibold text-green-400">${task.maxBudget || 'TBD'}</span>
+                        <span className="text-lg font-semibold text-green-400">${task.payAmount || 'TBD'}</span>
                       </div>
                       <Button className="bg-orange-500 hover:bg-orange-600">
                         Apply for Task
@@ -496,7 +496,7 @@ export default function Helpers() {
             isIdVerified: selectedHelper.isIdVerified || false,
             isBackgroundChecked: selectedHelper.isBackgroundChecked || false,
             verificationStatus: selectedHelper.verificationStatus || 'unverified',
-            city: selectedHelper.address || undefined,
+            city: undefined,
             transportationMethod: selectedHelper.transportationMethod || undefined,
             maxTravelDistance: selectedHelper.maxTravelDistance || undefined,
             isAvailable: selectedHelper.isAvailable || false,

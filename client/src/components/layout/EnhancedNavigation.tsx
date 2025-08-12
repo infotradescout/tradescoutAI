@@ -56,6 +56,12 @@ export function EnhancedNavigation({ className = "" }: EnhancedNavigationProps) 
             </Button>
           </Link>
           
+          <Link href="/helpers">
+            <Button variant={isActive("/helpers") ? "secondary" : "ghost"} size="sm" className="px-4 py-2 rounded-lg nav-button hover:bg-slate-800/60">
+              Helpers
+            </Button>
+          </Link>
+          
           {/* More Menu Dropdown */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -65,6 +71,11 @@ export function EnhancedNavigation({ className = "" }: EnhancedNavigationProps) 
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent className="bg-slate-800 border-slate-700" align="center">
+              <Link href="/marketplace">
+                <DropdownMenuItem className="text-slate-200 hover:text-white hover:bg-slate-700 cursor-pointer">
+                  Marketplace
+                </DropdownMenuItem>
+              </Link>
               <Link href="/exchange">
                 <DropdownMenuItem className="text-slate-200 hover:text-white hover:bg-slate-700 cursor-pointer">
                   Exchange
@@ -73,6 +84,11 @@ export function EnhancedNavigation({ className = "" }: EnhancedNavigationProps) 
               <Link href="/community">
                 <DropdownMenuItem className="text-slate-200 hover:text-white hover:bg-slate-700 cursor-pointer">
                   Community
+                </DropdownMenuItem>
+              </Link>
+              <Link href="/leaderboard">
+                <DropdownMenuItem className="text-slate-200 hover:text-white hover:bg-slate-700 cursor-pointer">
+                  Leaderboard
                 </DropdownMenuItem>
               </Link>
               <Link href="/foundation">
