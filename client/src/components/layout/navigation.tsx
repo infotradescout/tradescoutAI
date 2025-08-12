@@ -82,7 +82,7 @@ export default function Navigation() {
                       }`}>
                         <IconComponent className="w-4 h-4" />
                         <span>{item.label}</span>
-                        
+
                         {/* Tooltip */}
                         <div className="absolute -bottom-12 left-1/2 transform -translate-x-1/2 bg-gray-900 text-white text-xs rounded-lg px-3 py-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap z-50">
                           {item.description}
@@ -92,7 +92,7 @@ export default function Navigation() {
                     </Link>
                   );
                 })}
-                
+
                 {isAuthenticated && authenticatedNavItems.map((item) => {
                   const IconComponent = item.icon;
                   return (
@@ -106,7 +106,7 @@ export default function Navigation() {
                         <span>{item.label}</span>
                         {item.label === "Admin" && <Badge className="ml-2 bg-purple-600 text-white text-xs">Admin</Badge>}
                         {item.label === "Moderation" && <Badge className="ml-2 bg-blue-600 text-white text-xs">New</Badge>}
-                        
+
                         {/* Tooltip */}
                         <div className="absolute -bottom-12 left-1/2 transform -translate-x-1/2 bg-gray-900 text-white text-xs rounded-lg px-3 py-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap z-50">
                           {item.description}
@@ -130,7 +130,7 @@ export default function Navigation() {
                     <div className="text-sm font-medium text-white">{user.firstName}</div>
                   </div>
                 )}
-                
+
                 {user?.role === 'accelerator_member' && (
                   <Badge className="bg-gradient-to-r from-purple-600 to-purple-500 text-white shadow-lg">
                     <Crown className="h-3 w-3 mr-1" />
@@ -140,7 +140,7 @@ export default function Navigation() {
 
                 <div className="flex items-center space-x-2">
                   <NotificationBell />
-                  
+
                   <Link href="/saved-ads">
                     <Button 
                       variant="outline" 
@@ -151,7 +151,7 @@ export default function Navigation() {
                       <span className="hidden xl:inline">Saved</span>
                     </Button>
                   </Link>
-                  
+
                   <Link href="/profile">
                     <Button 
                       variant="outline" 
@@ -162,7 +162,7 @@ export default function Navigation() {
                       <span className="hidden xl:inline">Profile</span>
                     </Button>
                   </Link>
-                  
+
                   <a href="/api/logout">
                     <Button 
                       variant="outline" 
@@ -206,7 +206,7 @@ export default function Navigation() {
                     <ConstructionEmblem className="w-8 h-8" />
                     <h2 className="text-xl font-bold text-orange-500">TradeScout</h2>
                   </div>
-                  
+
                   {/* Navigation Items for Medium Screens */}
                   {navItems.map((item) => {
                     const IconComponent = item.icon;
@@ -301,7 +301,7 @@ export default function Navigation() {
                     <ConstructionEmblem className="w-8 h-8" />
                     <h2 className="text-xl font-bold text-orange-500">TradeScout</h2>
                   </div>
-                  
+
                   {/* Mobile Navigation Items */}
                   {navItems.map((item) => {
                     const IconComponent = item.icon;
@@ -357,7 +357,7 @@ export default function Navigation() {
                             Welcome, {user.firstName}
                           </p>
                         )}
-                        
+
                         {user?.role === 'accelerator_member' && (
                           <Badge className="bg-purple-600 text-white mx-3">
                             <Crown className="h-3 w-3 mr-1" />
@@ -374,7 +374,7 @@ export default function Navigation() {
                             Saved Ads
                           </Button>
                         </Link>
-                        
+
                         <Link href="/profile" onClick={closeMobileMenu}>
                           <Button 
                             variant="outline" 
@@ -384,7 +384,7 @@ export default function Navigation() {
                             Profile Settings
                           </Button>
                         </Link>
-                        
+
                         <a href="/api/logout">
                           <Button 
                             variant="outline" 

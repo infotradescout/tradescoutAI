@@ -61,7 +61,7 @@ export default function ContractorAccelerator() {
             <div className="space-y-4">
               <Button 
                 onClick={() => window.location.href = '/contractors/apply'}
-                className="bg-orange-500 hover:bg-orange-600 text-white px-8 py-3"
+                className="bg-purple-500 hover:bg-purple-600 text-white px-8 py-3"
               >
                 Complete Verification
               </Button>
@@ -92,7 +92,7 @@ export default function ContractorAccelerator() {
             <div className="space-y-4">
               <Button 
                 onClick={() => window.location.href = '/register'}
-                className="bg-orange-500 hover:bg-orange-600 text-white px-8 py-3"
+                className="bg-purple-500 hover:bg-purple-600 text-white px-8 py-3"
               >
                 Create Contractor Account
               </Button>
@@ -115,13 +115,13 @@ export default function ContractorAccelerator() {
       {/* Hero Section */}
       <div className="text-center mb-16">
         <div className="flex justify-center mb-6">
-          <Badge className="bg-gradient-to-r from-orange-500 to-orange-600 text-white px-4 py-2 text-lg">
+          <Badge className="bg-gradient-to-r from-purple-500 to-purple-600 text-white px-4 py-2 text-lg">
             <Crown className="h-5 w-5 mr-2" />
             Accelerator Program
           </Badge>
         </div>
         <h1 className="text-5xl font-bold text-white mb-6">
-          Supercharge Your <span className="text-orange-500">Growth</span>
+          Supercharge Your <span className="text-purple-500">Growth</span>
         </h1>
         <p className="text-xl text-gray-300 mb-8 max-w-3xl mx-auto">
           Join TradeScout's elite contractor program for premium leads, advanced tools, 
@@ -130,15 +130,15 @@ export default function ContractorAccelerator() {
         
         <div className="flex justify-center gap-8 mb-8">
           <div className="text-center">
-            <div className="text-3xl font-bold text-orange-500">3x</div>
+            <div className="text-3xl font-bold text-purple-500">3x</div>
             <div className="text-gray-300">More Quality Leads</div>
           </div>
           <div className="text-center">
-            <div className="text-3xl font-bold text-orange-500">85%</div>
+            <div className="text-3xl font-bold text-purple-500">85%</div>
             <div className="text-gray-300">Higher Close Rate</div>
           </div>
           <div className="text-center">
-            <div className="text-3xl font-bold text-orange-500">24/7</div>
+            <div className="text-3xl font-bold text-purple-500">24/7</div>
             <div className="text-gray-300">Priority Support</div>
           </div>
         </div>
@@ -154,7 +154,7 @@ export default function ContractorAccelerator() {
                 onClick={() => setSelectedPlan('monthly')}
                 className={`px-6 py-2 rounded-md transition-all ${
                   selectedPlan === 'monthly' 
-                    ? 'bg-orange-500 text-white' 
+                    ? 'bg-purple-500 text-white' 
                     : 'text-gray-300 hover:text-white'
                 }`}
               >
@@ -164,7 +164,7 @@ export default function ContractorAccelerator() {
                 onClick={() => setSelectedPlan('annual')}
                 className={`px-6 py-2 rounded-md transition-all ${
                   selectedPlan === 'annual' 
-                    ? 'bg-orange-500 text-white' 
+                    ? 'bg-purple-500 text-white' 
                     : 'text-gray-300 hover:text-white'
                 }`}
               >
@@ -179,12 +179,12 @@ export default function ContractorAccelerator() {
           {/* Monthly Plan */}
           <Card className={`border-2 transition-all ${
             selectedPlan === 'monthly' 
-              ? 'border-orange-500 bg-orange-500/5' 
+              ? 'border-purple-500 bg-purple-500/5' 
               : 'border-navy-600 bg-navy-700'
           }`}>
             <CardHeader className="text-center pb-4">
               <CardTitle className="text-white text-2xl">Monthly Access</CardTitle>
-              <div className="text-4xl font-bold text-orange-500 mt-2">
+              <div className="text-4xl font-bold text-purple-500 mt-2">
                 $297<span className="text-lg text-gray-400">/month</span>
               </div>
               <p className="text-gray-300">Perfect for testing the waters</p>
@@ -213,7 +213,7 @@ export default function ContractorAccelerator() {
                 disabled={enrollMutation.isPending}
                 className={`w-full py-3 font-semibold transition-all ${
                   selectedPlan === 'monthly'
-                    ? 'bg-orange-500 hover:bg-orange-600 glow-effect'
+                    ? 'bg-purple-500 hover:bg-purple-600 glow-effect'
                     : 'bg-navy-600 hover:bg-navy-500'
                 }`}
               >
@@ -226,7 +226,7 @@ export default function ContractorAccelerator() {
           {/* Annual Plan */}
           <Card className={`border-2 transition-all relative ${
             selectedPlan === 'annual' 
-              ? 'border-orange-500 bg-orange-500/5' 
+              ? 'border-purple-500 bg-purple-500/5' 
               : 'border-navy-600 bg-navy-700'
           }`}>
             <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
@@ -234,7 +234,7 @@ export default function ContractorAccelerator() {
             </div>
             <CardHeader className="text-center pb-4">
               <CardTitle className="text-white text-2xl">Annual Access</CardTitle>
-              <div className="text-4xl font-bold text-orange-500 mt-2">
+              <div className="text-4xl font-bold text-purple-500 mt-2">
                 $2,376<span className="text-lg text-gray-400">/year</span>
               </div>
               <div className="text-green-500 font-semibold">Save $594 annually</div>
@@ -264,7 +264,7 @@ export default function ContractorAccelerator() {
                 disabled={enrollMutation.isPending}
                 className={`w-full py-3 font-semibold transition-all ${
                   selectedPlan === 'annual'
-                    ? 'bg-orange-500 hover:bg-orange-600 glow-effect'
+                    ? 'bg-purple-500 hover:bg-purple-600 glow-effect'
                     : 'bg-navy-600 hover:bg-navy-500'
                 }`}
               >
@@ -282,7 +282,7 @@ export default function ContractorAccelerator() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           <Card className="bg-navy-700 border-navy-600">
             <CardContent className="p-6 text-center">
-              <div className="w-16 h-16 bg-orange-500 rounded-full flex items-center justify-center mx-auto mb-4">
+              <div className="w-16 h-16 bg-purple-500 rounded-full flex items-center justify-center mx-auto mb-4">
                 <Zap className="h-8 w-8 text-white" />
               </div>
               <h3 className="text-xl font-semibold text-white mb-3">Priority Lead Access</h3>
@@ -294,7 +294,7 @@ export default function ContractorAccelerator() {
 
           <Card className="bg-navy-700 border-navy-600">
             <CardContent className="p-6 text-center">
-              <div className="w-16 h-16 bg-orange-500 rounded-full flex items-center justify-center mx-auto mb-4">
+              <div className="w-16 h-16 bg-purple-500 rounded-full flex items-center justify-center mx-auto mb-4">
                 <BarChart3 className="h-8 w-8 text-white" />
               </div>
               <h3 className="text-xl font-semibold text-white mb-3">Advanced Analytics</h3>
@@ -306,7 +306,7 @@ export default function ContractorAccelerator() {
 
           <Card className="bg-navy-700 border-navy-600">
             <CardContent className="p-6 text-center">
-              <div className="w-16 h-16 bg-orange-500 rounded-full flex items-center justify-center mx-auto mb-4">
+              <div className="w-16 h-16 bg-purple-500 rounded-full flex items-center justify-center mx-auto mb-4">
                 <Target className="h-8 w-8 text-white" />
               </div>
               <h3 className="text-xl font-semibold text-white mb-3">Custom Lead Filters</h3>
@@ -318,7 +318,7 @@ export default function ContractorAccelerator() {
 
           <Card className="bg-navy-700 border-navy-600">
             <CardContent className="p-6 text-center">
-              <div className="w-16 h-16 bg-orange-500 rounded-full flex items-center justify-center mx-auto mb-4">
+              <div className="w-16 h-16 bg-purple-500 rounded-full flex items-center justify-center mx-auto mb-4">
                 <Crown className="h-8 w-8 text-white" />
               </div>
               <h3 className="text-xl font-semibold text-white mb-3">Territory Protection</h3>
@@ -330,7 +330,7 @@ export default function ContractorAccelerator() {
 
           <Card className="bg-navy-700 border-navy-600">
             <CardContent className="p-6 text-center">
-              <div className="w-16 h-16 bg-orange-500 rounded-full flex items-center justify-center mx-auto mb-4">
+              <div className="w-16 h-16 bg-purple-500 rounded-full flex items-center justify-center mx-auto mb-4">
                 <Users className="h-8 w-8 text-white" />
               </div>
               <h3 className="text-xl font-semibold text-white mb-3">Account Management</h3>
@@ -342,7 +342,7 @@ export default function ContractorAccelerator() {
 
           <Card className="bg-navy-700 border-navy-600">
             <CardContent className="p-6 text-center">
-              <div className="w-16 h-16 bg-orange-500 rounded-full flex items-center justify-center mx-auto mb-4">
+              <div className="w-16 h-16 bg-purple-500 rounded-full flex items-center justify-center mx-auto mb-4">
                 <Star className="h-8 w-8 text-white" />
               </div>
               <h3 className="text-xl font-semibold text-white mb-3">Premium Placement</h3>
@@ -361,7 +361,7 @@ export default function ContractorAccelerator() {
           <Card className="bg-navy-700 border-navy-600">
             <CardContent className="p-6">
               <div className="flex items-center gap-4 mb-4">
-                <div className="w-12 h-12 bg-orange-500 rounded-full flex items-center justify-center text-white font-bold">
+                <div className="w-12 h-12 bg-purple-500 rounded-full flex items-center justify-center text-white font-bold">
                   JC
                 </div>
                 <div>
@@ -372,14 +372,14 @@ export default function ContractorAccelerator() {
               <p className="text-gray-300 text-sm mb-4">
                 "Accelerator increased our monthly revenue by 180% in just 6 months. The quality of leads is exceptional."
               </p>
-              <div className="text-orange-500 font-semibold">+180% Revenue Growth</div>
+              <div className="text-purple-500 font-semibold">+180% Revenue Growth</div>
             </CardContent>
           </Card>
 
           <Card className="bg-navy-700 border-navy-600">
             <CardContent className="p-6">
               <div className="flex items-center gap-4 mb-4">
-                <div className="w-12 h-12 bg-orange-500 rounded-full flex items-center justify-center text-white font-bold">
+                <div className="w-12 h-12 bg-purple-500 rounded-full flex items-center justify-center text-white font-bold">
                   PR
                 </div>
                 <div>
@@ -390,14 +390,14 @@ export default function ContractorAccelerator() {
               <p className="text-gray-300 text-sm mb-4">
                 "The territory protection feature eliminated competition and allowed us to dominate our market."
               </p>
-              <div className="text-orange-500 font-semibold">95% Lead Close Rate</div>
+              <div className="text-purple-500 font-semibold">95% Lead Close Rate</div>
             </CardContent>
           </Card>
 
           <Card className="bg-navy-700 border-navy-600">
             <CardContent className="p-6">
               <div className="flex items-center gap-4 mb-4">
-                <div className="w-12 h-12 bg-orange-500 rounded-full flex items-center justify-center text-white font-bold">
+                <div className="w-12 h-12 bg-purple-500 rounded-full flex items-center justify-center text-white font-bold">
                   EE
                 </div>
                 <div>
@@ -408,7 +408,7 @@ export default function ContractorAccelerator() {
               <p className="text-gray-300 text-sm mb-4">
                 "The analytics helped us optimize our bidding strategy. We're winning more jobs at better margins."
               </p>
-              <div className="text-orange-500 font-semibold">+40% Profit Margins</div>
+              <div className="text-purple-500 font-semibold">+40% Profit Margins</div>
             </CardContent>
           </Card>
         </div>
@@ -416,7 +416,7 @@ export default function ContractorAccelerator() {
 
       {/* CTA Section */}
       <div className="text-center">
-        <Card className="bg-gradient-to-r from-orange-500/20 to-orange-600/20 border-orange-500/30">
+        <Card className="bg-gradient-to-r from-purple-500/20 to-purple-600/20 border-purple-500/30">
           <CardContent className="p-12">
             <h2 className="text-3xl font-bold text-white mb-4">Ready to Accelerate Your Growth?</h2>
             <p className="text-xl text-gray-300 mb-8">
@@ -424,11 +424,11 @@ export default function ContractorAccelerator() {
             </p>
             
             <div className="flex flex-col sm:flex-row gap-4 justify-center mb-8">
-              <Button className="bg-orange-500 hover:bg-orange-600 text-white px-8 py-3 text-lg glow-effect">
+              <Button className="bg-purple-500 hover:bg-purple-600 text-white px-8 py-3 text-lg glow-effect">
                 <Phone className="h-5 w-5 mr-2" />
                 Schedule a Call
               </Button>
-              <Button variant="outline" className="border-orange-500 text-orange-500 hover:bg-orange-500 hover:text-white px-8 py-3 text-lg">
+              <Button variant="outline" className="border-purple-500 text-purple-500 hover:bg-purple-500 hover:text-white px-8 py-3 text-lg">
                 <Mail className="h-5 w-5 mr-2" />
                 Get More Info
               </Button>
@@ -436,7 +436,7 @@ export default function ContractorAccelerator() {
             
             <p className="text-gray-400 text-sm">
               Questions? Contact our Accelerator team at 
-              <a href="mailto:accelerator@tradescout.com" className="text-orange-500 hover:underline ml-1">
+              <a href="mailto:accelerator@tradescout.com" className="text-purple-500 hover:underline ml-1">
                 accelerator@tradescout.com
               </a>
             </p>
