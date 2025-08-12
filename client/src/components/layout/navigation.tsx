@@ -54,16 +54,16 @@ export default function Navigation() {
   return (
     <nav className="nav-glass sticky top-0 z-40">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between items-center h-16">
+        <div className="flex justify-between items-center h-14 md:h-16">
           {/* Logo */}
           <div className="flex items-center space-x-8">
             <Link href="/" onClick={closeMobileMenu}>
-              <div className="flex-shrink-0 flex items-center gap-3 group">
+              <div className="flex-shrink-0 flex items-center gap-2 md:gap-3 group">
                 <div className="relative">
-                  <ConstructionEmblem className="w-8 h-8 transition-transform duration-200 group-hover:scale-110" />
+                  <ConstructionEmblem className="w-6 h-6 md:w-8 md:h-8 transition-transform duration-200 group-hover:scale-110" />
                   <div className="absolute inset-0 bg-orange-400/20 rounded-full blur-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200"></div>
                 </div>
-                <h1 className="text-2xl font-bold bg-gradient-to-r from-orange-500 to-orange-400 bg-clip-text text-transparent cursor-pointer group-hover:from-orange-400 group-hover:to-orange-300 transition-all duration-200">
+                <h1 className="text-lg md:text-2xl font-bold bg-gradient-to-r from-orange-500 to-orange-400 bg-clip-text text-transparent cursor-pointer group-hover:from-orange-400 group-hover:to-orange-300 transition-all duration-200">
                   TradeScout
                 </h1>
               </div>

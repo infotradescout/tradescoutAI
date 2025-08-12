@@ -64,14 +64,14 @@ export default function Landing() {
         structuredData={structuredData}
       />
       {/* Hero Section */}
-      <section className="py-12 w-full max-w-full">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full">
-          <div className="text-center mb-16">
-            <h1 className="text-4xl md:text-6xl font-bold text-white mb-6">
+      <section className="py-6 md:py-12 w-full max-w-full">
+        <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 w-full">
+          <div className="text-center mb-8 md:mb-16">
+            <h1 className="text-2xl md:text-4xl lg:text-6xl font-bold text-white mb-4 md:mb-6 leading-tight">
               Find Trusted Contractors
               <span className="text-orange-500"> In Your Community</span>
             </h1>
-            <p className="text-xl text-gray-300 mb-8 max-w-3xl mx-auto">
+            <p className="text-base md:text-xl text-gray-300 mb-6 md:mb-8 max-w-3xl mx-auto px-2">
               Connect with verified, local contractors. Get quotes, read recommendations, and hire with confidence.
             </p>
             

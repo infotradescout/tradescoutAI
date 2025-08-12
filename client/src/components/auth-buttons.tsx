@@ -49,10 +49,10 @@ export function AuthButtons({
       </CardHeader>
       <CardContent className="space-y-4">
         {/* Social Login Buttons */}
-        <div className="space-y-3">
+        <div className="space-y-2 md:space-y-3">
           <Button
             onClick={handleFacebookLogin}
-            className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-6 text-base"
+            className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 md:py-6 text-sm md:text-base"
           >
             <Facebook className="w-5 h-5 mr-3" />
             Continue with Facebook
@@ -61,7 +61,7 @@ export function AuthButtons({
           <Button
             onClick={handleGoogleLogin}
             variant="outline"
-            className="w-full border-gray-600 text-gray-200 hover:bg-gray-700 font-medium py-6 text-base"
+            className="w-full border-gray-600 text-gray-200 hover:bg-gray-700 font-medium py-3 md:py-6 text-sm md:text-base"
           >
             <svg className="w-5 h-5 mr-3" viewBox="0 0 24 24">
               <path fill="currentColor" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>

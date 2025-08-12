@@ -42,13 +42,13 @@ export default function ContractorCard({
 
   return (
     <Card className="bg-navy-700 border-navy-600 hover:bg-navy-600 transition-all duration-300 card-shadow">
-      <CardContent className={`${compact ? 'p-4' : 'p-6'}`}>
+      <CardContent className={`${compact ? 'p-4' : 'p-3 md:p-6'}`}>
+        {/* Company Avatar */}
         <div className="flex items-start justify-between mb-4">
-          {/* Company Avatar */}
           <div className={`${compact ? 'w-12 h-12' : 'w-16 h-16'} bg-orange-500 rounded-lg flex items-center justify-center text-white font-bold ${compact ? 'text-lg' : 'text-xl'}`}>
             {companyInitials}
           </div>
-          
+
           {/* Rating */}
           <div className="flex items-center space-x-2">
             <div className="flex text-yellow-400">
@@ -145,7 +145,7 @@ export default function ContractorCard({
                 </Button>
               </Link>
             )}
-            
+
             <Link href={`/contractors/${contractor.slug}`} className="flex-1">
               <Button variant="outline" className="w-full border-navy-500 text-white hover:bg-navy-500">
                 <ExternalLink className="h-4 w-4 mr-1" />

@@ -287,15 +287,85 @@
     max-width: 100vw;
   }
 
-  /* Ensure all elements respect viewport width */
+  /* Ensure all containers respect viewport width */
   * {
     box-sizing: border-box;
   }
 
-  /* Container queries for responsive design */
-  .container {
-    max-width: 100%;
-    overflow-x: hidden;
+  .max-w-7xl, .max-w-6xl, .max-w-5xl, .max-w-4xl, .max-w-3xl, .max-w-2xl, .max-w-xl {
+    max-width: calc(100vw - 2rem);
+  }
+
+  /* Mobile-first responsive utilities */
+  @media (max-width: 768px) {
+    /* Compact grid layouts */
+    .grid {
+      gap: 0.5rem !important;
+    }
+
+    /* Full width on mobile */
+    .w-full-mobile {
+      width: 100% !important;
+    }
+
+    /* Compact spacing */
+    .space-y-8 > * + * {
+      margin-top: 1rem !important;
+    }
+
+    .space-y-6 > * + * {
+      margin-top: 0.75rem !important;
+    }
+
+    .space-y-4 > * + * {
+      margin-top: 0.5rem !important;
+    }
+
+    /* Responsive text */
+    .text-4xl {
+      font-size: 2rem !important;
+    }
+
+    .text-3xl {
+      font-size: 1.75rem !important;
+    }
+
+    .text-2xl {
+      font-size: 1.5rem !important;
+    }
+
+    .text-xl {
+      font-size: 1.125rem !important;
+    }
+
+    /* Mobile navigation */
+    .nav-glass {
+      padding: 0.5rem 1rem;
+    }
+
+    /* Compact cards */
+    .card-content {
+      padding: 0.75rem !important;
+    }
+
+    /* Mobile-friendly buttons */
+    .button {
+      padding: 0.5rem 0.875rem;
+      font-size: 0.875rem;
+    }
+
+    /* Fix image responsiveness */
+    img {
+      max-width: 100%;
+      height: auto;
+    }
+
+    /* Prevent text overflow */
+    .truncate-mobile {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
   }
 }
 
