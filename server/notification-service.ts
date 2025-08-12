@@ -120,7 +120,7 @@ export class NotificationService {
   async archiveNotification(notificationId: string, userId: string): Promise<void> {
     await db
       .update(notifications)
-      .set({ isRead: true, readAt: new Date() })
+      .set({ isArchived: true, archivedAt: new Date() })
       .where(and(
         eq(notifications.id, notificationId),
         eq(notifications.userId, userId)
