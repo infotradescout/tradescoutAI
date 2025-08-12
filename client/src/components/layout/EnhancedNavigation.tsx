@@ -29,15 +29,10 @@ export function EnhancedNavigation({ className = "" }: EnhancedNavigationProps) 
         {/* Logo */}
         <Link href="/">
           <div className="flex items-center space-x-3 transition-transform hover:scale-105">
-            <div className="w-10 h-10 bg-gradient-to-br from-orange-500 via-orange-600 to-red-600 rounded-xl flex items-center justify-center shadow-lg">
-              <span className="text-white font-bold text-lg">TS</span>
+            <div className="w-10 h-10">
+              <ConstructionEmblem className="w-full h-full text-orange-500" />
             </div>
-            <div className="flex items-center space-x-2">
-              <span className="text-2xl font-bold text-white tracking-tight">TradeScout</span>
-              <div className="w-8 h-8">
-                <ConstructionEmblem className="w-full h-full" />
-              </div>
-            </div>
+            <span className="text-2xl font-bold text-white tracking-tight">TradeScout</span>
           </div>
         </Link>
 
