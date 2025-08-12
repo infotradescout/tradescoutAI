@@ -37,7 +37,7 @@ export function AdDisplay({ className = "", userLocation }: AdDisplayProps) {
     : 'homeowners';
 
   // Fetch targeted ad for this site visit
-  const { data: ad, isLoading } = useQuery({
+  const { data: ad, isLoading } = useQuery<Advertisement>({
     queryKey: ["/api/ads/site-visit", userType, userLocation?.state, userLocation?.county],
     enabled: dismissedAds.length === 0, // Only fetch if no ad dismissed yet
     refetchOnWindowFocus: false,
