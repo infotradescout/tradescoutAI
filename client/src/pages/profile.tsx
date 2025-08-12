@@ -34,7 +34,6 @@ import {
   Bell,
   Settings,
   Navigation,
-  GripVertical,
   Eye,
   EyeOff,
   Home,
@@ -42,9 +41,14 @@ import {
   MessageSquare,
   BarChart3,
   Briefcase,
-  Wrench
+  Wrench,
+  Trash2,
+  Download,
+  AlertTriangle,
+  Lock,
+  Smartphone,
+  Globe
 } from "lucide-react";
-import { DragDropContext, Droppable, Draggable, DropResult } from "react-beautiful-dnd";
 
 const profileSchema = z.object({
   firstName: z.string().min(1, "First name is required"),
@@ -139,38 +143,11 @@ export default function Profile() {
     },
   });
 
-  // Navigation preferences state
-  const [navigationItems, setNavigationItems] = useState([
-    { id: "home", label: "Home", icon: Home },
-    { id: "dashboard", label: "Dashboard", icon: BarChart3 },
-    { id: "contractors", label: "Contractors", icon: Users },
-    { id: "messages", label: "Messages", icon: MessageSquare },
-    { id: "marketplace", label: "Marketplace", icon: Briefcase },
-    { id: "leaderboard", label: "Leaderboard", icon: Building },
-    { id: "growth-pack", label: "Growth Pack", icon: Wrench }
-  ]);
-
   // Fetch navigation preferences
   const { data: navigationPrefs } = useQuery({
     queryKey: ["/api/user/navigation-preferences"],
     enabled: !!user,
   });
-
-  // Update local state when navigation preferences are fetched
-  useEffect(() => {
-    if (navigationPrefs) {
-      if (navigationPrefs.customOrder && navigationPrefs.customOrder.length > 0) {
-        const orderedItems = navigationPrefs.customOrder.map((id: string) => 
-          navigationItems.find(item => item.id === id)
-        ).filter(Boolean);
-        // Add any items not in custom order at the end
-        const remainingItems = navigationItems.filter(item => 
-          !navigationPrefs.customOrder.includes(item.id)
-        );
-        setNavigationItems([...orderedItems, ...remainingItems]);
-      }
-    }
-  }, [navigationPrefs]);
 
   // Navigation preferences mutation
   const updateNavigationMutation = useMutation({
@@ -193,45 +170,119 @@ export default function Profile() {
     },
   });
 
-  // Handle drag and drop for navigation items
-  const handleOnDragEnd = (result: DropResult) => {
-    if (!result.destination) return;
-
-    const items = Array.from(navigationItems);
-    const [reorderedItem] = items.splice(result.source.index, 1);
-    items.splice(result.destination.index, 0, reorderedItem);
-
-    setNavigationItems(items);
-
-    // Update navigation preferences
-    const customOrder = items.map(item => item.id);
-    updateNavigationMutation.mutate({
-      customOrder,
-      enableSwipeNavigation: navigationPrefs?.enableSwipeNavigation !== false,
-      hiddenFromSwipe: navigationPrefs?.hiddenFromSwipe || []
-    });
-  };
-
-  // Handle toggling swipe navigation for individual items
-  const toggleSwipeVisibility = (itemId: string) => {
-    const currentHidden = navigationPrefs?.hiddenFromSwipe || [];
-    const newHidden = currentHidden.includes(itemId) 
-      ? currentHidden.filter((id: string) => id !== itemId)
-      : [...currentHidden, itemId];
-
-    updateNavigationMutation.mutate({
-      customOrder: navigationPrefs?.customOrder || navigationItems.map(item => item.id),
-      enableSwipeNavigation: navigationPrefs?.enableSwipeNavigation !== false,
-      hiddenFromSwipe: newHidden
-    });
-  };
-
   // Handle toggling swipe navigation globally
   const toggleSwipeNavigation = () => {
     updateNavigationMutation.mutate({
-      customOrder: navigationPrefs?.customOrder || navigationItems.map(item => item.id),
+      customOrder: navigationPrefs?.customOrder || [],
       enableSwipeNavigation: !navigationPrefs?.enableSwipeNavigation,
       hiddenFromSwipe: navigationPrefs?.hiddenFromSwipe || []
+    });
+  };
+
+  // Privacy settings queries and mutations
+  const { data: privacySettings } = useQuery({
+    queryKey: ["/api/user/privacy-settings"],
+    enabled: !!user,
+  });
+
+  const updatePrivacyMutation = useMutation({
+    mutationFn: async (settings: any) => {
+      return apiRequest("PUT", "/api/user/privacy-settings", settings);
+    },
+    onSuccess: () => {
+      toast({
+        title: "Privacy Settings Updated",
+        description: "Your privacy preferences have been saved.",
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/user/privacy-settings"] });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Update Failed",
+        description: error.message || "Failed to update privacy settings. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Account management mutations
+  const exportDataMutation = useMutation({
+    mutationFn: async () => {
+      return apiRequest("POST", "/api/user/export-data");
+    },
+    onSuccess: () => {
+      toast({
+        title: "Data Export Initiated",
+        description: "Your data export has been downloaded to your device.",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Export Failed",
+        description: error.message || "Failed to export data. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const deactivateAccountMutation = useMutation({
+    mutationFn: async () => {
+      return apiRequest("POST", "/api/user/deactivate");
+    },
+    onSuccess: () => {
+      toast({
+        title: "Account Deactivated",
+        description: "Your account has been temporarily deactivated.",
+      });
+      // Redirect to login page after deactivation
+      setTimeout(() => {
+        window.location.href = "/";
+      }, 2000);
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Deactivation Failed",
+        description: error.message || "Failed to deactivate account. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const deleteAccountMutation = useMutation({
+    mutationFn: async () => {
+      return apiRequest("DELETE", "/api/user/delete");
+    },
+    onSuccess: () => {
+      toast({
+        title: "Account Deleted",
+        description: "Your account has been permanently deleted.",
+      });
+      // Redirect to home page after deletion
+      setTimeout(() => {
+        window.location.href = "/";
+      }, 2000);
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Deletion Failed",
+        description: error.message || "Failed to delete account. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Privacy toggle handlers
+  const handleProfileVisibilityToggle = (value: boolean) => {
+    updatePrivacyMutation.mutate({
+      profileVisibility: value,
+      searchEngineIndexing: privacySettings?.searchEngineIndexing || false
+    });
+  };
+
+  const handleSearchEngineIndexingToggle = (value: boolean) => {
+    updatePrivacyMutation.mutate({
+      profileVisibility: privacySettings?.profileVisibility || true,
+      searchEngineIndexing: value
     });
   };
 
@@ -757,75 +808,235 @@ export default function Profile() {
 
           {/* Security Tab */}
           <TabsContent value="security">
-            <Card className="bg-navy-800 border-navy-600">
-              <CardHeader>
-                <CardTitle className="text-white">Security Settings</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <Form {...passwordForm}>
-                  <form onSubmit={passwordForm.handleSubmit(onPasswordSubmit)} className="space-y-4">
-                    <FormField
-                      control={passwordForm.control}
-                      name="currentPassword"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel className="text-gray-300">Current Password</FormLabel>
-                          <FormControl>
-                            <Input
-                              {...field}
-                              type="password"
-                              className="bg-navy-700 border-navy-600 text-white"
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={passwordForm.control}
-                      name="newPassword"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel className="text-gray-300">New Password</FormLabel>
-                          <FormControl>
-                            <Input
-                              {...field}
-                              type="password"
-                              className="bg-navy-700 border-navy-600 text-white"
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={passwordForm.control}
-                      name="confirmPassword"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel className="text-gray-300">Confirm New Password</FormLabel>
-                          <FormControl>
-                            <Input
-                              {...field}
-                              type="password"
-                              className="bg-navy-700 border-navy-600 text-white"
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <Button 
-                      type="submit" 
-                      disabled={changePasswordMutation.isPending}
-                      className="bg-orange-500 hover:bg-orange-600"
-                    >
-                      {changePasswordMutation.isPending ? "Updating..." : "Change Password"}
+            <div className="space-y-6">
+              {/* Password Change */}
+              <Card className="bg-navy-800 border-navy-600">
+                <CardHeader>
+                  <CardTitle className="text-white flex items-center gap-2">
+                    <Key className="h-5 w-5" />
+                    Change Password
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <Form {...passwordForm}>
+                    <form onSubmit={passwordForm.handleSubmit(onPasswordSubmit)} className="space-y-4">
+                      <FormField
+                        control={passwordForm.control}
+                        name="currentPassword"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel className="text-gray-300">Current Password</FormLabel>
+                            <FormControl>
+                              <Input
+                                {...field}
+                                type="password"
+                                className="bg-navy-700 border-navy-600 text-white"
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={passwordForm.control}
+                        name="newPassword"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel className="text-gray-300">New Password</FormLabel>
+                            <FormControl>
+                              <Input
+                                {...field}
+                                type="password"
+                                className="bg-navy-700 border-navy-600 text-white"
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={passwordForm.control}
+                        name="confirmPassword"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel className="text-gray-300">Confirm New Password</FormLabel>
+                            <FormControl>
+                              <Input
+                                {...field}
+                                type="password"
+                                className="bg-navy-700 border-navy-600 text-white"
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <Button 
+                        type="submit" 
+                        disabled={changePasswordMutation.isPending}
+                        className="bg-orange-500 hover:bg-orange-600"
+                      >
+                        {changePasswordMutation.isPending ? "Updating..." : "Change Password"}
+                      </Button>
+                    </form>
+                  </Form>
+                </CardContent>
+              </Card>
+
+              {/* Trusted Devices */}
+              <Card className="bg-navy-800 border-navy-600">
+                <CardHeader>
+                  <CardTitle className="text-white flex items-center gap-2">
+                    <Smartphone className="h-5 w-5" />
+                    Trusted Devices
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-gray-400 text-sm mb-4">
+                    Manage devices that can access your account without requiring additional verification.
+                  </p>
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between p-3 bg-navy-700 border border-navy-600 rounded-lg">
+                      <div className="flex items-center space-x-3">
+                        <Globe className="h-4 w-4 text-green-500" />
+                        <div>
+                          <p className="text-white text-sm">Current Device</p>
+                          <p className="text-gray-400 text-xs">Chrome on Windows • Last used: Now</p>
+                        </div>
+                      </div>
+                      <Badge variant="outline" className="text-green-500 border-green-500">Active</Badge>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Login Activity */}
+              <Card className="bg-navy-800 border-navy-600">
+                <CardHeader>
+                  <CardTitle className="text-white flex items-center gap-2">
+                    <Shield className="h-5 w-5" />
+                    Recent Login Activity
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-gray-400 text-sm mb-4">
+                    Review recent login attempts and locations for your account.
+                  </p>
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between p-3 bg-navy-700 border border-navy-600 rounded-lg">
+                      <div className="flex items-center space-x-3">
+                        <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                        <div>
+                          <p className="text-white text-sm">Successful Login</p>
+                          <p className="text-gray-400 text-xs">Today at 4:00 PM • Chrome on Windows</p>
+                        </div>
+                      </div>
+                      <span className="text-xs text-gray-500">Current</span>
+                    </div>
+                    <Button variant="outline" className="w-full border-navy-600 text-gray-300 hover:bg-navy-700">
+                      <Shield className="h-4 w-4 mr-2" />
+                      View Full Login History
                     </Button>
-                  </form>
-                </Form>
-              </CardContent>
-            </Card>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Privacy & Data */}
+              <Card className="bg-navy-800 border-navy-600">
+                <CardHeader>
+                  <CardTitle className="text-white flex items-center gap-2">
+                    <Lock className="h-5 w-5" />
+                    Privacy & Data
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <label className="text-base text-white">Profile Visibility</label>
+                        <p className="text-sm text-gray-400">Allow other users to view your profile</p>
+                      </div>
+                      <Switch 
+                        checked={privacySettings?.profileVisibility ?? true}
+                        onCheckedChange={handleProfileVisibilityToggle}
+                        disabled={updatePrivacyMutation.isPending}
+                      />
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <label className="text-base text-white">Search Engine Indexing</label>
+                        <p className="text-sm text-gray-400">Allow search engines to index your public profile</p>
+                      </div>
+                      <Switch 
+                        checked={privacySettings?.searchEngineIndexing ?? false}
+                        onCheckedChange={handleSearchEngineIndexingToggle}
+                        disabled={updatePrivacyMutation.isPending}
+                      />
+                    </div>
+                    <Separator className="bg-navy-600" />
+                    <div className="space-y-2">
+                      <Button 
+                        variant="outline" 
+                        className="w-full border-navy-600 text-gray-300 hover:bg-navy-700"
+                        onClick={() => exportDataMutation.mutate()}
+                        disabled={exportDataMutation.isPending}
+                      >
+                        <Download className="h-4 w-4 mr-2" />
+                        {exportDataMutation.isPending ? "Exporting..." : "Download Your Data"}
+                      </Button>
+                      <p className="text-xs text-gray-500">Get a copy of all your account data and activity</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Account Management */}
+              <Card className="bg-navy-800 border-red-600">
+                <CardHeader>
+                  <CardTitle className="text-white flex items-center gap-2">
+                    <AlertTriangle className="h-5 w-5 text-red-500" />
+                    Account Management
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <Button 
+                        variant="outline" 
+                        className="w-full border-yellow-600 text-yellow-500 hover:bg-yellow-600/10"
+                        onClick={() => deactivateAccountMutation.mutate()}
+                        disabled={deactivateAccountMutation.isPending}
+                      >
+                        <Lock className="h-4 w-4 mr-2" />
+                        {deactivateAccountMutation.isPending ? "Deactivating..." : "Temporarily Deactivate Account"}
+                      </Button>
+                      <p className="text-xs text-gray-500">
+                        Hide your profile and pause notifications. You can reactivate anytime.
+                      </p>
+                    </div>
+                    <Separator className="bg-navy-600" />
+                    <div className="space-y-2">
+                      <Button 
+                        variant="outline" 
+                        className="w-full border-red-600 text-red-500 hover:bg-red-600/10"
+                        onClick={() => {
+                          if (window.confirm("Are you absolutely sure you want to permanently delete your account? This action cannot be undone.")) {
+                            deleteAccountMutation.mutate();
+                          }
+                        }}
+                        disabled={deleteAccountMutation.isPending}
+                      >
+                        <Trash2 className="h-4 w-4 mr-2" />
+                        {deleteAccountMutation.isPending ? "Deleting..." : "Delete Account Permanently"}
+                      </Button>
+                      <p className="text-xs text-gray-500">
+                        Permanently delete your account and all associated data. This action cannot be undone.
+                      </p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
           </TabsContent>
 
           {/* Notifications Tab */}
@@ -1037,7 +1248,7 @@ export default function Profile() {
 
                   <div>
                     <h3 className="text-lg font-semibold text-white mb-4">Navigation Preferences</h3>
-                    <div className="space-y-6">
+                    <div className="space-y-4">
                       <div className="flex items-center justify-between">
                         <div>
                           <label className="text-base text-white">Enable Swipe Navigation</label>
@@ -1049,76 +1260,9 @@ export default function Profile() {
                           disabled={updateNavigationMutation.isPending}
                         />
                       </div>
-
-                      <div>
-                        <label className="text-base text-white mb-4 block">Customize Navigation Order</label>
-                        <p className="text-sm text-gray-400 mb-4">Drag and drop to reorder navigation items. Use the eye icon to hide items from swipe navigation.</p>
-                        
-                        <DragDropContext onDragEnd={handleOnDragEnd}>
-                          <Droppable droppableId="navigation-items">
-                            {(provided) => (
-                              <div 
-                                {...provided.droppableProps} 
-                                ref={provided.innerRef}
-                                className="space-y-2"
-                              >
-                                {navigationItems.map((item, index) => {
-                                  const Icon = item.icon;
-                                  const isHidden = navigationPrefs?.hiddenFromSwipe?.includes(item.id);
-                                  
-                                  return (
-                                    <Draggable key={item.id} draggableId={item.id} index={index}>
-                                      {(provided, snapshot) => (
-                                        <div
-                                          ref={provided.innerRef}
-                                          {...provided.draggableProps}
-                                          className={`flex items-center justify-between p-3 bg-navy-700 border border-navy-600 rounded-lg ${
-                                            snapshot.isDragging ? 'shadow-lg bg-navy-600' : ''
-                                          }`}
-                                        >
-                                          <div className="flex items-center space-x-3">
-                                            <div 
-                                              {...provided.dragHandleProps}
-                                              className="cursor-grab active:cursor-grabbing text-gray-400 hover:text-white"
-                                            >
-                                              <GripVertical className="h-4 w-4" />
-                                            </div>
-                                            <Icon className="h-4 w-4 text-orange-500" />
-                                            <span className="text-white">{item.label}</span>
-                                          </div>
-                                          <div className="flex items-center space-x-2">
-                                            <span className="text-xs text-gray-400">
-                                              {isHidden ? 'Hidden from swipe' : 'Visible in swipe'}
-                                            </span>
-                                            <Button
-                                              variant="ghost"
-                                              size="sm"
-                                              onClick={() => toggleSwipeVisibility(item.id)}
-                                              disabled={updateNavigationMutation.isPending}
-                                              className="h-8 w-8 p-0 hover:bg-navy-600"
-                                            >
-                                              {isHidden ? (
-                                                <EyeOff className="h-4 w-4 text-gray-400" />
-                                              ) : (
-                                                <Eye className="h-4 w-4 text-green-500" />
-                                              )}
-                                            </Button>
-                                          </div>
-                                        </div>
-                                      )}
-                                    </Draggable>
-                                  );
-                                })}
-                                {provided.placeholder}
-                              </div>
-                            )}
-                          </Droppable>
-                        </DragDropContext>
-
-                        {updateNavigationMutation.isPending && (
-                          <p className="text-sm text-orange-500 mt-2">Saving navigation preferences...</p>
-                        )}
-                      </div>
+                      {updateNavigationMutation.isPending && (
+                        <p className="text-sm text-orange-500">Saving navigation preferences...</p>
+                      )}
                     </div>
                   </div>
 

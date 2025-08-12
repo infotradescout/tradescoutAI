@@ -550,6 +550,128 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Account security and management endpoints
+  app.get("/api/user/trusted-devices", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const devices = await storage.getUserTrustedDevices(userId);
+      res.json(devices);
+    } catch (error) {
+      console.error("Error fetching trusted devices:", error);
+      res.status(500).json({ message: "Failed to fetch trusted devices" });
+    }
+  });
+
+  app.delete("/api/user/trusted-devices/:deviceId", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const { deviceId } = req.params;
+      await storage.removeTrustedDevice(userId, deviceId);
+      res.json({ message: "Device removed successfully" });
+    } catch (error) {
+      console.error("Error removing trusted device:", error);
+      res.status(500).json({ message: "Failed to remove trusted device" });
+    }
+  });
+
+  app.get("/api/user/login-history", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const limit = parseInt(req.query.limit as string) || 10;
+      const offset = parseInt(req.query.offset as string) || 0;
+      
+      const history = await storage.getUserLoginHistory(userId, limit, offset);
+      res.json(history);
+    } catch (error) {
+      console.error("Error fetching login history:", error);
+      res.status(500).json({ message: "Failed to fetch login history" });
+    }
+  });
+
+  app.post("/api/user/export-data", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const exportData = await storage.exportUserData(userId);
+      
+      res.setHeader('Content-Type', 'application/json');
+      res.setHeader('Content-Disposition', `attachment; filename="tradescout-data-${userId}.json"`);
+      res.json(exportData);
+    } catch (error) {
+      console.error("Error exporting user data:", error);
+      res.status(500).json({ message: "Failed to export user data" });
+    }
+  });
+
+  app.post("/api/user/deactivate", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      await storage.deactivateUser(userId);
+      res.json({ message: "Account deactivated successfully" });
+    } catch (error) {
+      console.error("Error deactivating account:", error);
+      res.status(500).json({ message: "Failed to deactivate account" });
+    }
+  });
+
+  app.delete("/api/user/delete", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      await storage.deleteUser(userId);
+      res.json({ message: "Account deleted successfully" });
+    } catch (error) {
+      console.error("Error deleting account:", error);
+      res.status(500).json({ message: "Failed to delete account" });
+    }
+  });
+
+  app.put("/api/user/privacy-settings", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const { profileVisibility, searchEngineIndexing } = req.body;
+      
+      // Get current user preferences
+      const currentUser = await storage.getUser(userId);
+      const currentPrefs = currentUser.preferences || {};
+      
+      const updatedPreferences = {
+        ...currentPrefs,
+        privacy: {
+          ...currentPrefs.privacy,
+          profileVisibility: profileVisibility !== undefined ? profileVisibility : true,
+          searchEngineIndexing: searchEngineIndexing !== undefined ? searchEngineIndexing : false,
+        }
+      };
+      
+      const user = await storage.updateUser(userId, {
+        preferences: updatedPreferences,
+        updatedAt: new Date(),
+      });
+      
+      res.json({ 
+        privacy: user.preferences?.privacy,
+        message: "Privacy settings updated successfully"
+      });
+    } catch (error) {
+      console.error("Error updating privacy settings:", error);
+      res.status(500).json({ message: "Failed to update privacy settings" });
+    }
+  });
+
+  app.get("/api/user/privacy-settings", isAuthenticated, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.id);
+      const privacySettings = user.preferences?.privacy || {
+        profileVisibility: true,
+        searchEngineIndexing: false,
+      };
+      
+      res.json(privacySettings);
+    } catch (error) {
+      console.error("Error fetching privacy settings:", error);
+      res.status(500).json({ message: "Failed to fetch privacy settings" });
+    }
+  });
+
   // Profile management endpoints
   app.get('/api/auth/profile', isAuthenticated, async (req: any, res) => {
     try {
