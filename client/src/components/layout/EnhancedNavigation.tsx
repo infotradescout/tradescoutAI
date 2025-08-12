@@ -3,7 +3,7 @@ import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { RoleBasedNavigation, UserMenu } from "@/components/navigation/RoleBasedNavigation";
+import { UserMenu } from "@/components/navigation/RoleBasedNavigation";
 import { useAuth } from "@/hooks/useAuth";
 import { Menu, X, ChevronDown } from "lucide-react";
 import { ConstructionEmblem } from "@/components/ConstructionEmblem";
@@ -83,8 +83,7 @@ export function EnhancedNavigation({ className = "" }: EnhancedNavigationProps) 
             </DropdownMenuContent>
           </DropdownMenu>
           
-          {/* Authenticated Navigation */}
-          {isAuthenticated && <RoleBasedNavigation />}
+
         </nav>
 
         {/* User Menu / Auth Buttons */}
@@ -130,11 +129,11 @@ export function EnhancedNavigation({ className = "" }: EnhancedNavigationProps) 
                 </Button>
               </div>
               
-              <div className="space-y-4">
+              <div className="space-y-6">
                 {/* Core Navigation */}
                 <div className="space-y-2">
                   <h3 className="text-sm font-semibold text-gray-400 uppercase tracking-wider">
-                    Navigate
+                    Main
                   </h3>
                   <Link href="/contractors" onClick={() => setIsMobileMenuOpen(false)}>
                     <Button variant="ghost" className="w-full justify-start text-slate-200 hover:text-white hover:bg-slate-800/60">
@@ -151,19 +150,21 @@ export function EnhancedNavigation({ className = "" }: EnhancedNavigationProps) 
                       Dashboard
                     </Button>
                   </Link>
-                  <Link href="/marketplace" onClick={() => setIsMobileMenuOpen(false)}>
+                </div>
+
+                {/* Secondary Features */}
+                <div className="space-y-2">
+                  <h3 className="text-sm font-semibold text-gray-400 uppercase tracking-wider">
+                    More
+                  </h3>
+                  <Link href="/exchange" onClick={() => setIsMobileMenuOpen(false)}>
                     <Button variant="ghost" className="w-full justify-start text-slate-200 hover:text-white hover:bg-slate-800/60">
-                      Marketplace
+                      Exchange
                     </Button>
                   </Link>
                   <Link href="/community" onClick={() => setIsMobileMenuOpen(false)}>
                     <Button variant="ghost" className="w-full justify-start text-slate-200 hover:text-white hover:bg-slate-800/60">
                       Community
-                    </Button>
-                  </Link>
-                  <Link href="/exchange" onClick={() => setIsMobileMenuOpen(false)}>
-                    <Button variant="ghost" className="w-full justify-start text-slate-200 hover:text-white hover:bg-slate-800/60">
-                      Exchange
                     </Button>
                   </Link>
                   <Link href="/foundation" onClick={() => setIsMobileMenuOpen(false)}>
@@ -189,13 +190,6 @@ export function EnhancedNavigation({ className = "" }: EnhancedNavigationProps) 
                         Get Started
                       </Button>
                     </Link>
-                  </div>
-                )}
-                
-                {/* Role-based Admin Navigation */}
-                {isAuthenticated && (
-                  <div className="border-t border-slate-700 pt-4">
-                    <RoleBasedNavigation isMobile />
                   </div>
                 )}
               </div>
