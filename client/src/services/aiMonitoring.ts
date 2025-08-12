@@ -136,8 +136,8 @@ class AIMonitoringService {
         });
       });
 
-      this.performanceObserver.observe({ 
-        entryTypes: ['navigation', 'layout-shift', 'longtask'] 
+      this.performanceObserver.observe({
+        entryTypes: ['navigation', 'layout-shift', 'longtask']
       });
     }
   }
@@ -302,9 +302,9 @@ class AIMonitoringService {
   }
 
   private elementsOverlap(rect1: DOMRect, rect2: DOMRect): boolean {
-    return !(rect1.right < rect2.left || 
-             rect2.right < rect1.left || 
-             rect1.bottom < rect2.top || 
+    return !(rect1.right < rect2.left ||
+             rect2.right < rect1.left ||
+             rect1.bottom < rect2.top ||
              rect2.bottom < rect1.top);
   }
 
@@ -461,8 +461,8 @@ class AIMonitoringService {
     };
 
     // Avoid duplicate issues with stricter checking
-    const existingIssue = this.issues.find(existing => 
-      existing.title === issue.title && 
+    const existingIssue = this.issues.find(existing =>
+      existing.title === issue.title &&
       existing.location === issue.location &&
       Date.now() - existing.timestamp.getTime() < 300000 // Within last 5 minutes
     );

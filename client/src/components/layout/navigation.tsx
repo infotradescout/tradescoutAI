@@ -296,6 +296,7 @@ export default function Navigation() {
                     ? 'text-orange-500 bg-orange-500/15' 
                     : 'text-gray-300 hover:text-white'
                 }`}
+                onClick={closeMobileMenu}
               >
                 <Search className="h-4 w-4" />
               </Button>
@@ -312,6 +313,7 @@ export default function Navigation() {
                       ? 'text-orange-500 bg-orange-500/15' 
                       : 'text-gray-300 hover:text-white'
                   }`}
+                  onClick={closeMobileMenu}
                 >
                   <Wrench className="h-4 w-4" />
                 </Button>
@@ -329,6 +331,7 @@ export default function Navigation() {
                       ? 'text-orange-500 bg-orange-500/15' 
                       : 'text-gray-300 hover:text-white'
                   }`}
+                  onClick={closeMobileMenu}
                 >
                   <Layout className="h-4 w-4" />
                 </Button>

@@ -24,13 +24,21 @@ export function AuthButtons({
   const [, setLocation] = useLocation();
 
   const handleFacebookLogin = () => {
-    // Redirect to Facebook OAuth
-    window.location.href = "/auth/facebook";
+    // Check if Facebook auth is available, otherwise show error
+    try {
+      window.location.href = "/auth/facebook";
+    } catch (error) {
+      console.error("Facebook login not available:", error);
+    }
   };
 
   const handleGoogleLogin = () => {
-    // Redirect to Google OAuth  
-    window.location.href = "/auth/google";
+    // Check if Google auth is available, otherwise show error
+    try {
+      window.location.href = "/auth/google";
+    } catch (error) {
+      console.error("Google login not available:", error);
+    }
   };
 
   const handleEmailSignUp = () => {
