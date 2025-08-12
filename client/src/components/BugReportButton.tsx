@@ -70,7 +70,6 @@ export function BugReportButton() {
         toast({
           title: "Bug Report Sent",
           description: "Thank you for your feedback!",
-          variant: "success",
         });
         setIsOpen(false);
         setBugData({
@@ -185,9 +184,9 @@ export function BugReportButton() {
             <Button
               type="submit"
               onClick={() => submitBugReport.mutate(bugData)}
-              disabled={submitBugReport.isLoading}
+              disabled={submitBugReport.isPending}
             >
-              {submitBugReport.isLoading ? "Sending..." : "Send Report"}
+              {submitBugReport.isPending ? "Sending..." : "Send Report"}
             </Button>
           </DialogContent>
         </Dialog>
