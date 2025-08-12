@@ -327,7 +327,7 @@ const Router = memo(function Router() {
 
 import MinimalRouter from './MinimalRouter';
 
-const App = memo(function App() {
+export default function App() {
   return (
     <ErrorBoundary fallback={<div className="min-h-screen gradient-bg flex items-center justify-center text-white">Loading...</div>}>
       <QueryClientProvider client={queryClient}>
@@ -338,6 +338,4 @@ const App = memo(function App() {
       </QueryClientProvider>
     </ErrorBoundary>
   );
-});
-
-export default App;
+}
