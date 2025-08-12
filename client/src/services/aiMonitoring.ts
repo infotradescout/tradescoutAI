@@ -394,12 +394,13 @@ class AIMonitoringService {
   }
 
   private startPeriodicChecks() {
-    // Run checks every 5 minutes to reduce overhead
+    // Monitor every 2 minutes to reduce memory usage
+    const MONITORING_INTERVAL = 120000;
     this.checkInterval = window.setInterval(() => {
       this.checkMemoryUsage();
       this.checkLayoutIssues();
       this.checkUXPatterns();
-    }, 300000);
+    }, MONITORING_INTERVAL);
   }
 
   // Placeholder for checkLayoutIssues and checkUXPatterns if they were intended to be separate methods

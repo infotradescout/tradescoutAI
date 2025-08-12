@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { X, AlertTriangle, Bug } from "lucide-react";
 import { Button } from "@/components/ui/button";

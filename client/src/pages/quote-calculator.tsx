@@ -56,39 +56,39 @@ export default function EstimateCalculator() {
         'fence-installation': 15,
         'concrete-work': 8,
         'masonry-work': 20,
-        
+
         // Interior Renovations
         'kitchen-remodel': 100,
         'bathroom-remodel': 85,
         'basement-finishing': 30,
         'attic-conversion': 40,
-        
+
         // Flooring
         'hardwood-flooring': 12,
         'carpet-installation': 6,
         'tile-installation': 15,
         'laminate-flooring': 8,
-        
+
         // HVAC & Plumbing
         'hvac-installation': 25,
         'plumbing-repair': 150, // per hour
         'water-heater-installation': 1200,
-        
+
         // Electrical
         'electrical-work': 120, // per hour
         'panel-upgrade': 2500,
-        
+
         // Painting
         'interior-painting': 3,
         'exterior-painting': 4,
-        
+
         // Default
         'general': 12
       };
 
       const baseRate = projectPricing[data.projectType] || 12;
       const sqft = parseInt(data.squareFootage) || 1000;
-      
+
       // Special cases for per-unit pricing
       let basePrice;
       if (['window-replacement', 'door-installation'].includes(data.projectType)) {
@@ -104,10 +104,10 @@ export default function EstimateCalculator() {
       }
 
       const urgencyMultiplier = data.urgency === 'urgent' ? 1.4 : data.urgency === 'soon' ? 1.15 : 1;
-      
+
       const low = Math.round(basePrice * urgencyMultiplier * 0.75);
       const high = Math.round(basePrice * urgencyMultiplier * 1.35);
-      
+
       return { 
         low, 
         high, 
@@ -166,7 +166,7 @@ export default function EstimateCalculator() {
 
   const handleGetEstimates = () => {
     if (!estimate) return;
-    
+
     if (!isAuthenticated) {
       window.location.href = "/login";
       return;
@@ -182,7 +182,7 @@ export default function EstimateCalculator() {
       routingType: 'top3',
       calculatorData: { ...inputs, estimate }
     };
-    
+
     leadMutation.mutate(leadData);
   };
 
@@ -217,12 +217,12 @@ export default function EstimateCalculator() {
             <div className="w-16 h-16 bg-green-500/20 rounded-lg flex items-center justify-center mx-auto mb-6">
               <CheckCircle className="h-8 w-8 text-green-500" />
             </div>
-            
+
             <h1 className="text-3xl font-bold text-white mb-4">Request Submitted Successfully!</h1>
             <p className="text-xl text-gray-300 mb-8">
               We've shared your project details with the top 3 contractors in your area. They will contact you directly with quotes.
             </p>
-            
+
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
               <div className="bg-navy-600 p-6 rounded-lg">
                 <Clock className="h-8 w-8 text-orange-500 mx-auto mb-3" />
@@ -240,7 +240,7 @@ export default function EstimateCalculator() {
                 <p className="text-gray-300 text-sm">Choose your preferred contractors for on-site consultations</p>
               </div>
             </div>
-            
+
             <div className="space-y-4">
               <Link href="/contractors/board">
                 <Button className="bg-orange-500 hover:bg-orange-600 text-white">
@@ -306,14 +306,14 @@ export default function EstimateCalculator() {
         keywords="home improvement calculator, project cost estimator, free contractor quotes, roofing cost calculator, kitchen remodel cost, flooring estimate"
         structuredData={quoteStructuredData}
       />
-      
+
       <main className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <PageHead 
           title="Get Your Project Estimate - TradeScout Calculator"
           description="Get instant estimates for your home improvement project. Regional pricing based on your county and project details. Connect with verified contractors for accurate quotes."
           keywords="project estimate, home improvement calculator, contractor quotes, regional pricing, project cost calculator"
         />
-        
+
         {/* Breadcrumb Navigation */}
         <nav aria-label="Breadcrumb" className="mb-8">
           <ol className="flex items-center space-x-2 text-sm text-gray-400">
@@ -331,7 +331,7 @@ export default function EstimateCalculator() {
             ))}
           </ol>
         </nav>
-        
+
         <header className="text-center mb-12">
           <h1 className="text-4xl font-bold text-white mb-4">Get Your Project Estimate</h1>
         <p className="text-xl text-gray-300 mb-6">Regional pricing based on your county and project details</p>
@@ -391,28 +391,28 @@ export default function EstimateCalculator() {
                     <SelectItem value="deck-construction" className="text-white hover:bg-navy-600 focus:bg-navy-600 focus:text-white">Deck & Patio</SelectItem>
                     <SelectItem value="fence-installation" className="text-white hover:bg-navy-600 focus:bg-navy-600 focus:text-white">Fence Installation</SelectItem>
                     <SelectItem value="concrete-work" className="text-white hover:bg-navy-600 focus:bg-navy-600 focus:text-white">Concrete Work</SelectItem>
-                    
+
                     {/* INTERIOR RENOVATIONS */}
                     <SelectItem value="kitchen-remodel" className="text-white hover:bg-navy-600 focus:bg-navy-600 focus:text-white">Kitchen Remodeling</SelectItem>
                     <SelectItem value="bathroom-remodel" className="text-white hover:bg-navy-600 focus:bg-navy-600 focus:text-white">Bathroom Remodeling</SelectItem>
                     <SelectItem value="basement-finishing" className="text-white hover:bg-navy-600 focus:bg-navy-600 focus:text-white">Basement Finishing</SelectItem>
                     <SelectItem value="attic-conversion" className="text-white hover:bg-navy-600 focus:bg-navy-600 focus:text-white">Attic Conversion</SelectItem>
-                    
+
                     {/* FLOORING */}
                     <SelectItem value="hardwood-flooring" className="text-white hover:bg-navy-600 focus:bg-navy-600 focus:text-white">Hardwood Flooring</SelectItem>
                     <SelectItem value="carpet-installation" className="text-white hover:bg-navy-600 focus:bg-navy-600 focus:text-white">Carpet Installation</SelectItem>
                     <SelectItem value="tile-installation" className="text-white hover:bg-navy-600 focus:bg-navy-600 focus:text-white">Tile Installation</SelectItem>
                     <SelectItem value="laminate-flooring" className="text-white hover:bg-navy-600 focus:bg-navy-600 focus:text-white">Laminate/Vinyl Flooring</SelectItem>
-                    
+
                     {/* HVAC & PLUMBING */}
                     <SelectItem value="hvac-installation" className="text-white hover:bg-navy-600 focus:bg-navy-600 focus:text-white">HVAC Installation</SelectItem>
                     <SelectItem value="plumbing-repair" className="text-white hover:bg-navy-600 focus:bg-navy-600 focus:text-white">Plumbing Services</SelectItem>
                     <SelectItem value="water-heater-installation" className="text-white hover:bg-navy-600 focus:bg-navy-600 focus:text-white">Water Heater Installation</SelectItem>
-                    
+
                     {/* ELECTRICAL */}
                     <SelectItem value="electrical-work" className="text-white hover:bg-navy-600 focus:bg-navy-600 focus:text-white">Electrical Services</SelectItem>
                     <SelectItem value="panel-upgrade" className="text-white hover:bg-navy-600 focus:bg-navy-600 focus:text-white">Electrical Panel Upgrade</SelectItem>
-                    
+
                     {/* PAINTING */}
                     <SelectItem value="interior-painting" className="text-white hover:bg-navy-600 focus:bg-navy-600 focus:text-white">Interior Painting</SelectItem>
                     <SelectItem value="exterior-painting" className="text-white hover:bg-navy-600 focus:bg-navy-600 focus:text-white">Exterior Painting</SelectItem>
@@ -517,7 +517,7 @@ export default function EstimateCalculator() {
                     <p className="text-sm text-gray-400 mb-4">
                       {formatProjectType(estimate.projectType)} in your area
                     </p>
-                    
+
                     {estimate.details && (
                       <div className="text-left bg-navy-700/50 p-4 rounded-lg text-xs text-gray-400 space-y-1">
                         <div className="flex justify-between">
@@ -567,9 +567,9 @@ export default function EstimateCalculator() {
                           </>
                         )}
                       </Button>
-                      
+
                       <div className="text-center text-gray-400 text-sm">or</div>
-                      
+
                       <Link href="/contractors/board">
                         <Button 
                           variant="outline"
@@ -578,7 +578,7 @@ export default function EstimateCalculator() {
                           Browse Contractors
                         </Button>
                       </Link>
-                      
+
                       <div className="p-3 bg-navy-700/50 rounded-lg">
                         <p className="text-xs text-gray-400">
                           ✓ Licensed & verified contractors<br/>
