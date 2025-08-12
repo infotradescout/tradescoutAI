@@ -318,16 +318,16 @@ const Router = memo(function Router() {
 
 const App = memo(function App() {
   return (
-    <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
-        <TutorialProvider>
-          <ErrorBoundary>
+    <ErrorBoundary fallback={<div className="min-h-screen gradient-bg flex items-center justify-center text-white">Loading...</div>}>
+      <QueryClientProvider client={queryClient}>
+        <ErrorBoundary fallback={<div>Error in providers</div>}>
+          <TutorialProvider>
             <Toaster />
             <Router />
-          </ErrorBoundary>
-        </TutorialProvider>
-      </TooltipProvider>
-    </QueryClientProvider>
+          </TutorialProvider>
+        </ErrorBoundary>
+      </QueryClientProvider>
+    </ErrorBoundary>
   );
 });
 
