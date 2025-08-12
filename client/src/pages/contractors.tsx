@@ -59,7 +59,7 @@ export default function ForContractors() {
                 Get instant access to proven marketing strategies, pricing guides, and business growth tools 
                 specifically designed for contractors.
               </p>
-              
+
               <div className="space-y-2">
                 <div className="flex items-center text-sm text-gray-300">
                   <CheckCircle className="h-4 w-4 mr-2 text-green-400" />
@@ -106,7 +106,7 @@ export default function ForContractors() {
                 Join our exclusive accelerator program for advanced business coaching, priority leads, 
                 and networking opportunities with top contractors.
               </p>
-              
+
               <div className="space-y-2">
                 <div className="flex items-center text-sm text-gray-300">
                   <Star className="h-4 w-4 mr-2 text-yellow-400" />

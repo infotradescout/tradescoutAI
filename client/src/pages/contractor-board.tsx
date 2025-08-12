@@ -29,7 +29,7 @@ export default function ContractorBoard() {
       if (selectedCounty) params.append('county', selectedCounty);
       if (selectedTrade) params.append('trade', selectedTrade);
       if (sortBy) params.append('sort', sortBy);
-      
+
       const response = await fetch(`/api/contractors?${params.toString()}`);
       if (!response.ok) throw new Error('Failed to fetch contractors');
       return response.json();
@@ -128,12 +128,12 @@ export default function ContractorBoard() {
   // Filter contractors based on search query
   const filteredContractors = useMemo(() => {
     if (!contractors) return [];
-    
+
     return contractors.filter(contractor => {
       const matchesSearch = !searchQuery || 
         contractor.companyName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
         contractor.about?.toLowerCase().includes(searchQuery.toLowerCase());
-      
+
       return matchesSearch;
     });
   }, [contractors, searchQuery]);
@@ -147,7 +147,7 @@ export default function ContractorBoard() {
           <div className="h-8 bg-navy-600/50 rounded-md animate-pulse mb-4 max-w-md" />
           <div className="h-4 bg-navy-600/50 rounded-md animate-pulse max-w-lg" />
         </div>
-        
+
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {[...Array(6)].map((_, i) => (
             <ContractorCardSkeleton key={i} />
@@ -173,15 +173,15 @@ export default function ContractorBoard() {
   const selectedStateName = selectedState ? states.find(s => s.code === selectedState)?.name : '';
   const selectedCountyName = selectedCounty ? counties.find(c => c.fips === selectedCounty)?.name : '';
   const selectedTradeName = selectedTrade ? trades?.find(t => t.id === selectedTrade)?.name : '';
-  
+
   const seoTitle = `Find ${selectedTradeName || 'Contractors'}${selectedStateName ? ` in ${selectedStateName}` : ''}${selectedCountyName ? `, ${selectedCountyName}` : ''} | TradeScout`;
   const seoDescription = `Find verified ${selectedTradeName || 'contractors'}${selectedStateName ? ` in ${selectedStateName}` : ''}${selectedCountyName ? `, ${selectedCountyName}` : ''}. Get 3 free quotes, read reviews, and hire with confidence. Licensed and insured contractors for all home improvement projects.`;
-  
+
   const breadcrumbItems = [
     { name: 'Home', url: '/' },
     { name: 'Find Contractors', url: '/contractors/board' }
   ];
-  
+
   if (selectedStateName) {
     breadcrumbItems.push({ name: selectedStateName, url: `/contractors/board?state=${selectedState}` });
   }
@@ -241,7 +241,7 @@ export default function ContractorBoard() {
         keywords={`${selectedTradeName || 'contractors'}, ${selectedStateName || 'local'} contractors, verified contractors, free quotes, home improvement${selectedTradeName ? `, ${selectedTradeName.toLowerCase()}` : ''}`}
         structuredData={combinedStructuredData}
       />
-      
+
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         {/* Breadcrumb Navigation */}
         <nav aria-label="Breadcrumb" className="mb-8">
@@ -280,7 +280,7 @@ export default function ContractorBoard() {
             )}
           </p>
         </header>
-        
+
         {/* State, County and Trade Quick Filters */}
         <div className="max-w-4xl mx-auto mb-8">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -306,7 +306,7 @@ export default function ContractorBoard() {
                 </SelectContent>
               </Select>
             </div>
-            
+
             <div>
               <label className="block text-sm font-medium text-gray-300 mb-2">
                 <MapPin className="inline h-4 w-4 mr-1" />
@@ -329,7 +329,7 @@ export default function ContractorBoard() {
                 </SelectContent>
               </Select>
             </div>
-            
+
             <div>
               <label className="block text-sm font-medium text-gray-300 mb-2">
                 Service Needed
@@ -397,7 +397,7 @@ export default function ContractorBoard() {
                 </button>
               </Badge>
             )}
-            
+
             {selectedCounty && (
               <Badge variant="secondary" className="bg-navy-600 text-white">
                 {counties.find(c => c.fips === selectedCounty)?.name}
@@ -458,7 +458,7 @@ export default function ContractorBoard() {
                     </SelectContent>
                   </Select>
                 </div>
-                
+
                 <div>
                   <label className="block text-sm font-medium text-gray-300 mb-2">
                     <MapPin className="inline h-4 w-4 mr-1" />
@@ -492,7 +492,7 @@ export default function ContractorBoard() {
                       <SelectValue placeholder="All trades" />
                     </SelectTrigger>
                     <SelectContent className="bg-navy-700 border-navy-600 text-white max-h-[300px] overflow-y-auto">
-                      <SelectItem value="all" className="text-white hover:bg-navy-600 focus:bg-navy-600 focus:text-white">All trades</SelectItem>
+                      <SelectItem value="all">All trades</SelectItem>
                       {mainTrades?.map((trade) => (
                         <SelectItem 
                           key={trade.id} 
