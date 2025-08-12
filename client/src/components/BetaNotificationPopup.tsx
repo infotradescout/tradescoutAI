@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Bell, X, Rocket, Users, Zap } from "lucide-react";
+import { Bell, X, Rocket, Users, Zap, Bug } from "lucide-react";
 
 export function BetaNotificationPopup() {
   const [isOpen, setIsOpen] = useState(false);
