@@ -37,47 +37,46 @@ export function EnhancedNavigation({ className = "" }: EnhancedNavigationProps) 
           </div>
         </Link>
 
-        {/* Desktop Navigation - Core Tabs + Dropdown */}
-        <nav className="hidden lg:flex items-center space-x-2 flex-1 justify-center">
-          {/* Core Navigation Tabs - User's Exact Requirements */}
+        {/* Desktop Navigation - All 7 Items in Header */}
+        <nav className="hidden lg:flex items-center space-x-1 flex-1 justify-center">
           <Link href="/contractors">
-            <Button variant={isActive("/contractors") ? "secondary" : "ghost"} size="sm" className="px-4 py-2 rounded-lg nav-button hover:bg-slate-800/60">
+            <Button variant={isActive("/contractors") ? "secondary" : "ghost"} size="sm" className="px-3 py-2 rounded-lg nav-button hover:bg-slate-800/60 text-sm">
               Find Contractors
             </Button>
           </Link>
           
           <Link href="/calculator">
-            <Button variant={isActive("/calculator") ? "secondary" : "ghost"} size="sm" className="px-4 py-2 rounded-lg nav-button hover:bg-slate-800/60">
+            <Button variant={isActive("/calculator") ? "secondary" : "ghost"} size="sm" className="px-3 py-2 rounded-lg nav-button hover:bg-slate-800/60 text-sm">
               Calculator
             </Button>
           </Link>
           
           <Link href="/contractors/for-contractors">
-            <Button variant={isActive("/contractors/for-contractors") ? "secondary" : "ghost"} size="sm" className="px-4 py-2 rounded-lg nav-button hover:bg-slate-800/60">
+            <Button variant={isActive("/contractors/for-contractors") ? "secondary" : "ghost"} size="sm" className="px-3 py-2 rounded-lg nav-button hover:bg-slate-800/60 text-sm">
               For Contractors
             </Button>
           </Link>
           
           <Link href="/helpers">
-            <Button variant={isActive("/helpers") ? "secondary" : "ghost"} size="sm" className="px-4 py-2 rounded-lg nav-button hover:bg-slate-800/60">
+            <Button variant={isActive("/helpers") ? "secondary" : "ghost"} size="sm" className="px-3 py-2 rounded-lg nav-button hover:bg-slate-800/60 text-sm">
               Helpers
             </Button>
           </Link>
           
           <Link href="/dashboard">
-            <Button variant={isActive("/dashboard") ? "secondary" : "ghost"} size="sm" className="px-4 py-2 rounded-lg nav-button hover:bg-slate-800/60">
+            <Button variant={isActive("/dashboard") ? "secondary" : "ghost"} size="sm" className="px-3 py-2 rounded-lg nav-button hover:bg-slate-800/60 text-sm">
               Dashboard
             </Button>
           </Link>
           
           <Link href="/exchange">
-            <Button variant={isActive("/exchange") ? "secondary" : "ghost"} size="sm" className="px-4 py-2 rounded-lg nav-button hover:bg-slate-800/60">
+            <Button variant={isActive("/exchange") ? "secondary" : "ghost"} size="sm" className="px-3 py-2 rounded-lg nav-button hover:bg-slate-800/60 text-sm">
               Exchange
             </Button>
           </Link>
           
           <Link href="/foundation">
-            <Button variant={isActive("/foundation") ? "secondary" : "ghost"} size="sm" className="px-4 py-2 rounded-lg nav-button hover:bg-slate-800/60">
+            <Button variant={isActive("/foundation") ? "secondary" : "ghost"} size="sm" className="px-3 py-2 rounded-lg nav-button hover:bg-slate-800/60 text-sm">
               Foundation
             </Button>
           </Link>
