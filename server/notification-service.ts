@@ -111,8 +111,7 @@ export class NotificationService {
       .from(notifications)
       .where(and(
         eq(notifications.userId, userId),
-        eq(notifications.isRead, false),
-        eq(notifications.isArchived, false)
+        eq(notifications.isRead, false)
       ));
     
     return result[0]?.count || 0;
@@ -121,7 +120,7 @@ export class NotificationService {
   async archiveNotification(notificationId: string, userId: string): Promise<void> {
     await db
       .update(notifications)
-      .set({ isArchived: true, archivedAt: new Date() })
+      .set({ isRead: true, readAt: new Date() })
       .where(and(
         eq(notifications.id, notificationId),
         eq(notifications.userId, userId)
