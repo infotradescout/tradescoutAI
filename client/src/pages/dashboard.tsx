@@ -1,6 +1,8 @@
 import { useAuth } from "@/hooks/useAuth";
 import HomeownerDashboard from "./homeowner-dashboard";
 import ContractorDashboard from "./contractor-dashboard";
+import RealtorDashboard from "./realtor-dashboard";
+import CarSalesmanDashboard from "./car-salesman-dashboard";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Link } from "wouter";
@@ -122,6 +124,14 @@ export default function Dashboard() {
   // Route to appropriate dashboard based on user role
   if (user.role === 'contractor_user' || user.role === 'accelerator_member') {
     return <ContractorDashboard />;
+  }
+  
+  if (user.role === 'realtor') {
+    return <RealtorDashboard />;
+  }
+  
+  if (user.role === 'car_salesman') {
+    return <CarSalesmanDashboard />;
   }
   
   return <HomeownerDashboard />;
