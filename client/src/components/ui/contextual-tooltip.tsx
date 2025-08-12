@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, forwardRef } from "react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { HelpCircle, Wrench, Hammer, HardHat, Drill, Settings, Paintbrush, Ruler } from "lucide-react";
 
@@ -107,20 +107,28 @@ export function ContextualTooltip({
     homeowner: 'text-blue-400 hover:text-blue-300'
   };
 
+  const TriggerButton = forwardRef<HTMLButtonElement, React.ButtonHTMLAttributes<HTMLButtonElement>>(
+    (props, ref) => (
+      <button
+        ref={ref}
+        className={`inline-flex items-center justify-center transition-colors ${variantClasses[variant]}`}
+        onMouseEnter={() => setIsOpen(true)}
+        onMouseLeave={() => setIsOpen(false)}
+        onClick={() => setIsOpen(!isOpen)}
+        {...props}
+      >
+        <IconComponent className={sizeClasses[size]} />
+      </button>
+    )
+  );
+
+  TriggerButton.displayName = "ContextualTooltipTrigger";
+
   return (
     <TooltipProvider>
       <Tooltip open={isOpen} onOpenChange={setIsOpen}>
         <TooltipTrigger asChild>
-          {children || (
-            <button
-              className={`inline-flex items-center justify-center transition-colors ${variantClasses[variant]}`}
-              onMouseEnter={() => setIsOpen(true)}
-              onMouseLeave={() => setIsOpen(false)}
-              onClick={() => setIsOpen(!isOpen)}
-            >
-              <IconComponent className={sizeClasses[size]} />
-            </button>
-          )}
+          {children || <TriggerButton />}
         </TooltipTrigger>
         <TooltipContent 
           side={placement}
