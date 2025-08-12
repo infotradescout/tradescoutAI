@@ -1,5 +1,6 @@
 import type { Express } from "express";
 import { isAuthenticated } from "../../auth";
+import { aiCodeFixingService } from "../../ai-code-fixes";
 
 interface UIIssue {
   id: string;
@@ -132,6 +133,25 @@ export function registerUIIssuesRoutes(app: Express) {
       uiIssuesStore.stats.criticalIssues = uiIssuesStore.issues.filter(issue => issue.severity === 'critical').length;
 
       console.log(`📊 AI Monitoring: Received ${newIssues.length} new issues`);
+
+      // Auto-analyze new issues for potential fixes
+      for (const issue of newIssues) {
+        if (issue.severity === 'high' || issue.severity === 'critical') {
+          try {
+            const fix = await aiCodeFixingService.analyzeAndFixIssue(issue.description, issue.location);
+            if (fix && fix.confidence >= 0.9) {
+              console.log(`🤖 AI Generated High-Confidence Fix: ${fix.description}`);
+              // Auto-apply critical fixes with very high confidence
+              if (issue.severity === 'critical' && fix.confidence >= 0.95) {
+                setTimeout(() => aiCodeFixingService.applyFix(fix.id), 2000);
+                console.log(`🚀 Auto-Applied Critical Fix: ${fix.description}`);
+              }
+            }
+          } catch (error) {
+            console.error(`AI Fix Analysis Error for issue ${issue.id}:`, error);
+          }
+        }
+      }
 
       res.json({ 
         message: "Issues received successfully",

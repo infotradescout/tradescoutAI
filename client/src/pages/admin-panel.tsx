@@ -4,9 +4,10 @@ import { apiRequest } from "@/lib/queryClient";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { UIMonitoringDashboard } from "@/components/admin/UIMonitoringDashboard";
+import { AICodeFixingDashboard } from "@/components/admin/AICodeFixingDashboard"; // Assuming this component exists
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
@@ -29,7 +30,7 @@ import {
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { UserHeatmap } from "@/components/UserHeatmap";
-import { Plus, Edit, Trash2, Gift, Settings, Megaphone, Users, Bell, Map, CheckCircle, Bug, Image, BarChart3, DollarSign, Wrench, MapPin, Clock } from "lucide-react";
+import { Plus, Edit, Trash2, Gift, Settings, Megaphone, Users, Bell, Map, CheckCircle, Bug, Image, BarChart3, DollarSign, Wrench, MapPin, Clock, Bot } from "lucide-react";
 import { useLocation } from "wouter";
 
 
@@ -230,7 +231,7 @@ export default function AdminPanel() {
         </div>
 
         <Tabs value={selectedTab} onValueChange={setSelectedTab} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-8 bg-slate-800">
+          <TabsList className="grid w-full grid-cols-10 bg-slate-800">
             <TabsTrigger value="heatmap" className="flex items-center gap-2">
               <Map className="w-4 h-4" />
               User Heatmap
@@ -258,6 +259,10 @@ export default function AdminPanel() {
             <TabsTrigger value="error-reports" className="flex items-center gap-2">
               <Bug className="w-4 h-4" />
               Error Reports
+            </TabsTrigger>
+            <TabsTrigger value="ai-fixes" className="flex items-center gap-2">
+              <Bot className="w-4 h-4" />
+              AI Fixes
             </TabsTrigger>
             <TabsTrigger value="pricing" className="flex items-center gap-2">
               <DollarSign className="w-4 h-4" />
@@ -556,23 +561,35 @@ export default function AdminPanel() {
             {/* TODO: Add error reports table */}
           </TabsContent>
 
-          <TabsContent value="pricing" className="space-y-4">
-            <div className="space-y-6">
+          <TabsContent value="ai-fixes" className="space-y-6">
+            <AICodeFixingDashboard />
+          </TabsContent>
+
+          <TabsContent value="pricing" className="space-y-6">
+            <div className="grid grid-cols-1 gap-6">
               <Card className="bg-navy-700 border-navy-600">
                 <CardHeader>
-                  <CardTitle className="text-white">Pricing Analytics Dashboard</CardTitle>
+                  <CardTitle className="text-white flex items-center gap-2">
+                    <BarChart3 className="h-5 w-5 text-orange-500" />
+                    Pricing Analytics & Calculator Updates
+                  </CardTitle>
+                  <CardDescription className="text-gray-300">
+                    AI-powered pricing analysis and automatic calculator adjustments
+                  </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <p className="text-gray-300 mb-4">
-                    Monitor market trends, track average job quotes, and automatically update calculator pricing based on real-world data.
-                  </p>
-                  <Button 
-                    className="bg-orange-500 hover:bg-orange-600"
-                    onClick={() => setLocation("/admin/pricing-analytics")}
-                  >
-                    <BarChart3 className="h-4 w-4 mr-2" />
-                    Open Pricing Analytics
-                  </Button>
+                  <div className="space-y-4">
+                    <p className="text-gray-300 mb-4">
+                      Monitor market trends, track average job quotes, and automatically update calculator pricing based on real-world data.
+                    </p>
+                    <Button
+                      className="bg-orange-500 hover:bg-orange-600"
+                      onClick={() => setLocation("/admin/pricing-analytics")}
+                    >
+                      <BarChart3 className="h-4 w-4 mr-2" />
+                      Open Pricing Analytics
+                    </Button>
+                  </div>
                 </CardContent>
               </Card>
 
@@ -622,10 +639,10 @@ export default function AdminPanel() {
           <DialogContent className="bg-slate-900 text-white max-w-2xl">
             <DialogHeader>
               <DialogTitle>
-                {editingItem ? "Edit" : "Create"} {selectedTab === "contractor-settings" ? "Contractor Setting" : selectedTab.replace("-", " ").replace(/\b\w/g, l => l.toUpperCase())}
+                {editingItem ? "Edit" : "Create"} {selectedTab === "contractor-settings" ? "Contractor Setting" : selectedTab === "ai-fixes" ? "AI Fix" : selectedTab.replace("-", " ").replace(/\b\w/g, l => l.toUpperCase())}
               </DialogTitle>
               <DialogDescription>
-                {editingItem ? "Update the" : "Create a new"} {selectedTab === "contractor-settings" ? "contractor setting" : selectedTab.replace("-", " ")} configuration.
+                {editingItem ? "Update the" : "Create a new"} {selectedTab === "contractor-settings" ? "contractor setting" : selectedTab === "ai-fixes" ? "AI fix" : selectedTab.replace("-", " ")} configuration.
               </DialogDescription>
             </DialogHeader>
 
