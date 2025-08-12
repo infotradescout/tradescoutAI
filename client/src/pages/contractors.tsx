@@ -155,7 +155,7 @@ export default function ForContractors() {
                 Manage your leads, track projects, and monitor your business performance.
               </p>
               {isContractor ? (
-                <Link href="/contractors/dashboard">
+                <Link href="/contractor-dashboard">
                   <Button variant="outline" className="border-orange-500 text-orange-500 hover:bg-orange-500 hover:text-white">
                     Go to Dashboard
                   </Button>

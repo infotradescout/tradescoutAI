@@ -132,6 +132,7 @@ function Router() {
         <Route path="/exchange" component={Exchange} />
         <Route path="/marketplace" component={Marketplace} />
         <Route path="/marketplace/list" component={MarketplaceListing} />
+        <Route path="/exchange/list" component={MarketplaceListing} />
         <Route path="/property-listing" component={PropertyListing} />
         <Route path="/business-listing" component={BusinessListing} />
         <Route path="/leaderboard" component={Leaderboard} />
@@ -171,6 +172,7 @@ function Router() {
                 <Profile />
               </ProfileSetupRedirect>
             </Route>
+            <Route path="/dashboard/messages" component={Conversations} />
             <Route path="/homeowner-dashboard">
               <ProfileSetupRedirect>
                 <HomeownerDashboard />

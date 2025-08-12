@@ -36,7 +36,7 @@ export default function Navigation() {
     { href: "/quote-calculator", label: "Estimate Calculator", icon: Calculator },
     { href: "/contractors/board", label: "Contractors", icon: Users },
     ...(isContractor ? [
-      { href: "/contractors/dashboard", label: "My Dashboard", icon: Building },
+      { href: "/contractor-dashboard", label: "My Dashboard", icon: Building },
       { href: "/contractors/accelerator", label: "Accelerator", icon: Crown },
     ] : []),
     ...(isAdmin ? [{ href: "/admin", label: "Admin", icon: BarChart3 }] : []),
