@@ -8,7 +8,7 @@ import {
   Menu, X, Settings, LogOut, User, Crown, Bookmark, 
   Search, Calculator, Users, Package, Palette, 
   MessageCircle, Shield, Layout, Wrench, Home,
-  ChevronDown, Zap, Star, Trophy, UserPlus, Share
+  ChevronDown, Zap, Star, Trophy, UserPlus, Share, Heart
 } from "lucide-react";
 import { ConstructionEmblem } from "@/components/ConstructionEmblem";
 import { NotificationBell } from "@/components/NotificationBell";
@@ -30,6 +30,7 @@ export default function Navigation() {
     { href: "/marketplace", label: "Exchange", icon: Package, public: true, description: "Premium equipment & valuable items" },
     { href: "/leaderboard", label: "Leaderboard", icon: Trophy, public: true, description: "Top contractors by recommendations" },
     { href: "/community", label: "Community", icon: MessageCircle, public: true, description: "Connect with neighbors" },
+    { href: "/foundation", label: "Foundation", icon: Heart, public: true, description: "Community foundation and charitable initiatives" },
   ];
 
   const authenticatedNavItems = [
