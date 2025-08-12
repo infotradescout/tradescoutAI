@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { X, AlertTriangle, Bug } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -10,10 +11,7 @@ import {
 } from "@/components/ui/dialog";
 
 export function BetaNotificationPopup() {
-  try {
-    const { toast } = useToast();
-    const [isOpen, setIsOpen] = useState(false);
-    const [hasSeenNotification, setHasSeenNotification] = useState(false);
+  const [isOpen, setIsOpen] = useState(false);
 
   useEffect(() => {
     try {
@@ -34,8 +32,12 @@ export function BetaNotificationPopup() {
 
   const handleClose = () => {
     setIsOpen(false);
-    // Mark as seen for this session
-    localStorage.setItem('hasSeenBetaNotification', 'true');
+    try {
+      // Mark as seen for this session
+      localStorage.setItem('hasSeenBetaNotification', 'true');
+    } catch (error) {
+      console.error('Failed to save beta notification state:', error);
+    }
   };
 
   return (
@@ -92,10 +94,5 @@ export function BetaNotificationPopup() {
         </div>
       </DialogContent>
     </Dialog>
-    </div>
   );
-  } catch (error) {
-    console.error('BetaNotificationPopup error:', error);
-    return null;
-  }
 }
