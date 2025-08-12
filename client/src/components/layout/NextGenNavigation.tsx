@@ -24,7 +24,7 @@ export function NextGenNavigation({ className = "" }: NextGenNavigationProps) {
   const { isAuthenticated } = useAuth();
   const [location] = useLocation();
   const [containerWidth, setContainerWidth] = useState<number>(0);
-  const [adaptiveLayout, setAdaptiveLayout] = useState<'full' | 'compact' | 'minimal'>('full');
+  const [adaptiveLayout, setAdaptiveLayout] = useState<'full' | 'compact' | 'icons' | 'minimal'>('full');
   const navRef = useRef<HTMLDivElement>(null);
   const [mounted, setMounted] = useState(false);
 
@@ -63,13 +63,15 @@ export function NextGenNavigation({ className = "" }: NextGenNavigationProps) {
       const width = navRef.current.offsetWidth;
       setContainerWidth(width);
 
-      // Revolutionary adaptive layout system - much more generous breakpoints
-      if (width >= 900) {
-        setAdaptiveLayout('full'); // Show all items
-      } else if (width >= 650) {
-        setAdaptiveLayout('compact'); // Show priority items + dropdown
+      // Progressive layout system: text -> text with fewer items -> icons only -> fewer icons
+      if (width >= 1100) {
+        setAdaptiveLayout('full'); // Show all items with text
+      } else if (width >= 800) {
+        setAdaptiveLayout('compact'); // Show fewer items with text + dropdown
+      } else if (width >= 600) {
+        setAdaptiveLayout('icons'); // Show icons only, no text
       } else {
-        setAdaptiveLayout('minimal'); // Show only top items + dropdown
+        setAdaptiveLayout('minimal'); // Show fewer icons + dropdown
       }
     };
 
@@ -99,15 +101,19 @@ export function NextGenNavigation({ className = "" }: NextGenNavigationProps) {
 
     switch (adaptiveLayout) {
       case 'full':
-        visible = sorted.slice(0, 8); // Show all 8 items
+        visible = sorted.slice(0, 8); // Show all 8 items with text
         hidden = sorted.slice(8);
         break;
       case 'compact':
-        visible = sorted.slice(0, 6); // Show 6 items instead of 5
+        visible = sorted.slice(0, 6); // Show 6 items with text
         hidden = sorted.slice(6);
         break;
+      case 'icons':
+        visible = sorted.slice(0, 7); // Show 7 items as icons only
+        hidden = sorted.slice(7);
+        break;
       case 'minimal':
-        visible = sorted.slice(0, 4); // Show 4 items instead of 3
+        visible = sorted.slice(0, 4); // Show 4 items as icons only
         hidden = sorted.slice(4);
         break;
       default:
@@ -142,19 +148,22 @@ export function NextGenNavigation({ className = "" }: NextGenNavigationProps) {
           <div className="flex items-center space-x-1 bg-slate-800/60 rounded-xl p-1.5 border border-slate-700/50 shadow-lg backdrop-blur-sm">
             {/* Priority-based visible items */}
             {visibleItems.map((item) => {
+              const Icon = item.icon;
               const active = isActive(item.href);
+              const showTextLabel = adaptiveLayout === 'full' || adaptiveLayout === 'compact';
+              
               return (
                 <Link key={item.href} href={item.href}>
-                  <div className={`px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 whitespace-nowrap border ${
-                    active 
-                      ? "bg-orange-500 text-white border-orange-400 shadow-lg shadow-orange-500/25" 
-                      : "text-slate-300 hover:text-white hover:bg-slate-700/60 border-transparent hover:border-slate-600"
-                  }`}>
-                    {adaptiveLayout === 'minimal' ? (
-                      <item.icon className="w-4 h-4" />
-                    ) : (
-                      item.label
-                    )}
+                  <div 
+                    className={`px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 whitespace-nowrap border flex items-center gap-2 ${
+                      active 
+                        ? "bg-orange-500 text-white border-orange-400 shadow-lg shadow-orange-500/25" 
+                        : "text-slate-300 hover:text-white hover:bg-slate-700/60 border-transparent hover:border-slate-600"
+                    } ${!showTextLabel ? 'px-2.5' : ''}`}
+                    title={!showTextLabel ? item.label : undefined}
+                  >
+                    <Icon className="w-4 h-4 text-orange-400 flex-shrink-0" />
+                    {showTextLabel && <span>{item.label}</span>}
                   </div>
                 </Link>
               );
@@ -167,11 +176,11 @@ export function NextGenNavigation({ className = "" }: NextGenNavigationProps) {
                   <Button 
                     variant="ghost" 
                     size="sm" 
-                    className="px-3 py-2 text-slate-300 hover:text-white hover:bg-slate-700/60 transition-all duration-200 border border-transparent hover:border-slate-600 rounded-lg"
+                    className="px-3 py-2 text-slate-300 hover:text-white hover:bg-slate-700/60 transition-all duration-200 border border-transparent hover:border-slate-600 rounded-lg flex items-center gap-1"
                   >
                     <MoreHorizontal className="w-4 h-4" />
-                    {adaptiveLayout !== 'minimal' && (
-                      <span className="ml-1 text-xs">More</span>
+                    {(adaptiveLayout === 'full' || adaptiveLayout === 'compact') && (
+                      <span className="text-xs">More</span>
                     )}
                   </Button>
                 </DropdownMenuTrigger>
