@@ -39,20 +39,22 @@ export function EnhancedNavigation({ className = "" }: EnhancedNavigationProps) 
 
         {/* Desktop Navigation - Core Tabs + Dropdown */}
         <nav className="hidden lg:flex items-center space-x-2 flex-1 justify-center">
-          {/* Core Navigation Tabs */}
+          {/* Core Navigation Tabs - User's Exact Requirements */}
           <Link href="/contractors">
             <Button variant={isActive("/contractors") ? "secondary" : "ghost"} size="sm" className="px-4 py-2 rounded-lg nav-button hover:bg-slate-800/60">
               Find Contractors
             </Button>
           </Link>
+          
+          <Link href="/calculator">
+            <Button variant={isActive("/calculator") ? "secondary" : "ghost"} size="sm" className="px-4 py-2 rounded-lg nav-button hover:bg-slate-800/60">
+              Calculator
+            </Button>
+          </Link>
+          
           <Link href="/contractors/for-contractors">
             <Button variant={isActive("/contractors/for-contractors") ? "secondary" : "ghost"} size="sm" className="px-4 py-2 rounded-lg nav-button hover:bg-slate-800/60">
               For Contractors
-            </Button>
-          </Link>
-          <Link href="/dashboard">
-            <Button variant={isActive("/dashboard") ? "secondary" : "ghost"} size="sm" className="px-4 py-2 rounded-lg nav-button hover:bg-slate-800/60">
-              Dashboard
             </Button>
           </Link>
           
@@ -62,42 +64,23 @@ export function EnhancedNavigation({ className = "" }: EnhancedNavigationProps) 
             </Button>
           </Link>
           
-          {/* More Menu Dropdown */}
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="sm" className="px-4 py-2 rounded-lg nav-button hover:bg-slate-800/60 flex items-center space-x-1">
-                <span>More</span>
-                <ChevronDown className="h-4 w-4" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent className="bg-slate-800 border-slate-700" align="center">
-              <Link href="/marketplace">
-                <DropdownMenuItem className="text-slate-200 hover:text-white hover:bg-slate-700 cursor-pointer">
-                  Marketplace
-                </DropdownMenuItem>
-              </Link>
-              <Link href="/exchange">
-                <DropdownMenuItem className="text-slate-200 hover:text-white hover:bg-slate-700 cursor-pointer">
-                  Exchange
-                </DropdownMenuItem>
-              </Link>
-              <Link href="/community">
-                <DropdownMenuItem className="text-slate-200 hover:text-white hover:bg-slate-700 cursor-pointer">
-                  Community
-                </DropdownMenuItem>
-              </Link>
-              <Link href="/leaderboard">
-                <DropdownMenuItem className="text-slate-200 hover:text-white hover:bg-slate-700 cursor-pointer">
-                  Leaderboard
-                </DropdownMenuItem>
-              </Link>
-              <Link href="/foundation">
-                <DropdownMenuItem className="text-slate-200 hover:text-white hover:bg-slate-700 cursor-pointer">
-                  Foundation
-                </DropdownMenuItem>
-              </Link>
-            </DropdownMenuContent>
-          </DropdownMenu>
+          <Link href="/dashboard">
+            <Button variant={isActive("/dashboard") ? "secondary" : "ghost"} size="sm" className="px-4 py-2 rounded-lg nav-button hover:bg-slate-800/60">
+              Dashboard
+            </Button>
+          </Link>
+          
+          <Link href="/exchange">
+            <Button variant={isActive("/exchange") ? "secondary" : "ghost"} size="sm" className="px-4 py-2 rounded-lg nav-button hover:bg-slate-800/60">
+              Exchange
+            </Button>
+          </Link>
+          
+          <Link href="/foundation">
+            <Button variant={isActive("/foundation") ? "secondary" : "ghost"} size="sm" className="px-4 py-2 rounded-lg nav-button hover:bg-slate-800/60">
+              Foundation
+            </Button>
+          </Link>
           
 
         </nav>
@@ -149,11 +132,16 @@ export function EnhancedNavigation({ className = "" }: EnhancedNavigationProps) 
                 {/* Core Navigation */}
                 <div className="space-y-2">
                   <h3 className="text-sm font-semibold text-gray-400 uppercase tracking-wider">
-                    Main
+                    Navigation
                   </h3>
                   <Link href="/contractors" onClick={() => setIsMobileMenuOpen(false)}>
                     <Button variant="ghost" className="w-full justify-start text-slate-200 hover:text-white hover:bg-slate-800/60">
                       Find Contractors
+                    </Button>
+                  </Link>
+                  <Link href="/calculator" onClick={() => setIsMobileMenuOpen(false)}>
+                    <Button variant="ghost" className="w-full justify-start text-slate-200 hover:text-white hover:bg-slate-800/60">
+                      Calculator
                     </Button>
                   </Link>
                   <Link href="/contractors/for-contractors" onClick={() => setIsMobileMenuOpen(false)}>
@@ -161,26 +149,19 @@ export function EnhancedNavigation({ className = "" }: EnhancedNavigationProps) 
                       For Contractors
                     </Button>
                   </Link>
+                  <Link href="/helpers" onClick={() => setIsMobileMenuOpen(false)}>
+                    <Button variant="ghost" className="w-full justify-start text-slate-200 hover:text-white hover:bg-slate-800/60">
+                      Helpers
+                    </Button>
+                  </Link>
                   <Link href="/dashboard" onClick={() => setIsMobileMenuOpen(false)}>
                     <Button variant="ghost" className="w-full justify-start text-slate-200 hover:text-white hover:bg-slate-800/60">
                       Dashboard
                     </Button>
                   </Link>
-                </div>
-
-                {/* Secondary Features */}
-                <div className="space-y-2">
-                  <h3 className="text-sm font-semibold text-gray-400 uppercase tracking-wider">
-                    More
-                  </h3>
                   <Link href="/exchange" onClick={() => setIsMobileMenuOpen(false)}>
                     <Button variant="ghost" className="w-full justify-start text-slate-200 hover:text-white hover:bg-slate-800/60">
                       Exchange
-                    </Button>
-                  </Link>
-                  <Link href="/community" onClick={() => setIsMobileMenuOpen(false)}>
-                    <Button variant="ghost" className="w-full justify-start text-slate-200 hover:text-white hover:bg-slate-800/60">
-                      Community
                     </Button>
                   </Link>
                   <Link href="/foundation" onClick={() => setIsMobileMenuOpen(false)}>
