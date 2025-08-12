@@ -1,6 +1,28 @@
 import React from 'react';
 import { Switch, Route, useLocation } from "wouter";
-import { Button } from "@/components/ui/button";
+// Simple button component inline to avoid import issues
+function Button({ children, onClick, className = "", size = "md", variant = "default" }: {
+  children: React.ReactNode;
+  onClick: () => void;
+  className?: string;
+  size?: string;
+  variant?: string;
+}) {
+  const baseClasses = "px-6 py-3 rounded font-medium transition-colors";
+  const sizeClasses = size === "lg" ? "px-8 py-4 text-lg" : "px-6 py-3";
+  const variantClasses = variant === "outline" 
+    ? "border-2 bg-transparent" 
+    : "text-white";
+  
+  return (
+    <button 
+      onClick={onClick}
+      className={`${baseClasses} ${sizeClasses} ${variantClasses} ${className}`}
+    >
+      {children}
+    </button>
+  );
+}
 
 function SimpleLanding() {
   const [, setLocation] = useLocation();
