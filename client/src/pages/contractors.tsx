@@ -19,6 +19,7 @@ import {
   FileText
 } from "lucide-react";
 import { PublicHeatmap } from "@/components/PublicHeatmap";
+import { InteractiveCountyMap } from "@/components/InteractiveCountyMap";
 
 export default function ForContractors() {
   const { user, isAuthenticated } = useAuth();
@@ -228,9 +229,13 @@ export default function ForContractors() {
           </Card>
         </div>
 
-        {/* Platform Activity Showcase */}
+        {/* Interactive County Explorer */}
         <div className="mt-16">
-          <PublicHeatmap compact={false} showTitle={true} />
+          <InteractiveCountyMap 
+            variant="contractor" 
+            showTitle={true} 
+            className="max-w-full"
+          />
         </div>
       </div>
     </div>

@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import { AdDisplay, useUserLocation } from "@/components/AdDisplay";
 import { PublicHeatmap } from "@/components/PublicHeatmap";
+import { InteractiveCountyMap } from "@/components/InteractiveCountyMap";
 
 export default function Home() {
   const { user } = useAuth();
@@ -228,9 +229,13 @@ export default function Home() {
         />
       </div>
 
-      {/* Public Heatmap - Promotional Feature */}
+      {/* Interactive County Map */}
       <div className="mt-12">
-        <PublicHeatmap compact={true} showTitle={true} />
+        <InteractiveCountyMap 
+          variant="homeowner" 
+          showTitle={true} 
+          className="max-w-full"
+        />
       </div>
     </div>
   );

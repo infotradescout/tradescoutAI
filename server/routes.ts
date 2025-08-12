@@ -1101,6 +1101,68 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // County contractors endpoint
+  app.get("/api/contractors/by-county", async (req, res) => {
+    try {
+      const { state, county } = req.query;
+      
+      if (!state || !county) {
+        return res.status(400).json({ message: "State and county parameters required" });
+      }
+
+      // Get contractors for specific county (mock data for now since we don't have county-level contractor data)
+      const mockContractors = [
+        {
+          id: "1",
+          businessName: "Elite Construction Co.",
+          rating: 4.8,
+          reviewCount: 42,
+          specialties: ["Roofing", "Siding", "General Contracting"],
+          isVerified: true,
+          yearsInBusiness: 15,
+          phone: "(555) 123-4567",
+          email: "info@eliteconstruction.com"
+        },
+        {
+          id: "2", 
+          businessName: "ProPlumb Services",
+          rating: 4.6,
+          reviewCount: 28,
+          specialties: ["Plumbing", "Water Heaters", "Drain Cleaning"],
+          isVerified: true,
+          yearsInBusiness: 8,
+          phone: "(555) 987-6543",
+          email: "contact@proplumb.com"
+        },
+        {
+          id: "3",
+          businessName: "Spark Electric LLC",
+          rating: 4.9,
+          reviewCount: 56,
+          specialties: ["Electrical", "Panel Upgrades", "Smart Home"],
+          isVerified: true,
+          yearsInBusiness: 12,
+          phone: "(555) 456-7890"
+        },
+        {
+          id: "4",
+          businessName: "Perfect Paint Pro",
+          rating: 4.4,
+          reviewCount: 19,
+          specialties: ["Interior Painting", "Exterior Painting", "Deck Staining"],
+          isVerified: false,
+          yearsInBusiness: 5,
+          email: "hello@perfectpaintpro.com"
+        }
+      ];
+
+      res.json(mockContractors);
+    } catch (error) {
+      console.error("Error fetching county contractors:", error);
+      res.status(500).json({ message: "Failed to fetch contractors" });
+    }
+  });
+
   // Admin heatmap data endpoint (same as public but with admin context)
   app.get("/api/admin/heatmap", isAuthenticated, async (req, res) => {
     try {
