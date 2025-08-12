@@ -66,6 +66,7 @@ import PaymentSuccess from "@/pages/payment-success";
 import PaymentHistory from "@/pages/payment-history";
 import AdvancedSearch from "@/pages/advanced-search";
 import Notifications from "@/pages/notifications";
+import Profile from "@/pages/profile";
 import { ProfileSetupRedirect } from "@/components/profile-setup-redirect";
 import { FloatingBugReport } from "@/components/FloatingBugReport";
 import { BetaNotificationPopup } from "@/components/BetaNotificationPopup";
@@ -198,6 +199,11 @@ function Router() {
             <Route path="/payments/history" component={PaymentHistory} />
             <Route path="/search" component={AdvancedSearch} />
             <Route path="/notifications" component={Notifications} />
+            <Route path="/profile">
+              <ProfileSetupRedirect>
+                <Profile />
+              </ProfileSetupRedirect>
+            </Route>
             <Route path="/community/feed" component={CommunityFeed} />
             <Route path="/foundation" component={Foundation} />
             <Route path="/affiliate" component={AffiliatePage} />

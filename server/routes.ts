@@ -499,6 +499,160 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Profile management endpoints
+  app.get('/api/auth/profile', isAuthenticated, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.id);
+      
+      // Include contractor-specific data if user is a contractor
+      let profileData = { ...user, passwordHash: undefined };
+      
+      if (user.role === 'contractor_user') {
+        const contractor = await storage.getContractorByUserId(user.id);
+        if (contractor) {
+          profileData = {
+            ...profileData,
+            companyName: contractor.companyName,
+            businessDescription: contractor.businessDescription,
+            licenseNumber: contractor.licenseNumber,
+            yearsInBusiness: contractor.yearsInBusiness,
+            isGeneralContractor: contractor.isGeneralContractor,
+            isResidentialContractor: contractor.isResidentialContractor,
+            acceptsSubcontractWork: contractor.acceptsSubcontractWork,
+          };
+        }
+      }
+      
+      res.json(profileData);
+    } catch (error) {
+      console.error("Error fetching user profile:", error);
+      res.status(500).json({ message: "Failed to fetch user profile" });
+    }
+  });
+
+  app.put('/api/auth/profile', isAuthenticated, async (req: any, res) => {
+    try {
+      const { 
+        firstName, 
+        lastName, 
+        email,
+        phone, 
+        address, 
+        city, 
+        state, 
+        zipCode,
+        // Contractor-specific fields
+        companyName,
+        businessDescription,
+        licenseNumber,
+        yearsInBusiness,
+        isGeneralContractor,
+        isResidentialContractor,
+        acceptsSubcontractWork
+      } = req.body;
+      
+      const user = await storage.updateUser(req.user.id, {
+        firstName,
+        lastName,
+        email,
+        phone,
+        address,
+        city,
+        state,
+        zipCode,
+        updatedAt: new Date(),
+      });
+      
+      // Update contractor-specific data if user is a contractor
+      if (user.role === 'contractor_user' && (companyName || businessDescription || licenseNumber || yearsInBusiness !== undefined)) {
+        const contractor = await storage.getContractorByUserId(user.id);
+        if (contractor) {
+          await storage.updateContractor(contractor.id, {
+            companyName: companyName || contractor.companyName,
+            businessDescription: businessDescription || contractor.businessDescription,
+            licenseNumber: licenseNumber || contractor.licenseNumber,
+            yearsInBusiness: yearsInBusiness !== undefined ? yearsInBusiness : contractor.yearsInBusiness,
+            isGeneralContractor: isGeneralContractor !== undefined ? isGeneralContractor : contractor.isGeneralContractor,
+            isResidentialContractor: isResidentialContractor !== undefined ? isResidentialContractor : contractor.isResidentialContractor,
+            acceptsSubcontractWork: acceptsSubcontractWork !== undefined ? acceptsSubcontractWork : contractor.acceptsSubcontractWork,
+            updatedAt: new Date(),
+          });
+        }
+      }
+      
+      res.json({ ...user, passwordHash: undefined });
+    } catch (error) {
+      console.error("Error updating user profile:", error);
+      res.status(500).json({ message: "Failed to update user profile" });
+    }
+  });
+
+  app.put('/api/auth/change-password', isAuthenticated, async (req: any, res) => {
+    try {
+      const { currentPassword, newPassword } = req.body;
+      const user = await storage.getUser(req.user.id);
+      
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      
+      // Verify current password using bcrypt
+      const bcrypt = require('bcrypt');
+      const isValidPassword = await bcrypt.compare(currentPassword, user.passwordHash);
+      
+      if (!isValidPassword) {
+        return res.status(400).json({ message: "Current password is incorrect" });
+      }
+      
+      // Hash new password
+      const newPasswordHash = await hashPassword(newPassword);
+      
+      // Update password
+      await storage.updateUser(req.user.id, {
+        passwordHash: newPasswordHash,
+        updatedAt: new Date(),
+      });
+      
+      res.json({ message: "Password updated successfully" });
+    } catch (error) {
+      console.error("Error changing password:", error);
+      res.status(500).json({ message: "Failed to change password" });
+    }
+  });
+
+  app.put('/api/auth/notifications', isAuthenticated, async (req: any, res) => {
+    try {
+      const { 
+        emailNotifications,
+        pushNotifications,
+        marketingEmails,
+        weeklyDigest,
+        instantMessages,
+        leadNotifications
+      } = req.body;
+      
+      // Store notification preferences in user preferences
+      const preferences = {
+        emailNotifications: emailNotifications !== undefined ? emailNotifications : true,
+        pushNotifications: pushNotifications !== undefined ? pushNotifications : true,
+        marketingEmails: marketingEmails !== undefined ? marketingEmails : false,
+        weeklyDigest: weeklyDigest !== undefined ? weeklyDigest : true,
+        instantMessages: instantMessages !== undefined ? instantMessages : true,
+        leadNotifications: leadNotifications !== undefined ? leadNotifications : true,
+      };
+      
+      await storage.updateUser(req.user.id, {
+        preferences: JSON.stringify(preferences),
+        updatedAt: new Date(),
+      });
+      
+      res.json({ message: "Notification preferences updated successfully", preferences });
+    } catch (error) {
+      console.error("Error updating notification preferences:", error);
+      res.status(500).json({ message: "Failed to update notification preferences" });
+    }
+  });
+
   // Public contractor board
   app.get("/api/contractors", async (req, res) => {
     try {
