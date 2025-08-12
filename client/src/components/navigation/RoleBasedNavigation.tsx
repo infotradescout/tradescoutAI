@@ -58,13 +58,13 @@ const NAVIGATION_ITEMS: NavigationItem[] = [
     icon: Home,
   },
   
-  // Marketplace Features (avoid duplicating what's in main nav)
+  // Exchange Features (avoid duplicating what's in main nav)
   {
-    label: "Marketplace",
-    href: "/marketplace",
+    label: "Exchange",
+    href: "/exchange",
     icon: Briefcase,
     children: [
-      { label: "List Item", href: "/marketplace/list", icon: UserPlus },
+      { label: "List Item", href: "/exchange/list", icon: UserPlus },
       { label: "Property Listing", href: "/property-listing", icon: Building },
       { label: "Business Listing", href: "/business-listing", icon: Building },
     ],

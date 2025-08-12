@@ -65,19 +65,14 @@ export function EnhancedNavigation({ className = "" }: EnhancedNavigationProps) 
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent className="bg-slate-800 border-slate-700" align="center">
-              <Link href="/marketplace">
+              <Link href="/exchange">
                 <DropdownMenuItem className="text-slate-200 hover:text-white hover:bg-slate-700 cursor-pointer">
-                  Marketplace
+                  Exchange
                 </DropdownMenuItem>
               </Link>
               <Link href="/community">
                 <DropdownMenuItem className="text-slate-200 hover:text-white hover:bg-slate-700 cursor-pointer">
                   Community
-                </DropdownMenuItem>
-              </Link>
-              <Link href="/exchange">
-                <DropdownMenuItem className="text-slate-200 hover:text-white hover:bg-slate-700 cursor-pointer">
-                  Exchange
                 </DropdownMenuItem>
               </Link>
               <Link href="/foundation">
