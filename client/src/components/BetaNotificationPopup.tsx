@@ -1,16 +1,12 @@
-import React, { useState, useEffect } from "react";
-import { X, AlertTriangle, Bug } from "lucide-react";
+import React, { useState, useEffect } from 'react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { Badge } from "@/components/ui/badge";
+import { Bell, X, Rocket, Users, Zap } from "lucide-react";
 
 export function BetaNotificationPopup() {
   const [isOpen, setIsOpen] = useState(false);
+  const [dismissed, setDismissed] = useState(false);
 
   useEffect(() => {
     try {
@@ -44,7 +40,7 @@ export function BetaNotificationPopup() {
       <DialogContent className="max-w-md mx-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-orange-600">
-            <AlertTriangle className="h-5 w-5" />
+            <Bug className="h-5 w-5" />
             Beta Version Notice
           </DialogTitle>
           <DialogDescription>
@@ -56,25 +52,25 @@ export function BetaNotificationPopup() {
           <div className="bg-orange-50 dark:bg-orange-950/20 p-4 rounded-lg border border-orange-200 dark:border-orange-800">
             <div className="space-y-3">
               <div className="flex items-start gap-2">
-                <Bug className="h-4 w-4 text-orange-500 mt-0.5 flex-shrink-0" />
+                <Rocket className="h-4 w-4 text-orange-500 mt-0.5 flex-shrink-0" />
                 <div>
                   <p className="text-sm font-medium text-gray-800 dark:text-gray-200">
-                    Found an issue?
+                    Early Access
                   </p>
                   <p className="text-xs text-gray-600 dark:text-gray-400">
-                    Use the "Report Issue" buttons throughout the site to help us improve.
+                    Be among the first to experience new features and provide feedback.
                   </p>
                 </div>
               </div>
 
               <div className="flex items-start gap-2">
-                <AlertTriangle className="h-4 w-4 text-orange-500 mt-0.5 flex-shrink-0" />
+                <Users className="h-4 w-4 text-orange-500 mt-0.5 flex-shrink-0" />
                 <div>
                   <p className="text-sm font-medium text-gray-800 dark:text-gray-200">
-                    Beta Features
+                    Community Feedback
                   </p>
                   <p className="text-xs text-gray-600 dark:text-gray-400">
-                    Some features may be incomplete or change during development.
+                    Your input is valuable! Use the "Feedback" link to share your thoughts.
                   </p>
                 </div>
               </div>

@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -118,7 +117,7 @@ export default function TestFunctionality() {
         countyFips: '06037'
       });
       const calcTiming = Date.now() - calcStart;
-      
+
       testResults.push({
         name: "Quote Calculator",
         status: calcResponse?.low && calcResponse?.high ? 'pass' : 'fail',
