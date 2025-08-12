@@ -395,7 +395,7 @@ class AIMonitoringService {
   private startPeriodicChecks() {
     this.checkInterval = window.setInterval(() => {
       this.runPeriodicAnalysis();
-    }, 120000); // Every 2 minutes to reduce overhead
+    }, 300000); // Every 5 minutes to reduce memory pressure
   }
 
   private runPeriodicAnalysis() {
@@ -460,22 +460,25 @@ class AIMonitoringService {
       status: 'new'
     };
 
-    // Avoid duplicate issues
+    // Avoid duplicate issues with stricter checking
     const existingIssue = this.issues.find(existing => 
       existing.title === issue.title && 
       existing.location === issue.location &&
-      Date.now() - existing.timestamp.getTime() < 60000 // Within last minute
+      Date.now() - existing.timestamp.getTime() < 300000 // Within last 5 minutes
     );
 
     if (!existingIssue) {
       this.issues.push(issue);
       
-      // Limit stored issues to prevent memory leaks
-      if (this.issues.length > 50) {
-        this.issues = this.issues.slice(-25); // Keep only the latest 25 issues
+      // More aggressive memory management
+      if (this.issues.length > 20) {
+        this.issues = this.issues.slice(-10); // Keep only the latest 10 issues
       }
       
-      console.warn(`🤖 AI Monitor: ${issue.severity.toUpperCase()} - ${issue.title}`, issue);
+      // Only log critical and high severity issues to reduce noise
+      if (issue.severity === 'critical' || issue.severity === 'high') {
+        console.warn(`🤖 AI Monitor: ${issue.severity.toUpperCase()} - ${issue.title}`, issue);
+      }
     }
   }
 
