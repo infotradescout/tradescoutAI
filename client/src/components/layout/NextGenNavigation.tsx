@@ -2,7 +2,8 @@ import { useState } from "react";
 import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
-import { Menu, X } from "lucide-react";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { Menu, X, ChevronDown, Home, Calculator, Users, Wrench, LayoutDashboard, ArrowLeftRight, Building, MessageSquare } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { UserMenu } from "@/components/navigation/RoleBasedNavigation";
 import { ConstructionEmblem } from "@/components/ConstructionEmblem";
@@ -23,13 +24,31 @@ export function NextGenNavigation({ className = "" }: NextGenNavigationProps) {
   };
 
   const navItems = [
-    { href: "/contractors", label: "Find Contractors" },
-    { href: "/calculator", label: "Calculator" },
-    { href: "/contractors/for-contractors", label: "For Contractors" },
-    { href: "/helpers", label: "Helpers" },
-    { href: "/dashboard", label: "Dashboard" },
-    { href: "/exchange", label: "Exchange" },
-    { href: "/foundation", label: "Foundation" }
+    { href: "/contractors", label: "Find Contractors", icon: Users },
+    { href: "/calculator", label: "Calculator", icon: Calculator },
+    { href: "/contractors/for-contractors", label: "For Contractors", icon: Wrench },
+    { href: "/helpers", label: "Helpers", icon: Users },
+    { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
+    { href: "/exchange", label: "Exchange", icon: ArrowLeftRight },
+    { href: "/foundation", label: "Foundation", icon: Building },
+    { href: "/community", label: "Community", icon: MessageSquare }
+  ];
+
+  // Extended dropdown navigation with all available routes
+  const dropdownNavItems = [
+    { href: "/", label: "Home", icon: Home },
+    { href: "/contractors", label: "Find Contractors", icon: Users },
+    { href: "/calculator", label: "Calculator", icon: Calculator },
+    { href: "/contractors/for-contractors", label: "For Contractors", icon: Wrench },
+    { href: "/helpers", label: "Helpers", icon: Users },
+    { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
+    { href: "/exchange", label: "Exchange", icon: ArrowLeftRight },
+    { href: "/foundation", label: "Foundation", icon: Building },
+    { href: "/community", label: "Community", icon: MessageSquare },
+    { href: "/marketplace", label: "Marketplace", icon: ArrowLeftRight },
+    { href: "/leaderboard", label: "Leaderboard", icon: Building },
+    { href: "/growth-pack", label: "Growth Pack", icon: Wrench },
+    { href: "/workers", label: "Worker Marketplace", icon: Users }
   ];
 
   return (
@@ -67,7 +86,7 @@ export function NextGenNavigation({ className = "" }: NextGenNavigationProps) {
                 const active = isActive(item.href);
                 return (
                   <Link key={item.href} href={item.href}>
-                    <div className={`relative px-5 py-3 rounded-2xl transition-all duration-500 group overflow-hidden ${
+                    <div className={`relative px-4 py-2.5 rounded-2xl transition-all duration-500 group overflow-hidden ${
                       active 
                         ? "bg-gradient-to-r from-orange-500 to-orange-600 text-white shadow-lg shadow-orange-500/25 border border-orange-400/20" 
                         : "hover:bg-white/[0.08] text-slate-300 hover:text-white"
@@ -82,13 +101,13 @@ export function NextGenNavigation({ className = "" }: NextGenNavigationProps) {
                         <div className="absolute inset-0 bg-gradient-to-r from-orange-500/0 to-orange-600/0 group-hover:from-orange-500/10 group-hover:to-orange-600/10 rounded-2xl transition-all duration-500"></div>
                       )}
                       
-                      <span className="relative z-10 font-medium text-sm tracking-wide whitespace-nowrap">
+                      <span className="relative z-10 font-medium text-xs tracking-wide whitespace-nowrap">
                         {item.label}
                       </span>
                       
                       {/* Micro-interaction indicator */}
                       <div className={`absolute bottom-0 left-1/2 transform -translate-x-1/2 h-0.5 bg-gradient-to-r from-orange-400 to-orange-600 rounded-full transition-all duration-500 ${
-                        active ? "w-6" : "w-0 group-hover:w-4"
+                        active ? "w-4" : "w-0 group-hover:w-3"
                       }`}></div>
                     </div>
                   </Link>
@@ -97,6 +116,43 @@ export function NextGenNavigation({ className = "" }: NextGenNavigationProps) {
             </div>
           </div>
         </nav>
+
+        {/* Navigation Dropdown for All Items */}
+        <div className="hidden lg:flex items-center space-x-4">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                className="text-slate-300 hover:text-white hover:bg-white/10 transition-all duration-300 backdrop-blur-xl border border-transparent hover:border-white/20 rounded-xl"
+              >
+                <Menu className="w-4 h-4 mr-2" />
+                All Pages
+                <ChevronDown className="w-4 h-4 ml-2" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent 
+              className="w-56 bg-slate-800/95 backdrop-blur-2xl border-slate-700/50 shadow-2xl"
+              align="end"
+            >
+              {dropdownNavItems.map((item, index) => {
+                const Icon = item.icon;
+                return (
+                  <DropdownMenuItem 
+                    key={item.href} 
+                    className="text-slate-200 hover:bg-slate-700/50 hover:text-white focus:bg-slate-700/50 focus:text-white cursor-pointer"
+                    asChild
+                  >
+                    <Link href={item.href} className="flex items-center">
+                      <Icon className="w-4 h-4 mr-3 text-orange-400" />
+                      {item.label}
+                    </Link>
+                  </DropdownMenuItem>
+                );
+              })}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
 
         {/* User Menu / Auth Buttons */}
         <div className="flex items-center space-x-4">
@@ -159,17 +215,21 @@ export function NextGenNavigation({ className = "" }: NextGenNavigationProps) {
                   <h3 className="text-sm font-semibold text-orange-400 uppercase tracking-wider mb-4">
                     Navigation
                   </h3>
-                  {navItems.map((item) => (
-                    <Link key={item.href} href={item.href} onClick={() => setIsMobileMenuOpen(false)}>
-                      <div className={`w-full p-4 rounded-xl transition-all duration-300 group ${
-                        isActive(item.href)
-                          ? "bg-gradient-to-r from-orange-500/20 to-orange-600/20 border border-orange-500/30 text-white"
-                          : "hover:bg-white/5 text-slate-300 hover:text-white border border-transparent hover:border-white/10"
-                      }`}>
-                        <span className="font-medium tracking-wide">{item.label}</span>
-                      </div>
-                    </Link>
-                  ))}
+                  {dropdownNavItems.map((item) => {
+                    const Icon = item.icon;
+                    return (
+                      <Link key={item.href} href={item.href} onClick={() => setIsMobileMenuOpen(false)}>
+                        <div className={`w-full p-4 rounded-xl transition-all duration-300 group flex items-center space-x-3 ${
+                          isActive(item.href)
+                            ? "bg-gradient-to-r from-orange-500/20 to-orange-600/20 border border-orange-500/30 text-white"
+                            : "hover:bg-white/5 text-slate-300 hover:text-white border border-transparent hover:border-white/10"
+                        }`}>
+                          <Icon className="w-5 h-5 text-orange-400" />
+                          <span className="font-medium tracking-wide">{item.label}</span>
+                        </div>
+                      </Link>
+                    );
+                  })}
                 </div>
 
                 {/* Authentication */}
