@@ -46,8 +46,7 @@ export function NextGenNavigation({ className = "" }: NextGenNavigationProps) {
     ...navItems,
     { href: "/marketplace", label: "Marketplace", icon: ArrowLeftRight },
     { href: "/leaderboard", label: "Leaderboard", icon: Building },
-    { href: "/growth-pack", label: "Growth Pack", icon: Wrench },
-    { href: "/workers", label: "Worker Marketplace", icon: Users }
+    { href: "/growth-pack", label: "Growth Pack", icon: Wrench }
   ], [navItems]);
 
   const isActive = (path: string) => {
