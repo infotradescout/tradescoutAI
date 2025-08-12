@@ -1,12 +1,14 @@
 import React from 'react';
 import { Switch, Route, useLocation } from "wouter";
 // Simple button component inline to avoid import issues
-function Button({ children, onClick, className = "", size = "md", variant = "default" }: {
+function Button({ children, onClick, className = "", size = "md", variant = "default", type = "button", disabled = false }: {
   children: React.ReactNode;
-  onClick: () => void;
+  onClick?: () => void;
   className?: string;
   size?: string;
   variant?: string;
+  type?: "button" | "submit" | "reset";
+  disabled?: boolean;
 }) {
   const baseClasses = "px-6 py-3 rounded font-medium transition-colors";
   const sizeClasses = size === "lg" ? "px-8 py-4 text-lg" : "px-6 py-3";
@@ -16,7 +18,9 @@ function Button({ children, onClick, className = "", size = "md", variant = "def
   
   return (
     <button 
+      type={type}
       onClick={onClick}
+      disabled={disabled}
       className={`${baseClasses} ${sizeClasses} ${variantClasses} ${className}`}
     >
       {children}
