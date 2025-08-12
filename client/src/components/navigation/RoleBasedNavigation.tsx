@@ -306,7 +306,7 @@ export function UserMenu() {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" className="flex items-center gap-2">
+        <Button variant="ghost" className="flex items-center gap-2" data-profile-dropdown data-tutorial="profile-dropdown-tour">
           <div className="flex flex-col items-end">
             <span className="text-sm font-medium">{user.firstName} {user.lastName}</span>
             <RoleBadge role={userRole} size="sm" />
@@ -324,7 +324,7 @@ export function UserMenu() {
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
         <DropdownMenuItem asChild>
-          <Link href="/profile" className="flex items-center gap-3 cursor-pointer text-slate-200 hover:text-white px-3 py-2 hover:bg-slate-700/60">
+          <Link href="/profile" className="flex items-center gap-3 cursor-pointer text-slate-200 hover:text-white px-3 py-2 hover:bg-slate-700/60" data-profile-link data-tutorial="profile-access">
             <Users className="h-4 w-4" />
             Profile
           </Link>

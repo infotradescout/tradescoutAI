@@ -19,6 +19,7 @@ import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
 import { Separator } from "@/components/ui/separator";
 import DragDropNavigationPreferences from "@/components/navigation/DragDropNavigationPreferences";
+import { FeatureTutorialTrigger } from "@/components/tutorial/FeatureTutorialTrigger";
 import { 
   User, 
   Mail, 
@@ -411,7 +412,8 @@ export default function Profile() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-navy-900 to-slate-900 p-4">
+    <div className="min-h-screen bg-gradient-to-br from-navy-900 to-slate-900 p-4" data-page="profile" data-tutorial="profile-management">
+      <FeatureTutorialTrigger featureId="profile-management" />
       <div className="max-w-4xl mx-auto">
         {/* Profile Header */}
         <Card className="mb-6 bg-navy-800 border-navy-600">
@@ -451,6 +453,8 @@ export default function Profile() {
                   <Button 
                     onClick={() => setEditMode(true)}
                     className="bg-orange-500 hover:bg-orange-600"
+                    data-edit-profile-button
+                    data-tutorial="edit-profile-action"
                   >
                     <Edit2 className="h-4 w-4 mr-2" />
                     Edit Profile
@@ -481,21 +485,21 @@ export default function Profile() {
         </Card>
 
         {/* Profile Tabs */}
-        <Tabs value={activeTab} onValueChange={setActiveTab}>
+        <Tabs value={activeTab} onValueChange={setActiveTab} data-profile-tabs>
           <TabsList className="grid w-full grid-cols-4 bg-navy-700 mb-6">
-            <TabsTrigger value="profile" className="data-[state=active]:bg-orange-500">
+            <TabsTrigger value="profile" className="data-[state=active]:bg-orange-500" data-tab="profile-info">
               <User className="h-4 w-4 mr-2" />
               Profile
             </TabsTrigger>
-            <TabsTrigger value="security" className="data-[state=active]:bg-orange-500">
+            <TabsTrigger value="security" className="data-[state=active]:bg-orange-500" data-tab="security-settings">
               <Key className="h-4 w-4 mr-2" />
               Security
             </TabsTrigger>
-            <TabsTrigger value="notifications" className="data-[state=active]:bg-orange-500">
+            <TabsTrigger value="notifications" className="data-[state=active]:bg-orange-500" data-tab="notification-preferences">
               <Bell className="h-4 w-4 mr-2" />
               Notifications
             </TabsTrigger>
-            <TabsTrigger value="preferences" className="data-[state=active]:bg-orange-500">
+            <TabsTrigger value="preferences" className="data-[state=active]:bg-orange-500" data-tab="account-preferences">
               <Settings className="h-4 w-4 mr-2" />
               Preferences
             </TabsTrigger>

@@ -133,7 +133,11 @@ export default function Dashboard() {
     // Service provider roles
     case 'contractor_user':
     case 'accelerator_member':
-      return <ContractorDashboard />;
+      return (
+        <div data-dashboard-area data-tutorial="contractor-dashboard">
+          <ContractorDashboard />
+        </div>
+      );
     
     case 'realtor':
       return <RealtorDashboard />;
@@ -180,6 +184,10 @@ export default function Dashboard() {
     // Default to homeowner dashboard
     case 'homeowner':
     default:
-      return <HomeownerDashboard />;
+      return (
+        <div data-dashboard-area data-tutorial="homeowner-dashboard">
+          <HomeownerDashboard />
+        </div>
+      );
   }
 }

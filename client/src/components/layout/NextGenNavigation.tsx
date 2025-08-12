@@ -185,7 +185,7 @@ export function NextGenNavigation({ className = "" }: NextGenNavigationProps) {
         </Link>
 
         {/* Revolutionary Adaptive Navigation */}
-        <nav className="hidden md:flex items-center flex-1 justify-center max-w-5xl mx-4" ref={navRef}>
+        <nav className="hidden md:flex items-center flex-1 justify-center max-w-5xl mx-4" ref={navRef} data-navigation data-tutorial="navigation-tour">
           <div className="flex items-center space-x-1 bg-slate-800/60 rounded-xl p-1.5 border border-slate-700/50 shadow-lg backdrop-blur-sm transition-all duration-300 ease-in-out">
             {/* Priority-based visible items with smooth transitions */}
             {visibleItems.map((item) => {
@@ -202,6 +202,11 @@ export function NextGenNavigation({ className = "" }: NextGenNavigationProps) {
                         : "text-slate-300 hover:text-white hover:bg-slate-700/60 border-transparent hover:border-slate-600"
                     } ${showTextLabel ? 'px-3 py-2 gap-2' : 'px-2.5 py-2'}`}
                     title={!showTextLabel ? item.label : undefined}
+                    data-nav-item={item.label.toLowerCase().replace(/\s+/g, '-')}
+                    data-nav-contractors={item.href === '/contractors' ? 'true' : undefined}
+                    data-nav-calculator={item.href === '/calculator' ? 'true' : undefined}
+                    data-nav-dashboard={item.href === '/dashboard' ? 'true' : undefined}
+                    data-nav-growth={item.href === '/growth-pack' ? 'true' : undefined}
                   >
                     <Icon className={`w-4 h-4 flex-shrink-0 transition-colors duration-300 ${
                       active ? 'text-white' : 'text-orange-400'

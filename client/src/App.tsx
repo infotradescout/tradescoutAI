@@ -109,6 +109,7 @@ import { FloatingBugReport } from "@/components/FloatingBugReport";
 import { BetaNotificationPopup } from "@/components/BetaNotificationPopup";
 import { AddressVerificationBanner } from "@/components/AddressVerificationBanner";
 import { LegalFooter } from "@/components/footer/legal-footer";
+import { TutorialProvider } from "@/components/tutorial/TutorialProvider";
 
 // Lazy load admin components
 const AdminCreateAccount = lazy(() => import("@/pages/admin-create-account"));
@@ -290,10 +291,12 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
-        <ErrorBoundary>
-          <Toaster />
-          <Router />
-        </ErrorBoundary>
+        <TutorialProvider>
+          <ErrorBoundary>
+            <Toaster />
+            <Router />
+          </ErrorBoundary>
+        </TutorialProvider>
       </TooltipProvider>
     </QueryClientProvider>
   );

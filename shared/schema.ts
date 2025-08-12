@@ -4229,3 +4229,6 @@ export type InsertFoundationCauseType = z.infer<typeof insertFoundationCauseSche
 export type InsertFoundationDonationType = z.infer<typeof insertFoundationDonationSchema>;
 export type InsertUserDonationPreferencesType = z.infer<typeof insertUserDonationPreferencesSchema>;
 export type InsertFoundationImpactReportType = z.infer<typeof insertFoundationImpactReportSchema>;
+
+// Tutorial system tables
+export * from "./tutorial-schema";
