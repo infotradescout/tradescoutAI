@@ -543,10 +543,13 @@ export function TestingErrorReportButton({
     <>
       <Button
         onClick={() => setIsOpen(true)}
-        className="fixed bottom-6 right-6 z-50 bg-orange-500 hover:bg-orange-600 text-white shadow-lg rounded-full p-4"
+        className="fixed bottom-6 right-6 z-50 bg-orange-500 hover:bg-orange-600 text-white shadow-lg rounded-full p-4 
+                   md:bottom-6 md:right-6 
+                   max-md:bottom-20 max-md:right-4 max-md:p-3 
+                   transition-all duration-300 hover:scale-105"
         size="icon"
       >
-        <Bug className="h-6 w-6" />
+        <Bug className="h-6 w-6 max-md:h-5 max-md:w-5" />
       </Button>
 
       <Dialog open={isOpen} onOpenChange={setIsOpen}>

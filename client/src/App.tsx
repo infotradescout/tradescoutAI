@@ -183,7 +183,6 @@ const Router = memo(function Router() {
         {/* Public routes available to all users */}
         <Route path="/contractors" component={ForContractors} />
         <Route path="/contractors/board" component={ContractorBoard} />
-        <Route path="/contractors/for-contractors" component={ForContractors} />
         <Route path="/contractors/apply" component={ContractorApply} />
         <Route path="/contractors/accelerator" component={ContractorAccelerator} />
         <Route path="/contractors/:slug" component={ContractorProfile} />

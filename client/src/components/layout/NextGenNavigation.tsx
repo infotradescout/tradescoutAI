@@ -38,7 +38,7 @@ export function NextGenNavigation({ className = "" }: NextGenNavigationProps) {
       { href: "/contractors", label: "Find Contractors", icon: Users, priority: 10 },
       { href: "/calculator", label: "Calculator", icon: Calculator, priority: 9 },
       { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard, priority: 8 },
-      { href: "/contractors/for-contractors", label: "For Contractors", icon: Wrench, priority: 7 },
+      { href: "/contractors/board", label: "Contractor Board", icon: Wrench, priority: 7 },
       { href: "/foundation", label: "Foundation", icon: Building, priority: 6 },
       { href: "/community", label: "Community", icon: MessageSquare, priority: 5 },
       { href: "/helpers", label: "Helpers", icon: Users, priority: 4 },
@@ -50,7 +50,7 @@ export function NextGenNavigation({ className = "" }: NextGenNavigationProps) {
     if (userRole === 'contractor_user' || userRole === 'accelerator_member') {
       return baseItems.map(item => {
         if (item.href === '/dashboard') return { ...item, priority: 15 }; // Highest priority
-        if (item.href === '/contractors/for-contractors') return { ...item, priority: 14 };
+        if (item.href === '/contractors/board') return { ...item, priority: 14 };
         if (item.href === '/accelerator') return { ...item, priority: 13 };
         if (item.href === '/helpers') return { ...item, priority: 12 };
         if (item.href === '/calculator') return { ...item, priority: 11 };
