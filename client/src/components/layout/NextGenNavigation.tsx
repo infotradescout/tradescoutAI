@@ -63,10 +63,10 @@ export function NextGenNavigation({ className = "" }: NextGenNavigationProps) {
       const width = navRef.current.offsetWidth;
       setContainerWidth(width);
 
-      // Revolutionary adaptive layout system
-      if (width >= 1200) {
+      // Revolutionary adaptive layout system - much more generous breakpoints
+      if (width >= 900) {
         setAdaptiveLayout('full'); // Show all items
-      } else if (width >= 800) {
+      } else if (width >= 650) {
         setAdaptiveLayout('compact'); // Show priority items + dropdown
       } else {
         setAdaptiveLayout('minimal'); // Show only top items + dropdown
@@ -99,20 +99,20 @@ export function NextGenNavigation({ className = "" }: NextGenNavigationProps) {
 
     switch (adaptiveLayout) {
       case 'full':
-        visible = sorted.slice(0, 8);
+        visible = sorted.slice(0, 8); // Show all 8 items
         hidden = sorted.slice(8);
         break;
       case 'compact':
-        visible = sorted.slice(0, 5);
-        hidden = sorted.slice(5);
+        visible = sorted.slice(0, 6); // Show 6 items instead of 5
+        hidden = sorted.slice(6);
         break;
       case 'minimal':
-        visible = sorted.slice(0, 3);
-        hidden = sorted.slice(3);
+        visible = sorted.slice(0, 4); // Show 4 items instead of 3
+        hidden = sorted.slice(4);
         break;
       default:
-        visible = sorted.slice(0, 4);
-        hidden = sorted.slice(4);
+        visible = sorted.slice(0, 5);
+        hidden = sorted.slice(5);
     }
 
     return { visibleItems: visible, hiddenItems: hidden };
@@ -138,7 +138,7 @@ export function NextGenNavigation({ className = "" }: NextGenNavigationProps) {
         </Link>
 
         {/* Revolutionary Adaptive Navigation */}
-        <nav className="hidden md:flex items-center flex-1 justify-center max-w-4xl mx-4" ref={navRef}>
+        <nav className="hidden md:flex items-center flex-1 justify-center max-w-5xl mx-4" ref={navRef}>
           <div className="flex items-center space-x-1 bg-slate-800/60 rounded-xl p-1.5 border border-slate-700/50 shadow-lg backdrop-blur-sm">
             {/* Priority-based visible items */}
             {visibleItems.map((item) => {
