@@ -17,7 +17,9 @@ import {
   Users,
   Briefcase,
   Plus,
-  Filter
+  Filter,
+  Wrench,
+  Calendar
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { apiRequest } from "@/lib/queryClient";
@@ -139,7 +141,7 @@ export default function Helpers() {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-3 mb-6 bg-slate-800 border-slate-700">
+        <TabsList className="grid w-full grid-cols-4 mb-6 bg-slate-800 border-slate-700">
           <TabsTrigger value="find-helpers" className="text-slate-300 data-[state=active]:text-white data-[state=active]:bg-slate-700">
             Find Helpers
           </TabsTrigger>
@@ -148,6 +150,9 @@ export default function Helpers() {
           </TabsTrigger>
           <TabsTrigger value="post-task" className="text-slate-300 data-[state=active]:text-white data-[state=active]:bg-slate-700">
             Post Task
+          </TabsTrigger>
+          <TabsTrigger value="accelerator" className="text-purple-300 data-[state=active]:text-white data-[state=active]:bg-purple-700 data-[state=active]:border-purple-500 border-2 border-transparent hover:border-purple-400 transition-colors">
+            Accelerator Program
           </TabsTrigger>
         </TabsList>
 
@@ -474,6 +479,127 @@ export default function Helpers() {
                 <Button className="bg-orange-500 hover:bg-orange-600">
                   Post Task
                 </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="accelerator" className="space-y-6">
+          <Card className="bg-gradient-to-br from-purple-900/50 to-purple-800/30 border-purple-600">
+            <CardContent className="p-8">
+              <div className="text-center mb-8">
+                <div className="w-16 h-16 bg-purple-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <Star className="h-8 w-8 text-white" />
+                </div>
+                <h2 className="text-3xl font-bold text-white mb-4">TradeScout Accelerator Program</h2>
+                <p className="text-purple-200 text-lg mb-6">
+                  Fast-track your contracting career with exclusive benefits, training, and opportunities
+                </p>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                <div className="bg-purple-800/40 rounded-lg p-6 border border-purple-600/50">
+                  <div className="flex items-center mb-4">
+                    <Wrench className="h-6 w-6 text-purple-300 mr-3" />
+                    <h3 className="text-xl font-semibold text-white">Premium Training</h3>
+                  </div>
+                  <p className="text-purple-200 mb-4">
+                    Access exclusive workshops, certifications, and skill development programs from industry experts.
+                  </p>
+                  <ul className="text-purple-300 text-sm space-y-2">
+                    <li>• Advanced construction techniques</li>
+                    <li>• Business management training</li>
+                    <li>• Safety certification programs</li>
+                    <li>• Technology integration workshops</li>
+                  </ul>
+                </div>
+
+                <div className="bg-purple-800/40 rounded-lg p-6 border border-purple-600/50">
+                  <div className="flex items-center mb-4">
+                    <DollarSign className="h-6 w-6 text-purple-300 mr-3" />
+                    <h3 className="text-xl font-semibold text-white">Lead Priority</h3>
+                  </div>
+                  <p className="text-purple-200 mb-4">
+                    Get first access to high-value projects and premium client referrals in your area.
+                  </p>
+                  <ul className="text-purple-300 text-sm space-y-2">
+                    <li>• Priority lead routing</li>
+                    <li>• Exclusive project opportunities</li>
+                    <li>• Premium client matching</li>
+                    <li>• Reduced competition on bids</li>
+                  </ul>
+                </div>
+
+                <div className="bg-purple-800/40 rounded-lg p-6 border border-purple-600/50">
+                  <div className="flex items-center mb-4">
+                    <Users className="h-6 w-6 text-purple-300 mr-3" />
+                    <h3 className="text-xl font-semibold text-white">Elite Network</h3>
+                  </div>
+                  <p className="text-purple-200 mb-4">
+                    Connect with top-tier contractors and industry leaders for collaboration and mentorship.
+                  </p>
+                  <ul className="text-purple-300 text-sm space-y-2">
+                    <li>• Monthly networking events</li>
+                    <li>• Mentorship programs</li>
+                    <li>• Partner contractor network</li>
+                    <li>• Industry insider access</li>
+                  </ul>
+                </div>
+              </div>
+
+              <div className="bg-purple-900/60 rounded-lg p-6 border border-purple-500 mb-6">
+                <h3 className="text-xl font-semibold text-white mb-4 flex items-center">
+                  <Calendar className="h-5 w-5 text-purple-300 mr-2" />
+                  Program Benefits
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="flex items-center text-purple-200">
+                    <CheckCircle className="h-4 w-4 text-green-400 mr-2" />
+                    <span>Reduced platform fees (15% → 8%)</span>
+                  </div>
+                  <div className="flex items-center text-purple-200">
+                    <CheckCircle className="h-4 w-4 text-green-400 mr-2" />
+                    <span>Free marketing materials and branding</span>
+                  </div>
+                  <div className="flex items-center text-purple-200">
+                    <CheckCircle className="h-4 w-4 text-green-400 mr-2" />
+                    <span>24/7 priority support hotline</span>
+                  </div>
+                  <div className="flex items-center text-purple-200">
+                    <CheckCircle className="h-4 w-4 text-green-400 mr-2" />
+                    <span>Quarterly business performance reviews</span>
+                  </div>
+                  <div className="flex items-center text-purple-200">
+                    <CheckCircle className="h-4 w-4 text-green-400 mr-2" />
+                    <span>Access to equipment financing programs</span>
+                  </div>
+                  <div className="flex items-center text-purple-200">
+                    <CheckCircle className="h-4 w-4 text-green-400 mr-2" />
+                    <span>Insurance discounts and group plans</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="text-center">
+                <div className="bg-purple-800/60 rounded-lg p-6 border border-purple-600 mb-6">
+                  <h3 className="text-2xl font-bold text-white mb-2">Investment: $199/month</h3>
+                  <p className="text-purple-200">
+                    Typical ROI: 300-500% within first 6 months
+                  </p>
+                </div>
+                
+                <div className="flex flex-col sm:flex-row gap-4 justify-center">
+                  <Button className="bg-purple-600 hover:bg-purple-700 text-white px-8 py-3 text-lg">
+                    Apply Now
+                  </Button>
+                  <Button variant="outline" className="border-purple-600 text-purple-300 hover:bg-purple-800/50 px-8 py-3 text-lg">
+                    Schedule Consultation
+                  </Button>
+                </div>
+                
+                <p className="text-purple-300 text-sm mt-4">
+                  Limited to 50 contractors per region. Application review process required.
+                </p>
               </div>
             </CardContent>
           </Card>

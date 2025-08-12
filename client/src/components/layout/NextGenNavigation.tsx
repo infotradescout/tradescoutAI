@@ -44,7 +44,7 @@ export function NextGenNavigation({ className = "" }: NextGenNavigationProps) {
   const allPages = useMemo(() => [
     { href: "/", label: "Home", icon: Home },
     ...navItems,
-    { href: "/marketplace", label: "Marketplace", icon: ArrowLeftRight },
+
     { href: "/leaderboard", label: "Leaderboard", icon: Building },
     { href: "/growth-pack", label: "Growth Pack", icon: Wrench }
   ], [navItems]);
