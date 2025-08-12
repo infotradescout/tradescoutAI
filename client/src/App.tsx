@@ -161,6 +161,11 @@ function Router() {
                 <Dashboard />
               </ProfileSetupRedirect>
             </Route>
+            <Route path="/dashboard/account">
+              <ProfileSetupRedirect>
+                <Profile />
+              </ProfileSetupRedirect>
+            </Route>
             <Route path="/homeowner-dashboard">
               <ProfileSetupRedirect>
                 <HomeownerDashboard />
