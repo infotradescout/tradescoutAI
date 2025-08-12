@@ -4,6 +4,7 @@ import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { HomeownerTipsRotator } from "@/components/HomeownerTipsRotator";
 import { 
   Calculator, 
   MapPin, 
@@ -264,15 +265,7 @@ export default function HomeownerDashboard() {
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              <div className="p-4 bg-gradient-to-r from-orange-500/10 to-orange-600/10 border border-orange-500/20 rounded-lg">
-                <h4 className="text-white font-semibold mb-2">Winter Home Maintenance</h4>
-                <p className="text-gray-300 text-sm mb-3">
-                  Get your home ready for winter with our recommended contractor checklist.
-                </p>
-                <Button size="sm" className="bg-orange-500 hover:bg-orange-600 text-white">
-                  Learn More
-                </Button>
-              </div>
+              <HomeownerTipsRotator />
               
               <div className="p-4 bg-navy-600 rounded-lg">
                 <h4 className="text-white font-semibold mb-2">Top Rated Contractors</h4>
