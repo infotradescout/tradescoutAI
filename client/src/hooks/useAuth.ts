@@ -1,4 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
+import { useCallback } from "react";
 
 export interface User {
   id: string;
@@ -14,32 +15,57 @@ export interface User {
 }
 
 export function useAuth() {
-  const { data: user, isLoading, error } = useQuery({
-    queryKey: ["/api/auth/user"],
-    queryFn: async () => {
-      try {
-        const response = await fetch('/api/auth/user', {
-          credentials: 'include',
-        });
-        if (!response.ok) {
-          if (response.status === 401) {
-            return null; // User not authenticated
-          }
-          throw new Error(`Auth request failed: ${response.status}`);
+  const authQuery = useCallback(async () => {
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+
+      const response = await fetch('/api/auth/user', {
+        credentials: 'include',
+        signal: controller.signal,
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json',
+        },
+      });
+
+      clearTimeout(timeoutId);
+
+      if (!response.ok) {
+        if (response.status === 401) {
+          return null; // User not authenticated
         }
-        return response.json();
-      } catch (error) {
-        console.error('Auth request error:', error);
-        if (error instanceof TypeError && error.message.includes('fetch')) {
-          // Network error
+        throw new Error(`Auth request failed: ${response.status}`);
+      }
+      return response.json();
+    } catch (error) {
+      if (error instanceof Error) {
+        if (error.name === 'AbortError') {
+          console.warn('Auth request timed out');
           return null;
         }
-        throw error;
+        if (error.message.includes('fetch') || error.message.includes('Failed to fetch')) {
+          console.warn('Network error during auth request:', error.message);
+          return null;
+        }
       }
+      console.error('Auth request error:', error);
+      return null;
+    }
+  }, []);
+
+  const { data: user, isLoading, error } = useQuery({
+    queryKey: ["/api/auth/user"],
+    queryFn: authQuery,
+    retry: (failureCount, error) => {
+      // Only retry on network errors, not auth failures
+      if (failureCount < 2 && error?.message?.includes('fetch')) {
+        return true;
+      }
+      return false;
     },
-    retry: 1,
-    retryDelay: 2000,
-    staleTime: 10 * 60 * 1000, // 10 minutes - reduce polling
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
+    staleTime: 10 * 60 * 1000, // 10 minutes
     gcTime: 15 * 60 * 1000, // 15 minutes garbage collection
     refetchOnWindowFocus: false,
     refetchOnMount: false,

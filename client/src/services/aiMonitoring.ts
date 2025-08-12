@@ -395,7 +395,7 @@ class AIMonitoringService {
   private startPeriodicChecks() {
     this.checkInterval = window.setInterval(() => {
       this.runPeriodicAnalysis();
-    }, 30000); // Every 30 seconds
+    }, 120000); // Every 2 minutes to reduce overhead
   }
 
   private runPeriodicAnalysis() {
@@ -469,6 +469,12 @@ class AIMonitoringService {
 
     if (!existingIssue) {
       this.issues.push(issue);
+      
+      // Limit stored issues to prevent memory leaks
+      if (this.issues.length > 50) {
+        this.issues = this.issues.slice(-25); // Keep only the latest 25 issues
+      }
+      
       console.warn(`🤖 AI Monitor: ${issue.severity.toUpperCase()} - ${issue.title}`, issue);
     }
   }

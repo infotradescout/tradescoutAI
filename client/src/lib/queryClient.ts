@@ -3,52 +3,65 @@ import { QueryClient } from "@tanstack/react-query";
 // Get API URL from environment variables
 const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
-const apiRequest = async (
-  method: string = "GET",
-  endpoint: string = "",
-  data?: any
-): Promise<any> => {
+// Enhanced API request function with better error handling
+export async function apiRequest(method: string, url: string, data?: any) {
   try {
-    const url = endpoint.startsWith("http") ? endpoint : `${API_BASE_URL}${endpoint}`;
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 second timeout
+
     const config: RequestInit = {
       method,
+      credentials: 'include',
+      signal: controller.signal,
       headers: {
-        "Content-Type": "application/json",
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
       },
-      credentials: "include",
     };
 
-    if (data) {
+    if (data && (method === 'POST' || method === 'PUT' || method === 'PATCH')) {
       config.body = JSON.stringify(data);
     }
 
     const response = await fetch(url, config);
+    clearTimeout(timeoutId);
 
     if (!response.ok) {
-      if (response.status === 401) {
-        // Redirect to login on unauthorized
-        window.location.href = '/login';
-        throw new Error('Unauthorized');
-      }
+      const errorText = await response.text();
+      let errorMessage = `Request failed with status ${response.status}`;
 
-      let errorMessage = `HTTP error! status: ${response.status}`;
       try {
-        const errorData = await response.json();
-        errorMessage = errorData.message || errorMessage;
+        const errorJson = JSON.parse(errorText);
+        errorMessage = errorJson.message || errorMessage;
       } catch {
-        // If we can't parse the error response, use the default message
+        // Use the raw text as error message
+        errorMessage = errorText || errorMessage;
       }
 
       throw new Error(errorMessage);
     }
 
-    const result = await response.json();
-    return result;
+    // Handle empty responses
+    const text = await response.text();
+    if (!text) return null;
+
+    try {
+      return JSON.parse(text);
+    } catch {
+      return text;
+    }
   } catch (error) {
-    console.error("API request failed:", error);
+    if (error instanceof Error) {
+      if (error.name === 'AbortError') {
+        throw new Error('Request timed out');
+      }
+      if (error.message.includes('fetch') || error.message.includes('Failed to fetch')) {
+        throw new Error('Network error - please check your connection');
+      }
+    }
     throw error;
   }
-};
+}
 
 export const queryClient = new QueryClient({
   defaultOptions: {
@@ -71,21 +84,26 @@ export const queryClient = new QueryClient({
         return apiRequest("GET", url);
       },
       retry: (failureCount, error: any) => {
-        // Don't retry on 4xx errors
-        if (error?.message?.includes('401') || error?.message?.includes('403') || error?.message?.includes('404')) {
-          return false;
+        // Only retry on network errors
+        if (failureCount < 2 && error?.message?.includes('fetch')) {
+          return true;
         }
-
-        // Retry up to 1 time for other errors (reduced for performance)
-        return failureCount < 1;
+        return false;
       },
-      staleTime: 60000, // Consider data stale after 60 seconds
-      gcTime: 300000, // Keep in cache for 5 minutes
+      retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
+      staleTime: 60_000, // 1 minute
       refetchOnWindowFocus: false,
       refetchOnReconnect: true,
     },
     mutations: {
-      retry: 1, // Retry mutations once
+      retry: (failureCount, error) => {
+        // Only retry mutations on network errors
+        if (failureCount < 1 && error?.message?.includes('fetch')) {
+          return true;
+        }
+        return false;
+      },
+      retryDelay: 2000,
     },
   },
 });
@@ -95,5 +113,3 @@ window.addEventListener('lowMemory', () => {
   queryClient.clear();
   console.log('Query cache cleared due to low memory');
 });
-
-export { apiRequest };

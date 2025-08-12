@@ -156,7 +156,11 @@ const Router = memo(function Router() {
   return (
     <div className="min-h-screen gradient-bg text-gray-100">
       <NextGenNavigation />
-      {isAuthenticated && <AddressVerificationBanner />}
+      {isAuthenticated && (
+        <ErrorBoundary>
+          <AddressVerificationBanner />
+        </ErrorBoundary>
+      )}
       <Switch>
         {/* Master Admin Setup - Only shows if no admin exists */}
         <Route path="/setup" component={MasterAdminSetup} />
@@ -280,8 +284,12 @@ const Router = memo(function Router() {
         <Route component={NotFound} />
       </Switch>
       <MobileCTA />
-      <FloatingBugReport />
-      <BetaNotificationPopup />
+      <ErrorBoundary>
+        <FloatingBugReport />
+      </ErrorBoundary>
+      <ErrorBoundary>
+        <BetaNotificationPopup />
+      </ErrorBoundary>
       <SwipeIndicator
         currentPageIndex={swipeNav.currentPageIndex}
         totalPages={swipeNav.totalPages}
