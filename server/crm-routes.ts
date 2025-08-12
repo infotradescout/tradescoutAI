@@ -1,6 +1,7 @@
 import type { Express, Request } from "express";
 import { z } from "zod";
 import { storage } from "./storage";
+import { isAuthenticated } from "./auth";
 import { insertCrmContactSchema, insertCrmDealSchema, insertCrmActivitySchema, insertCrmEmailTemplateSchema, insertCrmPipelineSchema } from "@shared/schema";
 
 interface AuthenticatedRequest extends Request {
@@ -13,6 +14,9 @@ interface AuthenticatedRequest extends Request {
 }
 
 export function registerCrmRoutes(app: Express) {
+  // Secure all CRM routes with authentication
+  app.use("/api/crm", isAuthenticated as any);
+  
   // CRM Contact routes
   app.get("/api/crm/contacts", async (req, res) => {
     try {

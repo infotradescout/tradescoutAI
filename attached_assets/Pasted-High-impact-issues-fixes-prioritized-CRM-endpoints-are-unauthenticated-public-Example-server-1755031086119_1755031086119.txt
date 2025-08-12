@@ -1,0 +1,153 @@
+High‑impact issues & fixes (prioritized)
+CRM endpoints are unauthenticated (public)
+
+Example: server/crm-routes.ts registers /api/crm/... without isAuthenticated.
+
+Risk: exposure of contact/deal/lead data.
+
+Fix (minimal):
+
+ts
+Copy
+Edit
+// server/crm-routes.ts
+import { isAuthenticated } from "./auth";
+export function registerCrmRoutes(app: Express) {
+  app.use("/api/crm", isAuthenticated as any);
+  // ...existing routes remain the same
+}
+Or wrap each route individually with isAuthenticated (and roles where needed).
+
+No baseline HTTP hardening
+
+Missing helmet, CORS policy, and rate‑limiting.
+
+Fix (server/index.ts):
+
+ts
+Copy
+Edit
+import helmet from "helmet";
+import cors from "cors";
+import rateLimit from "express-rate-limit";
+
+app.set("trust proxy", 1);
+app.use(helmet()); // content security, frameguard, etc.
+app.use(cors({ origin: ["https://your-domain.com"], credentials: true }));
+app.use(rateLimit({ windowMs: 15*60*1000, max: 300 }));
+Add sameSite: "lax" to session cookie, keep secure: true in prod.
+
+WebSocket auth is “allow all” (/ws)
+
+Fix: require a session or signed token on connection, validate user, and reject otherwise.
+
+Payments disabled unless Stripe envs exist
+
+Code checks STRIPE_SECRET_KEY before initializing. Add keys when you’re ready or hide pay UI until present.
+
+Object storage uses Replit sidecar; if you’re deploying elsewhere, configure Google Cloud Storage (service account) or swap to S3. Env flags like PRIVATE_OBJECT_DIR / PUBLIC_OBJECT_SEARCH_PATHS exist.
+
+Missing pages / broken links
+
+See MISSING_PAGES_REPORT.md in repo for exact route mismatches to fix quickly.
+
+Runbook (works now)
+.env (server + client) — starter template
+
+ini
+Copy
+Edit
+# Server
+NODE_ENV=development
+PORT=5000
+DATABASE_URL=postgres://user:pass@host/db
+SESSION_SECRET=change_me_long_random
+
+# Payments (optional until you enable)
+STRIPE_SECRET_KEY=sk_live_or_test
+VITE_STRIPE_PUBLIC_KEY=pk_live_or_test
+
+# Email (optional)
+SENDGRID_API_KEY=...
+
+# Social / SSO (optional)
+GOOGLE_CLIENT_ID=...
+GOOGLE_CLIENT_SECRET=...
+FACEBOOK_APP_ID=...
+FACEBOOK_APP_SECRET=...
+ISSUER_URL=...
+
+# Client
+VITE_API_URL=http://localhost:5000
+Install & DB
+
+bash
+Copy
+Edit
+npm ci
+npm run db:push   # applies Drizzle schema using DATABASE_URL
+Dev
+
+bash
+Copy
+Edit
+npm run dev       # tsx server/index.ts; Vite runs in middleware mode with HMR
+# open http://localhost:5000
+Prod
+
+bash
+Copy
+Edit
+npm run build     # vite build + bundle server to dist
+npm start         # node dist/index.js
+Create head admin (after first signup)
+
+Update role directly:
+
+sql
+Copy
+Edit
+UPDATE users SET role='head_admin' WHERE email='you@domain.com';
+Then open /admin/panel and manage roles from UI.
+
+Security & reliability checklist (quick wins)
+ Protect /api/crm/* with isAuthenticated (+ role checks where appropriate)
+
+ Add helmet, cors, express-rate-limit, CSRF on state‑changing routes (if you keep cookie sessions)
+
+ WebSocket: enforce session or token auth at handshake
+
+ Rotate SESSION_SECRET for prod; store envs in a secrets vault
+
+ Enable email (SendGrid) + error/notification flows
+
+ Observability: request IDs + structured logs; add health probe (/api/health exists)
+
+Your KPI‑focused plan
+Ship a secure MVP: lock CRM, add HTTP hardening, verify auth on all admin-like surfaces.
+
+Stand up prod DB & sessions: Neon Postgres + connect-pg-simple table; run db:push.
+
+Enable payments & email: plug Stripe + SendGrid keys; hide pay UI until keys present.
+
+Fix missing routes: implement or remove links per MISSING_PAGES_REPORT.md.
+
+Smoke test critical flows: signup/login, lead submit, contractor search, marketplace list, notifications.
+
+Why this works
+Locks the biggest data‑exposure risks first (CRM + WebSocket).
+
+Gets a working environment with the exact scripts this repo expects.
+
+Moves you toward monetization (Stripe) and lifecycle comms (SendGrid) without blocking.
+
+Next steps (do these now)
+Add the .env above; run npm ci && npm run db:push && npm run dev.
+
+Apply the CRM protection patch shown.
+
+Add helmet, cors, and rate-limit middleware.
+
+Promote your admin account (SQL snippet).
+
+Fix the routes called out in MISSING_PAGES_REPORT.md.

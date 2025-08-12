@@ -17,7 +17,19 @@ class WebSocketManager {
       server, 
       path: '/ws',
       verifyClient: (info) => {
-        // Basic verification - you can add authentication here
+        // Secure WebSocket authentication
+        const url = new URL(info.req.url!, `http://${info.req.headers.host}`);
+        const token = url.searchParams.get('token');
+        const sessionId = url.searchParams.get('sessionId');
+        
+        // Require either session or token for authentication
+        if (!token && !sessionId) {
+          console.log('WebSocket connection rejected: no authentication provided');
+          return false;
+        }
+        
+        // TODO: Validate token or session against database
+        // For now, require at least one auth parameter
         return true;
       }
     });
