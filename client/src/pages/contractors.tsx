@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/hooks/useAuth";
+import { useQuery } from "@tanstack/react-query";
 import { 
   Download, 
   TrendingUp, 
@@ -25,6 +26,18 @@ export default function ForContractors() {
   const { user, isAuthenticated } = useAuth();
   const isContractor = user && user.role && ['contractor_user', 'accelerator_member'].includes(user.role);
 
+  // Get total site-wide contractor count
+  const { data: allContractors } = useQuery({
+    queryKey: ['/api/contractors'],
+    queryFn: async () => {
+      const response = await fetch('/api/contractors?limit=10000');
+      if (!response.ok) throw new Error('Failed to fetch contractors');
+      return response.json();
+    },
+  });
+
+  const totalContractorCount = allContractors?.length || 0;
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-navy-900 via-navy-800 to-navy-900">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
@@ -33,10 +46,21 @@ export default function ForContractors() {
           <h1 className="text-4xl md:text-5xl font-bold text-white mb-6">
             Grow Your Contracting Business
           </h1>
-          <p className="text-xl text-gray-300 max-w-3xl mx-auto">
+          <p className="text-xl text-gray-300 max-w-3xl mx-auto mb-4">
             Access exclusive resources, join our accelerator program, and connect with homeowners 
             looking for quality contractors in your area.
           </p>
+          <div className="inline-flex items-center px-4 py-2 bg-navy-700/50 rounded-full border border-navy-600">
+            <Users className="h-5 w-5 text-orange-500 mr-2" />
+            <span className="text-gray-300">
+              Connect with verified, local contractors for your next project
+            </span>
+          </div>
+          <div className="mt-2">
+            <span className="text-orange-400 font-semibold">
+              {totalContractorCount} contractors available
+            </span>
+          </div>
         </div>
 
         {/* Main Content Grid */}
