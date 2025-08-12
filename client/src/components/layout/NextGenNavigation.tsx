@@ -1,8 +1,8 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Menu, X, ChevronDown, Home, Calculator, Users, Wrench, LayoutDashboard, ArrowLeftRight, Building, MessageSquare, MoreHorizontal } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { UserMenu } from "@/components/navigation/RoleBasedNavigation";
@@ -12,42 +12,42 @@ interface NextGenNavigationProps {
   className?: string;
 }
 
+interface NavItem {
+  href: string;
+  label: string;
+  icon: any;
+  priority: number; // Higher priority = more likely to stay visible
+}
+
 export function NextGenNavigation({ className = "" }: NextGenNavigationProps) {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const { isAuthenticated } = useAuth();
   const [location] = useLocation();
-  const [visibleItems, setVisibleItems] = useState<number>(8);
+  const [containerWidth, setContainerWidth] = useState<number>(0);
+  const [adaptiveLayout, setAdaptiveLayout] = useState<'full' | 'compact' | 'minimal'>('full');
   const navRef = useRef<HTMLDivElement>(null);
-  const itemRefs = useRef<(HTMLDivElement | null)[]>([]);
+  const [mounted, setMounted] = useState(false);
 
-  // Define navigation items first
-  const navItems = [
-    { href: "/contractors", label: "Find Contractors", icon: Users },
-    { href: "/calculator", label: "Calculator", icon: Calculator },
-    { href: "/contractors/for-contractors", label: "For Contractors", icon: Wrench },
-    { href: "/helpers", label: "Helpers", icon: Users },
-    { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-    { href: "/exchange", label: "Exchange", icon: ArrowLeftRight },
-    { href: "/foundation", label: "Foundation", icon: Building },
-    { href: "/community", label: "Community", icon: MessageSquare }
-  ];
+  // Smart navigation items with priority system
+  const navItems: NavItem[] = useMemo(() => [
+    { href: "/contractors", label: "Find Contractors", icon: Users, priority: 10 },
+    { href: "/calculator", label: "Calculator", icon: Calculator, priority: 9 },
+    { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard, priority: 8 },
+    { href: "/contractors/for-contractors", label: "For Contractors", icon: Wrench, priority: 7 },
+    { href: "/helpers", label: "Helpers", icon: Users, priority: 6 },
+    { href: "/exchange", label: "Exchange", icon: ArrowLeftRight, priority: 5 },
+    { href: "/foundation", label: "Foundation", icon: Building, priority: 4 },
+    { href: "/community", label: "Community", icon: MessageSquare, priority: 3 }
+  ], []);
 
-  // Extended dropdown navigation with all available routes
-  const dropdownNavItems = [
+  const allPages = useMemo(() => [
     { href: "/", label: "Home", icon: Home },
-    { href: "/contractors", label: "Find Contractors", icon: Users },
-    { href: "/calculator", label: "Calculator", icon: Calculator },
-    { href: "/contractors/for-contractors", label: "For Contractors", icon: Wrench },
-    { href: "/helpers", label: "Helpers", icon: Users },
-    { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-    { href: "/exchange", label: "Exchange", icon: ArrowLeftRight },
-    { href: "/foundation", label: "Foundation", icon: Building },
-    { href: "/community", label: "Community", icon: MessageSquare },
+    ...navItems,
     { href: "/marketplace", label: "Marketplace", icon: ArrowLeftRight },
     { href: "/leaderboard", label: "Leaderboard", icon: Building },
     { href: "/growth-pack", label: "Growth Pack", icon: Wrench },
     { href: "/workers", label: "Worker Marketplace", icon: Users }
-  ];
+  ], [navItems]);
 
   const isActive = (path: string) => {
     if (path === "/") return location === "/";
@@ -55,110 +55,141 @@ export function NextGenNavigation({ className = "" }: NextGenNavigationProps) {
     return location.startsWith(path);
   };
 
-  // Adaptive navigation calculation
+  // Intelligent layout calculation
   useEffect(() => {
-    const calculateVisibleItems = () => {
-      if (!navRef.current) return;
-      
-      const containerWidth = navRef.current.offsetWidth;
-      const availableWidth = containerWidth - 120; // Reserve space for "More" button
-      let totalWidth = 0;
-      let maxItems = 0;
+    const calculateLayout = () => {
+      if (!navRef.current || !mounted) return;
 
-      for (let i = 0; i < itemRefs.current.length; i++) {
-        const item = itemRefs.current[i];
-        if (item) {
-          const itemWidth = item.offsetWidth + 8; // Include margin
-          if (totalWidth + itemWidth <= availableWidth) {
-            totalWidth += itemWidth;
-            maxItems = i + 1;
-          } else {
-            break;
-          }
-        }
+      const width = navRef.current.offsetWidth;
+      setContainerWidth(width);
+
+      // Revolutionary adaptive layout system
+      if (width >= 1200) {
+        setAdaptiveLayout('full'); // Show all items
+      } else if (width >= 800) {
+        setAdaptiveLayout('compact'); // Show priority items + dropdown
+      } else {
+        setAdaptiveLayout('minimal'); // Show only top items + dropdown
       }
-
-      // Always show at least 3 items on desktop, 2 on tablet, 1 on mobile
-      const minItems = window.innerWidth >= 1024 ? 3 : window.innerWidth >= 768 ? 2 : 1;
-      setVisibleItems(Math.max(minItems, maxItems));
     };
 
-    const timer = setTimeout(calculateVisibleItems, 100); // Add small delay for DOM to settle
-    window.addEventListener('resize', calculateVisibleItems);
+    setMounted(true);
+    const timer = setTimeout(calculateLayout, 50);
+    const resizeObserver = new ResizeObserver(calculateLayout);
+    
+    if (navRef.current) {
+      resizeObserver.observe(navRef.current);
+    }
+
+    window.addEventListener('resize', calculateLayout);
+
     return () => {
       clearTimeout(timer);
-      window.removeEventListener('resize', calculateVisibleItems);
+      resizeObserver.disconnect();
+      window.removeEventListener('resize', calculateLayout);
     };
-  }, []);
+  }, [mounted]);
 
-  // Calculate visible and hidden items
-  const visibleNavItems = navItems.slice(0, visibleItems);
-  const hiddenNavItems = navItems.slice(visibleItems);
+  // Smart item distribution based on layout
+  const { visibleItems, hiddenItems } = useMemo(() => {
+    const sorted = [...navItems].sort((a, b) => b.priority - a.priority);
+    
+    let visible: NavItem[] = [];
+    let hidden: NavItem[] = [];
+
+    switch (adaptiveLayout) {
+      case 'full':
+        visible = sorted.slice(0, 8);
+        hidden = sorted.slice(8);
+        break;
+      case 'compact':
+        visible = sorted.slice(0, 5);
+        hidden = sorted.slice(5);
+        break;
+      case 'minimal':
+        visible = sorted.slice(0, 3);
+        hidden = sorted.slice(3);
+        break;
+      default:
+        visible = sorted.slice(0, 4);
+        hidden = sorted.slice(4);
+    }
+
+    return { visibleItems: visible, hiddenItems: hidden };
+  }, [navItems, adaptiveLayout]);
+
+  if (!mounted) {
+    return null; // Prevent hydration mismatch
+  }
 
   return (
-    <header className={`sticky top-0 z-50 w-full border-b border-slate-700/50 bg-slate-900/90 backdrop-blur-xl shadow-lg ${className}`}>
-      
-      <div className="w-full flex items-center justify-between px-6 py-4">
+    <header className={`sticky top-0 z-50 w-full border-b border-slate-700/50 bg-slate-900/95 backdrop-blur-xl shadow-xl ${className}`}>
+      <div className="w-full flex items-center justify-between px-4 py-3 lg:px-6 lg:py-4">
         {/* Logo */}
         <Link href="/">
-          <div className="flex items-center space-x-3 group transition-all duration-300">
-            <div className="w-9 h-9 bg-slate-800 rounded-lg border border-slate-600 flex items-center justify-center group-hover:border-orange-500/50 transition-colors duration-300">
-              <ConstructionEmblem className="w-5 h-5 text-orange-500" />
+          <div className="flex items-center space-x-2 lg:space-x-3 group transition-all duration-300">
+            <div className="w-8 h-8 lg:w-9 lg:h-9 bg-slate-800 rounded-lg border border-slate-600 flex items-center justify-center group-hover:border-orange-500/50 transition-colors duration-300">
+              <ConstructionEmblem className="w-4 h-4 lg:w-5 lg:h-5 text-orange-500" />
             </div>
-            <span className="text-xl font-bold text-white group-hover:text-orange-400 transition-colors duration-300">
+            <span className="text-lg lg:text-xl font-bold text-white group-hover:text-orange-400 transition-colors duration-300">
               TradeScout
             </span>
           </div>
         </Link>
 
-        {/* Adaptive Desktop Navigation */}
-        <nav className="hidden md:flex items-center" ref={navRef}>
-          <div className="flex items-center space-x-1 bg-slate-800/50 rounded-lg p-1 border border-slate-700/50">
-            {/* Always visible navigation items */}
-            {visibleNavItems.map((item, index) => {
+        {/* Revolutionary Adaptive Navigation */}
+        <nav className="hidden md:flex items-center flex-1 justify-center max-w-4xl mx-4" ref={navRef}>
+          <div className="flex items-center space-x-1 bg-slate-800/60 rounded-xl p-1.5 border border-slate-700/50 shadow-lg backdrop-blur-sm">
+            {/* Priority-based visible items */}
+            {visibleItems.map((item) => {
               const active = isActive(item.href);
               return (
                 <Link key={item.href} href={item.href}>
-                  <div 
-                    ref={el => itemRefs.current[index] = el}
-                    className={`px-3 py-2 rounded-md text-sm font-medium transition-colors duration-200 whitespace-nowrap ${
-                      active 
-                        ? "bg-orange-500 text-white" 
-                        : "text-slate-300 hover:text-white hover:bg-slate-700/50"
-                    }`}
-                  >
-                    {item.label}
+                  <div className={`px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 whitespace-nowrap border ${
+                    active 
+                      ? "bg-orange-500 text-white border-orange-400 shadow-lg shadow-orange-500/25" 
+                      : "text-slate-300 hover:text-white hover:bg-slate-700/60 border-transparent hover:border-slate-600"
+                  }`}>
+                    {adaptiveLayout === 'minimal' ? (
+                      <item.icon className="w-4 h-4" />
+                    ) : (
+                      item.label
+                    )}
                   </div>
                 </Link>
               );
             })}
             
-            {/* Adaptive "More" dropdown for overflow items */}
-            {hiddenNavItems.length > 0 && (
+            {/* Intelligent overflow dropdown */}
+            {hiddenItems.length > 0 && (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button 
                     variant="ghost" 
                     size="sm" 
-                    className="px-3 py-2 text-slate-300 hover:text-white hover:bg-slate-700/50 transition-colors duration-200"
+                    className="px-3 py-2 text-slate-300 hover:text-white hover:bg-slate-700/60 transition-all duration-200 border border-transparent hover:border-slate-600 rounded-lg"
                   >
                     <MoreHorizontal className="w-4 h-4" />
+                    {adaptiveLayout !== 'minimal' && (
+                      <span className="ml-1 text-xs">More</span>
+                    )}
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent 
-                  className="bg-slate-800 border-slate-700 shadow-xl"
+                  className="bg-slate-800/95 border-slate-700 shadow-2xl backdrop-blur-xl min-w-48"
                   align="end"
+                  sideOffset={8}
                 >
-                  {hiddenNavItems.map((item) => {
+                  {hiddenItems.map((item) => {
                     const Icon = item.icon;
                     const active = isActive(item.href);
                     return (
                       <DropdownMenuItem 
                         key={item.href} 
-                        className={`cursor-pointer ${
+                        className={`cursor-pointer transition-colors duration-150 ${
                           active 
                             ? "bg-orange-500/20 text-orange-400" 
-                            : "text-slate-200 hover:bg-slate-700 hover:text-white focus:bg-slate-700 focus:text-white"
+                            : "text-slate-200 hover:bg-slate-700/80 hover:text-white focus:bg-slate-700/80 focus:text-white"
                         }`}
                         asChild
                       >
@@ -175,64 +206,66 @@ export function NextGenNavigation({ className = "" }: NextGenNavigationProps) {
           </div>
         </nav>
 
-        {/* Comprehensive Navigation Dropdown */}
-        <div className="hidden lg:flex items-center space-x-4">
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button 
-                variant="ghost" 
-                size="sm" 
-                className="text-slate-300 hover:text-white hover:bg-slate-700/50 transition-colors duration-200"
+        {/* Right side actions */}
+        <div className="flex items-center space-x-3">
+          {/* All Pages dropdown for desktop */}
+          <div className="hidden lg:flex">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  className="text-slate-300 hover:text-white hover:bg-slate-700/50 transition-colors duration-200"
+                >
+                  <Menu className="w-4 h-4 mr-2" />
+                  All Pages
+                  <ChevronDown className="w-4 h-4 ml-2" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent 
+                className="w-56 bg-slate-800/95 border-slate-700 shadow-2xl backdrop-blur-xl max-h-96 overflow-y-auto"
+                align="end"
+                sideOffset={8}
               >
-                <Menu className="w-4 h-4 mr-2" />
-                All Pages
-                <ChevronDown className="w-4 h-4 ml-2" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent 
-              className="w-56 bg-slate-800 border-slate-700 shadow-xl max-h-96 overflow-y-auto"
-              align="end"
-            >
-              {dropdownNavItems.map((item, index) => {
-                const Icon = item.icon;
-                const active = isActive(item.href);
-                return (
-                  <DropdownMenuItem 
-                    key={item.href} 
-                    className={`cursor-pointer ${
-                      active 
-                        ? "bg-orange-500/20 text-orange-400" 
-                        : "text-slate-200 hover:bg-slate-700 hover:text-white focus:bg-slate-700 focus:text-white"
-                    }`}
-                    asChild
-                  >
-                    <Link href={item.href} className="flex items-center">
-                      <Icon className="w-4 h-4 mr-3 text-orange-400" />
-                      {item.label}
-                    </Link>
-                  </DropdownMenuItem>
-                );
-              })}
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
+                {allPages.map((item) => {
+                  const Icon = item.icon;
+                  const active = isActive(item.href);
+                  return (
+                    <DropdownMenuItem 
+                      key={item.href} 
+                      className={`cursor-pointer transition-colors duration-150 ${
+                        active 
+                          ? "bg-orange-500/20 text-orange-400" 
+                          : "text-slate-200 hover:bg-slate-700/80 hover:text-white focus:bg-slate-700/80 focus:text-white"
+                      }`}
+                      asChild
+                    >
+                      <Link href={item.href} className="flex items-center">
+                        <Icon className="w-4 h-4 mr-3 text-orange-400" />
+                        {item.label}
+                      </Link>
+                    </DropdownMenuItem>
+                  );
+                })}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
 
-        {/* User Menu */}
-        <div className="flex items-center space-x-4">
+          {/* User account button */}
           {isAuthenticated && (
             <Link href="/dashboard/account">
-              <div className="flex items-center space-x-3 bg-slate-800/50 rounded-lg px-3 py-2 border border-slate-700/50 hover:border-orange-500/50 transition-colors duration-300 cursor-pointer">
-                <div className="w-8 h-8 bg-slate-700 rounded-full flex items-center justify-center">
-                  <Users className="w-4 h-4 text-orange-400" />
+              <div className="flex items-center space-x-2 bg-slate-800/60 rounded-lg px-3 py-2 border border-slate-700/50 hover:border-orange-500/50 transition-all duration-300 cursor-pointer backdrop-blur-sm">
+                <div className="w-7 h-7 bg-slate-700 rounded-full flex items-center justify-center">
+                  <Users className="w-3.5 h-3.5 text-orange-400" />
                 </div>
-                <span className="text-sm text-slate-300 hover:text-white transition-colors duration-200 hidden md:inline">
+                <span className="text-sm text-slate-300 hover:text-white transition-colors duration-200 hidden lg:inline">
                   Account
                 </span>
               </div>
             </Link>
           )}
 
-          {/* Mobile Menu */}
+          {/* Mobile menu */}
           <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
             <SheetTrigger asChild className="md:hidden">
               <Button 
@@ -240,12 +273,12 @@ export function NextGenNavigation({ className = "" }: NextGenNavigationProps) {
                 size="sm" 
                 className="text-slate-300 hover:text-white hover:bg-slate-700/50 p-2 transition-colors duration-200"
               >
-                <Menu className="h-6 w-6" />
+                <Menu className="h-5 w-5" />
               </Button>
             </SheetTrigger>
             <SheetContent 
               side="right" 
-              className="w-80 bg-slate-900 border-slate-700"
+              className="w-80 bg-slate-900/98 border-slate-700 backdrop-blur-xl"
             >
               <div className="flex flex-col space-y-6 pt-6">
                 <div className="flex items-center justify-between">
@@ -260,21 +293,21 @@ export function NextGenNavigation({ className = "" }: NextGenNavigationProps) {
                   </Button>
                 </div>
 
-                <div className="space-y-2">
-                  {dropdownNavItems.map((item) => {
+                <div className="space-y-1">
+                  {allPages.map((item) => {
                     const Icon = item.icon;
                     const active = isActive(item.href);
                     return (
                       <Link key={item.href} href={item.href}>
                         <div 
-                          className={`flex items-center space-x-3 px-4 py-3 rounded-lg transition-colors duration-200 ${
+                          className={`flex items-center space-x-3 px-4 py-3 rounded-lg transition-all duration-200 ${
                             active 
-                              ? "bg-orange-500/20 text-orange-400" 
-                              : "text-slate-300 hover:bg-slate-800 hover:text-white"
+                              ? "bg-orange-500/20 text-orange-400 border border-orange-500/30" 
+                              : "text-slate-300 hover:bg-slate-800/60 hover:text-white"
                           }`}
                           onClick={() => setIsMobileMenuOpen(false)}
                         >
-                          <Icon className="w-5 h-5 text-orange-400" />
+                          <Icon className="w-5 h-5 text-orange-400 flex-shrink-0" />
                           <span className="font-medium">{item.label}</span>
                         </div>
                       </Link>
