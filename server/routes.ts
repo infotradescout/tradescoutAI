@@ -313,6 +313,69 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.redirect('/profile-setup');
     });
 
+  // Admin role impersonation routes
+  app.post('/api/admin/impersonate', isAuthenticated, requireRole(['head_admin', 'ops_admin']), async (req: any, res) => {
+    try {
+      const { role } = req.body;
+      
+      // Validate the target role
+      const validRoles = ['homeowner', 'contractor_user', 'accelerator_member', 'moderator', 'ops_admin'];
+      if (!validRoles.includes(role)) {
+        return res.status(400).json({ message: "Invalid role for impersonation" });
+      }
+      
+      // Store original user info in session for restoration
+      req.session.originalUser = {
+        id: req.user.id,
+        role: req.user.role,
+        email: req.user.email
+      };
+      
+      // Create a temporary impersonation session
+      req.session.impersonatingRole = role;
+      req.session.isImpersonating = true;
+      
+      // Find a user with the target role for realistic testing
+      const targetUser = await storage.getUserByRole(role);
+      let userId = req.user.id; // Default to admin's ID
+      
+      if (targetUser) {
+        userId = targetUser.id;
+      }
+      
+      res.json({ 
+        message: `Impersonation started for role: ${role}`,
+        role,
+        userId,
+        isImpersonating: true
+      });
+    } catch (error) {
+      console.error("Role impersonation error:", error);
+      res.status(500).json({ message: "Failed to start impersonation" });
+    }
+  });
+
+  app.post('/api/admin/stop-impersonation', isAuthenticated, async (req: any, res) => {
+    try {
+      if (!req.session.isImpersonating || !req.session.originalUser) {
+        return res.status(400).json({ message: "No active impersonation session" });
+      }
+      
+      // Clear impersonation from session
+      delete req.session.impersonatingRole;
+      delete req.session.isImpersonating;
+      delete req.session.originalUser;
+      
+      res.json({ 
+        message: "Impersonation stopped",
+        isImpersonating: false
+      });
+    } catch (error) {
+      console.error("Stop impersonation error:", error);
+      res.status(500).json({ message: "Failed to stop impersonation" });
+    }
+  });
+
   // Auth user endpoint - critical for useAuth hook
   app.get('/api/auth/user', async (req: any, res) => {
     if (!req.user) {
@@ -321,6 +384,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
     
     try {
       const user = await storage.getUser(req.user.id);
+      
+      // If impersonating, modify the user object to reflect the impersonated role
+      if (req.session.isImpersonating && req.session.impersonatingRole) {
+        const modifiedUser = {
+          ...user,
+          role: req.session.impersonatingRole,
+          isImpersonating: true,
+          originalRole: req.session.originalUser.role
+        };
+        return res.json({ ...modifiedUser, passwordHash: undefined });
+      }
+      
       res.json({ ...user, passwordHash: undefined });
     } catch (error) {
       console.error("Error fetching authenticated user:", error);

@@ -9,6 +9,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { isUnauthorizedError } from "@/lib/authUtils";
 import { apiRequest } from "@/lib/queryClient";
+import { RoleImpersonation } from "@/components/admin/RoleImpersonation";
 import { 
   Users, 
   Download, 
@@ -238,6 +239,11 @@ export default function AdminWorkspace() {
             <p className="text-green-400 text-sm mt-2">$47,280 MRR</p>
           </CardContent>
         </Card>
+      </div>
+
+      {/* Role Impersonation */}
+      <div className="mb-8">
+        <RoleImpersonation />
       </div>
 
       {/* Admin Quick Actions */}

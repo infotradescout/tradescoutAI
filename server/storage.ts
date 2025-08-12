@@ -688,6 +688,11 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getUserByRole(role: string): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.role, role));
+    return user;
+  }
+
+  async getUserByRole(role: string): Promise<User | undefined> {
     const [user] = await db.select().from(users).where(eq(users.role, role as any));
     return user;
   }
