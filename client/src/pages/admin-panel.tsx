@@ -30,7 +30,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { UserHeatmap } from "@/components/UserHeatmap";
 import { Plus, Edit, Trash2, Gift, Settings, Megaphone, Users, Bell, Map, CheckCircle, Bug, Image } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { useLocation } from "wouter";
 
 
 type SiteSetting = {
@@ -91,7 +91,7 @@ export default function AdminPanel() {
   const { user, isAuthenticated } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const navigate = useNavigate();
+  const [, setLocation] = useLocation();
   const [selectedTab, setSelectedTab] = useState("heatmap");
   const [editingItem, setEditingItem] = useState<any>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
