@@ -24,9 +24,9 @@ export default function Navigation() {
   const isHomeowner = user && user.role === 'homeowner';
 
   const navItems = [
-    { href: "/contractors/board", label: "Find Contractors", icon: Search, public: true, description: "Find verified local contractors" },
+    { href: "/contractors", label: "Find Contractors", icon: Search, public: true, description: "Find verified local contractors" },
     { href: "/quote", label: "Quote Calculator", icon: Calculator, public: true, description: "Get instant project estimates" },
-    ...(!isHomeowner ? [{ href: "/contractors", label: "For Contractors", icon: Wrench, public: true, description: "Join our contractor network" }] : []),
+    ...(!isHomeowner ? [{ href: "/contractors/network", label: "For Contractors", icon: Wrench, public: true, description: "Join our contractor network" }] : []),
     { href: "/workers", label: "Helpers", icon: Users, public: true, description: "Find skilled helpers" },
     { href: "/marketplace", label: "Exchange", icon: Package, public: true, description: "Premium equipment & valuable items" },
     { href: "/leaderboard", label: "Leaderboard", icon: Trophy, public: true, description: "Top contractors by recommendations" },

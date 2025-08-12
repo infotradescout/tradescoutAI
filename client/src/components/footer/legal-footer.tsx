@@ -53,7 +53,7 @@ export function LegalFooter() {
             <h4 className="text-md font-medium text-white mb-4">Platform</h4>
             <ul className="space-y-2 text-sm">
               <li>
-                <Link href="/contractors/board" className="hover:text-white transition-colors">
+                <Link href="/contractor-board" className="hover:text-white transition-colors">
                   Find Contractors
                 </Link>
               </li>

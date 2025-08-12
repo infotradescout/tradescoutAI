@@ -5,11 +5,11 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { HomeownerTipsRotator } from "@/components/HomeownerTipsRotator";
-import { 
-  Calculator, 
-  MapPin, 
-  Star, 
-  Clock, 
+import {
+  Calculator,
+  MapPin,
+  Star,
+  Clock,
   ChevronRight,
   Home,
   TrendingUp,
@@ -105,7 +105,7 @@ export default function HomeownerDashboard() {
 
       {/* Quick Actions */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-        <Link href="/contractors/board">
+        <Link href="/contractor-board">
           <Card className="bg-navy-700 border-navy-600 card-enhanced cursor-pointer hover:border-orange-500/50 transition-colors">
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
@@ -174,7 +174,7 @@ export default function HomeownerDashboard() {
             <p className="text-sm text-gray-400">Total Projects</p>
           </CardContent>
         </Card>
-        
+
         <Card className="bg-navy-700 border-navy-600 text-center">
           <CardContent className="p-4">
             <div className="w-8 h-8 bg-yellow-500/20 rounded-lg flex items-center justify-center mx-auto mb-2">
@@ -184,7 +184,7 @@ export default function HomeownerDashboard() {
             <p className="text-sm text-gray-400">Active Projects</p>
           </CardContent>
         </Card>
-        
+
         <Card className="bg-navy-700 border-navy-600 text-center">
           <CardContent className="p-4">
             <div className="w-8 h-8 bg-green-500/20 rounded-lg flex items-center justify-center mx-auto mb-2">
@@ -194,7 +194,7 @@ export default function HomeownerDashboard() {
             <p className="text-sm text-gray-400">Completed</p>
           </CardContent>
         </Card>
-        
+
         <Card className="bg-navy-700 border-navy-600 text-center">
           <CardContent className="p-4">
             <div className="w-8 h-8 bg-orange-500/20 rounded-lg flex items-center justify-center mx-auto mb-2">
@@ -243,12 +243,12 @@ export default function HomeownerDashboard() {
                   </div>
                 </div>
               ))}
-              
+
               {mockProjects.length === 0 && (
                 <div className="text-center py-8">
                   <Home className="h-12 w-12 text-gray-400 mx-auto mb-4" />
                   <p className="text-gray-400 mb-4">No projects yet</p>
-                  <Link href="/contractors/board">
+                  <Link href="/contractor-board">
                     <Button className="bg-orange-500 hover:bg-orange-600 text-white">
                       Start Your First Project
                     </Button>
@@ -266,7 +266,7 @@ export default function HomeownerDashboard() {
           <CardContent>
             <div className="space-y-4">
               <HomeownerTipsRotator />
-              
+
               <div className="p-4 bg-navy-600 rounded-lg">
                 <h4 className="text-white font-semibold mb-2">Top Rated Contractors</h4>
                 <div className="space-y-2">

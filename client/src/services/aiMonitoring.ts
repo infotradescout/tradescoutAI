@@ -23,7 +23,7 @@ class AIMonitoringService {
 
   initializeMonitoring() {
     if (this.isMonitoring) return;
-    
+
     this.isMonitoring = true;
     this.setupErrorHandling();
     this.setupPerformanceMonitoring();
@@ -76,13 +76,13 @@ class AIMonitoringService {
     if ('PerformanceObserver' in window) {
       this.performanceObserver = new PerformanceObserver((list) => {
         const entries = list.getEntries();
-        
+
         entries.forEach(entry => {
           // Check for slow page loads
           if (entry.entryType === 'navigation') {
             const nav = entry as PerformanceNavigationTiming;
             const loadTime = nav.loadEventEnd - nav.navigationStart;
-            
+
             if (loadTime > 3000) {
               this.addIssue({
                 type: 'performance',
@@ -188,12 +188,12 @@ class AIMonitoringService {
       // Check color contrast (basic check)
       const elements = document.querySelectorAll('*');
       let lowContrastCount = 0;
-      
+
       Array.from(elements).slice(0, 50).forEach(el => {
         const styles = window.getComputedStyle(el);
         const bgColor = styles.backgroundColor;
         const textColor = styles.color;
-        
+
         if (bgColor !== 'rgba(0, 0, 0, 0)' && textColor !== 'rgba(0, 0, 0, 0)') {
           // Basic contrast check (simplified)
           if (this.hasLowContrast(bgColor, textColor)) {
@@ -227,7 +227,7 @@ class AIMonitoringService {
     // Simplified contrast check - in production, use a proper contrast ratio calculator
     const bgLuminance = this.getColorLuminance(bgColor);
     const textLuminance = this.getColorLuminance(textColor);
-    
+
     const contrast = (Math.max(bgLuminance, textLuminance) + 0.05) / (Math.min(bgLuminance, textLuminance) + 0.05);
     return contrast < 4.5; // WCAG AA standard for normal text
   }
@@ -266,15 +266,15 @@ class AIMonitoringService {
       // Check for overlapping elements
       const elements = document.querySelectorAll('*');
       let overlappingCount = 0;
-      
+
       Array.from(elements).slice(0, 20).forEach((el, index) => {
         const rect1 = el.getBoundingClientRect();
         if (rect1.width === 0 || rect1.height === 0) return;
-        
+
         Array.from(elements).slice(index + 1, index + 10).forEach(otherEl => {
           const rect2 = otherEl.getBoundingClientRect();
           if (rect2.width === 0 || rect2.height === 0) return;
-          
+
           if (this.elementsOverlap(rect1, rect2)) {
             overlappingCount++;
           }
@@ -314,14 +314,14 @@ class AIMonitoringService {
 
     const clickHandler = (event: MouseEvent) => {
       clickCount++;
-      
+
       // Detect rapid clicks (potential frustration)
       const now = Date.now();
       const recentClicks = this.getRecentClicks(now);
-      
+
       if (recentClicks.length > 5) {
         frustratedClicks++;
-        
+
         if (frustratedClicks > 2) {
           this.addIssue({
             type: 'ux_issue',
@@ -357,7 +357,7 @@ class AIMonitoringService {
 
   private setupFormAnalysis() {
     const forms = document.querySelectorAll('form');
-    
+
     forms.forEach(form => {
       let focusEvents = 0;
       let abandonmentCount = 0;
@@ -370,7 +370,7 @@ class AIMonitoringService {
         const target = event.target as HTMLInputElement;
         if (target && target.value.length === 0 && focusEvents > 2) {
           abandonmentCount++;
-          
+
           if (abandonmentCount > 2) {
             this.addIssue({
               type: 'ux_issue',
@@ -403,7 +403,7 @@ class AIMonitoringService {
     if ('memory' in performance && (performance as any).memory) {
       const memInfo = (performance as any).memory;
       const memUsage = memInfo.usedJSHeapSize / memInfo.totalJSHeapSize;
-      
+
       if (memUsage > 0.9) {
         this.addIssue({
           type: 'performance',
@@ -469,12 +469,12 @@ class AIMonitoringService {
 
     if (!existingIssue) {
       this.issues.push(issue);
-      
+
       // More aggressive memory management
       if (this.issues.length > 20) {
         this.issues = this.issues.slice(-10); // Keep only the latest 10 issues
       }
-      
+
       // Only log critical and high severity issues to reduce noise
       if (issue.severity === 'critical' || issue.severity === 'high') {
         console.warn(`🤖 AI Monitor: ${issue.severity.toUpperCase()} - ${issue.title}`, issue);
@@ -492,22 +492,22 @@ class AIMonitoringService {
 
   destroy() {
     this.isMonitoring = false;
-    
+
     if (this.errorListener) {
       window.removeEventListener('error', this.errorListener);
     }
-    
+
     if (this.unhandledRejectionListener) {
       window.removeEventListener('unhandledrejection', this.unhandledRejectionListener);
     }
-    
+
     if (this.performanceObserver) {
       this.performanceObserver.disconnect();
     }
-    
+
     this.observers.forEach(observer => observer.disconnect());
     this.observers = [];
-    
+
     if (this.checkInterval) {
       clearInterval(this.checkInterval);
     }

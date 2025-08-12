@@ -19,6 +19,7 @@ export const ROUTES = {
   CONTRACTOR_DASHBOARD: '/contractor-dashboard',
   CONTRACTOR_APPLY: '/contractors/apply',
   CONTRACTOR_BOARD: '/contractor-board',
+  CONTRACTORS_LANDING: '/contractors',
 
   // Admin routes (require admin role)
   ADMIN_PANEL: '/admin',
