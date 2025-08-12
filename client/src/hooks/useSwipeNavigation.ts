@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useLocation } from 'wouter';
 
 interface SwipeNavigationOptions {
@@ -99,22 +99,182 @@ export function useSwipeNavigation({
   }, [onSwipeLeft, onSwipeRight]);
 }
 
-// Hook for global swipe navigation
-export function useGlobalSwipeNavigation() {
-  const [, setLocation] = useLocation();
+// Define the page order for sequential navigation
+const PAGE_ORDER = [
+  '/',
+  '/contractors',
+  '/calculator',
+  '/dashboard',
+  '/contractors/for-contractors',
+  '/foundation',
+  '/community',
+  '/helpers',
+  '/exchange',
+  '/accelerator',
+  '/leaderboard',
+  '/growth-pack'
+];
 
-  const navigateToProfile = () => {
-    setLocation('/dashboard/account');
+// Helper function to get display names for pages
+function getPageDisplayName(path: string): string {
+  const displayNames: { [key: string]: string } = {
+    '/': 'Home',
+    '/contractors': 'Contractors',
+    '/calculator': 'Quote Calculator',
+    '/dashboard': 'Dashboard',
+    '/contractors/for-contractors': 'For Contractors',
+    '/foundation': 'Foundation',
+    '/community': 'Community',
+    '/helpers': 'Helpers',
+    '/exchange': 'Exchange',
+    '/accelerator': 'Accelerator',
+    '/leaderboard': 'Leaderboard',
+    '/growth-pack': 'Growth Pack'
+  };
+  
+  return displayNames[path] || path;
+}
+
+// Hook for global swipe navigation with page cycling
+export function useGlobalSwipeNavigation() {
+  const [location, setLocation] = useLocation();
+  const [transitionState, setTransitionState] = useState<{
+    isTransitioning: boolean;
+    direction: 'left' | 'right' | null;
+    targetPage: string;
+  }>({
+    isTransitioning: false,
+    direction: null,
+    targetPage: ''
+  });
+
+  const getCurrentPageIndex = () => {
+    // Find exact match first
+    let currentIndex = PAGE_ORDER.findIndex(page => page === location);
+    
+    // If no exact match, find partial match (for nested routes)
+    if (currentIndex === -1) {
+      currentIndex = PAGE_ORDER.findIndex(page => {
+        if (page === '/') return location === '/';
+        return location.startsWith(page);
+      });
+    }
+    
+    return currentIndex;
   };
 
-  const navigateToMessages = () => {
-    setLocation('/conversations');
+  const navigateToNextPage = () => {
+    const currentIndex = getCurrentPageIndex();
+    if (currentIndex === -1) return;
+    
+    const nextIndex = (currentIndex + 1) % PAGE_ORDER.length;
+    const targetPage = PAGE_ORDER[nextIndex];
+    
+    // Show transition feedback
+    setTransitionState({
+      isTransitioning: true,
+      direction: 'right',
+      targetPage: getPageDisplayName(targetPage)
+    });
+    
+    setTimeout(() => {
+      setLocation(targetPage);
+      setTransitionState(prev => ({ ...prev, isTransitioning: false }));
+    }, 200);
+  };
+
+  const navigateToPreviousPage = () => {
+    const currentIndex = getCurrentPageIndex();
+    if (currentIndex === -1) return;
+    
+    const prevIndex = currentIndex === 0 ? PAGE_ORDER.length - 1 : currentIndex - 1;
+    const targetPage = PAGE_ORDER[prevIndex];
+    
+    // Show transition feedback
+    setTransitionState({
+      isTransitioning: true,
+      direction: 'left',
+      targetPage: getPageDisplayName(targetPage)
+    });
+    
+    setTimeout(() => {
+      setLocation(targetPage);
+      setTransitionState(prev => ({ ...prev, isTransitioning: false }));
+    }, 200);
   };
 
   useSwipeNavigation({
-    onSwipeRight: navigateToProfile,
-    onSwipeLeft: navigateToMessages,
+    onSwipeLeft: navigateToNextPage,
+    onSwipeRight: navigateToPreviousPage,
     threshold: 80,
     preventDefaultTouchMove: true
   });
+
+  // Add keyboard and mouse navigation support for desktop
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Only handle arrow keys if not in input, textarea, or contenteditable elements
+      const activeElement = document.activeElement;
+      const isInputElement = activeElement && (
+        activeElement.tagName === 'INPUT' ||
+        activeElement.tagName === 'TEXTAREA' ||
+        activeElement.getAttribute('contenteditable') === 'true'
+      );
+
+      if (isInputElement) return;
+
+      // Handle Left/Right arrow keys for page navigation
+      if (e.key === 'ArrowLeft') {
+        e.preventDefault();
+        navigateToPreviousPage();
+      } else if (e.key === 'ArrowRight') {
+        e.preventDefault();
+        navigateToNextPage();
+      }
+    };
+
+    const handleWheel = (e: WheelEvent) => {
+      // Only handle horizontal wheel events when Shift is held
+      if (!e.shiftKey) return;
+
+      const activeElement = document.activeElement;
+      const isInputElement = activeElement && (
+        activeElement.tagName === 'INPUT' ||
+        activeElement.tagName === 'TEXTAREA' ||
+        activeElement.getAttribute('contenteditable') === 'true'
+      );
+
+      if (isInputElement) return;
+
+      e.preventDefault();
+      
+      // Navigate based on wheel direction
+      if (e.deltaX > 0 || e.deltaY > 0) {
+        navigateToNextPage();
+      } else if (e.deltaX < 0 || e.deltaY < 0) {
+        navigateToPreviousPage();
+      }
+    };
+
+    // Only add keyboard listeners on desktop (non-touch devices)
+    const isDesktop = !('ontouchstart' in window) && window.innerWidth > 768;
+    
+    if (isDesktop) {
+      document.addEventListener('keydown', handleKeyDown);
+      document.addEventListener('wheel', handleWheel, { passive: false });
+      return () => {
+        document.removeEventListener('keydown', handleKeyDown);
+        document.removeEventListener('wheel', handleWheel);
+      };
+    }
+  }, [navigateToNextPage, navigateToPreviousPage]);
+
+  return {
+    currentPageIndex: getCurrentPageIndex(),
+    totalPages: PAGE_ORDER.length,
+    navigateToNextPage,
+    navigateToPreviousPage,
+    pageOrder: PAGE_ORDER,
+    transitionState
+  };
 }

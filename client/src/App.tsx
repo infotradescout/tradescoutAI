@@ -13,6 +13,8 @@ import { lazy } from "react";
 import { NextGenNavigation } from "@/components/layout/NextGenNavigation";
 import { useGlobalSwipeNavigation } from "@/hooks/useSwipeNavigation";
 import { SwipeIndicator } from "@/components/SwipeIndicator";
+import { KeyboardNavigationHint } from "@/components/KeyboardNavigationHint";
+import { PageTransitionIndicator } from "@/components/PageTransitionIndicator";
 import MobileCTA from "@/components/mobile-cta";
 import NotFound from "@/pages/not-found";
 import Login from "@/pages/login";
@@ -84,8 +86,8 @@ function Router() {
   const { isAuthenticated, isLoading } = useAuth();
   const { needsSetup, isLoading: setupLoading } = useSetupStatus();
   
-  // Enable global swipe navigation on mobile
-  useGlobalSwipeNavigation();
+  // Enable global swipe navigation on mobile with page cycling
+  const swipeNav = useGlobalSwipeNavigation();
   
   // Enable AI monitoring for admin users
   useAIMonitoring();
@@ -232,7 +234,18 @@ function Router() {
       <MobileCTA />
       <FloatingBugReport />
       <BetaNotificationPopup />
-      <SwipeIndicator />
+      <SwipeIndicator 
+        currentPageIndex={swipeNav.currentPageIndex}
+        totalPages={swipeNav.totalPages}
+        onPrevious={swipeNav.navigateToPreviousPage}
+        onNext={swipeNav.navigateToNextPage}
+      />
+      <KeyboardNavigationHint />
+      <PageTransitionIndicator 
+        direction={swipeNav.transitionState.direction || undefined}
+        isVisible={swipeNav.transitionState.isTransitioning}
+        currentPage={swipeNav.transitionState.targetPage}
+      />
       <LegalFooter />
     </div>
   );
