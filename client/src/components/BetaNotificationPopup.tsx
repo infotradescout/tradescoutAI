@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
+// Force cache refresh
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Bell, X, Rocket, Users, Zap, Bug } from "lucide-react";
+import { Bell, X, Rocket, Users, Zap } from "lucide-react";
 
 export function BetaNotificationPopup() {
   const [isOpen, setIsOpen] = useState(false);
@@ -40,7 +41,7 @@ export function BetaNotificationPopup() {
       <DialogContent className="max-w-md mx-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-orange-600">
-            <Bug className="h-5 w-5" />
+            <Bell className="h-5 w-5" />
             Beta Version Notice
           </DialogTitle>
           <DialogDescription>
