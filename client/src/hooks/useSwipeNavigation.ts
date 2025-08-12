@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useLocation } from 'wouter';
 import { useAuth } from '@/hooks/useAuth';
+import { useQuery } from '@tanstack/react-query';
 
 interface SwipeNavigationOptions {
   onSwipeLeft?: () => void;
@@ -165,9 +166,44 @@ export function useGlobalSwipeNavigation() {
 
   // Import useAuth hook within the component scope
   const { isAuthenticated } = useAuth();
-  
-  // Use appropriate page order based on authentication status
-  const currentPageOrder = isAuthenticated ? PAGE_ORDER : GUEST_PAGE_ORDER;
+
+  // Fetch user navigation preferences
+  const { data: navigationPrefs } = useQuery({
+    queryKey: ['/api/user/navigation-preferences'],
+    enabled: isAuthenticated,
+    retry: false,
+  });
+
+  // Function to apply user preferences to page order
+  const getCustomizedPageOrder = () => {
+    const defaultOrder = isAuthenticated ? PAGE_ORDER : GUEST_PAGE_ORDER;
+    
+    // If user has custom order preferences, apply them
+    if (navigationPrefs?.customOrder && navigationPrefs.customOrder.length > 0) {
+      // Start with user's custom order
+      const customOrder = navigationPrefs.customOrder.filter(page => defaultOrder.includes(page));
+      // Add any pages that weren't in the custom order at the end
+      const remainingPages = defaultOrder.filter(page => !customOrder.includes(page));
+      const fullCustomOrder = [...customOrder, ...remainingPages];
+      
+      // Filter out pages hidden from swipe navigation
+      if (navigationPrefs.hiddenFromSwipe && navigationPrefs.hiddenFromSwipe.length > 0) {
+        return fullCustomOrder.filter(page => !navigationPrefs.hiddenFromSwipe.includes(page));
+      }
+      
+      return fullCustomOrder;
+    }
+    
+    // Filter out hidden pages from default order
+    if (navigationPrefs?.hiddenFromSwipe && navigationPrefs.hiddenFromSwipe.length > 0) {
+      return defaultOrder.filter(page => !navigationPrefs.hiddenFromSwipe.includes(page));
+    }
+    
+    return defaultOrder;
+  };
+
+  // Use customized page order or fall back to default
+  const currentPageOrder = getCustomizedPageOrder();
 
   const getCurrentPageIndex = () => {
     // Find exact match first
@@ -224,11 +260,14 @@ export function useGlobalSwipeNavigation() {
     }, 200);
   };
 
+  // Only enable swipe navigation if user preference allows it
+  const swipeEnabled = navigationPrefs?.enableSwipeNavigation !== false;
+  
   useSwipeNavigation({
-    onSwipeLeft: navigateToNextPage,
-    onSwipeRight: navigateToPreviousPage,
+    onSwipeLeft: swipeEnabled ? navigateToNextPage : undefined,
+    onSwipeRight: swipeEnabled ? navigateToPreviousPage : undefined,
     threshold: 80,
-    preventDefaultTouchMove: true
+    preventDefaultTouchMove: swipeEnabled
   });
 
   // Add keyboard and mouse navigation support for desktop

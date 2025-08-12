@@ -247,6 +247,11 @@ export const users = pgTable("users", {
     emailNotifications?: boolean;
     smsNotifications?: boolean;
     marketingEmails?: boolean;
+    navigation?: {
+      customOrder?: string[]; // Array of navigation items in user's preferred order
+      hiddenFromSwipe?: string[]; // Navigation items to hide from swipe navigation
+      enableSwipeNavigation?: boolean; // Whether swipe navigation is enabled
+    };
   }>(),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),

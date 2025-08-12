@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
@@ -32,8 +32,19 @@ import {
   Camera,
   Key,
   Bell,
-  Settings
+  Settings,
+  Navigation,
+  GripVertical,
+  Eye,
+  EyeOff,
+  Home,
+  Users,
+  MessageSquare,
+  BarChart3,
+  Briefcase,
+  Wrench
 } from "lucide-react";
+import { DragDropContext, Droppable, Draggable, DropResult } from "react-beautiful-dnd";
 
 const profileSchema = z.object({
   firstName: z.string().min(1, "First name is required"),
@@ -127,6 +138,102 @@ export default function Profile() {
       leadNotifications: true,
     },
   });
+
+  // Navigation preferences state
+  const [navigationItems, setNavigationItems] = useState([
+    { id: "home", label: "Home", icon: Home },
+    { id: "dashboard", label: "Dashboard", icon: BarChart3 },
+    { id: "contractors", label: "Contractors", icon: Users },
+    { id: "messages", label: "Messages", icon: MessageSquare },
+    { id: "marketplace", label: "Marketplace", icon: Briefcase },
+    { id: "leaderboard", label: "Leaderboard", icon: Building },
+    { id: "growth-pack", label: "Growth Pack", icon: Wrench }
+  ]);
+
+  // Fetch navigation preferences
+  const { data: navigationPrefs } = useQuery({
+    queryKey: ["/api/user/navigation-preferences"],
+    enabled: !!user,
+  });
+
+  // Update local state when navigation preferences are fetched
+  useEffect(() => {
+    if (navigationPrefs) {
+      if (navigationPrefs.customOrder && navigationPrefs.customOrder.length > 0) {
+        const orderedItems = navigationPrefs.customOrder.map((id: string) => 
+          navigationItems.find(item => item.id === id)
+        ).filter(Boolean);
+        // Add any items not in custom order at the end
+        const remainingItems = navigationItems.filter(item => 
+          !navigationPrefs.customOrder.includes(item.id)
+        );
+        setNavigationItems([...orderedItems, ...remainingItems]);
+      }
+    }
+  }, [navigationPrefs]);
+
+  // Navigation preferences mutation
+  const updateNavigationMutation = useMutation({
+    mutationFn: async (preferences: any) => {
+      return apiRequest("PUT", "/api/user/navigation-preferences", preferences);
+    },
+    onSuccess: () => {
+      toast({
+        title: "Navigation Updated",
+        description: "Your navigation preferences have been saved.",
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/user/navigation-preferences"] });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Update Failed",
+        description: error.message || "Failed to update navigation preferences. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Handle drag and drop for navigation items
+  const handleOnDragEnd = (result: DropResult) => {
+    if (!result.destination) return;
+
+    const items = Array.from(navigationItems);
+    const [reorderedItem] = items.splice(result.source.index, 1);
+    items.splice(result.destination.index, 0, reorderedItem);
+
+    setNavigationItems(items);
+
+    // Update navigation preferences
+    const customOrder = items.map(item => item.id);
+    updateNavigationMutation.mutate({
+      customOrder,
+      enableSwipeNavigation: navigationPrefs?.enableSwipeNavigation !== false,
+      hiddenFromSwipe: navigationPrefs?.hiddenFromSwipe || []
+    });
+  };
+
+  // Handle toggling swipe navigation for individual items
+  const toggleSwipeVisibility = (itemId: string) => {
+    const currentHidden = navigationPrefs?.hiddenFromSwipe || [];
+    const newHidden = currentHidden.includes(itemId) 
+      ? currentHidden.filter((id: string) => id !== itemId)
+      : [...currentHidden, itemId];
+
+    updateNavigationMutation.mutate({
+      customOrder: navigationPrefs?.customOrder || navigationItems.map(item => item.id),
+      enableSwipeNavigation: navigationPrefs?.enableSwipeNavigation !== false,
+      hiddenFromSwipe: newHidden
+    });
+  };
+
+  // Handle toggling swipe navigation globally
+  const toggleSwipeNavigation = () => {
+    updateNavigationMutation.mutate({
+      customOrder: navigationPrefs?.customOrder || navigationItems.map(item => item.id),
+      enableSwipeNavigation: !navigationPrefs?.enableSwipeNavigation,
+      hiddenFromSwipe: navigationPrefs?.hiddenFromSwipe || []
+    });
+  };
 
   // Fetch user profile details
   const { data: profileData } = useQuery({
@@ -922,6 +1029,95 @@ export default function Profile() {
                           <p className="text-sm text-gray-400">Allow others to see your contact details</p>
                         </div>
                         <Switch defaultChecked />
+                      </div>
+                    </div>
+                  </div>
+
+                  <Separator className="bg-navy-600" />
+
+                  <div>
+                    <h3 className="text-lg font-semibold text-white mb-4">Navigation Preferences</h3>
+                    <div className="space-y-6">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <label className="text-base text-white">Enable Swipe Navigation</label>
+                          <p className="text-sm text-gray-400">Allow swiping between pages on mobile and tablets</p>
+                        </div>
+                        <Switch 
+                          checked={navigationPrefs?.enableSwipeNavigation !== false}
+                          onCheckedChange={toggleSwipeNavigation}
+                          disabled={updateNavigationMutation.isPending}
+                        />
+                      </div>
+
+                      <div>
+                        <label className="text-base text-white mb-4 block">Customize Navigation Order</label>
+                        <p className="text-sm text-gray-400 mb-4">Drag and drop to reorder navigation items. Use the eye icon to hide items from swipe navigation.</p>
+                        
+                        <DragDropContext onDragEnd={handleOnDragEnd}>
+                          <Droppable droppableId="navigation-items">
+                            {(provided) => (
+                              <div 
+                                {...provided.droppableProps} 
+                                ref={provided.innerRef}
+                                className="space-y-2"
+                              >
+                                {navigationItems.map((item, index) => {
+                                  const Icon = item.icon;
+                                  const isHidden = navigationPrefs?.hiddenFromSwipe?.includes(item.id);
+                                  
+                                  return (
+                                    <Draggable key={item.id} draggableId={item.id} index={index}>
+                                      {(provided, snapshot) => (
+                                        <div
+                                          ref={provided.innerRef}
+                                          {...provided.draggableProps}
+                                          className={`flex items-center justify-between p-3 bg-navy-700 border border-navy-600 rounded-lg ${
+                                            snapshot.isDragging ? 'shadow-lg bg-navy-600' : ''
+                                          }`}
+                                        >
+                                          <div className="flex items-center space-x-3">
+                                            <div 
+                                              {...provided.dragHandleProps}
+                                              className="cursor-grab active:cursor-grabbing text-gray-400 hover:text-white"
+                                            >
+                                              <GripVertical className="h-4 w-4" />
+                                            </div>
+                                            <Icon className="h-4 w-4 text-orange-500" />
+                                            <span className="text-white">{item.label}</span>
+                                          </div>
+                                          <div className="flex items-center space-x-2">
+                                            <span className="text-xs text-gray-400">
+                                              {isHidden ? 'Hidden from swipe' : 'Visible in swipe'}
+                                            </span>
+                                            <Button
+                                              variant="ghost"
+                                              size="sm"
+                                              onClick={() => toggleSwipeVisibility(item.id)}
+                                              disabled={updateNavigationMutation.isPending}
+                                              className="h-8 w-8 p-0 hover:bg-navy-600"
+                                            >
+                                              {isHidden ? (
+                                                <EyeOff className="h-4 w-4 text-gray-400" />
+                                              ) : (
+                                                <Eye className="h-4 w-4 text-green-500" />
+                                              )}
+                                            </Button>
+                                          </div>
+                                        </div>
+                                      )}
+                                    </Draggable>
+                                  );
+                                })}
+                                {provided.placeholder}
+                              </div>
+                            )}
+                          </Droppable>
+                        </DragDropContext>
+
+                        {updateNavigationMutation.isPending && (
+                          <p className="text-sm text-orange-500 mt-2">Saving navigation preferences...</p>
+                        )}
                       </div>
                     </div>
                   </div>

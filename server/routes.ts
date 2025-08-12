@@ -500,6 +500,56 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Navigation preferences endpoints
+  app.put('/api/user/navigation-preferences', isAuthenticated, async (req: any, res) => {
+    try {
+      const { customOrder, hiddenFromSwipe, enableSwipeNavigation } = req.body;
+      
+      // Get current user to preserve other preferences
+      const currentUser = await storage.getUser(req.user.id);
+      const currentPrefs = currentUser.preferences || {};
+      
+      // Update navigation preferences
+      const updatedPreferences = {
+        ...currentPrefs,
+        navigation: {
+          customOrder,
+          hiddenFromSwipe,
+          enableSwipeNavigation: enableSwipeNavigation !== undefined ? enableSwipeNavigation : true
+        }
+      };
+      
+      const user = await storage.updateUser(req.user.id, {
+        preferences: updatedPreferences,
+        updatedAt: new Date(),
+      });
+      
+      res.json({ 
+        navigation: user.preferences?.navigation,
+        message: "Navigation preferences updated successfully"
+      });
+    } catch (error) {
+      console.error("Error updating navigation preferences:", error);
+      res.status(500).json({ message: "Failed to update navigation preferences" });
+    }
+  });
+
+  app.get('/api/user/navigation-preferences', isAuthenticated, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.id);
+      const navigationPrefs = user.preferences?.navigation || {
+        customOrder: [],
+        hiddenFromSwipe: [],
+        enableSwipeNavigation: true
+      };
+      
+      res.json(navigationPrefs);
+    } catch (error) {
+      console.error("Error fetching navigation preferences:", error);
+      res.status(500).json({ message: "Failed to fetch navigation preferences" });
+    }
+  });
+
   // Profile management endpoints
   app.get('/api/auth/profile', isAuthenticated, async (req: any, res) => {
     try {
