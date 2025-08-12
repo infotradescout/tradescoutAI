@@ -250,6 +250,23 @@ import {
   type InsertFoundationImpactReport,
   type DonationMatching,
   type InsertDonationMatching,
+  // CRM types
+  type CrmContact,
+  type InsertCrmContact,
+  type CrmDeal,
+  type InsertCrmDeal,
+  type CrmActivity,
+  type InsertCrmActivity,
+  type CrmEmailTemplate,
+  type InsertCrmEmailTemplate,
+  type CrmPipeline,
+  type InsertCrmPipeline,
+  // CRM tables
+  crmContacts,
+  crmDeals,
+  crmActivities,
+  crmEmailTemplates,
+  crmPipelines,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, desc, asc, sql, inArray, like, gt, or, lt, isNull, isNotNull, ne, gte, lte } from "drizzle-orm";
@@ -681,6 +698,41 @@ export interface IStorage {
     totalCommissionPaid: string;
     conversionRate: number;
   }>;
+
+  // CRM operations
+  createCrmContact(contact: InsertCrmContact): Promise<CrmContact>;
+  updateCrmContact(id: string, updates: Partial<CrmContact>): Promise<CrmContact>;
+  deleteCrmContact(id: string): Promise<void>;
+  getCrmContact(id: string): Promise<CrmContact | undefined>;
+  getCrmContactByEmail(email: string): Promise<CrmContact | undefined>;
+  getAllCrmContacts(filters?: { status?: string; assignedTo?: string; search?: string }): Promise<Array<CrmContact & { assignedTo?: User }>>;
+  
+  createCrmDeal(deal: InsertCrmDeal): Promise<CrmDeal>;
+  updateCrmDeal(id: string, updates: Partial<CrmDeal>): Promise<CrmDeal>;
+  deleteCrmDeal(id: string): Promise<void>;
+  getCrmDeal(id: string): Promise<CrmDeal | undefined>;
+  getAllCrmDeals(filters?: { stage?: string; assignedTo?: string; contactId?: string }): Promise<Array<CrmDeal & { contact?: CrmContact; assignedTo?: User }>>;
+  
+  createCrmActivity(activity: InsertCrmActivity): Promise<CrmActivity>;
+  updateCrmActivity(id: string, updates: Partial<CrmActivity>): Promise<CrmActivity>;
+  deleteCrmActivity(id: string): Promise<void>;
+  getCrmActivity(id: string): Promise<CrmActivity | undefined>;
+  getCrmActivitiesByContact(contactId: string): Promise<Array<CrmActivity & { createdBy?: User }>>;
+  getCrmActivitiesByDeal(dealId: string): Promise<Array<CrmActivity & { createdBy?: User }>>;
+  getAllCrmActivities(filters?: { type?: string; contactId?: string; dealId?: string }): Promise<Array<CrmActivity & { contact?: CrmContact; deal?: CrmDeal; createdBy?: User }>>;
+  
+  createCrmEmailTemplate(template: InsertCrmEmailTemplate): Promise<CrmEmailTemplate>;
+  updateCrmEmailTemplate(id: string, updates: Partial<CrmEmailTemplate>): Promise<CrmEmailTemplate>;
+  deleteCrmEmailTemplate(id: string): Promise<void>;
+  getCrmEmailTemplate(id: string): Promise<CrmEmailTemplate | undefined>;
+  getAllCrmEmailTemplates(category?: string): Promise<Array<CrmEmailTemplate & { createdBy?: User }>>;
+  
+  createCrmPipeline(pipeline: InsertCrmPipeline): Promise<CrmPipeline>;
+  updateCrmPipeline(id: string, updates: Partial<CrmPipeline>): Promise<CrmPipeline>;
+  deleteCrmPipeline(id: string): Promise<void>;
+  getCrmPipeline(id: string): Promise<CrmPipeline | undefined>;
+  getAllCrmPipelines(): Promise<Array<CrmPipeline & { createdBy?: User }>>;
+  getDefaultCrmPipeline(): Promise<CrmPipeline | undefined>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -5142,6 +5194,368 @@ export class DatabaseStorage implements IStorage {
       totalCommissionPaid: program.totalCommissionPaid || '0',
       conversionRate: Math.round(conversionRate * 100) / 100
     };
+  }
+
+  // CRM operations implementation
+  async createCrmContact(contactData: InsertCrmContact): Promise<CrmContact> {
+    const [contact] = await db.insert(crmContacts).values(contactData).returning();
+    return contact;
+  }
+
+  async updateCrmContact(id: string, updates: Partial<CrmContact>): Promise<CrmContact> {
+    const [contact] = await db
+      .update(crmContacts)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(crmContacts.id, id))
+      .returning();
+    return contact;
+  }
+
+  async deleteCrmContact(id: string): Promise<void> {
+    await db.delete(crmContacts).where(eq(crmContacts.id, id));
+  }
+
+  async getCrmContact(id: string): Promise<CrmContact | undefined> {
+    const [contact] = await db.select().from(crmContacts).where(eq(crmContacts.id, id));
+    return contact;
+  }
+
+  async getCrmContactByEmail(email: string): Promise<CrmContact | undefined> {
+    const [contact] = await db.select().from(crmContacts).where(eq(crmContacts.email, email));
+    return contact;
+  }
+
+  async getAllCrmContacts(filters?: { 
+    status?: string; 
+    assignedTo?: string; 
+    search?: string 
+  }): Promise<Array<CrmContact & { assignedTo?: User }>> {
+    let query = db
+      .select({
+        ...crmContacts,
+        assignedTo: {
+          id: users.id,
+          firstName: users.firstName,
+          lastName: users.lastName,
+          email: users.email,
+        }
+      })
+      .from(crmContacts)
+      .leftJoin(users, eq(crmContacts.assignedToUserId, users.id));
+
+    const conditions = [];
+
+    if (filters?.status) {
+      conditions.push(eq(crmContacts.status, filters.status as any));
+    }
+
+    if (filters?.assignedTo) {
+      conditions.push(eq(crmContacts.assignedToUserId, filters.assignedTo));
+    }
+
+    if (filters?.search) {
+      const searchTerm = `%${filters.search}%`;
+      conditions.push(
+        or(
+          like(crmContacts.firstName, searchTerm),
+          like(crmContacts.lastName, searchTerm),
+          like(crmContacts.email, searchTerm),
+          like(crmContacts.company, searchTerm)
+        )
+      );
+    }
+
+    if (conditions.length > 0) {
+      query = query.where(and(...conditions));
+    }
+
+    const results = await query.orderBy(desc(crmContacts.createdAt));
+    return results as Array<CrmContact & { assignedTo?: User }>;
+  }
+
+  async createCrmDeal(dealData: InsertCrmDeal): Promise<CrmDeal> {
+    const [deal] = await db.insert(crmDeals).values(dealData).returning();
+    return deal;
+  }
+
+  async updateCrmDeal(id: string, updates: Partial<CrmDeal>): Promise<CrmDeal> {
+    const [deal] = await db
+      .update(crmDeals)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(crmDeals.id, id))
+      .returning();
+    return deal;
+  }
+
+  async deleteCrmDeal(id: string): Promise<void> {
+    await db.delete(crmDeals).where(eq(crmDeals.id, id));
+  }
+
+  async getCrmDeal(id: string): Promise<CrmDeal | undefined> {
+    const [deal] = await db.select().from(crmDeals).where(eq(crmDeals.id, id));
+    return deal;
+  }
+
+  async getAllCrmDeals(filters?: { 
+    stage?: string; 
+    assignedTo?: string; 
+    contactId?: string 
+  }): Promise<Array<CrmDeal & { contact?: CrmContact; assignedTo?: User }>> {
+    let query = db
+      .select({
+        ...crmDeals,
+        contact: {
+          id: crmContacts.id,
+          firstName: crmContacts.firstName,
+          lastName: crmContacts.lastName,
+          email: crmContacts.email,
+          company: crmContacts.company,
+        },
+        assignedTo: {
+          id: users.id,
+          firstName: users.firstName,
+          lastName: users.lastName,
+          email: users.email,
+        }
+      })
+      .from(crmDeals)
+      .leftJoin(crmContacts, eq(crmDeals.contactId, crmContacts.id))
+      .leftJoin(users, eq(crmDeals.assignedToUserId, users.id));
+
+    const conditions = [];
+
+    if (filters?.stage) {
+      conditions.push(eq(crmDeals.stage, filters.stage as any));
+    }
+
+    if (filters?.assignedTo) {
+      conditions.push(eq(crmDeals.assignedToUserId, filters.assignedTo));
+    }
+
+    if (filters?.contactId) {
+      conditions.push(eq(crmDeals.contactId, filters.contactId));
+    }
+
+    if (conditions.length > 0) {
+      query = query.where(and(...conditions));
+    }
+
+    const results = await query.orderBy(desc(crmDeals.createdAt));
+    return results as Array<CrmDeal & { contact?: CrmContact; assignedTo?: User }>;
+  }
+
+  async createCrmActivity(activityData: InsertCrmActivity): Promise<CrmActivity> {
+    const [activity] = await db.insert(crmActivities).values(activityData).returning();
+    return activity;
+  }
+
+  async updateCrmActivity(id: string, updates: Partial<CrmActivity>): Promise<CrmActivity> {
+    const [activity] = await db
+      .update(crmActivities)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(crmActivities.id, id))
+      .returning();
+    return activity;
+  }
+
+  async deleteCrmActivity(id: string): Promise<void> {
+    await db.delete(crmActivities).where(eq(crmActivities.id, id));
+  }
+
+  async getCrmActivity(id: string): Promise<CrmActivity | undefined> {
+    const [activity] = await db.select().from(crmActivities).where(eq(crmActivities.id, id));
+    return activity;
+  }
+
+  async getCrmActivitiesByContact(contactId: string): Promise<Array<CrmActivity & { createdBy?: User }>> {
+    const results = await db
+      .select({
+        ...crmActivities,
+        createdBy: {
+          id: users.id,
+          firstName: users.firstName,
+          lastName: users.lastName,
+          email: users.email,
+        }
+      })
+      .from(crmActivities)
+      .leftJoin(users, eq(crmActivities.createdByUserId, users.id))
+      .where(eq(crmActivities.contactId, contactId))
+      .orderBy(desc(crmActivities.createdAt));
+
+    return results as Array<CrmActivity & { createdBy?: User }>;
+  }
+
+  async getCrmActivitiesByDeal(dealId: string): Promise<Array<CrmActivity & { createdBy?: User }>> {
+    const results = await db
+      .select({
+        ...crmActivities,
+        createdBy: {
+          id: users.id,
+          firstName: users.firstName,
+          lastName: users.lastName,
+          email: users.email,
+        }
+      })
+      .from(crmActivities)
+      .leftJoin(users, eq(crmActivities.createdByUserId, users.id))
+      .where(eq(crmActivities.dealId, dealId))
+      .orderBy(desc(crmActivities.createdAt));
+
+    return results as Array<CrmActivity & { createdBy?: User }>;
+  }
+
+  async getAllCrmActivities(filters?: { 
+    type?: string; 
+    contactId?: string; 
+    dealId?: string 
+  }): Promise<Array<CrmActivity & { contact?: CrmContact; deal?: CrmDeal; createdBy?: User }>> {
+    let query = db
+      .select({
+        ...crmActivities,
+        contact: {
+          id: crmContacts.id,
+          firstName: crmContacts.firstName,
+          lastName: crmContacts.lastName,
+          email: crmContacts.email,
+          company: crmContacts.company,
+        },
+        deal: {
+          id: crmDeals.id,
+          title: crmDeals.title,
+          value: crmDeals.value,
+          stage: crmDeals.stage,
+        },
+        createdBy: {
+          id: users.id,
+          firstName: users.firstName,
+          lastName: users.lastName,
+          email: users.email,
+        }
+      })
+      .from(crmActivities)
+      .leftJoin(crmContacts, eq(crmActivities.contactId, crmContacts.id))
+      .leftJoin(crmDeals, eq(crmActivities.dealId, crmDeals.id))
+      .leftJoin(users, eq(crmActivities.createdByUserId, users.id));
+
+    const conditions = [];
+
+    if (filters?.type) {
+      conditions.push(eq(crmActivities.type, filters.type as any));
+    }
+
+    if (filters?.contactId) {
+      conditions.push(eq(crmActivities.contactId, filters.contactId));
+    }
+
+    if (filters?.dealId) {
+      conditions.push(eq(crmActivities.dealId, filters.dealId));
+    }
+
+    if (conditions.length > 0) {
+      query = query.where(and(...conditions));
+    }
+
+    const results = await query.orderBy(desc(crmActivities.createdAt));
+    return results as Array<CrmActivity & { contact?: CrmContact; deal?: CrmDeal; createdBy?: User }>;
+  }
+
+  async createCrmEmailTemplate(templateData: InsertCrmEmailTemplate): Promise<CrmEmailTemplate> {
+    const [template] = await db.insert(crmEmailTemplates).values(templateData).returning();
+    return template;
+  }
+
+  async updateCrmEmailTemplate(id: string, updates: Partial<CrmEmailTemplate>): Promise<CrmEmailTemplate> {
+    const [template] = await db
+      .update(crmEmailTemplates)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(crmEmailTemplates.id, id))
+      .returning();
+    return template;
+  }
+
+  async deleteCrmEmailTemplate(id: string): Promise<void> {
+    await db.delete(crmEmailTemplates).where(eq(crmEmailTemplates.id, id));
+  }
+
+  async getCrmEmailTemplate(id: string): Promise<CrmEmailTemplate | undefined> {
+    const [template] = await db.select().from(crmEmailTemplates).where(eq(crmEmailTemplates.id, id));
+    return template;
+  }
+
+  async getAllCrmEmailTemplates(category?: string): Promise<Array<CrmEmailTemplate & { createdBy?: User }>> {
+    let query = db
+      .select({
+        ...crmEmailTemplates,
+        createdBy: {
+          id: users.id,
+          firstName: users.firstName,
+          lastName: users.lastName,
+          email: users.email,
+        }
+      })
+      .from(crmEmailTemplates)
+      .leftJoin(users, eq(crmEmailTemplates.createdByUserId, users.id));
+
+    if (category) {
+      query = query.where(eq(crmEmailTemplates.category, category));
+    }
+
+    const results = await query
+      .where(eq(crmEmailTemplates.isActive, true))
+      .orderBy(crmEmailTemplates.name);
+
+    return results as Array<CrmEmailTemplate & { createdBy?: User }>;
+  }
+
+  async createCrmPipeline(pipelineData: InsertCrmPipeline): Promise<CrmPipeline> {
+    const [pipeline] = await db.insert(crmPipelines).values(pipelineData).returning();
+    return pipeline;
+  }
+
+  async updateCrmPipeline(id: string, updates: Partial<CrmPipeline>): Promise<CrmPipeline> {
+    const [pipeline] = await db
+      .update(crmPipelines)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(crmPipelines.id, id))
+      .returning();
+    return pipeline;
+  }
+
+  async deleteCrmPipeline(id: string): Promise<void> {
+    await db.delete(crmPipelines).where(eq(crmPipelines.id, id));
+  }
+
+  async getCrmPipeline(id: string): Promise<CrmPipeline | undefined> {
+    const [pipeline] = await db.select().from(crmPipelines).where(eq(crmPipelines.id, id));
+    return pipeline;
+  }
+
+  async getAllCrmPipelines(): Promise<Array<CrmPipeline & { createdBy?: User }>> {
+    const results = await db
+      .select({
+        ...crmPipelines,
+        createdBy: {
+          id: users.id,
+          firstName: users.firstName,
+          lastName: users.lastName,
+          email: users.email,
+        }
+      })
+      .from(crmPipelines)
+      .leftJoin(users, eq(crmPipelines.createdByUserId, users.id))
+      .where(eq(crmPipelines.isActive, true))
+      .orderBy(crmPipelines.name);
+
+    return results as Array<CrmPipeline & { createdBy?: User }>;
+  }
+
+  async getDefaultCrmPipeline(): Promise<CrmPipeline | undefined> {
+    const [pipeline] = await db
+      .select()
+      .from(crmPipelines)
+      .where(and(eq(crmPipelines.isDefault, true), eq(crmPipelines.isActive, true)));
+    return pipeline;
   }
 }
 

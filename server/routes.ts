@@ -24,6 +24,7 @@ import {
 import { setupModerationRoutes } from "./moderation";
 import { registerUIIssuesRoutes } from "./routes/admin/ui-issues";
 import { registerAICodeFixRoutes } from "./ai-code-fixes";
+import { registerCrmRoutes } from "./crm-routes";
 import { tutorialStorage } from "./tutorialStorage";
 
 // Middleware to check address verification requirement
@@ -6785,6 +6786,9 @@ export async function registerRoutes(app: Express) {
 
   // Register AI Code Fixing routes
   registerAICodeFixRoutes(app);
+
+  // Register CRM routes
+  registerCrmRoutes(app);
 
   return httpServer;
 }

@@ -73,6 +73,7 @@ import Register from "@/pages/register";
 import Leaderboard from "@/pages/leaderboard";
 import InvitePage from "@/pages/invite";
 import AffiliatePage from "@/pages/affiliate";
+import CrmDashboard from "@/pages/CrmDashboard";
 import TestFunctionality from "@/pages/test-functionality";
 
 import ModerationCenter from "@/pages/moderation-center";
@@ -260,6 +261,7 @@ const Router = memo(function Router() {
             <Route path="/admin/testing-controls" component={AdminTestingControls} />
             <Route path="/admin/listings" component={AdminListings} />
             <Route path="/admin/professional-verification" component={AdminProfessionalVerification} />
+            <Route path="/admin/crm" component={CrmDashboard} />
             <Route path="/chat/:conversationId?" component={Chat} />
             <Route path="/conversations" component={Conversations} />
             <Route path="/invite" component={InvitePage} />
