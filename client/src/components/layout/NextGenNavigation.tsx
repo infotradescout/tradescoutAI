@@ -34,10 +34,10 @@ export function NextGenNavigation({ className = "" }: NextGenNavigationProps) {
     { href: "/calculator", label: "Calculator", icon: Calculator, priority: 9 },
     { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard, priority: 8 },
     { href: "/contractors/for-contractors", label: "For Contractors", icon: Wrench, priority: 7 },
-    { href: "/helpers", label: "Helpers", icon: Users, priority: 6 },
-    { href: "/exchange", label: "Exchange", icon: ArrowLeftRight, priority: 5 },
-    { href: "/foundation", label: "Foundation", icon: Building, priority: 4 },
-    { href: "/community", label: "Community", icon: MessageSquare, priority: 3 }
+    { href: "/foundation", label: "Foundation", icon: Building, priority: 6 },
+    { href: "/community", label: "Community", icon: MessageSquare, priority: 5 },
+    { href: "/helpers", label: "Helpers", icon: Users, priority: 4 },
+    { href: "/exchange", label: "Exchange", icon: ArrowLeftRight, priority: 3 }
   ], []);
 
   const allPages = useMemo(() => [
@@ -114,20 +114,20 @@ export function NextGenNavigation({ className = "" }: NextGenNavigationProps) {
         hidden = sorted.slice(8);
         break;
       case 'compact':
-        visible = sorted.slice(0, 6); // Show 6 items with text
+        visible = sorted.slice(0, 6); // Show 6 items with text (includes Foundation & Community)
         hidden = sorted.slice(6);
         break;
       case 'icons':
-        visible = sorted.slice(0, 7); // Show 7 items as icons only
-        hidden = sorted.slice(7);
+        visible = sorted.slice(0, 8); // Show 8 items as icons only (all main items)
+        hidden = sorted.slice(8);
         break;
       case 'minimal':
-        visible = sorted.slice(0, 4); // Show 4 items as icons only
-        hidden = sorted.slice(4);
+        visible = sorted.slice(0, 5); // Show 5 items as icons only
+        hidden = sorted.slice(5);
         break;
       default:
-        visible = sorted.slice(0, 5);
-        hidden = sorted.slice(5);
+        visible = sorted.slice(0, 6);
+        hidden = sorted.slice(6);
     }
 
     return { visibleItems: visible, hiddenItems: hidden };
