@@ -17,6 +17,8 @@ import Landing from "@/pages/landing";
 import SafeLanding from "@/pages/safe-landing";
 import Home from "@/pages/home";
 import Foundation from "@/pages/foundation";
+import Exchange from "@/pages/exchange";
+import Helpers from "@/pages/helpers";
 import MasterAdminSetup from "@/components/auth/MasterAdminSetup";
 
 import Dashboard from "@/pages/dashboard";
@@ -117,6 +119,8 @@ function Router() {
         <Route path="/growth-pack" component={GrowthPack} />
         <Route path="/workers" component={WorkerMarketplace} />
         <Route path="/worker-marketplace" component={WorkerMarketplace} />
+        <Route path="/helpers" component={Helpers} />
+        <Route path="/exchange" component={Exchange} />
         <Route path="/marketplace" component={Marketplace} />
         <Route path="/marketplace/list" component={MarketplaceListing} />
         <Route path="/property-listing" component={PropertyListing} />

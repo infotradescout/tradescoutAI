@@ -1,455 +1,315 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Link } from "wouter";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { 
   Trophy, 
-  Medal, 
-  Award, 
   Star, 
-  Users, 
-  Calendar,
-  TrendingUp,
+  TrendingUp, 
+  Award,
   Crown,
-  Globe,
+  Medal,
   MapPin,
-  Building
+  Calendar,
+  Users,
+  Target,
+  CheckCircle
 } from "lucide-react";
 
-interface LeaderboardEntry {
-  rank: number;
-  contractorId: string;
-  companyName: string;
-  slug: string;
-  monthlyRecommendations?: number;
-  lifetimeRecommendations: number;
-  monthlyRating?: string;
-  lifetimeRating: string;
-  location?: string;
-  county?: string;
-  state?: string;
-}
-
-interface State {
-  code: string;
-  name: string;
-}
-
-interface County {
+interface ContractorRanking {
   id: string;
-  name: string;
-  stateCode: string;
+  companyName: string;
+  profileImage?: string;
+  monthlyRecommendations: number;
+  lifetimeRecommendations: number;
+  averageRating: number;
+  completedJobs: number;
+  location: string;
+  trades: string[];
+  verificationStatus: 'verified' | 'pending' | 'unverified';
+  rank: number;
+  previousRank?: number;
+  joinDate: string;
 }
 
 export default function Leaderboard() {
-  const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth() + 1);
-  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
-  const [selectedState, setSelectedState] = useState<string>("all");
-  const [selectedCounty, setSelectedCounty] = useState<string>("all");
-  const [geographicLevel, setGeographicLevel] = useState<"national" | "state" | "county">("national");
+  const [activeTab, setActiveTab] = useState("monthly");
+  const [selectedState, setSelectedState] = useState("");
+  const [selectedTrade, setSelectedTrade] = useState("");
 
-  // Fetch states for geographic filtering
-  const { data: states = [] } = useQuery<State[]>({
-    queryKey: ["/api/states"],
+  // Fetch monthly rankings
+  const { data: monthlyRankings, isLoading: monthlyLoading } = useQuery<ContractorRanking[]>({
+    queryKey: ['/api/leaderboard/monthly', selectedState, selectedTrade],
+    queryFn: async () => {
+      const params = new URLSearchParams();
+      if (selectedState) params.append('state', selectedState);
+      if (selectedTrade) params.append('trade', selectedTrade);
+      
+      const response = await fetch(`/api/leaderboard/monthly?${params.toString()}`);
+      if (!response.ok) throw new Error('Failed to fetch monthly rankings');
+      return response.json();
+    },
+    enabled: activeTab === "monthly",
   });
 
-  // Fetch counties for selected state
-  const { data: counties = [] } = useQuery<County[]>({
-    queryKey: ["/api/counties", { state: selectedState }],
-    enabled: selectedState !== "all",
-  });
-
-  // Build query params for geographic filtering
-  const getGeographicParams = () => {
-    const params: any = { month: selectedMonth, year: selectedYear, limit: 20 };
-    
-    if (geographicLevel === "state" && selectedState !== "all") {
-      params.state = selectedState;
-    } else if (geographicLevel === "county" && selectedCounty !== "all") {
-      params.county = selectedCounty;
-    }
-    
-    return params;
-  };
-
-  // Fetch monthly leaderboard
-  const { data: monthlyLeaderboard = [], isLoading: monthlyLoading } = useQuery<LeaderboardEntry[]>({
-    queryKey: ["/api/leaderboard/monthly", getGeographicParams()],
-  });
-
-  // Fetch lifetime leaderboard
-  const { data: lifetimeLeaderboard = [], isLoading: lifetimeLoading } = useQuery<LeaderboardEntry[]>({
-    queryKey: ["/api/leaderboard/lifetime", { ...getGeographicParams(), excludeMonth: true }],
+  // Fetch lifetime rankings
+  const { data: lifetimeRankings, isLoading: lifetimeLoading } = useQuery<ContractorRanking[]>({
+    queryKey: ['/api/leaderboard/lifetime', selectedState, selectedTrade],
+    queryFn: async () => {
+      const params = new URLSearchParams();
+      if (selectedState) params.append('state', selectedState);
+      if (selectedTrade) params.append('trade', selectedTrade);
+      
+      const response = await fetch(`/api/leaderboard/lifetime?${params.toString()}`);
+      if (!response.ok) throw new Error('Failed to fetch lifetime rankings');
+      return response.json();
+    },
+    enabled: activeTab === "lifetime",
   });
 
   const getRankIcon = (rank: number) => {
     switch (rank) {
       case 1:
-        return <Crown className="w-6 h-6 text-yellow-500" />;
+        return <Crown className="h-6 w-6 text-yellow-500" />;
       case 2:
-        return <Medal className="w-6 h-6 text-gray-400" />;
+        return <Medal className="h-6 w-6 text-gray-400" />;
       case 3:
-        return <Award className="w-6 h-6 text-amber-600" />;
+        return <Award className="h-6 w-6 text-orange-600" />;
       default:
-        return <span className="w-6 h-6 flex items-center justify-center text-sm font-bold text-gray-600">#{rank}</span>;
+        return <span className="text-lg font-bold text-gray-400">#{rank}</span>;
     }
   };
 
-  const getRankBadgeColor = (rank: number) => {
-    switch (rank) {
-      case 1:
-        return "bg-gradient-to-r from-yellow-400 to-yellow-600 text-white";
-      case 2:
-        return "bg-gradient-to-r from-gray-300 to-gray-500 text-white";
-      case 3:
-        return "bg-gradient-to-r from-amber-400 to-amber-600 text-white";
-      default:
-        return "bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300";
+  const getRankBadge = (rank: number) => {
+    if (rank <= 3) {
+      const colors = {
+        1: 'bg-yellow-500',
+        2: 'bg-gray-400',
+        3: 'bg-orange-600'
+      };
+      return <Badge className={`${colors[rank as keyof typeof colors]} text-white`}>#{rank}</Badge>;
     }
+    return <Badge variant="outline" className="border-slate-600 text-slate-400">#{rank}</Badge>;
   };
 
-  const months = [
-    { value: 1, label: "January" },
-    { value: 2, label: "February" },
-    { value: 3, label: "March" },
-    { value: 4, label: "April" },
-    { value: 5, label: "May" },
-    { value: 6, label: "June" },
-    { value: 7, label: "July" },
-    { value: 8, label: "August" },
-    { value: 9, label: "September" },
-    { value: 10, label: "October" },
-    { value: 11, label: "November" },
-    { value: 12, label: "December" },
-  ];
-
-  const years = Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - i);
-
-  const getGeographicLevelIcon = (level: string) => {
-    switch (level) {
-      case "national":
-        return <Globe className="w-4 h-4" />;
-      case "state":
-        return <Building className="w-4 h-4" />;
-      case "county":
-        return <MapPin className="w-4 h-4" />;
-      default:
-        return <Globe className="w-4 h-4" />;
+  const getTrendIcon = (rank: number, previousRank?: number) => {
+    if (!previousRank) return null;
+    
+    if (rank < previousRank) {
+      return <TrendingUp className="h-4 w-4 text-green-500" />;
+    } else if (rank > previousRank) {
+      return <TrendingUp className="h-4 w-4 text-red-500 transform rotate-180" />;
     }
+    return <div className="h-4 w-4" />; // Placeholder for no change
   };
 
-  const getGeographicLevelTitle = () => {
-    switch (geographicLevel) {
-      case "national":
-        return "National";
-      case "state":
-        return selectedState !== "all" ? states.find(s => s.code === selectedState)?.name || "State" : "State";
-      case "county":
-        return selectedCounty !== "all" ? counties.find(c => c.id === selectedCounty)?.name || "County" : "County";
-      default:
-        return "National";
-    }
+  const formatJoinDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString('en-US', { 
+      month: 'short', 
+      year: 'numeric' 
+    });
   };
 
-  const renderLeaderboardEntry = (entry: LeaderboardEntry, type: 'monthly' | 'lifetime') => {
-    const recommendations = type === 'monthly' ? entry.monthlyRecommendations || 0 : entry.lifetimeRecommendations;
-    const rating = type === 'monthly' ? entry.monthlyRating : entry.lifetimeRating;
-
-    return (
-      <div
-        key={`${type}-${entry.contractorId}`}
-        className={`flex items-center p-4 rounded-lg border transition-all duration-200 hover:shadow-md ${
-          entry.rank <= 3 ? 'bg-gradient-to-r from-orange-50 to-yellow-50 dark:from-orange-950 dark:to-yellow-950 border-orange-200 dark:border-orange-800' : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700'
-        }`}
-      >
-        <div className="flex items-center space-x-4 flex-1">
-          <div className="flex items-center space-x-3">
-            {getRankIcon(entry.rank)}
-            <Badge className={getRankBadgeColor(entry.rank)}>
-              #{entry.rank}
-            </Badge>
-          </div>
-
-          <div className="flex-1">
-            <Link href={`/contractors/${entry.slug}`}>
-              <h3 className="font-semibold text-lg hover:text-orange-600 transition-colors cursor-pointer">
-                {entry.companyName}
-              </h3>
-            </Link>
-            {entry.location && (
-              <p className="text-sm text-gray-500 dark:text-gray-400 flex items-center mt-1">
-                <MapPin className="w-3 h-3 mr-1" />
-                {entry.location}
-              </p>
-            )}
-          </div>
-
-          <div className="flex items-center space-x-6 text-sm">
-            <div className="flex items-center space-x-2">
-              <Users className="w-4 h-4 text-blue-500" />
-              <span className="font-medium">{recommendations}</span>
-              <span className="text-gray-500">recommendations</span>
+  const renderRankingsList = (rankings: ContractorRanking[], isLoading: boolean) => {
+    if (isLoading) {
+      return Array.from({ length: 10 }).map((_, i) => (
+        <Card key={i} className="bg-slate-800 border-slate-700 animate-pulse">
+          <CardContent className="p-6">
+            <div className="flex items-center space-x-4">
+              <div className="w-6 h-6 bg-slate-600 rounded"></div>
+              <div className="w-12 h-12 bg-slate-600 rounded-full"></div>
+              <div className="flex-1">
+                <div className="h-4 bg-slate-600 rounded mb-2"></div>
+                <div className="h-3 bg-slate-600 rounded w-1/2"></div>
+              </div>
+              <div className="h-8 w-16 bg-slate-600 rounded"></div>
             </div>
+          </CardContent>
+        </Card>
+      ));
+    }
 
-            {rating && (
+    if (!rankings || rankings.length === 0) {
+      return (
+        <Card className="bg-slate-800 border-slate-700">
+          <CardContent className="p-12 text-center">
+            <Trophy className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+            <p className="text-gray-400">No contractors found for the selected criteria.</p>
+          </CardContent>
+        </Card>
+      );
+    }
+
+    return rankings.map((contractor) => (
+      <Card key={contractor.id} className={`bg-slate-800 border-slate-700 hover:border-orange-500/50 transition-colors ${
+        contractor.rank <= 3 ? 'border-orange-500/30' : ''
+      }`}>
+        <CardContent className="p-6">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-4">
               <div className="flex items-center space-x-2">
-                <Star className="w-4 h-4 text-yellow-500" />
-                <span className="font-medium">{parseFloat(rating).toFixed(1)}</span>
-                <span className="text-gray-500">avg rating</span>
+                {getRankIcon(contractor.rank)}
+                {getTrendIcon(contractor.rank, contractor.previousRank)}
               </div>
-            )}
-          </div>
-        </div>
-      </div>
-    );
-  };
-
-  return (
-    <div className="container mx-auto px-4 py-8 max-w-6xl">
-      <div className="mb-8">
-        <h1 className="text-4xl font-bold mb-4 bg-gradient-to-r from-orange-600 to-orange-400 bg-clip-text text-transparent">
-          {getGeographicLevelTitle()} Contractor Leaderboard
-        </h1>
-        <p className="text-lg text-gray-600 dark:text-gray-400">
-          Celebrating our top-performing contractors based on customer recommendations
-        </p>
-      </div>
-
-      {/* Geographic Level Selector */}
-      <Card className="mb-6">
-        <CardContent className="pt-6">
-          <div className="space-y-4">
-            <div className="flex flex-wrap gap-2">
-              <Button
-                variant={geographicLevel === "national" ? "default" : "outline"}
-                onClick={() => {
-                  setGeographicLevel("national");
-                  setSelectedState("all");
-                  setSelectedCounty("all");
-                }}
-                className="flex items-center gap-2"
-              >
-                <Globe className="w-4 h-4" />
-                National
-              </Button>
-              <Button
-                variant={geographicLevel === "state" ? "default" : "outline"}
-                onClick={() => {
-                  setGeographicLevel("state");
-                  setSelectedCounty("all");
-                }}
-                className="flex items-center gap-2"
-              >
-                <Building className="w-4 h-4" />
-                State
-              </Button>
-              <Button
-                variant={geographicLevel === "county" ? "default" : "outline"}
-                onClick={() => setGeographicLevel("county")}
-                className="flex items-center gap-2"
-              >
-                <MapPin className="w-4 h-4" />
-                County
-              </Button>
+              
+              <Avatar className="h-12 w-12">
+                <AvatarImage src={contractor.profileImage} />
+                <AvatarFallback className="bg-slate-600">
+                  {contractor.companyName.split(' ').map(word => word[0]).join('').slice(0, 2)}
+                </AvatarFallback>
+              </Avatar>
+              
+              <div className="flex-1">
+                <div className="flex items-center space-x-2 mb-1">
+                  <h3 className="font-semibold text-white">{contractor.companyName}</h3>
+                  {contractor.verificationStatus === 'verified' && (
+                    <CheckCircle className="h-4 w-4 text-green-500" />
+                  )}
+                  {getRankBadge(contractor.rank)}
+                </div>
+                
+                <div className="flex items-center space-x-4 text-sm text-gray-400">
+                  <div className="flex items-center">
+                    <MapPin className="h-3 w-3 mr-1" />
+                    {contractor.location}
+                  </div>
+                  <div className="flex items-center">
+                    <Star className="h-3 w-3 mr-1 text-yellow-500" />
+                    {contractor.averageRating.toFixed(1)}
+                  </div>
+                  <div className="flex items-center">
+                    <Target className="h-3 w-3 mr-1" />
+                    {contractor.completedJobs} jobs
+                  </div>
+                </div>
+                
+                <div className="flex flex-wrap gap-1 mt-2">
+                  {contractor.trades.slice(0, 3).map((trade, index) => (
+                    <Badge key={index} variant="outline" className="border-slate-600 text-slate-400 text-xs">
+                      {trade}
+                    </Badge>
+                  ))}
+                  {contractor.trades.length > 3 && (
+                    <Badge variant="outline" className="border-slate-600 text-slate-400 text-xs">
+                      +{contractor.trades.length - 3} more
+                    </Badge>
+                  )}
+                </div>
+              </div>
             </div>
-
-            {/* Geographic Filters */}
-            {geographicLevel !== "national" && (
-              <div className="flex flex-wrap gap-4">
-                {geographicLevel === "state" && (
-                  <Select value={selectedState} onValueChange={setSelectedState}>
-                    <SelectTrigger className="w-48">
-                      <SelectValue placeholder="Select State" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">All States</SelectItem>
-                      {states.map((state) => (
-                        <SelectItem key={state.code} value={state.code}>
-                          {state.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                )}
-
-                {geographicLevel === "county" && (
-                  <>
-                    <Select 
-                      value={selectedState} 
-                      onValueChange={(value) => {
-                        setSelectedState(value);
-                        setSelectedCounty("all");
-                      }}
-                    >
-                      <SelectTrigger className="w-48">
-                        <SelectValue placeholder="Select State" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {states.map((state) => (
-                          <SelectItem key={state.code} value={state.code}>
-                            {state.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-
-                    {selectedState !== "all" && (
-                      <Select value={selectedCounty} onValueChange={setSelectedCounty}>
-                        <SelectTrigger className="w-48">
-                          <SelectValue placeholder="Select County" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="all">All Counties</SelectItem>
-                          {counties.map((county) => (
-                            <SelectItem key={county.id} value={county.id}>
-                              {county.name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    )}
-                  </>
-                )}
+            
+            <div className="text-right">
+              <div className="text-2xl font-bold text-orange-500 mb-1">
+                {activeTab === "monthly" ? contractor.monthlyRecommendations : contractor.lifetimeRecommendations}
               </div>
-            )}
+              <div className="text-sm text-gray-400">
+                {activeTab === "monthly" ? "This Month" : "All Time"}
+              </div>
+              <div className="text-xs text-gray-500 mt-1">
+                Since {formatJoinDate(contractor.joinDate)}
+              </div>
+            </div>
           </div>
         </CardContent>
       </Card>
+    ));
+  };
 
-      <Tabs defaultValue="monthly" className="space-y-6">
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-          <TabsList className="grid w-full sm:w-auto grid-cols-2">
-            <TabsTrigger value="monthly" className="flex items-center gap-2">
-              <Calendar className="w-4 h-4" />
-              Monthly Leaders
-            </TabsTrigger>
-            <TabsTrigger value="lifetime" className="flex items-center gap-2">
-              <TrendingUp className="w-4 h-4" />
-              All-Time Champions
-            </TabsTrigger>
-          </TabsList>
+  return (
+    <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="mb-8">
+        <h1 className="text-3xl font-bold text-white mb-2">Contractor Leaderboard</h1>
+        <p className="text-gray-300">Top contractors by customer recommendations</p>
+      </div>
 
-          <div className="flex gap-2">
-            <Select value={selectedMonth.toString()} onValueChange={(value) => setSelectedMonth(Number(value))}>
-              <SelectTrigger className="w-32">
-                <SelectValue placeholder="Month" />
-              </SelectTrigger>
-              <SelectContent>
-                {months.map((month) => (
-                  <SelectItem key={month.value} value={month.value.toString()}>
-                    {month.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+        <TabsList className="grid w-full grid-cols-2 mb-6 bg-slate-800 border-slate-700">
+          <TabsTrigger value="monthly" className="text-slate-300 data-[state=active]:text-white data-[state=active]:bg-slate-700">
+            <Calendar className="h-4 w-4 mr-2" />
+            Monthly Rankings
+          </TabsTrigger>
+          <TabsTrigger value="lifetime" className="text-slate-300 data-[state=active]:text-white data-[state=active]:bg-slate-700">
+            <Trophy className="h-4 w-4 mr-2" />
+            Lifetime Rankings
+          </TabsTrigger>
+        </TabsList>
 
-            <Select value={selectedYear.toString()} onValueChange={(value) => setSelectedYear(Number(value))}>
-              <SelectTrigger className="w-24">
-                <SelectValue placeholder="Year" />
-              </SelectTrigger>
-              <SelectContent>
-                {years.map((year) => (
-                  <SelectItem key={year} value={year.toString()}>
-                    {year}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+        {/* Filters */}
+        <Card className="bg-slate-800 border-slate-700 mb-6">
+          <CardContent className="p-6">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <Select value={selectedState} onValueChange={setSelectedState}>
+                <SelectTrigger className="bg-slate-700 border-slate-600 text-white">
+                  <SelectValue placeholder="All States" />
+                </SelectTrigger>
+                <SelectContent className="bg-slate-800 border-slate-700">
+                  <SelectItem value="">All States</SelectItem>
+                  <SelectItem value="TX">Texas</SelectItem>
+                  <SelectItem value="CA">California</SelectItem>
+                  <SelectItem value="NY">New York</SelectItem>
+                  <SelectItem value="FL">Florida</SelectItem>
+                </SelectContent>
+              </Select>
+
+              <Select value={selectedTrade} onValueChange={setSelectedTrade}>
+                <SelectTrigger className="bg-slate-700 border-slate-600 text-white">
+                  <SelectValue placeholder="All Trades" />
+                </SelectTrigger>
+                <SelectContent className="bg-slate-800 border-slate-700">
+                  <SelectItem value="">All Trades</SelectItem>
+                  <SelectItem value="plumbing">Plumbing</SelectItem>
+                  <SelectItem value="electrical">Electrical</SelectItem>
+                  <SelectItem value="roofing">Roofing</SelectItem>
+                  <SelectItem value="hvac">HVAC</SelectItem>
+                  <SelectItem value="painting">Painting</SelectItem>
+                </SelectContent>
+              </Select>
+
+              <div className="flex items-center space-x-2 text-sm text-gray-400">
+                <Users className="h-4 w-4" />
+                <span>Updated hourly</span>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <TabsContent value="monthly" className="space-y-4">
+          <div className="mb-4">
+            <h2 className="text-xl font-semibold text-white mb-2">This Month's Leaders</h2>
+            <p className="text-gray-400 text-sm">Rankings reset automatically on the 1st of each month</p>
           </div>
-        </div>
-
-        <TabsContent value="monthly">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Trophy className="w-5 h-5 text-yellow-500" />
-                {getGeographicLevelIcon(geographicLevel)}
-                {getGeographicLevelTitle()} Monthly Leaders - {months.find(m => m.value === selectedMonth)?.label} {selectedYear}
-              </CardTitle>
-              <CardDescription>
-                Rankings reset every month. Contractors are ranked by total recommendations received in {getGeographicLevelTitle().toLowerCase()}.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              {monthlyLoading ? (
-                <div className="space-y-4">
-                  {Array.from({ length: 5 }).map((_, i) => (
-                    <div key={i} className="animate-pulse">
-                      <div className="h-16 bg-gray-200 dark:bg-gray-700 rounded-lg"></div>
-                    </div>
-                  ))}
-                </div>
-              ) : monthlyLeaderboard.length > 0 ? (
-                <div className="space-y-3">
-                  {monthlyLeaderboard.map((entry) => renderLeaderboardEntry(entry, 'monthly'))}
-                </div>
-              ) : (
-                <div className="text-center py-12 text-gray-500 dark:text-gray-400">
-                  <Trophy className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                  <p className="text-lg font-medium">No recommendations yet this month</p>
-                  <p>Be the first contractor to receive recommendations!</p>
-                </div>
-              )}
-            </CardContent>
-          </Card>
+          {renderRankingsList(monthlyRankings || [], monthlyLoading)}
         </TabsContent>
 
-        <TabsContent value="lifetime">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Crown className="w-5 h-5 text-yellow-500" />
-                {getGeographicLevelIcon(geographicLevel)}
-                {getGeographicLevelTitle()} All-Time Champions
-              </CardTitle>
-              <CardDescription>
-                Hall of fame showing contractors with the most recommendations throughout their TradeScout journey in {getGeographicLevelTitle().toLowerCase()}.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              {lifetimeLoading ? (
-                <div className="space-y-4">
-                  {Array.from({ length: 5 }).map((_, i) => (
-                    <div key={i} className="animate-pulse">
-                      <div className="h-16 bg-gray-200 dark:bg-gray-700 rounded-lg"></div>
-                    </div>
-                  ))}
-                </div>
-              ) : lifetimeLeaderboard.length > 0 ? (
-                <div className="space-y-3">
-                  {lifetimeLeaderboard.map((entry) => renderLeaderboardEntry(entry, 'lifetime'))}
-                </div>
-              ) : (
-                <div className="text-center py-12 text-gray-500 dark:text-gray-400">
-                  <Crown className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                  <p className="text-lg font-medium">No lifetime recommendations yet</p>
-                  <p>Start building your reputation on TradeScout!</p>
-                </div>
-              )}
-            </CardContent>
-          </Card>
+        <TabsContent value="lifetime" className="space-y-4">
+          <div className="mb-4">
+            <h2 className="text-xl font-semibold text-white mb-2">All-Time Champions</h2>
+            <p className="text-gray-400 text-sm">Lifetime achievement rankings since joining TradeScout</p>
+          </div>
+          {renderRankingsList(lifetimeRankings || [], lifetimeLoading)}
         </TabsContent>
       </Tabs>
 
-      <div className="mt-8 text-center">
-        <Card className="bg-gradient-to-r from-orange-50 to-yellow-50 dark:from-orange-950 dark:to-yellow-950 border-orange-200 dark:border-orange-800">
-          <CardContent className="pt-6">
-            <h3 className="text-lg font-semibold mb-2">Want to join the leaderboard?</h3>
-            <p className="text-gray-600 dark:text-gray-400 mb-4">
-              Provide excellent service and earn recommendations from satisfied customers
-            </p>
-            <Link href="/contractors">
-              <Button className="bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white">
-                Join as Contractor
-              </Button>
-            </Link>
-          </CardContent>
-        </Card>
-      </div>
+      {/* Info Card */}
+      <Card className="bg-slate-800 border-slate-700 mt-8">
+        <CardHeader>
+          <CardTitle className="text-white flex items-center">
+            <Trophy className="h-5 w-5 mr-2 text-orange-500" />
+            How Rankings Work
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3 text-sm text-gray-300">
+          <p>• Rankings are based on verified customer recommendations</p>
+          <p>• Monthly rankings reset on the 1st of each month</p>
+          <p>• Lifetime rankings track all-time performance</p>
+          <p>• Only verified contractors with active status are included</p>
+          <p>• Rankings are updated hourly to reflect recent recommendations</p>
+        </CardContent>
+      </Card>
     </div>
   );
 }
