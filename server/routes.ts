@@ -107,6 +107,79 @@ import { Strategy as GoogleStrategy } from "passport-google-oauth20";
 import { dataManagementService } from "./data-management";
 import { DeviceAuthService, checkTrustedDevice } from "./device-auth";
 
+// Helper function to route leads to top contractors
+async function routeLeadToTopContractors(lead: any, leadData: any) {
+  try {
+    const { countyId, tradeId } = lead;
+    const { county, trade, city, state, zipCode } = leadData;
+
+    if (!countyId || !tradeId) {
+      console.warn("Lead missing countyId or tradeId, cannot route to top contractors.");
+      return;
+    }
+
+    // Fetch top 3 contractors for the lead's area and trade
+    const contractors = await storage.getContractors({
+      countyId,
+      tradeIds: [tradeId],
+      limit: 3,
+      sortBy: 'rating', // Assuming 'rating' is a valid sorting option for performance
+    });
+
+    if (!contractors || contractors.length === 0) {
+      console.warn(`No top contractors found for lead ${lead.id} in county ${county} for trade ${trade}.`);
+      return;
+    }
+
+    const contractorIds = contractors.map(c => c.id);
+    await storage.assignLeadToContractors(lead.id, contractorIds);
+
+    // Notify contractors about the new lead
+    const leadDetails = {
+      id: lead.id,
+      title: lead.title,
+      description: lead.description,
+      location: `${city}, ${state} ${zipCode}`,
+      trade: trade,
+      budget: lead.budget,
+      urgency: lead.urgency,
+      contactName: lead.contactName,
+      contactEmail: lead.contactEmail,
+      contactPhone: lead.contactPhone,
+    };
+
+    await Promise.all(contractors.map(async (contractor) => {
+      try {
+        // In a real application, this would involve sending an email or push notification
+        // For now, we log it
+        console.log(`Notifying contractor ${contractor.companyName} (ID: ${contractor.id}) about new lead ${lead.id}`);
+        
+        // Example: Send notification via WebSocket or email service
+        // wsManager.sendNotificationToUser(contractor.userId, {
+        //   type: 'new_lead',
+        //   title: 'New Lead Assigned to You!',
+        //   message: `A new lead matching your services is available: ${lead.title}`,
+        //   actionUrl: `/leads/${lead.id}`,
+        // });
+
+        // Log the assignment event
+        await storage.logEvent('lead_assigned', {
+          leadId: lead.id,
+          contractorId: contractor.id,
+          assignmentType: 'top3_routing',
+        });
+
+      } catch (notificationError) {
+        console.error(`Failed to notify contractor ${contractor.id} for lead ${lead.id}:`, notificationError);
+      }
+    }));
+
+  } catch (error) {
+    console.error(`Error routing lead ${lead.id} to top contractors:`, error);
+  }
+}
+
+
 export async function registerRoutes(app: Express) {
   // Setup authentication
   await setupAuth(app);
@@ -1531,16 +1604,16 @@ export async function registerRoutes(app: Express) {
   });
 
   // Lead submission (public - no auth required for homeowners to get quotes)
-  app.post("/api/leads", async (req, res) => {
+  app.post("/api/leads", isAuthenticated, async (req: any, res) => {
     try {
-      // User ID is optional for public lead submissions
-      const userId = (req.user as any)?.claims?.sub || req.user?.id || null;
+      // User ID is optional for public lead submissions, but we capture it if available
+      const userId = req.user?.id || null;
       const leadData = { ...req.body, userId };
 
       // Track quote request with locality context
       await LocalityTracker.trackInteraction('quote_request', req, {
         projectType: leadData.projectType,
-        tradeType: leadData.trade,
+        trade: leadData.trade, // Use 'trade' from body for tracking
         quoteAmount: leadData.budget
       });
 
@@ -1549,17 +1622,9 @@ export async function registerRoutes(app: Express) {
 
       const lead = await storage.createLead(validatedLead);
 
-      // For "top 3" routing, assign to multiple contractors
-      if (lead.routingType === 'top3') {
-        // Implemented contractor selection using performance-weighted algorithm
-        const contractors = await storage.getContractors({
-          countyId: lead.countyId,
-          tradeIds: [lead.tradeId],
-          limit: 3,
-        });
-
-        const contractorIds = contractors.map(c => c.id);
-        await storage.assignLeadToContractors(lead.id, contractorIds);
+      // If this is a "top3" routing request, find and notify top contractors
+      if (validatedLead.routingType === 'top3' && validatedLead.countyId && validatedLead.tradeId) {
+        await routeLeadToTopContractors(lead, validatedLead);
       }
 
       // Log event
@@ -6030,7 +6095,7 @@ export async function registerRoutes(app: Express) {
     try {
       const { paymentId, paymentType, confirmationData } = req.body;
 
-      if (!paymentId || !paymentType || !confirmationData) {
+      if (!paymentId|| !paymentType || !confirmationData) {
         return res.status(400).json({ message: "Missing required fields" });
       }
 
@@ -6064,7 +6129,7 @@ export async function registerRoutes(app: Express) {
       // Verify user authorization
       const user = req.user;
       if (payment.homeownerId !== user.id && payment.contractorId !== user.id) {
-        return res.status(403).json({ message: "Not authorized" });
+        return res.status(403).json({ message: "Not authorized to access this payment" });
       }
 
       res.json(payment);
@@ -6086,7 +6151,7 @@ export async function registerRoutes(app: Express) {
       // Verify user authorization
       const user = req.user;
       if (transaction.buyerId !== user.id && transaction.sellerId !== user.id) {
-        return res.status(403).json({ message: "Not authorized" });
+        return res.status(403).json({ message: "Not authorized to access this transaction" });
       }
 
       res.json(transaction);

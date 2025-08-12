@@ -604,7 +604,7 @@ export default function ContractorBoard() {
               </h3>
               <p className="text-orange-100 max-w-2xl mx-auto">
                 Not sure about project costs? Use our smart calculator to get accurate estimates for your home improvement projects. 
-                Compare prices and plan your budget before contacting contractors.
+                Get connected with the top 3 contractors in your area automatically.
               </p>
             </div>
             <Link href="/calculator">

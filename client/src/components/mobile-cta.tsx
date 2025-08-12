@@ -5,42 +5,45 @@ import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle } from "@/co
 import { useAuth } from "@/hooks/useAuth";
 import QuoteForm from "./quote-form";
 import { Users, Phone, Calculator, ArrowUp, X } from "lucide-react";
+import { useMemo } from "react";
+import { MessageCircle } from "lucide-react";
 
 // Pages where the mobile CTA should appear
 const CTA_PAGES = [
-  '/',
+  '/quote',
   '/contractors/board',
-  '/counties/',
-  '/contractors/',
-  '/quote'
 ];
 
 // Different CTA types based on page
 const getCTAConfig = (location: string) => {
-  if (location.startsWith('/contractors/') && !location.includes('/board')) {
+  if (location.includes('/contractors/') && !location.includes('/board')) {
     return {
       type: 'contractor-profile',
-      text: 'Get Quote from This Contractor',
-      icon: Phone,
-      color: 'bg-orange-500 hover:bg-orange-600'
+      text: 'Contact This Contractor',
+      icon: MessageCircle,
+      color: 'bg-blue-500 hover:bg-blue-600'
     };
   }
-  
-  if (location === '/quote') {
+
+  if (location.includes('/calculator') || location.includes('/quote')) {
     return {
       type: 'quote-calculator',
       text: 'Get 3 Free Estimates',
+      icon: Calculator,
+      color: 'bg-orange-500 hover:bg-orange-600'
+    };
+  }
+
+  if (location.includes('/contractors/board')) {
+    return {
+      type: 'general',
+      text: 'Get 3 Free Quotes',
       icon: Users,
       color: 'bg-orange-500 hover:bg-orange-600'
     };
   }
-  
-  return {
-    type: 'general',
-    text: 'Get 3 Free Quotes',
-    icon: Users,
-    color: 'bg-orange-500 hover:bg-orange-600'
-  };
+
+  return null; // Return null if no CTA should be shown
 };
 
 export default function MobileCTA() {
@@ -51,9 +54,7 @@ export default function MobileCTA() {
   const [isVisible, setIsVisible] = useState(true);
 
   // Check if CTA should be shown on current page
-  const shouldShowCTA = CTA_PAGES.some(page => 
-    location === page || location.startsWith(page)
-  );
+  const ctaConfig = getCTAConfig(location);
 
   // Handle scroll to show/hide CTA
   useEffect(() => {
@@ -62,12 +63,12 @@ export default function MobileCTA() {
 
     const updateScrollDirection = () => {
       const scrollY = window.scrollY;
-      
+
       if (Math.abs(scrollY - lastScrollY) < 10) {
         ticking = false;
         return;
       }
-      
+
       setIsVisible(scrollY < lastScrollY || scrollY < 100);
       lastScrollY = scrollY;
       ticking = false;
@@ -81,32 +82,31 @@ export default function MobileCTA() {
     };
 
     const onScroll = () => requestTick();
-    
+
     window.addEventListener('scroll', onScroll);
     return () => window.removeEventListener('scroll', onScroll);
   }, []);
 
-  // Show CTA after a brief delay
+  // Show CTA after a brief delay if it should be displayed on the current page
   useEffect(() => {
-    if (shouldShowCTA) {
+    if (ctaConfig) {
       const timer = setTimeout(() => setShowCTA(true), 1000);
       return () => clearTimeout(timer);
     } else {
       setShowCTA(false);
     }
-  }, [location, shouldShowCTA]);
+  }, [location, ctaConfig]);
 
-  if (!showCTA || !shouldShowCTA) {
+  if (!showCTA || !ctaConfig) {
     return null;
   }
 
-  const ctaConfig = getCTAConfig(location);
   const IconComponent = ctaConfig.icon;
 
   return (
     <>
       {/* Mobile CTA Button */}
-      <div 
+      <div
         className={`fixed bottom-0 left-0 right-0 z-50 md:hidden transition-transform duration-300 ${
           isVisible ? 'translate-y-0' : 'translate-y-full'
         }`}
@@ -114,28 +114,28 @@ export default function MobileCTA() {
         <div className="bg-navy-800/95 backdrop-blur-sm border-t border-navy-600 p-4">
           <Sheet open={isQuoteSheetOpen} onOpenChange={setIsQuoteSheetOpen}>
             <SheetTrigger asChild>
-              <Button 
+              <Button
                 className={`w-full ${ctaConfig.color} text-white py-4 rounded-lg font-semibold glow-effect transition-all duration-300 shadow-lg`}
               >
                 <IconComponent className="h-5 w-5 mr-2" />
                 {ctaConfig.text}
               </Button>
             </SheetTrigger>
-            
-            <SheetContent 
-              side="bottom" 
+
+            <SheetContent
+              side="bottom"
               className="bg-navy-800 border-navy-600 max-h-[90vh] overflow-y-auto"
             >
               <SheetHeader className="text-left mb-6">
                 <SheetTitle className="text-white text-xl">
-                  {ctaConfig.type === 'contractor-profile' 
-                    ? 'Contact This Contractor' 
+                  {ctaConfig.type === 'contractor-profile'
+                    ? 'Contact This Contractor'
                     : 'Get Free Estimates'
                   }
                 </SheetTitle>
               </SheetHeader>
-              
-              <QuoteForm 
+
+              <QuoteForm
                 onSuccess={() => setIsQuoteSheetOpen(false)}
                 compact={true}
               />

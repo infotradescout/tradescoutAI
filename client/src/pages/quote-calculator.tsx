@@ -220,24 +220,24 @@ export default function EstimateCalculator() {
             
             <h1 className="text-3xl font-bold text-white mb-4">Request Submitted Successfully!</h1>
             <p className="text-xl text-gray-300 mb-8">
-              We're connecting you with the top 3 contractors in your area for detailed quotes.
+              We've shared your project details with the top 3 contractors in your area. They will contact you directly with quotes.
             </p>
             
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
               <div className="bg-navy-600 p-6 rounded-lg">
                 <Clock className="h-8 w-8 text-orange-500 mx-auto mb-3" />
                 <h3 className="text-white font-semibold mb-2">Within 1 Hour</h3>
-                <p className="text-gray-300 text-sm">Top contractors will review your project details</p>
+                <p className="text-gray-300 text-sm">Top 3 contractors receive your project details</p>
               </div>
               <div className="bg-navy-600 p-6 rounded-lg">
                 <Phone className="h-8 w-8 text-orange-500 mx-auto mb-3" />
                 <h3 className="text-white font-semibold mb-2">Within 24 Hours</h3>
-                <p className="text-gray-300 text-sm">You'll receive calls with detailed quotes</p>
+                <p className="text-gray-300 text-sm">Contractors will call you with personalized quotes</p>
               </div>
               <div className="bg-navy-600 p-6 rounded-lg">
                 <MapPin className="h-8 w-8 text-orange-500 mx-auto mb-3" />
                 <h3 className="text-white font-semibold mb-2">Schedule Visits</h3>
-                <p className="text-gray-300 text-sm">Arrange on-site consultations with your preferred contractors</p>
+                <p className="text-gray-300 text-sm">Choose your preferred contractors for on-site consultations</p>
               </div>
             </div>
             
