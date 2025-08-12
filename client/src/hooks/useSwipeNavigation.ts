@@ -27,14 +27,17 @@ export function useSwipeNavigation({
 
   const handleTouchMove = (e: TouchEvent) => {
     if (preventDefaultTouchMove) {
-      // Only prevent default if it's a horizontal swipe
+      // Only prevent default if it's a horizontal swipe and we're confident
       const currentX = e.targetTouches[0].clientX;
       const currentY = e.targetTouches[0].clientY;
       const diffX = Math.abs(currentX - touchStartX.current);
       const diffY = Math.abs(currentY - touchStartY.current);
       
-      if (diffX > diffY && diffX > 20) {
+      // More strict conditions to avoid conflicts with scrolling
+      if (diffX > diffY && diffX > 30 && diffY < 15) {
         e.preventDefault();
+        // Stop event propagation to prevent scroll detection
+        e.stopPropagation();
       }
     }
   };
@@ -49,10 +52,19 @@ export function useSwipeNavigation({
     const distanceX = touchStartX.current - touchEndX.current;
     const distanceY = touchStartY.current - touchEndY.current;
     const isHorizontalSwipe = Math.abs(distanceX) > Math.abs(distanceY);
-
-    if (!isHorizontalSwipe) return;
+    
+    // More sophisticated swipe detection
+    const horizontalRatio = Math.abs(distanceX) / Math.abs(distanceY);
+    const isDefinitelyHorizontal = horizontalRatio > 2; // Horizontal movement is 2x more than vertical
+    
+    if (!isHorizontalSwipe || !isDefinitelyHorizontal) return;
 
     if (Math.abs(distanceX) > minSwipeDistance) {
+      // Add haptic feedback if available
+      if (navigator.vibrate) {
+        navigator.vibrate(50);
+      }
+      
       if (distanceX > 0) {
         // Swiped left
         onSwipeLeft?.();
@@ -64,15 +76,20 @@ export function useSwipeNavigation({
   };
 
   useEffect(() => {
-    // Only enable on mobile devices
-    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || 
-                     window.innerWidth <= 768;
+    // Enhanced mobile detection
+    const isMobile = ('ontouchstart' in window) || 
+                     /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || 
+                     (window.innerWidth <= 768 && 'ontouchstart' in window);
 
     if (!isMobile) return;
 
-    document.addEventListener('touchstart', handleTouchStart, { passive: true });
-    document.addEventListener('touchmove', handleTouchMove, { passive: false });
-    document.addEventListener('touchend', handleTouchEnd, { passive: true });
+    // Add event listeners with specific options to minimize conflicts
+    const options = { passive: true };
+    const moveOptions = { passive: false, capture: true };
+
+    document.addEventListener('touchstart', handleTouchStart, options);
+    document.addEventListener('touchmove', handleTouchMove, moveOptions);
+    document.addEventListener('touchend', handleTouchEnd, options);
 
     return () => {
       document.removeEventListener('touchstart', handleTouchStart);

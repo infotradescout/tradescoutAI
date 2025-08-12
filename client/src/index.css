@@ -9,25 +9,25 @@
   --bg-secondary: hsl(211, 24%, 14%);
   --bg-tertiary: hsl(210, 21%, 20%);
   --bg-quaternary: hsl(209, 18%, 27%);
-  
+
   --text-primary: hsl(210, 20%, 89%);
   --text-secondary: hsl(210, 14%, 71%);
   --text-muted: hsl(210, 10%, 62%);
-  
+
   --orange-primary: hsl(15, 100%, 60%);
   --orange-secondary: hsl(15, 79%, 54%);
   --orange-tertiary: hsl(15, 100%, 65%);
-  
+
   --success: hsl(142, 76%, 46%);
   --warning: hsl(38, 92%, 50%);
   --error: hsl(0, 84%, 60%);
-  
+
   --border-primary: hsl(210, 18%, 27%);
   --border-secondary: hsl(209, 14%, 37%);
-  
+
   --shadow-card: 0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -1px rgba(0, 0, 0, 0.2);
   --shadow-glow: 0 0 20px rgba(255, 107, 53, 0.4);
-  
+
   /* shadcn/ui compatibility */
   --background: var(--bg-primary);
   --foreground: var(--text-primary);
@@ -48,7 +48,7 @@
   --border: var(--border-primary);
   --input: var(--bg-tertiary);
   --ring: var(--orange-primary);
-  
+
   --radius: 0.75rem;
 }
 
@@ -56,7 +56,7 @@
   * {
     @apply border-border;
   }
-  
+
   body {
     @apply font-sans antialiased;
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
@@ -94,35 +94,35 @@
   * {
     box-sizing: border-box;
   }
-  
+
   html, body {
     overflow-x: auto; /* Allow horizontal scroll if needed */
     width: 100%;
   }
-  
+
   /* Enhanced header navigation styling */
   .nav-button {
     @apply transition-all duration-200 ease-in-out;
   }
-  
+
   .nav-button:hover {
     @apply transform translate-y-[-1px] shadow-sm;
   }
-  
+
   /* Navigation scrollbar styling */
   .nav-scrollbar::-webkit-scrollbar {
     height: 2px;
   }
-  
+
   .nav-scrollbar::-webkit-scrollbar-track {
     background: rgba(148, 163, 184, 0.1);
   }
-  
+
   .nav-scrollbar::-webkit-scrollbar-thumb {
     background: rgba(251, 146, 60, 0.5);
     border-radius: 2px;
   }
-  
+
   .nav-scrollbar::-webkit-scrollbar-thumb:hover {
     background: rgba(251, 146, 60, 0.8);
   }
@@ -256,7 +256,7 @@
   .glow-effect {
     transition: box-shadow 0.3s ease;
   }
-  
+
   .glow-effect:hover {
     box-shadow: var(--shadow-glow);
   }
@@ -269,6 +269,34 @@
     right: 0;
     z-index: 50;
   }
+
+  /* Hide scrollbar for Chrome, Safari and Opera */
+  body::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* Hide scrollbar for IE, Edge and Firefox */
+  body {
+    -ms-overflow-style: none;  /* IE and Edge */
+    scrollbar-width: none;  /* Firefox */
+  }
+
+  /* Prevent horizontal scroll issues */
+  html, body {
+    overflow-x: hidden;
+    max-width: 100vw;
+  }
+
+  /* Ensure no elements cause horizontal overflow */
+  * {
+    box-sizing: border-box;
+  }
+
+  /* Container queries for responsive design */
+  .container {
+    max-width: 100%;
+    overflow-x: hidden;
+  }
 }
 
 @layer components {
@@ -276,7 +304,7 @@
   .btn-primary {
     @apply bg-orange-500 hover:bg-orange-600 text-white font-semibold py-3 px-6 rounded-lg transition-all duration-300 glow-effect;
   }
-  
+
   .btn-secondary {
     @apply bg-navy-600 hover:bg-navy-500 text-white font-medium py-2 px-4 rounded-lg border border-navy-500 transition-colors;
   }
