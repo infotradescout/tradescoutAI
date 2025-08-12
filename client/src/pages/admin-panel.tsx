@@ -31,7 +31,7 @@ import { Badge } from "@/components/ui/badge";
 import { UserHeatmap } from "@/components/UserHeatmap";
 import { Plus, Edit, Trash2, Gift, Settings, Megaphone, Users, Bell, Map, CheckCircle, Bug, Image, BarChart3, DollarSign, Wrench, MapPin, Clock } from "lucide-react";
 import { useLocation } from "wouter";
-import Link from "next/link";
+
 
 
 type SiteSetting = {
@@ -566,12 +566,13 @@ export default function AdminPanel() {
                   <p className="text-gray-300 mb-4">
                     Monitor market trends, track average job quotes, and automatically update calculator pricing based on real-world data.
                   </p>
-                  <Link href="/admin/pricing-analytics">
-                    <Button className="bg-orange-500 hover:bg-orange-600">
-                      <BarChart3 className="h-4 w-4 mr-2" />
-                      Open Pricing Analytics
-                    </Button>
-                  </Link>
+                  <Button 
+                    className="bg-orange-500 hover:bg-orange-600"
+                    onClick={() => setLocation("/admin/pricing-analytics")}
+                  >
+                    <BarChart3 className="h-4 w-4 mr-2" />
+                    Open Pricing Analytics
+                  </Button>
                 </CardContent>
               </Card>
 
