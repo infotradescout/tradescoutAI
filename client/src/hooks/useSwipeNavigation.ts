@@ -104,7 +104,7 @@ export function useSwipeNavigation({
 // Define the page order for sequential navigation - dashboard first for authenticated users
 const PAGE_ORDER = [
   '/dashboard',
-  '/contractors',
+  '/contractors/board',
   '/calculator',
   '/contractors/for-contractors',
   '/foundation',
@@ -119,7 +119,7 @@ const PAGE_ORDER = [
 // Unauthenticated user page order
 const GUEST_PAGE_ORDER = [
   '/',
-  '/contractors',
+  '/contractors/board',
   '/calculator',
   '/contractors/for-contractors',
   '/foundation',
