@@ -45,6 +45,7 @@ import ForContractors from "@/pages/contractors";
 import ContractorApply from "@/pages/contractor-apply";
 import ContractorAccelerator from "@/pages/contractor-accelerator";
 import ContractorDashboard from "@/pages/contractor-dashboard";
+import HelperDashboard from "@/pages/helper-dashboard";
 import AdminWorkspace from "@/pages/admin-workspace";
 import AdminPanel from "@/pages/admin-panel";
 import ContractorPromos from "@/pages/contractor-promos";
@@ -111,6 +112,8 @@ function DashboardRedirect() {
 
     if (user?.role === 'contractor_user') {
       dashboardPath = '/contractor-dashboard';
+    } else if (user?.role === 'helper') {
+      dashboardPath = '/helper-dashboard';
     } else if (user?.role === 'homeowner') {
       dashboardPath = '/homeowner-dashboard';
     } else if (user?.role === 'ops_admin' || user?.role === 'head_admin') {
@@ -245,6 +248,11 @@ const Router = memo(function Router() {
             <Route path="/contractor-dashboard">
               <ProfileSetupRedirect>
                 <ContractorDashboard />
+              </ProfileSetupRedirect>
+            </Route>
+            <Route path="/helper-dashboard">
+              <ProfileSetupRedirect>
+                <HelperDashboard />
               </ProfileSetupRedirect>
             </Route>
             <Route path="/contractor-promos">

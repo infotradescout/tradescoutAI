@@ -37,6 +37,7 @@ export default function Helpers() {
   const [sortBy, setSortBy] = useState("rating");
   const [selectedHelper, setSelectedHelper] = useState<Worker | null>(null);
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
+  const [posterType, setPosterType] = useState<'contractor' | 'homeowner'>('homeowner');
 
   // Fetch workers
   const { data: workers, isLoading: workersLoading } = useQuery<Worker[]>({
@@ -134,22 +135,110 @@ export default function Helpers() {
   };
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-white mb-2">Helpers</h1>
-        <p className="text-gray-300">Find skilled helpers for your projects</p>
-      </div>
+    <div className="min-h-screen gradient-bg">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Hero Section */}
+        <div className="text-center mb-12">
+          <h1 className="text-4xl md:text-5xl font-bold text-white mb-4">
+            Find Skilled Helpers
+          </h1>
+          <p className="text-xl text-gray-300 max-w-3xl mx-auto mb-6">
+            Connect with verified helpers for your projects. Contractors can hire workers for job assistance, 
+            and homeowners can find helpers for odd jobs and tasks around the house.
+          </p>
+          
+          {/* Poster Type Selection */}
+          <div className="flex justify-center mb-8">
+            <div className="bg-navy-800/50 rounded-lg p-1 border border-navy-600">
+              <button
+                onClick={() => setPosterType('homeowner')}
+                className={`px-6 py-2 rounded-md font-medium transition-colors ${
+                  posterType === 'homeowner'
+                    ? 'bg-orange-600 text-white'
+                    : 'text-gray-300 hover:text-white'
+                }`}
+              >
+                I'm a Homeowner
+              </button>
+              <button
+                onClick={() => setPosterType('contractor')}
+                className={`px-6 py-2 rounded-md font-medium transition-colors ${
+                  posterType === 'contractor'
+                    ? 'bg-orange-600 text-white'
+                    : 'text-gray-300 hover:text-white'
+                }`}
+              >
+                I'm a Contractor
+              </button>
+            </div>
+          </div>
+
+          {/* Dynamic Description Based on Poster Type */}
+          <div className="bg-navy-800/30 rounded-lg p-6 max-w-4xl mx-auto border border-navy-600">
+            {posterType === 'homeowner' ? (
+              <div>
+                <h2 className="text-2xl font-bold text-white mb-3">For Homeowners</h2>
+                <p className="text-gray-300 text-lg">
+                  Need help with household tasks, repairs, cleaning, or organizing? Find skilled helpers in your area 
+                  who can assist with everything from furniture assembly to yard work, moving, and seasonal tasks.
+                </p>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
+                  <div className="text-center">
+                    <Wrench className="h-8 w-8 text-orange-400 mx-auto mb-2" />
+                    <h3 className="font-semibold text-white">Basic Repairs</h3>
+                    <p className="text-sm text-gray-400">Handyman tasks, furniture assembly, simple fixes</p>
+                  </div>
+                  <div className="text-center">
+                    <Users className="h-8 w-8 text-orange-400 mx-auto mb-2" />
+                    <h3 className="font-semibold text-white">General Labor</h3>
+                    <p className="text-sm text-gray-400">Moving, lifting, organizing, cleaning tasks</p>
+                  </div>
+                  <div className="text-center">
+                    <Calendar className="h-8 w-8 text-orange-400 mx-auto mb-2" />
+                    <h3 className="font-semibold text-white">Flexible Scheduling</h3>
+                    <p className="text-sm text-gray-400">One-time tasks, recurring help, project-based work</p>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div>
+                <h2 className="text-2xl font-bold text-white mb-3">For Contractors</h2>
+                <p className="text-gray-300 text-lg">
+                  Expand your team capacity with skilled workers who can assist with job sites, provide specialized 
+                  labor, or help with overflow work. Find reliable helpers to support your contracting business.
+                </p>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
+                  <div className="text-center">
+                    <Briefcase className="h-8 w-8 text-orange-400 mx-auto mb-2" />
+                    <h3 className="font-semibold text-white">Job Site Support</h3>
+                    <p className="text-sm text-gray-400">Additional hands for construction and installation work</p>
+                  </div>
+                  <div className="text-center">
+                    <Users className="h-8 w-8 text-orange-400 mx-auto mb-2" />
+                    <h3 className="font-semibold text-white">Skilled Labor</h3>
+                    <p className="text-sm text-gray-400">Experienced workers with specialized trade skills</p>
+                  </div>
+                  <div className="text-center">
+                    <Clock className="h-8 w-8 text-orange-400 mx-auto mb-2" />
+                    <h3 className="font-semibold text-white">Flexible Workforce</h3>
+                    <p className="text-sm text-gray-400">Scale your team up or down based on project needs</p>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-3 mb-6 bg-slate-800 border-slate-700">
-          <TabsTrigger value="find-helpers" className="text-slate-300 data-[state=active]:text-white data-[state=active]:bg-slate-700">
+        <TabsList className="grid w-full grid-cols-3 mb-6 bg-navy-800/50 border-navy-600">
+          <TabsTrigger value="find-helpers" className="text-gray-300 data-[state=active]:text-white data-[state=active]:bg-orange-600">
             Find Helpers
           </TabsTrigger>
-          <TabsTrigger value="find-tasks" className="text-slate-300 data-[state=active]:text-white data-[state=active]:bg-slate-700">
-            Find Tasks
+          <TabsTrigger value="find-tasks" className="text-gray-300 data-[state=active]:text-white data-[state=active]:bg-orange-600">
+            {posterType === 'contractor' ? 'Find Workers' : 'Find Tasks'}
           </TabsTrigger>
-          <TabsTrigger value="post-task" className="text-slate-300 data-[state=active]:text-white data-[state=active]:bg-slate-700">
-            Post Task
+          <TabsTrigger value="post-task" className="text-gray-300 data-[state=active]:text-white data-[state=active]:bg-orange-600">
+            {posterType === 'contractor' ? 'Post Job' : 'Post Task'}
           </TabsTrigger>
         </TabsList>
 
@@ -481,8 +570,133 @@ export default function Helpers() {
           </Card>
         </TabsContent>
 
+        <TabsContent value="find-tasks" className="space-y-6">
+          {/* Search and Filters for Tasks */}
+          <Card className="bg-navy-800/50 border-navy-600">
+            <CardContent className="p-6">
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div className="relative">
+                  <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                  <Input
+                    placeholder={posterType === 'contractor' ? 'Search jobs...' : 'Search tasks...'}
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="pl-10 bg-navy-700 border-navy-600 text-white"
+                  />
+                </div>
+                
+                <Select value={selectedCategory} onValueChange={setSelectedCategory}>
+                  <SelectTrigger className="bg-navy-700 border-navy-600 text-white">
+                    <SelectValue placeholder="Category" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-navy-800 border-navy-700">
+                    <SelectItem value="all">All Categories</SelectItem>
+                    {posterType === 'contractor' ? (
+                      <>
+                        <SelectItem value="construction">Construction</SelectItem>
+                        <SelectItem value="electrical">Electrical</SelectItem>
+                        <SelectItem value="plumbing">Plumbing</SelectItem>
+                        <SelectItem value="roofing">Roofing</SelectItem>
+                      </>
+                    ) : (
+                      <>
+                        <SelectItem value="cleaning">Cleaning</SelectItem>
+                        <SelectItem value="moving">Moving</SelectItem>
+                        <SelectItem value="assembly">Assembly</SelectItem>
+                        <SelectItem value="yard-work">Yard Work</SelectItem>
+                      </>
+                    )}
+                  </SelectContent>
+                </Select>
 
+                <Input
+                  placeholder="Location"
+                  value={locationFilter}
+                  onChange={(e) => setLocationFilter(e.target.value)}
+                  className="bg-navy-700 border-navy-600 text-white"
+                />
+
+                <Select value={sortBy} onValueChange={setSortBy}>
+                  <SelectTrigger className="bg-navy-700 border-navy-600 text-white">
+                    <SelectValue placeholder="Sort By" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-navy-800 border-navy-700">
+                    <SelectItem value="pay">Highest Pay</SelectItem>
+                    <SelectItem value="recent">Most Recent</SelectItem>
+                    <SelectItem value="urgent">Most Urgent</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Available Tasks Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {filteredTasks?.length > 0 ? (
+              filteredTasks.map((task) => (
+                <Card key={task.id} className="bg-navy-800/50 border-navy-600 hover:border-orange-500/50 transition-colors">
+                  <CardContent className="p-6">
+                    <div className="flex items-start justify-between mb-4">
+                      <div>
+                        <h3 className="font-semibold text-white mb-1">{task.title}</h3>
+                        <div className="flex items-center text-sm text-gray-400">
+                          <MapPin className="h-4 w-4 mr-1" />
+                          {task.city}, {task.stateCode}
+                        </div>
+                      </div>
+                      {getUrgencyBadge(task.urgency || 'standard')}
+                    </div>
+
+                    <p className="text-gray-300 text-sm mb-4 line-clamp-3">{task.description}</p>
+
+                    <div className="flex flex-wrap gap-1 mb-4">
+                      {task.requiredSkills?.slice(0, 3).map((skill, index) => (
+                        <Badge key={index} variant="outline" className="border-orange-500/50 text-orange-400 text-xs">
+                          {skill}
+                        </Badge>
+                      ))}
+                    </div>
+
+                    <div className="flex items-center justify-between mb-4">
+                      <div className="flex items-center text-sm text-gray-400">
+                        <DollarSign className="h-4 w-4 mr-1" />
+                        {task.payType === 'hourly' ? `$${task.payAmount}/hr` : `$${task.payAmount}`}
+                      </div>
+                      <div className="flex items-center text-sm text-gray-400">
+                        <Clock className="h-4 w-4 mr-1" />
+                        {task.schedulingType === 'asap' ? 'ASAP' : 'Flexible'}
+                      </div>
+                    </div>
+
+                    <div className="flex space-x-2">
+                      <Button size="sm" variant="outline" className="flex-1 border-navy-600 text-gray-300 hover:bg-navy-700">
+                        View Details
+                      </Button>
+                      <Button size="sm" className="bg-orange-500 hover:bg-orange-600">
+                        Apply
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))
+            ) : (
+              <div className="col-span-full text-center py-12">
+                <Users className="h-12 w-12 text-gray-500 mx-auto mb-4" />
+                <h3 className="text-lg font-semibold text-white mb-2">
+                  {posterType === 'contractor' ? 'No jobs available' : 'No tasks available'}
+                </h3>
+                <p className="text-gray-400">
+                  {posterType === 'contractor' 
+                    ? 'Check back later for new construction job opportunities.'
+                    : 'Check back later for new tasks to complete.'
+                  }
+                </p>
+              </div>
+            )}
+          </div>
+        </TabsContent>
       </Tabs>
+      </div>
 
       {/* Helper Profile Modal */}
       {selectedHelper && (

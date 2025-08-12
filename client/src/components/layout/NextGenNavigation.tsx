@@ -55,6 +55,15 @@ export function NextGenNavigation({ className = "" }: NextGenNavigationProps) {
         if (item.href === '/calculator') return { ...item, priority: 11 };
         return item;
       });
+    } else if (userRole === 'helper') {
+      return baseItems.map(item => {
+        if (item.href === '/dashboard') return { ...item, priority: 15 }; // Highest priority for helper dashboard
+        if (item.href === '/helpers') return { ...item, priority: 14 }; // Second priority for job listings
+        if (item.href === '/contractors/board') return { ...item, priority: 13 }; // To find work from contractors
+        if (item.href === '/community') return { ...item, priority: 12 };
+        if (item.href === '/calculator') return { ...item, priority: 11 };
+        return item;
+      });
     } else if (userRole === 'moderator' || userRole === 'ops_admin' || userRole === 'head_admin') {
       return baseItems.map(item => {
         if (item.href === '/dashboard') return { ...item, priority: 15 };

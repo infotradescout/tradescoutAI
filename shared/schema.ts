@@ -35,6 +35,7 @@ export const userRoleEnum = pgEnum('user_role', [
   
   // Service provider roles  
   'contractor_user',
+  'helper',             // New role for workers/helpers
   'accelerator_member',
   'realtor',
   'car_salesman',

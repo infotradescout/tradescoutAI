@@ -2974,6 +2974,209 @@ export async function registerRoutes(app: Express) {
     }
   });
 
+  // Helper dashboard specific endpoints
+  app.get("/api/workers/profile", isAuthenticated, async (req: any, res) => {
+    try {
+      if (req.user.role !== 'helper') {
+        return res.status(403).json({ message: "Access denied. Helper role required." });
+      }
+      
+      // For now, return a default helper profile - will be implemented when database is ready
+      const helperProfile = {
+        id: req.user.id,
+        userId: req.user.id,
+        firstName: req.user.firstName || 'Helper',
+        lastName: req.user.lastName || 'User',
+        phone: req.user.email, // placeholder
+        email: req.user.email,
+        bio: 'Experienced helper ready to assist with various tasks.',
+        skills: ['General Labor', 'Assembly', 'Cleaning', 'Moving'],
+        hourlyRate: '25.00',
+        isIdVerified: true,
+        isBackgroundChecked: false,
+        totalJobsCompleted: 5,
+        averageRating: '4.8',
+        totalEarnings: '1250.00',
+        isActive: true,
+        isAvailable: true,
+      };
+      
+      res.json(helperProfile);
+    } catch (error) {
+      console.error("Error fetching helper profile:", error);
+      res.status(500).json({ message: "Failed to fetch helper profile" });
+    }
+  });
+
+  app.get("/api/tasks/available", isAuthenticated, async (req: any, res) => {
+    try {
+      if (req.user.role !== 'helper') {
+        return res.status(403).json({ message: "Access denied. Helper role required." });
+      }
+      
+      // Return sample available tasks
+      const availableTasks = [
+        {
+          id: 'task-1',
+          title: 'Furniture Assembly Help',
+          description: 'Need help assembling IKEA furniture in living room. Should take 2-3 hours.',
+          posterType: 'homeowner',
+          payType: 'hourly',
+          payAmount: '25.00',
+          city: 'Seattle',
+          stateCode: 'WA',
+          schedulingType: 'flexible',
+          requiredSkills: ['Assembly', 'Basic Tools'],
+          status: 'open',
+          createdAt: new Date().toISOString(),
+        },
+        {
+          id: 'task-2',
+          title: 'House Cleaning',
+          description: 'Deep cleaning of 3-bedroom house. All supplies provided.',
+          posterType: 'homeowner',
+          payType: 'fixed',
+          payAmount: '150.00',
+          city: 'Portland',
+          stateCode: 'OR',
+          schedulingType: 'scheduled',
+          requiredSkills: ['Cleaning', 'Attention to Detail'],
+          status: 'open',
+          createdAt: new Date().toISOString(),
+        },
+        {
+          id: 'task-3',
+          title: 'Job Site Labor',
+          description: 'Need extra hands for roofing project. Must have construction experience.',
+          posterType: 'contractor',
+          payType: 'hourly',
+          payAmount: '35.00',
+          city: 'Vancouver',
+          stateCode: 'WA',
+          schedulingType: 'asap',
+          requiredSkills: ['Construction', 'Physical Strength', 'Roofing'],
+          status: 'open',
+          createdAt: new Date().toISOString(),
+        }
+      ];
+      
+      res.json(availableTasks);
+    } catch (error) {
+      console.error("Error fetching available tasks:", error);
+      res.status(500).json({ message: "Failed to fetch available tasks" });
+    }
+  });
+
+  app.get("/api/workers/applications", isAuthenticated, async (req: any, res) => {
+    try {
+      if (req.user.role !== 'helper') {
+        return res.status(403).json({ message: "Access denied. Helper role required." });
+      }
+      
+      // Return sample applications
+      const applications = [
+        {
+          id: 'app-1',
+          taskId: 'task-1',
+          workerId: req.user.id,
+          message: 'I have extensive experience with furniture assembly and own all necessary tools.',
+          proposedRate: '25.00',
+          status: 'pending',
+          createdAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
+        },
+        {
+          id: 'app-2',
+          taskId: 'task-2',
+          workerId: req.user.id,
+          message: 'Available for this cleaning job. I have 3 years of professional cleaning experience.',
+          status: 'accepted',
+          createdAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
+        }
+      ];
+      
+      res.json(applications);
+    } catch (error) {
+      console.error("Error fetching applications:", error);
+      res.status(500).json({ message: "Failed to fetch applications" });
+    }
+  });
+
+  app.get("/api/workers/completed-jobs", isAuthenticated, async (req: any, res) => {
+    try {
+      if (req.user.role !== 'helper') {
+        return res.status(403).json({ message: "Access denied. Helper role required." });
+      }
+      
+      // Return sample completed jobs
+      const completedJobs = [
+        {
+          id: 'job-1',
+          title: 'Garden Cleanup',
+          description: 'Seasonal garden cleanup and maintenance.',
+          payAmount: '120.00',
+          city: 'Seattle',
+          stateCode: 'WA',
+          status: 'completed',
+          completedAt: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString(),
+        },
+        {
+          id: 'job-2',
+          title: 'Moving Assistance',
+          description: 'Help loading and unloading moving truck.',
+          payAmount: '80.00',
+          city: 'Tacoma',
+          stateCode: 'WA',
+          status: 'completed',
+          completedAt: new Date(Date.now() - 15 * 24 * 60 * 60 * 1000).toISOString(),
+        }
+      ];
+      
+      res.json(completedJobs);
+    } catch (error) {
+      console.error("Error fetching completed jobs:", error);
+      res.status(500).json({ message: "Failed to fetch completed jobs" });
+    }
+  });
+
+  app.get("/api/workers/reviews", isAuthenticated, async (req: any, res) => {
+    try {
+      if (req.user.role !== 'helper') {
+        return res.status(403).json({ message: "Access denied. Helper role required." });
+      }
+      
+      // Return sample reviews
+      const reviews = [
+        {
+          id: 'review-1',
+          rating: 5,
+          reviewText: 'Excellent work! Very professional and completed the task perfectly.',
+          qualityRating: 5,
+          timelinessRating: 5,
+          communicationRating: 5,
+          professionalismRating: 5,
+          wouldHireAgain: true,
+          createdAt: new Date(Date.now() - 12 * 24 * 60 * 60 * 1000).toISOString(),
+        },
+        {
+          id: 'review-2',
+          rating: 4,
+          reviewText: 'Good work, arrived on time and got the job done efficiently.',
+          qualityRating: 4,
+          timelinessRating: 5,
+          communicationRating: 4,
+          professionalismRating: 4,
+          wouldHireAgain: true,
+          createdAt: new Date(Date.now() - 20 * 24 * 60 * 60 * 1000).toISOString(),
+        }
+      ];
+      
+      res.json(reviews);
+    } catch (error) {
+      console.error("Error fetching reviews:", error);
+      res.status(500).json({ message: "Failed to fetch reviews" });
+    }
+  });
+
   // Error reporting endpoints
   // Object Storage Routes for File Uploads
   app.post("/api/objects/upload", async (req, res) => {

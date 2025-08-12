@@ -8,6 +8,7 @@ export type UserRole =
   
   // Service provider roles  
   | 'contractor_user'
+  | 'helper'             // New role for workers/helpers
   | 'accelerator_member'
   | 'realtor'
   | 'car_salesman'
@@ -139,6 +140,7 @@ export const ROLE_HIERARCHY: Record<UserRole, number> = {
   
   // Service provider roles (10-19)
   contractor_user: 10,
+  helper: 11,                 // New role for workers/helpers
   accelerator_member: 15,
   realtor: 12,
   car_salesman: 12,
@@ -254,6 +256,29 @@ export const ROLE_PERMISSIONS: Record<UserRole, RolePermissions> = {
     canManagePayments: false,
     canManageContractors: false,
     canManageListings: true,
+    canManageReports: false,
+    canManageModeration: false,
+    canPromoteUsers: false,
+    canManageRoles: false,
+    canAccessSuperAdmin: false,
+    canManageAdmins: false,
+  },
+  
+  helper: {
+    canCreateContent: true,        // Can create worker profile content
+    canEditContent: true,          // Can edit own profile and applications
+    canDeleteContent: true,        // Can delete own applications
+    canModerateContent: false,
+    canViewUsers: false,           // Only see relevant task posters
+    canEditUsers: false,
+    canDeleteUsers: false,
+    canBanUsers: false,
+    canAccessAdminPanel: false,
+    canManageSettings: false,
+    canViewAnalytics: true,        // Can view own job history and earnings
+    canManagePayments: false,      // Cannot manage payments, only receive them
+    canManageContractors: false,
+    canManageListings: false,      // Cannot manage other listings, only applications
     canManageReports: false,
     canManageModeration: false,
     canPromoteUsers: false,
