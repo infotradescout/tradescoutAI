@@ -35,10 +35,9 @@ export function NextGenNavigation({ className = "" }: NextGenNavigationProps) {
     
     // Base navigation items with role-specific priorities
     const baseItems = [
-      { href: "/contractors", label: "Find Contractors", icon: Users, priority: 10 },
+      { href: "/contractors/board", label: "Contractors", icon: Users, priority: 10 },
       { href: "/calculator", label: "Calculator", icon: Calculator, priority: 9 },
       { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard, priority: 8 },
-      { href: "/contractors/board", label: "Contractor Board", icon: Wrench, priority: 7 },
       { href: "/foundation", label: "Foundation", icon: Building, priority: 6 },
       { href: "/community", label: "Community", icon: MessageSquare, priority: 5 },
       { href: "/helpers", label: "Helpers", icon: Users, priority: 4 },
@@ -60,14 +59,14 @@ export function NextGenNavigation({ className = "" }: NextGenNavigationProps) {
       return baseItems.map(item => {
         if (item.href === '/dashboard') return { ...item, priority: 15 };
         if (item.href === '/community') return { ...item, priority: 14 };
-        if (item.href === '/contractors') return { ...item, priority: 13 };
+        if (item.href === '/contractors/board') return { ...item, priority: 13 };
         if (item.href === '/foundation') return { ...item, priority: 12 };
         return item;
       });
     } else { // homeowner (default)
       return baseItems.map(item => {
         if (item.href === '/dashboard') return { ...item, priority: 15 };
-        if (item.href === '/contractors') return { ...item, priority: 14 };
+        if (item.href === '/contractors/board') return { ...item, priority: 14 };
         if (item.href === '/calculator') return { ...item, priority: 13 };
         if (item.href === '/community') return { ...item, priority: 12 };
         if (item.href === '/helpers') return { ...item, priority: 11 };
@@ -86,7 +85,7 @@ export function NextGenNavigation({ className = "" }: NextGenNavigationProps) {
 
   const isActive = (path: string) => {
     if (path === "/") return location === "/";
-    if (path === "/contractors") return location === "/contractors" || location === "/contractors/";
+    if (path === "/contractors/board") return location === "/contractors/board" || location.startsWith("/contractors/board");
     return location.startsWith(path);
   };
 
