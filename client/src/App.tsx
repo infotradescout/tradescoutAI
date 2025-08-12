@@ -73,6 +73,7 @@ import Register from "@/pages/register";
 import Leaderboard from "@/pages/leaderboard";
 import InvitePage from "@/pages/invite";
 import AffiliatePage from "@/pages/affiliate";
+import TestFunctionality from "@/pages/test-functionality";
 
 import ModerationCenter from "@/pages/moderation-center";
 import Checkout from "@/pages/checkout";
@@ -207,6 +208,7 @@ const Router = memo(function Router() {
         <Route path="/help" component={Help} />
         <Route path="/settings" component={Settings} />
         <Route path="/promo/:slug" component={PromoPublic} />
+        <Route path="/test" component={TestFunctionality} />
 
         {/* Legal Pages */}
         <Route path="/legal/privacy-policy" component={PrivacyPolicy} />

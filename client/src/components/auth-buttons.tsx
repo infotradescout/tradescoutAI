@@ -26,18 +26,30 @@ export function AuthButtons({
   const handleFacebookLogin = () => {
     // Check if Facebook auth is available, otherwise show error
     try {
+      if (process.env.NODE_ENV === 'development') {
+        // In development, show message that OAuth needs to be configured
+        alert("Facebook OAuth is not configured. Please check server configuration.");
+        return;
+      }
       window.location.href = "/auth/facebook";
     } catch (error) {
       console.error("Facebook login not available:", error);
+      alert("Facebook login is currently unavailable. Please try email login.");
     }
   };
 
   const handleGoogleLogin = () => {
     // Check if Google auth is available, otherwise show error
     try {
+      if (process.env.NODE_ENV === 'development') {
+        // In development, show message that OAuth needs to be configured
+        alert("Google OAuth is not configured. Please check server configuration.");
+        return;
+      }
       window.location.href = "/auth/google";
     } catch (error) {
       console.error("Google login not available:", error);
+      alert("Google login is currently unavailable. Please try email login.");
     }
   };
 

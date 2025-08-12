@@ -415,27 +415,31 @@ class AIMonitoringService {
   private checkMemoryUsage() {
     if ('memory' in performance) {
       const memory = (performance as any).memory;
-      const usagePercent = (memory.usedJSHeapSize / memory.jsHeapSizeLimit) * 100;
+      if (memory) {
+        const heapUsagePercent = (memory.usedJSHeapSize / memory.jsHeapSizeLimit) * 100;
 
-      // Only report if usage is critically high and hasn't been reported recently
-      const now = Date.now();
-      const lastMemoryReport = this.lastMemoryReport || 0;
+        if (heapUsagePercent > 95) {
+          // Only report if usage is critically high and hasn't been reported recently
+          const now = Date.now();
+          const lastMemoryReport = this.lastMemoryReport || 0;
 
-      if (usagePercent > 95 && (now - lastMemoryReport > 60000)) { // Report max once per minute
-        this.lastMemoryReport = now;
-        this.addIssue({
-          type: 'performance',
-          severity: 'high',
-          title: 'High Memory Usage',
-          description: `JavaScript heap usage at ${(usagePercent).toFixed(1)}%`,
-          location: window.location.pathname,
-          userAgent: navigator.userAgent,
-          suggestions: [
-            'Check for memory leaks in event listeners',
-            'Clear unused references and intervals',
-            'Optimize large data structures'
-          ]
-        });
+          if (usagePercent > 95 && (now - lastMemoryReport > 60000)) { // Report max once per minute
+            this.lastMemoryReport = now;
+            this.addIssue({
+              type: 'performance',
+              severity: 'high',
+              title: 'High Memory Usage',
+              description: `JavaScript heap usage at ${(usagePercent).toFixed(1)}%`,
+              location: window.location.pathname,
+              userAgent: navigator.userAgent,
+              suggestions: [
+                'Check for memory leaks in event listeners',
+                'Clear unused references and intervals',
+                'Optimize large data structures'
+              ]
+            });
+          }
+        }
       }
     }
 
