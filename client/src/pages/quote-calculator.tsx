@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Calculator, DollarSign, Info, Users, CheckCircle, Clock, Phone, MapPin, TrendingUp, Zap, Shield } from "lucide-react";
+import { PricingTooltip, ContextualTooltip } from "@/components/ui/contextual-tooltip";
 import { Link } from "wouter";
 import { useAuth } from "@/hooks/useAuth";
 import { GuestGate } from "@/components/guest-gate";
@@ -362,7 +363,18 @@ export default function EstimateCalculator() {
             </CardHeader>
             <CardContent className="space-y-6">
               <div>
-                <Label className="block text-sm font-medium text-gray-300 mb-2">Project Type *</Label>
+                <Label className="block text-sm font-medium text-gray-300 mb-2 flex items-center gap-2">
+                  Project Type *
+                  <PricingTooltip>
+                    <ContextualTooltip
+                      title="Choosing Project Types"
+                      content="Select the option that best matches your project scope. Different project types have varying material costs and labor requirements."
+                      illustration="hammer"
+                      variant="contractor"
+                      size="sm"
+                    />
+                  </PricingTooltip>
+                </Label>
                 <Select value={inputs.projectType} onValueChange={(value) => setInputs(prev => ({ ...prev, projectType: value }))}>
                   <SelectTrigger className="form-field">
                     <SelectValue placeholder="Select your project type..." />
@@ -418,7 +430,16 @@ export default function EstimateCalculator() {
               </div>
 
               <div>
-                <Label className="block text-sm font-medium text-gray-300 mb-2">Project Size *</Label>
+                <Label className="block text-sm font-medium text-gray-300 mb-2 flex items-center gap-2">
+                  Project Size *
+                  <ContextualTooltip
+                    title="Accurate Measurements Matter"
+                    content="Precise measurements lead to accurate estimates - like measuring lumber before cutting."
+                    illustration="ruler"
+                    variant="contractor"
+                    size="sm"
+                  />
+                </Label>
                 <Input
                   type="number"
                   placeholder="Enter square footage or project size"
@@ -432,7 +453,16 @@ export default function EstimateCalculator() {
               </div>
 
               <div>
-                <Label className="block text-sm font-medium text-gray-300 mb-2">Project Timeline</Label>
+                <Label className="block text-sm font-medium text-gray-300 mb-2 flex items-center gap-2">
+                  Project Timeline
+                  <ContextualTooltip
+                    title="Timeline Affects Pricing"
+                    content="Rush jobs cost more - like overtime rates for contractors. Planning ahead saves money."
+                    illustration="drill"
+                    variant="contractor"
+                    size="sm"
+                  />
+                </Label>
                 <Select value={inputs.urgency} onValueChange={(value) => setInputs(prev => ({ ...prev, urgency: value }))}>
                   <SelectTrigger className="form-field">
                     <SelectValue />

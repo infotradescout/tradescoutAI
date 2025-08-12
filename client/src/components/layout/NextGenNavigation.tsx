@@ -7,6 +7,7 @@ import { Menu, X, ChevronDown, Home, Calculator, Users, Wrench, LayoutDashboard,
 import { useAuth } from "@/hooks/useAuth";
 import { UserMenu } from "@/components/navigation/RoleBasedNavigation";
 import { ConstructionEmblem } from "@/components/ConstructionEmblem";
+import { ContextualHelp } from "@/components/help/HelpSystem";
 
 interface NextGenNavigationProps {
   className?: string;
@@ -274,6 +275,9 @@ export function NextGenNavigation({ className = "" }: NextGenNavigationProps) {
               </DropdownMenuContent>
             </DropdownMenu>
           </div>
+
+          {/* Help System */}
+          <ContextualHelp />
 
           {/* User account button */}
           {isAuthenticated && (
