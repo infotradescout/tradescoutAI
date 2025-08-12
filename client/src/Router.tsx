@@ -4,7 +4,6 @@ import { useAuth } from "@/hooks/useAuth";
 
 // Import pages
 import Landing from "@/pages/landing";
-import Home from "@/pages/home";
 import Login from "@/pages/login";
 import Register from "@/pages/register";
 import Dashboard from "@/pages/dashboard";
@@ -21,11 +20,14 @@ import AdminPanel from "@/pages/admin-panel";
 import AdminDashboard from "@/pages/admin-dashboard";
 import Help from "@/pages/help";
 import NotFound from "@/pages/not-found";
+import Accelerator from "@/pages/accelerator";
+import QuoteCalculator from "@/pages/quote-calculator";
+import Community from "@/pages/community";
+import Foundation from "@/pages/foundation";
+import Exchange from "@/pages/exchange";
 
 // Import components
-import { NextGenNavigation } from "@/components/navigation/NextGenNavigation";
-import { MobileAppBar } from "@/components/MobileAppBar";
-import { AddressVerificationBanner } from "@/components/AddressVerificationBanner";
+import Navigation from "@/components/ui/navigation";
 
 export default function Router() {
   const { isAuthenticated, isLoading, user } = useAuth();
@@ -40,13 +42,8 @@ export default function Router() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-navy-900 via-navy-800 to-slate-900">
-      {isAuthenticated && (
-        <>
-          <NextGenNavigation />
-          <MobileAppBar />
-          <AddressVerificationBanner />
-        </>
-      )}
+      {/* Show navigation for authenticated users */}
+      {isAuthenticated && <Navigation />}
       
       <Switch>
         {/* Public routes */}
@@ -56,13 +53,18 @@ export default function Router() {
         {/* Protected routes */}
         {isAuthenticated ? (
           <>
-            <Route path="/" component={Home} />
+            <Route path="/" component={Dashboard} />
             <Route path="/dashboard" component={Dashboard} />
+            <Route path="/contractors" component={Contractors} />
+            <Route path="/quote-calculator" component={QuoteCalculator} />
+            <Route path="/community" component={Community} />
+            <Route path="/helpers" component={Helpers} />
+            <Route path="/foundation" component={Foundation} />
+            <Route path="/exchange" component={Exchange} />
+            <Route path="/accelerator" component={Accelerator} />
             <Route path="/contractor-dashboard" component={ContractorDashboard} />
             <Route path="/homeowner-dashboard" component={HomeownerDashboard} />
             <Route path="/helper-dashboard" component={HelperDashboard} />
-            <Route path="/contractors" component={Contractors} />
-            <Route path="/helpers" component={Helpers} />
             <Route path="/marketplace" component={Marketplace} />
             <Route path="/chat" component={Chat} />
             <Route path="/profile" component={Profile} />

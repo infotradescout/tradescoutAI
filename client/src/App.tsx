@@ -4,7 +4,7 @@ import { TooltipProvider } from "./components/ui/tooltip";
 import { ErrorBoundary } from "./components/ui/error-boundary";
 import React from "react";
 import { queryClient } from "./lib/queryClient";
-import MinimalRouter from './MinimalRouter';
+import Router from './Router';
 
 export default function App() {
   return (
@@ -12,7 +12,7 @@ export default function App() {
       <QueryClientProvider client={queryClient}>
         <TooltipProvider>
           <Toaster />
-          <MinimalRouter />
+          <Router />
         </TooltipProvider>
       </QueryClientProvider>
     </ErrorBoundary>
