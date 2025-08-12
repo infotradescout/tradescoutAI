@@ -1734,6 +1734,103 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Pricing Analytics Routes (Admin Only)
+  app.get("/api/admin/pricing-analytics", isAuthenticated, requireRole(['head_admin', 'ops_admin']), async (req: any, res) => {
+    try {
+      const { timeframe = '30d' } = req.query;
+      const { pricingAnalyticsService } = await import('./pricing-analytics');
+      
+      const analytics = await pricingAnalyticsService.getPricingAnalytics(timeframe as any);
+      res.json(analytics);
+    } catch (error) {
+      console.error("Error fetching pricing analytics:", error);
+      res.status(500).json({ message: "Failed to fetch pricing analytics" });
+    }
+  });
+
+  app.post("/api/admin/pricing-analytics/update-calculator", isAuthenticated, requireRole(['head_admin', 'ops_admin']), async (req: any, res) => {
+    try {
+      const { threshold = 10 } = req.body;
+      const { pricingAnalyticsService } = await import('./pricing-analytics');
+      
+      const result = await pricingAnalyticsService.updateCalculatorPricing(threshold);
+      
+      // Log the pricing update
+      await storage.logEvent('pricing_calculator_updated', {
+        adminId: req.user.id,
+        updatedCount: result.updatedCount,
+        updates: result.updates
+      });
+      
+      res.json(result);
+    } catch (error) {
+      console.error("Error updating calculator pricing:", error);
+      res.status(500).json({ message: "Failed to update calculator pricing" });
+    }
+  });
+
+  app.get("/api/admin/pricing-analytics/export", isAuthenticated, requireRole(['head_admin', 'ops_admin']), async (req: any, res) => {
+    try {
+      const { timeframe = '30d' } = req.query;
+      const { pricingAnalyticsService } = await import('./pricing-analytics');
+      
+      const analytics = await pricingAnalyticsService.getPricingAnalytics(timeframe as any);
+      
+      // Convert analytics to CSV format
+      const csvData = [];
+      
+      // Add trade data
+      for (const [tradeId, data] of Object.entries(analytics.averageQuotes.byTrade)) {
+        csvData.push({
+          type: 'trade',
+          id: tradeId,
+          average: data.average,
+          count: data.count,
+          trend: data.trend
+        });
+      }
+      
+      // Add region data  
+      for (const [regionKey, data] of Object.entries(analytics.averageQuotes.byRegion)) {
+        csvData.push({
+          type: 'region',
+          id: regionKey,
+          average: data.average,
+          count: data.count,
+          trend: data.trend
+        });
+      }
+      
+      // Convert to CSV string
+      const csvHeader = 'Type,ID,Average,Count,Trend\n';
+      const csvRows = csvData.map(row => 
+        `${row.type},${row.id},${row.average},${row.count},${row.trend}`
+      ).join('\n');
+      
+      const csvContent = csvHeader + csvRows;
+      
+      res.setHeader('Content-Type', 'text/csv');
+      res.setHeader('Content-Disposition', `attachment; filename="pricing-analytics-${timeframe}.csv"`);
+      res.send(csvContent);
+    } catch (error) {
+      console.error("Error exporting pricing analytics:", error);
+      res.status(500).json({ message: "Failed to export pricing analytics" });
+    }
+  });
+
+  app.get("/api/admin/pricing-analytics/recommendations", isAuthenticated, requireRole(['head_admin', 'ops_admin']), async (req: any, res) => {
+    try {
+      const { stateCode } = req.query;
+      const { pricingAnalyticsService } = await import('./pricing-analytics');
+      
+      const recommendations = await pricingAnalyticsService.getRegionalPricingRecommendations(stateCode);
+      res.json(recommendations);
+    } catch (error) {
+      console.error("Error fetching pricing recommendations:", error);
+      res.status(500).json({ message: "Failed to fetch pricing recommendations" });
+    }
+  });
+
   // Contractor dashboard (requires contractor auth)
   app.get("/api/contractor/dashboard", isAuthenticated, async (req: any, res) => {
     try {

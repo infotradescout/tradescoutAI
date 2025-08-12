@@ -29,8 +29,9 @@ import {
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { UserHeatmap } from "@/components/UserHeatmap";
-import { Plus, Edit, Trash2, Gift, Settings, Megaphone, Users, Bell, Map, CheckCircle, Bug, Image } from "lucide-react";
+import { Plus, Edit, Trash2, Gift, Settings, Megaphone, Users, Bell, Map, CheckCircle, Bug, Image, BarChart3, DollarSign, Wrench, MapPin, Clock } from "lucide-react";
 import { useLocation } from "wouter";
+import Link from "next/link";
 
 
 type SiteSetting = {
@@ -225,11 +226,11 @@ export default function AdminPanel() {
             <Settings className="w-8 h-8 text-orange-500" />
             Admin Panel
           </h1>
-          <p className="text-gray-400">Manage site features, prizes, advertisements, and contractor settings</p>
+          <p className="text-gray-400">Manage site features, prizes, advertisements, contractor settings, and AI monitoring</p>
         </div>
 
         <Tabs value={selectedTab} onValueChange={setSelectedTab} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-7 bg-slate-800">
+          <TabsList className="grid w-full grid-cols-8 bg-slate-800">
             <TabsTrigger value="heatmap" className="flex items-center gap-2">
               <Map className="w-4 h-4" />
               User Heatmap
@@ -257,6 +258,10 @@ export default function AdminPanel() {
             <TabsTrigger value="error-reports" className="flex items-center gap-2">
               <Bug className="w-4 h-4" />
               Error Reports
+            </TabsTrigger>
+            <TabsTrigger value="pricing" className="flex items-center gap-2">
+              <DollarSign className="w-4 h-4" />
+              Pricing Analytics
             </TabsTrigger>
           </TabsList>
 
@@ -550,6 +555,65 @@ export default function AdminPanel() {
             </div>
             {/* TODO: Add error reports table */}
           </TabsContent>
+
+          <TabsContent value="pricing" className="space-y-4">
+            <div className="space-y-6">
+              <Card className="bg-navy-700 border-navy-600">
+                <CardHeader>
+                  <CardTitle className="text-white">Pricing Analytics Dashboard</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-gray-300 mb-4">
+                    Monitor market trends, track average job quotes, and automatically update calculator pricing based on real-world data.
+                  </p>
+                  <Link href="/admin/pricing-analytics">
+                    <Button className="bg-orange-500 hover:bg-orange-600">
+                      <BarChart3 className="h-4 w-4 mr-2" />
+                      Open Pricing Analytics
+                    </Button>
+                  </Link>
+                </CardContent>
+              </Card>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <Card className="bg-navy-700 border-navy-600">
+                  <CardContent className="p-6">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-gray-300 text-sm">Active Trades</p>
+                        <p className="text-2xl font-bold text-white">24</p>
+                      </div>
+                      <Wrench className="h-8 w-8 text-orange-500" />
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card className="bg-navy-700 border-navy-600">
+                  <CardContent className="p-6">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-gray-300 text-sm">Regions Tracked</p>
+                        <p className="text-2xl font-bold text-white">156</p>
+                      </div>
+                      <MapPin className="h-8 w-8 text-blue-500" />
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card className="bg-navy-700 border-navy-600">
+                  <CardContent className="p-6">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-gray-300 text-sm">Last Update</p>
+                        <p className="text-2xl font-bold text-white">2h</p>
+                      </div>
+                      <Clock className="h-8 w-8 text-green-500" />
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            </div>
+          </TabsContent>
         </Tabs>
 
         {/* Edit/Create Dialog */}
@@ -557,10 +621,10 @@ export default function AdminPanel() {
           <DialogContent className="bg-slate-900 text-white max-w-2xl">
             <DialogHeader>
               <DialogTitle>
-                {editingItem ? "Edit" : "Create"} {selectedTab.replace("-", " ").replace(/\b\w/g, l => l.toUpperCase())}
+                {editingItem ? "Edit" : "Create"} {selectedTab === "contractor-settings" ? "Contractor Setting" : selectedTab.replace("-", " ").replace(/\b\w/g, l => l.toUpperCase())}
               </DialogTitle>
               <DialogDescription>
-                {editingItem ? "Update the" : "Create a new"} {selectedTab.replace("-", " ")} configuration.
+                {editingItem ? "Update the" : "Create a new"} {selectedTab === "contractor-settings" ? "contractor setting" : selectedTab.replace("-", " ")} configuration.
               </DialogDescription>
             </DialogHeader>
 
