@@ -183,21 +183,11 @@ async function routeLeadToTopContractors(lead: any, leadData: any) {
 
 
 export async function registerRoutes(app: Express) {
-  // Health check endpoint
-  app.get("/api/health", (req, res) => {
-    res.json({ 
-      status: "healthy",
-      timestamp: new Date().toISOString(),
-      environment: process.env.NODE_ENV || "development",
-      version: "1.0.0"
-    });
-  });
-
   // Setup authentication
   await setupAuth(app);
 
   // Authentication routes
-  app.post("/api/auth/login", (req, res, next) => {
+  app.post("/auth/login", (req, res, next) => {
     passport.authenticate('local', (err, user, info) => {
       if (err) {
         return next(err);
@@ -215,7 +205,7 @@ export async function registerRoutes(app: Express) {
     })(req, res, next);
   });
 
-  app.post("/api/auth/register", async (req, res) => {
+  app.post("/auth/register", async (req, res) => {
     try {
       const { username, email, password, firstName, lastName, address, role = 'homeowner' } = req.body;
 
@@ -254,7 +244,7 @@ export async function registerRoutes(app: Express) {
     }
   });
 
-  app.post("/api/auth/logout", (req, res) => {
+  app.post("/auth/logout", (req, res) => {
     req.logout((err) => {
       if (err) {
         return res.status(500).json({ message: "Logout failed" });
