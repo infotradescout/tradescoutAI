@@ -21,7 +21,7 @@ const mobileNavItems = [
 const quickActions = [
   { href: '/quote', icon: Calculator, label: 'Quote', guest: true },
   { href: '/marketplace', icon: Package, label: 'Exchange', guest: true },
-  { href: '/contractors', icon: Wrench, label: 'Join Network', guest: true },
+  { href: '/contractors/board', icon: Wrench, label: 'Join Network', guest: true },
   { href: '/foundation', icon: Heart, label: 'Foundation', guest: true },
 ];
 
