@@ -32,28 +32,96 @@ function SimpleLanding() {
   const [, setLocation] = useLocation();
   
   return (
-    <div className="min-h-screen gradient-bg text-white flex items-center justify-center p-8">
-      <div className="text-center max-w-2xl">
-        <h1 className="text-5xl font-bold mb-6">TradeScout</h1>
-        <p className="text-xl mb-8">Connect with verified local contractors</p>
-        <div className="space-x-4">
-          <Button 
-            size="lg" 
-            className="bg-orange-600 hover:bg-orange-700"
-            onClick={() => setLocation('/login')}
-          >
-            Get Started
-          </Button>
-          <Button 
-            variant="outline" 
-            size="lg" 
-            className="border-white text-white hover:bg-white hover:text-navy-900"
-            onClick={() => setLocation('/contractors')}
-          >
-            Browse Contractors
-          </Button>
+    <div className="min-h-screen bg-gradient-to-br from-navy-900 via-navy-800 to-slate-900 text-white">
+      {/* Navigation Header */}
+      <nav className="backdrop-blur-md bg-navy-800/90 border-b border-navy-600/50 p-4">
+        <div className="max-w-7xl mx-auto flex justify-between items-center">
+          <div className="flex items-center space-x-3">
+            <div className="w-10 h-10 bg-orange-600 rounded-lg flex items-center justify-center">
+              <span className="text-white font-bold text-lg">TS</span>
+            </div>
+            <h1 className="text-2xl font-bold text-white">TradeScout</h1>
+          </div>
+          <div className="flex space-x-4">
+            <Button 
+              variant="outline" 
+              className="border-white text-white hover:bg-white hover:text-navy-900"
+              onClick={() => setLocation('/login')}
+            >
+              Login
+            </Button>
+            <Button 
+              className="bg-orange-600 hover:bg-orange-700"
+              onClick={() => setLocation('/register')}
+            >
+              Sign Up
+            </Button>
+          </div>
+        </div>
+      </nav>
+
+      {/* Hero Section */}
+      <div className="flex items-center justify-center px-8 py-16">
+        <div className="text-center max-w-4xl">
+          <h1 className="text-6xl font-bold mb-6 bg-gradient-to-r from-orange-400 to-orange-600 bg-clip-text text-transparent">
+            TradeScout
+          </h1>
+          <p className="text-2xl mb-4 text-gray-300">Connect with verified local contractors</p>
+          <p className="text-lg mb-12 text-gray-400 max-w-2xl mx-auto">
+            Find trusted contractors, helpers, and marketplace sellers in your area. 
+            Join thousands of homeowners and professionals building better communities.
+          </p>
+          <div className="space-x-4 mb-16">
+            <Button 
+              size="lg" 
+              className="bg-orange-600 hover:bg-orange-700 px-8 py-4 text-lg"
+              onClick={() => setLocation('/register')}
+            >
+              Get Started
+            </Button>
+            <Button 
+              variant="outline" 
+              size="lg" 
+              className="border-white text-white hover:bg-white hover:text-navy-900 px-8 py-4 text-lg"
+              onClick={() => setLocation('/contractors')}
+            >
+              Browse Contractors
+            </Button>
+          </div>
+
+          {/* Feature Cards */}
+          <div className="grid md:grid-cols-3 gap-8 mt-16">
+            <div className="bg-navy-800/50 backdrop-blur-sm border border-navy-600/50 rounded-xl p-6">
+              <div className="w-12 h-12 bg-orange-600 rounded-lg mx-auto mb-4 flex items-center justify-center">
+                <span className="text-white text-xl">🔨</span>
+              </div>
+              <h3 className="text-xl font-semibold mb-3">Verified Contractors</h3>
+              <p className="text-gray-400">Connect with background-checked, licensed contractors in your area</p>
+            </div>
+            <div className="bg-navy-800/50 backdrop-blur-sm border border-navy-600/50 rounded-xl p-6">
+              <div className="w-12 h-12 bg-orange-600 rounded-lg mx-auto mb-4 flex items-center justify-center">
+                <span className="text-white text-xl">💼</span>
+              </div>
+              <h3 className="text-xl font-semibold mb-3">Helper Marketplace</h3>
+              <p className="text-gray-400">Find skilled helpers for both home projects and contractor jobs</p>
+            </div>
+            <div className="bg-navy-800/50 backdrop-blur-sm border border-navy-600/50 rounded-xl p-6">
+              <div className="w-12 h-12 bg-orange-600 rounded-lg mx-auto mb-4 flex items-center justify-center">
+                <span className="text-white text-xl">🏘️</span>
+              </div>
+              <h3 className="text-xl font-semibold mb-3">Local Focus</h3>
+              <p className="text-gray-400">County-based matching ensures you find professionals in your community</p>
+            </div>
+          </div>
         </div>
       </div>
+
+      {/* Footer */}
+      <footer className="border-t border-navy-600/50 bg-navy-800/30 py-8 px-4">
+        <div className="max-w-7xl mx-auto text-center">
+          <p className="text-gray-400">© 2025 TradeScout. Connecting communities with trusted professionals.</p>
+        </div>
+      </footer>
     </div>
   );
 }
