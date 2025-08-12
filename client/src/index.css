@@ -287,7 +287,7 @@
     max-width: 100vw;
   }
 
-  /* Ensure no elements cause horizontal overflow */
+  /* Ensure all elements respect viewport width */
   * {
     box-sizing: border-box;
   }
@@ -429,4 +429,54 @@
 
 ::-webkit-scrollbar-thumb:hover {
   background: hsl(208, 16%, 35%);
+}
+
+/* Swipe navigation styles */
+.swipe-container {
+  touch-action: pan-y;
+  overflow-x: hidden;
+  max-width: 100vw;
+  width: 100%;
+}
+
+.swipe-indicator {
+  position: fixed;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 1000;
+  background: rgba(0, 0, 0, 0.7);
+  border-radius: 50%;
+  padding: 12px;
+  backdrop-filter: blur(10px);
+  border: 2px solid rgba(255, 255, 255, 0.1);
+  transition: all 0.3s ease;
+  max-width: 48px;
+  max-height: 48px;
+}
+
+.swipe-indicator.left {
+  left: 20px;
+}
+
+.swipe-indicator.right {
+  right: 20px;
+}
+
+.swipe-indicator svg {
+  color: white;
+}
+
+/* Prevent horizontal overflow globally */
+html, body {
+  overflow-x: hidden;
+  max-width: 100vw;
+}
+
+/* Ensure all containers respect viewport width */
+* {
+  box-sizing: border-box;
+}
+
+.max-w-7xl, .max-w-6xl, .max-w-5xl, .max-w-4xl, .max-w-3xl, .max-w-2xl, .max-w-xl {
+  max-width: calc(100vw - 2rem);
 }
