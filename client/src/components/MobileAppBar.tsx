@@ -4,7 +4,7 @@ import { Link, useLocation } from 'wouter';
 import { useAuth } from '@/hooks/useAuth';
 import { 
   Home, Search, MessageCircle, User, Menu, 
-  Wrench, Layout, Bell, Heart 
+  Wrench, Layout, Bell, Heart, Calculator, Package, Settings
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';

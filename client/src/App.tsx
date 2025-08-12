@@ -167,7 +167,7 @@ const Router = memo(function Router() {
       <div className="min-h-screen gradient-bg text-gray-100">
         {!isMobile && <NextGenNavigation />}
         {isAuthenticated && (
-          <ErrorBoundary>
+          <ErrorBoundary fallback={<div></div>}>
             <AddressVerificationBanner />
           </ErrorBoundary>
         )}
@@ -294,10 +294,10 @@ const Router = memo(function Router() {
         <Route component={NotFound} />
       </Switch>
       <MobileCTA />
-      <ErrorBoundary>
+      <ErrorBoundary fallback={<div></div>}>
         <FloatingBugReport />
       </ErrorBoundary>
-      <ErrorBoundary>
+      <ErrorBoundary fallback={<div></div>}>
         <BetaNotificationPopup />
       </ErrorBoundary>
       <SwipeIndicator

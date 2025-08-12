@@ -20,6 +20,7 @@ class AIMonitoringService {
   private errorListener?: (event: ErrorEvent) => void;
   private unhandledRejectionListener?: (event: PromiseRejectionEvent) => void;
   private checkInterval?: number;
+  private lastMemoryReport: number = 0; // Added to track last memory report time
 
   initializeMonitoring() {
     if (this.isMonitoring) return;
@@ -393,23 +394,39 @@ class AIMonitoringService {
   }
 
   private startPeriodicChecks() {
+    // Run checks every 5 minutes to reduce overhead
     this.checkInterval = window.setInterval(() => {
-      this.runPeriodicAnalysis();
-    }, 300000); // Every 5 minutes to reduce memory pressure
+      this.checkMemoryUsage();
+      this.checkLayoutIssues();
+      this.checkUXPatterns();
+    }, 300000);
   }
 
-  private runPeriodicAnalysis() {
-    // Check for memory leaks (basic)
-    if ('memory' in performance && (performance as any).memory) {
-      const memInfo = (performance as any).memory;
-      const memUsage = memInfo.usedJSHeapSize / memInfo.totalJSHeapSize;
+  // Placeholder for checkLayoutIssues and checkUXPatterns if they were intended to be separate methods
+  private checkLayoutIssues() {
+    this.setupLayoutAnalysis();
+  }
 
-      if (memUsage > 0.9) {
+  private checkUXPatterns() {
+    this.setupUXPatternAnalysis();
+  }
+
+  private checkMemoryUsage() {
+    if ('memory' in performance) {
+      const memory = (performance as any).memory;
+      const usagePercent = (memory.usedJSHeapSize / memory.jsHeapSizeLimit) * 100;
+
+      // Only report if usage is critically high and hasn't been reported recently
+      const now = Date.now();
+      const lastMemoryReport = this.lastMemoryReport || 0;
+
+      if (usagePercent > 95 && (now - lastMemoryReport > 60000)) { // Report max once per minute
+        this.lastMemoryReport = now;
         this.addIssue({
           type: 'performance',
           severity: 'high',
           title: 'High Memory Usage',
-          description: `JavaScript heap usage at ${(memUsage * 100).toFixed(1)}%`,
+          description: `JavaScript heap usage at ${(usagePercent).toFixed(1)}%`,
           location: window.location.pathname,
           userAgent: navigator.userAgent,
           suggestions: [
