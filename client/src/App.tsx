@@ -16,6 +16,11 @@ import { SwipeIndicator } from "@/components/SwipeIndicator";
 import { KeyboardNavigationHint } from "@/components/KeyboardNavigationHint";
 import { PageTransitionIndicator } from "@/components/PageTransitionIndicator";
 import MobileCTA from "@/components/mobile-cta";
+import { MobileAppBar } from "@/components/MobileAppBar";
+import { PWAInstallPrompt } from "@/components/PWAInstallPrompt";
+import { MobileGestures } from "@/components/MobileGestures";
+import { useIsMobile } from "@/hooks/use-mobile";
+import { useAppLikeEffects } from "@/hooks/useAppLikeEffects";
 import NotFound from "@/pages/not-found";
 import Login from "@/pages/login";
 import Landing from "@/pages/landing";
@@ -126,12 +131,16 @@ import { TutorialProvider } from "@/components/tutorial/TutorialProvider";
 const Router = memo(function Router() {
   const { isAuthenticated, isLoading } = useAuth();
   const { needsSetup, isLoading: setupLoading } = useSetupStatus();
+  const isMobile = useIsMobile();
 
   // Enable global swipe navigation on mobile with page cycling
   const swipeNav = useGlobalSwipeNavigation();
 
   // Enable AI monitoring for admin users
   useAIMonitoring();
+
+  // Enable app-like mobile effects
+  useAppLikeEffects();
 
   if (isLoading || setupLoading) {
     return (
@@ -154,13 +163,14 @@ const Router = memo(function Router() {
   }
 
   return (
-    <div className="min-h-screen gradient-bg text-gray-100">
-      <NextGenNavigation />
-      {isAuthenticated && (
-        <ErrorBoundary>
-          <AddressVerificationBanner />
-        </ErrorBoundary>
-      )}
+    <MobileGestures>
+      <div className="min-h-screen gradient-bg text-gray-100">
+        {!isMobile && <NextGenNavigation />}
+        {isAuthenticated && (
+          <ErrorBoundary>
+            <AddressVerificationBanner />
+          </ErrorBoundary>
+        )}
       <Switch>
         {/* Master Admin Setup - Only shows if no admin exists */}
         <Route path="/setup" component={MasterAdminSetup} />
@@ -302,8 +312,11 @@ const Router = memo(function Router() {
         isVisible={swipeNav.transitionState.isTransitioning}
         currentPage={swipeNav.transitionState.targetPage}
       />
-      <LegalFooter />
+      {isMobile && <MobileAppBar />}
+      <PWAInstallPrompt />
+      {!isMobile && <LegalFooter />}
     </div>
+    </MobileGestures>
   );
 });
 

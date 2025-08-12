@@ -134,6 +134,106 @@
     }
   }
 
+  /* App-like mobile styles */
+  @media (max-width: 768px) {
+    /* Remove default browser chrome on mobile */
+    html {
+      -webkit-text-size-adjust: 100%;
+      -ms-text-size-adjust: 100%;
+    }
+
+    /* App-like scrolling */
+    body {
+      -webkit-overflow-scrolling: touch;
+      overscroll-behavior: none;
+    }
+
+    /* Remove pull-to-refresh on Chrome mobile */
+    body {
+      overscroll-behavior-y: contain;
+    }
+
+    /* App-like button interactions */
+    button, .button {
+      -webkit-tap-highlight-color: transparent;
+      -webkit-touch-callout: none;
+      -webkit-user-select: none;
+      user-select: none;
+      touch-action: manipulation;
+    }
+
+    /* App-like card interactions */
+    .card-interactive {
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .card-interactive:active {
+      transform: scale(0.98);
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    }
+
+    /* Smooth scrolling for mobile */
+    * {
+      scroll-behavior: smooth;
+    }
+
+    /* Hide scrollbars on mobile for cleaner look */
+    .hide-scrollbar {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+
+    .hide-scrollbar::-webkit-scrollbar {
+      display: none;
+    }
+  }
+
+  /* PWA splash screen support */
+  @media (display-mode: standalone) {
+    body {
+      padding-top: env(safe-area-inset-top);
+      padding-bottom: env(safe-area-inset-bottom);
+      padding-left: env(safe-area-inset-left);
+      padding-right: env(safe-area-inset-right);
+    }
+  }
+
+  /* App-like page transitions */
+  .page-transition {
+    animation: slideInRight 0.3s ease-out;
+  }
+
+  @keyframes slideInRight {
+    from {
+      transform: translateX(100%);
+      opacity: 0;
+    }
+    to {
+      transform: translateX(0);
+      opacity: 1;
+    }
+  }
+
+  .page-transition-back {
+    animation: slideInLeft 0.3s ease-out;
+  }
+
+  @keyframes slideInLeft {
+    from {
+      transform: translateX(-100%);
+      opacity: 0;
+    }
+    to {
+      transform: translateX(0);
+      opacity: 1;
+    }
+  }
+
+  /* Mobile bottom navigation safe area */
+  .mobile-nav-spacer {
+    height: calc(64px + env(safe-area-inset-bottom));
+  }
+
   /* Engagement animations */
   .pulse-glow {
     animation: pulseGlow 2s ease-in-out infinite;

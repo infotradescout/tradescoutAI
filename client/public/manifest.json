@@ -1,0 +1,85 @@
+
+{
+  "name": "TradeScout - Find Trusted Contractors",
+  "short_name": "TradeScout",
+  "description": "Connect with verified contractors and grow your business with TradeScout's comprehensive platform",
+  "start_url": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "theme_color": "#f97316",
+  "background_color": "#1e3a8a",
+  "scope": "/",
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Find Contractors",
+      "short_name": "Find",
+      "description": "Search for verified contractors in your area",
+      "url": "/contractors/board",
+      "icons": [
+        {
+          "src": "/icon-192.png",
+          "sizes": "192x192"
+        }
+      ]
+    },
+    {
+      "name": "Get Quote",
+      "short_name": "Quote",
+      "description": "Calculate project estimates",
+      "url": "/quote",
+      "icons": [
+        {
+          "src": "/icon-192.png",
+          "sizes": "192x192"
+        }
+      ]
+    },
+    {
+      "name": "Messages",
+      "short_name": "Messages",
+      "description": "View your conversations",
+      "url": "/conversations",
+      "icons": [
+        {
+          "src": "/icon-192.png",
+          "sizes": "192x192"
+        }
+      ]
+    }
+  ],
+  "categories": ["business", "productivity", "utilities"],
+  "launch_handler": {
+    "client_mode": "focus-existing"
+  },
+  "edge_side_panel": {
+    "preferred_width": 400
+  },
+  "screenshots": [
+    {
+      "src": "/screenshot-mobile.png",
+      "sizes": "540x720",
+      "type": "image/png",
+      "form_factor": "narrow"
+    },
+    {
+      "src": "/screenshot-desktop.png",
+      "sizes": "1280x720",
+      "type": "image/png",
+      "form_factor": "wide"
+    }
+  ]
+}
