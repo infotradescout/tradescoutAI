@@ -18,6 +18,7 @@ import {
   Briefcase,
   FileText
 } from "lucide-react";
+import { PublicHeatmap } from "@/components/PublicHeatmap";
 
 export default function ForContractors() {
   const { user, isAuthenticated } = useAuth();
@@ -225,6 +226,11 @@ export default function ForContractors() {
               </div>
             </CardContent>
           </Card>
+        </div>
+
+        {/* Platform Activity Showcase */}
+        <div className="mt-16">
+          <PublicHeatmap compact={false} showTitle={true} />
         </div>
       </div>
     </div>

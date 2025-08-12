@@ -21,8 +21,8 @@ export function UserHeatmap() {
   const [timeframe, setTimeframe] = useState<string>("30d");
 
   const { data: heatmapData = [], isLoading } = useQuery({
-    queryKey: ["/api/admin/heatmap", timeframe],
-    queryFn: () => apiRequest("GET", `/api/admin/heatmap?timeframe=${timeframe}`),
+    queryKey: ["/api/heatmap", timeframe],
+    queryFn: () => apiRequest("GET", `/api/heatmap?timeframe=${timeframe}`),
     retry: false,
   });
 

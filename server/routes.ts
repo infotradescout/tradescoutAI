@@ -1085,7 +1085,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Admin heatmap data endpoint
+  // Public heatmap data endpoint (promotional feature)
+  app.get("/api/heatmap", async (req, res) => {
+    try {
+      const timeframe = (req.query.timeframe as string) || '30d';
+      const days = timeframe === '7d' ? 7 : timeframe === '30d' ? 30 : 90;
+      
+      // Get heatmap data from locality interactions
+      const heatmapData = await storage.getLocalityHeatmapData(days);
+
+      res.json(heatmapData);
+    } catch (error) {
+      console.error("Error fetching heatmap data:", error);
+      res.status(500).json({ message: "Failed to fetch heatmap data" });
+    }
+  });
+
+  // Admin heatmap data endpoint (same as public but with admin context)
   app.get("/api/admin/heatmap", isAuthenticated, async (req, res) => {
     try {
       const userId = (req.user as any)?.id;

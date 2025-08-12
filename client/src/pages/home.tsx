@@ -17,6 +17,7 @@ import {
   TrendingUp
 } from "lucide-react";
 import { AdDisplay, useUserLocation } from "@/components/AdDisplay";
+import { PublicHeatmap } from "@/components/PublicHeatmap";
 
 export default function Home() {
   const { user } = useAuth();
@@ -225,6 +226,11 @@ export default function Home() {
           className="max-w-2xl mx-auto"
           userLocation={userLocation}
         />
+      </div>
+
+      {/* Public Heatmap - Promotional Feature */}
+      <div className="mt-12">
+        <PublicHeatmap compact={true} showTitle={true} />
       </div>
     </div>
   );
