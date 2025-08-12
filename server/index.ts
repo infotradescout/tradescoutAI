@@ -41,8 +41,18 @@ app.use((req, res, next) => {
 (async () => {
   const server = await registerRoutes(app);
 
-  // Start the notification service for saved ad reminders
-  notificationService.startReminderService();
+  // Start birthday notification processing - runs daily at 9 AM
+  setInterval(async () => {
+    const now = new Date();
+    if (now.getHours() === 9 && now.getMinutes() === 0) {
+      try {
+        await notificationService.processBirthdayNotifications();
+        console.log('Daily birthday notifications processed');
+      } catch (error) {
+        console.error('Error processing birthday notifications:', error);
+      }
+    }
+  }, 60000); // Check every minute
 
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
     const status = err.status || err.statusCode || 500;

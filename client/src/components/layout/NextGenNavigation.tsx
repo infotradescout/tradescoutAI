@@ -8,6 +8,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { UserMenu } from "@/components/navigation/RoleBasedNavigation";
 import { ConstructionEmblem } from "@/components/ConstructionEmblem";
 import { ContextualHelp } from "@/components/help/HelpSystem";
+import { NotificationCenter } from "@/components/ui/notification-center";
 
 interface NextGenNavigationProps {
   className?: string;
@@ -328,6 +329,9 @@ export function NextGenNavigation({ className = "" }: NextGenNavigationProps) {
 
           {/* Help System */}
           <ContextualHelp />
+
+          {/* Notification Center */}
+          {isAuthenticated && <NotificationCenter />}
 
           {/* User account button */}
           {isAuthenticated && (

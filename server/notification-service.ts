@@ -1,191 +1,590 @@
-import { storage } from "./storage";
-import type { SavedAd, User, Advertisement } from "@shared/schema";
+import { db } from "./db";
+import {
+  notifications,
+  notificationPreferences,
+  userPersonalEvents,
+  notificationTemplates,
+  notificationDeliveryLog,
+  notificationJobs,
+  users,
+  type Notification,
+  type InsertNotification,
+  type NotificationPreferences,
+  type InsertNotificationPreferences,
+  type UserPersonalEvent,
+  type InsertUserPersonalEvent,
+  type NotificationTemplate,
+  type InsertNotificationTemplate,
+  type User,
+} from "@shared/schema";
+import { eq, and, or, sql, desc, asc } from "drizzle-orm";
+import { MailService } from '@sendgrid/mail';
 
+// Notification Service Class
 export class NotificationService {
-  private static instance: NotificationService;
-  private reminderInterval: NodeJS.Timeout | null = null;
+  private mailService?: MailService;
 
-  private constructor() {}
-
-  public static getInstance(): NotificationService {
-    if (!NotificationService.instance) {
-      NotificationService.instance = new NotificationService();
+  constructor() {
+    // Initialize SendGrid if API key is available
+    if (process.env.SENDGRID_API_KEY) {
+      this.mailService = new MailService();
+      this.mailService.setApiKey(process.env.SENDGRID_API_KEY);
     }
-    return NotificationService.instance;
   }
 
-  // Start the reminder service
-  public startReminderService(): void {
-    if (this.reminderInterval) {
-      return; // Already running
-    }
+  // =====================================
+  // NOTIFICATION OPERATIONS
+  // =====================================
 
-    console.log("Starting saved ad reminder service...");
+  async createNotification(notification: InsertNotification): Promise<Notification> {
+    const [created] = await db.insert(notifications).values(notification).returning();
     
-    // Run every hour
-    this.reminderInterval = setInterval(async () => {
-      await this.processReminders();
-    }, 60 * 60 * 1000); // 1 hour
-
-    // Run immediately on startup
-    this.processReminders();
+    // Send notification if not scheduled
+    if (!notification.scheduledFor) {
+      await this.sendNotification(created.id);
+    }
+    
+    return created;
   }
 
-  // Stop the reminder service
-  public stopReminderService(): void {
-    if (this.reminderInterval) {
-      clearInterval(this.reminderInterval);
-      this.reminderInterval = null;
-      console.log("Stopped saved ad reminder service");
+  async getUserNotifications(
+    userId: string, 
+    options: {
+      unreadOnly?: boolean;
+      limit?: number;
+      offset?: number;
+      type?: string;
+    } = {}
+  ): Promise<Notification[]> {
+    let query = db.select().from(notifications).where(eq(notifications.userId, userId));
+
+    if (options.unreadOnly) {
+      query = query.where(and(
+        eq(notifications.userId, userId),
+        eq(notifications.isRead, false)
+      ));
+    }
+
+    if (options.type) {
+      query = query.where(and(
+        eq(notifications.userId, userId),
+        eq(notifications.type, options.type as any)
+      ));
+    }
+
+    query = query.orderBy(desc(notifications.createdAt));
+
+    if (options.limit) {
+      query = query.limit(options.limit);
+    }
+
+    if (options.offset) {
+      query = query.offset(options.offset);
+    }
+
+    return await query;
+  }
+
+  async markNotificationAsRead(notificationId: string, userId: string): Promise<void> {
+    await db
+      .update(notifications)
+      .set({ isRead: true, readAt: new Date() })
+      .where(and(
+        eq(notifications.id, notificationId),
+        eq(notifications.userId, userId)
+      ));
+  }
+
+  async markAllNotificationsAsRead(userId: string): Promise<void> {
+    await db
+      .update(notifications)
+      .set({ isRead: true, readAt: new Date() })
+      .where(and(
+        eq(notifications.userId, userId),
+        eq(notifications.isRead, false)
+      ));
+  }
+
+  async getUnreadNotificationCount(userId: string): Promise<number> {
+    const result = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(notifications)
+      .where(and(
+        eq(notifications.userId, userId),
+        eq(notifications.isRead, false),
+        eq(notifications.isArchived, false)
+      ));
+    
+    return result[0]?.count || 0;
+  }
+
+  async archiveNotification(notificationId: string, userId: string): Promise<void> {
+    await db
+      .update(notifications)
+      .set({ isArchived: true, archivedAt: new Date() })
+      .where(and(
+        eq(notifications.id, notificationId),
+        eq(notifications.userId, userId)
+      ));
+  }
+
+  // =====================================
+  // NOTIFICATION PREFERENCES
+  // =====================================
+
+  async getUserPreferences(userId: string): Promise<NotificationPreferences | null> {
+    const [preferences] = await db
+      .select()
+      .from(notificationPreferences)
+      .where(eq(notificationPreferences.userId, userId));
+    
+    return preferences || null;
+  }
+
+  async updateUserPreferences(
+    userId: string, 
+    preferences: Partial<InsertNotificationPreferences>
+  ): Promise<NotificationPreferences> {
+    // Check if preferences exist
+    const existing = await this.getUserPreferences(userId);
+    
+    if (existing) {
+      const [updated] = await db
+        .update(notificationPreferences)
+        .set({ ...preferences, updatedAt: new Date() })
+        .where(eq(notificationPreferences.userId, userId))
+        .returning();
+      return updated;
+    } else {
+      // Create new preferences
+      const [created] = await db
+        .insert(notificationPreferences)
+        .values({ userId, ...preferences })
+        .returning();
+      return created;
     }
   }
 
-  // Process reminders for saved ads
-  private async processReminders(): Promise<void> {
-    try {
-      console.log("Processing saved ad reminders...");
-      
-      const savedAdsForReminders = await storage.getSavedAdsForReminders();
-      
-      if (savedAdsForReminders.length === 0) {
-        console.log("No saved ads requiring reminders");
-        return;
-      }
-
-      console.log(`Found ${savedAdsForReminders.length} saved ads requiring reminders`);
-
-      for (const savedAdData of savedAdsForReminders) {
-        await this.sendReminder(savedAdData);
-      }
-
-      console.log("Finished processing saved ad reminders");
-    } catch (error) {
-      console.error("Error processing reminders:", error);
-    }
+  async createDefaultPreferences(userId: string): Promise<NotificationPreferences> {
+    const [created] = await db
+      .insert(notificationPreferences)
+      .values({
+        userId,
+        enableNotifications: true,
+        enableEmailNotifications: true,
+        enableSmsNotifications: false,
+        enablePushNotifications: true,
+        typePreferences: {
+          birthday: { enabled: true, delivery_methods: ['in_app', 'email'] },
+          anniversary: { enabled: true, delivery_methods: ['in_app'] },
+          new_message: { enabled: true, delivery_methods: ['in_app', 'email'] },
+          new_lead: { enabled: true, delivery_methods: ['in_app', 'email'] },
+          review_received: { enabled: true, delivery_methods: ['in_app'] },
+          system_update: { enabled: true, delivery_methods: ['in_app'] },
+          promotional: { enabled: false, delivery_methods: ['in_app'] },
+        },
+      })
+      .returning();
+    
+    return created;
   }
 
-  // Send a reminder for a specific saved ad
-  private async sendReminder(savedAdData: SavedAd & { user: User; ad: Advertisement }): Promise<void> {
-    try {
-      const { user, ad } = savedAdData;
-      const reminderCount = (savedAdData.reminderCount || 0) + 1;
+  // =====================================
+  // PERSONAL EVENTS (BIRTHDAYS, ANNIVERSARIES)
+  // =====================================
 
-      // Create different messages based on reminder count
-      const { title, content } = this.generateReminderMessage(ad, reminderCount);
+  async addPersonalEvent(event: InsertUserPersonalEvent): Promise<UserPersonalEvent> {
+    const [created] = await db.insert(userPersonalEvents).values(event).returning();
+    return created;
+  }
 
-      // Create in-app notification
-      await storage.createNotification({
+  async getUserPersonalEvents(userId: string): Promise<UserPersonalEvent[]> {
+    return await db
+      .select()
+      .from(userPersonalEvents)
+      .where(eq(userPersonalEvents.userId, userId))
+      .orderBy(asc(userPersonalEvents.eventDate));
+  }
+
+  async updatePersonalEvent(
+    eventId: string, 
+    userId: string, 
+    updates: Partial<InsertUserPersonalEvent>
+  ): Promise<UserPersonalEvent | null> {
+    const [updated] = await db
+      .update(userPersonalEvents)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(and(
+        eq(userPersonalEvents.id, eventId),
+        eq(userPersonalEvents.userId, userId)
+      ))
+      .returning();
+    
+    return updated || null;
+  }
+
+  async deletePersonalEvent(eventId: string, userId: string): Promise<void> {
+    await db
+      .delete(userPersonalEvents)
+      .where(and(
+        eq(userPersonalEvents.id, eventId),
+        eq(userPersonalEvents.userId, userId)
+      ));
+  }
+
+  // =====================================
+  // BIRTHDAY AND ANNIVERSARY PROCESSING
+  // =====================================
+
+  async processBirthdayNotifications(): Promise<void> {
+    const today = new Date();
+    const todayString = String(today.getMonth() + 1).padStart(2, '0') + '-' + 
+                       String(today.getDate()).padStart(2, '0'); // MM-DD format
+
+    // Find all birthday events for today
+    const birthdayEvents = await db
+      .select()
+      .from(userPersonalEvents)
+      .innerJoin(users, eq(userPersonalEvents.userId, users.id))
+      .where(and(
+        eq(userPersonalEvents.eventType, 'birthday'),
+        eq(userPersonalEvents.eventDate, todayString),
+        eq(userPersonalEvents.enableNotifications, true)
+      ));
+
+    for (const { user_personal_events: event, users: user } of birthdayEvents) {
+      // Calculate age if birth year is provided
+      let age: number | null = null;
+      if (event.eventYear) {
+        age = today.getFullYear() - event.eventYear;
+      }
+
+      // Create birthday notification
+      await this.createNotification({
         userId: user.id,
-        type: 'saved_ad_reminder',
-        title,
-        content,
-        relatedId: savedAdData.id,
+        type: 'birthday',
+        priority: 'normal',
+        title: age ? `Happy ${age}th Birthday!` : 'Happy Birthday!',
+        message: event.customMessage || 
+          `${user.firstName ? `Happy birthday, ${user.firstName}` : 'Happy birthday'}! 🎉 Wishing you a wonderful day filled with joy and celebration.`,
+        iconName: 'gift',
+        iconColor: 'pink',
+        deliveryMethods: ['in_app', 'email'],
+        metadata: {
+          age,
+          eventType: 'birthday',
+          celebrationYear: today.getFullYear(),
+        },
       });
+    }
 
-      // Update the saved ad reminder status
-      await storage.updateSavedAdReminderStatus(savedAdData.id, reminderCount);
+    // Process anniversary notifications similarly
+    await this.processAnniversaryNotifications(todayString);
+  }
 
-      console.log(`Sent reminder ${reminderCount} to user ${user.email} for ad "${ad.title}"`);
+  async processAnniversaryNotifications(todayString?: string): Promise<void> {
+    if (!todayString) {
+      const today = new Date();
+      todayString = String(today.getMonth() + 1).padStart(2, '0') + '-' + 
+                   String(today.getDate()).padStart(2, '0');
+    }
 
-      // If we have SendGrid configured, also send email
-      if (process.env.SENDGRID_API_KEY && user.email) {
-        await this.sendEmailReminder(user, ad, title, content);
+    const anniversaryEvents = await db
+      .select()
+      .from(userPersonalEvents)
+      .innerJoin(users, eq(userPersonalEvents.userId, users.id))
+      .where(and(
+        or(
+          eq(userPersonalEvents.eventType, 'work_anniversary'),
+          eq(userPersonalEvents.eventType, 'business_anniversary')
+        ),
+        eq(userPersonalEvents.eventDate, todayString),
+        eq(userPersonalEvents.enableNotifications, true)
+      ));
+
+    for (const { user_personal_events: event, users: user } of anniversaryEvents) {
+      let years: number | null = null;
+      if (event.eventYear) {
+        years = new Date().getFullYear() - event.eventYear;
       }
 
-    } catch (error) {
-      console.error(`Error sending reminder for saved ad ${savedAdData.id}:`, error);
+      const anniversaryType = event.eventType === 'work_anniversary' ? 'work' : 'business';
+      
+      await this.createNotification({
+        userId: user.id,
+        type: 'anniversary',
+        priority: 'normal',
+        title: years ? `${years} Year ${anniversaryType.charAt(0).toUpperCase() + anniversaryType.slice(1)} Anniversary!` : 
+                      `${anniversaryType.charAt(0).toUpperCase() + anniversaryType.slice(1)} Anniversary!`,
+        message: event.customMessage || 
+          `Congratulations on your ${years ? `${years} year ` : ''}${anniversaryType} anniversary! 🎊`,
+        iconName: 'award',
+        iconColor: 'gold',
+        deliveryMethods: ['in_app', 'email'],
+        metadata: {
+          years,
+          eventType: event.eventType,
+          anniversaryYear: new Date().getFullYear(),
+        },
+      });
     }
   }
 
-  // Generate reminder message content
-  private generateReminderMessage(ad: Advertisement, reminderCount: number): { title: string; content: string } {
-    const messages = [
-      {
-        title: "Don't Miss Out on This Deal!",
-        content: `You saved "${ad.title}" a few days ago. This offer might not last much longer - check it out now!`
-      },
-      {
-        title: "Limited Time Offer Reminder",
-        content: `The deal you saved "${ad.title}" is still available. Take advantage of this opportunity before it expires!`
-      },
-      {
-        title: "Last Chance Reminder",
-        content: `Final reminder about "${ad.title}". This could be your last chance to benefit from this offer!`
-      }
-    ];
+  // =====================================
+  // NOTIFICATION DELIVERY
+  // =====================================
 
-    const messageIndex = Math.min(reminderCount - 1, messages.length - 1);
-    return messages[messageIndex];
+  async sendNotification(notificationId: string): Promise<void> {
+    // Get notification with user preferences
+    const [notificationData] = await db
+      .select()
+      .from(notifications)
+      .innerJoin(users, eq(notifications.userId, users.id))
+      .leftJoin(notificationPreferences, eq(notifications.userId, notificationPreferences.userId))
+      .where(eq(notifications.id, notificationId));
+
+    if (!notificationData) {
+      throw new Error('Notification not found');
+    }
+
+    const { notifications: notification, users: user, notification_preferences: preferences } = notificationData;
+
+    // Check if user has notifications enabled
+    if (preferences && !preferences.enableNotifications) {
+      return;
+    }
+
+    // Send via enabled delivery methods
+    const deliveryMethods = notification.deliveryMethods || ['in_app'];
+
+    for (const method of deliveryMethods) {
+      try {
+        switch (method) {
+          case 'email':
+            if (preferences?.enableEmailNotifications !== false && user.email) {
+              await this.sendEmailNotification(notification, user);
+            }
+            break;
+          case 'sms':
+            if (preferences?.enableSmsNotifications && user.phoneNumber) {
+              await this.sendSMSNotification(notification, user);
+            }
+            break;
+          case 'in_app':
+            // In-app notifications are already stored in the database
+            await this.logDelivery(notificationId, user.id, 'in_app', 'delivered');
+            break;
+        }
+      } catch (error) {
+        console.error(`Failed to send ${method} notification:`, error);
+        await this.logDelivery(notificationId, user.id, method as any, 'failed', String(error));
+      }
+    }
+
+    // Update notification as sent
+    await db
+      .update(notifications)
+      .set({ sentAt: new Date() })
+      .where(eq(notifications.id, notificationId));
   }
 
-  // Send email reminder (if SendGrid is configured)
-  private async sendEmailReminder(user: User, ad: Advertisement, title: string, content: string): Promise<void> {
-    try {
-      // Only attempt if SendGrid is configured
-      if (!process.env.SENDGRID_API_KEY) {
-        return;
-      }
+  private async sendEmailNotification(notification: Notification, user: User): Promise<void> {
+    if (!this.mailService || !user.email) {
+      throw new Error('Email service not configured or user email missing');
+    }
 
-      const sgMail = await import('@sendgrid/mail');
-      const mailService = sgMail.default;
-      mailService.setApiKey(process.env.SENDGRID_API_KEY);
+    const emailSubject = notification.title;
+    const emailBody = this.generateEmailHTML(notification, user);
 
-      const emailContent = `
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-          <div style="background: linear-gradient(135deg, #1e3a8a 0%, #1e40af 100%); padding: 30px; text-align: center;">
-            <h1 style="color: #f97316; margin: 0; font-size: 28px;">TradeScout</h1>
-            <p style="color: white; margin: 10px 0 0 0; font-size: 16px;">Contractor Marketplace</p>
+    await this.mailService.send({
+      to: user.email,
+      from: 'notifications@tradescout.app',
+      subject: emailSubject,
+      html: emailBody,
+      text: notification.message,
+    });
+
+    await this.logDelivery(notification.id, user.id, 'email', 'sent', user.email);
+  }
+
+  private async sendSMSNotification(notification: Notification, user: User): Promise<void> {
+    // SMS implementation would go here (Twilio, etc.)
+    // For now, just log that SMS would be sent
+    console.log(`SMS notification would be sent to ${user.phoneNumber}: ${notification.message}`);
+    await this.logDelivery(notification.id, user.id, 'sms', 'sent', user.phoneNumber);
+  }
+
+  private generateEmailHTML(notification: Notification, user: User): string {
+    const userName = user.firstName || 'there';
+    
+    return `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="utf-8">
+        <title>${notification.title}</title>
+        <style>
+          body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+          .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+          .header { background-color: #f97316; color: white; padding: 20px; text-align: center; }
+          .content { padding: 20px; background-color: #f9f9f9; }
+          .footer { padding: 20px; text-align: center; color: #666; font-size: 14px; }
+          .button { 
+            display: inline-block; 
+            padding: 12px 24px; 
+            background-color: #f97316; 
+            color: white; 
+            text-decoration: none; 
+            border-radius: 6px; 
+            margin: 10px 0; 
+          }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="header">
+            <h1>TradeScout</h1>
           </div>
-          
-          <div style="padding: 30px; background: #f8fafc;">
-            <h2 style="color: #1e40af; margin-bottom: 20px;">${title}</h2>
-            <p style="color: #334155; font-size: 16px; line-height: 1.6; margin-bottom: 20px;">
-              Hi ${user.firstName || 'there'},
-            </p>
-            <p style="color: #334155; font-size: 16px; line-height: 1.6; margin-bottom: 25px;">
-              ${content}
-            </p>
-            
-            <div style="background: white; border: 1px solid #e2e8f0; border-radius: 8px; padding: 20px; margin-bottom: 25px;">
-              <h3 style="color: #1e40af; margin: 0 0 10px 0; font-size: 18px;">${ad.title}</h3>
-              <p style="color: #64748b; margin: 0 0 15px 0; line-height: 1.5;">${ad.content}</p>
-              ${ad.isAffiliate ? '<span style="background: #dbeafe; color: #1d4ed8; padding: 4px 8px; border-radius: 4px; font-size: 12px;">Sponsored</span>' : ''}
-            </div>
-            
-            ${ad.linkUrl ? `
-              <div style="text-align: center; margin-bottom: 25px;">
-                <a href="${ad.linkUrl}" style="background: #f97316; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold; display: inline-block;">
-                  View Offer
-                </a>
-              </div>
-            ` : ''}
-            
-            <p style="color: #64748b; font-size: 14px; margin-bottom: 0;">
-              You're receiving this because you saved this ad on TradeScout. 
-              <a href="${process.env.FRONTEND_URL || 'https://tradescout.replit.app'}/saved-ads" style="color: #f97316;">Manage your saved ads</a>
-            </p>
+          <div class="content">
+            <h2>${notification.title}</h2>
+            <p>Hi ${userName},</p>
+            <p>${notification.message}</p>
+            ${notification.actionUrl ? 
+              `<p><a href="${notification.actionUrl}" class="button">${notification.actionText || 'View Details'}</a></p>` : 
+              ''
+            }
+          </div>
+          <div class="footer">
+            <p>This notification was sent from TradeScout. If you no longer wish to receive these emails, you can update your notification preferences in your account settings.</p>
           </div>
         </div>
-      `;
+      </body>
+      </html>
+    `;
+  }
 
-      await mailService.send({
-        to: user.email!,
-        from: process.env.FROM_EMAIL || 'noreply@tradescout.app',
-        subject: `TradeScout: ${title}`,
-        html: emailContent,
-      });
+  private async logDelivery(
+    notificationId: string, 
+    userId: string, 
+    method: 'in_app' | 'email' | 'sms' | 'push' | 'webhook',
+    status: string,
+    contactInfo?: string
+  ): Promise<void> {
+    await db.insert(notificationDeliveryLog).values({
+      notificationId,
+      userId,
+      deliveryMethod: method,
+      status,
+      contactInfo,
+      sentAt: status === 'sent' || status === 'delivered' ? new Date() : undefined,
+      deliveredAt: status === 'delivered' ? new Date() : undefined,
+      failedAt: status === 'failed' ? new Date() : undefined,
+    });
+  }
 
-      console.log(`Email reminder sent to ${user.email}`);
-    } catch (error) {
-      console.error(`Error sending email reminder to ${user.email}:`, error);
-      // Don't throw - we don't want email failures to stop in-app notifications
+  // =====================================
+  // BULK OPERATIONS
+  // =====================================
+
+  async sendBulkNotification(
+    userIds: string[],
+    notification: Omit<InsertNotification, 'userId'>
+  ): Promise<void> {
+    const notifications: InsertNotification[] = userIds.map(userId => ({
+      ...notification,
+      userId,
+    }));
+
+    await db.insert(notifications).values(notifications);
+  }
+
+  async processScheduledNotifications(): Promise<void> {
+    const now = new Date();
+    
+    // Get notifications scheduled for now or earlier that haven't been sent
+    const scheduledNotifications = await db
+      .select()
+      .from(notifications)
+      .where(and(
+        sql`${notifications.scheduledFor} <= ${now}`,
+        eq(notifications.sentAt, null)
+      ));
+
+    for (const notification of scheduledNotifications) {
+      try {
+        await this.sendNotification(notification.id);
+      } catch (error) {
+        console.error(`Failed to send scheduled notification ${notification.id}:`, error);
+      }
     }
   }
 
-  // Manual trigger for testing
-  public async triggerReminders(): Promise<void> {
-    await this.processReminders();
+  // =====================================
+  // ROLE-SPECIFIC NOTIFICATIONS
+  // =====================================
+
+  async sendWelcomeNotification(userId: string, userRole: string): Promise<void> {
+    const roleMessages: Record<string, { title: string; message: string; actionUrl?: string }> = {
+      homeowner: {
+        title: 'Welcome to TradeScout! 🏠',
+        message: 'Ready to find reliable contractors for your home projects? Start by exploring contractors in your area and get quotes for your next project.',
+        actionUrl: '/contractors/board'
+      },
+      contractor_user: {
+        title: 'Welcome to TradeScout! 🔨',
+        message: 'Start growing your contracting business today! Complete your profile to attract quality leads and join our contractor community.',
+        actionUrl: '/profile'
+      },
+      helper: {
+        title: 'Welcome to TradeScout Helpers! 🤝',
+        message: 'Ready to find work opportunities? Browse available tasks and start earning by helping contractors and homeowners with their projects.',
+        actionUrl: '/helpers'
+      },
+      accelerator_member: {
+        title: 'Welcome to TradeScout Accelerator! ⭐',
+        message: 'Unlock premium features, priority leads, and advanced business tools. Your accelerated growth starts now!',
+        actionUrl: '/dashboard'
+      }
+    };
+
+    const roleConfig = roleMessages[userRole] || roleMessages.homeowner;
+
+    await this.createNotification({
+      userId,
+      type: 'welcome',
+      priority: 'normal',
+      title: roleConfig.title,
+      message: roleConfig.message,
+      actionUrl: roleConfig.actionUrl,
+      actionText: 'Get Started',
+      iconName: 'sparkles',
+      iconColor: 'blue',
+      deliveryMethods: ['in_app', 'email'],
+    });
+  }
+
+  async sendMilestoneNotification(
+    userId: string, 
+    milestone: string, 
+    description: string,
+    metadata?: Record<string, any>
+  ): Promise<void> {
+    await this.createNotification({
+      userId,
+      type: 'milestone',
+      priority: 'normal',
+      title: `Milestone Achieved: ${milestone}! 🎉`,
+      message: description,
+      iconName: 'award',
+      iconColor: 'gold',
+      deliveryMethods: ['in_app'],
+      metadata: {
+        milestone,
+        ...metadata,
+      },
+    });
   }
 }
 
-export const notificationService = NotificationService.getInstance();
+// Export singleton instance
+export const notificationService = new NotificationService();
