@@ -366,7 +366,7 @@ export default function AdminUsers() {
               </div>
               <div>
                 <Label className="text-gray-300">New Role</Label>
-                <Select value={newRole} onValueChange={setNewRole}>
+                <Select value={newRole || undefined} onValueChange={setNewRole}>
                   <SelectTrigger className="bg-navy-700 border-navy-600 text-white">
                     <SelectValue placeholder="Select new role" />
                   </SelectTrigger>

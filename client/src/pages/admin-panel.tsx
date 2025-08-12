@@ -596,7 +596,7 @@ function AdminItemForm({ type, item, onSubmit, onCancel }: {
           </div>
           <div>
             <Label htmlFor="prizeType">Prize Type</Label>
-            <Select value={formData.prizeType || ""} onValueChange={(value) => updateField("prizeType", value)}>
+            <Select value={formData.prizeType || undefined} onValueChange={(value) => updateField("prizeType", value)}>
               <SelectTrigger>
                 <SelectValue placeholder="Select type" />
               </SelectTrigger>
@@ -744,7 +744,7 @@ function AdminItemForm({ type, item, onSubmit, onCancel }: {
         <div className="grid grid-cols-2 gap-4">
           <div>
             <Label htmlFor="placement">Placement</Label>
-            <Select value={formData.placement || ""} onValueChange={(value) => updateField("placement", value)}>
+            <Select value={formData.placement || undefined} onValueChange={(value) => updateField("placement", value)}>
               <SelectTrigger>
                 <SelectValue placeholder="Select placement" />
               </SelectTrigger>
