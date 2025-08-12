@@ -1,4 +1,4 @@
-import { useState, useCallback, memo } from "react";
+import React, { useState, useCallback, memo } from "react";
 import { DragDropContext, Droppable, Draggable, DropResult } from "@hello-pangea/dnd";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
@@ -9,14 +9,364 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
-import { GripVertical, Eye, EyeOff, RotateCcw } from "lucide-react";
+import { 
+  GripVertical, Eye, EyeOff, Home, Search, Calculator, Users, Package, Trophy, 
+  MessageCircle, Heart, MessageSquare, Bell, User, UserPlus, Share, Bookmark,
+  Layout, Wrench, Star, Zap, Building, Car, Briefcase, Shield, Settings, Crown,
+  BarChart, Bug, HelpCircle, CreditCard, RotateCcw
+} from "lucide-react";
 
 interface NavigationItem {
   id: string;
   label: string;
-  icon?: string;
-  priority: number;
+  icon: string;
+  href: string;
   visible: boolean;
+}
+
+// Map icon strings to actual icon components
+const getIconComponent = (iconName: string) => {
+  const iconMap: { [key: string]: any } = {
+    'Home': Home,
+    'Search': Search,
+    'Calculator': Calculator,
+    'Users': Users,
+    'Package': Package,
+    'Trophy': Trophy,
+    'MessageCircle': MessageCircle,
+    'Heart': Heart,
+    'MessageSquare': MessageSquare,
+    'Bell': Bell,
+    'User': User,
+    'UserPlus': UserPlus,
+    'Share': Share,
+    'Bookmark': Bookmark,
+    'Layout': Layout,
+    'Wrench': Wrench,
+    'Star': Star,
+    'Zap': Zap,
+    'Building': Building,
+    'Car': Car,
+    'Briefcase': Briefcase,
+    'Shield': Shield,
+    'Settings': Settings,
+    'Crown': Crown,
+    'BarChart': BarChart,
+    'Bug': Bug,
+    'HelpCircle': HelpCircle,
+    'CreditCard': CreditCard,
+  };
+
+  return iconMap[iconName] || Home;
+};
+
+// Default navigation items based on user role
+function getDefaultNavigationItems(userRole: string): NavigationItem[] {
+  const baseItems: NavigationItem[] = [
+    // Core navigation items - available to all users
+    {
+      id: 'home',
+      label: 'Home',
+      icon: 'Home',
+      href: '/',
+      visible: true,
+    },
+    {
+      id: 'contractors',
+      label: 'Find Contractors',
+      icon: 'Search',
+      href: '/contractors/board',
+      visible: true,
+    },
+    {
+      id: 'quote-calculator',
+      label: 'Quote Calculator',
+      icon: 'Calculator',
+      href: '/quote',
+      visible: true,
+    },
+    {
+      id: 'workers',
+      label: 'Helpers',
+      icon: 'Users',
+      href: '/workers',
+      visible: true,
+    },
+    {
+      id: 'marketplace',
+      label: 'Exchange',
+      icon: 'Package',
+      href: '/marketplace',
+      visible: true,
+    },
+    {
+      id: 'leaderboard',
+      label: 'Leaderboard',
+      icon: 'Trophy',
+      href: '/leaderboard',
+      visible: true,
+    },
+    {
+      id: 'community',
+      label: 'Community',
+      icon: 'MessageCircle',
+      href: '/community',
+      visible: true,
+    },
+    {
+      id: 'foundation',
+      label: 'Foundation',
+      icon: 'Heart',
+      href: '/foundation',
+      visible: true,
+    },
+  ];
+
+  // Authenticated user items
+  if (userRole) {
+    baseItems.push(
+      {
+        id: 'conversations',
+        label: 'Messages',
+        icon: 'MessageSquare',
+        href: '/conversations',
+        visible: true,
+      },
+      {
+        id: 'notifications',
+        label: 'Notifications',
+        icon: 'Bell',
+        href: '/notifications',
+        visible: true,
+      },
+      {
+        id: 'profile',
+        label: 'Profile',
+        icon: 'User',
+        href: '/profile',
+        visible: true,
+      },
+      {
+        id: 'invite',
+        label: 'Invite Friends',
+        icon: 'UserPlus',
+        href: '/invite',
+        visible: true,
+      },
+      {
+        id: 'affiliate',
+        label: 'Affiliate Program',
+        icon: 'Share',
+        href: '/affiliate',
+        visible: true,
+      },
+      {
+        id: 'saved-ads',
+        label: 'Saved Ads',
+        icon: 'Bookmark',
+        href: '/saved-ads',
+        visible: true,
+      }
+    );
+  }
+
+  // Role-specific dashboard items
+  if (userRole === 'homeowner') {
+    baseItems.push({
+      id: 'homeowner-dashboard',
+      label: 'Dashboard',
+      icon: 'Layout',
+      href: '/homeowner-dashboard',
+      visible: true,
+    });
+  }
+
+  if (userRole === 'contractor_user' || userRole === 'accelerator_member') {
+    baseItems.push(
+      {
+        id: 'contractor-network',
+        label: 'For Contractors',
+        icon: 'Wrench',
+        href: '/contractors',
+        visible: true,
+      },
+      {
+        id: 'contractor-dashboard',
+        label: 'Contractor Dashboard',
+        icon: 'Layout',
+        href: '/contractor-dashboard',
+        visible: true,
+      },
+      {
+        id: 'contractor-promos',
+        label: 'My Promos',
+        icon: 'Star',
+        href: '/contractor-promos',
+        visible: true,
+      }
+    );
+
+    if (userRole === 'accelerator_member') {
+      baseItems.push({
+        id: 'accelerator',
+        label: 'Accelerator',
+        icon: 'Zap',
+        href: '/accelerator',
+        visible: true,
+      });
+    }
+  }
+
+  if (userRole === 'realtor') {
+    baseItems.push(
+      {
+        id: 'realtor-application',
+        label: 'Realtor Tools',
+        icon: 'Building',
+        href: '/realtor-application',
+        visible: true,
+      },
+      {
+        id: 'realtor-dashboard',
+        label: 'Realtor Dashboard',
+        icon: 'Layout',
+        href: '/realtor-dashboard',
+        visible: true,
+      }
+    );
+  }
+
+  if (userRole === 'car_salesman') {
+    baseItems.push(
+      {
+        id: 'car-salesman-application',
+        label: 'Auto Sales',
+        icon: 'Car',
+        href: '/car-salesman-application',
+        visible: true,
+      },
+      {
+        id: 'car-salesman-dashboard',
+        label: 'Car Sales Dashboard',
+        icon: 'Layout',
+        href: '/car-salesman-dashboard',
+        visible: true,
+      }
+    );
+  }
+
+  // Professional services
+  if (['realtor', 'mortgage_broker', 'insurance_agent', 'property_manager'].includes(userRole)) {
+    baseItems.push({
+      id: 'professional-dashboard',
+      label: 'Professional Dashboard',
+      icon: 'Briefcase',
+      href: `/${userRole.replace('_', '-')}-dashboard`,
+      visible: true,
+    });
+  }
+
+  // Moderation access
+  if (['moderator', 'ops_admin', 'owner', 'territory_manager', 'contractor_success'].includes(userRole)) {
+    baseItems.push({
+      id: 'moderation',
+      label: 'Moderation',
+      icon: 'Shield',
+      href: '/moderation',
+      visible: true,
+    });
+  }
+
+  // Admin access
+  if (['ops_admin', 'owner'].includes(userRole)) {
+    baseItems.push(
+      {
+        id: 'admin-dashboard',
+        label: 'Admin Dashboard',
+        icon: 'Settings',
+        href: '/admin',
+        visible: true,
+      },
+      {
+        id: 'admin-panel',
+        label: 'Admin Panel',
+        icon: 'Crown',
+        href: '/admin/panel',
+        visible: true,
+      },
+      {
+        id: 'admin-users',
+        label: 'User Management',
+        icon: 'Users',
+        href: '/admin/users',
+        visible: true,
+      },
+      {
+        id: 'admin-workspace',
+        label: 'Analytics',
+        icon: 'BarChart',
+        href: '/admin/workspace',
+        visible: true,
+      },
+      {
+        id: 'admin-error-reports',
+        label: 'Error Reports',
+        icon: 'Bug',
+        href: '/admin/error-reports',
+        visible: true,
+      },
+      {
+        id: 'admin-listings',
+        label: 'Manage Listings',
+        icon: 'Package',
+        href: '/admin/listings',
+        visible: true,
+      },
+      {
+        id: 'admin-professional-verification',
+        label: 'Professional Verification',
+        icon: 'Shield',
+        href: '/admin/professional-verification',
+        visible: true,
+      },
+      {
+        id: 'admin-testing',
+        label: 'Testing Controls',
+        icon: 'Settings',
+        href: '/admin/testing',
+        visible: true,
+      }
+    );
+  }
+
+  // Advanced features
+  if (userRole) {
+    baseItems.push(
+      {
+        id: 'advanced-search',
+        label: 'Advanced Search',
+        icon: 'Search',
+        href: '/advanced-search',
+        visible: true,
+      },
+      {
+        id: 'help',
+        label: 'Help & Support',
+        icon: 'HelpCircle',
+        href: '/help',
+        visible: true,
+      },
+      {
+        id: 'payment-history',
+        label: 'Payment History',
+        icon: 'CreditCard',
+        href: '/payment-history',
+        visible: true,
+      }
+    );
+  }
+
+  return baseItems;
 }
 
 interface NavigationPreferencesProps {
@@ -28,56 +378,16 @@ interface NavigationPreferencesProps {
   userRole: string;
 }
 
-// Default navigation items based on user role
-const getDefaultNavigationItems = (role: string): NavigationItem[] => {
-  const commonItems = [
-    { id: "home", label: "Home", priority: 10, visible: true },
-    { id: "messages", label: "Messages", priority: 9, visible: true },
-    { id: "notifications", label: "Notifications", priority: 8, visible: true },
-    { id: "profile", label: "Profile", priority: 7, visible: true },
-  ];
-
-  const roleSpecificItems = {
-    contractor_user: [
-      { id: "leads", label: "Leads", priority: 9, visible: true },
-      { id: "jobs", label: "Jobs", priority: 8, visible: true },
-      { id: "estimates", label: "Estimates", priority: 7, visible: true },
-      { id: "helpers", label: "Helpers", priority: 6, visible: true },
-    ],
-    homeowner: [
-      { id: "find-contractors", label: "Find Contractors", priority: 9, visible: true },
-      { id: "my-projects", label: "My Projects", priority: 8, visible: true },
-      { id: "saved-ads", label: "Saved Ads", priority: 7, visible: true },
-      { id: "marketplace", label: "Marketplace", priority: 6, visible: true },
-    ],
-    moderator: [
-      { id: "moderate", label: "Moderate", priority: 9, visible: true },
-      { id: "reports", label: "Reports", priority: 8, visible: true },
-      { id: "users", label: "Users", priority: 7, visible: true },
-    ],
-    admin: [
-      { id: "admin", label: "Admin Panel", priority: 9, visible: true },
-      { id: "analytics", label: "Analytics", priority: 8, visible: true },
-      { id: "settings", label: "Site Settings", priority: 7, visible: true },
-    ],
-  };
-
-  return [
-    ...commonItems,
-    ...(roleSpecificItems[role as keyof typeof roleSpecificItems] || []),
-  ];
-};
-
 const DragDropNavigationPreferences = memo(({ preferences, userRole }: NavigationPreferencesProps) => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  
+
   // Initialize navigation items with user preferences
   const defaultItems = getDefaultNavigationItems(userRole);
   const [navigationItems, setNavigationItems] = useState<NavigationItem[]>(() => {
     const customOrder = preferences?.customOrder || [];
     const hiddenItems = preferences?.hiddenFromSwipe || [];
-    
+
     // Apply custom order and visibility
     const orderedItems = [...defaultItems];
     if (customOrder.length > 0) {
@@ -90,7 +400,7 @@ const DragDropNavigationPreferences = memo(({ preferences, userRole }: Navigatio
         return aIndex - bIndex;
       });
     }
-    
+
     return orderedItems.map(item => ({
       ...item,
       visible: !hiddenItems.includes(item.id),
@@ -133,7 +443,7 @@ const DragDropNavigationPreferences = memo(({ preferences, userRole }: Navigatio
     // Update backend with new order
     const customOrder = items.map(item => item.id);
     const hiddenFromSwipe = items.filter(item => !item.visible).map(item => item.id);
-    
+
     updateNavigationMutation.mutate({
       customOrder,
       enableSwipeNavigation: swipeEnabled,
@@ -151,7 +461,7 @@ const DragDropNavigationPreferences = memo(({ preferences, userRole }: Navigatio
     // Update backend
     const customOrder = updatedItems.map(item => item.id);
     const hiddenFromSwipe = updatedItems.filter(item => !item.visible).map(item => item.id);
-    
+
     updateNavigationMutation.mutate({
       customOrder,
       enableSwipeNavigation: swipeEnabled,
@@ -166,7 +476,7 @@ const DragDropNavigationPreferences = memo(({ preferences, userRole }: Navigatio
 
     const customOrder = navigationItems.map(item => item.id);
     const hiddenFromSwipe = navigationItems.filter(item => !item.visible).map(item => item.id);
-    
+
     updateNavigationMutation.mutate({
       customOrder,
       enableSwipeNavigation: newSwipeEnabled,
@@ -265,20 +575,20 @@ const DragDropNavigationPreferences = memo(({ preferences, userRole }: Navigatio
                             >
                               <GripVertical className="h-4 w-4" />
                             </div>
-                            <div className="flex items-center gap-2">
-                              <span className="font-medium text-white">{item.label}</span>
-                              {!item.visible && (
-                                <Badge variant="secondary" className="text-xs bg-navy-600 text-gray-300">
-                                  Hidden
-                                </Badge>
-                              )}
+                            <div className="flex items-center space-x-3">
+                              <div className="text-gray-400">
+                                {React.createElement(getIconComponent(item.icon), { className: "h-4 w-4" })}
+                              </div>
+                              <div className="text-gray-300">{item.label}</div>
+                              <div className="text-xs text-gray-500 font-mono">{item.href}</div>
                             </div>
                           </div>
                           <Button
                             variant="ghost"
                             size="sm"
                             onClick={() => toggleItemVisibility(item.id)}
-                            className="h-8 w-8 p-0 text-gray-400 hover:text-white hover:bg-navy-600"
+                            className="text-gray-400 hover:text-white p-1"
+                            data-tutorial="visibility-toggle"
                           >
                             {item.visible ? (
                               <Eye className="h-4 w-4" />
