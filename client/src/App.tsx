@@ -81,7 +81,8 @@ import { FloatingBugReport } from "@/components/FloatingBugReport";
 import { BetaNotificationPopup } from "@/components/BetaNotificationPopup";
 import { AddressVerificationBanner } from "@/components/AddressVerificationBanner";
 import { LegalFooter } from "@/components/footer/legal-footer";
-import { TutorialProvider } from "@/components/tutorial/TutorialProvider";
+// Temporarily disabled TutorialProvider to fix provider error
+// import { TutorialProvider } from "@/components/tutorial/TutorialProvider";
 
 import ModerationCenter from "@/pages/moderation-center";
 import Checkout from "@/pages/checkout";
@@ -328,12 +329,10 @@ const App = memo(function App() {
   return (
     <ErrorBoundary fallback={<div className="min-h-screen gradient-bg flex items-center justify-center text-white">Loading...</div>}>
       <QueryClientProvider client={queryClient}>
-        <ErrorBoundary fallback={<div>Error in providers</div>}>
-          <TutorialProvider>
-            <Toaster />
-            <Router />
-          </TutorialProvider>
-        </ErrorBoundary>
+        <TooltipProvider>
+          <Toaster />
+          <Router />
+        </TooltipProvider>
       </QueryClientProvider>
     </ErrorBoundary>
   );
