@@ -52,68 +52,38 @@ export function NextGenNavigation({ className = "" }: NextGenNavigationProps) {
   ];
 
   return (
-    <header className={`sticky top-0 z-50 w-full border-b border-white/[0.08] bg-gradient-to-r from-slate-950/95 via-slate-900/95 to-slate-950/95 backdrop-blur-3xl shadow-2xl ${className}`}>
-      {/* Ambient glow effect */}
-      <div className="absolute inset-0 bg-gradient-to-r from-orange-500/[0.03] via-transparent to-orange-500/[0.03] pointer-events-none"></div>
+    <header className={`sticky top-0 z-50 w-full border-b border-slate-700/50 bg-slate-900/90 backdrop-blur-xl shadow-lg ${className}`}>
       
-      <div className="relative w-full flex items-center justify-between px-8 py-3">
+      <div className="w-full flex items-center justify-between px-6 py-4">
         {/* Logo */}
         <Link href="/">
-          <div className="flex items-center space-x-3 group transition-all duration-500 hover:scale-105">
-            <div className="relative w-11 h-11">
-              <div className="absolute inset-0 bg-gradient-to-br from-orange-400/20 to-orange-600/20 rounded-2xl blur-sm group-hover:blur-none group-hover:from-orange-400/30 group-hover:to-orange-600/30 transition-all duration-500"></div>
-              <div className="relative w-full h-full bg-gradient-to-br from-slate-800 to-slate-900 rounded-2xl border border-white/10 flex items-center justify-center group-hover:border-orange-400/30 transition-all duration-500">
-                <ConstructionEmblem className="w-6 h-6 text-orange-500 group-hover:text-orange-400 transition-colors duration-500" />
-              </div>
+          <div className="flex items-center space-x-3 group transition-all duration-300">
+            <div className="w-9 h-9 bg-slate-800 rounded-lg border border-slate-600 flex items-center justify-center group-hover:border-orange-500/50 transition-colors duration-300">
+              <ConstructionEmblem className="w-5 h-5 text-orange-500" />
             </div>
-            <div className="flex flex-col">
-              <span className="text-2xl font-bold bg-gradient-to-r from-white via-slate-100 to-orange-100 bg-clip-text text-transparent tracking-tight group-hover:from-orange-100 group-hover:via-white group-hover:to-orange-200 transition-all duration-500">
-                TradeScout
-              </span>
-              <div className="h-0.5 w-0 bg-gradient-to-r from-orange-400 to-orange-600 group-hover:w-full transition-all duration-500 rounded-full"></div>
-            </div>
+            <span className="text-xl font-bold text-white group-hover:text-orange-400 transition-colors duration-300">
+              TradeScout
+            </span>
           </div>
         </Link>
 
-        {/* Desktop Navigation - Futuristic Pill Design */}
+        {/* Desktop Navigation - Clean Design */}
         <nav className="hidden lg:flex items-center">
-          <div className="relative bg-slate-800/40 backdrop-blur-2xl rounded-3xl border border-white/[0.08] p-1.5 shadow-2xl">
-            {/* Ambient inner glow */}
-            <div className="absolute inset-0 bg-gradient-to-r from-orange-500/[0.05] via-transparent to-orange-500/[0.05] rounded-3xl pointer-events-none"></div>
-            
-            <div className="relative flex items-center space-x-1">
-              {navItems.map((item, index) => {
-                const active = isActive(item.href);
-                return (
-                  <Link key={item.href} href={item.href}>
-                    <div className={`relative px-4 py-2.5 rounded-2xl transition-all duration-500 group overflow-hidden ${
-                      active 
-                        ? "bg-gradient-to-r from-orange-500 to-orange-600 text-white shadow-lg shadow-orange-500/25 border border-orange-400/20" 
-                        : "hover:bg-white/[0.08] text-slate-300 hover:text-white"
-                    }`}>
-                      {/* Animated background for active state */}
-                      {active && (
-                        <div className="absolute inset-0 bg-gradient-to-r from-orange-600 to-orange-500 opacity-0 group-hover:opacity-100 transition-opacity duration-500 rounded-2xl"></div>
-                      )}
-                      
-                      {/* Hover glow effect for inactive items */}
-                      {!active && (
-                        <div className="absolute inset-0 bg-gradient-to-r from-orange-500/0 to-orange-600/0 group-hover:from-orange-500/10 group-hover:to-orange-600/10 rounded-2xl transition-all duration-500"></div>
-                      )}
-                      
-                      <span className="relative z-10 font-medium text-xs tracking-wide whitespace-nowrap">
-                        {item.label}
-                      </span>
-                      
-                      {/* Micro-interaction indicator */}
-                      <div className={`absolute bottom-0 left-1/2 transform -translate-x-1/2 h-0.5 bg-gradient-to-r from-orange-400 to-orange-600 rounded-full transition-all duration-500 ${
-                        active ? "w-4" : "w-0 group-hover:w-3"
-                      }`}></div>
-                    </div>
-                  </Link>
-                );
-              })}
-            </div>
+          <div className="flex items-center space-x-1 bg-slate-800/50 rounded-lg p-1 border border-slate-700/50">
+            {navItems.map((item, index) => {
+              const active = isActive(item.href);
+              return (
+                <Link key={item.href} href={item.href}>
+                  <div className={`px-3 py-2 rounded-md text-sm font-medium transition-colors duration-200 ${
+                    active 
+                      ? "bg-orange-500 text-white" 
+                      : "text-slate-300 hover:text-white hover:bg-slate-700/50"
+                  }`}>
+                    {item.label}
+                  </div>
+                </Link>
+              );
+            })}
           </div>
         </nav>
 
@@ -124,15 +94,15 @@ export function NextGenNavigation({ className = "" }: NextGenNavigationProps) {
               <Button 
                 variant="ghost" 
                 size="sm" 
-                className="text-slate-300 hover:text-white hover:bg-white/10 transition-all duration-300 backdrop-blur-xl border border-transparent hover:border-white/20 rounded-xl"
+                className="text-slate-300 hover:text-white hover:bg-slate-700/50 transition-colors duration-200"
               >
                 <Menu className="w-4 h-4 mr-2" />
-                All Pages
+                More
                 <ChevronDown className="w-4 h-4 ml-2" />
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent 
-              className="w-56 bg-slate-800/95 backdrop-blur-2xl border-slate-700/50 shadow-2xl"
+              className="w-56 bg-slate-800 border-slate-700 shadow-xl"
               align="end"
             >
               {dropdownNavItems.map((item, index) => {
@@ -140,7 +110,7 @@ export function NextGenNavigation({ className = "" }: NextGenNavigationProps) {
                 return (
                   <DropdownMenuItem 
                     key={item.href} 
-                    className="text-slate-200 hover:bg-slate-700/50 hover:text-white focus:bg-slate-700/50 focus:text-white cursor-pointer"
+                    className="text-slate-200 hover:bg-slate-700 hover:text-white focus:bg-slate-700 focus:text-white cursor-pointer"
                     asChild
                   >
                     <Link href={item.href} className="flex items-center">
@@ -164,7 +134,7 @@ export function NextGenNavigation({ className = "" }: NextGenNavigationProps) {
                 <Button 
                   variant="ghost" 
                   size="sm" 
-                  className="text-slate-300 hover:text-white hover:bg-white/10 transition-all duration-300 backdrop-blur-xl border border-transparent hover:border-white/20 rounded-xl"
+                  className="text-slate-300 hover:text-white hover:bg-slate-700/50 transition-colors duration-200"
                 >
                   Sign In
                 </Button>
@@ -173,7 +143,7 @@ export function NextGenNavigation({ className = "" }: NextGenNavigationProps) {
                 <Button 
                   variant="outline" 
                   size="sm" 
-                  className="bg-gradient-to-r from-orange-500/10 to-orange-600/10 border-orange-500/30 text-orange-400 hover:bg-gradient-to-r hover:from-orange-500/20 hover:to-orange-600/20 hover:border-orange-500/50 hover:text-orange-300 transition-all duration-300 backdrop-blur-xl rounded-xl shadow-lg"
+                  className="border-orange-500/50 text-orange-400 hover:bg-orange-500/10 hover:border-orange-400 transition-colors duration-200"
                 >
                   Get Started
                 </Button>
@@ -187,24 +157,24 @@ export function NextGenNavigation({ className = "" }: NextGenNavigationProps) {
               <Button 
                 variant="ghost" 
                 size="sm" 
-                className="text-slate-300 hover:text-white hover:bg-white/10 p-2 rounded-xl border border-transparent hover:border-white/20 transition-all duration-300 backdrop-blur-xl"
+                className="text-slate-300 hover:text-white hover:bg-slate-700/50 p-2 transition-colors duration-200"
               >
                 <Menu className="h-6 w-6" />
               </Button>
             </SheetTrigger>
-            <SheetContent side="right" className="w-80 bg-gradient-to-b from-slate-950 to-slate-900 border-slate-700/50 backdrop-blur-3xl">
+            <SheetContent side="right" className="w-80 bg-slate-900 border-slate-700">
               <div className="flex items-center justify-between mb-8">
                 <div className="flex items-center space-x-3">
-                  <div className="w-8 h-8 bg-gradient-to-br from-orange-500 to-orange-600 rounded-xl flex items-center justify-center">
-                    <span className="text-white font-bold text-sm">TS</span>
+                  <div className="w-8 h-8 bg-slate-800 rounded-lg border border-slate-600 flex items-center justify-center">
+                    <ConstructionEmblem className="w-4 h-4 text-orange-500" />
                   </div>
-                  <span className="text-xl font-bold bg-gradient-to-r from-white to-orange-100 bg-clip-text text-transparent">TradeScout</span>
+                  <span className="text-xl font-bold text-white">TradeScout</span>
                 </div>
                 <Button 
                   variant="ghost" 
                   size="sm"
                   onClick={() => setIsMobileMenuOpen(false)}
-                  className="text-slate-400 hover:text-white p-2 rounded-xl hover:bg-white/10 transition-all duration-300"
+                  className="text-slate-400 hover:text-white p-2 hover:bg-slate-700/50 transition-colors duration-200"
                 >
                   <X className="h-5 w-5" />
                 </Button>
@@ -219,13 +189,13 @@ export function NextGenNavigation({ className = "" }: NextGenNavigationProps) {
                     const Icon = item.icon;
                     return (
                       <Link key={item.href} href={item.href} onClick={() => setIsMobileMenuOpen(false)}>
-                        <div className={`w-full p-4 rounded-xl transition-all duration-300 group flex items-center space-x-3 ${
+                        <div className={`w-full p-3 rounded-lg transition-colors duration-200 flex items-center space-x-3 ${
                           isActive(item.href)
-                            ? "bg-gradient-to-r from-orange-500/20 to-orange-600/20 border border-orange-500/30 text-white"
-                            : "hover:bg-white/5 text-slate-300 hover:text-white border border-transparent hover:border-white/10"
+                            ? "bg-orange-500/20 text-white border border-orange-500/30"
+                            : "hover:bg-slate-700/50 text-slate-300 hover:text-white"
                         }`}>
                           <Icon className="w-5 h-5 text-orange-400" />
-                          <span className="font-medium tracking-wide">{item.label}</span>
+                          <span className="font-medium">{item.label}</span>
                         </div>
                       </Link>
                     );
@@ -239,12 +209,12 @@ export function NextGenNavigation({ className = "" }: NextGenNavigationProps) {
                       Account
                     </h3>
                     <Link href="/login" onClick={() => setIsMobileMenuOpen(false)}>
-                      <Button variant="ghost" className="w-full justify-start text-slate-300 hover:text-white hover:bg-white/10 rounded-xl border border-transparent hover:border-white/20 transition-all duration-300">
+                      <Button variant="ghost" className="w-full justify-start text-slate-300 hover:text-white hover:bg-slate-700/50 transition-colors duration-200">
                         Sign In
                       </Button>
                     </Link>
                     <Link href="/setup" onClick={() => setIsMobileMenuOpen(false)}>
-                      <Button variant="outline" className="w-full justify-start bg-gradient-to-r from-orange-500/10 to-orange-600/10 border-orange-500/30 text-orange-400 hover:bg-gradient-to-r hover:from-orange-500/20 hover:to-orange-600/20 hover:border-orange-500/50 rounded-xl transition-all duration-300">
+                      <Button variant="outline" className="w-full justify-start border-orange-500/50 text-orange-400 hover:bg-orange-500/10 hover:border-orange-400 transition-colors duration-200">
                         Get Started
                       </Button>
                     </Link>
