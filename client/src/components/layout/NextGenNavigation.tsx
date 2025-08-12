@@ -3,7 +3,7 @@ import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { Menu, X, ChevronDown, Home, Calculator, Users, Wrench, LayoutDashboard, ArrowLeftRight, Building, MessageSquare, MoreHorizontal } from "lucide-react";
+import { Menu, X, ChevronDown, Home, Calculator, Users, Wrench, LayoutDashboard, ArrowLeftRight, Building, MessageSquare, MoreHorizontal, Crown } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { UserMenu } from "@/components/navigation/RoleBasedNavigation";
 import { ConstructionEmblem } from "@/components/ConstructionEmblem";
@@ -38,7 +38,8 @@ export function NextGenNavigation({ className = "" }: NextGenNavigationProps) {
     { href: "/foundation", label: "Foundation", icon: Building, priority: 6 },
     { href: "/community", label: "Community", icon: MessageSquare, priority: 5 },
     { href: "/helpers", label: "Helpers", icon: Users, priority: 4 },
-    { href: "/exchange", label: "Exchange", icon: ArrowLeftRight, priority: 3 }
+    { href: "/exchange", label: "Exchange", icon: ArrowLeftRight, priority: 3 },
+    { href: "/accelerator", label: "Accelerator", icon: Crown, priority: 2 }
   ], []);
 
   const allPages = useMemo(() => [
