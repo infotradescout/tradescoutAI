@@ -2,9 +2,10 @@ import { useState } from "react";
 import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { RoleBasedNavigation, UserMenu } from "@/components/navigation/RoleBasedNavigation";
 import { useAuth } from "@/hooks/useAuth";
-import { Menu, X } from "lucide-react";
+import { Menu, X, ChevronDown } from "lucide-react";
 import { ConstructionEmblem } from "@/components/ConstructionEmblem";
 
 interface EnhancedNavigationProps {
@@ -36,47 +37,56 @@ export function EnhancedNavigation({ className = "" }: EnhancedNavigationProps) 
           </div>
         </Link>
 
-        {/* Desktop Navigation - Core Site Navigation Only */}
-        <nav className="hidden lg:flex items-center space-x-2 flex-1 justify-center max-w-none overflow-x-auto px-4 nav-scrollbar"
-             style={{ minWidth: 0 }}>
-          {/* Core Site Navigation */}
+        {/* Desktop Navigation - Core Tabs + Dropdown */}
+        <nav className="hidden lg:flex items-center space-x-2 flex-1 justify-center">
+          {/* Core Navigation Tabs */}
           <Link href="/contractors">
-            <Button variant={isActive("/contractors") ? "secondary" : "ghost"} size="sm" className="px-4 py-2 rounded-lg nav-button hover:bg-slate-800/60 whitespace-nowrap">
-              <span className="hidden lg:inline">Find Contractors</span>
-              <span className="lg:hidden">Find</span>
+            <Button variant={isActive("/contractors") ? "secondary" : "ghost"} size="sm" className="px-4 py-2 rounded-lg nav-button hover:bg-slate-800/60">
+              Find Contractors
             </Button>
           </Link>
           <Link href="/contractors/for-contractors">
-            <Button variant={isActive("/contractors/for-contractors") ? "secondary" : "ghost"} size="sm" className="px-4 py-2 rounded-lg nav-button hover:bg-slate-800/60 whitespace-nowrap">
-              <span className="hidden lg:inline">For Contractors</span>
-              <span className="lg:hidden">Contractors</span>
+            <Button variant={isActive("/contractors/for-contractors") ? "secondary" : "ghost"} size="sm" className="px-4 py-2 rounded-lg nav-button hover:bg-slate-800/60">
+              For Contractors
             </Button>
           </Link>
           <Link href="/dashboard">
-            <Button variant={isActive("/dashboard") ? "secondary" : "ghost"} size="sm" className="px-4 py-2 rounded-lg nav-button hover:bg-slate-800/60 whitespace-nowrap">
+            <Button variant={isActive("/dashboard") ? "secondary" : "ghost"} size="sm" className="px-4 py-2 rounded-lg nav-button hover:bg-slate-800/60">
               Dashboard
             </Button>
           </Link>
-          <Link href="/marketplace">
-            <Button variant={isActive("/marketplace") ? "secondary" : "ghost"} size="sm" className="px-4 py-2 rounded-lg nav-button hover:bg-slate-800/60 whitespace-nowrap">
-              Marketplace
-            </Button>
-          </Link>
-          <Link href="/community">
-            <Button variant={isActive("/community") ? "secondary" : "ghost"} size="sm" className="px-4 py-2 rounded-lg nav-button hover:bg-slate-800/60 whitespace-nowrap">
-              Community
-            </Button>
-          </Link>
-          <Link href="/exchange">
-            <Button variant={isActive("/exchange") ? "secondary" : "ghost"} size="sm" className="px-4 py-2 rounded-lg nav-button hover:bg-slate-800/60 whitespace-nowrap">
-              Exchange
-            </Button>
-          </Link>
-          <Link href="/foundation">
-            <Button variant={isActive("/foundation") ? "secondary" : "ghost"} size="sm" className="px-4 py-2 rounded-lg nav-button hover:bg-slate-800/60 whitespace-nowrap">
-              Foundation
-            </Button>
-          </Link>
+          
+          {/* More Menu Dropdown */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="sm" className="px-4 py-2 rounded-lg nav-button hover:bg-slate-800/60 flex items-center space-x-1">
+                <span>More</span>
+                <ChevronDown className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent className="bg-slate-800 border-slate-700" align="center">
+              <Link href="/marketplace">
+                <DropdownMenuItem className="text-slate-200 hover:text-white hover:bg-slate-700 cursor-pointer">
+                  Marketplace
+                </DropdownMenuItem>
+              </Link>
+              <Link href="/community">
+                <DropdownMenuItem className="text-slate-200 hover:text-white hover:bg-slate-700 cursor-pointer">
+                  Community
+                </DropdownMenuItem>
+              </Link>
+              <Link href="/exchange">
+                <DropdownMenuItem className="text-slate-200 hover:text-white hover:bg-slate-700 cursor-pointer">
+                  Exchange
+                </DropdownMenuItem>
+              </Link>
+              <Link href="/foundation">
+                <DropdownMenuItem className="text-slate-200 hover:text-white hover:bg-slate-700 cursor-pointer">
+                  Foundation
+                </DropdownMenuItem>
+              </Link>
+            </DropdownMenuContent>
+          </DropdownMenu>
           
           {/* Authenticated Navigation */}
           {isAuthenticated && <RoleBasedNavigation />}
