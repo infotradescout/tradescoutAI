@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useMemo, memo } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
@@ -18,6 +18,7 @@ import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
 import { Separator } from "@/components/ui/separator";
+import DragDropNavigationPreferences from "@/components/navigation/DragDropNavigationPreferences";
 import { 
   User, 
   Mail, 
@@ -98,49 +99,56 @@ export default function Profile() {
   const [editMode, setEditMode] = useState(false);
   const [activeTab, setActiveTab] = useState("profile");
 
+  // Memoize default values to prevent form recreation
+  const profileDefaults = useMemo(() => ({
+    firstName: user?.firstName || "",
+    lastName: user?.lastName || "",
+    email: user?.email || "",
+    phone: user?.phone || "",
+    address: user?.address || "",
+    city: user?.city || "",
+    state: user?.state || "",
+    zipCode: user?.zipCode || "",
+    companyName: user?.companyName || "",
+    businessDescription: user?.businessDescription || "",
+    licenseNumber: user?.licenseNumber || "",
+    yearsInBusiness: user?.yearsInBusiness || 0,
+    isGeneralContractor: user?.isGeneralContractor || false,
+    isResidentialContractor: user?.isResidentialContractor || false,
+    acceptsSubcontractWork: user?.acceptsSubcontractWork || false,
+  }), [user]);
+
+  const passwordDefaults = useMemo(() => ({
+    currentPassword: "",
+    newPassword: "",
+    confirmPassword: "",
+  }), []);
+
+  const notificationDefaults = useMemo(() => ({
+    emailNotifications: true,
+    pushNotifications: true,
+    marketingEmails: false,
+    weeklyDigest: true,
+    instantMessages: true,
+    leadNotifications: true,
+  }), []);
+
   // Profile form
   const profileForm = useForm<ProfileFormData>({
     resolver: zodResolver(profileSchema),
-    defaultValues: {
-      firstName: user?.firstName || "",
-      lastName: user?.lastName || "",
-      email: user?.email || "",
-      phone: user?.phone || "",
-      address: user?.address || "",
-      city: user?.city || "",
-      state: user?.state || "",
-      zipCode: user?.zipCode || "",
-      companyName: user?.companyName || "",
-      businessDescription: user?.businessDescription || "",
-      licenseNumber: user?.licenseNumber || "",
-      yearsInBusiness: user?.yearsInBusiness || 0,
-      isGeneralContractor: user?.isGeneralContractor || false,
-      isResidentialContractor: user?.isResidentialContractor || false,
-      acceptsSubcontractWork: user?.acceptsSubcontractWork || false,
-    },
+    defaultValues: profileDefaults,
   });
 
   // Password form
   const passwordForm = useForm<PasswordFormData>({
     resolver: zodResolver(passwordSchema),
-    defaultValues: {
-      currentPassword: "",
-      newPassword: "",
-      confirmPassword: "",
-    },
+    defaultValues: passwordDefaults,
   });
 
   // Notification preferences form
   const notificationForm = useForm<NotificationFormData>({
     resolver: zodResolver(notificationSchema),
-    defaultValues: {
-      emailNotifications: true,
-      pushNotifications: true,
-      marketingEmails: false,
-      weeklyDigest: true,
-      instantMessages: true,
-      leadNotifications: true,
-    },
+    defaultValues: notificationDefaults,
   });
 
   // Fetch navigation preferences
@@ -170,14 +178,7 @@ export default function Profile() {
     },
   });
 
-  // Handle toggling swipe navigation globally
-  const toggleSwipeNavigation = () => {
-    updateNavigationMutation.mutate({
-      customOrder: navigationPrefs?.customOrder || [],
-      enableSwipeNavigation: !navigationPrefs?.enableSwipeNavigation,
-      hiddenFromSwipe: navigationPrefs?.hiddenFromSwipe || []
-    });
-  };
+  // Note: Navigation preferences are now handled by DragDropNavigationPreferences component
 
   // Privacy settings queries and mutations
   const { data: privacySettings } = useQuery({
@@ -1246,25 +1247,10 @@ export default function Profile() {
 
                   <Separator className="bg-navy-600" />
 
-                  <div>
-                    <h3 className="text-lg font-semibold text-white mb-4">Navigation Preferences</h3>
-                    <div className="space-y-4">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <label className="text-base text-white">Enable Swipe Navigation</label>
-                          <p className="text-sm text-gray-400">Allow swiping between pages on mobile and tablets</p>
-                        </div>
-                        <Switch 
-                          checked={navigationPrefs?.enableSwipeNavigation !== false}
-                          onCheckedChange={toggleSwipeNavigation}
-                          disabled={updateNavigationMutation.isPending}
-                        />
-                      </div>
-                      {updateNavigationMutation.isPending && (
-                        <p className="text-sm text-orange-500">Saving navigation preferences...</p>
-                      )}
-                    </div>
-                  </div>
+                  <DragDropNavigationPreferences 
+                    preferences={navigationPrefs || { customOrder: [], enableSwipeNavigation: true, hiddenFromSwipe: [] }}
+                    userRole={user.role}
+                  />
 
                   <Separator className="bg-navy-600" />
 

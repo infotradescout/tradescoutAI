@@ -1,0 +1,313 @@
+import { useState, useCallback, memo } from "react";
+import { DragDropContext, Droppable, Draggable, DropResult } from "@hello-pangea/dnd";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
+import { Button } from "@/components/ui/button";
+import { useToast } from "@/hooks/use-toast";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/queryClient";
+import { GripVertical, Eye, EyeOff, RotateCcw } from "lucide-react";
+
+interface NavigationItem {
+  id: string;
+  label: string;
+  icon?: string;
+  priority: number;
+  visible: boolean;
+}
+
+interface NavigationPreferencesProps {
+  preferences: {
+    customOrder: string[];
+    enableSwipeNavigation: boolean;
+    hiddenFromSwipe: string[];
+  };
+  userRole: string;
+}
+
+// Default navigation items based on user role
+const getDefaultNavigationItems = (role: string): NavigationItem[] => {
+  const commonItems = [
+    { id: "home", label: "Home", priority: 10, visible: true },
+    { id: "messages", label: "Messages", priority: 9, visible: true },
+    { id: "notifications", label: "Notifications", priority: 8, visible: true },
+    { id: "profile", label: "Profile", priority: 7, visible: true },
+  ];
+
+  const roleSpecificItems = {
+    contractor_user: [
+      { id: "leads", label: "Leads", priority: 9, visible: true },
+      { id: "jobs", label: "Jobs", priority: 8, visible: true },
+      { id: "estimates", label: "Estimates", priority: 7, visible: true },
+      { id: "helpers", label: "Helpers", priority: 6, visible: true },
+    ],
+    homeowner: [
+      { id: "find-contractors", label: "Find Contractors", priority: 9, visible: true },
+      { id: "my-projects", label: "My Projects", priority: 8, visible: true },
+      { id: "saved-ads", label: "Saved Ads", priority: 7, visible: true },
+      { id: "marketplace", label: "Marketplace", priority: 6, visible: true },
+    ],
+    moderator: [
+      { id: "moderate", label: "Moderate", priority: 9, visible: true },
+      { id: "reports", label: "Reports", priority: 8, visible: true },
+      { id: "users", label: "Users", priority: 7, visible: true },
+    ],
+    admin: [
+      { id: "admin", label: "Admin Panel", priority: 9, visible: true },
+      { id: "analytics", label: "Analytics", priority: 8, visible: true },
+      { id: "settings", label: "Site Settings", priority: 7, visible: true },
+    ],
+  };
+
+  return [
+    ...commonItems,
+    ...(roleSpecificItems[role as keyof typeof roleSpecificItems] || []),
+  ];
+};
+
+const DragDropNavigationPreferences = memo(({ preferences, userRole }: NavigationPreferencesProps) => {
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  
+  // Initialize navigation items with user preferences
+  const defaultItems = getDefaultNavigationItems(userRole);
+  const [navigationItems, setNavigationItems] = useState<NavigationItem[]>(() => {
+    const customOrder = preferences?.customOrder || [];
+    const hiddenItems = preferences?.hiddenFromSwipe || [];
+    
+    // Apply custom order and visibility
+    const orderedItems = [...defaultItems];
+    if (customOrder.length > 0) {
+      orderedItems.sort((a, b) => {
+        const aIndex = customOrder.indexOf(a.id);
+        const bIndex = customOrder.indexOf(b.id);
+        if (aIndex === -1 && bIndex === -1) return 0;
+        if (aIndex === -1) return 1;
+        if (bIndex === -1) return -1;
+        return aIndex - bIndex;
+      });
+    }
+    
+    return orderedItems.map(item => ({
+      ...item,
+      visible: !hiddenItems.includes(item.id),
+    }));
+  });
+
+  const [swipeEnabled, setSwipeEnabled] = useState(preferences?.enableSwipeNavigation ?? true);
+
+  // Update navigation preferences mutation
+  const updateNavigationMutation = useMutation({
+    mutationFn: async (newPreferences: any) => {
+      return apiRequest("PUT", "/api/user/navigation-preferences", newPreferences);
+    },
+    onSuccess: () => {
+      toast({
+        title: "Navigation Updated",
+        description: "Your navigation preferences have been saved.",
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/user/navigation-preferences"] });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Update Failed",
+        description: error.message || "Failed to update navigation preferences.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Handle drag end
+  const handleDragEnd = useCallback((result: DropResult) => {
+    if (!result.destination) return;
+
+    const items = Array.from(navigationItems);
+    const [reorderedItem] = items.splice(result.source.index, 1);
+    items.splice(result.destination.index, 0, reorderedItem);
+
+    setNavigationItems(items);
+
+    // Update backend with new order
+    const customOrder = items.map(item => item.id);
+    const hiddenFromSwipe = items.filter(item => !item.visible).map(item => item.id);
+    
+    updateNavigationMutation.mutate({
+      customOrder,
+      enableSwipeNavigation: swipeEnabled,
+      hiddenFromSwipe,
+    });
+  }, [navigationItems, swipeEnabled, updateNavigationMutation]);
+
+  // Handle visibility toggle
+  const toggleItemVisibility = useCallback((itemId: string) => {
+    const updatedItems = navigationItems.map(item =>
+      item.id === itemId ? { ...item, visible: !item.visible } : item
+    );
+    setNavigationItems(updatedItems);
+
+    // Update backend
+    const customOrder = updatedItems.map(item => item.id);
+    const hiddenFromSwipe = updatedItems.filter(item => !item.visible).map(item => item.id);
+    
+    updateNavigationMutation.mutate({
+      customOrder,
+      enableSwipeNavigation: swipeEnabled,
+      hiddenFromSwipe,
+    });
+  }, [navigationItems, swipeEnabled, updateNavigationMutation]);
+
+  // Handle swipe toggle
+  const toggleSwipeNavigation = useCallback(() => {
+    const newSwipeEnabled = !swipeEnabled;
+    setSwipeEnabled(newSwipeEnabled);
+
+    const customOrder = navigationItems.map(item => item.id);
+    const hiddenFromSwipe = navigationItems.filter(item => !item.visible).map(item => item.id);
+    
+    updateNavigationMutation.mutate({
+      customOrder,
+      enableSwipeNavigation: newSwipeEnabled,
+      hiddenFromSwipe,
+    });
+  }, [swipeEnabled, navigationItems, updateNavigationMutation]);
+
+  // Reset to defaults
+  const resetToDefaults = useCallback(() => {
+    const defaultItems = getDefaultNavigationItems(userRole);
+    setNavigationItems(defaultItems);
+    setSwipeEnabled(true);
+
+    updateNavigationMutation.mutate({
+      customOrder: [],
+      enableSwipeNavigation: true,
+      hiddenFromSwipe: [],
+    });
+  }, [userRole, updateNavigationMutation]);
+
+  return (
+    <Card className="bg-navy-800 border-navy-600">
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2 text-white">
+          <GripVertical className="h-5 w-5" />
+          Navigation Preferences
+        </CardTitle>
+        <CardDescription className="text-gray-400">
+          Customize your navigation menu order and visibility. Drag items to reorder them.
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-6">
+        {/* Swipe Navigation Toggle */}
+        <div className="flex items-center justify-between">
+          <div className="space-y-0.5">
+            <Label htmlFor="swipe-navigation">Enable Swipe Navigation</Label>
+            <p className="text-sm text-muted-foreground">
+              Allow swiping between navigation sections on mobile
+            </p>
+          </div>
+          <Switch
+            id="swipe-navigation"
+            checked={swipeEnabled}
+            onCheckedChange={toggleSwipeNavigation}
+          />
+        </div>
+
+        <Separator className="bg-navy-600" />
+
+        {/* Navigation Items */}
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <h4 className="text-sm font-medium text-white">Navigation Items</h4>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={resetToDefaults}
+              className="h-8 bg-navy-700 border-navy-600 text-white hover:bg-navy-600"
+              disabled={updateNavigationMutation.isPending}
+            >
+              <RotateCcw className="h-3 w-3 mr-1" />
+              Reset
+            </Button>
+          </div>
+
+          <DragDropContext onDragEnd={handleDragEnd}>
+            <Droppable droppableId="navigation-items">
+              {(provided, snapshot) => (
+                <div
+                  {...provided.droppableProps}
+                  ref={provided.innerRef}
+                  className={`space-y-2 p-2 rounded-lg transition-colors ${
+                    snapshot.isDraggingOver ? "bg-navy-600/50" : ""
+                  }`}
+                >
+                  {navigationItems.map((item, index) => (
+                    <Draggable
+                      key={item.id}
+                      draggableId={item.id}
+                      index={index}
+                    >
+                      {(provided, snapshot) => (
+                        <div
+                          ref={provided.innerRef}
+                          {...provided.draggableProps}
+                          className={`flex items-center justify-between p-3 bg-navy-700 border border-navy-600 rounded-lg transition-all ${
+                            snapshot.isDragging
+                              ? "shadow-lg border-orange-400 bg-navy-600"
+                              : "hover:bg-navy-600"
+                          }`}
+                        >
+                          <div className="flex items-center gap-3">
+                            <div
+                              {...provided.dragHandleProps}
+                              className="cursor-grab active:cursor-grabbing text-gray-400 hover:text-white transition-colors"
+                            >
+                              <GripVertical className="h-4 w-4" />
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <span className="font-medium text-white">{item.label}</span>
+                              {!item.visible && (
+                                <Badge variant="secondary" className="text-xs bg-navy-600 text-gray-300">
+                                  Hidden
+                                </Badge>
+                              )}
+                            </div>
+                          </div>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => toggleItemVisibility(item.id)}
+                            className="h-8 w-8 p-0 text-gray-400 hover:text-white hover:bg-navy-600"
+                          >
+                            {item.visible ? (
+                              <Eye className="h-4 w-4" />
+                            ) : (
+                              <EyeOff className="h-4 w-4" />
+                            )}
+                          </Button>
+                        </div>
+                      )}
+                    </Draggable>
+                  ))}
+                  {provided.placeholder}
+                </div>
+              )}
+            </Droppable>
+          </DragDropContext>
+
+          <p className="text-xs text-gray-400">
+            {swipeEnabled ? "✓" : "✗"} Swipe navigation is{" "}
+            {swipeEnabled ? "enabled" : "disabled"}. Visible items:{" "}
+            {navigationItems.filter(item => item.visible).length}/
+            {navigationItems.length}
+          </p>
+        </div>
+      </CardContent>
+    </Card>
+  );
+});
+
+DragDropNavigationPreferences.displayName = "DragDropNavigationPreferences";
+
+export default DragDropNavigationPreferences;
