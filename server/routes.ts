@@ -221,6 +221,57 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Admin-only route to create new admin accounts
+  app.post("/api/admin/create-account", isAuthenticated, requireRole(['head_admin', 'ops_admin']), async (req, res) => {
+    try {
+      const { email, password, firstName, lastName, username, role, address } = req.body;
+      
+      // Validate role assignment permissions
+      const currentUser = req.user as any;
+      if (role === 'head_admin' && currentUser.role !== 'head_admin') {
+        return res.status(403).json({ message: "Only head admins can create other head admins" });
+      }
+
+      // Check if user already exists
+      const existingUser = await storage.getUserByEmail(email);
+      if (existingUser) {
+        return res.status(400).json({ message: "User with this email already exists" });
+      }
+
+      const existingUsername = await storage.getUserByUsername(username);
+      if (existingUsername) {
+        return res.status(400).json({ message: "Username already taken" });
+      }
+
+      // Hash password
+      const passwordHash = await hashPassword(password);
+      
+      // Create admin user
+      const newAdmin = await storage.createUser({
+        username,
+        email,
+        passwordHash,
+        firstName,
+        lastName,
+        address,
+        role: role as any,
+        emailVerified: true, // Admins are pre-verified
+        addressVerified: true, // Admins are pre-verified
+      });
+
+      // Remove password hash from response
+      const { passwordHash: _, ...userResponse } = newAdmin;
+
+      res.json({ 
+        user: userResponse, 
+        message: `${role} account created successfully` 
+      });
+    } catch (error) {
+      console.error("Admin account creation error:", error);
+      res.status(500).json({ message: "Account creation failed" });
+    }
+  });
+
   // Configure OAuth strategies
   if (process.env.FACEBOOK_APP_ID && process.env.FACEBOOK_APP_SECRET) {
     passport.use(new FacebookStrategy({

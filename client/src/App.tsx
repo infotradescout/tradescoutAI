@@ -72,6 +72,9 @@ import { BetaNotificationPopup } from "@/components/BetaNotificationPopup";
 import { AddressVerificationBanner } from "@/components/AddressVerificationBanner";
 import { LegalFooter } from "@/components/footer/legal-footer";
 
+// Lazy load admin components
+const AdminCreateAccount = lazy(() => import("@/pages/admin-create-account"));
+
 function Router() {
   const { isAuthenticated, isLoading } = useAuth();
   const { needsSetup, isLoading: setupLoading } = useSetupStatus();
@@ -176,6 +179,7 @@ function Router() {
             <Route path="/admin/panel" component={AdminPanel} />
             <Route path="/admin/users" component={AdminUsers} />
             <Route path="/admin/workspace" component={AdminWorkspace} />
+            <Route path="/admin/create-account" component={AdminCreateAccount} />
             <Route path="/admin/error-reports" component={AdminErrorReports} />
             <Route path="/admin/testing" component={AdminTestingControls} />
             <Route path="/admin/listings" component={AdminListings} />
