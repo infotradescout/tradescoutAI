@@ -290,8 +290,6 @@ const Router = memo(function Router() {
       <LegalFooter />
     </div>
   );
-}
-
 });
 
 const App = memo(function App() {
