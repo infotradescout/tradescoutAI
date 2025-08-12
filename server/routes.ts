@@ -187,8 +187,22 @@ export async function registerRoutes(app: Express) {
   await setupAuth(app);
 
   // Authentication routes
-  app.post("/auth/login", passport.authenticate('local'), (req, res) => {
-    res.json({ user: req.user, message: "Login successful" });
+  app.post("/auth/login", (req, res, next) => {
+    passport.authenticate('local', (err, user, info) => {
+      if (err) {
+        return next(err);
+      }
+      if (!user) {
+        return res.status(401).json({ message: info?.message || 'Login failed' });
+      }
+      
+      req.logIn(user, (err) => {
+        if (err) {
+          return next(err);
+        }
+        return res.json({ user: req.user, message: "Login successful" });
+      });
+    })(req, res, next);
   });
 
   app.post("/auth/register", async (req, res) => {
@@ -202,13 +216,13 @@ export async function registerRoutes(app: Express) {
       }
 
       // Hash password
-      const passwordHash = await hashPassword(password);
+      const hashedPassword = await hashPassword(password);
 
       // Create user
       const user = await storage.createUser({
         username,
         email,
-        passwordHash,
+        passwordHash: hashedPassword,
         firstName,
         lastName,
         address,

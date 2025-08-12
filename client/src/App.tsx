@@ -88,7 +88,7 @@ import Checkout from "@/pages/checkout";
 import PaymentSuccess from "@/pages/payment-success";
 import PaymentHistory from "@/pages/payment-history";
 import AdvancedSearch from "@/pages/advanced-search";
-import Notifications from "@/pages/notifications";
+import Notifications from "@/pages/Notifications";
 import Profile from "@/pages/profile";
 import { ProfileSetupRedirect } from "@/components/profile-setup-redirect";
 

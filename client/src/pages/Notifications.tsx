@@ -24,7 +24,7 @@ export default function NotificationsPage() {
   const [preferencesOpen, setPreferencesOpen] = useState(false);
 
   // Fetch notification stats
-  const { data: stats } = useQuery({
+  const { data: stats = { total: 0, thisWeek: 0, personalEvents: 0, unread: 0 } } = useQuery({
     queryKey: ['/api/notifications/stats'],
   });
 

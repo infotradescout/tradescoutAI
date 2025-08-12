@@ -748,12 +748,12 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getUserByRole(role: string): Promise<User | undefined> {
-    const [user] = await db.select().from(users).where(eq(users.role, role));
+    const [user] = await db.select().from(users).where(eq(users.role, role as any));
     return user;
   }
 
-  async getUserByRole(role: string): Promise<User | undefined> {
-    const [user] = await db.select().from(users).where(eq(users.role, role as any));
+  async getUserByUsername(username: string): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.username, username));
     return user;
   }
 
@@ -873,7 +873,7 @@ export class DatabaseStorage implements IStorage {
       .insert(users)
       .values({
         email,
-        password: hashedPassword,
+        passwordHash: hashedPassword,
         firstName,
         lastName,
         role: 'head_admin',
