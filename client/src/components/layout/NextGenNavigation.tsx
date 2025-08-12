@@ -63,12 +63,12 @@ export function NextGenNavigation({ className = "" }: NextGenNavigationProps) {
       const width = navRef.current.offsetWidth;
       setContainerWidth(width);
 
-      // Progressive layout system: text -> text with fewer items -> icons only -> fewer icons
-      if (width >= 1100) {
+      // Smoother progressive layout system with optimized breakpoints
+      if (width >= 1050) {
         setAdaptiveLayout('full'); // Show all items with text
-      } else if (width >= 800) {
+      } else if (width >= 750) {
         setAdaptiveLayout('compact'); // Show fewer items with text + dropdown
-      } else if (width >= 600) {
+      } else if (width >= 550) {
         setAdaptiveLayout('icons'); // Show icons only, no text
       } else {
         setAdaptiveLayout('minimal'); // Show fewer icons + dropdown
@@ -76,19 +76,28 @@ export function NextGenNavigation({ className = "" }: NextGenNavigationProps) {
     };
 
     setMounted(true);
-    const timer = setTimeout(calculateLayout, 50);
-    const resizeObserver = new ResizeObserver(calculateLayout);
+    const timer = setTimeout(calculateLayout, 100);
+    
+    // Debounced resize observer for smoother transitions
+    let resizeTimeout: NodeJS.Timeout;
+    const debouncedCalculateLayout = () => {
+      clearTimeout(resizeTimeout);
+      resizeTimeout = setTimeout(calculateLayout, 150);
+    };
+    
+    const resizeObserver = new ResizeObserver(debouncedCalculateLayout);
     
     if (navRef.current) {
       resizeObserver.observe(navRef.current);
     }
 
-    window.addEventListener('resize', calculateLayout);
+    window.addEventListener('resize', debouncedCalculateLayout);
 
     return () => {
       clearTimeout(timer);
+      clearTimeout(resizeTimeout);
       resizeObserver.disconnect();
-      window.removeEventListener('resize', calculateLayout);
+      window.removeEventListener('resize', debouncedCalculateLayout);
     };
   }, [mounted]);
 
@@ -145,7 +154,7 @@ export function NextGenNavigation({ className = "" }: NextGenNavigationProps) {
 
         {/* Revolutionary Adaptive Navigation */}
         <nav className="hidden md:flex items-center flex-1 justify-center max-w-5xl mx-4" ref={navRef}>
-          <div className="flex items-center space-x-1 bg-slate-800/60 rounded-xl p-1.5 border border-slate-700/50 shadow-lg backdrop-blur-sm">
+          <div className="flex items-center space-x-1 bg-slate-800/60 rounded-xl p-1.5 border border-slate-700/50 shadow-lg backdrop-blur-sm transition-all duration-300 ease-in-out">
             {/* Priority-based visible items */}
             {visibleItems.map((item) => {
               const Icon = item.icon;
@@ -155,15 +164,21 @@ export function NextGenNavigation({ className = "" }: NextGenNavigationProps) {
               return (
                 <Link key={item.href} href={item.href}>
                   <div 
-                    className={`px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 whitespace-nowrap border flex items-center gap-2 ${
+                    className={`rounded-lg text-sm font-medium transition-all duration-300 ease-in-out whitespace-nowrap border flex items-center gap-2 transform hover:scale-105 ${
                       active 
                         ? "bg-orange-500 text-white border-orange-400 shadow-lg shadow-orange-500/25" 
                         : "text-slate-300 hover:text-white hover:bg-slate-700/60 border-transparent hover:border-slate-600"
-                    } ${!showTextLabel ? 'px-2.5' : ''}`}
+                    } ${!showTextLabel ? 'px-2.5 py-2' : 'px-3 py-2'}`}
                     title={!showTextLabel ? item.label : undefined}
                   >
-                    <Icon className="w-4 h-4 text-orange-400 flex-shrink-0" />
-                    {showTextLabel && <span>{item.label}</span>}
+                    <Icon className={`w-4 h-4 flex-shrink-0 transition-colors duration-300 ${
+                      active ? 'text-white' : 'text-orange-400'
+                    }`} />
+                    {showTextLabel && (
+                      <span className="transition-opacity duration-300 ease-in-out">
+                        {item.label}
+                      </span>
+                    )}
                   </div>
                 </Link>
               );
@@ -176,7 +191,7 @@ export function NextGenNavigation({ className = "" }: NextGenNavigationProps) {
                   <Button 
                     variant="ghost" 
                     size="sm" 
-                    className="px-3 py-2 text-slate-300 hover:text-white hover:bg-slate-700/60 transition-all duration-200 border border-transparent hover:border-slate-600 rounded-lg flex items-center gap-1"
+                    className="px-3 py-2 text-slate-300 hover:text-white hover:bg-slate-700/60 transition-all duration-300 ease-in-out border border-transparent hover:border-slate-600 rounded-lg flex items-center gap-1 transform hover:scale-105"
                   >
                     <MoreHorizontal className="w-4 h-4" />
                     {(adaptiveLayout === 'full' || adaptiveLayout === 'compact') && (
