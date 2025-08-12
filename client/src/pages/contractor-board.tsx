@@ -291,11 +291,6 @@ export default function ContractorBoard() {
           <p className="text-xl text-gray-300 mb-8">
             Connect with verified, local contractors for your next project
           </p>
-          <div className="inline-flex items-center px-4 py-2 bg-navy-700/50 rounded-full border border-navy-600">
-            <span className="text-gray-300">
-              {displayText}
-            </span>
-          </div>
         </header>
 
         {/* State, County and Trade Quick Filters */}
