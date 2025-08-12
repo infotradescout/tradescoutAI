@@ -6,6 +6,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { UIMonitoringDashboard } from "@/components/admin/UIMonitoringDashboard";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
@@ -225,7 +226,7 @@ export default function AdminPanel() {
         </div>
 
         <Tabs value={selectedTab} onValueChange={setSelectedTab} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-5 bg-slate-800">
+          <TabsList className="grid w-full grid-cols-6 bg-slate-800">
             <TabsTrigger value="heatmap" className="flex items-center gap-2">
               <Map className="w-4 h-4" />
               User Heatmap
@@ -243,8 +244,12 @@ export default function AdminPanel() {
               Site Settings
             </TabsTrigger>
             <TabsTrigger value="contractor-settings" className="flex items-center gap-2">
-              <Users className="w-4 h-4" />
+              <Settings className="w-4 h-4" />
               Contractor Settings
+            </TabsTrigger>
+            <TabsTrigger value="monitoring" className="flex items-center gap-2">
+              <Bell className="w-4 h-4" />
+              AI Monitoring
             </TabsTrigger>
           </TabsList>
 
@@ -526,6 +531,10 @@ export default function AdminPanel() {
                 ))}
               </div>
             )}
+          </TabsContent>
+
+          <TabsContent value="monitoring" className="space-y-4">
+            <UIMonitoringDashboard />
           </TabsContent>
         </Tabs>
 

@@ -4,6 +4,7 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { useAuth } from "@/hooks/useAuth";
+import { useAIMonitoring } from "@/hooks/useAIMonitoring";
 import { useSetupStatus } from "@/hooks/useSetupStatus";
 import { ErrorBoundary } from "@/components/ui/error-boundary";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
@@ -84,6 +85,9 @@ function Router() {
   
   // Enable global swipe navigation on mobile
   useGlobalSwipeNavigation();
+  
+  // Enable AI monitoring for admin users
+  useAIMonitoring();
 
   if (isLoading || setupLoading) {
     return (

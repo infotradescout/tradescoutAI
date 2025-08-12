@@ -22,6 +22,7 @@ import {
   affiliatePrograms
 } from "@shared/schema";
 import { setupModerationRoutes } from "./moderation";
+import { registerUIIssuesRoutes } from "./routes/admin/ui-issues";
 
 // Middleware to check address verification requirement
 const requireAddressVerification = async (req: any, res: any, next: any) => {
@@ -6227,6 +6228,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Set up community moderation routes
   setupModerationRoutes(app);
+  
+  // Setup UI monitoring routes
+  registerUIIssuesRoutes(app);
 
   return httpServer;
 }
