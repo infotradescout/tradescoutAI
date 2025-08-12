@@ -9,7 +9,7 @@ import { ErrorBoundary } from "@/components/ui/error-boundary";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { lazy } from "react";
 
-import { EnhancedNavigation } from "@/components/layout/EnhancedNavigation";
+import { NextGenNavigation } from "@/components/layout/NextGenNavigation";
 import MobileCTA from "@/components/mobile-cta";
 import NotFound from "@/pages/not-found";
 import Login from "@/pages/login";
@@ -98,7 +98,7 @@ function Router() {
 
   return (
     <div className="min-h-screen gradient-bg text-gray-100">
-      <EnhancedNavigation />
+      <NextGenNavigation />
       {isAuthenticated && <AddressVerificationBanner />}
       <Switch>
         {/* Master Admin Setup - Only shows if no admin exists */}
