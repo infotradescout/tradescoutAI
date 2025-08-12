@@ -8,7 +8,7 @@ import { useAIMonitoring } from "@/hooks/useAIMonitoring";
 import { useSetupStatus } from "@/hooks/useSetupStatus";
 import { ErrorBoundary } from "@/components/ui/error-boundary";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
-import React, { lazy, useEffect, memo } from "react";
+import React, { lazy, useEffect, memo, Suspense } from "react";
 
 import { NextGenNavigation } from "@/components/layout/NextGenNavigation";
 import { useGlobalSwipeNavigation } from "@/hooks/useSwipeNavigation";
@@ -166,7 +166,7 @@ const Router = memo(function Router() {
         <Route path="/register" component={Register} />
 
         {/* Public routes available to all users */}
-        <Route path="/contractors" component={ContractorBoard} />
+        <Route path="/contractors" component={ForContractors} />
         <Route path="/contractors/board" component={ContractorBoard} />
         <Route path="/contractors/for-contractors" component={ForContractors} />
         <Route path="/contractors/apply" component={ContractorApply} />

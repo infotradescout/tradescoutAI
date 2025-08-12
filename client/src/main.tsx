@@ -18,7 +18,7 @@ const monitorMemory = () => {
     const memory = (performance as any).memory;
     const usedPercent = (memory.usedJSHeapSize / memory.jsHeapSizeLimit) * 100;
     
-    if (usedPercent > 90) {
+    if (usedPercent > 85) {
       console.warn('High memory usage detected:', usedPercent.toFixed(1) + '%');
       
       // Trigger garbage collection if available
@@ -26,18 +26,25 @@ const monitorMemory = () => {
         (window as any).gc();
       }
       
-      // Clear query cache if memory is critically high
-      if (usedPercent > 95) {
+      // Clear query cache if memory is high
+      if (usedPercent > 90) {
         import('./lib/queryClient').then(({ queryClient }) => {
           queryClient.clear();
+          console.log('Query cache cleared due to high memory usage');
         });
+      }
+      
+      // Force cleanup of unused components
+      if (usedPercent > 95) {
+        // Clear any component state that might be holding references
+        window.dispatchEvent(new CustomEvent('lowMemory'));
       }
     }
   }
 };
 
-// Check memory every 30 seconds
-memoryCheckInterval = setInterval(monitorMemory, 30000);
+// Check memory every 15 seconds for better responsiveness
+memoryCheckInterval = setInterval(monitorMemory, 15000);
 
 // Cleanup on page unload
 window.addEventListener('beforeunload', () => {

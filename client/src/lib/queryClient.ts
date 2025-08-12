@@ -1,93 +1,99 @@
-import { QueryClient, QueryFunction } from "@tanstack/react-query";
+import { QueryClient } from "@tanstack/react-query";
 
-async function throwIfResNotOk(res: Response) {
-  if (!res.ok) {
-    const text = (await res.text()) || res.statusText;
-    throw new Error(`${res.status}: ${text}`);
-  }
-}
+// Get API URL from environment variables
+const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
-export async function apiRequest(method: string, endpoint: string, data?: any) {
+const apiRequest = async (
+  method: string = "GET",
+  endpoint: string = "",
+  data?: any
+): Promise<any> => {
   try {
+    const url = endpoint.startsWith("http") ? endpoint : `${API_BASE_URL}${endpoint}`;
     const config: RequestInit = {
       method,
       headers: {
-        'Content-Type': 'application/json',
+        "Content-Type": "application/json",
       },
-      credentials: 'include',
+      credentials: "include",
     };
 
     if (data) {
       config.body = JSON.stringify(data);
     }
 
-    console.log(`API Request: ${method} ${endpoint}`, data ? { data } : '');
-
-    const response = await fetch(endpoint, config);
+    const response = await fetch(url, config);
 
     if (!response.ok) {
-      let errorData;
-      try {
-        errorData = await response.json();
-      } catch {
-        errorData = { message: `Request failed with status ${response.status}` };
+      if (response.status === 401) {
+        // Redirect to login on unauthorized
+        window.location.href = '/login';
+        throw new Error('Unauthorized');
       }
 
-      console.error(`API Error: ${method} ${endpoint}`, {
-        status: response.status,
-        statusText: response.statusText,
-        error: errorData
-      });
+      let errorMessage = `HTTP error! status: ${response.status}`;
+      try {
+        const errorData = await response.json();
+        errorMessage = errorData.message || errorMessage;
+      } catch {
+        // If we can't parse the error response, use the default message
+      }
 
-      throw new Error(errorData.message || `HTTP ${response.status}: ${response.statusText}`);
+      throw new Error(errorMessage);
     }
 
     const result = await response.json();
-    console.log(`API Success: ${method} ${endpoint}`, result);
     return result;
-
   } catch (error) {
-    console.error(`API Request Failed: ${method} ${endpoint}`, error);
-    if (error instanceof TypeError && error.message.includes('fetch')) {
-      throw new Error('Network error. Please check your connection and try again.');
-    }
+    console.error("API request failed:", error);
     throw error;
   }
-}
-
-type UnauthorizedBehavior = "returnNull" | "throw";
-export const getQueryFn: <T>(options: {
-  on401: UnauthorizedBehavior;
-}) => QueryFunction<T> =
-  ({ on401: unauthorizedBehavior }) =>
-  async ({ queryKey }) => {
-    const res = await fetch(queryKey.join("/") as string, {
-      credentials: "include",
-    });
-
-    if (unauthorizedBehavior === "returnNull" && res.status === 401) {
-      return null;
-    }
-
-    await throwIfResNotOk(res);
-    return await res.json();
-  };
+};
 
 export const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      staleTime: 1000 * 60 * 10, // 10 minutes - longer cache
-      gcTime: 1000 * 60 * 30, // 30 minutes garbage collection
-      refetchOnWindowFocus: false,
-      refetchOnReconnect: false,
+      queryFn: async ({ queryKey }) => {
+        const [endpoint, ...params] = queryKey as [string, ...any[]];
+
+        // Handle parameterized queries
+        let url = endpoint;
+        if (params.length > 0) {
+          const searchParams = new URLSearchParams();
+          params.forEach((param, index) => {
+            if (param !== undefined && param !== null) {
+              searchParams.append(`param${index}`, String(param));
+            }
+          });
+          url += `?${searchParams.toString()}`;
+        }
+
+        return apiRequest("GET", url);
+      },
       retry: (failureCount, error: any) => {
-        // Don't retry on 401, 403, or 404 errors
-        if (error?.status === 401 || error?.status === 403 || error?.status === 404) {
+        // Don't retry on 4xx errors
+        if (error?.message?.includes('401') || error?.message?.includes('403') || error?.message?.includes('404')) {
           return false;
         }
-        // Retry only once for other errors to reduce memory usage
+
+        // Retry up to 1 time for other errors (reduced for performance)
         return failureCount < 1;
       },
+      staleTime: 60000, // Consider data stale after 60 seconds
+      gcTime: 300000, // Keep in cache for 5 minutes
+      refetchOnWindowFocus: false,
+      refetchOnReconnect: true,
+    },
+    mutations: {
+      retry: 1, // Retry mutations once
     },
   },
 });
+
+// Listen for low memory events and clear cache
+window.addEventListener('lowMemory', () => {
+  queryClient.clear();
+  console.log('Query cache cleared due to low memory');
+});
+
+export { apiRequest };

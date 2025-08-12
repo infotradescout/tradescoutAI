@@ -1,0 +1,82 @@
+
+// Centralized route configuration to prevent drift
+export const ROUTES = {
+  // Public routes
+  HOME: '/',
+  LOGIN: '/login',
+  REGISTER: '/register',
+  CONTRACTORS: '/contractors',
+  MARKETPLACE: '/marketplace',
+  COMMUNITY: '/community',
+  HELP: '/help',
+  
+  // Protected routes (require auth)
+  DASHBOARD: '/dashboard',
+  PROFILE: '/profile',
+  CONVERSATIONS: '/conversations',
+  SETTINGS: '/settings',
+  
+  // Contractor routes
+  CONTRACTOR_DASHBOARD: '/contractor-dashboard',
+  CONTRACTOR_APPLY: '/contractors/apply',
+  CONTRACTOR_BOARD: '/contractor-board',
+  
+  // Admin routes (require admin role)
+  ADMIN_PANEL: '/admin',
+  ADMIN_DASHBOARD: '/admin-dashboard',
+  ADMIN_USERS: '/admin-users',
+  
+  // Legal pages
+  TERMS: '/terms',
+  PRIVACY: '/privacy',
+  COOKIES: '/cookies',
+  
+  // Route aliases for backward compatibility
+  ALIASES: {
+    '/dashboard/messages': '/conversations',
+    '/exchange/list': '/marketplace',
+    '/contractors/dashboard': '/contractor-dashboard'
+  }
+} as const;
+
+export type RouteKey = keyof typeof ROUTES;
+
+// Route guards
+export const PUBLIC_ROUTES = [
+  ROUTES.HOME,
+  ROUTES.LOGIN,
+  ROUTES.REGISTER,
+  ROUTES.CONTRACTORS,
+  ROUTES.MARKETPLACE,
+  ROUTES.COMMUNITY,
+  ROUTES.HELP,
+  ROUTES.TERMS,
+  ROUTES.PRIVACY,
+  ROUTES.COOKIES
+];
+
+export const PROTECTED_ROUTES = [
+  ROUTES.DASHBOARD,
+  ROUTES.PROFILE,
+  ROUTES.CONVERSATIONS,
+  ROUTES.SETTINGS,
+  ROUTES.CONTRACTOR_DASHBOARD
+];
+
+export const ADMIN_ROUTES = [
+  ROUTES.ADMIN_PANEL,
+  ROUTES.ADMIN_DASHBOARD,
+  ROUTES.ADMIN_USERS
+];
+
+export function isPublicRoute(path: string): boolean {
+  return PUBLIC_ROUTES.includes(path as any);
+}
+
+export function isProtectedRoute(path: string): boolean {
+  return PROTECTED_ROUTES.includes(path as any);
+}
+
+export function isAdminRoute(path: string): boolean {
+  return ADMIN_ROUTES.includes(path as any);
+}
