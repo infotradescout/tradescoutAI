@@ -3,6 +3,13 @@ import HomeownerDashboard from "./homeowner-dashboard";
 import ContractorDashboard from "./contractor-dashboard";
 import RealtorDashboard from "./realtor-dashboard";
 import CarSalesmanDashboard from "./car-salesman-dashboard";
+import InsuranceAgentDashboard from "./insurance-agent-dashboard";
+import MortgageBrokerDashboard from "./mortgage-broker-dashboard";
+import PropertyManagerDashboard from "./property-manager-dashboard";
+import BusinessOwnerDashboard from "./business-owner-dashboard";
+import CommunityDashboard from "./community-dashboard";
+import StaffDashboard from "./staff-dashboard";
+import AdminDashboard from "./admin-dashboard";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Link } from "wouter";
@@ -122,17 +129,57 @@ export default function Dashboard() {
   }
 
   // Route to appropriate dashboard based on user role
-  if (user.role === 'contractor_user' || user.role === 'accelerator_member') {
-    return <ContractorDashboard />;
+  switch (user.role) {
+    // Service provider roles
+    case 'contractor_user':
+    case 'accelerator_member':
+      return <ContractorDashboard />;
+    
+    case 'realtor':
+      return <RealtorDashboard />;
+    
+    case 'car_salesman':
+      return <CarSalesmanDashboard />;
+    
+    case 'insurance_agent':
+      return <InsuranceAgentDashboard />;
+    
+    case 'mortgage_broker':
+      return <MortgageBrokerDashboard />;
+    
+    // Customer roles
+    case 'property_manager':
+      return <PropertyManagerDashboard />;
+    
+    case 'business_owner':
+      return <BusinessOwnerDashboard />;
+    
+    // Community roles
+    case 'community_member':
+    case 'community_moderator':
+    case 'community_leader':
+      return <CommunityDashboard />;
+    
+    // Platform staff roles
+    case 'support_agent':
+    case 'content_moderator':
+    case 'territory_manager':
+    case 'contractor_success':
+    case 'content_seo':
+    case 'analytics_specialist':
+    case 'marketing_specialist':
+      return <StaffDashboard />;
+    
+    // Admin roles
+    case 'moderator':
+    case 'ops_admin':
+    case 'super_admin':
+    case 'head_admin':
+      return <AdminDashboard />;
+    
+    // Default to homeowner dashboard
+    case 'homeowner':
+    default:
+      return <HomeownerDashboard />;
   }
-  
-  if (user.role === 'realtor') {
-    return <RealtorDashboard />;
-  }
-  
-  if (user.role === 'car_salesman') {
-    return <CarSalesmanDashboard />;
-  }
-  
-  return <HomeownerDashboard />;
 }
