@@ -12,13 +12,13 @@ import { useAddressVerification } from "@/hooks/useAddressVerification";
 
 export function AddressVerificationBanner() {
   const [dismissed, setDismissed] = useState(false);
-  const { 
-    isLoading, 
-    isVerified, 
-    requiresVerification, 
-    daysRemaining, 
+  const {
+    isLoading,
+    isVerified,
+    requiresVerification,
+    daysRemaining,
     isExpired,
-    needsUrgentAction 
+    needsUrgentAction
   } = useAddressVerification();
 
   // Don't show banner if loading, verified, dismissed, or no verification required
@@ -88,7 +88,7 @@ export function AddressVerificationBanner() {
 
           <div className="flex items-center gap-2 ml-4">
             <Link href="/address-verification">
-              <Button 
+              <Button
                 variant={isExpired || needsUrgentAction ? "destructive" : "default"}
                 size="sm"
                 className="whitespace-nowrap"

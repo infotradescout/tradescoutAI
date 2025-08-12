@@ -25,6 +25,8 @@ import Foundation from "@/pages/foundation";
 import Exchange from "@/pages/exchange";
 import Helpers from "@/pages/helpers";
 import Accelerator from "@/pages/accelerator";
+import Help from "@/pages/help";
+import Settings from "@/pages/settings";
 import MasterAdminSetup from "@/components/auth/MasterAdminSetup";
 
 import Dashboard from "@/pages/dashboard";
@@ -160,6 +162,7 @@ const Router = memo(function Router() {
 
         {/* Authentication routes */}
         <Route path="/login" component={Login} />
+        <Route path="/register" component={Register} />
 
         {/* Public routes available to all users */}
         <Route path="/contractors" component={ContractorBoard} />
@@ -186,6 +189,8 @@ const Router = memo(function Router() {
         <Route path="/community/moderation" component={CommunityModerationDemo} />
         <Route path="/register" component={Register} />
         <Route path="/foundation" component={Foundation} />
+        <Route path="/help" component={Help} />
+        <Route path="/settings" component={Settings} />
         <Route path="/promo/:slug" component={PromoPublic} />
 
         {/* Legal Pages */}
