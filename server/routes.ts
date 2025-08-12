@@ -1088,7 +1088,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Admin heatmap data endpoint
   app.get("/api/admin/heatmap", isAuthenticated, async (req, res) => {
     try {
-      const userId = (req.user as any)?.claims?.sub;
+      const userId = (req.user as any)?.id;
       const user = await storage.getUser(userId);
       
       if (!user || !['head_admin', 'moderator', 'ops_admin'].includes(user.role || '')) {
