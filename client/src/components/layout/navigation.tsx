@@ -284,8 +284,58 @@ export default function Navigation() {
             </Sheet>
           </div>
 
-          {/* Mobile menu button */}
-          <div className="md:hidden">
+          {/* Mobile Navigation Buttons */}
+          <div className="md:hidden flex items-center space-x-2">
+            {/* Find Contractors - Always visible */}
+            <Link href="/contractors/board">
+              <Button 
+                variant="ghost" 
+                size="sm"
+                className={`text-xs px-2 py-1 ${
+                  location === '/contractors/board' 
+                    ? 'text-orange-500 bg-orange-500/15' 
+                    : 'text-gray-300 hover:text-white'
+                }`}
+              >
+                <Search className="h-4 w-4" />
+              </Button>
+            </Link>
+
+            {/* For Contractors - Only show if not a homeowner */}
+            {!isHomeowner && (
+              <Link href="/contractors">
+                <Button 
+                  variant="ghost" 
+                  size="sm"
+                  className={`text-xs px-2 py-1 ${
+                    location === '/contractors' 
+                      ? 'text-orange-500 bg-orange-500/15' 
+                      : 'text-gray-300 hover:text-white'
+                  }`}
+                >
+                  <Wrench className="h-4 w-4" />
+                </Button>
+              </Link>
+            )}
+
+            {/* Dashboard - Only show if authenticated */}
+            {isAuthenticated && (
+              <Link href={isContractor ? "/contractor-dashboard" : "/homeowner-dashboard"}>
+                <Button 
+                  variant="ghost" 
+                  size="sm"
+                  className={`text-xs px-2 py-1 ${
+                    (location === '/contractor-dashboard' || location === '/homeowner-dashboard') 
+                      ? 'text-orange-500 bg-orange-500/15' 
+                      : 'text-gray-300 hover:text-white'
+                  }`}
+                >
+                  <Layout className="h-4 w-4" />
+                </Button>
+              </Link>
+            )}
+
+            {/* Menu button */}
             <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
               <SheetTrigger asChild>
                 <Button 
