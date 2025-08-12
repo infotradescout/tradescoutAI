@@ -1,4 +1,4 @@
-import { Switch, Route } from "wouter";
+import { Switch, Route, useLocation } from "wouter";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
@@ -8,7 +8,7 @@ import { useAIMonitoring } from "@/hooks/useAIMonitoring";
 import { useSetupStatus } from "@/hooks/useSetupStatus";
 import { ErrorBoundary } from "@/components/ui/error-boundary";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
-import { lazy } from "react";
+import { lazy, useEffect } from "react";
 
 import { NextGenNavigation } from "@/components/layout/NextGenNavigation";
 import { useGlobalSwipeNavigation } from "@/hooks/useSwipeNavigation";
@@ -74,6 +74,37 @@ import AdvancedSearch from "@/pages/advanced-search";
 import Notifications from "@/pages/notifications";
 import Profile from "@/pages/profile";
 import { ProfileSetupRedirect } from "@/components/profile-setup-redirect";
+
+// Dashboard redirect component for authenticated users
+function DashboardRedirect() {
+  const { user } = useAuth();
+  const [, setLocation] = useLocation();
+  
+  useEffect(() => {
+    // Determine the appropriate dashboard based on user role
+    let dashboardPath = '/dashboard';
+    
+    if (user?.role === 'contractor_user') {
+      dashboardPath = '/contractor-dashboard';
+    } else if (user?.role === 'homeowner') {
+      dashboardPath = '/homeowner-dashboard';
+    } else if (user?.role === 'ops_admin' || user?.role === 'head_admin') {
+      dashboardPath = '/admin';
+    }
+    
+    setLocation(dashboardPath);
+  }, [user, setLocation]);
+  
+  // Show loading while redirecting
+  return (
+    <div className="min-h-screen gradient-bg flex items-center justify-center">
+      <div className="text-center">
+        <LoadingSpinner size="lg" className="text-orange-500 mx-auto mb-4" />
+        <p className="text-gray-300">Taking you to your dashboard...</p>
+      </div>
+    </div>
+  );
+}
 import { FloatingBugReport } from "@/components/FloatingBugReport";
 import { BetaNotificationPopup } from "@/components/BetaNotificationPopup";
 import { AddressVerificationBanner } from "@/components/AddressVerificationBanner";
@@ -163,6 +194,10 @@ function Router() {
           </>
         ) : (
           <>
+            {/* Authenticated users redirect to dashboard as homepage */}
+            <Route path="/">
+              <DashboardRedirect />
+            </Route>
             <Route path="/address-verification" component={AddressVerification} />
             <Route path="/profile-setup" component={ProfileSetup} />
             <Route path="/">

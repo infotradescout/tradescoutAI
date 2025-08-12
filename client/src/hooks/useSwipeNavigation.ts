@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useLocation } from 'wouter';
+import { useAuth } from '@/hooks/useAuth';
 
 interface SwipeNavigationOptions {
   onSwipeLeft?: () => void;
@@ -99,12 +100,26 @@ export function useSwipeNavigation({
   }, [onSwipeLeft, onSwipeRight]);
 }
 
-// Define the page order for sequential navigation
+// Define the page order for sequential navigation - dashboard first for authenticated users
 const PAGE_ORDER = [
+  '/dashboard',
+  '/contractors',
+  '/calculator',
+  '/contractors/for-contractors',
+  '/foundation',
+  '/community',
+  '/helpers',
+  '/exchange',
+  '/accelerator',
+  '/leaderboard',
+  '/growth-pack'
+];
+
+// Unauthenticated user page order
+const GUEST_PAGE_ORDER = [
   '/',
   '/contractors',
   '/calculator',
-  '/dashboard',
   '/contractors/for-contractors',
   '/foundation',
   '/community',
@@ -148,13 +163,19 @@ export function useGlobalSwipeNavigation() {
     targetPage: ''
   });
 
+  // Import useAuth hook within the component scope
+  const { isAuthenticated } = useAuth();
+  
+  // Use appropriate page order based on authentication status
+  const currentPageOrder = isAuthenticated ? PAGE_ORDER : GUEST_PAGE_ORDER;
+
   const getCurrentPageIndex = () => {
     // Find exact match first
-    let currentIndex = PAGE_ORDER.findIndex(page => page === location);
+    let currentIndex = currentPageOrder.findIndex(page => page === location);
     
     // If no exact match, find partial match (for nested routes)
     if (currentIndex === -1) {
-      currentIndex = PAGE_ORDER.findIndex(page => {
+      currentIndex = currentPageOrder.findIndex(page => {
         if (page === '/') return location === '/';
         return location.startsWith(page);
       });
@@ -167,8 +188,8 @@ export function useGlobalSwipeNavigation() {
     const currentIndex = getCurrentPageIndex();
     if (currentIndex === -1) return;
     
-    const nextIndex = (currentIndex + 1) % PAGE_ORDER.length;
-    const targetPage = PAGE_ORDER[nextIndex];
+    const nextIndex = (currentIndex + 1) % currentPageOrder.length;
+    const targetPage = currentPageOrder[nextIndex];
     
     // Show transition feedback
     setTransitionState({
@@ -187,8 +208,8 @@ export function useGlobalSwipeNavigation() {
     const currentIndex = getCurrentPageIndex();
     if (currentIndex === -1) return;
     
-    const prevIndex = currentIndex === 0 ? PAGE_ORDER.length - 1 : currentIndex - 1;
-    const targetPage = PAGE_ORDER[prevIndex];
+    const prevIndex = currentIndex === 0 ? currentPageOrder.length - 1 : currentIndex - 1;
+    const targetPage = currentPageOrder[prevIndex];
     
     // Show transition feedback
     setTransitionState({
@@ -271,10 +292,10 @@ export function useGlobalSwipeNavigation() {
 
   return {
     currentPageIndex: getCurrentPageIndex(),
-    totalPages: PAGE_ORDER.length,
+    totalPages: currentPageOrder.length,
     navigateToNextPage,
     navigateToPreviousPage,
-    pageOrder: PAGE_ORDER,
+    pageOrder: currentPageOrder,
     transitionState
   };
 }
