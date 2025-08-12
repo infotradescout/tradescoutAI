@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import { ConstructionEmblem } from "@/components/ConstructionEmblem";
 import { NotificationBell } from "@/components/NotificationBell";
+import { cn } from "@/lib/utils";
 
 export default function Navigation() {
   const [location] = useLocation();
