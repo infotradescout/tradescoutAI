@@ -202,7 +202,6 @@ const Router = memo(function Router() {
         <Route path="/leaderboard" component={Leaderboard} />
         <Route path="/community" component={Community} />
         <Route path="/community/moderation" component={CommunityModerationDemo} />
-        <Route path="/register" component={Register} />
         <Route path="/foundation" component={Foundation} />
         <Route path="/help" component={Help} />
         <Route path="/settings" component={Settings} />
@@ -222,16 +221,9 @@ const Router = memo(function Router() {
         ) : (
           <>
             {/* Authenticated users redirect to dashboard as homepage */}
-            <Route path="/">
-              <DashboardRedirect />
-            </Route>
+            <Route path="/" component={DashboardRedirect} />
             <Route path="/address-verification" component={AddressVerification} />
             <Route path="/profile-setup" component={ProfileSetup} />
-            <Route path="/">
-              <ProfileSetupRedirect>
-                <Dashboard />
-              </ProfileSetupRedirect>
-            </Route>
             <Route path="/dashboard">
               <ProfileSetupRedirect>
                 <Dashboard />

@@ -106,7 +106,7 @@ const PAGE_ORDER = [
   '/dashboard',
   '/contractors/board',
   '/calculator',
-  '/contractors/for-contractors',
+  '/contractors',
   '/foundation',
   '/community',
   '/helpers',
@@ -121,7 +121,7 @@ const GUEST_PAGE_ORDER = [
   '/',
   '/contractors/board',
   '/calculator',
-  '/contractors/for-contractors',
+  '/contractors',
   '/foundation',
   '/community',
   '/helpers',
@@ -135,10 +135,10 @@ const GUEST_PAGE_ORDER = [
 function getPageDisplayName(path: string): string {
   const displayNames: { [key: string]: string } = {
     '/': 'Home',
-    '/contractors': 'Contractors',
+    '/contractors': 'For Contractors',
+    '/contractors/board': 'Contractors',
     '/calculator': 'Quote Calculator',
     '/dashboard': 'Dashboard',
-    '/contractors/for-contractors': 'For Contractors',
     '/foundation': 'Foundation',
     '/community': 'Community',
     '/helpers': 'Helpers',
@@ -168,7 +168,11 @@ export function useGlobalSwipeNavigation() {
   const { isAuthenticated } = useAuth();
 
   // Fetch user navigation preferences
-  const { data: navigationPrefs } = useQuery({
+  const { data: navigationPrefs } = useQuery<{
+    customOrder?: string[];
+    hiddenFromSwipe?: string[];
+    enableSwipeNavigation?: boolean;
+  }>({
     queryKey: ['/api/user/navigation-preferences'],
     enabled: isAuthenticated,
     retry: false,
@@ -181,14 +185,14 @@ export function useGlobalSwipeNavigation() {
     // If user has custom order preferences, apply them
     if (navigationPrefs?.customOrder && navigationPrefs.customOrder.length > 0) {
       // Start with user's custom order
-      const customOrder = navigationPrefs.customOrder.filter(page => defaultOrder.includes(page));
+      const customOrder = navigationPrefs.customOrder.filter((page: string) => defaultOrder.includes(page));
       // Add any pages that weren't in the custom order at the end
       const remainingPages = defaultOrder.filter(page => !customOrder.includes(page));
       const fullCustomOrder = [...customOrder, ...remainingPages];
       
       // Filter out pages hidden from swipe navigation
       if (navigationPrefs.hiddenFromSwipe && navigationPrefs.hiddenFromSwipe.length > 0) {
-        return fullCustomOrder.filter(page => !navigationPrefs.hiddenFromSwipe.includes(page));
+        return fullCustomOrder.filter(page => !navigationPrefs.hiddenFromSwipe!.includes(page));
       }
       
       return fullCustomOrder;
@@ -196,7 +200,7 @@ export function useGlobalSwipeNavigation() {
     
     // Filter out hidden pages from default order
     if (navigationPrefs?.hiddenFromSwipe && navigationPrefs.hiddenFromSwipe.length > 0) {
-      return defaultOrder.filter(page => !navigationPrefs.hiddenFromSwipe.includes(page));
+      return defaultOrder.filter(page => !navigationPrefs.hiddenFromSwipe!.includes(page));
     }
     
     return defaultOrder;
@@ -327,7 +331,7 @@ export function useGlobalSwipeNavigation() {
         document.removeEventListener('wheel', handleWheel);
       };
     }
-  }, [navigateToNextPage, navigateToPreviousPage]);
+  }, []);
 
   return {
     currentPageIndex: getCurrentPageIndex(),
