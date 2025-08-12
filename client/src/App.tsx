@@ -10,6 +10,8 @@ import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { lazy } from "react";
 
 import { NextGenNavigation } from "@/components/layout/NextGenNavigation";
+import { useGlobalSwipeNavigation } from "@/hooks/useSwipeNavigation";
+import { SwipeIndicator } from "@/components/SwipeIndicator";
 import MobileCTA from "@/components/mobile-cta";
 import NotFound from "@/pages/not-found";
 import Login from "@/pages/login";
@@ -79,6 +81,9 @@ const AdminCreateAccount = lazy(() => import("@/pages/admin-create-account"));
 function Router() {
   const { isAuthenticated, isLoading } = useAuth();
   const { needsSetup, isLoading: setupLoading } = useSetupStatus();
+  
+  // Enable global swipe navigation on mobile
+  useGlobalSwipeNavigation();
 
   if (isLoading || setupLoading) {
     return (
@@ -219,6 +224,7 @@ function Router() {
       <MobileCTA />
       <FloatingBugReport />
       <BetaNotificationPopup />
+      <SwipeIndicator />
       <LegalFooter />
     </div>
   );
