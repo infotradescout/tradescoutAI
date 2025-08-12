@@ -38,7 +38,12 @@ export function LoginForm({ onSuccess, onSwitchToRegister }: LoginFormProps) {
 
   const loginMutation = useMutation({
     mutationFn: async (data: LoginFormData) => {
-      return apiRequest("POST", "/auth/login", data);
+      try {
+        return await apiRequest("POST", "/api/auth/login", data);
+      } catch (error) {
+        console.error('Login request failed:', error);
+        throw error;
+      }
     },
     onSuccess: (data) => {
       toast({
@@ -46,13 +51,14 @@ export function LoginForm({ onSuccess, onSwitchToRegister }: LoginFormProps) {
         description: "You have been successfully logged in.",
       });
       // Invalidate user query to refetch current user
-      queryClient.invalidateQueries({ queryKey: ["/auth/user"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
       onSuccess?.();
     },
     onError: (error: any) => {
+      console.error('Login error:', error);
       toast({
         title: "Login Failed",
-        description: error.message || "Invalid email or password",
+        description: error.message || "Unable to sign in. Please check your credentials and try again.",
         variant: "destructive",
       });
     },

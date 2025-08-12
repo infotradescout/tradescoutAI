@@ -1,35 +1,38 @@
-import { useState, useEffect } from 'react';
-import { X, AlertTriangle, Bug } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { useState, useEffect } from "react";
+import { X, AlertTriangle, Bug } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
   DialogDescription,
   DialogHeader,
   DialogTitle,
-} from '@/components/ui/dialog';
+} from "@/components/ui/dialog";
 
 export function BetaNotificationPopup() {
   const [isOpen, setIsOpen] = useState(false);
 
   useEffect(() => {
-    // Check if user has already seen the beta notification in this session
-    const hasSeenBetaNotification = sessionStorage.getItem('betaNotificationSeen');
-    
-    if (!hasSeenBetaNotification) {
-      // Show popup after a short delay
-      const timer = setTimeout(() => {
-        setIsOpen(true);
-      }, 1000);
-      
-      return () => clearTimeout(timer);
+    try {
+      // Check if user has seen the beta notification
+      const hasSeenBetaNotification = localStorage.getItem('hasSeenBetaNotification');
+      if (!hasSeenBetaNotification) {
+        // Show after a short delay
+        const timer = setTimeout(() => {
+          setIsOpen(true);
+        }, 2000);
+
+        return () => clearTimeout(timer);
+      }
+    } catch (error) {
+      console.error('BetaNotificationPopup localStorage error:', error);
     }
   }, []);
 
   const handleClose = () => {
     setIsOpen(false);
     // Mark as seen for this session
-    sessionStorage.setItem('betaNotificationSeen', 'true');
+    localStorage.setItem('hasSeenBetaNotification', 'true');
   };
 
   return (
@@ -44,7 +47,7 @@ export function BetaNotificationPopup() {
             Welcome to TradeScout Beta! You're using an early version of our platform.
           </DialogDescription>
         </DialogHeader>
-        
+
         <div className="space-y-4">
           <div className="bg-orange-50 dark:bg-orange-950/20 p-4 rounded-lg border border-orange-200 dark:border-orange-800">
             <div className="space-y-3">
@@ -59,7 +62,7 @@ export function BetaNotificationPopup() {
                   </p>
                 </div>
               </div>
-              
+
               <div className="flex items-start gap-2">
                 <AlertTriangle className="h-4 w-4 text-orange-500 mt-0.5 flex-shrink-0" />
                 <div>
@@ -73,12 +76,12 @@ export function BetaNotificationPopup() {
               </div>
             </div>
           </div>
-          
+
           <p className="text-xs text-gray-500 dark:text-gray-400 text-center">
             This notice will only appear once per session.
           </p>
         </div>
-        
+
         <div className="flex justify-end pt-4">
           <Button onClick={handleClose} className="bg-orange-600 hover:bg-orange-700">
             Got it, thanks!

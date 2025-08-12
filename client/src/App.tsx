@@ -75,15 +75,24 @@ import Notifications from "@/pages/notifications";
 import Profile from "@/pages/profile";
 import { ProfileSetupRedirect } from "@/components/profile-setup-redirect";
 
+// Lazy load admin components
+const AdminCreateAccount = lazy(() => import("@/pages/admin-create-account"));
+
+// Lazy load legal pages
+const PrivacyPolicy = lazy(() => import("./pages/legal/privacy-policy"));
+const TermsOfService = lazy(() => import("./pages/legal/terms-of-service"));
+const Compliance = lazy(() => import("./pages/legal/compliance"));
+const CookiePolicy = lazy(() => import("./pages/legal/cookie-policy"));
+
 // Dashboard redirect component for authenticated users
 function DashboardRedirect() {
   const { user } = useAuth();
   const [, setLocation] = useLocation();
-  
+
   useEffect(() => {
     // Determine the appropriate dashboard based on user role
     let dashboardPath = '/dashboard';
-    
+
     if (user?.role === 'contractor_user') {
       dashboardPath = '/contractor-dashboard';
     } else if (user?.role === 'homeowner') {
@@ -91,10 +100,10 @@ function DashboardRedirect() {
     } else if (user?.role === 'ops_admin' || user?.role === 'head_admin') {
       dashboardPath = '/admin';
     }
-    
+
     setLocation(dashboardPath);
   }, [user, setLocation]);
-  
+
   // Show loading while redirecting
   return (
     <div className="min-h-screen gradient-bg flex items-center justify-center">
@@ -111,16 +120,13 @@ import { AddressVerificationBanner } from "@/components/AddressVerificationBanne
 import { LegalFooter } from "@/components/footer/legal-footer";
 import { TutorialProvider } from "@/components/tutorial/TutorialProvider";
 
-// Lazy load admin components
-const AdminCreateAccount = lazy(() => import("@/pages/admin-create-account"));
-
 function Router() {
   const { isAuthenticated, isLoading } = useAuth();
   const { needsSetup, isLoading: setupLoading } = useSetupStatus();
-  
+
   // Enable global swipe navigation on mobile with page cycling
   const swipeNav = useGlobalSwipeNavigation();
-  
+
   // Enable AI monitoring for admin users
   useAIMonitoring();
 
@@ -151,10 +157,10 @@ function Router() {
       <Switch>
         {/* Master Admin Setup - Only shows if no admin exists */}
         <Route path="/setup" component={MasterAdminSetup} />
-        
+
         {/* Authentication routes */}
         <Route path="/login" component={Login} />
-        
+
         {/* Public routes available to all users */}
         <Route path="/contractors" component={ContractorBoard} />
         <Route path="/contractors/board" component={ContractorBoard} />
@@ -179,16 +185,15 @@ function Router() {
         <Route path="/community" component={Community} />
         <Route path="/community/moderation" component={CommunityModerationDemo} />
         <Route path="/register" component={Register} />
-        <Route path="/setup" component={MasterAdminSetup} />
         <Route path="/foundation" component={Foundation} />
         <Route path="/promo/:slug" component={PromoPublic} />
-        
+
         {/* Legal Pages */}
-        <Route path="/legal/privacy-policy" component={lazy(() => import("./pages/legal/privacy-policy"))} />
-        <Route path="/legal/terms-of-service" component={lazy(() => import("./pages/legal/terms-of-service"))} />
-        <Route path="/legal/compliance" component={lazy(() => import("./pages/legal/compliance"))} />
-        <Route path="/legal/cookie-policy" component={lazy(() => import("./pages/legal/cookie-policy"))} />
-        
+        <Route path="/legal/privacy-policy" component={PrivacyPolicy} />
+        <Route path="/legal/terms-of-service" component={TermsOfService} />
+        <Route path="/legal/compliance" component={Compliance} />
+        <Route path="/legal/cookie-policy" component={CookiePolicy} />
+
         {!isAuthenticated ? (
           <>
             <Route path="/" component={Landing} />
@@ -270,14 +275,14 @@ function Router() {
       <MobileCTA />
       <FloatingBugReport />
       <BetaNotificationPopup />
-      <SwipeIndicator 
+      <SwipeIndicator
         currentPageIndex={swipeNav.currentPageIndex}
         totalPages={swipeNav.totalPages}
         onPrevious={swipeNav.navigateToPreviousPage}
         onNext={swipeNav.navigateToNextPage}
       />
       <KeyboardNavigationHint />
-      <PageTransitionIndicator 
+      <PageTransitionIndicator
         direction={swipeNav.transitionState.direction || undefined}
         isVisible={swipeNav.transitionState.isTransitioning}
         currentPage={swipeNav.transitionState.targetPage}

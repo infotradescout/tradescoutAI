@@ -55,7 +55,12 @@ export function RegisterForm({ onSuccess, onSwitchToLogin }: RegisterFormProps) 
 
   const registerMutation = useMutation({
     mutationFn: async (data: Omit<RegisterFormData, "confirmPassword">) => {
-      return apiRequest("POST", "/auth/register", data);
+      try {
+        return await apiRequest("POST", "/api/auth/register", data);
+      } catch (error) {
+        console.error('Registration request failed:', error);
+        throw error;
+      }
     },
     onSuccess: (data) => {
       toast({
@@ -63,13 +68,14 @@ export function RegisterForm({ onSuccess, onSwitchToLogin }: RegisterFormProps) 
         description: "Your account has been created successfully.",
       });
       // Invalidate user query to refetch current user
-      queryClient.invalidateQueries({ queryKey: ["/auth/user"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
       onSuccess?.();
     },
     onError: (error: any) => {
+      console.error('Registration error:', error);
       toast({
         title: "Registration Failed",
-        description: error.message || "Unable to create account",
+        description: error.message || "Unable to create account. Please try again.",
         variant: "destructive",
       });
     },

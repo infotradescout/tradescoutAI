@@ -7,20 +7,52 @@ async function throwIfResNotOk(res: Response) {
   }
 }
 
-export async function apiRequest(
-  method: string,
-  url: string,
-  data?: unknown | undefined,
-): Promise<Response> {
-  const res = await fetch(url, {
-    method,
-    headers: data ? { "Content-Type": "application/json" } : {},
-    body: data ? JSON.stringify(data) : undefined,
-    credentials: "include",
-  });
+export async function apiRequest(method: string, endpoint: string, data?: any) {
+  try {
+    const config: RequestInit = {
+      method,
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      credentials: 'include',
+    };
 
-  await throwIfResNotOk(res);
-  return res;
+    if (data) {
+      config.body = JSON.stringify(data);
+    }
+
+    console.log(`API Request: ${method} ${endpoint}`, data ? { data } : '');
+
+    const response = await fetch(endpoint, config);
+
+    if (!response.ok) {
+      let errorData;
+      try {
+        errorData = await response.json();
+      } catch {
+        errorData = { message: `Request failed with status ${response.status}` };
+      }
+
+      console.error(`API Error: ${method} ${endpoint}`, {
+        status: response.status,
+        statusText: response.statusText,
+        error: errorData
+      });
+
+      throw new Error(errorData.message || `HTTP ${response.status}: ${response.statusText}`);
+    }
+
+    const result = await response.json();
+    console.log(`API Success: ${method} ${endpoint}`, result);
+    return result;
+
+  } catch (error) {
+    console.error(`API Request Failed: ${method} ${endpoint}`, error);
+    if (error instanceof TypeError && error.message.includes('fetch')) {
+      throw new Error('Network error. Please check your connection and try again.');
+    }
+    throw error;
+  }
 }
 
 type UnauthorizedBehavior = "returnNull" | "throw";

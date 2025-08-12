@@ -1,10 +1,14 @@
-import { useState } from "react";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { useState, useEffect } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { X, MapPin, CheckCircle } from "lucide-react";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { X, Clock, Shield, ExternalLink } from "lucide-react";
-import { useAddressVerification } from "@/hooks/useAddressVerification";
+import { useAuth } from "@/hooks/useAuth";
 import { Link } from "wouter";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Badge } from "@/components/ui/badge";
+import { Shield, ExternalLink } from "lucide-react";
+import { useAddressVerification } from "@/hooks/useAddressVerification";
 
 export function AddressVerificationBanner() {
   const [dismissed, setDismissed] = useState(false);
@@ -81,7 +85,7 @@ export function AddressVerificationBanner() {
               )}
             </AlertDescription>
           </div>
-          
+
           <div className="flex items-center gap-2 ml-4">
             <Link href="/address-verification">
               <Button 
@@ -93,7 +97,7 @@ export function AddressVerificationBanner() {
                 <ExternalLink className="w-3 h-3 ml-1" />
               </Button>
             </Link>
-            
+
             {!isExpired && (
               <Button
                 variant="ghost"
