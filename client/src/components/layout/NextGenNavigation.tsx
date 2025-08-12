@@ -25,7 +25,7 @@ export function NextGenNavigation({ className = "" }: NextGenNavigationProps) {
   const { isAuthenticated, user } = useAuth();
   const [location] = useLocation();
   const [containerWidth, setContainerWidth] = useState<number>(0);
-  const [adaptiveLayout, setAdaptiveLayout] = useState<'full' | 'compact' | 'icons' | 'minimal'>('full');
+  const [adaptiveLayout, setAdaptiveLayout] = useState<'full' | 'compact' | 'minimal'>('full');
   const navRef = useRef<HTMLDivElement>(null);
   const [mounted, setMounted] = useState(false);
 
@@ -90,7 +90,7 @@ export function NextGenNavigation({ className = "" }: NextGenNavigationProps) {
     return location.startsWith(path);
   };
 
-  // Intelligent layout calculation
+  // Simplified responsive layout calculation
   useEffect(() => {
     const calculateLayout = () => {
       if (!navRef.current || !mounted) return;
@@ -98,26 +98,24 @@ export function NextGenNavigation({ className = "" }: NextGenNavigationProps) {
       const width = navRef.current.offsetWidth;
       setContainerWidth(width);
 
-      // Smoother progressive layout system with optimized breakpoints
-      if (width >= 1050) {
-        setAdaptiveLayout('full'); // Show all items with text
-      } else if (width >= 750) {
-        setAdaptiveLayout('compact'); // Show fewer items with text + dropdown
-      } else if (width >= 550) {
-        setAdaptiveLayout('icons'); // Show icons only, no text
+      // Simple, intuitive layout system
+      if (width >= 900) {
+        setAdaptiveLayout('full'); // Show all items with text labels
+      } else if (width >= 600) {
+        setAdaptiveLayout('compact'); // Show top priority items with text + others in dropdown
       } else {
-        setAdaptiveLayout('minimal'); // Show fewer icons + dropdown
+        setAdaptiveLayout('minimal'); // Show only icons for top items + dropdown
       }
     };
 
     setMounted(true);
-    const timer = setTimeout(calculateLayout, 100);
+    const timer = setTimeout(calculateLayout, 50);
     
-    // Debounced resize observer for smoother transitions
+    // Optimized resize handling
     let resizeTimeout: NodeJS.Timeout;
     const debouncedCalculateLayout = () => {
       clearTimeout(resizeTimeout);
-      resizeTimeout = setTimeout(calculateLayout, 150);
+      resizeTimeout = setTimeout(calculateLayout, 100);
     };
     
     const resizeObserver = new ResizeObserver(debouncedCalculateLayout);
@@ -136,7 +134,7 @@ export function NextGenNavigation({ className = "" }: NextGenNavigationProps) {
     };
   }, [mounted]);
 
-  // Smart item distribution based on layout
+  // Simplified item distribution - cleaner logic
   const { visibleItems, hiddenItems } = useMemo(() => {
     const sorted = [...navItems].sort((a, b) => b.priority - a.priority);
     
@@ -145,24 +143,23 @@ export function NextGenNavigation({ className = "" }: NextGenNavigationProps) {
 
     switch (adaptiveLayout) {
       case 'full':
-        visible = sorted.slice(0, 8); // Show all 8 items with text
-        hidden = sorted.slice(8);
+        // Show all top priority items when there's plenty of space
+        visible = sorted.slice(0, 7);
+        hidden = sorted.slice(7);
         break;
       case 'compact':
-        visible = sorted.slice(0, 6); // Show 6 items with text (includes Foundation & Community)
-        hidden = sorted.slice(6);
-        break;
-      case 'icons':
-        visible = sorted.slice(0, 8); // Show 8 items as icons only (all main items)
-        hidden = sorted.slice(8);
+        // Show only the most important items with text, others in dropdown
+        visible = sorted.slice(0, 4);
+        hidden = sorted.slice(4);
         break;
       case 'minimal':
-        visible = sorted.slice(0, 5); // Show 5 items as icons only
-        hidden = sorted.slice(5);
+        // Show only top 3 items as icons, rest in dropdown
+        visible = sorted.slice(0, 3);
+        hidden = sorted.slice(3);
         break;
       default:
-        visible = sorted.slice(0, 6);
-        hidden = sorted.slice(6);
+        visible = sorted.slice(0, 4);
+        hidden = sorted.slice(4);
     }
 
     return { visibleItems: visible, hiddenItems: hidden };
@@ -190,7 +187,7 @@ export function NextGenNavigation({ className = "" }: NextGenNavigationProps) {
         {/* Revolutionary Adaptive Navigation */}
         <nav className="hidden md:flex items-center flex-1 justify-center max-w-5xl mx-4" ref={navRef}>
           <div className="flex items-center space-x-1 bg-slate-800/60 rounded-xl p-1.5 border border-slate-700/50 shadow-lg backdrop-blur-sm transition-all duration-300 ease-in-out">
-            {/* Priority-based visible items */}
+            {/* Priority-based visible items with smooth transitions */}
             {visibleItems.map((item) => {
               const Icon = item.icon;
               const active = isActive(item.href);
@@ -199,39 +196,45 @@ export function NextGenNavigation({ className = "" }: NextGenNavigationProps) {
               return (
                 <Link key={item.href} href={item.href}>
                   <div 
-                    className={`rounded-lg text-sm font-medium transition-all duration-300 ease-in-out whitespace-nowrap border flex items-center gap-2 transform hover:scale-105 ${
+                    className={`rounded-lg text-sm font-medium transition-all duration-300 ease-in-out whitespace-nowrap border flex items-center transform hover:scale-105 ${
                       active 
                         ? "bg-orange-500 text-white border-orange-400 shadow-lg shadow-orange-500/25" 
                         : "text-slate-300 hover:text-white hover:bg-slate-700/60 border-transparent hover:border-slate-600"
-                    } ${!showTextLabel ? 'px-2.5 py-2' : 'px-3 py-2'}`}
+                    } ${showTextLabel ? 'px-3 py-2 gap-2' : 'px-2.5 py-2'}`}
                     title={!showTextLabel ? item.label : undefined}
                   >
                     <Icon className={`w-4 h-4 flex-shrink-0 transition-colors duration-300 ${
                       active ? 'text-white' : 'text-orange-400'
                     }`} />
-                    {showTextLabel && (
-                      <span className="transition-opacity duration-300 ease-in-out">
-                        {item.label}
-                      </span>
-                    )}
+                    <span className={`transition-all duration-300 ease-in-out overflow-hidden ${
+                      showTextLabel 
+                        ? 'opacity-100 max-w-[120px] ml-2' 
+                        : 'opacity-0 max-w-0 ml-0'
+                    }`}>
+                      {item.label}
+                    </span>
                   </div>
                 </Link>
               );
             })}
             
-            {/* Intelligent overflow dropdown */}
+            {/* Smart overflow dropdown - only show when items are hidden */}
             {hiddenItems.length > 0 && (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button 
                     variant="ghost" 
                     size="sm" 
-                    className="px-3 py-2 text-slate-300 hover:text-white hover:bg-slate-700/60 transition-all duration-300 ease-in-out border border-transparent hover:border-slate-600 rounded-lg flex items-center gap-1 transform hover:scale-105"
+                    className="px-2.5 py-2 text-slate-300 hover:text-white hover:bg-slate-700/60 transition-all duration-300 ease-in-out border border-transparent hover:border-slate-600 rounded-lg flex items-center transform hover:scale-105"
                   >
                     <MoreHorizontal className="w-4 h-4" />
-                    {(adaptiveLayout === 'full' || adaptiveLayout === 'compact') && (
-                      <span className="text-xs">More</span>
-                    )}
+                    <span className={`text-xs transition-all duration-300 ease-in-out overflow-hidden ${
+                      adaptiveLayout === 'full' || adaptiveLayout === 'compact'
+                        ? 'opacity-100 max-w-[40px] ml-1' 
+                        : 'opacity-0 max-w-0 ml-0'
+                    }`}>
+                      More
+                    </span>
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent 
