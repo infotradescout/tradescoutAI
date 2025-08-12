@@ -125,6 +125,16 @@ export default function ContractorBoard() {
     queryKey: ['/api/trades', { main: true }],
   });
 
+  // Get total site-wide contractor count
+  const { data: allContractors } = useQuery({
+    queryKey: ['/api/contractors'],
+    queryFn: async () => {
+      const response = await fetch('/api/contractors?limit=10000');
+      if (!response.ok) throw new Error('Failed to fetch contractors');
+      return response.json();
+    },
+  });
+
   // Filter contractors based on search query
   const filteredContractors = useMemo(() => {
     if (!contractors) return [];
@@ -139,6 +149,13 @@ export default function ContractorBoard() {
   }, [contractors, searchQuery]);
 
   const activeFiltersCount = [selectedState, selectedCounty, selectedTrade].filter(Boolean).length;
+  const hasActiveFilters = activeFiltersCount > 0 || searchQuery;
+  
+  // Show site-wide count if no filters, otherwise show filtered count
+  const displayCount = hasActiveFilters ? filteredContractors.length : (allContractors?.length || 0);
+  const displayText = hasActiveFilters ? 
+    `${filteredContractors.length} contractor${filteredContractors.length !== 1 ? 's' : ''} found` :
+    `${allContractors?.length || 0} contractors available nationwide`;
 
   if (isLoading) {
     return (
@@ -425,7 +442,7 @@ export default function ContractorBoard() {
 
           <div className="flex items-center space-x-3">
             <span className="text-sm text-gray-400">
-              {filteredContractors.length} contractor{filteredContractors.length !== 1 ? 's' : ''} found
+              {displayText}
             </span>
           </div>
         </div>
