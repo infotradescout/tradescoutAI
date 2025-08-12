@@ -290,12 +290,12 @@ export default function ContractorBoard() {
           </h1>
           <p className="text-xl text-gray-300 mb-8">
             Connect with verified, local contractors for your next project
-            {filteredContractors.length > 0 && (
-              <span className="block text-lg mt-2">
-                {filteredContractors.length} contractor{filteredContractors.length !== 1 ? 's' : ''} available
-              </span>
-            )}
           </p>
+          <div className="inline-flex items-center px-4 py-2 bg-navy-700/50 rounded-full border border-navy-600">
+            <span className="text-gray-300">
+              {displayText}
+            </span>
+          </div>
         </header>
 
         {/* State, County and Trade Quick Filters */}
@@ -441,9 +441,17 @@ export default function ContractorBoard() {
           </div>
 
           <div className="flex items-center space-x-3">
-            <span className="text-sm text-gray-400">
-              {displayText}
-            </span>
+            <Select value={sortBy} onValueChange={setSortBy}>
+              <SelectTrigger className="w-48 bg-navy-700 border-navy-600 text-white">
+                <SelectValue placeholder="Sort by..." />
+              </SelectTrigger>
+              <SelectContent className="bg-navy-700 border-navy-600 text-white">
+                <SelectItem value="recommended" className="text-white hover:bg-navy-600 focus:bg-navy-600 focus:text-white">Recommended</SelectItem>
+                <SelectItem value="rating" className="text-white hover:bg-navy-600 focus:bg-navy-600 focus:text-white">Highest Rated</SelectItem>
+                <SelectItem value="reviews" className="text-white hover:bg-navy-600 focus:bg-navy-600 focus:text-white">Most Reviews</SelectItem>
+                <SelectItem value="newest" className="text-white hover:bg-navy-600 focus:bg-navy-600 focus:text-white">Newest</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
         </div>
 
