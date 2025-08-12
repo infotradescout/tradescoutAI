@@ -38,8 +38,12 @@ export function useAuth() {
       }
     },
     retry: 1,
-    retryDelay: 1000,
-    staleTime: 5 * 60 * 1000, // 5 minutes
+    retryDelay: 2000,
+    staleTime: 10 * 60 * 1000, // 10 minutes - reduce polling
+    gcTime: 15 * 60 * 1000, // 15 minutes garbage collection
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
+    refetchInterval: false,
   });
 
   return {

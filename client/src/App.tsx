@@ -8,7 +8,7 @@ import { useAIMonitoring } from "@/hooks/useAIMonitoring";
 import { useSetupStatus } from "@/hooks/useSetupStatus";
 import { ErrorBoundary } from "@/components/ui/error-boundary";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
-import { lazy, useEffect } from "react";
+import React, { lazy, useEffect, memo } from "react";
 
 import { NextGenNavigation } from "@/components/layout/NextGenNavigation";
 import { useGlobalSwipeNavigation } from "@/hooks/useSwipeNavigation";
@@ -120,7 +120,7 @@ import { AddressVerificationBanner } from "@/components/AddressVerificationBanne
 import { LegalFooter } from "@/components/footer/legal-footer";
 import { TutorialProvider } from "@/components/tutorial/TutorialProvider";
 
-function Router() {
+const Router = memo(function Router() {
   const { isAuthenticated, isLoading } = useAuth();
   const { needsSetup, isLoading: setupLoading } = useSetupStatus();
 
@@ -292,7 +292,9 @@ function Router() {
   );
 }
 
-function App() {
+});
+
+const App = memo(function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
@@ -305,6 +307,6 @@ function App() {
       </TooltipProvider>
     </QueryClientProvider>
   );
-}
+});
 
 export default App;

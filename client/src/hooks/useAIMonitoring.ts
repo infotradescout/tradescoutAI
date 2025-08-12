@@ -13,10 +13,10 @@ export function useAIMonitoring() {
     if (shouldMonitor) {
       // Initialize monitoring service
       aiMonitoringService.initializeMonitoring();
-      
+
       // Log monitoring activation
       console.log('🤖 AI Site Monitoring Active - Analyzing UX patterns and detecting issues...');
-      
+
       return () => {
         // Cleanup monitoring when component unmounts
         aiMonitoringService.destroy();
