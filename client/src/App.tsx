@@ -76,6 +76,12 @@ import AffiliatePage from "@/pages/affiliate";
 import CrmDashboard from "@/pages/CrmDashboard";
 import TestFunctionality from "@/pages/test-functionality";
 
+import { FloatingBugReport } from "@/components/FloatingBugReport";
+import { BetaNotificationPopup } from "@/components/BetaNotificationPopup";
+import { AddressVerificationBanner } from "@/components/AddressVerificationBanner";
+import { LegalFooter } from "@/components/footer/legal-footer";
+import { TutorialProvider } from "@/components/tutorial/TutorialProvider";
+
 import ModerationCenter from "@/pages/moderation-center";
 import Checkout from "@/pages/checkout";
 import PaymentSuccess from "@/pages/payment-success";
@@ -124,11 +130,6 @@ function DashboardRedirect() {
     </div>
   );
 }
-import { FloatingBugReport } from "@/components/FloatingBugReport";
-import { BetaNotificationPopup } from "@/components/BetaNotificationPopup";
-import { AddressVerificationBanner } from "@/components/AddressVerificationBanner";
-import { LegalFooter } from "@/components/footer/legal-footer";
-import { TutorialProvider } from "@/components/tutorial/TutorialProvider";
 
 const Router = memo(function Router() {
   const { isAuthenticated, isLoading } = useAuth();
