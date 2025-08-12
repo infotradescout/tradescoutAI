@@ -113,7 +113,7 @@ app.use((req, res, next) => {
   const port = parseInt(process.env.PORT || '5000', 10);
   server.listen({
     port,
-    host: "0.0.0.0",
+    host: "0.0.0.0", // Required for external access in Replit
     reusePort: true,
   }, () => {
     log(`serving on port ${port}`);
