@@ -10,7 +10,10 @@ import {
 } from "@/components/ui/dialog";
 
 export function BetaNotificationPopup() {
-  const [isOpen, setIsOpen] = useState(false);
+  try {
+    const { toast } = useToast();
+    const [isOpen, setIsOpen] = useState(false);
+    const [hasSeenNotification, setHasSeenNotification] = useState(false);
 
   useEffect(() => {
     try {
@@ -89,5 +92,10 @@ export function BetaNotificationPopup() {
         </div>
       </DialogContent>
     </Dialog>
+    </div>
   );
+  } catch (error) {
+    console.error('BetaNotificationPopup error:', error);
+    return null;
+  }
 }

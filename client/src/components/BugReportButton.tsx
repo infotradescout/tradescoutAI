@@ -1,15 +1,98 @@
-import React, { useState } from "react";
+import React, { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { Bug } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
+import { Bug, Send, CheckCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/useAuth";
+import { useMutation } from "@tanstack/react-query";
+
+interface BugReportData {
+  type: string;
+  title: string;
+  description: string;
+  steps: string;
+  expected: string;
+  actual: string;
+  url: string;
+  userAgent: string;
+}
 
 export function BugReportButton() {
-  const [isOpen, setIsOpen] = useState(false);
-
   try {
+    const { toast } = useToast();
+    const { user } = useAuth();
+    const [isOpen, setIsOpen] = useState(false);
+    const [bugData, setBugData] = useState<BugReportData>({
+      type: "",
+      title: "",
+      description: "",
+      steps: "",
+      expected: "",
+      actual: "",
+      url: "",
+      userAgent: navigator.userAgent,
+    });
+
+    const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+      const { id, value } = e.target;
+      setBugData((prev) => ({
+        ...prev,
+        [id]: value,
+      }));
+    };
+
+    const handleSelectChange = (value: string, field: string) => {
+      setBugData((prev) => ({
+        ...prev,
+        [field]: value,
+      }));
+    };
+
+    const submitBugReport = useMutation({
+      mutationFn: async (data: BugReportData) => {
+        const response = await fetch("/api/bug-report", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(data),
+        });
+        if (!response.ok) {
+          throw new Error("Failed to submit bug report");
+        }
+        return response.json();
+      },
+      onSuccess: () => {
+        toast({
+          title: "Bug Report Sent",
+          description: "Thank you for your feedback!",
+          variant: "success",
+        });
+        setIsOpen(false);
+        setBugData({
+          type: "",
+          title: "",
+          description: "",
+          steps: "",
+          expected: "",
+          actual: "",
+          url: "",
+          userAgent: navigator.userAgent,
+        });
+      },
+      onError: (error) => {
+        toast({
+          title: "Error Sending Bug Report",
+          description: error.message || "Please try again later.",
+          variant: "destructive",
+        });
+      },
+    });
+
     return (
       <>
         <Button
@@ -28,29 +111,97 @@ export function BugReportButton() {
             </DialogHeader>
             <div className="grid gap-4 py-4">
               <div className="grid gap-2">
-                <Label htmlFor="bug-description">Description</Label>
+                <Label htmlFor="type">Type of Issue</Label>
+                <Select onValueChange={(value) => handleSelectChange(value, "type")} value={bugData.type}>
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Select issue type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="bug">Bug</SelectItem>
+                    <SelectItem value="feature-request">Feature Request</SelectItem>
+                    <SelectItem value="other">Other</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="title">Title</Label>
+                <Input
+                  id="title"
+                  value={bugData.title}
+                  onChange={(e) => handleInputChange(e)}
+                  placeholder="Briefly summarize the issue"
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="description">Description</Label>
                 <Textarea
-                  id="bug-description"
+                  id="description"
+                  value={bugData.description}
+                  onChange={(e) => handleInputChange(e)}
                   placeholder="Describe the bug you encountered..."
                   className="min-h-[100px]"
                 />
               </div>
               <div className="grid gap-2">
-                <Label htmlFor="bug-report-url">URL (optional)</Label>
+                <Label htmlFor="steps">Steps to Reproduce</Label>
                 <Textarea
-                  id="bug-report-url"
+                  id="steps"
+                  value={bugData.steps}
+                  onChange={(e) => handleInputChange(e)}
+                  placeholder="List the steps to reproduce the bug..."
+                  className="min-h-[100px]"
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="expected">Expected Behavior</Label>
+                <Textarea
+                  id="expected"
+                  value={bugData.expected}
+                  onChange={(e) => handleInputChange(e)}
+                  placeholder="What should have happened?"
+                  className="min-h-[100px]"
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="actual">Actual Behavior</Label>
+                <Textarea
+                  id="actual"
+                  value={bugData.actual}
+                  onChange={(e) => handleInputChange(e)}
+                  placeholder="What actually happened?"
+                  className="min-h-[100px]"
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="url">URL (optional)</Label>
+                <Input
+                  id="url"
+                  value={bugData.url}
+                  onChange={(e) => handleInputChange(e)}
                   placeholder="Paste the URL where the bug occurred..."
-                  className="min-h-[50px]"
                 />
               </div>
             </div>
-            <Button type="submit">Send Report</Button>
+            <Button
+              type="submit"
+              onClick={() => submitBugReport.mutate(bugData)}
+              disabled={submitBugReport.isLoading}
+            >
+              {submitBugReport.isLoading ? "Sending..." : "Send Report"}
+            </Button>
           </DialogContent>
         </Dialog>
       </>
     );
   } catch (error) {
     console.error('BugReportButton error:', error);
-    return null;
+    return (
+      <div className="fixed bottom-4 left-4 z-50">
+        <Button variant="outline" size="sm" disabled>
+          <Bug className="h-4 w-4 mr-2" />
+          Report Issue
+        </Button>
+      </div>
+    );
   }
 }

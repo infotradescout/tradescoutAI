@@ -76,19 +76,18 @@ export const getQueryFn: <T>(options: {
 export const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      queryFn: getQueryFn({ on401: "throw" }),
-      refetchInterval: false,
+      staleTime: 1000 * 60 * 10, // 10 minutes - longer cache
+      gcTime: 1000 * 60 * 30, // 30 minutes garbage collection
       refetchOnWindowFocus: false,
-      refetchOnMount: false,
       refetchOnReconnect: false,
-      staleTime: 10 * 60 * 1000, // 10 minutes
-      gcTime: 15 * 60 * 1000, // 15 minutes - aggressive garbage collection
-      retry: 1,
-      retryDelay: 2000,
-    },
-    mutations: {
-      retry: 1,
-      gcTime: 5 * 60 * 1000, // 5 minutes for mutations
+      retry: (failureCount, error: any) => {
+        // Don't retry on 401, 403, or 404 errors
+        if (error?.status === 401 || error?.status === 403 || error?.status === 404) {
+          return false;
+        }
+        // Retry only once for other errors to reduce memory usage
+        return failureCount < 1;
+      },
     },
   },
 });
