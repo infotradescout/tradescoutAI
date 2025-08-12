@@ -237,7 +237,7 @@ export default function AdminUsers() {
                   <SelectValue placeholder="Filter by role" />
                 </SelectTrigger>
                 <SelectContent className="bg-navy-700 border-navy-600">
-                  <SelectItem value="">All Roles</SelectItem>
+                  <SelectItem value="all">All Roles</SelectItem>
                   {Object.entries(roleHierarchy).map(([role, info]) => (
                     <SelectItem key={role} value={role} className="text-white">
                       {info.label}

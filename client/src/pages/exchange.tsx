@@ -180,7 +180,7 @@ export default function Exchange() {
                     <SelectValue placeholder="Category" />
                   </SelectTrigger>
                   <SelectContent className="bg-slate-800 border-slate-700">
-                    <SelectItem value="">All Categories</SelectItem>
+                    <SelectItem value="all">All Categories</SelectItem>
                     {EXCHANGE_CATEGORIES.map(category => (
                       <SelectItem key={category.id} value={category.id}>
                         {category.name}
@@ -194,7 +194,7 @@ export default function Exchange() {
                     <SelectValue placeholder="Price Range" />
                   </SelectTrigger>
                   <SelectContent className="bg-slate-800 border-slate-700">
-                    <SelectItem value="">Any Price</SelectItem>
+                    <SelectItem value="any">Any Price</SelectItem>
                     <SelectItem value="0-1000">Under $1K</SelectItem>
                     <SelectItem value="1000-5000">$1K - $5K</SelectItem>
                     <SelectItem value="5000-25000">$5K - $25K</SelectItem>
@@ -208,7 +208,7 @@ export default function Exchange() {
                     <SelectValue placeholder="Condition" />
                   </SelectTrigger>
                   <SelectContent className="bg-slate-800 border-slate-700">
-                    <SelectItem value="">Any Condition</SelectItem>
+                    <SelectItem value="any">Any Condition</SelectItem>
                     <SelectItem value="new">New</SelectItem>
                     <SelectItem value="like-new">Like New</SelectItem>
                     <SelectItem value="good">Good</SelectItem>

@@ -241,7 +241,7 @@ export default function Foundation() {
                     <SelectValue placeholder="Category" />
                   </SelectTrigger>
                   <SelectContent className="bg-slate-800 border-slate-700">
-                    <SelectItem value="">All Categories</SelectItem>
+                    <SelectItem value="all">All Categories</SelectItem>
                     {CAUSE_CATEGORIES.map(category => (
                       <SelectItem key={category.id} value={category.id}>
                         {category.name}
@@ -255,7 +255,7 @@ export default function Foundation() {
                     <SelectValue placeholder="State" />
                   </SelectTrigger>
                   <SelectContent className="bg-slate-800 border-slate-700">
-                    <SelectItem value="">All States</SelectItem>
+                    <SelectItem value="all">All States</SelectItem>
                     <SelectItem value="TX">Texas</SelectItem>
                     <SelectItem value="CA">California</SelectItem>
                     <SelectItem value="NY">New York</SelectItem>

@@ -171,7 +171,7 @@ export default function AdvancedSearch() {
                       <SelectValue placeholder="All Categories" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">All Categories</SelectItem>
+                      <SelectItem value="all">All Categories</SelectItem>
                       {categories?.map((category: any) => (
                         <SelectItem key={category.id} value={category.id}>
                           {category.name}
@@ -218,7 +218,7 @@ export default function AdvancedSearch() {
                       <SelectValue placeholder="Any Condition" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">Any Condition</SelectItem>
+                      <SelectItem value="any">Any Condition</SelectItem>
                       <SelectItem value="new">New</SelectItem>
                       <SelectItem value="like_new">Like New</SelectItem>
                       <SelectItem value="good">Good</SelectItem>

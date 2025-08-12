@@ -445,7 +445,7 @@ export default function ContractorBoard() {
                       <SelectValue placeholder="All states" />
                     </SelectTrigger>
                     <SelectContent className="bg-navy-700 border-navy-600 text-white max-h-[300px] overflow-y-auto">
-                      <SelectItem value="" className="text-white hover:bg-navy-600 focus:bg-navy-600 focus:text-white">All states</SelectItem>
+                      <SelectItem value="all" className="text-white hover:bg-navy-600 focus:bg-navy-600 focus:text-white">All states</SelectItem>
                       {states.map((state) => (
                         <SelectItem 
                           key={state.code} 
@@ -469,7 +469,7 @@ export default function ContractorBoard() {
                       <SelectValue placeholder={selectedState ? "All counties" : "Select state first"} />
                     </SelectTrigger>
                     <SelectContent className="bg-navy-700 border-navy-600 text-white max-h-[300px] overflow-y-auto">
-                      <SelectItem value="" className="text-white hover:bg-navy-600 focus:bg-navy-600 focus:text-white">All counties</SelectItem>
+                      <SelectItem value="all" className="text-white hover:bg-navy-600 focus:bg-navy-600 focus:text-white">All counties</SelectItem>
                       {counties.map((county) => (
                         <SelectItem 
                           key={county.fips} 
@@ -492,7 +492,7 @@ export default function ContractorBoard() {
                       <SelectValue placeholder="All trades" />
                     </SelectTrigger>
                     <SelectContent className="bg-navy-700 border-navy-600 text-white max-h-[300px] overflow-y-auto">
-                      <SelectItem value="" className="text-white hover:bg-navy-600 focus:bg-navy-600 focus:text-white">All trades</SelectItem>
+                      <SelectItem value="all" className="text-white hover:bg-navy-600 focus:bg-navy-600 focus:text-white">All trades</SelectItem>
                       {mainTrades?.map((trade) => (
                         <SelectItem 
                           key={trade.id} 

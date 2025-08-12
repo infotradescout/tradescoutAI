@@ -247,7 +247,7 @@ export default function Leaderboard() {
                   <SelectValue placeholder="All States" />
                 </SelectTrigger>
                 <SelectContent className="bg-slate-800 border-slate-700">
-                  <SelectItem value="">All States</SelectItem>
+                  <SelectItem value="all">All States</SelectItem>
                   <SelectItem value="TX">Texas</SelectItem>
                   <SelectItem value="CA">California</SelectItem>
                   <SelectItem value="NY">New York</SelectItem>
@@ -260,7 +260,7 @@ export default function Leaderboard() {
                   <SelectValue placeholder="All Trades" />
                 </SelectTrigger>
                 <SelectContent className="bg-slate-800 border-slate-700">
-                  <SelectItem value="">All Trades</SelectItem>
+                  <SelectItem value="all">All Trades</SelectItem>
                   <SelectItem value="plumbing">Plumbing</SelectItem>
                   <SelectItem value="electrical">Electrical</SelectItem>
                   <SelectItem value="roofing">Roofing</SelectItem>

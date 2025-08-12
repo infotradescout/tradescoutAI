@@ -171,7 +171,7 @@ export default function Helpers() {
                     <SelectValue placeholder="Category" />
                   </SelectTrigger>
                   <SelectContent className="bg-slate-800 border-slate-700">
-                    <SelectItem value="">All Categories</SelectItem>
+                    <SelectItem value="all">All Categories</SelectItem>
                     {categories?.map(category => (
                       <SelectItem key={category.id} value={category.id}>
                         {category.name}
