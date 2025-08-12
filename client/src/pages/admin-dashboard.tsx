@@ -315,6 +315,37 @@ export default function AdminDashboard() {
           </Card>
         </div>
       </div>
+
+      {/* Administrative Tools */}
+      <div className="mt-8">
+        <h2 className="text-xl font-semibold text-white mb-4">Administrative Tools</h2>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <Link href="/admin/panel">
+            <Button variant="outline" className="w-full h-16 border-navy-500 hover:border-red-500 flex flex-col items-center justify-center space-y-1">
+              <Settings className="h-5 w-5 text-red-400" />
+              <span className="text-xs">Admin Panel</span>
+            </Button>
+          </Link>
+          <Link href="/admin/users">
+            <Button variant="outline" className="w-full h-16 border-navy-500 hover:border-red-500 flex flex-col items-center justify-center space-y-1">
+              <Users className="h-5 w-5 text-blue-400" />
+              <span className="text-xs">User Management</span>
+            </Button>
+          </Link>
+          <Link href="/admin/analytics">
+            <Button variant="outline" className="w-full h-16 border-navy-500 hover:border-red-500 flex flex-col items-center justify-center space-y-1">
+              <BarChart3 className="h-5 w-5 text-green-400" />
+              <span className="text-xs">Analytics</span>
+            </Button>
+          </Link>
+          <Link href="/admin/monitoring">
+            <Button variant="outline" className="w-full h-16 border-navy-500 hover:border-red-500 flex flex-col items-center justify-center space-y-1">
+              <Eye className="h-5 w-5 text-purple-400" />
+              <span className="text-xs">Monitoring</span>
+            </Button>
+          </Link>
+        </div>
+      </div>
     </div>
   );
 }

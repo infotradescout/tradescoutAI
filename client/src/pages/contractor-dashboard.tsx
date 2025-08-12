@@ -348,6 +348,37 @@ export default function ContractorDashboard() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Business Navigation Section */}
+      <div className="mt-8">
+        <h2 className="text-xl font-semibold text-white mb-4">Expand Your Business</h2>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <Link href="/community">
+            <Button variant="outline" className="w-full h-16 border-navy-500 hover:border-orange-500 flex flex-col items-center justify-center space-y-1">
+              <Users className="h-5 w-5 text-purple-400" />
+              <span className="text-xs">Community</span>
+            </Button>
+          </Link>
+          <Link href="/marketplace">
+            <Button variant="outline" className="w-full h-16 border-navy-500 hover:border-orange-500 flex flex-col items-center justify-center space-y-1">
+              <Star className="h-5 w-5 text-yellow-400" />
+              <span className="text-xs">Marketplace</span>
+            </Button>
+          </Link>
+          <Link href="/exchange">
+            <Button variant="outline" className="w-full h-16 border-navy-500 hover:border-orange-500 flex flex-col items-center justify-center space-y-1">
+              <TrendingUp className="h-5 w-5 text-green-400" />
+              <span className="text-xs">Exchange</span>
+            </Button>
+          </Link>
+          <Link href="/leaderboard">
+            <Button variant="outline" className="w-full h-16 border-navy-500 hover:border-orange-500 flex flex-col items-center justify-center space-y-1">
+              <Award className="h-5 w-5 text-orange-400" />
+              <span className="text-xs">Leaderboard</span>
+            </Button>
+          </Link>
+        </div>
+      </div>
     </div>
   );
 }

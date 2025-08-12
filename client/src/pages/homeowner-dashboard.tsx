@@ -300,6 +300,37 @@ export default function HomeownerDashboard() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Additional Navigation Section */}
+      <div className="mt-8">
+        <h2 className="text-xl font-semibold text-white mb-4">Explore TradeScout</h2>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <Link href="/marketplace">
+            <Button variant="outline" className="w-full h-16 border-navy-500 hover:border-orange-500 flex flex-col items-center justify-center space-y-1">
+              <Star className="h-5 w-5 text-yellow-400" />
+              <span className="text-xs">Marketplace</span>
+            </Button>
+          </Link>
+          <Link href="/exchange">
+            <Button variant="outline" className="w-full h-16 border-navy-500 hover:border-orange-500 flex flex-col items-center justify-center space-y-1">
+              <TrendingUp className="h-5 w-5 text-green-400" />
+              <span className="text-xs">Exchange</span>
+            </Button>
+          </Link>
+          <Link href="/leaderboard">
+            <Button variant="outline" className="w-full h-16 border-navy-500 hover:border-orange-500 flex flex-col items-center justify-center space-y-1">
+              <Star className="h-5 w-5 text-orange-400" />
+              <span className="text-xs">Leaderboard</span>
+            </Button>
+          </Link>
+          <Link href="/foundation">
+            <Button variant="outline" className="w-full h-16 border-navy-500 hover:border-orange-500 flex flex-col items-center justify-center space-y-1">
+              <Home className="h-5 w-5 text-blue-400" />
+              <span className="text-xs">Foundation</span>
+            </Button>
+          </Link>
+        </div>
+      </div>
     </div>
   );
 }

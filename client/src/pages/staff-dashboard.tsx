@@ -264,6 +264,29 @@ export default function StaffDashboard() {
           </Card>
         </div>
       </div>
+
+      {/* Staff Navigation */}
+      <div className="mt-8">
+        <h2 className="text-xl font-semibold text-white mb-4">Staff Resources</h2>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <Button variant="outline" className="w-full h-16 border-navy-500 hover:border-teal-500 flex flex-col items-center justify-center space-y-1">
+            <FileText className="h-5 w-5 text-teal-400" />
+            <span className="text-xs">Documentation</span>
+          </Button>
+          <Button variant="outline" className="w-full h-16 border-navy-500 hover:border-teal-500 flex flex-col items-center justify-center space-y-1">
+            <Calendar className="h-5 w-5 text-green-400" />
+            <span className="text-xs">Schedule</span>
+          </Button>
+          <Button variant="outline" className="w-full h-16 border-navy-500 hover:border-teal-500 flex flex-col items-center justify-center space-y-1">
+            <MessageSquare className="h-5 w-5 text-blue-400" />
+            <span className="text-xs">Team Chat</span>
+          </Button>
+          <Button variant="outline" className="w-full h-16 border-navy-500 hover:border-teal-500 flex flex-col items-center justify-center space-y-1">
+            <BarChart3 className="h-5 w-5 text-orange-400" />
+            <span className="text-xs">Reports</span>
+          </Button>
+        </div>
+      </div>
     </div>
   );
 }

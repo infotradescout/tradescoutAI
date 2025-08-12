@@ -176,6 +176,29 @@ export default function CommunityDashboard() {
           </Card>
         </div>
       </div>
+
+      {/* Community Navigation */}
+      <div className="mt-8">
+        <h2 className="text-xl font-semibold text-white mb-4">Explore Community</h2>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <Button variant="outline" className="w-full h-16 border-navy-500 hover:border-cyan-500 flex flex-col items-center justify-center space-y-1">
+            <MessageSquare className="h-5 w-5 text-cyan-400" />
+            <span className="text-xs">Forums</span>
+          </Button>
+          <Button variant="outline" className="w-full h-16 border-navy-500 hover:border-cyan-500 flex flex-col items-center justify-center space-y-1">
+            <Calendar className="h-5 w-5 text-green-400" />
+            <span className="text-xs">Events</span>
+          </Button>
+          <Button variant="outline" className="w-full h-16 border-navy-500 hover:border-cyan-500 flex flex-col items-center justify-center space-y-1">
+            <Users className="h-5 w-5 text-blue-400" />
+            <span className="text-xs">Members</span>
+          </Button>
+          <Button variant="outline" className="w-full h-16 border-navy-500 hover:border-cyan-500 flex flex-col items-center justify-center space-y-1">
+            <Flag className="h-5 w-5 text-orange-400" />
+            <span className="text-xs">Guidelines</span>
+          </Button>
+        </div>
+      </div>
     </div>
   );
 }
