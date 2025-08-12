@@ -10,13 +10,14 @@ export function useTutorial() {
   const [isVisible, setIsVisible] = useState(false);
   const [startTime, setStartTime] = useState<number | null>(null);
 
-  // Fetch user's tutorial progress
+  // Fetch user's tutorial progress (gracefully handle auth errors)
   const { data: userProgress } = useQuery({
     queryKey: ['/api/tutorials/user-progress'],
     retry: false,
+    throwOnError: false,
   });
 
-  // Fetch recommended tutorials
+  // Fetch recommended tutorials (gracefully handle auth errors)
   const { data: recommendedTutorials } = useQuery<{
     onboarding: TutorialDefinition[];
     feature: TutorialDefinition[];
@@ -24,6 +25,7 @@ export function useTutorial() {
   }>({
     queryKey: ['/api/tutorials/recommended'],
     retry: false,
+    throwOnError: false,
   });
 
   // Start tutorial mutation
