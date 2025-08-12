@@ -50,6 +50,21 @@ export function BetaNotificationPopup() {
         </DialogHeader>
 
         <div className="space-y-4">
+          {/* Critical Security Warning */}
+          <div className="bg-red-50 dark:bg-red-950/20 p-4 rounded-lg border border-red-200 dark:border-red-800">
+            <div className="flex items-start gap-2">
+              <Bell className="h-4 w-4 text-red-500 mt-0.5 flex-shrink-0" />
+              <div>
+                <p className="text-sm font-semibold text-red-800 dark:text-red-200">
+                  ⚠️ Important Security Notice
+                </p>
+                <p className="text-xs text-red-700 dark:text-red-300 mt-1">
+                  This is a beta version. Do not enter real personal information, credit card details, or attempt to make actual payments. Use test data only.
+                </p>
+              </div>
+            </div>
+          </div>
+
           <div className="bg-orange-50 dark:bg-orange-950/20 p-4 rounded-lg border border-orange-200 dark:border-orange-800">
             <div className="space-y-3">
               <div className="flex items-start gap-2">

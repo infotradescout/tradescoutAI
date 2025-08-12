@@ -298,9 +298,9 @@ const Router = memo(function Router() {
       <ErrorBoundary fallback={<div></div>}>
         <FloatingBugReport />
       </ErrorBoundary>
-      {/* <ErrorBoundary fallback={<div></div>}>
+      <ErrorBoundary fallback={<div></div>}>
         <BetaNotificationPopup />
-      </ErrorBoundary> */}
+      </ErrorBoundary>
       <SwipeIndicator
         currentPageIndex={swipeNav.currentPageIndex}
         totalPages={swipeNav.totalPages}
