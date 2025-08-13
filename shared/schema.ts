@@ -38,6 +38,8 @@ export const userRoleEnum = pgEnum('user_role', [
   'helper',             // New role for workers/helpers
   'accelerator_member',
   'realtor',
+  'dealer',             // Equipment/material dealers
+  'service_provider',   // Non-contractor service companies
   'car_salesman',
   'insurance_agent',
   'mortgage_broker',
