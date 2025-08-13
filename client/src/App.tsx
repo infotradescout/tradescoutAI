@@ -36,7 +36,7 @@ import CommunityDashboard from "./pages/community-dashboard";
 import ModerationCenter from "./pages/moderation-center";
 import Chat from "./pages/chat";
 import Conversations from "./pages/conversations";
-import Notifications from "./pages/notifications";
+import Notifications from "./pages/Notifications";
 import Help from "./pages/help";
 import HelpDemo from "./pages/help-demo";
 import Foundation from "./pages/foundation";
@@ -76,6 +76,27 @@ import AdminTestingControls from "./pages/admin-testing-controls";
 import AdminErrorReports from "./pages/admin-error-reports";
 import AdminAttachments from "./pages/admin-attachments";
 import AdminAddressVerifications from "./pages/admin-address-verifications";
+import AdminProfessionalVerification from "./pages/admin-professional-verification";
+import AdminPricingAnalytics from "./pages/admin-pricing-analytics";
+
+// Business role dashboards
+import BusinessOwnerDashboard from "./pages/business-owner-dashboard";
+import PropertyManagerDashboard from "./pages/property-manager-dashboard";
+import InsuranceAgentDashboard from "./pages/insurance-agent-dashboard";
+import MortgageBrokerDashboard from "./pages/mortgage-broker-dashboard";
+import RealtorDashboard from "./pages/realtor-dashboard";
+import RealtorApplication from "./pages/realtor-application";
+import CarSalesmanDashboard from "./pages/car-salesman-dashboard";
+import CarSalesmanApplication from "./pages/car-salesman-application";
+import StaffDashboard from "./pages/staff-dashboard";
+import CrmDashboard from "./pages/crm-dashboard";
+import RoleDirectory from "./pages/role-directory";
+
+// Legal pages
+import TermsOfService from "./pages/legal/terms-of-service";
+import PrivacyPolicy from "./pages/legal/privacy-policy";
+import CookiePolicy from "./pages/legal/cookie-policy";
+import Compliance from "./pages/legal/compliance";
 import AdminProfessionalVerification from "./pages/admin-professional-verification";
 import AdminPricingAnalytics from "./pages/admin-pricing-analytics";
 
