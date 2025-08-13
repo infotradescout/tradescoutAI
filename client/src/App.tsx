@@ -83,7 +83,7 @@ import Checkout from "@/pages/checkout";
 import PaymentSuccess from "@/pages/payment-success";
 import PaymentHistory from "@/pages/payment-history";
 import AdvancedSearch from "@/pages/advanced-search";
-import Notifications from "@/pages/Notifications";
+import Notifications from "@/pages/notifications";
 import Profile from "@/pages/profile";
 import { ProfileSetupRedirect } from "@/components/profile-setup-redirect";
 
@@ -150,7 +150,7 @@ const Router = memo(function Router() {
   if (isLoading || setupLoading) {
     return (
       <div className="min-h-screen gradient-bg flex items-center justify-center">
-        <LoadingSpinner size="large" />
+        <LoadingSpinner size="lg" />
       </div>
     );
   }
@@ -159,11 +159,7 @@ const Router = memo(function Router() {
   const isPublicRoute = ['/login', '/register', '/terms', '/privacy', '/cookies', '/compliance'].includes(location);
 
   return (
-    <MobileGestures
-      onSwipeLeft={swipeNav.navigateToNextPage}
-      onSwipeRight={swipeNav.navigateToPreviousPage}
-      className="min-h-screen"
-    >
+    <MobileGestures className="min-h-screen">
     <div className="min-h-screen gradient-bg flex flex-col">
       <NextGenNavigation />
       
@@ -179,22 +175,22 @@ const Router = memo(function Router() {
           
           {/* Legal routes */}
           <Route path="/terms">
-            <Suspense fallback={<LoadingSpinner size="large" />}>
+            <Suspense fallback={<LoadingSpinner size="lg" />}>
               <TermsOfService />
             </Suspense>
           </Route>
           <Route path="/privacy">
-            <Suspense fallback={<LoadingSpinner size="large" />}>
+            <Suspense fallback={<LoadingSpinner size="lg" />}>
               <PrivacyPolicy />
             </Suspense>
           </Route>
           <Route path="/cookies">
-            <Suspense fallback={<LoadingSpinner size="large" />}>
+            <Suspense fallback={<LoadingSpinner size="lg" />}>
               <CookiePolicy />
             </Suspense>
           </Route>
           <Route path="/compliance">
-            <Suspense fallback={<LoadingSpinner size="large" />}>
+            <Suspense fallback={<LoadingSpinner size="lg" />}>
               <Compliance />
             </Suspense>
           </Route>
@@ -281,75 +277,77 @@ const Router = memo(function Router() {
 
               {/* Lazy-loaded admin routes */}
               <Route path="/admin/dashboard">
-                <Suspense fallback={<LoadingSpinner size="large" />}>
+                <Suspense fallback={<LoadingSpinner size="lg" />}>
                   <AdminDashboard />
                 </Suspense>
               </Route>
               <Route path="/admin/create-account">
-                <Suspense fallback={<LoadingSpinner size="large" />}>
+                <Suspense fallback={<LoadingSpinner size="lg" />}>
                   <AdminCreateAccount />
                 </Suspense>
               </Route>
               <Route path="/admin/address-verifications">
-                <Suspense fallback={<LoadingSpinner size="large" />}>
+                <Suspense fallback={<LoadingSpinner size="lg" />}>
                   <AdminAddressVerifications />
                 </Suspense>
               </Route>
               <Route path="/admin/pricing-analytics">
-                <Suspense fallback={<LoadingSpinner size="large" />}>
+                <Suspense fallback={<LoadingSpinner size="lg" />}>
                   <AdminPricingAnalytics />
                 </Suspense>
               </Route>
 
               {/* Business role dashboards */}
               <Route path="/business-owner-dashboard">
-                <Suspense fallback={<LoadingSpinner size="large" />}>
+                <Suspense fallback={<LoadingSpinner size="lg" />}>
                   <BusinessOwnerDashboard />
                 </Suspense>
               </Route>
               <Route path="/property-manager-dashboard">
-                <Suspense fallback={<LoadingSpinner size="large" />}>
+                <Suspense fallback={<LoadingSpinner size="lg" />}>
                   <PropertyManagerDashboard />
                 </Suspense>
               </Route>
               <Route path="/insurance-agent-dashboard">
-                <Suspense fallback={<LoadingSpinner size="large" />}>
+                <Suspense fallback={<LoadingSpinner size="lg" />}>
                   <InsuranceAgentDashboard />
                 </Suspense>
               </Route>
               <Route path="/mortgage-broker-dashboard">
-                <Suspense fallback={<LoadingSpinner size="large" />}>
+                <Suspense fallback={<LoadingSpinner size="lg" />}>
                   <MortgageBrokerDashboard />
                 </Suspense>
               </Route>
               <Route path="/realtor-dashboard">
-                <Suspense fallback={<LoadingSpinner size="large" />}>
+                <Suspense fallback={<LoadingSpinner size="lg" />}>
                   <RealtorDashboard />
                 </Suspense>
               </Route>
               <Route path="/car-salesman-dashboard">
-                <Suspense fallback={<LoadingSpinner size="large" />}>
+                <Suspense fallback={<LoadingSpinner size="lg" />}>
                   <CarSalesmanDashboard />
                 </Suspense>
               </Route>
               <Route path="/staff-dashboard">
-                <Suspense fallback={<LoadingSpinner size="large" />}>
+                <Suspense fallback={<LoadingSpinner size="lg" />}>
                   <StaffDashboard />
                 </Suspense>
               </Route>
               <Route path="/crm-dashboard">
-                <Suspense fallback={<LoadingSpinner size="large" />}>
+                <Suspense fallback={<LoadingSpinner size="lg" />}>
                   <CrmDashboard />
                 </Suspense>
               </Route>
               <Route path="/role-directory">
-                <Suspense fallback={<LoadingSpinner size="large" />}>
+                <Suspense fallback={<LoadingSpinner size="lg" />}>
                   <RoleDirectory />
                 </Suspense>
               </Route>
               
               {/* Profile setup redirect */}
-              <ProfileSetupRedirect />
+              <ProfileSetupRedirect>
+                <div />
+              </ProfileSetupRedirect>
             </>
           ) : (
             /* Unauthenticated routes */

@@ -83,7 +83,7 @@ html {
   --border-secondary: hsl(209, 14%, 37%);
 
   --shadow-card: 0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -1px rgba(0, 0, 0, 0.2);
-  --shadow-glow: 0 0 20px rgba(255, 107, 53, 0.4);
+  --shadow-glow: 0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -1px rgba(0, 0, 0, 0.2);
   
   --header-height: 64px;
   --page-padding: 80px;
@@ -568,11 +568,11 @@ html {
 
 /* Enhanced Glow Effects */
 .glow-orange {
-  box-shadow: 0 0 20px rgba(251, 146, 60, 0.4), 0 0 40px rgba(251, 146, 60, 0.2);
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -1px rgba(0, 0, 0, 0.2);
 }
 
 .glow-orange-strong {
-  box-shadow: 0 0 30px rgba(251, 146, 60, 0.6), 0 0 60px rgba(251, 146, 60, 0.3);
+  box-shadow: 0 4px 8px -1px rgba(0, 0, 0, 0.4), 0 2px 6px -1px rgba(0, 0, 0, 0.3);
 }
 
 /* Loading animations */
@@ -630,20 +630,20 @@ html {
   background: rgba(30, 41, 59, 0.9);
   border-color: rgba(251, 146, 60, 0.3);
   transform: translateY(-2px);
-  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3), 0 0 20px rgba(251, 146, 60, 0.1);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3), 0 2px 4px rgba(0, 0, 0, 0.2);
 }
 
 /* Enhanced button styles */
 .btn-orange-enhanced {
   background: linear-gradient(135deg, #f97316 0%, #ea580c 100%);
   border: none;
-  box-shadow: 0 4px 15px rgba(251, 146, 60, 0.3);
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
   transition: all 0.3s ease;
 }
 
 .btn-orange-enhanced:hover {
   background: linear-gradient(135deg, #ea580c 0%, #dc2626 100%);
-  box-shadow: 0 6px 20px rgba(251, 146, 60, 0.4);
+  box-shadow: 0 6px 8px rgba(0, 0, 0, 0.3);
   transform: translateY(-1px);
 }
 
