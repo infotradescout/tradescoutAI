@@ -132,14 +132,14 @@ export default function ContractorCard({
           <div className="flex space-x-2">
             {contractor.phone ? (
               <a href={`tel:${contractor.phone}`} className="flex-1">
-                <Button className="w-full bg-orange-500 hover:bg-orange-600 text-white glow-effect transition-all duration-300">
+                <Button className="w-full bg-orange-500 hover:bg-orange-600 text-white transition-all duration-300">
                   <Phone className="h-4 w-4 mr-1" />
                   Call Now
                 </Button>
               </a>
             ) : (
               <Link href={`/contractors/${contractor.slug}`} className="flex-1">
-                <Button className="w-full bg-orange-500 hover:bg-orange-600 text-white glow-effect transition-all duration-300">
+                <Button className="w-full bg-orange-500 hover:bg-orange-600 text-white transition-all duration-300">
                   <Phone className="h-4 w-4 mr-1" />
                   Get Contact
                 </Button>

@@ -549,18 +549,26 @@ export default function ContractorBoard() {
       </div>
 
       {/* Results */}
+      <div className="mb-6">
+        <p className="text-gray-300 text-center">
+          {isLoading ? 'Loading contractors...' : 
+           contractors ? `Found ${contractors.length} contractors` : 
+           'No contractors loaded'}
+        </p>
+      </div>
+      
       {filteredContractors && filteredContractors.length > 0 ? (
-        <GuestGate
-          action="contact contractors"
-          title="Create Account to Contact Contractors"
-          description="Connect directly with verified contractors, request quotes, and save your favorite professionals."
-        >
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredContractors.map((contractor: Contractor) => (
-              <ContractorCard key={contractor.id} contractor={contractor} />
-            ))}
-          </div>
-        </GuestGate>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {filteredContractors.map((contractor: Contractor) => (
+            <ContractorCard key={contractor.id} contractor={contractor} />
+          ))}
+        </div>
+      ) : contractors && contractors.length > 0 ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {contractors.map((contractor: Contractor) => (
+            <ContractorCard key={contractor.id} contractor={contractor} />
+          ))}
+        </div>
       ) : (
         <Card className="bg-navy-700 border-navy-600">
           <CardContent className="p-12 text-center">
