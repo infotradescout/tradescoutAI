@@ -19,15 +19,15 @@ export default function Navigation() {
   const { user, isAuthenticated } = useAuth();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
-  const isAdmin = user && user.role && ['owner', 'ops_admin', 'analytics_read', 'territory_manager', 'contractor_success'].includes(user.role);
+  const isAdmin = user && user.role && ['head_admin', 'ops_admin', 'analytics_read', 'territory_manager', 'contractor_success', 'moderator'].includes(user.role);
   const isContractor = user && user.role && ['contractor_user', 'accelerator_member'].includes(user.role);
   const isHomeowner = user && user.role === 'homeowner';
 
   const navItems = [
     { href: "/contractors", label: "Find Contractors", icon: Search, public: true, description: "Find verified local contractors" },
-    { href: "/quote", label: "Quote Calculator", icon: Calculator, public: true, description: "Get instant project estimates" },
-    ...(!isHomeowner ? [{ href: "/contractors/network", label: "For Contractors", icon: Wrench, public: true, description: "Join our contractor network" }] : []),
-    { href: "/workers", label: "Helpers", icon: Users, public: true, description: "Find skilled helpers" },
+    { href: "/quote-calculator", label: "Quote Calculator", icon: Calculator, public: true, description: "Get instant project estimates" },
+    ...(!isHomeowner ? [{ href: "/contractor-apply", label: "For Contractors", icon: Wrench, public: true, description: "Join our contractor network" }] : []),
+    { href: "/helpers", label: "Helpers", icon: Users, public: true, description: "Find skilled helpers" },
     { href: "/marketplace", label: "Exchange", icon: Package, public: true, description: "Premium equipment & valuable items" },
     { href: "/leaderboard", label: "Leaderboard", icon: Trophy, public: true, description: "Top contractors by recommendations" },
     { href: "/community", label: "Community", icon: MessageCircle, public: true, description: "Connect with neighbors" },
@@ -53,9 +53,9 @@ export default function Navigation() {
   const closeMobileMenu = () => setIsMobileMenuOpen(false);
 
   return (
-    <nav className="nav-glass sticky top-0 z-40">
+    <nav className="bg-gradient-to-r from-navy-900 to-navy-800 backdrop-blur-md border-b border-navy-600/50 sticky top-0 z-50 shadow-lg">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between items-center h-14 md:h-16">
+        <div className="flex justify-between items-center h-16">
           {/* Logo */}
           <div className="flex items-center space-x-8">
             <Link href="/" onClick={closeMobileMenu}>

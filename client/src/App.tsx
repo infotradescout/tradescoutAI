@@ -108,6 +108,11 @@ export default function App() {
             <Route path="/contractor-dashboard" component={ContractorDashboard} />
             <Route path="/homeowner-dashboard" component={HomeownerDashboard} />
             <Route path="/dashboard" component={Dashboard} />
+            
+            {/* Route aliases for backward compatibility */}
+            <Route path="/dashboard/messages" component={Conversations} />
+            <Route path="/contractors/dashboard" component={ContractorDashboard} />
+            <Route path="/exchange/list" component={Marketplace} />
 
             {/* Auth routes */}
             <Route path="/login" component={Login} />
