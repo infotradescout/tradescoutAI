@@ -4,9 +4,7 @@ import { Switch, Route } from "wouter";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { queryClient } from "./lib/queryClient";
 import { ErrorBoundary } from "@/components/ui/error-boundary";
-import { Navigation } from "@/components/layout/navigation";
-import { Toaster } from "@/components/ui/toaster";
-import { TooltipProvider } from "@/components/ui/tooltip";
+import Navigation from "./components/layout/navigation";
 
 // Import all pages
 import Landing from "./pages/landing";
@@ -101,15 +99,12 @@ export default function App() {
   return (
     <ErrorBoundary>
       <QueryClientProvider client={queryClient}>
-        <TooltipProvider>
-          <div className="min-h-screen bg-navy-900">
-            <Navigation />
-            <div className="main-content">
-              <Switch>
+        <div className="min-h-screen">
+          <Navigation />
+          <Switch>
             {/* Main application routes */}
             <Route path="/" component={Landing} />
             <Route path="/home" component={Home} />
-            <Route path="/dashboard" component={Dashboard} />
             <Route path="/contractors" component={Contractors} />
             <Route path="/contractors/:id" component={ContractorProfile} />
             <Route path="/contractor-dashboard" component={ContractorDashboard} />
@@ -218,10 +213,7 @@ export default function App() {
             {/* 404 route */}
             <Route component={NotFound} />
           </Switch>
-            </div>
-            <Toaster />
-          </div>
-        </TooltipProvider>
+        </div>
       </QueryClientProvider>
     </ErrorBoundary>
   );

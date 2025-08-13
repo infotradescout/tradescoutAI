@@ -74,7 +74,7 @@ export default function Landing() {
             <p className="text-base md:text-xl text-gray-300 mb-6 md:mb-8 max-w-3xl mx-auto px-2">
               Connect with verified, local contractors. Get quotes, read recommendations, and hire with confidence.
             </p>
-            
+
             {/* County Search */}
             <div className="max-w-2xl mx-auto">
               <Card className="bg-navy-700 border-navy-600">
@@ -649,7 +649,7 @@ export default function Landing() {
                 <p className="text-gray-300">All contractors are license-verified with current insurance documentation.</p>
               </CardContent>
             </Card>
-            
+
             <Card className="bg-navy-700 border-navy-600">
               <CardContent className="p-6">
                 <div className="text-orange-500 text-3xl mb-4">
@@ -659,7 +659,7 @@ export default function Landing() {
                 <p className="text-gray-300">Get accurate cost estimates based on your specific county and project type.</p>
               </CardContent>
             </Card>
-            
+
             <Card className="bg-navy-700 border-navy-600">
               <CardContent className="p-6">
                 <div className="text-orange-500 text-3xl mb-4">
