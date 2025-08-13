@@ -207,7 +207,7 @@ export async function registerRoutes(app: Express) {
 
   app.post("/auth/register", async (req, res) => {
     try {
-      const { username, email, password, firstName, lastName, address, role = 'homeowner' } = req.body;
+      const { email, password, firstName, lastName, address, role = 'homeowner' } = req.body;
 
       // Check if user already exists
       const existingUser = await storage.getUserByEmail(email);
@@ -220,9 +220,8 @@ export async function registerRoutes(app: Express) {
 
       // Create user
       const user = await storage.createUser({
-        username,
         email,
-        passwordHash: hashedPassword,
+        password: hashedPassword,
         firstName,
         lastName,
         address,
@@ -316,7 +315,7 @@ export async function registerRoutes(app: Express) {
   // Admin-only route to create new admin accounts
   app.post("/api/admin/create-account", isAuthenticated, requireRole(['head_admin', 'ops_admin']), async (req, res) => {
     try {
-      const { email, password, firstName, lastName, username, role, address } = req.body;
+      const { email, password, firstName, lastName, role, address } = req.body;
 
       // Validate role assignment permissions
       const currentUser = req.user as any;
@@ -330,19 +329,15 @@ export async function registerRoutes(app: Express) {
         return res.status(400).json({ message: "User with this email already exists" });
       }
 
-      const existingUsername = await storage.getUserByUsername(username);
-      if (existingUsername) {
-        return res.status(400).json({ message: "Username already taken" });
-      }
+      // Username check not needed as we removed username field
 
       // Hash password
-      const passwordHash = await hashPassword(password);
+      const hashedPassword = await hashPassword(password);
 
       // Create admin user
       const newAdmin = await storage.createUser({
-        username,
         email,
-        passwordHash,
+        password: hashedPassword,
         firstName,
         lastName,
         address,
@@ -352,7 +347,7 @@ export async function registerRoutes(app: Express) {
       });
 
       // Remove password hash from response
-      const { passwordHash: _, ...userResponse } = newAdmin;
+      const { password: _, ...userResponse } = newAdmin;
 
       res.json({ 
         user: userResponse, 
@@ -366,7 +361,7 @@ export async function registerRoutes(app: Express) {
 
   // Configure OAuth strategies
   if (process.env.FACEBOOK_APP_ID && process.env.FACEBOOK_APP_SECRET) {
-    passport.use(new FacebookStrategy({
+    passport.use(new FacebookStrategy.Strategy({
       clientID: process.env.FACEBOOK_APP_ID,
       clientSecret: process.env.FACEBOOK_APP_SECRET,
       callbackURL: "/auth/facebook/callback",
@@ -536,10 +531,10 @@ export async function registerRoutes(app: Express) {
           isImpersonating: true,
           originalRole: req.session.originalUser.role
         };
-        return res.json({ ...modifiedUser, passwordHash: undefined });
+        return res.json({ ...modifiedUser, password: undefined });
       }
 
-      res.json({ ...user, passwordHash: undefined });
+      res.json({ ...user, password: undefined });
     } catch (error) {
       console.error("Error fetching authenticated user:", error);
       res.status(500).json({ message: "Failed to fetch user" });
@@ -550,7 +545,7 @@ export async function registerRoutes(app: Express) {
   app.get('/api/user/profile', isAuthenticated, async (req: any, res) => {
     try {
       const user = await storage.getUser(req.user.id);
-      res.json({ ...user, passwordHash: undefined });
+      res.json({ ...user, password: undefined });
     } catch (error) {
       console.error("Error fetching user profile:", error);
       res.status(500).json({ message: "Failed to fetch user profile" });
@@ -571,7 +566,7 @@ export async function registerRoutes(app: Express) {
         preferences,
         updatedAt: new Date(),
       });
-      res.json({ ...user, passwordHash: undefined });
+      res.json({ ...user, password: undefined });
     } catch (error) {
       console.error("Error updating user profile:", error);
       res.status(500).json({ message: "Failed to update user profile" });
@@ -584,7 +579,7 @@ export async function registerRoutes(app: Express) {
         onboardingCompleted: true,
         updatedAt: new Date(),
       });
-      res.json({ ...user, passwordHash: undefined });
+      res.json({ ...user, password: undefined });
     } catch (error) {
       console.error("Error completing onboarding:", error);
       res.status(500).json({ message: "Failed to complete onboarding" });
@@ -769,7 +764,7 @@ export async function registerRoutes(app: Express) {
       const user = await storage.getUser(req.user.id);
 
       // Include contractor-specific data if user is a contractor
-      let profileData = { ...user, passwordHash: undefined };
+      let profileData = { ...user, password: undefined };
 
       if (user.role === 'contractor_user') {
         const contractor = await storage.getContractorByUserId(user.id);
@@ -844,7 +839,7 @@ export async function registerRoutes(app: Express) {
         }
       }
 
-      res.json({ ...user, passwordHash: undefined });
+      res.json({ ...user, password: undefined });
     } catch (error) {
       console.error("Error updating user profile:", error);
       res.status(500).json({ message: "Failed to update user profile" });
@@ -860,9 +855,14 @@ export async function registerRoutes(app: Express) {
         return res.status(404).json({ message: "User not found" });
       }
 
+      // Check if user has a password (social login users might not)
+      if (!user.password) {
+        return res.status(400).json({ message: "Account uses social login. Cannot change password." });
+      }
+
       // Verify current password using bcrypt
       const bcrypt = require('bcrypt');
-      const isValidPassword = await bcrypt.compare(currentPassword, user.passwordHash);
+      const isValidPassword = await bcrypt.compare(currentPassword, user.password);
 
       if (!isValidPassword) {
         return res.status(400).json({ message: "Current password is incorrect" });
@@ -873,7 +873,7 @@ export async function registerRoutes(app: Express) {
 
       // Update password
       await storage.updateUser(req.user.id, {
-        passwordHash: newPasswordHash,
+        password: newPasswordHash,
         updatedAt: new Date(),
       });
 
@@ -906,7 +906,7 @@ export async function registerRoutes(app: Express) {
       };
 
       await storage.updateUser(req.user.id, {
-        preferences: JSON.stringify(preferences),
+        preferences: preferences,
         updatedAt: new Date(),
       });
 
