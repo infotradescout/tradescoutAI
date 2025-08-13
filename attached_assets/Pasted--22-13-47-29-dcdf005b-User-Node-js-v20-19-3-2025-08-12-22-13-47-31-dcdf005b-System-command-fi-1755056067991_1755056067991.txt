@@ -1,0 +1,108 @@
+ 22:13:47.29
+dcdf005b
+User
+Node.js v20.19.3
+2025-08-12 22:13:47.31
+dcdf005b
+System
+command finished with error [npm run start]: exit status 1
+2025-08-12 22:13:54.30
+dcdf005b
+User
+> rest-express@1.0.0 start
+2025-08-12 22:13:54.30
+dcdf005b
+User
+> NODE_ENV=production node dist/index.js
+2025-08-12 22:13:55.35
+dcdf005b
+User
+WebSocket server initialized on /ws
+2025-08-12 22:13:55.39
+dcdf005b
+User
+file:///home/runner/workspace/dist/index.js:19401
+2025-08-12 22:13:55.39
+dcdf005b
+User
+app.use(express2.static(path3.join(__dirname, "../client/dist")));
+2025-08-12 22:13:55.39
+dcdf005b
+User
+^
+2025-08-12 22:13:55.39
+dcdf005b
+User
+2025-08-12 22:13:55.39
+dcdf005b
+User
+ReferenceError: __dirname is not defined
+2025-08-12 22:13:55.39
+dcdf005b
+User
+at file:///home/runner/workspace/dist/index.js:19401:40
+2025-08-12 22:13:55.39
+dcdf005b
+User
+2025-08-12 22:13:55.39
+dcdf005b
+User
+Node.js v20.19.3
+2025-08-12 22:13:55.42
+dcdf005b
+System
+command finished with error [npm run start]: exit status 1
+2025-08-12 22:14:00.45
+dcdf005b
+User
+> rest-express@1.0.0 start
+2025-08-12 22:14:00.45
+dcdf005b
+User
+> NODE_ENV=production node dist/index.js
+2025-08-12 22:14:01.54
+dcdf005b
+User
+WebSocket server initialized on /ws
+2025-08-12 22:14:01.59
+dcdf005b
+User
+file:///home/runner/workspace/dist/index.js:19401
+2025-08-12 22:14:01.59
+dcdf005b
+User
+app.use(express2.static(path3.join(__dirname, "../client/dist")));
+2025-08-12 22:14:01.59
+dcdf005b
+User
+^
+2025-08-12 22:14:01.59
+dcdf005b
+User
+2025-08-12 22:14:01.59
+dcdf005b
+User
+ReferenceError: __dirname is not defined
+2025-08-12 22:14:01.59
+dcdf005b
+User
+at file:///home/runner/workspace/dist/index.js:19401:40
+2025-08-12 22:14:01.59
+dcdf005b
+User
+2025-08-12 22:14:01.59
+dcdf005b
+User
+Node.js v20.19.3
+2025-08-12 22:14:01.62
+dcdf005b
+System
+command finished with error [npm run start]: exit status 1
+2025-08-12 22:14:03.29
+dcdf005b
+System
+crash loop detected
+
+Wrap
+
+Colors
