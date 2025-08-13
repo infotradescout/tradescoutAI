@@ -4,11 +4,6 @@ import { seedDatabase } from "./seed-data";
 import { setupVite, serveStatic, log } from "./vite";
 import { notificationService } from "./notification-service";
 import path from "path";
-import { fileURLToPath } from "url";
-
-// ESM compatibility: Create __dirname equivalent
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
 
 const app = express();
 app.use(express.json());
@@ -92,11 +87,11 @@ app.use((req, res, next) => {
   } else {
     serveStatic(app);
     // Serve static files from client build
-    app.use(express.static(path.join(__dirname, '../client/dist')));
+    app.use(express.static(path.join(import.meta.dirname, '../client/dist')));
 
     // Catch all handler for client-side routing
     app.get('*', (req, res) => {
-      const indexPath = path.join(__dirname, '../client/dist/index.html');
+      const indexPath = path.join(import.meta.dirname, '../client/dist/index.html');
       console.log('Serving index.html from:', indexPath);
       res.sendFile(indexPath, (err) => {
         if (err) {
