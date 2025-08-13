@@ -602,6 +602,84 @@ export default function Help() {
       ]
     },
 
+    dealer: {
+      name: "Dealer",
+      color: "bg-orange-600",
+      icon: Package,
+      description: "Equipment and material supply, contractor partnerships, and inventory management",
+      quickActions: [
+        { title: "Inventory Manager", description: "Manage your product inventory", icon: Package, action: "/inventory" },
+        { title: "Contractor Partnerships", description: "Partner with local contractors", icon: Users, action: "partnerships" },
+        { title: "Bulk Orders", description: "Process large quantity orders", icon: ShoppingCart, action: "bulk-orders" },
+        { title: "Price Catalogs", description: "Manage product pricing", icon: DollarSign, action: "pricing" }
+      ],
+      categories: [
+        {
+          title: "Supply Chain",
+          icon: Package,
+          articles: [
+            {
+              id: "inventory-management",
+              title: "Managing Product Inventory",
+              description: "Keep track of materials and equipment availability",
+              category: "Supply Chain",
+              icon: Package,
+              priority: "high",
+              readTime: "6 min"
+            },
+            {
+              id: "contractor-partnerships",
+              title: "Building Contractor Relationships",
+              description: "Create partnerships with local contractors",
+              category: "Supply Chain",
+              icon: Users,
+              priority: "high",
+              readTime: "7 min"
+            }
+          ]
+        }
+      ]
+    },
+
+    service_provider: {
+      name: "Service Provider",
+      color: "bg-indigo-600",
+      icon: Wrench,
+      description: "Professional services, client management, and specialized offerings",
+      quickActions: [
+        { title: "Service Catalog", description: "Manage your service offerings", icon: Clipboard, action: "/services" },
+        { title: "Client Portal", description: "Manage client relationships", icon: Users, action: "/clients" },
+        { title: "Scheduling", description: "Manage appointments and bookings", icon: Calendar, action: "/schedule" },
+        { title: "Service Analytics", description: "Track performance metrics", icon: TrendingUp, action: "/analytics" }
+      ],
+      categories: [
+        {
+          title: "Service Management",
+          icon: Wrench,
+          articles: [
+            {
+              id: "service-delivery",
+              title: "Delivering Professional Services",
+              description: "Best practices for service delivery and client satisfaction",
+              category: "Service Management",
+              icon: Star,
+              priority: "high",
+              readTime: "8 min"
+            },
+            {
+              id: "client-communication",
+              title: "Effective Client Communication",
+              description: "Communicate professionally with clients",
+              category: "Service Management",
+              icon: MessageCircle,
+              priority: "high",
+              readTime: "5 min"
+            }
+          ]
+        }
+      ]
+    },
+
     car_salesman: {
       name: "Car Salesman",
       color: "bg-blue-600",
