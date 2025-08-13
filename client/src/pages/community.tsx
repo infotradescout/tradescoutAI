@@ -387,7 +387,7 @@ export default function Community() {
                   </CardContent>
                 </Card>
               ))
-            ) : events?.length > 0 ? (
+            ) : (events && events.length > 0) ? (
               events.map((event) => (
                 <Card key={event.id} className="bg-slate-800 border-slate-700 hover:border-orange-500/50 transition-colors">
                   <CardContent className="p-6">
