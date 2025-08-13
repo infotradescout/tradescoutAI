@@ -113,6 +113,7 @@ export default function App() {
             <Route path="/dashboard/messages" component={Conversations} />
             <Route path="/contractors/dashboard" component={ContractorDashboard} />
             <Route path="/exchange/list" component={Marketplace} />
+            <Route path="/contractors/board" component={Contractors} />
 
             {/* Auth routes */}
             <Route path="/login" component={Login} />
