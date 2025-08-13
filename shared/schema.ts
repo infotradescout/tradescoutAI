@@ -1787,8 +1787,7 @@ export type AcceleratorMembership = typeof acceleratorMemberships.$inferSelect;
 export type InsertPricingData = typeof pricingData.$inferInsert;
 export type PricingData = typeof pricingData.$inferSelect;
 
-export type InsertContractorPromo = typeof contractorPromos.$inferInsert;
-export type ContractorPromo = typeof contractorPromos.$inferSelect;
+
 export type InsertPromoInteraction = typeof promoInteractions.$inferInsert;
 export type PromoInteraction = typeof promoInteractions.$inferSelect;
 
