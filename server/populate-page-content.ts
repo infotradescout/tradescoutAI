@@ -201,6 +201,7 @@ export async function populatePageContent() {
         requiresTransportation: false,
         requiresTools: false,
         toolsProvided: false,
+        schedulingType: 'flexible',
         requiresIdVerification: true,
         requiresBackgroundCheck: false,
         status: 'open'
@@ -220,12 +221,15 @@ export async function populatePageContent() {
         requiresTransportation: false,
         requiresTools: true,
         toolsProvided: false,
+        schedulingType: 'recurring',
         requiresIdVerification: true,
         requiresBackgroundCheck: false,
         status: 'open'
       }
     ]).onConflictDoNothing();
 
+    // Advertisements already exist (11 ads in database), skipping population
+    
     console.log("✅ Page content populated successfully!");
 
   } catch (error) {
