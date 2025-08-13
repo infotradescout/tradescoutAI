@@ -1126,14 +1126,14 @@ export default function Help() {
   };
 
   // Get current user's role configuration
-  const currentRole = user?.role || 'homeowner';
+  const currentRole: UserRole = (user?.role as UserRole) || 'homeowner';
   const roleConfig = roleConfigs[currentRole];
 
   // Filter articles based on search and category
   const filteredArticles = useMemo(() => {
     let allArticles: HelpArticle[] = [];
     
-    roleConfig.categories.forEach(category => {
+    roleConfig.categories.forEach((category: any) => {
       allArticles = [...allArticles, ...category.articles];
     });
 
@@ -1150,14 +1150,29 @@ export default function Help() {
     });
   }, [roleConfig.categories, searchQuery, selectedCategory]);
 
+  // Get high-priority recommendations for the user's role
+  const recommendations = useMemo(() => {
+    let highPriorityArticles: HelpArticle[] = [];
+    roleConfig.categories.forEach((category: any) => {
+      const priorityArticles = category.articles.filter((article: HelpArticle) => article.priority === 'high');
+      highPriorityArticles = [...highPriorityArticles, ...priorityArticles];
+    });
+    return highPriorityArticles.slice(0, 3); // Show top 3 recommendations
+  }, [roleConfig.categories]);
+
   return (
     <div className="min-h-screen gradient-bg">
       <div className="container mx-auto px-4 py-8">
         {/* Header */}
         <div className="text-center mb-8">
-          <h1 className="text-4xl font-bold text-white mb-4">Help Center</h1>
+          <h1 className="text-4xl font-bold text-white mb-4">
+            {user ? `Welcome back, ${user.name || 'User'}!` : 'Help Center'}
+          </h1>
           <p className="text-xl text-gray-300 max-w-2xl mx-auto">
-            Get answers to your questions and learn how to make the most of TradeScout
+            {user 
+              ? `Here's everything you need to know as a ${roleConfig.name.toLowerCase()} on TradeScout`
+              : 'Get answers to your questions and learn how to make the most of TradeScout'
+            }
           </p>
         </div>
 
@@ -1173,11 +1188,21 @@ export default function Help() {
                   <div>
                     <h2 className="text-2xl font-bold text-white">{roleConfig.name} Help Center</h2>
                     <p className="text-white/80">{roleConfig.description}</p>
+                    {user && (
+                      <p className="text-white/60 text-sm mt-1">
+                        Personalized for your {roleConfig.name.toLowerCase()} account
+                      </p>
+                    )}
                   </div>
                 </div>
-                <Badge className="bg-white/20 text-white border-white/30">
-                  {filteredArticles.length} articles
-                </Badge>
+                <div className="text-right">
+                  <Badge className="bg-white/20 text-white border-white/30 mb-2 block">
+                    {filteredArticles.length} articles
+                  </Badge>
+                  <Badge className="bg-white/10 text-white/70 border-white/20 text-xs">
+                    Role-Specific
+                  </Badge>
+                </div>
               </div>
             </CardContent>
           </Card>
@@ -1185,7 +1210,7 @@ export default function Help() {
 
         {/* Quick Actions */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
-          {roleConfig.quickActions.map((action, index) => (
+          {roleConfig.quickActions.map((action: any, index: number) => (
             <Card key={index} className="bg-navy-800/50 border-navy-600 hover:bg-navy-700/50 transition-colors cursor-pointer">
               <CardContent className="p-4 text-center">
                 <action.icon className="w-8 h-8 text-orange-500 mx-auto mb-2" />
@@ -1218,7 +1243,7 @@ export default function Help() {
                   className="w-full p-2 bg-navy-700 border border-navy-600 rounded-md text-white"
                 >
                   <option value="all">All Categories</option>
-                  {roleConfig.categories.map((category, index) => (
+                  {roleConfig.categories.map((category: any, index: number) => (
                     <option key={index} value={category.title}>{category.title}</option>
                   ))}
                 </select>
@@ -1227,10 +1252,45 @@ export default function Help() {
           </CardContent>
         </Card>
 
+        {/* Personalized Recommendations */}
+        {recommendations.length > 0 && (
+          <div className="mb-8">
+            <h3 className="text-xl font-semibold text-white mb-4 flex items-center">
+              <Lightbulb className="h-5 w-5 text-orange-500 mr-2" />
+              Recommended for {roleConfig.name}s
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {recommendations.map((article: HelpArticle, index: number) => (
+                <Card key={index} className="bg-gradient-to-r from-orange-600/20 to-orange-500/10 border-orange-500/30 hover:border-orange-500/50 transition-colors cursor-pointer">
+                  <CardContent className="p-4">
+                    <div className="flex items-start space-x-3">
+                      <article.icon className="h-5 w-5 text-orange-500 mt-1" />
+                      <div className="flex-1">
+                        <h4 className="font-medium text-white text-sm mb-1">{article.title}</h4>
+                        <p className="text-gray-300 text-xs">{article.description}</p>
+                        <div className="flex items-center justify-between mt-3">
+                          <Badge className="bg-orange-500 text-white text-xs">
+                            {article.priority}
+                          </Badge>
+                          <div className="flex items-center text-gray-400 text-xs">
+                            <Clock className="h-3 w-3 mr-1" />
+                            {article.readTime}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </div>
+        )}
+
         <Tabs defaultValue="articles" className="space-y-6">
           <TabsList className="bg-navy-800/50 border-navy-600">
             <TabsTrigger value="articles">Help Articles</TabsTrigger>
             <TabsTrigger value="categories">Browse by Category</TabsTrigger>
+            <TabsTrigger value="recommendations">Recommended for You</TabsTrigger>
             <TabsTrigger value="contact">Contact Support</TabsTrigger>
           </TabsList>
 
@@ -1284,7 +1344,7 @@ export default function Help() {
 
           <TabsContent value="categories">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {roleConfig.categories.map((category, index) => (
+              {roleConfig.categories.map((category: any, index: number) => (
                 <Card key={index} className="bg-navy-800/50 border-navy-600">
                   <CardHeader>
                     <CardTitle className="flex items-center space-x-3 text-white">
@@ -1296,7 +1356,7 @@ export default function Help() {
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-3">
-                    {category.articles.map((article, articleIndex) => (
+                    {category.articles.map((article: any, articleIndex: number) => (
                       <div 
                         key={articleIndex}
                         className="flex items-center justify-between p-3 bg-navy-700/50 rounded-lg hover:bg-navy-700 transition-colors cursor-pointer"
@@ -1323,6 +1383,64 @@ export default function Help() {
                   </CardContent>
                 </Card>
               ))}
+            </div>
+          </TabsContent>
+
+          <TabsContent value="recommendations">
+            <div className="space-y-6">
+              <div className="text-center mb-6">
+                <h3 className="text-xl font-semibold text-white mb-2">
+                  Personalized Recommendations
+                </h3>
+                <p className="text-gray-300">
+                  Based on your role as a {roleConfig.name.toLowerCase()}, here are the most important articles for you
+                </p>
+              </div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {recommendations.map((article: HelpArticle, index: number) => (
+                  <Card key={index} className="bg-gradient-to-br from-orange-600/10 to-navy-800/50 border-orange-500/30">
+                    <CardContent className="p-6">
+                      <div className="flex items-start space-x-4 mb-4">
+                        <div className="bg-orange-500/20 rounded-lg p-3">
+                          <article.icon className="h-6 w-6 text-orange-500" />
+                        </div>
+                        <div className="flex-1">
+                          <h4 className="font-semibold text-white mb-2">{article.title}</h4>
+                          <p className="text-gray-300 text-sm">{article.description}</p>
+                        </div>
+                      </div>
+                      
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center space-x-2">
+                          <Badge className="bg-orange-500 text-white">
+                            {article.priority}
+                          </Badge>
+                          <Badge variant="outline" className="border-navy-500 text-gray-400">
+                            {article.category}
+                          </Badge>
+                        </div>
+                        <div className="flex items-center text-gray-400 text-sm">
+                          <Clock className="h-4 w-4 mr-1" />
+                          {article.readTime}
+                        </div>
+                      </div>
+                      
+                      <Button className="w-full mt-4 bg-orange-500 hover:bg-orange-600" size="sm">
+                        Read Article
+                      </Button>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+              
+              {recommendations.length === 0 && (
+                <div className="text-center py-12">
+                  <Lightbulb className="h-12 w-12 text-gray-500 mx-auto mb-4" />
+                  <h3 className="text-lg font-semibold text-white mb-2">No specific recommendations</h3>
+                  <p className="text-gray-400">Check out all articles in the Articles tab</p>
+                </div>
+              )}
             </div>
           </TabsContent>
 
