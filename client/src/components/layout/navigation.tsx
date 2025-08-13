@@ -322,12 +322,12 @@ export default function Navigation() {
 
             {/* Dashboard - Only show if authenticated */}
             {isAuthenticated && (
-              <Link href={isContractor ? "/contractor-dashboard" : "/homeowner-dashboard"}>
+              <Link href={isContractor ? "/contractor-dashboard" : "/dashboard"}>
                 <Button 
                   variant="ghost" 
                   size="sm"
                   className={`text-xs px-2 py-1 ${
-                    (location === '/contractor-dashboard' || location === '/homeowner-dashboard') 
+                    (location === '/contractor-dashboard' || location === '/dashboard') 
                       ? 'text-orange-500 bg-orange-500/15' 
                       : 'text-gray-300 hover:text-white'
                   }`}
