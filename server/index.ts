@@ -3,10 +3,24 @@ import { registerRoutes } from "./routes";
 import { seedDatabase } from "./seed-data";
 import { setupVite, serveStatic, log } from "./vite";
 import { notificationService } from "./notification-service";
+import path from "path"; // Import path module
 
 const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
+
+// CORS configuration
+app.use((req, res, next) => {
+  res.header('Access-Control-Allow-Origin', '*');
+  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
+  if (req.method === 'OPTIONS') {
+    res.sendStatus(200);
+  } else {
+    next();
+  }
+});
+
 
 app.use((req, res, next) => {
   const start = Date.now();
@@ -39,6 +53,9 @@ app.use((req, res, next) => {
 });
 
 (async () => {
+  // NOTE: Ensure 'routes' is imported or defined before this point if 'registerRoutes' uses it directly.
+  // If 'routes' is not implicitly available, it needs to be imported.
+  // For this example, assuming 'routes' is handled within 'registerRoutes' or imported elsewhere.
   const server = await registerRoutes(app);
 
   // Start birthday notification processing - runs daily at 9 AM
@@ -69,6 +86,20 @@ app.use((req, res, next) => {
     await setupVite(app, server);
   } else {
     serveStatic(app);
+    // Serve static files from client build
+    app.use(express.static(path.join(__dirname, '../client/dist')));
+
+    // Catch all handler for client-side routing
+    app.get('*', (req, res) => {
+      const indexPath = path.join(__dirname, '../client/dist/index.html');
+      console.log('Serving index.html from:', indexPath);
+      res.sendFile(indexPath, (err) => {
+        if (err) {
+          console.error('Error serving index.html:', err);
+          res.status(500).send('Error loading application');
+        }
+      });
+    });
   }
 
   // ALWAYS serve the app on the port specified in the environment variable PORT

@@ -10,6 +10,7 @@ import { AuthModal } from "@/components/auth-modal";
 import { TestingErrorReportButton } from "@/components/TestingErrorReportButton";
 import { BugReportButton } from "@/components/BugReportButton";
 import { SEOHelmet, createWebsiteStructuredData, createOrganizationStructuredData, createFAQStructuredData } from "@/components/SEOHelmet";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 export default function Landing() {
   const [selectedState, setSelectedState] = useState("");
