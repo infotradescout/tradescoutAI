@@ -37,7 +37,7 @@ export function NextGenNavigation({ className = "" }: NextGenNavigationProps) {
     // Base navigation items with role-specific priorities
     const baseItems = [
       { href: "/contractors/board", label: "Contractors", icon: Users, priority: 10 },
-      { href: "/calculator", label: "Calculator", icon: Calculator, priority: 9 },
+      { href: "/quote-calculator", label: "Calculator", icon: Calculator, priority: 9 },
       { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard, priority: 8 },
       { href: "/foundation", label: "Foundation", icon: Building, priority: 6 },
       { href: "/community", label: "Community", icon: MessageSquare, priority: 5 },
@@ -53,7 +53,7 @@ export function NextGenNavigation({ className = "" }: NextGenNavigationProps) {
         if (item.href === '/contractors/board') return { ...item, priority: 14 };
         if (item.href === '/accelerator') return { ...item, priority: 13 };
         if (item.href === '/helpers') return { ...item, priority: 12 };
-        if (item.href === '/calculator') return { ...item, priority: 11 };
+        if (item.href === '/quote-calculator') return { ...item, priority: 11 };
         return item;
       });
     } else if (userRole === 'helper') {
@@ -62,7 +62,7 @@ export function NextGenNavigation({ className = "" }: NextGenNavigationProps) {
         if (item.href === '/helpers') return { ...item, priority: 14 }; // Second priority for job listings
         if (item.href === '/contractors/board') return { ...item, priority: 13 }; // To find work from contractors
         if (item.href === '/community') return { ...item, priority: 12 };
-        if (item.href === '/calculator') return { ...item, priority: 11 };
+        if (item.href === '/quote-calculator') return { ...item, priority: 11 };
         return item;
       });
     } else if (userRole === 'moderator' || userRole === 'ops_admin' || userRole === 'head_admin') {
