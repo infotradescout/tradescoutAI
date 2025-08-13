@@ -56,7 +56,20 @@ export default function Landing() {
   };
 
   return (
-    <div className="min-h-screen gradient-bg w-full max-w-full overflow-x-hidden">
+    <ScrollArea 
+      className="min-h-screen" 
+      headerHeight={64}
+      pageHeight={window.innerHeight}
+      scrollToTop={true}
+      onScrollChange={(scrollTop) => {
+        // Parallax effect for hero section
+        const heroElement = document.querySelector('.hero-section');
+        if (heroElement) {
+          heroElement.style.transform = `translateY(${scrollTop * 0.5}px)`;
+        }
+      }}
+    >
+      <div className="min-h-screen gradient-bg w-full max-w-full overflow-x-hidden">
       <SEOHelmet 
         title="TradeScout - Find Trusted Local Contractors | Get 3 Free Quotes"
         description="Connect with verified contractors in your county. Get 3 free quotes, read reviews, and hire with confidence. Local contractors for roofing, plumbing, electrical, and all home improvement projects."
@@ -64,7 +77,7 @@ export default function Landing() {
         structuredData={structuredData}
       />
       {/* Hero Section */}
-      <section className="py-6 md:py-12 w-full max-w-full">
+      <section className="hero-section py-6 md:py-12 w-full max-w-full">
         <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 w-full">
           <div className="text-center mb-8 md:mb-16">
             <h1 className="text-2xl md:text-4xl lg:text-6xl font-bold text-white mb-4 md:mb-6 leading-tight">
@@ -722,6 +735,7 @@ export default function Landing() {
         showGuestOption={true}
         onGuestContinue={handleGuestContinue}
       />
-    </div>
+      </div>
+    </ScrollArea>
   );
 }

@@ -3,6 +3,63 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Scroll-aware navigation */
+body.scrolled nav {
+  backdrop-filter: blur(20px);
+  background: rgba(30, 41, 59, 0.98);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+}
+
+/* Smooth scrolling for page transitions */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Page layout with proper header offset */
+.main-content {
+  min-height: calc(100vh - var(--header-height));
+  padding-top: 0;
+}
+
+/* Hero section with parallax capability */
+.hero-section {
+  transition: transform 0.1s ease-out;
+}
+
+/* Scroll area enhancements */
+.scroll-area-viewport {
+  scroll-padding-top: var(--header-height);
+}
+
+/* Enhanced card animations */
+.card-enhanced {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.card-enhanced:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-glow);
+}
+
+/* Gradient background with scroll effects */
+.gradient-bg {
+  background: linear-gradient(135deg, 
+    hsl(213, 35%, 8%) 0%, 
+    hsl(211, 24%, 14%) 25%, 
+    hsl(210, 21%, 20%) 50%, 
+    hsl(209, 18%, 27%) 75%, 
+    hsl(208, 16%, 35%) 100%);
+  background-attachment: fixed;
+}
+
+/* Responsive scroll adjustments */
+@media (max-width: 768px) {
+  :root {
+    --header-height: 56px;
+    --page-padding: 60px;
+  }
+}
+
 :root {
   /* Trade Scout Brand Colors */
   --bg-primary: hsl(213, 35%, 8%);
@@ -27,6 +84,9 @@
 
   --shadow-card: 0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -1px rgba(0, 0, 0, 0.2);
   --shadow-glow: 0 0 20px rgba(255, 107, 53, 0.4);
+  
+  --header-height: 64px;
+  --page-padding: 80px;
 
   /* shadcn/ui compatibility */
   --background: var(--bg-primary);

@@ -3,6 +3,7 @@ import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { 
   Calendar, 
   MapPin, 
@@ -25,7 +26,13 @@ export default function Home() {
   const userLocation = useUserLocation();
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+    <ScrollArea 
+      className="h-full" 
+      headerHeight={80}
+      pageHeight={window.innerHeight - 80}
+      scrollToTop={false}
+    >
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
       <div className="mb-8">
         <h1 className="text-3xl font-bold text-white mb-2">
           Welcome back, {user?.firstName || 'User'}
@@ -237,6 +244,7 @@ export default function Home() {
           className="max-w-full"
         />
       </div>
-    </div>
+      </div>
+    </ScrollArea>
   );
 }

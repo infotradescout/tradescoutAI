@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
@@ -18,6 +18,17 @@ export default function Navigation() {
   const [location] = useLocation();
   const { user, isAuthenticated } = useAuth();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isScrolled, setIsScrolled] = useState(false);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      const scrolled = window.scrollY > 20;
+      setIsScrolled(scrolled);
+    };
+
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
 
   const isAdmin = user && user.role && ['head_admin', 'ops_admin', 'analytics_read', 'territory_manager', 'contractor_success', 'moderator'].includes(user.role);
   const isContractor = user && user.role && ['contractor_user', 'accelerator_member'].includes(user.role);
@@ -53,7 +64,10 @@ export default function Navigation() {
   const closeMobileMenu = () => setIsMobileMenuOpen(false);
 
   return (
-    <nav className="bg-gradient-to-r from-navy-900 to-navy-800 backdrop-blur-md border-b border-navy-600/50 sticky top-0 z-50 shadow-lg">
+    <nav className={cn(
+      "bg-navy-800/95 border-b border-navy-600 sticky top-0 z-50 backdrop-blur-md transition-all duration-300",
+      isScrolled && "bg-navy-800/98 shadow-lg border-navy-500/50"
+    )}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
           {/* Logo */}
