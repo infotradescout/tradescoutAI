@@ -351,7 +351,7 @@ export const counties = pgTable("counties", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   name: varchar("name").notNull(),
   fips: varchar("fips", { length: 5 }).notNull().unique(),
-  stateCode: varchar("state_code", { length: 2 }).notNull(),
+  stateCode: varchar("state_code", { length: 2 }).notNull().references(() => states.code),
   population: integer("population"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),

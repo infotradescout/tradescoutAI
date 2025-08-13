@@ -4,6 +4,7 @@ import {
   recommendations,
   leads,
   counties,
+  states,
   trades,
   growthPackDownloads,
   acceleratorMemberships,
@@ -1000,19 +1001,31 @@ export class DatabaseStorage implements IStorage {
   }
 
   // County operations
-  async getCounties(stateCode?: string): Promise<County[]> {
+  async getCounties(stateCode?: string): Promise<(County & { state?: { name: string; code: string } })[]> {
+    const query = db
+      .select({
+        id: counties.id,
+        name: counties.name,
+        fips: counties.fips,
+        stateCode: counties.stateCode,
+        population: counties.population,
+        createdAt: counties.createdAt,
+        updatedAt: counties.updatedAt,
+        state: {
+          name: states.name,
+          code: states.code,
+        },
+      })
+      .from(counties)
+      .leftJoin(states, eq(counties.stateCode, states.code));
+
     if (stateCode) {
-      return await db
-        .select()
-        .from(counties)
+      return await query
         .where(eq(counties.stateCode, stateCode))
         .orderBy(asc(counties.name));
     }
     
-    return await db
-      .select()
-      .from(counties)
-      .orderBy(asc(counties.name));
+    return await query.orderBy(asc(counties.name));
   }
 
   async getCountyByFips(fips: string): Promise<County | undefined> {
