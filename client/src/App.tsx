@@ -296,6 +296,20 @@ const Router = memo(function Router() {
             <Route path="/affiliate" component={AffiliatePage} />
           </>
         )}
+        <Route path="/test" component={() => (
+          <div className="min-h-screen bg-gray-900 text-white p-8">
+            <h1 className="text-3xl font-bold mb-4">TradeScout Test Page</h1>
+            <p className="text-lg mb-4">✅ React is working!</p>
+            <p className="mb-2">✅ Routing is working!</p>
+            <p className="mb-2">✅ Styling is working!</p>
+            <button 
+              onClick={() => alert('JavaScript is working!')}
+              className="px-4 py-2 bg-orange-500 text-white rounded hover:bg-orange-600"
+            >
+              Test JavaScript
+            </button>
+          </div>
+        )} />
         <Route component={NotFound} />
       </Switch>
       <MobileCTA />
@@ -327,7 +341,20 @@ const Router = memo(function Router() {
 
 const App = memo(function App() {
   return (
-    <ErrorBoundary fallback={<div className="min-h-screen gradient-bg flex items-center justify-center text-white">Loading...</div>}>
+    <ErrorBoundary fallback={
+      <div className="min-h-screen bg-gray-900 flex items-center justify-center text-white">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold mb-4">TradeScout</h1>
+          <p>Application failed to load. Please refresh the page.</p>
+          <button 
+            onClick={() => window.location.reload()} 
+            className="mt-4 px-4 py-2 bg-orange-500 text-white rounded"
+          >
+            Reload
+          </button>
+        </div>
+      </div>
+    }>
       <QueryClientProvider client={queryClient}>
         <TooltipProvider>
           <Toaster />
