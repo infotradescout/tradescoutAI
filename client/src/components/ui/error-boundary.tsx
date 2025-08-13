@@ -25,19 +25,36 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
   }
 
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
-    // Log error for debugging
-    console.warn('Error boundary caught an error:', error, errorInfo);
-
-    // Don't log hook call errors in production as they're expected during development
-    if (!error.message.includes('Invalid hook call')) {
-      console.error('Error boundary caught an error:', error, errorInfo);
-    }
+    // Always log errors for debugging
+    console.error('Error boundary caught an error:', error, errorInfo);
+    console.error('Component stack:', errorInfo.componentStack);
   }
 
   render() {
     if (this.state.hasError) {
-      // Return fallback UI or empty div
-      return this.props.fallback || <div className="error-boundary-fallback"></div>;
+      // Return fallback UI with error details
+      return this.props.fallback || (
+        <div className="min-h-screen bg-gray-900 text-white p-8 flex items-center justify-center">
+          <div className="text-center">
+            <h1 className="text-2xl font-bold mb-4">Something went wrong</h1>
+            <p className="mb-4">The application encountered an error.</p>
+            {this.state.error && (
+              <details className="text-left bg-gray-800 p-4 rounded">
+                <summary className="cursor-pointer">Error details</summary>
+                <pre className="mt-2 text-sm overflow-auto">
+                  {this.state.error.toString()}
+                </pre>
+              </details>
+            )}
+            <button 
+              onClick={() => window.location.reload()} 
+              className="mt-4 px-4 py-2 bg-orange-500 text-white rounded hover:bg-orange-600"
+            >
+              Reload Page
+            </button>
+          </div>
+        </div>
+      );
     }
 
     return this.props.children;
