@@ -42,6 +42,7 @@ import EstimateCalculator from "@/pages/quote-calculator";
 import WorkerMarketplace from "@/pages/worker-marketplace";
 import GrowthPack from "@/pages/growth-pack";
 import ForContractors from "@/pages/contractors";
+import FindContractors from "@/pages/find-contractors";
 import ContractorApply from "@/pages/contractor-apply";
 import ContractorAccelerator from "@/pages/contractor-accelerator";
 import ContractorDashboard from "@/pages/contractor-dashboard";
@@ -214,10 +215,13 @@ const Router = memo(function Router() {
 
               {/* Contractor routes */}
               <Route path="/contractors" component={ForContractors} />
+              <Route path="/contractors/board" component={ContractorBoard} />
+              <Route path="/contractors/find" component={FindContractors} />
+              <Route path="/contractors/:slug" component={ContractorProfile} />
+              <Route path="/contractors/apply" component={ContractorApply} />
+              <Route path="/contractors/accelerator" component={ContractorAccelerator} />
               <Route path="/contractor-board" component={ContractorBoard} />
               <Route path="/contractor-profile/:id" component={ContractorProfile} />
-              <Route path="/contractor-apply" component={ContractorApply} />
-              <Route path="/contractor-accelerator" component={ContractorAccelerator} />
               <Route path="/contractor-dashboard" component={ContractorDashboard} />
               <Route path="/contractor-promos" component={ContractorPromos} />
               <Route path="/promo/:id" component={PromoPublic} />
