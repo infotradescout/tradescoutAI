@@ -160,7 +160,7 @@ const Router = memo(function Router() {
   const isPublicRoute = ['/login', '/register', '/terms', '/privacy', '/cookies', '/compliance'].includes(location);
 
   return (
-    <MobileGestures className="min-h-screen">
+    <MobileGestures>
     <div className="min-h-screen gradient-bg flex flex-col">
       <NextGenNavigation />
       
