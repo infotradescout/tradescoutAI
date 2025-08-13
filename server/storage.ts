@@ -4497,8 +4497,8 @@ export class DatabaseStorage implements IStorage {
     };
   }
 
-  // Real-time notification operations
-  async createNotification(notification: InsertRealTimeNotification): Promise<RealTimeNotification> {
+  // Real-time notification operations (consolidated)
+  async createRealTimeNotification(notification: InsertRealTimeNotification): Promise<RealTimeNotification> {
     const [newNotification] = await db
       .insert(realTimeNotifications)
       .values(notification)
@@ -4506,7 +4506,7 @@ export class DatabaseStorage implements IStorage {
     return newNotification;
   }
 
-  async getUserNotifications(userId: string, unreadOnly?: boolean): Promise<RealTimeNotification[]> {
+  async getRealTimeNotifications(userId: string, unreadOnly?: boolean): Promise<RealTimeNotification[]> {
     let query = db.select().from(realTimeNotifications).where(eq(realTimeNotifications.userId, userId));
     
     if (unreadOnly) {
@@ -4516,7 +4516,7 @@ export class DatabaseStorage implements IStorage {
     return await query.orderBy(desc(realTimeNotifications.createdAt));
   }
 
-  async markNotificationAsRead(id: string): Promise<RealTimeNotification> {
+  async markRealTimeNotificationAsRead(id: string): Promise<RealTimeNotification> {
     const [notification] = await db
       .update(realTimeNotifications)
       .set({ readAt: new Date() })
@@ -4525,7 +4525,7 @@ export class DatabaseStorage implements IStorage {
     return notification;
   }
 
-  async markAllNotificationsAsRead(userId: string): Promise<void> {
+  async markAllRealTimeNotificationsAsRead(userId: string): Promise<void> {
     await db
       .update(realTimeNotifications)
       .set({ readAt: new Date() })
