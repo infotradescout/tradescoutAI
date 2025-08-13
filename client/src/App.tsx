@@ -242,6 +242,8 @@ const Router = memo(function Router() {
 
               {/* Tools and utilities */}
               <Route path="/quote-calculator" component={EstimateCalculator} />
+              <Route path="/calculator" component={EstimateCalculator} />
+              <Route path="/quote" component={EstimateCalculator} />
               <Route path="/advanced-search" component={AdvancedSearch} />
               <Route path="/leaderboard" component={Leaderboard} />
 
