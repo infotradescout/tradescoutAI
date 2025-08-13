@@ -10,7 +10,8 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { Link } from "wouter";
-import { ArrowLeft, UserPlus, Mail, Lock, User, MapPin } from "lucide-react";
+import { ArrowLeft, UserPlus, Mail, Lock, User, MapPin, Users } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 const registerSchema = z.object({
   username: z.string()
@@ -23,6 +24,7 @@ const registerSchema = z.object({
   firstName: z.string().min(1, "First name is required"),
   lastName: z.string().min(1, "Last name is required"),
   address: z.string().min(5, "Please enter your address for neighborhood verification"),
+  role: z.enum(['homeowner', 'contractor_user', 'helper', 'realtor', 'dealer', 'service_provider']).default('homeowner'),
 }).refine((data) => data.password === data.confirmPassword, {
   message: "Passwords don't match",
   path: ["confirmPassword"],
@@ -33,6 +35,10 @@ type RegisterFormData = z.infer<typeof registerSchema>;
 export default function Register() {
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
+  
+  // Get role from URL parameters
+  const urlParams = new URLSearchParams(window.location.search);
+  const defaultRole = urlParams.get('role') as 'homeowner' | 'contractor_user' | 'helper' | 'realtor' | 'dealer' | 'service_provider' || 'homeowner';
 
   const form = useForm<RegisterFormData>({
     resolver: zodResolver(registerSchema),
@@ -44,6 +50,7 @@ export default function Register() {
       firstName: "",
       lastName: "",
       address: "",
+      role: defaultRole,
     },
   });
 
@@ -61,8 +68,19 @@ export default function Register() {
         title: "Account Created Successfully!",
         description: "Welcome to TradeScout! You can now participate in community moderation.",
       });
-      // Redirect to community moderation demo
-      window.location.href = '/community/moderation';
+      // Redirect based on role
+      const role = form.getValues('role');
+      if (role === 'helper') {
+        window.location.href = '/helper-dashboard';
+      } else if (role === 'contractor_user') {
+        window.location.href = '/contractor-dashboard';
+      } else if (role === 'realtor') {
+        window.location.href = '/realtor-dashboard';
+      } else if (role === 'dealer' || role === 'service_provider') {
+        window.location.href = '/dashboard';
+      } else {
+        window.location.href = '/homeowner-dashboard';
+      }
     },
     onError: (error: Error) => {
       toast({
@@ -186,6 +204,32 @@ export default function Register() {
                 </p>
                 {form.formState.errors.address && (
                   <p className="text-red-500 text-sm mt-1">{form.formState.errors.address.message}</p>
+                )}
+              </div>
+
+              <div>
+                <Label htmlFor="role" className="flex items-center gap-2">
+                  <Users className="h-4 w-4" />
+                  Account Type
+                </Label>
+                <Select value={form.watch("role")} onValueChange={(value) => form.setValue("role", value as any)}>
+                  <SelectTrigger className="mt-1">
+                    <SelectValue placeholder="Select your account type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="homeowner">Homeowner - Find contractors and services</SelectItem>
+                    <SelectItem value="contractor_user">Contractor - Offer professional services</SelectItem>
+                    <SelectItem value="helper">Helper - Provide task assistance</SelectItem>
+                    <SelectItem value="realtor">Realtor - Real estate professional</SelectItem>
+                    <SelectItem value="dealer">Dealer - Equipment and material supplier</SelectItem>
+                    <SelectItem value="service_provider">Service Provider - Business services</SelectItem>
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                  Choose the type that best describes how you'll use TradeScout
+                </p>
+                {form.formState.errors.role && (
+                  <p className="text-red-500 text-sm mt-1">{form.formState.errors.role.message}</p>
                 )}
               </div>
 
