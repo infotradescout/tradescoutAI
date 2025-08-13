@@ -29,7 +29,13 @@ import {
   Smartphone,
   Trophy,
   Gem,
-  Package
+  Package,
+  Tag,
+  Percent,
+  Clock,
+  ExternalLink,
+  Copy,
+  Share2
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { apiRequest } from "@/lib/queryClient";
@@ -54,6 +60,68 @@ interface ExchangeItem {
   featured: boolean;
   views: number;
   favorites: number;
+}
+
+interface ContractorPromo {
+  id: string;
+  contractorId: string;
+  title: string;
+  description: string;
+  offerDetails: string;
+  discountType: 'percentage' | 'fixed_amount' | 'free_service' | 'bundle_deal';
+  discountValue: number;
+  minimumJobValue?: number;
+  promoCode?: string;
+  isActive: boolean;
+  maxUses?: number;
+  currentUses: number;
+  serviceAreas: string[];
+  tradeCategories: string[];
+  startsAt: string;
+  expiresAt?: string;
+  slug: string;
+  viewCount: number;
+  clickCount: number;
+  leadCount: number;
+  contractor: {
+    id: string;
+    name: string;
+    businessName: string;
+    rating: number;
+    verified: boolean;
+    phone: string;
+  };
+}
+
+interface CompanyPromotion {
+  id: string;
+  companyName: string;
+  companyLogo?: string;
+  companyWebsite?: string;
+  title: string;
+  description: string;
+  dealDetails: string;
+  dealType: 'percentage_off' | 'dollar_off' | 'bogo' | 'free_shipping' | 'bundle_deal' | 'clearance';
+  discountValue?: number;
+  originalPrice?: number;
+  salePrice?: number;
+  promoCode?: string;
+  minimumPurchase?: number;
+  maxDiscount?: number;
+  productCategories: string[];
+  targetAudience: string[];
+  startsAt: string;
+  expiresAt: string;
+  isActive: boolean;
+  isFeatured: boolean;
+  availableStates?: string[];
+  storeLocationsOnly: boolean;
+  slug: string;
+  viewCount: number;
+  clickCount: number;
+  redemptionCount: number;
+  terms?: string;
+  restrictions?: string;
 }
 
 const EXCHANGE_CATEGORIES = [
@@ -84,6 +152,12 @@ export default function Exchange() {
   const [priceRange, setPriceRange] = useState("");
   const [conditionFilter, setConditionFilter] = useState("");
   const [showCreateDialog, setShowCreateDialog] = useState(false);
+  
+  // Sales section filters
+  const [salesSearchQuery, setSalesSearchQuery] = useState("");
+  const [salesCategory, setSalesCategory] = useState("");
+  const [dealType, setDealType] = useState("");
+  const [salesSortBy, setSalesSortBy] = useState("newest");
 
   // Fetch exchange items
   const { data: items, isLoading } = useQuery<ExchangeItem[]>({
@@ -101,6 +175,38 @@ export default function Exchange() {
       return response.json();
     },
     enabled: activeTab === "browse",
+  });
+
+  // Fetch contractor promotions
+  const { data: contractorPromos, isLoading: contractorPromosLoading } = useQuery<ContractorPromo[]>({
+    queryKey: ['/api/exchange/contractor-promos', salesSearchQuery, salesCategory, salesSortBy],
+    queryFn: async () => {
+      const params = new URLSearchParams();
+      if (salesSearchQuery) params.append('search', salesSearchQuery);
+      if (salesCategory) params.append('category', salesCategory);
+      if (salesSortBy) params.append('sort', salesSortBy);
+      
+      const response = await fetch(`/api/exchange/contractor-promos?${params.toString()}`);
+      if (!response.ok) throw new Error('Failed to fetch contractor promotions');
+      return response.json();
+    },
+    enabled: activeTab === "sales",
+  });
+
+  // Fetch company promotions
+  const { data: companyPromotions, isLoading: companyPromotionsLoading } = useQuery<CompanyPromotion[]>({
+    queryKey: ['/api/exchange/company-promotions', salesSearchQuery, dealType, salesSortBy],
+    queryFn: async () => {
+      const params = new URLSearchParams();
+      if (salesSearchQuery) params.append('search', salesSearchQuery);
+      if (dealType) params.append('dealType', dealType);
+      if (salesSortBy) params.append('sort', salesSortBy);
+      
+      const response = await fetch(`/api/exchange/company-promotions?${params.toString()}`);
+      if (!response.ok) throw new Error('Failed to fetch company promotions');
+      return response.json();
+    },
+    enabled: activeTab === "sales",
   });
 
   // Filter items based on search
@@ -148,9 +254,14 @@ export default function Exchange() {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-3 mb-6 bg-slate-800 border-slate-700">
+        <TabsList className="grid w-full grid-cols-4 mb-6 bg-slate-800 border-slate-700">
           <TabsTrigger value="browse" className="text-slate-300 data-[state=active]:text-white data-[state=active]:bg-slate-700">
             Browse Items
+          </TabsTrigger>
+          <TabsTrigger value="sales" className="text-slate-300 data-[state=active]:text-white data-[state=active]:bg-slate-700 relative">
+            <Tag className="h-4 w-4 mr-2" />
+            Sales & Deals
+            <Badge className="absolute -top-1 -right-1 bg-red-500 text-white text-xs px-1">HOT</Badge>
           </TabsTrigger>
           <TabsTrigger value="categories" className="text-slate-300 data-[state=active]:text-white data-[state=active]:bg-slate-700">
             Categories
@@ -311,6 +422,283 @@ export default function Exchange() {
                 <p className="text-gray-400">No items found matching your criteria.</p>
               </div>
             )}
+          </div>
+        </TabsContent>
+
+        <TabsContent value="sales" className="space-y-6">
+          {/* Sales and Deals Search */}
+          <Card className="bg-slate-800 border-slate-700">
+            <CardContent className="p-6">
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div className="relative">
+                  <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                  <Input
+                    placeholder="Search deals and promotions..."
+                    value={salesSearchQuery}
+                    onChange={(e) => setSalesSearchQuery(e.target.value)}
+                    className="pl-10 bg-slate-700 border-slate-600 text-white"
+                  />
+                </div>
+                
+                <Select value={salesCategory} onValueChange={setSalesCategory}>
+                  <SelectTrigger className="bg-slate-700 border-slate-600 text-white">
+                    <SelectValue placeholder="Category" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-slate-800 border-slate-700">
+                    <SelectItem value="all">All Categories</SelectItem>
+                    <SelectItem value="tools">Tools & Hardware</SelectItem>
+                    <SelectItem value="lumber">Lumber & Materials</SelectItem>
+                    <SelectItem value="equipment">Equipment & Machinery</SelectItem>
+                    <SelectItem value="electrical">Electrical Supplies</SelectItem>
+                    <SelectItem value="plumbing">Plumbing Supplies</SelectItem>
+                    <SelectItem value="paint">Paint & Finishing</SelectItem>
+                  </SelectContent>
+                </Select>
+
+                <Select value={dealType} onValueChange={setDealType}>
+                  <SelectTrigger className="bg-slate-700 border-slate-600 text-white">
+                    <SelectValue placeholder="Deal Type" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-slate-800 border-slate-700">
+                    <SelectItem value="all">All Deals</SelectItem>
+                    <SelectItem value="percentage_off">Percentage Off</SelectItem>
+                    <SelectItem value="dollar_off">Dollar Amount Off</SelectItem>
+                    <SelectItem value="bogo">Buy One Get One</SelectItem>
+                    <SelectItem value="clearance">Clearance</SelectItem>
+                    <SelectItem value="contractor_special">Contractor Special</SelectItem>
+                  </SelectContent>
+                </Select>
+
+                <Select value={salesSortBy} onValueChange={setSalesSortBy}>
+                  <SelectTrigger className="bg-slate-700 border-slate-600 text-white">
+                    <SelectValue placeholder="Sort By" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-slate-800 border-slate-700">
+                    <SelectItem value="newest">Newest First</SelectItem>
+                    <SelectItem value="ending_soon">Ending Soon</SelectItem>
+                    <SelectItem value="biggest_savings">Biggest Savings</SelectItem>
+                    <SelectItem value="most_popular">Most Popular</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Contractor Promotions Section */}
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <h2 className="text-2xl font-bold text-white flex items-center">
+                <Wrench className="h-6 w-6 mr-2 text-orange-500" />
+                Contractor Promotions
+              </h2>
+              <Button className="bg-orange-500 hover:bg-orange-600">
+                Post Your Promotion
+              </Button>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {contractorPromosLoading ? (
+                Array.from({ length: 6 }).map((_, i) => (
+                  <Card key={i} className="bg-slate-800 border-slate-700 animate-pulse">
+                    <CardContent className="p-6">
+                      <div className="h-4 bg-slate-600 rounded mb-4"></div>
+                      <div className="h-6 bg-slate-600 rounded mb-2"></div>
+                      <div className="h-4 bg-slate-600 rounded mb-4"></div>
+                      <div className="h-4 bg-slate-600 rounded w-3/4"></div>
+                    </CardContent>
+                  </Card>
+                ))
+              ) : contractorPromos && contractorPromos.length > 0 ? (
+                contractorPromos.map((promo) => (
+                  <Card key={promo.id} className="bg-slate-800 border-slate-700 hover:border-orange-500/50 transition-colors">
+                    <CardContent className="p-6">
+                      <div className="flex items-start justify-between mb-4">
+                        <div className="flex items-center">
+                          <div className="w-12 h-12 bg-orange-500 rounded-lg flex items-center justify-center mr-3">
+                            <Wrench className="h-6 w-6 text-white" />
+                          </div>
+                          <div>
+                            <h3 className="font-semibold text-white">{promo.contractor.businessName}</h3>
+                            <div className="flex items-center">
+                              <Star className="h-4 w-4 text-yellow-400 mr-1" />
+                              <span className="text-sm text-gray-300">{promo.contractor.rating}</span>
+                              {promo.contractor.verified && (
+                                <Badge className="ml-2 bg-green-500/20 text-green-400 border-green-500/50 text-xs">
+                                  Verified
+                                </Badge>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                        {promo.expiresAt && (
+                          <Badge variant="outline" className="border-orange-500/50 text-orange-400">
+                            <Clock className="h-3 w-3 mr-1" />
+                            Expires {new Date(promo.expiresAt).toLocaleDateString()}
+                          </Badge>
+                        )}
+                      </div>
+
+                      <h4 className="text-lg font-semibold text-white mb-2">{promo.title}</h4>
+                      <p className="text-gray-300 text-sm mb-3">{promo.description}</p>
+                      
+                      <div className="bg-orange-500/10 border border-orange-500/20 rounded-lg p-3 mb-4">
+                        <div className="flex items-center mb-2">
+                          <Percent className="h-4 w-4 text-orange-400 mr-2" />
+                          <span className="text-orange-400 font-semibold">{promo.offerDetails}</span>
+                        </div>
+                        {promo.promoCode && (
+                          <div className="flex items-center justify-between bg-slate-700 rounded p-2">
+                            <span className="text-sm text-gray-300">Promo Code:</span>
+                            <div className="flex items-center">
+                              <code className="bg-slate-600 px-2 py-1 rounded text-orange-400 font-mono text-sm mr-2">
+                                {promo.promoCode}
+                              </code>
+                              <Button size="sm" variant="ghost" className="h-6 w-6 p-0">
+                                <Copy className="h-3 w-3" />
+                              </Button>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="flex items-center justify-between">
+                        <div className="text-sm text-gray-400">
+                          {promo.viewCount} views • {promo.leadCount} leads
+                        </div>
+                        <div className="flex space-x-2">
+                          <Button size="sm" variant="ghost" className="text-gray-400 hover:text-white">
+                            <Share2 className="h-4 w-4" />
+                          </Button>
+                          <Button size="sm" className="bg-orange-500 hover:bg-orange-600">
+                            Contact Contractor
+                          </Button>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))
+              ) : (
+                <div className="col-span-3 text-center py-12">
+                  <Wrench className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                  <p className="text-gray-400 mb-4">No contractor promotions found.</p>
+                  <Button className="bg-orange-500 hover:bg-orange-600">
+                    Post the First Promotion
+                  </Button>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Company Promotions Section */}
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <h2 className="text-2xl font-bold text-white flex items-center">
+                <Building className="h-6 w-6 mr-2 text-blue-500" />
+                Store Sales & Promotions
+              </h2>
+              <Button variant="outline" className="border-blue-500 text-blue-400 hover:bg-blue-500 hover:text-white">
+                Advertise with Us
+              </Button>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {companyPromotionsLoading ? (
+                Array.from({ length: 6 }).map((_, i) => (
+                  <Card key={i} className="bg-slate-800 border-slate-700 animate-pulse">
+                    <CardContent className="p-6">
+                      <div className="h-16 bg-slate-600 rounded mb-4"></div>
+                      <div className="h-6 bg-slate-600 rounded mb-2"></div>
+                      <div className="h-4 bg-slate-600 rounded mb-4"></div>
+                      <div className="h-4 bg-slate-600 rounded w-3/4"></div>
+                    </CardContent>
+                  </Card>
+                ))
+              ) : companyPromotions && companyPromotions.length > 0 ? (
+                companyPromotions.map((promotion) => (
+                  <Card key={promotion.id} className="bg-slate-800 border-slate-700 hover:border-blue-500/50 transition-colors">
+                    <CardContent className="p-6">
+                      <div className="flex items-start justify-between mb-4">
+                        <div className="flex items-center">
+                          <div className="w-16 h-16 bg-white rounded-lg flex items-center justify-center mr-3">
+                            {promotion.companyLogo ? (
+                              <img src={promotion.companyLogo} alt={promotion.companyName} className="w-12 h-12 object-contain" />
+                            ) : (
+                              <Building className="h-8 w-8 text-gray-600" />
+                            )}
+                          </div>
+                          <div>
+                            <h3 className="font-semibold text-white">{promotion.companyName}</h3>
+                            {promotion.isFeatured && (
+                              <Badge className="bg-blue-500 text-white text-xs">Featured</Badge>
+                            )}
+                          </div>
+                        </div>
+                        <Badge variant="outline" className="border-red-500/50 text-red-400">
+                          <Clock className="h-3 w-3 mr-1" />
+                          Ends {new Date(promotion.expiresAt).toLocaleDateString()}
+                        </Badge>
+                      </div>
+
+                      <h4 className="text-lg font-semibold text-white mb-2">{promotion.title}</h4>
+                      <p className="text-gray-300 text-sm mb-3">{promotion.description}</p>
+                      
+                      <div className="bg-blue-500/10 border border-blue-500/20 rounded-lg p-3 mb-4">
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-blue-400 font-semibold text-lg">{promotion.dealDetails}</span>
+                          {promotion.discountValue && (
+                            <Badge className="bg-red-500 text-white">
+                              Save {promotion.dealType === 'percentage_off' ? `${promotion.discountValue}%` : `$${promotion.discountValue}`}
+                            </Badge>
+                          )}
+                        </div>
+                        {promotion.originalPrice && promotion.salePrice && (
+                          <div className="flex items-center space-x-2">
+                            <span className="text-gray-400 line-through">${promotion.originalPrice}</span>
+                            <span className="text-green-400 font-bold text-lg">${promotion.salePrice}</span>
+                          </div>
+                        )}
+                        {promotion.promoCode && (
+                          <div className="flex items-center justify-between bg-slate-700 rounded p-2 mt-2">
+                            <span className="text-sm text-gray-300">Use Code:</span>
+                            <div className="flex items-center">
+                              <code className="bg-slate-600 px-2 py-1 rounded text-blue-400 font-mono text-sm mr-2">
+                                {promotion.promoCode}
+                              </code>
+                              <Button size="sm" variant="ghost" className="h-6 w-6 p-0">
+                                <Copy className="h-3 w-3" />
+                              </Button>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="flex items-center justify-between">
+                        <div className="text-sm text-gray-400">
+                          {promotion.viewCount} views • {promotion.redemptionCount} used
+                        </div>
+                        <div className="flex space-x-2">
+                          <Button size="sm" variant="ghost" className="text-gray-400 hover:text-white">
+                            <Share2 className="h-4 w-4" />
+                          </Button>
+                          <Button size="sm" className="bg-blue-500 hover:bg-blue-600">
+                            <ExternalLink className="h-4 w-4 mr-2" />
+                            Shop Now
+                          </Button>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))
+              ) : (
+                <div className="col-span-3 text-center py-12">
+                  <Building className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                  <p className="text-gray-400 mb-4">No store promotions available.</p>
+                  <Button variant="outline" className="border-blue-500 text-blue-400 hover:bg-blue-500 hover:text-white">
+                    Partner with Us
+                  </Button>
+                </div>
+              )}
+            </div>
           </div>
         </TabsContent>
 

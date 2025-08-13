@@ -2096,6 +2096,207 @@ export async function registerRoutes(app: Express) {
     }
   });
 
+  // Exchange routes
+  app.get("/api/exchange/items", async (req, res) => {
+    try {
+      // Mock exchange items - replace with real database call
+      const mockItems = [
+        {
+          id: "1",
+          title: "Professional Grade Circular Saw",
+          description: "DeWalt 20V Max Circular Saw with blade. Excellent condition, barely used.",
+          price: 1200,
+          category: "tools",
+          condition: "like-new",
+          images: [],
+          location: "Los Angeles, CA",
+          seller: {
+            id: "seller1",
+            name: "John Smith",
+            rating: 4.8,
+            verified: true
+          },
+          createdAt: "2025-01-10T00:00:00Z",
+          featured: true,
+          views: 150,
+          favorites: 12
+        },
+        {
+          id: "2", 
+          title: "Premium Hardwood Flooring",
+          description: "Oak hardwood flooring, 500 sq ft available. Perfect for renovation projects.",
+          price: 3500,
+          category: "materials",
+          condition: "new",
+          images: [],
+          location: "Orange County, CA",
+          seller: {
+            id: "seller2",
+            name: "Materials Plus",
+            rating: 4.9,
+            verified: true
+          },
+          createdAt: "2025-01-09T00:00:00Z",
+          featured: false,
+          views: 89,
+          favorites: 7
+        }
+      ];
+
+      res.json(mockItems);
+    } catch (error) {
+      console.error("Error fetching exchange items:", error);
+      res.status(500).json({ message: "Failed to fetch items" });
+    }
+  });
+
+  // Exchange contractor promotions
+  app.get("/api/exchange/contractor-promos", async (req, res) => {
+    try {
+      const { search, category, sort } = req.query;
+      
+      // Mock contractor promotions - replace with real database call
+      const mockPromos = [
+        {
+          id: "promo1",
+          contractorId: "contractor1",
+          title: "Spring Renovation Special",
+          description: "Get ready for spring with our comprehensive renovation package.",
+          offerDetails: "15% off all kitchen renovations over $10,000",
+          discountType: "percentage",
+          discountValue: 15,
+          minimumJobValue: 10000,
+          promoCode: "SPRING15",
+          isActive: true,
+          maxUses: 50,
+          currentUses: 12,
+          serviceAreas: ["Los Angeles County", "Orange County"],
+          tradeCategories: ["kitchen", "renovation"],
+          startsAt: "2025-03-01T00:00:00Z",
+          expiresAt: "2025-05-31T23:59:59Z",
+          slug: "spring-renovation-special",
+          viewCount: 234,
+          clickCount: 45,
+          leadCount: 8,
+          contractor: {
+            id: "contractor1",
+            name: "Mike Johnson",
+            businessName: "Johnson Construction",
+            rating: 4.9,
+            verified: true,
+            phone: "(555) 123-4567"
+          }
+        },
+        {
+          id: "promo2",
+          contractorId: "contractor2", 
+          title: "Roofing Emergency Service",
+          description: "24/7 emergency roofing repairs with guaranteed response time.",
+          offerDetails: "Free estimate + 10% off emergency repairs",
+          discountType: "percentage",
+          discountValue: 10,
+          promoCode: "EMERGENCY10",
+          isActive: true,
+          maxUses: null,
+          currentUses: 28,
+          serviceAreas: ["Los Angeles County"],
+          tradeCategories: ["roofing", "emergency"],
+          startsAt: "2025-01-01T00:00:00Z",
+          expiresAt: null,
+          slug: "roofing-emergency-service",
+          viewCount: 189,
+          clickCount: 67,
+          leadCount: 15,
+          contractor: {
+            id: "contractor2",
+            name: "Sarah Davis",
+            businessName: "Davis Roofing Solutions",
+            rating: 4.8,
+            verified: true,
+            phone: "(555) 987-6543"
+          }
+        }
+      ];
+
+      res.json(mockPromos);
+    } catch (error) {
+      console.error("Error fetching contractor promotions:", error);
+      res.status(500).json({ message: "Failed to fetch contractor promotions" });
+    }
+  });
+
+  // Exchange company promotions
+  app.get("/api/exchange/company-promotions", async (req, res) => {
+    try {
+      const { search, dealType, sort } = req.query;
+      
+      // Mock company promotions - replace with real database call
+      const mockPromotions = [
+        {
+          id: "company1",
+          companyName: "Harbor Freight Tools",
+          companyLogo: "https://images.harborfreight.com/hftweb/images/harborfreight-logo.svg",
+          companyWebsite: "https://harborfreight.com",
+          title: "Professional Tool Mega Sale",
+          description: "Massive savings on professional-grade tools and equipment.",
+          dealDetails: "Up to 70% off select power tools",
+          dealType: "percentage_off",
+          discountValue: 70,
+          originalPrice: null,
+          salePrice: null,
+          promoCode: "TOOLS70",
+          minimumPurchase: 50,
+          maxDiscount: 500,
+          productCategories: ["power_tools", "hand_tools", "equipment"],
+          targetAudience: ["contractors", "professionals", "diy"],
+          startsAt: "2025-01-15T00:00:00Z",
+          expiresAt: "2025-02-15T23:59:59Z",
+          isActive: true,
+          isFeatured: true,
+          availableStates: ["CA", "NV", "AZ"],
+          storeLocationsOnly: false,
+          slug: "harbor-freight-tool-mega-sale",
+          viewCount: 1250,
+          clickCount: 312,
+          redemptionCount: 87,
+          terms: "Valid on select items only. Cannot be combined with other offers.",
+          restrictions: "Limit one per customer. Valid through 2/15/25."
+        },
+        {
+          id: "company2",
+          companyName: "Home Depot",
+          companyLogo: "https://corporate.homedepot.com/sites/default/files/image_gallery/THD_logo_RGB_2C.png",
+          companyWebsite: "https://homedepot.com",
+          title: "Contractor Bulk Pricing",
+          description: "Special bulk pricing for contractors on building materials.",
+          dealDetails: "Buy 10+ items, get 25% off lumber and materials",
+          dealType: "percentage_off",
+          discountValue: 25,
+          promoCode: "BULK25",
+          minimumPurchase: 1000,
+          productCategories: ["lumber", "materials", "hardware"],
+          targetAudience: ["contractors", "professionals"],
+          startsAt: "2025-01-01T00:00:00Z",
+          expiresAt: "2025-12-31T23:59:59Z",
+          isActive: true,
+          isFeatured: false,
+          storeLocationsOnly: true,
+          slug: "home-depot-contractor-bulk",
+          viewCount: 890,
+          clickCount: 245,
+          redemptionCount: 156,
+          terms: "Valid for verified contractors only. Proof of contractor license required.",
+          restrictions: "Cannot be combined with other contractor discounts."
+        }
+      ];
+
+      res.json(mockPromotions);
+    } catch (error) {
+      console.error("Error fetching company promotions:", error);
+      res.status(500).json({ message: "Failed to fetch company promotions" });
+    }
+  });
+
   // Chat system routes
   // Conversations
   app.post("/api/conversations", isAuthenticated, async (req: any, res) => {

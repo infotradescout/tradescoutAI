@@ -1463,6 +1463,103 @@ export const promoInteractions = pgTable("promo_interactions", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+// Company promotional deals (Harbor Freight, Home Depot, etc.)
+export const companyPromotions = pgTable("company_promotions", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  
+  // Company details
+  companyName: varchar("company_name", { length: 100 }).notNull(),
+  companyLogo: varchar("company_logo"),
+  companyWebsite: varchar("company_website"),
+  
+  // Promotion details
+  title: varchar("title", { length: 150 }).notNull(),
+  description: text("description").notNull(),
+  dealDetails: text("deal_details").notNull(), // "20% off all power tools", "Buy 2 get 1 free"
+  
+  // Deal structure
+  dealType: varchar("deal_type", {
+    enum: ['percentage_off', 'dollar_off', 'bogo', 'free_shipping', 'bundle_deal', 'clearance']
+  }).notNull(),
+  discountValue: decimal("discount_value", { precision: 10, scale: 2 }), // 20 for 20%, 50 for $50 off
+  originalPrice: decimal("original_price", { precision: 10, scale: 2 }),
+  salePrice: decimal("sale_price", { precision: 10, scale: 2 }),
+  
+  // Promotion settings
+  promoCode: varchar("promo_code", { length: 30 }), // Coupon code if needed
+  minimumPurchase: decimal("minimum_purchase", { precision: 10, scale: 2 }), // Min purchase requirement
+  maxDiscount: decimal("max_discount", { precision: 10, scale: 2 }), // Max discount cap
+  
+  // Targeting and categories
+  productCategories: jsonb("product_categories").$type<string[]>(), // tools, lumber, hardware, etc.
+  targetAudience: jsonb("target_audience").$type<string[]>(), // contractors, homeowners, DIY
+  excludedItems: jsonb("excluded_items").$type<string[]>(), // SKUs or categories to exclude
+  
+  // Timing and availability
+  startsAt: timestamp("starts_at").defaultNow(),
+  expiresAt: timestamp("expires_at").notNull(),
+  isActive: boolean("is_active").default(true),
+  isFeatured: boolean("is_featured").default(false), // Premium placement
+  
+  // Geographic targeting
+  availableStates: jsonb("available_states").$type<string[]>(), // State codes
+  availableZipCodes: jsonb("available_zip_codes").$type<string[]>(), // Specific zip codes
+  storeLocationsOnly: boolean("store_locations_only").default(false), // In-store only deals
+  
+  // Tracking and payment
+  slug: varchar("slug").notNull().unique(), // For shareable URLs
+  paymentStatus: varchar("payment_status", {
+    enum: ['pending', 'paid', 'overdue', 'cancelled']
+  }).default('pending'),
+  promotionFee: decimal("promotion_fee", { precision: 10, scale: 2 }), // What company pays TradeScout
+  
+  // Analytics
+  viewCount: integer("view_count").default(0),
+  clickCount: integer("click_count").default(0),
+  redemptionCount: integer("redemption_count").default(0),
+  
+  // Terms and conditions
+  terms: text("terms"), // Full terms and conditions
+  restrictions: text("restrictions"), // Usage restrictions
+  
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Track company promotion interactions
+export const companyPromotionInteractions = pgTable("company_promotion_interactions", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  promotionId: varchar("promotion_id").notNull().references(() => companyPromotions.id),
+  
+  // Interaction details
+  interactionType: varchar("interaction_type", {
+    enum: ['view', 'click', 'share', 'coupon_copy', 'store_locator', 'website_visit']
+  }).notNull(),
+  
+  // User/visitor info
+  userId: varchar("user_id"), // nullable for anonymous visitors
+  sessionId: varchar("session_id"),
+  ipAddress: varchar("ip_address"),
+  userAgent: text("user_agent"),
+  referrer: text("referrer"),
+  
+  // Location data
+  county: varchar("county"),
+  state: varchar("state"),
+  city: varchar("city"),
+  zipCode: varchar("zip_code"),
+  
+  // Metadata
+  metadata: jsonb("metadata").$type<{
+    deviceType?: string; // mobile, desktop, tablet
+    clickedElement?: string; // which button/link was clicked
+    timeSpent?: number; // seconds spent viewing promotion
+    source?: string; // how they found this promotion
+  }>(),
+  
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
 export const workerServiceAreas = pgTable("worker_service_areas", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   workerId: varchar("worker_id").notNull(),
@@ -1483,6 +1580,14 @@ export type WorkerReview = typeof workerReviews.$inferSelect;
 export type InsertWorkerReview = typeof workerReviews.$inferInsert;
 export type VerificationRequest = typeof verificationRequests.$inferSelect;
 export type InsertVerificationRequest = typeof verificationRequests.$inferInsert;
+
+// Promotional types
+export type ContractorPromo = typeof contractorPromos.$inferSelect;
+export type InsertContractorPromo = typeof contractorPromos.$inferInsert;
+export type CompanyPromotion = typeof companyPromotions.$inferSelect;
+export type InsertCompanyPromotion = typeof companyPromotions.$inferInsert;
+export type CompanyPromotionInteraction = typeof companyPromotionInteractions.$inferSelect;
+export type InsertCompanyPromotionInteraction = typeof companyPromotionInteractions.$inferInsert;
 
 
 // Chat system tables
