@@ -2,9 +2,7 @@ import { Switch, Route, useLocation } from "wouter";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
-import { TooltipProvider } from "@/components/ui/tooltip";
 import { useAuth } from "@/hooks/useAuth";
-import { useAIMonitoring } from "@/hooks/useAIMonitoring";
 import { useSetupStatus } from "@/hooks/useSetupStatus";
 import { ErrorBoundary } from "@/components/ui/error-boundary";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
@@ -139,8 +137,7 @@ const Router = memo(function Router() {
   // Use app-like effects for PWA experience
   useAppLikeEffects();
   
-  // AI monitoring for performance optimization
-  useAIMonitoring();
+  // Performance monitoring can be added here if needed
 
   // Handle master admin setup requirement
   if (!setupLoading && needsSetup) {
@@ -418,10 +415,8 @@ const App = memo(function App() {
   return (
     <ErrorBoundary fallback={<div className="min-h-screen gradient-bg flex items-center justify-center text-white">Loading...</div>}>
       <QueryClientProvider client={queryClient}>
-        <TooltipProvider>
-          <Toaster />
-          <Router />
-        </TooltipProvider>
+        <Toaster />
+        <Router />
       </QueryClientProvider>
     </ErrorBoundary>
   );
