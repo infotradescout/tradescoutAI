@@ -1,10 +1,9 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './App.tsx';
-import SimpleApp from './simple-app.tsx';
 import './index.css';
 
-// Add global error handling
+// Global error handling
 window.addEventListener('error', (event) => {
   console.error('Global error:', event.error);
 });
@@ -15,7 +14,7 @@ window.addEventListener('unhandledrejection', (event) => {
 
 const root = ReactDOM.createRoot(document.getElementById('root') as HTMLElement);
 
-// Full TradeScout application restored
+// Render the full TradeScout application
 root.render(
   <React.StrictMode>
     <App />
