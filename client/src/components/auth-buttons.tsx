@@ -23,32 +23,36 @@ export function AuthButtons({
 }: AuthButtonsProps) {
   const [, setLocation] = useLocation();
 
-  const handleFacebookLogin = () => {
-    // Check if Facebook auth is available, otherwise show error
+  const handleFacebookLogin = async () => {
     try {
-      if (process.env.NODE_ENV === 'development') {
-        // In development, show message that OAuth needs to be configured
-        alert("Facebook OAuth is not configured. Please check server configuration.");
-        return;
+      // Check if OAuth is configured on the server
+      const response = await fetch('/api/auth/oauth-status');
+      const { facebook } = await response.json();
+      
+      if (facebook) {
+        window.location.href = "/auth/facebook";
+      } else {
+        alert("Facebook login is not configured yet. Please use email login or contact support to enable social login.");
       }
-      window.location.href = "/auth/facebook";
     } catch (error) {
-      console.error("Facebook login not available:", error);
+      console.error("Facebook login check failed:", error);
       alert("Facebook login is currently unavailable. Please try email login.");
     }
   };
 
-  const handleGoogleLogin = () => {
-    // Check if Google auth is available, otherwise show error
+  const handleGoogleLogin = async () => {
     try {
-      if (process.env.NODE_ENV === 'development') {
-        // In development, show message that OAuth needs to be configured
-        alert("Google OAuth is not configured. Please check server configuration.");
-        return;
+      // Check if OAuth is configured on the server
+      const response = await fetch('/api/auth/oauth-status');
+      const { google } = await response.json();
+      
+      if (google) {
+        window.location.href = "/auth/google";
+      } else {
+        alert("Google login is not configured yet. Please use email login or contact support to enable social login.");
       }
-      window.location.href = "/auth/google";
     } catch (error) {
-      console.error("Google login not available:", error);
+      console.error("Google login check failed:", error);
       alert("Google login is currently unavailable. Please try email login.");
     }
   };
