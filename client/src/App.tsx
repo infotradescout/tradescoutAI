@@ -1,7 +1,7 @@
 import { Switch, Route, useLocation } from "wouter";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
-import { Toaster } from "@/components/ui/toaster";
+// import { Toaster } from "@/components/ui/toaster"; // Removed - causes React hook errors
 import { useAuth } from "@/hooks/useAuth";
 import { useSetupStatus } from "@/hooks/useSetupStatus";
 import { ErrorBoundary } from "@/components/ui/error-boundary";
@@ -411,14 +411,97 @@ const Router = memo(function Router() {
   );
 });
 
-const App = memo(function App() {
+// Restored full Router with problematic components removed
+const AppRouter = memo(function AppRouter() {
+  console.log('AppRouter component rendering...');
+  
+  const location = useLocation();
+  const { user, isAuthenticated, isLoading } = useAuth();
+  const { needsSetup, isLoading: setupLoading } = useSetupStatus();
+  const isMobile = useIsMobile();
+  const swipeNav = useGlobalSwipeNavigation();
+  
+  // Loading state
+  if (isLoading || setupLoading) {
+    return <LoadingSpinner />;
+  }
+
+  // Master admin setup required
+  if (needsSetup) {
+    return <MasterAdminSetup />;
+  }
+
   return (
-    <ErrorBoundary fallback={<div className="min-h-screen gradient-bg flex items-center justify-center text-white">Loading...</div>}>
-      <QueryClientProvider client={queryClient}>
-        <Toaster />
-        <Router />
-      </QueryClientProvider>
-    </ErrorBoundary>
+    <div className="min-h-screen flex flex-col bg-gradient-to-br from-navy-900 via-navy-800 to-green-600">
+      {/* Navigation - removed problematic components like NextGenNavigation */}
+      <header className="bg-navy-800/80 backdrop-blur-sm border-b border-navy-700/50 sticky top-0 z-50">
+        <div className="max-w-7xl mx-auto px-4 py-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-2">
+              <div className="w-8 h-8 bg-orange-500 rounded-lg flex items-center justify-center">
+                <span className="text-white font-bold text-lg">T</span>
+              </div>
+              <span className="text-xl font-bold text-white">TradeScout</span>
+            </div>
+            {isAuthenticated && (
+              <div className="text-white text-sm">
+                Welcome, {user?.firstName || 'User'}
+              </div>
+            )}
+          </div>
+        </div>
+      </header>
+
+      <main className="flex-1">
+        <Switch>
+          {/* Core routes without problematic components */}
+          <Route path="/" component={Landing} />
+          <Route path="/safe-landing" component={SafeLanding} />
+          <Route path="/login" component={Login} />
+          <Route path="/register" component={Register} />
+          <Route path="/home" component={Home} />
+          
+          {/* Dashboard routes */}
+          <Route path="/dashboard" component={Dashboard} />
+          <Route path="/contractor-dashboard" component={ContractorDashboard} />
+          <Route path="/homeowner-dashboard" component={HomeownerDashboard} />
+          <Route path="/helper-dashboard" component={HelperDashboard} />
+          
+          {/* Core pages */}
+          <Route path="/contractors" component={ForContractors} />
+          <Route path="/find-contractors" component={FindContractors} />
+          <Route path="/quote-calculator" component={EstimateCalculator} />
+          <Route path="/marketplace" component={Marketplace} />
+          
+          {/* 404 fallback */}
+          <Route component={NotFound} />
+        </Switch>
+      </main>
+
+      {/* Footer without problematic components */}
+      <footer className="bg-navy-900 py-8 text-center text-gray-400">
+        <div className="max-w-7xl mx-auto px-4">
+          <div className="flex items-center justify-center space-x-2 mb-4">
+            <div className="w-6 h-6 bg-orange-500 rounded flex items-center justify-center">
+              <span className="text-white font-bold text-sm">T</span>
+            </div>
+            <span className="text-lg font-bold text-white">TradeScout</span>
+          </div>
+          <p>© 2025 TradeScout. Connecting homeowners with trusted contractors.</p>
+        </div>
+      </footer>
+    </div>
+  );
+});
+
+const App = memo(function App() {
+  console.log('App component rendering...');
+  console.log('QueryClient:', queryClient);
+  
+  return (
+    <QueryClientProvider client={queryClient}>
+      <AppRouter />
+    </QueryClientProvider>
   );
 });
 
