@@ -1,6 +1,6 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
-import App from './App.tsx';
+import SimpleApp from './simple-app.tsx';
 import './index.css';
 
 // Global error handling
@@ -14,9 +14,9 @@ window.addEventListener('unhandledrejection', (event) => {
 
 const root = ReactDOM.createRoot(document.getElementById('root') as HTMLElement);
 
-// Render the full TradeScout application
+// Use simple app to avoid React hook conflicts
 root.render(
   <React.StrictMode>
-    <App />
+    <SimpleApp />
   </React.StrictMode>
 );
