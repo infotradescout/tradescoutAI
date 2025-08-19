@@ -64,7 +64,7 @@ export default function Landing() {
       scrollToTop={true}
       onScrollChange={(scrollTop) => {
         // Parallax effect for hero section
-        const heroElement = document.querySelector('.hero-section');
+        const heroElement = document.querySelector('.hero-section') as HTMLElement;
         if (heroElement) {
           heroElement.style.transform = `translateY(${scrollTop * 0.5}px)`;
         }

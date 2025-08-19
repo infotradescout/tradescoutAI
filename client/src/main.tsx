@@ -15,9 +15,9 @@ window.addEventListener('unhandledrejection', (event) => {
 
 const root = ReactDOM.createRoot(document.getElementById('root') as HTMLElement);
 
-// Use simplified app to ensure the preview works
+// Full TradeScout application restored
 root.render(
   <React.StrictMode>
-    <SimpleApp />
+    <App />
   </React.StrictMode>
 );
