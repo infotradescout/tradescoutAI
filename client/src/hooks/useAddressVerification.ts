@@ -3,6 +3,16 @@ import { useQuery } from "@tanstack/react-query";
 export function useAddressVerification() {
   const { data: status, isLoading } = useQuery({
     queryKey: ['/api/address-verification/status'],
+    queryFn: async () => {
+      const response = await fetch('/api/address-verification/status', {
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' }
+      });
+      if (!response.ok) {
+        throw new Error(`Address verification status request failed: ${response.status}`);
+      }
+      return response.json();
+    },
     retry: false,
   });
 
