@@ -356,10 +356,31 @@ const Router = memo(function Router() {
               </ProfileSetupRedirect>
             </>
           ) : (
-            /* Unauthenticated routes */
+            /* Unauthenticated routes - Guest access allowed */
             <>
               <Route path="/" component={Landing} />
-              <Route path="/home" component={Landing} />
+              <Route path="/home" component={Home} />
+              <Route path="/contractors" component={ForContractors} />
+              <Route path="/contractors/board" component={ContractorBoard} />
+              <Route path="/contractors/find" component={FindContractors} />
+              <Route path="/contractors/:slug" component={ContractorProfile} />
+              <Route path="/contractor-board" component={ContractorBoard} />
+              <Route path="/foundation" component={Foundation} />
+              <Route path="/exchange" component={Exchange} />
+              <Route path="/helpers" component={Helpers} />
+              <Route path="/accelerator" component={Accelerator} />
+              <Route path="/help" component={Help} />
+              <Route path="/marketplace" component={Marketplace} />
+              <Route path="/marketplace/:id" component={MarketplaceListing} />
+              <Route path="/worker-marketplace" component={WorkerMarketplace} />
+              <Route path="/handmade-marketplace" component={HandmadeMarketplace} />
+              <Route path="/quote-calculator" component={EstimateCalculator} />
+              <Route path="/calculator" component={EstimateCalculator} />
+              <Route path="/quote" component={EstimateCalculator} />
+              <Route path="/leaderboard" component={Leaderboard} />
+              <Route path="/community" component={Community} />
+              <Route path="/community-feed" component={CommunityFeed} />
+              <Route path="/promo/:id" component={PromoPublic} />
               <Route component={Landing} />
             </>
           )}
