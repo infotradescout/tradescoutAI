@@ -21,7 +21,7 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { useAppLikeEffects } from "@/hooks/useAppLikeEffects";
 import NotFound from "@/pages/not-found";
 import Login from "@/pages/login";
-import Landing from "@/pages/landing";
+// import Landing from "@/pages/landing"; // Removed due to hooks conflict
 import SafeLanding from "@/pages/safe-landing";
 import Home from "@/pages/home";
 import Foundation from "@/pages/foundation";
@@ -436,8 +436,8 @@ const AppRouter = memo(function AppRouter() {
 
       <main className="flex-1">
         <Switch>
-          {/* Core routes */}
-          <Route path="/" component={Landing} />
+          {/* Temporary simple landing page to avoid hooks issues */}
+          <Route path="/" component={SimpleLandingPage} />
           <Route path="/safe-landing" component={SafeLanding} />
           <Route path="/login" component={Login} />
           <Route path="/register" component={Register} />
@@ -490,6 +490,60 @@ const AppRouter = memo(function AppRouter() {
           <p>© 2025 TradeScout. Connecting homeowners with trusted contractors.</p>
         </div>
       </footer>
+    </div>
+  );
+});
+
+// Simple landing page without hooks
+const SimpleLandingPage = memo(function SimpleLandingPage() {
+  return (
+    <div className="flex-1 flex items-center justify-center">
+      <div className="text-center text-white px-4">
+        <div className="mb-8">
+          <div className="w-16 h-16 bg-orange-500 rounded-2xl flex items-center justify-center mx-auto mb-6">
+            <span className="text-2xl font-bold text-white">T</span>
+          </div>
+          <h1 className="text-5xl font-bold mb-4 bg-gradient-to-r from-white to-gray-300 bg-clip-text text-transparent">
+            TradeScout
+          </h1>
+          <p className="text-xl text-gray-300 mb-8">
+            Find Trusted Local Contractors
+          </p>
+        </div>
+        
+        <div className="space-y-4 max-w-md mx-auto">
+          <button className="w-full bg-orange-500 hover:bg-orange-600 text-white font-bold py-3 px-8 rounded-lg transition duration-200">
+            Find Contractors
+          </button>
+          <button className="w-full bg-transparent border-2 border-white text-white hover:bg-white hover:text-navy-900 font-bold py-3 px-8 rounded-lg transition duration-200">
+            Join as Contractor
+          </button>
+        </div>
+
+        <div className="mt-12 grid grid-cols-1 md:grid-cols-3 gap-6 max-w-4xl mx-auto">
+          <div className="text-center">
+            <div className="w-12 h-12 bg-green-500 rounded-lg flex items-center justify-center mx-auto mb-3">
+              <span className="text-xl">✓</span>
+            </div>
+            <h3 className="font-semibold mb-2">Verified Contractors</h3>
+            <p className="text-gray-400 text-sm">All contractors are background checked and licensed</p>
+          </div>
+          <div className="text-center">
+            <div className="w-12 h-12 bg-blue-500 rounded-lg flex items-center justify-center mx-auto mb-3">
+              <span className="text-xl">💬</span>
+            </div>
+            <h3 className="font-semibold mb-2">Direct Communication</h3>
+            <p className="text-gray-400 text-sm">Chat directly with contractors about your project</p>
+          </div>
+          <div className="text-center">
+            <div className="w-12 h-12 bg-purple-500 rounded-lg flex items-center justify-center mx-auto mb-3">
+              <span className="text-xl">📍</span>
+            </div>
+            <h3 className="font-semibold mb-2">Local Coverage</h3>
+            <p className="text-gray-400 text-sm">Find contractors in your specific county and city</p>
+          </div>
+        </div>
+      </div>
     </div>
   );
 });
