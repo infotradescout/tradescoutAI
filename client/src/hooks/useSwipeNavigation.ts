@@ -174,16 +174,6 @@ export function useGlobalSwipeNavigation() {
     enableSwipeNavigation?: boolean;
   }>({
     queryKey: ['/api/user/navigation-preferences'],
-    queryFn: async () => {
-      const response = await fetch('/api/user/navigation-preferences', {
-        credentials: 'include',
-        headers: { 'Content-Type': 'application/json' }
-      });
-      if (!response.ok) {
-        throw new Error(`Navigation preferences request failed: ${response.status}`);
-      }
-      return response.json();
-    },
     enabled: isAuthenticated,
     retry: false,
   });
