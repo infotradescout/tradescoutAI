@@ -49,11 +49,7 @@ const roleHierarchy = {
   'moderator': { level: 80, label: 'Moderator', icon: Shield, color: 'bg-blue-500' },
   'ops_admin': { level: 70, label: 'Operations Admin', icon: UserCog, color: 'bg-green-500' },
   'contractor_user': { level: 20, label: 'Contractor', icon: Users, color: 'bg-orange-500' },
-  'helper': { level: 18, label: 'Helper', icon: Users, color: 'bg-blue-400' },
   'accelerator_member': { level: 15, label: 'Accelerator Member', icon: Users, color: 'bg-yellow-500' },
-  'realtor': { level: 12, label: 'Realtor', icon: Users, color: 'bg-emerald-500' },
-  'dealer': { level: 12, label: 'Dealer', icon: Users, color: 'bg-orange-400' },
-  'service_provider': { level: 12, label: 'Service Provider', icon: Users, color: 'bg-indigo-500' },
   'homeowner': { level: 10, label: 'Homeowner', icon: Users, color: 'bg-gray-500' },
 };
 
