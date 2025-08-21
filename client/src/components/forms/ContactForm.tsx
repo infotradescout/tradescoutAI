@@ -9,6 +9,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { MessagingTooltip, ContextualTooltip } from "@/components/ui/contextual-tooltip";
 import { Send, Phone, Mail, MessageSquare } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 
 const contactFormSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters"),
@@ -29,6 +30,7 @@ interface ContactFormProps {
 
 export function ContactForm({ contractorId, className = "", variant = 'default' }: ContactFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const { toast } = useToast();
   
   const form = useForm<ContactFormData>({
     resolver: zodResolver(contactFormSchema),
@@ -45,12 +47,41 @@ export function ContactForm({ contractorId, className = "", variant = 'default' 
   const onSubmit = async (data: ContactFormData) => {
     setIsSubmitting(true);
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      console.log("Contact form submitted:", data);
-      form.reset();
+      // Submit to Formspree endpoint
+      const response = await fetch("https://formspree.io/f/YOUR_FORM_ID", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          name: data.name,
+          email: data.email,
+          phone: data.phone,
+          subject: data.subject,
+          message: data.message,
+          projectType: data.projectType,
+          contractorId: contractorId || null,
+          source: "TradeScout Contact Form"
+        }),
+      });
+
+      if (response.ok) {
+        console.log("Contact form submitted successfully:", data);
+        form.reset();
+        toast({
+          title: "Message Sent!",
+          description: "Thanks for reaching out! We'll get back to you soon.",
+        });
+      } else {
+        throw new Error("Failed to submit form");
+      }
     } catch (error) {
       console.error("Failed to submit contact form:", error);
+      toast({
+        title: "Message Failed",
+        description: "There was an error sending your message. Please try again.",
+        variant: "destructive",
+      });
     } finally {
       setIsSubmitting(false);
     }
