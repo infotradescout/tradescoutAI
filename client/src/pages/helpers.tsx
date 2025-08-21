@@ -19,9 +19,7 @@ import {
   Plus,
   Filter,
   Wrench,
-  Calendar,
-  UserPlus,
-  Info
+  Calendar
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { apiRequest } from "@/lib/queryClient";
@@ -232,7 +230,7 @@ export default function Helpers() {
         </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-4 mb-6 bg-navy-800/50 border-navy-600">
+        <TabsList className="grid w-full grid-cols-3 mb-6 bg-navy-800/50 border-navy-600">
           <TabsTrigger value="find-helpers" className="text-gray-300 data-[state=active]:text-white data-[state=active]:bg-orange-600">
             Find Helpers
           </TabsTrigger>
@@ -241,9 +239,6 @@ export default function Helpers() {
           </TabsTrigger>
           <TabsTrigger value="post-task" className="text-gray-300 data-[state=active]:text-white data-[state=active]:bg-orange-600">
             {posterType === 'contractor' ? 'Post Job' : 'Post Task'}
-          </TabsTrigger>
-          <TabsTrigger value="become-helper" className="text-gray-300 data-[state=active]:text-white data-[state=active]:bg-orange-600">
-            Become a Helper
           </TabsTrigger>
         </TabsList>
 
@@ -699,194 +694,6 @@ export default function Helpers() {
               </div>
             )}
           </div>
-        </TabsContent>
-
-        <TabsContent value="become-helper" className="space-y-6">
-          <Card className="bg-navy-800/50 border-navy-600">
-            <CardHeader>
-              <h2 className="text-2xl font-semibold text-white mb-2">Join Our Helper Community</h2>
-              <p className="text-gray-300">Start earning money by helping others with tasks and projects in your area</p>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              {!isAuthenticated ? (
-                <div className="bg-orange-500/10 border border-orange-500/20 rounded-lg p-6">
-                  <div className="flex items-center mb-4">
-                    <UserPlus className="h-6 w-6 text-orange-400 mr-3" />
-                    <h3 className="text-xl font-semibold text-white">Get Started Today</h3>
-                  </div>
-                  <p className="text-gray-300 mb-6">
-                    Join thousands of helpers already earning money through our platform. Whether you're looking for part-time work, 
-                    seasonal employment, or want to build a flexible income stream, we have opportunities for you.
-                  </p>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-                    <div className="space-y-4">
-                      <h4 className="font-semibold text-white">What You Can Do:</h4>
-                      <ul className="space-y-2 text-gray-300">
-                        <li className="flex items-center">
-                          <Wrench className="h-4 w-4 text-orange-400 mr-2" />
-                          Basic home repairs & assembly
-                        </li>
-                        <li className="flex items-center">
-                          <Users className="h-4 w-4 text-orange-400 mr-2" />
-                          Moving & heavy lifting
-                        </li>
-                        <li className="flex items-center">
-                          <Briefcase className="h-4 w-4 text-orange-400 mr-2" />
-                          General labor & job site assistance
-                        </li>
-                        <li className="flex items-center">
-                          <Clock className="h-4 w-4 text-orange-400 mr-2" />
-                          Cleaning & organizing
-                        </li>
-                      </ul>
-                    </div>
-                    <div className="space-y-4">
-                      <h4 className="font-semibold text-white">Benefits:</h4>
-                      <ul className="space-y-2 text-gray-300">
-                        <li className="flex items-center">
-                          <DollarSign className="h-4 w-4 text-green-400 mr-2" />
-                          Competitive hourly rates ($15-$40/hr)
-                        </li>
-                        <li className="flex items-center">
-                          <Calendar className="h-4 w-4 text-blue-400 mr-2" />
-                          Flexible scheduling
-                        </li>
-                        <li className="flex items-center">
-                          <Shield className="h-4 w-4 text-purple-400 mr-2" />
-                          Insurance coverage on jobs
-                        </li>
-                        <li className="flex items-center">
-                          <Star className="h-4 w-4 text-yellow-400 mr-2" />
-                          Build your reputation & ratings
-                        </li>
-                      </ul>
-                    </div>
-                  </div>
-                  <div className="flex flex-col sm:flex-row gap-4">
-                    <Button 
-                      onClick={() => window.location.href = '/register?role=helper'}
-                      className="bg-orange-500 hover:bg-orange-600 flex-1"
-                    >
-                      <UserPlus className="h-4 w-4 mr-2" />
-                      Sign Up as Helper
-                    </Button>
-                    <Button 
-                      variant="outline" 
-                      onClick={() => window.location.href = '/login'}
-                      className="border-navy-600 text-gray-300 hover:bg-navy-700 flex-1"
-                    >
-                      Already have an account? Login
-                    </Button>
-                  </div>
-                </div>
-              ) : user?.role === 'helper' ? (
-                <div className="bg-green-500/10 border border-green-500/20 rounded-lg p-6">
-                  <div className="flex items-center mb-4">
-                    <CheckCircle className="h-6 w-6 text-green-400 mr-3" />
-                    <h3 className="text-xl font-semibold text-white">Welcome Helper!</h3>
-                  </div>
-                  <p className="text-gray-300 mb-6">
-                    You're all set up as a helper. Start browsing available tasks or check your helper dashboard to manage your profile and earnings.
-                  </p>
-                  <div className="flex flex-col sm:flex-row gap-4">
-                    <Button 
-                      onClick={() => setActiveTab('find-tasks')}
-                      className="bg-orange-500 hover:bg-orange-600 flex-1"
-                    >
-                      <Search className="h-4 w-4 mr-2" />
-                      Browse Available Tasks
-                    </Button>
-                    <Button 
-                      variant="outline" 
-                      onClick={() => window.location.href = '/helper-dashboard'}
-                      className="border-navy-600 text-gray-300 hover:bg-navy-700 flex-1"
-                    >
-                      <Users className="h-4 w-4 mr-2" />
-                      Go to Helper Dashboard
-                    </Button>
-                  </div>
-                </div>
-              ) : (
-                <div className="bg-blue-500/10 border border-blue-500/20 rounded-lg p-6">
-                  <div className="flex items-center mb-4">
-                    <Info className="h-6 w-6 text-blue-400 mr-3" />
-                    <h3 className="text-xl font-semibold text-white">Switch to Helper Role</h3>
-                  </div>
-                  <p className="text-gray-300 mb-6">
-                    You're currently signed in as a {user?.role}. To start earning as a helper, you can create a helper profile. 
-                    This will allow you to apply for tasks while keeping your existing account.
-                  </p>
-                  <Button 
-                    onClick={() => window.location.href = '/profile-setup?add-role=helper'}
-                    className="bg-orange-500 hover:bg-orange-600"
-                  >
-                    <UserPlus className="h-4 w-4 mr-2" />
-                    Add Helper Profile
-                  </Button>
-                </div>
-              )}
-
-              {/* How It Works Section */}
-              <div className="bg-navy-800/30 rounded-lg p-6 border border-navy-600">
-                <h3 className="text-xl font-semibold text-white mb-4">How It Works</h3>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                  <div className="text-center">
-                    <div className="w-12 h-12 bg-orange-500/20 rounded-full flex items-center justify-center mx-auto mb-3">
-                      <span className="text-orange-400 font-bold text-lg">1</span>
-                    </div>
-                    <h4 className="font-semibold text-white mb-2">Create Profile</h4>
-                    <p className="text-gray-400 text-sm">
-                      Set up your helper profile with skills, availability, and rates
-                    </p>
-                  </div>
-                  <div className="text-center">
-                    <div className="w-12 h-12 bg-orange-500/20 rounded-full flex items-center justify-center mx-auto mb-3">
-                      <span className="text-orange-400 font-bold text-lg">2</span>
-                    </div>
-                    <h4 className="font-semibold text-white mb-2">Find Tasks</h4>
-                    <p className="text-gray-400 text-sm">
-                      Browse and apply for tasks that match your skills and schedule
-                    </p>
-                  </div>
-                  <div className="text-center">
-                    <div className="w-12 h-12 bg-orange-500/20 rounded-full flex items-center justify-center mx-auto mb-3">
-                      <span className="text-orange-400 font-bold text-lg">3</span>
-                    </div>
-                    <h4 className="font-semibold text-white mb-2">Get Paid</h4>
-                    <p className="text-gray-400 text-sm">
-                      Complete tasks, get rated, and receive payment securely
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Verification Information */}
-              <div className="bg-navy-800/30 rounded-lg p-6 border border-navy-600">
-                <h3 className="text-xl font-semibold text-white mb-4">Verification & Safety</h3>
-                <p className="text-gray-300 mb-4">
-                  We take safety seriously. All helpers can complete optional verification steps to build trust and access higher-paying opportunities.
-                </p>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="flex items-center space-x-3">
-                    <Shield className="h-5 w-5 text-blue-400" />
-                    <span className="text-gray-300">ID Verification</span>
-                  </div>
-                  <div className="flex items-center space-x-3">
-                    <CheckCircle className="h-5 w-5 text-green-400" />
-                    <span className="text-gray-300">Background Check</span>
-                  </div>
-                  <div className="flex items-center space-x-3">
-                    <Star className="h-5 w-5 text-yellow-400" />
-                    <span className="text-gray-300">Skills Assessment</span>
-                  </div>
-                  <div className="flex items-center space-x-3">
-                    <Users className="h-5 w-5 text-purple-400" />
-                    <span className="text-gray-300">Reference Checks</span>
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
         </TabsContent>
       </Tabs>
       </div>

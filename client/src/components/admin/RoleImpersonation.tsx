@@ -27,11 +27,7 @@ interface ImpersonationState {
 const AVAILABLE_ROLES = [
   { id: 'homeowner', name: 'Homeowner', description: 'Regular homeowner account' },
   { id: 'contractor_user', name: 'Contractor', description: 'Verified contractor account' },
-  { id: 'helper', name: 'Helper', description: 'Worker available for tasks and projects' },
   { id: 'accelerator_member', name: 'Accelerator Member', description: 'Premium contractor with advanced features' },
-  { id: 'realtor', name: 'Realtor', description: 'Real estate professional' },
-  { id: 'dealer', name: 'Dealer', description: 'Equipment and material supplier' },
-  { id: 'service_provider', name: 'Service Provider', description: 'Non-contractor service company' },
   { id: 'moderator', name: 'Moderator', description: 'Community moderation permissions' },
   { id: 'ops_admin', name: 'Operations Admin', description: 'Operational admin access' },
 ];

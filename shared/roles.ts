@@ -11,8 +11,6 @@ export type UserRole =
   | 'helper'             // New role for workers/helpers
   | 'accelerator_member'
   | 'realtor'
-  | 'dealer'             // Equipment/material dealers
-  | 'service_provider'   // Non-contractor service companies
   | 'car_salesman'
   | 'insurance_agent'
   | 'mortgage_broker'
@@ -145,8 +143,6 @@ export const ROLE_HIERARCHY: Record<UserRole, number> = {
   helper: 11,                 // New role for workers/helpers
   accelerator_member: 15,
   realtor: 12,
-  dealer: 12,                 // Equipment/material dealers
-  service_provider: 12,       // Non-contractor service companies
   car_salesman: 12,
   insurance_agent: 12,
   mortgage_broker: 12,
@@ -384,52 +380,6 @@ export const ROLE_PERMISSIONS: Record<UserRole, RolePermissions> = {
   },
   
   mortgage_broker: {
-    canCreateContent: true,
-    canEditContent: true,
-    canDeleteContent: true,
-    canModerateContent: false,
-    canViewUsers: true,
-    canEditUsers: false,
-    canDeleteUsers: false,
-    canBanUsers: false,
-    canAccessAdminPanel: false,
-    canManageSettings: false,
-    canViewAnalytics: true,
-    canManagePayments: false,
-    canManageContractors: false,
-    canManageListings: true,
-    canManageReports: false,
-    canManageModeration: false,
-    canPromoteUsers: false,
-    canManageRoles: false,
-    canAccessSuperAdmin: false,
-    canManageAdmins: false,
-  },
-
-  dealer: {
-    canCreateContent: true,
-    canEditContent: true,
-    canDeleteContent: true,
-    canModerateContent: false,
-    canViewUsers: true,
-    canEditUsers: false,
-    canDeleteUsers: false,
-    canBanUsers: false,
-    canAccessAdminPanel: false,
-    canManageSettings: false,
-    canViewAnalytics: true,
-    canManagePayments: false,
-    canManageContractors: false,
-    canManageListings: true,
-    canManageReports: false,
-    canManageModeration: false,
-    canPromoteUsers: false,
-    canManageRoles: false,
-    canAccessSuperAdmin: false,
-    canManageAdmins: false,
-  },
-
-  service_provider: {
     canCreateContent: true,
     canEditContent: true,
     canDeleteContent: true,
@@ -805,11 +755,8 @@ export function getRoleDisplayName(role: UserRole): string {
     
     // Service provider roles
     contractor_user: 'Contractor',
-    helper: 'Helper',
     accelerator_member: 'Accelerator Member',
     realtor: 'Realtor',
-    dealer: 'Dealer',
-    service_provider: 'Service Provider',
     car_salesman: 'Car Salesman',
     insurance_agent: 'Insurance Agent',
     mortgage_broker: 'Mortgage Broker',
