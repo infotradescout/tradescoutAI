@@ -13,16 +13,6 @@ export function useTutorial() {
   // Fetch user's tutorial progress (gracefully handle auth errors)
   const { data: userProgress } = useQuery({
     queryKey: ['/api/tutorials/user-progress'],
-    queryFn: async () => {
-      const response = await fetch('/api/tutorials/user-progress', {
-        credentials: 'include',
-        headers: { 'Content-Type': 'application/json' }
-      });
-      if (!response.ok) {
-        throw new Error(`Tutorial progress request failed: ${response.status}`);
-      }
-      return response.json();
-    },
     retry: false,
     throwOnError: false,
   });
@@ -34,16 +24,6 @@ export function useTutorial() {
     suggested: TutorialDefinition[];
   }>({
     queryKey: ['/api/tutorials/recommended'],
-    queryFn: async () => {
-      const response = await fetch('/api/tutorials/recommended', {
-        credentials: 'include',
-        headers: { 'Content-Type': 'application/json' }
-      });
-      if (!response.ok) {
-        throw new Error(`Recommended tutorials request failed: ${response.status}`);
-      }
-      return response.json();
-    },
     retry: false,
     throwOnError: false,
   });

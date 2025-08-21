@@ -3,7 +3,7 @@ import ReactDOM from 'react-dom/client';
 import App from './App.tsx';
 import './index.css';
 
-// Global error handling
+// Add global error handling
 window.addEventListener('error', (event) => {
   console.error('Global error:', event.error);
 });
@@ -13,7 +13,6 @@ window.addEventListener('unhandledrejection', (event) => {
 });
 
 const root = ReactDOM.createRoot(document.getElementById('root') as HTMLElement);
-
 root.render(
   <React.StrictMode>
     <App />

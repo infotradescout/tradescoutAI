@@ -1,8 +1,10 @@
 import { Switch, Route, useLocation } from "wouter";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
-// import { Toaster } from "@/components/ui/toaster"; // Removed - causes React hook errors
+import { Toaster } from "@/components/ui/toaster";
+import { TooltipProvider } from "@/components/ui/tooltip";
 import { useAuth } from "@/hooks/useAuth";
+import { useAIMonitoring } from "@/hooks/useAIMonitoring";
 import { useSetupStatus } from "@/hooks/useSetupStatus";
 import { ErrorBoundary } from "@/components/ui/error-boundary";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
@@ -21,7 +23,7 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { useAppLikeEffects } from "@/hooks/useAppLikeEffects";
 import NotFound from "@/pages/not-found";
 import Login from "@/pages/login";
-// import Landing from "@/pages/landing"; // Removed due to hooks conflict
+import Landing from "@/pages/landing";
 import SafeLanding from "@/pages/safe-landing";
 import Home from "@/pages/home";
 import Foundation from "@/pages/foundation";
@@ -137,7 +139,8 @@ const Router = memo(function Router() {
   // Use app-like effects for PWA experience
   useAppLikeEffects();
   
-  // Performance monitoring can be added here if needed
+  // AI monitoring for performance optimization
+  useAIMonitoring();
 
   // Handle master admin setup requirement
   if (!setupLoading && needsSetup) {
@@ -353,31 +356,10 @@ const Router = memo(function Router() {
               </ProfileSetupRedirect>
             </>
           ) : (
-            /* Unauthenticated routes - Guest access allowed */
+            /* Unauthenticated routes */
             <>
               <Route path="/" component={Landing} />
-              <Route path="/home" component={Home} />
-              <Route path="/contractors" component={ForContractors} />
-              <Route path="/contractors/board" component={ContractorBoard} />
-              <Route path="/contractors/find" component={FindContractors} />
-              <Route path="/contractors/:slug" component={ContractorProfile} />
-              <Route path="/contractor-board" component={ContractorBoard} />
-              <Route path="/foundation" component={Foundation} />
-              <Route path="/exchange" component={Exchange} />
-              <Route path="/helpers" component={Helpers} />
-              <Route path="/accelerator" component={Accelerator} />
-              <Route path="/help" component={Help} />
-              <Route path="/marketplace" component={Marketplace} />
-              <Route path="/marketplace/:id" component={MarketplaceListing} />
-              <Route path="/worker-marketplace" component={WorkerMarketplace} />
-              <Route path="/handmade-marketplace" component={HandmadeMarketplace} />
-              <Route path="/quote-calculator" component={EstimateCalculator} />
-              <Route path="/calculator" component={EstimateCalculator} />
-              <Route path="/quote" component={EstimateCalculator} />
-              <Route path="/leaderboard" component={Leaderboard} />
-              <Route path="/community" component={Community} />
-              <Route path="/community-feed" component={CommunityFeed} />
-              <Route path="/promo/:id" component={PromoPublic} />
+              <Route path="/home" component={Landing} />
               <Route component={Landing} />
             </>
           )}
@@ -411,151 +393,16 @@ const Router = memo(function Router() {
   );
 });
 
-// Safe Router component without problematic hooks
-const AppRouter = memo(function AppRouter() {
-  console.log('AppRouter component rendering...');
-  
-  return (
-    <div className="min-h-screen flex flex-col bg-gradient-to-br from-navy-900 via-navy-800 to-green-600">
-      {/* Simple navigation header */}
-      <header className="bg-navy-800/80 backdrop-blur-sm border-b border-navy-700/50 sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-2">
-              <div className="w-8 h-8 bg-orange-500 rounded-lg flex items-center justify-center">
-                <span className="text-white font-bold text-lg">T</span>
-              </div>
-              <span className="text-xl font-bold text-white">TradeScout</span>
-            </div>
-            <div className="text-white text-sm">
-              Full Site Restored ✓
-            </div>
-          </div>
-        </div>
-      </header>
-
-      <main className="flex-1">
-        <Switch>
-          {/* Temporary simple landing page to avoid hooks issues */}
-          <Route path="/" component={SimpleLandingPage} />
-          <Route path="/safe-landing" component={SafeLanding} />
-          <Route path="/login" component={Login} />
-          <Route path="/register" component={Register} />
-          <Route path="/home" component={Home} />
-          
-          {/* Dashboard routes */}
-          <Route path="/dashboard" component={Dashboard} />
-          <Route path="/contractor-dashboard" component={ContractorDashboard} />
-          <Route path="/homeowner-dashboard" component={HomeownerDashboard} />
-          <Route path="/helper-dashboard" component={HelperDashboard} />
-          
-          {/* Core pages */}
-          <Route path="/contractors" component={ForContractors} />
-          <Route path="/find-contractors" component={FindContractors} />
-          <Route path="/quote-calculator" component={EstimateCalculator} />
-          <Route path="/marketplace" component={Marketplace} />
-          
-          {/* Admin routes */}
-          <Route path="/admin-workspace" component={AdminWorkspace} />
-          <Route path="/admin-panel" component={AdminPanel} />
-          <Route path="/admin-users" component={AdminUsers} />
-          
-          {/* Additional routes */}
-          <Route path="/accelerator" component={Accelerator} />
-          <Route path="/helpers" component={Helpers} />
-          <Route path="/help" component={Help} />
-          <Route path="/settings" component={Settings} />
-          <Route path="/chat" component={Chat} />
-          <Route path="/conversations" component={Conversations} />
-          <Route path="/saved-ads" component={SavedAds} />
-          <Route path="/profile-setup" component={ProfileSetup} />
-          <Route path="/address-verification" component={AddressVerification} />
-          <Route path="/community" component={Community} />
-          <Route path="/leaderboard" component={Leaderboard} />
-          
-          {/* 404 fallback */}
-          <Route component={NotFound} />
-        </Switch>
-      </main>
-
-      {/* Footer */}
-      <footer className="bg-navy-900 py-8 text-center text-gray-400">
-        <div className="max-w-7xl mx-auto px-4">
-          <div className="flex items-center justify-center space-x-2 mb-4">
-            <div className="w-6 h-6 bg-orange-500 rounded flex items-center justify-center">
-              <span className="text-white font-bold text-sm">T</span>
-            </div>
-            <span className="text-lg font-bold text-white">TradeScout</span>
-          </div>
-          <p>© 2025 TradeScout. Connecting homeowners with trusted contractors.</p>
-        </div>
-      </footer>
-    </div>
-  );
-});
-
-// Simple landing page without hooks
-const SimpleLandingPage = memo(function SimpleLandingPage() {
-  return (
-    <div className="flex-1 flex items-center justify-center">
-      <div className="text-center text-white px-4">
-        <div className="mb-8">
-          <div className="w-16 h-16 bg-orange-500 rounded-2xl flex items-center justify-center mx-auto mb-6">
-            <span className="text-2xl font-bold text-white">T</span>
-          </div>
-          <h1 className="text-5xl font-bold mb-4 bg-gradient-to-r from-white to-gray-300 bg-clip-text text-transparent">
-            TradeScout
-          </h1>
-          <p className="text-xl text-gray-300 mb-8">
-            Find Trusted Local Contractors
-          </p>
-        </div>
-        
-        <div className="space-y-4 max-w-md mx-auto">
-          <button className="w-full bg-orange-500 hover:bg-orange-600 text-white font-bold py-3 px-8 rounded-lg transition duration-200">
-            Find Contractors
-          </button>
-          <button className="w-full bg-transparent border-2 border-white text-white hover:bg-white hover:text-navy-900 font-bold py-3 px-8 rounded-lg transition duration-200">
-            Join as Contractor
-          </button>
-        </div>
-
-        <div className="mt-12 grid grid-cols-1 md:grid-cols-3 gap-6 max-w-4xl mx-auto">
-          <div className="text-center">
-            <div className="w-12 h-12 bg-green-500 rounded-lg flex items-center justify-center mx-auto mb-3">
-              <span className="text-xl">✓</span>
-            </div>
-            <h3 className="font-semibold mb-2">Verified Contractors</h3>
-            <p className="text-gray-400 text-sm">All contractors are background checked and licensed</p>
-          </div>
-          <div className="text-center">
-            <div className="w-12 h-12 bg-blue-500 rounded-lg flex items-center justify-center mx-auto mb-3">
-              <span className="text-xl">💬</span>
-            </div>
-            <h3 className="font-semibold mb-2">Direct Communication</h3>
-            <p className="text-gray-400 text-sm">Chat directly with contractors about your project</p>
-          </div>
-          <div className="text-center">
-            <div className="w-12 h-12 bg-purple-500 rounded-lg flex items-center justify-center mx-auto mb-3">
-              <span className="text-xl">📍</span>
-            </div>
-            <h3 className="font-semibold mb-2">Local Coverage</h3>
-            <p className="text-gray-400 text-sm">Find contractors in your specific county and city</p>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-});
-
 const App = memo(function App() {
-  console.log('App component rendering...');
-  console.log('QueryClient:', queryClient);
-  
   return (
-    <QueryClientProvider client={queryClient}>
-      <AppRouter />
-    </QueryClientProvider>
+    <ErrorBoundary fallback={<div className="min-h-screen gradient-bg flex items-center justify-center text-white">Loading...</div>}>
+      <QueryClientProvider client={queryClient}>
+        <TooltipProvider>
+          <Toaster />
+          <Router />
+        </TooltipProvider>
+      </QueryClientProvider>
+    </ErrorBoundary>
   );
 });
 
