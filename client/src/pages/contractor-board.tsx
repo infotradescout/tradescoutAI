@@ -12,6 +12,7 @@ import { GuestGate } from "@/components/guest-gate";
 import { MapPin, Search, Filter, SlidersHorizontal, Calculator } from "lucide-react";
 import { SiFacebook } from "react-icons/si";
 import { Link } from "wouter";
+import { OnboardingDemo } from "@/components/onboarding/OnboardingDemo";
 import type { Contractor, County, Trade } from "@shared/schema";
 import { SEOHelmet, createBreadcrumbStructuredData, createServiceStructuredData } from "@/components/SEOHelmet";
 
@@ -281,7 +282,7 @@ export default function ContractorBoard() {
 
         {/* Header */}
         <header className="text-center mb-12">
-          <h1 className="text-4xl md:text-5xl font-bold text-white mb-6">
+          <h1 className="text-4xl md:text-5xl font-bold text-white mb-6" data-testid="page-title">
             {selectedTradeName ? `Find ${selectedTradeName} Contractors` : 'Find Contractors'}
             {selectedStateName && (
               <span className="block text-3xl md:text-4xl text-orange-500 mt-2">
@@ -316,18 +317,23 @@ export default function ContractorBoard() {
             </div>
           </div>
           
-          {/* Pre-launch notice */}
-          <div className="mb-8 text-center">
+          {/* Pre-launch notice & Tours */}
+          <div className="mb-8 text-center space-y-4">
             <div className="bg-blue-500/20 border border-blue-500/30 rounded-lg p-4 max-w-2xl mx-auto">
               <p className="text-blue-300 text-sm">
                 🚧 TradeScout is launching soon! Explore contractors and get quotes while we finish building additional features.
               </p>
             </div>
+            
+            {/* Onboarding Demo - positioned for easy access */}
+            <div className="flex justify-center">
+              <OnboardingDemo />
+            </div>
           </div>
         </header>
 
         {/* State, County and Trade Quick Filters */}
-        <div className="max-w-4xl mx-auto mb-8">
+        <div className="max-w-4xl mx-auto mb-8" data-testid="contractor-search">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-300 mb-2">
@@ -335,7 +341,7 @@ export default function ContractorBoard() {
                 Select Your State
               </label>
               <Select value={selectedState} onValueChange={setSelectedState}>
-                <SelectTrigger className="bg-navy-700 border-navy-600 text-white">
+                <SelectTrigger className="bg-navy-700 border-navy-600 text-white" data-testid="location-filter">
                   <SelectValue placeholder="Choose your state..." />
                 </SelectTrigger>
                 <SelectContent className="bg-navy-700 border-navy-600 text-white max-h-[300px] overflow-y-auto">
@@ -380,7 +386,7 @@ export default function ContractorBoard() {
                 Service Needed
               </label>
               <Select value={selectedTrade} onValueChange={setSelectedTrade}>
-                <SelectTrigger className="bg-navy-700 border-navy-600 text-white">
+                <SelectTrigger className="bg-navy-700 border-navy-600 text-white" data-testid="trade-filter">
                   <SelectValue placeholder="What service do you need?" />
                 </SelectTrigger>
                 <SelectContent className="bg-navy-700 border-navy-600 text-white max-h-[300px] overflow-y-auto">
@@ -470,7 +476,7 @@ export default function ContractorBoard() {
 
           <div className="flex items-center space-x-3">
             <Select value={sortBy} onValueChange={setSortBy}>
-              <SelectTrigger className="w-48 bg-navy-700 border-navy-600 text-white">
+              <SelectTrigger className="w-48 bg-navy-700 border-navy-600 text-white" data-testid="contractor-sorting">
                 <SelectValue placeholder="Sort by..." />
               </SelectTrigger>
               <SelectContent className="bg-navy-700 border-navy-600 text-white">
