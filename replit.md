@@ -34,6 +34,13 @@ Marketplace language preference: Avoid explicit "investment" or "asset" terminol
 
 **Critical Learning**: Proactively identify and fix UI/UX issues without requiring user feedback. Blank pages and broken flows should be immediately addressed during development.
 
+## Pre-Launch Configuration (August 22, 2025)
+- ✅ **Feature Flag System**: Implemented to control public access during development
+- ✅ **Public Routes**: Contractor board and quote calculator available without authentication
+- ✅ **Private Routes**: All advanced features (community, helpers, exchange, accelerator, foundation, marketplace) redirect to contractor board for unauthenticated users
+- ✅ **Full Functionality Preserved**: Authenticated users still have access to all features for testing and development
+- ✅ **Contractor Onboarding**: Signup system live for contractors to join before full launch
+
 # System Architecture
 
 ## Frontend Architecture
