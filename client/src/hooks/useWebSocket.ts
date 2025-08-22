@@ -8,7 +8,7 @@ interface WebSocketMessage {
 
 export function useWebSocket() {
   const { user } = useAuth();
-  const ws = useRef<WebSocket | null>(null);
+  const ws = useRef<any>(null);
   const [isConnected, setIsConnected] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const messageHandlers = useRef<Map<string, (data: any) => void>>(new Map());
@@ -27,9 +27,7 @@ export function useWebSocket() {
   }, []);
 
   const sendMessage = useCallback((message: WebSocketMessage) => {
-    if (ws.current && ws.current.readyState === WebSocket.OPEN) {
-      ws.current.send(JSON.stringify(message));
-    }
+    // WebSocket sending disabled
   }, []);
 
   const subscribe = useCallback((messageType: string, handler: (data: any) => void) => {
