@@ -290,7 +290,7 @@ export async function registerRoutes(app: Express) {
   );
 
   // Role-based onboarding routes
-  app.post("/api/auth/update-role", isAuthenticated, async (req: AuthenticatedRequest, res) => {
+  app.post("/api/auth/update-role", isAuthenticated, async (req: any, res) => {
     try {
       const { role } = req.body;
       const userId = req.user.id;
@@ -311,7 +311,7 @@ export async function registerRoutes(app: Express) {
     }
   });
 
-  app.post("/api/auth/complete-onboarding", isAuthenticated, async (req: AuthenticatedRequest, res) => {
+  app.post("/api/auth/complete-onboarding", isAuthenticated, async (req: any, res) => {
     try {
       const { firstName, lastName, phone, address, city, state, zipCode, county, businessName, licenseNumber, specialties, yearsExperience, role } = req.body;
       const userId = req.user.id;
@@ -346,7 +346,7 @@ export async function registerRoutes(app: Express) {
     }
   });
 
-  app.post("/api/auth/skip-onboarding", isAuthenticated, async (req: AuthenticatedRequest, res) => {
+  app.post("/api/auth/skip-onboarding", isAuthenticated, async (req: any, res) => {
     try {
       const { role } = req.body;
       const userId = req.user.id;
@@ -6563,7 +6563,7 @@ export async function registerRoutes(app: Express) {
 
   // Initialize WebSocket server
   // Tutorial Management Routes
-  app.get("/api/tutorials/user-progress", isAuthenticated, async (req: AuthenticatedRequest, res) => {
+  app.get("/api/tutorials/user-progress", isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user?.id;
       if (!userId) {
@@ -6578,7 +6578,7 @@ export async function registerRoutes(app: Express) {
     }
   });
 
-  app.get("/api/tutorials/recommended", isAuthenticated, async (req: AuthenticatedRequest, res) => {
+  app.get("/api/tutorials/recommended", isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user?.id;
       const userRole = req.user?.role || 'homeowner';
@@ -6595,7 +6595,7 @@ export async function registerRoutes(app: Express) {
     }
   });
 
-  app.get("/api/tutorials/:tutorialId", isAuthenticated, async (req: AuthenticatedRequest, res) => {
+  app.get("/api/tutorials/:tutorialId", isAuthenticated, async (req: any, res) => {
     try {
       const { tutorialId } = req.params;
       const tutorial = await tutorialStorage.getTutorialById(tutorialId);
@@ -6611,7 +6611,7 @@ export async function registerRoutes(app: Express) {
     }
   });
 
-  app.post("/api/tutorials/:tutorialId/start", isAuthenticated, async (req: AuthenticatedRequest, res) => {
+  app.post("/api/tutorials/:tutorialId/start", isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user?.id;
       const { tutorialId } = req.params;
@@ -6652,7 +6652,7 @@ export async function registerRoutes(app: Express) {
     }
   });
 
-  app.put("/api/tutorials/:tutorialId/progress", isAuthenticated, async (req: AuthenticatedRequest, res) => {
+  app.put("/api/tutorials/:tutorialId/progress", isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user?.id;
       const { tutorialId } = req.params;
@@ -6698,7 +6698,7 @@ export async function registerRoutes(app: Express) {
     }
   });
 
-  app.post("/api/tutorials/:tutorialId/complete", isAuthenticated, async (req: AuthenticatedRequest, res) => {
+  app.post("/api/tutorials/:tutorialId/complete", isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user?.id;
       const { tutorialId } = req.params;
@@ -6727,7 +6727,7 @@ export async function registerRoutes(app: Express) {
     }
   });
 
-  app.post("/api/tutorials/:tutorialId/skip", isAuthenticated, async (req: AuthenticatedRequest, res) => {
+  app.post("/api/tutorials/:tutorialId/skip", isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user?.id;
       const { tutorialId } = req.params;
@@ -6755,7 +6755,7 @@ export async function registerRoutes(app: Express) {
     }
   });
 
-  app.get("/api/tutorials/check/:featureId", isAuthenticated, async (req: AuthenticatedRequest, res) => {
+  app.get("/api/tutorials/check/:featureId", isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user?.id;
       const { featureId } = req.params;
