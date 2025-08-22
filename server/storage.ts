@@ -3176,12 +3176,50 @@ export class DatabaseStorage implements IStorage {
     }).where(eq(contractorApplications.id, id));
   }
 
-  // Recommendation system methods
-  async createRecommendation(data: typeof recommendations.$inferInsert) {
-    const result = await db.insert(recommendations).values(data).returning();
-    
-    // Update contractor recommendation counters
-    await this.updateContractorRecommendationStats(data.contractorId);
+  // Recommendation system methods with anti-abuse protection
+  async createRecommendation(data: typeof recommendations.$inferInsert & { 
+    ipAddress?: string; 
+    userAgent?: string;
+  }) {
+    // Check for duplicate recommendations from same email/IP for this contractor within 30 days
+    const existingRecommendation = await db
+      .select()
+      .from(recommendations)
+      .where(
+        and(
+          eq(recommendations.contractorId, data.contractorId),
+          eq(recommendations.customerEmail, data.customerEmail),
+          gte(recommendations.createdAt, new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)) // 30 days
+        )
+      )
+      .limit(1);
+
+    if (existingRecommendation.length > 0) {
+      throw new Error('You can only submit one recommendation per contractor every 30 days');
+    }
+
+    // Check for too many recommendations from same IP in 24 hours
+    if (data.ipAddress) {
+      const recentFromIp = await db
+        .select({ count: sql<number>`count(*)` })
+        .from(recommendations)
+        .where(
+          and(
+            eq(recommendations.ipAddress, data.ipAddress),
+            gte(recommendations.createdAt, new Date(Date.now() - 24 * 60 * 60 * 1000)) // 24 hours
+          )
+        );
+
+      if (recentFromIp[0]?.count >= 5) {
+        throw new Error('Too many recommendations from this location. Please try again tomorrow.');
+      }
+    }
+
+    const result = await db.insert(recommendations).values({
+      ...data,
+      moderationStatus: 'pending', // All recommendations require moderation
+      isPublic: false
+    }).returning();
     
     return result[0];
   }
@@ -3225,7 +3263,8 @@ export class DatabaseStorage implements IStorage {
       );
 
     const { positive, negative, total } = stats[0] || { positive: 0, negative: 0, total: 0 };
-    const score = total > 0 ? (positive / total) * 100 : 0;
+    const netScore = positive - negative; // Net recommendation score for leaderboard
+    const percentage = total > 0 ? (positive / total) * 100 : 0;
 
     // Update contractor recommendation stats
     await db
@@ -3234,7 +3273,8 @@ export class DatabaseStorage implements IStorage {
         positiveRecommendations: positive,
         negativeRecommendations: negative,
         totalRecommendations: total,
-        recommendationScore: score.toFixed(2),
+        recommendationScore: netScore.toString(), // Net score (positive - negative)
+        recommendationPercentage: percentage.toFixed(2), // Percentage
         updatedAt: new Date()
       })
       .where(eq(contractors.id, contractorId));

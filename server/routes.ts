@@ -2084,7 +2084,7 @@ export async function registerRoutes(app: Express) {
     }
   });
 
-  // Create recommendation for contractor
+  // Create recommendation for contractor with anti-abuse protection
   app.post("/api/contractors/:contractorId/recommendations", async (req: any, res) => {
     try {
       const { contractorId } = req.params;
@@ -2098,8 +2098,21 @@ export async function registerRoutes(app: Express) {
         communication,
         wouldHireAgain,
         customerName,
-        customerEmail
+        customerEmail,
+        customerPhone
       } = req.body;
+
+      // Validate required fields
+      if (!customerName || !customerEmail || !comment || !recommendationType) {
+        return res.status(400).json({
+          success: false,
+          message: "Customer name, email, comment, and recommendation type are required"
+        });
+      }
+
+      // Get client IP and user agent for anti-abuse
+      const ipAddress = req.ip || req.connection.remoteAddress;
+      const userAgent = req.get('User-Agent');
 
       const recommendation = await storage.createRecommendation({
         contractorId,
@@ -2112,19 +2125,27 @@ export async function registerRoutes(app: Express) {
         timeliness,
         communication,
         wouldHireAgain,
-        moderationStatus: 'approved' // Auto-approve for now
+        customerName,
+        customerEmail,
+        customerPhone,
+        ipAddress,
+        userAgent
       });
 
       res.json({ 
         success: true, 
-        message: "Recommendation submitted successfully",
-        recommendation 
+        message: "Recommendation submitted for review. It will be published after moderation.",
+        recommendation: {
+          id: recommendation.id,
+          recommendationType: recommendation.recommendationType,
+          moderationStatus: recommendation.moderationStatus
+        }
       });
     } catch (error) {
       console.error("Error creating recommendation:", error);
-      res.status(500).json({ 
+      res.status(400).json({ 
         success: false, 
-        message: "Failed to submit recommendation" 
+        message: error.message || "Failed to submit recommendation" 
       });
     }
   });
@@ -2144,6 +2165,121 @@ export async function registerRoutes(app: Express) {
     } catch (error) {
       console.error("Error fetching recommendations:", error);
       res.status(500).json({ message: "Failed to fetch recommendations" });
+    }
+  });
+
+  // Admin: Get pending recommendations for moderation
+  app.get("/api/admin/recommendations/pending", isAuthenticated, requireRole(['head_admin', 'ops_admin', 'moderator']), async (req: any, res) => {
+    try {
+      const { limit = 50 } = req.query;
+      
+      const pendingRecommendations = await db
+        .select({
+          id: recommendations.id,
+          contractorId: recommendations.contractorId,
+          recommendationType: recommendations.recommendationType,
+          comment: recommendations.comment,
+          customerName: recommendations.customerName,
+          customerEmail: recommendations.customerEmail,
+          projectType: recommendations.projectType,
+          projectValue: recommendations.projectValue,
+          createdAt: recommendations.createdAt,
+          contractorName: contractors.companyName
+        })
+        .from(recommendations)
+        .leftJoin(contractors, eq(recommendations.contractorId, contractors.id))
+        .where(eq(recommendations.moderationStatus, 'pending'))
+        .orderBy(desc(recommendations.createdAt))
+        .limit(parseInt(limit as string));
+
+      res.json(pendingRecommendations);
+    } catch (error) {
+      console.error("Error fetching pending recommendations:", error);
+      res.status(500).json({ message: "Failed to fetch pending recommendations" });
+    }
+  });
+
+  // Admin: Moderate recommendation
+  app.patch("/api/admin/recommendations/:id/moderate", isAuthenticated, requireRole(['head_admin', 'ops_admin', 'moderator']), async (req: any, res) => {
+    try {
+      const { id } = req.params;
+      const { action, reason } = req.body; // action: 'approve' or 'reject'
+      const moderatorId = req.user?.id;
+
+      if (!['approve', 'reject'].includes(action)) {
+        return res.status(400).json({ message: "Action must be 'approve' or 'reject'" });
+      }
+
+      // Get the recommendation first
+      const [recommendation] = await db
+        .select()
+        .from(recommendations)
+        .where(eq(recommendations.id, id));
+
+      if (!recommendation) {
+        return res.status(404).json({ message: "Recommendation not found" });
+      }
+
+      // Update moderation status
+      await db
+        .update(recommendations)
+        .set({
+          moderationStatus: action === 'approve' ? 'approved' : 'rejected',
+          isPublic: action === 'approve',
+          moderatedAt: new Date(),
+          moderatedBy: moderatorId
+        })
+        .where(eq(recommendations.id, id));
+
+      // Update contractor stats if approved
+      if (action === 'approve') {
+        await storage.updateContractorRecommendationStats(recommendation.contractorId);
+      }
+
+      res.json({ 
+        success: true, 
+        message: `Recommendation ${action}d successfully`
+      });
+    } catch (error) {
+      console.error("Error moderating recommendation:", error);
+      res.status(500).json({ message: "Failed to moderate recommendation" });
+    }
+  });
+
+  // Get contractor leaderboard (ranked by net recommendation score)
+  app.get("/api/contractors/leaderboard", async (req: any, res) => {
+    try {
+      const { limit = 20, state, county, trade } = req.query;
+      
+      let query = db
+        .select({
+          id: contractors.id,
+          companyName: contractors.companyName,
+          slug: contractors.slug,
+          positiveRecommendations: contractors.positiveRecommendations,
+          negativeRecommendations: contractors.negativeRecommendations,
+          totalRecommendations: contractors.totalRecommendations,
+          recommendationScore: contractors.recommendationScore, // Net score (positive - negative)
+          recommendationPercentage: contractors.recommendationPercentage
+        })
+        .from(contractors)
+        .where(
+          and(
+            eq(contractors.isActive, true),
+            gt(contractors.totalRecommendations, 0) // Only contractors with recommendations
+          )
+        )
+        .orderBy(
+          desc(contractors.recommendationScore), // Order by net score
+          desc(contractors.totalRecommendations) // Tie-breaker: total recommendations
+        )
+        .limit(parseInt(limit as string));
+
+      const leaderboard = await query;
+      res.json(leaderboard);
+    } catch (error) {
+      console.error("Error fetching contractor leaderboard:", error);
+      res.status(500).json({ message: "Failed to fetch leaderboard" });
     }
   });
 

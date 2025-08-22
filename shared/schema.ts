@@ -394,7 +394,8 @@ export const contractors = pgTable("contractors", {
   positiveRecommendations: integer("positive_recommendations").default(0),
   negativeRecommendations: integer("negative_recommendations").default(0),
   totalRecommendations: integer("total_recommendations").default(0),
-  recommendationScore: decimal("recommendation_score", { precision: 5, scale: 2 }).default("0.00"), // percentage: (positive/total)*100
+  recommendationScore: decimal("recommendation_score", { precision: 5, scale: 2 }).default("0.00"), // positive minus negative
+  recommendationPercentage: decimal("recommendation_percentage", { precision: 5, scale: 2 }).default("0.00"), // (positive/total)*100
   isActive: boolean("is_active").default(true),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
@@ -430,9 +431,22 @@ export const recommendations = pgTable("recommendations", {
   communication: varchar("communication"), // excellent, good, fair, poor
   wouldHireAgain: boolean("would_hire_again"),
   photoUrl: varchar("photo_url"),
+  
+  // Anti-abuse measures
+  customerName: varchar("customer_name").notNull(),
+  customerEmail: varchar("customer_email").notNull(),
+  customerPhone: varchar("customer_phone"),
+  ipAddress: varchar("ip_address"),
+  userAgent: text("user_agent"),
+  
+  // Verification and moderation
   isVerified: boolean("is_verified").default(false),
-  isPublic: boolean("is_public").default(true),
-  moderationStatus: varchar("moderation_status").default('approved'), // pending, approved, rejected
+  verificationMethod: varchar("verification_method"), // 'email', 'phone', 'admin'
+  verifiedAt: timestamp("verified_at"),
+  isPublic: boolean("is_public").default(false), // Default to private until verified
+  moderationStatus: varchar("moderation_status").default('pending'), // pending, approved, rejected
+  moderatedAt: timestamp("moderated_at"),
+  moderatedBy: varchar("moderated_by"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
@@ -449,8 +463,10 @@ export const contractorLeaderboardStats = pgTable("contractor_leaderboard_stats"
   lifetimePositiveRecommendations: integer("lifetime_positive_recommendations").default(0),
   lifetimeNegativeRecommendations: integer("lifetime_negative_recommendations").default(0),
   lifetimeTotalRecommendations: integer("lifetime_total_recommendations").default(0),
-  monthlyRecommendationScore: decimal("monthly_recommendation_score", { precision: 5, scale: 2 }), // Monthly percentage
-  lifetimeRecommendationScore: decimal("lifetime_recommendation_score", { precision: 5, scale: 2 }), // Lifetime percentage
+  monthlyRecommendationScore: decimal("monthly_recommendation_score", { precision: 5, scale: 2 }), // Monthly (positive - negative)
+  lifetimeRecommendationScore: decimal("lifetime_recommendation_score", { precision: 5, scale: 2 }), // Lifetime (positive - negative)
+  monthlyRecommendationPercentage: decimal("monthly_recommendation_percentage", { precision: 5, scale: 2 }), // Monthly percentage
+  lifetimeRecommendationPercentage: decimal("lifetime_recommendation_percentage", { precision: 5, scale: 2 }), // Lifetime percentage
   lastUpdated: timestamp("last_updated").defaultNow(),
   createdAt: timestamp("created_at").defaultNow(),
 }, (table) => [
