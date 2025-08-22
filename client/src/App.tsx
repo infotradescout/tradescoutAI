@@ -87,6 +87,8 @@ import PaymentHistory from "@/pages/payment-history";
 import AdvancedSearch from "@/pages/advanced-search";
 import Notifications from "@/pages/notifications";
 import Profile from "@/pages/profile";
+import Privacy from "@/pages/privacy";
+import Terms from "@/pages/terms";
 import { ProfileSetupRedirect } from "@/components/profile-setup-redirect";
 import { OnboardingProvider } from "@/components/onboarding/OnboardingProvider";
 import { NewUserTour } from "@/components/onboarding/tours/NewUserTour";
@@ -181,6 +183,9 @@ const Router = memo(function Router() {
           <Route path="/test-functionality" component={TestFunctionality} />
           
           {/* Legal routes */}
+          <Route path="/terms" component={Terms} />
+          <Route path="/privacy" component={Privacy} />
+          <Route path="/privacy-policy" component={Privacy} />
           <Route path="/terms">
             <Suspense fallback={<LoadingSpinner size="lg" />}>
               <TermsOfService />
