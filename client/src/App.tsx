@@ -33,6 +33,7 @@ import Accelerator from "@/pages/accelerator";
 import Help from "@/pages/help";
 import Settings from "@/pages/settings";
 import MasterAdminSetup from "@/components/auth/MasterAdminSetup";
+import ConnectMasterAdmin from "@/components/admin/ConnectMasterAdmin";
 import { AuthFlow } from "@/components/auth/AuthFlow";
 
 import Dashboard from "@/pages/dashboard";
@@ -235,6 +236,7 @@ const Router = memo(function Router() {
               <Route path="/contractors/board" component={ContractorBoard} />
               <Route path="/quote-calculator" component={EstimateCalculator} />
               <Route path="/calculator" component={EstimateCalculator} />
+              <Route path="/connect-admin" component={ConnectMasterAdmin} />
               <Route path="/signup" component={Signup} />
               
               {/* Redirect restricted routes to contractor board */}

@@ -424,6 +424,65 @@ export async function registerRoutes(app: Express) {
     }
   });
 
+  // Connect current Facebook login to existing master admin account
+  app.post("/api/auth/connect-master-admin", isAuthenticated, async (req, res) => {
+    try {
+      const currentUser = req.user as any;
+      
+      // Check if user is logged in via Facebook
+      if (!currentUser.claims?.sub) {
+        return res.status(400).json({ message: "Must be logged in via Facebook to connect to master admin" });
+      }
+
+      // Find the master admin account that needs Facebook connection
+      const masterAdmin = await storage.getUserByEmail('mrplatypus4777@gmail.com');
+      if (!masterAdmin || masterAdmin.role !== 'head_admin') {
+        return res.status(404).json({ message: "Master admin account not found" });
+      }
+
+      // Check if master admin already has Facebook connected
+      if (masterAdmin.facebookId) {
+        return res.status(400).json({ message: "Master admin account already connected to Facebook" });
+      }
+
+      // Connect Facebook ID to master admin account and update profile
+      await storage.updateUser(masterAdmin.id, {
+        facebookId: currentUser.claims.sub,
+        profileImageUrl: currentUser.claims.profile_image_url,
+        // Update name if Facebook has more recent data
+        firstName: currentUser.claims.first_name || masterAdmin.firstName,
+        lastName: currentUser.claims.last_name || masterAdmin.lastName
+      });
+
+      // Update session to reflect master admin privileges
+      req.user = {
+        ...currentUser,
+        id: masterAdmin.id,
+        email: masterAdmin.email,
+        role: 'head_admin',
+        firstName: currentUser.claims.first_name || masterAdmin.firstName,
+        lastName: currentUser.claims.last_name || masterAdmin.lastName,
+        facebookId: currentUser.claims.sub
+      };
+
+      res.json({ 
+        message: "Facebook account successfully connected to master admin",
+        user: {
+          id: masterAdmin.id,
+          email: masterAdmin.email,
+          role: 'head_admin',
+          firstName: req.user.firstName,
+          lastName: req.user.lastName,
+          profileImageUrl: currentUser.claims.profile_image_url,
+          facebookId: currentUser.claims.sub
+        }
+      });
+    } catch (error) {
+      console.error("Connect master admin error:", error);
+      res.status(500).json({ message: "Failed to connect Facebook to master admin account" });
+    }
+  });
+
   // Admin-only route to create new admin accounts
   app.post("/api/admin/create-account", isAuthenticated, requireRole(['head_admin', 'ops_admin']), async (req, res) => {
     try {
