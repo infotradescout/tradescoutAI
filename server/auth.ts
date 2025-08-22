@@ -68,14 +68,19 @@ export async function setupAuth(app: Express) {
 
   // Facebook strategy for social authentication
   console.log('Facebook env check:', !!process.env.FACEBOOK_APP_ID, !!process.env.FACEBOOK_APP_SECRET);
-  if (process.env.FACEBOOK_APP_ID && process.env.FACEBOOK_APP_SECRET) {
-    console.log('Registering Facebook strategy...');
-    passport.use(new FacebookStrategy({
-      clientID: process.env.FACEBOOK_APP_ID,
-      clientSecret: process.env.FACEBOOK_APP_SECRET,
-      callbackURL: "/api/auth/facebook/callback",
-      profileFields: ['id', 'displayName', 'photos', 'email', 'first_name', 'last_name']
-    },
+  const facebookAppId = process.env.FACEBOOK_APP_ID;
+  const facebookAppSecret = process.env.FACEBOOK_APP_SECRET;
+  
+  if (facebookAppId && facebookAppSecret) {
+    console.log('Registering Facebook strategy with App ID:', facebookAppId.substring(0, 4) + '...');
+    
+    try {
+      passport.use('facebook', new FacebookStrategy({
+        clientID: facebookAppId,
+        clientSecret: facebookAppSecret,
+        callbackURL: "/api/auth/facebook/callback",
+        profileFields: ['id', 'displayName', 'photos', 'email', 'first_name', 'last_name']
+      },
     async (accessToken, refreshToken, profile, done) => {
       try {
         // Check if user already exists with this Facebook ID
@@ -118,7 +123,16 @@ export async function setupAuth(app: Express) {
       } catch (error) {
         return done(error);
       }
-    }));
+      }));
+      
+      console.log('Facebook strategy successfully registered');
+    } catch (error) {
+      console.error('Error registering Facebook strategy:', error);
+    }
+  } else {
+    console.log('Facebook strategy not registered - missing APP_ID or APP_SECRET');
+    console.log('APP_ID present:', !!facebookAppId);
+    console.log('APP_SECRET present:', !!facebookAppSecret);
   }
 
   // Serialize/deserialize user for session
