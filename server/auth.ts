@@ -50,11 +50,11 @@ export async function setupAuth(app: Express) {
           return done(null, false, { message: 'Invalid email or password' });
         }
 
-        if (!user.passwordHash) {
+        if (!user.password) {
           return done(null, false, { message: 'No password set for this account' });
         }
 
-        const isValidPassword = await bcrypt.compare(password, user.passwordHash);
+        const isValidPassword = await bcrypt.compare(password, user.password);
         if (!isValidPassword) {
           return done(null, false, { message: 'Invalid email or password' });
         }
@@ -106,8 +106,7 @@ export async function setupAuth(app: Express) {
           profileImageUrl: profile.photos?.[0]?.value,
           facebookId: profile.id,
           role: 'contractor_user', // Default role for Facebook signups
-          isEmailVerified: !!email, // Consider Facebook email verified
-          emailVerificationToken: null,
+          emailVerified: !!email, // Consider Facebook email verified
           createdAt: new Date(),
           updatedAt: new Date()
         });
@@ -218,7 +217,7 @@ export async function createMasterAdmin(email: string, password: string, firstNa
   
   return storage.createUser({
     email,
-    passwordHash,
+    password: passwordHash,
     firstName,
     lastName,
     role: 'head_admin',
