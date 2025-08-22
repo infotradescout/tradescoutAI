@@ -357,25 +357,16 @@ const Router = memo(function Router() {
               </ProfileSetupRedirect>
             </>
           ) : (
-            /* Unauthenticated routes */
+            /* Pre-launch: Limited public routes */
             <>
-              <Route path="/" component={Landing} />
-              <Route path="/home" component={Landing} />
+              <Route path="/" component={ContractorBoard} />
               <Route path="/contractors/board" component={ContractorBoard} />
               <Route path="/quote-calculator" component={EstimateCalculator} />
               <Route path="/calculator" component={EstimateCalculator} />
               <Route path="/quote" component={EstimateCalculator} />
-              <Route path="/contractors" component={ForContractors} />
               <Route path="/contractors/signup" component={ContractorSignup} />
-              <Route path="/contractors/find" component={FindContractors} />
               <Route path="/contractors/:slug" component={ContractorProfile} />
-              <Route path="/foundation" component={Foundation} />
-              <Route path="/exchange" component={Exchange} />
-              <Route path="/helpers" component={Helpers} />
-              <Route path="/accelerator" component={Accelerator} />
-              <Route path="/help" component={Help} />
-              <Route path="/community" component={Community} />
-              <Route component={Landing} />
+              <Route component={ContractorBoard} />
             </>
           )}
 
