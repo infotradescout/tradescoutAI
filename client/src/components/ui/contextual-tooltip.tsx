@@ -1,4 +1,4 @@
-import React, { useState, forwardRef } from "react";
+import React, { useState, forwardRef, useMemo } from "react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { HelpCircle, Wrench, Hammer, HardHat, Drill, Settings, Paintbrush, Ruler } from "lucide-react";
 
@@ -94,9 +94,10 @@ export const ContextualTooltip = forwardRef<
   
   const IconComponent = illustration ? illustrations[illustration] : HelpCircle;
   
-  const getRandomQuip = () => {
+  // Memoize the random quip to prevent infinite re-renders
+  const randomQuip = useMemo(() => {
     return contractorQuips[Math.floor(Math.random() * contractorQuips.length)];
-  };
+  }, []); // Empty dependency array means it only runs once
 
   const sizeClasses = {
     sm: 'h-4 w-4',
@@ -148,7 +149,7 @@ export const ContextualTooltip = forwardRef<
               <p className="text-sm text-gray-200 mb-2">{content}</p>
               {variant === 'contractor' && (
                 <p className="text-xs text-orange-300 italic border-t border-navy-600 pt-2">
-                  💡 {getRandomQuip()}
+                  💡 {randomQuip}
                 </p>
               )}
             </div>
