@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -12,8 +12,9 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { Building, Shield, Star, CheckCircle, Upload, Phone, Mail, MapPin } from "lucide-react";
 import { SEOHelmet } from "@/components/SEOHelmet";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
+import type { County } from "@shared/schema";
 
 const contractorSignupSchema = z.object({
   // Company Information
@@ -60,8 +61,46 @@ const states = [
   { code: 'DE', name: 'Delaware' },
   { code: 'FL', name: 'Florida' },
   { code: 'GA', name: 'Georgia' },
+  { code: 'HI', name: 'Hawaii' },
+  { code: 'ID', name: 'Idaho' },
+  { code: 'IL', name: 'Illinois' },
+  { code: 'IN', name: 'Indiana' },
+  { code: 'IA', name: 'Iowa' },
+  { code: 'KS', name: 'Kansas' },
+  { code: 'KY', name: 'Kentucky' },
+  { code: 'LA', name: 'Louisiana' },
+  { code: 'ME', name: 'Maine' },
+  { code: 'MD', name: 'Maryland' },
+  { code: 'MA', name: 'Massachusetts' },
+  { code: 'MI', name: 'Michigan' },
+  { code: 'MN', name: 'Minnesota' },
+  { code: 'MS', name: 'Mississippi' },
+  { code: 'MO', name: 'Missouri' },
+  { code: 'MT', name: 'Montana' },
+  { code: 'NE', name: 'Nebraska' },
+  { code: 'NV', name: 'Nevada' },
+  { code: 'NH', name: 'New Hampshire' },
+  { code: 'NJ', name: 'New Jersey' },
+  { code: 'NM', name: 'New Mexico' },
+  { code: 'NY', name: 'New York' },
+  { code: 'NC', name: 'North Carolina' },
+  { code: 'ND', name: 'North Dakota' },
+  { code: 'OH', name: 'Ohio' },
+  { code: 'OK', name: 'Oklahoma' },
+  { code: 'OR', name: 'Oregon' },
+  { code: 'PA', name: 'Pennsylvania' },
+  { code: 'RI', name: 'Rhode Island' },
+  { code: 'SC', name: 'South Carolina' },
+  { code: 'SD', name: 'South Dakota' },
+  { code: 'TN', name: 'Tennessee' },
   { code: 'TX', name: 'Texas' },
-  { code: 'NY', name: 'New York' }
+  { code: 'UT', name: 'Utah' },
+  { code: 'VT', name: 'Vermont' },
+  { code: 'VA', name: 'Virginia' },
+  { code: 'WA', name: 'Washington' },
+  { code: 'WV', name: 'West Virginia' },
+  { code: 'WI', name: 'Wisconsin' },
+  { code: 'WY', name: 'Wyoming' }
 ];
 
 const trades = [
@@ -95,7 +134,20 @@ const specialties = [
 export default function ContractorSignup() {
   const [currentStep, setCurrentStep] = useState(1);
   const [selectedSpecialties, setSelectedSpecialties] = useState<string[]>([]);
+  const [selectedState, setSelectedState] = useState("");
   const { toast } = useToast();
+
+  // Fetch counties for selected state
+  const { data: counties } = useQuery<County[]>({
+    queryKey: ['/api/counties', selectedState],
+    queryFn: async () => {
+      if (!selectedState) return [];
+      const response = await fetch(`/api/counties?state=${selectedState}`);
+      if (!response.ok) throw new Error('Failed to fetch counties');
+      return response.json();
+    },
+    enabled: !!selectedState,
+  });
 
   const form = useForm<ContractorSignupForm>({
     resolver: zodResolver(contractorSignupSchema),
@@ -164,6 +216,13 @@ export default function ContractorSignup() {
         : [...selectedSpecialties, specialty]
     );
   };
+
+  // Reset county when state changes
+  useEffect(() => {
+    if (selectedState) {
+      form.setValue('primaryCounty', '');
+    }
+  }, [selectedState, form]);
 
   if (currentStep === 5) {
     return (
@@ -346,7 +405,10 @@ export default function ContractorSignup() {
                         render={({ field }) => (
                           <FormItem>
                             <FormLabel className="text-gray-300">Primary State *</FormLabel>
-                            <Select onValueChange={field.onChange} defaultValue={field.value}>
+                            <Select onValueChange={(value) => {
+                              field.onChange(value);
+                              setSelectedState(value);
+                            }} defaultValue={field.value}>
                               <FormControl>
                                 <SelectTrigger className="bg-navy-800 border-navy-600 text-white">
                                   <SelectValue placeholder="Select state" />
@@ -371,9 +433,20 @@ export default function ContractorSignup() {
                         render={({ field }) => (
                           <FormItem>
                             <FormLabel className="text-gray-300">Primary County *</FormLabel>
-                            <FormControl>
-                              <Input {...field} className="bg-navy-800 border-navy-600 text-white" placeholder="Los Angeles County" />
-                            </FormControl>
+                            <Select onValueChange={field.onChange} value={field.value} disabled={!selectedState}>
+                              <FormControl>
+                                <SelectTrigger className="bg-navy-800 border-navy-600 text-white">
+                                  <SelectValue placeholder={selectedState ? "Select county" : "Select state first"} />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent className="bg-navy-700 border-navy-600">
+                                {counties?.map((county) => (
+                                  <SelectItem key={county.fips} value={county.fips} className="text-white hover:bg-navy-600">
+                                    {county.name}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
                             <FormMessage />
                           </FormItem>
                         )}
