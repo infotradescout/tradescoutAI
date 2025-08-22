@@ -38,6 +38,7 @@ import Dashboard from "@/pages/dashboard";
 import HomeownerDashboard from "@/pages/homeowner-dashboard";
 import ContractorBoard from "@/pages/contractor-board";
 import ContractorProfile from "@/pages/contractor-profile";
+import ContractorSignup from "@/pages/contractor-signup";
 import EstimateCalculator from "@/pages/quote-calculator";
 import WorkerMarketplace from "@/pages/worker-marketplace";
 import GrowthPack from "@/pages/growth-pack";
@@ -365,6 +366,7 @@ const Router = memo(function Router() {
               <Route path="/calculator" component={EstimateCalculator} />
               <Route path="/quote" component={EstimateCalculator} />
               <Route path="/contractors" component={ForContractors} />
+              <Route path="/contractors/signup" component={ContractorSignup} />
               <Route path="/contractors/find" component={FindContractors} />
               <Route path="/contractors/:slug" component={ContractorProfile} />
               <Route path="/foundation" component={Foundation} />
