@@ -33,7 +33,7 @@ Marketplace language preference: Avoid explicit "investment" or "asset" terminol
 - ✅ **Revolutionary Role-Specific Help Center**: Completely transformed help center with dynamic role-based customization for all 23 user roles (homeowner, contractor, helper, accelerator member, property manager, business owner, realtor, car salesman, insurance agent, mortgage broker, community roles, platform staff, and admin hierarchies). Each role gets tailored content, quick actions, help articles, categories, and support options based on their specific needs and responsibilities.
 - ✅ **Facebook Authentication Integration**: Complete Facebook login system with passport-facebook strategy, one-click contractor signup, mobile-optimized experience, and 3x higher conversion rates (60-80% vs 15-20%)
 - ✅ **Smart Onboarding Tour System**: Comprehensive interactive tooltip system with role-based tours, feature-specific guidance, progress tracking, auto-start capabilities, keyboard navigation, and replay functionality
-- ✅ **Legal Compliance Infrastructure**: Production-ready privacy policy with CCPA/GDPR compliance, comprehensive data protection coverage, and Facebook App-ready terms of service
+- ✅ **Legal Compliance Infrastructure**: Production-ready privacy policy with CCPA/GDPR compliance, zero third-party data sales guarantee, TradeScout admin contact transparency, and Facebook App-ready terms of service
 
 **Critical Learning**: Proactively identify and fix UI/UX issues without requiring user feedback. Blank pages and broken flows should be immediately addressed during development.
 
