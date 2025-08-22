@@ -35,7 +35,7 @@ export interface UserInteraction {
     | 'contractor_view' 
     | 'profile_create' 
     | 'chat_message' 
-    | 'lead_assignment' 
+    | 'inquiry_assignment' 
     | 'rating_submit'
     | 'ad_view'
     | 'ad_click'
@@ -237,9 +237,9 @@ export class LocalityTracker {
     leadId: string,
     contractorId: string
   ) {
-    await this.trackInteraction('lead_assignment', req, {
+    await this.trackInteraction('inquiry_assignment', req, {
       contractorId,
-      projectType: 'lead_interaction',
+      projectType: 'customer_inquiry',
       searchQuery: action,
       quoteAmount: leadId as any // Temporary mapping
     });

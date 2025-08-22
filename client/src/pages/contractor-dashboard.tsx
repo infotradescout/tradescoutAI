@@ -24,7 +24,7 @@ import {
   Zap
 } from "lucide-react";
 
-interface LeadData {
+interface InquiryData {
   id: string;
   title: string;
   homeownerName: string;
@@ -35,8 +35,8 @@ interface LeadData {
 }
 
 interface ContractorStats {
-  totalLeads: number;
-  wonLeads: number;
+  totalInquiries: number;
+  wonInquiries: number;
   revenue: number;
   averageRating: number;
   completedJobs: number;
@@ -47,7 +47,7 @@ export default function ContractorDashboard() {
   const { user } = useAuth();
 
   // Mock data for contractor dashboard
-  const mockLeads: LeadData[] = [
+  const mockInquiries: InquiryData[] = [
     {
       id: '1',
       title: 'Kitchen Remodel',
@@ -78,15 +78,15 @@ export default function ContractorDashboard() {
   ];
 
   const mockStats: ContractorStats = {
-    totalLeads: 15,
-    wonLeads: 8,
+    totalInquiries: 15,
+    wonInquiries: 8,
     revenue: 85000,
     averageRating: 4.8,
     completedJobs: 12,
     responseRate: 95,
   };
 
-  const getStatusBadge = (status: LeadData['status']) => {
+  const getStatusBadge = (status: InquiryData['status']) => {
     switch (status) {
       case 'new':
         return <Badge className="bg-orange-500">New</Badge>;
@@ -101,7 +101,7 @@ export default function ContractorDashboard() {
     }
   };
 
-  const getStatusIcon = (status: LeadData['status']) => {
+  const getStatusIcon = (status: InquiryData['status']) => {
     switch (status) {
       case 'new':
         return <AlertCircle className="h-4 w-4 text-orange-500" />;
@@ -122,7 +122,7 @@ export default function ContractorDashboard() {
         <h1 className="text-3xl font-bold text-white mb-2">
           Welcome back, {user?.firstName || 'Contractor'}
         </h1>
-        <p className="text-gray-300">Manage your leads, track performance, and grow your business</p>
+        <p className="text-gray-300">Manage customer inquiries, track performance, and grow your business</p>
       </div>
 
       {/* Quick Actions */}
@@ -135,12 +135,12 @@ export default function ContractorDashboard() {
                   <Zap className="h-6 w-6 text-orange-500" />
                 </div>
                 <div>
-                  <h3 className="text-white font-semibold">New Leads</h3>
+                  <h3 className="text-white font-semibold">New Inquiries</h3>
                   <p className="text-gray-400 text-sm">Review fresh opportunities</p>
                 </div>
               </div>
               <Badge className="bg-orange-500 text-white">
-                {mockLeads.filter(l => l.status === 'new').length}
+                {mockInquiries.filter(l => l.status === 'new').length}
               </Badge>
             </div>
           </CardContent>
@@ -196,8 +196,8 @@ export default function ContractorDashboard() {
             <div className="w-8 h-8 bg-orange-500/20 rounded-lg flex items-center justify-center mx-auto mb-2">
               <Target className="h-4 w-4 text-orange-500" />
             </div>
-            <p className="text-2xl font-bold text-white">{mockStats.totalLeads}</p>
-            <p className="text-sm text-gray-400">Total Leads</p>
+            <p className="text-2xl font-bold text-white">{mockStats.totalInquiries}</p>
+            <p className="text-sm text-gray-400">Customer Inquiries</p>
           </CardContent>
         </Card>
         

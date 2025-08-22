@@ -292,7 +292,7 @@ export function OnboardingFlow({ role, userInfo, onComplete, onSkip }: Onboardin
                       <h4 className="text-white font-medium mb-2 mt-4">After verification:</h4>
                       <ul className="text-slate-300 text-sm space-y-1">
                         <li>• Appear on the public contractor board</li>
-                        <li>• Receive customer leads</li>
+                        <li>• Connect with potential customers</li>
                         <li>• Build customer recommendations</li>
                         <li>• Access marketing tools</li>
                       </ul>

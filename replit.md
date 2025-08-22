@@ -6,6 +6,7 @@ TradeScout is a full-stack contractor marketplace platform connecting homeowners
 
 Preferred communication style: Simple, everyday language.
 Marketplace language preference: Avoid explicit "investment" or "asset" terminology - let users naturally discover the value-building potential through subtle language and quality indicators.
+Lead generation preference: Never reference "getting leads" or "lead generation" - focus on showcasing contractor businesses, building reputation, and connecting with homeowners naturally.
 
 ## Recent Changes (August 11-22, 2025)
 - ✅ **Authentication System Overhaul**: Completely replaced OpenID Connect with comprehensive passport-local authentication

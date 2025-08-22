@@ -177,7 +177,7 @@ export class NotificationService {
           birthday: { enabled: true, delivery_methods: ['in_app', 'email'] },
           anniversary: { enabled: true, delivery_methods: ['in_app'] },
           new_message: { enabled: true, delivery_methods: ['in_app', 'email'] },
-          new_lead: { enabled: true, delivery_methods: ['in_app', 'email'] },
+          new_inquiry: { enabled: true, delivery_methods: ['in_app', 'email'] },
           review_received: { enabled: true, delivery_methods: ['in_app'] },
           system_update: { enabled: true, delivery_methods: ['in_app'] },
           promotional: { enabled: false, delivery_methods: ['in_app'] },
