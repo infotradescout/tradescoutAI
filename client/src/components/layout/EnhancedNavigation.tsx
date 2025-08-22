@@ -6,7 +6,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { UserMenu } from "@/components/navigation/RoleBasedNavigation";
 import { useAuth } from "@/hooks/useAuth";
 import { Menu, X, ChevronDown } from "lucide-react";
-import { ConstructionEmblem } from "@/components/ConstructionEmblem";
+import { TradeScoutLogo, TradeScoutIcon } from "@/components/TradeScoutIcons";
 
 interface EnhancedNavigationProps {
   className?: string;
@@ -29,11 +29,15 @@ export function EnhancedNavigation({ className = "" }: EnhancedNavigationProps) 
       <div className="w-full flex items-center justify-between px-6 py-4">
         {/* Logo */}
         <Link href="/">
-          <div className="flex items-center space-x-3 transition-transform hover:scale-105">
-            <div className="w-10 h-10">
-              <ConstructionEmblem className="w-full h-full text-orange-500" />
-            </div>
-            <span className="text-2xl font-bold text-white tracking-tight">TradeScout</span>
+          <div className="flex items-center space-x-3 transition-transform hover:scale-105 group">
+            <TradeScoutLogo 
+              size="lg" 
+              variant="gradient" 
+              className="text-orange-500 group-hover:text-orange-400 transition-colors duration-300" 
+            />
+            <span className="text-2xl font-bold text-white tracking-tight group-hover:text-orange-400 transition-colors duration-300">
+              TradeScout
+            </span>
           </div>
         </Link>
 
@@ -113,9 +117,11 @@ export function EnhancedNavigation({ className = "" }: EnhancedNavigationProps) 
             <SheetContent side="right" className="w-80 bg-slate-900 border-slate-700">
               <div className="flex items-center justify-between mb-6">
                 <div className="flex items-center space-x-2">
-                  <div className="w-6 h-6 bg-gradient-to-br from-orange-500 to-red-600 rounded flex items-center justify-center">
-                    <span className="text-white font-bold text-xs">TS</span>
-                  </div>
+                  <TradeScoutIcon 
+                    size="sm" 
+                    variant="gradient" 
+                    className="text-orange-500" 
+                  />
                   <span className="text-lg font-bold text-white">TradeScout</span>
                 </div>
                 <Button 

@@ -6,7 +6,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { Menu, X, ChevronDown, Home, Calculator, Users, Wrench, LayoutDashboard, ArrowLeftRight, Building, MessageSquare, MoreHorizontal, Crown } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { UserMenu } from "@/components/navigation/RoleBasedNavigation";
-import { ConstructionEmblem } from "@/components/ConstructionEmblem";
+import { TradeScoutLogo } from "@/components/TradeScoutIcons";
 import { ContextualHelp } from "@/components/help/HelpSystem";
 import { NotificationCenter } from "@/components/ui/notification-center";
 
@@ -187,8 +187,12 @@ export function NextGenNavigation({ className = "" }: NextGenNavigationProps) {
         {/* Logo */}
         <Link href="/">
           <div className="flex items-center space-x-2 lg:space-x-3 group transition-all duration-300">
-            <div className="w-8 h-8 lg:w-9 lg:h-9 bg-slate-800 rounded-lg border border-slate-600 flex items-center justify-center group-hover:border-orange-500/50 transition-colors duration-300">
-              <ConstructionEmblem className="w-4 h-4 lg:w-5 lg:h-5 text-orange-500" />
+            <div className="w-8 h-8 lg:w-9 lg:h-9 bg-slate-800 rounded-lg border border-slate-600 flex items-center justify-center group-hover:border-orange-500/50 transition-colors duration-300 overflow-hidden">
+              <TradeScoutLogo 
+                size="sm" 
+                variant="gradient" 
+                className="text-orange-500 group-hover:text-orange-400 transition-colors duration-300" 
+              />
             </div>
             <span className="text-lg lg:text-xl font-bold text-white group-hover:text-orange-400 transition-colors duration-300">
               TradeScout
