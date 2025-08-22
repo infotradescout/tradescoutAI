@@ -92,7 +92,7 @@ import Profile from "@/pages/profile";
 import Privacy from "@/pages/privacy";
 import Terms from "@/pages/terms";
 import { ProfileSetupRedirect } from "@/components/profile-setup-redirect";
-import { OnboardingProvider } from "@/components/onboarding/OnboardingProvider";
+
 import { SubtleHints } from "@/components/onboarding/SubtleHints";
 
 // Lazy load admin components
@@ -174,8 +174,7 @@ const Router = memo(function Router() {
   const isPublicRoute = ['/login', '/register', '/terms', '/privacy', '/cookies', '/compliance'].includes(location);
 
   return (
-    <OnboardingProvider>
-      <MobileGestures>
+      <MobileGestures isEnabled={isMobile && isAuthenticated}>
       <div className="min-h-screen gradient-bg flex flex-col">
         <NextGenNavigation />
         
@@ -433,7 +432,6 @@ const Router = memo(function Router() {
       {!isMobile && <LegalFooter />}
     </div>
     </MobileGestures>
-    </OnboardingProvider>
   );
 });
 

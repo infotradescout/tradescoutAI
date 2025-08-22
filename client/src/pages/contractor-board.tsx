@@ -12,7 +12,7 @@ import { GuestGate } from "@/components/guest-gate";
 import { MapPin, Search, Filter, SlidersHorizontal, Calculator } from "lucide-react";
 import { SiFacebook } from "react-icons/si";
 import { Link } from "wouter";
-import { OnboardingDemo } from "@/components/onboarding/OnboardingDemo";
+
 import type { Contractor, County, Trade } from "@shared/schema";
 import { SEOHelmet, createBreadcrumbStructuredData, createServiceStructuredData } from "@/components/SEOHelmet";
 
@@ -325,10 +325,7 @@ export default function ContractorBoard() {
               </p>
             </div>
             
-            {/* Onboarding Demo - positioned for easy access */}
-            <div className="flex justify-center">
-              <OnboardingDemo />
-            </div>
+
           </div>
         </header>
 
