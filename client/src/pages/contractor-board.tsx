@@ -10,6 +10,7 @@ import ContractorCardSkeleton from "@/components/contractor-card-skeleton";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { GuestGate } from "@/components/guest-gate";
 import { MapPin, Search, Filter, SlidersHorizontal, Calculator } from "lucide-react";
+import { SiFacebook } from "react-icons/si";
 import { Link } from "wouter";
 import type { Contractor, County, Trade } from "@shared/schema";
 import { SEOHelmet, createBreadcrumbStructuredData, createServiceStructuredData } from "@/components/SEOHelmet";
@@ -292,13 +293,27 @@ export default function ContractorBoard() {
             Connect with verified, local contractors for your next project
           </p>
           
-          {/* Contractor CTA */}
-          <div className="mb-8">
-            <Link href="/contractors/signup">
-              <Button className="bg-green-500 hover:bg-green-600 text-white px-6 py-2 rounded-lg font-semibold">
-                Are you a contractor? Join our network
-              </Button>
-            </Link>
+          {/* Contractor CTA - Facebook Signup */}
+          <div className="mb-8 space-y-4">
+            <div className="bg-gradient-to-r from-blue-600 to-blue-700 rounded-xl p-6 max-w-md mx-auto border border-blue-500/30">
+              <h3 className="text-white font-semibold text-lg mb-2">Join as a Contractor</h3>
+              <p className="text-blue-100 text-sm mb-4">Get recommendations and grow your business</p>
+              <div className="space-y-3">
+                <Button 
+                  className="w-full bg-blue-500 hover:bg-blue-600 text-white border border-blue-400"
+                  onClick={() => window.location.href = '/auth/facebook'}
+                  data-testid="button-contractor-facebook-signup"
+                >
+                  <SiFacebook className="mr-2 h-4 w-4" />
+                  Quick Signup with Facebook
+                </Button>
+                <Link href="/contractors/signup">
+                  <Button variant="outline" className="w-full text-blue-700 border-blue-300 hover:bg-blue-50">
+                    Sign up with Email
+                  </Button>
+                </Link>
+              </div>
+            </div>
           </div>
           
           {/* Pre-launch notice */}

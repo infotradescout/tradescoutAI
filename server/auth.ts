@@ -1,6 +1,7 @@
 import bcrypt from "bcrypt";
 import passport from "passport";
 import { Strategy as LocalStrategy } from "passport-local";
+import { Strategy as FacebookStrategy } from "passport-facebook";
 import session from "express-session";
 import type { Express, RequestHandler } from "express";
 import connectPg from "connect-pg-simple";
@@ -64,6 +65,59 @@ export async function setupAuth(app: Express) {
       }
     }
   ));
+
+  // Facebook strategy for social authentication
+  if (process.env.FACEBOOK_APP_ID && process.env.FACEBOOK_APP_SECRET) {
+    passport.use(new FacebookStrategy({
+      clientID: process.env.FACEBOOK_APP_ID,
+      clientSecret: process.env.FACEBOOK_APP_SECRET,
+      callbackURL: "/api/auth/facebook/callback",
+      profileFields: ['id', 'displayName', 'photos', 'email', 'first_name', 'last_name']
+    },
+    async (accessToken, refreshToken, profile, done) => {
+      try {
+        // Check if user already exists with this Facebook ID
+        let user = await storage.getUserByFacebookId(profile.id);
+        
+        if (user) {
+          // Update last login and return existing user
+          return done(null, user);
+        }
+
+        // Check if user exists with same email address
+        const email = profile.emails?.[0]?.value;
+        if (email) {
+          user = await storage.getUserByEmail(email);
+          if (user) {
+            // Link Facebook account to existing user
+            await storage.updateUser(user.id, {
+              facebookId: profile.id,
+              profileImageUrl: profile.photos?.[0]?.value
+            });
+            return done(null, user);
+          }
+        }
+
+        // Create new user from Facebook profile
+        const newUser = await storage.createUser({
+          email: email || `${profile.id}@facebook.local`,
+          firstName: profile.name?.givenName || profile.displayName,
+          lastName: profile.name?.familyName || '',
+          profileImageUrl: profile.photos?.[0]?.value,
+          facebookId: profile.id,
+          role: 'contractor_user', // Default role for Facebook signups
+          isEmailVerified: !!email, // Consider Facebook email verified
+          emailVerificationToken: null,
+          createdAt: new Date(),
+          updatedAt: new Date()
+        });
+
+        return done(null, newUser);
+      } catch (error) {
+        return done(error);
+      }
+    }));
+  }
 
   // Serialize/deserialize user for session
   passport.serializeUser((user: any, done) => {
