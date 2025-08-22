@@ -30,29 +30,10 @@ export function OnboardingProvider({ children }: OnboardingProviderProps) {
     }
   }, [user?.preferences?.completedTours]);
 
-  // Auto-start tours based on user state and location
+  // Disable all auto-starting tours - using subtle hints instead
   useEffect(() => {
-    if (!isAuthenticated || !user) return;
-
-    // New user tour - auto-start if user just signed up and hasn't completed onboarding
-    if (!user.onboardingCompleted && !isTourCompleted(`new-user-tour-${user.role}`)) {
-      startTour(`new-user-tour-${user.role}`);
-      return;
-    }
-
-    // Page-specific tours
-    if (location === '/contractor-board' && !isTourCompleted('contractor-board-tour')) {
-      // Small delay to let page load
-      setTimeout(() => {
-        startTour('contractor-board-tour');
-      }, 1000);
-    }
-
-    if (location === '/quote-calculator' && !isTourCompleted('feature-tour-quote-calculator')) {
-      setTimeout(() => {
-        startTour('feature-tour-quote-calculator');
-      }, 500);
-    }
+    // Tours are disabled in favor of subtle hint system
+    return;
   }, [isAuthenticated, user, location]);
 
   const startTour = (tourKey: string) => {
