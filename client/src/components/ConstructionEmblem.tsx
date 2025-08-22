@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/useAuth";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -237,17 +238,20 @@ export function ConstructionEmblem({ className = "" }: ConstructionEmblemProps) 
   const [showPrizeDialog, setShowPrizeDialog] = useState(false);
   const [wonPrize, setWonPrize] = useState<any>(null);
   const { toast } = useToast();
+  const { isAuthenticated } = useAuth();
 
-  // Fetch available prizes from admin configuration
+  // Fetch available prizes from admin configuration (only when authenticated)
   const { data: prizes = [] } = useQuery({
     queryKey: ["/api/admin/prizes"],
     retry: false,
+    enabled: isAuthenticated,
   });
 
-  // Fetch golden emblem settings
+  // Fetch golden emblem settings (only when authenticated)
   const { data: siteSettings = [] } = useQuery({
     queryKey: ["/api/admin/site-settings"],
     retry: false,
+    enabled: isAuthenticated,
   });
 
   // Get golden emblem probability from admin settings (default 0.5%)
