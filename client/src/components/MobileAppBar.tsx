@@ -12,15 +12,17 @@ import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 
 const mobileNavItems = [
-  { href: '/dashboard', icon: Home, label: 'Dashboard', auth: true },
-  { href: '/contractors/board', icon: Search, label: 'Contractors', guest: true },
-  { href: '/quote-calculator', icon: Calculator, label: 'Calculator', guest: true },
+  { href: '/', icon: Home, label: 'Home', guest: true },
+  { href: '/contractors/board', icon: Search, label: 'Find', guest: true },
+  { href: '/conversations', icon: MessageCircle, label: 'Messages', auth: true },
+  { href: '/profile', icon: User, label: 'Profile', auth: true },
 ];
 
 const quickActions = [
-  { href: '/dashboard', icon: Layout, label: 'Dashboard', auth: true },
-  { href: '/contractors/board', icon: Search, label: 'Contractors', guest: true },
-  { href: '/quote-calculator', icon: Calculator, label: 'Calculator', guest: true },
+  { href: '/quote-calculator', icon: Calculator, label: 'Quote', guest: true },
+  { href: '/marketplace', icon: Package, label: 'Exchange', guest: true },
+  { href: '/contractors/board', icon: Wrench, label: 'Join Network', guest: true },
+  { href: '/foundation', icon: Heart, label: 'Foundation', guest: true },
 ];
 
 export function MobileAppBar() {

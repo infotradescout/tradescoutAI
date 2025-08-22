@@ -219,16 +219,168 @@ const Router = memo(function Router() {
             </Suspense>
           </Route>
 
-          {/* Protected routes - Only Dashboard, Contractor Board, and Calculator */}
+          {/* Protected routes */}
           {isAuthenticated ? (
             <>
-              {/* Available pages for authenticated users */}
+              {/* Main application routes - Full access for authenticated users */}
               <Route path="/" component={Dashboard} />
+              <Route path="/home" component={Home} />
               <Route path="/dashboard" component={Dashboard} />
+              <Route path="/foundation" component={Foundation} />
+              <Route path="/exchange" component={Exchange} />
+              <Route path="/helpers" component={Helpers} />
+              <Route path="/accelerator" component={Accelerator} />
+              <Route path="/help" component={Help} />
+              <Route path="/help-demo" component={HelpDemo} />
+              <Route path="/settings" component={Settings} />
+              <Route path="/profile" component={Profile} />
+              <Route path="/notifications" component={Notifications} />
+
+              {/* Contractor routes */}
+              <Route path="/contractors" component={ForContractors} />
               <Route path="/contractors/board" component={ContractorBoard} />
+              <Route path="/contractors/find" component={FindContractors} />
+              <Route path="/contractors/:slug" component={ContractorProfile} />
+              <Route path="/contractors/apply" component={ContractorApply} />
+              <Route path="/contractors/accelerator" component={ContractorAccelerator} />
+              <Route path="/contractor-board" component={ContractorBoard} />
+              <Route path="/contractor-profile/:id" component={ContractorProfile} />
+              <Route path="/contractor-dashboard" component={ContractorDashboard} />
+              <Route path="/contractor/recommendation-generator" component={RecommendationGeneratorPage} />
+              <Route path="/contractor-promos" component={ContractorPromos} />
+              <Route path="/promo/:id" component={PromoPublic} />
+              <Route path="/growth-pack" component={GrowthPack} />
+
+              {/* Dashboard routes */}
+              <Route path="/homeowner-dashboard" component={HomeownerDashboard} />
+              <Route path="/helper-dashboard" component={HelperDashboard} />
+
+              {/* Marketplace routes */}
+              <Route path="/marketplace" component={Marketplace} />
+              <Route path="/marketplace/:id" component={MarketplaceListing} />
+              <Route path="/worker-marketplace" component={WorkerMarketplace} />
+              <Route path="/handmade-marketplace" component={HandmadeMarketplace} />
+              <Route path="/property-listing" component={PropertyListing} />
+              <Route path="/business-listing" component={BusinessListing} />
+              <Route path="/saved-ads" component={SavedAds} />
+
+              {/* Tools and utilities */}
               <Route path="/quote-calculator" component={EstimateCalculator} />
               <Route path="/calculator" component={EstimateCalculator} />
+              <Route path="/quote" component={EstimateCalculator} />
+              <Route path="/advanced-search" component={AdvancedSearch} />
+              <Route path="/leaderboard" component={Leaderboard} />
+
+              {/* Communication */}
+              <Route path="/chat" component={Chat} />
+              <Route path="/conversations" component={Conversations} />
+
+              {/* User management */}
+              <Route path="/profile-setup" component={ProfileSetup} />
+              <Route path="/address-verification" component={AddressVerification} />
+              <Route path="/invite" component={InvitePage} />
+
+              {/* Applications */}
+              <Route path="/realtor-application" component={RealtorApplication} />
+              <Route path="/car-salesman-application" component={CarSalesmanApplication} />
+
+              {/* Community */}
+              <Route path="/community" component={Community} />
+              <Route path="/community-feed" component={CommunityFeed} />
+              <Route path="/community-moderation-demo" component={CommunityModerationDemo} />
+
+              {/* Payment */}
+              <Route path="/checkout" component={Checkout} />
+              <Route path="/payment-success" component={PaymentSuccess} />
+              <Route path="/payment-history" component={PaymentHistory} />
+              <Route path="/affiliate" component={Affiliate} />
+
+              {/* Admin routes - Full access restored */}
+              <Route path="/admin" component={AdminPanel} />
+              <Route path="/admin/workspace" component={AdminWorkspace} />
+              <Route path="/admin/users" component={AdminUsers} />
+              <Route path="/admin/listings" component={AdminListings} />
+              <Route path="/admin/error-reports" component={AdminErrorReports} />
+              <Route path="/admin/attachments" component={AdminAttachments} />
+              <Route path="/admin/testing-controls" component={AdminTestingControls} />
+              <Route path="/admin/professional-verification" component={AdminProfessionalVerification} />
+
+              {/* Lazy-loaded admin routes */}
+              <Route path="/admin/dashboard">
+                <Suspense fallback={<LoadingSpinner size="lg" />}>
+                  <AdminDashboard />
+                </Suspense>
+              </Route>
+              <Route path="/admin/create-account">
+                <Suspense fallback={<LoadingSpinner size="lg" />}>
+                  <AdminCreateAccount />
+                </Suspense>
+              </Route>
+              <Route path="/admin/address-verifications">
+                <Suspense fallback={<LoadingSpinner size="lg" />}>
+                  <AdminAddressVerifications />
+                </Suspense>
+              </Route>
+              <Route path="/admin/pricing-analytics">
+                <Suspense fallback={<LoadingSpinner size="lg" />}>
+                  <AdminPricingAnalytics />
+                </Suspense>
+              </Route>
+
+              {/* Business role dashboards */}
+              <Route path="/business-owner-dashboard">
+                <Suspense fallback={<LoadingSpinner size="lg" />}>
+                  <BusinessOwnerDashboard />
+                </Suspense>
+              </Route>
+              <Route path="/property-manager-dashboard">
+                <Suspense fallback={<LoadingSpinner size="lg" />}>
+                  <PropertyManagerDashboard />
+                </Suspense>
+              </Route>
+              <Route path="/insurance-agent-dashboard">
+                <Suspense fallback={<LoadingSpinner size="lg" />}>
+                  <InsuranceAgentDashboard />
+                </Suspense>
+              </Route>
+              <Route path="/mortgage-broker-dashboard">
+                <Suspense fallback={<LoadingSpinner size="lg" />}>
+                  <MortgageBrokerDashboard />
+                </Suspense>
+              </Route>
+              <Route path="/realtor-dashboard">
+                <Suspense fallback={<LoadingSpinner size="lg" />}>
+                  <RealtorDashboard />
+                </Suspense>
+              </Route>
+              <Route path="/car-salesman-dashboard">
+                <Suspense fallback={<LoadingSpinner size="lg" />}>
+                  <CarSalesmanDashboard />
+                </Suspense>
+              </Route>
+              <Route path="/staff-dashboard">
+                <Suspense fallback={<LoadingSpinner size="lg" />}>
+                  <StaffDashboard />
+                </Suspense>
+              </Route>
+              <Route path="/crm-dashboard">
+                <Suspense fallback={<LoadingSpinner size="lg" />}>
+                  <CrmDashboard />
+                </Suspense>
+              </Route>
+              <Route path="/role-directory">
+                <Suspense fallback={<LoadingSpinner size="lg" />}>
+                  <RoleDirectory />
+                </Suspense>
+              </Route>
+              
+              {/* Admin connection for Facebook users */}
               <Route path="/connect-admin" component={ConnectMasterAdmin} />
+              
+              {/* Profile setup redirect */}
+              <ProfileSetupRedirect>
+                <div />
+              </ProfileSetupRedirect>
             </>
           ) : (
             /* Public routes - only available pages */

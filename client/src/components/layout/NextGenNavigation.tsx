@@ -32,15 +32,74 @@ export function NextGenNavigation({ className = "" }: NextGenNavigationProps) {
 
   // Role-based navigation items with dynamic priority system
   const navItems: NavItem[] = useMemo(() => {
-    // Only show Dashboard, Contractor Board, and Calculator
-    const availableItems = [
-      { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard, priority: 3 },
-      { href: "/contractors/board", label: "Contractors", icon: Users, priority: 2 },
-      { href: "/quote-calculator", label: "Calculator", icon: Calculator, priority: 1 }
+    const userRole = user?.role || 'homeowner';
+    
+    // Base navigation items with role-specific priorities
+    const baseItems = [
+      { href: "/contractors/board", label: "Contractors", icon: Users, priority: 10 },
+      { href: "/quote-calculator", label: "Calculator", icon: Calculator, priority: 9 },
+      // Full features available for authenticated users
+      ...(isAuthenticated ? [
+        { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard, priority: 8 },
+        { href: "/foundation", label: "Foundation", icon: Building, priority: 6 },
+        { href: "/community", label: "Community", icon: MessageSquare, priority: 5 },
+        { href: "/helpers", label: "Helpers", icon: Users, priority: 4 },
+        { href: "/exchange", label: "Exchange", icon: ArrowLeftRight, priority: 3 },
+        { href: "/accelerator", label: "Accelerator", icon: Crown, priority: 2 },
+        // Admin navigation for head_admin users
+        ...(userRole === 'head_admin' || userRole === 'ops_admin' ? [
+          { href: "/admin", label: "Admin", icon: Shield, priority: 15 },
+          { href: "/admin/dashboard", label: "Admin Dashboard", icon: Settings, priority: 14 }
+        ] : [])
+      ] : [])
     ];
 
-    return availableItems;
-  }, []);
+    // Adjust priorities based on user role
+    if (userRole === 'head_admin' || userRole === 'ops_admin') {
+      return baseItems.map(item => {
+        if (item.href === '/admin') return { ...item, priority: 20 }; // Highest priority
+        if (item.href === '/admin/dashboard') return { ...item, priority: 19 };
+        if (item.href === '/dashboard') return { ...item, priority: 18 };
+        if (item.href === '/contractors/board') return { ...item, priority: 17 };
+        return item;
+      });
+    } else if (userRole === 'contractor_user' || userRole === 'accelerator_member') {
+      return baseItems.map(item => {
+        if (item.href === '/dashboard') return { ...item, priority: 15 }; // Highest priority
+        if (item.href === '/contractors/board') return { ...item, priority: 14 };
+        if (item.href === '/accelerator') return { ...item, priority: 13 };
+        if (item.href === '/helpers') return { ...item, priority: 12 };
+        if (item.href === '/quote-calculator') return { ...item, priority: 11 };
+        return item;
+      });
+    } else if (userRole === 'helper') {
+      return baseItems.map(item => {
+        if (item.href === '/dashboard') return { ...item, priority: 15 }; // Highest priority for helper dashboard
+        if (item.href === '/helpers') return { ...item, priority: 14 }; // Second priority for job listings
+        if (item.href === '/contractors/board') return { ...item, priority: 13 }; // To find work from contractors
+        if (item.href === '/community') return { ...item, priority: 12 };
+        if (item.href === '/quote-calculator') return { ...item, priority: 11 };
+        return item;
+      });
+    } else if (userRole === 'moderator') {
+      return baseItems.map(item => {
+        if (item.href === '/dashboard') return { ...item, priority: 15 };
+        if (item.href === '/community') return { ...item, priority: 14 };
+        if (item.href === '/contractors/board') return { ...item, priority: 13 };
+        if (item.href === '/foundation') return { ...item, priority: 12 };
+        return item;
+      });
+    } else { // homeowner (default)
+      return baseItems.map(item => {
+        if (item.href === '/dashboard') return { ...item, priority: 15 };
+        if (item.href === '/contractors/board') return { ...item, priority: 14 };
+        if (item.href === '/calculator') return { ...item, priority: 13 };
+        if (item.href === '/community') return { ...item, priority: 12 };
+        if (item.href === '/helpers') return { ...item, priority: 11 };
+        return item;
+      });
+    }
+  }, [user?.role, isAuthenticated]);
 
   const allPages = useMemo(() => [
     { href: "/", label: "Home", icon: Home },
