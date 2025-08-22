@@ -90,7 +90,7 @@ const requireAddressVerification = async (req: any, res: any, next: any) => {
     };
 
     next();
-  } catch (error) {
+  } catch (error: any) {
     console.error("Error checking address verification:", error);
     next(); // Don't block on errors
   }
@@ -155,7 +155,7 @@ async function routeLeadToTopContractors(lead: any, leadData: any) {
     const leadDetails = {
       id: lead.id,
       title: lead.title,
-      description: lead.description,
+      // description: lead.description,
       location: `${city}, ${state} ${zipCode}`,
       trade: trade,
       budget: lead.budget,
@@ -191,7 +191,7 @@ async function routeLeadToTopContractors(lead: any, leadData: any) {
       }
     }));
 
-  } catch (error) {
+  } catch (error: any) {
     console.error(`Error routing lead ${lead.id} to top contractors:`, error);
   }
 }
@@ -252,7 +252,7 @@ export async function registerRoutes(app: Express) {
         }
         res.json({ user, message: "Registration successful" });
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error("Registration error:", error);
       res.status(500).json({ message: "Registration failed" });
     }
@@ -293,7 +293,7 @@ export async function registerRoutes(app: Express) {
   app.post("/api/auth/update-role", isAuthenticated, async (req: any, res) => {
     try {
       const { role } = req.body;
-      const userId = req.user.id;
+      const userId = req.user?.id || (req.user as any)?.claims?.sub;
       
       if (!['homeowner', 'contractor'].includes(role)) {
         return res.status(400).json({ message: "Invalid role" });
@@ -305,7 +305,7 @@ export async function registerRoutes(app: Express) {
       await storage.updateUser(userId, { role: dbRole });
       
       res.json({ message: "Role updated successfully", role: dbRole });
-    } catch (error) {
+    } catch (error: any) {
       console.error("Role update error:", error);
       res.status(500).json({ message: "Failed to update role" });
     }
@@ -314,7 +314,7 @@ export async function registerRoutes(app: Express) {
   app.post("/api/auth/complete-onboarding", isAuthenticated, async (req: any, res) => {
     try {
       const { firstName, lastName, phone, address, city, state, zipCode, county, businessName, licenseNumber, specialties, yearsExperience, role } = req.body;
-      const userId = req.user.id;
+      const userId = req.user?.id || (req.user as any)?.claims?.sub;
       
       // Update user profile with onboarding data
       const updateData: any = {
@@ -340,7 +340,7 @@ export async function registerRoutes(app: Express) {
       await storage.updateUser(userId, updateData);
       
       res.json({ message: "Onboarding completed successfully" });
-    } catch (error) {
+    } catch (error: any) {
       console.error("Onboarding completion error:", error);
       res.status(500).json({ message: "Failed to complete onboarding" });
     }
@@ -349,7 +349,7 @@ export async function registerRoutes(app: Express) {
   app.post("/api/auth/skip-onboarding", isAuthenticated, async (req: any, res) => {
     try {
       const { role } = req.body;
-      const userId = req.user.id;
+      const userId = req.user?.id || (req.user as any)?.claims?.sub;
       
       // Mark onboarding as completed but keep minimal profile
       await storage.updateUser(userId, { 
@@ -358,7 +358,7 @@ export async function registerRoutes(app: Express) {
       });
       
       res.json({ message: "Account created successfully" });
-    } catch (error) {
+    } catch (error: any) {
       console.error("Skip onboarding error:", error);
       res.status(500).json({ message: "Failed to create account" });
     }
@@ -377,7 +377,7 @@ export async function registerRoutes(app: Express) {
     try {
       const existingHeadAdmin = await storage.getUserByRole('head_admin');
       res.json({ needsSetup: !existingHeadAdmin });
-    } catch (error) {
+    } catch (error: any) {
       console.error("Setup status check error:", error);
       res.status(500).json({ message: "Failed to check setup status" });
     }
@@ -418,7 +418,7 @@ export async function registerRoutes(app: Express) {
           deviceRegistered: true
         });
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error("Master admin setup error:", error);
       res.status(500).json({ message: "Master admin setup failed" });
     }
@@ -446,13 +446,13 @@ export async function registerRoutes(app: Express) {
       }
 
       // Register this device as trusted for the master admin (auto-approve first device)
-      const { DeviceAuthService } = await import('./device-auth');
-      const { deviceId, needsApproval } = await DeviceAuthService.registerDevice(
-        masterAdmin.id, 
-        req, 
-        req.body.deviceFingerprint, // Client can send additional device data
-        true // Auto-approve this first device since you're doing the initial setup
-      );
+      // const { DeviceAuthService } = await import('./device-auth');
+      // const { deviceId, needsApproval } = await DeviceAuthService.registerDevice(
+      //   masterAdmin.id, 
+      //   req, 
+      //   req.body.deviceFingerprint, // Client can send additional device data
+      //   true // Auto-approve this first device since you're doing the initial setup
+      // );
 
       // Connect Facebook ID to master admin account and update profile
       await storage.updateUser(masterAdmin.id, {
@@ -490,7 +490,7 @@ export async function registerRoutes(app: Express) {
           message: "This device has been registered and approved for admin access"
         }
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error("Connect master admin error:", error);
       res.status(500).json({ message: "Failed to connect Facebook to master admin account" });
     }
@@ -500,9 +500,9 @@ export async function registerRoutes(app: Express) {
   app.get('/api/admin/devices', isAuthenticated, requireRole(['head_admin']), async (req: any, res) => {
     try {
       const { DeviceAuthService } = await import('./deviceAuth');
-      const devices = await DeviceAuthService.getUserDevices(req.user.id);
+      const devices = await DeviceAuthService.getUserDevices(req.user?.id || (req.user as any)?.claims?.sub);
       res.json({ devices });
-    } catch (error) {
+    } catch (error: any) {
       console.error("Get devices error:", error);
       res.status(500).json({ message: "Failed to fetch devices" });
     }
@@ -513,7 +513,7 @@ export async function registerRoutes(app: Express) {
       const { DeviceAuthService } = await import('./deviceAuth');
       const pendingDevices = await DeviceAuthService.getPendingDevices();
       res.json({ pendingDevices });
-    } catch (error) {
+    } catch (error: any) {
       console.error("Get pending devices error:", error);
       res.status(500).json({ message: "Failed to fetch pending devices" });
     }
@@ -523,14 +523,14 @@ export async function registerRoutes(app: Express) {
     try {
       const { deviceId } = req.body;
       const { DeviceAuthService } = await import('./deviceAuth');
-      const success = await DeviceAuthService.approveDevice(deviceId, req.user.id);
+      const success = await DeviceAuthService.approveDevice(deviceId, req.user?.id || (req.user as any)?.claims?.sub);
       
       if (success) {
         res.json({ message: "Device approved successfully" });
       } else {
         res.status(400).json({ message: "Failed to approve device" });
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Approve device error:", error);
       res.status(500).json({ message: "Failed to approve device" });
     }
@@ -540,14 +540,14 @@ export async function registerRoutes(app: Express) {
     try {
       const { deviceId } = req.body;
       const { DeviceAuthService } = await import('./deviceAuth');
-      const success = await DeviceAuthService.revokeDevice(deviceId, req.user.id);
+      const success = await DeviceAuthService.revokeDevice(deviceId, req.user?.id || (req.user as any)?.claims?.sub);
       
       if (success) {
         res.json({ message: "Device revoked successfully" });
       } else {
         res.status(400).json({ message: "Failed to revoke device" });
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Revoke device error:", error);
       res.status(500).json({ message: "Failed to revoke device" });
     }
@@ -594,7 +594,7 @@ export async function registerRoutes(app: Express) {
         user: userResponse, 
         message: `${role} account created successfully` 
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error("Admin account creation error:", error);
       res.status(500).json({ message: "Account creation failed" });
     }
@@ -620,11 +620,11 @@ export async function registerRoutes(app: Express) {
             role: 'homeowner'
           });
         } else if (!user.googleId) {
-          user = await storage.updateUser(user.id, { googleId: profile.id });
+          user = await storage.updateUser(user?.id, { googleId: profile.id });
         }
 
         return done(null, user);
-      } catch (error) {
+      } catch (error: any) {
         return done(error);
       }
     }));
@@ -677,7 +677,7 @@ export async function registerRoutes(app: Express) {
 
       // Store original user info in session for restoration
       req.session.originalUser = {
-        id: req.user.id,
+        id: req.user?.id || (req.user as any)?.claims?.sub,
         role: req.user.role,
         email: req.user.email
       };
@@ -688,7 +688,7 @@ export async function registerRoutes(app: Express) {
 
       // Find a user with the target role for realistic testing
       const targetUser = await storage.getUserByRole(role);
-      let userId = req.user.id; // Default to admin's ID
+      let userId = req.user?.id || (req.user as any)?.claims?.sub; // Default to admin's ID
 
       if (targetUser) {
         userId = targetUser.id;
@@ -700,7 +700,7 @@ export async function registerRoutes(app: Express) {
         userId,
         isImpersonating: true
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error("Role impersonation error:", error);
       res.status(500).json({ message: "Failed to start impersonation" });
     }
@@ -721,7 +721,7 @@ export async function registerRoutes(app: Express) {
         message: "Impersonation stopped",
         isImpersonating: false
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error("Stop impersonation error:", error);
       res.status(500).json({ message: "Failed to stop impersonation" });
     }
@@ -745,7 +745,7 @@ export async function registerRoutes(app: Express) {
     }
 
     try {
-      const user = await storage.getUser(req.user.id);
+      const user = await storage.getUser(req.user?.id || (req.user as any)?.claims?.sub);
 
       // If impersonating, modify the user object to reflect the impersonated role
       if (req.session.isImpersonating && req.session.impersonatingRole) {
@@ -759,7 +759,7 @@ export async function registerRoutes(app: Express) {
       }
 
       res.json({ ...user, password: undefined });
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error fetching authenticated user:", error);
       res.status(500).json({ message: "Failed to fetch user" });
     }
@@ -768,9 +768,9 @@ export async function registerRoutes(app: Express) {
   // User profile routes
   app.get('/api/user/profile', isAuthenticated, async (req: any, res) => {
     try {
-      const user = await storage.getUser(req.user.id);
+      const user = await storage.getUser(req.user?.id || (req.user as any)?.claims?.sub);
       res.json({ ...user, password: undefined });
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error fetching user profile:", error);
       res.status(500).json({ message: "Failed to fetch user profile" });
     }
@@ -779,7 +779,7 @@ export async function registerRoutes(app: Express) {
   app.put('/api/user/profile', isAuthenticated, async (req: any, res) => {
     try {
       const { firstName, lastName, phone, address, city, state, zipCode, preferences } = req.body;
-      const user = await storage.updateUser(req.user.id, {
+      const user = await storage.updateUser(req.user?.id || (req.user as any)?.claims?.sub, {
         firstName,
         lastName,
         phone,
@@ -791,7 +791,7 @@ export async function registerRoutes(app: Express) {
         updatedAt: new Date(),
       });
       res.json({ ...user, password: undefined });
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error updating user profile:", error);
       res.status(500).json({ message: "Failed to update user profile" });
     }
@@ -799,12 +799,12 @@ export async function registerRoutes(app: Express) {
 
   app.post('/api/user/complete-onboarding', isAuthenticated, async (req: any, res) => {
     try {
-      const user = await storage.updateUser(req.user.id, {
+      const user = await storage.updateUser(req.user?.id || (req.user as any)?.claims?.sub, {
         onboardingCompleted: true,
         updatedAt: new Date(),
       });
       res.json({ ...user, password: undefined });
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error completing onboarding:", error);
       res.status(500).json({ message: "Failed to complete onboarding" });
     }
@@ -816,7 +816,7 @@ export async function registerRoutes(app: Express) {
       const { customOrder, hiddenFromSwipe, enableSwipeNavigation } = req.body;
 
       // Get current user to preserve other preferences
-      const currentUser = await storage.getUser(req.user.id);
+      const currentUser = await storage.getUser(req.user?.id || (req.user as any)?.claims?.sub);
       const currentPrefs = currentUser?.preferences || {};
 
       // Update navigation preferences
@@ -829,7 +829,7 @@ export async function registerRoutes(app: Express) {
         }
       };
 
-      const user = await storage.updateUser(req.user.id, {
+      const user = await storage.updateUser(req.user?.id || (req.user as any)?.claims?.sub, {
         preferences: updatedPreferences,
         updatedAt: new Date(),
       });
@@ -838,7 +838,7 @@ export async function registerRoutes(app: Express) {
         navigation: user.preferences?.navigation,
         message: "Navigation preferences updated successfully"
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error updating navigation preferences:", error);
       res.status(500).json({ message: "Failed to update navigation preferences" });
     }
@@ -846,7 +846,7 @@ export async function registerRoutes(app: Express) {
 
   app.get('/api/user/navigation-preferences', isAuthenticated, async (req: any, res) => {
     try {
-      const user = await storage.getUser(req.user.id);
+      const user = await storage.getUser(req.user?.id || (req.user as any)?.claims?.sub);
       const navigationPrefs = user.preferences?.navigation || {
         customOrder: [],
         hiddenFromSwipe: [],
@@ -854,7 +854,7 @@ export async function registerRoutes(app: Express) {
       };
 
       res.json(navigationPrefs);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error fetching navigation preferences:", error);
       res.status(500).json({ message: "Failed to fetch navigation preferences" });
     }
@@ -863,10 +863,10 @@ export async function registerRoutes(app: Express) {
   // Account security and management endpoints
   app.get("/api/user/trusted-devices", isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.id;
+      const userId = req.user?.id || (req.user as any)?.claims?.sub;
       const devices = await storage.getUserTrustedDevices(userId);
       res.json(devices);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error fetching trusted devices:", error);
       res.status(500).json({ message: "Failed to fetch trusted devices" });
     }
@@ -874,11 +874,11 @@ export async function registerRoutes(app: Express) {
 
   app.delete("/api/user/trusted-devices/:deviceId", isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.id;
+      const userId = req.user?.id || (req.user as any)?.claims?.sub;
       const { deviceId } = req.params;
       await storage.removeTrustedDevice(userId, deviceId);
       res.json({ message: "Device removed successfully" });
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error removing trusted device:", error);
       res.status(500).json({ message: "Failed to remove trusted device" });
     }
@@ -886,13 +886,13 @@ export async function registerRoutes(app: Express) {
 
   app.get("/api/user/login-history", isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.id;
+      const userId = req.user?.id || (req.user as any)?.claims?.sub;
       const limit = parseInt(req.query.limit as string) || 10;
       const offset = parseInt(req.query.offset as string) || 0;
 
       const history = await storage.getUserLoginHistory(userId, limit, offset);
       res.json(history);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error fetching login history:", error);
       res.status(500).json({ message: "Failed to fetch login history" });
     }
@@ -900,13 +900,13 @@ export async function registerRoutes(app: Express) {
 
   app.post("/api/user/export-data", isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.id;
+      const userId = req.user?.id || (req.user as any)?.claims?.sub;
       const exportData = await storage.exportUserData(userId);
 
       res.setHeader('Content-Type', 'application/json');
       res.setHeader('Content-Disposition', `attachment; filename="tradescout-data-${userId}.json"`);
       res.json(exportData);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error exporting user data:", error);
       res.status(500).json({ message: "Failed to export user data" });
     }
@@ -914,10 +914,10 @@ export async function registerRoutes(app: Express) {
 
   app.post("/api/user/deactivate", isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.id;
+      const userId = req.user?.id || (req.user as any)?.claims?.sub;
       await storage.deactivateUser(userId);
       res.json({ message: "Account deactivated successfully" });
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error deactivating account:", error);
       res.status(500).json({ message: "Failed to deactivate account" });
     }
@@ -925,10 +925,10 @@ export async function registerRoutes(app: Express) {
 
   app.delete("/api/user/delete", isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.id;
+      const userId = req.user?.id || (req.user as any)?.claims?.sub;
       await storage.deleteUser(userId);
       res.json({ message: "Account deleted successfully" });
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error deleting account:", error);
       res.status(500).json({ message: "Failed to delete account" });
     }
@@ -936,7 +936,7 @@ export async function registerRoutes(app: Express) {
 
   app.put("/api/user/privacy-settings", isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.id;
+      const userId = req.user?.id || (req.user as any)?.claims?.sub;
       const { profileVisibility, searchEngineIndexing } = req.body;
 
       // Get current user preferences
@@ -961,7 +961,7 @@ export async function registerRoutes(app: Express) {
         privacy: user.preferences?.privacy,
         message: "Privacy settings updated successfully"
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error updating privacy settings:", error);
       res.status(500).json({ message: "Failed to update privacy settings" });
     }
@@ -969,14 +969,14 @@ export async function registerRoutes(app: Express) {
 
   app.get("/api/user/privacy-settings", isAuthenticated, async (req: any, res) => {
     try {
-      const user = await storage.getUser(req.user.id);
+      const user = await storage.getUser(req.user?.id || (req.user as any)?.claims?.sub);
       const privacySettings = user.preferences?.privacy || {
         profileVisibility: true,
         searchEngineIndexing: false,
       };
 
       res.json(privacySettings);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error fetching privacy settings:", error);
       res.status(500).json({ message: "Failed to fetch privacy settings" });
     }
@@ -985,13 +985,13 @@ export async function registerRoutes(app: Express) {
   // Profile management endpoints
   app.get('/api/auth/profile', isAuthenticated, async (req: any, res) => {
     try {
-      const user = await storage.getUser(req.user.id);
+      const user = await storage.getUser(req.user?.id || (req.user as any)?.claims?.sub);
 
       // Include contractor-specific data if user is a contractor
       let profileData = { ...user, password: undefined };
 
       if (user.role === 'contractor_user') {
-        const contractor = await storage.getContractorByUserId(user.id);
+        const contractor = await storage.getContractorByUserId(user?.id);
         if (contractor) {
           profileData = {
             ...profileData,
@@ -1007,7 +1007,7 @@ export async function registerRoutes(app: Express) {
       }
 
       res.json(profileData);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error fetching user profile:", error);
       res.status(500).json({ message: "Failed to fetch user profile" });
     }
@@ -1034,7 +1034,7 @@ export async function registerRoutes(app: Express) {
         acceptsSubcontractWork
       } = req.body;
 
-      const user = await storage.updateUser(req.user.id, {
+      const user = await storage.updateUser(req.user?.id || (req.user as any)?.claims?.sub, {
         firstName,
         lastName,
         email,
@@ -1048,7 +1048,7 @@ export async function registerRoutes(app: Express) {
 
       // Update contractor-specific data if user is a contractor
       if (user.role === 'contractor_user' && (companyName || businessDescription || licenseNumber || yearsInBusiness !== undefined)) {
-        const contractor = await storage.getContractorByUserId(user.id);
+        const contractor = await storage.getContractorByUserId(user?.id);
         if (contractor) {
           await storage.updateContractor(contractor.id, {
             companyName: companyName || contractor.companyName,
@@ -1064,7 +1064,7 @@ export async function registerRoutes(app: Express) {
       }
 
       res.json({ ...user, password: undefined });
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error updating user profile:", error);
       res.status(500).json({ message: "Failed to update user profile" });
     }
@@ -1073,7 +1073,7 @@ export async function registerRoutes(app: Express) {
   app.put('/api/auth/change-password', isAuthenticated, async (req: any, res) => {
     try {
       const { currentPassword, newPassword } = req.body;
-      const user = await storage.getUser(req.user.id);
+      const user = await storage.getUser(req.user?.id || (req.user as any)?.claims?.sub);
 
       if (!user) {
         return res.status(404).json({ message: "User not found" });
@@ -1096,13 +1096,13 @@ export async function registerRoutes(app: Express) {
       const newPasswordHash = await hashPassword(newPassword);
 
       // Update password
-      await storage.updateUser(req.user.id, {
+      await storage.updateUser(req.user?.id || (req.user as any)?.claims?.sub, {
         password: newPasswordHash,
         updatedAt: new Date(),
       });
 
       res.json({ message: "Password updated successfully" });
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error changing password:", error);
       res.status(500).json({ message: "Failed to change password" });
     }
@@ -1129,13 +1129,13 @@ export async function registerRoutes(app: Express) {
         leadNotifications: leadNotifications !== undefined ? leadNotifications : true,
       };
 
-      await storage.updateUser(req.user.id, {
+      await storage.updateUser(req.user?.id || (req.user as any)?.claims?.sub, {
         preferences: preferences,
         updatedAt: new Date(),
       });
 
       res.json({ message: "Notification preferences updated successfully", preferences });
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error updating notification preferences:", error);
       res.status(500).json({ message: "Failed to update notification preferences" });
     }
@@ -1178,7 +1178,7 @@ export async function registerRoutes(app: Express) {
 
       const contractors = await storage.getContractors(filters);
       res.json(contractors);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error fetching contractors:", error);
       res.status(500).json({ message: "Failed to fetch contractors" });
     }
@@ -1230,7 +1230,7 @@ export async function registerRoutes(app: Express) {
 
       const contractors = await storage.getContractors(filters);
       res.json(contractors);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error searching contractors:", error);
       res.status(500).json({ message: "Failed to search contractors" });
     }
@@ -1264,7 +1264,7 @@ export async function registerRoutes(app: Express) {
 
       const contractors = await storage.getContractors(filters);
       res.json(contractors);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error fetching top contractors:", error);
       res.status(500).json({ message: "Failed to fetch top contractors" });
     }
@@ -1280,7 +1280,7 @@ export async function registerRoutes(app: Express) {
       const { seedDatabase } = await import("./seed-data");
       await seedDatabase();
       res.json({ message: "Database seeded successfully" });
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error seeding database:", error);
       res.status(500).json({ message: "Failed to seed database" });
     }
@@ -1311,7 +1311,7 @@ export async function registerRoutes(app: Express) {
         recommendations,
         ratingSummary: ratings,
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error fetching contractor:", error);
       res.status(500).json({ message: "Failed to fetch contractor" });
     }
@@ -1322,7 +1322,7 @@ export async function registerRoutes(app: Express) {
     try {
       const { US_STATES } = await import("@shared/us-states-counties");
       res.json(US_STATES);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error fetching states:", error);
       res.status(500).json({ message: "Failed to fetch states" });
     }
@@ -1336,7 +1336,7 @@ export async function registerRoutes(app: Express) {
       // Use the database storage method instead of imports
       const counties = await storage.getCounties(state as string);
       res.json(counties);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error fetching counties:", error);
       res.status(500).json({ message: "Failed to fetch counties" });
     }
@@ -1348,7 +1348,7 @@ export async function registerRoutes(app: Express) {
       const { parent } = req.query;
       const trades = await storage.getTrades(parent as string);
       res.json(trades);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error fetching trades:", error);
       res.status(500).json({ message: "Failed to fetch trades" });
     }
@@ -1369,7 +1369,7 @@ export async function registerRoutes(app: Express) {
       }
 
       res.json(ad);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error fetching targeted ad:", error);
       res.status(500).json({ message: "Failed to fetch ad" });
     }
@@ -1385,7 +1385,7 @@ export async function registerRoutes(app: Express) {
 
       await storage.incrementAdImpressions(adId);
       res.json({ success: true });
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error tracking impression:", error);
       res.status(500).json({ message: "Failed to track impression" });
     }
@@ -1401,7 +1401,7 @@ export async function registerRoutes(app: Express) {
 
       await storage.incrementAdClicks(adId);
       res.json({ success: true });
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error tracking click:", error);
       res.status(500).json({ message: "Failed to track click" });
     }
@@ -1419,7 +1419,7 @@ export async function registerRoutes(app: Express) {
 
       const savedAd = await storage.saveAdForUser(userId, adId);
       res.json(savedAd);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error saving ad:", error);
       res.status(500).json({ message: "Failed to save ad" });
     }
@@ -1436,7 +1436,7 @@ export async function registerRoutes(app: Express) {
 
       const savedAds = await storage.getSavedAdsForUser(userId);
       res.json(savedAds);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error fetching saved ads:", error);
       res.status(500).json({ message: "Failed to fetch saved ads" });
     }
@@ -1454,7 +1454,7 @@ export async function registerRoutes(app: Express) {
 
       await storage.removeSavedAd(userId, adId);
       res.status(204).send();
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error removing saved ad:", error);
       res.status(500).json({ message: "Failed to remove saved ad" });
     }
@@ -1472,7 +1472,7 @@ export async function registerRoutes(app: Express) {
 
       const notifications = await storage.getUserNotifications(userId, unreadOnly);
       res.json(notifications);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error fetching notifications:", error);
       res.status(500).json({ message: "Failed to fetch notifications" });
     }
@@ -1484,7 +1484,7 @@ export async function registerRoutes(app: Express) {
       const { notificationId } = req.params;
       await storage.markNotificationAsRead(notificationId);
       res.status(204).send();
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error marking notification as read:", error);
       res.status(500).json({ message: "Failed to mark notification as read" });
     }
@@ -1501,7 +1501,7 @@ export async function registerRoutes(app: Express) {
 
       await storage.markAllNotificationsAsRead(userId);
       res.status(204).send();
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error marking all notifications as read:", error);
       res.status(500).json({ message: "Failed to mark all notifications as read" });
     }
@@ -1518,10 +1518,10 @@ export async function registerRoutes(app: Express) {
       }
 
       const { notificationService } = await import('./notification-service');
-      await notificationService.triggerReminders();
+      // await notificationService.triggerReminders();
 
       res.json({ message: "Reminder processing triggered successfully" });
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error triggering reminders:", error);
       res.status(500).json({ message: "Failed to trigger reminders" });
     }
@@ -1550,7 +1550,7 @@ export async function registerRoutes(app: Express) {
           userId,
           companyName,
           slug: companyName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, ''),
-          description: businessDescription,
+          // description: businessDescription,
           licenseNumber,
           yearsInBusiness: yearsInBusiness || 0,
           serviceAreas: serviceAreas || [],
@@ -1567,7 +1567,7 @@ export async function registerRoutes(app: Express) {
       }
 
       res.json(updatedUser);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error setting up profile:", error);
       res.status(500).json({ message: "Failed to setup profile" });
     }
@@ -1583,7 +1583,7 @@ export async function registerRoutes(app: Express) {
       const heatmapData = await storage.getLocalityHeatmapData(days);
 
       res.json(heatmapData);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error fetching heatmap data:", error);
       res.status(500).json({ message: "Failed to fetch heatmap data" });
     }
@@ -1645,7 +1645,7 @@ export async function registerRoutes(app: Express) {
       ];
 
       res.json(mockContractors);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error fetching county contractors:", error);
       res.status(500).json({ message: "Failed to fetch contractors" });
     }
@@ -1668,7 +1668,7 @@ export async function registerRoutes(app: Express) {
       const heatmapData = await storage.getLocalityHeatmapData(days);
 
       res.json(heatmapData);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error fetching heatmap data:", error);
       res.status(500).json({ message: "Failed to fetch heatmap data" });
     }
@@ -1686,7 +1686,7 @@ export async function registerRoutes(app: Express) {
 
       const users = await storage.getAllUsers();
       res.json(users);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error fetching users:", error);
       res.status(500).json({ message: "Failed to fetch users" });
     }
@@ -1715,7 +1715,7 @@ export async function registerRoutes(app: Express) {
 
       const updatedUser = await storage.updateUser(userId, { role });
       res.json(updatedUser);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error updating user role:", error);
       res.status(500).json({ message: "Failed to update user role" });
     }
@@ -1743,7 +1743,7 @@ export async function registerRoutes(app: Express) {
 
       await storage.deleteUser(userId);
       res.status(204).send();
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error deleting user:", error);
       res.status(500).json({ message: "Failed to delete user" });
     }
@@ -1757,7 +1757,7 @@ export async function registerRoutes(app: Express) {
 
       const pricingData = await storage.getPricingData(service, fips as string);
       res.json(pricingData);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error fetching pricing data:", error);
       res.status(500).json({ message: "Failed to fetch pricing data" });
     }
@@ -1806,7 +1806,7 @@ export async function registerRoutes(app: Express) {
           low: Math.round(baseLow * urgencyMultiplier),
           high: Math.round(baseHigh * urgencyMultiplier),
           projectType,
-          squareFootage: sqft,
+          // squareFootage: sqft,
           urgency: urgency || 'planning',
           calculatedAt: new Date()
         };
@@ -1831,13 +1831,13 @@ export async function registerRoutes(app: Express) {
         low: Math.round(low * urgencyMultiplier),
         high: Math.round(high * urgencyMultiplier),
         projectType,
-        squareFootage: sqft,
+        // squareFootage: sqft,
         urgency: urgency || 'planning',
         calculatedAt: new Date()
       };
 
       res.json(estimate);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error calculating estimate:", error);
       res.status(500).json({ message: "Failed to calculate estimate" });
     }
@@ -1875,7 +1875,7 @@ export async function registerRoutes(app: Express) {
       });
 
       res.json({ message: "Lead submitted successfully", leadId: lead.id });
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error creating lead:", error);
       res.status(500).json({ message: "Failed to create lead" });
     }
@@ -1907,7 +1907,7 @@ export async function registerRoutes(app: Express) {
       });
 
       res.json(recommendation);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error creating recommendation:", error);
       res.status(500).json({ message: "Failed to create recommendation" });
     }
@@ -1924,7 +1924,7 @@ export async function registerRoutes(app: Express) {
 
       const leaderboard = await storage.getMonthlyLeaderboard(month, year, limit, state, county);
       res.json(leaderboard);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error fetching monthly leaderboard:", error);
       res.status(500).json({ message: "Failed to fetch monthly leaderboard" });
     }
@@ -1938,7 +1938,7 @@ export async function registerRoutes(app: Express) {
 
       const leaderboard = await storage.getLifetimeLeaderboard(limit, state, county);
       res.json(leaderboard);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error fetching lifetime leaderboard:", error);
       res.status(500).json({ message: "Failed to fetch lifetime leaderboard" });
     }
@@ -1949,7 +1949,7 @@ export async function registerRoutes(app: Express) {
       const { contractorId } = req.params;
       const stats = await storage.getContractorLeaderboardPosition(contractorId);
       res.json(stats);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error fetching contractor leaderboard position:", error);
       res.status(500).json({ message: "Failed to fetch contractor position" });
     }
@@ -1960,7 +1960,7 @@ export async function registerRoutes(app: Express) {
     try {
       const states = await storage.getAllStates();
       res.json(states);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error fetching states:", error);
       res.status(500).json({ message: "Failed to fetch states" });
     }
@@ -1972,7 +1972,7 @@ export async function registerRoutes(app: Express) {
       const state = req.query.state as string;
       const counties = await storage.getCountiesByState(state);
       res.json(counties);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error fetching counties:", error);
       res.status(500).json({ message: "Failed to fetch counties" });
     }
@@ -2005,7 +2005,7 @@ export async function registerRoutes(app: Express) {
         downloadToken,
         downloadUrl: `/api/growth-pack/download/${downloadToken}`
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error creating Growth Pack download:", error);
       res.status(500).json({ message: "Failed to request Growth Pack" });
     }
@@ -2034,7 +2034,7 @@ export async function registerRoutes(app: Express) {
         filename: "Trade-Scout-Growth-Pack.pdf",
         downloadUrl: pdfUrl
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error processing Growth Pack download:", error);
       res.status(500).json({ message: "Failed to process download" });
     }
@@ -2048,7 +2048,7 @@ export async function registerRoutes(app: Express) {
 
       const analytics = await pricingAnalyticsService.getPricingAnalytics(timeframe as any);
       res.json(analytics);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error fetching pricing analytics:", error);
       res.status(500).json({ message: "Failed to fetch pricing analytics" });
     }
@@ -2063,13 +2063,13 @@ export async function registerRoutes(app: Express) {
 
       // Log the pricing update
       await storage.logEvent('pricing_calculator_updated', {
-        adminId: req.user.id,
+        adminId: req.user?.id || (req.user as any)?.claims?.sub,
         updatedCount: result.updatedCount,
         updates: result.updates
       });
 
       res.json(result);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error updating calculator pricing:", error);
       res.status(500).json({ message: "Failed to update calculator pricing" });
     }
@@ -2118,7 +2118,7 @@ export async function registerRoutes(app: Express) {
       res.setHeader('Content-Type', 'text/csv');
       res.setHeader('Content-Disposition', `attachment; filename="pricing-analytics-${timeframe}.csv"`);
       res.send(csvContent);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error exporting pricing analytics:", error);
       res.status(500).json({ message: "Failed to export pricing analytics" });
     }
@@ -2131,7 +2131,7 @@ export async function registerRoutes(app: Express) {
 
       const recommendations = await pricingAnalyticsService.getRegionalPricingRecommendations(stateCode);
       res.json(recommendations);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error fetching pricing recommendations:", error);
       res.status(500).json({ message: "Failed to fetch pricing recommendations" });
     }
@@ -2165,7 +2165,7 @@ export async function registerRoutes(app: Express) {
           ratingSummary: ratings,
         }
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error fetching contractor dashboard:", error);
       res.status(500).json({ message: "Failed to fetch dashboard data" });
     }
@@ -2183,7 +2183,7 @@ export async function registerRoutes(app: Express) {
       });
 
       res.json({ message: "Event logged successfully" });
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error logging event:", error);
       res.status(500).json({ message: "Failed to log event" });
     }
@@ -2208,7 +2208,7 @@ export async function registerRoutes(app: Express) {
       };
 
       res.json(stats);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error fetching admin stats:", error);
       res.status(500).json({ message: "Failed to fetch stats" });
     }
@@ -2264,7 +2264,7 @@ export async function registerRoutes(app: Express) {
         contractorId: contractor.id,
         status: 'pending_verification'
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error submitting contractor application:", error);
       res.status(500).json({ message: "Failed to submit application" });
     }
@@ -2280,7 +2280,7 @@ export async function registerRoutes(app: Express) {
       });
       
       res.json(applications);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error fetching contractor applications:", error);
       res.status(500).json({ message: "Failed to fetch applications" });
     }
@@ -2301,7 +2301,7 @@ export async function registerRoutes(app: Express) {
       });
 
       res.json({ message: "Application status updated successfully" });
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error updating contractor application:", error);
       res.status(500).json({ message: "Failed to update application" });
     }
@@ -2339,7 +2339,7 @@ export async function registerRoutes(app: Express) {
 
       const recommendation = await storage.createRecommendation({
         contractorId,
-        userId: req.user.id, // User must be authenticated
+        userId: req.user?.id || (req.user as any)?.claims?.sub, // User must be authenticated
         recommendationType,
         comment,
         projectType,
@@ -2364,7 +2364,7 @@ export async function registerRoutes(app: Express) {
           moderationStatus: recommendation.moderationStatus
         }
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error creating recommendation:", error);
       res.status(400).json({ 
         success: false, 
@@ -2385,7 +2385,7 @@ export async function registerRoutes(app: Express) {
       });
 
       res.json(recommendations);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error fetching recommendations:", error);
       res.status(500).json({ message: "Failed to fetch recommendations" });
     }
@@ -2416,7 +2416,7 @@ export async function registerRoutes(app: Express) {
         .limit(parseInt(limit as string));
 
       res.json(pendingRecommendations);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error fetching pending recommendations:", error);
       res.status(500).json({ message: "Failed to fetch pending recommendations" });
     }
@@ -2463,7 +2463,7 @@ export async function registerRoutes(app: Express) {
         success: true, 
         message: `Recommendation ${action}d successfully`
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error moderating recommendation:", error);
       res.status(500).json({ message: "Failed to moderate recommendation" });
     }
@@ -2500,7 +2500,7 @@ export async function registerRoutes(app: Express) {
 
       const leaderboard = await query;
       res.json(leaderboard);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error fetching contractor leaderboard:", error);
       res.status(500).json({ message: "Failed to fetch leaderboard" });
     }
@@ -2550,7 +2550,7 @@ export async function registerRoutes(app: Express) {
         enrollmentId: enrollment.id,
         status: 'pending_payment'
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error processing accelerator enrollment:", error);
       res.status(500).json({ message: "Failed to process enrollment" });
     }
@@ -2564,7 +2564,7 @@ export async function registerRoutes(app: Express) {
         {
           id: "1",
           title: "Professional Grade Circular Saw",
-          description: "DeWalt 20V Max Circular Saw with blade. Excellent condition, barely used.",
+          // description: "DeWalt 20V Max Circular Saw with blade. Excellent condition, barely used.",
           price: 1200,
           category: "tools",
           condition: "like-new",
@@ -2584,7 +2584,7 @@ export async function registerRoutes(app: Express) {
         {
           id: "2", 
           title: "Premium Hardwood Flooring",
-          description: "Oak hardwood flooring, 500 sq ft available. Perfect for renovation projects.",
+          // description: "Oak hardwood flooring, 500 sq ft available. Perfect for renovation projects.",
           price: 3500,
           category: "materials",
           condition: "new",
@@ -2604,7 +2604,7 @@ export async function registerRoutes(app: Express) {
       ];
 
       res.json(mockItems);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error fetching exchange items:", error);
       res.status(500).json({ message: "Failed to fetch items" });
     }
@@ -2621,7 +2621,7 @@ export async function registerRoutes(app: Express) {
           id: "promo1",
           contractorId: "contractor1",
           title: "Spring Renovation Special",
-          description: "Get ready for spring with our comprehensive renovation package.",
+          // description: "Get ready for spring with our comprehensive renovation package.",
           offerDetails: "15% off all kitchen renovations over $10,000",
           discountType: "percentage",
           discountValue: 15,
@@ -2651,7 +2651,7 @@ export async function registerRoutes(app: Express) {
           id: "promo2",
           contractorId: "contractor2", 
           title: "Roofing Emergency Service",
-          description: "24/7 emergency roofing repairs with guaranteed response time.",
+          // description: "24/7 emergency roofing repairs with guaranteed response time.",
           offerDetails: "Free estimate + 10% off emergency repairs",
           discountType: "percentage",
           discountValue: 10,
@@ -2679,7 +2679,7 @@ export async function registerRoutes(app: Express) {
       ];
 
       res.json(mockPromos);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error fetching contractor promotions:", error);
       res.status(500).json({ message: "Failed to fetch contractor promotions" });
     }
@@ -2698,7 +2698,7 @@ export async function registerRoutes(app: Express) {
           companyLogo: "https://images.harborfreight.com/hftweb/images/harborfreight-logo.svg",
           companyWebsite: "https://harborfreight.com",
           title: "Professional Tool Mega Sale",
-          description: "Massive savings on professional-grade tools and equipment.",
+          // description: "Massive savings on professional-grade tools and equipment.",
           dealDetails: "Up to 70% off select power tools",
           dealType: "percentage_off",
           discountValue: 70,
@@ -2728,7 +2728,7 @@ export async function registerRoutes(app: Express) {
           companyLogo: "https://corporate.homedepot.com/sites/default/files/image_gallery/THD_logo_RGB_2C.png",
           companyWebsite: "https://homedepot.com",
           title: "Contractor Bulk Pricing",
-          description: "Special bulk pricing for contractors on building materials.",
+          // description: "Special bulk pricing for contractors on building materials.",
           dealDetails: "Buy 10+ items, get 25% off lumber and materials",
           dealType: "percentage_off",
           discountValue: 25,
@@ -2751,7 +2751,7 @@ export async function registerRoutes(app: Express) {
       ];
 
       res.json(mockPromotions);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error fetching company promotions:", error);
       res.status(500).json({ message: "Failed to fetch company promotions" });
     }
@@ -2770,7 +2770,7 @@ export async function registerRoutes(app: Express) {
         leadId,
       });
       res.json(conversation);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error creating conversation:", error);
       res.status(500).json({ message: "Failed to create conversation" });
     }
@@ -2783,7 +2783,7 @@ export async function registerRoutes(app: Express) {
 
       const conversations = await storage.getConversationsByUser(userId, userType);
       res.json(conversations);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error fetching conversations:", error);
       res.status(500).json({ message: "Failed to fetch conversations" });
     }
@@ -2802,7 +2802,7 @@ export async function registerRoutes(app: Express) {
       }
 
       res.json(conversation);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error fetching conversation:", error);
       res.status(500).json({ message: "Failed to fetch conversation" });
     }
@@ -2828,7 +2828,7 @@ export async function registerRoutes(app: Express) {
       );
 
       res.json(updatedConversation);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error rating conversation:", error);
       res.status(500).json({ message: "Failed to rate conversation" });
     }
@@ -2861,7 +2861,7 @@ export async function registerRoutes(app: Express) {
       });
 
       res.json(message);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error creating message:", error);
       res.status(500).json({ message: "Failed to send message" });
     }
@@ -2882,7 +2882,7 @@ export async function registerRoutes(app: Express) {
 
       const messages = await storage.getMessagesByConversation(req.params.id);
       res.json(messages);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error fetching messages:", error);
       res.status(500).json({ message: "Failed to fetch messages" });
     }
@@ -2903,7 +2903,7 @@ export async function registerRoutes(app: Express) {
 
       const quote = await storage.createQuote(quoteData);
       res.json(quote);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error creating quote:", error);
       res.status(500).json({ message: "Failed to create quote" });
     }
@@ -2913,7 +2913,7 @@ export async function registerRoutes(app: Express) {
     try {
       const quotes = await storage.getQuotesByConversation(req.params.id);
       res.json(quotes);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error fetching quotes:", error);
       res.status(500).json({ message: "Failed to fetch quotes" });
     }
@@ -2923,7 +2923,7 @@ export async function registerRoutes(app: Express) {
     try {
       const quote = await storage.updateQuote(req.params.id, req.body);
       res.json(quote);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error updating quote:", error);
       res.status(500).json({ message: "Failed to update quote" });
     }
@@ -2937,7 +2937,7 @@ export async function registerRoutes(app: Express) {
 
       const materialList = await storage.createMaterialList(materialListData);
       res.json(materialList);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error creating material list:", error);
       res.status(500).json({ message: "Failed to create material list" });
     }
@@ -2947,7 +2947,7 @@ export async function registerRoutes(app: Express) {
     try {
       const materialLists = await storage.getMaterialListsByConversation(req.params.id);
       res.json(materialLists);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error fetching material lists:", error);
       res.status(500).json({ message: "Failed to fetch material lists" });
     }
@@ -2957,7 +2957,7 @@ export async function registerRoutes(app: Express) {
     try {
       const materialList = await storage.updateMaterialList(req.params.id, req.body);
       res.json(materialList);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error updating material list:", error);
       res.status(500).json({ message: "Failed to update material list" });
     }
@@ -2992,7 +2992,7 @@ export async function registerRoutes(app: Express) {
 
       const updatedMaterialList = await storage.addMaterialListItemSuggestion(materialListId, suggestion);
       res.json(updatedMaterialList);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error adding suggestion:", error);
       res.status(500).json({ message: "Failed to add suggestion" });
     }
@@ -3020,7 +3020,7 @@ export async function registerRoutes(app: Express) {
       );
 
       res.json(updatedMaterialList);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error updating item status:", error);
       res.status(500).json({ message: "Failed to update item status" });
     }
@@ -3062,7 +3062,7 @@ export async function registerRoutes(app: Express) {
           adminAccess: true
         });
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error("Emergency admin access error:", error);
       res.status(500).json({ message: "Emergency access failed" });
     }
@@ -3073,7 +3073,7 @@ export async function registerRoutes(app: Express) {
     try {
       const features = await storage.getFeatureFlags();
       res.json(features);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error fetching feature flags:", error);
       res.status(500).json({ message: "Failed to fetch feature flags" });
     }
@@ -3083,7 +3083,7 @@ export async function registerRoutes(app: Express) {
     try {
       const feature = await storage.createFeatureFlag(req.body);
       res.json(feature);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error creating feature flag:", error);
       res.status(500).json({ message: "Failed to create feature flag" });
     }
@@ -3094,7 +3094,7 @@ export async function registerRoutes(app: Express) {
       const { id } = req.params;
       const feature = await storage.updateFeatureFlag(id, req.body);
       res.json(feature);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error updating feature flag:", error);
       res.status(500).json({ message: "Failed to update feature flag" });
     }
@@ -3120,7 +3120,7 @@ export async function registerRoutes(app: Express) {
       }).from(users).orderBy(desc(users.createdAt));
       
       res.json(allUsers);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error fetching users:", error);
       res.status(500).json({ message: "Failed to fetch users" });
     }
@@ -3150,7 +3150,7 @@ export async function registerRoutes(app: Express) {
         .where(eq(users.id, userId));
 
       res.json({ message: "User roles updated successfully" });
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error updating user roles:", error);
       res.status(500).json({ message: "Failed to update user roles" });
     }
@@ -3188,7 +3188,7 @@ export async function registerRoutes(app: Express) {
         user: req.user,
         originalAdmin: originalUser 
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error impersonating user:", error);
       res.status(500).json({ message: "Failed to impersonate user" });
     }
@@ -3197,7 +3197,7 @@ export async function registerRoutes(app: Express) {
   app.post("/api/auth/switch-role", isAuthenticated, async (req, res) => {
     try {
       const { role } = req.body;
-      const userId = req.user.id;
+      const userId = req.user?.id || (req.user as any)?.claims?.sub;
 
       // Get user's current roles
       const [currentUser] = await db.select().from(users).where(eq(users.id, userId));
@@ -3223,7 +3223,7 @@ export async function registerRoutes(app: Express) {
       };
 
       res.json({ message: "Role switched successfully", activeRole: role });
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error switching role:", error);
       res.status(500).json({ message: "Failed to switch role" });
     }
@@ -3235,7 +3235,7 @@ export async function registerRoutes(app: Express) {
       const { category } = req.query;
       const settings = await storage.getSiteSettings(category as string);
       res.json(settings);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error fetching site settings:", error);
       res.status(500).json({ message: "Failed to fetch site settings" });
     }
@@ -3245,7 +3245,7 @@ export async function registerRoutes(app: Express) {
     try {
       const setting = await storage.createSiteSetting(req.body);
       res.json(setting);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error creating site setting:", error);
       res.status(500).json({ message: "Failed to create site setting" });
     }
@@ -3255,7 +3255,7 @@ export async function registerRoutes(app: Express) {
     try {
       const setting = await storage.updateSiteSetting(req.params.id, req.body);
       res.json(setting);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error updating site setting:", error);
       res.status(500).json({ message: "Failed to update site setting" });
     }
@@ -3265,7 +3265,7 @@ export async function registerRoutes(app: Express) {
     try {
       await storage.deleteSiteSetting(req.params.id);
       res.status(204).send();
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error deleting site setting:", error);
       res.status(500).json({ message: "Failed to delete site setting" });
     }
@@ -3276,7 +3276,7 @@ export async function registerRoutes(app: Express) {
     try {
       const prizes = await storage.getPrizeConfigurations();
       res.json(prizes);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error fetching prizes:", error);
       res.status(500).json({ message: "Failed to fetch prizes" });
     }
@@ -3286,7 +3286,7 @@ export async function registerRoutes(app: Express) {
     try {
       const prize = await storage.createPrizeConfiguration(req.body);
       res.json(prize);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error creating prize:", error);
       res.status(500).json({ message: "Failed to create prize" });
     }
@@ -3296,7 +3296,7 @@ export async function registerRoutes(app: Express) {
     try {
       const prize = await storage.updatePrizeConfiguration(req.params.id, req.body);
       res.json(prize);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error updating prize:", error);
       res.status(500).json({ message: "Failed to update prize" });
     }
@@ -3306,7 +3306,7 @@ export async function registerRoutes(app: Express) {
     try {
       await storage.deletePrizeConfiguration(req.params.id);
       res.status(204).send();
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error deleting prize:", error);
       res.status(500).json({ message: "Failed to delete prize" });
     }
@@ -3318,7 +3318,7 @@ export async function registerRoutes(app: Express) {
       const { placement } = req.query;
       const ads = await storage.getAdvertisements(placement as string);
       res.json(ads);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error fetching advertisements:", error);
       res.status(500).json({ message: "Failed to fetch advertisements" });
     }
@@ -3328,7 +3328,7 @@ export async function registerRoutes(app: Express) {
     try {
       const ad = await storage.createAdvertisement(req.body);
       res.json(ad);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error creating advertisement:", error);
       res.status(500).json({ message: "Failed to create advertisement" });
     }
@@ -3338,7 +3338,7 @@ export async function registerRoutes(app: Express) {
     try {
       const ad = await storage.updateAdvertisement(req.params.id, req.body);
       res.json(ad);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error updating advertisement:", error);
       res.status(500).json({ message: "Failed to update advertisement" });
     }
@@ -3348,7 +3348,7 @@ export async function registerRoutes(app: Express) {
     try {
       await storage.deleteAdvertisement(req.params.id);
       res.status(204).send();
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error deleting advertisement:", error);
       res.status(500).json({ message: "Failed to delete advertisement" });
     }
@@ -3360,7 +3360,7 @@ export async function registerRoutes(app: Express) {
       const userId = (req.user as any)?.id;
       const conversations = await storage.getUserMarketplaceConversations(userId);
       res.json(conversations);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error fetching conversations:", error);
       res.status(500).json({ message: "Failed to fetch conversations" });
     }
@@ -3398,7 +3398,7 @@ export async function registerRoutes(app: Express) {
       });
 
       res.json(conversation);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error creating conversation:", error);
       res.status(500).json({ message: "Failed to create conversation" });
     }
@@ -3417,7 +3417,7 @@ export async function registerRoutes(app: Express) {
 
       const messages = await storage.getMarketplaceMessages(conversationId);
       res.json(messages);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error fetching messages:", error);
       res.status(500).json({ message: "Failed to fetch messages" });
     }
@@ -3446,7 +3446,7 @@ export async function registerRoutes(app: Express) {
       });
 
       res.json(message);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error sending message:", error);
       res.status(500).json({ message: "Failed to send message" });
     }
@@ -3465,7 +3465,7 @@ export async function registerRoutes(app: Express) {
 
       await storage.markMarketplaceMessagesAsRead(conversationId, userId);
       res.json({ success: true });
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error marking messages as read:", error);
       res.status(500).json({ message: "Failed to mark messages as read" });
     }
@@ -3484,7 +3484,7 @@ export async function registerRoutes(app: Express) {
       ]);
 
       res.json({ realtors, carSalesmen });
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error fetching pending applications:", error);
       res.status(500).json({ message: "Failed to fetch pending applications" });
     }
@@ -3509,7 +3509,7 @@ export async function registerRoutes(app: Express) {
       );
 
       res.json(result);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error updating realtor verification:", error);
       res.status(500).json({ message: "Failed to update verification status" });
     }
@@ -3534,7 +3534,7 @@ export async function registerRoutes(app: Express) {
       );
 
       res.json(result);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error updating car salesman verification:", error);
       res.status(500).json({ message: "Failed to update verification status" });
     }
@@ -3546,7 +3546,7 @@ export async function registerRoutes(app: Express) {
       const { category } = req.query;
       const settings = await storage.getContractorSettings(category as string);
       res.json(settings);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error fetching contractor settings:", error);
       res.status(500).json({ message: "Failed to fetch contractor settings" });
     }
@@ -3556,7 +3556,7 @@ export async function registerRoutes(app: Express) {
     try {
       const setting = await storage.createContractorSetting(req.body);
       res.json(setting);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error creating contractor setting:", error);
       res.status(500).json({ message: "Failed to create contractor setting" });
     }
@@ -3566,7 +3566,7 @@ export async function registerRoutes(app: Express) {
     try {
       const setting = await storage.updateContractorSetting(req.params.id, req.body);
       res.json(setting);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error updating contractor setting:", error);
       res.status(500).json({ message: "Failed to update contractor setting" });
     }
@@ -3576,7 +3576,7 @@ export async function registerRoutes(app: Express) {
     try {
       await storage.deleteContractorSetting(req.params.id);
       res.status(204).send();
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error deleting contractor setting:", error);
       res.status(500).json({ message: "Failed to delete contractor setting" });
     }
@@ -3619,7 +3619,7 @@ export async function registerRoutes(app: Express) {
               company: "Johnson Family",
               startDate: "2024-01-15",
               endDate: "2024-01-22",
-              description: "Installed custom kitchen cabinets, including hardware mounting and adjustment. Completed on time with excellent customer feedback.",
+              // description: "Installed custom kitchen cabinets, including hardware mounting and adjustment. Completed on time with excellent customer feedback.",
               isCurrentJob: false,
               fromPlatform: true,
               taskId: "task-123"
@@ -3629,7 +3629,7 @@ export async function registerRoutes(app: Express) {
               company: "Smith Contractors",
               startDate: "2023-08-01",
               endDate: "2024-12-31",
-              description: "Assist lead contractor with bathroom renovations, tile installation, and fixture mounting. Regular employment position.",
+              // description: "Assist lead contractor with bathroom renovations, tile installation, and fixture mounting. Regular employment position.",
               isCurrentJob: true,
               fromPlatform: true,
               taskId: "task-456"
@@ -3639,7 +3639,7 @@ export async function registerRoutes(app: Express) {
               company: "ABC Construction Co.",
               startDate: "2019-03-01",
               endDate: "2023-07-15",
-              description: "General construction labor including framing, concrete work, and site cleanup. Promoted to crew lead after 2 years.",
+              // description: "General construction labor including framing, concrete work, and site cleanup. Promoted to crew lead after 2 years.",
               isCurrentJob: false,
               fromPlatform: false
             }
@@ -3670,7 +3670,7 @@ export async function registerRoutes(app: Express) {
           portfolioItems: [
             {
               title: "Custom Kitchen Cabinet Installation",
-              description: "Complete kitchen cabinet installation including crown molding and under-cabinet lighting preparation.",
+              // description: "Complete kitchen cabinet installation including crown molding and under-cabinet lighting preparation.",
               completionDate: "2024-01-22",
               skills: ["carpentry", "measurements", "hardware-installation"],
               fromPlatform: true,
@@ -3678,7 +3678,7 @@ export async function registerRoutes(app: Express) {
             },
             {
               title: "Deck Repair and Staining",
-              description: "Repaired loose boards, replaced damaged sections, and applied weatherproof stain to 400 sq ft deck.",
+              // description: "Repaired loose boards, replaced damaged sections, and applied weatherproof stain to 400 sq ft deck.",
               completionDate: "2023-11-15",
               skills: ["carpentry", "wood-treatment", "painting"],
               fromPlatform: true,
@@ -3724,7 +3724,7 @@ export async function registerRoutes(app: Express) {
               company: "Davis Household",
               startDate: "2024-01-10",
               endDate: "2024-01-10",
-              description: "Installed 3 ceiling fans with remote controls, including electrical wiring and wall switch installation.",
+              // description: "Installed 3 ceiling fans with remote controls, including electrical wiring and wall switch installation.",
               isCurrentJob: false,
               fromPlatform: true,
               taskId: "task-321"
@@ -3734,7 +3734,7 @@ export async function registerRoutes(app: Express) {
               company: "Martinez Electric LLC",
               startDate: "2021-06-01",
               endDate: "2023-12-31",
-              description: "Assisted master electrician with residential and commercial electrical installations. Learned advanced wiring techniques.",
+              // description: "Assisted master electrician with residential and commercial electrical installations. Learned advanced wiring techniques.",
               isCurrentJob: false,
               fromPlatform: false
             }
@@ -3759,7 +3759,7 @@ export async function registerRoutes(app: Express) {
           portfolioItems: [
             {
               title: "Home Office Electrical Upgrade",
-              description: "Upgraded electrical panel and installed dedicated circuits for home office equipment.",
+              // description: "Upgraded electrical panel and installed dedicated circuits for home office equipment.",
               completionDate: "2023-09-30",
               skills: ["electrical", "panel-work", "circuit-installation"],
               fromPlatform: true,
@@ -3775,7 +3775,7 @@ export async function registerRoutes(app: Express) {
       ];
 
       res.json(sampleWorkers);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error fetching workers:", error);
       res.status(500).json({ message: "Failed to fetch workers" });
     }
@@ -3785,7 +3785,7 @@ export async function registerRoutes(app: Express) {
     try {
       // For now, return empty array - will be populated when database is set up
       res.json([]);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error fetching tasks:", error);
       res.status(500).json({ message: "Failed to fetch tasks" });
     }
@@ -3795,7 +3795,7 @@ export async function registerRoutes(app: Express) {
     try {
       const { TASK_CATEGORIES } = await import("@shared/task-categories");
       res.json(TASK_CATEGORIES);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error fetching task categories:", error);
       res.status(500).json({ message: "Failed to fetch task categories" });
     }
@@ -3806,7 +3806,7 @@ export async function registerRoutes(app: Express) {
     try {
       // TODO: Implement worker registration when database is set up
       res.json({ message: "Worker registration endpoint ready" });
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error registering worker:", error);
       res.status(500).json({ message: "Failed to register worker" });
     }
@@ -3817,7 +3817,7 @@ export async function registerRoutes(app: Express) {
     try {
       // TODO: Implement task posting when database is set up
       res.json({ message: "Task posting endpoint ready" });
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error creating task:", error);
       res.status(500).json({ message: "Failed to create task" });
     }
@@ -3828,7 +3828,7 @@ export async function registerRoutes(app: Express) {
     try {
       // TODO: Implement task application when database is set up
       res.json({ message: "Task application endpoint ready" });
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error applying to task:", error);
       res.status(500).json({ message: "Failed to apply to task" });
     }
@@ -3839,7 +3839,7 @@ export async function registerRoutes(app: Express) {
     try {
       // TODO: Implement verification when database is set up
       res.json({ message: "Worker verification endpoint ready" });
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error verifying worker:", error);
       res.status(500).json({ message: "Failed to verify worker" });
     }
@@ -3854,8 +3854,8 @@ export async function registerRoutes(app: Express) {
       
       // For now, return a default helper profile - will be implemented when database is ready
       const helperProfile = {
-        id: req.user.id,
-        userId: req.user.id,
+        id: req.user?.id || (req.user as any)?.claims?.sub,
+        userId: req.user?.id || (req.user as any)?.claims?.sub,
         firstName: req.user.firstName || 'Helper',
         lastName: req.user.lastName || 'User',
         phone: req.user.email, // placeholder
@@ -3873,7 +3873,7 @@ export async function registerRoutes(app: Express) {
       };
       
       res.json(helperProfile);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error fetching helper profile:", error);
       res.status(500).json({ message: "Failed to fetch helper profile" });
     }
@@ -3890,7 +3890,7 @@ export async function registerRoutes(app: Express) {
         {
           id: 'task-1',
           title: 'Furniture Assembly Help',
-          description: 'Need help assembling IKEA furniture in living room. Should take 2-3 hours.',
+          // description: 'Need help assembling IKEA furniture in living room. Should take 2-3 hours.',
           posterType: 'homeowner',
           payType: 'hourly',
           payAmount: '25.00',
@@ -3904,7 +3904,7 @@ export async function registerRoutes(app: Express) {
         {
           id: 'task-2',
           title: 'House Cleaning',
-          description: 'Deep cleaning of 3-bedroom house. All supplies provided.',
+          // description: 'Deep cleaning of 3-bedroom house. All supplies provided.',
           posterType: 'homeowner',
           payType: 'fixed',
           payAmount: '150.00',
@@ -3918,7 +3918,7 @@ export async function registerRoutes(app: Express) {
         {
           id: 'task-3',
           title: 'Job Site Labor',
-          description: 'Need extra hands for roofing project. Must have construction experience.',
+          // description: 'Need extra hands for roofing project. Must have construction experience.',
           posterType: 'contractor',
           payType: 'hourly',
           payAmount: '35.00',
@@ -3932,7 +3932,7 @@ export async function registerRoutes(app: Express) {
       ];
       
       res.json(availableTasks);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error fetching available tasks:", error);
       res.status(500).json({ message: "Failed to fetch available tasks" });
     }
@@ -3949,7 +3949,7 @@ export async function registerRoutes(app: Express) {
         {
           id: 'app-1',
           taskId: 'task-1',
-          workerId: req.user.id,
+          workerId: req.user?.id || (req.user as any)?.claims?.sub,
           message: 'I have extensive experience with furniture assembly and own all necessary tools.',
           proposedRate: '25.00',
           status: 'pending',
@@ -3958,7 +3958,7 @@ export async function registerRoutes(app: Express) {
         {
           id: 'app-2',
           taskId: 'task-2',
-          workerId: req.user.id,
+          workerId: req.user?.id || (req.user as any)?.claims?.sub,
           message: 'Available for this cleaning job. I have 3 years of professional cleaning experience.',
           status: 'accepted',
           createdAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
@@ -3966,7 +3966,7 @@ export async function registerRoutes(app: Express) {
       ];
       
       res.json(applications);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error fetching applications:", error);
       res.status(500).json({ message: "Failed to fetch applications" });
     }
@@ -3983,7 +3983,7 @@ export async function registerRoutes(app: Express) {
         {
           id: 'job-1',
           title: 'Garden Cleanup',
-          description: 'Seasonal garden cleanup and maintenance.',
+          // description: 'Seasonal garden cleanup and maintenance.',
           payAmount: '120.00',
           city: 'Seattle',
           stateCode: 'WA',
@@ -3993,7 +3993,7 @@ export async function registerRoutes(app: Express) {
         {
           id: 'job-2',
           title: 'Moving Assistance',
-          description: 'Help loading and unloading moving truck.',
+          // description: 'Help loading and unloading moving truck.',
           payAmount: '80.00',
           city: 'Tacoma',
           stateCode: 'WA',
@@ -4003,7 +4003,7 @@ export async function registerRoutes(app: Express) {
       ];
       
       res.json(completedJobs);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error fetching completed jobs:", error);
       res.status(500).json({ message: "Failed to fetch completed jobs" });
     }
@@ -4042,7 +4042,7 @@ export async function registerRoutes(app: Express) {
       ];
       
       res.json(reviews);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error fetching reviews:", error);
       res.status(500).json({ message: "Failed to fetch reviews" });
     }
@@ -4055,7 +4055,7 @@ export async function registerRoutes(app: Express) {
       const objectStorageService = new ObjectStorageService();
       const uploadURL = await objectStorageService.getObjectEntityUploadURL();
       res.json({ uploadURL });
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error getting upload URL:", error);
       res.status(500).json({ error: "Failed to get upload URL" });
     }
@@ -4083,7 +4083,7 @@ export async function registerRoutes(app: Express) {
       await storage.createErrorReport(report);
 
       res.json({ message: "Error report submitted successfully", reportId: report.id });
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error creating error report:", error);
       res.status(500).json({ message: "Failed to submit error report" });
     }
@@ -4111,7 +4111,7 @@ export async function registerRoutes(app: Express) {
       const promo = await storage.createContractorPromo(validatedPromo);
 
       res.json(promo);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error creating contractor promo:", error);
       res.status(500).json({ message: "Failed to create promo" });
     }
@@ -4129,7 +4129,7 @@ export async function registerRoutes(app: Express) {
 
       const promos = await storage.getContractorPromos(contractor.id);
       res.json(promos);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error fetching contractor promos:", error);
       res.status(500).json({ message: "Failed to fetch promos" });
     }
@@ -4154,7 +4154,7 @@ export async function registerRoutes(app: Express) {
 
       const updatedPromo = await storage.updateContractorPromo(promoId, req.body);
       res.json(updatedPromo);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error updating contractor promo:", error);
       res.status(500).json({ message: "Failed to update promo" });
     }
@@ -4179,7 +4179,7 @@ export async function registerRoutes(app: Express) {
 
       await storage.deleteContractorPromo(promoId);
       res.status(204).send();
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error deleting contractor promo:", error);
       res.status(500).json({ message: "Failed to delete promo" });
     }
@@ -4240,7 +4240,7 @@ export async function registerRoutes(app: Express) {
           verifiedInsured: contractor.verifiedInsured,
         } : null
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error fetching promo:", error);
       res.status(500).json({ message: "Failed to fetch promo" });
     }
@@ -4273,7 +4273,7 @@ export async function registerRoutes(app: Express) {
       });
 
       res.json({ success: true });
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error tracking promo click:", error);
       res.status(500).json({ message: "Failed to track click" });
     }
@@ -4298,7 +4298,7 @@ export async function registerRoutes(app: Express) {
 
       const analytics = await storage.getPromoAnalytics(promoId);
       res.json(analytics);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error fetching promo analytics:", error);
       res.status(500).json({ message: "Failed to fetch analytics" });
     }
@@ -4327,7 +4327,7 @@ export async function registerRoutes(app: Express) {
       );
 
       res.json(promosWithContractors);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error fetching area promos:", error);
       res.status(500).json({ message: "Failed to fetch area promos" });
     }
@@ -4364,7 +4364,7 @@ export async function registerRoutes(app: Express) {
         userId: req.user?.claims?.sub || 'anonymous',
         userEmail: req.user?.email || null,
         title: title || 'One-Tap Bug Report',
-        description: description || 'Automatically generated bug report with screenshot',
+        // description: description || 'Automatically generated bug report with screenshot',
         errorType: type || 'bug',
         currentUrl: url,
         userAgent,
@@ -4392,7 +4392,7 @@ export async function registerRoutes(app: Express) {
         reportId,
         status: 'received'
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error processing bug report:", error);
       res.status(500).json({ message: "Failed to process bug report" });
     }
@@ -4414,7 +4414,7 @@ export async function registerRoutes(app: Express) {
           userId: "user123",
           userEmail: "user@example.com",
           title: "Page not loading on mobile",
-          description: "When I try to access the contractor dashboard on my phone, the page gets stuck loading and never shows content.",
+          // description: "When I try to access the contractor dashboard on my phone, the page gets stuck loading and never shows content.",
           errorType: "bug",
           currentUrl: "https://tradescout.app/contractor-dashboard",
           userAgent: "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X)",
@@ -4438,7 +4438,7 @@ export async function registerRoutes(app: Express) {
           userId: null,
           userEmail: "contractor@email.com",
           title: "Search filters not working",
-          description: "The location filter on the contractor board doesn't seem to work. I select a county but all contractors still show up.",
+          // description: "The location filter on the contractor board doesn't seem to work. I select a county but all contractors still show up.",
           errorType: "ui_issue",
           currentUrl: "https://tradescout.app/contractors/board",
           userAgent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
@@ -4460,7 +4460,7 @@ export async function registerRoutes(app: Express) {
       ];
 
       res.json(sampleReports);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error fetching error reports:", error);
       res.status(500).json({ message: "Failed to fetch error reports" });
     }
@@ -4482,7 +4482,7 @@ export async function registerRoutes(app: Express) {
       await storage.updateErrorReport(id, updateData);
 
       res.json({ message: "Error report updated successfully" });
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error updating error report:", error);
       res.status(500).json({ message: "Failed to update error report" });
     }
@@ -4524,7 +4524,7 @@ export async function registerRoutes(app: Express) {
     try {
       const categories = await storage.getMarketplaceCategories();
       res.json(categories);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error fetching marketplace categories:", error);
       res.status(500).json({ message: "Failed to fetch categories" });
     }
@@ -4535,7 +4535,7 @@ export async function registerRoutes(app: Express) {
       const validatedData = insertMarketplaceCategorySchema.parse(req.body);
       const category = await storage.createMarketplaceCategory(validatedData);
       res.status(201).json(category);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error creating marketplace category:", error);
       res.status(400).json({ message: "Failed to create category" });
     }
@@ -4560,7 +4560,7 @@ export async function registerRoutes(app: Express) {
 
       const listings = await storage.getMarketplaceListings(filters);
       res.json(listings);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error fetching marketplace listings:", error);
       res.status(500).json({ message: "Failed to fetch listings" });
     }
@@ -4579,7 +4579,7 @@ export async function registerRoutes(app: Express) {
       await storage.incrementListingView(id);
 
       res.json(listing);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error fetching marketplace listing:", error);
       res.status(500).json({ message: "Failed to fetch listing" });
     }
@@ -4598,7 +4598,7 @@ export async function registerRoutes(app: Express) {
       await storage.incrementListingView(listing.id);
 
       res.json(listing);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error fetching marketplace listing by slug:", error);
       res.status(500).json({ message: "Failed to fetch listing" });
     }
@@ -4612,7 +4612,7 @@ export async function registerRoutes(app: Express) {
       // All new listings require admin/moderator approval before going live
       const listing = await storage.createMarketplaceListing({
         ...validatedData,
-        sellerId: user.id,
+        sellerId: user?.id,
         status: 'pending_approval', // Require approval for all new listings
       });
 
@@ -4620,7 +4620,7 @@ export async function registerRoutes(app: Express) {
         ...listing,
         message: "Listing submitted successfully and is pending admin approval."
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error creating marketplace listing:", error);
       res.status(400).json({ message: "Failed to create listing" });
     }
@@ -4633,14 +4633,14 @@ export async function registerRoutes(app: Express) {
 
       // Check if user owns the listing
       const existingListing = await storage.getMarketplaceListing(id);
-      if (!existingListing || existingListing.sellerId !== user.id) {
+      if (!existingListing || existingListing.sellerId !== user?.id) {
         return res.status(403).json({ message: "Not authorized to edit this listing" });
       }
 
       const updates = req.body;
       const listing = await storage.updateMarketplaceListing(id, updates);
       res.json(listing);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error updating marketplace listing:", error);
       res.status(400).json({ message: "Failed to update listing" });
     }
@@ -4653,13 +4653,13 @@ export async function registerRoutes(app: Express) {
 
       // Check if user owns the listing or is admin
       const existingListing = await storage.getMarketplaceListing(id);
-      if (!existingListing || (existingListing.sellerId !== user.id && !['head_admin', 'moderator', 'ops_admin'].includes(user.role || ''))) {
+      if (!existingListing || (existingListing.sellerId !== user?.id && !['head_admin', 'moderator', 'ops_admin'].includes(user.role || ''))) {
         return res.status(403).json({ message: "Not authorized to delete this listing" });
       }
 
       await storage.deleteMarketplaceListing(id);
       res.json({ message: "Listing deleted successfully" });
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error deleting marketplace listing:", error);
       res.status(500).json({ message: "Failed to delete listing" });
     }
@@ -4678,7 +4678,7 @@ export async function registerRoutes(app: Express) {
 
       const listings = await storage.getMarketplaceListings(filters);
       res.json(listings);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error fetching pending listings:", error);
       res.status(500).json({ message: "Failed to fetch pending listings" });
     }
@@ -4693,7 +4693,7 @@ export async function registerRoutes(app: Express) {
 
       const listing = await storage.updateMarketplaceListing(id, {
         status: 'active',
-        approvedBy: user.id,
+        approvedBy: user?.id,
         approvedAt: new Date(),
         moderationNotes: notes,
       });
@@ -4702,7 +4702,7 @@ export async function registerRoutes(app: Express) {
         message: "Listing approved successfully",
         listing 
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error approving listing:", error);
       res.status(400).json({ message: "Failed to approve listing" });
     }
@@ -4721,7 +4721,7 @@ export async function registerRoutes(app: Express) {
 
       const listing = await storage.updateMarketplaceListing(id, {
         status: 'rejected',
-        rejectedBy: user.id,
+        rejectedBy: user?.id,
         rejectedAt: new Date(),
         rejectionReason: reason,
         moderationNotes: notes,
@@ -4731,7 +4731,7 @@ export async function registerRoutes(app: Express) {
         message: "Listing rejected successfully",
         listing 
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error rejecting listing:", error);
       res.status(400).json({ message: "Failed to reject listing" });
     }
@@ -4741,9 +4741,9 @@ export async function registerRoutes(app: Express) {
   app.get("/api/marketplace/my-listings", isAuthenticated, async (req, res) => {
     try {
       const user = req.user as any;
-      const listings = await storage.getUserListings(user.id);
+      const listings = await storage.getUserListings(user?.id);
       res.json(listings);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error fetching user listings:", error);
       res.status(500).json({ message: "Failed to fetch listings" });
     }
@@ -4763,12 +4763,12 @@ export async function registerRoutes(app: Express) {
 
       const inquiry = await storage.createMarketplaceInquiry({
         ...validatedData,
-        buyerId: user.id,
+        buyerId: user?.id,
         sellerId: listing.sellerId,
       });
 
       res.status(201).json(inquiry);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error creating marketplace inquiry:", error);
       res.status(400).json({ message: "Failed to create inquiry" });
     }
@@ -4777,9 +4777,9 @@ export async function registerRoutes(app: Express) {
   app.get("/api/marketplace/inquiries/sent", isAuthenticated, async (req, res) => {
     try {
       const user = req.user as any;
-      const inquiries = await storage.getUserInquiries(user.id, 'sent');
+      const inquiries = await storage.getUserInquiries(user?.id, 'sent');
       res.json(inquiries);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error fetching sent inquiries:", error);
       res.status(500).json({ message: "Failed to fetch inquiries" });
     }
@@ -4788,9 +4788,9 @@ export async function registerRoutes(app: Express) {
   app.get("/api/marketplace/inquiries/received", isAuthenticated, async (req, res) => {
     try {
       const user = req.user as any;
-      const inquiries = await storage.getUserInquiries(user.id, 'received');
+      const inquiries = await storage.getUserInquiries(user?.id, 'received');
       res.json(inquiries);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error fetching received inquiries:", error);
       res.status(500).json({ message: "Failed to fetch inquiries" });
     }
@@ -4803,13 +4803,13 @@ export async function registerRoutes(app: Express) {
 
       // Check if user owns the listing
       const listing = await storage.getMarketplaceListing(id);
-      if (!listing || listing.sellerId !== user.id) {
+      if (!listing || listing.sellerId !== user?.id) {
         return res.status(403).json({ message: "Not authorized to view inquiries for this listing" });
       }
 
       const inquiries = await storage.getListingInquiries(id);
       res.json(inquiries);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error fetching listing inquiries:", error);
       res.status(500).json({ message: "Failed to fetch inquiries" });
     }
@@ -4822,14 +4822,14 @@ export async function registerRoutes(app: Express) {
 
       // Check if user owns the inquiry (seller side)
       const inquiry = await storage.getMarketplaceInquiry(id);
-      if (!inquiry || inquiry.sellerId !== user.id) {
+      if (!inquiry || inquiry.sellerId !== user?.id) {
         return res.status(403).json({ message: "Not authorized to update this inquiry" });
       }
 
       const updates = req.body;
       const updatedInquiry = await storage.updateMarketplaceInquiry(id, updates);
       res.json(updatedInquiry);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error updating marketplace inquiry:", error);
       res.status(400).json({ message: "Failed to update inquiry" });
     }
@@ -4843,11 +4843,11 @@ export async function registerRoutes(app: Express) {
 
       const favorite = await storage.createMarketplaceFavorite({
         ...validatedData,
-        userId: user.id,
+        userId: user?.id,
       });
 
       res.status(201).json(favorite);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error creating marketplace favorite:", error);
       res.status(400).json({ message: "Failed to add to favorites" });
     }
@@ -4858,9 +4858,9 @@ export async function registerRoutes(app: Express) {
       const user = req.user as any;
       const { listingId } = req.params;
 
-      await storage.removeMarketplaceFavorite(user.id, listingId);
+      await storage.removeMarketplaceFavorite(user?.id, listingId);
       res.json({ message: "Removed from favorites" });
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error removing marketplace favorite:", error);
       res.status(500).json({ message: "Failed to remove from favorites" });
     }
@@ -4869,9 +4869,9 @@ export async function registerRoutes(app: Express) {
   app.get("/api/marketplace/favorites", isAuthenticated, async (req, res) => {
     try {
       const user = req.user as any;
-      const favorites = await storage.getUserFavorites(user.id);
+      const favorites = await storage.getUserFavorites(user?.id);
       res.json(favorites);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error fetching marketplace favorites:", error);
       res.status(500).json({ message: "Failed to fetch favorites" });
     }
@@ -4889,7 +4889,7 @@ export async function registerRoutes(app: Express) {
       });
 
       res.status(201).json(report);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error creating marketplace report:", error);
       res.status(400).json({ message: "Failed to create report" });
     }
@@ -4899,7 +4899,7 @@ export async function registerRoutes(app: Express) {
     try {
       const reports = await storage.getMarketplaceReports();
       res.json(reports);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error fetching marketplace reports:", error);
       res.status(500).json({ message: "Failed to fetch reports" });
     }
@@ -4912,7 +4912,7 @@ export async function registerRoutes(app: Express) {
 
       const report = await storage.updateMarketplaceReport(id, updates);
       res.json(report);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error updating marketplace report:", error);
       res.status(400).json({ message: "Failed to update report" });
     }
@@ -4926,11 +4926,11 @@ export async function registerRoutes(app: Express) {
 
       const verification = await storage.createVendorVerification({
         ...validatedData,
-        userId: user.id,
+        userId: user?.id,
       });
 
       res.status(201).json(verification);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error creating vendor verification:", error);
       res.status(400).json({ message: "Failed to create vendor verification" });
     }
@@ -4943,11 +4943,11 @@ export async function registerRoutes(app: Express) {
 
       const verification = await storage.createBuyerVerification({
         ...validatedData,
-        userId: user.id,
+        userId: user?.id,
       });
 
       res.status(201).json(verification);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error creating buyer verification:", error);
       res.status(400).json({ message: "Failed to create buyer verification" });
     }
@@ -4957,8 +4957,8 @@ export async function registerRoutes(app: Express) {
     try {
       const user = req.user as any;
 
-      const vendorVerification = await storage.getVendorVerificationByUserId(user.id);
-      const buyerVerification = await storage.getBuyerVerificationByUserId(user.id);
+      const vendorVerification = await storage.getVendorVerificationByUserId(user?.id);
+      const buyerVerification = await storage.getBuyerVerificationByUserId(user?.id);
 
       res.json({
         vendor: vendorVerification || null,
@@ -4966,7 +4966,7 @@ export async function registerRoutes(app: Express) {
         isVendorVerified: vendorVerification?.status === 'approved',
         isBuyerVerified: buyerVerification?.status === 'approved'
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error fetching verification status:", error);
       res.status(500).json({ message: "Failed to fetch verification status" });
     }
@@ -4982,7 +4982,7 @@ export async function registerRoutes(app: Express) {
       });
 
       res.json(verifications);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error fetching verifications:", error);
       res.status(500).json({ message: "Failed to fetch verifications" });
     }
@@ -4997,13 +4997,13 @@ export async function registerRoutes(app: Express) {
       const updates = {
         status,
         adminNotes,
-        reviewedBy: user.id,
+        reviewedBy: user?.id,
         reviewedAt: new Date()
       };
 
       const verification = await storage.updateVerification(id, updates);
       res.json(verification);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error updating verification:", error);
       res.status(400).json({ message: "Failed to update verification" });
     }
@@ -5022,12 +5022,12 @@ export async function registerRoutes(app: Express) {
 
       const verification = await storage.createAddressVerification({
         ...validatedData,
-        userId: user.id,
+        userId: user?.id,
         deadline
       });
 
       res.status(201).json(verification);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error creating address verification:", error);
       res.status(400).json({ message: "Failed to create address verification" });
     }
@@ -5036,7 +5036,7 @@ export async function registerRoutes(app: Express) {
   app.get("/api/address-verification/status", isAuthenticated, async (req, res) => {
     try {
       const user = req.user as any;
-      const verification = await storage.getAddressVerificationByUserId(user.id);
+      const verification = await storage.getAddressVerificationByUserId(user?.id);
 
       // Calculate deadline if no verification exists
       const userCreatedAt = new Date(user.createdAt);
@@ -5054,7 +5054,7 @@ export async function registerRoutes(app: Express) {
         isExpired,
         requiresVerification: !user.addressVerified
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error fetching address verification status:", error);
       res.status(500).json({ message: "Failed to fetch verification status" });
     }
@@ -5067,16 +5067,16 @@ export async function registerRoutes(app: Express) {
       // Generate 6-digit verification code
       const code = Math.floor(100000 + Math.random() * 900000).toString();
 
-      await storage.sendAddressVerificationPostcard(user.id, code);
+      await storage.sendAddressVerificationPostcard(user?.id, code);
 
       // In a real implementation, you would send the postcard via USPS API
-      console.log(`Postcard verification code for ${user.id}: ${code}`);
+      console.log(`Postcard verification code for ${user?.id}: ${code}`);
 
       res.json({ 
         message: "Verification postcard has been sent to your address. It should arrive within 5-7 business days.",
         estimatedDelivery: "5-7 business days"
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error requesting postcard verification:", error);
       res.status(500).json({ message: "Failed to request postcard verification" });
     }
@@ -5091,7 +5091,7 @@ export async function registerRoutes(app: Express) {
         return res.status(400).json({ message: "Valid 6-digit code is required" });
       }
 
-      const success = await storage.verifyAddressWithPostcard(user.id, code);
+      const success = await storage.verifyAddressWithPostcard(user?.id, code);
 
       if (success) {
         res.json({ 
@@ -5104,7 +5104,7 @@ export async function registerRoutes(app: Express) {
           verified: false
         });
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error verifying postcard code:", error);
       res.status(500).json({ message: "Failed to verify postcard code" });
     }
@@ -5117,7 +5117,7 @@ export async function registerRoutes(app: Express) {
       const updates = req.body;
 
       // Verify the user owns this verification
-      const existingVerification = await storage.getAddressVerificationByUserId(user.id);
+      const existingVerification = await storage.getAddressVerificationByUserId(user?.id);
       if (!existingVerification || existingVerification.id !== id) {
         return res.status(403).json({ message: "Not authorized to update this verification" });
       }
@@ -5129,7 +5129,7 @@ export async function registerRoutes(app: Express) {
       });
 
       res.json(verification);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error updating address verification:", error);
       res.status(400).json({ message: "Failed to update verification" });
     }
@@ -5154,7 +5154,7 @@ export async function registerRoutes(app: Express) {
       const results = await query.orderBy(desc(addressVerifications.createdAt));
 
       res.json(results);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error fetching address verifications:", error);
       res.status(500).json({ message: "Failed to fetch verifications" });
     }
@@ -5169,7 +5169,7 @@ export async function registerRoutes(app: Express) {
       const updates: any = {
         status,
         adminNotes,
-        reviewedBy: user.id,
+        reviewedBy: user?.id,
         reviewedAt: new Date()
       };
 
@@ -5185,7 +5185,7 @@ export async function registerRoutes(app: Express) {
 
       const verification = await storage.updateAddressVerification(id, updates);
       res.json(verification);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error updating address verification:", error);
       res.status(400).json({ message: "Failed to update verification" });
     }
@@ -5208,7 +5208,7 @@ export async function registerRoutes(app: Express) {
 
       const posts = await storage.getCommunityPosts(filters);
       res.json(posts);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error fetching community posts:", error);
       res.status(500).json({ message: "Failed to fetch posts" });
     }
@@ -5235,7 +5235,7 @@ export async function registerRoutes(app: Express) {
       });
 
       res.status(201).json(newPost);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error creating community post:", error);
       res.status(500).json({ message: "Failed to create post" });
     }
@@ -5251,7 +5251,7 @@ export async function registerRoutes(app: Express) {
       }
 
       res.json(post);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error fetching community post:", error);
       res.status(500).json({ message: "Failed to fetch post" });
     }
@@ -5265,7 +5265,7 @@ export async function registerRoutes(app: Express) {
 
       const result = await storage.togglePostLike(userId, postId);
       res.json(result);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error toggling post like:", error);
       res.status(500).json({ message: "Failed to toggle like" });
     }
@@ -5285,7 +5285,7 @@ export async function registerRoutes(app: Express) {
       });
 
       res.status(201).json(comment);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error creating comment:", error);
       res.status(500).json({ message: "Failed to create comment" });
     }
@@ -5296,7 +5296,7 @@ export async function registerRoutes(app: Express) {
       const { id: postId } = req.params;
       const comments = await storage.getPostComments(postId);
       res.json(comments);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error fetching post comments:", error);
       res.status(500).json({ message: "Failed to fetch comments" });
     }
@@ -5315,7 +5315,7 @@ export async function registerRoutes(app: Express) {
 
       const groups = await storage.getCommunityGroups(filters);
       res.json(groups);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error fetching community groups:", error);
       res.status(500).json({ message: "Failed to fetch groups" });
     }
@@ -5333,7 +5333,7 @@ export async function registerRoutes(app: Express) {
 
       const regions = await storage.getRegions(filters);
       res.json(regions);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error fetching regions:", error);
       res.status(500).json({ message: "Failed to fetch regions" });
     }
@@ -5346,7 +5346,7 @@ export async function registerRoutes(app: Express) {
     try {
       const categories = await storage.getHandmadeCategories();
       res.json(categories);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error fetching handmade categories:", error);
       res.status(500).json({ message: "Failed to fetch categories" });
     }
@@ -5376,7 +5376,7 @@ export async function registerRoutes(app: Express) {
 
       const products = await storage.getHandmadeProducts(filters);
       res.json(products);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error fetching handmade products:", error);
       res.status(500).json({ message: "Failed to fetch products" });
     }
@@ -5395,7 +5395,7 @@ export async function registerRoutes(app: Express) {
       await storage.incrementProductViews(id);
 
       res.json(product);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error fetching product:", error);
       res.status(500).json({ message: "Failed to fetch product" });
     }
@@ -5411,7 +5411,7 @@ export async function registerRoutes(app: Express) {
 
       const product = await storage.createHandmadeProduct(productData);
       res.status(201).json(product);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error creating product:", error);
       res.status(500).json({ message: "Failed to create product" });
     }
@@ -5430,7 +5430,7 @@ export async function registerRoutes(app: Express) {
 
       const updatedProduct = await storage.updateHandmadeProduct(id, req.body);
       res.json(updatedProduct);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error updating product:", error);
       res.status(500).json({ message: "Failed to update product" });
     }
@@ -5444,7 +5444,7 @@ export async function registerRoutes(app: Express) {
 
       const result = await storage.toggleProductFavorite(userId, productId);
       res.json(result);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error toggling favorite:", error);
       res.status(500).json({ message: "Failed to toggle favorite" });
     }
@@ -5455,7 +5455,7 @@ export async function registerRoutes(app: Express) {
       const userId = req.user?.id;
       const favorites = await storage.getUserFavoriteProducts(userId);
       res.json(favorites);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error fetching favorites:", error);
       res.status(500).json({ message: "Failed to fetch favorites" });
     }
@@ -5472,7 +5472,7 @@ export async function registerRoutes(app: Express) {
 
       const order = await storage.createProductOrder(orderData);
       res.status(201).json(order);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error creating order:", error);
       res.status(500).json({ message: "Failed to create order" });
     }
@@ -5485,7 +5485,7 @@ export async function registerRoutes(app: Express) {
 
       const orders = await storage.getUserOrders(userId, type);
       res.json(orders);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error fetching orders:", error);
       res.status(500).json({ message: "Failed to fetch orders" });
     }
@@ -5507,7 +5507,7 @@ export async function registerRoutes(app: Express) {
       }
 
       res.json(order);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error fetching order:", error);
       res.status(500).json({ message: "Failed to fetch order" });
     }
@@ -5530,7 +5530,7 @@ export async function registerRoutes(app: Express) {
 
       const updatedOrder = await storage.updateProductOrder(id, req.body);
       res.json(updatedOrder);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error updating order:", error);
       res.status(500).json({ message: "Failed to update order" });
     }
@@ -5547,7 +5547,7 @@ export async function registerRoutes(app: Express) {
 
       const review = await storage.createProductReview(reviewData);
       res.status(201).json(review);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error creating review:", error);
       res.status(500).json({ message: "Failed to create review" });
     }
@@ -5558,7 +5558,7 @@ export async function registerRoutes(app: Express) {
       const { id: productId } = req.params;
       const reviews = await storage.getProductReviews(productId);
       res.json(reviews);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error fetching reviews:", error);
       res.status(500).json({ message: "Failed to fetch reviews" });
     }
@@ -5569,7 +5569,7 @@ export async function registerRoutes(app: Express) {
       const { id: productId } = req.params;
       const rating = await storage.getProductRatingSummary(productId);
       res.json(rating);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error fetching rating:", error);
       res.status(500).json({ message: "Failed to fetch rating" });
     }
@@ -5586,7 +5586,7 @@ export async function registerRoutes(app: Express) {
       }
 
       res.json(profile);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error fetching seller profile:", error);
       res.status(500).json({ message: "Failed to fetch seller profile" });
     }
@@ -5602,7 +5602,7 @@ export async function registerRoutes(app: Express) {
 
       const profile = await storage.createSellerProfile(profileData);
       res.status(201).json(profile);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error creating seller profile:", error);
       res.status(500).json({ message: "Failed to create seller profile" });
     }
@@ -5613,7 +5613,7 @@ export async function registerRoutes(app: Express) {
       const userId = req.user?.id;
       const profile = await storage.updateSellerProfile(userId, req.body);
       res.json(profile);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error updating seller profile:", error);
       res.status(500).json({ message: "Failed to update seller profile" });
     }
@@ -5624,7 +5624,7 @@ export async function registerRoutes(app: Express) {
       const userId = req.user?.id;
       const profile = await storage.getSellerProfile(userId);
       res.json(profile);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error fetching seller profile:", error);
       res.status(500).json({ message: "Failed to fetch seller profile" });
     }
@@ -5635,7 +5635,7 @@ export async function registerRoutes(app: Express) {
       const { userId } = req.params;
       const products = await storage.getSellerProducts(userId);
       res.json(products);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error fetching seller products:", error);
       res.status(500).json({ message: "Failed to fetch seller products" });
     }
@@ -5646,7 +5646,7 @@ export async function registerRoutes(app: Express) {
       const { userId } = req.params;
       const ratings = await storage.getSellerRatings(userId);
       res.json(ratings);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error fetching seller ratings:", error);
       res.status(500).json({ message: "Failed to fetch seller ratings" });
     }
@@ -5675,7 +5675,7 @@ export async function registerRoutes(app: Express) {
       const report = await storage.createModerationReport(validatedReport);
 
       res.json(report);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error creating moderation report:", error);
       res.status(500).json({ message: "Failed to create report" });
     }
@@ -5702,7 +5702,7 @@ export async function registerRoutes(app: Express) {
 
       const reports = await storage.getModerationReports(filters);
       res.json(reports);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error fetching moderation reports:", error);
       res.status(500).json({ message: "Failed to fetch reports" });
     }
@@ -5719,7 +5719,7 @@ export async function registerRoutes(app: Express) {
       }
 
       res.json(report);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error fetching moderation report:", error);
       res.status(500).json({ message: "Failed to fetch report" });
     }
@@ -5755,7 +5755,7 @@ export async function registerRoutes(app: Express) {
       const moderationVote = await storage.createModerationVote(validatedVote);
 
       res.json(moderationVote);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error creating moderation vote:", error);
 
       if (error.message === 'User has already voted on this report') {
@@ -5772,7 +5772,7 @@ export async function registerRoutes(app: Express) {
       const { reportId } = req.params;
       const votes = await storage.getReportVotes(reportId);
       res.json(votes);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error fetching report votes:", error);
       res.status(500).json({ message: "Failed to fetch votes" });
     }
@@ -5786,7 +5786,7 @@ export async function registerRoutes(app: Express) {
 
       const canVote = await storage.canUserVoteOnReport(userId, reportId);
       res.json({ canVote });
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error checking vote eligibility:", error);
       res.status(500).json({ message: "Failed to check vote eligibility" });
     }
@@ -5806,7 +5806,7 @@ export async function registerRoutes(app: Express) {
       const appeal = await storage.createModerationAppeal(validatedAppeal);
 
       res.json(appeal);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error creating moderation appeal:", error);
       res.status(500).json({ message: "Failed to create appeal" });
     }
@@ -5818,7 +5818,7 @@ export async function registerRoutes(app: Express) {
       const userId = req.user?.claims?.sub;
       const appeals = await storage.getAppealsByUser(userId);
       res.json(appeals);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error fetching moderation appeals:", error);
       res.status(500).json({ message: "Failed to fetch appeals" });
     }
@@ -5842,7 +5842,7 @@ export async function registerRoutes(app: Express) {
       }
 
       res.json(appeal);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error fetching moderation appeal:", error);
       res.status(500).json({ message: "Failed to fetch appeal" });
     }
@@ -5873,7 +5873,7 @@ export async function registerRoutes(app: Express) {
       }
 
       res.json(reputation);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error fetching moderation reputation:", error);
       res.status(500).json({ message: "Failed to fetch reputation" });
     }
@@ -5885,7 +5885,7 @@ export async function registerRoutes(app: Express) {
       const { contentType, contentId } = req.params;
       const actions = await storage.getModerationActions(contentType, contentId);
       res.json(actions);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error fetching moderation actions:", error);
       res.status(500).json({ message: "Failed to fetch actions" });
     }
@@ -5903,7 +5903,7 @@ export async function registerRoutes(app: Express) {
 
       const settings = await storage.getModerationSettings(user.county, user.state);
       res.json(settings);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error fetching moderation settings:", error);
       res.status(500).json({ message: "Failed to fetch settings" });
     }
@@ -5947,7 +5947,7 @@ export async function registerRoutes(app: Express) {
       // TODO: Send email notification (when email service is setup)
 
       res.status(201).json(invitation);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error sending invitation:", error);
       res.status(500).json({ message: "Failed to send invitation" });
     }
@@ -5959,7 +5959,7 @@ export async function registerRoutes(app: Express) {
       const userId = req.user?.claims?.sub;
       const invitations = await storage.getUserInvitations(userId);
       res.json(invitations);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error fetching user invitations:", error);
       res.status(500).json({ message: "Failed to fetch invitations" });
     }
@@ -5997,7 +5997,7 @@ export async function registerRoutes(app: Express) {
       }
 
       res.json(acceptedInvitation);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error accepting invitation:", error);
       res.status(500).json({ message: "Failed to accept invitation" });
     }
@@ -6029,7 +6029,7 @@ export async function registerRoutes(app: Express) {
         targetRole: invitation.targetRole,
         personalMessage: invitation.personalMessage
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error validating invitation:", error);
       res.status(500).json({ message: "Failed to validate invitation" });
     }
@@ -6053,7 +6053,7 @@ export async function registerRoutes(app: Express) {
       }
 
       res.json({ referralCode });
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error generating referral code:", error);
       res.status(500).json({ message: "Failed to generate referral code" });
     }
@@ -6076,7 +6076,7 @@ export async function registerRoutes(app: Express) {
       }
 
       res.json(stats);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error fetching referral stats:", error);
       res.status(500).json({ message: "Failed to fetch referral stats" });
     }
@@ -6088,7 +6088,7 @@ export async function registerRoutes(app: Express) {
       const limit = parseInt(req.query.limit as string) || 10;
       const topReferrers = await storage.getTopReferrers(limit);
       res.json(topReferrers);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error fetching referral leaderboard:", error);
       res.status(500).json({ message: "Failed to fetch leaderboard" });
     }
@@ -6099,7 +6099,7 @@ export async function registerRoutes(app: Express) {
     try {
       await storage.expireOldInvitations();
       res.json({ message: "Expired invitations cleaned up successfully" });
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error cleaning up invitations:", error);
       res.status(500).json({ message: "Failed to cleanup invitations" });
     }
@@ -6133,7 +6133,7 @@ export async function registerRoutes(app: Express) {
         message: "Realtor application submitted successfully", 
         profileId: realtorProfile.id 
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error submitting realtor application:", error);
       res.status(500).json({ message: "Failed to submit realtor application" });
     }
@@ -6165,7 +6165,7 @@ export async function registerRoutes(app: Express) {
         message: "Car salesman application submitted successfully", 
         profileId: carSalesmanProfile.id 
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error submitting car salesman application:", error);
       res.status(500).json({ message: "Failed to submit car salesman application" });
     }
@@ -6181,7 +6181,7 @@ export async function registerRoutes(app: Express) {
         realtors: pendingRealtors,
         carSalesmen: pendingCarSalesmen
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error fetching pending applications:", error);
       res.status(500).json({ message: "Failed to fetch pending applications" });
     }
@@ -6208,7 +6208,7 @@ export async function registerRoutes(app: Express) {
       });
 
       res.json(result);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error updating realtor verification:", error);
       res.status(500).json({ message: "Failed to update verification status" });
     }
@@ -6235,7 +6235,7 @@ export async function registerRoutes(app: Express) {
       });
 
       res.json(result);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error updating car salesman verification:", error);
       res.status(500).json({ message: "Failed to update verification status" });
     }
@@ -6269,7 +6269,7 @@ export async function registerRoutes(app: Express) {
       });
 
       res.status(201).json(program);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error joining affiliate program:", error);
       res.status(500).json({ message: "Failed to join affiliate program" });
     }
@@ -6299,7 +6299,7 @@ export async function registerRoutes(app: Express) {
         commissions: commissions.slice(0, 10), // Last 10 commissions
         payouts: payouts.slice(0, 5) // Last 5 payouts
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error fetching affiliate dashboard:", error);
       res.status(500).json({ message: "Failed to fetch affiliate dashboard" });
     }
@@ -6340,7 +6340,7 @@ export async function registerRoutes(app: Express) {
       });
 
       res.json({ success: true, referralId: referral.id });
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error tracking referral click:", error);
       res.status(500).json({ message: "Failed to track referral" });
     }
@@ -6360,7 +6360,7 @@ export async function registerRoutes(app: Express) {
       await storage.convertReferral(affiliateCode, userId);
 
       res.json({ success: true });
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error converting referral:", error);
       res.status(500).json({ message: "Failed to convert referral" });
     }
@@ -6390,12 +6390,12 @@ export async function registerRoutes(app: Express) {
         transactionId,
         revenueAmount: revenueAmount.toString(),
         commissionAmount: commissionAmount.toString(),
-        description: description || 'Commission earned',
+        // description: description || 'Commission earned',
         status: 'pending'
       });
 
       res.status(201).json(commission);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error creating commission:", error);
       res.status(500).json({ message: "Failed to create commission" });
     }
@@ -6413,7 +6413,7 @@ export async function registerRoutes(app: Express) {
 
       const referrals = await storage.getReferralsByAffiliate(program.id);
       res.json(referrals);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error fetching referrals:", error);
       res.status(500).json({ message: "Failed to fetch referrals" });
     }
@@ -6431,7 +6431,7 @@ export async function registerRoutes(app: Express) {
 
       const commissions = await storage.getCommissionsForAffiliate(program.id);
       res.json(commissions);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error fetching commissions:", error);
       res.status(500).json({ message: "Failed to fetch commissions" });
     }
@@ -6449,7 +6449,7 @@ export async function registerRoutes(app: Express) {
 
       const payouts = await storage.getPayoutsForAffiliate(program.id);
       res.json(payouts);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error fetching payouts:", error);
       res.status(500).json({ message: "Failed to fetch payouts" });
     }
@@ -6470,7 +6470,7 @@ export async function registerRoutes(app: Express) {
       await storage.approveCommission(commissionId);
 
       res.json({ success: true });
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error approving commission:", error);
       res.status(500).json({ message: "Failed to approve commission" });
     }
@@ -6504,7 +6504,7 @@ export async function registerRoutes(app: Express) {
       });
 
       res.status(201).json(payout);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error creating payout:", error);
       res.status(500).json({ message: "Failed to create payout" });
     }
@@ -6531,7 +6531,7 @@ export async function registerRoutes(app: Express) {
       await storage.updatePayoutStatus(payoutId, status);
 
       res.json({ success: true });
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error updating payout status:", error);
       res.status(500).json({ message: "Failed to update payout status" });
     }
@@ -6555,7 +6555,7 @@ export async function registerRoutes(app: Express) {
       });
 
       res.json(updatedProgram);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error updating affiliate settings:", error);
       res.status(500).json({ message: "Failed to update affiliate settings" });
     }
@@ -6572,7 +6572,7 @@ export async function registerRoutes(app: Express) {
 
       const progress = await tutorialStorage.getUserTutorialProgress(userId);
       res.json(progress);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error fetching tutorial progress:", error);
       res.status(500).json({ message: "Failed to fetch tutorial progress" });
     }
@@ -6589,7 +6589,7 @@ export async function registerRoutes(app: Express) {
 
       const recommended = await tutorialStorage.getRecommendedTutorialsForUser(userId, userRole);
       res.json(recommended);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error fetching recommended tutorials:", error);
       res.status(500).json({ message: "Failed to fetch recommended tutorials" });
     }
@@ -6605,7 +6605,7 @@ export async function registerRoutes(app: Express) {
       }
 
       res.json(tutorial);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error fetching tutorial:", error);
       res.status(500).json({ message: "Failed to fetch tutorial" });
     }
@@ -6646,7 +6646,7 @@ export async function registerRoutes(app: Express) {
       });
 
       res.json({ progress, tutorial });
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error starting tutorial:", error);
       res.status(500).json({ message: "Failed to start tutorial" });
     }
@@ -6692,7 +6692,7 @@ export async function registerRoutes(app: Express) {
       });
 
       res.json(progress);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error updating tutorial progress:", error);
       res.status(500).json({ message: "Failed to update tutorial progress" });
     }
@@ -6721,7 +6721,7 @@ export async function registerRoutes(app: Express) {
       });
 
       res.json(progress);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error completing tutorial:", error);
       res.status(500).json({ message: "Failed to complete tutorial" });
     }
@@ -6749,7 +6749,7 @@ export async function registerRoutes(app: Express) {
       });
 
       res.json(progress);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error skipping tutorial:", error);
       res.status(500).json({ message: "Failed to skip tutorial" });
     }
@@ -6768,7 +6768,7 @@ export async function registerRoutes(app: Express) {
       const tutorial = shouldShow ? await tutorialStorage.getTutorialById(featureId) : null;
 
       res.json({ shouldShow, tutorial });
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error checking tutorial:", error);
       res.status(500).json({ message: "Failed to check tutorial" });
     }
@@ -6857,7 +6857,7 @@ export async function registerRoutes(app: Express) {
       wsManager.sendNotificationToUser(transaction.buyerId, buyerNotification);
 
       res.json(transaction);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error creating transaction:", error);
       res.status(500).json({ message: "Failed to create transaction" });
     }
@@ -6871,7 +6871,7 @@ export async function registerRoutes(app: Express) {
 
       const transactions = await storage.getMarketplaceTransactionsByUser(userId, role as 'buyer' | 'seller');
       res.json(transactions);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error fetching transactions:", error);
       res.status(500).json({ message: "Failed to fetch transactions" });
     }
@@ -6888,7 +6888,7 @@ export async function registerRoutes(app: Express) {
       wsManager.sendTransactionUpdate(transaction.sellerId, transaction);
 
       res.json(transaction);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error updating transaction:", error);
       res.status(500).json({ message: "Failed to update transaction" });
     }
@@ -6917,7 +6917,7 @@ export async function registerRoutes(app: Express) {
       wsManager.sendNotificationToUser(review.revieweeId, notification);
 
       res.json(review);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error creating review:", error);
       res.status(500).json({ message: "Failed to create review" });
     }
@@ -6933,7 +6933,7 @@ export async function registerRoutes(app: Express) {
       const ratings = await storage.getUserRatings(userId);
 
       res.json({ reviews, ratings });
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error fetching reviews:", error);
       res.status(500).json({ message: "Failed to fetch reviews" });
     }
@@ -6947,7 +6947,7 @@ export async function registerRoutes(app: Express) {
 
       const notifications = await storage.getUserNotifications(userId, unreadOnly === 'true');
       res.json(notifications);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error fetching notifications:", error);
       res.status(500).json({ message: "Failed to fetch notifications" });
     }
@@ -6958,7 +6958,7 @@ export async function registerRoutes(app: Express) {
       const { id } = req.params;
       const notification = await storage.markNotificationAsRead(id);
       res.json(notification);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error marking notification as read:", error);
       res.status(500).json({ message: "Failed to mark notification as read" });
     }
@@ -6969,7 +6969,7 @@ export async function registerRoutes(app: Express) {
       const userId = (req.user as any)?.claims?.sub || req.user?.id;
       await storage.markAllNotificationsAsRead(userId);
       res.json({ success: true });
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error marking all notifications as read:", error);
       res.status(500).json({ message: "Failed to mark all notifications as read" });
     }
@@ -7027,7 +7027,7 @@ export async function registerRoutes(app: Express) {
       });
 
       res.json(searchResults);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error performing search:", error);
       res.status(500).json({ message: "Failed to perform search" });
     }
@@ -7043,7 +7043,7 @@ export async function registerRoutes(app: Express) {
 
       const savedSearch = await storage.createSavedSearch(searchData);
       res.json(savedSearch);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error saving search:", error);
       res.status(500).json({ message: "Failed to save search" });
     }
@@ -7054,7 +7054,7 @@ export async function registerRoutes(app: Express) {
       const userId = (req.user as any)?.claims?.sub || req.user?.id;
       const savedSearches = await storage.getUserSavedSearches(userId);
       res.json(savedSearches);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error fetching saved searches:", error);
       res.status(500).json({ message: "Failed to fetch saved searches" });
     }
@@ -7065,7 +7065,7 @@ export async function registerRoutes(app: Express) {
       const { id } = req.params;
       await storage.deleteSavedSearch(id);
       res.json({ success: true });
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error deleting saved search:", error);
       res.status(500).json({ message: "Failed to delete saved search" });
     }
@@ -7091,7 +7091,7 @@ export async function registerRoutes(app: Express) {
       };
 
       res.json(dispute);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error creating dispute:", error);
       res.status(500).json({ message: "Failed to create dispute" });
     }
@@ -7104,7 +7104,7 @@ export async function registerRoutes(app: Express) {
     try {
       const methods = paymentService.getAvailablePaymentMethods(true);
       res.json(methods);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error fetching payment methods:", error);
       res.status(500).json({ message: "Failed to fetch payment methods" });
     }
@@ -7126,13 +7126,13 @@ export async function registerRoutes(app: Express) {
 
       // Verify user authorization (either homeowner or contractor)
       const user = req.user;
-      if (payment.homeownerId !== user.id && payment.contractorId !== user.id) {
+      if (payment.homeownerId !== user?.id && payment.contractorId !== user?.id) {
         return res.status(403).json({ message: "Not authorized to access this payment" });
       }
 
       const result = await paymentService.createContractorPaymentIntent(payment);
       res.json(result);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error creating contractor payment intent:", error);
       res.status(500).json({ message: "Failed to create payment intent" });
     }
@@ -7154,13 +7154,13 @@ export async function registerRoutes(app: Express) {
 
       // Verify user authorization (either buyer or seller)
       const user = req.user;
-      if (transaction.buyerId !== user.id && transaction.sellerId !== user.id) {
+      if (transaction.buyerId !== user?.id && transaction.sellerId !== user?.id) {
         return res.status(403).json({ message: "Not authorized to access this transaction" });
       }
 
       const result = await paymentService.createMarketplacePaymentIntent(transaction);
       res.json(result);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error creating marketplace payment intent:", error);
       res.status(500).json({ message: "Failed to create payment intent" });
     }
@@ -7181,12 +7181,12 @@ export async function registerRoutes(app: Express) {
         paymentType, 
         {
           ...confirmationData,
-          confirmedBy: user.id
+          confirmedBy: user?.id
         }
       );
 
       res.json(result);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error confirming off-platform payment:", error);
       res.status(500).json({ message: "Failed to confirm payment" });
     }
@@ -7204,12 +7204,12 @@ export async function registerRoutes(app: Express) {
 
       // Verify user authorization
       const user = req.user;
-      if (payment.homeownerId !== user.id && payment.contractorId !== user.id) {
+      if (payment.homeownerId !== user?.id && payment.contractorId !== user?.id) {
         return res.status(403).json({ message: "Not authorized to access this payment" });
       }
 
       res.json(payment);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error fetching contractor payment:", error);
       res.status(500).json({ message: "Failed to fetch payment" });
     }
@@ -7226,12 +7226,12 @@ export async function registerRoutes(app: Express) {
 
       // Verify user authorization
       const user = req.user;
-      if (transaction.buyerId !== user.id && transaction.sellerId !== user.id) {
+      if (transaction.buyerId !== user?.id && transaction.sellerId !== user?.id) {
         return res.status(403).json({ message: "Not authorized to access this transaction" });
       }
 
       res.json(transaction);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error fetching marketplace transaction:", error);
       res.status(500).json({ message: "Failed to fetch transaction" });
     }
@@ -7247,9 +7247,9 @@ export async function registerRoutes(app: Express) {
 
       if (type === 'all' || type === 'contractor') {
         // Get contractor payments where user is homeowner
-        const homeownerPayments = await storage.getContractorPaymentsByHomeowner(user.id);
+        const homeownerPayments = await storage.getContractorPaymentsByHomeowner(user?.id);
         // Get contractor payments where user is contractor  
-        const contractorPayments = await storage.getContractorPaymentsByContractor(user.id);
+        const contractorPayments = await storage.getContractorPaymentsByContractor(user?.id);
         history.contractorPayments = {
           asHomeowner: homeownerPayments,
           asContractor: contractorPayments
@@ -7258,9 +7258,9 @@ export async function registerRoutes(app: Express) {
 
       if (type === 'all' || type === 'marketplace') {
         // Get marketplace transactions where user is buyer
-        const buyerTransactions = await storage.getMarketplaceTransactionsByUser(user.id, 'buyer');
+        const buyerTransactions = await storage.getMarketplaceTransactionsByUser(user?.id, 'buyer');
         // Get marketplace transactions where user is seller
-        const sellerTransactions = await storage.getMarketplaceTransactionsByUser(user.id, 'seller');
+        const sellerTransactions = await storage.getMarketplaceTransactionsByUser(user?.id, 'seller');
         history.marketplaceTransactions = {
           asBuyer: buyerTransactions,
           asSeller: sellerTransactions
@@ -7268,7 +7268,7 @@ export async function registerRoutes(app: Express) {
       }
 
       res.json(history);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error fetching payment history:", error);
       res.status(500).json({ message: "Failed to fetch payment history" });
     }
@@ -7285,7 +7285,7 @@ export async function registerRoutes(app: Express) {
 
       const fees = await paymentService.calculatePaymentFees(amount, paymentType);
       res.json(fees);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error calculating fees:", error);
       res.status(500).json({ message: "Failed to calculate fees" });
     }
@@ -7299,7 +7299,7 @@ export async function registerRoutes(app: Express) {
 
       await paymentService.handleStripeWebhook(event);
       res.json({ received: true });
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error handling webhook:", error);
       res.status(500).json({ message: "Webhook handler failed" });
     }
@@ -7311,7 +7311,7 @@ export async function registerRoutes(app: Express) {
       const { configType = 'contractor_service' } = req.query;
       const config = await storage.getPaymentConfiguration(configType as string);
       res.json(config || {});
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error fetching payment config:", error);
       res.status(500).json({ message: "Failed to fetch configuration" });
     }
@@ -7322,7 +7322,7 @@ export async function registerRoutes(app: Express) {
       const configData = req.body;
       const config = await storage.createPaymentConfiguration(configData);
       res.status(201).json(config);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error creating payment config:", error);
       res.status(500).json({ message: "Failed to create configuration" });
     }
@@ -7335,7 +7335,7 @@ export async function registerRoutes(app: Express) {
     try {
       const stats = await storage.getFoundationStats();
       res.json(stats);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error fetching foundation stats:', error);
       res.status(500).json({ message: 'Failed to fetch foundation statistics' });
     }
@@ -7353,7 +7353,7 @@ export async function registerRoutes(app: Express) {
 
       const causes = await storage.getFoundationCauses(filters);
       res.json(causes);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error fetching foundation causes:', error);
       res.status(500).json({ message: 'Failed to fetch foundation causes' });
     }
@@ -7370,7 +7370,7 @@ export async function registerRoutes(app: Express) {
       }
 
       res.json(cause);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error fetching foundation cause:', error);
       res.status(500).json({ message: 'Failed to fetch foundation cause' });
     }
@@ -7440,7 +7440,7 @@ export async function registerRoutes(app: Express) {
         message: 'Donation payment intent created successfully'
       });
 
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error creating donation:', error);
       res.status(500).json({ message: 'Failed to process donation' });
     }
@@ -7497,7 +7497,7 @@ export async function registerRoutes(app: Express) {
         res.status(400).json({ message: 'Payment not successful' });
       }
 
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error confirming donation:', error);
       res.status(500).json({ message: 'Failed to confirm donation' });
     }
@@ -7516,7 +7516,7 @@ export async function registerRoutes(app: Express) {
 
       const donations = await storage.getUserDonations(userId, filters);
       res.json(donations);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error fetching user donations:', error);
       res.status(500).json({ message: 'Failed to fetch donations' });
     }
@@ -7528,7 +7528,7 @@ export async function registerRoutes(app: Express) {
       const userId = (req.user as any)?.claims?.sub || req.user?.id;
       const preferences = await storage.getUserDonationPreferences(userId);
       res.json(preferences || {});
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error fetching donation preferences:', error);
       res.status(500).json({ message: 'Failed to fetch preferences' });
     }
@@ -7539,7 +7539,7 @@ export async function registerRoutes(app: Express) {
       const userId = (req.user as any)?.claims?.sub || req.user?.id;
       const preferences = await storage.upsertUserDonationPreferences(userId, req.body);
       res.json(preferences);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error updating donation preferences:', error);
       res.status(500).json({ message: 'Failed to update preferences' });
     }
@@ -7551,7 +7551,7 @@ export async function registerRoutes(app: Express) {
       const limit = parseInt(req.query.limit as string) || 20;
       const donations = await storage.getRecentDonations(limit);
       res.json(donations);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error fetching recent donations:', error);
       res.status(500).json({ message: 'Failed to fetch recent donations' });
     }
@@ -7563,7 +7563,7 @@ export async function registerRoutes(app: Express) {
       const { causeId } = req.query;
       const reports = await storage.getFoundationImpactReports(causeId as string);
       res.json(reports);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error fetching impact reports:', error);
       res.status(500).json({ message: 'Failed to fetch impact reports' });
     }
@@ -7587,7 +7587,7 @@ export async function registerRoutes(app: Express) {
 
       const cause = await storage.createFoundationCause(causeData);
       res.json(cause);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error creating foundation cause:', error);
       res.status(500).json({ message: 'Failed to create cause' });
     }
@@ -7610,7 +7610,7 @@ export async function registerRoutes(app: Express) {
       });
 
       res.json(report);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error creating impact report:', error);
       res.status(500).json({ message: 'Failed to create impact report' });
     }
@@ -7621,8 +7621,8 @@ export async function registerRoutes(app: Express) {
     try {
       const user = req.user as any;
       await dataManagementService.logDataAccess({
-        userId: user.id,
-        accessorId: user.id,
+        userId: user?.id,
+        accessorId: user?.id,
         accessorRole: user.role,
         actionType: 'view',
         resourceType: 'profile',
@@ -7630,9 +7630,9 @@ export async function registerRoutes(app: Express) {
         userAgent: req.get('User-Agent')
       });
 
-      const settings = await dataManagementService.getUserPrivacySettings(user.id);
+      const settings = await dataManagementService.getUserPrivacySettings(user?.id);
       res.json(settings);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error fetching privacy settings:", error);
       res.status(500).json({ message: "Failed to fetch privacy settings" });
     }
@@ -7642,8 +7642,8 @@ export async function registerRoutes(app: Express) {
     try {
       const user = req.user as any;
       await dataManagementService.logDataAccess({
-        userId: user.id,
-        accessorId: user.id,
+        userId: user?.id,
+        accessorId: user?.id,
         accessorRole: user.role,
         actionType: 'edit',
         resourceType: 'profile',
@@ -7651,9 +7651,9 @@ export async function registerRoutes(app: Express) {
         userAgent: req.get('User-Agent')
       });
 
-      const settings = await dataManagementService.updateUserPrivacySettings(user.id, req.body);
+      const settings = await dataManagementService.updateUserPrivacySettings(user?.id, req.body);
       res.json(settings);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error updating privacy settings:", error);
       res.status(500).json({ message: "Failed to update privacy settings" });
     }
@@ -7663,15 +7663,15 @@ export async function registerRoutes(app: Express) {
     try {
       const user = req.user as any;
       const request = await dataManagementService.createDataRequest({
-        userId: user.id,
+        userId: user?.id,
         requestType: 'data_export',
         reason: req.body.reason,
-        requestedBy: user.id,
+        requestedBy: user?.id,
       });
 
       await dataManagementService.logDataAccess({
-        userId: user.id,
-        accessorId: user.id,
+        userId: user?.id,
+        accessorId: user?.id,
         accessorRole: user.role,
         actionType: 'export',
         resourceType: 'profile',
@@ -7684,7 +7684,7 @@ export async function registerRoutes(app: Express) {
         message: "Data export request created successfully.",
         requestId: request.id
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error creating data export request:", error);
       res.status(500).json({ message: "Failed to create data export request" });
     }
@@ -7694,15 +7694,15 @@ export async function registerRoutes(app: Express) {
     try {
       const user = req.user as any;
       const request = await dataManagementService.createDataRequest({
-        userId: user.id,
+        userId: user?.id,
         requestType: 'account_closure',
         reason: req.body.reason,
-        requestedBy: user.id,
+        requestedBy: user?.id,
       });
 
       await dataManagementService.logDataAccess({
-        userId: user.id,
-        accessorId: user.id,
+        userId: user?.id,
+        accessorId: user?.id,
         accessorRole: user.role,
         actionType: 'delete',
         resourceType: 'profile',
@@ -7715,7 +7715,7 @@ export async function registerRoutes(app: Express) {
         message: "Account deletion request created. This requires admin approval.",
         requestId: request.id
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error creating account deletion request:", error);
       res.status(500).json({ message: "Failed to create account deletion request" });
     }
@@ -7728,7 +7728,7 @@ export async function registerRoutes(app: Express) {
       const { status } = req.query;
 
       await dataManagementService.logDataAccess({
-        accessorId: user.id,
+        accessorId: user?.id,
         accessorRole: user.role,
         actionType: 'view',
         resourceType: 'analytics',
@@ -7738,7 +7738,7 @@ export async function registerRoutes(app: Express) {
 
       const requests = await dataManagementService.getAllDataRequests(status as string);
       res.json(requests);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error fetching data requests:", error);
       res.status(500).json({ message: "Failed to fetch data requests" });
     }
@@ -7758,7 +7758,7 @@ export async function registerRoutes(app: Express) {
 
       await dataManagementService.logDataAccess({
         userId: request.userId,
-        accessorId: user.id,
+        accessorId: user?.id,
         accessorRole: user.role,
         actionType: 'export',
         resourceType: 'profile',
@@ -7774,7 +7774,7 @@ export async function registerRoutes(app: Express) {
       res.setHeader('Content-Disposition', `attachment; filename="tradescout-data-export-${request.userId}.zip"`);
       res.send(zipBuffer);
 
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error processing data export:", error);
       res.status(500).json({ message: "Failed to process data export" });
     }
@@ -7792,11 +7792,11 @@ export async function registerRoutes(app: Express) {
         return res.status(404).json({ message: "Account deletion request not found" });
       }
 
-      await dataManagementService.deleteUserData(request.userId, user.id);
+      await dataManagementService.deleteUserData(request.userId, user?.id);
 
       res.json({ message: "Account successfully deleted" });
 
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error processing account deletion:", error);
       res.status(500).json({ message: "Failed to process account deletion" });
     }
@@ -7808,7 +7808,7 @@ export async function registerRoutes(app: Express) {
       const { status } = req.query;
 
       await dataManagementService.logDataAccess({
-        accessorId: user.id,
+        accessorId: user?.id,
         accessorRole: user.role,
         actionType: 'view',
         resourceType: 'analytics',
@@ -7818,7 +7818,7 @@ export async function registerRoutes(app: Express) {
 
       const incidents = await dataManagementService.getSecurityIncidents(status as string);
       res.json(incidents);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error fetching security incidents:", error);
       res.status(500).json({ message: "Failed to fetch security incidents" });
     }
@@ -7832,7 +7832,7 @@ export async function registerRoutes(app: Express) {
 
       await dataManagementService.logDataAccess({
         userId: userId,
-        accessorId: user.id,
+        accessorId: user?.id,
         accessorRole: user.role,
         actionType: 'view',
         resourceType: 'analytics',
@@ -7842,7 +7842,7 @@ export async function registerRoutes(app: Express) {
 
       const logs = await dataManagementService.getUserAccessLogs(userId, parseInt(limit as string));
       res.json(logs);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error fetching user access logs:", error);
       res.status(500).json({ message: "Failed to fetch access logs" });
     }
@@ -7907,7 +7907,7 @@ export async function registerRoutes(app: Express) {
       } else {
         throw new Error(`Formspree responded with status ${response.status}`);
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error submitting bug report:", error);
       res.status(500).json({ message: "Failed to submit bug report" });
     }

@@ -185,7 +185,7 @@ import {
   type CommentLike,
   type InsertCommentLike,
   type UserFollow,
-  type InsertUserFollow,
+  type any,
   type CommunityGroup,
   type InsertCommunityGroup,
   type GroupMember,
@@ -303,7 +303,7 @@ export interface IStorage {
   // Account security and management operations
   getUserTrustedDevices(userId: string): Promise<TrustedDevice[]>;
   removeTrustedDevice(userId: string, deviceId: string): Promise<void>;
-  getUserLoginHistory(userId: string, limit: number, offset: number): Promise<any[]>;
+  getUserLoginHistory(userId: string, limit: number, offset: number): Promise<any>;
   exportUserData(userId: string): Promise<any>;
   deactivateUser(userId: string): Promise<void>;
   updateUserPrivacySettings(userId: string, settings: any): Promise<any>;
@@ -338,8 +338,8 @@ export interface IStorage {
   
   // Leaderboard operations
   updateContractorLeaderboardStats(contractorId: string, rating: number): Promise<void>;
-  getMonthlyLeaderboard(month: number, year: number, limit: number, state?: string, county?: string): Promise<any[]>;
-  getLifetimeLeaderboard(limit: number, state?: string, county?: string): Promise<any[]>;
+  getMonthlyLeaderboard(month: number, year: number, limit: number, state?: string, county?: string): Promise<any>;
+  getLifetimeLeaderboard(limit: number, state?: string, county?: string): Promise<any>;
   getContractorLeaderboardPosition(contractorId: string): Promise<any>;
   getAllStates(): Promise<{ code: string; name: string }[]>;
   getCountiesByState(stateCode: string): Promise<{ id: string; name: string; stateCode: string }[]>;
@@ -420,7 +420,7 @@ export interface IStorage {
   // Error Report operations
   createErrorReport(report: any): Promise<any>;
   updateErrorReport(id: string, updates: any): Promise<any>;
-  getErrorReports(): Promise<any[]>;
+  getErrorReports(): Promise<any>;
   
   // Heatmap operations
   getLocalityHeatmapData(days: number): Promise<Array<{
@@ -505,7 +505,7 @@ export interface IStorage {
   createMarketplaceConversation(data: InsertMarketplaceConversation): Promise<MarketplaceConversation>;
   getMarketplaceConversation(id: string): Promise<MarketplaceConversation | undefined>;
   getMarketplaceConversationByParticipants(listingId: string, buyerId: string, sellerId: string): Promise<MarketplaceConversation | undefined>;
-  getUserMarketplaceConversations(userId: string): Promise<any[]>;
+  getUserMarketplaceConversations(userId: string): Promise<any>;
   createMarketplaceMessage(data: InsertMarketplaceMessage): Promise<MarketplaceMessage>;
   getMarketplaceMessages(conversationId: string): Promise<MarketplaceMessage[]>;
   markMarketplaceMessagesAsRead(conversationId: string, userId: string): Promise<void>;
@@ -844,7 +844,7 @@ export class DatabaseStorage implements IStorage {
     await db.delete(trustedDevices).where(and(eq(trustedDevices.userId, userId), eq(trustedDevices.id, deviceId)));
   }
 
-  async getUserLoginHistory(userId: string, limit: number, offset: number): Promise<any[]> {
+  async getUserLoginHistory(userId: string, limit: number, offset: number): Promise<any> {
     // Simple mock implementation - in a real app you'd track login sessions
     return [
       {
@@ -914,7 +914,7 @@ export class DatabaseStorage implements IStorage {
       .insert(users)
       .values({
         email,
-        passwordHash: hashedPassword,
+        password: hashedPassword,
         firstName,
         lastName,
         role: 'head_admin',
@@ -1871,7 +1871,7 @@ export class DatabaseStorage implements IStorage {
     return errorReport;
   }
 
-  async getErrorReports(): Promise<any[]> {
+  async getErrorReports(): Promise<any> {
     return await db.select().from(errorReports).orderBy(desc(errorReports.createdAt));
   }
 
@@ -2046,7 +2046,7 @@ export class DatabaseStorage implements IStorage {
     totalClicks: number;
     totalLeads: number;
     recentInteractions: PromoInteraction[];
-  }> {
+  } {
     const [stats] = await db
       .select({
         totalViews: sql<number>`count(case when ${promoInteractions.interactionType} = 'view' then 1 end)`,
@@ -2537,7 +2537,7 @@ export class DatabaseStorage implements IStorage {
         .where(eq(vendorVerifications.id, id))
         .returning();
       if (vendorVerification) return vendorVerification;
-    } catch (error) {
+    } catch (error: any) {
       // If vendor update fails, try buyer verification
     }
     
@@ -2707,7 +2707,7 @@ export class DatabaseStorage implements IStorage {
     return post;
   }
 
-  async togglePostLike(userId: string, postId: string): Promise<{ liked: boolean; likeCount: number }> {
+  async togglePostLike(userId: string, postId: string): Promise<{ liked: boolean; likeCount: number }>> {
     // Check if like exists
     const [existingLike] = await db
       .select()
@@ -2939,7 +2939,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   // Product Favorites
-  async toggleProductFavorite(userId: string, productId: string): Promise<{ action: 'added' | 'removed' }> {
+  async toggleProductFavorite(userId: string, productId: string): Promise<{ action: 'added' | 'removed' }>> {
     const existing = await db
       .select()
       .from(productFavorites)
@@ -3091,7 +3091,7 @@ export class DatabaseStorage implements IStorage {
       .orderBy(desc(productReviews.createdAt));
   }
 
-  async getProductRatingSummary(productId: string): Promise<{ average: number; count: number }> {
+  async getProductRatingSummary(productId: string): Promise<{ average: number; count: number }>> {
     const [result] = await db
       .select({
         count: sql<number>`count(*)`,
@@ -3142,7 +3142,7 @@ export class DatabaseStorage implements IStorage {
     return profile;
   }
 
-  async getSellerRatings(userId: string): Promise<{ average: number; count: number }> {
+  async getSellerRatings(userId: string): Promise<{ average: number; count: number }>> {
     const [result] = await db
       .select({
         count: sql<number>`count(*)`,
@@ -3837,12 +3837,12 @@ export class DatabaseStorage implements IStorage {
             )
           )
         );
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error updating leaderboard stats:", error);
     }
   }
 
-  async getMonthlyLeaderboard(month: number, year: number, limit: number, state?: string, county?: string): Promise<any[]> {
+  async getMonthlyLeaderboard(month: number, year: number, limit: number, state?: string, county?: string): Promise<any> {
     try {
       // Use direct SQL with pool.query to avoid Drizzle issues
       const { Pool } = await import('@neondatabase/serverless');
@@ -3898,13 +3898,13 @@ export class DatabaseStorage implements IStorage {
         county: row.city,
         location: row.city && row.state ? `${row.city}, ${row.state}` : row.state || null,
       }));
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error in getMonthlyLeaderboard:", error);
       return [];
     }
   }
 
-  async getLifetimeLeaderboard(limit: number, state?: string, county?: string): Promise<any[]> {
+  async getLifetimeLeaderboard(limit: number, state?: string, county?: string): Promise<any> {
     try {
       // Use direct SQL with pool.query to avoid Drizzle issues
       const { Pool } = await import('@neondatabase/serverless');
@@ -3957,7 +3957,7 @@ export class DatabaseStorage implements IStorage {
         county: row.city,
         location: row.city && row.state ? `${row.city}, ${row.state}` : row.state || null,
       }));
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error in getLifetimeLeaderboard:", error);
       return [];
     }
@@ -4456,7 +4456,7 @@ export class DatabaseStorage implements IStorage {
     return conversation;
   }
 
-  async getUserMarketplaceConversations(userId: string): Promise<any[]> {
+  async getUserMarketplaceConversations(userId: string): Promise<any> {
     const conversationsData = await db
       .select({
         conversation: marketplaceConversations,
@@ -4676,7 +4676,7 @@ export class DatabaseStorage implements IStorage {
       .orderBy(desc(userReviews.createdAt));
   }
 
-  async getUserRatings(userId: string): Promise<{ count: number; average: number }> {
+  async getUserRatings(userId: string): Promise<{ count: number; average: number }>> {
     const result = await db
       .select({
         count: sql<number>`count(*)::int`,
@@ -4975,7 +4975,7 @@ export class DatabaseStorage implements IStorage {
     return donation;
   }
 
-  async getUserDonations(userId: string, filters?: { status?: string; type?: string }): Promise<any[]> {
+  async getUserDonations(userId: string, filters?: { status?: string; type?: string }): Promise<any> {
     let query = db
       .select({
         id: foundationDonations.id,
@@ -5082,7 +5082,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   // Recent donations (public feed)
-  async getRecentDonations(limit: number = 20): Promise<any[]> {
+  async getRecentDonations(limit: number = 20): Promise<any> {
     const donations = await db
       .select()
       .from(foundationDonations)
@@ -5134,7 +5134,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   // Foundation impact reports
-  async getFoundationImpactReports(causeId?: string): Promise<any[]> {
+  async getFoundationImpactReports(causeId?: string): Promise<any> {
     let baseQuery = db
       .select()
       .from(foundationImpactReports)
@@ -5372,7 +5372,7 @@ export class DatabaseStorage implements IStorage {
     totalCommissionEarned: string;
     totalCommissionPaid: string;
     conversionRate: number;
-  }> {
+  }>> {
     const [program] = await db
       .select()
       .from(affiliatePrograms)
@@ -5548,7 +5548,7 @@ export class DatabaseStorage implements IStorage {
     }
 
     const results = await query.orderBy(desc(crmDeals.createdAt));
-    return results as Array<CrmDeal & { contact?: CrmContact; assignedTo?: User }>;
+    return results as Array<CrmDeal Array<CrmDeal & { contact?: CrmContact; assignedTo?: User }>; { contact?: CrmContact; assignedTo?: User }>>;
   }
 
   async createCrmActivity(activityData: InsertCrmActivity): Promise<CrmActivity> {
@@ -5998,7 +5998,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   // Feature Flags Management
-  async getFeatureFlags(): Promise<any[]> {
+  async getFeatureFlags(): Promise<any> {
     return await db.select().from(featureFlags).orderBy(desc(featureFlags.createdAt));
   }
 
