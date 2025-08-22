@@ -36,6 +36,7 @@ import {
   vendorVerifications,
   buyerVerifications,
   addressVerifications,
+  contractorApplications,
   // Handmade marketplace
   handmadeCategories,
   handmadeProducts,
@@ -3140,6 +3141,39 @@ export class DatabaseStorage implements IStorage {
       .from(handmadeProducts)
       .where(eq(handmadeProducts.sellerId, sellerId))
       .orderBy(desc(handmadeProducts.featured), desc(handmadeProducts.createdAt));
+  }
+
+  // Contractor application methods
+  async createContractorApplication(data: typeof contractorApplications.$inferInsert) {
+    const result = await db.insert(contractorApplications).values(data).returning();
+    return result[0];
+  }
+
+  async getContractorApplications(filters?: { status?: string; limit?: number }) {
+    let query = db.select().from(contractorApplications);
+    
+    if (filters?.status) {
+      query = query.where(eq(contractorApplications.status, filters.status));
+    }
+    
+    query = query.orderBy(desc(contractorApplications.submittedAt));
+    
+    if (filters?.limit) {
+      query = query.limit(filters.limit);
+    }
+    
+    return await query;
+  }
+
+  async getContractorApplication(id: string) {
+    return await db.select().from(contractorApplications).where(eq(contractorApplications.id, id)).limit(1).then(rows => rows[0]);
+  }
+
+  async updateContractorApplication(id: string, data: Partial<typeof contractorApplications.$inferInsert>) {
+    await db.update(contractorApplications).set({
+      ...data,
+      updatedAt: new Date()
+    }).where(eq(contractorApplications.id, id));
   }
 
   // ===== COMMUNITY MODERATION IMPLEMENTATIONS =====

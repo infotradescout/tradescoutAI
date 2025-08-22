@@ -893,7 +893,52 @@ export const userReputationRelations = relations(userReputation, ({ one }) => ({
   user: one(users, { fields: [userReputation.userId], references: [users.id] }),
 }));
 
+// Contractor applications table
+export const contractorApplications = pgTable("contractor_applications", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  companyName: varchar("company_name").notNull(),
+  email: varchar("email").notNull(),
+  phone: varchar("phone").notNull(),
+  website: varchar("website"),
+  primaryState: varchar("primary_state").notNull(),
+  primaryCounty: varchar("primary_county").notNull(),
+  serviceRadius: varchar("service_radius").notNull(),
+  yearsInBusiness: integer("years_in_business").notNull(),
+  licenseNumber: varchar("license_number").notNull(),
+  insuranceProvider: varchar("insurance_provider").notNull(),
+  primaryTrade: varchar("primary_trade").notNull(),
+  specialties: jsonb("specialties").$type<string[]>().notNull(),
+  about: text("about").notNull(),
+  preferredContact: varchar("preferred_contact").notNull(), // phone, email, both
+  agreeToTerms: boolean("agree_to_terms").notNull(),
+  agreeToVerification: boolean("agree_to_verification").notNull(),
+  status: varchar("status").default("pending"), // pending, under_review, approved, rejected
+  reviewNotes: text("review_notes"),
+  reviewedBy: varchar("reviewed_by"),
+  reviewedAt: timestamp("reviewed_at"),
+  contractorId: varchar("contractor_id"), // Set when approved and contractor created
+  submittedAt: timestamp("submitted_at").defaultNow(),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => [
+  index("idx_contractor_applications_email").on(table.email),
+  index("idx_contractor_applications_status").on(table.status),
+  index("idx_contractor_applications_submitted").on(table.submittedAt),
+]);
+
 // Insert schemas for forms
+export const insertContractorApplicationSchema = createInsertSchema(contractorApplications).omit({
+  id: true,
+  status: true,
+  reviewNotes: true,
+  reviewedBy: true,
+  reviewedAt: true,
+  contractorId: true,
+  submittedAt: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
 export const insertSocialPostSchema = createInsertSchema(socialPosts).omit({ 
   id: true, 
   createdAt: true, 

@@ -30,28 +30,38 @@ router.post('/api/contractor-signup', async (req, res) => {
     
     const validatedData = contractorSignupSchema.parse(req.body);
     
+    // Import storage dynamically to avoid circular dependency
+    const { storage } = await import('../storage');
+    
     // Create a contractor application record
-    const application = {
-      id: crypto.randomUUID(),
-      ...validatedData,
-      status: 'pending',
-      submittedAt: new Date(),
-      reviewedAt: null,
-      reviewedBy: null,
-      notes: null
-    };
+    const application = await storage.createContractorApplication({
+      companyName: validatedData.companyName,
+      email: validatedData.email,
+      phone: validatedData.phone,
+      website: validatedData.website,
+      primaryState: validatedData.primaryState,
+      primaryCounty: validatedData.primaryCounty,
+      serviceRadius: validatedData.serviceRadius,
+      yearsInBusiness: validatedData.yearsInBusiness,
+      licenseNumber: validatedData.licenseNumber,
+      insuranceProvider: validatedData.insuranceProvider,
+      primaryTrade: validatedData.primaryTrade,
+      specialties: validatedData.specialties,
+      about: validatedData.about,
+      preferredContact: validatedData.preferredContact,
+      agreeToTerms: validatedData.agreeToTerms,
+      agreeToVerification: validatedData.agreeToVerification,
+    });
     
-    // Store the application (for now, we'll just log it)
-    console.log('Contractor application:', application);
+    console.log('Contractor application saved to database:', application.id);
     
-    // In a real implementation, you would:
-    // 1. Save to database
-    // 2. Send email notification to admin
-    // 3. Send confirmation email to contractor
+    // TODO: Send email notifications
+    // 1. Send email notification to admin
+    // 2. Send confirmation email to contractor
     
     res.json({ 
       success: true, 
-      message: 'Application submitted successfully',
+      message: 'Application submitted successfully! We will review your application and contact you within 24-48 hours.',
       applicationId: application.id
     });
     
