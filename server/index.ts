@@ -3,7 +3,12 @@ import { registerRoutes } from "./routes";
 import { seedDatabase } from "./seed-data";
 import { setupVite, serveStatic, log } from "./vite";
 import { notificationService } from "./notification-service";
-import path from "path"; // Import path module
+import path from "path";
+import { fileURLToPath } from "url";
+
+// ES module equivalent of __dirname
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const app = express();
 app.use(express.json());
