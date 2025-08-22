@@ -7550,5 +7550,44 @@ export async function registerRoutes(app: Express) {
   // Register contractor signup routes
   app.use(contractorSignupRouter);
 
+  // Bug report endpoint with Formspree integration
+  app.post('/api/bug-report', async (req: any, res) => {
+    try {
+      const formspreeUrl = process.env.FORMSPREE_FORM_ID;
+      
+      if (!formspreeUrl) {
+        return res.status(500).json({ message: "Bug reporting service not configured" });
+      }
+
+      // Extract form ID from URL if it's a full URL
+      const formId = formspreeUrl.replace('https://formspree.io/f/', '');
+      const formspreeEndpoint = `https://formspree.io/f/${formId}`;
+
+      // Forward the form data to Formspree
+      const fetch = (await import('node-fetch')).default;
+      const response = await fetch(formspreeEndpoint, {
+        method: 'POST',
+        body: req.body as any, // FormData from client
+      });
+
+      if (response.ok) {
+        // Log the bug report for admin awareness
+        await storage.logEvent('bug_report_submitted', {
+          timestamp: new Date().toISOString(),
+          userAgent: req.get('User-Agent'),
+          ip: req.ip,
+          userId: req.user?.id || 'anonymous'
+        });
+
+        res.json({ message: "Bug report submitted successfully" });
+      } else {
+        throw new Error(`Formspree responded with status ${response.status}`);
+      }
+    } catch (error) {
+      console.error("Error submitting bug report:", error);
+      res.status(500).json({ message: "Failed to submit bug report" });
+    }
+  });
+
   return httpServer;
 }
