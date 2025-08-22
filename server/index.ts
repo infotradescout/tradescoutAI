@@ -90,13 +90,13 @@ app.use((req, res, next) => {
   if (app.get("env") === "development") {
     await setupVite(app, server);
   } else {
-    // Serve static files from the built public directory
-    const publicDistPath = path.join(path.dirname(__filename), 'public');
-    app.use(express.static(publicDistPath));
+    // Serve static files from client/dist directory (Replit deployment expectation)
+    const clientDistPath = path.join(path.dirname(__filename), '../client/dist');
+    app.use(express.static(clientDistPath));
 
     // Catch all handler for client-side routing
     app.get('*', (req, res) => {
-      const indexPath = path.join(publicDistPath, 'index.html');
+      const indexPath = path.join(clientDistPath, 'index.html');
       console.log('Serving index.html from:', indexPath);
       res.sendFile(indexPath, (err) => {
         if (err) {
