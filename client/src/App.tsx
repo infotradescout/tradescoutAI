@@ -33,6 +33,7 @@ import Accelerator from "@/pages/accelerator";
 import Help from "@/pages/help";
 import Settings from "@/pages/settings";
 import MasterAdminSetup from "@/components/auth/MasterAdminSetup";
+import { AuthFlow } from "@/components/auth/AuthFlow";
 
 import Dashboard from "@/pages/dashboard";
 import HomeownerDashboard from "@/pages/homeowner-dashboard";
@@ -73,6 +74,7 @@ import Community from "@/pages/community";
 import CommunityFeed from "@/pages/CommunityFeed";
 import CommunityModerationDemo from "@/pages/CommunityModerationDemo";
 import Register from "@/pages/register";
+import Signup from "@/pages/signup";
 import Leaderboard from "@/pages/leaderboard";
 import InvitePage from "@/pages/invite";
 import HandmadeMarketplace from "@/pages/handmade-marketplace";
@@ -163,6 +165,13 @@ const Router = memo(function Router() {
     );
   }
 
+  // Check if user needs to complete Facebook signup flow
+  const needsOnboarding = isAuthenticated && user && (!user.role || user.role === 'pending' || !user.onboardingCompleted);
+  
+  if (needsOnboarding) {
+    return <AuthFlow onComplete={() => window.location.reload()} />;
+  }
+
   // Show different routes based on authentication status
   const isPublicRoute = ['/login', '/register', '/terms', '/privacy', '/cookies', '/compliance'].includes(location);
 
@@ -214,7 +223,7 @@ const Router = memo(function Router() {
           {isAuthenticated ? (
             <>
               {/* Main application routes */}
-              <Route path="/" component={user?.onboardingCompleted ? Home : Landing} />
+              <Route path="/" component={Home} />
               <Route path="/home" component={Home} />
               <Route path="/dashboard" component={Dashboard} />
               <Route path="/foundation" component={Foundation} />
@@ -379,6 +388,7 @@ const Router = memo(function Router() {
               <Route path="/quote" component={EstimateCalculator} />
               <Route path="/contractors/signup" component={ContractorSignup} />
               <Route path="/contractors/:slug" component={ContractorProfile} />
+              <Route path="/signup" component={Signup} />
               
               {/* Redirect restricted routes to contractor board */}
               <Route path="/home" component={ContractorBoard} />

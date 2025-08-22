@@ -267,24 +267,101 @@ export async function registerRoutes(app: Express) {
   });
 
   // Facebook authentication routes
-  app.get("/auth/facebook", passport.authenticate('facebook', { 
+  app.get("/api/auth/facebook", passport.authenticate('facebook', { 
     scope: ['email'] 
   }));
 
-  app.get("/auth/facebook/callback", 
+  app.get("/api/auth/facebook/callback", 
     passport.authenticate('facebook', { 
       failureRedirect: '/login?error=facebook_auth_failed' 
     }),
     (req, res) => {
-      // Successful authentication, redirect to contractor board or profile setup
+      // Successful authentication, redirect to role selection or onboarding
       const user = req.user as any;
-      if (user && user.role === 'contractor_user') {
-        res.redirect('/contractor-board?welcome=true');
+      if (user && !user.role) {
+        res.redirect('/?facebook_signup=success&needs_role=true');
+      } else if (user && !user.onboardingCompleted) {
+        res.redirect('/?facebook_signup=success&needs_onboarding=true');
       } else {
-        res.redirect('/');
+        res.redirect('/?facebook_signup=success');
       }
     }
   );
+
+  // Role-based onboarding routes
+  app.post("/api/auth/update-role", isAuthenticated, async (req: AuthenticatedRequest, res) => {
+    try {
+      const { role } = req.body;
+      const userId = req.user.id;
+      
+      if (!['homeowner', 'contractor'].includes(role)) {
+        return res.status(400).json({ message: "Invalid role" });
+      }
+      
+      // Map role to database enum value
+      const dbRole = role === 'contractor' ? 'contractor_user' : 'homeowner';
+      
+      await storage.updateUser(userId, { role: dbRole });
+      
+      res.json({ message: "Role updated successfully", role: dbRole });
+    } catch (error) {
+      console.error("Role update error:", error);
+      res.status(500).json({ message: "Failed to update role" });
+    }
+  });
+
+  app.post("/api/auth/complete-onboarding", isAuthenticated, async (req: AuthenticatedRequest, res) => {
+    try {
+      const { firstName, lastName, phone, address, city, state, zipCode, county, businessName, licenseNumber, specialties, yearsExperience, role } = req.body;
+      const userId = req.user.id;
+      
+      // Update user profile with onboarding data
+      const updateData: any = {
+        firstName,
+        lastName,
+        phone,
+        address,
+        city,
+        state,
+        zipCode,
+        county,
+        onboardingCompleted: true,
+      };
+      
+      // Add contractor-specific fields
+      if (role === 'contractor') {
+        updateData.businessName = businessName;
+        updateData.licenseNumber = licenseNumber;
+        updateData.specialties = specialties;
+        updateData.yearsExperience = parseInt(yearsExperience) || 0;
+      }
+      
+      await storage.updateUser(userId, updateData);
+      
+      res.json({ message: "Onboarding completed successfully" });
+    } catch (error) {
+      console.error("Onboarding completion error:", error);
+      res.status(500).json({ message: "Failed to complete onboarding" });
+    }
+  });
+
+  app.post("/api/auth/skip-onboarding", isAuthenticated, async (req: AuthenticatedRequest, res) => {
+    try {
+      const { role } = req.body;
+      const userId = req.user.id;
+      
+      // Mark onboarding as completed but keep minimal profile
+      await storage.updateUser(userId, { 
+        onboardingCompleted: true,
+        role: role === 'contractor' ? 'contractor_user' : 'homeowner'
+      });
+      
+      res.json({ message: "Account created successfully" });
+    } catch (error) {
+      console.error("Skip onboarding error:", error);
+      res.status(500).json({ message: "Failed to create account" });
+    }
+  });
 
   app.get("/api/auth/user", (req, res) => {
     if (req.isAuthenticated()) {

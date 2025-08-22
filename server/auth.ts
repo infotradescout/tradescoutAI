@@ -100,15 +100,16 @@ export async function setupAuth(app: Express) {
           }
         }
 
-        // Create new user from Facebook profile
+        // Create new user from Facebook profile - role will be selected during onboarding
         const newUser = await storage.createUser({
           email: email || `${profile.id}@facebook.local`,
           firstName: profile.name?.givenName || profile.displayName,
           lastName: profile.name?.familyName || '',
           profileImageUrl: profile.photos?.[0]?.value,
           facebookId: profile.id,
-          role: 'contractor_user', // Default role for Facebook signups
+          role: null, // Will be set during role selection
           emailVerified: !!email, // Consider Facebook email verified
+          onboardingCompleted: false,
           createdAt: new Date(),
           updatedAt: new Date()
         });
