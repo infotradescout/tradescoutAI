@@ -248,6 +248,7 @@ export const users = pgTable("users", {
     emailNotifications?: boolean;
     smsNotifications?: boolean;
     marketingEmails?: boolean;
+    completedTours?: string[]; // Track completed onboarding tours
     navigation?: {
       customOrder?: string[]; // Array of navigation items in user's preferred order
       hiddenFromSwipe?: string[]; // Navigation items to hide from swipe navigation

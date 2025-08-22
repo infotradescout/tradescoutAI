@@ -88,6 +88,10 @@ import AdvancedSearch from "@/pages/advanced-search";
 import Notifications from "@/pages/notifications";
 import Profile from "@/pages/profile";
 import { ProfileSetupRedirect } from "@/components/profile-setup-redirect";
+import { OnboardingProvider } from "@/components/onboarding/OnboardingProvider";
+import { NewUserTour } from "@/components/onboarding/tours/NewUserTour";
+import { ContractorBoardTour } from "@/components/onboarding/tours/ContractorBoardTour";
+import { FeatureTour } from "@/components/onboarding/tours/FeatureTour";
 
 // Lazy load admin components
 const AdminDashboard = lazy(() => import("@/pages/admin-dashboard"));
@@ -161,11 +165,12 @@ const Router = memo(function Router() {
   const isPublicRoute = ['/login', '/register', '/terms', '/privacy', '/cookies', '/compliance'].includes(location);
 
   return (
-    <MobileGestures>
-    <div className="min-h-screen gradient-bg flex flex-col">
-      <NextGenNavigation />
-      
-      <main className="flex-1 relative">
+    <OnboardingProvider>
+      <MobileGestures>
+      <div className="min-h-screen gradient-bg flex flex-col">
+        <NextGenNavigation />
+        
+        <main className="flex-1 relative">
         <Switch>
           {/* Public routes - always accessible */}
           <Route path="/login" component={Login} />
@@ -405,9 +410,18 @@ const Router = memo(function Router() {
       />
       {isMobile && <MobileAppBar />}
       <PWAInstallPrompt />
+      
+      {/* Onboarding Tours */}
+      <NewUserTour />
+      <ContractorBoardTour />
+      <FeatureTour feature="recommendations" />
+      <FeatureTour feature="quote-calculator" />
+      <FeatureTour feature="search" />
+      
       {!isMobile && <LegalFooter />}
     </div>
     </MobileGestures>
+    </OnboardingProvider>
   );
 });
 
