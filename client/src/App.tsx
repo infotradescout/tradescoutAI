@@ -228,6 +228,7 @@ const Router = memo(function Router() {
               <Route path="/contractors/board" component={ContractorBoard} />
               <Route path="/quote-calculator" component={EstimateCalculator} />
               <Route path="/calculator" component={EstimateCalculator} />
+              <Route path="/connect-admin" component={ConnectMasterAdmin} />
             </>
           ) : (
             /* Public routes - only available pages */
