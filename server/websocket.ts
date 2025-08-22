@@ -6,6 +6,7 @@ interface WebSocketClient {
   ws: WebSocket;
   userId?: string;
   sessionId?: string;
+  conversationId?: string;
 }
 
 class WebSocketManager {
@@ -16,13 +17,21 @@ class WebSocketManager {
     this.wss = new WebSocketServer({ 
       server, 
       path: '/ws',
-      verifyClient: (info) => {
-        // Basic verification - you can add authentication here
+      verifyClient: (info: any) => {
+        // Allow all connections for now - can add auth later
         return true;
+      },
+      // Handle protocols properly
+      handleProtocols: (protocols) => {
+        return protocols.length > 0 ? protocols[0] : '';
       }
     });
 
     this.wss.on('connection', this.handleConnection.bind(this));
+    this.wss.on('error', (error) => {
+      console.error('WebSocket server error:', error);
+    });
+    
     console.log('WebSocket server initialized on /ws');
   }
 
@@ -40,24 +49,31 @@ class WebSocketManager {
         await this.handleMessage(clientId, message);
       } catch (error) {
         console.error('Error handling WebSocket message:', error);
+        // Send error response to client
+        this.sendToClient(clientId, {
+          type: 'error',
+          message: 'Failed to process message'
+        });
       }
     });
 
     // Handle client disconnect
-    ws.on('close', () => {
+    ws.on('close', (code, reason) => {
       this.clients.delete(clientId);
-      console.log(`WebSocket client disconnected: ${clientId}`);
+      console.log(`WebSocket client disconnected: ${clientId}, code: ${code}, reason: ${reason}`);
     });
 
     // Handle errors
     ws.on('error', (error) => {
       console.error(`WebSocket error for client ${clientId}:`, error);
+      this.clients.delete(clientId);
     });
 
     // Send initial connection confirmation
     this.sendToClient(clientId, {
       type: 'connection_established',
-      clientId
+      clientId,
+      timestamp: new Date().toISOString()
     });
   }
 
@@ -152,7 +168,7 @@ class WebSocketManager {
 
   public async broadcastListingUpdate(listing: any) {
     // Broadcast to all connected clients about new listings
-    for (const [clientId, client] of this.clients.entries()) {
+    for (const [clientId, client] of Array.from(this.clients.entries())) {
       if (client.ws.readyState === WebSocket.OPEN) {
         this.sendToClient(clientId, {
           type: 'listing_update',
