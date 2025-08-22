@@ -302,7 +302,7 @@ export default function ContractorBoard() {
               <div className="space-y-3">
                 <Button 
                   className="w-full bg-blue-500 hover:bg-blue-600 text-white border border-blue-400"
-                  onClick={() => window.location.href = '/auth/facebook'}
+                  onClick={() => window.location.href = '/api/auth/facebook'}
                   data-testid="button-contractor-facebook-signup"
                 >
                   <SiFacebook className="mr-2 h-4 w-4" />
