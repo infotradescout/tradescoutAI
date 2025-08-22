@@ -5216,3 +5216,29 @@ export type InsertNotificationTemplate = z.infer<typeof insertNotificationTempla
 
 export type NotificationDeliveryLog = typeof notificationDeliveryLog.$inferSelect;
 export type NotificationJob = typeof notificationJobs.$inferSelect;
+
+// Feature Flags table for admin control over platform features
+export const featureFlags = pgTable("feature_flags", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  name: varchar("name", { length: 255 }).notNull(),
+  key: varchar("key", { length: 255 }).notNull().unique(), // e.g., 'advanced_calculator'
+  description: text("description"),
+  enabled: boolean("enabled").default(false),
+  category: varchar("category", { length: 100 }).default('general'), // general, admin, contractor, homeowner
+  userRoles: text("user_roles").array().default(sql`ARRAY[]::text[]`), // Roles that can see this feature
+  config: jsonb("config"), // Additional configuration data
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Feature flag types
+export type FeatureFlag = typeof featureFlags.$inferSelect;
+export type InsertFeatureFlag = typeof featureFlags.$inferInsert;
+
+export const insertFeatureFlagSchema = createInsertSchema(featureFlags).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type InsertFeatureFlagType = z.infer<typeof insertFeatureFlagSchema>;

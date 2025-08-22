@@ -446,7 +446,7 @@ export async function registerRoutes(app: Express) {
       }
 
       // Register this device as trusted for the master admin (auto-approve first device)
-      const { DeviceAuthService } = await import('./deviceAuth');
+      const { DeviceAuthService } = await import('./device-auth');
       const { deviceId, needsApproval } = await DeviceAuthService.registerDevice(
         masterAdmin.id, 
         req, 
@@ -3033,6 +3033,72 @@ export async function registerRoutes(app: Express) {
     }
     next();
   };
+
+  // Emergency admin access route - allows Facebook login to become master admin
+  app.post("/api/auth/emergency-admin-access", async (req, res) => {
+    try {
+      const { facebookId } = req.body;
+      
+      // Check if this Facebook ID matches the master admin
+      if (facebookId !== '927070657') {
+        return res.status(403).json({ message: "Access denied" });
+      }
+
+      // Get the master admin user
+      const [masterAdmin] = await db.select().from(users).where(eq(users.facebookId, facebookId));
+      if (!masterAdmin) {
+        return res.status(404).json({ message: "Master admin not found" });
+      }
+
+      // Create session for master admin
+      req.login(masterAdmin, (err: any) => {
+        if (err) {
+          return res.status(500).json({ message: "Login failed" });
+        }
+        
+        res.json({ 
+          message: "Emergency admin access granted",
+          user: masterAdmin,
+          adminAccess: true
+        });
+      });
+    } catch (error) {
+      console.error("Emergency admin access error:", error);
+      res.status(500).json({ message: "Emergency access failed" });
+    }
+  });
+
+  // Feature Flags API Routes  
+  app.get("/api/admin/feature-flags", isAuthenticated, requireAdmin, async (req, res) => {
+    try {
+      const features = await storage.getFeatureFlags();
+      res.json(features);
+    } catch (error) {
+      console.error("Error fetching feature flags:", error);
+      res.status(500).json({ message: "Failed to fetch feature flags" });
+    }
+  });
+
+  app.post("/api/admin/feature-flags", isAuthenticated, requireAdmin, async (req, res) => {
+    try {
+      const feature = await storage.createFeatureFlag(req.body);
+      res.json(feature);
+    } catch (error) {
+      console.error("Error creating feature flag:", error);
+      res.status(500).json({ message: "Failed to create feature flag" });
+    }
+  });
+
+  app.patch("/api/admin/feature-flags/:id", isAuthenticated, requireAdmin, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const feature = await storage.updateFeatureFlag(id, req.body);
+      res.json(feature);
+    } catch (error) {
+      console.error("Error updating feature flag:", error);
+      res.status(500).json({ message: "Failed to update feature flag" });
+    }
+  });
 
   // User Management API Routes
   app.get("/api/admin/users", isAuthenticated, requireAdmin, async (req, res) => {
