@@ -95,6 +95,7 @@ import Terms from "@/pages/terms";
 import { ProfileSetupRedirect } from "@/components/profile-setup-redirect";
 
 import { SubtleHints } from "@/components/onboarding/SubtleHints";
+import BugReportTool from "@/components/BugReportTool";
 
 // Lazy load admin components
 const AdminDashboard = lazy(() => import("@/pages/admin-dashboard"));
@@ -430,6 +431,9 @@ const Router = memo(function Router() {
       
       {/* Subtle onboarding hints for new users */}
       <SubtleHints />
+      
+      {/* Bug report tool - always available */}
+      <BugReportTool />
       
       {!isMobile && <LegalFooter />}
     </div>

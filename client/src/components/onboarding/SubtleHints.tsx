@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { X, Users, Calculator, Search, Star, MessageCircle } from 'lucide-react';
+import { X, Users, Calculator, Search, Star, MessageCircle, Bug } from 'lucide-react';
 
 interface FeatureHint {
   id: string;
@@ -46,6 +46,13 @@ export function SubtleHints() {
           description: "Ask satisfied customers to leave recommendations",
           icon: <Star className="w-5 h-5 text-yellow-500" />,
           delay: 14
+        },
+        {
+          id: 'bug-report',
+          title: "Found a Bug?",
+          description: "Use the red bug report button (bottom-right) to send instant feedback with screenshots",
+          icon: <Bug className="w-5 h-5 text-red-500" />,
+          delay: 20
         }
       ];
     } else {
@@ -74,6 +81,13 @@ export function SubtleHints() {
           action: "Try Calculator",
           actionUrl: "/calculator",
           delay: 14
+        },
+        {
+          id: 'bug-report',
+          title: "Found a Bug?",
+          description: "Use the red bug report button (bottom-right) to send instant feedback with screenshots",
+          icon: <Bug className="w-5 h-5 text-red-500" />,
+          delay: 20
         }
       ];
     }
