@@ -34,14 +34,14 @@ Lead generation preference: Never reference "getting leads" or "lead generation"
 - **Dual Conversation Systems**: Separate chat systems for contractor-homeowner and marketplace buyer-seller.
 
 ## Authentication & Authorization
-- **Authentication System**: Passport-local, with secure initial master admin setup and trusted device system (1-year device authentication, fingerprinting, secure session persistence).
+- **Authentication System**: Dual authentication with Passport-local and Facebook OAuth, secure initial master admin setup and trusted device system (1-year device authentication, fingerprinting, secure session persistence).
 - **Session Storage**: PostgreSQL-backed.
 - **Role-Based Access**: Hierarchical user roles (homeowner, contractor_user, accelerator_member, moderator, ops_admin, head_admin), with critical role selection during registration.
 - **Admin Hierarchy**: Head admin manages all users; moderators manage non-head admins.
 - **Address Verification**: Platform-wide address verification required within 14 days, with multiple methods (postcard, document upload) and middleware enforcement.
 - **Security**: CSRF protection, secure session cookies, role-based route protection.
 - **Admin Role Impersonation**: Allows admins to impersonate other roles for testing.
-- **Facebook Authentication**: Integrated for one-click contractor signup.
+- **Facebook Authentication**: Fully operational with App ID/Secret configured for one-click contractor and homeowner signup.
 
 ## File Upload & Storage
 - **Cloud Storage**: Google Cloud Storage.
