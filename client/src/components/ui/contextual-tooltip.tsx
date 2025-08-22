@@ -1,4 +1,4 @@
-import { useState, forwardRef } from "react";
+import React, { useState, forwardRef } from "react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { HelpCircle, Wrench, Hammer, HardHat, Drill, Settings, Paintbrush, Ruler } from "lucide-react";
 
@@ -78,7 +78,10 @@ const wittyTips = {
   }
 };
 
-export function ContextualTooltip({ 
+export const ContextualTooltip = forwardRef<
+  HTMLButtonElement,
+  ContextualTooltipProps
+>(({ 
   content, 
   illustration, 
   title, 
@@ -86,7 +89,7 @@ export function ContextualTooltip({
   size = 'md',
   variant = 'contractor',
   children 
-}: ContextualTooltipProps) {
+}, ref) => {
   const [isOpen, setIsOpen] = useState(false);
   
   const IconComponent = illustration ? illustrations[illustration] : HelpCircle;
@@ -128,7 +131,7 @@ export function ContextualTooltip({
     <TooltipProvider>
       <Tooltip open={isOpen} onOpenChange={setIsOpen}>
         <TooltipTrigger asChild>
-          {children || <TriggerButton />}
+          {children || <TriggerButton ref={ref} />}
         </TooltipTrigger>
         <TooltipContent 
           side={placement}
@@ -154,7 +157,9 @@ export function ContextualTooltip({
       </Tooltip>
     </TooltipProvider>
   );
-}
+});
+
+ContextualTooltip.displayName = "ContextualTooltip";
 
 // Pre-built tooltip components for common use cases
 export function SearchTooltip({ children }: { children?: React.ReactNode }) {
