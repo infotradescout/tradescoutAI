@@ -459,9 +459,9 @@ export default function ContractorBoard() {
                 <SelectValue placeholder="Sort by..." />
               </SelectTrigger>
               <SelectContent className="bg-navy-700 border-navy-600 text-white">
-                <SelectItem value="recommended" className="text-white hover:bg-navy-600 focus:bg-navy-600 focus:text-white">Recommended</SelectItem>
-                <SelectItem value="rating" className="text-white hover:bg-navy-600 focus:bg-navy-600 focus:text-white">Highest Rated</SelectItem>
-                <SelectItem value="reviews" className="text-white hover:bg-navy-600 focus:bg-navy-600 focus:text-white">Most Reviews</SelectItem>
+                <SelectItem value="recommended" className="text-white hover:bg-navy-600 focus:bg-navy-600 focus:text-white">Most Recommended</SelectItem>
+                <SelectItem value="positive" className="text-white hover:bg-navy-600 focus:bg-navy-600 focus:text-white">Highest Positive Score</SelectItem>
+                <SelectItem value="total" className="text-white hover:bg-navy-600 focus:bg-navy-600 focus:text-white">Most Recommendations</SelectItem>
                 <SelectItem value="newest" className="text-white hover:bg-navy-600 focus:bg-navy-600 focus:text-white">Newest</SelectItem>
               </SelectContent>
             </Select>
@@ -553,9 +553,9 @@ export default function ContractorBoard() {
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent className="bg-navy-700 border-navy-600 text-white max-h-[300px] overflow-y-auto">
-                      <SelectItem value="recommended" className="text-white hover:bg-navy-600 focus:bg-navy-600 focus:text-white">Recommended</SelectItem>
-                      <SelectItem value="rating" className="text-white hover:bg-navy-600 focus:bg-navy-600 focus:text-white">Highest Rated</SelectItem>
-                      <SelectItem value="reviews" className="text-white hover:bg-navy-600 focus:bg-navy-600 focus:text-white">Most Reviews</SelectItem>
+                      <SelectItem value="recommended" className="text-white hover:bg-navy-600 focus:bg-navy-600 focus:text-white">Most Recommended</SelectItem>
+                      <SelectItem value="positive" className="text-white hover:bg-navy-600 focus:bg-navy-600 focus:text-white">Highest Positive Score</SelectItem>
+                      <SelectItem value="total" className="text-white hover:bg-navy-600 focus:bg-navy-600 focus:text-white">Most Recommendations</SelectItem>
                       <SelectItem value="newest" className="text-white hover:bg-navy-600 focus:bg-navy-600 focus:text-white">Newest</SelectItem>
                     </SelectContent>
                   </Select>

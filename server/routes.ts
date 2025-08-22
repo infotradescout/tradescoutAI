@@ -2084,6 +2084,69 @@ export async function registerRoutes(app: Express) {
     }
   });
 
+  // Create recommendation for contractor
+  app.post("/api/contractors/:contractorId/recommendations", async (req: any, res) => {
+    try {
+      const { contractorId } = req.params;
+      const {
+        recommendationType,
+        comment,
+        projectType,
+        projectValue,
+        workQuality,
+        timeliness,
+        communication,
+        wouldHireAgain,
+        customerName,
+        customerEmail
+      } = req.body;
+
+      const recommendation = await storage.createRecommendation({
+        contractorId,
+        userId: req.user?.id || 'anonymous',
+        recommendationType,
+        comment,
+        projectType,
+        projectValue,
+        workQuality,
+        timeliness,
+        communication,
+        wouldHireAgain,
+        moderationStatus: 'approved' // Auto-approve for now
+      });
+
+      res.json({ 
+        success: true, 
+        message: "Recommendation submitted successfully",
+        recommendation 
+      });
+    } catch (error) {
+      console.error("Error creating recommendation:", error);
+      res.status(500).json({ 
+        success: false, 
+        message: "Failed to submit recommendation" 
+      });
+    }
+  });
+
+  // Get contractor recommendations
+  app.get("/api/contractors/:contractorId/recommendations", async (req: any, res) => {
+    try {
+      const { contractorId } = req.params;
+      const { type = 'all', limit = 10 } = req.query;
+
+      const recommendations = await storage.getContractorRecommendations(contractorId, {
+        type: type as 'positive' | 'negative' | 'all',
+        limit: parseInt(limit as string)
+      });
+
+      res.json(recommendations);
+    } catch (error) {
+      console.error("Error fetching recommendations:", error);
+      res.status(500).json({ message: "Failed to fetch recommendations" });
+    }
+  });
+
   // Accelerator enrollment
   app.post("/api/accelerator/enroll", isAuthenticated, async (req: any, res) => {
     try {
