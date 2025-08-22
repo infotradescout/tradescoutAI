@@ -424,7 +424,7 @@ export async function registerRoutes(app: Express) {
     }
   });
 
-  // Connect current Facebook login to existing master admin account
+  // Connect current Facebook login to existing master admin account with device security
   app.post("/api/auth/connect-master-admin", isAuthenticated, async (req, res) => {
     try {
       const currentUser = req.user as any;
@@ -444,6 +444,15 @@ export async function registerRoutes(app: Express) {
       if (masterAdmin.facebookId) {
         return res.status(400).json({ message: "Master admin account already connected to Facebook" });
       }
+
+      // Register this device as trusted for the master admin (auto-approve first device)
+      const { DeviceAuthService } = await import('./deviceAuth');
+      const { deviceId, needsApproval } = await DeviceAuthService.registerDevice(
+        masterAdmin.id, 
+        req, 
+        req.body.deviceFingerprint, // Client can send additional device data
+        true // Auto-approve this first device since you're doing the initial setup
+      );
 
       // Connect Facebook ID to master admin account and update profile
       await storage.updateUser(masterAdmin.id, {
@@ -466,7 +475,7 @@ export async function registerRoutes(app: Express) {
       };
 
       res.json({ 
-        message: "Facebook account successfully connected to master admin",
+        message: "Facebook account connected to master admin with device security enabled",
         user: {
           id: masterAdmin.id,
           email: masterAdmin.email,
@@ -475,11 +484,72 @@ export async function registerRoutes(app: Express) {
           lastName: req.user.lastName,
           profileImageUrl: currentUser.claims.profile_image_url,
           facebookId: currentUser.claims.sub
+        },
+        deviceSecurity: {
+          deviceId,
+          message: "This device has been registered and approved for admin access"
         }
       });
     } catch (error) {
       console.error("Connect master admin error:", error);
       res.status(500).json({ message: "Failed to connect Facebook to master admin account" });
+    }
+  });
+
+  // Device management routes for admin security
+  app.get('/api/admin/devices', isAuthenticated, requireRole(['head_admin']), async (req: any, res) => {
+    try {
+      const { DeviceAuthService } = await import('./deviceAuth');
+      const devices = await DeviceAuthService.getUserDevices(req.user.id);
+      res.json({ devices });
+    } catch (error) {
+      console.error("Get devices error:", error);
+      res.status(500).json({ message: "Failed to fetch devices" });
+    }
+  });
+
+  app.get('/api/admin/pending-devices', isAuthenticated, requireRole(['head_admin']), async (req, res) => {
+    try {
+      const { DeviceAuthService } = await import('./deviceAuth');
+      const pendingDevices = await DeviceAuthService.getPendingDevices();
+      res.json({ pendingDevices });
+    } catch (error) {
+      console.error("Get pending devices error:", error);
+      res.status(500).json({ message: "Failed to fetch pending devices" });
+    }
+  });
+
+  app.post('/api/admin/approve-device', isAuthenticated, requireRole(['head_admin']), async (req: any, res) => {
+    try {
+      const { deviceId } = req.body;
+      const { DeviceAuthService } = await import('./deviceAuth');
+      const success = await DeviceAuthService.approveDevice(deviceId, req.user.id);
+      
+      if (success) {
+        res.json({ message: "Device approved successfully" });
+      } else {
+        res.status(400).json({ message: "Failed to approve device" });
+      }
+    } catch (error) {
+      console.error("Approve device error:", error);
+      res.status(500).json({ message: "Failed to approve device" });
+    }
+  });
+
+  app.post('/api/admin/revoke-device', isAuthenticated, requireRole(['head_admin']), async (req: any, res) => {
+    try {
+      const { deviceId } = req.body;
+      const { DeviceAuthService } = await import('./deviceAuth');
+      const success = await DeviceAuthService.revokeDevice(deviceId, req.user.id);
+      
+      if (success) {
+        res.json({ message: "Device revoked successfully" });
+      } else {
+        res.status(400).json({ message: "Failed to revoke device" });
+      }
+    } catch (error) {
+      console.error("Revoke device error:", error);
+      res.status(500).json({ message: "Failed to revoke device" });
     }
   });
 
