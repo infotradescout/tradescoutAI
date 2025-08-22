@@ -4,6 +4,7 @@ import { seedDatabase } from "./seed-data";
 import { setupVite, serveStatic, log } from "./vite";
 import { notificationService } from "./notification-service";
 import path from "path";
+import fs from "fs";
 import { fileURLToPath } from "url";
 
 // ES module equivalent of __dirname
@@ -90,20 +91,36 @@ app.use((req, res, next) => {
   if (app.get("env") === "development") {
     await setupVite(app, server);
   } else {
-    // Serve static files from client/dist directory (Replit deployment expectation)
-    const clientDistPath = path.join(path.dirname(__filename), '../client/dist');
+    // Serve static files from client/dist directory with absolute path resolution
+    const workspaceRoot = process.cwd();
+    const clientDistPath = path.join(workspaceRoot, 'client/dist');
+    
+    console.log('Production mode - serving static files from:', clientDistPath);
     app.use(express.static(clientDistPath));
 
     // Catch all handler for client-side routing
     app.get('*', (req, res) => {
       const indexPath = path.join(clientDistPath, 'index.html');
       console.log('Serving index.html from:', indexPath);
-      res.sendFile(indexPath, (err) => {
-        if (err) {
-          console.error('Error serving index.html:', err);
-          res.status(500).send('Error loading application');
+      
+      // Check if file exists before trying to serve
+      if (fs.existsSync(indexPath)) {
+        res.sendFile(indexPath, (err) => {
+          if (err) {
+            console.error('Error serving index.html:', err);
+            res.status(500).send('Error loading application');
+          }
+        });
+      } else {
+        console.error('index.html not found at:', indexPath);
+        try {
+          const files = fs.readdirSync(clientDistPath, { withFileTypes: true }).map(d => d.name);
+          console.log('Available files in client/dist:', files);
+        } catch (dirErr) {
+          console.error('Cannot read client/dist directory:', dirErr);
         }
-      });
+        res.status(404).send('Application files not found');
+      }
     });
   }
 
