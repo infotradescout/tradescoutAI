@@ -19,7 +19,8 @@ import {
   insertCarSalesmanProfileSchema,
   type InsertRealtorProfile,
   type InsertCarSalesmanProfile,
-  affiliatePrograms
+  affiliatePrograms,
+  type User
 } from "@shared/schema";
 import { setupModerationRoutes } from "./moderation";
 import { registerUIIssuesRoutes } from "./routes/admin/ui-issues";
@@ -28,6 +29,11 @@ import { registerCrmRoutes } from "./crm-routes";
 import { registerNotificationRoutes } from "./routes/notification-routes";
 import { tutorialStorage } from "./tutorialStorage";
 import { contractorSignupRouter } from "./routes/contractor-signup";
+import { LocalityTracker } from "./localityTracking";
+import passport from "passport";
+import { Strategy as FacebookStrategy } from "passport-facebook";
+import { Strategy as GoogleStrategy } from "passport-google-oauth20";
+import { notificationService } from "./notification-service";
 
 // Middleware to check address verification requirement
 const requireAddressVerification = async (req: any, res: any, next: any) => {
@@ -189,7 +195,7 @@ export async function registerRoutes(app: Express) {
 
   // Authentication routes
   app.post("/auth/login", (req, res, next) => {
-    passport.authenticate('local', (err, user, info) => {
+    passport.authenticate('local', (err: any, user: any, info: any) => {
       if (err) {
         return next(err);
       }

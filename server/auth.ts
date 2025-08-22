@@ -67,7 +67,9 @@ export async function setupAuth(app: Express) {
   ));
 
   // Facebook strategy for social authentication
+  console.log('Facebook env check:', !!process.env.FACEBOOK_APP_ID, !!process.env.FACEBOOK_APP_SECRET);
   if (process.env.FACEBOOK_APP_ID && process.env.FACEBOOK_APP_SECRET) {
+    console.log('Registering Facebook strategy...');
     passport.use(new FacebookStrategy({
       clientID: process.env.FACEBOOK_APP_ID,
       clientSecret: process.env.FACEBOOK_APP_SECRET,
