@@ -29,11 +29,22 @@ import { registerCrmRoutes } from "./crm-routes";
 import { registerNotificationRoutes } from "./routes/notification-routes";
 import { tutorialStorage } from "./tutorialStorage";
 import { contractorSignupRouter } from "./routes/contractor-signup";
-import { LocalityTracker } from "./localityTracking";
+import { LocalityTracker, localityTrackingMiddleware } from "./localityTracking";
 import passport from "passport";
 import { Strategy as FacebookStrategy } from "passport-facebook";
 import { Strategy as GoogleStrategy } from "passport-google-oauth20";
 import { notificationService } from "./notification-service";
+import { 
+  recommendations, 
+  contractors, 
+  addressVerifications, 
+  communityPosts,
+  moderationReports,
+  moderationAppeals
+} from "@shared/schema";
+import { db } from "./db";
+import { eq, desc, and, or, count, gte, lte, isNull, ne, gt } from "drizzle-orm";
+import { checkTrustedDevice } from "./device-auth";
 
 // Middleware to check address verification requirement
 const requireAddressVerification = async (req: any, res: any, next: any) => {
@@ -83,9 +94,7 @@ const requireAddressVerification = async (req: any, res: any, next: any) => {
     next(); // Don't block on errors
   }
 };
-import { db } from "./db";
-import { eq, desc, and, or, isNull, isNotNull, sql } from "drizzle-orm";
-import { addressVerifications, users } from "@shared/schema";
+// Duplicate imports removed - using consolidated imports from top of file
 import { registerSocialRoutes } from "./social-routes";
 import { 
   insertLeadSchema, 
@@ -105,16 +114,14 @@ import {
   insertModerationReportSchema,
   insertModerationVoteSchema,
   insertModerationAppealSchema,
-  insertInvitationSchema
+  insertInvitationSchema,
+  users
 } from "@shared/schema";
 import { ObjectStorageService } from "./objectStorage";
 import { randomUUID } from "crypto";
-import passport from "passport";
-import { LocalityTracker, localityTrackingMiddleware } from "./localityTracking";
-import FacebookStrategy from "passport-facebook";
-import { Strategy as GoogleStrategy } from "passport-google-oauth20";
 import { dataManagementService } from "./data-management";
-import { DeviceAuthService, checkTrustedDevice } from "./device-auth";
+import { DeviceAuthService } from "./device-auth";
+import { isNotNull, sql } from "drizzle-orm";
 
 // Helper function to route leads to top contractors
 async function routeLeadToTopContractors(lead: any, leadData: any) {
@@ -395,7 +402,7 @@ export async function registerRoutes(app: Express) {
       callbackURL: "/auth/google/callback"
     }, async (accessToken, refreshToken, profile, done) => {
       try {
-        let user = await storage.getUserByEmail(profile.emails?.[0]?.value);
+        let user = await storage.getUserByEmail(profile.emails?.[0]?.value || '');
 
         if (!user) {
           user = await storage.createUser({
@@ -411,7 +418,7 @@ export async function registerRoutes(app: Express) {
 
         return done(null, user);
       } catch (error) {
-        return done(error, null);
+        return done(error);
       }
     }));
   }
@@ -603,7 +610,7 @@ export async function registerRoutes(app: Express) {
 
       // Get current user to preserve other preferences
       const currentUser = await storage.getUser(req.user.id);
-      const currentPrefs = currentUser.preferences || {};
+      const currentPrefs = currentUser?.preferences || {};
 
       // Update navigation preferences
       const updatedPreferences = {
@@ -1555,7 +1562,7 @@ export async function registerRoutes(app: Express) {
       const { projectType, squareFootage, stateCode, countyFips, urgency } = req.body;
 
       // Track calculator usage with locality context
-      await LocalityTracker.trackInteraction('quote_calculation', req, {
+      await LocalityTracker.trackInteraction('search', req, {
         projectType,
         squareFootage,
         urgency: urgency || 'planning'
@@ -2154,7 +2161,7 @@ export async function registerRoutes(app: Express) {
       console.error("Error creating recommendation:", error);
       res.status(400).json({ 
         success: false, 
-        message: error.message || "Failed to submit recommendation" 
+        message: (error as Error).message || "Failed to submit recommendation" 
       });
     }
   });
