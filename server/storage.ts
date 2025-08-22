@@ -3181,8 +3181,25 @@ export class DatabaseStorage implements IStorage {
     ipAddress?: string; 
     userAgent?: string;
   }) {
-    // Check for duplicate recommendations from same email/IP for this contractor within 30 days
+    // Check for duplicate recommendations from same USER for this contractor within 30 days
     const existingRecommendation = await db
+      .select()
+      .from(recommendations)
+      .where(
+        and(
+          eq(recommendations.contractorId, data.contractorId),
+          eq(recommendations.userId, data.userId),
+          gte(recommendations.createdAt, new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)) // 30 days
+        )
+      )
+      .limit(1);
+
+    if (existingRecommendation.length > 0) {
+      throw new Error('You can only submit one recommendation per contractor every 30 days');
+    }
+
+    // Also check by email as additional protection
+    const existingByEmail = await db
       .select()
       .from(recommendations)
       .where(
@@ -3194,8 +3211,8 @@ export class DatabaseStorage implements IStorage {
       )
       .limit(1);
 
-    if (existingRecommendation.length > 0) {
-      throw new Error('You can only submit one recommendation per contractor every 30 days');
+    if (existingByEmail.length > 0) {
+      throw new Error('This email address has already submitted a recommendation for this contractor recently');
     }
 
     // Check for too many recommendations from same IP in 24 hours
