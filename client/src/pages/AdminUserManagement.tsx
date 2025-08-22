@@ -2,6 +2,7 @@ import React from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import UserManagement from '@/components/admin/UserManagement';
 import RoleSwitcher from '@/components/admin/RoleSwitcher';
+import FeatureTogglePanel from '@/components/admin/FeatureTogglePanel';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Shield, Users, Settings } from 'lucide-react';
 
@@ -81,6 +82,9 @@ export default function AdminUserManagement() {
 
       {/* User Management Component */}
       <UserManagement />
+
+      {/* Feature Toggle Panel */}
+      <FeatureTogglePanel />
 
       {/* Admin Features Overview */}
       <Card>

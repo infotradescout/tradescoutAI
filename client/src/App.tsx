@@ -63,6 +63,7 @@ import SavedAds from "@/pages/saved-ads";
 import ProfileSetup from "@/pages/profile-setup";
 import AdminUsers from "@/pages/admin-users";
 import AdminUserManagement from "@/pages/AdminUserManagement";
+import AdminLogin from "@/components/admin/AdminLogin";
 import AdminErrorReports from "@/pages/admin-error-reports";
 import AdminAttachments from "@/pages/admin-attachments";
 import AdminTestingControls from "@/pages/admin-testing-controls";
@@ -298,6 +299,7 @@ const Router = memo(function Router() {
 
               {/* Admin routes - Full access restored */}
               <Route path="/admin" component={AdminPanel} />
+              <Route path="/admin/login" component={AdminLogin} />
               <Route path="/admin/workspace" component={AdminWorkspace} />
               <Route path="/admin/users" component={AdminUserManagement} />
               <Route path="/admin/listings" component={AdminListings} />

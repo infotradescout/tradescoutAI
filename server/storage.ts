@@ -66,6 +66,8 @@ import {
   // Professional profiles
   realtorProfiles,
   carSalesmanProfiles,
+  // Feature flags
+  featureFlags,
   // New marketplace features
   marketplaceTransactions,
   transactionDisputes,
@@ -5993,6 +5995,50 @@ export class DatabaseStorage implements IStorage {
       .from(recommendationCampaigns)
       .where(eq(recommendationCampaigns.isActive, true))
       .orderBy(desc(recommendationCampaigns.createdAt));
+  }
+
+  // Feature Flags Management
+  async getFeatureFlags(): Promise<any[]> {
+    return await db.select().from(featureFlags).orderBy(desc(featureFlags.createdAt));
+  }
+
+  async getFeatureFlag(key: string): Promise<any | undefined> {
+    const [flag] = await db.select().from(featureFlags).where(eq(featureFlags.key, key));
+    return flag;
+  }
+
+  async createFeatureFlag(flagData: any): Promise<any> {
+    const [flag] = await db.insert(featureFlags).values({
+      ...flagData,
+      createdAt: new Date(),
+      updatedAt: new Date()
+    }).returning();
+    return flag;
+  }
+
+  async updateFeatureFlag(id: string, updates: any): Promise<any> {
+    const [flag] = await db
+      .update(featureFlags)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(featureFlags.id, id))
+      .returning();
+    return flag;
+  }
+
+  async deleteFeatureFlag(id: string): Promise<void> {
+    await db.delete(featureFlags).where(eq(featureFlags.id, id));
+  }
+
+  async isFeatureEnabled(key: string, userRole?: string): Promise<boolean> {
+    const flag = await this.getFeatureFlag(key);
+    if (!flag || !flag.enabled) return false;
+    
+    // Check if user role is allowed
+    if (userRole && flag.userRoles && flag.userRoles.length > 0) {
+      return flag.userRoles.includes(userRole);
+    }
+    
+    return flag.enabled;
   }
 }
 
