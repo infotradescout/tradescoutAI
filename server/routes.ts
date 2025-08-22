@@ -3,7 +3,7 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { setupAuth, isAuthenticated, isContractor, isAdmin, requireRole, isHeadAdmin, hashPassword, createMasterAdmin } from "./auth";
 import type { AuthenticatedRequest } from "./types";
-// import { WebSocketManager } from "./websocket"; // Disabled to prevent console errors
+import { WebSocketManager } from "./websocket";
 import { paymentService } from "./payment-service";
 import Stripe from "stripe";
 
@@ -6376,8 +6376,8 @@ export async function registerRoutes(app: Express) {
   tutorialStorage.initializeDefaultTutorials().catch(console.error);
 
   const httpServer = createServer(app);
-  // WebSocket manager disabled to prevent console errors
-  // const wsManager = new WebSocketManager(httpServer);
+  // Initialize WebSocket manager for real-time communication
+  const wsManager = new WebSocketManager(httpServer);
 
   // Advanced marketplace transaction routes
 
