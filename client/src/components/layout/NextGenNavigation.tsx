@@ -353,15 +353,27 @@ export function NextGenNavigation({ className = "" }: NextGenNavigationProps) {
           {/* Notification Center */}
           {isAuthenticated && <NotificationCenter />}
 
-          {/* User account button */}
+          {/* User account button with profile picture */}
           {isAuthenticated && (
-            <Link href="/dashboard/account">
+            <Link href="/profile">
               <div className="flex items-center space-x-2 bg-slate-800/60 rounded-lg px-3 py-2 border border-slate-700/50 hover:border-orange-500/50 transition-all duration-300 cursor-pointer backdrop-blur-sm">
-                <div className="w-7 h-7 bg-slate-700 rounded-full flex items-center justify-center">
+                {user?.profileImageUrl ? (
+                  <img 
+                    src={user.profileImageUrl} 
+                    alt="Profile"
+                    className="w-7 h-7 rounded-full object-cover border border-slate-600"
+                    onError={(e) => {
+                      const target = e.target as HTMLImageElement;
+                      target.style.display = 'none';
+                      target.nextElementSibling?.setAttribute('style', 'display: flex');
+                    }}
+                  />
+                ) : null}
+                <div className={`w-7 h-7 bg-slate-700 rounded-full flex items-center justify-center ${user?.profileImageUrl ? 'hidden' : ''}`}>
                   <Users className="w-3.5 h-3.5 text-orange-400" />
                 </div>
                 <span className="text-sm text-slate-300 hover:text-white transition-colors duration-200 hidden lg:inline">
-                  Account
+                  {user?.role === 'head_admin' ? 'Admin' : 'Profile'}
                 </span>
               </div>
             </Link>
