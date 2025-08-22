@@ -3028,11 +3028,140 @@ export async function registerRoutes(app: Express) {
 
   // Admin panel routes (require admin access)
   const requireAdmin = (req: any, res: any, next: any) => {
-    if (!req.user || !['owner', 'ops_admin'].includes(req.user.claims?.role)) {
+    if (!req.user || !['owner', 'ops_admin', 'head_admin'].includes(req.user.role)) {
       return res.status(403).json({ message: "Admin access required" });
     }
     next();
   };
+
+  // User Management API Routes
+  app.get("/api/admin/users", isAuthenticated, requireAdmin, async (req, res) => {
+    try {
+      const allUsers = await db.select({
+        id: users.id,
+        email: users.email,
+        firstName: users.firstName,
+        lastName: users.lastName,
+        role: users.role,
+        roles: users.roles,
+        activeRole: users.activeRole,
+        profileImageUrl: users.profileImageUrl,
+        emailVerified: users.emailVerified,
+        addressVerified: users.addressVerified,
+        createdAt: users.createdAt,
+        facebookId: users.facebookId,
+        provider: users.provider
+      }).from(users).orderBy(desc(users.createdAt));
+      
+      res.json(allUsers);
+    } catch (error) {
+      console.error("Error fetching users:", error);
+      res.status(500).json({ message: "Failed to fetch users" });
+    }
+  });
+
+  app.patch("/api/admin/users/:userId/roles", isAuthenticated, requireAdmin, async (req, res) => {
+    try {
+      const { userId } = req.params;
+      const { roles, activeRole } = req.body;
+
+      if (!Array.isArray(roles) || roles.length === 0) {
+        return res.status(400).json({ message: "Roles must be a non-empty array" });
+      }
+
+      if (!activeRole || !roles.includes(activeRole)) {
+        return res.status(400).json({ message: "Active role must be one of the assigned roles" });
+      }
+
+      // Update user roles and active role
+      await db.update(users)
+        .set({ 
+          roles: roles, 
+          activeRole: activeRole,
+          role: activeRole, // Keep primary role in sync
+          updatedAt: new Date()
+        })
+        .where(eq(users.id, userId));
+
+      res.json({ message: "User roles updated successfully" });
+    } catch (error) {
+      console.error("Error updating user roles:", error);
+      res.status(500).json({ message: "Failed to update user roles" });
+    }
+  });
+
+  app.post("/api/admin/users/:userId/impersonate", isAuthenticated, requireAdmin, async (req, res) => {
+    try {
+      const { userId } = req.params;
+      
+      // Get user to impersonate
+      const [targetUser] = await db.select().from(users).where(eq(users.id, userId));
+      if (!targetUser) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      // Store original user info for restoration
+      const originalUser = req.user;
+      
+      // Update session to impersonate target user
+      req.user = {
+        id: targetUser.id,
+        email: targetUser.email,
+        role: targetUser.activeRole || targetUser.role,
+        firstName: targetUser.firstName,
+        lastName: targetUser.lastName,
+        profileImageUrl: targetUser.profileImageUrl,
+        roles: targetUser.roles || [targetUser.role],
+        activeRole: targetUser.activeRole || targetUser.role,
+        impersonating: true,
+        originalAdminId: originalUser.id
+      };
+
+      res.json({ 
+        message: "Impersonation active", 
+        user: req.user,
+        originalAdmin: originalUser 
+      });
+    } catch (error) {
+      console.error("Error impersonating user:", error);
+      res.status(500).json({ message: "Failed to impersonate user" });
+    }
+  });
+
+  app.post("/api/auth/switch-role", isAuthenticated, async (req, res) => {
+    try {
+      const { role } = req.body;
+      const userId = req.user.id;
+
+      // Get user's current roles
+      const [currentUser] = await db.select().from(users).where(eq(users.id, userId));
+      if (!currentUser) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      const userRoles = currentUser.roles || [currentUser.role];
+      if (!userRoles.includes(role)) {
+        return res.status(403).json({ message: "You don't have permission to switch to this role" });
+      }
+
+      // Update active role
+      await db.update(users)
+        .set({ activeRole: role, updatedAt: new Date() })
+        .where(eq(users.id, userId));
+
+      // Update session
+      req.user = {
+        ...req.user,
+        activeRole: role,
+        role: role // Update primary role reference too
+      };
+
+      res.json({ message: "Role switched successfully", activeRole: role });
+    } catch (error) {
+      console.error("Error switching role:", error);
+      res.status(500).json({ message: "Failed to switch role" });
+    }
+  });
 
   // Site settings management
   app.get("/api/admin/site-settings", isAuthenticated, requireAdmin, async (req, res) => {
