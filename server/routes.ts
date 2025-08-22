@@ -2955,7 +2955,7 @@ export async function registerRoutes(app: Express) {
   // Marketplace conversation endpoints
   app.get("/api/marketplace/conversations", isAuthenticated, async (req, res) => {
     try {
-      const userId = (req.user as any)?.claims?.sub || req.user?.id;
+      const userId = (req.user as any)?.id;
       const conversations = await storage.getUserMarketplaceConversations(userId);
       res.json(conversations);
     } catch (error) {
@@ -2966,7 +2966,7 @@ export async function registerRoutes(app: Express) {
 
   app.post("/api/marketplace/conversations", isAuthenticated, async (req, res) => {
     try {
-      const userId = (req.user as any)?.claims?.sub || req.user?.id;
+      const userId = (req.user as any)?.id;
       const { listingId, sellerId, initialMessage } = req.body;
 
       // Check if conversation already exists
@@ -3004,7 +3004,7 @@ export async function registerRoutes(app: Express) {
 
   app.get("/api/marketplace/conversations/:conversationId/messages", isAuthenticated, async (req, res) => {
     try {
-      const userId = (req.user as any)?.claims?.sub || req.user?.id;
+      const userId = (req.user as any)?.id;
       const { conversationId } = req.params;
 
       // Verify user is part of conversation
@@ -3023,7 +3023,7 @@ export async function registerRoutes(app: Express) {
 
   app.post("/api/marketplace/conversations/:conversationId/messages", isAuthenticated, async (req, res) => {
     try {
-      const userId = (req.user as any)?.claims?.sub || req.user?.id;
+      const userId = (req.user as any)?.id;
       const { conversationId } = req.params;
       const { content, messageType = 'text' } = req.body;
 

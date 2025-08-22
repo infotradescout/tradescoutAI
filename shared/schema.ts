@@ -254,6 +254,11 @@ export const users = pgTable("users", {
       hiddenFromSwipe?: string[]; // Navigation items to hide from swipe navigation
       enableSwipeNavigation?: boolean; // Whether swipe navigation is enabled
     };
+    privacy?: {
+      showProfile?: boolean;
+      allowMessages?: boolean;
+      shareActivity?: boolean;
+    };
   }>(),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
