@@ -380,35 +380,7 @@ export async function registerRoutes(app: Express) {
     }
   });
 
-  // Configure OAuth strategies
-  if (process.env.FACEBOOK_APP_ID && process.env.FACEBOOK_APP_SECRET) {
-    passport.use(new FacebookStrategy.Strategy({
-      clientID: process.env.FACEBOOK_APP_ID,
-      clientSecret: process.env.FACEBOOK_APP_SECRET,
-      callbackURL: "/auth/facebook/callback",
-      profileFields: ['id', 'name', 'email']
-    }, async (accessToken, refreshToken, profile, done) => {
-      try {
-        let user = await storage.getUserByEmail(profile.emails?.[0]?.value);
-
-        if (!user) {
-          user = await storage.createUser({
-            email: profile.emails?.[0]?.value || '',
-            firstName: profile.name?.givenName || '',
-            lastName: profile.name?.familyName || '',
-            facebookId: profile.id,
-            role: 'homeowner'
-          });
-        } else if (!user.facebookId) {
-          user = await storage.updateUser(user.id, { facebookId: profile.id });
-        }
-
-        return done(null, user);
-      } catch (error) {
-        return done(error, null);
-      }
-    }));
-  }
+  // OAuth strategies are configured in auth.ts
 
   if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
     passport.use(new GoogleStrategy({
@@ -534,6 +506,17 @@ export async function registerRoutes(app: Express) {
       res.status(500).json({ message: "Failed to stop impersonation" });
     }
   });
+
+  // Facebook authentication routes
+  app.get('/api/auth/facebook', passport.authenticate('facebook', { scope: ['email'] }));
+  
+  app.get('/api/auth/facebook/callback', 
+    passport.authenticate('facebook', { failureRedirect: '/login' }),
+    (req, res) => {
+      // Successful authentication, redirect to dashboard
+      res.redirect('/');
+    }
+  );
 
   // Auth user endpoint - critical for useAuth hook
   app.get('/api/auth/user', async (req: any, res) => {
