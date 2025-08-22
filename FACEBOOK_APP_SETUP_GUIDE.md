@@ -46,10 +46,12 @@
    ```
    https://your-replit-url.replit.app/privacy
    ```
+   ⚠️ **Important**: Always use `/privacy` - this is the canonical URL
 4. Add **"Terms of Service URL"**:
    ```
    https://your-replit-url.replit.app/terms
    ```
+   ⚠️ **Important**: Always use `/terms` - this is the canonical URL
 
 ## Step 6: Get Your App Credentials
 

@@ -4,16 +4,17 @@
 
 Your TradeScout platform is now ready for Facebook App integration. Use these exact URLs:
 
-### **Privacy Policy URL**
+### **Privacy Policy URL** (Canonical)
 ```
 https://your-replit-url.replit.app/privacy
 ```
-*Also accessible at: `/privacy-policy`*
+⚠️ **Always use this exact URL** - `/privacy` is the canonical privacy policy URL
 
-### **Terms of Service URL**  
+### **Terms of Service URL** (Canonical) 
 ```
 https://your-replit-url.replit.app/terms
 ```
+⚠️ **Always use this exact URL** - `/terms` is the canonical terms URL
 
 ### **OAuth Redirect URI**
 ```

@@ -182,19 +182,22 @@ const Router = memo(function Router() {
           <Route path="/test" component={TestPage} />
           <Route path="/test-functionality" component={TestFunctionality} />
           
-          {/* Legal routes */}
-          <Route path="/terms" component={Terms} />
+          {/* Legal routes - canonical URLs */}
           <Route path="/privacy" component={Privacy} />
-          <Route path="/privacy-policy" component={Privacy} />
-          <Route path="/terms">
-            <Suspense fallback={<LoadingSpinner size="lg" />}>
-              <TermsOfService />
-            </Suspense>
+          <Route path="/terms" component={Terms} />
+          
+          {/* Redirect alternatives to canonical URLs */}
+          <Route path="/privacy-policy">
+            {() => {
+              window.location.replace('/privacy');
+              return null;
+            }}
           </Route>
-          <Route path="/privacy">
-            <Suspense fallback={<LoadingSpinner size="lg" />}>
-              <PrivacyPolicy />
-            </Suspense>
+          <Route path="/terms-of-service">
+            {() => {
+              window.location.replace('/terms');
+              return null;
+            }}
           </Route>
           <Route path="/cookies">
             <Suspense fallback={<LoadingSpinner size="lg" />}>
