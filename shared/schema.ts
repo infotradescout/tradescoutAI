@@ -391,6 +391,10 @@ export const contractors = pgTable("contractors", {
   verifiedLicensed: boolean("verified_licensed").default(false),
   verifiedInsured: boolean("verified_insured").default(false),
   lastVerified: timestamp("last_verified"),
+  positiveRecommendations: integer("positive_recommendations").default(0),
+  negativeRecommendations: integer("negative_recommendations").default(0),
+  totalRecommendations: integer("total_recommendations").default(0),
+  recommendationScore: decimal("recommendation_score", { precision: 5, scale: 2 }).default("0.00"), // percentage: (positive/total)*100
   isActive: boolean("is_active").default(true),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
@@ -417,10 +421,18 @@ export const recommendations = pgTable("recommendations", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   contractorId: varchar("contractor_id").notNull(),
   userId: varchar("user_id").notNull(),
-  rating: integer("rating").notNull(), // 1-5 stars
-  comment: text("comment"),
+  recommendationType: varchar("recommendation_type").notNull(), // 'positive' or 'negative'
+  comment: text("comment").notNull(),
+  projectType: varchar("project_type"), // roofing, plumbing, etc.
+  projectValue: decimal("project_value"), // dollar amount for context
+  workQuality: varchar("work_quality"), // excellent, good, fair, poor
+  timeliness: varchar("timeliness"), // on_time, slightly_late, very_late
+  communication: varchar("communication"), // excellent, good, fair, poor
+  wouldHireAgain: boolean("would_hire_again"),
   photoUrl: varchar("photo_url"),
   isVerified: boolean("is_verified").default(false),
+  isPublic: boolean("is_public").default(true),
+  moderationStatus: varchar("moderation_status").default('approved'), // pending, approved, rejected
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
@@ -431,10 +443,14 @@ export const contractorLeaderboardStats = pgTable("contractor_leaderboard_stats"
   contractorId: varchar("contractor_id").notNull().references(() => contractors.id),
   month: integer("month").notNull(), // 1-12
   year: integer("year").notNull(),
-  monthlyRecommendations: integer("monthly_recommendations").default(0),
-  lifetimeRecommendations: integer("lifetime_recommendations").default(0),
-  monthlyRating: decimal("monthly_rating", { precision: 3, scale: 2 }), // Average rating for the month
-  lifetimeRating: decimal("lifetime_rating", { precision: 3, scale: 2 }), // Overall average rating
+  monthlyPositiveRecommendations: integer("monthly_positive_recommendations").default(0),
+  monthlyNegativeRecommendations: integer("monthly_negative_recommendations").default(0),
+  monthlyTotalRecommendations: integer("monthly_total_recommendations").default(0),
+  lifetimePositiveRecommendations: integer("lifetime_positive_recommendations").default(0),
+  lifetimeNegativeRecommendations: integer("lifetime_negative_recommendations").default(0),
+  lifetimeTotalRecommendations: integer("lifetime_total_recommendations").default(0),
+  monthlyRecommendationScore: decimal("monthly_recommendation_score", { precision: 5, scale: 2 }), // Monthly percentage
+  lifetimeRecommendationScore: decimal("lifetime_recommendation_score", { precision: 5, scale: 2 }), // Lifetime percentage
   lastUpdated: timestamp("last_updated").defaultNow(),
   createdAt: timestamp("created_at").defaultNow(),
 }, (table) => [
