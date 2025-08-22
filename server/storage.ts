@@ -263,10 +263,21 @@ import {
   type InsertCrmEmailTemplate,
   type CrmPipeline,
   type InsertCrmPipeline,
+  // Smart Recommendation Generator types
+  type RecommendationInsight,
+  type InsertRecommendationInsight,
+  type RecommendationGoal,
+  type InsertRecommendationGoal,
+  type RecommendationCampaign,
+  type InsertRecommendationCampaign,
   // CRM tables
   crmContacts,
   crmDeals,
   crmActivities,
+  // Smart Recommendation Generator
+  recommendationInsights,
+  recommendationGoals,
+  recommendationCampaigns,
   crmEmailTemplates,
   crmPipelines,
 } from "@shared/schema";
@@ -559,6 +570,26 @@ export interface IStorage {
   canUserVoteOnReport(userId: string, reportId: string): Promise<boolean>;
   calculateLocalVoterWeight(voterCounty: string, voterState: string, contentCounty: string, contentState: string): Promise<number>;
   processVoteResult(reportId: string): Promise<void>;
+  
+  // Smart Recommendation Generator operations
+  // Insights
+  createRecommendationInsight(insight: InsertRecommendationInsight): Promise<RecommendationInsight>;
+  getRecommendationInsight(contractorId: string): Promise<RecommendationInsight | undefined>;
+  updateRecommendationInsight(contractorId: string, updates: Partial<RecommendationInsight>): Promise<RecommendationInsight>;
+  analyzeContractorPerformance(contractorId: string): Promise<RecommendationInsight>;
+  
+  // Goals
+  createRecommendationGoal(goal: InsertRecommendationGoal): Promise<RecommendationGoal>;
+  getContractorGoals(contractorId: string): Promise<RecommendationGoal[]>;
+  updateRecommendationGoal(goalId: string, updates: Partial<RecommendationGoal>): Promise<RecommendationGoal>;
+  updateGoalProgress(contractorId: string): Promise<void>;
+  
+  // Campaigns
+  createRecommendationCampaign(campaign: InsertRecommendationCampaign): Promise<RecommendationCampaign>;
+  getContractorCampaigns(contractorId: string): Promise<RecommendationCampaign[]>;
+  updateRecommendationCampaign(campaignId: string, updates: Partial<RecommendationCampaign>): Promise<RecommendationCampaign>;
+  deleteRecommendationCampaign(campaignId: string): Promise<void>;
+  getActiveCampaigns(): Promise<RecommendationCampaign[]>;
   
   // Invitation system operations
   // Invitations
@@ -5730,6 +5761,238 @@ export class DatabaseStorage implements IStorage {
       .from(crmPipelines)
       .where(and(eq(crmPipelines.isDefault, true), eq(crmPipelines.isActive, true)));
     return pipeline;
+  }
+
+  // Smart Recommendation Generator implementation
+  
+  // Insights
+  async createRecommendationInsight(insight: InsertRecommendationInsight): Promise<RecommendationInsight> {
+    const [newInsight] = await db.insert(recommendationInsights).values(insight).returning();
+    return newInsight;
+  }
+
+  async getRecommendationInsight(contractorId: string): Promise<RecommendationInsight | undefined> {
+    const [insight] = await db
+      .select()
+      .from(recommendationInsights)
+      .where(eq(recommendationInsights.contractorId, contractorId))
+      .orderBy(desc(recommendationInsights.lastAnalyzedAt))
+      .limit(1);
+    return insight;
+  }
+
+  async updateRecommendationInsight(contractorId: string, updates: Partial<RecommendationInsight>): Promise<RecommendationInsight> {
+    const [insight] = await db
+      .update(recommendationInsights)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(recommendationInsights.contractorId, contractorId))
+      .returning();
+    return insight;
+  }
+
+  async analyzeContractorPerformance(contractorId: string): Promise<RecommendationInsight> {
+    // Get contractor's current recommendations
+    const contractorRecommendations = await db
+      .select()
+      .from(recommendations)
+      .where(eq(recommendations.contractorId, contractorId));
+
+    const totalRecommendations = contractorRecommendations.length;
+    const positiveRecommendations = contractorRecommendations.filter(r => r.recommendationType === 'positive').length;
+    const negativeRecommendations = contractorRecommendations.filter(r => r.recommendationType === 'negative').length;
+
+    // Calculate average rating
+    const ratingsSum = contractorRecommendations.reduce((sum, rec) => {
+      const workQuality = parseInt(rec.workQuality || '0');
+      const timeliness = parseInt(rec.timeliness || '0');
+      const communication = parseInt(rec.communication || '0');
+      return sum + (workQuality + timeliness + communication) / 3;
+    }, 0);
+    
+    const averageRating = totalRecommendations > 0 ? (ratingsSum / totalRecommendations).toFixed(2) : '0';
+
+    // Analyze strengths and improvement areas
+    const topStrengths: string[] = [];
+    const improvementAreas: string[] = [];
+
+    if (positiveRecommendations / Math.max(totalRecommendations, 1) > 0.8) {
+      topStrengths.push('Consistently positive customer feedback');
+    }
+    if (negativeRecommendations / Math.max(totalRecommendations, 1) < 0.1) {
+      topStrengths.push('Low complaint rate');
+    }
+    if (parseFloat(averageRating) > 4.0) {
+      topStrengths.push('High quality work ratings');
+    }
+
+    if (totalRecommendations < 5) {
+      improvementAreas.push('Need more customer recommendations');
+    }
+    if (parseFloat(averageRating) < 3.5) {
+      improvementAreas.push('Focus on improving work quality');
+    }
+
+    // Generate AI recommendations
+    const aiRecommendations = [
+      {
+        category: 'Customer Follow-up',
+        suggestion: 'Set up automated follow-up emails to request recommendations after project completion',
+        impact: 'high' as const,
+        timeframe: '1-2 weeks'
+      },
+      {
+        category: 'Profile Optimization',
+        suggestion: 'Complete your contractor profile with detailed service descriptions and photos',
+        impact: 'medium' as const,
+        timeframe: '1 week'
+      },
+      {
+        category: 'Quality Improvement',
+        suggestion: 'Focus on communication and timeliness to boost ratings',
+        impact: 'high' as const,
+        timeframe: 'Ongoing'
+      }
+    ];
+
+    // Get competitive position
+    const allContractorsCount = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(contractors);
+    
+    const betterContractors = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(contractors)
+      .innerJoin(recommendations, eq(contractors.id, recommendations.contractorId))
+      .where(gt(sql<number>`count(${recommendations.id})`, totalRecommendations))
+      .groupBy(contractors.id);
+
+    const competitorComparison = {
+      totalContractors: allContractorsCount[0]?.count || 0,
+      betterThan: Math.max(0, allContractorsCount[0]?.count - betterContractors.length),
+      percentile: allContractorsCount[0]?.count > 0 
+        ? Math.round(((allContractorsCount[0].count - betterContractors.length) / allContractorsCount[0].count) * 100)
+        : 0
+    };
+
+    const marketPosition = competitorComparison.percentile >= 75 ? 'top_performer' :
+                          competitorComparison.percentile >= 50 ? 'above_average' :
+                          competitorComparison.percentile >= 25 ? 'average' : 'below_average';
+
+    const insightData = {
+      contractorId,
+      totalRecommendations,
+      positiveRecommendations,
+      negativeRecommendations,
+      averageRating,
+      topStrengths,
+      improvementAreas,
+      suggestedActions: [
+        {
+          action: 'Follow up with recent customers for recommendations',
+          priority: 'high' as const,
+          impact: 'Increase recommendation count by 50%',
+          difficulty: 'Easy - Use email templates'
+        },
+        {
+          action: 'Optimize profile with photos and detailed descriptions',
+          priority: 'medium' as const,
+          impact: 'Improve customer trust and inquiry rate',
+          difficulty: 'Medium - Requires content creation'
+        }
+      ],
+      profileViews: 0, // Would be updated from analytics
+      inquiryRate: '0',
+      responseRate: '0',
+      marketPosition,
+      competitorComparison,
+      aiRecommendations
+    };
+
+    // Check if insight exists and update or create
+    const existingInsight = await this.getRecommendationInsight(contractorId);
+    if (existingInsight) {
+      return await this.updateRecommendationInsight(contractorId, insightData);
+    } else {
+      return await this.createRecommendationInsight(insightData);
+    }
+  }
+
+  // Goals
+  async createRecommendationGoal(goal: InsertRecommendationGoal): Promise<RecommendationGoal> {
+    const [newGoal] = await db.insert(recommendationGoals).values(goal).returning();
+    return newGoal;
+  }
+
+  async getContractorGoals(contractorId: string): Promise<RecommendationGoal[]> {
+    return await db
+      .select()
+      .from(recommendationGoals)
+      .where(eq(recommendationGoals.contractorId, contractorId))
+      .orderBy(desc(recommendationGoals.createdAt));
+  }
+
+  async updateRecommendationGoal(goalId: string, updates: Partial<RecommendationGoal>): Promise<RecommendationGoal> {
+    const [goal] = await db
+      .update(recommendationGoals)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(recommendationGoals.id, goalId))
+      .returning();
+    return goal;
+  }
+
+  async updateGoalProgress(contractorId: string): Promise<void> {
+    const goals = await this.getContractorGoals(contractorId);
+    const currentRecommendations = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(recommendations)
+      .where(eq(recommendations.contractorId, contractorId));
+
+    const currentCount = currentRecommendations[0]?.count || 0;
+
+    for (const goal of goals) {
+      if (!goal.isActive) continue;
+
+      const progress = Math.min(100, ((currentCount - goal.startingRecommendations) / Math.max(1, goal.targetRecommendations - goal.startingRecommendations)) * 100);
+      
+      await this.updateRecommendationGoal(goal.id, {
+        currentProgress: progress.toString()
+      });
+    }
+  }
+
+  // Campaigns
+  async createRecommendationCampaign(campaign: InsertRecommendationCampaign): Promise<RecommendationCampaign> {
+    const [newCampaign] = await db.insert(recommendationCampaigns).values(campaign).returning();
+    return newCampaign;
+  }
+
+  async getContractorCampaigns(contractorId: string): Promise<RecommendationCampaign[]> {
+    return await db
+      .select()
+      .from(recommendationCampaigns)
+      .where(eq(recommendationCampaigns.contractorId, contractorId))
+      .orderBy(desc(recommendationCampaigns.createdAt));
+  }
+
+  async updateRecommendationCampaign(campaignId: string, updates: Partial<RecommendationCampaign>): Promise<RecommendationCampaign> {
+    const [campaign] = await db
+      .update(recommendationCampaigns)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(recommendationCampaigns.id, campaignId))
+      .returning();
+    return campaign;
+  }
+
+  async deleteRecommendationCampaign(campaignId: string): Promise<void> {
+    await db.delete(recommendationCampaigns).where(eq(recommendationCampaigns.id, campaignId));
+  }
+
+  async getActiveCampaigns(): Promise<RecommendationCampaign[]> {
+    return await db
+      .select()
+      .from(recommendationCampaigns)
+      .where(eq(recommendationCampaigns.isActive, true))
+      .orderBy(desc(recommendationCampaigns.createdAt));
   }
 }
 

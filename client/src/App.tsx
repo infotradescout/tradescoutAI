@@ -73,6 +73,7 @@ import AddressVerification from "@/pages/address-verification";
 import Community from "@/pages/community";
 import CommunityFeed from "@/pages/CommunityFeed";
 import CommunityModerationDemo from "@/pages/CommunityModerationDemo";
+import RecommendationGeneratorPage from "@/pages/contractor/recommendation-generator";
 import Register from "@/pages/register";
 import Signup from "@/pages/signup";
 import Leaderboard from "@/pages/leaderboard";
@@ -243,6 +244,7 @@ const Router = memo(function Router() {
               <Route path="/contractor-board" component={ContractorBoard} />
               <Route path="/contractor-profile/:id" component={ContractorProfile} />
               <Route path="/contractor-dashboard" component={ContractorDashboard} />
+              <Route path="/contractor/recommendation-generator" component={RecommendationGeneratorPage} />
               <Route path="/contractor-promos" component={ContractorPromos} />
               <Route path="/promo/:id" component={PromoPublic} />
               <Route path="/growth-pack" component={GrowthPack} />
