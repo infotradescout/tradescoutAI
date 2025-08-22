@@ -232,7 +232,9 @@ export const users = pgTable("users", {
   state: varchar("state"),
   county: varchar("county"), // Add county field
   zipCode: varchar("zip_code"),
-  role: userRoleEnum("role").default('homeowner'),
+  role: userRoleEnum("role").default('homeowner'), // Primary role for backward compatibility
+  roles: text("roles").array().default([]), // Multi-role support - array of role strings
+  activeRole: varchar("active_role").default('homeowner'), // Currently active role for dashboard switching
   provider: varchar("provider").default('local'), // 'local', 'facebook', 'google'
   providerId: varchar("provider_id"), // social login ID
   facebookId: varchar("facebook_id"), // Add facebookId field
