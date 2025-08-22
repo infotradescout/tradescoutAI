@@ -22,8 +22,8 @@ class WebSocketManager {
         return true;
       },
       // Handle protocols properly
-      handleProtocols: (protocols) => {
-        return protocols.length > 0 ? protocols[0] : '';
+      handleProtocols: (protocols: Set<string>) => {
+        return protocols.size > 0 ? Array.from(protocols)[0] : '';
       }
     });
 
