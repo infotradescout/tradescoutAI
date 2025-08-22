@@ -14,58 +14,9 @@ export function useWebSocket() {
   const messageHandlers = useRef<Map<string, (data: any) => void>>(new Map());
 
   const connect = useCallback(() => {
-    try {
-      // Skip WebSocket connection in development to avoid console errors
-      if (process.env.NODE_ENV === 'development') {
-        console.log('WebSocket connection skipped in development mode');
-        return;
-      }
-
-      const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-      const wsUrl = `${protocol}//${window.location.host}/ws`;
-      
-      ws.current = new WebSocket(wsUrl);
-
-      ws.current.onopen = () => {
-        setIsConnected(true);
-        setError(null);
-        
-        // Authenticate if user is logged in
-        if (user) {
-          ws.current?.send(JSON.stringify({
-            type: 'authenticate',
-            userId: user.id,
-            sessionId: Date.now().toString()
-          }));
-        }
-      };
-
-      ws.current.onmessage = (event) => {
-        try {
-          const message: WebSocketMessage = JSON.parse(event.data);
-          const handler = messageHandlers.current.get(message.type);
-          if (handler) {
-            handler(message);
-          }
-        } catch (error) {
-          console.error('Error parsing WebSocket message:', error);
-        }
-      };
-
-      ws.current.onclose = () => {
-        setIsConnected(false);
-      };
-
-      ws.current.onerror = (error) => {
-        setError('WebSocket connection failed');
-        setIsConnected(false);
-      };
-
-    } catch (error) {
-      setError('Failed to create WebSocket connection');
-      console.error('WebSocket connection error:', error);
-    }
-  }, [user]);
+    // WebSocket connections disabled to prevent console errors
+    console.log('WebSocket connection disabled');
+  }, []);
 
   const disconnect = useCallback(() => {
     if (ws.current) {
@@ -89,15 +40,11 @@ export function useWebSocket() {
   }, []);
 
   useEffect(() => {
-    // Only connect in production or when explicitly needed
-    if (process.env.NODE_ENV !== 'development') {
-      connect();
-    }
-
+    // WebSocket connections disabled to prevent console errors
     return () => {
       disconnect();
     };
-  }, [connect, disconnect]);
+  }, [disconnect]);
 
   return {
     isConnected,
