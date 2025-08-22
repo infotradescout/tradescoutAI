@@ -3,9 +3,10 @@ import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Star, Phone, Mail, MapPin, Calendar, Clock, Shield, CheckCircle, ExternalLink } from "lucide-react";
+import { Star, Phone, Mail, MapPin, Calendar, Clock, Shield, CheckCircle, ExternalLink, ThumbsUp, ThumbsDown } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { ChatButton } from "@/components/ChatButton";
+import { RecommendationForm } from "@/components/RecommendationForm";
 import type { Contractor, Recommendation } from "@shared/schema";
 import { SEOHelmet, createBreadcrumbStructuredData } from "@/components/SEOHelmet";
 
@@ -127,20 +128,31 @@ export default function ContractorProfile() {
             <div className="flex-1">
               <h1 className="text-3xl font-bold text-white mb-2">{contractor.companyName}</h1>
               
-              {ratingSummary && ratingSummary.count > 0 && (
-                <div className="flex items-center space-x-4 mb-4">
-                  <div className="flex text-yellow-400">
-                    {[1, 2, 3, 4, 5].map((star) => (
-                      <Star 
-                        key={star} 
-                        className={`h-5 w-5 ${star <= Math.round(ratingSummary.average) ? 'fill-current' : ''}`}
-                      />
-                    ))}
-                  </div>
-                  <span className="text-white font-semibold">{ratingSummary.average.toFixed(1)}</span>
-                  <span className="text-gray-300">({ratingSummary.count} recommendations)</span>
+              {/* Recommendation Statistics */}
+              <div className="flex items-center space-x-6 mb-4">
+                <div className="flex items-center space-x-2">
+                  <ThumbsUp className="h-5 w-5 text-green-400" />
+                  <span className="text-green-400 font-semibold text-lg">{contractor.positiveRecommendations || 0}</span>
+                  <span className="text-gray-300 text-sm">recommends</span>
                 </div>
-              )}
+                
+                {(contractor.negativeRecommendations || 0) > 0 && (
+                  <div className="flex items-center space-x-2">
+                    <ThumbsDown className="h-5 w-5 text-red-400" />
+                    <span className="text-red-400 font-semibold text-lg">{contractor.negativeRecommendations}</span>
+                    <span className="text-gray-300 text-sm">doesn't recommend</span>
+                  </div>
+                )}
+                
+                <div className="flex items-center space-x-2">
+                  <span className="text-white font-semibold text-lg">
+                    Net Score: +{(contractor.positiveRecommendations || 0) - (contractor.negativeRecommendations || 0)}
+                  </span>
+                  <span className="text-gray-300 text-sm">
+                    ({contractor.totalRecommendations || 0} total)
+                  </span>
+                </div>
+              </div>
 
               <div className="flex flex-wrap gap-2 mb-4">
                 {contractor.verifiedLicensed && (
@@ -203,19 +215,32 @@ export default function ContractorProfile() {
             </Card>
           )}
 
-          {/* Recent Reviews */}
+          {/* Recent Recommendations */}
           {recommendations.length > 0 && (
             <Card className="bg-navy-700 border-navy-600">
               <CardContent className="p-6">
                 <h3 className="text-xl font-semibold text-white mb-6">Recent Recommendations</h3>
                 <div className="space-y-6">
-                  {recommendations.slice(0, 3).map((recommendation: any, index: number) => (
+                  {recommendations.slice(0, 5).map((recommendation: any, index: number) => (
                     <div key={recommendation.id} className={`${index < recommendations.length - 1 ? 'border-b border-navy-600 pb-6' : ''}`}>
                       <div className="flex items-center justify-between mb-3">
-                        <div className="flex text-yellow-400">
-                          {[1, 2, 3, 4, 5].map((star) => (
-                            <Star key={star} className={`h-4 w-4 ${star <= recommendation.rating ? 'fill-current' : ''}`} />
-                          ))}
+                        <div className="flex items-center gap-2">
+                          {recommendation.recommendationType === 'positive' ? (
+                            <div className="flex items-center text-green-400">
+                              <ThumbsUp className="h-4 w-4 mr-1" />
+                              <span className="text-sm font-medium">Recommends</span>
+                            </div>
+                          ) : (
+                            <div className="flex items-center text-red-400">
+                              <ThumbsDown className="h-4 w-4 mr-1" />
+                              <span className="text-sm font-medium">Does not recommend</span>
+                            </div>
+                          )}
+                          {recommendation.projectType && (
+                            <Badge variant="outline" className="text-gray-300 border-gray-500">
+                              {recommendation.projectType}
+                            </Badge>
+                          )}
                         </div>
                         <span className="text-gray-400 text-sm">
                           {new Date(recommendation.createdAt).toLocaleDateString()}
@@ -224,23 +249,21 @@ export default function ContractorProfile() {
                       {recommendation.comment && (
                         <p className="text-gray-300 mb-2">{recommendation.comment}</p>
                       )}
+                      {recommendation.customerName && (
+                        <p className="text-gray-400 text-sm">- {recommendation.customerName}</p>
+                      )}
                     </div>
                   ))}
                 </div>
-                
-                {!isAuthenticated && (
-                  <div className="mt-6 p-4 bg-orange-500/10 border border-orange-500/30 rounded-lg">
-                    <p className="text-orange-400 text-sm mb-2">Want to leave a recommendation?</p>
-                    <Link href="/api/login">
-                      <Button size="sm" className="bg-orange-500 hover:bg-orange-600">
-                        Sign In to Recommend
-                      </Button>
-                    </Link>
-                  </div>
-                )}
               </CardContent>
             </Card>
           )}
+
+          {/* Recommendation Form */}
+          <RecommendationForm 
+            contractorId={contractor.id}
+            contractorName={contractor.companyName}
+          />
         </div>
 
         {/* Sidebar */}

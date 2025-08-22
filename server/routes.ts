@@ -2084,8 +2084,8 @@ export async function registerRoutes(app: Express) {
     }
   });
 
-  // Create recommendation for contractor with anti-abuse protection
-  app.post("/api/contractors/:contractorId/recommendations", async (req: any, res) => {
+  // Create recommendation for contractor with anti-abuse protection (LOGIN REQUIRED)
+  app.post("/api/contractors/:contractorId/recommendations", isAuthenticated, async (req: any, res) => {
     try {
       const { contractorId } = req.params;
       const {
@@ -2116,7 +2116,7 @@ export async function registerRoutes(app: Express) {
 
       const recommendation = await storage.createRecommendation({
         contractorId,
-        userId: req.user?.id || 'anonymous',
+        userId: req.user.id, // User must be authenticated
         recommendationType,
         comment,
         projectType,
