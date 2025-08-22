@@ -41,26 +41,21 @@ export const ROUTES = {
 
 export type RouteKey = keyof typeof ROUTES;
 
-// Route guards
+// Route guards - Only essential pages available
 export const PUBLIC_ROUTES = [
   ROUTES.HOME,
   ROUTES.LOGIN,
   ROUTES.REGISTER,
-  ROUTES.CONTRACTORS,
-  ROUTES.MARKETPLACE,
-  ROUTES.COMMUNITY,
-  ROUTES.HELP,
+  ROUTES.CONTRACTOR_BOARD,
+  '/quote-calculator', // Calculator route
   ROUTES.TERMS,
-  ROUTES.PRIVACY,
-  ROUTES.COOKIES
+  ROUTES.PRIVACY
 ];
 
 export const PROTECTED_ROUTES = [
   ROUTES.DASHBOARD,
-  ROUTES.PROFILE,
-  ROUTES.CONVERSATIONS,
-  ROUTES.SETTINGS,
-  ROUTES.CONTRACTOR_DASHBOARD
+  ROUTES.CONTRACTOR_BOARD,
+  '/quote-calculator'
 ];
 
 export const ADMIN_ROUTES = [

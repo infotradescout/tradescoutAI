@@ -43,48 +43,23 @@ export function EnhancedNavigation({ className = "" }: EnhancedNavigationProps) 
 
         {/* Desktop Navigation - All 7 Items in Header */}
         <nav className="hidden lg:flex items-center space-x-1 flex-1 justify-center">
-          <Link href="/contractors">
-            <Button variant={isActive("/contractors") ? "secondary" : "ghost"} size="sm" className="px-3 py-2 rounded-lg nav-button hover:bg-slate-800/60 text-sm">
-              Find Contractors
-            </Button>
-          </Link>
-          
-          <Link href="/calculator">
-            <Button variant={isActive("/calculator") ? "secondary" : "ghost"} size="sm" className="px-3 py-2 rounded-lg nav-button hover:bg-slate-800/60 text-sm">
-              Calculator
-            </Button>
-          </Link>
-          
-          <Link href="/contractors/for-contractors">
-            <Button variant={isActive("/contractors/for-contractors") ? "secondary" : "ghost"} size="sm" className="px-3 py-2 rounded-lg nav-button hover:bg-slate-800/60 text-sm">
-              For Contractors
-            </Button>
-          </Link>
-          
-          <Link href="/helpers">
-            <Button variant={isActive("/helpers") ? "secondary" : "ghost"} size="sm" className="px-3 py-2 rounded-lg nav-button hover:bg-slate-800/60 text-sm">
-              Helpers
-            </Button>
-          </Link>
-          
           <Link href="/dashboard">
             <Button variant={isActive("/dashboard") ? "secondary" : "ghost"} size="sm" className="px-3 py-2 rounded-lg nav-button hover:bg-slate-800/60 text-sm">
               Dashboard
             </Button>
           </Link>
           
-          <Link href="/exchange">
-            <Button variant={isActive("/exchange") ? "secondary" : "ghost"} size="sm" className="px-3 py-2 rounded-lg nav-button hover:bg-slate-800/60 text-sm">
-              Exchange
+          <Link href="/contractors/board">
+            <Button variant={isActive("/contractors/board") ? "secondary" : "ghost"} size="sm" className="px-3 py-2 rounded-lg nav-button hover:bg-slate-800/60 text-sm">
+              Contractors
             </Button>
           </Link>
           
-          <Link href="/foundation">
-            <Button variant={isActive("/foundation") ? "secondary" : "ghost"} size="sm" className="px-3 py-2 rounded-lg nav-button hover:bg-slate-800/60 text-sm">
-              Foundation
+          <Link href="/quote-calculator">
+            <Button variant={isActive("/quote-calculator") ? "secondary" : "ghost"} size="sm" className="px-3 py-2 rounded-lg nav-button hover:bg-slate-800/60 text-sm">
+              Calculator
             </Button>
           </Link>
-          
 
         </nav>
 
@@ -139,24 +114,19 @@ export function EnhancedNavigation({ className = "" }: EnhancedNavigationProps) 
                   <h3 className="text-sm font-semibold text-gray-400 uppercase tracking-wider">
                     Navigation
                   </h3>
-                  <Link href="/contractors" onClick={() => setIsMobileMenuOpen(false)}>
+                  <Link href="/dashboard" onClick={() => setIsMobileMenuOpen(false)}>
                     <Button variant="ghost" className="w-full justify-start text-slate-200 hover:text-white hover:bg-slate-800/60">
-                      Find Contractors
+                      Dashboard
                     </Button>
                   </Link>
-                  <Link href="/calculator" onClick={() => setIsMobileMenuOpen(false)}>
+                  <Link href="/contractors/board" onClick={() => setIsMobileMenuOpen(false)}>
+                    <Button variant="ghost" className="w-full justify-start text-slate-200 hover:text-white hover:bg-slate-800/60">
+                      Contractors
+                    </Button>
+                  </Link>
+                  <Link href="/quote-calculator" onClick={() => setIsMobileMenuOpen(false)}>
                     <Button variant="ghost" className="w-full justify-start text-slate-200 hover:text-white hover:bg-slate-800/60">
                       Calculator
-                    </Button>
-                  </Link>
-                  <Link href="/contractors/for-contractors" onClick={() => setIsMobileMenuOpen(false)}>
-                    <Button variant="ghost" className="w-full justify-start text-slate-200 hover:text-white hover:bg-slate-800/60">
-                      For Contractors
-                    </Button>
-                  </Link>
-                  <Link href="/helpers" onClick={() => setIsMobileMenuOpen(false)}>
-                    <Button variant="ghost" className="w-full justify-start text-slate-200 hover:text-white hover:bg-slate-800/60">
-                      Helpers
                     </Button>
                   </Link>
                   <Link href="/dashboard" onClick={() => setIsMobileMenuOpen(false)}>
