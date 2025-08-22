@@ -34,7 +34,7 @@ export default function AdminLogin() {
         // Refresh the page to update authentication state
         window.location.reload();
       }
-    } catch (error) {
+    } catch (error: any) {
       toast({
         title: "Access Denied",
         description: error.message || "Emergency admin access failed",
