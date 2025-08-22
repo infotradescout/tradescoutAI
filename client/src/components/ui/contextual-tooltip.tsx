@@ -1,4 +1,4 @@
-import React, { useState, forwardRef, useMemo } from "react";
+import React, { forwardRef } from "react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { HelpCircle, Wrench, Hammer, HardHat, Drill, Settings, Paintbrush, Ruler } from "lucide-react";
 
@@ -90,15 +90,8 @@ export const ContextualTooltip = forwardRef<
   variant = 'contractor',
   children 
 }, ref) => {
-  const [isOpen, setIsOpen] = useState(false);
-  
   const IconComponent = illustration ? illustrations[illustration] : HelpCircle;
   
-  // Memoize the random quip to prevent infinite re-renders
-  const randomQuip = useMemo(() => {
-    return contractorQuips[Math.floor(Math.random() * contractorQuips.length)];
-  }, []); // Empty dependency array means it only runs once
-
   const sizeClasses = {
     sm: 'h-4 w-4',
     md: 'h-5 w-5', 
@@ -116,9 +109,6 @@ export const ContextualTooltip = forwardRef<
       <button
         ref={ref}
         className={`inline-flex items-center justify-center transition-colors ${variantClasses[variant]}`}
-        onMouseEnter={() => setIsOpen(true)}
-        onMouseLeave={() => setIsOpen(false)}
-        onClick={() => setIsOpen(!isOpen)}
         {...props}
       >
         <IconComponent className={sizeClasses[size]} />
@@ -130,7 +120,7 @@ export const ContextualTooltip = forwardRef<
 
   return (
     <TooltipProvider>
-      <Tooltip open={isOpen} onOpenChange={setIsOpen}>
+      <Tooltip>
         <TooltipTrigger asChild>
           {children || <TriggerButton ref={ref} />}
         </TooltipTrigger>
@@ -146,12 +136,7 @@ export const ContextualTooltip = forwardRef<
               {title && (
                 <h4 className="font-semibold text-orange-400 mb-1">{title}</h4>
               )}
-              <p className="text-sm text-gray-200 mb-2">{content}</p>
-              {variant === 'contractor' && (
-                <p className="text-xs text-orange-300 italic border-t border-navy-600 pt-2">
-                  💡 {randomQuip}
-                </p>
-              )}
+              <p className="text-sm text-gray-200">{content}</p>
             </div>
           </div>
         </TooltipContent>
