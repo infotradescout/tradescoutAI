@@ -25,7 +25,7 @@ export function SubtleHints() {
         {
           id: 'contractor-welcome',
           title: "Welcome, Contractor!",
-          description: "Complete your profile to start getting leads from homeowners",
+          description: "Complete your profile to showcase your business to homeowners",
           icon: <Users className="w-5 h-5 text-orange-500" />,
           action: "Complete Profile",
           actionUrl: "/profile",
