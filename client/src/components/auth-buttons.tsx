@@ -24,18 +24,8 @@ export function AuthButtons({
   const [, setLocation] = useLocation();
 
   const handleFacebookLogin = () => {
-    // Check if Facebook auth is available, otherwise show error
-    try {
-      if (process.env.NODE_ENV === 'development') {
-        // In development, show message that OAuth needs to be configured
-        alert("Facebook OAuth is not configured. Please check server configuration.");
-        return;
-      }
-      window.location.href = "/auth/facebook";
-    } catch (error) {
-      console.error("Facebook login not available:", error);
-      alert("Facebook login is currently unavailable. Please try email login.");
-    }
+    // Facebook auth is available - redirect to the endpoint
+    window.location.href = "/api/auth/facebook";
   };
 
   const handleGoogleLogin = () => {
