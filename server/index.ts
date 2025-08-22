@@ -90,13 +90,13 @@ app.use((req, res, next) => {
   if (app.get("env") === "development") {
     await setupVite(app, server);
   } else {
-    serveStatic(app);
-    // Serve static files from client build
-    app.use(express.static(path.join(__dirname, '../client/dist')));
+    // Serve static files from client build using ES module compatible paths
+    const clientDistPath = path.join(path.dirname(__filename), '../client/dist');
+    app.use(express.static(clientDistPath));
 
     // Catch all handler for client-side routing
     app.get('*', (req, res) => {
-      const indexPath = path.join(__dirname, '../client/dist/index.html');
+      const indexPath = path.join(clientDistPath, 'index.html');
       console.log('Serving index.html from:', indexPath);
       res.sendFile(indexPath, (err) => {
         if (err) {
