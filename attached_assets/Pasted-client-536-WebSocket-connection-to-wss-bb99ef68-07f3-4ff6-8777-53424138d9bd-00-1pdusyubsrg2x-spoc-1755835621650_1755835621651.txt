@@ -1,0 +1,878 @@
+client:536 WebSocket connection to 'wss://bb99ef68-07f3-4ff6-8777-53424138d9bd-00-1pdusyubsrg2x.spock.replit.dev/?token=fyRdx3M4f5rU' failed: 
+setupWebSocket @ client:536
+(anonymous) @ client:531
+client:536 Uncaught (in promise) SyntaxError: Failed to construct 'WebSocket': The URL 'wss://localhost:undefined/?token=fyRdx3M4f5rU' is invalid.
+    at setupWebSocket (client:536:19)
+    at fallback (client:509:16)
+    at WebSocket.<anonymous> (client:555:7)
+setupWebSocket @ client:536
+fallback @ client:509
+(anonymous) @ client:555
+useAuth.ts:23  GET https://bb99ef68-07f3-4ff6-8777-53424138d9bd-00-1pdusyubsrg2x.spock.replit.dev/api/auth/user 401 (Unauthorized)
+(anonymous) @ useAuth.ts:23
+fetchFn @ @tanstack_react-query.js?v=7be30d2e:840
+run @ @tanstack_react-query.js?v=7be30d2e:494
+start @ @tanstack_react-query.js?v=7be30d2e:536
+fetch @ @tanstack_react-query.js?v=7be30d2e:926
+executeFetch_fn @ @tanstack_react-query.js?v=7be30d2e:2211
+onSubscribe @ @tanstack_react-query.js?v=7be30d2e:1898
+subscribe @ @tanstack_react-query.js?v=7be30d2e:24
+(anonymous) @ @tanstack_react-query.js?v=7be30d2e:3022
+subscribeToStore @ chunk-RPCDYKBN.js?v=7be30d2e:11984
+commitHookEffectListMount @ chunk-RPCDYKBN.js?v=7be30d2e:16915
+commitPassiveMountOnFiber @ chunk-RPCDYKBN.js?v=7be30d2e:18156
+commitPassiveMountEffects_complete @ chunk-RPCDYKBN.js?v=7be30d2e:18129
+commitPassiveMountEffects_begin @ chunk-RPCDYKBN.js?v=7be30d2e:18119
+commitPassiveMountEffects @ chunk-RPCDYKBN.js?v=7be30d2e:18109
+flushPassiveEffectsImpl @ chunk-RPCDYKBN.js?v=7be30d2e:19490
+flushPassiveEffects @ chunk-RPCDYKBN.js?v=7be30d2e:19447
+performSyncWorkOnRoot @ chunk-RPCDYKBN.js?v=7be30d2e:18868
+flushSyncCallbacks @ chunk-RPCDYKBN.js?v=7be30d2e:9119
+commitRootImpl @ chunk-RPCDYKBN.js?v=7be30d2e:19432
+commitRoot @ chunk-RPCDYKBN.js?v=7be30d2e:19277
+finishConcurrentRender @ chunk-RPCDYKBN.js?v=7be30d2e:18805
+performConcurrentWorkOnRoot @ chunk-RPCDYKBN.js?v=7be30d2e:18718
+workLoop @ chunk-RPCDYKBN.js?v=7be30d2e:197
+flushWork @ chunk-RPCDYKBN.js?v=7be30d2e:176
+performWorkUntilDeadline @ chunk-RPCDYKBN.js?v=7be30d2e:384
+main.tsx:8 Global error: Error: Maximum update depth exceeded. This can happen when a component repeatedly calls setState inside componentWillUpdate or componentDidUpdate. React limits the number of nested updates to prevent infinite loops.
+    at checkForNestedUpdates (chunk-RPCDYKBN.js?v=7be30d2e:19659:19)
+    at scheduleUpdateOnFiber (chunk-RPCDYKBN.js?v=7be30d2e:18533:11)
+    at dispatchSetState (chunk-RPCDYKBN.js?v=7be30d2e:12403:15)
+    at setRef (chunk-2K77HOHX.js?v=7be30d2e:18:12)
+    at chunk-2K77HOHX.js?v=7be30d2e:27:23
+    at Array.map (<anonymous>)
+    at chunk-2K77HOHX.js?v=7be30d2e:26:27
+    at setRef (chunk-2K77HOHX.js?v=7be30d2e:18:12)
+    at chunk-2K77HOHX.js?v=7be30d2e:27:23
+    at Array.map (<anonymous>) Error Component Stack
+    at chunk-2K77HOHX.js?v=7be30d2e:79:13
+    at chunk-2K77HOHX.js?v=7be30d2e:56:13
+    at chunk-AXMZZQ2X.js?v=7be30d2e:42:13
+    at chunk-2K77HOHX.js?v=7be30d2e:79:13
+    at chunk-2K77HOHX.js?v=7be30d2e:56:13
+    at chunk-AXMZZQ2X.js?v=7be30d2e:42:13
+    at chunk-4XNOAIBL.js?v=7be30d2e:1929:13
+    at @radix-ui_react-tooltip.js?v=7be30d2e:199:13
+    at Provider (chunk-OXZDJRWN.js?v=7be30d2e:38:15)
+    at Provider (chunk-OXZDJRWN.js?v=7be30d2e:38:15)
+    at Popper (chunk-4XNOAIBL.js?v=7be30d2e:1921:11)
+    at Tooltip (@radix-ui_react-tooltip.js?v=7be30d2e:108:5)
+    at Provider (chunk-OXZDJRWN.js?v=7be30d2e:38:15)
+    at TooltipProvider (@radix-ui_react-tooltip.js?v=7be30d2e:64:5)
+    at _c (contextual-tooltip.tsx:85:3)
+    at chunk-2K77HOHX.js?v=7be30d2e:79:13
+    at chunk-2K77HOHX.js?v=7be30d2e:56:13
+    at chunk-AXMZZQ2X.js?v=7be30d2e:42:13
+    at chunk-2K77HOHX.js?v=7be30d2e:79:13
+    at chunk-2K77HOHX.js?v=7be30d2e:56:13
+    at chunk-AXMZZQ2X.js?v=7be30d2e:42:13
+    at chunk-4XNOAIBL.js?v=7be30d2e:1929:13
+    at @radix-ui_react-tooltip.js?v=7be30d2e:199:13
+    at Provider (chunk-OXZDJRWN.js?v=7be30d2e:38:15)
+    at Provider (chunk-OXZDJRWN.js?v=7be30d2e:38:15)
+    at Popper (chunk-4XNOAIBL.js?v=7be30d2e:1921:11)
+    at Tooltip (@radix-ui_react-tooltip.js?v=7be30d2e:108:5)
+    at Provider (chunk-OXZDJRWN.js?v=7be30d2e:38:15)
+    at TooltipProvider (@radix-ui_react-tooltip.js?v=7be30d2e:64:5)
+    at _c (contextual-tooltip.tsx:85:3)
+    at PricingTooltip (contextual-tooltip.tsx:196:34)
+    at label (<anonymous>)
+    at chunk-AXMZZQ2X.js?v=7be30d2e:42:13
+    at Label (<anonymous>)
+    at _c (label.tsx:15:6)
+    at div (<anonymous>)
+    at div (<anonymous>)
+    at _c9 (card.tsx:62:6)
+    at div (<anonymous>)
+    at _c (card.tsx:8:6)
+    at div (<anonymous>)
+    at div (<anonymous>)
+    at main (<anonymous>)
+    at GuestGate (guest-gate.tsx:16:3)
+    at EstimateCalculator (quote-calculator.tsx:31:31)
+    at Route (wouter.js?v=7be30d2e:265:16)
+    at Switch (wouter.js?v=7be30d2e:321:17)
+    at main (<anonymous>)
+    at div (<anonymous>)
+    at div (<anonymous>)
+    at MobileGestures (MobileGestures.tsx:10:34)
+    at Router2 (App.tsx:142:48)
+    at Provider (chunk-OXZDJRWN.js?v=7be30d2e:38:15)
+    at TooltipProvider (@radix-ui_react-tooltip.js?v=7be30d2e:64:5)
+    at QueryClientProvider (@tanstack_react-query.js?v=7be30d2e:2805:3)
+    at ErrorBoundary (error-boundary.tsx:18:5)
+    at App2 (<anonymous>)
+overrideMethod @ hook.js:608
+(anonymous) @ main.tsx:8
+invokeGuardedCallbackDev @ chunk-RPCDYKBN.js?v=7be30d2e:3699
+invokeGuardedCallback @ chunk-RPCDYKBN.js?v=7be30d2e:3733
+reportUncaughtErrorInDEV @ chunk-RPCDYKBN.js?v=7be30d2e:16669
+captureCommitPhaseError @ chunk-RPCDYKBN.js?v=7be30d2e:19558
+safelyDetachRef @ chunk-RPCDYKBN.js?v=7be30d2e:16734
+commitDeletionEffectsOnFiber @ chunk-RPCDYKBN.js?v=7be30d2e:17495
+recursivelyTraverseDeletionEffects @ chunk-RPCDYKBN.js?v=7be30d2e:17486
+commitDeletionEffectsOnFiber @ chunk-RPCDYKBN.js?v=7be30d2e:17577
+commitDeletionEffects @ chunk-RPCDYKBN.js?v=7be30d2e:17477
+recursivelyTraverseMutationEffects @ chunk-RPCDYKBN.js?v=7be30d2e:17674
+commitMutationEffectsOnFiber @ chunk-RPCDYKBN.js?v=7be30d2e:17699
+recursivelyTraverseMutationEffects @ chunk-RPCDYKBN.js?v=7be30d2e:17685
+commitMutationEffectsOnFiber @ chunk-RPCDYKBN.js?v=7be30d2e:17699
+recursivelyTraverseMutationEffects @ chunk-RPCDYKBN.js?v=7be30d2e:17685
+commitMutationEffectsOnFiber @ chunk-RPCDYKBN.js?v=7be30d2e:17699
+recursivelyTraverseMutationEffects @ chunk-RPCDYKBN.js?v=7be30d2e:17685
+commitMutationEffectsOnFiber @ chunk-RPCDYKBN.js?v=7be30d2e:17699
+recursivelyTraverseMutationEffects @ chunk-RPCDYKBN.js?v=7be30d2e:17685
+commitMutationEffectsOnFiber @ chunk-RPCDYKBN.js?v=7be30d2e:17699
+recursivelyTraverseMutationEffects @ chunk-RPCDYKBN.js?v=7be30d2e:17685
+commitMutationEffectsOnFiber @ chunk-RPCDYKBN.js?v=7be30d2e:17699
+recursivelyTraverseMutationEffects @ chunk-RPCDYKBN.js?v=7be30d2e:17685
+commitMutationEffectsOnFiber @ chunk-RPCDYKBN.js?v=7be30d2e:17699
+recursivelyTraverseMutationEffects @ chunk-RPCDYKBN.js?v=7be30d2e:17685
+commitMutationEffectsOnFiber @ chunk-RPCDYKBN.js?v=7be30d2e:17699
+recursivelyTraverseMutationEffects @ chunk-RPCDYKBN.js?v=7be30d2e:17685
+commitMutationEffectsOnFiber @ chunk-RPCDYKBN.js?v=7be30d2e:17896
+recursivelyTraverseMutationEffects @ chunk-RPCDYKBN.js?v=7be30d2e:17685
+commitMutationEffectsOnFiber @ chunk-RPCDYKBN.js?v=7be30d2e:17699
+recursivelyTraverseMutationEffects @ chunk-RPCDYKBN.js?v=7be30d2e:17685
+commitMutationEffectsOnFiber @ chunk-RPCDYKBN.js?v=7be30d2e:17896
+recursivelyTraverseMutationEffects @ chunk-RPCDYKBN.js?v=7be30d2e:17685
+commitMutationEffectsOnFiber @ chunk-RPCDYKBN.js?v=7be30d2e:17699
+recursivelyTraverseMutationEffects @ chunk-RPCDYKBN.js?v=7be30d2e:17685
+commitMutationEffectsOnFiber @ chunk-RPCDYKBN.js?v=7be30d2e:17699
+recursivelyTraverseMutationEffects @ chunk-RPCDYKBN.js?v=7be30d2e:17685
+commitMutationEffectsOnFiber @ chunk-RPCDYKBN.js?v=7be30d2e:17699
+recursivelyTraverseMutationEffects @ chunk-RPCDYKBN.js?v=7be30d2e:17685
+commitMutationEffectsOnFiber @ chunk-RPCDYKBN.js?v=7be30d2e:17896
+recursivelyTraverseMutationEffects @ chunk-RPCDYKBN.js?v=7be30d2e:17685
+commitMutationEffectsOnFiber @ chunk-RPCDYKBN.js?v=7be30d2e:17699
+recursivelyTraverseMutationEffects @ chunk-RPCDYKBN.js?v=7be30d2e:17685
+commitMutationEffectsOnFiber @ chunk-RPCDYKBN.js?v=7be30d2e:17699
+recursivelyTraverseMutationEffects @ chunk-RPCDYKBN.js?v=7be30d2e:17685
+commitMutationEffectsOnFiber @ chunk-RPCDYKBN.js?v=7be30d2e:17699
+recursivelyTraverseMutationEffects @ chunk-RPCDYKBN.js?v=7be30d2e:17685
+commitMutationEffectsOnFiber @ chunk-RPCDYKBN.js?v=7be30d2e:17699
+recursivelyTraverseMutationEffects @ chunk-RPCDYKBN.js?v=7be30d2e:17685
+commitMutationEffectsOnFiber @ chunk-RPCDYKBN.js?v=7be30d2e:17699
+recursivelyTraverseMutationEffects @ chunk-RPCDYKBN.js?v=7be30d2e:17685
+commitMutationEffectsOnFiber @ chunk-RPCDYKBN.js?v=7be30d2e:17699
+recursivelyTraverseMutationEffects @ chunk-RPCDYKBN.js?v=7be30d2e:17685
+commitMutationEffectsOnFiber @ chunk-RPCDYKBN.js?v=7be30d2e:17699
+recursivelyTraverseMutationEffects @ chunk-RPCDYKBN.js?v=7be30d2e:17685
+commitMutationEffectsOnFiber @ chunk-RPCDYKBN.js?v=7be30d2e:17699
+recursivelyTraverseMutationEffects @ chunk-RPCDYKBN.js?v=7be30d2e:17685
+commitMutationEffectsOnFiber @ chunk-RPCDYKBN.js?v=7be30d2e:17699
+recursivelyTraverseMutationEffects @ chunk-RPCDYKBN.js?v=7be30d2e:17685
+commitMutationEffectsOnFiber @ chunk-RPCDYKBN.js?v=7be30d2e:17699
+recursivelyTraverseMutationEffects @ chunk-RPCDYKBN.js?v=7be30d2e:17685
+commitMutationEffectsOnFiber @ chunk-RPCDYKBN.js?v=7be30d2e:17699
+recursivelyTraverseMutationEffects @ chunk-RPCDYKBN.js?v=7be30d2e:17685
+commitMutationEffectsOnFiber @ chunk-RPCDYKBN.js?v=7be30d2e:17896
+recursivelyTraverseMutationEffects @ chunk-RPCDYKBN.js?v=7be30d2e:17685
+commitMutationEffectsOnFiber @ chunk-RPCDYKBN.js?v=7be30d2e:17699
+recursivelyTraverseMutationEffects @ chunk-RPCDYKBN.js?v=7be30d2e:17685
+commitMutationEffectsOnFiber @ chunk-RPCDYKBN.js?v=7be30d2e:17896
+recursivelyTraverseMutationEffects @ chunk-RPCDYKBN.js?v=7be30d2e:17685
+commitMutationEffectsOnFiber @ chunk-RPCDYKBN.js?v=7be30d2e:17699
+recursivelyTraverseMutationEffects @ chunk-RPCDYKBN.js?v=7be30d2e:17685
+commitMutationEffectsOnFiber @ chunk-RPCDYKBN.js?v=7be30d2e:17699
+recursivelyTraverseMutationEffects @ chunk-RPCDYKBN.js?v=7be30d2e:17685
+commitMutationEffectsOnFiber @ chunk-RPCDYKBN.js?v=7be30d2e:17699
+recursivelyTraverseMutationEffects @ chunk-RPCDYKBN.js?v=7be30d2e:17685
+commitMutationEffectsOnFiber @ chunk-RPCDYKBN.js?v=7be30d2e:17896
+recursivelyTraverseMutationEffects @ chunk-RPCDYKBN.js?v=7be30d2e:17685
+commitMutationEffectsOnFiber @ chunk-RPCDYKBN.js?v=7be30d2e:17699
+recursivelyTraverseMutationEffects @ chunk-RPCDYKBN.js?v=7be30d2e:17685
+commitMutationEffectsOnFiber @ chunk-RPCDYKBN.js?v=7be30d2e:17699
+recursivelyTraverseMutationEffects @ chunk-RPCDYKBN.js?v=7be30d2e:17685
+commitMutationEffectsOnFiber @ chunk-RPCDYKBN.js?v=7be30d2e:17699
+recursivelyTraverseMutationEffects @ chunk-RPCDYKBN.js?v=7be30d2e:17685
+commitMutationEffectsOnFiber @ chunk-RPCDYKBN.js?v=7be30d2e:17699
+recursivelyTraverseMutationEffects @ chunk-RPCDYKBN.js?v=7be30d2e:17685
+commitMutationEffectsOnFiber @ chunk-RPCDYKBN.js?v=7be30d2e:17737
+recursivelyTraverseMutationEffects @ chunk-RPCDYKBN.js?v=7be30d2e:17685
+commitMutationEffectsOnFiber @ chunk-RPCDYKBN.js?v=7be30d2e:17699
+recursivelyTraverseMutationEffects @ chunk-RPCDYKBN.js?v=7be30d2e:17685
+commitMutationEffectsOnFiber @ chunk-RPCDYKBN.js?v=7be30d2e:17699
+recursivelyTraverseMutationEffects @ chunk-RPCDYKBN.js?v=7be30d2e:17685
+commitMutationEffectsOnFiber @ chunk-RPCDYKBN.js?v=7be30d2e:17699
+recursivelyTraverseMutationEffects @ chunk-RPCDYKBN.js?v=7be30d2e:17685
+commitMutationEffectsOnFiber @ chunk-RPCDYKBN.js?v=7be30d2e:17737
+recursivelyTraverseMutationEffects @ chunk-RPCDYKBN.js?v=7be30d2e:17685
+commitMutationEffectsOnFiber @ chunk-RPCDYKBN.js?v=7be30d2e:17737
+recursivelyTraverseMutationEffects @ chunk-RPCDYKBN.js?v=7be30d2e:17685
+commitMutationEffectsOnFiber @ chunk-RPCDYKBN.js?v=7be30d2e:17699
+recursivelyTraverseMutationEffects @ chunk-RPCDYKBN.js?v=7be30d2e:17685
+commitMutationEffectsOnFiber @ chunk-RPCDYKBN.js?v=7be30d2e:17737
+recursivelyTraverseMutationEffects @ chunk-RPCDYKBN.js?v=7be30d2e:17685
+commitMutationEffectsOnFiber @ chunk-RPCDYKBN.js?v=7be30d2e:17699
+recursivelyTraverseMutationEffects @ chunk-RPCDYKBN.js?v=7be30d2e:17685
+commitMutationEffectsOnFiber @ chunk-RPCDYKBN.js?v=7be30d2e:17737
+recursivelyTraverseMutationEffects @ chunk-RPCDYKBN.js?v=7be30d2e:17685
+commitMutationEffectsOnFiber @ chunk-RPCDYKBN.js?v=7be30d2e:17737
+recursivelyTraverseMutationEffects @ chunk-RPCDYKBN.js?v=7be30d2e:17685
+commitMutationEffectsOnFiber @ chunk-RPCDYKBN.js?v=7be30d2e:17737
+recursivelyTraverseMutationEffects @ chunk-RPCDYKBN.js?v=7be30d2e:17685
+commitMutationEffectsOnFiber @ chunk-RPCDYKBN.js?v=7be30d2e:17699
+recursivelyTraverseMutationEffects @ chunk-RPCDYKBN.js?v=7be30d2e:17685
+commitMutationEffectsOnFiber @ chunk-RPCDYKBN.js?v=7be30d2e:17699
+recursivelyTraverseMutationEffects @ chunk-RPCDYKBN.js?v=7be30d2e:17685
+commitMutationEffectsOnFiber @ chunk-RPCDYKBN.js?v=7be30d2e:17896
+recursivelyTraverseMutationEffects @ chunk-RPCDYKBN.js?v=7be30d2e:17685
+commitMutationEffectsOnFiber @ chunk-RPCDYKBN.js?v=7be30d2e:17699
+recursivelyTraverseMutationEffects @ chunk-RPCDYKBN.js?v=7be30d2e:17685
+commitMutationEffectsOnFiber @ chunk-RPCDYKBN.js?v=7be30d2e:17699
+recursivelyTraverseMutationEffects @ chunk-RPCDYKBN.js?v=7be30d2e:17685
+commitMutationEffectsOnFiber @ chunk-RPCDYKBN.js?v=7be30d2e:17737
+recursivelyTraverseMutationEffects @ chunk-RPCDYKBN.js?v=7be30d2e:17685
+commitMutationEffectsOnFiber @ chunk-RPCDYKBN.js?v=7be30d2e:17737
+recursivelyTraverseMutationEffects @ chunk-RPCDYKBN.js?v=7be30d2e:17685
+commitMutationEffectsOnFiber @ chunk-RPCDYKBN.js?v=7be30d2e:17737
+recursivelyTraverseMutationEffects @ chunk-RPCDYKBN.js?v=7be30d2e:17685
+commitMutationEffectsOnFiber @ chunk-RPCDYKBN.js?v=7be30d2e:17699
+recursivelyTraverseMutationEffects @ chunk-RPCDYKBN.js?v=7be30d2e:17685
+commitMutationEffectsOnFiber @ chunk-RPCDYKBN.js?v=7be30d2e:17699
+recursivelyTraverseMutationEffects @ chunk-RPCDYKBN.js?v=7be30d2e:17685
+commitMutationEffectsOnFiber @ chunk-RPCDYKBN.js?v=7be30d2e:17896
+recursivelyTraverseMutationEffects @ chunk-RPCDYKBN.js?v=7be30d2e:17685
+commitMutationEffectsOnFiber @ chunk-RPCDYKBN.js?v=7be30d2e:17699
+recursivelyTraverseMutationEffects @ chunk-RPCDYKBN.js?v=7be30d2e:17685
+commitMutationEffectsOnFiber @ chunk-RPCDYKBN.js?v=7be30d2e:17699
+recursivelyTraverseMutationEffects @ chunk-RPCDYKBN.js?v=7be30d2e:17685
+commitMutationEffectsOnFiber @ chunk-RPCDYKBN.js?v=7be30d2e:17896
+recursivelyTraverseMutationEffects @ chunk-RPCDYKBN.js?v=7be30d2e:17685
+commitMutationEffectsOnFiber @ chunk-RPCDYKBN.js?v=7be30d2e:17699
+recursivelyTraverseMutationEffects @ chunk-RPCDYKBN.js?v=7be30d2e:17685
+commitMutationEffectsOnFiber @ chunk-RPCDYKBN.js?v=7be30d2e:17727
+recursivelyTraverseMutationEffects @ chunk-RPCDYKBN.js?v=7be30d2e:17685
+commitMutationEffectsOnFiber @ chunk-RPCDYKBN.js?v=7be30d2e:17699
+recursivelyTraverseMutationEffects @ chunk-RPCDYKBN.js?v=7be30d2e:17685
+commitMutationEffectsOnFiber @ chunk-RPCDYKBN.js?v=7be30d2e:17896
+recursivelyTraverseMutationEffects @ chunk-RPCDYKBN.js?v=7be30d2e:17685
+commitMutationEffectsOnFiber @ chunk-RPCDYKBN.js?v=7be30d2e:17794
+commitMutationEffects @ chunk-RPCDYKBN.js?v=7be30d2e:17663
+commitRootImpl @ chunk-RPCDYKBN.js?v=7be30d2e:19347
+commitRoot @ chunk-RPCDYKBN.js?v=7be30d2e:19277
+performSyncWorkOnRoot @ chunk-RPCDYKBN.js?v=7be30d2e:18895
+flushSyncCallbacks @ chunk-RPCDYKBN.js?v=7be30d2e:9119
+(anonymous) @ chunk-RPCDYKBN.js?v=7be30d2e:18627
+setTimeout
+scheduleFn @ @tanstack_react-query.js?v=7be30d2e:555
+flush @ @tanstack_react-query.js?v=7be30d2e:569
+batch @ @tanstack_react-query.js?v=7be30d2e:587
+dispatch_fn @ @tanstack_react-query.js?v=7be30d2e:996
+setData @ @tanstack_react-query.js?v=7be30d2e:696
+onSuccess @ @tanstack_react-query.js?v=7be30d2e:897
+resolve @ @tanstack_react-query.js?v=7be30d2e:456
+Promise.then
+run @ @tanstack_react-query.js?v=7be30d2e:498
+start @ @tanstack_react-query.js?v=7be30d2e:536
+fetch @ @tanstack_react-query.js?v=7be30d2e:926
+executeFetch_fn @ @tanstack_react-query.js?v=7be30d2e:2211
+onSubscribe @ @tanstack_react-query.js?v=7be30d2e:1898
+subscribe @ @tanstack_react-query.js?v=7be30d2e:24
+(anonymous) @ @tanstack_react-query.js?v=7be30d2e:3022
+subscribeToStore @ chunk-RPCDYKBN.js?v=7be30d2e:11984
+commitHookEffectListMount @ chunk-RPCDYKBN.js?v=7be30d2e:16915
+commitPassiveMountOnFiber @ chunk-RPCDYKBN.js?v=7be30d2e:18156
+commitPassiveMountEffects_complete @ chunk-RPCDYKBN.js?v=7be30d2e:18129
+commitPassiveMountEffects_begin @ chunk-RPCDYKBN.js?v=7be30d2e:18119
+commitPassiveMountEffects @ chunk-RPCDYKBN.js?v=7be30d2e:18109
+flushPassiveEffectsImpl @ chunk-RPCDYKBN.js?v=7be30d2e:19490
+flushPassiveEffects @ chunk-RPCDYKBN.js?v=7be30d2e:19447
+performSyncWorkOnRoot @ chunk-RPCDYKBN.js?v=7be30d2e:18868
+flushSyncCallbacks @ chunk-RPCDYKBN.js?v=7be30d2e:9119
+commitRootImpl @ chunk-RPCDYKBN.js?v=7be30d2e:19432
+commitRoot @ chunk-RPCDYKBN.js?v=7be30d2e:19277
+finishConcurrentRender @ chunk-RPCDYKBN.js?v=7be30d2e:18805
+performConcurrentWorkOnRoot @ chunk-RPCDYKBN.js?v=7be30d2e:18718
+workLoop @ chunk-RPCDYKBN.js?v=7be30d2e:197
+flushWork @ chunk-RPCDYKBN.js?v=7be30d2e:176
+performWorkUntilDeadline @ chunk-RPCDYKBN.js?v=7be30d2e:384
+chunk-RPCDYKBN.js?v=7be30d2e:19659 Uncaught Error: Maximum update depth exceeded. This can happen when a component repeatedly calls setState inside componentWillUpdate or componentDidUpdate. React limits the number of nested updates to prevent infinite loops.
+    at checkForNestedUpdates (chunk-RPCDYKBN.js?v=7be30d2e:19659:19)
+    at scheduleUpdateOnFiber (chunk-RPCDYKBN.js?v=7be30d2e:18533:11)
+    at dispatchSetState (chunk-RPCDYKBN.js?v=7be30d2e:12403:15)
+    at setRef (chunk-2K77HOHX.js?v=7be30d2e:18:12)
+    at chunk-2K77HOHX.js?v=7be30d2e:27:23
+    at Array.map (<anonymous>)
+    at chunk-2K77HOHX.js?v=7be30d2e:26:27
+    at setRef (chunk-2K77HOHX.js?v=7be30d2e:18:12)
+    at chunk-2K77HOHX.js?v=7be30d2e:27:23
+    at Array.map (<anonymous>)
+checkForNestedUpdates @ chunk-RPCDYKBN.js?v=7be30d2e:19659
+scheduleUpdateOnFiber @ chunk-RPCDYKBN.js?v=7be30d2e:18533
+dispatchSetState @ chunk-RPCDYKBN.js?v=7be30d2e:12403
+setRef @ chunk-2K77HOHX.js?v=7be30d2e:18
+(anonymous) @ chunk-2K77HOHX.js?v=7be30d2e:27
+(anonymous) @ chunk-2K77HOHX.js?v=7be30d2e:26
+setRef @ chunk-2K77HOHX.js?v=7be30d2e:18
+(anonymous) @ chunk-2K77HOHX.js?v=7be30d2e:27
+(anonymous) @ chunk-2K77HOHX.js?v=7be30d2e:26
+setRef @ chunk-2K77HOHX.js?v=7be30d2e:18
+(anonymous) @ chunk-2K77HOHX.js?v=7be30d2e:27
+(anonymous) @ chunk-2K77HOHX.js?v=7be30d2e:26
+safelyDetachRef @ chunk-RPCDYKBN.js?v=7be30d2e:16726
+commitDeletionEffectsOnFiber @ chunk-RPCDYKBN.js?v=7be30d2e:17495
+recursivelyTraverseDeletionEffects @ chunk-RPCDYKBN.js?v=7be30d2e:17486
+commitDeletionEffectsOnFiber @ chunk-RPCDYKBN.js?v=7be30d2e:17577
+commitDeletionEffects @ chunk-RPCDYKBN.js?v=7be30d2e:17477
+recursivelyTraverseMutationEffects @ chunk-RPCDYKBN.js?v=7be30d2e:17674
+commitMutationEffectsOnFiber @ chunk-RPCDYKBN.js?v=7be30d2e:17699
+recursivelyTraverseMutationEffects @ chunk-RPCDYKBN.js?v=7be30d2e:17685
+commitMutationEffectsOnFiber @ chunk-RPCDYKBN.js?v=7be30d2e:17699
+recursivelyTraverseMutationEffects @ chunk-RPCDYKBN.js?v=7be30d2e:17685
+commitMutationEffectsOnFiber @ chunk-RPCDYKBN.js?v=7be30d2e:17699
+recursivelyTraverseMutationEffects @ chunk-RPCDYKBN.js?v=7be30d2e:17685
+commitMutationEffectsOnFiber @ chunk-RPCDYKBN.js?v=7be30d2e:17699
+recursivelyTraverseMutationEffects @ chunk-RPCDYKBN.js?v=7be30d2e:17685
+commitMutationEffectsOnFiber @ chunk-RPCDYKBN.js?v=7be30d2e:17699
+recursivelyTraverseMutationEffects @ chunk-RPCDYKBN.js?v=7be30d2e:17685
+commitMutationEffectsOnFiber @ chunk-RPCDYKBN.js?v=7be30d2e:17699
+recursivelyTraverseMutationEffects @ chunk-RPCDYKBN.js?v=7be30d2e:17685
+commitMutationEffectsOnFiber @ chunk-RPCDYKBN.js?v=7be30d2e:17699
+recursivelyTraverseMutationEffects @ chunk-RPCDYKBN.js?v=7be30d2e:17685
+commitMutationEffectsOnFiber @ chunk-RPCDYKBN.js?v=7be30d2e:17699
+recursivelyTraverseMutationEffects @ chunk-RPCDYKBN.js?v=7be30d2e:17685
+commitMutationEffectsOnFiber @ chunk-RPCDYKBN.js?v=7be30d2e:17896
+recursivelyTraverseMutationEffects @ chunk-RPCDYKBN.js?v=7be30d2e:17685
+commitMutationEffectsOnFiber @ chunk-RPCDYKBN.js?v=7be30d2e:17699
+recursivelyTraverseMutationEffects @ chunk-RPCDYKBN.js?v=7be30d2e:17685
+commitMutationEffectsOnFiber @ chunk-RPCDYKBN.js?v=7be30d2e:17896
+recursivelyTraverseMutationEffects @ chunk-RPCDYKBN.js?v=7be30d2e:17685
+commitMutationEffectsOnFiber @ chunk-RPCDYKBN.js?v=7be30d2e:17699
+recursivelyTraverseMutationEffects @ chunk-RPCDYKBN.js?v=7be30d2e:17685
+commitMutationEffectsOnFiber @ chunk-RPCDYKBN.js?v=7be30d2e:17699
+recursivelyTraverseMutationEffects @ chunk-RPCDYKBN.js?v=7be30d2e:17685
+commitMutationEffectsOnFiber @ chunk-RPCDYKBN.js?v=7be30d2e:17699
+recursivelyTraverseMutationEffects @ chunk-RPCDYKBN.js?v=7be30d2e:17685
+commitMutationEffectsOnFiber @ chunk-RPCDYKBN.js?v=7be30d2e:17896
+recursivelyTraverseMutationEffects @ chunk-RPCDYKBN.js?v=7be30d2e:17685
+commitMutationEffectsOnFiber @ chunk-RPCDYKBN.js?v=7be30d2e:17699
+recursivelyTraverseMutationEffects @ chunk-RPCDYKBN.js?v=7be30d2e:17685
+commitMutationEffectsOnFiber @ chunk-RPCDYKBN.js?v=7be30d2e:17699
+recursivelyTraverseMutationEffects @ chunk-RPCDYKBN.js?v=7be30d2e:17685
+commitMutationEffectsOnFiber @ chunk-RPCDYKBN.js?v=7be30d2e:17699
+recursivelyTraverseMutationEffects @ chunk-RPCDYKBN.js?v=7be30d2e:17685
+commitMutationEffectsOnFiber @ chunk-RPCDYKBN.js?v=7be30d2e:17699
+recursivelyTraverseMutationEffects @ chunk-RPCDYKBN.js?v=7be30d2e:17685
+commitMutationEffectsOnFiber @ chunk-RPCDYKBN.js?v=7be30d2e:17699
+recursivelyTraverseMutationEffects @ chunk-RPCDYKBN.js?v=7be30d2e:17685
+commitMutationEffectsOnFiber @ chunk-RPCDYKBN.js?v=7be30d2e:17699
+recursivelyTraverseMutationEffects @ chunk-RPCDYKBN.js?v=7be30d2e:17685
+commitMutationEffectsOnFiber @ chunk-RPCDYKBN.js?v=7be30d2e:17699
+recursivelyTraverseMutationEffects @ chunk-RPCDYKBN.js?v=7be30d2e:17685
+commitMutationEffectsOnFiber @ chunk-RPCDYKBN.js?v=7be30d2e:17699
+recursivelyTraverseMutationEffects @ chunk-RPCDYKBN.js?v=7be30d2e:17685
+commitMutationEffectsOnFiber @ chunk-RPCDYKBN.js?v=7be30d2e:17699
+recursivelyTraverseMutationEffects @ chunk-RPCDYKBN.js?v=7be30d2e:17685
+commitMutationEffectsOnFiber @ chunk-RPCDYKBN.js?v=7be30d2e:17699
+recursivelyTraverseMutationEffects @ chunk-RPCDYKBN.js?v=7be30d2e:17685
+commitMutationEffectsOnFiber @ chunk-RPCDYKBN.js?v=7be30d2e:17699
+recursivelyTraverseMutationEffects @ chunk-RPCDYKBN.js?v=7be30d2e:17685
+commitMutationEffectsOnFiber @ chunk-RPCDYKBN.js?v=7be30d2e:17896
+recursivelyTraverseMutationEffects @ chunk-RPCDYKBN.js?v=7be30d2e:17685
+commitMutationEffectsOnFiber @ chunk-RPCDYKBN.js?v=7be30d2e:17699
+recursivelyTraverseMutationEffects @ chunk-RPCDYKBN.js?v=7be30d2e:17685
+commitMutationEffectsOnFiber @ chunk-RPCDYKBN.js?v=7be30d2e:17896
+recursivelyTraverseMutationEffects @ chunk-RPCDYKBN.js?v=7be30d2e:17685
+commitMutationEffectsOnFiber @ chunk-RPCDYKBN.js?v=7be30d2e:17699
+recursivelyTraverseMutationEffects @ chunk-RPCDYKBN.js?v=7be30d2e:17685
+commitMutationEffectsOnFiber @ chunk-RPCDYKBN.js?v=7be30d2e:17699
+recursivelyTraverseMutationEffects @ chunk-RPCDYKBN.js?v=7be30d2e:17685
+commitMutationEffectsOnFiber @ chunk-RPCDYKBN.js?v=7be30d2e:17699
+recursivelyTraverseMutationEffects @ chunk-RPCDYKBN.js?v=7be30d2e:17685
+commitMutationEffectsOnFiber @ chunk-RPCDYKBN.js?v=7be30d2e:17896
+recursivelyTraverseMutationEffects @ chunk-RPCDYKBN.js?v=7be30d2e:17685
+commitMutationEffectsOnFiber @ chunk-RPCDYKBN.js?v=7be30d2e:17699
+recursivelyTraverseMutationEffects @ chunk-RPCDYKBN.js?v=7be30d2e:17685
+commitMutationEffectsOnFiber @ chunk-RPCDYKBN.js?v=7be30d2e:17699
+recursivelyTraverseMutationEffects @ chunk-RPCDYKBN.js?v=7be30d2e:17685
+commitMutationEffectsOnFiber @ chunk-RPCDYKBN.js?v=7be30d2e:17699
+recursivelyTraverseMutationEffects @ chunk-RPCDYKBN.js?v=7be30d2e:17685
+commitMutationEffectsOnFiber @ chunk-RPCDYKBN.js?v=7be30d2e:17699
+recursivelyTraverseMutationEffects @ chunk-RPCDYKBN.js?v=7be30d2e:17685
+commitMutationEffectsOnFiber @ chunk-RPCDYKBN.js?v=7be30d2e:17737
+recursivelyTraverseMutationEffects @ chunk-RPCDYKBN.js?v=7be30d2e:17685
+commitMutationEffectsOnFiber @ chunk-RPCDYKBN.js?v=7be30d2e:17699
+recursivelyTraverseMutationEffects @ chunk-RPCDYKBN.js?v=7be30d2e:17685
+commitMutationEffectsOnFiber @ chunk-RPCDYKBN.js?v=7be30d2e:17699
+recursivelyTraverseMutationEffects @ chunk-RPCDYKBN.js?v=7be30d2e:17685
+commitMutationEffectsOnFiber @ chunk-RPCDYKBN.js?v=7be30d2e:17699
+recursivelyTraverseMutationEffects @ chunk-RPCDYKBN.js?v=7be30d2e:17685
+commitMutationEffectsOnFiber @ chunk-RPCDYKBN.js?v=7be30d2e:17737
+recursivelyTraverseMutationEffects @ chunk-RPCDYKBN.js?v=7be30d2e:17685
+commitMutationEffectsOnFiber @ chunk-RPCDYKBN.js?v=7be30d2e:17737
+recursivelyTraverseMutationEffects @ chunk-RPCDYKBN.js?v=7be30d2e:17685
+commitMutationEffectsOnFiber @ chunk-RPCDYKBN.js?v=7be30d2e:17699
+recursivelyTraverseMutationEffects @ chunk-RPCDYKBN.js?v=7be30d2e:17685
+commitMutationEffectsOnFiber @ chunk-RPCDYKBN.js?v=7be30d2e:17737
+recursivelyTraverseMutationEffects @ chunk-RPCDYKBN.js?v=7be30d2e:17685
+commitMutationEffectsOnFiber @ chunk-RPCDYKBN.js?v=7be30d2e:17699
+recursivelyTraverseMutationEffects @ chunk-RPCDYKBN.js?v=7be30d2e:17685
+commitMutationEffectsOnFiber @ chunk-RPCDYKBN.js?v=7be30d2e:17737
+recursivelyTraverseMutationEffects @ chunk-RPCDYKBN.js?v=7be30d2e:17685
+commitMutationEffectsOnFiber @ chunk-RPCDYKBN.js?v=7be30d2e:17737
+recursivelyTraverseMutationEffects @ chunk-RPCDYKBN.js?v=7be30d2e:17685
+commitMutationEffectsOnFiber @ chunk-RPCDYKBN.js?v=7be30d2e:17737
+recursivelyTraverseMutationEffects @ chunk-RPCDYKBN.js?v=7be30d2e:17685
+commitMutationEffectsOnFiber @ chunk-RPCDYKBN.js?v=7be30d2e:17699
+recursivelyTraverseMutationEffects @ chunk-RPCDYKBN.js?v=7be30d2e:17685
+commitMutationEffectsOnFiber @ chunk-RPCDYKBN.js?v=7be30d2e:17699
+recursivelyTraverseMutationEffects @ chunk-RPCDYKBN.js?v=7be30d2e:17685
+commitMutationEffectsOnFiber @ chunk-RPCDYKBN.js?v=7be30d2e:17896
+recursivelyTraverseMutationEffects @ chunk-RPCDYKBN.js?v=7be30d2e:17685
+commitMutationEffectsOnFiber @ chunk-RPCDYKBN.js?v=7be30d2e:17699
+recursivelyTraverseMutationEffects @ chunk-RPCDYKBN.js?v=7be30d2e:17685
+commitMutationEffectsOnFiber @ chunk-RPCDYKBN.js?v=7be30d2e:17699
+recursivelyTraverseMutationEffects @ chunk-RPCDYKBN.js?v=7be30d2e:17685
+commitMutationEffectsOnFiber @ chunk-RPCDYKBN.js?v=7be30d2e:17737
+recursivelyTraverseMutationEffects @ chunk-RPCDYKBN.js?v=7be30d2e:17685
+commitMutationEffectsOnFiber @ chunk-RPCDYKBN.js?v=7be30d2e:17737
+recursivelyTraverseMutationEffects @ chunk-RPCDYKBN.js?v=7be30d2e:17685
+commitMutationEffectsOnFiber @ chunk-RPCDYKBN.js?v=7be30d2e:17737
+recursivelyTraverseMutationEffects @ chunk-RPCDYKBN.js?v=7be30d2e:17685
+commitMutationEffectsOnFiber @ chunk-RPCDYKBN.js?v=7be30d2e:17699
+recursivelyTraverseMutationEffects @ chunk-RPCDYKBN.js?v=7be30d2e:17685
+commitMutationEffectsOnFiber @ chunk-RPCDYKBN.js?v=7be30d2e:17699
+recursivelyTraverseMutationEffects @ chunk-RPCDYKBN.js?v=7be30d2e:17685
+commitMutationEffectsOnFiber @ chunk-RPCDYKBN.js?v=7be30d2e:17896
+recursivelyTraverseMutationEffects @ chunk-RPCDYKBN.js?v=7be30d2e:17685
+commitMutationEffectsOnFiber @ chunk-RPCDYKBN.js?v=7be30d2e:17699
+recursivelyTraverseMutationEffects @ chunk-RPCDYKBN.js?v=7be30d2e:17685
+commitMutationEffectsOnFiber @ chunk-RPCDYKBN.js?v=7be30d2e:17699
+recursivelyTraverseMutationEffects @ chunk-RPCDYKBN.js?v=7be30d2e:17685
+commitMutationEffectsOnFiber @ chunk-RPCDYKBN.js?v=7be30d2e:17896
+recursivelyTraverseMutationEffects @ chunk-RPCDYKBN.js?v=7be30d2e:17685
+commitMutationEffectsOnFiber @ chunk-RPCDYKBN.js?v=7be30d2e:17699
+recursivelyTraverseMutationEffects @ chunk-RPCDYKBN.js?v=7be30d2e:17685
+commitMutationEffectsOnFiber @ chunk-RPCDYKBN.js?v=7be30d2e:17727
+recursivelyTraverseMutationEffects @ chunk-RPCDYKBN.js?v=7be30d2e:17685
+commitMutationEffectsOnFiber @ chunk-RPCDYKBN.js?v=7be30d2e:17699
+recursivelyTraverseMutationEffects @ chunk-RPCDYKBN.js?v=7be30d2e:17685
+commitMutationEffectsOnFiber @ chunk-RPCDYKBN.js?v=7be30d2e:17896
+recursivelyTraverseMutationEffects @ chunk-RPCDYKBN.js?v=7be30d2e:17685
+commitMutationEffectsOnFiber @ chunk-RPCDYKBN.js?v=7be30d2e:17794
+commitMutationEffects @ chunk-RPCDYKBN.js?v=7be30d2e:17663
+commitRootImpl @ chunk-RPCDYKBN.js?v=7be30d2e:19347
+commitRoot @ chunk-RPCDYKBN.js?v=7be30d2e:19277
+performSyncWorkOnRoot @ chunk-RPCDYKBN.js?v=7be30d2e:18895
+flushSyncCallbacks @ chunk-RPCDYKBN.js?v=7be30d2e:9119
+(anonymous) @ chunk-RPCDYKBN.js?v=7be30d2e:18627
+setTimeout
+scheduleFn @ @tanstack_react-query.js?v=7be30d2e:555
+flush @ @tanstack_react-query.js?v=7be30d2e:569
+batch @ @tanstack_react-query.js?v=7be30d2e:587
+dispatch_fn @ @tanstack_react-query.js?v=7be30d2e:996
+setData @ @tanstack_react-query.js?v=7be30d2e:696
+onSuccess @ @tanstack_react-query.js?v=7be30d2e:897
+resolve @ @tanstack_react-query.js?v=7be30d2e:456
+Promise.then
+run @ @tanstack_react-query.js?v=7be30d2e:498
+start @ @tanstack_react-query.js?v=7be30d2e:536
+fetch @ @tanstack_react-query.js?v=7be30d2e:926
+executeFetch_fn @ @tanstack_react-query.js?v=7be30d2e:2211
+onSubscribe @ @tanstack_react-query.js?v=7be30d2e:1898
+subscribe @ @tanstack_react-query.js?v=7be30d2e:24
+(anonymous) @ @tanstack_react-query.js?v=7be30d2e:3022
+subscribeToStore @ chunk-RPCDYKBN.js?v=7be30d2e:11984
+commitHookEffectListMount @ chunk-RPCDYKBN.js?v=7be30d2e:16915
+commitPassiveMountOnFiber @ chunk-RPCDYKBN.js?v=7be30d2e:18156
+commitPassiveMountEffects_complete @ chunk-RPCDYKBN.js?v=7be30d2e:18129
+commitPassiveMountEffects_begin @ chunk-RPCDYKBN.js?v=7be30d2e:18119
+commitPassiveMountEffects @ chunk-RPCDYKBN.js?v=7be30d2e:18109
+flushPassiveEffectsImpl @ chunk-RPCDYKBN.js?v=7be30d2e:19490
+flushPassiveEffects @ chunk-RPCDYKBN.js?v=7be30d2e:19447
+performSyncWorkOnRoot @ chunk-RPCDYKBN.js?v=7be30d2e:18868
+flushSyncCallbacks @ chunk-RPCDYKBN.js?v=7be30d2e:9119
+commitRootImpl @ chunk-RPCDYKBN.js?v=7be30d2e:19432
+commitRoot @ chunk-RPCDYKBN.js?v=7be30d2e:19277
+finishConcurrentRender @ chunk-RPCDYKBN.js?v=7be30d2e:18805
+performConcurrentWorkOnRoot @ chunk-RPCDYKBN.js?v=7be30d2e:18718
+workLoop @ chunk-RPCDYKBN.js?v=7be30d2e:197
+flushWork @ chunk-RPCDYKBN.js?v=7be30d2e:176
+performWorkUntilDeadline @ chunk-RPCDYKBN.js?v=7be30d2e:384
+hook.js:608 Warning: Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render. Error Component Stack
+    at ErrorBoundary (error-boundary.tsx:18:5)
+    at App2 (<anonymous>)
+overrideMethod @ hook.js:608
+printWarning @ chunk-RPCDYKBN.js?v=7be30d2e:521
+error @ chunk-RPCDYKBN.js?v=7be30d2e:505
+checkForNestedUpdates @ chunk-RPCDYKBN.js?v=7be30d2e:19665
+scheduleUpdateOnFiber @ chunk-RPCDYKBN.js?v=7be30d2e:18533
+dispatchSetState @ chunk-RPCDYKBN.js?v=7be30d2e:12403
+setRef @ chunk-2K77HOHX.js?v=7be30d2e:18
+(anonymous) @ chunk-2K77HOHX.js?v=7be30d2e:27
+(anonymous) @ chunk-2K77HOHX.js?v=7be30d2e:26
+setRef @ chunk-2K77HOHX.js?v=7be30d2e:18
+(anonymous) @ chunk-2K77HOHX.js?v=7be30d2e:27
+(anonymous) @ chunk-2K77HOHX.js?v=7be30d2e:26
+safelyDetachRef @ chunk-RPCDYKBN.js?v=7be30d2e:16726
+commitDeletionEffectsOnFiber @ chunk-RPCDYKBN.js?v=7be30d2e:17495
+recursivelyTraverseDeletionEffects @ chunk-RPCDYKBN.js?v=7be30d2e:17486
+commitDeletionEffectsOnFiber @ chunk-RPCDYKBN.js?v=7be30d2e:17577
+recursivelyTraverseDeletionEffects @ chunk-RPCDYKBN.js?v=7be30d2e:17486
+commitDeletionEffectsOnFiber @ chunk-RPCDYKBN.js?v=7be30d2e:17577
+recursivelyTraverseDeletionEffects @ chunk-RPCDYKBN.js?v=7be30d2e:17486
+commitDeletionEffectsOnFiber @ chunk-RPCDYKBN.js?v=7be30d2e:17577
+recursivelyTraverseDeletionEffects @ chunk-RPCDYKBN.js?v=7be30d2e:17486
+commitDeletionEffectsOnFiber @ chunk-RPCDYKBN.js?v=7be30d2e:17577
+recursivelyTraverseDeletionEffects @ chunk-RPCDYKBN.js?v=7be30d2e:17486
+commitDeletionEffectsOnFiber @ chunk-RPCDYKBN.js?v=7be30d2e:17503
+recursivelyTraverseDeletionEffects @ chunk-RPCDYKBN.js?v=7be30d2e:17486
+commitDeletionEffectsOnFiber @ chunk-RPCDYKBN.js?v=7be30d2e:17577
+recursivelyTraverseDeletionEffects @ chunk-RPCDYKBN.js?v=7be30d2e:17486
+commitDeletionEffectsOnFiber @ chunk-RPCDYKBN.js?v=7be30d2e:17577
+recursivelyTraverseDeletionEffects @ chunk-RPCDYKBN.js?v=7be30d2e:17486
+commitDeletionEffectsOnFiber @ chunk-RPCDYKBN.js?v=7be30d2e:17577
+recursivelyTraverseDeletionEffects @ chunk-RPCDYKBN.js?v=7be30d2e:17486
+commitDeletionEffectsOnFiber @ chunk-RPCDYKBN.js?v=7be30d2e:17577
+recursivelyTraverseDeletionEffects @ chunk-RPCDYKBN.js?v=7be30d2e:17486
+commitDeletionEffectsOnFiber @ chunk-RPCDYKBN.js?v=7be30d2e:17610
+recursivelyTraverseDeletionEffects @ chunk-RPCDYKBN.js?v=7be30d2e:17486
+commitDeletionEffectsOnFiber @ chunk-RPCDYKBN.js?v=7be30d2e:17577
+recursivelyTraverseDeletionEffects @ chunk-RPCDYKBN.js?v=7be30d2e:17486
+commitDeletionEffectsOnFiber @ chunk-RPCDYKBN.js?v=7be30d2e:17610
+recursivelyTraverseDeletionEffects @ chunk-RPCDYKBN.js?v=7be30d2e:17486
+commitDeletionEffectsOnFiber @ chunk-RPCDYKBN.js?v=7be30d2e:17577
+recursivelyTraverseDeletionEffects @ chunk-RPCDYKBN.js?v=7be30d2e:17486
+commitDeletionEffectsOnFiber @ chunk-RPCDYKBN.js?v=7be30d2e:17577
+recursivelyTraverseDeletionEffects @ chunk-RPCDYKBN.js?v=7be30d2e:17486
+commitDeletionEffectsOnFiber @ chunk-RPCDYKBN.js?v=7be30d2e:17577
+recursivelyTraverseDeletionEffects @ chunk-RPCDYKBN.js?v=7be30d2e:17486
+commitDeletionEffectsOnFiber @ chunk-RPCDYKBN.js?v=7be30d2e:17577
+recursivelyTraverseDeletionEffects @ chunk-RPCDYKBN.js?v=7be30d2e:17486
+commitDeletionEffectsOnFiber @ chunk-RPCDYKBN.js?v=7be30d2e:17610
+recursivelyTraverseDeletionEffects @ chunk-RPCDYKBN.js?v=7be30d2e:17486
+commitDeletionEffectsOnFiber @ chunk-RPCDYKBN.js?v=7be30d2e:17577
+recursivelyTraverseDeletionEffects @ chunk-RPCDYKBN.js?v=7be30d2e:17486
+commitDeletionEffectsOnFiber @ chunk-RPCDYKBN.js?v=7be30d2e:17577
+recursivelyTraverseDeletionEffects @ chunk-RPCDYKBN.js?v=7be30d2e:17486
+commitDeletionEffectsOnFiber @ chunk-RPCDYKBN.js?v=7be30d2e:17610
+recursivelyTraverseDeletionEffects @ chunk-RPCDYKBN.js?v=7be30d2e:17486
+commitDeletionEffectsOnFiber @ chunk-RPCDYKBN.js?v=7be30d2e:17577
+commitDeletionEffects @ chunk-RPCDYKBN.js?v=7be30d2e:17477
+recursivelyTraverseMutationEffects @ chunk-RPCDYKBN.js?v=7be30d2e:17674
+commitMutationEffectsOnFiber @ chunk-RPCDYKBN.js?v=7be30d2e:17727
+recursivelyTraverseMutationEffects @ chunk-RPCDYKBN.js?v=7be30d2e:17685
+commitMutationEffectsOnFiber @ chunk-RPCDYKBN.js?v=7be30d2e:17699
+recursivelyTraverseMutationEffects @ chunk-RPCDYKBN.js?v=7be30d2e:17685
+commitMutationEffectsOnFiber @ chunk-RPCDYKBN.js?v=7be30d2e:17896
+recursivelyTraverseMutationEffects @ chunk-RPCDYKBN.js?v=7be30d2e:17685
+commitMutationEffectsOnFiber @ chunk-RPCDYKBN.js?v=7be30d2e:17794
+commitMutationEffects @ chunk-RPCDYKBN.js?v=7be30d2e:17663
+commitRootImpl @ chunk-RPCDYKBN.js?v=7be30d2e:19347
+commitRoot @ chunk-RPCDYKBN.js?v=7be30d2e:19277
+performSyncWorkOnRoot @ chunk-RPCDYKBN.js?v=7be30d2e:18895
+flushSyncCallbacks @ chunk-RPCDYKBN.js?v=7be30d2e:9119
+(anonymous) @ chunk-RPCDYKBN.js?v=7be30d2e:18627
+setTimeout
+scheduleFn @ @tanstack_react-query.js?v=7be30d2e:555
+flush @ @tanstack_react-query.js?v=7be30d2e:569
+batch @ @tanstack_react-query.js?v=7be30d2e:587
+dispatch_fn @ @tanstack_react-query.js?v=7be30d2e:996
+setData @ @tanstack_react-query.js?v=7be30d2e:696
+onSuccess @ @tanstack_react-query.js?v=7be30d2e:897
+resolve @ @tanstack_react-query.js?v=7be30d2e:456
+Promise.then
+run @ @tanstack_react-query.js?v=7be30d2e:498
+start @ @tanstack_react-query.js?v=7be30d2e:536
+fetch @ @tanstack_react-query.js?v=7be30d2e:926
+executeFetch_fn @ @tanstack_react-query.js?v=7be30d2e:2211
+onSubscribe @ @tanstack_react-query.js?v=7be30d2e:1898
+subscribe @ @tanstack_react-query.js?v=7be30d2e:24
+(anonymous) @ @tanstack_react-query.js?v=7be30d2e:3022
+subscribeToStore @ chunk-RPCDYKBN.js?v=7be30d2e:11984
+commitHookEffectListMount @ chunk-RPCDYKBN.js?v=7be30d2e:16915
+commitPassiveMountOnFiber @ chunk-RPCDYKBN.js?v=7be30d2e:18156
+commitPassiveMountEffects_complete @ chunk-RPCDYKBN.js?v=7be30d2e:18129
+commitPassiveMountEffects_begin @ chunk-RPCDYKBN.js?v=7be30d2e:18119
+commitPassiveMountEffects @ chunk-RPCDYKBN.js?v=7be30d2e:18109
+flushPassiveEffectsImpl @ chunk-RPCDYKBN.js?v=7be30d2e:19490
+flushPassiveEffects @ chunk-RPCDYKBN.js?v=7be30d2e:19447
+performSyncWorkOnRoot @ chunk-RPCDYKBN.js?v=7be30d2e:18868
+flushSyncCallbacks @ chunk-RPCDYKBN.js?v=7be30d2e:9119
+commitRootImpl @ chunk-RPCDYKBN.js?v=7be30d2e:19432
+commitRoot @ chunk-RPCDYKBN.js?v=7be30d2e:19277
+finishConcurrentRender @ chunk-RPCDYKBN.js?v=7be30d2e:18805
+performConcurrentWorkOnRoot @ chunk-RPCDYKBN.js?v=7be30d2e:18718
+workLoop @ chunk-RPCDYKBN.js?v=7be30d2e:197
+flushWork @ chunk-RPCDYKBN.js?v=7be30d2e:176
+performWorkUntilDeadline @ chunk-RPCDYKBN.js?v=7be30d2e:384
+hook.js:608 The above error occurred in the <button> component:
+
+    at button
+    at ContextualTooltipTrigger
+    at https://bb99ef68-07f3-4ff6-8777-53424138d9bd-00-1pdusyubsrg2x.spock.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-2K77HOHX.js?v=7be30d2e:79:13
+    at https://bb99ef68-07f3-4ff6-8777-53424138d9bd-00-1pdusyubsrg2x.spock.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-2K77HOHX.js?v=7be30d2e:56:13
+    at https://bb99ef68-07f3-4ff6-8777-53424138d9bd-00-1pdusyubsrg2x.spock.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-AXMZZQ2X.js?v=7be30d2e:42:13
+    at https://bb99ef68-07f3-4ff6-8777-53424138d9bd-00-1pdusyubsrg2x.spock.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-2K77HOHX.js?v=7be30d2e:79:13
+    at https://bb99ef68-07f3-4ff6-8777-53424138d9bd-00-1pdusyubsrg2x.spock.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-2K77HOHX.js?v=7be30d2e:56:13
+    at https://bb99ef68-07f3-4ff6-8777-53424138d9bd-00-1pdusyubsrg2x.spock.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-AXMZZQ2X.js?v=7be30d2e:42:13
+    at https://bb99ef68-07f3-4ff6-8777-53424138d9bd-00-1pdusyubsrg2x.spock.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-4XNOAIBL.js?v=7be30d2e:1929:13
+    at https://bb99ef68-07f3-4ff6-8777-53424138d9bd-00-1pdusyubsrg2x.spock.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/@radix-ui_react-tooltip.js?v=7be30d2e:199:13
+    at Provider (https://bb99ef68-07f3-4ff6-8777-53424138d9bd-00-1pdusyubsrg2x.spock.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-OXZDJRWN.js?v=7be30d2e:38:15)
+    at Provider (https://bb99ef68-07f3-4ff6-8777-53424138d9bd-00-1pdusyubsrg2x.spock.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-OXZDJRWN.js?v=7be30d2e:38:15)
+    at Popper (https://bb99ef68-07f3-4ff6-8777-53424138d9bd-00-1pdusyubsrg2x.spock.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-4XNOAIBL.js?v=7be30d2e:1921:11)
+    at Tooltip (https://bb99ef68-07f3-4ff6-8777-53424138d9bd-00-1pdusyubsrg2x.spock.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/@radix-ui_react-tooltip.js?v=7be30d2e:108:5)
+    at Provider (https://bb99ef68-07f3-4ff6-8777-53424138d9bd-00-1pdusyubsrg2x.spock.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-OXZDJRWN.js?v=7be30d2e:38:15)
+    at TooltipProvider (https://bb99ef68-07f3-4ff6-8777-53424138d9bd-00-1pdusyubsrg2x.spock.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/@radix-ui_react-tooltip.js?v=7be30d2e:64:5)
+    at _c (https://bb99ef68-07f3-4ff6-8777-53424138d9bd-00-1pdusyubsrg2x.spock.replit.dev/src/components/ui/contextual-tooltip.tsx:84:3)
+    at https://bb99ef68-07f3-4ff6-8777-53424138d9bd-00-1pdusyubsrg2x.spock.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-2K77HOHX.js?v=7be30d2e:79:13
+    at https://bb99ef68-07f3-4ff6-8777-53424138d9bd-00-1pdusyubsrg2x.spock.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-2K77HOHX.js?v=7be30d2e:56:13
+    at https://bb99ef68-07f3-4ff6-8777-53424138d9bd-00-1pdusyubsrg2x.spock.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-AXMZZQ2X.js?v=7be30d2e:42:13
+    at https://bb99ef68-07f3-4ff6-8777-53424138d9bd-00-1pdusyubsrg2x.spock.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-2K77HOHX.js?v=7be30d2e:79:13
+    at https://bb99ef68-07f3-4ff6-8777-53424138d9bd-00-1pdusyubsrg2x.spock.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-2K77HOHX.js?v=7be30d2e:56:13
+    at https://bb99ef68-07f3-4ff6-8777-53424138d9bd-00-1pdusyubsrg2x.spock.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-AXMZZQ2X.js?v=7be30d2e:42:13
+    at https://bb99ef68-07f3-4ff6-8777-53424138d9bd-00-1pdusyubsrg2x.spock.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-4XNOAIBL.js?v=7be30d2e:1929:13
+    at https://bb99ef68-07f3-4ff6-8777-53424138d9bd-00-1pdusyubsrg2x.spock.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/@radix-ui_react-tooltip.js?v=7be30d2e:199:13
+    at Provider (https://bb99ef68-07f3-4ff6-8777-53424138d9bd-00-1pdusyubsrg2x.spock.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-OXZDJRWN.js?v=7be30d2e:38:15)
+    at Provider (https://bb99ef68-07f3-4ff6-8777-53424138d9bd-00-1pdusyubsrg2x.spock.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-OXZDJRWN.js?v=7be30d2e:38:15)
+    at Popper (https://bb99ef68-07f3-4ff6-8777-53424138d9bd-00-1pdusyubsrg2x.spock.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-4XNOAIBL.js?v=7be30d2e:1921:11)
+    at Tooltip (https://bb99ef68-07f3-4ff6-8777-53424138d9bd-00-1pdusyubsrg2x.spock.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/@radix-ui_react-tooltip.js?v=7be30d2e:108:5)
+    at Provider (https://bb99ef68-07f3-4ff6-8777-53424138d9bd-00-1pdusyubsrg2x.spock.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-OXZDJRWN.js?v=7be30d2e:38:15)
+    at TooltipProvider (https://bb99ef68-07f3-4ff6-8777-53424138d9bd-00-1pdusyubsrg2x.spock.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/@radix-ui_react-tooltip.js?v=7be30d2e:64:5)
+    at _c (https://bb99ef68-07f3-4ff6-8777-53424138d9bd-00-1pdusyubsrg2x.spock.replit.dev/src/components/ui/contextual-tooltip.tsx:84:3)
+    at PricingTooltip (https://bb99ef68-07f3-4ff6-8777-53424138d9bd-00-1pdusyubsrg2x.spock.replit.dev/src/components/ui/contextual-tooltip.tsx:299:34)
+    at label
+    at https://bb99ef68-07f3-4ff6-8777-53424138d9bd-00-1pdusyubsrg2x.spock.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-AXMZZQ2X.js?v=7be30d2e:42:13
+    at Label
+    at _c (https://bb99ef68-07f3-4ff6-8777-53424138d9bd-00-1pdusyubsrg2x.spock.replit.dev/src/components/ui/label.tsx:25:11)
+    at div
+    at div
+    at _c9 (https://bb99ef68-07f3-4ff6-8777-53424138d9bd-00-1pdusyubsrg2x.spock.replit.dev/src/components/ui/card.tsx:114:12)
+    at div
+    at _c (https://bb99ef68-07f3-4ff6-8777-53424138d9bd-00-1pdusyubsrg2x.spock.replit.dev/src/components/ui/card.tsx:20:11)
+    at div
+    at div
+    at main
+    at GuestGate (https://bb99ef68-07f3-4ff6-8777-53424138d9bd-00-1pdusyubsrg2x.spock.replit.dev/src/components/guest-gate.tsx:25:3)
+    at EstimateCalculator (https://bb99ef68-07f3-4ff6-8777-53424138d9bd-00-1pdusyubsrg2x.spock.replit.dev/src/pages/quote-calculator.tsx:38:31)
+    at Route (https://bb99ef68-07f3-4ff6-8777-53424138d9bd-00-1pdusyubsrg2x.spock.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/wouter.js?v=7be30d2e:265:16)
+    at Switch (https://bb99ef68-07f3-4ff6-8777-53424138d9bd-00-1pdusyubsrg2x.spock.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/wouter.js?v=7be30d2e:321:17)
+    at main
+    at div
+    at div
+    at MobileGestures (https://bb99ef68-07f3-4ff6-8777-53424138d9bd-00-1pdusyubsrg2x.spock.replit.dev/src/components/MobileGestures.tsx:21:34)
+    at Router2 (https://bb99ef68-07f3-4ff6-8777-53424138d9bd-00-1pdusyubsrg2x.spock.replit.dev/src/App.tsx?v=TtE4b3ihsohPGowTPHwXN:196:48)
+    at Provider (https://bb99ef68-07f3-4ff6-8777-53424138d9bd-00-1pdusyubsrg2x.spock.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-OXZDJRWN.js?v=7be30d2e:38:15)
+    at TooltipProvider (https://bb99ef68-07f3-4ff6-8777-53424138d9bd-00-1pdusyubsrg2x.spock.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/@radix-ui_react-tooltip.js?v=7be30d2e:64:5)
+    at QueryClientProvider (https://bb99ef68-07f3-4ff6-8777-53424138d9bd-00-1pdusyubsrg2x.spock.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/@tanstack_react-query.js?v=7be30d2e:2805:3)
+    at ErrorBoundary (https://bb99ef68-07f3-4ff6-8777-53424138d9bd-00-1pdusyubsrg2x.spock.replit.dev/src/components/ui/error-boundary.tsx:7:5)
+    at App2
+
+React will try to recreate this component tree from scratch using the error boundary you provided, ErrorBoundary.
+overrideMethod @ hook.js:608
+logCapturedError @ chunk-RPCDYKBN.js?v=7be30d2e:14032
+callback @ chunk-RPCDYKBN.js?v=7be30d2e:14078
+callCallback @ chunk-RPCDYKBN.js?v=7be30d2e:11248
+commitUpdateQueue @ chunk-RPCDYKBN.js?v=7be30d2e:11265
+commitLayoutEffectOnFiber @ chunk-RPCDYKBN.js?v=7be30d2e:17075
+commitLayoutMountEffects_complete @ chunk-RPCDYKBN.js?v=7be30d2e:17980
+commitLayoutEffects_begin @ chunk-RPCDYKBN.js?v=7be30d2e:17969
+commitLayoutEffects @ chunk-RPCDYKBN.js?v=7be30d2e:17920
+commitRootImpl @ chunk-RPCDYKBN.js?v=7be30d2e:19353
+commitRoot @ chunk-RPCDYKBN.js?v=7be30d2e:19277
+performSyncWorkOnRoot @ chunk-RPCDYKBN.js?v=7be30d2e:18895
+flushSyncCallbacks @ chunk-RPCDYKBN.js?v=7be30d2e:9119
+(anonymous) @ chunk-RPCDYKBN.js?v=7be30d2e:18627
+setTimeout
+scheduleFn @ @tanstack_react-query.js?v=7be30d2e:555
+flush @ @tanstack_react-query.js?v=7be30d2e:569
+batch @ @tanstack_react-query.js?v=7be30d2e:587
+dispatch_fn @ @tanstack_react-query.js?v=7be30d2e:996
+setData @ @tanstack_react-query.js?v=7be30d2e:696
+onSuccess @ @tanstack_react-query.js?v=7be30d2e:897
+resolve @ @tanstack_react-query.js?v=7be30d2e:456
+Promise.then
+run @ @tanstack_react-query.js?v=7be30d2e:498
+start @ @tanstack_react-query.js?v=7be30d2e:536
+fetch @ @tanstack_react-query.js?v=7be30d2e:926
+executeFetch_fn @ @tanstack_react-query.js?v=7be30d2e:2211
+onSubscribe @ @tanstack_react-query.js?v=7be30d2e:1898
+subscribe @ @tanstack_react-query.js?v=7be30d2e:24
+(anonymous) @ @tanstack_react-query.js?v=7be30d2e:3022
+subscribeToStore @ chunk-RPCDYKBN.js?v=7be30d2e:11984
+commitHookEffectListMount @ chunk-RPCDYKBN.js?v=7be30d2e:16915
+commitPassiveMountOnFiber @ chunk-RPCDYKBN.js?v=7be30d2e:18156
+commitPassiveMountEffects_complete @ chunk-RPCDYKBN.js?v=7be30d2e:18129
+commitPassiveMountEffects_begin @ chunk-RPCDYKBN.js?v=7be30d2e:18119
+commitPassiveMountEffects @ chunk-RPCDYKBN.js?v=7be30d2e:18109
+flushPassiveEffectsImpl @ chunk-RPCDYKBN.js?v=7be30d2e:19490
+flushPassiveEffects @ chunk-RPCDYKBN.js?v=7be30d2e:19447
+performSyncWorkOnRoot @ chunk-RPCDYKBN.js?v=7be30d2e:18868
+flushSyncCallbacks @ chunk-RPCDYKBN.js?v=7be30d2e:9119
+commitRootImpl @ chunk-RPCDYKBN.js?v=7be30d2e:19432
+commitRoot @ chunk-RPCDYKBN.js?v=7be30d2e:19277
+finishConcurrentRender @ chunk-RPCDYKBN.js?v=7be30d2e:18805
+performConcurrentWorkOnRoot @ chunk-RPCDYKBN.js?v=7be30d2e:18718
+workLoop @ chunk-RPCDYKBN.js?v=7be30d2e:197
+flushWork @ chunk-RPCDYKBN.js?v=7be30d2e:176
+performWorkUntilDeadline @ chunk-RPCDYKBN.js?v=7be30d2e:384
+error-boundary.tsx:29 Error boundary caught an error: Error: Maximum update depth exceeded. This can happen when a component repeatedly calls setState inside componentWillUpdate or componentDidUpdate. React limits the number of nested updates to prevent infinite loops.
+    at checkForNestedUpdates (chunk-RPCDYKBN.js?v=7be30d2e:19659:19)
+    at scheduleUpdateOnFiber (chunk-RPCDYKBN.js?v=7be30d2e:18533:11)
+    at dispatchSetState (chunk-RPCDYKBN.js?v=7be30d2e:12403:15)
+    at setRef (chunk-2K77HOHX.js?v=7be30d2e:18:12)
+    at chunk-2K77HOHX.js?v=7be30d2e:27:23
+    at Array.map (<anonymous>)
+    at chunk-2K77HOHX.js?v=7be30d2e:26:27
+    at setRef (chunk-2K77HOHX.js?v=7be30d2e:18:12)
+    at chunk-2K77HOHX.js?v=7be30d2e:27:23
+    at Array.map (<anonymous>) {componentStack: '\n    at button\n    at ContextualTooltipTrigger\n   …components/ui/error-boundary.tsx:7:5)\n    at App2'} Error Component Stack
+    at ErrorBoundary (error-boundary.tsx:18:5)
+    at App2 (<anonymous>)
+overrideMethod @ hook.js:608
+componentDidCatch @ error-boundary.tsx:29
+callback @ chunk-RPCDYKBN.js?v=7be30d2e:14084
+callCallback @ chunk-RPCDYKBN.js?v=7be30d2e:11248
+commitUpdateQueue @ chunk-RPCDYKBN.js?v=7be30d2e:11265
+commitLayoutEffectOnFiber @ chunk-RPCDYKBN.js?v=7be30d2e:17075
+commitLayoutMountEffects_complete @ chunk-RPCDYKBN.js?v=7be30d2e:17980
+commitLayoutEffects_begin @ chunk-RPCDYKBN.js?v=7be30d2e:17969
+commitLayoutEffects @ chunk-RPCDYKBN.js?v=7be30d2e:17920
+commitRootImpl @ chunk-RPCDYKBN.js?v=7be30d2e:19353
+commitRoot @ chunk-RPCDYKBN.js?v=7be30d2e:19277
+performSyncWorkOnRoot @ chunk-RPCDYKBN.js?v=7be30d2e:18895
+flushSyncCallbacks @ chunk-RPCDYKBN.js?v=7be30d2e:9119
+(anonymous) @ chunk-RPCDYKBN.js?v=7be30d2e:18627
+setTimeout
+scheduleFn @ @tanstack_react-query.js?v=7be30d2e:555
+flush @ @tanstack_react-query.js?v=7be30d2e:569
+batch @ @tanstack_react-query.js?v=7be30d2e:587
+dispatch_fn @ @tanstack_react-query.js?v=7be30d2e:996
+setData @ @tanstack_react-query.js?v=7be30d2e:696
+onSuccess @ @tanstack_react-query.js?v=7be30d2e:897
+resolve @ @tanstack_react-query.js?v=7be30d2e:456
+Promise.then
+run @ @tanstack_react-query.js?v=7be30d2e:498
+start @ @tanstack_react-query.js?v=7be30d2e:536
+fetch @ @tanstack_react-query.js?v=7be30d2e:926
+executeFetch_fn @ @tanstack_react-query.js?v=7be30d2e:2211
+onSubscribe @ @tanstack_react-query.js?v=7be30d2e:1898
+subscribe @ @tanstack_react-query.js?v=7be30d2e:24
+(anonymous) @ @tanstack_react-query.js?v=7be30d2e:3022
+subscribeToStore @ chunk-RPCDYKBN.js?v=7be30d2e:11984
+commitHookEffectListMount @ chunk-RPCDYKBN.js?v=7be30d2e:16915
+commitPassiveMountOnFiber @ chunk-RPCDYKBN.js?v=7be30d2e:18156
+commitPassiveMountEffects_complete @ chunk-RPCDYKBN.js?v=7be30d2e:18129
+commitPassiveMountEffects_begin @ chunk-RPCDYKBN.js?v=7be30d2e:18119
+commitPassiveMountEffects @ chunk-RPCDYKBN.js?v=7be30d2e:18109
+flushPassiveEffectsImpl @ chunk-RPCDYKBN.js?v=7be30d2e:19490
+flushPassiveEffects @ chunk-RPCDYKBN.js?v=7be30d2e:19447
+performSyncWorkOnRoot @ chunk-RPCDYKBN.js?v=7be30d2e:18868
+flushSyncCallbacks @ chunk-RPCDYKBN.js?v=7be30d2e:9119
+commitRootImpl @ chunk-RPCDYKBN.js?v=7be30d2e:19432
+commitRoot @ chunk-RPCDYKBN.js?v=7be30d2e:19277
+finishConcurrentRender @ chunk-RPCDYKBN.js?v=7be30d2e:18805
+performConcurrentWorkOnRoot @ chunk-RPCDYKBN.js?v=7be30d2e:18718
+workLoop @ chunk-RPCDYKBN.js?v=7be30d2e:197
+flushWork @ chunk-RPCDYKBN.js?v=7be30d2e:176
+performWorkUntilDeadline @ chunk-RPCDYKBN.js?v=7be30d2e:384
+error-boundary.tsx:30 Component stack: 
+    at button
+    at ContextualTooltipTrigger
+    at https://bb99ef68-07f3-4ff6-8777-53424138d9bd-00-1pdusyubsrg2x.spock.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-2K77HOHX.js?v=7be30d2e:79:13
+    at https://bb99ef68-07f3-4ff6-8777-53424138d9bd-00-1pdusyubsrg2x.spock.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-2K77HOHX.js?v=7be30d2e:56:13
+    at https://bb99ef68-07f3-4ff6-8777-53424138d9bd-00-1pdusyubsrg2x.spock.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-AXMZZQ2X.js?v=7be30d2e:42:13
+    at https://bb99ef68-07f3-4ff6-8777-53424138d9bd-00-1pdusyubsrg2x.spock.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-2K77HOHX.js?v=7be30d2e:79:13
+    at https://bb99ef68-07f3-4ff6-8777-53424138d9bd-00-1pdusyubsrg2x.spock.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-2K77HOHX.js?v=7be30d2e:56:13
+    at https://bb99ef68-07f3-4ff6-8777-53424138d9bd-00-1pdusyubsrg2x.spock.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-AXMZZQ2X.js?v=7be30d2e:42:13
+    at https://bb99ef68-07f3-4ff6-8777-53424138d9bd-00-1pdusyubsrg2x.spock.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-4XNOAIBL.js?v=7be30d2e:1929:13
+    at https://bb99ef68-07f3-4ff6-8777-53424138d9bd-00-1pdusyubsrg2x.spock.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/@radix-ui_react-tooltip.js?v=7be30d2e:199:13
+    at Provider (https://bb99ef68-07f3-4ff6-8777-53424138d9bd-00-1pdusyubsrg2x.spock.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-OXZDJRWN.js?v=7be30d2e:38:15)
+    at Provider (https://bb99ef68-07f3-4ff6-8777-53424138d9bd-00-1pdusyubsrg2x.spock.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-OXZDJRWN.js?v=7be30d2e:38:15)
+    at Popper (https://bb99ef68-07f3-4ff6-8777-53424138d9bd-00-1pdusyubsrg2x.spock.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-4XNOAIBL.js?v=7be30d2e:1921:11)
+    at Tooltip (https://bb99ef68-07f3-4ff6-8777-53424138d9bd-00-1pdusyubsrg2x.spock.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/@radix-ui_react-tooltip.js?v=7be30d2e:108:5)
+    at Provider (https://bb99ef68-07f3-4ff6-8777-53424138d9bd-00-1pdusyubsrg2x.spock.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-OXZDJRWN.js?v=7be30d2e:38:15)
+    at TooltipProvider (https://bb99ef68-07f3-4ff6-8777-53424138d9bd-00-1pdusyubsrg2x.spock.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/@radix-ui_react-tooltip.js?v=7be30d2e:64:5)
+    at _c (https://bb99ef68-07f3-4ff6-8777-53424138d9bd-00-1pdusyubsrg2x.spock.replit.dev/src/components/ui/contextual-tooltip.tsx:84:3)
+    at https://bb99ef68-07f3-4ff6-8777-53424138d9bd-00-1pdusyubsrg2x.spock.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-2K77HOHX.js?v=7be30d2e:79:13
+    at https://bb99ef68-07f3-4ff6-8777-53424138d9bd-00-1pdusyubsrg2x.spock.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-2K77HOHX.js?v=7be30d2e:56:13
+    at https://bb99ef68-07f3-4ff6-8777-53424138d9bd-00-1pdusyubsrg2x.spock.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-AXMZZQ2X.js?v=7be30d2e:42:13
+    at https://bb99ef68-07f3-4ff6-8777-53424138d9bd-00-1pdusyubsrg2x.spock.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-2K77HOHX.js?v=7be30d2e:79:13
+    at https://bb99ef68-07f3-4ff6-8777-53424138d9bd-00-1pdusyubsrg2x.spock.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-2K77HOHX.js?v=7be30d2e:56:13
+    at https://bb99ef68-07f3-4ff6-8777-53424138d9bd-00-1pdusyubsrg2x.spock.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-AXMZZQ2X.js?v=7be30d2e:42:13
+    at https://bb99ef68-07f3-4ff6-8777-53424138d9bd-00-1pdusyubsrg2x.spock.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-4XNOAIBL.js?v=7be30d2e:1929:13
+    at https://bb99ef68-07f3-4ff6-8777-53424138d9bd-00-1pdusyubsrg2x.spock.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/@radix-ui_react-tooltip.js?v=7be30d2e:199:13
+    at Provider (https://bb99ef68-07f3-4ff6-8777-53424138d9bd-00-1pdusyubsrg2x.spock.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-OXZDJRWN.js?v=7be30d2e:38:15)
+    at Provider (https://bb99ef68-07f3-4ff6-8777-53424138d9bd-00-1pdusyubsrg2x.spock.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-OXZDJRWN.js?v=7be30d2e:38:15)
+    at Popper (https://bb99ef68-07f3-4ff6-8777-53424138d9bd-00-1pdusyubsrg2x.spock.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-4XNOAIBL.js?v=7be30d2e:1921:11)
+    at Tooltip (https://bb99ef68-07f3-4ff6-8777-53424138d9bd-00-1pdusyubsrg2x.spock.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/@radix-ui_react-tooltip.js?v=7be30d2e:108:5)
+    at Provider (https://bb99ef68-07f3-4ff6-8777-53424138d9bd-00-1pdusyubsrg2x.spock.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-OXZDJRWN.js?v=7be30d2e:38:15)
+    at TooltipProvider (https://bb99ef68-07f3-4ff6-8777-53424138d9bd-00-1pdusyubsrg2x.spock.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/@radix-ui_react-tooltip.js?v=7be30d2e:64:5)
+    at _c (https://bb99ef68-07f3-4ff6-8777-53424138d9bd-00-1pdusyubsrg2x.spock.replit.dev/src/components/ui/contextual-tooltip.tsx:84:3)
+    at PricingTooltip (https://bb99ef68-07f3-4ff6-8777-53424138d9bd-00-1pdusyubsrg2x.spock.replit.dev/src/components/ui/contextual-tooltip.tsx:299:34)
+    at label
+    at https://bb99ef68-07f3-4ff6-8777-53424138d9bd-00-1pdusyubsrg2x.spock.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-AXMZZQ2X.js?v=7be30d2e:42:13
+    at Label
+    at _c (https://bb99ef68-07f3-4ff6-8777-53424138d9bd-00-1pdusyubsrg2x.spock.replit.dev/src/components/ui/label.tsx:25:11)
+    at div
+    at div
+    at _c9 (https://bb99ef68-07f3-4ff6-8777-53424138d9bd-00-1pdusyubsrg2x.spock.replit.dev/src/components/ui/card.tsx:114:12)
+    at div
+    at _c (https://bb99ef68-07f3-4ff6-8777-53424138d9bd-00-1pdusyubsrg2x.spock.replit.dev/src/components/ui/card.tsx:20:11)
+    at div
+    at div
+    at main
+    at GuestGate (https://bb99ef68-07f3-4ff6-8777-53424138d9bd-00-1pdusyubsrg2x.spock.replit.dev/src/components/guest-gate.tsx:25:3)
+    at EstimateCalculator (https://bb99ef68-07f3-4ff6-8777-53424138d9bd-00-1pdusyubsrg2x.spock.replit.dev/src/pages/quote-calculator.tsx:38:31)
+    at Route (https://bb99ef68-07f3-4ff6-8777-53424138d9bd-00-1pdusyubsrg2x.spock.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/wouter.js?v=7be30d2e:265:16)
+    at Switch (https://bb99ef68-07f3-4ff6-8777-53424138d9bd-00-1pdusyubsrg2x.spock.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/wouter.js?v=7be30d2e:321:17)
+    at main
+    at div
+    at div
+    at MobileGestures (https://bb99ef68-07f3-4ff6-8777-53424138d9bd-00-1pdusyubsrg2x.spock.replit.dev/src/components/MobileGestures.tsx:21:34)
+    at Router2 (https://bb99ef68-07f3-4ff6-8777-53424138d9bd-00-1pdusyubsrg2x.spock.replit.dev/src/App.tsx?v=TtE4b3ihsohPGowTPHwXN:196:48)
+    at Provider (https://bb99ef68-07f3-4ff6-8777-53424138d9bd-00-1pdusyubsrg2x.spock.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-OXZDJRWN.js?v=7be30d2e:38:15)
+    at TooltipProvider (https://bb99ef68-07f3-4ff6-8777-53424138d9bd-00-1pdusyubsrg2x.spock.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/@radix-ui_react-tooltip.js?v=7be30d2e:64:5)
+    at QueryClientProvider (https://bb99ef68-07f3-4ff6-8777-53424138d9bd-00-1pdusyubsrg2x.spock.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/@tanstack_react-query.js?v=7be30d2e:2805:3)
+    at ErrorBoundary (https://bb99ef68-07f3-4ff6-8777-53424138d9bd-00-1pdusyubsrg2x.spock.replit.dev/src/components/ui/error-boundary.tsx:7:5)
+    at App2
+overrideMethod @ hook.js:608
+componentDidCatch @ error-boundary.tsx:30
+callback @ chunk-RPCDYKBN.js?v=7be30d2e:14084
+callCallback @ chunk-RPCDYKBN.js?v=7be30d2e:11248
+commitUpdateQueue @ chunk-RPCDYKBN.js?v=7be30d2e:11265
+commitLayoutEffectOnFiber @ chunk-RPCDYKBN.js?v=7be30d2e:17075
+commitLayoutMountEffects_complete @ chunk-RPCDYKBN.js?v=7be30d2e:17980
+commitLayoutEffects_begin @ chunk-RPCDYKBN.js?v=7be30d2e:17969
+commitLayoutEffects @ chunk-RPCDYKBN.js?v=7be30d2e:17920
+commitRootImpl @ chunk-RPCDYKBN.js?v=7be30d2e:19353
+commitRoot @ chunk-RPCDYKBN.js?v=7be30d2e:19277
+performSyncWorkOnRoot @ chunk-RPCDYKBN.js?v=7be30d2e:18895
+flushSyncCallbacks @ chunk-RPCDYKBN.js?v=7be30d2e:9119
+(anonymous) @ chunk-RPCDYKBN.js?v=7be30d2e:18627
+setTimeout
+scheduleFn @ @tanstack_react-query.js?v=7be30d2e:555
+flush @ @tanstack_react-query.js?v=7be30d2e:569
+batch @ @tanstack_react-query.js?v=7be30d2e:587
+dispatch_fn @ @tanstack_react-query.js?v=7be30d2e:996
+setData @ @tanstack_react-query.js?v=7be30d2e:696
+onSuccess @ @tanstack_react-query.js?v=7be30d2e:897
+resolve @ @tanstack_react-query.js?v=7be30d2e:456
+Promise.then
+run @ @tanstack_react-query.js?v=7be30d2e:498
+start @ @tanstack_react-query.js?v=7be30d2e:536
+fetch @ @tanstack_react-query.js?v=7be30d2e:926
+executeFetch_fn @ @tanstack_react-query.js?v=7be30d2e:2211
+onSubscribe @ @tanstack_react-query.js?v=7be30d2e:1898
+subscribe @ @tanstack_react-query.js?v=7be30d2e:24
+(anonymous) @ @tanstack_react-query.js?v=7be30d2e:3022
+subscribeToStore @ chunk-RPCDYKBN.js?v=7be30d2e:11984
+commitHookEffectListMount @ chunk-RPCDYKBN.js?v=7be30d2e:16915
+commitPassiveMountOnFiber @ chunk-RPCDYKBN.js?v=7be30d2e:18156
+commitPassiveMountEffects_complete @ chunk-RPCDYKBN.js?v=7be30d2e:18129
+commitPassiveMountEffects_begin @ chunk-RPCDYKBN.js?v=7be30d2e:18119
+commitPassiveMountEffects @ chunk-RPCDYKBN.js?v=7be30d2e:18109
+flushPassiveEffectsImpl @ chunk-RPCDYKBN.js?v=7be30d2e:19490
+flushPassiveEffects @ chunk-RPCDYKBN.js?v=7be30d2e:19447
+performSyncWorkOnRoot @ chunk-RPCDYKBN.js?v=7be30d2e:18868
+flushSyncCallbacks @ chunk-RPCDYKBN.js?v=7be30d2e:9119
+commitRootImpl @ chunk-RPCDYKBN.js?v=7be30d2e:19432
+commitRoot @ chunk-RPCDYKBN.js?v=7be30d2e:19277
+finishConcurrentRender @ chunk-RPCDYKBN.js?v=7be30d2e:18805
+performConcurrentWorkOnRoot @ chunk-RPCDYKBN.js?v=7be30d2e:18718
+workLoop @ chunk-RPCDYKBN.js?v=7be30d2e:197
+flushWork @ chunk-RPCDYKBN.js?v=7be30d2e:176
+performWorkUntilDeadline @ chunk-RPCDYKBN.js?v=7be30d2e:384
