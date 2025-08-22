@@ -31,10 +31,12 @@ your-replit-url.replit.app
 Your privacy policy includes:
 ✅ **Comprehensive Coverage**: All required sections for Facebook compliance
 ✅ **Social Media Login Section**: Specific coverage of Facebook authentication
-✅ **CCPA Compliance**: California privacy rights
+✅ **Zero Third-Party Sales**: Clear disclaimers that user data is never sold or distributed
+✅ **TradeScout Admin Contact**: Transparent disclosure of user experience outreach
+✅ **CCPA Compliance**: California privacy rights with no-sale guarantee
 ✅ **GDPR Compliance**: European privacy rights  
 ✅ **Data Security**: Industry-standard protection measures
-✅ **User Rights**: Access, deletion, and control options
+✅ **User Rights**: Access, deletion, and opt-out options for all communications
 ✅ **Contact Information**: Clear privacy team contact details
 
 ## Quick Facebook App Setup Steps
