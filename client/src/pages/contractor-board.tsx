@@ -291,6 +291,15 @@ export default function ContractorBoard() {
           <p className="text-xl text-gray-300 mb-8">
             Connect with verified, local contractors for your next project
           </p>
+          
+          {/* Contractor CTA */}
+          <div className="mb-8">
+            <Link href="/contractors/signup">
+              <Button className="bg-green-500 hover:bg-green-600 text-white px-6 py-2 rounded-lg font-semibold">
+                Are you a contractor? Join our network
+              </Button>
+            </Link>
+          </div>
         </header>
 
         {/* State, County and Trade Quick Filters */}

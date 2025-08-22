@@ -720,6 +720,23 @@ export default function Landing() {
               </CardContent>
             </Card>
           </div>
+          
+          {/* Contractor CTA Section */}
+          <div className="text-center mt-12">
+            <Card className="bg-gradient-to-r from-green-500/20 to-green-600/20 border-green-500/30 max-w-2xl mx-auto">
+              <CardContent className="p-8">
+                <h3 className="text-2xl font-bold text-white mb-4">Are you a contractor?</h3>
+                <p className="text-gray-300 mb-6">
+                  Join our verified network and connect with homeowners in your area.
+                </p>
+                <Link href="/contractors/signup">
+                  <Button className="bg-green-500 hover:bg-green-600 text-white px-8 py-3 rounded-lg font-semibold">
+                    Join as Contractor
+                  </Button>
+                </Link>
+              </CardContent>
+            </Card>
+          </div>
         </div>
       </section>
 

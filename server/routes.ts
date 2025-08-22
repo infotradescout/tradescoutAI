@@ -27,6 +27,7 @@ import { registerAICodeFixRoutes } from "./ai-code-fixes";
 import { registerCrmRoutes } from "./crm-routes";
 import { registerNotificationRoutes } from "./routes/notification-routes";
 import { tutorialStorage } from "./tutorialStorage";
+import { contractorSignupRouter } from "./routes/contractor-signup";
 
 // Middleware to check address verification requirement
 const requireAddressVerification = async (req: any, res: any, next: any) => {
@@ -7211,6 +7212,9 @@ export async function registerRoutes(app: Express) {
   
   // Register notification routes
   registerNotificationRoutes(app);
+  
+  // Register contractor signup routes
+  app.use(contractorSignupRouter);
 
   return httpServer;
 }
