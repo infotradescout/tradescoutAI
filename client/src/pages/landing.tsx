@@ -64,7 +64,7 @@ export default function Landing() {
       scrollToTop={true}
       onScrollChange={(scrollTop) => {
         // Parallax effect for hero section
-        const heroElement = document.querySelector('.hero-section');
+        const heroElement = document.querySelector('.hero-section') as HTMLElement;
         if (heroElement) {
           heroElement.style.transform = `translateY(${scrollTop * 0.5}px)`;
         }
@@ -77,6 +77,14 @@ export default function Landing() {
         keywords="local contractors, home improvement, verified contractors, free quotes, county contractors, trusted contractors, roofing contractors, plumbing contractors, electrical contractors, kitchen remodeling, bathroom renovation"
         structuredData={structuredData}
       />
+      
+      {/* Development Notice */}
+      <div className="bg-orange-500 text-white text-center py-2 px-4">
+        <p className="text-sm font-medium">
+          🚧 Development Environment - Testing features and functionality
+        </p>
+      </div>
+      
       {/* Hero Section */}
       <section className="hero-section py-6 md:py-12 w-full max-w-full">
         <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 w-full">
@@ -660,7 +668,7 @@ export default function Landing() {
                   <Shield className="h-8 w-8" />
                 </div>
                 <h3 className="text-xl font-semibold text-white mb-3">Verified Contractors</h3>
-                <p className="text-gray-300">All contractors are license-verified with current insurance documentation.</p>
+                <p className="text-gray-300">Contractors undergo license verification and insurance documentation review.</p>
               </CardContent>
             </Card>
 
@@ -670,7 +678,7 @@ export default function Landing() {
                   <Calculator className="h-8 w-8" />
                 </div>
                 <h3 className="text-xl font-semibold text-white mb-3">Regional Pricing</h3>
-                <p className="text-gray-300">Get accurate cost estimates based on your specific county and project type.</p>
+                <p className="text-gray-300">Cost estimates are provided based on county location and project specifications.</p>
               </CardContent>
             </Card>
 
@@ -679,8 +687,8 @@ export default function Landing() {
                 <div className="text-orange-500 text-3xl mb-4">
                   <Users className="h-8 w-8" />
                 </div>
-                <h3 className="text-xl font-semibold text-white mb-3">Real Recommendations</h3>
-                <p className="text-gray-300">Read authentic recommendations from homeowners in your area.</p>
+                <h3 className="text-xl font-semibold text-white mb-3">Community Recommendations</h3>
+                <p className="text-gray-300">View recommendations from homeowners in your local area.</p>
               </CardContent>
             </Card>
           </div>
