@@ -41,21 +41,30 @@ export const ROUTES = {
 
 export type RouteKey = keyof typeof ROUTES;
 
-// Route guards - Only essential pages available
+// Route guards - Full platform access restored
 export const PUBLIC_ROUTES = [
   ROUTES.HOME,
   ROUTES.LOGIN,
   ROUTES.REGISTER,
-  ROUTES.CONTRACTOR_BOARD,
-  '/quote-calculator', // Calculator route
+  ROUTES.CONTRACTORS,
+  ROUTES.MARKETPLACE,
+  ROUTES.COMMUNITY,
+  ROUTES.HELP,
   ROUTES.TERMS,
-  ROUTES.PRIVACY
+  ROUTES.PRIVACY,
+  ROUTES.COOKIES,
+  ROUTES.CONTRACTOR_BOARD,
+  '/quote-calculator'
 ];
 
 export const PROTECTED_ROUTES = [
   ROUTES.DASHBOARD,
-  ROUTES.CONTRACTOR_BOARD,
-  '/quote-calculator'
+  ROUTES.PROFILE,
+  ROUTES.CONVERSATIONS,
+  ROUTES.SETTINGS,
+  ROUTES.CONTRACTOR_DASHBOARD,
+  ROUTES.ADMIN_PANEL,
+  '/admin/*'  // All admin routes protected
 ];
 
 export const ADMIN_ROUTES = [
