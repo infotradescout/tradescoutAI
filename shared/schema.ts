@@ -455,8 +455,8 @@ export const contractorLeaderboardStats = pgTable("contractor_leaderboard_stats"
   createdAt: timestamp("created_at").defaultNow(),
 }, (table) => [
   index("contractor_leaderboard_month_year_idx").on(table.contractorId, table.month, table.year),
-  index("leaderboard_monthly_ranking_idx").on(table.month, table.year, table.monthlyRecommendations),
-  index("leaderboard_lifetime_ranking_idx").on(table.lifetimeRecommendations),
+  index("leaderboard_monthly_ranking_idx").on(table.month, table.year, table.monthlyTotalRecommendations),
+  index("leaderboard_lifetime_ranking_idx").on(table.lifetimeTotalRecommendations),
 ]);
 
 // Leads management

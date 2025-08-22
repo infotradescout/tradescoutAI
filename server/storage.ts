@@ -3176,6 +3176,70 @@ export class DatabaseStorage implements IStorage {
     }).where(eq(contractorApplications.id, id));
   }
 
+  // Recommendation system methods
+  async createRecommendation(data: typeof recommendations.$inferInsert) {
+    const result = await db.insert(recommendations).values(data).returning();
+    
+    // Update contractor recommendation counters
+    await this.updateContractorRecommendationStats(data.contractorId);
+    
+    return result[0];
+  }
+
+  async getContractorRecommendations(contractorId: string, options?: { limit?: number; type?: 'positive' | 'negative' | 'all' }) {
+    let query = db.select().from(recommendations).where(
+      and(
+        eq(recommendations.contractorId, contractorId),
+        eq(recommendations.isPublic, true),
+        eq(recommendations.moderationStatus, 'approved')
+      )
+    );
+
+    if (options?.type && options.type !== 'all') {
+      query = query.where(eq(recommendations.recommendationType, options.type));
+    }
+
+    query = query.orderBy(desc(recommendations.createdAt));
+
+    if (options?.limit) {
+      query = query.limit(options.limit);
+    }
+
+    return await query;
+  }
+
+  async updateContractorRecommendationStats(contractorId: string) {
+    // Get all approved recommendations for this contractor
+    const stats = await db
+      .select({
+        positive: sql<number>`count(*) filter (where recommendation_type = 'positive')`,
+        negative: sql<number>`count(*) filter (where recommendation_type = 'negative')`,
+        total: sql<number>`count(*)`
+      })
+      .from(recommendations)
+      .where(
+        and(
+          eq(recommendations.contractorId, contractorId),
+          eq(recommendations.moderationStatus, 'approved')
+        )
+      );
+
+    const { positive, negative, total } = stats[0] || { positive: 0, negative: 0, total: 0 };
+    const score = total > 0 ? (positive / total) * 100 : 0;
+
+    // Update contractor recommendation stats
+    await db
+      .update(contractors)
+      .set({
+        positiveRecommendations: positive,
+        negativeRecommendations: negative,
+        totalRecommendations: total,
+        recommendationScore: score.toFixed(2),
+        updatedAt: new Date()
+      })
+      .where(eq(contractors.id, contractorId));
+  }
+
   // ===== COMMUNITY MODERATION IMPLEMENTATIONS =====
 
   // Reports

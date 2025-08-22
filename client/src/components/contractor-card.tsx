@@ -3,11 +3,11 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { 
-  Star, 
+  ThumbsUp, 
+  ThumbsDown,
   MapPin, 
   Calendar, 
   Clock, 
-  ThumbsUp, 
   Phone, 
   Mail,
   CheckCircle,
@@ -51,16 +51,22 @@ export default function ContractorCard({
 
           {/* Rating */}
           <div className="flex items-center space-x-2">
-            <div className="flex text-yellow-400">
-              {[1, 2, 3, 4, 5].map((star) => (
-                <Star 
-                  key={star} 
-                  className={`${compact ? 'h-3 w-3' : 'h-4 w-4'} ${star <= Math.round(mockRating) ? 'fill-current' : ''}`}
-                />
-              ))}
+            <div className="flex items-center space-x-1">
+              <ThumbsUp className={`${compact ? 'h-3 w-3' : 'h-4 w-4'} text-green-400`} />
+              <span className={`text-green-400 font-medium ${compact ? 'text-xs' : 'text-sm'}`}>
+                {contractor.positiveRecommendations || 0}
+              </span>
             </div>
+            {(contractor.negativeRecommendations || 0) > 0 && (
+              <div className="flex items-center space-x-1">
+                <ThumbsDown className={`${compact ? 'h-3 w-3' : 'h-4 w-4'} text-red-400`} />
+                <span className={`text-red-400 font-medium ${compact ? 'text-xs' : 'text-sm'}`}>
+                  {contractor.negativeRecommendations}
+                </span>
+              </div>
+            )}
             <span className={`text-gray-300 ${compact ? 'text-xs' : 'text-sm'}`}>
-              {mockRating}
+              ({contractor.totalRecommendations || 0} total)
             </span>
           </div>
         </div>
