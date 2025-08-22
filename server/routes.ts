@@ -2047,6 +2047,43 @@ export async function registerRoutes(app: Express) {
     }
   });
 
+  // Admin: Get contractor applications
+  app.get("/api/admin/contractor-applications", isAuthenticated, requireRole(['head_admin', 'ops_admin']), async (req: any, res) => {
+    try {
+      const { status, limit = 50 } = req.query;
+      const applications = await storage.getContractorApplications({ 
+        status: status as string,
+        limit: parseInt(limit as string) 
+      });
+      
+      res.json(applications);
+    } catch (error) {
+      console.error("Error fetching contractor applications:", error);
+      res.status(500).json({ message: "Failed to fetch applications" });
+    }
+  });
+
+  // Admin: Update contractor application status
+  app.patch("/api/admin/contractor-applications/:id", isAuthenticated, requireRole(['head_admin', 'ops_admin']), async (req: any, res) => {
+    try {
+      const { id } = req.params;
+      const { status, reviewNotes } = req.body;
+      const adminId = req.user?.id;
+
+      await storage.updateContractorApplication(id, {
+        status,
+        reviewNotes,
+        reviewedBy: adminId,
+        reviewedAt: new Date()
+      });
+
+      res.json({ message: "Application status updated successfully" });
+    } catch (error) {
+      console.error("Error updating contractor application:", error);
+      res.status(500).json({ message: "Failed to update application" });
+    }
+  });
+
   // Accelerator enrollment
   app.post("/api/accelerator/enroll", isAuthenticated, async (req: any, res) => {
     try {
