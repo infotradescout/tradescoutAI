@@ -1017,6 +1017,171 @@ export const insertContentReportSchema = createInsertSchema(contentReports).omit
   reviewedAt: true
 });
 
+// Smart Recommendation Generator tables
+export const recommendationInsights = pgTable("recommendation_insights", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  contractorId: varchar("contractor_id").notNull(),
+  
+  // Performance metrics
+  totalRecommendations: integer("total_recommendations").default(0),
+  positiveRecommendations: integer("positive_recommendations").default(0),
+  negativeRecommendations: integer("negative_recommendations").default(0),
+  averageRating: decimal("average_rating", { precision: 3, scale: 2 }),
+  
+  // Analysis insights
+  topStrengths: jsonb("top_strengths").$type<string[]>().default([]),
+  improvementAreas: jsonb("improvement_areas").$type<string[]>().default([]),
+  suggestedActions: jsonb("suggested_actions").$type<{
+    action: string;
+    priority: 'high' | 'medium' | 'low';
+    impact: string;
+    difficulty: string;
+  }[]>().default([]),
+  
+  // Visibility metrics
+  profileViews: integer("profile_views").default(0),
+  inquiryRate: decimal("inquiry_rate", { precision: 5, scale: 2 }).default('0'),
+  responseRate: decimal("response_rate", { precision: 5, scale: 2 }).default('0'),
+  
+  // Competitive analysis
+  marketPosition: varchar("market_position"), // 'top_performer', 'above_average', 'average', 'below_average'
+  competitorComparison: jsonb("competitor_comparison").$type<{
+    totalContractors: number;
+    betterThan: number;
+    percentile: number;
+  }>(),
+  
+  // AI recommendations
+  aiRecommendations: jsonb("ai_recommendations").$type<{
+    category: string;
+    suggestion: string;
+    impact: 'high' | 'medium' | 'low';
+    timeframe: string;
+  }[]>().default([]),
+  
+  lastAnalyzedAt: timestamp("last_analyzed_at").defaultNow(),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const recommendationGoals = pgTable("recommendation_goals", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  contractorId: varchar("contractor_id").notNull(),
+  
+  // Goal targets
+  targetRecommendations: integer("target_recommendations").notNull(),
+  targetRating: decimal("target_rating", { precision: 3, scale: 2 }).notNull(),
+  targetTimeframe: varchar("target_timeframe").notNull(), // '30_days', '90_days', '6_months', '1_year'
+  
+  // Progress tracking
+  startingRecommendations: integer("starting_recommendations").default(0),
+  currentProgress: decimal("current_progress", { precision: 5, scale: 2 }).default('0'),
+  isActive: boolean("is_active").default(true),
+  
+  // Milestone tracking
+  milestones: jsonb("milestones").$type<{
+    target: number;
+    achievedAt?: string;
+    reward?: string;
+  }[]>().default([]),
+  
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const recommendationCampaigns = pgTable("recommendation_campaigns", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  contractorId: varchar("contractor_id").notNull(),
+  
+  // Campaign details
+  name: varchar("name").notNull(),
+  description: text("description"),
+  campaignType: varchar("campaign_type").notNull(), // 'email_followup', 'text_reminder', 'personal_ask', 'incentive_offer'
+  
+  // Target audience
+  targetCustomers: jsonb("target_customers").$type<{
+    projectType?: string;
+    projectValue?: number;
+    completionDate?: string;
+    email?: string;
+    phone?: string;
+  }[]>().default([]),
+  
+  // Campaign settings
+  isActive: boolean("is_active").default(true),
+  sendAt: timestamp("send_at"),
+  frequency: varchar("frequency"), // 'once', 'weekly', 'monthly'
+  
+  // Templates
+  emailTemplate: text("email_template"),
+  textTemplate: text("text_template"),
+  incentiveOffer: text("incentive_offer"),
+  
+  // Results tracking
+  totalSent: integer("total_sent").default(0),
+  totalOpened: integer("total_opened").default(0),
+  totalResponded: integer("total_responded").default(0),
+  totalRecommendations: integer("total_recommendations").default(0),
+  
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Relations for recommendation generator
+export const recommendationInsightsRelations = relations(recommendationInsights, ({ one }) => ({
+  contractor: one(contractors, {
+    fields: [recommendationInsights.contractorId],
+    references: [contractors.id],
+  }),
+}));
+
+export const recommendationGoalsRelations = relations(recommendationGoals, ({ one }) => ({
+  contractor: one(contractors, {
+    fields: [recommendationGoals.contractorId],
+    references: [contractors.id],
+  }),
+}));
+
+export const recommendationCampaignsRelations = relations(recommendationCampaigns, ({ one }) => ({
+  contractor: one(contractors, {
+    fields: [recommendationCampaigns.contractorId],
+    references: [contractors.id],
+  }),
+}));
+
+// Insert schemas for recommendation generator
+export const insertRecommendationInsightSchema = createInsertSchema(recommendationInsights).omit({
+  id: true,
+  lastAnalyzedAt: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertRecommendationGoalSchema = createInsertSchema(recommendationGoals).omit({
+  id: true,
+  currentProgress: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertRecommendationCampaignSchema = createInsertSchema(recommendationCampaigns).omit({
+  id: true,
+  totalSent: true,
+  totalOpened: true,
+  totalResponded: true,
+  totalRecommendations: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+// Recommendation Generator Types
+export type RecommendationInsight = typeof recommendationInsights.$inferSelect;
+export type InsertRecommendationInsight = z.infer<typeof insertRecommendationInsightSchema>;
+export type RecommendationGoal = typeof recommendationGoals.$inferSelect;
+export type InsertRecommendationGoal = z.infer<typeof insertRecommendationGoalSchema>;
+export type RecommendationCampaign = typeof recommendationCampaigns.$inferSelect;
+export type InsertRecommendationCampaign = z.infer<typeof insertRecommendationCampaignSchema>;
+
 // Types
 export type SocialPost = typeof socialPosts.$inferSelect;
 export type PostComment = typeof postComments.$inferSelect;

@@ -206,8 +206,8 @@ export default function ContractorDashboard() {
             <div className="w-8 h-8 bg-green-500/20 rounded-lg flex items-center justify-center mx-auto mb-2">
               <CheckCircle className="h-4 w-4 text-green-500" />
             </div>
-            <p className="text-2xl font-bold text-white">{mockStats.wonLeads}</p>
-            <p className="text-sm text-gray-400">Won Leads</p>
+            <p className="text-2xl font-bold text-white">{mockStats.wonInquiries}</p>
+            <p className="text-sm text-gray-400">Won Inquiries</p>
           </CardContent>
         </Card>
         
@@ -237,7 +237,7 @@ export default function ContractorDashboard() {
         <Card className="bg-navy-700 border-navy-600">
           <CardHeader>
             <CardTitle className="text-white flex items-center justify-between">
-              Recent Leads
+              Recent Inquiries
               <Button variant="ghost" className="text-orange-500 hover:text-orange-400 p-0">
                 View All
               </Button>
@@ -245,35 +245,35 @@ export default function ContractorDashboard() {
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {mockLeads.map((lead) => (
-                <div key={lead.id} className="flex items-center justify-between p-4 bg-navy-600 rounded-lg">
+              {mockInquiries.map((inquiry) => (
+                <div key={inquiry.id} className="flex items-center justify-between p-4 bg-navy-600 rounded-lg">
                   <div className="flex items-center space-x-3">
-                    {getStatusIcon(lead.status)}
+                    {getStatusIcon(inquiry.status)}
                     <div>
-                      <p className="text-white font-medium">{lead.title}</p>
-                      <p className="text-gray-400 text-sm">{lead.homeownerName}</p>
+                      <p className="text-white font-medium">{inquiry.title}</p>
+                      <p className="text-gray-400 text-sm">{inquiry.homeownerName}</p>
                       <div className="flex items-center text-gray-500 text-xs mt-1">
                         <MapPin className="h-3 w-3 mr-1" />
-                        {lead.location}
+                        {inquiry.location}
                         <span className="mx-2">•</span>
                         <Calendar className="h-3 w-3 mr-1" />
-                        {new Date(lead.createdAt).toLocaleDateString()}
+                        {new Date(inquiry.createdAt).toLocaleDateString()}
                       </div>
                     </div>
                   </div>
                   <div className="text-right">
-                    {getStatusBadge(lead.status)}
+                    {getStatusBadge(inquiry.status)}
                     <p className="text-white font-semibold mt-1">
-                      ${lead.value.toLocaleString()}
+                      ${inquiry.value.toLocaleString()}
                     </p>
                   </div>
                 </div>
               ))}
               
-              {mockLeads.length === 0 && (
+              {mockInquiries.length === 0 && (
                 <div className="text-center py-8">
                   <Target className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                  <p className="text-gray-400 mb-4">No leads yet</p>
+                  <p className="text-gray-400 mb-4">No inquiries yet</p>
                   <Button className="bg-orange-500 hover:bg-orange-600 text-white">
                     Optimize Your Profile
                   </Button>
@@ -291,13 +291,13 @@ export default function ContractorDashboard() {
             <div className="space-y-6">
               <div>
                 <div className="flex items-center justify-between mb-2">
-                  <span className="text-gray-300">Lead Conversion Rate</span>
+                  <span className="text-gray-300">Inquiry Conversion Rate</span>
                   <span className="text-white font-semibold">
-                    {Math.round((mockStats.wonLeads / mockStats.totalLeads) * 100)}%
+                    {Math.round((mockStats.wonInquiries / mockStats.totalInquiries) * 100)}%
                   </span>
                 </div>
                 <Progress 
-                  value={(mockStats.wonLeads / mockStats.totalLeads) * 100} 
+                  value={(mockStats.wonInquiries / mockStats.totalInquiries) * 100} 
                   className="h-2"
                 />
               </div>
@@ -332,7 +332,7 @@ export default function ContractorDashboard() {
                     <Clock className="h-4 w-4 text-yellow-500 mt-0.5" />
                     <div>
                       <p className="text-white text-sm">Improve response time</p>
-                      <p className="text-gray-400 text-xs">Respond to leads within 1 hour</p>
+                      <p className="text-gray-400 text-xs">Respond to inquiries within 1 hour</p>
                     </div>
                   </div>
                   <div className="flex items-start space-x-3">
@@ -352,7 +352,13 @@ export default function ContractorDashboard() {
       {/* Business Navigation Section */}
       <div className="mt-8">
         <h2 className="text-xl font-semibold text-white mb-4">Expand Your Business</h2>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+          <Link href="/contractor/recommendation-generator">
+            <Button variant="outline" className="w-full h-16 border-navy-500 hover:border-orange-500 flex flex-col items-center justify-center space-y-1">
+              <Zap className="h-5 w-5 text-blue-400" />
+              <span className="text-xs">Smart Recommendations</span>
+            </Button>
+          </Link>
           <Link href="/community">
             <Button variant="outline" className="w-full h-16 border-navy-500 hover:border-orange-500 flex flex-col items-center justify-center space-y-1">
               <Users className="h-5 w-5 text-purple-400" />

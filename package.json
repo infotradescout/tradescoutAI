@@ -80,6 +80,7 @@
     "memoizee": "^0.4.17",
     "memorystore": "^1.6.7",
     "next-themes": "^0.4.6",
+    "openai": "^5.15.0",
     "openid-client": "^6.6.4",
     "passport": "^0.7.0",
     "passport-facebook": "^3.0.0",
