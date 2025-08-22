@@ -93,9 +93,7 @@ import Privacy from "@/pages/privacy";
 import Terms from "@/pages/terms";
 import { ProfileSetupRedirect } from "@/components/profile-setup-redirect";
 import { OnboardingProvider } from "@/components/onboarding/OnboardingProvider";
-import { NewUserTour } from "@/components/onboarding/tours/NewUserTour";
-import { ContractorBoardTour } from "@/components/onboarding/tours/ContractorBoardTour";
-import { FeatureTour } from "@/components/onboarding/tours/FeatureTour";
+import { SubtleHints } from "@/components/onboarding/SubtleHints";
 
 // Lazy load admin components
 const AdminDashboard = lazy(() => import("@/pages/admin-dashboard"));
@@ -429,12 +427,8 @@ const Router = memo(function Router() {
       {isMobile && <MobileAppBar />}
       <PWAInstallPrompt />
       
-      {/* Onboarding Tours */}
-      <NewUserTour />
-      <ContractorBoardTour />
-      <FeatureTour feature="recommendations" />
-      <FeatureTour feature="quote-calculator" />
-      <FeatureTour feature="search" />
+      {/* Subtle onboarding hints for new users */}
+      <SubtleHints />
       
       {!isMobile && <LegalFooter />}
     </div>
