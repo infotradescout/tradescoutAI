@@ -253,6 +253,26 @@ export async function registerRoutes(app: Express) {
     });
   });
 
+  // Facebook authentication routes
+  app.get("/auth/facebook", passport.authenticate('facebook', { 
+    scope: ['email'] 
+  }));
+
+  app.get("/auth/facebook/callback", 
+    passport.authenticate('facebook', { 
+      failureRedirect: '/login?error=facebook_auth_failed' 
+    }),
+    (req, res) => {
+      // Successful authentication, redirect to contractor board or profile setup
+      const user = req.user as any;
+      if (user && user.role === 'contractor_user') {
+        res.redirect('/contractor-board?welcome=true');
+      } else {
+        res.redirect('/');
+      }
+    }
+  );
+
   app.get("/api/auth/user", (req, res) => {
     if (req.isAuthenticated()) {
       res.json(req.user);

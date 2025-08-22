@@ -279,6 +279,7 @@ export interface IStorage {
   getUser(id: string): Promise<User | undefined>;
   getUserByEmail(email: string): Promise<User | undefined>;
   getUserByRole(role: string): Promise<User | undefined>;
+  getUserByFacebookId(facebookId: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
   createMasterAdmin(email: string, password: string, firstName: string, lastName: string): Promise<User>;
   updateUser(id: string, updates: Partial<User>): Promise<User>;
@@ -751,6 +752,11 @@ export class DatabaseStorage implements IStorage {
 
   async getUserByRole(role: string): Promise<User | undefined> {
     const [user] = await db.select().from(users).where(eq(users.role, role as any));
+    return user;
+  }
+
+  async getUserByFacebookId(facebookId: string): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.facebookId, facebookId));
     return user;
   }
 

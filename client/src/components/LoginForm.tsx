@@ -10,6 +10,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { Eye, EyeOff } from "lucide-react";
+import { SiFacebook } from "react-icons/si";
 
 const loginSchema = z.object({
   email: z.string().email("Please enter a valid email address"),
@@ -139,6 +140,30 @@ export function LoginForm({ onSuccess, onSwitchToRegister }: LoginFormProps) {
             </Button>
           </form>
         </Form>
+
+        {/* Social Login Divider */}
+        <div className="relative my-6">
+          <div className="absolute inset-0 flex items-center">
+            <span className="w-full border-t" />
+          </div>
+          <div className="relative flex justify-center text-xs uppercase">
+            <span className="bg-background px-2 text-muted-foreground">
+              Or continue with
+            </span>
+          </div>
+        </div>
+
+        {/* Facebook Login Button */}
+        <Button
+          type="button"
+          variant="outline"
+          className="w-full"
+          onClick={() => window.location.href = '/auth/facebook'}
+          data-testid="button-facebook-login"
+        >
+          <SiFacebook className="mr-2 h-4 w-4 text-blue-600" />
+          Continue with Facebook
+        </Button>
 
         {onSwitchToRegister && (
           <div className="mt-4 text-center">
