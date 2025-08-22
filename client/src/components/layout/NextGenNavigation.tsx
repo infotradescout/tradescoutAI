@@ -34,10 +34,19 @@ export function NextGenNavigation({ className = "" }: NextGenNavigationProps) {
   const navItems: NavItem[] = useMemo(() => {
     const userRole = user?.role || 'homeowner';
     
-    // For pre-launch: Only show contractor board and calculator
+    // Base navigation items with role-specific priorities
     const baseItems = [
       { href: "/contractors/board", label: "Contractors", icon: Users, priority: 10 },
-      { href: "/quote-calculator", label: "Calculator", icon: Calculator, priority: 9 }
+      { href: "/quote-calculator", label: "Calculator", icon: Calculator, priority: 9 },
+      // Full features available for authenticated users
+      ...(isAuthenticated ? [
+        { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard, priority: 8 },
+        { href: "/foundation", label: "Foundation", icon: Building, priority: 6 },
+        { href: "/community", label: "Community", icon: MessageSquare, priority: 5 },
+        { href: "/helpers", label: "Helpers", icon: Users, priority: 4 },
+        { href: "/exchange", label: "Exchange", icon: ArrowLeftRight, priority: 3 },
+        { href: "/accelerator", label: "Accelerator", icon: Crown, priority: 2 }
+      ] : [])
     ];
 
     // Adjust priorities based on user role

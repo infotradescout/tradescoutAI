@@ -357,7 +357,7 @@ const Router = memo(function Router() {
               </ProfileSetupRedirect>
             </>
           ) : (
-            /* Pre-launch: Limited public routes */
+            /* Public routes - limited during pre-launch */
             <>
               <Route path="/" component={ContractorBoard} />
               <Route path="/contractors/board" component={ContractorBoard} />
@@ -366,6 +366,18 @@ const Router = memo(function Router() {
               <Route path="/quote" component={EstimateCalculator} />
               <Route path="/contractors/signup" component={ContractorSignup} />
               <Route path="/contractors/:slug" component={ContractorProfile} />
+              
+              {/* Redirect restricted routes to contractor board */}
+              <Route path="/home" component={ContractorBoard} />
+              <Route path="/landing" component={ContractorBoard} />
+              <Route path="/foundation" component={ContractorBoard} />
+              <Route path="/community" component={ContractorBoard} />
+              <Route path="/helpers" component={ContractorBoard} />
+              <Route path="/exchange" component={ContractorBoard} />
+              <Route path="/accelerator" component={ContractorBoard} />
+              <Route path="/marketplace" component={ContractorBoard} />
+              
+              {/* Default fallback */}
               <Route component={ContractorBoard} />
             </>
           )}
