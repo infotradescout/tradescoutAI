@@ -41,7 +41,7 @@ Lead generation preference: Never reference "getting leads" or "lead generation"
 - **Address Verification**: Platform-wide address verification required within 14 days, with multiple methods (postcard, document upload) and middleware enforcement.
 - **Security**: CSRF protection, secure session cookies, role-based route protection.
 - **Admin Role Impersonation**: Allows admins to impersonate other roles for testing.
-- **Facebook Authentication**: Fully operational with App ID/Secret configured for one-click contractor and homeowner signup.
+- **Facebook Authentication**: Fully operational with App ID/Secret configured and OAuth redirect URIs properly set up. One-click contractor and homeowner signup working in production.
 
 ## File Upload & Storage
 - **Cloud Storage**: Google Cloud Storage.
