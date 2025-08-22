@@ -300,6 +300,15 @@ export default function ContractorBoard() {
               </Button>
             </Link>
           </div>
+          
+          {/* Pre-launch notice */}
+          <div className="mb-8 text-center">
+            <div className="bg-blue-500/20 border border-blue-500/30 rounded-lg p-4 max-w-2xl mx-auto">
+              <p className="text-blue-300 text-sm">
+                🚧 TradeScout is launching soon! Currently featuring contractor discovery and quote calculator.
+              </p>
+            </div>
+          </div>
         </header>
 
         {/* State, County and Trade Quick Filters */}
