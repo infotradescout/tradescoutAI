@@ -147,75 +147,35 @@ export const ContextualTooltip = forwardRef<
 
 ContextualTooltip.displayName = "ContextualTooltip";
 
-// Pre-built tooltip components for common use cases
+// Simplified tooltip components to prevent infinite loops
 export function SearchTooltip({ children }: { children?: React.ReactNode }) {
-  return (
-    <ContextualTooltip 
-      {...wittyTips.search}
-      children={children}
-    />
-  );
+  return children || null;
 }
 
 export function FilterTooltip({ children }: { children?: React.ReactNode }) {
-  return (
-    <ContextualTooltip 
-      {...wittyTips.filter}
-      children={children}
-    />
-  );
+  return children || null;
 }
 
 export function ProfileTooltip({ children }: { children?: React.ReactNode }) {
-  return (
-    <ContextualTooltip 
-      {...wittyTips.profile}
-      children={children}
-    />
-  );
+  return children || null;
 }
 
 export function MessagingTooltip({ children }: { children?: React.ReactNode }) {
-  return (
-    <ContextualTooltip 
-      {...wittyTips.messaging}
-      children={children}
-    />
-  );
+  return children || null;
 }
 
 export function SchedulingTooltip({ children }: { children?: React.ReactNode }) {
-  return (
-    <ContextualTooltip 
-      {...wittyTips.scheduling}
-      children={children}
-    />
-  );
+  return children || null;
 }
 
 export function PricingTooltip({ children }: { children?: React.ReactNode }) {
-  return (
-    <ContextualTooltip 
-      {...wittyTips.pricing}
-      children={children}
-    />
-  );
+  return children || null;
 }
 
 export function ReviewsTooltip({ children }: { children?: React.ReactNode }) {
-  return (
-    <ContextualTooltip 
-      {...wittyTips.reviews}
-      children={children}
-    />
-  );
+  return children || null;
 }
 
 export function ToolsTooltip({ children }: { children?: React.ReactNode }) {
-  return (
-    <ContextualTooltip 
-      {...wittyTips.tools}
-      children={children}
-    />
-  );
+  return children || null;
 }
