@@ -1,5 +1,5 @@
 import { memo, useState } from 'react';
-import { Share2, Users, DollarSign, Gift, Copy, Check, Star, TrendingUp, Calendar, Link, Mail, MessageSquare } from 'lucide-react';
+import { TrendingUp, Users2, DollarSign, Gift, Copy, Check, Crown, BarChart3, Calendar, Link, Mail, MessageSquare } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -152,7 +152,7 @@ const ReferralDashboard = memo(function ReferralDashboard() {
         {/* Header */}
         <div className="mb-8">
           <div className="flex items-center gap-3 mb-4">
-            <Share2 className="h-8 w-8 text-orange-400" />
+            <TrendingUp className="h-8 w-8 text-orange-400" />
             <h1 className="text-4xl font-bold text-white">Referral Dashboard</h1>
           </div>
           <p className="text-gray-300 text-lg">
@@ -170,7 +170,7 @@ const ReferralDashboard = memo(function ReferralDashboard() {
                   <p className="text-2xl font-bold text-white">{referralStats.totalReferrals}</p>
                   <p className="text-green-400 text-sm">{referralStats.activeReferrals} active</p>
                 </div>
-                <Users className="h-8 w-8 text-blue-400" />
+                <Users2 className="h-8 w-8 text-blue-400" />
               </div>
             </CardContent>
           </Card>
@@ -209,7 +209,7 @@ const ReferralDashboard = memo(function ReferralDashboard() {
                   <p className="text-xl font-bold text-yellow-400">{referralStats.tier}</p>
                   <p className="text-gray-400 text-sm">{referralStats.commissionRate}% commission</p>
                 </div>
-                <Star className="h-8 w-8 text-yellow-400" />
+                <Crown className="h-8 w-8 text-yellow-400" />
               </div>
             </CardContent>
           </Card>
@@ -269,7 +269,7 @@ const ReferralDashboard = memo(function ReferralDashboard() {
                 <CardContent>
                   <div className="space-y-3">
                     <Button className="w-full bg-orange-600 hover:bg-orange-700 justify-start">
-                      <Share2 className="h-4 w-4 mr-2" />
+                      <TrendingUp className="h-4 w-4 mr-2" />
                       Share Referral Link
                     </Button>
                     <Button variant="outline" className="w-full border-orange-600 text-orange-400 hover:bg-orange-600/20 justify-start">

@@ -1,5 +1,5 @@
 import { memo, useState } from 'react';
-import { Share2, Facebook, Twitter, Instagram, Linkedin, Youtube, Globe, Link, QrCode, Copy, Check } from 'lucide-react';
+import { Network, Shield, Zap, Target, Compass, Users2, Briefcase, TrendingUp, Copy, Check, ExternalLink, BarChart2, UserPlus, Crown } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -15,7 +15,7 @@ const SocialIntegration = memo(function SocialIntegration() {
   const socialPlatforms = [
     {
       name: 'Facebook',
-      icon: Facebook,
+      icon: Shield,
       connected: true,
       followers: 2847,
       engagement: '4.2%',
@@ -24,7 +24,7 @@ const SocialIntegration = memo(function SocialIntegration() {
     },
     {
       name: 'Instagram',
-      icon: Instagram,
+      icon: Target,
       connected: true,
       followers: 1523,
       engagement: '6.8%',
@@ -33,7 +33,7 @@ const SocialIntegration = memo(function SocialIntegration() {
     },
     {
       name: 'Twitter',
-      icon: Twitter,
+      icon: Zap,
       connected: false,
       followers: 0,
       engagement: '0%',
@@ -42,7 +42,7 @@ const SocialIntegration = memo(function SocialIntegration() {
     },
     {
       name: 'LinkedIn',
-      icon: Linkedin,
+      icon: Briefcase,
       connected: true,
       followers: 892,
       engagement: '3.1%',
@@ -51,7 +51,7 @@ const SocialIntegration = memo(function SocialIntegration() {
     },
     {
       name: 'YouTube',
-      icon: Youtube,
+      icon: TrendingUp,
       connected: false,
       followers: 0,
       engagement: '0%',
@@ -111,7 +111,7 @@ const SocialIntegration = memo(function SocialIntegration() {
         {/* Header */}
         <div className="mb-8">
           <div className="flex items-center gap-3 mb-4">
-            <Share2 className="h-8 w-8 text-orange-400" />
+            <Network className="h-8 w-8 text-orange-400" />
             <h1 className="text-4xl font-bold text-white">Social Media Integration</h1>
           </div>
           <p className="text-gray-300 text-lg">
@@ -357,7 +357,7 @@ const SocialIntegration = memo(function SocialIntegration() {
                       <h4 className="text-white font-medium mb-3">Business Card Integration</h4>
                       <div className="bg-navy-700/50 rounded-lg p-4">
                         <div className="flex items-center gap-3 mb-3">
-                          <Globe className="h-5 w-5 text-orange-400" />
+                          <Crown className="h-5 w-5 text-orange-400" />
                           <span className="text-white font-medium">Digital Business Card</span>
                         </div>
                         <p className="text-gray-400 text-sm mb-3">

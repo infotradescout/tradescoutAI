@@ -1,5 +1,5 @@
 import { memo, useState } from 'react';
-import { Calendar, MapPin, Clock, Users, Plus, Edit, Trash2, Eye, Share2, Star, Filter } from 'lucide-react';
+import { Calendar, Compass, Clock, Users2, Plus, Edit, Trash2, Eye, TrendingUp, Crown, SlidersHorizontal } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -150,12 +150,12 @@ const EventManagement = memo(function EventManagement() {
           </div>
           
           <div className="flex items-center gap-2 text-gray-300 text-sm">
-            <MapPin className="h-4 w-4" />
+            <Compass className="h-4 w-4" />
             <span>{event.location}</span>
           </div>
 
           <div className="flex items-center gap-2 text-gray-300 text-sm">
-            <Users className="h-4 w-4" />
+            <Users2 className="h-4 w-4" />
             <span>{event.attendees} / {event.maxAttendees} attendees</span>
           </div>
         </div>
@@ -180,10 +180,10 @@ const EventManagement = memo(function EventManagement() {
             {event.status === 'upcoming' ? 'Register' : 'View Details'}
           </Button>
           <Button size="sm" variant="outline" className="border-orange-600 text-orange-400 hover:bg-orange-600/20">
-            <Share2 className="h-4 w-4" />
+            <TrendingUp className="h-4 w-4" />
           </Button>
           <Button size="sm" variant="outline" className="border-orange-600 text-orange-400 hover:bg-orange-600/20">
-            <Star className="h-4 w-4" />
+            <Crown className="h-4 w-4" />
           </Button>
         </div>
       </CardContent>
@@ -225,7 +225,7 @@ const EventManagement = memo(function EventManagement() {
 
           <Card className="bg-navy-800/50 border-navy-600 backdrop-blur-sm">
             <CardContent className="p-6 text-center">
-              <Users className="h-8 w-8 text-blue-400 mx-auto mb-3" />
+              <Users2 className="h-8 w-8 text-blue-400 mx-auto mb-3" />
               <div className="text-2xl font-bold text-white mb-1">847</div>
               <div className="text-gray-400 text-sm">Total Attendees</div>
             </CardContent>
@@ -233,7 +233,7 @@ const EventManagement = memo(function EventManagement() {
 
           <Card className="bg-navy-800/50 border-navy-600 backdrop-blur-sm">
             <CardContent className="p-6 text-center">
-              <Star className="h-8 w-8 text-yellow-400 mx-auto mb-3" />
+              <Crown className="h-8 w-8 text-yellow-400 mx-auto mb-3" />
               <div className="text-2xl font-bold text-white mb-1">{featuredEvents.length}</div>
               <div className="text-gray-400 text-sm">Featured Events</div>
             </CardContent>
@@ -241,7 +241,7 @@ const EventManagement = memo(function EventManagement() {
 
           <Card className="bg-navy-800/50 border-navy-600 backdrop-blur-sm">
             <CardContent className="p-6 text-center">
-              <MapPin className="h-8 w-8 text-green-400 mx-auto mb-3" />
+              <Compass className="h-8 w-8 text-green-400 mx-auto mb-3" />
               <div className="text-2xl font-bold text-white mb-1">15</div>
               <div className="text-gray-400 text-sm">Cities</div>
             </CardContent>
@@ -253,7 +253,7 @@ const EventManagement = memo(function EventManagement() {
           <CardContent className="p-6">
             <div className="flex flex-wrap gap-4 items-center">
               <div className="flex items-center gap-2">
-                <Filter className="h-4 w-4 text-gray-400" />
+                <SlidersHorizontal className="h-4 w-4 text-gray-400" />
                 <span className="text-gray-400">Filter by:</span>
               </div>
               

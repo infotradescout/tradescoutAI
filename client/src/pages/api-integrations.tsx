@@ -1,5 +1,5 @@
 import { memo, useState } from 'react';
-import { Code, Globe, Key, Settings, CheckCircle, XCircle, Clock, AlertTriangle, Copy, Eye, EyeOff } from 'lucide-react';
+import { Code, Network, Key, Settings2, CheckCircle2, XCircle, Clock, AlertTriangle, Copy, Eye, EyeOff } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -129,7 +129,7 @@ const APIIntegrations = memo(function APIIntegrations() {
   const getStatusIcon = (status: string) => {
     switch (status) {
       case 'connected':
-        return <CheckCircle className="h-4 w-4 text-green-400" />;
+        return <CheckCircle2 className="h-4 w-4 text-green-400" />;
       case 'error':
         return <XCircle className="h-4 w-4 text-red-400" />;
       case 'pending':
@@ -166,7 +166,7 @@ const APIIntegrations = memo(function APIIntegrations() {
         {/* Header */}
         <div className="mb-8">
           <div className="flex items-center gap-3 mb-4">
-            <Code className="h-8 w-8 text-orange-400" />
+            <Network className="h-8 w-8 text-orange-400" />
             <h1 className="text-4xl font-bold text-white">API & Integrations</h1>
           </div>
           <p className="text-gray-300 text-lg">
@@ -252,7 +252,7 @@ const APIIntegrations = memo(function APIIntegrations() {
                            integration.status === 'error' ? 'Reconnect' : 'Connect'}
                         </Button>
                         <Button size="sm" variant="outline" className="border-orange-600 text-orange-400 hover:bg-orange-600/20">
-                          <Settings className="h-4 w-4" />
+                          <Settings2 className="h-4 w-4" />
                         </Button>
                       </div>
                     </div>
@@ -464,7 +464,7 @@ const APIIntegrations = memo(function APIIntegrations() {
               <Card className="bg-navy-800/50 border-navy-600 backdrop-blur-sm">
                 <CardHeader>
                   <CardTitle className="text-white flex items-center gap-2">
-                    <Globe className="h-5 w-5" />
+                    <Network className="h-5 w-5" />
                     API Documentation
                   </CardTitle>
                 </CardHeader>
