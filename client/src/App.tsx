@@ -1,7 +1,7 @@
 import { memo } from 'react';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { queryClient } from '@/lib/queryClient';
-import ErrorBoundary from '@/components/ui/error-boundary';
+import { ErrorBoundary } from '@/components/ui/error-boundary';
 
 // Simple components
 import SimpleLanding from '@/pages/SimpleLanding';
