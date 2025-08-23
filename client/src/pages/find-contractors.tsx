@@ -1,5 +1,7 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { HelpBubble, GuidedTour } from "@/components/ui/help-bubble";
+import { useHelpSystem } from "@/hooks/useHelpSystem";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -42,6 +44,25 @@ export default function FindContractors() {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCounty, setSelectedCounty] = useState("");
   const [selectedTrade, setSelectedTrade] = useState("");
+  
+  const { 
+    activeTour, 
+    startTour, 
+    markTourCompleted, 
+    skipTour, 
+    tours, 
+    shouldShowTour 
+  } = useHelpSystem();
+
+  // Auto-start tour for new users
+  useEffect(() => {
+    if (shouldShowTour('contractor-search')) {
+      const timer = setTimeout(() => {
+        startTour('contractor-search');
+      }, 2000);
+      return () => clearTimeout(timer);
+    }
+  }, [shouldShowTour, startTour]);
 
   // Fetch contractors
   const { data: contractors = [], isLoading } = useQuery({
@@ -91,24 +112,56 @@ export default function FindContractors() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Header */}
         <div className="text-center mb-12">
-          <h1 className="text-4xl md:text-5xl font-bold text-white mb-4">
-            Find Local Contractors
-          </h1>
+          <div className="flex items-center justify-center space-x-3 mb-4">
+            <h1 className="text-4xl md:text-5xl font-bold text-white">
+              Find Local Contractors
+            </h1>
+            <HelpBubble
+              id="contractor-search-overview"
+              title="Contractor Search System"
+              content="Our advanced search helps you find the perfect contractor for your project. All contractors are verified with licenses, insurance, and background checks for your safety and peace of mind."
+              illustration="hammer"
+              variant="info"
+              trigger="hover"
+              position="bottom"
+            />
+          </div>
           <p className="text-xl text-gray-300 max-w-3xl mx-auto">
             Browse our directory of verified, professional contractors in your area. 
             Connect directly and get quotes for your next project.
           </p>
-          <div className="mt-4">
+          <div className="mt-4 flex items-center justify-center space-x-2">
             <Badge className="bg-orange-500 text-white px-4 py-2 text-lg">
               {filteredContractors.length} contractors available
             </Badge>
+            <HelpBubble
+              id="contractor-count"
+              title="Live Results"
+              content="This number updates in real-time as you apply filters. Our network includes thousands of verified contractors across all trades."
+              illustration="target"
+              variant="tip"
+              trigger="hover"
+              position="top"
+            />
           </div>
         </div>
 
         {/* Search and Filters */}
-        <Card className="bg-navy-700 border-navy-600 mb-8">
+        <Card className="bg-navy-700 border-navy-600 mb-8 contractor-search-form">
           <CardContent className="p-6">
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-semibold text-white">Search & Filter</h2>
+              <HelpBubble
+                id="search-filters-help"
+                title="Smart Search Filters"
+                content="Use these filters to narrow down your search. You can search by company name, location, trade specialty, or combine multiple filters for precise results."
+                illustration="target"
+                variant="tip"
+                trigger="hover"
+                position="left"
+              />
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 search-filters">
               {/* Search Input */}
               <div className="relative">
                 <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
@@ -117,6 +170,16 @@ export default function FindContractors() {
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="pl-10 bg-navy-800 border-navy-600 text-white placeholder-gray-400"
+                  data-testid="contractor-search-input"
+                />
+                <HelpBubble
+                  id="search-input-help"
+                  title="Search by Name or Service"
+                  content="Search by company name, specialization, or services offered. For example: 'kitchen remodeling' or 'Thompson Construction'."
+                  illustration="wrench"
+                  variant="info"
+                  trigger="focus"
+                  position="bottom"
                 />
               </div>
 
@@ -295,6 +358,14 @@ export default function FindContractors() {
             </CardContent>
           </Card>
         </div>
+        
+        {/* Guided Tour */}
+        <GuidedTour
+          steps={tours['contractor-search'] || []}
+          isActive={activeTour === 'contractor-search'}
+          onComplete={() => markTourCompleted('contractor-search')}
+          onSkip={() => skipTour('contractor-search')}
+        />
       </div>
     </div>
   );

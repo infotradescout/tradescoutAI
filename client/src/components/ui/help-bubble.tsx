@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { HelpCircle, X, ChevronLeft, ChevronRight, Lightbulb } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/button';
@@ -92,7 +92,7 @@ export function HelpBubble({
         height: window.innerHeight
       };
 
-      let optimalPosition = 'top';
+      let optimalPosition: 'top' | 'bottom' | 'left' | 'right' = 'top';
       
       if (rect.top < 200) optimalPosition = 'bottom';
       else if (rect.bottom > viewport.height - 200) optimalPosition = 'top';

@@ -31,7 +31,7 @@ export default function GroupDetail() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const params = useParams();
-  const groupId = params.groupId;
+  const groupId = params?.groupId || 'group-1';
   
   const [newPost, setNewPost] = useState('');
   const [showCreatePost, setShowCreatePost] = useState(false);
