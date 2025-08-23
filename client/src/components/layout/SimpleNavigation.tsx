@@ -2,54 +2,69 @@ import { memo } from 'react';
 
 const SimpleNavigation = memo(function SimpleNavigation() {
   return (
-    <nav className="bg-navy-900/95 backdrop-blur-lg border-b border-navy-700/50 sticky top-0 z-50 shadow-lg">
-      <div className="container mx-auto px-4">
+    <nav className="fixed top-0 left-0 right-0 z-50 bg-slate-900/80 backdrop-blur-xl border-b border-white/10">
+      <div className="container mx-auto px-6">
         <div className="flex items-center justify-between h-20">
-          {/* Logo */}
+          {/* Premium Logo */}
           <div className="flex items-center">
             <a href="/" className="flex items-center gap-3 group">
-              <div className="w-10 h-10 bg-gradient-to-br from-orange-500 to-orange-600 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform">
-                <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-                </svg>
+              <div className="relative">
+                <div className="w-12 h-12 bg-gradient-to-br from-orange-500 via-orange-600 to-orange-700 rounded-2xl flex items-center justify-center group-hover:scale-110 transition-all duration-300 shadow-lg">
+                  <svg className="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" />
+                  </svg>
+                </div>
+                <div className="absolute -top-1 -right-1 w-4 h-4 bg-green-400 rounded-full flex items-center justify-center">
+                  <div className="w-2 h-2 bg-white rounded-full"></div>
+                </div>
               </div>
-              <span className="text-2xl font-bold bg-gradient-to-r from-orange-400 to-orange-600 bg-clip-text text-transparent">
-                TradeScout
-              </span>
+              <div>
+                <span className="text-2xl font-bold bg-gradient-to-r from-white to-gray-300 bg-clip-text text-transparent">
+                  TradeScout
+                </span>
+                <div className="text-xs text-orange-400 font-medium -mt-1">PREMIUM</div>
+              </div>
             </a>
           </div>
 
-          {/* Navigation Links */}
-          <div className="hidden md:flex items-center space-x-8">
-            <a href="/find-contractors" className="text-gray-300 hover:text-orange-400 transition-all duration-300 relative group">
-              <span className="relative z-10">Find Contractors</span>
-              <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-orange-500 group-hover:w-full transition-all duration-300"></span>
+          {/* Premium Navigation */}
+          <div className="hidden lg:flex items-center space-x-8">
+            <a href="/find-contractors" className="group relative px-4 py-2 text-gray-300 hover:text-white transition-all duration-300">
+              <span className="relative z-10 font-medium">Find Contractors</span>
+              <div className="absolute inset-0 bg-white/5 rounded-lg opacity-0 group-hover:opacity-100 transition-all duration-300"></div>
+              <div className="absolute bottom-0 left-1/2 w-0 h-0.5 bg-gradient-to-r from-orange-500 to-orange-600 group-hover:w-full group-hover:left-0 transition-all duration-300"></div>
             </a>
-            <a href="/contractors" className="text-gray-300 hover:text-orange-400 transition-all duration-300 relative group">
-              <span className="relative z-10">Dashboard</span>
-              <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-orange-500 group-hover:w-full transition-all duration-300"></span>
+            <a href="/contractors" className="group relative px-4 py-2 text-gray-300 hover:text-white transition-all duration-300">
+              <span className="relative z-10 font-medium">Dashboard</span>
+              <div className="absolute inset-0 bg-white/5 rounded-lg opacity-0 group-hover:opacity-100 transition-all duration-300"></div>
+              <div className="absolute bottom-0 left-1/2 w-0 h-0.5 bg-gradient-to-r from-orange-500 to-orange-600 group-hover:w-full group-hover:left-0 transition-all duration-300"></div>
             </a>
-            <a href="/quote-calculator" className="text-gray-300 hover:text-orange-400 transition-all duration-300 relative group">
-              <span className="relative z-10">Calculator</span>
-              <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-orange-500 group-hover:w-full transition-all duration-300"></span>
+            <a href="/quote-calculator" className="group relative px-4 py-2 text-gray-300 hover:text-white transition-all duration-300">
+              <span className="relative z-10 font-medium">Pricing</span>
+              <div className="absolute inset-0 bg-white/5 rounded-lg opacity-0 group-hover:opacity-100 transition-all duration-300"></div>
+              <div className="absolute bottom-0 left-1/2 w-0 h-0.5 bg-gradient-to-r from-orange-500 to-orange-600 group-hover:w-full group-hover:left-0 transition-all duration-300"></div>
             </a>
-            <a href="/daily-deals" className="text-gray-300 hover:text-orange-400 transition-all duration-300 relative group">
-              <span className="relative z-10">Deals</span>
-              <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-orange-500 group-hover:w-full transition-all duration-300"></span>
+            <a href="/daily-deals" className="group relative px-4 py-2 text-gray-300 hover:text-white transition-all duration-300">
+              <span className="relative z-10 font-medium">Exclusive Deals</span>
+              <div className="absolute inset-0 bg-white/5 rounded-lg opacity-0 group-hover:opacity-100 transition-all duration-300"></div>
+              <div className="absolute bottom-0 left-1/2 w-0 h-0.5 bg-gradient-to-r from-orange-500 to-orange-600 group-hover:w-full group-hover:left-0 transition-all duration-300"></div>
             </a>
-            <div className="flex items-center space-x-4 ml-6">
-              <button className="text-gray-300 hover:text-orange-400 transition-colors px-4 py-2">
+            
+            {/* Premium CTAs */}
+            <div className="flex items-center space-x-4 ml-8 pl-8 border-l border-white/10">
+              <button className="text-gray-300 hover:text-white transition-colors font-medium px-4 py-2">
                 Sign In
               </button>
-              <button className="bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white px-6 py-2 rounded-lg font-semibold transition-all duration-300 hover:scale-105 shadow-lg">
-                Get Started
+              <button className="relative group px-6 py-3 bg-gradient-to-r from-orange-500 via-orange-600 to-orange-700 rounded-xl font-semibold text-white transition-all duration-300 hover:scale-105 shadow-lg hover:shadow-orange-500/25">
+                <span className="relative z-10">Get Started</span>
+                <div className="absolute inset-0 bg-gradient-to-r from-orange-600 to-orange-800 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
               </button>
             </div>
           </div>
 
-          {/* Mobile Menu Button */}
-          <div className="md:hidden">
-            <button className="text-gray-300 hover:text-orange-400 p-2 rounded-lg hover:bg-navy-800 transition-all">
+          {/* Mobile Menu */}
+          <div className="lg:hidden">
+            <button className="p-2 text-gray-300 hover:text-white hover:bg-white/5 rounded-lg transition-all">
               <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
               </svg>
