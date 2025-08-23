@@ -49,28 +49,11 @@ const Router = memo(function Router() {
     ComponentToRender = SimpleHome;
   }
   
-  if (currentPath === '/' || currentPath === '') {
-    ComponentToRender = SimpleLanding;
-  } else if (currentPath.startsWith('/find-contractors')) {
-    ComponentToRender = FindContractors;
-  } else if (currentPath.startsWith('/contractors')) {
-    ComponentToRender = ContractorBoard;
-  } else if (currentPath.startsWith('/quote-calculator')) {
-    ComponentToRender = QuoteCalculator;
-  } else if (currentPath.startsWith('/daily-deals')) {
-    ComponentToRender = DailyDeals;
-  } else if (currentPath.startsWith('/help-demo')) {
-    ComponentToRender = HelpDemo;
-  } else if (currentPath.startsWith('/test-page')) {
-    ComponentToRender = TestPage;
-  } else if (currentPath.startsWith('/profile')) {
-    ComponentToRender = Profile;
-  } else if (currentPath.startsWith('/admin')) {
-    ComponentToRender = AdminDashboard;
-  } else if (currentPath.startsWith('/home') || currentPath.startsWith('/dashboard')) {
+  // Simple routing - only using components we have
+  if (currentPath === '/home' || currentPath === '/dashboard') {
     ComponentToRender = SimpleHome;
   } else {
-    // Default to landing page for any unmatched routes
+    // Default to landing page for all other routes
     ComponentToRender = SimpleLanding;
   }
 
