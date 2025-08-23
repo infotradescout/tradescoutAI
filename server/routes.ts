@@ -7994,5 +7994,24 @@ export async function registerRoutes(app: Express) {
   app.post("/api/hoa/votes/:voteId/submit", isAuthenticated, submitVote);
   app.post("/api/hoa/vendors/:vendorId/request", isAuthenticated, requestVendorService);
 
+  // Phase 5: Nationwide Expansion Routes
+  const {
+    getNationwideMetrics,
+    getTopCounties,
+    getExpansionPipeline,
+    getFoundationImpact,
+    requestCountyActivation,
+    getCoverageMapData,
+    getAffiliatePerformance
+  } = await import("./routes/nationwide");
+
+  app.get("/api/nationwide/metrics", getNationwideMetrics);
+  app.get("/api/nationwide/top-counties", getTopCounties);
+  app.get("/api/nationwide/expansion-pipeline", getExpansionPipeline);
+  app.get("/api/nationwide/foundation-impact", getFoundationImpact);
+  app.get("/api/nationwide/coverage-map", getCoverageMapData);
+  app.get("/api/nationwide/affiliate-performance", getAffiliatePerformance);
+  app.post("/api/nationwide/request-activation", isAuthenticated, requestCountyActivation);
+
   return httpServer;
 }
