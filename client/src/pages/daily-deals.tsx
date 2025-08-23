@@ -1,303 +1,82 @@
-import { useQuery } from "@tanstack/react-query";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Separator } from "@/components/ui/separator";
-import { useAuth } from "@/hooks/useAuth";
-import { Clock, MapPin, Star, Eye, Heart, Percent } from "lucide-react";
-import { useState } from "react";
+import { memo } from 'react';
 
-interface DailyDeal {
-  id: string;
-  title: string;
-  description: string;
-  dealType: string;
-  originalPrice?: number;
-  discountPrice: number;
-  discountPercentage?: number;
-  countyFips: string;
-  startDate: string;
-  endDate: string;
-  maxRedemptions?: number;
-  currentRedemptions: number;
-  views: number;
-  clicks: number;
-  saves: number;
-  featured: boolean;
-  tags: string[];
-  providerType: string;
-}
-
-export default function DailyDeals() {
-  const { user } = useAuth();
-  const [selectedFilter, setSelectedFilter] = useState('all');
-
-  const { data: deals, isLoading } = useQuery({
-    queryKey: ['/api/daily-deals'],
-  });
-
-  const { data: userAffiliate } = useQuery({
-    queryKey: ['/api/user/affiliate'],
-  });
-
-  const handleDealClick = async (dealId: string) => {
-    // Track engagement
-    await fetch('/api/deal-engagements', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        dealId,
-        engagementType: 'click',
-        affiliateCode: userAffiliate?.affiliateCode
-      })
-    });
-  };
-
-  const handleSaveDeal = async (dealId: string) => {
-    await fetch('/api/deal-engagements', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        dealId,
-        engagementType: 'save',
-        affiliateCode: userAffiliate?.affiliateCode
-      })
-    });
-  };
-
-  const getDealTypeColor = (type: string) => {
-    switch (type) {
-      case 'service_discount': return 'bg-blue-100 text-blue-800';
-      case 'product_sale': return 'bg-green-100 text-green-800';
-      case 'material_deal': return 'bg-orange-100 text-orange-800';
-      default: return 'bg-gray-100 text-gray-800';
-    }
-  };
-
-  const formatPrice = (price: number) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD'
-    }).format(price);
-  };
-
-  const isExpired = (endDate: string) => {
-    return new Date(endDate) < new Date();
-  };
-
-  const isAlmostFull = (current: number, max?: number) => {
-    if (!max) return false;
-    return (current / max) > 0.8;
-  };
-
-  if (isLoading) {
-    return (
-      <div className="container mx-auto px-4 py-8">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {[...Array(6)].map((_, i) => (
-            <Card key={i} className="animate-pulse">
-              <CardHeader>
-                <div className="h-4 bg-gray-200 rounded w-3/4"></div>
-                <div className="h-3 bg-gray-200 rounded w-1/2"></div>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-2">
-                  <div className="h-3 bg-gray-200 rounded"></div>
-                  <div className="h-3 bg-gray-200 rounded w-5/6"></div>
-                  <div className="h-8 bg-gray-200 rounded w-1/3"></div>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      </div>
-    );
-  }
-
-  const filteredDeals = deals?.filter((deal: DailyDeal) => {
-    if (selectedFilter === 'all') return true;
-    if (selectedFilter === 'featured') return deal.featured;
-    if (selectedFilter === 'services') return deal.dealType === 'service_discount';
-    if (selectedFilter === 'products') return deal.dealType === 'product_sale';
-    if (selectedFilter === 'materials') return deal.dealType === 'material_deal';
-    return true;
-  }) || [];
-
+const DailyDeals = memo(function DailyDeals() {
   return (
-    <div className="container mx-auto px-4 py-8">
-      {/* Header */}
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold mb-2">Daily Deals</h1>
-        <p className="text-gray-600">
-          Discover amazing deals from local contractors and service providers in your area
-        </p>
+    <div className="min-h-screen bg-navy-900 text-white">
+      <div className="container mx-auto px-4 py-8">
+        <h1 className="text-3xl font-bold mb-8 text-orange-400">
+          Daily Deals
+        </h1>
         
-        {userAffiliate && (
-          <div className="mt-4 p-4 bg-blue-50 rounded-lg">
-            <h3 className="font-semibold text-blue-900">Your Affiliate Status</h3>
-            <p className="text-blue-700 text-sm">
-              Share deals with your code: <code className="bg-blue-200 px-2 py-1 rounded">{userAffiliate.affiliateCode}</code>
-            </p>
-            <p className="text-blue-700 text-sm">
-              Total earnings: {formatPrice(userAffiliate.totalEarnings)} | 
-              Commission rate: {userAffiliate.commissionRate}%
-            </p>
+        {/* Featured Deal */}
+        <section className="mb-12">
+          <div className="bg-gradient-to-r from-orange-600 to-orange-500 p-8 rounded-lg text-center">
+            <h2 className="text-3xl font-bold mb-4">Deal of the Day</h2>
+            <p className="text-xl mb-6">Professional Kitchen Renovation - 25% Off</p>
+            <div className="text-4xl font-bold mb-4">Save $3,000</div>
+            <p className="mb-6">Limited time offer from certified kitchen specialists</p>
+            <button className="bg-white text-orange-600 px-8 py-3 rounded font-semibold hover:bg-gray-100 transition-colors">
+              Claim Deal
+            </button>
           </div>
-        )}
+        </section>
+
+        {/* Today's Deals */}
+        <section className="mb-12">
+          <h2 className="text-2xl font-semibold mb-6">Today's Contractor Deals</h2>
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {[
+              { title: "Plumbing Repair", discount: "20% Off", contractor: "Pro Plumbers LLC", rating: "4.9" },
+              { title: "Electrical Installation", discount: "15% Off", contractor: "Bright Electric Co", rating: "4.8" },
+              { title: "Roofing Inspection", discount: "Free", contractor: "Roof Masters Inc", rating: "5.0" },
+              { title: "HVAC Maintenance", discount: "$100 Off", contractor: "Climate Control Pro", rating: "4.7" },
+              { title: "Flooring Installation", discount: "25% Off", contractor: "Floor Experts", rating: "4.9" },
+              { title: "Painting Services", discount: "$200 Off", contractor: "Perfect Paint Co", rating: "4.6" }
+            ].map((deal, i) => (
+              <div key={i} className="bg-navy-800 p-6 rounded-lg">
+                <div className="bg-orange-500 text-white px-3 py-1 rounded text-sm font-semibold mb-3 inline-block">
+                  {deal.discount}
+                </div>
+                <h3 className="text-xl font-semibold mb-2 text-orange-400">{deal.title}</h3>
+                <p className="text-gray-300 mb-2">by {deal.contractor}</p>
+                <div className="flex justify-between items-center mb-4">
+                  <span className="text-yellow-400">★★★★★ {deal.rating}</span>
+                  <span className="text-sm text-gray-400">Expires today</span>
+                </div>
+                <button className="w-full bg-orange-500 hover:bg-orange-600 text-white py-2 rounded transition-colors">
+                  View Deal
+                </button>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        {/* How It Works */}
+        <section>
+          <h2 className="text-2xl font-semibold mb-6">How Daily Deals Work</h2>
+          <div className="bg-navy-800 p-6 rounded-lg">
+            <div className="grid md:grid-cols-3 gap-6">
+              <div className="text-center">
+                <div className="text-3xl mb-4">🔍</div>
+                <h3 className="text-lg font-semibold mb-2">Browse Deals</h3>
+                <p className="text-gray-300">Check daily for new contractor promotions</p>
+              </div>
+              <div className="text-center">
+                <div className="text-3xl mb-4">📞</div>
+                <h3 className="text-lg font-semibold mb-2">Contact Contractor</h3>
+                <p className="text-gray-300">Reach out directly to claim your discount</p>
+              </div>
+              <div className="text-center">
+                <div className="text-3xl mb-4">✅</div>
+                <h3 className="text-lg font-semibold mb-2">Save Money</h3>
+                <p className="text-gray-300">Enjoy premium services at reduced costs</p>
+              </div>
+            </div>
+          </div>
+        </section>
       </div>
-
-      {/* Filters */}
-      <div className="mb-6 flex flex-wrap gap-2">
-        {[
-          { key: 'all', label: 'All Deals' },
-          { key: 'featured', label: 'Featured' },
-          { key: 'services', label: 'Services' },
-          { key: 'products', label: 'Products' },
-          { key: 'materials', label: 'Materials' }
-        ].map(filter => (
-          <Button
-            key={filter.key}
-            variant={selectedFilter === filter.key ? 'default' : 'outline'}
-            size="sm"
-            onClick={() => setSelectedFilter(filter.key)}
-          >
-            {filter.label}
-          </Button>
-        ))}
-      </div>
-
-      {/* Deals Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {filteredDeals.map((deal: DailyDeal) => (
-          <Card 
-            key={deal.id} 
-            className={`transition-all hover:shadow-lg ${deal.featured ? 'ring-2 ring-orange-400' : ''} ${isExpired(deal.endDate) ? 'opacity-60' : ''}`}
-          >
-            <CardHeader>
-              <div className="flex items-start justify-between">
-                <div className="flex-1">
-                  <CardTitle className="text-lg mb-2 line-clamp-2">
-                    {deal.title}
-                    {deal.featured && (
-                      <Star className="inline-block w-4 h-4 ml-2 text-orange-400 fill-current" />
-                    )}
-                  </CardTitle>
-                  <Badge className={getDealTypeColor(deal.dealType)}>
-                    {deal.dealType.replace('_', ' ').toUpperCase()}
-                  </Badge>
-                </div>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => handleSaveDeal(deal.id)}
-                  className="p-2"
-                >
-                  <Heart className="w-4 h-4" />
-                </Button>
-              </div>
-            </CardHeader>
-
-            <CardContent className="space-y-4">
-              <p className="text-sm text-gray-600 line-clamp-3">
-                {deal.description}
-              </p>
-
-              {/* Pricing */}
-              <div className="flex items-center justify-between">
-                <div>
-                  {deal.originalPrice && (
-                    <span className="text-sm text-gray-500 line-through mr-2">
-                      {formatPrice(deal.originalPrice)}
-                    </span>
-                  )}
-                  <span className="text-xl font-bold text-green-600">
-                    {formatPrice(deal.discountPrice)}
-                  </span>
-                </div>
-                {deal.discountPercentage && (
-                  <Badge className="bg-red-100 text-red-800">
-                    <Percent className="w-3 h-3 mr-1" />
-                    {deal.discountPercentage}% OFF
-                  </Badge>
-                )}
-              </div>
-
-              {/* Timing and availability */}
-              <div className="space-y-2 text-xs text-gray-500">
-                <div className="flex items-center">
-                  <Clock className="w-3 h-3 mr-1" />
-                  Expires {new Date(deal.endDate).toLocaleDateString()}
-                </div>
-                
-                {deal.maxRedemptions && (
-                  <div className={`flex items-center ${isAlmostFull(deal.currentRedemptions, deal.maxRedemptions) ? 'text-red-600' : ''}`}>
-                    <MapPin className="w-3 h-3 mr-1" />
-                    {deal.currentRedemptions}/{deal.maxRedemptions} claimed
-                  </div>
-                )}
-              </div>
-
-              {/* Engagement stats */}
-              <div className="flex items-center justify-between text-xs text-gray-400">
-                <div className="flex items-center space-x-3">
-                  <span className="flex items-center">
-                    <Eye className="w-3 h-3 mr-1" />
-                    {deal.views}
-                  </span>
-                  <span className="flex items-center">
-                    <Heart className="w-3 h-3 mr-1" />
-                    {deal.saves}
-                  </span>
-                </div>
-              </div>
-
-              {/* Tags */}
-              {deal.tags.length > 0 && (
-                <div className="flex flex-wrap gap-1">
-                  {deal.tags.slice(0, 3).map(tag => (
-                    <Badge key={tag} variant="secondary" className="text-xs">
-                      {tag}
-                    </Badge>
-                  ))}
-                </div>
-              )}
-
-              <Separator />
-
-              {/* Action buttons */}
-              <div className="flex space-x-2">
-                <Button 
-                  className="flex-1"
-                  onClick={() => handleDealClick(deal.id)}
-                  disabled={isExpired(deal.endDate) || (deal.maxRedemptions && deal.currentRedemptions >= deal.maxRedemptions)}
-                >
-                  {isExpired(deal.endDate) ? 'Expired' : 'View Deal'}
-                </Button>
-                
-                {userAffiliate && (
-                  <Button 
-                    variant="outline"
-                    size="sm"
-                    onClick={() => {
-                      const shareUrl = `${window.location.origin}/deals/${deal.id}?ref=${userAffiliate.affiliateCode}`;
-                      navigator.clipboard.writeText(shareUrl);
-                    }}
-                  >
-                    Share
-                  </Button>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
-
-      {filteredDeals.length === 0 && (
-        <div className="text-center py-12">
-          <h3 className="text-lg font-medium text-gray-900 mb-2">No deals found</h3>
-          <p className="text-gray-500">Check back later for new deals in your area.</p>
-        </div>
-      )}
     </div>
   );
-}
+});
+
+export default DailyDeals;
