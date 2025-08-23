@@ -107,8 +107,8 @@ import Privacy from "@/pages/privacy";
 import Terms from "@/pages/terms";
 import { ProfileSetupRedirect } from "@/components/profile-setup-redirect";
 
-import { SubtleHints } from "@/components/onboarding/SubtleHints";
-import BugReportTool from "@/components/BugReportTool";
+import SimpleSubtleHints from "@/components/onboarding/SimpleSubtleHints";
+import SimpleBugReportTool from "@/components/SimpleBugReportTool";
 
 // Lazy load admin components
 const AdminDashboard = lazy(() => import("@/pages/admin-dashboard"));
@@ -466,10 +466,10 @@ const Router = memo(function Router() {
       {/* <PWAInstallPrompt /> */}
       
       {/* Subtle onboarding hints for new users */}
-      <SubtleHints />
+      <SimpleSubtleHints />
       
       {/* Bug report tool - always available */}
-      <BugReportTool />
+      <SimpleBugReportTool />
       
       {!isMobile && <LegalFooter />}
     </div>
