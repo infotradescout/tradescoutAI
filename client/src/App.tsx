@@ -102,7 +102,24 @@ import CarSalesmanApplication from './pages/car-salesman-application';
 // Legal & Info (existing pages)
 import Terms from './pages/terms';
 import Privacy from './pages/privacy';
+import About from './pages/about';
+import Contact from './pages/contact';
 import NotFound from './pages/not-found';
+
+// Marketing & Promotions (existing pages)
+import Promotions from './pages/promotions';
+import AdCreator from './pages/ad-creator';
+import Analytics from './pages/analytics';
+import LeadManagement from './pages/lead-management';
+
+// Additional Missing Pages
+import CountyHub from './pages/county-hub';
+import Verification from './pages/verification';
+import InsuranceVerification from './pages/insurance-verification';
+import LicenseVerification from './pages/license-verification';
+import BackgroundCheck from './pages/background-check';
+import Compliance from './pages/compliance';
+import Documentation from './pages/documentation';
 
 // Legal footer component
 const LegalFooter = memo(function LegalFooter() {
@@ -289,11 +306,45 @@ const Router = memo(function Router() {
   } else if (currentPath === '/help') {
     ComponentToRender = Help;
   }
+  // HOA & Groups Additional
+  else if (currentPath === '/county-hub') {
+    ComponentToRender = CountyHub;
+  }
+  // Verification & Compliance
+  else if (currentPath === '/verification') {
+    ComponentToRender = Verification;
+  } else if (currentPath === '/insurance-verification') {
+    ComponentToRender = InsuranceVerification;
+  } else if (currentPath === '/license-verification') {
+    ComponentToRender = LicenseVerification;
+  } else if (currentPath === '/background-check') {
+    ComponentToRender = BackgroundCheck;
+  } else if (currentPath === '/compliance') {
+    ComponentToRender = Compliance;
+  }
+  // Marketing & Promotions
+  else if (currentPath === '/promotions') {
+    ComponentToRender = Promotions;
+  } else if (currentPath === '/ad-creator') {
+    ComponentToRender = AdCreator;
+  } else if (currentPath === '/analytics') {
+    ComponentToRender = Analytics;
+  } else if (currentPath === '/lead-management') {
+    ComponentToRender = LeadManagement;
+  }
+  // Tools & Utilities
+  else if (currentPath === '/documentation') {
+    ComponentToRender = Documentation;
+  }
   // Legal & Info
   else if (currentPath === '/terms') {
     ComponentToRender = Terms;
   } else if (currentPath === '/privacy') {
     ComponentToRender = Privacy;
+  } else if (currentPath === '/about') {
+    ComponentToRender = About;
+  } else if (currentPath === '/contact') {
+    ComponentToRender = Contact;
   }
   // 404 Handling
   else if (currentPath !== '/') {
