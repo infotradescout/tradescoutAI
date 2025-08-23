@@ -3,27 +3,17 @@ import { QueryClientProvider } from '@tanstack/react-query';
 import { queryClient } from '@/lib/queryClient';
 import { ErrorBoundary } from '@/components/ui/error-boundary';
 
-// Simple components
-import SimpleLanding from '@/pages/SimpleLanding';
-import SimpleNavigation from '@/components/layout/SimpleNavigation';
-import SimpleMobileGestures from '@/components/SimpleMobileGestures';
-import SimpleSubtleHints from '@/components/onboarding/SimpleSubtleHints';
-import SimpleBugReportTool from '@/components/SimpleBugReportTool';
-import SimpleToaster from '@/components/ui/simple-toaster';
-import SimpleFloatingHelp from '@/components/ui/simple-floating-help';
-import SimpleRouter from '@/components/SimpleRouter';
-import MobileAppBar from '@/components/navigation/MobileAppBar';
-
-// Other page components
-import FindContractors from '@/pages/find-contractors';
-import ContractorBoard from '@/pages/contractor-board';
-import QuoteCalculator from '@/pages/quote-calculator';
-import DailyDeals from '@/pages/daily-deals';
-import HelpDemo from '@/pages/help-demo';
-import TestPage from '@/pages/test-page';
-import Profile from '@/pages/profile';
-import AdminDashboard from '@/pages/admin-dashboard';
-import SimpleHome from '@/pages/SimpleHome';
+// Simple components - using correct paths
+import SimpleLanding from './pages/SimpleLanding';
+import SimpleHome from './pages/SimpleHome';
+import SimpleNavigation from './components/layout/SimpleNavigation';
+import SimpleMobileGestures from './components/SimpleMobileGestures';
+import SimpleSubtleHints from './components/onboarding/SimpleSubtleHints';
+import SimpleBugReportTool from './components/SimpleBugReportTool';
+import SimpleToaster from './components/ui/simple-toaster';
+import SimpleFloatingHelp from './components/ui/simple-floating-help';
+import SimpleRouter from './components/SimpleRouter';
+import MobileAppBar from './components/navigation/MobileAppBar';
 
 // Legal footer component
 const LegalFooter = memo(function LegalFooter() {
@@ -51,8 +41,13 @@ const Router = memo(function Router() {
   // Get current path from window location
   const currentPath = typeof window !== 'undefined' ? window.location.pathname : '/';
   
-  // Simple component selection based on path
+  // Simple component selection based on path  
   let ComponentToRender = SimpleLanding;
+  
+  // Basic routing logic
+  if (currentPath === '/home' || currentPath === '/dashboard') {
+    ComponentToRender = SimpleHome;
+  }
   
   if (currentPath === '/' || currentPath === '') {
     ComponentToRender = SimpleLanding;
