@@ -87,6 +87,7 @@ import TestPage from "@/pages/test-page";
 import SimpleLanding from "@/pages/simple-landing";
 import HelpDemo from "@/pages/help-demo";
 import Affiliate from "@/pages/affiliate";
+import DailyDeals from "@/pages/daily-deals";
 import Checkout from "@/pages/checkout";
 import PaymentSuccess from "@/pages/payment-success";
 import PaymentHistory from "@/pages/payment-history";
@@ -296,6 +297,8 @@ const Router = memo(function Router() {
               <Route path="/payment-success" component={PaymentSuccess} />
               <Route path="/payment-history" component={PaymentHistory} />
               <Route path="/affiliate" component={Affiliate} />
+              <Route path="/daily-deals" component={DailyDeals} />
+              <Route path="/deals" component={DailyDeals} />
 
               {/* Admin routes - Full access restored */}
               <Route path="/admin" component={AdminPanel} />

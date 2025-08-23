@@ -282,6 +282,19 @@ import {
   recommendationCampaigns,
   crmEmailTemplates,
   crmPipelines,
+  // Phase 1: Daily Deals System
+  dailyDeals,
+  type DailyDeal,
+  type InsertDailyDeal,
+  userAffiliates,
+  type UserAffiliate,
+  type InsertUserAffiliate,
+  affiliateTracking,
+  type AffiliateTracking,
+  type InsertAffiliateTracking,
+  dealEngagements,
+  type DealEngagement,
+  type InsertDealEngagement,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, desc, asc, sql, inArray, like, gt, or, lt, isNull, isNotNull, ne, gte, lte } from "drizzle-orm";
@@ -5763,6 +5776,167 @@ export class DatabaseStorage implements IStorage {
       .from(crmPipelines)
       .where(and(eq(crmPipelines.isDefault, true), eq(crmPipelines.isActive, true)));
     return pipeline;
+  }
+
+  // Phase 1: Daily Deals System Implementation
+  
+  async getDailyDeals(filters?: {
+    countyFips?: string;
+    limit?: number;
+    featured?: boolean;
+    dealType?: string;
+    activeOnly?: boolean;
+  }): Promise<DailyDeal[]> {
+    let query = db.select().from(dailyDeals);
+    
+    const conditions = [];
+    
+    if (filters?.countyFips) {
+      conditions.push(eq(dailyDeals.countyFips, filters.countyFips));
+    }
+    
+    if (filters?.featured) {
+      conditions.push(eq(dailyDeals.featured, true));
+    }
+    
+    if (filters?.dealType) {
+      conditions.push(eq(dailyDeals.dealType, filters.dealType));
+    }
+    
+    if (filters?.activeOnly !== false) {
+      conditions.push(eq(dailyDeals.isActive, true));
+      conditions.push(gte(dailyDeals.endDate, new Date()));
+    }
+    
+    if (conditions.length > 0) {
+      query = query.where(and(...conditions));
+    }
+    
+    const results = await query
+      .orderBy(desc(dailyDeals.featured), desc(dailyDeals.priority), desc(dailyDeals.createdAt))
+      .limit(filters?.limit || 50);
+    
+    return results;
+  }
+  
+  async getDailyDeal(id: string): Promise<DailyDeal | undefined> {
+    const [deal] = await db.select().from(dailyDeals).where(eq(dailyDeals.id, id));
+    return deal;
+  }
+  
+  async createDailyDeal(dealData: InsertDailyDeal): Promise<DailyDeal> {
+    const [deal] = await db.insert(dailyDeals).values(dealData).returning();
+    return deal;
+  }
+  
+  async updateDailyDeal(id: string, updates: Partial<DailyDeal>): Promise<DailyDeal> {
+    const [deal] = await db
+      .update(dailyDeals)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(dailyDeals.id, id))
+      .returning();
+    return deal;
+  }
+  
+  async deleteDailyDeal(id: string): Promise<void> {
+    await db.delete(dailyDeals).where(eq(dailyDeals.id, id));
+  }
+  
+  async updateDealStats(dealId: string, engagementType: string): Promise<void> {
+    const updates: any = {};
+    
+    switch (engagementType) {
+      case 'view':
+        updates.views = sql`${dailyDeals.views} + 1`;
+        break;
+      case 'click':
+        updates.clicks = sql`${dailyDeals.clicks} + 1`;
+        break;
+      case 'save':
+        updates.saves = sql`${dailyDeals.saves} + 1`;
+        break;
+      case 'redeem':
+        updates.currentRedemptions = sql`${dailyDeals.currentRedemptions} + 1`;
+        break;
+    }
+    
+    if (Object.keys(updates).length > 0) {
+      await db.update(dailyDeals).set(updates).where(eq(dailyDeals.id, dealId));
+    }
+  }
+  
+  // Affiliate System Implementation
+  
+  async getUserAffiliate(userId: string): Promise<UserAffiliate | undefined> {
+    const [affiliate] = await db.select().from(userAffiliates).where(eq(userAffiliates.userId, userId));
+    return affiliate;
+  }
+  
+  async createUserAffiliate(affiliateData: InsertUserAffiliate): Promise<UserAffiliate> {
+    const [affiliate] = await db.insert(userAffiliates).values(affiliateData).returning();
+    return affiliate;
+  }
+  
+  async generateAffiliateCode(userId: string): Promise<string> {
+    // Generate unique affiliate code based on user ID
+    const user = await this.getUser(userId);
+    const baseCode = user?.firstName?.substring(0, 3).toUpperCase() || 'USR';
+    const randomSuffix = Math.random().toString(36).substring(2, 8).toUpperCase();
+    return `${baseCode}${randomSuffix}`;
+  }
+  
+  async trackAffiliateAction(trackingData: InsertAffiliateTracking): Promise<AffiliateTracking> {
+    const [tracking] = await db.insert(affiliateTracking).values(trackingData).returning();
+    
+    // Update affiliate stats
+    if (trackingData.action === 'click') {
+      await db.update(userAffiliates)
+        .set({ clicksGenerated: sql`${userAffiliates.clicksGenerated} + 1` })
+        .where(eq(userAffiliates.affiliateCode, trackingData.affiliateCode));
+    }
+    
+    return tracking;
+  }
+  
+  async createDealEngagement(engagementData: InsertDealEngagement): Promise<DealEngagement> {
+    const [engagement] = await db.insert(dealEngagements).values(engagementData).returning();
+    return engagement;
+  }
+  
+  async getAffiliateDashboard(affiliateCode: string): Promise<{
+    affiliate: UserAffiliate;
+    recentActivity: AffiliateTracking[];
+    monthlyStats: any;
+    topPerformingLinks: any[];
+  }> {
+    const affiliate = await db.select().from(userAffiliates)
+      .where(eq(userAffiliates.affiliateCode, affiliateCode))
+      .then(results => results[0]);
+    
+    if (!affiliate) {
+      throw new Error('Affiliate not found');
+    }
+    
+    const recentActivity = await db.select().from(affiliateTracking)
+      .where(eq(affiliateTracking.affiliateCode, affiliateCode))
+      .orderBy(desc(affiliateTracking.createdAt))
+      .limit(20);
+    
+    // Monthly stats (placeholder for now)
+    const monthlyStats = {
+      clicks: affiliate.clicksGenerated,
+      referrals: affiliate.totalReferrals,
+      earnings: affiliate.totalEarnings,
+      conversionRate: affiliate.totalReferrals > 0 ? 
+        (affiliate.successfulReferrals / affiliate.totalReferrals) * 100 : 0
+    };
+    
+    return {
+      affiliate,
+      recentActivity,
+      monthlyStats,
+      topPerformingLinks: [] // To be implemented
+    };
   }
 
   // Smart Recommendation Generator implementation

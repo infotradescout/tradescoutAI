@@ -7913,5 +7913,33 @@ export async function registerRoutes(app: Express) {
     }
   });
 
+  // Phase 1: Daily Deals System Routes
+  const { 
+    getDailyDeals, 
+    createDailyDeal, 
+    trackDealEngagement,
+    getUserAffiliate,
+    getAffiliateDashboard,
+    updateDailyDeal,
+    deleteDailyDeal,
+    getFeaturedDeals
+  } = await import("./routes/dailyDeals");
+
+  // Public daily deals endpoints
+  app.get("/api/daily-deals", getDailyDeals);
+  app.get("/api/deals/featured", getFeaturedDeals);
+
+  // Protected daily deals endpoints
+  app.post("/api/daily-deals", isAuthenticated, createDailyDeal);
+  app.put("/api/daily-deals/:id", isAuthenticated, updateDailyDeal);
+  app.delete("/api/daily-deals/:id", isAuthenticated, deleteDailyDeal);
+
+  // Deal engagement tracking
+  app.post("/api/deal-engagements", trackDealEngagement);
+
+  // Affiliate system endpoints
+  app.get("/api/user/affiliate", isAuthenticated, getUserAffiliate);
+  app.get("/api/affiliate/dashboard", isAuthenticated, getAffiliateDashboard);
+
   return httpServer;
 }

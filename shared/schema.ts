@@ -36,11 +36,16 @@ export const userRoleEnum = pgEnum('user_role', [
   // Service provider roles  
   'contractor_user',
   'helper',             // New role for workers/helpers
+  'service_provider',   // Phase 1: Cleaners, movers, landscapers, etc.
+  'vehicle_dealer',     // Phase 1: Vehicle dealers/sellers
   'accelerator_member',
   'realtor',
   'car_salesman',
   'insurance_agent',
   'mortgage_broker',
+  
+  // HOA & Community roles
+  'hoa_admin',          // Phase 4: HOA administrators
   
   // Community roles
   'community_member',
@@ -5242,3 +5247,199 @@ export const insertFeatureFlagSchema = createInsertSchema(featureFlags).omit({
 });
 
 export type InsertFeatureFlagType = z.infer<typeof insertFeatureFlagSchema>;
+
+// Phase 1: Daily Deal Feeds (LuckyBucks 2.0) System
+export const dailyDeals = pgTable("daily_deals", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  title: varchar("title", { length: 255 }).notNull(),
+  description: text("description").notNull(),
+  dealType: varchar("deal_type", { length: 50 }).notNull(), // 'service_discount', 'product_sale', 'material_deal'
+  
+  // Provider info
+  providerId: varchar("provider_id").notNull(),
+  providerType: varchar("provider_type", { length: 50 }).notNull(), // 'contractor', 'service_provider', 'business'
+  
+  // Deal details
+  originalPrice: decimal("original_price", { precision: 10, scale: 2 }),
+  discountPrice: decimal("discount_price", { precision: 10, scale: 2 }).notNull(),
+  discountPercentage: integer("discount_percentage"),
+  
+  // Geographic targeting
+  countyFips: varchar("county_fips", { length: 5 }).notNull(),
+  serviceArea: text("service_area").array(),
+  
+  // Timing and availability
+  startDate: timestamp("start_date").notNull(),
+  endDate: timestamp("end_date").notNull(),
+  isActive: boolean("is_active").default(true),
+  maxRedemptions: integer("max_redemptions"),
+  currentRedemptions: integer("current_redemptions").default(0),
+  
+  // Engagement metrics
+  views: integer("views").default(0),
+  clicks: integer("clicks").default(0),
+  saves: integer("saves").default(0),
+  
+  // Metadata
+  tags: text("tags").array().default(sql`ARRAY[]::text[]`),
+  featured: boolean("featured").default(false),
+  priority: integer("priority").default(0),
+  
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// User affiliate system (Phase 1 requirement)
+export const userAffiliates = pgTable("user_affiliates", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull(),
+  affiliateCode: varchar("affiliate_code", { length: 50 }).notNull().unique(),
+  
+  // Commission tracking
+  totalEarnings: decimal("total_earnings", { precision: 10, scale: 2 }).default('0'),
+  pendingEarnings: decimal("pending_earnings", { precision: 10, scale: 2 }).default('0'),
+  paidEarnings: decimal("paid_earnings", { precision: 10, scale: 2 }).default('0'),
+  
+  // Performance metrics
+  totalReferrals: integer("total_referrals").default(0),
+  successfulReferrals: integer("successful_referrals").default(0),
+  clicksGenerated: integer("clicks_generated").default(0),
+  
+  // Tier system
+  tierLevel: varchar("tier_level", { length: 20 }).default('standard'), // 'standard', 'scout', 'ambassador'
+  commissionRate: decimal("commission_rate", { precision: 4, scale: 2 }).default('10.00'), // 10% default
+  
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Affiliate tracking for clicks and conversions
+export const affiliateTracking = pgTable("affiliate_tracking", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  affiliateCode: varchar("affiliate_code", { length: 50 }).notNull(),
+  visitingUserId: varchar("visiting_user_id"), // null for anonymous visitors
+  
+  // Tracking data
+  action: varchar("action", { length: 50 }).notNull(), // 'click', 'signup', 'purchase', 'conversion'
+  sourceUrl: text("source_url"),
+  targetUrl: text("target_url"),
+  
+  // Attribution
+  sessionId: varchar("session_id"),
+  ipAddress: varchar("ip_address"),
+  userAgent: text("user_agent"),
+  
+  // Revenue tracking
+  conversionValue: decimal("conversion_value", { precision: 10, scale: 2 }),
+  commissionEarned: decimal("commission_earned", { precision: 10, scale: 2 }),
+  
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// Daily deal engagement tracking
+export const dealEngagements = pgTable("deal_engagements", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  dealId: varchar("deal_id").notNull(),
+  userId: varchar("user_id"),
+  sessionId: varchar("session_id"),
+  
+  engagementType: varchar("engagement_type", { length: 50 }).notNull(), // 'view', 'click', 'save', 'redeem'
+  
+  // Affiliate attribution
+  affiliateCode: varchar("affiliate_code", { length: 50 }),
+  
+  // Location context
+  countyFips: varchar("county_fips", { length: 5 }),
+  
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// Relations for Phase 1 features
+export const dailyDealsRelations = relations(dailyDeals, ({ one, many }) => ({
+  provider: one(users, {
+    fields: [dailyDeals.providerId],
+    references: [users.id],
+  }),
+  county: one(counties, {
+    fields: [dailyDeals.countyFips],
+    references: [counties.fips],
+  }),
+  engagements: many(dealEngagements),
+}));
+
+export const userAffiliatesRelations = relations(userAffiliates, ({ one, many }) => ({
+  user: one(users, {
+    fields: [userAffiliates.userId],
+    references: [users.id],
+  }),
+  tracking: many(affiliateTracking),
+}));
+
+export const affiliateTrackingRelations = relations(affiliateTracking, ({ one }) => ({
+  affiliate: one(userAffiliates, {
+    fields: [affiliateTracking.affiliateCode],
+    references: [userAffiliates.affiliateCode],
+  }),
+}));
+
+export const dealEngagementsRelations = relations(dealEngagements, ({ one }) => ({
+  deal: one(dailyDeals, {
+    fields: [dealEngagements.dealId],
+    references: [dailyDeals.id],
+  }),
+  user: one(users, {
+    fields: [dealEngagements.userId],
+    references: [users.id],
+  }),
+  affiliate: one(userAffiliates, {
+    fields: [dealEngagements.affiliateCode],
+    references: [userAffiliates.affiliateCode],
+  }),
+}));
+
+// Type exports for Phase 1 features
+export type DailyDeal = typeof dailyDeals.$inferSelect;
+export type InsertDailyDeal = typeof dailyDeals.$inferInsert;
+
+export type UserAffiliate = typeof userAffiliates.$inferSelect;
+export type InsertUserAffiliate = typeof userAffiliates.$inferInsert;
+
+export type AffiliateTracking = typeof affiliateTracking.$inferSelect;
+export type InsertAffiliateTracking = typeof affiliateTracking.$inferInsert;
+
+export type DealEngagement = typeof dealEngagements.$inferSelect;
+export type InsertDealEngagement = typeof dealEngagements.$inferInsert;
+
+// Insert schemas for validation
+export const insertDailyDealSchema = createInsertSchema(dailyDeals).omit({
+  id: true,
+  currentRedemptions: true,
+  views: true,
+  clicks: true,
+  saves: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertUserAffiliateSchema = createInsertSchema(userAffiliates).omit({
+  id: true,
+  totalEarnings: true,
+  pendingEarnings: true,
+  paidEarnings: true,
+  totalReferrals: true,
+  successfulReferrals: true,
+  clicksGenerated: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertAffiliateTrackingSchema = createInsertSchema(affiliateTracking).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertDealEngagementSchema = createInsertSchema(dealEngagements).omit({
+  id: true,
+  createdAt: true,
+});
