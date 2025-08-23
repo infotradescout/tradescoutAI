@@ -1739,7 +1739,7 @@ export class DatabaseStorage implements IStorage {
       .where(eq(notifications.userId, userId));
   }
 
-  async getSavedAdsForReminders(): Promise<Array<SavedAd & { user: User; ad: Advertisement }>> {
+  async getSavedAdsForReminders(): Promise<Array<SavedAd & { user: User; ad: Advertisement } {
     const threeDaysAgo = new Date(Date.now() - 3 * 24 * 60 * 60 * 1000);
     const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
 
@@ -1885,7 +1885,7 @@ export class DatabaseStorage implements IStorage {
     homeowners: number;
     latitude: number;
     longitude: number;
-  }>> {
+  }> {
     const startDate = new Date();
     startDate.setDate(startDate.getDate() - days);
 
@@ -2046,7 +2046,7 @@ export class DatabaseStorage implements IStorage {
     totalClicks: number;
     totalLeads: number;
     recentInteractions: PromoInteraction[];
-  } {
+  }> {
     const [stats] = await db
       .select({
         totalViews: sql<number>`count(case when ${promoInteractions.interactionType} = 'view' then 1 end)`,
@@ -2707,7 +2707,7 @@ export class DatabaseStorage implements IStorage {
     return post;
   }
 
-  async togglePostLike(userId: string, postId: string): Promise<{ liked: boolean; likeCount: number }>> {
+  async togglePostLike(userId: string, postId: string): Promise<{ liked: boolean; likeCount: number }> {
     // Check if like exists
     const [existingLike] = await db
       .select()
@@ -2939,7 +2939,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   // Product Favorites
-  async toggleProductFavorite(userId: string, productId: string): Promise<{ action: 'added' | 'removed' }>> {
+  async toggleProductFavorite(userId: string, productId: string): Promise<{ action: 'added' | 'removed' }> {
     const existing = await db
       .select()
       .from(productFavorites)
@@ -3091,7 +3091,7 @@ export class DatabaseStorage implements IStorage {
       .orderBy(desc(productReviews.createdAt));
   }
 
-  async getProductRatingSummary(productId: string): Promise<{ average: number; count: number }>> {
+  async getProductRatingSummary(productId: string): Promise<{ average: number; count: number }> {
     const [result] = await db
       .select({
         count: sql<number>`count(*)`,
@@ -3142,7 +3142,7 @@ export class DatabaseStorage implements IStorage {
     return profile;
   }
 
-  async getSellerRatings(userId: string): Promise<{ average: number; count: number }>> {
+  async getSellerRatings(userId: string): Promise<{ average: number; count: number }> {
     const [result] = await db
       .select({
         count: sql<number>`count(*)`,
@@ -4676,7 +4676,7 @@ export class DatabaseStorage implements IStorage {
       .orderBy(desc(userReviews.createdAt));
   }
 
-  async getUserRatings(userId: string): Promise<{ count: number; average: number }>> {
+  async getUserRatings(userId: string): Promise<{ count: number; average: number }> {
     const result = await db
       .select({
         count: sql<number>`count(*)::int`,
@@ -5372,7 +5372,7 @@ export class DatabaseStorage implements IStorage {
     totalCommissionEarned: string;
     totalCommissionPaid: string;
     conversionRate: number;
-  }>> {
+  }> {
     const [program] = await db
       .select()
       .from(affiliatePrograms)
@@ -5436,7 +5436,7 @@ export class DatabaseStorage implements IStorage {
     status?: string; 
     assignedTo?: string; 
     search?: string 
-  }): Promise<Array<CrmContact & { assignedTo?: User }>> {
+  }): Promise<Array<CrmContact & { assignedTo?: User }> {
     let query = db
       .select({
         ...crmContacts,
@@ -5507,7 +5507,7 @@ export class DatabaseStorage implements IStorage {
     stage?: string; 
     assignedTo?: string; 
     contactId?: string 
-  }): Promise<Array<CrmDeal & { contact?: CrmContact; assignedTo?: User }>> {
+  }): Promise<Array<CrmDeal & { contact?: CrmContact; assignedTo?: User }> {
     let query = db
       .select({
         ...crmDeals,
@@ -5574,7 +5574,7 @@ export class DatabaseStorage implements IStorage {
     return activity;
   }
 
-  async getCrmActivitiesByContact(contactId: string): Promise<Array<CrmActivity & { createdBy?: User }>> {
+  async getCrmActivitiesByContact(contactId: string): Promise<Array<CrmActivity & { createdBy?: User }> {
     const results = await db
       .select({
         ...crmActivities,
@@ -5593,7 +5593,7 @@ export class DatabaseStorage implements IStorage {
     return results as Array<CrmActivity & { createdBy?: User }>;
   }
 
-  async getCrmActivitiesByDeal(dealId: string): Promise<Array<CrmActivity & { createdBy?: User }>> {
+  async getCrmActivitiesByDeal(dealId: string): Promise<Array<CrmActivity & { createdBy?: User }> {
     const results = await db
       .select({
         ...crmActivities,
@@ -5616,7 +5616,7 @@ export class DatabaseStorage implements IStorage {
     type?: string; 
     contactId?: string; 
     dealId?: string 
-  }): Promise<Array<CrmActivity & { contact?: CrmContact; deal?: CrmDeal; createdBy?: User }>> {
+  }): Promise<Array<CrmActivity & { contact?: CrmContact; deal?: CrmDeal; createdBy?: User }> {
     let query = db
       .select({
         ...crmActivities,
@@ -5690,7 +5690,7 @@ export class DatabaseStorage implements IStorage {
     return template;
   }
 
-  async getAllCrmEmailTemplates(category?: string): Promise<Array<CrmEmailTemplate & { createdBy?: User }>> {
+  async getAllCrmEmailTemplates(category?: string): Promise<Array<CrmEmailTemplate & { createdBy?: User }> {
     let query = db
       .select({
         ...crmEmailTemplates,
@@ -5738,7 +5738,7 @@ export class DatabaseStorage implements IStorage {
     return pipeline;
   }
 
-  async getAllCrmPipelines(): Promise<Array<CrmPipeline & { createdBy?: User }>> {
+  async getAllCrmPipelines(): Promise<Array<CrmPipeline & { createdBy?: User }> {
     const results = await db
       .select({
         ...crmPipelines,
