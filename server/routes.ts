@@ -480,13 +480,13 @@ export async function registerRoutes(app: Express) {
           id: masterAdmin.id,
           email: masterAdmin.email,
           role: 'head_admin',
-          firstName: req.user.firstName,
-          lastName: req.user.lastName,
+          firstName: (req.user as any)?.firstName,
+          lastName: (req.user as any)?.lastName,
           profileImageUrl: currentUser.claims.profile_image_url,
           facebookId: currentUser.claims.sub
         },
         deviceSecurity: {
-          deviceId: deviceFingerprint,
+          deviceId: 'device-fingerprint', // TODO: Implement device fingerprinting
           message: "This device has been registered and approved for admin access"
         }
       });
