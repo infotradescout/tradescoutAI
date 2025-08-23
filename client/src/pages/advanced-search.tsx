@@ -1,5 +1,5 @@
 import { memo, useState } from 'react';
-import { Search, Filter, MapPin, Star, DollarSign, Clock, Users, Briefcase, Award, SlidersHorizontal, Map, List } from 'lucide-react';
+import { Search, SlidersHorizontal, Compass, Award, DollarSign, Clock, Users2, Briefcase, Crown, Target, Map, List } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -363,13 +363,13 @@ const AdvancedSearch = memo(function AdvancedSearch() {
                             
                             <div className="flex items-center gap-4 text-sm text-gray-400">
                               <div className="flex items-center gap-1">
-                                <Star className="h-4 w-4 text-yellow-400 fill-current" />
+                                <Crown className="h-4 w-4 text-yellow-400 fill-current" />
                                 <span className="text-white">{contractor.rating}</span>
                                 <span>({contractor.reviewCount} reviews)</span>
                               </div>
                               
                               <div className="flex items-center gap-1">
-                                <MapPin className="h-4 w-4" />
+                                <Compass className="h-4 w-4" />
                                 <span>{contractor.location} • {contractor.distance}</span>
                               </div>
                               

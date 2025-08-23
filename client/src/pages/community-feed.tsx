@@ -1,5 +1,5 @@
 import { memo, useState } from 'react';
-import { MessageSquare, Heart, Share2, MoreHorizontal, Image, Video, Calendar, MapPin, Users, TrendingUp, Star, Flag, Plus, Filter, Trophy, BarChart3 } from 'lucide-react';
+import { MessageSquare, Zap, TrendingUp, MoreHorizontal, Image, Video, Calendar, Compass, Users2, Crown, Award, Flag, Plus, SlidersHorizontal, Trophy, BarChart3, Share, Target } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -130,7 +130,7 @@ const CommunityFeed = memo(function CommunityFeed() {
   const getPostTypeIcon = (type: string) => {
     switch (type) {
       case 'project_showcase':
-        return <Star className="h-4 w-4 text-yellow-400" />;
+        return <Crown className="h-4 w-4 text-yellow-400" />;
       case 'recommendation_request':
         return <MessageSquare className="h-4 w-4 text-blue-400" />;
       case 'promotion':
@@ -165,7 +165,7 @@ const CommunityFeed = memo(function CommunityFeed() {
         {/* Header */}
         <div className="mb-8">
           <div className="flex items-center gap-3 mb-4">
-            <Users className="h-8 w-8 text-orange-400" />
+            <Users2 className="h-8 w-8 text-orange-400" />
             <h1 className="text-4xl font-bold text-white">Community Feed</h1>
           </div>
           <p className="text-gray-300 text-lg">
@@ -244,7 +244,7 @@ const CommunityFeed = memo(function CommunityFeed() {
                     Local Events
                   </Button>
                   <Button variant="outline" className="w-full border-orange-600 text-orange-400 hover:bg-orange-600/20 justify-start">
-                    <Users className="h-4 w-4 mr-2" />
+                    <Users2 className="h-4 w-4 mr-2" />
                     Find Contractors
                   </Button>
                 </div>
@@ -337,7 +337,7 @@ const CommunityFeed = memo(function CommunityFeed() {
                                 <span>{post.timestamp}</span>
                                 <span>•</span>
                                 <div className="flex items-center gap-1">
-                                  <MapPin className="h-3 w-3" />
+                                  <Compass className="h-3 w-3" />
                                   {post.author.location}
                                 </div>
                               </div>
@@ -362,7 +362,7 @@ const CommunityFeed = memo(function CommunityFeed() {
                                   Report
                                 </DropdownMenuItem>
                                 <DropdownMenuItem>
-                                  <Share2 className="h-4 w-4 mr-2" />
+                                  <Share className="h-4 w-4 mr-2" />
                                   Share
                                 </DropdownMenuItem>
                               </DropdownMenuContent>
@@ -406,7 +406,7 @@ const CommunityFeed = memo(function CommunityFeed() {
                               size="sm" 
                               className={`text-gray-400 hover:text-red-400 ${post.liked ? 'text-red-400' : ''}`}
                             >
-                              <Heart className={`h-4 w-4 mr-1 ${post.liked ? 'fill-current' : ''}`} />
+                              <Zap className={`h-4 w-4 mr-1 ${post.liked ? 'fill-current' : ''}`} />
                               {post.likes}
                             </Button>
                             
@@ -416,7 +416,7 @@ const CommunityFeed = memo(function CommunityFeed() {
                             </Button>
                             
                             <Button variant="ghost" size="sm" className="text-gray-400 hover:text-green-400">
-                              <Share2 className="h-4 w-4 mr-1" />
+                              <Share className="h-4 w-4 mr-1" />
                               {post.shares}
                             </Button>
                           </div>
@@ -449,7 +449,7 @@ const CommunityFeed = memo(function CommunityFeed() {
 
               <TabsContent value="local" className="mt-0">
                 <div className="text-center py-12">
-                  <MapPin className="h-16 w-16 text-gray-400 mx-auto mb-4" />
+                  <Target className="h-16 w-16 text-gray-400 mx-auto mb-4" />
                   <h3 className="text-white text-xl mb-2">Local Community</h3>
                   <p className="text-gray-400">Posts from your county and surrounding areas</p>
                 </div>
@@ -457,7 +457,7 @@ const CommunityFeed = memo(function CommunityFeed() {
 
               <TabsContent value="following" className="mt-0">
                 <div className="text-center py-12">
-                  <Users className="h-16 w-16 text-gray-400 mx-auto mb-4" />
+                  <Users2 className="h-16 w-16 text-gray-400 mx-auto mb-4" />
                   <h3 className="text-white text-xl mb-2">Following</h3>
                   <p className="text-gray-400">Posts from contractors and community members you follow</p>
                 </div>
