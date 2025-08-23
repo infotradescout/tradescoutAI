@@ -3,8 +3,7 @@ import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { HelpSystemProvider } from "@/components/help-system-provider";
-import { FloatingHelpButton } from "@/components/floating-help-button";
+
 import { useAuth } from "@/hooks/useAuth";
 import { useAIMonitoring } from "@/hooks/useAIMonitoring";
 import { useSetupStatus } from "@/hooks/useSetupStatus";
@@ -469,13 +468,10 @@ const App = memo(function App() {
   return (
     <ErrorBoundary fallback={<div className="min-h-screen gradient-bg flex items-center justify-center text-white">Loading...</div>}>
       <QueryClientProvider client={queryClient}>
-        <HelpSystemProvider>
-          <TooltipProvider>
-            <Toaster />
-            <Router />
-            <FloatingHelpButton />
-          </TooltipProvider>
-        </HelpSystemProvider>
+        <TooltipProvider>
+          <Toaster />
+          <Router />
+        </TooltipProvider>
       </QueryClientProvider>
     </ErrorBoundary>
   );
