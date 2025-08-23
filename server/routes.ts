@@ -7956,5 +7956,43 @@ export async function registerRoutes(app: Express) {
   app.get("/api/boosts/:boostId/analytics", isAuthenticated, getBoostAnalytics);
   app.delete("/api/boosts/:boostId", isAuthenticated, cancelBoost);
 
+  // Phase 3: Groups & Social Features Routes
+  const {
+    getGroups,
+    getGroupDetails,
+    joinGroup,
+    getGroupPosts,
+    createGroupPost,
+    getUserGroups,
+    createGroup
+  } = await import("./routes/groups");
+
+  app.get("/api/groups", getGroups);
+  app.get("/api/groups/user", isAuthenticated, getUserGroups);
+  app.get("/api/groups/:groupId", getGroupDetails);
+  app.post("/api/groups", isAuthenticated, createGroup);
+  app.post("/api/groups/:groupId/join", isAuthenticated, joinGroup);
+  app.get("/api/groups/:groupId/posts", getGroupPosts);
+  app.post("/api/groups/:groupId/posts", isAuthenticated, createGroupPost);
+
+  // Phase 4: HOA Management Routes
+  const {
+    getHOA,
+    getHOAFinances,
+    getHOAVendors,
+    getHOAVotes,
+    submitVote,
+    requestVendorService,
+    searchHOAs
+  } = await import("./routes/hoa");
+
+  app.get("/api/hoa/search", searchHOAs);
+  app.get("/api/hoa/:hoaId", getHOA);
+  app.get("/api/hoa/:hoaId/finances", getHOAFinances);
+  app.get("/api/hoa/:hoaId/vendors", getHOAVendors);
+  app.get("/api/hoa/:hoaId/votes", getHOAVotes);
+  app.post("/api/hoa/votes/:voteId/submit", isAuthenticated, submitVote);
+  app.post("/api/hoa/vendors/:vendorId/request", isAuthenticated, requestVendorService);
+
   return httpServer;
 }
