@@ -1,0 +1,135 @@
+import { useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { HelpCircle, X, BookOpen, Play, Settings } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
+import { useHelpSystem } from '@/hooks/useHelpSystem';
+
+export function FloatingHelpButton() {
+  const [isOpen, setIsOpen] = useState(false);
+  const { config, updateConfig, startTour, tours } = useHelpSystem();
+
+  const helpOptions = [
+    {
+      id: 'contractor-search',
+      title: 'Contractor Search Tour',
+      description: 'Learn how to find and connect with contractors',
+      icon: <Play className="w-4 h-4" />,
+      available: true
+    },
+    {
+      id: 'daily-deals',
+      title: 'Daily Deals Tour', 
+      description: 'Discover how to save with daily deals',
+      icon: <Play className="w-4 h-4" />,
+      available: true
+    },
+    {
+      id: 'groups',
+      title: 'Groups Tour',
+      description: 'Join community discussions and groups',
+      icon: <Play className="w-4 h-4" />,
+      available: true
+    }
+  ];
+
+  return (
+    <div className="fixed bottom-6 right-6 z-50" data-testid="floating-help">
+      <AnimatePresence>
+        {isOpen && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.8, y: 20 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.8, y: 20 }}
+            className="absolute bottom-16 right-0 w-80"
+          >
+            <Card className="bg-slate-800/95 border-slate-600 backdrop-blur-sm">
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="font-semibold text-white">TradeScout Help</h3>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setIsOpen(false)}
+                    className="h-6 w-6 p-0"
+                  >
+                    <X className="w-4 h-4" />
+                  </Button>
+                </div>
+
+                {/* Tour Options */}
+                <div className="space-y-2 mb-4">
+                  <h4 className="text-sm font-medium text-slate-300">Interactive Tours</h4>
+                  {helpOptions.map((option) => (
+                    <button
+                      key={option.id}
+                      onClick={() => {
+                        startTour(option.id);
+                        setIsOpen(false);
+                      }}
+                      className="w-full text-left p-2 rounded hover:bg-slate-700 transition-colors group"
+                      disabled={!option.available}
+                    >
+                      <div className="flex items-start space-x-2">
+                        <div className="text-blue-400 mt-0.5">{option.icon}</div>
+                        <div className="flex-1 min-w-0">
+                          <div className="text-sm font-medium text-white group-hover:text-blue-400">
+                            {option.title}
+                          </div>
+                          <div className="text-xs text-slate-400">
+                            {option.description}
+                          </div>
+                        </div>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+
+                {/* Settings */}
+                <div className="pt-2 border-t border-slate-700">
+                  <h4 className="text-sm font-medium text-slate-300 mb-2">Help Settings</h4>
+                  <div className="space-y-2 text-sm">
+                    <label className="flex items-center space-x-2 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={config.enableTooltips}
+                        onChange={(e) => updateConfig({ enableTooltips: e.target.checked })}
+                        className="rounded border-slate-600 bg-slate-700 text-blue-500 focus:ring-blue-500"
+                      />
+                      <span className="text-slate-300">Enable tooltips</span>
+                    </label>
+                    <label className="flex items-center space-x-2 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={config.contextualHints}
+                        onChange={(e) => updateConfig({ contextualHints: e.target.checked })}
+                        className="rounded border-slate-600 bg-slate-700 text-blue-500 focus:ring-blue-500"
+                      />
+                      <span className="text-slate-300">Show contextual hints</span>
+                    </label>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Help Button */}
+      <motion.button
+        whileHover={{ scale: 1.1 }}
+        whileTap={{ scale: 0.9 }}
+        onClick={() => setIsOpen(!isOpen)}
+        className="w-12 h-12 bg-blue-600 hover:bg-blue-700 rounded-full shadow-lg flex items-center justify-center text-white"
+        data-testid="help-button"
+      >
+        <HelpCircle className="w-6 h-6" />
+      </motion.button>
+
+      {/* Pulsing indicator for new users */}
+      {config.showOnboardingTour && (
+        <div className="absolute inset-0 rounded-full bg-blue-400 animate-ping opacity-75" />
+      )}
+    </div>
+  );
+}

@@ -3,6 +3,8 @@ import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { HelpSystemProvider } from "@/components/help-system-provider";
+import { FloatingHelpButton } from "@/components/floating-help-button";
 import { useAuth } from "@/hooks/useAuth";
 import { useAIMonitoring } from "@/hooks/useAIMonitoring";
 import { useSetupStatus } from "@/hooks/useSetupStatus";
@@ -184,7 +186,7 @@ const Router = memo(function Router() {
   const isPublicRoute = ['/login', '/register', '/terms', '/privacy', '/cookies', '/compliance'].includes(location);
 
   return (
-      <MobileGestures isEnabled={isMobile && isAuthenticated}>
+      <MobileGestures>
       <div className="min-h-screen gradient-bg flex flex-col">
         <NextGenNavigation />
         
@@ -278,14 +280,9 @@ const Router = memo(function Router() {
               <Route path="/boosts" component={Boosts} />
               <Route path="/groups" component={Groups} />
               <Route path="/groups/:groupId">
-                {(params) => {
-                  const GroupDetail = lazy(() => import("@/pages/group-detail"));
-                  return (
-                    <Suspense fallback={<LoadingSpinner size="lg" />}>
-                      <GroupDetail {...params} />
-                    </Suspense>
-                  );
-                }}
+                <Suspense fallback={<LoadingSpinner size="lg" />}>
+                  <GroupDetail />
+                </Suspense>
               </Route>
               <Route path="/hoa" component={HOAManagement} />
               <Route path="/nationwide" component={NationwideExpansion} />
@@ -472,10 +469,13 @@ const App = memo(function App() {
   return (
     <ErrorBoundary fallback={<div className="min-h-screen gradient-bg flex items-center justify-center text-white">Loading...</div>}>
       <QueryClientProvider client={queryClient}>
-        <TooltipProvider>
-          <Toaster />
-          <Router />
-        </TooltipProvider>
+        <HelpSystemProvider>
+          <TooltipProvider>
+            <Toaster />
+            <Router />
+            <FloatingHelpButton />
+          </TooltipProvider>
+        </HelpSystemProvider>
       </QueryClientProvider>
     </ErrorBoundary>
   );
