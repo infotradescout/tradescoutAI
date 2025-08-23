@@ -143,7 +143,10 @@ export class TutorialStorageService {
   async createTutorial(data: InsertTutorialDefinition): Promise<TutorialDefinition> {
     const [tutorial] = await db
       .insert(tutorialDefinitions)
-      .values(data)
+      .values({
+        ...data,
+        steps: data.steps as any // Type assertion to handle array conversion
+      })
       .returning();
     return tutorial;
   }
@@ -152,9 +155,13 @@ export class TutorialStorageService {
     id: string,
     data: Partial<InsertTutorialDefinition>
   ): Promise<TutorialDefinition> {
+    const updateData = { ...data, updatedAt: new Date() };
+    if (data.steps) {
+      updateData.steps = data.steps as any; // Type assertion for steps array
+    }
     const [tutorial] = await db
       .update(tutorialDefinitions)
-      .set({ ...data, updatedAt: new Date() })
+      .set(updateData)
       .where(eq(tutorialDefinitions.id, id))
       .returning();
     return tutorial;
@@ -406,8 +413,8 @@ export class TutorialStorageService {
           isActive: true,
         });
         }
-      } catch (error) {
-        console.log('Database not available for tutorial initialization:', error.message);
+      } catch (error: any) {
+        console.log('Database not available for tutorial initialization:', error?.message || 'Unknown error');
         break; // Exit the loop if database is not available
       }
     }
