@@ -3,11 +3,11 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { HelpCircle, X, BookOpen, Play, Settings } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { useHelpSystem } from '@/hooks/useHelpSystem';
+import { useHelpSystemContext } from '@/components/help-system-provider';
 
 export function FloatingHelpButton() {
   const [isOpen, setIsOpen] = useState(false);
-  const { config, updateConfig, startTour, tours } = useHelpSystem();
+  const { config, updateConfig, startTour, tours } = useHelpSystemContext();
 
   const helpOptions = [
     {

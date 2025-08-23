@@ -1,5 +1,7 @@
 import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { HelpBubble } from "@/components/ui/help-bubble";
+import { useHelpSystemContext } from "@/components/help-system-provider";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -115,7 +117,15 @@ export default function FindContractors() {
             <h1 className="text-4xl md:text-5xl font-bold text-white">
               Find Local Contractors
             </h1>
-
+            <HelpBubble
+              id="contractor-search-overview"
+              title="Contractor Search System"
+              content="Our advanced search helps you find the perfect contractor for your project. All contractors are verified with licenses, insurance, and background checks for your safety and peace of mind."
+              illustration="hammer"
+              variant="info"
+              trigger="hover"
+              position="bottom"
+            />
           </div>
           <p className="text-xl text-gray-300 max-w-3xl mx-auto">
             Browse our directory of verified, professional contractors in your area. 
