@@ -1,0 +1,283 @@
+import { memo, useState } from 'react';
+import { Car, Search, Filter, MapPin, Calendar, Fuel, Users, Star, Heart, Eye } from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Badge } from '@/components/ui/badge';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+
+const VehicleMarketplace = memo(function VehicleMarketplace() {
+  const [searchQuery, setSearchQuery] = useState("");
+  const [priceRange, setPriceRange] = useState("all");
+  const [vehicleType, setVehicleType] = useState("all");
+  const [location, setLocation] = useState("all");
+
+  const vehicles = [
+    {
+      id: 1,
+      title: "2021 Ford F-150 XLT",
+      price: "$38,500",
+      year: 2021,
+      make: "Ford",
+      model: "F-150 XLT",
+      mileage: "45,000",
+      location: "Los Angeles, CA",
+      dealer: "Peterson Ford",
+      rating: 4.8,
+      features: ["4WD", "Crew Cab", "Backup Camera", "Bluetooth"],
+      image: "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400&h=300&fit=crop",
+      condition: "Excellent",
+      fuel: "Gasoline",
+      transmission: "Automatic",
+      views: 145,
+      saved: 23
+    },
+    {
+      id: 2,
+      title: "2022 Toyota Camry Hybrid",
+      price: "$32,900",
+      year: 2022,
+      make: "Toyota",
+      model: "Camry Hybrid",
+      mileage: "28,000",
+      location: "Orange County, CA",
+      dealer: "Toyota of Orange",
+      rating: 4.9,
+      features: ["Hybrid", "Lane Assist", "Apple CarPlay", "Sunroof"],
+      image: "https://images.unsplash.com/photo-1621007947382-bb3c3994e3fb?w=400&h=300&fit=crop",
+      condition: "Like New",
+      fuel: "Hybrid",
+      transmission: "CVT",
+      views: 89,
+      saved: 17
+    },
+    {
+      id: 3,
+      title: "2020 Chevrolet Silverado",
+      price: "$42,000",
+      year: 2020,
+      make: "Chevrolet",
+      model: "Silverado 1500",
+      mileage: "52,000",
+      location: "Riverside, CA",
+      dealer: "Chevy Center",
+      rating: 4.6,
+      features: ["V8 Engine", "Towing Package", "Leather Seats", "Remote Start"],
+      image: "https://images.unsplash.com/photo-1583121274602-3e2820c69888?w=400&h=300&fit=crop",
+      condition: "Good",
+      fuel: "Gasoline",
+      transmission: "Automatic",
+      views: 203,
+      saved: 31
+    },
+    {
+      id: 4,
+      title: "2023 Tesla Model 3",
+      price: "$45,990",
+      year: 2023,
+      make: "Tesla",
+      model: "Model 3",
+      mileage: "12,000",
+      location: "San Diego, CA",
+      dealer: "Tesla San Diego",
+      rating: 4.9,
+      features: ["Autopilot", "Premium Audio", "Glass Roof", "Supercharging"],
+      image: "https://images.unsplash.com/photo-1560958089-b8a1929cea89?w=400&h=300&fit=crop",
+      condition: "Excellent",
+      fuel: "Electric",
+      transmission: "Single Speed",
+      views: 267,
+      saved: 45
+    }
+  ];
+
+  return (
+    <div className="min-h-screen gradient-bg text-white">
+      <div className="container mx-auto px-4 py-8">
+        {/* Header */}
+        <div className="mb-8">
+          <div className="flex items-center gap-3 mb-4">
+            <Car className="h-8 w-8 text-orange-400" />
+            <h1 className="text-4xl font-bold text-white">Vehicle Marketplace</h1>
+          </div>
+          <p className="text-gray-300 text-lg">
+            Find quality pre-owned vehicles from trusted dealers in your area
+          </p>
+        </div>
+
+        {/* Search and Filters */}
+        <Card className="bg-navy-800/50 border-navy-600 backdrop-blur-sm mb-8">
+          <CardContent className="p-6">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
+              <div className="relative">
+                <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                <Input
+                  placeholder="Search vehicles..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-10 bg-navy-700 border-navy-600 text-white"
+                />
+              </div>
+              
+              <Select value={priceRange} onValueChange={setPriceRange}>
+                <SelectTrigger className="bg-navy-700 border-navy-600 text-white">
+                  <SelectValue placeholder="Price Range" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Prices</SelectItem>
+                  <SelectItem value="under-25k">Under $25,000</SelectItem>
+                  <SelectItem value="25k-35k">$25,000 - $35,000</SelectItem>
+                  <SelectItem value="35k-50k">$35,000 - $50,000</SelectItem>
+                  <SelectItem value="over-50k">Over $50,000</SelectItem>
+                </SelectContent>
+              </Select>
+
+              <Select value={vehicleType} onValueChange={setVehicleType}>
+                <SelectTrigger className="bg-navy-700 border-navy-600 text-white">
+                  <SelectValue placeholder="Vehicle Type" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Types</SelectItem>
+                  <SelectItem value="sedan">Sedan</SelectItem>
+                  <SelectItem value="suv">SUV</SelectItem>
+                  <SelectItem value="truck">Truck</SelectItem>
+                  <SelectItem value="hybrid">Hybrid/Electric</SelectItem>
+                </SelectContent>
+              </Select>
+
+              <Select value={location} onValueChange={setLocation}>
+                <SelectTrigger className="bg-navy-700 border-navy-600 text-white">
+                  <SelectValue placeholder="Location" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Locations</SelectItem>
+                  <SelectItem value="los-angeles">Los Angeles</SelectItem>
+                  <SelectItem value="orange-county">Orange County</SelectItem>
+                  <SelectItem value="riverside">Riverside</SelectItem>
+                  <SelectItem value="san-diego">San Diego</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            
+            <div className="flex items-center gap-2">
+              <Filter className="h-4 w-4 text-gray-400" />
+              <span className="text-gray-400 text-sm">{vehicles.length} vehicles found</span>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Vehicle Listings */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-6">
+          {vehicles.map((vehicle) => (
+            <Card key={vehicle.id} className="bg-navy-800/50 border-navy-600 backdrop-blur-sm hover:bg-navy-700/50 transition-colors">
+              <CardHeader className="p-0">
+                <div className="relative">
+                  <img
+                    src={vehicle.image}
+                    alt={vehicle.title}
+                    className="w-full h-48 object-cover rounded-t-lg"
+                  />
+                  <div className="absolute top-4 left-4">
+                    <Badge className="bg-orange-600 hover:bg-orange-700">
+                      {vehicle.condition}
+                    </Badge>
+                  </div>
+                  <div className="absolute top-4 right-4 flex gap-2">
+                    <Button size="sm" variant="secondary" className="p-2">
+                      <Heart className="h-4 w-4" />
+                    </Button>
+                    <Button size="sm" variant="secondary" className="p-2">
+                      <Eye className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+              </CardHeader>
+              
+              <CardContent className="p-6">
+                <div className="flex justify-between items-start mb-3">
+                  <div>
+                    <h3 className="text-xl font-semibold text-white mb-1">{vehicle.title}</h3>
+                    <p className="text-2xl font-bold text-orange-400">{vehicle.price}</p>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <Star className="h-4 w-4 text-yellow-400 fill-current" />
+                    <span className="text-yellow-400 text-sm">{vehicle.rating}</span>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4 mb-4 text-sm">
+                  <div className="flex items-center gap-2 text-gray-300">
+                    <Calendar className="h-4 w-4" />
+                    {vehicle.year}
+                  </div>
+                  <div className="flex items-center gap-2 text-gray-300">
+                    <MapPin className="h-4 w-4" />
+                    {vehicle.mileage} miles
+                  </div>
+                  <div className="flex items-center gap-2 text-gray-300">
+                    <Fuel className="h-4 w-4" />
+                    {vehicle.fuel}
+                  </div>
+                  <div className="flex items-center gap-2 text-gray-300">
+                    <Users className="h-4 w-4" />
+                    {vehicle.transmission}
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-2 text-gray-400 text-sm">
+                    <MapPin className="h-4 w-4" />
+                    {vehicle.location}
+                  </div>
+                  <div className="text-gray-400 text-sm">
+                    {vehicle.views} views • {vehicle.saved} saved
+                  </div>
+                </div>
+
+                <div className="mb-4">
+                  <p className="text-gray-400 text-sm mb-2">Key Features:</p>
+                  <div className="flex flex-wrap gap-1">
+                    {vehicle.features.slice(0, 3).map((feature, index) => (
+                      <Badge key={index} variant="outline" className="text-xs">
+                        {feature}
+                      </Badge>
+                    ))}
+                    {vehicle.features.length > 3 && (
+                      <Badge variant="outline" className="text-xs">
+                        +{vehicle.features.length - 3} more
+                      </Badge>
+                    )}
+                  </div>
+                </div>
+
+                <div className="flex gap-2">
+                  <Button className="flex-1 bg-orange-600 hover:bg-orange-700">
+                    Contact Dealer
+                  </Button>
+                  <Button variant="outline" className="flex-1 border-orange-600 text-orange-400 hover:bg-orange-600/20">
+                    View Details
+                  </Button>
+                </div>
+
+                <div className="mt-3 pt-3 border-t border-navy-600">
+                  <p className="text-gray-400 text-sm">
+                    Listed by <span className="text-orange-400">{vehicle.dealer}</span>
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+
+        {/* Load More */}
+        <div className="text-center mt-8">
+          <Button className="bg-orange-600 hover:bg-orange-700 px-8">
+            Load More Vehicles
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+});
+
+export default VehicleMarketplace;

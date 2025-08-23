@@ -121,6 +121,19 @@ import BackgroundCheck from './pages/background-check';
 import Compliance from './pages/compliance';
 import Documentation from './pages/documentation';
 
+// New Complete Pages
+import CRM from './pages/crm';
+import VehicleMarketplace from './pages/vehicle-marketplace';
+import HOADashboard from './pages/hoa-dashboard';
+import RealEstateMarketplace from './pages/real-estate-marketplace';
+import CoffeeCompany from './pages/coffee-company';
+import AdministrativeDashboard from './pages/administrative-dashboard';
+import CountyDirectory from './pages/county-directory';
+import ApplicationTracker from './pages/application-tracker';
+import ResourceCenter from './pages/resource-center';
+import MembershipPortal from './pages/membership-portal';
+import TrainingCenter from './pages/training-center';
+
 // Legal footer component
 const LegalFooter = memo(function LegalFooter() {
   return (
@@ -335,6 +348,30 @@ const Router = memo(function Router() {
   // Tools & Utilities
   else if (currentPath === '/documentation') {
     ComponentToRender = Documentation;
+  }
+  // New Complete Features
+  else if (currentPath === '/crm' || currentPath === '/crm-dashboard') {
+    ComponentToRender = CRM;
+  } else if (currentPath === '/vehicle-marketplace') {
+    ComponentToRender = VehicleMarketplace;
+  } else if (currentPath === '/hoa-dashboard') {
+    ComponentToRender = HOADashboard;
+  } else if (currentPath === '/real-estate-marketplace') {
+    ComponentToRender = RealEstateMarketplace;
+  } else if (currentPath === '/coffee-company' || currentPath === '/coffee') {
+    ComponentToRender = CoffeeCompany;
+  } else if (currentPath === '/administrative-dashboard') {
+    ComponentToRender = AdministrativeDashboard;
+  } else if (currentPath === '/county-directory') {
+    ComponentToRender = CountyDirectory;
+  } else if (currentPath === '/application-tracker') {
+    ComponentToRender = ApplicationTracker;
+  } else if (currentPath === '/resource-center') {
+    ComponentToRender = ResourceCenter;
+  } else if (currentPath === '/membership-portal' || currentPath === '/membership') {
+    ComponentToRender = MembershipPortal;
+  } else if (currentPath === '/training-center' || currentPath === '/training') {
+    ComponentToRender = TrainingCenter;
   }
   // Legal & Info
   else if (currentPath === '/terms') {
