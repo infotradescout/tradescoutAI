@@ -43,8 +43,10 @@ export function NextGenNavigation({ className = "" }: NextGenNavigationProps) {
       ...(isAuthenticated ? [
         { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard, priority: 7 },
         { href: "/boosts", label: "Boosts", icon: TrendingUp, priority: 6 },
-        { href: "/foundation", label: "Foundation", icon: Building, priority: 6 },
-        { href: "/community", label: "Community", icon: MessageSquare, priority: 5 },
+        { href: "/groups", label: "Groups", icon: Users, priority: 5 },
+        { href: "/hoa", label: "HOA", icon: Building, priority: 4 },
+        { href: "/foundation", label: "Foundation", icon: Building, priority: 3 },
+        { href: "/community", label: "Community", icon: MessageSquare, priority: 3 },
         { href: "/helpers", label: "Helpers", icon: Users, priority: 4 },
         { href: "/exchange", label: "Exchange", icon: ArrowLeftRight, priority: 3 },
         { href: "/accelerator", label: "Accelerator", icon: Crown, priority: 2 },

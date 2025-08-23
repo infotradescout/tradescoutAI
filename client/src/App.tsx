@@ -75,6 +75,8 @@ import CarSalesmanApplication from "@/pages/car-salesman-application";
 import AddressVerification from "@/pages/address-verification";
 import DailyDeals from "@/pages/daily-deals";
 import Boosts from "@/pages/boosts";
+import Groups from "@/pages/groups";
+import HOAManagement from "@/pages/hoa-management";
 import Community from "@/pages/community";
 import CommunityFeed from "@/pages/CommunityFeed";
 import CommunityModerationDemo from "@/pages/CommunityModerationDemo";
@@ -273,6 +275,8 @@ const Router = memo(function Router() {
               <Route path="/calculator" component={EstimateCalculator} />
               <Route path="/quote" component={EstimateCalculator} />
               <Route path="/boosts" component={Boosts} />
+              <Route path="/groups" component={Groups} />
+              <Route path="/hoa" component={HOAManagement} />
               <Route path="/advanced-search" component={AdvancedSearch} />
               <Route path="/leaderboard" component={Leaderboard} />
 
