@@ -486,7 +486,7 @@ export async function registerRoutes(app: Express) {
           facebookId: currentUser.claims.sub
         },
         deviceSecurity: {
-          deviceId,
+          deviceId: deviceFingerprint,
           message: "This device has been registered and approved for admin access"
         }
       });

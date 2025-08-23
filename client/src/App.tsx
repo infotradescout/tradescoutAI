@@ -73,6 +73,7 @@ import MarketplaceListing from "@/pages/marketplace-listing";
 import RealtorApplication from "@/pages/realtor-application";
 import CarSalesmanApplication from "@/pages/car-salesman-application";
 import AddressVerification from "@/pages/address-verification";
+import DailyDeals from "@/pages/daily-deals";
 import Community from "@/pages/community";
 import CommunityFeed from "@/pages/CommunityFeed";
 import CommunityModerationDemo from "@/pages/CommunityModerationDemo";
@@ -87,7 +88,6 @@ import TestPage from "@/pages/test-page";
 import SimpleLanding from "@/pages/simple-landing";
 import HelpDemo from "@/pages/help-demo";
 import Affiliate from "@/pages/affiliate";
-import DailyDeals from "@/pages/daily-deals";
 import Checkout from "@/pages/checkout";
 import PaymentSuccess from "@/pages/payment-success";
 import PaymentHistory from "@/pages/payment-history";
@@ -395,6 +395,7 @@ const Router = memo(function Router() {
               <Route path="/contractors/board" component={ContractorBoard} />
               <Route path="/quote-calculator" component={EstimateCalculator} />
               <Route path="/calculator" component={EstimateCalculator} />
+              <Route path="/daily-deals" component={DailyDeals} />
               <Route path="/connect-admin" component={ConnectMasterAdmin} />
               <Route path="/signup" component={Signup} />
               
