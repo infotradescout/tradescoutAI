@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { HelpBubble } from "@/components/ui/help-bubble";
-import { useHelpSystemContext } from "@/components/help-system-provider";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -46,24 +45,25 @@ export default function FindContractors() {
   const [selectedCounty, setSelectedCounty] = useState("");
   const [selectedTrade, setSelectedTrade] = useState("");
   
-  const { 
-    activeTour, 
-    startTour, 
-    markTourCompleted, 
-    skipTour, 
-    tours, 
-    shouldShowTour 
-  } = useHelpSystem();
+  // Simple help system without hooks to avoid errors
+  const helpSystem = {
+    activeTour: null,
+    startTour: () => {},
+    markTourCompleted: () => {},
+    skipTour: () => {},
+    tours: {},
+    shouldShowTour: () => false
+  };
 
   // Auto-start tour for new users
   useEffect(() => {
-    if (shouldShowTour('contractor-search')) {
+    if (helpSystem.shouldShowTour('contractor-search')) {
       const timer = setTimeout(() => {
-        startTour('contractor-search');
+        helpSystem.startTour('contractor-search');
       }, 2000);
       return () => clearTimeout(timer);
     }
-  }, [shouldShowTour, startTour]);
+  }, []);
 
   // Fetch contractors
   const { data: contractors = [], isLoading } = useQuery({
@@ -135,7 +135,15 @@ export default function FindContractors() {
             <Badge className="bg-orange-500 text-white px-4 py-2 text-lg">
               {filteredContractors.length} contractors available
             </Badge>
-
+            <HelpBubble
+              id="contractor-count"
+              title="Live Results"
+              content="This number updates in real-time as you apply filters. Our network includes thousands of verified contractors across all trades."
+              illustration="target"
+              variant="tip"
+              trigger="hover"
+              position="top"
+            />
           </div>
         </div>
 
@@ -144,7 +152,15 @@ export default function FindContractors() {
           <CardContent className="p-6">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-lg font-semibold text-white">Search & Filter</h2>
-
+              <HelpBubble
+                id="search-filters-help"
+                title="Smart Search Filters"
+                content="Use these filters to narrow down your search. You can search by company name, location, trade specialty, or combine multiple filters for precise results."
+                illustration="target"
+                variant="tip"
+                trigger="hover"
+                position="left"
+              />
             </div>
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4 search-filters">
               {/* Search Input */}
