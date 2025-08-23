@@ -6802,7 +6802,7 @@ export async function registerRoutes(app: Express) {
   });
 
   // Initialize default tutorials on server start
-  tutorialStorage.initializeDefaultTutorials().catch(console.error);
+  // tutorialStorage.initializeDefaultTutorials().catch(console.error); // Disabled for deployment
 
   const httpServer = createServer(app);
   // Initialize WebSocket manager for real-time communication

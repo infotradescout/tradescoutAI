@@ -391,8 +391,9 @@ export class TutorialStorageService {
     ];
 
     for (const tutorial of defaultTutorials) {
-      const existing = await this.getTutorialById(tutorial.id);
-      if (!existing) {
+      try {
+        const existing = await this.getTutorialById(tutorial.id);
+        if (!existing) {
         await this.createTutorial({
           id: tutorial.id,
           name: tutorial.name,
@@ -404,6 +405,10 @@ export class TutorialStorageService {
           steps: tutorial.steps,
           isActive: true,
         });
+        }
+      } catch (error) {
+        console.log('Database not available for tutorial initialization:', error.message);
+        break; // Exit the loop if database is not available
       }
     }
   }
