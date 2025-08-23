@@ -1,4 +1,9 @@
 # TradeScout Website Features – Full Specification
+## 🔒 LOCKED ROADMAP - IMMUTABLE SPECIFICATION
+
+**CRITICAL NOTICE**: This specification is the permanent, unchanging roadmap for TradeScout. All development must align with these features and principles. No deviations without explicit user authorization.
+
+**LAST LOCKED**: August 23, 2025
 
 ## 1. User Accounts & Roles
 **Universal Signup** → single portal; users can hold multiple roles.
