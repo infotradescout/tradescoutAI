@@ -277,6 +277,16 @@ const Router = memo(function Router() {
               <Route path="/quote" component={EstimateCalculator} />
               <Route path="/boosts" component={Boosts} />
               <Route path="/groups" component={Groups} />
+              <Route path="/groups/:groupId">
+                {(params) => {
+                  const GroupDetail = lazy(() => import("@/pages/group-detail"));
+                  return (
+                    <Suspense fallback={<LoadingSpinner size="lg" />}>
+                      <GroupDetail {...params} />
+                    </Suspense>
+                  );
+                }}
+              </Route>
               <Route path="/hoa" component={HOAManagement} />
               <Route path="/nationwide" component={NationwideExpansion} />
               <Route path="/advanced-search" component={AdvancedSearch} />
