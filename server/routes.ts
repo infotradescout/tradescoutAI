@@ -7941,5 +7941,20 @@ export async function registerRoutes(app: Express) {
   app.get("/api/user/affiliate", isAuthenticated, getUserAffiliate);
   app.get("/api/affiliate/dashboard", isAuthenticated, getAffiliateDashboard);
 
+  // Phase 2: Boost System Routes for Realtors & Dealers
+  const {
+    getAvailableBoosts,
+    purchaseBoost,
+    getUserBoosts,
+    getBoostAnalytics,
+    cancelBoost
+  } = await import("./routes/boosts");
+
+  app.get("/api/boosts/available", isAuthenticated, getAvailableBoosts);
+  app.post("/api/boosts/purchase", isAuthenticated, purchaseBoost);
+  app.get("/api/boosts/user", isAuthenticated, getUserBoosts);
+  app.get("/api/boosts/:boostId/analytics", isAuthenticated, getBoostAnalytics);
+  app.delete("/api/boosts/:boostId", isAuthenticated, cancelBoost);
+
   return httpServer;
 }
