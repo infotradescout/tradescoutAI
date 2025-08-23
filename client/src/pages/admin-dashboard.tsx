@@ -39,27 +39,45 @@ const AdminDashboard = memo(function AdminDashboard() {
         <section className="mb-12">
           <h2 className="text-2xl font-semibold mb-6">Quick Actions</h2>
           <div className="grid md:grid-cols-3 gap-6">
-            <div className="bg-navy-800 p-6 rounded-lg hover:bg-navy-700 transition-colors cursor-pointer">
+            <div 
+              className="bg-navy-800 p-6 rounded-lg hover:bg-navy-700 transition-colors cursor-pointer"
+              onClick={() => window.location.pathname = '/manage-users'}
+            >
               <h3 className="text-lg font-semibold mb-2 text-orange-400">Manage Users</h3>
               <p className="text-gray-300">View and manage user accounts, roles, and permissions</p>
             </div>
-            <div className="bg-navy-800 p-6 rounded-lg hover:bg-navy-700 transition-colors cursor-pointer">
+            <div 
+              className="bg-navy-800 p-6 rounded-lg hover:bg-navy-700 transition-colors cursor-pointer"
+              onClick={() => window.location.pathname = '/contractor-verification'}
+            >
               <h3 className="text-lg font-semibold mb-2 text-orange-400">Contractor Verification</h3>
               <p className="text-gray-300">Review and approve contractor applications</p>
             </div>
-            <div className="bg-navy-800 p-6 rounded-lg hover:bg-navy-700 transition-colors cursor-pointer">
+            <div 
+              className="bg-navy-800 p-6 rounded-lg hover:bg-navy-700 transition-colors cursor-pointer"
+              onClick={() => window.location.pathname = '/content-moderation'}
+            >
               <h3 className="text-lg font-semibold mb-2 text-orange-400">Content Moderation</h3>
               <p className="text-gray-300">Monitor and moderate platform content</p>
             </div>
-            <div className="bg-navy-800 p-6 rounded-lg hover:bg-navy-700 transition-colors cursor-pointer">
+            <div 
+              className="bg-navy-800 p-6 rounded-lg hover:bg-navy-700 transition-colors cursor-pointer"
+              onClick={() => window.location.pathname = '/platform-analytics'}
+            >
               <h3 className="text-lg font-semibold mb-2 text-orange-400">Analytics</h3>
               <p className="text-gray-300">View detailed platform analytics and reports</p>
             </div>
-            <div className="bg-navy-800 p-6 rounded-lg hover:bg-navy-700 transition-colors cursor-pointer">
+            <div 
+              className="bg-navy-800 p-6 rounded-lg hover:bg-navy-700 transition-colors cursor-pointer"
+              onClick={() => window.location.pathname = '/system-settings'}
+            >
               <h3 className="text-lg font-semibold mb-2 text-orange-400">System Settings</h3>
               <p className="text-gray-300">Configure platform settings and preferences</p>
             </div>
-            <div className="bg-navy-800 p-6 rounded-lg hover:bg-navy-700 transition-colors cursor-pointer">
+            <div 
+              className="bg-navy-800 p-6 rounded-lg hover:bg-navy-700 transition-colors cursor-pointer"
+              onClick={() => window.location.pathname = '/support-tickets'}
+            >
               <h3 className="text-lg font-semibold mb-2 text-orange-400">Support Tickets</h3>
               <p className="text-gray-300">Manage customer support requests</p>
             </div>

@@ -235,15 +235,26 @@ const CommunityFeed = memo(function CommunityFeed() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-2">
-                  <Button className="w-full bg-orange-600 hover:bg-orange-700 justify-start">
+                  <Button 
+                    className="w-full bg-orange-600 hover:bg-orange-700 justify-start"
+                    onClick={() => setShowNewPostForm(true)}
+                  >
                     <Plus className="h-4 w-4 mr-2" />
                     Create Post
                   </Button>
-                  <Button variant="outline" className="w-full border-orange-600 text-orange-400 hover:bg-orange-600/20 justify-start">
+                  <Button 
+                    variant="outline" 
+                    className="w-full border-orange-600 text-orange-400 hover:bg-orange-600/20 justify-start"
+                    onClick={() => window.location.pathname = '/event-management'}
+                  >
                     <Calendar className="h-4 w-4 mr-2" />
                     Local Events
                   </Button>
-                  <Button variant="outline" className="w-full border-orange-600 text-orange-400 hover:bg-orange-600/20 justify-start">
+                  <Button 
+                    variant="outline" 
+                    className="w-full border-orange-600 text-orange-400 hover:bg-orange-600/20 justify-start"
+                    onClick={() => window.location.pathname = '/find-contractors'}
+                  >
                     <Users2 className="h-4 w-4 mr-2" />
                     Find Contractors
                   </Button>
