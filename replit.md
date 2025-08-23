@@ -1,12 +1,20 @@
 # Overview
 
-TradeScout is a full-stack contractor marketplace platform connecting homeowners with verified local contractors. It features county-centric contractor boards, estimate calculators, recommendation systems, and comprehensive admin tools. The platform aims to provide comprehensive geographic coverage for locality-based contractor matching nationwide, supporting a free platform model through revenue optimization.
+TradeScout is a comprehensive social platform connecting homeowners with contractors, featuring multi-role user accounts, county-centric community hubs, and affiliate-driven growth. The platform supports universal signup with role switching, verification systems, and includes plans for HOA management, charitable giving (Mike Rowe Works Foundation), and a complete marketplace ecosystem. Current implementation includes master admin controls, Facebook authentication, and foundational infrastructure for the full specification roadmap.
 
 # User Preferences
 
 Preferred communication style: Simple, everyday language.
 Marketplace language preference: Avoid explicit "investment" or "asset" terminology - let users naturally discover the value-building potential through subtle language and quality indicators.
 Lead generation preference: Never reference "getting leads" or "lead generation" - focus on showcasing contractor businesses, building reputation, and connecting with homeowners naturally.
+
+# Full Specification Alignment
+
+**Current Status**: 70% aligned with full TradeScout specification
+**Full Specification**: Stored in TRADESCOUT_FULL_SPECIFICATION.md
+**Alignment Analysis**: Detailed in ALIGNMENT_ANALYSIS.md
+**Key Missing Features**: Affiliate system, HOA management, advanced marketplace features, charitable engine
+**Implementation Priority**: Phase 1 focuses on completing role alignment and basic affiliate system
 
 # System Architecture
 
