@@ -3,7 +3,7 @@ import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { Menu, X, ChevronDown, Home, Calculator, Users, Wrench, LayoutDashboard, ArrowLeftRight, Building, MessageSquare, MoreHorizontal, Crown } from "lucide-react";
+import { Menu, X, ChevronDown, Home, Calculator, Users, Wrench, LayoutDashboard, ArrowLeftRight, Building, MessageSquare, MoreHorizontal, Crown, Percent, Shield, Settings } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { UserMenu } from "@/components/navigation/RoleBasedNavigation";
 import { TradeScoutLogo } from "@/components/TradeScoutIcons";
@@ -38,9 +38,10 @@ export function NextGenNavigation({ className = "" }: NextGenNavigationProps) {
     const baseItems = [
       { href: "/contractors/board", label: "Contractors", icon: Users, priority: 10 },
       { href: "/quote-calculator", label: "Calculator", icon: Calculator, priority: 9 },
+      { href: "/daily-deals", label: "Daily Deals", icon: Percent, priority: 8 },
       // Full features available for authenticated users
       ...(isAuthenticated ? [
-        { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard, priority: 8 },
+        { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard, priority: 7 },
         { href: "/foundation", label: "Foundation", icon: Building, priority: 6 },
         { href: "/community", label: "Community", icon: MessageSquare, priority: 5 },
         { href: "/helpers", label: "Helpers", icon: Users, priority: 4 },
