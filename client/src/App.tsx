@@ -71,7 +71,7 @@ import Exchange from './pages/exchange';
 import HandmadeMarketplace from './pages/handmade-marketplace';
 import Leaderboard from './pages/leaderboard';
 import Foundation from './pages/foundation';
-import CommunityFeed from './pages/CommunityFeed';
+import CommunityFeedOld from './pages/CommunityFeed';
 import CommunityModerationDemo from './pages/CommunityModerationDemo';
 import Checkout from './pages/checkout';
 import PaymentSuccess from './pages/payment-success';
@@ -133,6 +133,14 @@ import ApplicationTracker from './pages/application-tracker';
 import ResourceCenter from './pages/resource-center';
 import MembershipPortal from './pages/membership-portal';
 import TrainingCenter from './pages/training-center';
+
+// Advanced Social & Integration Features
+import SocialIntegration from './pages/social-integration';
+import CommunityFeed from './pages/community-feed';
+import AdvancedSearchNew from './pages/advanced-search';
+import ReferralDashboard from './pages/referral-dashboard';
+import EventManagement from './pages/event-management';
+import APIIntegrations from './pages/api-integrations';
 
 // Legal footer component
 const LegalFooter = memo(function LegalFooter() {
@@ -372,6 +380,20 @@ const Router = memo(function Router() {
     ComponentToRender = MembershipPortal;
   } else if (currentPath === '/training-center' || currentPath === '/training') {
     ComponentToRender = TrainingCenter;
+  }
+  // Advanced Social & Integration Features
+  else if (currentPath === '/social-integration' || currentPath === '/social') {
+    ComponentToRender = SocialIntegration;
+  } else if (currentPath === '/community-feed' || currentPath === '/community') {
+    ComponentToRender = CommunityFeed;
+  } else if (currentPath === '/advanced-search') {
+    ComponentToRender = AdvancedSearchNew;
+  } else if (currentPath === '/referral-dashboard' || currentPath === '/referrals') {
+    ComponentToRender = ReferralDashboard;
+  } else if (currentPath === '/event-management' || currentPath === '/events') {
+    ComponentToRender = EventManagement;
+  } else if (currentPath === '/api-integrations' || currentPath === '/api' || currentPath === '/integrations') {
+    ComponentToRender = APIIntegrations;
   }
   // Legal & Info
   else if (currentPath === '/terms') {

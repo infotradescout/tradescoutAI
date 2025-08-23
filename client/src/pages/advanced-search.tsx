@@ -1,469 +1,452 @@
-import { useState, useEffect } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { apiRequest } from "@/lib/queryClient";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
-import { Slider } from "@/components/ui/slider";
-import { Switch } from "@/components/ui/switch";
-import { useToast } from "@/hooks/use-toast";
-import { Search, Filter, Save, Bell, MapPin, Star, Truck, Shield, Heart } from "lucide-react";
-import { Link } from "wouter";
+import { memo, useState } from 'react';
+import { Search, Filter, MapPin, Star, DollarSign, Clock, Users, Briefcase, Award, SlidersHorizontal, Map, List } from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Badge } from '@/components/ui/badge';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Slider } from '@/components/ui/slider';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Label } from '@/components/ui/label';
 
-export default function AdvancedSearch() {
-  const { toast } = useToast();
-  const queryClient = useQueryClient();
-  
+const AdvancedSearch = memo(function AdvancedSearch() {
   const [searchQuery, setSearchQuery] = useState("");
-  const [selectedCategory, setSelectedCategory] = useState("");
-  const [priceRange, setPriceRange] = useState([0, 10000]);
   const [location, setLocation] = useState("");
-  const [condition, setCondition] = useState("");
-  const [verifiedSellersOnly, setVerifiedSellersOnly] = useState(false);
-  const [freeShippingOnly, setFreeShippingOnly] = useState(false);
-  const [buyerProtectionOnly, setBuyerProtectionOnly] = useState(false);
-  const [sortBy, setSortBy] = useState("date_desc");
-  const [saveSearchEnabled, setSaveSearchEnabled] = useState(false);
+  const [radius, setRadius] = useState([25]);
+  const [priceRange, setPriceRange] = useState([0, 10000]);
+  const [rating, setRating] = useState([4.0]);
+  const [viewMode, setViewMode] = useState("list");
 
-  // Fetch categories for filter
-  const { data: categories } = useQuery({
-    queryKey: ["/api/marketplace/categories"],
-  });
+  const serviceCategories = [
+    { id: 'electrical', name: 'Electrical', count: 847 },
+    { id: 'plumbing', name: 'Plumbing', count: 923 },
+    { id: 'roofing', name: 'Roofing', count: 634 },
+    { id: 'hvac', name: 'HVAC', count: 567 },
+    { id: 'flooring', name: 'Flooring', count: 445 },
+    { id: 'painting', name: 'Painting', count: 789 },
+    { id: 'landscaping', name: 'Landscaping', count: 678 },
+    { id: 'remodeling', name: 'Kitchen/Bath Remodeling', count: 356 }
+  ];
 
-  // Fetch search results
-  const { data: searchResults, isLoading: isSearching, refetch: performSearch } = useQuery({
-    queryKey: ["/api/marketplace/search", {
-      query: searchQuery,
-      category: selectedCategory,
-      minPrice: priceRange[0],
-      maxPrice: priceRange[1],
-      location,
-      condition,
-      verifiedOnly: verifiedSellersOnly,
-      freeShipping: freeShippingOnly,
-      buyerProtection: buyerProtectionOnly,
-      sortBy
-    }],
-    enabled: false, // Manual trigger
-  });
+  const specializations = [
+    'Residential', 'Commercial', 'Industrial', 'Emergency Services',
+    'Green/Eco-Friendly', 'Historic Renovation', 'ADA Compliance', 'Smart Home Integration'
+  ];
 
-  // Save search mutation
-  const saveSearchMutation = useMutation({
-    mutationFn: async (searchData: any) => {
-      const response = await apiRequest("POST", "/api/saved-searches", searchData);
-      return response.json();
+  const certifications = [
+    'Licensed', 'Bonded', 'Insured', 'BBB Accredited', 'OSHA Certified',
+    'EPA Certified', 'Energy Star Partner', 'Lead-Safe Certified'
+  ];
+
+  const searchResults = [
+    {
+      id: 1,
+      name: "Elite Electrical Services",
+      rating: 4.9,
+      reviewCount: 127,
+      location: "Los Angeles, CA",
+      distance: "5.2 miles",
+      specializations: ["Residential", "Smart Home", "Emergency Services"],
+      certifications: ["Licensed", "Bonded", "Insured"],
+      priceRange: "$$",
+      availability: "Available Today",
+      profileImage: "https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=100&h=100&fit=crop",
+      verified: true,
+      responseTime: "< 2 hours",
+      completedJobs: 247
     },
-    onSuccess: () => {
-      toast({
-        title: "Search Saved",
-        description: "You'll receive alerts when new matching items are listed",
-      });
-      queryClient.invalidateQueries({ queryKey: ["/api/saved-searches"] });
+    {
+      id: 2,
+      name: "Pro Plumbing Solutions", 
+      rating: 4.8,
+      reviewCount: 89,
+      location: "Pasadena, CA",
+      distance: "12.7 miles",
+      specializations: ["Residential", "Commercial", "Emergency Services"],
+      certifications: ["Licensed", "Insured", "EPA Certified"],
+      priceRange: "$$$",
+      availability: "Next Week",
+      profileImage: "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=100&h=100&fit=crop",
+      verified: true,
+      responseTime: "< 4 hours",
+      completedJobs: 156
     },
-  });
-
-  // Get user's saved searches
-  const { data: savedSearches } = useQuery({
-    queryKey: ["/api/saved-searches"],
-  });
-
-  const handleSearch = () => {
-    // Log search analytics
-    apiRequest("POST", "/api/search-analytics", {
-      searchQuery,
-      searchType: "marketplace",
-      filters: {
-        category: selectedCategory,
-        priceRange,
-        location,
-        condition,
-        verifiedOnly: verifiedSellersOnly,
-        freeShipping: freeShippingOnly,
-        buyerProtection: buyerProtectionOnly,
-        sortBy
-      }
-    });
-    
-    performSearch();
-  };
-
-  const handleSaveSearch = () => {
-    if (!searchQuery.trim()) {
-      toast({
-        title: "Search Required",
-        description: "Please enter a search term before saving",
-        variant: "destructive",
-      });
-      return;
+    {
+      id: 3,
+      name: "Precision Roofing Co.",
+      rating: 4.7,
+      reviewCount: 203,
+      location: "Burbank, CA", 
+      distance: "18.3 miles",
+      specializations: ["Residential", "Commercial", "Historic Renovation"],
+      certifications: ["Licensed", "Bonded", "Insured", "OSHA Certified"],
+      priceRange: "$$",
+      availability: "Available Tomorrow",
+      profileImage: "https://images.unsplash.com/photo-1581578731548-c64695cc6952?w=100&h=100&fit=crop",
+      verified: true,
+      responseTime: "< 6 hours",
+      completedJobs: 334
     }
+  ];
 
-    saveSearchMutation.mutate({
-      searchType: "marketplace",
-      searchQuery,
-      filters: {
-        category: selectedCategory,
-        priceRange,
-        location,
-        condition,
-        verifiedOnly: verifiedSellersOnly,
-        freeShipping: freeShippingOnly,
-        buyerProtection: buyerProtectionOnly,
-        sortBy
-      },
-      alertsEnabled: saveSearchEnabled
-    });
-  };
-
-  const clearFilters = () => {
-    setSearchQuery("");
-    setSelectedCategory("");
-    setPriceRange([0, 10000]);
-    setLocation("");
-    setCondition("");
-    setVerifiedSellersOnly(false);
-    setFreeShippingOnly(false);
-    setBuyerProtectionOnly(false);
-    setSortBy("date_desc");
-  };
+  const savedSearches = [
+    { name: "Emergency Plumbers Nearby", filters: "Plumbing • Emergency • < 10 miles • 4.5+ stars" },
+    { name: "Kitchen Remodelers", filters: "Remodeling • Residential • $5,000-$15,000 • Licensed" },
+    { name: "Eco-Friendly Contractors", filters: "All Categories • Green/Eco • Energy Star • Any Price" }
+  ];
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen gradient-bg text-white">
       <div className="container mx-auto px-4 py-8">
+        {/* Header */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold mb-2">Advanced Marketplace Search</h1>
-          <p className="text-muted-foreground">
-            Find exactly what you're looking for with powerful search filters
+          <div className="flex items-center gap-3 mb-4">
+            <Search className="h-8 w-8 text-orange-400" />
+            <h1 className="text-4xl font-bold text-white">Advanced Search</h1>
+          </div>
+          <p className="text-gray-300 text-lg">
+            Find the perfect contractor with detailed filters and smart matching
           </p>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-          {/* Search Filters Sidebar */}
-          <div className="lg:col-span-1">
-            <Card>
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
+          {/* Filters Sidebar */}
+          <div className="lg:col-span-1 space-y-6">
+            <Card className="bg-navy-800/50 border-navy-600 backdrop-blur-sm">
               <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Filter className="h-5 w-5" />
+                <CardTitle className="text-white flex items-center gap-2">
+                  <SlidersHorizontal className="h-5 w-5" />
                   Search Filters
                 </CardTitle>
               </CardHeader>
-              <CardContent className="space-y-6">
-                {/* Search Query */}
-                <div className="space-y-2">
-                  <Label htmlFor="search">Search Terms</Label>
-                  <Input
-                    id="search"
-                    placeholder="What are you looking for?"
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                  />
-                </div>
+              <CardContent>
+                <div className="space-y-6">
+                  {/* Basic Search */}
+                  <div>
+                    <Label className="text-white mb-2 block">What do you need?</Label>
+                    <Input
+                      placeholder="e.g., electrical repair, kitchen remodel..."
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      className="bg-navy-700 border-navy-600 text-white"
+                    />
+                  </div>
 
-                {/* Category */}
-                <div className="space-y-2">
-                  <Label>Category</Label>
-                  <Select value={selectedCategory} onValueChange={setSelectedCategory}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="All Categories" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">All Categories</SelectItem>
-                      {categories?.map((category: any) => (
-                        <SelectItem key={category.id} value={category.id}>
-                          {category.name}
-                        </SelectItem>
+                  {/* Location */}
+                  <div>
+                    <Label className="text-white mb-2 block">Location</Label>
+                    <Input
+                      placeholder="Enter city, zip, or address"
+                      value={location}
+                      onChange={(e) => setLocation(e.target.value)}
+                      className="bg-navy-700 border-navy-600 text-white mb-3"
+                    />
+                    <div>
+                      <Label className="text-white text-sm mb-2 block">Radius: {radius[0]} miles</Label>
+                      <Slider
+                        value={radius}
+                        onValueChange={setRadius}
+                        max={50}
+                        min={1}
+                        step={1}
+                        className="w-full"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Service Categories */}
+                  <div>
+                    <Label className="text-white mb-3 block">Service Categories</Label>
+                    <div className="space-y-2 max-h-48 overflow-y-auto">
+                      {serviceCategories.map((category) => (
+                        <div key={category.id} className="flex items-center space-x-2">
+                          <Checkbox id={category.id} />
+                          <label
+                            htmlFor={category.id}
+                            className="text-sm text-gray-300 cursor-pointer flex-1"
+                          >
+                            {category.name}
+                          </label>
+                          <span className="text-xs text-gray-400">({category.count})</span>
+                        </div>
                       ))}
-                    </SelectContent>
-                  </Select>
-                </div>
+                    </div>
+                  </div>
 
-                {/* Price Range */}
-                <div className="space-y-2">
-                  <Label>Price Range</Label>
-                  <div className="px-2">
+                  {/* Price Range */}
+                  <div>
+                    <Label className="text-white mb-2 block">
+                      Price Range: ${priceRange[0]} - ${priceRange[1]}
+                    </Label>
                     <Slider
                       value={priceRange}
                       onValueChange={setPriceRange}
-                      max={10000}
-                      step={100}
+                      max={25000}
+                      min={0}
+                      step={250}
                       className="w-full"
                     />
-                    <div className="flex justify-between text-sm text-muted-foreground mt-1">
-                      <span>${priceRange[0]}</span>
-                      <span>${priceRange[1]}</span>
+                  </div>
+
+                  {/* Rating */}
+                  <div>
+                    <Label className="text-white mb-2 block">
+                      Minimum Rating: {rating[0]} stars
+                    </Label>
+                    <Slider
+                      value={rating}
+                      onValueChange={setRating}
+                      max={5}
+                      min={1}
+                      step={0.1}
+                      className="w-full"
+                    />
+                  </div>
+
+                  {/* Specializations */}
+                  <div>
+                    <Label className="text-white mb-3 block">Specializations</Label>
+                    <div className="space-y-2">
+                      {specializations.map((spec) => (
+                        <div key={spec} className="flex items-center space-x-2">
+                          <Checkbox id={spec} />
+                          <label
+                            htmlFor={spec}
+                            className="text-sm text-gray-300 cursor-pointer"
+                          >
+                            {spec}
+                          </label>
+                        </div>
+                      ))}
                     </div>
                   </div>
-                </div>
 
-                {/* Location */}
-                <div className="space-y-2">
-                  <Label htmlFor="location">Location</Label>
-                  <Input
-                    id="location"
-                    placeholder="City, State or ZIP"
-                    value={location}
-                    onChange={(e) => setLocation(e.target.value)}
-                  />
-                </div>
-
-                {/* Condition */}
-                <div className="space-y-2">
-                  <Label>Condition</Label>
-                  <Select value={condition} onValueChange={setCondition}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Any Condition" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="any">Any Condition</SelectItem>
-                      <SelectItem value="new">New</SelectItem>
-                      <SelectItem value="like_new">Like New</SelectItem>
-                      <SelectItem value="good">Good</SelectItem>
-                      <SelectItem value="fair">Fair</SelectItem>
-                      <SelectItem value="poor">For Parts</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <Separator />
-
-                {/* Special Filters */}
-                <div className="space-y-4">
-                  <div className="flex items-center space-x-2">
-                    <Checkbox
-                      id="verified"
-                      checked={verifiedSellersOnly}
-                      onCheckedChange={setVerifiedSellersOnly}
-                    />
-                    <Label htmlFor="verified" className="flex items-center gap-2">
-                      <Shield className="h-4 w-4" />
-                      Verified Sellers Only
-                    </Label>
+                  {/* Certifications */}
+                  <div>
+                    <Label className="text-white mb-3 block">Required Certifications</Label>
+                    <div className="space-y-2">
+                      {certifications.map((cert) => (
+                        <div key={cert} className="flex items-center space-x-2">
+                          <Checkbox id={cert} />
+                          <label
+                            htmlFor={cert}
+                            className="text-sm text-gray-300 cursor-pointer"
+                          >
+                            {cert}
+                          </label>
+                        </div>
+                      ))}
+                    </div>
                   </div>
 
-                  <div className="flex items-center space-x-2">
-                    <Checkbox
-                      id="free-shipping"
-                      checked={freeShippingOnly}
-                      onCheckedChange={setFreeShippingOnly}
-                    />
-                    <Label htmlFor="free-shipping" className="flex items-center gap-2">
-                      <Truck className="h-4 w-4" />
-                      Free Shipping
-                    </Label>
+                  {/* Availability */}
+                  <div>
+                    <Label className="text-white mb-2 block">Availability</Label>
+                    <Select>
+                      <SelectTrigger className="bg-navy-700 border-navy-600 text-white">
+                        <SelectValue placeholder="Any time" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="today">Available Today</SelectItem>
+                        <SelectItem value="week">This Week</SelectItem>
+                        <SelectItem value="month">This Month</SelectItem>
+                        <SelectItem value="flexible">Flexible</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
 
-                  <div className="flex items-center space-x-2">
-                    <Checkbox
-                      id="buyer-protection"
-                      checked={buyerProtectionOnly}
-                      onCheckedChange={setBuyerProtectionOnly}
-                    />
-                    <Label htmlFor="buyer-protection" className="flex items-center gap-2">
-                      <Star className="h-4 w-4" />
-                      Buyer Protection
-                    </Label>
-                  </div>
-                </div>
-
-                <Separator />
-
-                {/* Save Search */}
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <Label htmlFor="save-search">Save this search</Label>
-                    <Switch
-                      id="save-search"
-                      checked={saveSearchEnabled}
-                      onCheckedChange={setSaveSearchEnabled}
-                    />
-                  </div>
-                  {saveSearchEnabled && (
-                    <p className="text-sm text-muted-foreground">
-                      Get alerts when new items match your search
-                    </p>
-                  )}
-                </div>
-
-                {/* Action Buttons */}
-                <div className="space-y-2">
-                  <Button onClick={handleSearch} className="w-full">
-                    <Search className="h-4 w-4 mr-2" />
-                    Search
+                  <Button className="w-full bg-orange-600 hover:bg-orange-700">
+                    Apply Filters
                   </Button>
-                  {saveSearchEnabled && (
-                    <Button 
-                      onClick={handleSaveSearch} 
-                      variant="outline" 
-                      className="w-full"
-                      disabled={saveSearchMutation.isPending}
-                    >
-                      <Save className="h-4 w-4 mr-2" />
-                      Save Search
-                    </Button>
-                  )}
-                  <Button onClick={clearFilters} variant="ghost" className="w-full">
-                    Clear Filters
+                  
+                  <Button variant="outline" className="w-full border-orange-600 text-orange-400 hover:bg-orange-600/20">
+                    Clear All
                   </Button>
                 </div>
               </CardContent>
             </Card>
 
             {/* Saved Searches */}
-            {savedSearches && savedSearches.length > 0 && (
-              <Card className="mt-6">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Bell className="h-5 w-5" />
-                    Saved Searches
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-2">
-                    {savedSearches.map((search: any) => (
-                      <div key={search.id} className="p-2 border rounded-md">
-                        <div className="font-medium">{search.searchQuery}</div>
-                        <div className="text-sm text-muted-foreground">
-                          {search.alertsEnabled && (
-                            <Badge variant="secondary" className="mr-2">
-                              <Bell className="h-3 w-3 mr-1" />
-                              Alerts On
-                            </Badge>
-                          )}
-                          Saved {new Date(search.createdAt).toLocaleDateString()}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-            )}
+            <Card className="bg-navy-800/50 border-navy-600 backdrop-blur-sm">
+              <CardHeader>
+                <CardTitle className="text-white text-lg">Saved Searches</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  {savedSearches.map((search, index) => (
+                    <div key={index} className="p-3 bg-navy-700/50 rounded-lg hover:bg-navy-600/50 transition-colors cursor-pointer">
+                      <h4 className="text-white font-medium text-sm">{search.name}</h4>
+                      <p className="text-gray-400 text-xs mt-1">{search.filters}</p>
+                    </div>
+                  ))}
+                </div>
+                <Button variant="outline" className="w-full mt-4 border-orange-600 text-orange-400 hover:bg-orange-600/20">
+                  Save Current Search
+                </Button>
+              </CardContent>
+            </Card>
           </div>
 
-          {/* Search Results */}
+          {/* Results */}
           <div className="lg:col-span-3">
-            {/* Sort Options */}
-            <div className="flex items-center justify-between mb-6">
-              <div className="flex items-center gap-4">
-                <Label>Sort by:</Label>
-                <Select value={sortBy} onValueChange={setSortBy}>
-                  <SelectTrigger className="w-48">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="date_desc">Newest First</SelectItem>
-                    <SelectItem value="date_asc">Oldest First</SelectItem>
-                    <SelectItem value="price_asc">Price: Low to High</SelectItem>
-                    <SelectItem value="price_desc">Price: High to Low</SelectItem>
-                    <SelectItem value="distance">Distance</SelectItem>
-                    <SelectItem value="rating">Highest Rated</SelectItem>
-                  </SelectContent>
-                </Select>
+            {/* Results Header */}
+            <div className="flex justify-between items-center mb-6">
+              <div>
+                <h2 className="text-white text-2xl font-bold">Search Results</h2>
+                <p className="text-gray-400">{searchResults.length} contractors found</p>
               </div>
               
-              {searchResults && (
-                <div className="text-sm text-muted-foreground">
-                  {searchResults.length} results found
+              <div className="flex items-center gap-4">
+                <Select>
+                  <SelectTrigger className="bg-navy-700 border-navy-600 text-white w-48">
+                    <SelectValue placeholder="Sort by Relevance" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="relevance">Best Match</SelectItem>
+                    <SelectItem value="rating">Highest Rated</SelectItem>
+                    <SelectItem value="distance">Closest</SelectItem>
+                    <SelectItem value="price-low">Price: Low to High</SelectItem>
+                    <SelectItem value="price-high">Price: High to Low</SelectItem>
+                    <SelectItem value="reviews">Most Reviews</SelectItem>
+                  </SelectContent>
+                </Select>
+
+                <div className="flex items-center gap-1">
+                  <Button
+                    size="sm"
+                    variant={viewMode === 'list' ? 'default' : 'outline'}
+                    onClick={() => setViewMode('list')}
+                    className={viewMode === 'list' ? 'bg-orange-600 hover:bg-orange-700' : 'border-navy-600 text-gray-400 hover:bg-navy-600/50'}
+                  >
+                    <List className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant={viewMode === 'map' ? 'default' : 'outline'}
+                    onClick={() => setViewMode('map')}
+                    className={viewMode === 'map' ? 'bg-orange-600 hover:bg-orange-700' : 'border-navy-600 text-gray-400 hover:bg-navy-600/50'}
+                  >
+                    <Map className="h-4 w-4" />
+                  </Button>
                 </div>
-              )}
+              </div>
             </div>
 
-            {/* Search Results */}
-            {isSearching ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-                {[...Array(6)].map((_, i) => (
-                  <Card key={i} className="animate-pulse">
-                    <div className="aspect-square bg-muted rounded-t-lg" />
-                    <CardContent className="p-4">
-                      <div className="h-4 bg-muted rounded mb-2" />
-                      <div className="h-6 bg-muted rounded mb-2" />
-                      <div className="h-4 bg-muted rounded w-1/2" />
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            ) : searchResults && searchResults.length > 0 ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-                {searchResults.map((listing: any) => (
-                  <Card key={listing.id} className="group hover:shadow-lg transition-shadow">
-                    <div className="relative">
-                      <img
-                        src={listing.images?.[0] || "/placeholder-image.jpg"}
-                        alt={listing.title}
-                        className="aspect-square object-cover rounded-t-lg"
-                      />
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        className="absolute top-2 right-2 bg-white/80 hover:bg-white"
-                      >
-                        <Heart className="h-4 w-4" />
-                      </Button>
-                      {listing.isVerifiedSeller && (
-                        <Badge className="absolute top-2 left-2">
-                          <Shield className="h-3 w-3 mr-1" />
-                          Verified
-                        </Badge>
-                      )}
-                    </div>
-                    <CardContent className="p-4">
-                      <h3 className="font-semibold mb-2 group-hover:text-primary">
-                        {listing.title}
-                      </h3>
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="text-2xl font-bold text-primary">
-                          ${listing.price}
-                        </span>
-                        <Badge variant="secondary">{listing.condition}</Badge>
+            {/* Results List */}
+            <div className="space-y-6">
+              {searchResults.map((contractor) => (
+                <Card key={contractor.id} className="bg-navy-800/50 border-navy-600 backdrop-blur-sm hover:bg-navy-700/50 transition-colors">
+                  <CardContent className="p-6">
+                    <div className="flex gap-6">
+                      {/* Profile Image */}
+                      <div className="flex-shrink-0">
+                        <img
+                          src={contractor.profileImage}
+                          alt={contractor.name}
+                          className="w-24 h-24 rounded-lg object-cover"
+                        />
                       </div>
-                      <div className="flex items-center gap-2 text-sm text-muted-foreground mb-3">
-                        <MapPin className="h-4 w-4" />
-                        <span>{listing.location}</span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Link href={`/marketplace/${listing.id}`}>
-                          <Button size="sm" className="flex-1">
-                            View Details
+
+                      {/* Main Content */}
+                      <div className="flex-1">
+                        <div className="flex justify-between items-start mb-3">
+                          <div>
+                            <div className="flex items-center gap-2 mb-1">
+                              <h3 className="text-white text-xl font-semibold">{contractor.name}</h3>
+                              {contractor.verified && (
+                                <Badge className="bg-blue-600 hover:bg-blue-700">
+                                  Verified
+                                </Badge>
+                              )}
+                            </div>
+                            
+                            <div className="flex items-center gap-4 text-sm text-gray-400">
+                              <div className="flex items-center gap-1">
+                                <Star className="h-4 w-4 text-yellow-400 fill-current" />
+                                <span className="text-white">{contractor.rating}</span>
+                                <span>({contractor.reviewCount} reviews)</span>
+                              </div>
+                              
+                              <div className="flex items-center gap-1">
+                                <MapPin className="h-4 w-4" />
+                                <span>{contractor.location} • {contractor.distance}</span>
+                              </div>
+                              
+                              <div className="flex items-center gap-1">
+                                <Briefcase className="h-4 w-4" />
+                                <span>{contractor.completedJobs} jobs completed</span>
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="text-right">
+                            <div className="text-orange-400 font-bold text-lg">{contractor.priceRange}</div>
+                            <div className="text-green-400 text-sm">{contractor.availability}</div>
+                          </div>
+                        </div>
+
+                        {/* Specializations */}
+                        <div className="mb-3">
+                          <div className="flex flex-wrap gap-1">
+                            {contractor.specializations.map((spec, index) => (
+                              <Badge key={index} variant="outline" className="text-xs">
+                                {spec}
+                              </Badge>
+                            ))}
+                          </div>
+                        </div>
+
+                        {/* Certifications */}
+                        <div className="mb-4">
+                          <div className="flex flex-wrap gap-1">
+                            {contractor.certifications.map((cert, index) => (
+                              <Badge key={index} className="bg-green-600/20 text-green-400 text-xs">
+                                <Award className="h-3 w-3 mr-1" />
+                                {cert}
+                              </Badge>
+                            ))}
+                          </div>
+                        </div>
+
+                        {/* Response Time */}
+                        <div className="flex items-center gap-4 mb-4">
+                          <div className="flex items-center gap-1 text-gray-400 text-sm">
+                            <Clock className="h-4 w-4" />
+                            <span>Responds {contractor.responseTime}</span>
+                          </div>
+                        </div>
+
+                        {/* Actions */}
+                        <div className="flex gap-3">
+                          <Button className="bg-orange-600 hover:bg-orange-700">
+                            View Profile
                           </Button>
-                        </Link>
-                        <Button size="sm" variant="outline">
-                          <Heart className="h-4 w-4" />
-                        </Button>
+                          <Button variant="outline" className="border-orange-600 text-orange-400 hover:bg-orange-600/20">
+                            Contact
+                          </Button>
+                          <Button variant="outline" className="border-navy-600 text-gray-400 hover:bg-navy-600/50">
+                            Save
+                          </Button>
+                        </div>
                       </div>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            ) : searchResults && searchResults.length === 0 ? (
-              <Card>
-                <CardContent className="p-12 text-center">
-                  <Search className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-                  <h3 className="text-lg font-semibold mb-2">No Results Found</h3>
-                  <p className="text-muted-foreground mb-4">
-                    Try adjusting your search criteria or browse all listings
-                  </p>
-                  <Link href="/marketplace">
-                    <Button>Browse All Listings</Button>
-                  </Link>
-                </CardContent>
-              </Card>
-            ) : (
-              <Card>
-                <CardContent className="p-12 text-center">
-                  <Search className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-                  <h3 className="text-lg font-semibold mb-2">Advanced Marketplace Search</h3>
-                  <p className="text-muted-foreground">
-                    Use the filters on the left to find exactly what you're looking for
-                  </p>
-                </CardContent>
-              </Card>
-            )}
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+
+            {/* Load More */}
+            <div className="text-center mt-8">
+              <Button className="bg-orange-600 hover:bg-orange-700 px-8">
+                Load More Results
+              </Button>
+            </div>
           </div>
         </div>
       </div>
     </div>
   );
-}
+});
+
+export default AdvancedSearch;
