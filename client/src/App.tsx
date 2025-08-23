@@ -21,7 +21,7 @@ import { PageTransitionIndicator } from "@/components/PageTransitionIndicator";
 import MobileCTA from "@/components/mobile-cta";
 import { MobileAppBar } from "@/components/MobileAppBar";
 import { PWAInstallPrompt } from "@/components/PWAInstallPrompt";
-import { MobileGestures } from "@/components/MobileGestures";
+import SimpleMobileGestures from "@/components/SimpleMobileGestures";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useAppLikeEffects } from "@/hooks/useAppLikeEffects";
 import NotFound from "@/pages/not-found";
@@ -200,6 +200,7 @@ const Router = memo(function Router() {
   const isPublicRoute = ['/login', '/register', '/terms', '/privacy', '/cookies', '/compliance'].includes(location);
 
   return (
+    <SimpleMobileGestures>
       <div className="min-h-screen gradient-bg flex flex-col">
         <NextGenNavigation />
         
@@ -471,7 +472,7 @@ const Router = memo(function Router() {
       
       {!isMobile && <LegalFooter />}
     </div>
-    </MobileGestures>
+    </SimpleMobileGestures>
   );
 });
 
