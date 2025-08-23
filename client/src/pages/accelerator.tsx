@@ -160,11 +160,18 @@ export default function Accelerator() {
             {/* Call to Action */}
             <div className="text-center">
               <div className="flex flex-col sm:flex-row gap-4 justify-center mb-6">
-                <Button className="bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 text-white px-10 py-4 text-lg font-semibold shadow-lg transform hover:scale-105 transition-all">
+                <Button 
+                  className="bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 text-white px-10 py-4 text-lg font-semibold shadow-lg transform hover:scale-105 transition-all"
+                  onClick={() => window.location.pathname = '/apply-accelerator'}
+                >
                   <Crown className="h-5 w-5 mr-2" />
                   Apply Now
                 </Button>
-                <Button variant="outline" className="border-purple-600 text-purple-300 hover:bg-purple-800/50 px-10 py-4 text-lg font-semibold">
+                <Button 
+                  variant="outline" 
+                  className="border-purple-600 text-purple-300 hover:bg-purple-800/50 px-10 py-4 text-lg font-semibold"
+                  onClick={() => window.location.pathname = '/schedule-consultation'}
+                >
                   <Calendar className="h-5 w-5 mr-2" />
                   Schedule Consultation
                 </Button>

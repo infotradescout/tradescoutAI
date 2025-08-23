@@ -142,6 +142,20 @@ import ReferralDashboard from './pages/referral-dashboard';
 import EventManagement from './pages/event-management';
 import APIIntegrations from './pages/api-integrations';
 
+// Admin Interactive Features
+import ContractorVerification from './pages/contractor-verification';
+import ContentModeration from './pages/content-moderation';
+import SystemSettings from './pages/system-settings';
+import SupportTickets from './pages/support-tickets';
+
+// Interactive Action Pages
+import ScheduleConsultation from './pages/schedule-consultation';
+import ApplyAccelerator from './pages/apply-accelerator';
+import PlatformAnalytics from './pages/platform-analytics';
+import ManageUsers from './pages/manage-users';
+import PaymentProcessing from './pages/payment-processing';
+import FileManagement from './pages/file-management';
+
 // Legal footer component
 const LegalFooter = memo(function LegalFooter() {
   return (
@@ -394,6 +408,30 @@ const Router = memo(function Router() {
     ComponentToRender = EventManagement;
   } else if (currentPath === '/api-integrations' || currentPath === '/api' || currentPath === '/integrations') {
     ComponentToRender = APIIntegrations;
+  }
+  // Admin Interactive Features
+  else if (currentPath === '/contractor-verification' || currentPath === '/verification') {
+    ComponentToRender = ContractorVerification;
+  } else if (currentPath === '/content-moderation' || currentPath === '/moderation') {
+    ComponentToRender = ContentModeration;
+  } else if (currentPath === '/system-settings' || currentPath === '/settings') {
+    ComponentToRender = SystemSettings;
+  } else if (currentPath === '/support-tickets' || currentPath === '/support') {
+    ComponentToRender = SupportTickets;
+  }
+  // Interactive Action Pages
+  else if (currentPath === '/schedule-consultation' || currentPath === '/consultation') {
+    ComponentToRender = ScheduleConsultation;
+  } else if (currentPath === '/apply-accelerator' || currentPath === '/apply') {
+    ComponentToRender = ApplyAccelerator;
+  } else if (currentPath === '/platform-analytics' || currentPath === '/analytics') {
+    ComponentToRender = PlatformAnalytics;
+  } else if (currentPath === '/manage-users' || currentPath === '/users') {
+    ComponentToRender = ManageUsers;
+  } else if (currentPath === '/payment-processing' || currentPath === '/billing' || currentPath === '/payments') {
+    ComponentToRender = PaymentProcessing;
+  } else if (currentPath === '/file-management' || currentPath === '/files') {
+    ComponentToRender = FileManagement;
   }
   // Legal & Info
   else if (currentPath === '/terms') {
