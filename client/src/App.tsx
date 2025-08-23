@@ -15,6 +15,16 @@ import SimpleFloatingHelp from './components/ui/simple-floating-help';
 import SimpleRouter from './components/SimpleRouter';
 import MobileAppBar from './components/navigation/MobileAppBar';
 
+// Page components
+import FindContractors from './pages/find-contractors';
+import ContractorBoard from './pages/contractor-board';
+import QuoteCalculator from './pages/quote-calculator';
+import DailyDeals from './pages/daily-deals';
+import HelpDemo from './pages/help-demo';
+import TestPage from './pages/test-page';
+import Profile from './pages/profile';
+import AdminDashboard from './pages/admin-dashboard';
+
 // Legal footer component
 const LegalFooter = memo(function LegalFooter() {
   return (
@@ -44,14 +54,25 @@ const Router = memo(function Router() {
   // Simple component selection based on path  
   let ComponentToRender = SimpleLanding;
   
-  // Basic routing logic
+  // Complete routing logic with all components
   if (currentPath === '/home' || currentPath === '/dashboard') {
     ComponentToRender = SimpleHome;
-  }
-  
-  // Simple routing - only using components we have
-  if (currentPath === '/home' || currentPath === '/dashboard') {
-    ComponentToRender = SimpleHome;
+  } else if (currentPath.startsWith('/find-contractors')) {
+    ComponentToRender = FindContractors;
+  } else if (currentPath.startsWith('/contractors')) {
+    ComponentToRender = ContractorBoard;
+  } else if (currentPath.startsWith('/quote-calculator')) {
+    ComponentToRender = QuoteCalculator;
+  } else if (currentPath.startsWith('/daily-deals')) {
+    ComponentToRender = DailyDeals;
+  } else if (currentPath.startsWith('/help-demo')) {
+    ComponentToRender = HelpDemo;
+  } else if (currentPath.startsWith('/test-page')) {
+    ComponentToRender = TestPage;
+  } else if (currentPath.startsWith('/profile')) {
+    ComponentToRender = Profile;
+  } else if (currentPath.startsWith('/admin')) {
+    ComponentToRender = AdminDashboard;
   } else {
     // Default to landing page for all other routes
     ComponentToRender = SimpleLanding;
