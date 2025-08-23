@@ -27,25 +27,30 @@ const SimpleNavigation = memo(function SimpleNavigation() {
             </a>
           </div>
 
-          {/* Premium Navigation */}
-          <div className="hidden lg:flex items-center space-x-8">
-            <a href="/find-contractors" className="group relative px-4 py-2 text-gray-300 hover:text-white transition-all duration-300">
+          {/* Premium Navigation - Full TradeScout Features */}
+          <div className="hidden lg:flex items-center space-x-6">
+            <a href="/find-contractors" className="group relative px-3 py-2 text-gray-300 hover:text-white transition-all duration-300">
               <span className="relative z-10 font-medium">Find Contractors</span>
               <div className="absolute inset-0 bg-white/5 rounded-lg opacity-0 group-hover:opacity-100 transition-all duration-300"></div>
               <div className="absolute bottom-0 left-1/2 w-0 h-0.5 bg-gradient-to-r from-orange-500 to-orange-600 group-hover:w-full group-hover:left-0 transition-all duration-300"></div>
             </a>
-            <a href="/contractors" className="group relative px-4 py-2 text-gray-300 hover:text-white transition-all duration-300">
-              <span className="relative z-10 font-medium">Dashboard</span>
+            <a href="/worker-marketplace" className="group relative px-3 py-2 text-gray-300 hover:text-white transition-all duration-300">
+              <span className="relative z-10 font-medium">Helpers</span>
               <div className="absolute inset-0 bg-white/5 rounded-lg opacity-0 group-hover:opacity-100 transition-all duration-300"></div>
               <div className="absolute bottom-0 left-1/2 w-0 h-0.5 bg-gradient-to-r from-orange-500 to-orange-600 group-hover:w-full group-hover:left-0 transition-all duration-300"></div>
             </a>
-            <a href="/quote-calculator" className="group relative px-4 py-2 text-gray-300 hover:text-white transition-all duration-300">
-              <span className="relative z-10 font-medium">Pricing</span>
+            <a href="/daily-deals" className="group relative px-3 py-2 text-gray-300 hover:text-white transition-all duration-300">
+              <span className="relative z-10 font-medium">Deals</span>
               <div className="absolute inset-0 bg-white/5 rounded-lg opacity-0 group-hover:opacity-100 transition-all duration-300"></div>
               <div className="absolute bottom-0 left-1/2 w-0 h-0.5 bg-gradient-to-r from-orange-500 to-orange-600 group-hover:w-full group-hover:left-0 transition-all duration-300"></div>
             </a>
-            <a href="/daily-deals" className="group relative px-4 py-2 text-gray-300 hover:text-white transition-all duration-300">
-              <span className="relative z-10 font-medium">Exclusive Deals</span>
+            <a href="/groups" className="group relative px-3 py-2 text-gray-300 hover:text-white transition-all duration-300">
+              <span className="relative z-10 font-medium">Groups</span>
+              <div className="absolute inset-0 bg-white/5 rounded-lg opacity-0 group-hover:opacity-100 transition-all duration-300"></div>
+              <div className="absolute bottom-0 left-1/2 w-0 h-0.5 bg-gradient-to-r from-orange-500 to-orange-600 group-hover:w-full group-hover:left-0 transition-all duration-300"></div>
+            </a>
+            <a href="/county-hub" className="group relative px-3 py-2 text-gray-300 hover:text-white transition-all duration-300">
+              <span className="relative z-10 font-medium">Community</span>
               <div className="absolute inset-0 bg-white/5 rounded-lg opacity-0 group-hover:opacity-100 transition-all duration-300"></div>
               <div className="absolute bottom-0 left-1/2 w-0 h-0.5 bg-gradient-to-r from-orange-500 to-orange-600 group-hover:w-full group-hover:left-0 transition-all duration-300"></div>
             </a>
