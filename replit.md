@@ -1,6 +1,6 @@
 # Overview
 
-TradeScout is a comprehensive social platform connecting homeowners with contractors, featuring multi-role user accounts, county-centric community hubs, and affiliate-driven growth. The platform supports universal signup with role switching, verification systems, and includes plans for HOA management, charitable giving (Mike Rowe Works Foundation), and a complete marketplace ecosystem. Current implementation includes master admin controls, Facebook authentication, and foundational infrastructure for the full specification roadmap.
+TradeScout is a comprehensive social platform connecting homeowners with contractors, featuring multi-role user accounts, county-centric community hubs, and affiliate-driven growth. The platform supports universal signup with role switching, verification systems, and includes plans for HOA management, charitable giving (Mike Rowe Works Foundation), and a complete marketplace ecosystem. Current implementation includes master admin controls, Facebook authentication, and foundational infrastructure for the LOCKED roadmap specification (see ROADMAP_COMMITMENT.md).
 
 # User Preferences
 
@@ -8,13 +8,32 @@ Preferred communication style: Simple, everyday language.
 Marketplace language preference: Avoid explicit "investment" or "asset" terminology - let users naturally discover the value-building potential through subtle language and quality indicators.
 Lead generation preference: Never reference "getting leads" or "lead generation" - focus on showcasing contractor businesses, building reputation, and connecting with homeowners naturally.
 
-# Full Specification Alignment
+# Full Specification Alignment - LOCKED ROADMAP
+
+**IMMUTABLE SPECIFICATION**: The TradeScout roadmap stored in TRADESCOUT_FULL_SPECIFICATION.md is the permanent, unchanging specification for this platform. No deviations without explicit user authorization.
 
 **Current Status**: 70% aligned with full TradeScout specification
-**Full Specification**: Stored in TRADESCOUT_FULL_SPECIFICATION.md
+**Full Specification**: Stored in TRADESCOUT_FULL_SPECIFICATION.md (LOCKED)
 **Alignment Analysis**: Detailed in ALIGNMENT_ANALYSIS.md
 **Key Missing Features**: Affiliate system, HOA management, advanced marketplace features, charitable engine
 **Implementation Priority**: Phase 1 focuses on completing role alignment and basic affiliate system
+
+**ROADMAP COMMITMENT**:
+- Phase 1: Contractors, Helpers, daily deal feeds
+- Phase 2: Realtors + Dealers with boosts
+- Phase 3: Groups + in-app social
+- Phase 4: HOA suite (finances, vendors, voting)
+- Phase 5: Nationwide rollout
+- Phase 6: Foundation + Coffee scaling → impact flywheel
+
+**CORE PRINCIPLES (NON-NEGOTIABLE)**:
+- Universal signup with multi-role support
+- County-centric organization (3,000+ hubs)
+- 10% profit donation (50% Mike Rowe Works Foundation, 50% local communities)
+- Every user is an affiliate (10% commission standard)
+- Verification-only feedback system
+- No profile boosting for contractors (only deal promotions)
+- Community-first advertising approach
 
 # System Architecture
 
