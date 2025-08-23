@@ -1,0 +1,325 @@
+client:495 [vite] connecting...
+client:536 WebSocket connection to 'wss://bb99ef68-07f3-4ff6-8777-53424138d9bd-00-1pdusyubsrg2x.spock.replit.dev/?token=QQd55Ix3qhob' failed: 
+setupWebSocket @ client:536
+(anonymous) @ client:531
+client:536 Uncaught (in promise) SyntaxError: Failed to construct 'WebSocket': The URL 'wss://localhost:undefined/?token=QQd55Ix3qhob' is invalid.
+    at setupWebSocket (client:536:19)
+    at fallback (client:509:16)
+    at WebSocket.<anonymous> (client:555:7)
+setupWebSocket @ client:536
+fallback @ client:509
+(anonymous) @ client:555
+useAuth.ts:18 Warning: Invalid hook call. Hooks can only be called inside of the body of a function component. This could happen for one of the following reasons:
+1. You might have mismatching versions of React and the renderer (such as React DOM)
+2. You might be breaking the Rules of Hooks
+3. You might have more than one copy of React in the same app
+See https://reactjs.org/link/invalid-hook-call for tips about how to debug and fix this problem. Error Component Stack
+    at Router2 (App.tsx:153:48)
+    at QueryClientProvider (@tanstack_react-query.js?v=b6f1e865:2805:3)
+    at ErrorBoundary (error-boundary.tsx:18:5)
+    at App2 (<anonymous>)
+overrideMethod @ hook.js:608
+printWarning @ chunk-QCHXOAYK.js?v=7be30d2e:136
+error @ chunk-QCHXOAYK.js?v=7be30d2e:120
+resolveDispatcher @ chunk-QCHXOAYK.js?v=7be30d2e:1045
+useCallback @ chunk-QCHXOAYK.js?v=7be30d2e:1089
+useAuth @ useAuth.ts:18
+Router2 @ App.tsx:153
+renderWithHooks @ chunk-RPCDYKBN.js?v=b6f1e865:11548
+updateFunctionComponent @ chunk-RPCDYKBN.js?v=b6f1e865:14582
+updateSimpleMemoComponent @ chunk-RPCDYKBN.js?v=b6f1e865:14463
+updateMemoComponent @ chunk-RPCDYKBN.js?v=b6f1e865:14366
+beginWork @ chunk-RPCDYKBN.js?v=b6f1e865:15977
+beginWork$1 @ chunk-RPCDYKBN.js?v=b6f1e865:19753
+performUnitOfWork @ chunk-RPCDYKBN.js?v=b6f1e865:19198
+workLoopSync @ chunk-RPCDYKBN.js?v=b6f1e865:19137
+renderRootSync @ chunk-RPCDYKBN.js?v=b6f1e865:19116
+performConcurrentWorkOnRoot @ chunk-RPCDYKBN.js?v=b6f1e865:18678
+workLoop @ chunk-RPCDYKBN.js?v=b6f1e865:197
+flushWork @ chunk-RPCDYKBN.js?v=b6f1e865:176
+performWorkUntilDeadline @ chunk-RPCDYKBN.js?v=b6f1e865:384
+useAuth.ts:18 Warning: Invalid hook call. Hooks can only be called inside of the body of a function component. This could happen for one of the following reasons:
+1. You might have mismatching versions of React and the renderer (such as React DOM)
+2. You might be breaking the Rules of Hooks
+3. You might have more than one copy of React in the same app
+See https://reactjs.org/link/invalid-hook-call for tips about how to debug and fix this problem. Error Component Stack
+    at Router2 (App.tsx:153:48)
+    at QueryClientProvider (@tanstack_react-query.js?v=b6f1e865:2805:3)
+    at ErrorBoundary (error-boundary.tsx:18:5)
+    at App2 (<anonymous>)
+overrideMethod @ hook.js:608
+printWarning @ chunk-QCHXOAYK.js?v=7be30d2e:136
+error @ chunk-QCHXOAYK.js?v=7be30d2e:120
+resolveDispatcher @ chunk-QCHXOAYK.js?v=7be30d2e:1045
+useCallback @ chunk-QCHXOAYK.js?v=7be30d2e:1089
+useAuth @ useAuth.ts:18
+Router2 @ App.tsx:153
+renderWithHooks @ chunk-RPCDYKBN.js?v=b6f1e865:11548
+updateFunctionComponent @ chunk-RPCDYKBN.js?v=b6f1e865:14582
+updateSimpleMemoComponent @ chunk-RPCDYKBN.js?v=b6f1e865:14463
+updateMemoComponent @ chunk-RPCDYKBN.js?v=b6f1e865:14366
+beginWork @ chunk-RPCDYKBN.js?v=b6f1e865:15977
+callCallback2 @ chunk-RPCDYKBN.js?v=b6f1e865:3674
+invokeGuardedCallbackDev @ chunk-RPCDYKBN.js?v=b6f1e865:3699
+invokeGuardedCallback @ chunk-RPCDYKBN.js?v=b6f1e865:3733
+beginWork$1 @ chunk-RPCDYKBN.js?v=b6f1e865:19765
+performUnitOfWork @ chunk-RPCDYKBN.js?v=b6f1e865:19198
+workLoopSync @ chunk-RPCDYKBN.js?v=b6f1e865:19137
+renderRootSync @ chunk-RPCDYKBN.js?v=b6f1e865:19116
+performConcurrentWorkOnRoot @ chunk-RPCDYKBN.js?v=b6f1e865:18678
+workLoop @ chunk-RPCDYKBN.js?v=b6f1e865:197
+flushWork @ chunk-RPCDYKBN.js?v=b6f1e865:176
+performWorkUntilDeadline @ chunk-RPCDYKBN.js?v=b6f1e865:384
+main.tsx:8 Global error: TypeError: Cannot read properties of null (reading 'useCallback')
+    at useCallback (chunk-QCHXOAYK.js?v=7be30d2e:1090:29)
+    at useAuth (useAuth.ts:18:21)
+    at Router2 (App.tsx:153:48)
+    at renderWithHooks (chunk-RPCDYKBN.js?v=b6f1e865:11548:26)
+    at updateFunctionComponent (chunk-RPCDYKBN.js?v=b6f1e865:14582:28)
+    at updateSimpleMemoComponent (chunk-RPCDYKBN.js?v=b6f1e865:14463:18)
+    at updateMemoComponent (chunk-RPCDYKBN.js?v=b6f1e865:14366:22)
+    at beginWork (chunk-RPCDYKBN.js?v=b6f1e865:15977:22)
+    at HTMLUnknownElement.callCallback2 (chunk-RPCDYKBN.js?v=b6f1e865:3674:22)
+    at Object.invokeGuardedCallbackDev (chunk-RPCDYKBN.js?v=b6f1e865:3699:24) Error Component Stack
+    at Router2 (App.tsx:153:48)
+    at QueryClientProvider (@tanstack_react-query.js?v=b6f1e865:2805:3)
+    at ErrorBoundary (error-boundary.tsx:18:5)
+    at App2 (<anonymous>)
+overrideMethod @ hook.js:608
+(anonymous) @ main.tsx:8
+invokeGuardedCallbackDev @ chunk-RPCDYKBN.js?v=b6f1e865:3699
+invokeGuardedCallback @ chunk-RPCDYKBN.js?v=b6f1e865:3733
+beginWork$1 @ chunk-RPCDYKBN.js?v=b6f1e865:19765
+performUnitOfWork @ chunk-RPCDYKBN.js?v=b6f1e865:19198
+workLoopSync @ chunk-RPCDYKBN.js?v=b6f1e865:19137
+renderRootSync @ chunk-RPCDYKBN.js?v=b6f1e865:19116
+performConcurrentWorkOnRoot @ chunk-RPCDYKBN.js?v=b6f1e865:18678
+workLoop @ chunk-RPCDYKBN.js?v=b6f1e865:197
+flushWork @ chunk-RPCDYKBN.js?v=b6f1e865:176
+performWorkUntilDeadline @ chunk-RPCDYKBN.js?v=b6f1e865:384
+chunk-QCHXOAYK.js?v=7be30d2e:1090 Uncaught TypeError: Cannot read properties of null (reading 'useCallback')
+    at useCallback (chunk-QCHXOAYK.js?v=7be30d2e:1090:29)
+    at useAuth (useAuth.ts:18:21)
+    at Router2 (App.tsx:153:48)
+    at renderWithHooks (chunk-RPCDYKBN.js?v=b6f1e865:11548:26)
+    at updateFunctionComponent (chunk-RPCDYKBN.js?v=b6f1e865:14582:28)
+    at updateSimpleMemoComponent (chunk-RPCDYKBN.js?v=b6f1e865:14463:18)
+    at updateMemoComponent (chunk-RPCDYKBN.js?v=b6f1e865:14366:22)
+    at beginWork (chunk-RPCDYKBN.js?v=b6f1e865:15977:22)
+    at HTMLUnknownElement.callCallback2 (chunk-RPCDYKBN.js?v=b6f1e865:3674:22)
+    at Object.invokeGuardedCallbackDev (chunk-RPCDYKBN.js?v=b6f1e865:3699:24)
+useCallback @ chunk-QCHXOAYK.js?v=7be30d2e:1090
+useAuth @ useAuth.ts:18
+Router2 @ App.tsx:153
+renderWithHooks @ chunk-RPCDYKBN.js?v=b6f1e865:11548
+updateFunctionComponent @ chunk-RPCDYKBN.js?v=b6f1e865:14582
+updateSimpleMemoComponent @ chunk-RPCDYKBN.js?v=b6f1e865:14463
+updateMemoComponent @ chunk-RPCDYKBN.js?v=b6f1e865:14366
+beginWork @ chunk-RPCDYKBN.js?v=b6f1e865:15977
+callCallback2 @ chunk-RPCDYKBN.js?v=b6f1e865:3674
+invokeGuardedCallbackDev @ chunk-RPCDYKBN.js?v=b6f1e865:3699
+invokeGuardedCallback @ chunk-RPCDYKBN.js?v=b6f1e865:3733
+beginWork$1 @ chunk-RPCDYKBN.js?v=b6f1e865:19765
+performUnitOfWork @ chunk-RPCDYKBN.js?v=b6f1e865:19198
+workLoopSync @ chunk-RPCDYKBN.js?v=b6f1e865:19137
+renderRootSync @ chunk-RPCDYKBN.js?v=b6f1e865:19116
+performConcurrentWorkOnRoot @ chunk-RPCDYKBN.js?v=b6f1e865:18678
+workLoop @ chunk-RPCDYKBN.js?v=b6f1e865:197
+flushWork @ chunk-RPCDYKBN.js?v=b6f1e865:176
+performWorkUntilDeadline @ chunk-RPCDYKBN.js?v=b6f1e865:384
+useAuth.ts:18 Warning: Invalid hook call. Hooks can only be called inside of the body of a function component. This could happen for one of the following reasons:
+1. You might have mismatching versions of React and the renderer (such as React DOM)
+2. You might be breaking the Rules of Hooks
+3. You might have more than one copy of React in the same app
+See https://reactjs.org/link/invalid-hook-call for tips about how to debug and fix this problem. Error Component Stack
+    at Router2 (App.tsx:153:48)
+    at QueryClientProvider (@tanstack_react-query.js?v=b6f1e865:2805:3)
+    at ErrorBoundary (error-boundary.tsx:18:5)
+    at App2 (<anonymous>)
+overrideMethod @ hook.js:608
+printWarning @ chunk-QCHXOAYK.js?v=7be30d2e:136
+error @ chunk-QCHXOAYK.js?v=7be30d2e:120
+resolveDispatcher @ chunk-QCHXOAYK.js?v=7be30d2e:1045
+useCallback @ chunk-QCHXOAYK.js?v=7be30d2e:1089
+useAuth @ useAuth.ts:18
+Router2 @ App.tsx:153
+renderWithHooks @ chunk-RPCDYKBN.js?v=b6f1e865:11548
+updateFunctionComponent @ chunk-RPCDYKBN.js?v=b6f1e865:14582
+updateSimpleMemoComponent @ chunk-RPCDYKBN.js?v=b6f1e865:14463
+updateMemoComponent @ chunk-RPCDYKBN.js?v=b6f1e865:14366
+beginWork @ chunk-RPCDYKBN.js?v=b6f1e865:15977
+beginWork$1 @ chunk-RPCDYKBN.js?v=b6f1e865:19753
+performUnitOfWork @ chunk-RPCDYKBN.js?v=b6f1e865:19198
+workLoopSync @ chunk-RPCDYKBN.js?v=b6f1e865:19137
+renderRootSync @ chunk-RPCDYKBN.js?v=b6f1e865:19116
+recoverFromConcurrentError @ chunk-RPCDYKBN.js?v=b6f1e865:18736
+performConcurrentWorkOnRoot @ chunk-RPCDYKBN.js?v=b6f1e865:18684
+workLoop @ chunk-RPCDYKBN.js?v=b6f1e865:197
+flushWork @ chunk-RPCDYKBN.js?v=b6f1e865:176
+performWorkUntilDeadline @ chunk-RPCDYKBN.js?v=b6f1e865:384
+useAuth.ts:18 Warning: Invalid hook call. Hooks can only be called inside of the body of a function component. This could happen for one of the following reasons:
+1. You might have mismatching versions of React and the renderer (such as React DOM)
+2. You might be breaking the Rules of Hooks
+3. You might have more than one copy of React in the same app
+See https://reactjs.org/link/invalid-hook-call for tips about how to debug and fix this problem. Error Component Stack
+    at Router2 (App.tsx:153:48)
+    at QueryClientProvider (@tanstack_react-query.js?v=b6f1e865:2805:3)
+    at ErrorBoundary (error-boundary.tsx:18:5)
+    at App2 (<anonymous>)
+overrideMethod @ hook.js:608
+printWarning @ chunk-QCHXOAYK.js?v=7be30d2e:136
+error @ chunk-QCHXOAYK.js?v=7be30d2e:120
+resolveDispatcher @ chunk-QCHXOAYK.js?v=7be30d2e:1045
+useCallback @ chunk-QCHXOAYK.js?v=7be30d2e:1089
+useAuth @ useAuth.ts:18
+Router2 @ App.tsx:153
+renderWithHooks @ chunk-RPCDYKBN.js?v=b6f1e865:11548
+updateFunctionComponent @ chunk-RPCDYKBN.js?v=b6f1e865:14582
+updateSimpleMemoComponent @ chunk-RPCDYKBN.js?v=b6f1e865:14463
+updateMemoComponent @ chunk-RPCDYKBN.js?v=b6f1e865:14366
+beginWork @ chunk-RPCDYKBN.js?v=b6f1e865:15977
+callCallback2 @ chunk-RPCDYKBN.js?v=b6f1e865:3674
+invokeGuardedCallbackDev @ chunk-RPCDYKBN.js?v=b6f1e865:3699
+invokeGuardedCallback @ chunk-RPCDYKBN.js?v=b6f1e865:3733
+beginWork$1 @ chunk-RPCDYKBN.js?v=b6f1e865:19765
+performUnitOfWork @ chunk-RPCDYKBN.js?v=b6f1e865:19198
+workLoopSync @ chunk-RPCDYKBN.js?v=b6f1e865:19137
+renderRootSync @ chunk-RPCDYKBN.js?v=b6f1e865:19116
+recoverFromConcurrentError @ chunk-RPCDYKBN.js?v=b6f1e865:18736
+performConcurrentWorkOnRoot @ chunk-RPCDYKBN.js?v=b6f1e865:18684
+workLoop @ chunk-RPCDYKBN.js?v=b6f1e865:197
+flushWork @ chunk-RPCDYKBN.js?v=b6f1e865:176
+performWorkUntilDeadline @ chunk-RPCDYKBN.js?v=b6f1e865:384
+main.tsx:8 Global error: TypeError: Cannot read properties of null (reading 'useCallback')
+    at useCallback (chunk-QCHXOAYK.js?v=7be30d2e:1090:29)
+    at useAuth (useAuth.ts:18:21)
+    at Router2 (App.tsx:153:48)
+    at renderWithHooks (chunk-RPCDYKBN.js?v=b6f1e865:11548:26)
+    at updateFunctionComponent (chunk-RPCDYKBN.js?v=b6f1e865:14582:28)
+    at updateSimpleMemoComponent (chunk-RPCDYKBN.js?v=b6f1e865:14463:18)
+    at updateMemoComponent (chunk-RPCDYKBN.js?v=b6f1e865:14366:22)
+    at beginWork (chunk-RPCDYKBN.js?v=b6f1e865:15977:22)
+    at HTMLUnknownElement.callCallback2 (chunk-RPCDYKBN.js?v=b6f1e865:3674:22)
+    at Object.invokeGuardedCallbackDev (chunk-RPCDYKBN.js?v=b6f1e865:3699:24) Error Component Stack
+    at Router2 (App.tsx:153:48)
+    at QueryClientProvider (@tanstack_react-query.js?v=b6f1e865:2805:3)
+    at ErrorBoundary (error-boundary.tsx:18:5)
+    at App2 (<anonymous>)
+overrideMethod @ hook.js:608
+(anonymous) @ main.tsx:8
+invokeGuardedCallbackDev @ chunk-RPCDYKBN.js?v=b6f1e865:3699
+invokeGuardedCallback @ chunk-RPCDYKBN.js?v=b6f1e865:3733
+beginWork$1 @ chunk-RPCDYKBN.js?v=b6f1e865:19765
+performUnitOfWork @ chunk-RPCDYKBN.js?v=b6f1e865:19198
+workLoopSync @ chunk-RPCDYKBN.js?v=b6f1e865:19137
+renderRootSync @ chunk-RPCDYKBN.js?v=b6f1e865:19116
+recoverFromConcurrentError @ chunk-RPCDYKBN.js?v=b6f1e865:18736
+performConcurrentWorkOnRoot @ chunk-RPCDYKBN.js?v=b6f1e865:18684
+workLoop @ chunk-RPCDYKBN.js?v=b6f1e865:197
+flushWork @ chunk-RPCDYKBN.js?v=b6f1e865:176
+performWorkUntilDeadline @ chunk-RPCDYKBN.js?v=b6f1e865:384
+chunk-QCHXOAYK.js?v=7be30d2e:1090 Uncaught TypeError: Cannot read properties of null (reading 'useCallback')
+    at useCallback (chunk-QCHXOAYK.js?v=7be30d2e:1090:29)
+    at useAuth (useAuth.ts:18:21)
+    at Router2 (App.tsx:153:48)
+    at renderWithHooks (chunk-RPCDYKBN.js?v=b6f1e865:11548:26)
+    at updateFunctionComponent (chunk-RPCDYKBN.js?v=b6f1e865:14582:28)
+    at updateSimpleMemoComponent (chunk-RPCDYKBN.js?v=b6f1e865:14463:18)
+    at updateMemoComponent (chunk-RPCDYKBN.js?v=b6f1e865:14366:22)
+    at beginWork (chunk-RPCDYKBN.js?v=b6f1e865:15977:22)
+    at HTMLUnknownElement.callCallback2 (chunk-RPCDYKBN.js?v=b6f1e865:3674:22)
+    at Object.invokeGuardedCallbackDev (chunk-RPCDYKBN.js?v=b6f1e865:3699:24)
+useCallback @ chunk-QCHXOAYK.js?v=7be30d2e:1090
+useAuth @ useAuth.ts:18
+Router2 @ App.tsx:153
+renderWithHooks @ chunk-RPCDYKBN.js?v=b6f1e865:11548
+updateFunctionComponent @ chunk-RPCDYKBN.js?v=b6f1e865:14582
+updateSimpleMemoComponent @ chunk-RPCDYKBN.js?v=b6f1e865:14463
+updateMemoComponent @ chunk-RPCDYKBN.js?v=b6f1e865:14366
+beginWork @ chunk-RPCDYKBN.js?v=b6f1e865:15977
+callCallback2 @ chunk-RPCDYKBN.js?v=b6f1e865:3674
+invokeGuardedCallbackDev @ chunk-RPCDYKBN.js?v=b6f1e865:3699
+invokeGuardedCallback @ chunk-RPCDYKBN.js?v=b6f1e865:3733
+beginWork$1 @ chunk-RPCDYKBN.js?v=b6f1e865:19765
+performUnitOfWork @ chunk-RPCDYKBN.js?v=b6f1e865:19198
+workLoopSync @ chunk-RPCDYKBN.js?v=b6f1e865:19137
+renderRootSync @ chunk-RPCDYKBN.js?v=b6f1e865:19116
+recoverFromConcurrentError @ chunk-RPCDYKBN.js?v=b6f1e865:18736
+performConcurrentWorkOnRoot @ chunk-RPCDYKBN.js?v=b6f1e865:18684
+workLoop @ chunk-RPCDYKBN.js?v=b6f1e865:197
+flushWork @ chunk-RPCDYKBN.js?v=b6f1e865:176
+performWorkUntilDeadline @ chunk-RPCDYKBN.js?v=b6f1e865:384
+hook.js:608 The above error occurred in the <Router2> component:
+
+    at Router2 (https://bb99ef68-07f3-4ff6-8777-53424138d9bd-00-1pdusyubsrg2x.spock.replit.dev/src/App.tsx?v=nbtWPFJxb73MJQOQ5AP_z:203:48)
+    at QueryClientProvider (https://bb99ef68-07f3-4ff6-8777-53424138d9bd-00-1pdusyubsrg2x.spock.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/@tanstack_react-query.js?v=b6f1e865:2805:3)
+    at ErrorBoundary (https://bb99ef68-07f3-4ff6-8777-53424138d9bd-00-1pdusyubsrg2x.spock.replit.dev/src/components/ui/error-boundary.tsx:7:5)
+    at App2
+
+React will try to recreate this component tree from scratch using the error boundary you provided, ErrorBoundary.
+overrideMethod @ hook.js:608
+logCapturedError @ chunk-RPCDYKBN.js?v=b6f1e865:14032
+callback @ chunk-RPCDYKBN.js?v=b6f1e865:14078
+callCallback @ chunk-RPCDYKBN.js?v=b6f1e865:11248
+commitUpdateQueue @ chunk-RPCDYKBN.js?v=b6f1e865:11265
+commitLayoutEffectOnFiber @ chunk-RPCDYKBN.js?v=b6f1e865:17075
+commitLayoutMountEffects_complete @ chunk-RPCDYKBN.js?v=b6f1e865:17980
+commitLayoutEffects_begin @ chunk-RPCDYKBN.js?v=b6f1e865:17969
+commitLayoutEffects @ chunk-RPCDYKBN.js?v=b6f1e865:17920
+commitRootImpl @ chunk-RPCDYKBN.js?v=b6f1e865:19353
+commitRoot @ chunk-RPCDYKBN.js?v=b6f1e865:19277
+finishConcurrentRender @ chunk-RPCDYKBN.js?v=b6f1e865:18760
+performConcurrentWorkOnRoot @ chunk-RPCDYKBN.js?v=b6f1e865:18718
+workLoop @ chunk-RPCDYKBN.js?v=b6f1e865:197
+flushWork @ chunk-RPCDYKBN.js?v=b6f1e865:176
+performWorkUntilDeadline @ chunk-RPCDYKBN.js?v=b6f1e865:384
+error-boundary.tsx:29 Error boundary caught an error: TypeError: Cannot read properties of null (reading 'useCallback')
+    at useCallback (chunk-QCHXOAYK.js?v=7be30d2e:1090:29)
+    at useAuth (useAuth.ts:18:21)
+    at Router2 (App.tsx:153:48)
+    at renderWithHooks (chunk-RPCDYKBN.js?v=b6f1e865:11548:26)
+    at updateFunctionComponent (chunk-RPCDYKBN.js?v=b6f1e865:14582:28)
+    at updateSimpleMemoComponent (chunk-RPCDYKBN.js?v=b6f1e865:14463:18)
+    at updateMemoComponent (chunk-RPCDYKBN.js?v=b6f1e865:14366:22)
+    at beginWork (chunk-RPCDYKBN.js?v=b6f1e865:15977:22)
+    at beginWork$1 (chunk-RPCDYKBN.js?v=b6f1e865:19753:22)
+    at performUnitOfWork (chunk-RPCDYKBN.js?v=b6f1e865:19198:20) {componentStack: '\n    at Router2 (https://bb99ef68-07f3-4ff6-8777-5…components/ui/error-boundary.tsx:7:5)\n    at App2'} Error Component Stack
+    at ErrorBoundary (error-boundary.tsx:18:5)
+    at App2 (<anonymous>)
+overrideMethod @ hook.js:608
+componentDidCatch @ error-boundary.tsx:29
+callback @ chunk-RPCDYKBN.js?v=b6f1e865:14084
+callCallback @ chunk-RPCDYKBN.js?v=b6f1e865:11248
+commitUpdateQueue @ chunk-RPCDYKBN.js?v=b6f1e865:11265
+commitLayoutEffectOnFiber @ chunk-RPCDYKBN.js?v=b6f1e865:17075
+commitLayoutMountEffects_complete @ chunk-RPCDYKBN.js?v=b6f1e865:17980
+commitLayoutEffects_begin @ chunk-RPCDYKBN.js?v=b6f1e865:17969
+commitLayoutEffects @ chunk-RPCDYKBN.js?v=b6f1e865:17920
+commitRootImpl @ chunk-RPCDYKBN.js?v=b6f1e865:19353
+commitRoot @ chunk-RPCDYKBN.js?v=b6f1e865:19277
+finishConcurrentRender @ chunk-RPCDYKBN.js?v=b6f1e865:18760
+performConcurrentWorkOnRoot @ chunk-RPCDYKBN.js?v=b6f1e865:18718
+workLoop @ chunk-RPCDYKBN.js?v=b6f1e865:197
+flushWork @ chunk-RPCDYKBN.js?v=b6f1e865:176
+performWorkUntilDeadline @ chunk-RPCDYKBN.js?v=b6f1e865:384
+error-boundary.tsx:30 Component stack: 
+    at Router2 (https://bb99ef68-07f3-4ff6-8777-53424138d9bd-00-1pdusyubsrg2x.spock.replit.dev/src/App.tsx?v=nbtWPFJxb73MJQOQ5AP_z:203:48)
+    at QueryClientProvider (https://bb99ef68-07f3-4ff6-8777-53424138d9bd-00-1pdusyubsrg2x.spock.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/@tanstack_react-query.js?v=b6f1e865:2805:3)
+    at ErrorBoundary (https://bb99ef68-07f3-4ff6-8777-53424138d9bd-00-1pdusyubsrg2x.spock.replit.dev/src/components/ui/error-boundary.tsx:7:5)
+    at App2
+overrideMethod @ hook.js:608
+componentDidCatch @ error-boundary.tsx:30
+callback @ chunk-RPCDYKBN.js?v=b6f1e865:14084
+callCallback @ chunk-RPCDYKBN.js?v=b6f1e865:11248
+commitUpdateQueue @ chunk-RPCDYKBN.js?v=b6f1e865:11265
+commitLayoutEffectOnFiber @ chunk-RPCDYKBN.js?v=b6f1e865:17075
+commitLayoutMountEffects_complete @ chunk-RPCDYKBN.js?v=b6f1e865:17980
+commitLayoutEffects_begin @ chunk-RPCDYKBN.js?v=b6f1e865:17969
+commitLayoutEffects @ chunk-RPCDYKBN.js?v=b6f1e865:17920
+commitRootImpl @ chunk-RPCDYKBN.js?v=b6f1e865:19353
+commitRoot @ chunk-RPCDYKBN.js?v=b6f1e865:19277
+finishConcurrentRender @ chunk-RPCDYKBN.js?v=b6f1e865:18760
+performConcurrentWorkOnRoot @ chunk-RPCDYKBN.js?v=b6f1e865:18718
+workLoop @ chunk-RPCDYKBN.js?v=b6f1e865:197
+flushWork @ chunk-RPCDYKBN.js?v=b6f1e865:176
+performWorkUntilDeadline @ chunk-RPCDYKBN.js?v=b6f1e865:384
