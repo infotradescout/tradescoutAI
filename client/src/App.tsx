@@ -3,6 +3,7 @@ import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { SimpleToaster } from "@/components/ui/simple-toaster";
 import { SimpleFloatingHelp } from "@/components/simple-floating-help";
+import SimpleRouter from "@/components/SimpleRouter";
 
 
 
@@ -13,7 +14,7 @@ import { ErrorBoundary } from "@/components/ui/error-boundary";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import React, { lazy, useEffect, memo, Suspense } from "react";
 
-import { NextGenNavigation } from "@/components/layout/NextGenNavigation";
+import SimpleNavigation from "@/components/layout/SimpleNavigation";
 import { useGlobalSwipeNavigation } from "@/hooks/useSwipeNavigation";
 import { SwipeIndicator } from "@/components/SwipeIndicator";
 import { KeyboardNavigationHint } from "@/components/KeyboardNavigationHint";
@@ -202,7 +203,7 @@ const Router = memo(function Router() {
   return (
     <SimpleMobileGestures>
       <div className="min-h-screen gradient-bg flex flex-col">
-        <NextGenNavigation />
+        <SimpleNavigation />
         
         <main className="flex-1 relative">
         <Switch>
@@ -481,7 +482,9 @@ const App = memo(function App() {
     <ErrorBoundary fallback={<div className="min-h-screen gradient-bg flex items-center justify-center text-white">Loading...</div>}>
       <QueryClientProvider client={queryClient}>
         <SimpleToaster />
-        <Router />
+        <SimpleRouter>
+          <Router />
+        </SimpleRouter>
         <SimpleFloatingHelp />
       </QueryClientProvider>
     </ErrorBoundary>

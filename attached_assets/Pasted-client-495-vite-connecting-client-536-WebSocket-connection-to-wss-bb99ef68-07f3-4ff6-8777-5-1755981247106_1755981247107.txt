@@ -1,0 +1,910 @@
+client:495 [vite] connecting...
+client:536 WebSocket connection to 'wss://bb99ef68-07f3-4ff6-8777-53424138d9bd-00-1pdusyubsrg2x.spock.replit.dev/?token=QQd55Ix3qhob' failed: 
+setupWebSocket @ client:536
+client:536 Uncaught (in promise) SyntaxError: Failed to construct 'WebSocket': The URL 'wss://localhost:undefined/?token=QQd55Ix3qhob' is invalid.
+    at setupWebSocket (client:536:19)
+    at fallback (client:509:16)
+    at WebSocket.<anonymous> (client:555:7)
+hook.js:608 Warning: Invalid hook call. Hooks can only be called inside of the body of a function component. This could happen for one of the following reasons:
+1. You might have mismatching versions of React and the renderer (such as React DOM)
+2. You might be breaking the Rules of Hooks
+3. You might have more than one copy of React in the same app
+See https://reactjs.org/link/invalid-hook-call for tips about how to debug and fix this problem. Error Component Stack
+    at NextGenNavigation (NextGenNavigation.tsx:24:37)
+    at div (<anonymous>)
+    at div (<anonymous>)
+    at SimpleMobileGestures (SimpleMobileGestures.tsx:7:40)
+    at Router2 (<anonymous>)
+    at QueryClientProvider (@tanstack_react-query.js?v=b6f1e865:2805:3)
+    at ErrorBoundary (error-boundary.tsx:18:5)
+    at App2 (<anonymous>)
+overrideMethod @ hook.js:608
+hook.js:608 Warning: Invalid hook call. Hooks can only be called inside of the body of a function component. This could happen for one of the following reasons:
+1. You might have mismatching versions of React and the renderer (such as React DOM)
+2. You might be breaking the Rules of Hooks
+3. You might have more than one copy of React in the same app
+See https://reactjs.org/link/invalid-hook-call for tips about how to debug and fix this problem. Error Component Stack
+    at NextGenNavigation (NextGenNavigation.tsx:24:37)
+    at div (<anonymous>)
+    at div (<anonymous>)
+    at SimpleMobileGestures (SimpleMobileGestures.tsx:7:40)
+    at Router2 (<anonymous>)
+    at QueryClientProvider (@tanstack_react-query.js?v=b6f1e865:2805:3)
+    at ErrorBoundary (error-boundary.tsx:18:5)
+    at App2 (<anonymous>)
+overrideMethod @ hook.js:608
+hook.js:608 Global error: TypeError: Cannot read properties of null (reading 'useState')
+    at useState (chunk-QCHXOAYK.js?v=7be30d2e:1066:29)
+    at NextGenNavigation (NextGenNavigation.tsx:25:51)
+    at renderWithHooks (chunk-RPCDYKBN.js?v=b6f1e865:11548:26)
+    at mountIndeterminateComponent (chunk-RPCDYKBN.js?v=b6f1e865:14926:21)
+    at beginWork (chunk-RPCDYKBN.js?v=b6f1e865:15914:22)
+    at HTMLUnknownElement.callCallback2 (chunk-RPCDYKBN.js?v=b6f1e865:3674:22)
+    at Object.invokeGuardedCallbackDev (chunk-RPCDYKBN.js?v=b6f1e865:3699:24)
+    at invokeGuardedCallback (chunk-RPCDYKBN.js?v=b6f1e865:3733:39)
+    at beginWork$1 (chunk-RPCDYKBN.js?v=b6f1e865:19765:15)
+    at performUnitOfWork (chunk-RPCDYKBN.js?v=b6f1e865:19198:20) Error Component Stack
+    at NextGenNavigation (NextGenNavigation.tsx:24:37)
+    at div (<anonymous>)
+    at div (<anonymous>)
+    at SimpleMobileGestures (SimpleMobileGestures.tsx:7:40)
+    at Router2 (<anonymous>)
+    at QueryClientProvider (@tanstack_react-query.js?v=b6f1e865:2805:3)
+    at ErrorBoundary (error-boundary.tsx:18:5)
+    at App2 (<anonymous>)
+overrideMethod @ hook.js:608
+chunk-QCHXOAYK.js?v=7be30d2e:1066 Uncaught TypeError: Cannot read properties of null (reading 'useState')
+    at useState (chunk-QCHXOAYK.js?v=7be30d2e:1066:29)
+    at NextGenNavigation (NextGenNavigation.tsx:25:51)
+    at renderWithHooks (chunk-RPCDYKBN.js?v=b6f1e865:11548:26)
+    at mountIndeterminateComponent (chunk-RPCDYKBN.js?v=b6f1e865:14926:21)
+    at beginWork (chunk-RPCDYKBN.js?v=b6f1e865:15914:22)
+    at HTMLUnknownElement.callCallback2 (chunk-RPCDYKBN.js?v=b6f1e865:3674:22)
+    at Object.invokeGuardedCallbackDev (chunk-RPCDYKBN.js?v=b6f1e865:3699:24)
+    at invokeGuardedCallback (chunk-RPCDYKBN.js?v=b6f1e865:3733:39)
+    at beginWork$1 (chunk-RPCDYKBN.js?v=b6f1e865:19765:15)
+    at performUnitOfWork (chunk-RPCDYKBN.js?v=b6f1e865:19198:20)
+hook.js:608 Warning: Invalid hook call. Hooks can only be called inside of the body of a function component. This could happen for one of the following reasons:
+1. You might have mismatching versions of React and the renderer (such as React DOM)
+2. You might be breaking the Rules of Hooks
+3. You might have more than one copy of React in the same app
+See https://reactjs.org/link/invalid-hook-call for tips about how to debug and fix this problem. Error Component Stack
+    at wouter.js?v=7be30d2e:279:18
+    at div (<anonymous>)
+    at div (<anonymous>)
+    at div (<anonymous>)
+    at div (<anonymous>)
+    at SimpleLanding (<anonymous>)
+    at Route (wouter.js?v=b6f1e865:265:16)
+    at Switch (wouter.js?v=b6f1e865:321:17)
+    at main (<anonymous>)
+    at div (<anonymous>)
+    at div (<anonymous>)
+    at SimpleMobileGestures (SimpleMobileGestures.tsx:7:40)
+    at Router2 (<anonymous>)
+    at QueryClientProvider (@tanstack_react-query.js?v=b6f1e865:2805:3)
+    at ErrorBoundary (error-boundary.tsx:18:5)
+    at App2 (<anonymous>)
+overrideMethod @ hook.js:608
+hook.js:608 Warning: Invalid hook call. Hooks can only be called inside of the body of a function component. This could happen for one of the following reasons:
+1. You might have mismatching versions of React and the renderer (such as React DOM)
+2. You might be breaking the Rules of Hooks
+3. You might have more than one copy of React in the same app
+See https://reactjs.org/link/invalid-hook-call for tips about how to debug and fix this problem. Error Component Stack
+    at wouter.js?v=7be30d2e:279:18
+    at div (<anonymous>)
+    at div (<anonymous>)
+    at div (<anonymous>)
+    at div (<anonymous>)
+    at SimpleLanding (<anonymous>)
+    at Route (wouter.js?v=b6f1e865:265:16)
+    at Switch (wouter.js?v=b6f1e865:321:17)
+    at main (<anonymous>)
+    at div (<anonymous>)
+    at div (<anonymous>)
+    at SimpleMobileGestures (SimpleMobileGestures.tsx:7:40)
+    at Router2 (<anonymous>)
+    at QueryClientProvider (@tanstack_react-query.js?v=b6f1e865:2805:3)
+    at ErrorBoundary (error-boundary.tsx:18:5)
+    at App2 (<anonymous>)
+overrideMethod @ hook.js:608
+hook.js:608 Global error: TypeError: Cannot read properties of null (reading 'useContext')
+    at useContext (chunk-QCHXOAYK.js?v=7be30d2e:1062:29)
+    at useRouter (wouter.js?v=7be30d2e:199:51)
+    at wouter.js?v=7be30d2e:279:18
+    at renderWithHooks (chunk-RPCDYKBN.js?v=b6f1e865:11548:26)
+    at updateForwardRef (chunk-RPCDYKBN.js?v=b6f1e865:14325:28)
+    at beginWork (chunk-RPCDYKBN.js?v=b6f1e865:15946:22)
+    at HTMLUnknownElement.callCallback2 (chunk-RPCDYKBN.js?v=b6f1e865:3674:22)
+    at Object.invokeGuardedCallbackDev (chunk-RPCDYKBN.js?v=b6f1e865:3699:24)
+    at invokeGuardedCallback (chunk-RPCDYKBN.js?v=b6f1e865:3733:39)
+    at beginWork$1 (chunk-RPCDYKBN.js?v=b6f1e865:19765:15) Error Component Stack
+    at wouter.js?v=7be30d2e:279:18
+    at div (<anonymous>)
+    at div (<anonymous>)
+    at div (<anonymous>)
+    at div (<anonymous>)
+    at SimpleLanding (<anonymous>)
+    at Route (wouter.js?v=b6f1e865:265:16)
+    at Switch (wouter.js?v=b6f1e865:321:17)
+    at main (<anonymous>)
+    at div (<anonymous>)
+    at div (<anonymous>)
+    at SimpleMobileGestures (SimpleMobileGestures.tsx:7:40)
+    at Router2 (<anonymous>)
+    at QueryClientProvider (@tanstack_react-query.js?v=b6f1e865:2805:3)
+    at ErrorBoundary (error-boundary.tsx:18:5)
+    at App2 (<anonymous>)
+overrideMethod @ hook.js:608
+chunk-QCHXOAYK.js?v=7be30d2e:1062 Uncaught TypeError: Cannot read properties of null (reading 'useContext')
+    at useContext (chunk-QCHXOAYK.js?v=7be30d2e:1062:29)
+    at useRouter (wouter.js?v=7be30d2e:199:51)
+    at wouter.js?v=7be30d2e:279:18
+    at renderWithHooks (chunk-RPCDYKBN.js?v=b6f1e865:11548:26)
+    at updateForwardRef (chunk-RPCDYKBN.js?v=b6f1e865:14325:28)
+    at beginWork (chunk-RPCDYKBN.js?v=b6f1e865:15946:22)
+    at HTMLUnknownElement.callCallback2 (chunk-RPCDYKBN.js?v=b6f1e865:3674:22)
+    at Object.invokeGuardedCallbackDev (chunk-RPCDYKBN.js?v=b6f1e865:3699:24)
+    at invokeGuardedCallback (chunk-RPCDYKBN.js?v=b6f1e865:3733:39)
+    at beginWork$1 (chunk-RPCDYKBN.js?v=b6f1e865:19765:15)
+hook.js:608 Warning: Invalid hook call. Hooks can only be called inside of the body of a function component. This could happen for one of the following reasons:
+1. You might have mismatching versions of React and the renderer (such as React DOM)
+2. You might be breaking the Rules of Hooks
+3. You might have more than one copy of React in the same app
+See https://reactjs.org/link/invalid-hook-call for tips about how to debug and fix this problem. Error Component Stack
+    at wouter.js?v=7be30d2e:279:18
+    at div (<anonymous>)
+    at div (<anonymous>)
+    at div (<anonymous>)
+    at div (<anonymous>)
+    at SimpleLanding (<anonymous>)
+    at Route (wouter.js?v=b6f1e865:265:16)
+    at Switch (wouter.js?v=b6f1e865:321:17)
+    at main (<anonymous>)
+    at div (<anonymous>)
+    at div (<anonymous>)
+    at SimpleMobileGestures (SimpleMobileGestures.tsx:7:40)
+    at Router2 (<anonymous>)
+    at QueryClientProvider (@tanstack_react-query.js?v=b6f1e865:2805:3)
+    at ErrorBoundary (error-boundary.tsx:18:5)
+    at App2 (<anonymous>)
+overrideMethod @ hook.js:608
+hook.js:608 Warning: Invalid hook call. Hooks can only be called inside of the body of a function component. This could happen for one of the following reasons:
+1. You might have mismatching versions of React and the renderer (such as React DOM)
+2. You might be breaking the Rules of Hooks
+3. You might have more than one copy of React in the same app
+See https://reactjs.org/link/invalid-hook-call for tips about how to debug and fix this problem. Error Component Stack
+    at wouter.js?v=7be30d2e:279:18
+    at div (<anonymous>)
+    at div (<anonymous>)
+    at div (<anonymous>)
+    at div (<anonymous>)
+    at SimpleLanding (<anonymous>)
+    at Route (wouter.js?v=b6f1e865:265:16)
+    at Switch (wouter.js?v=b6f1e865:321:17)
+    at main (<anonymous>)
+    at div (<anonymous>)
+    at div (<anonymous>)
+    at SimpleMobileGestures (SimpleMobileGestures.tsx:7:40)
+    at Router2 (<anonymous>)
+    at QueryClientProvider (@tanstack_react-query.js?v=b6f1e865:2805:3)
+    at ErrorBoundary (error-boundary.tsx:18:5)
+    at App2 (<anonymous>)
+overrideMethod @ hook.js:608
+hook.js:608 Global error: TypeError: Cannot read properties of null (reading 'useContext')
+    at useContext (chunk-QCHXOAYK.js?v=7be30d2e:1062:29)
+    at useRouter (wouter.js?v=7be30d2e:199:51)
+    at wouter.js?v=7be30d2e:279:18
+    at renderWithHooks (chunk-RPCDYKBN.js?v=b6f1e865:11548:26)
+    at updateForwardRef (chunk-RPCDYKBN.js?v=b6f1e865:14325:28)
+    at beginWork (chunk-RPCDYKBN.js?v=b6f1e865:15946:22)
+    at HTMLUnknownElement.callCallback2 (chunk-RPCDYKBN.js?v=b6f1e865:3674:22)
+    at Object.invokeGuardedCallbackDev (chunk-RPCDYKBN.js?v=b6f1e865:3699:24)
+    at invokeGuardedCallback (chunk-RPCDYKBN.js?v=b6f1e865:3733:39)
+    at beginWork$1 (chunk-RPCDYKBN.js?v=b6f1e865:19765:15) Error Component Stack
+    at wouter.js?v=7be30d2e:279:18
+    at div (<anonymous>)
+    at div (<anonymous>)
+    at div (<anonymous>)
+    at div (<anonymous>)
+    at SimpleLanding (<anonymous>)
+    at Route (wouter.js?v=b6f1e865:265:16)
+    at Switch (wouter.js?v=b6f1e865:321:17)
+    at main (<anonymous>)
+    at div (<anonymous>)
+    at div (<anonymous>)
+    at SimpleMobileGestures (SimpleMobileGestures.tsx:7:40)
+    at Router2 (<anonymous>)
+    at QueryClientProvider (@tanstack_react-query.js?v=b6f1e865:2805:3)
+    at ErrorBoundary (error-boundary.tsx:18:5)
+    at App2 (<anonymous>)
+overrideMethod @ hook.js:608
+chunk-QCHXOAYK.js?v=7be30d2e:1062 Uncaught TypeError: Cannot read properties of null (reading 'useContext')
+    at useContext (chunk-QCHXOAYK.js?v=7be30d2e:1062:29)
+    at useRouter (wouter.js?v=7be30d2e:199:51)
+    at wouter.js?v=7be30d2e:279:18
+    at renderWithHooks (chunk-RPCDYKBN.js?v=b6f1e865:11548:26)
+    at updateForwardRef (chunk-RPCDYKBN.js?v=b6f1e865:14325:28)
+    at beginWork (chunk-RPCDYKBN.js?v=b6f1e865:15946:22)
+    at HTMLUnknownElement.callCallback2 (chunk-RPCDYKBN.js?v=b6f1e865:3674:22)
+    at Object.invokeGuardedCallbackDev (chunk-RPCDYKBN.js?v=b6f1e865:3699:24)
+    at invokeGuardedCallback (chunk-RPCDYKBN.js?v=b6f1e865:3733:39)
+    at beginWork$1 (chunk-RPCDYKBN.js?v=b6f1e865:19765:15)
+hook.js:608 Warning: Invalid hook call. Hooks can only be called inside of the body of a function component. This could happen for one of the following reasons:
+1. You might have mismatching versions of React and the renderer (such as React DOM)
+2. You might be breaking the Rules of Hooks
+3. You might have more than one copy of React in the same app
+See https://reactjs.org/link/invalid-hook-call for tips about how to debug and fix this problem. Error Component Stack
+    at SubtleHints (SubtleHints.tsx:18:20)
+    at div (<anonymous>)
+    at div (<anonymous>)
+    at SimpleMobileGestures (SimpleMobileGestures.tsx:7:40)
+    at Router2 (<anonymous>)
+    at QueryClientProvider (@tanstack_react-query.js?v=b6f1e865:2805:3)
+    at ErrorBoundary (error-boundary.tsx:18:5)
+    at App2 (<anonymous>)
+overrideMethod @ hook.js:608
+hook.js:608 Warning: Invalid hook call. Hooks can only be called inside of the body of a function component. This could happen for one of the following reasons:
+1. You might have mismatching versions of React and the renderer (such as React DOM)
+2. You might be breaking the Rules of Hooks
+3. You might have more than one copy of React in the same app
+See https://reactjs.org/link/invalid-hook-call for tips about how to debug and fix this problem. Error Component Stack
+    at SubtleHints (SubtleHints.tsx:18:20)
+    at div (<anonymous>)
+    at div (<anonymous>)
+    at SimpleMobileGestures (SimpleMobileGestures.tsx:7:40)
+    at Router2 (<anonymous>)
+    at QueryClientProvider (@tanstack_react-query.js?v=b6f1e865:2805:3)
+    at ErrorBoundary (error-boundary.tsx:18:5)
+    at App2 (<anonymous>)
+overrideMethod @ hook.js:608
+hook.js:608 Global error: TypeError: Cannot read properties of null (reading 'useCallback')
+    at useCallback (chunk-QCHXOAYK.js?v=7be30d2e:1090:29)
+    at useAuth (useAuth.ts:18:21)
+    at SubtleHints (SubtleHints.tsx:18:20)
+    at renderWithHooks (chunk-RPCDYKBN.js?v=b6f1e865:11548:26)
+    at mountIndeterminateComponent (chunk-RPCDYKBN.js?v=b6f1e865:14926:21)
+    at beginWork (chunk-RPCDYKBN.js?v=b6f1e865:15914:22)
+    at HTMLUnknownElement.callCallback2 (chunk-RPCDYKBN.js?v=b6f1e865:3674:22)
+    at Object.invokeGuardedCallbackDev (chunk-RPCDYKBN.js?v=b6f1e865:3699:24)
+    at invokeGuardedCallback (chunk-RPCDYKBN.js?v=b6f1e865:3733:39)
+    at beginWork$1 (chunk-RPCDYKBN.js?v=b6f1e865:19765:15) Error Component Stack
+    at SubtleHints (SubtleHints.tsx:18:20)
+    at div (<anonymous>)
+    at div (<anonymous>)
+    at SimpleMobileGestures (SimpleMobileGestures.tsx:7:40)
+    at Router2 (<anonymous>)
+    at QueryClientProvider (@tanstack_react-query.js?v=b6f1e865:2805:3)
+    at ErrorBoundary (error-boundary.tsx:18:5)
+    at App2 (<anonymous>)
+overrideMethod @ hook.js:608
+chunk-QCHXOAYK.js?v=7be30d2e:1090 Uncaught TypeError: Cannot read properties of null (reading 'useCallback')
+    at useCallback (chunk-QCHXOAYK.js?v=7be30d2e:1090:29)
+    at useAuth (useAuth.ts:18:21)
+    at SubtleHints (SubtleHints.tsx:18:20)
+    at renderWithHooks (chunk-RPCDYKBN.js?v=b6f1e865:11548:26)
+    at mountIndeterminateComponent (chunk-RPCDYKBN.js?v=b6f1e865:14926:21)
+    at beginWork (chunk-RPCDYKBN.js?v=b6f1e865:15914:22)
+    at HTMLUnknownElement.callCallback2 (chunk-RPCDYKBN.js?v=b6f1e865:3674:22)
+    at Object.invokeGuardedCallbackDev (chunk-RPCDYKBN.js?v=b6f1e865:3699:24)
+    at invokeGuardedCallback (chunk-RPCDYKBN.js?v=b6f1e865:3733:39)
+    at beginWork$1 (chunk-RPCDYKBN.js?v=b6f1e865:19765:15)
+hook.js:608 Warning: Invalid hook call. Hooks can only be called inside of the body of a function component. This could happen for one of the following reasons:
+1. You might have mismatching versions of React and the renderer (such as React DOM)
+2. You might be breaking the Rules of Hooks
+3. You might have more than one copy of React in the same app
+See https://reactjs.org/link/invalid-hook-call for tips about how to debug and fix this problem. Error Component Stack
+    at BugReportTool (BugReportTool.tsx:21:31)
+    at div (<anonymous>)
+    at div (<anonymous>)
+    at SimpleMobileGestures (SimpleMobileGestures.tsx:7:40)
+    at Router2 (<anonymous>)
+    at QueryClientProvider (@tanstack_react-query.js?v=b6f1e865:2805:3)
+    at ErrorBoundary (error-boundary.tsx:18:5)
+    at App2 (<anonymous>)
+overrideMethod @ hook.js:608
+hook.js:608 Warning: Invalid hook call. Hooks can only be called inside of the body of a function component. This could happen for one of the following reasons:
+1. You might have mismatching versions of React and the renderer (such as React DOM)
+2. You might be breaking the Rules of Hooks
+3. You might have more than one copy of React in the same app
+See https://reactjs.org/link/invalid-hook-call for tips about how to debug and fix this problem. Error Component Stack
+    at BugReportTool (BugReportTool.tsx:21:31)
+    at div (<anonymous>)
+    at div (<anonymous>)
+    at SimpleMobileGestures (SimpleMobileGestures.tsx:7:40)
+    at Router2 (<anonymous>)
+    at QueryClientProvider (@tanstack_react-query.js?v=b6f1e865:2805:3)
+    at ErrorBoundary (error-boundary.tsx:18:5)
+    at App2 (<anonymous>)
+overrideMethod @ hook.js:608
+hook.js:608 Global error: TypeError: Cannot read properties of null (reading 'useState')
+    at useState (chunk-QCHXOAYK.js?v=7be30d2e:1066:29)
+    at BugReportTool (BugReportTool.tsx:21:31)
+    at renderWithHooks (chunk-RPCDYKBN.js?v=b6f1e865:11548:26)
+    at mountIndeterminateComponent (chunk-RPCDYKBN.js?v=b6f1e865:14926:21)
+    at beginWork (chunk-RPCDYKBN.js?v=b6f1e865:15914:22)
+    at HTMLUnknownElement.callCallback2 (chunk-RPCDYKBN.js?v=b6f1e865:3674:22)
+    at Object.invokeGuardedCallbackDev (chunk-RPCDYKBN.js?v=b6f1e865:3699:24)
+    at invokeGuardedCallback (chunk-RPCDYKBN.js?v=b6f1e865:3733:39)
+    at beginWork$1 (chunk-RPCDYKBN.js?v=b6f1e865:19765:15)
+    at performUnitOfWork (chunk-RPCDYKBN.js?v=b6f1e865:19198:20) Error Component Stack
+    at BugReportTool (BugReportTool.tsx:21:31)
+    at div (<anonymous>)
+    at div (<anonymous>)
+    at SimpleMobileGestures (SimpleMobileGestures.tsx:7:40)
+    at Router2 (<anonymous>)
+    at QueryClientProvider (@tanstack_react-query.js?v=b6f1e865:2805:3)
+    at ErrorBoundary (error-boundary.tsx:18:5)
+    at App2 (<anonymous>)
+overrideMethod @ hook.js:608
+chunk-QCHXOAYK.js?v=7be30d2e:1066 Uncaught TypeError: Cannot read properties of null (reading 'useState')
+    at useState (chunk-QCHXOAYK.js?v=7be30d2e:1066:29)
+    at BugReportTool (BugReportTool.tsx:21:31)
+    at renderWithHooks (chunk-RPCDYKBN.js?v=b6f1e865:11548:26)
+    at mountIndeterminateComponent (chunk-RPCDYKBN.js?v=b6f1e865:14926:21)
+    at beginWork (chunk-RPCDYKBN.js?v=b6f1e865:15914:22)
+    at HTMLUnknownElement.callCallback2 (chunk-RPCDYKBN.js?v=b6f1e865:3674:22)
+    at Object.invokeGuardedCallbackDev (chunk-RPCDYKBN.js?v=b6f1e865:3699:24)
+    at invokeGuardedCallback (chunk-RPCDYKBN.js?v=b6f1e865:3733:39)
+    at beginWork$1 (chunk-RPCDYKBN.js?v=b6f1e865:19765:15)
+    at performUnitOfWork (chunk-RPCDYKBN.js?v=b6f1e865:19198:20)
+hook.js:608 Warning: Invalid hook call. Hooks can only be called inside of the body of a function component. This could happen for one of the following reasons:
+1. You might have mismatching versions of React and the renderer (such as React DOM)
+2. You might be breaking the Rules of Hooks
+3. You might have more than one copy of React in the same app
+See https://reactjs.org/link/invalid-hook-call for tips about how to debug and fix this problem. Error Component Stack
+    at NextGenNavigation (NextGenNavigation.tsx:24:37)
+    at div (<anonymous>)
+    at div (<anonymous>)
+    at SimpleMobileGestures (SimpleMobileGestures.tsx:7:40)
+    at Router2 (<anonymous>)
+    at QueryClientProvider (@tanstack_react-query.js?v=b6f1e865:2805:3)
+    at ErrorBoundary (error-boundary.tsx:18:5)
+    at App2 (<anonymous>)
+overrideMethod @ hook.js:608
+hook.js:608 Warning: Invalid hook call. Hooks can only be called inside of the body of a function component. This could happen for one of the following reasons:
+1. You might have mismatching versions of React and the renderer (such as React DOM)
+2. You might be breaking the Rules of Hooks
+3. You might have more than one copy of React in the same app
+See https://reactjs.org/link/invalid-hook-call for tips about how to debug and fix this problem. Error Component Stack
+    at NextGenNavigation (NextGenNavigation.tsx:24:37)
+    at div (<anonymous>)
+    at div (<anonymous>)
+    at SimpleMobileGestures (SimpleMobileGestures.tsx:7:40)
+    at Router2 (<anonymous>)
+    at QueryClientProvider (@tanstack_react-query.js?v=b6f1e865:2805:3)
+    at ErrorBoundary (error-boundary.tsx:18:5)
+    at App2 (<anonymous>)
+overrideMethod @ hook.js:608
+hook.js:608 Global error: TypeError: Cannot read properties of null (reading 'useState')
+    at useState (chunk-QCHXOAYK.js?v=7be30d2e:1066:29)
+    at NextGenNavigation (NextGenNavigation.tsx:25:51)
+    at renderWithHooks (chunk-RPCDYKBN.js?v=b6f1e865:11548:26)
+    at mountIndeterminateComponent (chunk-RPCDYKBN.js?v=b6f1e865:14926:21)
+    at beginWork (chunk-RPCDYKBN.js?v=b6f1e865:15914:22)
+    at HTMLUnknownElement.callCallback2 (chunk-RPCDYKBN.js?v=b6f1e865:3674:22)
+    at Object.invokeGuardedCallbackDev (chunk-RPCDYKBN.js?v=b6f1e865:3699:24)
+    at invokeGuardedCallback (chunk-RPCDYKBN.js?v=b6f1e865:3733:39)
+    at beginWork$1 (chunk-RPCDYKBN.js?v=b6f1e865:19765:15)
+    at performUnitOfWork (chunk-RPCDYKBN.js?v=b6f1e865:19198:20) Error Component Stack
+    at NextGenNavigation (NextGenNavigation.tsx:24:37)
+    at div (<anonymous>)
+    at div (<anonymous>)
+    at SimpleMobileGestures (SimpleMobileGestures.tsx:7:40)
+    at Router2 (<anonymous>)
+    at QueryClientProvider (@tanstack_react-query.js?v=b6f1e865:2805:3)
+    at ErrorBoundary (error-boundary.tsx:18:5)
+    at App2 (<anonymous>)
+overrideMethod @ hook.js:608
+chunk-QCHXOAYK.js?v=7be30d2e:1066 Uncaught TypeError: Cannot read properties of null (reading 'useState')
+    at useState (chunk-QCHXOAYK.js?v=7be30d2e:1066:29)
+    at NextGenNavigation (NextGenNavigation.tsx:25:51)
+    at renderWithHooks (chunk-RPCDYKBN.js?v=b6f1e865:11548:26)
+    at mountIndeterminateComponent (chunk-RPCDYKBN.js?v=b6f1e865:14926:21)
+    at beginWork (chunk-RPCDYKBN.js?v=b6f1e865:15914:22)
+    at HTMLUnknownElement.callCallback2 (chunk-RPCDYKBN.js?v=b6f1e865:3674:22)
+    at Object.invokeGuardedCallbackDev (chunk-RPCDYKBN.js?v=b6f1e865:3699:24)
+    at invokeGuardedCallback (chunk-RPCDYKBN.js?v=b6f1e865:3733:39)
+    at beginWork$1 (chunk-RPCDYKBN.js?v=b6f1e865:19765:15)
+    at performUnitOfWork (chunk-RPCDYKBN.js?v=b6f1e865:19198:20)
+hook.js:608 Warning: Invalid hook call. Hooks can only be called inside of the body of a function component. This could happen for one of the following reasons:
+1. You might have mismatching versions of React and the renderer (such as React DOM)
+2. You might be breaking the Rules of Hooks
+3. You might have more than one copy of React in the same app
+See https://reactjs.org/link/invalid-hook-call for tips about how to debug and fix this problem. Error Component Stack
+    at wouter.js?v=7be30d2e:279:18
+    at div (<anonymous>)
+    at div (<anonymous>)
+    at div (<anonymous>)
+    at div (<anonymous>)
+    at SimpleLanding (<anonymous>)
+    at Route (wouter.js?v=b6f1e865:265:16)
+    at Switch (wouter.js?v=b6f1e865:321:17)
+    at main (<anonymous>)
+    at div (<anonymous>)
+    at div (<anonymous>)
+    at SimpleMobileGestures (SimpleMobileGestures.tsx:7:40)
+    at Router2 (<anonymous>)
+    at QueryClientProvider (@tanstack_react-query.js?v=b6f1e865:2805:3)
+    at ErrorBoundary (error-boundary.tsx:18:5)
+    at App2 (<anonymous>)
+overrideMethod @ hook.js:608
+hook.js:608 Warning: Invalid hook call. Hooks can only be called inside of the body of a function component. This could happen for one of the following reasons:
+1. You might have mismatching versions of React and the renderer (such as React DOM)
+2. You might be breaking the Rules of Hooks
+3. You might have more than one copy of React in the same app
+See https://reactjs.org/link/invalid-hook-call for tips about how to debug and fix this problem. Error Component Stack
+    at wouter.js?v=7be30d2e:279:18
+    at div (<anonymous>)
+    at div (<anonymous>)
+    at div (<anonymous>)
+    at div (<anonymous>)
+    at SimpleLanding (<anonymous>)
+    at Route (wouter.js?v=b6f1e865:265:16)
+    at Switch (wouter.js?v=b6f1e865:321:17)
+    at main (<anonymous>)
+    at div (<anonymous>)
+    at div (<anonymous>)
+    at SimpleMobileGestures (SimpleMobileGestures.tsx:7:40)
+    at Router2 (<anonymous>)
+    at QueryClientProvider (@tanstack_react-query.js?v=b6f1e865:2805:3)
+    at ErrorBoundary (error-boundary.tsx:18:5)
+    at App2 (<anonymous>)
+overrideMethod @ hook.js:608
+hook.js:608 Global error: TypeError: Cannot read properties of null (reading 'useContext')
+    at useContext (chunk-QCHXOAYK.js?v=7be30d2e:1062:29)
+    at useRouter (wouter.js?v=7be30d2e:199:51)
+    at wouter.js?v=7be30d2e:279:18
+    at renderWithHooks (chunk-RPCDYKBN.js?v=b6f1e865:11548:26)
+    at updateForwardRef (chunk-RPCDYKBN.js?v=b6f1e865:14325:28)
+    at beginWork (chunk-RPCDYKBN.js?v=b6f1e865:15946:22)
+    at HTMLUnknownElement.callCallback2 (chunk-RPCDYKBN.js?v=b6f1e865:3674:22)
+    at Object.invokeGuardedCallbackDev (chunk-RPCDYKBN.js?v=b6f1e865:3699:24)
+    at invokeGuardedCallback (chunk-RPCDYKBN.js?v=b6f1e865:3733:39)
+    at beginWork$1 (chunk-RPCDYKBN.js?v=b6f1e865:19765:15) Error Component Stack
+    at wouter.js?v=7be30d2e:279:18
+    at div (<anonymous>)
+    at div (<anonymous>)
+    at div (<anonymous>)
+    at div (<anonymous>)
+    at SimpleLanding (<anonymous>)
+    at Route (wouter.js?v=b6f1e865:265:16)
+    at Switch (wouter.js?v=b6f1e865:321:17)
+    at main (<anonymous>)
+    at div (<anonymous>)
+    at div (<anonymous>)
+    at SimpleMobileGestures (SimpleMobileGestures.tsx:7:40)
+    at Router2 (<anonymous>)
+    at QueryClientProvider (@tanstack_react-query.js?v=b6f1e865:2805:3)
+    at ErrorBoundary (error-boundary.tsx:18:5)
+    at App2 (<anonymous>)
+overrideMethod @ hook.js:608
+chunk-QCHXOAYK.js?v=7be30d2e:1062 Uncaught TypeError: Cannot read properties of null (reading 'useContext')
+    at useContext (chunk-QCHXOAYK.js?v=7be30d2e:1062:29)
+    at useRouter (wouter.js?v=7be30d2e:199:51)
+    at wouter.js?v=7be30d2e:279:18
+    at renderWithHooks (chunk-RPCDYKBN.js?v=b6f1e865:11548:26)
+    at updateForwardRef (chunk-RPCDYKBN.js?v=b6f1e865:14325:28)
+    at beginWork (chunk-RPCDYKBN.js?v=b6f1e865:15946:22)
+    at HTMLUnknownElement.callCallback2 (chunk-RPCDYKBN.js?v=b6f1e865:3674:22)
+    at Object.invokeGuardedCallbackDev (chunk-RPCDYKBN.js?v=b6f1e865:3699:24)
+    at invokeGuardedCallback (chunk-RPCDYKBN.js?v=b6f1e865:3733:39)
+    at beginWork$1 (chunk-RPCDYKBN.js?v=b6f1e865:19765:15)
+hook.js:608 Warning: Invalid hook call. Hooks can only be called inside of the body of a function component. This could happen for one of the following reasons:
+1. You might have mismatching versions of React and the renderer (such as React DOM)
+2. You might be breaking the Rules of Hooks
+3. You might have more than one copy of React in the same app
+See https://reactjs.org/link/invalid-hook-call for tips about how to debug and fix this problem. Error Component Stack
+    at wouter.js?v=7be30d2e:279:18
+    at div (<anonymous>)
+    at div (<anonymous>)
+    at div (<anonymous>)
+    at div (<anonymous>)
+    at SimpleLanding (<anonymous>)
+    at Route (wouter.js?v=b6f1e865:265:16)
+    at Switch (wouter.js?v=b6f1e865:321:17)
+    at main (<anonymous>)
+    at div (<anonymous>)
+    at div (<anonymous>)
+    at SimpleMobileGestures (SimpleMobileGestures.tsx:7:40)
+    at Router2 (<anonymous>)
+    at QueryClientProvider (@tanstack_react-query.js?v=b6f1e865:2805:3)
+    at ErrorBoundary (error-boundary.tsx:18:5)
+    at App2 (<anonymous>)
+overrideMethod @ hook.js:608
+hook.js:608 Warning: Invalid hook call. Hooks can only be called inside of the body of a function component. This could happen for one of the following reasons:
+1. You might have mismatching versions of React and the renderer (such as React DOM)
+2. You might be breaking the Rules of Hooks
+3. You might have more than one copy of React in the same app
+See https://reactjs.org/link/invalid-hook-call for tips about how to debug and fix this problem. Error Component Stack
+    at wouter.js?v=7be30d2e:279:18
+    at div (<anonymous>)
+    at div (<anonymous>)
+    at div (<anonymous>)
+    at div (<anonymous>)
+    at SimpleLanding (<anonymous>)
+    at Route (wouter.js?v=b6f1e865:265:16)
+    at Switch (wouter.js?v=b6f1e865:321:17)
+    at main (<anonymous>)
+    at div (<anonymous>)
+    at div (<anonymous>)
+    at SimpleMobileGestures (SimpleMobileGestures.tsx:7:40)
+    at Router2 (<anonymous>)
+    at QueryClientProvider (@tanstack_react-query.js?v=b6f1e865:2805:3)
+    at ErrorBoundary (error-boundary.tsx:18:5)
+    at App2 (<anonymous>)
+overrideMethod @ hook.js:608
+hook.js:608 Global error: TypeError: Cannot read properties of null (reading 'useContext')
+    at useContext (chunk-QCHXOAYK.js?v=7be30d2e:1062:29)
+    at useRouter (wouter.js?v=7be30d2e:199:51)
+    at wouter.js?v=7be30d2e:279:18
+    at renderWithHooks (chunk-RPCDYKBN.js?v=b6f1e865:11548:26)
+    at updateForwardRef (chunk-RPCDYKBN.js?v=b6f1e865:14325:28)
+    at beginWork (chunk-RPCDYKBN.js?v=b6f1e865:15946:22)
+    at HTMLUnknownElement.callCallback2 (chunk-RPCDYKBN.js?v=b6f1e865:3674:22)
+    at Object.invokeGuardedCallbackDev (chunk-RPCDYKBN.js?v=b6f1e865:3699:24)
+    at invokeGuardedCallback (chunk-RPCDYKBN.js?v=b6f1e865:3733:39)
+    at beginWork$1 (chunk-RPCDYKBN.js?v=b6f1e865:19765:15) Error Component Stack
+    at wouter.js?v=7be30d2e:279:18
+    at div (<anonymous>)
+    at div (<anonymous>)
+    at div (<anonymous>)
+    at div (<anonymous>)
+    at SimpleLanding (<anonymous>)
+    at Route (wouter.js?v=b6f1e865:265:16)
+    at Switch (wouter.js?v=b6f1e865:321:17)
+    at main (<anonymous>)
+    at div (<anonymous>)
+    at div (<anonymous>)
+    at SimpleMobileGestures (SimpleMobileGestures.tsx:7:40)
+    at Router2 (<anonymous>)
+    at QueryClientProvider (@tanstack_react-query.js?v=b6f1e865:2805:3)
+    at ErrorBoundary (error-boundary.tsx:18:5)
+    at App2 (<anonymous>)
+overrideMethod @ hook.js:608
+chunk-QCHXOAYK.js?v=7be30d2e:1062 Uncaught TypeError: Cannot read properties of null (reading 'useContext')
+    at useContext (chunk-QCHXOAYK.js?v=7be30d2e:1062:29)
+    at useRouter (wouter.js?v=7be30d2e:199:51)
+    at wouter.js?v=7be30d2e:279:18
+    at renderWithHooks (chunk-RPCDYKBN.js?v=b6f1e865:11548:26)
+    at updateForwardRef (chunk-RPCDYKBN.js?v=b6f1e865:14325:28)
+    at beginWork (chunk-RPCDYKBN.js?v=b6f1e865:15946:22)
+    at HTMLUnknownElement.callCallback2 (chunk-RPCDYKBN.js?v=b6f1e865:3674:22)
+    at Object.invokeGuardedCallbackDev (chunk-RPCDYKBN.js?v=b6f1e865:3699:24)
+    at invokeGuardedCallback (chunk-RPCDYKBN.js?v=b6f1e865:3733:39)
+    at beginWork$1 (chunk-RPCDYKBN.js?v=b6f1e865:19765:15)
+hook.js:608 Warning: Invalid hook call. Hooks can only be called inside of the body of a function component. This could happen for one of the following reasons:
+1. You might have mismatching versions of React and the renderer (such as React DOM)
+2. You might be breaking the Rules of Hooks
+3. You might have more than one copy of React in the same app
+See https://reactjs.org/link/invalid-hook-call for tips about how to debug and fix this problem. Error Component Stack
+    at SubtleHints (SubtleHints.tsx:18:20)
+    at div (<anonymous>)
+    at div (<anonymous>)
+    at SimpleMobileGestures (SimpleMobileGestures.tsx:7:40)
+    at Router2 (<anonymous>)
+    at QueryClientProvider (@tanstack_react-query.js?v=b6f1e865:2805:3)
+    at ErrorBoundary (error-boundary.tsx:18:5)
+    at App2 (<anonymous>)
+overrideMethod @ hook.js:608
+hook.js:608 Warning: Invalid hook call. Hooks can only be called inside of the body of a function component. This could happen for one of the following reasons:
+1. You might have mismatching versions of React and the renderer (such as React DOM)
+2. You might be breaking the Rules of Hooks
+3. You might have more than one copy of React in the same app
+See https://reactjs.org/link/invalid-hook-call for tips about how to debug and fix this problem. Error Component Stack
+    at SubtleHints (SubtleHints.tsx:18:20)
+    at div (<anonymous>)
+    at div (<anonymous>)
+    at SimpleMobileGestures (SimpleMobileGestures.tsx:7:40)
+    at Router2 (<anonymous>)
+    at QueryClientProvider (@tanstack_react-query.js?v=b6f1e865:2805:3)
+    at ErrorBoundary (error-boundary.tsx:18:5)
+    at App2 (<anonymous>)
+overrideMethod @ hook.js:608
+hook.js:608 Global error: TypeError: Cannot read properties of null (reading 'useCallback')
+    at useCallback (chunk-QCHXOAYK.js?v=7be30d2e:1090:29)
+    at useAuth (useAuth.ts:18:21)
+    at SubtleHints (SubtleHints.tsx:18:20)
+    at renderWithHooks (chunk-RPCDYKBN.js?v=b6f1e865:11548:26)
+    at mountIndeterminateComponent (chunk-RPCDYKBN.js?v=b6f1e865:14926:21)
+    at beginWork (chunk-RPCDYKBN.js?v=b6f1e865:15914:22)
+    at HTMLUnknownElement.callCallback2 (chunk-RPCDYKBN.js?v=b6f1e865:3674:22)
+    at Object.invokeGuardedCallbackDev (chunk-RPCDYKBN.js?v=b6f1e865:3699:24)
+    at invokeGuardedCallback (chunk-RPCDYKBN.js?v=b6f1e865:3733:39)
+    at beginWork$1 (chunk-RPCDYKBN.js?v=b6f1e865:19765:15) Error Component Stack
+    at SubtleHints (SubtleHints.tsx:18:20)
+    at div (<anonymous>)
+    at div (<anonymous>)
+    at SimpleMobileGestures (SimpleMobileGestures.tsx:7:40)
+    at Router2 (<anonymous>)
+    at QueryClientProvider (@tanstack_react-query.js?v=b6f1e865:2805:3)
+    at ErrorBoundary (error-boundary.tsx:18:5)
+    at App2 (<anonymous>)
+overrideMethod @ hook.js:608
+chunk-QCHXOAYK.js?v=7be30d2e:1090 Uncaught TypeError: Cannot read properties of null (reading 'useCallback')
+    at useCallback (chunk-QCHXOAYK.js?v=7be30d2e:1090:29)
+    at useAuth (useAuth.ts:18:21)
+    at SubtleHints (SubtleHints.tsx:18:20)
+    at renderWithHooks (chunk-RPCDYKBN.js?v=b6f1e865:11548:26)
+    at mountIndeterminateComponent (chunk-RPCDYKBN.js?v=b6f1e865:14926:21)
+    at beginWork (chunk-RPCDYKBN.js?v=b6f1e865:15914:22)
+    at HTMLUnknownElement.callCallback2 (chunk-RPCDYKBN.js?v=b6f1e865:3674:22)
+    at Object.invokeGuardedCallbackDev (chunk-RPCDYKBN.js?v=b6f1e865:3699:24)
+    at invokeGuardedCallback (chunk-RPCDYKBN.js?v=b6f1e865:3733:39)
+    at beginWork$1 (chunk-RPCDYKBN.js?v=b6f1e865:19765:15)
+hook.js:608 Warning: Invalid hook call. Hooks can only be called inside of the body of a function component. This could happen for one of the following reasons:
+1. You might have mismatching versions of React and the renderer (such as React DOM)
+2. You might be breaking the Rules of Hooks
+3. You might have more than one copy of React in the same app
+See https://reactjs.org/link/invalid-hook-call for tips about how to debug and fix this problem. Error Component Stack
+    at BugReportTool (BugReportTool.tsx:21:31)
+    at div (<anonymous>)
+    at div (<anonymous>)
+    at SimpleMobileGestures (SimpleMobileGestures.tsx:7:40)
+    at Router2 (<anonymous>)
+    at QueryClientProvider (@tanstack_react-query.js?v=b6f1e865:2805:3)
+    at ErrorBoundary (error-boundary.tsx:18:5)
+    at App2 (<anonymous>)
+overrideMethod @ hook.js:608
+hook.js:608 Warning: Invalid hook call. Hooks can only be called inside of the body of a function component. This could happen for one of the following reasons:
+1. You might have mismatching versions of React and the renderer (such as React DOM)
+2. You might be breaking the Rules of Hooks
+3. You might have more than one copy of React in the same app
+See https://reactjs.org/link/invalid-hook-call for tips about how to debug and fix this problem. Error Component Stack
+    at BugReportTool (BugReportTool.tsx:21:31)
+    at div (<anonymous>)
+    at div (<anonymous>)
+    at SimpleMobileGestures (SimpleMobileGestures.tsx:7:40)
+    at Router2 (<anonymous>)
+    at QueryClientProvider (@tanstack_react-query.js?v=b6f1e865:2805:3)
+    at ErrorBoundary (error-boundary.tsx:18:5)
+    at App2 (<anonymous>)
+overrideMethod @ hook.js:608
+hook.js:608 Global error: TypeError: Cannot read properties of null (reading 'useState')
+    at useState (chunk-QCHXOAYK.js?v=7be30d2e:1066:29)
+    at BugReportTool (BugReportTool.tsx:21:31)
+    at renderWithHooks (chunk-RPCDYKBN.js?v=b6f1e865:11548:26)
+    at mountIndeterminateComponent (chunk-RPCDYKBN.js?v=b6f1e865:14926:21)
+    at beginWork (chunk-RPCDYKBN.js?v=b6f1e865:15914:22)
+    at HTMLUnknownElement.callCallback2 (chunk-RPCDYKBN.js?v=b6f1e865:3674:22)
+    at Object.invokeGuardedCallbackDev (chunk-RPCDYKBN.js?v=b6f1e865:3699:24)
+    at invokeGuardedCallback (chunk-RPCDYKBN.js?v=b6f1e865:3733:39)
+    at beginWork$1 (chunk-RPCDYKBN.js?v=b6f1e865:19765:15)
+    at performUnitOfWork (chunk-RPCDYKBN.js?v=b6f1e865:19198:20) Error Component Stack
+    at BugReportTool (BugReportTool.tsx:21:31)
+    at div (<anonymous>)
+    at div (<anonymous>)
+    at SimpleMobileGestures (SimpleMobileGestures.tsx:7:40)
+    at Router2 (<anonymous>)
+    at QueryClientProvider (@tanstack_react-query.js?v=b6f1e865:2805:3)
+    at ErrorBoundary (error-boundary.tsx:18:5)
+    at App2 (<anonymous>)
+overrideMethod @ hook.js:608
+chunk-QCHXOAYK.js?v=7be30d2e:1066 Uncaught TypeError: Cannot read properties of null (reading 'useState')
+    at useState (chunk-QCHXOAYK.js?v=7be30d2e:1066:29)
+    at BugReportTool (BugReportTool.tsx:21:31)
+    at renderWithHooks (chunk-RPCDYKBN.js?v=b6f1e865:11548:26)
+    at mountIndeterminateComponent (chunk-RPCDYKBN.js?v=b6f1e865:14926:21)
+    at beginWork (chunk-RPCDYKBN.js?v=b6f1e865:15914:22)
+    at HTMLUnknownElement.callCallback2 (chunk-RPCDYKBN.js?v=b6f1e865:3674:22)
+    at Object.invokeGuardedCallbackDev (chunk-RPCDYKBN.js?v=b6f1e865:3699:24)
+    at invokeGuardedCallback (chunk-RPCDYKBN.js?v=b6f1e865:3733:39)
+    at beginWork$1 (chunk-RPCDYKBN.js?v=b6f1e865:19765:15)
+    at performUnitOfWork (chunk-RPCDYKBN.js?v=b6f1e865:19198:20)
+hook.js:608 The above error occurred in the <NextGenNavigation> component:
+
+    at NextGenNavigation (https://bb99ef68-07f3-4ff6-8777-53424138d9bd-00-1pdusyubsrg2x.spock.replit.dev/src/components/layout/NextGenNavigation.tsx:29:37)
+    at div
+    at div
+    at SimpleMobileGestures (https://bb99ef68-07f3-4ff6-8777-53424138d9bd-00-1pdusyubsrg2x.spock.replit.dev/src/components/SimpleMobileGestures.tsx:17:40)
+    at Router2
+    at QueryClientProvider (https://bb99ef68-07f3-4ff6-8777-53424138d9bd-00-1pdusyubsrg2x.spock.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/@tanstack_react-query.js?v=b6f1e865:2805:3)
+    at ErrorBoundary (https://bb99ef68-07f3-4ff6-8777-53424138d9bd-00-1pdusyubsrg2x.spock.replit.dev/src/components/ui/error-boundary.tsx:7:5)
+    at App2
+
+React will try to recreate this component tree from scratch using the error boundary you provided, ErrorBoundary.
+overrideMethod @ hook.js:608
+hook.js:608 Error boundary caught an error: TypeError: Cannot read properties of null (reading 'useState')
+    at useState (chunk-QCHXOAYK.js?v=7be30d2e:1066:29)
+    at NextGenNavigation (NextGenNavigation.tsx:25:51)
+    at renderWithHooks (chunk-RPCDYKBN.js?v=b6f1e865:11548:26)
+    at mountIndeterminateComponent (chunk-RPCDYKBN.js?v=b6f1e865:14926:21)
+    at beginWork (chunk-RPCDYKBN.js?v=b6f1e865:15914:22)
+    at beginWork$1 (chunk-RPCDYKBN.js?v=b6f1e865:19753:22)
+    at performUnitOfWork (chunk-RPCDYKBN.js?v=b6f1e865:19198:20)
+    at workLoopSync (chunk-RPCDYKBN.js?v=b6f1e865:19137:13)
+    at renderRootSync (chunk-RPCDYKBN.js?v=b6f1e865:19116:15)
+    at recoverFromConcurrentError (chunk-RPCDYKBN.js?v=b6f1e865:18736:28) Object Error Component Stack
+    at ErrorBoundary (error-boundary.tsx:18:5)
+    at App2 (<anonymous>)
+overrideMethod @ hook.js:608
+hook.js:608 Component stack: 
+    at NextGenNavigation (https://bb99ef68-07f3-4ff6-8777-53424138d9bd-00-1pdusyubsrg2x.spock.replit.dev/src/components/layout/NextGenNavigation.tsx:29:37)
+    at div
+    at div
+    at SimpleMobileGestures (https://bb99ef68-07f3-4ff6-8777-53424138d9bd-00-1pdusyubsrg2x.spock.replit.dev/src/components/SimpleMobileGestures.tsx:17:40)
+    at Router2
+    at QueryClientProvider (https://bb99ef68-07f3-4ff6-8777-53424138d9bd-00-1pdusyubsrg2x.spock.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/@tanstack_react-query.js?v=b6f1e865:2805:3)
+    at ErrorBoundary (https://bb99ef68-07f3-4ff6-8777-53424138d9bd-00-1pdusyubsrg2x.spock.replit.dev/src/components/ui/error-boundary.tsx:7:5)
+    at App2
+overrideMethod @ hook.js:608
+hook.js:608 The above error occurred in the <ForwardRef> component:
+
+    at https://bb99ef68-07f3-4ff6-8777-53424138d9bd-00-1pdusyubsrg2x.spock.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/wouter.js?v=7be30d2e:279:18
+    at div
+    at div
+    at div
+    at div
+    at SimpleLanding
+    at Route (https://bb99ef68-07f3-4ff6-8777-53424138d9bd-00-1pdusyubsrg2x.spock.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/wouter.js?v=b6f1e865:265:16)
+    at Switch (https://bb99ef68-07f3-4ff6-8777-53424138d9bd-00-1pdusyubsrg2x.spock.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/wouter.js?v=b6f1e865:321:17)
+    at main
+    at div
+    at div
+    at SimpleMobileGestures (https://bb99ef68-07f3-4ff6-8777-53424138d9bd-00-1pdusyubsrg2x.spock.replit.dev/src/components/SimpleMobileGestures.tsx:17:40)
+    at Router2
+    at QueryClientProvider (https://bb99ef68-07f3-4ff6-8777-53424138d9bd-00-1pdusyubsrg2x.spock.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/@tanstack_react-query.js?v=b6f1e865:2805:3)
+    at ErrorBoundary (https://bb99ef68-07f3-4ff6-8777-53424138d9bd-00-1pdusyubsrg2x.spock.replit.dev/src/components/ui/error-boundary.tsx:7:5)
+    at App2
+
+React will try to recreate this component tree from scratch using the error boundary you provided, ErrorBoundary.
+overrideMethod @ hook.js:608
+hook.js:608 Error boundary caught an error: TypeError: Cannot read properties of null (reading 'useContext')
+    at useContext (chunk-QCHXOAYK.js?v=7be30d2e:1062:29)
+    at useRouter (wouter.js?v=7be30d2e:199:51)
+    at wouter.js?v=7be30d2e:279:18
+    at renderWithHooks (chunk-RPCDYKBN.js?v=b6f1e865:11548:26)
+    at updateForwardRef (chunk-RPCDYKBN.js?v=b6f1e865:14325:28)
+    at beginWork (chunk-RPCDYKBN.js?v=b6f1e865:15946:22)
+    at beginWork$1 (chunk-RPCDYKBN.js?v=b6f1e865:19753:22)
+    at performUnitOfWork (chunk-RPCDYKBN.js?v=b6f1e865:19198:20)
+    at workLoopSync (chunk-RPCDYKBN.js?v=b6f1e865:19137:13)
+    at renderRootSync (chunk-RPCDYKBN.js?v=b6f1e865:19116:15) Object Error Component Stack
+    at ErrorBoundary (error-boundary.tsx:18:5)
+    at App2 (<anonymous>)
+overrideMethod @ hook.js:608
+hook.js:608 Component stack: 
+    at https://bb99ef68-07f3-4ff6-8777-53424138d9bd-00-1pdusyubsrg2x.spock.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/wouter.js?v=7be30d2e:279:18
+    at div
+    at div
+    at div
+    at div
+    at SimpleLanding
+    at Route (https://bb99ef68-07f3-4ff6-8777-53424138d9bd-00-1pdusyubsrg2x.spock.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/wouter.js?v=b6f1e865:265:16)
+    at Switch (https://bb99ef68-07f3-4ff6-8777-53424138d9bd-00-1pdusyubsrg2x.spock.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/wouter.js?v=b6f1e865:321:17)
+    at main
+    at div
+    at div
+    at SimpleMobileGestures (https://bb99ef68-07f3-4ff6-8777-53424138d9bd-00-1pdusyubsrg2x.spock.replit.dev/src/components/SimpleMobileGestures.tsx:17:40)
+    at Router2
+    at QueryClientProvider (https://bb99ef68-07f3-4ff6-8777-53424138d9bd-00-1pdusyubsrg2x.spock.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/@tanstack_react-query.js?v=b6f1e865:2805:3)
+    at ErrorBoundary (https://bb99ef68-07f3-4ff6-8777-53424138d9bd-00-1pdusyubsrg2x.spock.replit.dev/src/components/ui/error-boundary.tsx:7:5)
+    at App2
+overrideMethod @ hook.js:608
+hook.js:608 The above error occurred in the <ForwardRef> component:
+
+    at https://bb99ef68-07f3-4ff6-8777-53424138d9bd-00-1pdusyubsrg2x.spock.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/wouter.js?v=7be30d2e:279:18
+    at div
+    at div
+    at div
+    at div
+    at SimpleLanding
+    at Route (https://bb99ef68-07f3-4ff6-8777-53424138d9bd-00-1pdusyubsrg2x.spock.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/wouter.js?v=b6f1e865:265:16)
+    at Switch (https://bb99ef68-07f3-4ff6-8777-53424138d9bd-00-1pdusyubsrg2x.spock.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/wouter.js?v=b6f1e865:321:17)
+    at main
+    at div
+    at div
+    at SimpleMobileGestures (https://bb99ef68-07f3-4ff6-8777-53424138d9bd-00-1pdusyubsrg2x.spock.replit.dev/src/components/SimpleMobileGestures.tsx:17:40)
+    at Router2
+    at QueryClientProvider (https://bb99ef68-07f3-4ff6-8777-53424138d9bd-00-1pdusyubsrg2x.spock.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/@tanstack_react-query.js?v=b6f1e865:2805:3)
+    at ErrorBoundary (https://bb99ef68-07f3-4ff6-8777-53424138d9bd-00-1pdusyubsrg2x.spock.replit.dev/src/components/ui/error-boundary.tsx:7:5)
+    at App2
+
+React will try to recreate this component tree from scratch using the error boundary you provided, ErrorBoundary.
+overrideMethod @ hook.js:608
+hook.js:608 Error boundary caught an error: TypeError: Cannot read properties of null (reading 'useContext')
+    at useContext (chunk-QCHXOAYK.js?v=7be30d2e:1062:29)
+    at useRouter (wouter.js?v=7be30d2e:199:51)
+    at wouter.js?v=7be30d2e:279:18
+    at renderWithHooks (chunk-RPCDYKBN.js?v=b6f1e865:11548:26)
+    at updateForwardRef (chunk-RPCDYKBN.js?v=b6f1e865:14325:28)
+    at beginWork (chunk-RPCDYKBN.js?v=b6f1e865:15946:22)
+    at beginWork$1 (chunk-RPCDYKBN.js?v=b6f1e865:19753:22)
+    at performUnitOfWork (chunk-RPCDYKBN.js?v=b6f1e865:19198:20)
+    at workLoopSync (chunk-RPCDYKBN.js?v=b6f1e865:19137:13)
+    at renderRootSync (chunk-RPCDYKBN.js?v=b6f1e865:19116:15) Object Error Component Stack
+    at ErrorBoundary (error-boundary.tsx:18:5)
+    at App2 (<anonymous>)
+overrideMethod @ hook.js:608
+hook.js:608 Component stack: 
+    at https://bb99ef68-07f3-4ff6-8777-53424138d9bd-00-1pdusyubsrg2x.spock.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/wouter.js?v=7be30d2e:279:18
+    at div
+    at div
+    at div
+    at div
+    at SimpleLanding
+    at Route (https://bb99ef68-07f3-4ff6-8777-53424138d9bd-00-1pdusyubsrg2x.spock.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/wouter.js?v=b6f1e865:265:16)
+    at Switch (https://bb99ef68-07f3-4ff6-8777-53424138d9bd-00-1pdusyubsrg2x.spock.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/wouter.js?v=b6f1e865:321:17)
+    at main
+    at div
+    at div
+    at SimpleMobileGestures (https://bb99ef68-07f3-4ff6-8777-53424138d9bd-00-1pdusyubsrg2x.spock.replit.dev/src/components/SimpleMobileGestures.tsx:17:40)
+    at Router2
+    at QueryClientProvider (https://bb99ef68-07f3-4ff6-8777-53424138d9bd-00-1pdusyubsrg2x.spock.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/@tanstack_react-query.js?v=b6f1e865:2805:3)
+    at ErrorBoundary (https://bb99ef68-07f3-4ff6-8777-53424138d9bd-00-1pdusyubsrg2x.spock.replit.dev/src/components/ui/error-boundary.tsx:7:5)
+    at App2
+overrideMethod @ hook.js:608
+hook.js:608 The above error occurred in the <SubtleHints> component:
+
+    at SubtleHints (https://bb99ef68-07f3-4ff6-8777-53424138d9bd-00-1pdusyubsrg2x.spock.replit.dev/src/components/onboarding/SubtleHints.tsx:25:20)
+    at div
+    at div
+    at SimpleMobileGestures (https://bb99ef68-07f3-4ff6-8777-53424138d9bd-00-1pdusyubsrg2x.spock.replit.dev/src/components/SimpleMobileGestures.tsx:17:40)
+    at Router2
+    at QueryClientProvider (https://bb99ef68-07f3-4ff6-8777-53424138d9bd-00-1pdusyubsrg2x.spock.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/@tanstack_react-query.js?v=b6f1e865:2805:3)
+    at ErrorBoundary (https://bb99ef68-07f3-4ff6-8777-53424138d9bd-00-1pdusyubsrg2x.spock.replit.dev/src/components/ui/error-boundary.tsx:7:5)
+    at App2
+
+React will try to recreate this component tree from scratch using the error boundary you provided, ErrorBoundary.
+overrideMethod @ hook.js:608
+hook.js:608 Error boundary caught an error: TypeError: Cannot read properties of null (reading 'useCallback')
+    at useCallback (chunk-QCHXOAYK.js?v=7be30d2e:1090:29)
+    at useAuth (useAuth.ts:18:21)
+    at SubtleHints (SubtleHints.tsx:18:20)
+    at renderWithHooks (chunk-RPCDYKBN.js?v=b6f1e865:11548:26)
+    at mountIndeterminateComponent (chunk-RPCDYKBN.js?v=b6f1e865:14926:21)
+    at beginWork (chunk-RPCDYKBN.js?v=b6f1e865:15914:22)
+    at beginWork$1 (chunk-RPCDYKBN.js?v=b6f1e865:19753:22)
+    at performUnitOfWork (chunk-RPCDYKBN.js?v=b6f1e865:19198:20)
+    at workLoopSync (chunk-RPCDYKBN.js?v=b6f1e865:19137:13)
+    at renderRootSync (chunk-RPCDYKBN.js?v=b6f1e865:19116:15) Object Error Component Stack
+    at ErrorBoundary (error-boundary.tsx:18:5)
+    at App2 (<anonymous>)
+overrideMethod @ hook.js:608
+hook.js:608 Component stack: 
+    at SubtleHints (https://bb99ef68-07f3-4ff6-8777-53424138d9bd-00-1pdusyubsrg2x.spock.replit.dev/src/components/onboarding/SubtleHints.tsx:25:20)
+    at div
+    at div
+    at SimpleMobileGestures (https://bb99ef68-07f3-4ff6-8777-53424138d9bd-00-1pdusyubsrg2x.spock.replit.dev/src/components/SimpleMobileGestures.tsx:17:40)
+    at Router2
+    at QueryClientProvider (https://bb99ef68-07f3-4ff6-8777-53424138d9bd-00-1pdusyubsrg2x.spock.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/@tanstack_react-query.js?v=b6f1e865:2805:3)
+    at ErrorBoundary (https://bb99ef68-07f3-4ff6-8777-53424138d9bd-00-1pdusyubsrg2x.spock.replit.dev/src/components/ui/error-boundary.tsx:7:5)
+    at App2
+overrideMethod @ hook.js:608
+hook.js:608 The above error occurred in the <BugReportTool> component:
+
+    at BugReportTool (https://bb99ef68-07f3-4ff6-8777-53424138d9bd-00-1pdusyubsrg2x.spock.replit.dev/src/components/BugReportTool.tsx:29:31)
+    at div
+    at div
+    at SimpleMobileGestures (https://bb99ef68-07f3-4ff6-8777-53424138d9bd-00-1pdusyubsrg2x.spock.replit.dev/src/components/SimpleMobileGestures.tsx:17:40)
+    at Router2
+    at QueryClientProvider (https://bb99ef68-07f3-4ff6-8777-53424138d9bd-00-1pdusyubsrg2x.spock.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/@tanstack_react-query.js?v=b6f1e865:2805:3)
+    at ErrorBoundary (https://bb99ef68-07f3-4ff6-8777-53424138d9bd-00-1pdusyubsrg2x.spock.replit.dev/src/components/ui/error-boundary.tsx:7:5)
+    at App2
+
+React will try to recreate this component tree from scratch using the error boundary you provided, ErrorBoundary.
+overrideMethod @ hook.js:608
+hook.js:608 Error boundary caught an error: TypeError: Cannot read properties of null (reading 'useState')
+    at useState (chunk-QCHXOAYK.js?v=7be30d2e:1066:29)
+    at BugReportTool (BugReportTool.tsx:21:31)
+    at renderWithHooks (chunk-RPCDYKBN.js?v=b6f1e865:11548:26)
+    at mountIndeterminateComponent (chunk-RPCDYKBN.js?v=b6f1e865:14926:21)
+    at beginWork (chunk-RPCDYKBN.js?v=b6f1e865:15914:22)
+    at beginWork$1 (chunk-RPCDYKBN.js?v=b6f1e865:19753:22)
+    at performUnitOfWork (chunk-RPCDYKBN.js?v=b6f1e865:19198:20)
+    at workLoopSync (chunk-RPCDYKBN.js?v=b6f1e865:19137:13)
+    at renderRootSync (chunk-RPCDYKBN.js?v=b6f1e865:19116:15)
+    at recoverFromConcurrentError (chunk-RPCDYKBN.js?v=b6f1e865:18736:28) Object Error Component Stack
+    at ErrorBoundary (error-boundary.tsx:18:5)
+    at App2 (<anonymous>)
+overrideMethod @ hook.js:608
+hook.js:608 Component stack: 
+    at BugReportTool (https://bb99ef68-07f3-4ff6-8777-53424138d9bd-00-1pdusyubsrg2x.spock.replit.dev/src/components/BugReportTool.tsx:29:31)
+    at div
+    at div
+    at SimpleMobileGestures (https://bb99ef68-07f3-4ff6-8777-53424138d9bd-00-1pdusyubsrg2x.spock.replit.dev/src/components/SimpleMobileGestures.tsx:17:40)
+    at Router2
+    at QueryClientProvider (https://bb99ef68-07f3-4ff6-8777-53424138d9bd-00-1pdusyubsrg2x.spock.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/@tanstack_react-query.js?v=b6f1e865:2805:3)
+    at ErrorBoundary (https://bb99ef68-07f3-4ff6-8777-53424138d9bd-00-1pdusyubsrg2x.spock.replit.dev/src/components/ui/error-boundary.tsx:7:5)
+    at App2
+overrideMethod @ hook.js:608
