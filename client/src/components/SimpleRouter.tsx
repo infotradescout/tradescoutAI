@@ -1,15 +1,15 @@
 import { ReactNode } from 'react';
-import { Router } from 'wouter';
 
 interface SimpleRouterProps {
   children: ReactNode;
 }
 
 export function SimpleRouter({ children }: SimpleRouterProps) {
+  // Simple wrapper that doesn't use any hooks or context
   return (
-    <Router>
+    <div className="simple-router">
       {children}
-    </Router>
+    </div>
   );
 }
 
