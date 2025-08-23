@@ -1,7 +1,7 @@
 import { memo } from 'react';
 import { QueryClientProvider } from '@tanstack/react-query';
-import { queryClient } from '@/lib/queryClient';
-import { ErrorBoundary } from '@/components/ui/error-boundary';
+import { queryClient } from './lib/queryClient';
+import { ErrorBoundary } from './components/ui/error-boundary';
 
 // Simple components - using correct paths
 import SimpleLanding from './pages/SimpleLanding';
@@ -107,7 +107,7 @@ const App = memo(function App() {
   return (
     <ErrorBoundary fallback={<div className="min-h-screen gradient-bg flex items-center justify-center text-white">Loading...</div>}>
       <QueryClientProvider client={queryClient}>
-        {/* <SimpleToaster /> */}
+        {/* Toast notifications disabled for now */}
         <SimpleRouter>
           <Router />
         </SimpleRouter>

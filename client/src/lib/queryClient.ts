@@ -1,7 +1,7 @@
 import { QueryClient } from "@tanstack/react-query";
 
-// Get API URL from environment variables
-const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
+// Get API URL from environment variables  
+const API_BASE_URL = import.meta.env.VITE_API_URL || "";
 
 // Enhanced API request function with better error handling
 export async function apiRequest(method: string, url: string, data?: any) {
@@ -23,7 +23,8 @@ export async function apiRequest(method: string, url: string, data?: any) {
       config.body = JSON.stringify(data);
     }
 
-    const response = await fetch(url, config);
+    const fullUrl = url.startsWith('http') ? url : `${API_BASE_URL}${url}`;
+    const response = await fetch(fullUrl, config);
     clearTimeout(timeoutId);
 
     if (!response.ok) {
