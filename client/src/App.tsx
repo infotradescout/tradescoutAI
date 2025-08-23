@@ -1,9 +1,8 @@
 import { Switch, Route, useLocation } from "wouter";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
-import { Toaster } from "@/components/ui/toaster";
-import { HelpSystemProvider } from "@/components/help-system-provider";
-import { FloatingHelpButton } from "@/components/floating-help-button";
+import { SimpleToaster } from "@/components/ui/simple-toaster";
+import { SimpleFloatingHelp } from "@/components/simple-floating-help";
 
 
 
@@ -476,11 +475,9 @@ const App = memo(function App() {
   return (
     <ErrorBoundary fallback={<div className="min-h-screen gradient-bg flex items-center justify-center text-white">Loading...</div>}>
       <QueryClientProvider client={queryClient}>
-        <HelpSystemProvider>
-          <Toaster />
-          <Router />
-          <FloatingHelpButton />
-        </HelpSystemProvider>
+        <SimpleToaster />
+        <Router />
+        <SimpleFloatingHelp />
       </QueryClientProvider>
     </ErrorBoundary>
   );
