@@ -77,6 +77,7 @@ import DailyDeals from "@/pages/daily-deals";
 import Boosts from "@/pages/boosts";
 import Groups from "@/pages/groups";
 import HOAManagement from "@/pages/hoa-management";
+import NationwideExpansion from "@/pages/nationwide-expansion";
 import Community from "@/pages/community";
 import CommunityFeed from "@/pages/CommunityFeed";
 import CommunityModerationDemo from "@/pages/CommunityModerationDemo";
@@ -277,6 +278,7 @@ const Router = memo(function Router() {
               <Route path="/boosts" component={Boosts} />
               <Route path="/groups" component={Groups} />
               <Route path="/hoa" component={HOAManagement} />
+              <Route path="/nationwide" component={NationwideExpansion} />
               <Route path="/advanced-search" component={AdvancedSearch} />
               <Route path="/leaderboard" component={Leaderboard} />
 
