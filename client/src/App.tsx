@@ -10,7 +10,7 @@ import SimpleNavigation from './components/layout/SimpleNavigation';
 import SimpleMobileGestures from './components/SimpleMobileGestures';
 import SimpleSubtleHints from './components/onboarding/SimpleSubtleHints';
 import SimpleBugReportTool from './components/SimpleBugReportTool';
-import SimpleToaster from './components/ui/simple-toaster';
+// import SimpleToaster from './components/ui/simple-toaster';
 import SimpleFloatingHelp from './components/ui/simple-floating-help';
 import SimpleRouter from './components/SimpleRouter';
 import MobileAppBar from './components/navigation/MobileAppBar';
@@ -107,7 +107,7 @@ const App = memo(function App() {
   return (
     <ErrorBoundary fallback={<div className="min-h-screen gradient-bg flex items-center justify-center text-white">Loading...</div>}>
       <QueryClientProvider client={queryClient}>
-        <SimpleToaster />
+        {/* <SimpleToaster /> */}
         <SimpleRouter>
           <Router />
         </SimpleRouter>
