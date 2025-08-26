@@ -165,8 +165,8 @@ export function LeadsWidget({ count, newToday }: { count: number; newToday: numb
       status={count > 10 ? 'success' : count > 5 ? 'warning' : 'info'}
       tooltipContent="Track customer inquiries and manage your sales pipeline like organizing your job queue"
       tooltipIllustration="wrench"
-      actionLabel="Manage Leads"
-      actionHref="/dashboard/leads"
+      actionLabel="Manage Connections"
+      actionHref="/lead-management"
     />
   );
 }
