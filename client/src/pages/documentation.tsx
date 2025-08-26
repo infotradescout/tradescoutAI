@@ -24,7 +24,7 @@ const Documentation = memo(function Documentation() {
     },
     {
       id: 'lead-management',
-      title: 'Lead Management',
+      title: 'Connection Management',
       icon: Users,
       description: 'How to handle and convert leads',
       articles: [
@@ -64,7 +64,7 @@ const Documentation = memo(function Documentation() {
     { title: 'How to Get More Leads', category: 'Business Growth', views: 2340, type: 'guide' },
     { title: 'Verification Requirements', category: 'Getting Started', views: 1876, type: 'reference' },
     { title: 'Payment Processing Guide', category: 'Features', views: 1654, type: 'guide' },
-    { title: 'Response Time Best Practices', category: 'Lead Management', views: 1432, type: 'guide' },
+    { title: 'Response Time Best Practices', category: 'Connection Management', views: 1432, type: 'guide' },
     { title: 'Profile Optimization Tips', category: 'Getting Started', views: 1298, type: 'tip' }
   ];
 

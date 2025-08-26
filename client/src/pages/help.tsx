@@ -262,14 +262,14 @@ export default function Help() {
           ]
         },
         {
-          title: "Lead Management",
+          title: "Connection Management",
           icon: Users,
           articles: [
             {
               id: "lead-generation",
-              title: "Maximizing Lead Generation",
-              description: "Use TradeScout tools to get more quality leads",
-              category: "Lead Management",
+              title: "Maximizing Connection Generation", 
+              description: "Use TradeScout tools to get more quality connections",
+              category: "Connection Management",
               icon: TrendingUp,
               priority: "high",
               readTime: "6 min"
@@ -277,8 +277,8 @@ export default function Help() {
             {
               id: "response-time",
               title: "Optimizing Response Times",
-              description: "Respond quickly to win more projects",
-              category: "Lead Management",
+              description: "Respond quickly to win more projects", 
+              category: "Connection Management",
               icon: Clock,
               priority: "medium",
               readTime: "4 min"
