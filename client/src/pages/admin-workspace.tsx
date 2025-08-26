@@ -514,7 +514,7 @@ export default function AdminWorkspace() {
             </div>
           </TabsContent>
 
-          {/* Lead Management Tab */}
+          {/* Connection Management Tab */}
           <TabsContent value="leads" className="p-6">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               <Card className="bg-navy-600 border-navy-500">

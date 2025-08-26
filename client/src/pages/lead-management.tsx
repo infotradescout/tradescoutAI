@@ -127,7 +127,7 @@ const LeadManagement = memo(function LeadManagement() {
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-4xl font-bold text-white mb-4">Lead Management</h1>
+          <h1 className="text-4xl font-bold text-white mb-4">Connection Management</h1>
           <p className="text-xl text-gray-300">
             Track and manage your customer leads through the sales pipeline
           </p>

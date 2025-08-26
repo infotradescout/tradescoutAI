@@ -188,7 +188,7 @@ const Analytics = memo(function Analytics() {
           <TabsContent value="leads">
             <Card className="bg-slate-800/50 border-slate-700">
               <CardHeader>
-                <CardTitle className="text-white">Lead Management</CardTitle>
+                <CardTitle className="text-white">Connection Management</CardTitle>
                 <CardDescription className="text-gray-400">
                   Track and analyze your lead pipeline
                 </CardDescription>
