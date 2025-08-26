@@ -43,7 +43,7 @@ export async function seedDatabase() {
         isActive: true,
         isVerified: true,
         avgRating: 4.8,
-        totalReviews: 127,
+        totalRecommendations: 127,
         userId: null,
       },
       {
@@ -59,7 +59,7 @@ export async function seedDatabase() {
         isActive: true,
         isVerified: true,
         avgRating: 4.9,
-        totalReviews: 89,
+        totalRecommendations: 89,
         userId: null,
       },
       {
@@ -75,7 +75,7 @@ export async function seedDatabase() {
         isActive: true,
         isVerified: true,
         avgRating: 4.7,
-        totalReviews: 156,
+        totalRecommendations: 156,
         userId: null,
       },
       {
@@ -91,7 +91,7 @@ export async function seedDatabase() {
         isActive: true,
         isVerified: true,
         avgRating: 4.6,
-        totalReviews: 203,
+        totalRecommendations: 203,
         userId: null,
       },
       {
@@ -107,7 +107,7 @@ export async function seedDatabase() {
         isActive: true,
         isVerified: true,
         avgRating: 4.5,
-        totalReviews: 94,
+        totalRecommendations: 94,
         userId: null,
       },
       {
@@ -123,7 +123,7 @@ export async function seedDatabase() {
         isActive: true,
         isVerified: true,
         avgRating: 4.9,
-        totalReviews: 78,
+        totalRecommendations: 78,
         userId: null,
       },
     ];

@@ -192,18 +192,18 @@ export function RevenueWidget({ amount, monthlyChange }: { amount: number; month
   );
 }
 
-export function RatingWidget({ rating, reviewCount }: { rating: number; reviewCount: number }) {
+export function RatingWidget({ rating, recommendationCount }: { rating: number; recommendationCount: number }) {
   return (
     <DashboardWidget
       title="Customer Rating"
       value={`${rating.toFixed(1)} ⭐`}
-      subtitle={`From ${reviewCount} reviews`}
+      subtitle={`From ${recommendationCount} reviews`}
       icon={<Star className="h-5 w-5 text-orange-400" />}
       status={rating >= 4.5 ? 'success' : rating >= 4.0 ? 'warning' : 'danger'}
       tooltipContent="Your reputation score - like your Better Business Bureau rating but for the digital age"
       tooltipIllustration="paintbrush"
-      actionLabel="Manage Reviews"
-      actionHref="/dashboard/reviews"
+      actionLabel="Manage Recommendations"
+      actionHref="/recommendations"
     />
   );
 }

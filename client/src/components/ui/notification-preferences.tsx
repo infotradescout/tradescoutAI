@@ -92,7 +92,7 @@ const notificationTypes = [
   { key: 'anniversary', label: 'Anniversaries', description: 'Work and business anniversaries' },
   { key: 'new_message', label: 'New Messages', description: 'Chat messages and conversations' },
   { key: 'new_lead', label: 'New Leads', description: 'New customer inquiries' },
-  { key: 'review_received', label: 'Reviews', description: 'Customer reviews and ratings' },
+  { key: 'review_received', label: 'Recommendations', description: 'Customer recommendations and ratings' },
   { key: 'system_update', label: 'System Updates', description: 'Platform announcements' },
   { key: 'promotional', label: 'Promotions', description: 'Special offers and promotions' },
   { key: 'milestone', label: 'Milestones', description: 'Achievement notifications' },

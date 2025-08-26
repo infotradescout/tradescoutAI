@@ -80,7 +80,7 @@ export default function ContractorProfile() {
     "aggregateRating": ratingSummary ? {
       "@type": "AggregateRating",
       "ratingValue": ratingSummary.average,
-      "reviewCount": ratingSummary.count
+      "recommendationCount": ratingSummary.count
     } : undefined,
     "priceRange": "$$",
     "serviceType": "Home Improvement Contractor",

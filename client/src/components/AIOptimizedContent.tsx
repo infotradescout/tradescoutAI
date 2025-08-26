@@ -244,7 +244,7 @@ export function ProjectContext({
  */
 interface PerformanceMetricsProps {
   rating?: number;
-  reviewCount?: number;
+  recommendationCount?: number;
   projectsCompleted?: number;
   responseTime?: string;
   completionRate?: number;
@@ -254,7 +254,7 @@ interface PerformanceMetricsProps {
 
 export function PerformanceMetrics({ 
   rating, 
-  reviewCount, 
+  recommendationCount, 
   projectsCompleted, 
   responseTime, 
   completionRate, 
@@ -266,7 +266,7 @@ export function PerformanceMetrics({
       contentType="contractor-profile"
       metadata={{
         rating,
-        reviewCount,
+        recommendationCount,
         projectsCompleted,
         responseTime,
         completionRate,
@@ -276,7 +276,7 @@ export function PerformanceMetrics({
       {/* AI-readable performance data */}
       <div className="sr-only performance-metrics-data">
         {rating && <span data-field="average-rating">{rating}</span>}
-        {reviewCount && <span data-field="review-count">{reviewCount}</span>}
+        {recommendationCount && <span data-field="recommendation-count">{recommendationCount}</span>}
         {projectsCompleted && <span data-field="projects-completed">{projectsCompleted}</span>}
         {responseTime && <span data-field="response-time">{responseTime}</span>}
         {completionRate && <span data-field="completion-rate">{completionRate}</span>}

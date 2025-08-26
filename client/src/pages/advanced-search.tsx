@@ -44,7 +44,7 @@ const AdvancedSearch = memo(function AdvancedSearch() {
       id: 1,
       name: "Elite Electrical Services",
       rating: 4.9,
-      reviewCount: 127,
+      recommendationCount: 127,
       location: "Los Angeles, CA",
       distance: "5.2 miles",
       specializations: ["Residential", "Smart Home", "Emergency Services"],
@@ -60,7 +60,7 @@ const AdvancedSearch = memo(function AdvancedSearch() {
       id: 2,
       name: "Pro Plumbing Solutions", 
       rating: 4.8,
-      reviewCount: 89,
+      recommendationCount: 89,
       location: "Pasadena, CA",
       distance: "12.7 miles",
       specializations: ["Residential", "Commercial", "Emergency Services"],
@@ -76,7 +76,7 @@ const AdvancedSearch = memo(function AdvancedSearch() {
       id: 3,
       name: "Precision Roofing Co.",
       rating: 4.7,
-      reviewCount: 203,
+      recommendationCount: 203,
       location: "Burbank, CA", 
       distance: "18.3 miles",
       specializations: ["Residential", "Commercial", "Historic Renovation"],
@@ -365,7 +365,7 @@ const AdvancedSearch = memo(function AdvancedSearch() {
                               <div className="flex items-center gap-1">
                                 <Crown className="h-4 w-4 text-yellow-400 fill-current" />
                                 <span className="text-white">{contractor.rating}</span>
-                                <span>({contractor.reviewCount} reviews)</span>
+                                <span>({contractor.recommendationCount} reviews)</span>
                               </div>
                               
                               <div className="flex items-center gap-1">
