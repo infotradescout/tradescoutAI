@@ -75,9 +75,9 @@ const SocialIntegration = memo(function SocialIntegration() {
     },
     {
       id: 3,
-      name: 'Customer Review',
-      template: 'Thrilled to receive another 5-star review! "{reviewText}" - {customerName}. See more reviews: {link}',
-      category: 'Review'
+      name: 'Customer Recommendation',
+      template: 'Thrilled to receive another 5-star recommendation! "{reviewText}" - {customerName}. See more recommendations: {link}',
+      category: 'Recommendation'
     },
     {
       id: 4,
