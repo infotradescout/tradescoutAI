@@ -153,7 +153,7 @@ export function DashboardWidget({
 export function LeadsWidget({ count, newToday }: { count: number; newToday: number }) {
   return (
     <DashboardWidget
-      title="Active Leads"
+      title="Active Connections"
       value={count}
       subtitle="Total inquiries"
       icon={<Users className="h-5 w-5 text-orange-400" />}

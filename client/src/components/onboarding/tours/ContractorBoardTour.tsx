@@ -44,7 +44,7 @@ const contractorBoardSteps: TourStep[] = [
     id: "quote-calculator",
     target: "[data-testid='link-quote-calculator']",
     title: "Quote Calculator",
-    description: "Homeowners can get instant estimates for their projects. This drives qualified leads to contractors in their area.",
+    description: "Homeowners can get instant estimates for their projects. This drives qualified connections to contractors in their area.",
     position: "bottom",
     condition: () => !!document.querySelector("[data-testid='link-quote-calculator']")
   },

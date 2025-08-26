@@ -285,7 +285,7 @@ export class TutorialStorageService {
           {
             id: "welcome",
             title: "Welcome to TradeScout Business!",
-            content: "Ready to grow your contracting business? We'll show you how to get more leads, manage your profile, and connect with homeowners in your area.",
+            content: "Ready to grow your contracting business? We'll show you how to get more connections, manage your profile, and connect with homeowners in your area.",
             position: "center",
             action: "highlight",
             skipable: true,
@@ -300,10 +300,10 @@ export class TutorialStorageService {
             skipable: true,
           },
           {
-            id: "leads",
-            title: "Lead Management",
-            content: "Here you can see incoming leads, respond to customer inquiries, and track your active projects. Quick responses lead to more business!",
-            targetElement: "[data-tutorial='leads']",
+            id: "connections",
+            title: "Connection Management",
+            content: "Here you can see incoming connections, respond to customer inquiries, and track your active projects. Quick responses bring more business!",
+            targetElement: "[data-tutorial='connections']",
             position: "bottom",
             action: "highlight",
             skipable: true,
