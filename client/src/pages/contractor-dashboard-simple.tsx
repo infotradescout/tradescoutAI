@@ -170,10 +170,10 @@ export default function ContractorDashboardSimple() {
           <Card className="bg-navy-800/50 border-navy-600 backdrop-blur-sm cursor-pointer hover:border-orange-600 transition-colors">
             <CardContent className="p-6 text-center">
               <Users className="h-12 w-12 text-orange-400 mx-auto mb-4" />
-              <h3 className="text-white font-semibold mb-2">Manage Leads</h3>
+              <h3 className="text-white font-semibold mb-2">Manage Connections</h3>
               <p className="text-gray-400 text-sm mb-4">Review and respond to new customer inquiries</p>
               <Button className="bg-orange-600 hover:bg-orange-700 w-full">
-                View Leads
+                View Connections
               </Button>
             </CardContent>
           </Card>

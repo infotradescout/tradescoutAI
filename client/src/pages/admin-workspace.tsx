@@ -336,7 +336,7 @@ export default function AdminWorkspace() {
                   value="leads" 
                   className="py-4 px-1 border-b-2 border-transparent data-[state=active]:border-orange-500 data-[state=active]:text-orange-500 text-gray-400 hover:text-gray-300 font-medium text-sm bg-transparent"
                 >
-                  Lead Management
+                  Connection Management
                 </TabsTrigger>
                 <TabsTrigger 
                   value="imports" 
@@ -519,7 +519,7 @@ export default function AdminWorkspace() {
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               <Card className="bg-navy-600 border-navy-500">
                 <CardHeader>
-                  <CardTitle className="text-white text-lg">Lead Routing Configuration</CardTitle>
+                  <CardTitle className="text-white text-lg">Connection Routing Configuration</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div>

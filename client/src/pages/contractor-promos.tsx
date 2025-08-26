@@ -44,7 +44,7 @@ interface ContractorPromo {
   currentUses: number;
   viewCount: number;
   clickCount: number;
-  leadCount: number;
+  connectionCount: number;
   slug: string;
   expiresAt?: string;
   createdAt: string;
@@ -438,8 +438,8 @@ function PromoCard({ promo }: { promo: ContractorPromo }) {
               <div className="flex items-center justify-center text-orange-600 mb-1">
                 <TrendingUp className="h-4 w-4 mr-1" />
               </div>
-              <div className="text-2xl font-bold">{promo.leadCount}</div>
-              <div className="text-sm text-gray-500">Leads</div>
+              <div className="text-2xl font-bold">{promo.connectionCount}</div>
+              <div className="text-sm text-gray-500">Connections</div>
             </div>
           </div>
 

@@ -56,13 +56,13 @@ export default function Accelerator() {
               <div className="bg-purple-800/50 rounded-xl p-6 border border-purple-600/50 backdrop-blur-sm">
                 <div className="flex items-center mb-4">
                   <Target className="h-7 w-7 text-purple-300 mr-3" />
-                  <h3 className="text-xl font-semibold text-white">Lead Priority</h3>
+                  <h3 className="text-xl font-semibold text-white">Connection Priority</h3>
                 </div>
                 <p className="text-purple-200 mb-4">
                   Get first access to high-value projects and premium client referrals in your area.
                 </p>
                 <ul className="text-purple-300 text-sm space-y-2">
-                  <li className="flex items-center"><CheckCircle className="h-3 w-3 mr-2 text-green-400" />Priority lead routing</li>
+                  <li className="flex items-center"><CheckCircle className="h-3 w-3 mr-2 text-green-400" />Priority connection routing</li>
                   <li className="flex items-center"><CheckCircle className="h-3 w-3 mr-2 text-green-400" />Exclusive project opportunities</li>
                   <li className="flex items-center"><CheckCircle className="h-3 w-3 mr-2 text-green-400" />Premium client matching</li>
                   <li className="flex items-center"><CheckCircle className="h-3 w-3 mr-2 text-green-400" />Reduced competition on bids</li>

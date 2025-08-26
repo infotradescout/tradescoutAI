@@ -157,7 +157,7 @@ export default function ProfileSetup() {
               </CardHeader>
               <CardContent>
                 <ul className="space-y-2 text-sm text-gray-300">
-                  <li>• Get qualified project leads</li>
+                  <li>• Get qualified project connections</li>
                   <li>• Build your online presence</li>
                   <li>• Connect with homeowners</li>
                   <li>• Grow your business</li>

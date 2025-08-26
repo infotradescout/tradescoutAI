@@ -417,7 +417,7 @@ export default function RealtorApplication() {
                         <li>• Ensure your license is current and in good standing</li>
                         <li>• Provide accurate brokerage affiliation information</li>
                         <li>• Select specializations that match your expertise</li>
-                        <li>• Define realistic service areas for better lead quality</li>
+                        <li>• Define realistic service areas for better connection quality</li>
                         <li>• Verification typically takes 2-3 business days</li>
                       </ul>
                     </div>

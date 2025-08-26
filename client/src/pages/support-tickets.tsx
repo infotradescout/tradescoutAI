@@ -28,7 +28,7 @@ const SupportTickets = memo(function SupportTickets() {
         email: "mike@example.com",
         avatar: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=40&h=40&fit=crop&crop=face"
       },
-      description: "I uploaded my contractor license documents 3 days ago but my account is still showing as unverified. I need to start getting leads for my roofing business.",
+      description: "I uploaded my contractor license documents 3 days ago but my account is still showing as unverified. I need to start getting connections for my roofing business.",
       createdAt: "2024-03-20T10:30:00Z",
       updatedAt: "2024-03-20T14:15:00Z",
       assignedTo: "Sarah Wilson",
