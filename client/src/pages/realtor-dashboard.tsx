@@ -173,10 +173,10 @@ export default function RealtorDashboard() {
               Market Analysis
             </Button>
           </Link>
-          <Link href="/realtor/leads">
+          <Link href="/realtor/connections">
             <Button variant="outline" className="border-navy-500 text-gray-300 hover:bg-navy-600 flex items-center gap-2">
               <Search className="h-4 w-4" />
-              Lead Generator
+              Connection Generator
             </Button>
           </Link>
         </div>

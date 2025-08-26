@@ -474,7 +474,7 @@ export default function ContractorApply() {
                 </div>
                 <div>
                   <h4 className="text-white font-semibold">Local Focus</h4>
-                  <p className="text-gray-300 text-sm">County-based lead routing in your service area</p>
+                  <p className="text-gray-300 text-sm">County-based connection routing in your service area</p>
                 </div>
               </div>
               

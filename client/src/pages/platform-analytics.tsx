@@ -35,7 +35,7 @@ const PlatformAnalytics = memo(function PlatformAnalytics() {
 
   const revenueBreakdown = [
     { source: "Accelerator Memberships", amount: 45280, percentage: 35.6 },
-    { source: "Lead Generation Fees", amount: 38520, percentage: 30.2 },
+    { source: "Connection Generation Fees", amount: 38520, percentage: 30.2 },
     { source: "Transaction Fees", amount: 25680, percentage: 20.2 },
     { source: "Premium Features", amount: 12740, percentage: 10.0 },
     { source: "Advertising Revenue", amount: 5120, percentage: 4.0 }

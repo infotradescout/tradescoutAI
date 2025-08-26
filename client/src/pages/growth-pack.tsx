@@ -351,7 +351,7 @@ export default function GrowthPack() {
       {/* Next Steps CTA */}
       <Card className="bg-gradient-to-r from-orange-500/20 to-orange-600/20 border-orange-500/30">
         <CardContent className="p-8 text-center">
-          <h3 className="text-2xl font-bold text-white mb-4">Ready to start getting leads?</h3>
+          <h3 className="text-2xl font-bold text-white mb-4">Ready to start getting connections?</h3>
           <p className="text-gray-300 mb-6">
             Join our contractor board to get connected with homeowners looking for your services
           </p>

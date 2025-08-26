@@ -200,17 +200,17 @@ export default function Help() {
       name: "Contractor",
       color: "bg-orange-600",
       icon: Hammer,
-      description: "Grow your business with lead generation, reputation management, and business tools",
+      description: "Grow your business with connection generation, reputation management, and business tools",
       quickActions: [
         {
-          title: "Get More Leads",
+          title: "Get More Connections",
           description: "Optimize your profile for more projects",
           icon: TrendingUp,
           action: "leads"
         },
         {
           title: "Growth Pack",
-          description: "Access premium lead generation tools",
+          description: "Access premium connection generation tools",
           icon: Star,
           action: "/growth-pack"
         },
@@ -235,7 +235,7 @@ export default function Help() {
             {
               id: "profile-optimization",
               title: "Optimizing Your Contractor Profile",
-              description: "Increase visibility and attract more quality leads",
+              description: "Increase visibility and attract more quality connections",
               category: "Business Growth",
               icon: Star,
               priority: "high",

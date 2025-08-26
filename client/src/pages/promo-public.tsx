@@ -51,7 +51,7 @@ export default function PromoPublic() {
 
   const handleContactClick = (type: 'phone' | 'email') => {
     trackClick.mutate();
-    // Analytics tracking for lead generation
+    // Analytics tracking for connection generation
     if (typeof window !== 'undefined' && window.gtag) {
       window.gtag('event', 'promo_contact_click', {
         promo_id: promoData?.promo.id,
