@@ -154,6 +154,7 @@ export default function ContractorDashboardSimple() {
                       variant="outline" 
                       size="sm"
                       className="border-orange-600 text-orange-400 hover:bg-orange-600/20"
+                      onClick={() => window.location.pathname = '/chat'}
                     >
                       <Phone className="h-4 w-4 mr-2" />
                       Contact
@@ -172,7 +173,10 @@ export default function ContractorDashboardSimple() {
               <Users className="h-12 w-12 text-orange-400 mx-auto mb-4" />
               <h3 className="text-white font-semibold mb-2">Manage Connections</h3>
               <p className="text-gray-400 text-sm mb-4">Review and respond to new customer inquiries</p>
-              <Button className="bg-orange-600 hover:bg-orange-700 w-full">
+              <Button 
+                className="bg-orange-600 hover:bg-orange-700 w-full"
+                onClick={() => window.location.pathname = '/lead-management'}
+              >
                 View Connections
               </Button>
             </CardContent>
@@ -183,7 +187,11 @@ export default function ContractorDashboardSimple() {
               <Star className="h-12 w-12 text-yellow-400 mx-auto mb-4" />
               <h3 className="text-white font-semibold mb-2">Customer Reviews</h3>
               <p className="text-gray-400 text-sm mb-4">Manage reviews and build your reputation</p>
-              <Button variant="outline" className="border-orange-600 text-orange-400 hover:bg-orange-600/20 w-full">
+              <Button 
+                variant="outline" 
+                className="border-orange-600 text-orange-400 hover:bg-orange-600/20 w-full"
+                onClick={() => window.location.pathname = '/reviews'}
+              >
                 View Reviews
               </Button>
             </CardContent>
@@ -194,7 +202,11 @@ export default function ContractorDashboardSimple() {
               <Clock className="h-12 w-12 text-blue-400 mx-auto mb-4" />
               <h3 className="text-white font-semibold mb-2">Schedule Jobs</h3>
               <p className="text-gray-400 text-sm mb-4">Manage your project timeline and appointments</p>
-              <Button variant="outline" className="border-orange-600 text-orange-400 hover:bg-orange-600/20 w-full">
+              <Button 
+                variant="outline" 
+                className="border-orange-600 text-orange-400 hover:bg-orange-600/20 w-full"
+                onClick={() => window.location.pathname = '/schedule'}
+              >
                 View Schedule
               </Button>
             </CardContent>

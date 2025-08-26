@@ -35,7 +35,7 @@ const ContractorBoard = memo(function ContractorBoard() {
           <h2 className="text-2xl font-semibold mb-6">Quick Actions</h2>
           <div className="grid md:grid-cols-3 gap-6">
             <div className="bg-navy-800 p-6 rounded-lg hover:bg-navy-700 transition-colors cursor-pointer">
-              <h3 className="text-xl font-semibold mb-2 text-orange-400">View Leads</h3>
+              <h3 className="text-xl font-semibold mb-2 text-orange-400">View Connections</h3>
               <p className="text-gray-300">Check new project opportunities</p>
             </div>
             <div className="bg-navy-800 p-6 rounded-lg hover:bg-navy-700 transition-colors cursor-pointer">
