@@ -85,7 +85,7 @@ import Register from './pages/register';
 import Signup from './pages/signup';
 
 // Role-specific Dashboards (existing pages)
-import ContractorDashboard from './pages/contractor-dashboard';
+import ContractorDashboard from './pages/contractor-dashboard-simple';
 import HomeownerDashboard from './pages/homeowner-dashboard';
 import RealtorDashboard from './pages/realtor-dashboard';
 import CarSalesmanDashboard from './pages/car-salesman-dashboard';
