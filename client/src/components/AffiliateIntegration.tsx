@@ -17,7 +17,7 @@ interface AffiliateProduct {
   originalPrice?: number;
   discount?: number;
   rating: number;
-  reviewCount: number;
+  recommendationCount: number;
   affiliateUrl: string;
   imageUrl: string;
   description: string;
@@ -137,7 +137,7 @@ export function AffiliateIntegration({
                         />
                       ))}
                     </div>
-                    <span className="text-gray-400 text-xs">({product.reviewCount})</span>
+                    <span className="text-gray-400 text-xs">({product.recommendationCount})</span>
                   </div>
                   
                   <div className="flex items-center justify-between">
@@ -192,7 +192,7 @@ function getContextualProducts(projectType?: string, materialList: string[] = []
       originalPrice: 159.99,
       discount: 19,
       rating: 5,
-      reviewCount: 1250,
+      recommendationCount: 1250,
       affiliateUrl: 'https://amazon.com/dp/example1?tag=tradescout-20',
       imageUrl: '/products/dewalt-drill.jpg',
       description: 'Professional grade cordless drill with 2 batteries and charger',
@@ -206,7 +206,7 @@ function getContextualProducts(projectType?: string, materialList: string[] = []
       category: 'tools',
       price: 179.99,
       rating: 5,
-      reviewCount: 890,
+      recommendationCount: 890,
       affiliateUrl: 'https://homedepot.com/p/example2?ref=tradescout',
       imageUrl: '/products/milwaukee-saw.jpg',
       description: 'Powerful 18V circular saw for precision cuts',
@@ -221,7 +221,7 @@ function getContextualProducts(projectType?: string, materialList: string[] = []
       originalPrice: 64.99,
       discount: 23,
       rating: 4,
-      reviewCount: 445,
+      recommendationCount: 445,
       affiliateUrl: 'https://lowes.com/pd/example3?affiliate=tradescout',
       imageUrl: '/products/safety-kit.jpg',
       description: 'Essential safety equipment for construction work',
@@ -234,7 +234,7 @@ function getContextualProducts(projectType?: string, materialList: string[] = []
       category: 'tools',
       price: 89.99,
       rating: 4,
-      reviewCount: 332,
+      recommendationCount: 332,
       affiliateUrl: 'https://ryobitools.com/level?ref=tradescout',
       imageUrl: '/products/ryobi-level.jpg',
       description: 'Digital level with audio and visual indicators',

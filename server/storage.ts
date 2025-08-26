@@ -999,7 +999,7 @@ export class DatabaseStorage implements IStorage {
         default:
           // Default to "Most Recommended" - order by rating then reviews
           result.sort((a, b) => {
-            // Simplified sorting without avgRating/totalReviews
+            // Simplified sorting without avgRating/totalRecommendations
             return 0;
           });
       }
@@ -3181,7 +3181,7 @@ export class DatabaseStorage implements IStorage {
       .update(sellerProfiles)
       .set({
         averageRating: ratings.average.toString(),
-        totalReviews: ratings.count,
+        totalRecommendations: ratings.count,
         updatedAt: new Date(),
       })
       .where(eq(sellerProfiles.userId, sellerId));

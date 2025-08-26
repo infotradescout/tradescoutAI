@@ -188,14 +188,14 @@ export default function ContractorDashboardSimple() {
           <Card className="bg-navy-800/50 border-navy-600 backdrop-blur-sm cursor-pointer hover:border-orange-600 transition-colors">
             <CardContent className="p-6 text-center">
               <Star className="h-12 w-12 text-yellow-400 mx-auto mb-4" />
-              <h3 className="text-white font-semibold mb-2">Customer Reviews</h3>
-              <p className="text-gray-400 text-sm mb-4">Manage reviews and build your reputation</p>
+              <h3 className="text-white font-semibold mb-2">Customer Recommendations</h3>
+              <p className="text-gray-400 text-sm mb-4">Manage recommendations and build your reputation</p>
               <Button 
                 variant="outline" 
                 className="border-orange-600 text-orange-400 hover:bg-orange-600/20 w-full"
-                onClick={() => window.location.pathname = '/reviews'}
+                onClick={() => window.location.pathname = '/recommendations'}
               >
-                View Reviews
+                View Recommendations
               </Button>
             </CardContent>
           </Card>

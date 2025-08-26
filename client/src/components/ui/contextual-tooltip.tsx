@@ -67,8 +67,8 @@ const wittyTips = {
     illustration: 'ruler' as const
   },
   reviews: {
-    title: "Customer Reviews",
-    content: "Reviews are like referrals - they do the talking so you don't have to.",
+    title: "Customer Recommendations",
+    content: "Recommendations are like referrals - they do the talking so you don't have to.",
     illustration: 'paintbrush' as const
   },
   tools: {
@@ -172,7 +172,7 @@ export function PricingTooltip({ children }: { children?: React.ReactNode }) {
   return children || null;
 }
 
-export function ReviewsTooltip({ children }: { children?: React.ReactNode }) {
+export function RecommendationsTooltip({ children }: { children?: React.ReactNode }) {
   return children || null;
 }
 

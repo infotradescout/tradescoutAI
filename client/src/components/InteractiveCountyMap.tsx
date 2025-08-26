@@ -35,7 +35,7 @@ type CountyContractor = {
   id: string;
   businessName: string;
   rating: number;
-  reviewCount: number;
+  recommendationCount: number;
   specialties: string[];
   isVerified: boolean;
   yearsInBusiness: number;
@@ -340,7 +340,7 @@ export function InteractiveCountyMap({
                                             ))}
                                           </div>
                                           <span className="text-gray-400 text-sm">
-                                            ({contractor.reviewCount} reviews)
+                                            ({contractor.recommendationCount} reviews)
                                           </span>
                                         </div>
                                       </div>
