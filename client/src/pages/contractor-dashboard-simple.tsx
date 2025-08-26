@@ -168,7 +168,10 @@ export default function ContractorDashboardSimple() {
 
         {/* Quick Actions */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <Card className="bg-navy-800/50 border-navy-600 backdrop-blur-sm cursor-pointer hover:border-orange-600 transition-colors">
+          <Card 
+            className="bg-navy-800/50 border-navy-600 backdrop-blur-sm cursor-pointer hover:border-orange-600 transition-colors"
+            data-tutorial="connections"
+          >
             <CardContent className="p-6 text-center">
               <Users className="h-12 w-12 text-orange-400 mx-auto mb-4" />
               <h3 className="text-white font-semibold mb-2">Manage Connections</h3>
