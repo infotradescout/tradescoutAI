@@ -847,6 +847,9 @@ export async function registerRoutes(app: Express) {
   app.get('/api/user/navigation-preferences', isAuthenticated, async (req: any, res) => {
     try {
       const user = await storage.getUser(req.user?.id || (req.user as any)?.claims?.sub);
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
       const navigationPrefs = user.preferences?.navigation || {
         customOrder: [],
         hiddenFromSwipe: [],
@@ -941,6 +944,9 @@ export async function registerRoutes(app: Express) {
 
       // Get current user preferences
       const currentUser = await storage.getUser(userId);
+      if (!currentUser) {
+        return res.status(404).json({ message: "User not found" });
+      }
       const currentPrefs = currentUser.preferences || {};
 
       const updatedPreferences = {
@@ -970,6 +976,9 @@ export async function registerRoutes(app: Express) {
   app.get("/api/user/privacy-settings", isAuthenticated, async (req: any, res) => {
     try {
       const user = await storage.getUser(req.user?.id || (req.user as any)?.claims?.sub);
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
       const privacySettings = user.preferences?.privacy || {
         profileVisibility: true,
         searchEngineIndexing: false,
