@@ -1,4 +1,4 @@
-import { memo } from 'react';
+import React, { memo } from 'react';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { queryClient } from './lib/queryClient';
 import { ErrorBoundary } from './components/ui/error-boundary';
@@ -177,279 +177,230 @@ const LegalFooter = memo(function LegalFooter() {
   );
 });
 
-// Main router component - completely simplified without hooks
+// Main router component - using proper component rendering
 const Router = memo(function Router() {
-  // Get current path from window location
   const currentPath = typeof window !== 'undefined' ? window.location.pathname : '/';
   
-  // Simple component selection based on path  
-  let ComponentToRender = SimpleLanding;
-  
-  // Complete TradeScout routing - Full functionality restored
-  if (currentPath === '/home' || currentPath === '/dashboard') {
-    ComponentToRender = SimpleHome;
-  } 
-  // Authentication & Setup
-  else if (currentPath === '/login') {
-    ComponentToRender = Login;
-  } else if (currentPath === '/profile-setup') {
-    ComponentToRender = ProfileSetup;
-  } else if (currentPath === '/address-verification') {
-    ComponentToRender = AddressVerification;
-  }
-  // Core Features
-  else if (currentPath.startsWith('/find-contractors')) {
-    ComponentToRender = FindContractors;
-  } else if (currentPath.startsWith('/contractors')) {
-    ComponentToRender = ContractorBoard;
-  } else if (currentPath.startsWith('/quote-calculator')) {
-    ComponentToRender = QuoteCalculator;
-  } else if (currentPath.startsWith('/daily-deals')) {
-    ComponentToRender = DailyDeals;
-  } else if (currentPath.startsWith('/help-demo')) {
-    ComponentToRender = HelpDemo;
-  } else if (currentPath.startsWith('/test-page')) {
-    ComponentToRender = TestPage;
-  } else if (currentPath.startsWith('/profile')) {
-    ComponentToRender = Profile;
-  }
-  // Contractor Features
-  else if (currentPath === '/contractor-apply') {
-    ComponentToRender = ContractorApply;
-  } else if (currentPath === '/business-listing') {
-    ComponentToRender = BusinessListing;
-  } else if (currentPath === '/business-owner-dashboard') {
-    ComponentToRender = BusinessOwnerDashboard;
-  } else if (currentPath === '/accelerator') {
-    ComponentToRender = Accelerator;
-  }
-  // Admin Features
-  else if (currentPath === '/admin-panel') {
-    ComponentToRender = AdminPanel;
-  } else if (currentPath === '/admin/users') {
-    ComponentToRender = AdminUsers;
-  } else if (currentPath === '/admin/user-management') {
-    ComponentToRender = AdminUserManagement;
-  } else if (currentPath === '/admin/workspace') {
-    ComponentToRender = AdminWorkspace;
-  } else if (currentPath === '/admin/error-reports') {
-    ComponentToRender = AdminErrorReports;
-  } else if (currentPath === '/admin/testing') {
-    ComponentToRender = AdminTestingControls;
-  } else if (currentPath === '/admin/address-verifications') {
-    ComponentToRender = AdminAddressVerifications;
-  } else if (currentPath === '/admin/professional-verification') {
-    ComponentToRender = AdminProfessionalVerification;
-  } else if (currentPath === '/admin/listings') {
-    ComponentToRender = AdminListings;
-  } else if (currentPath === '/admin/attachments') {
-    ComponentToRender = AdminAttachments;
-  } else if (currentPath === '/admin/pricing-analytics') {
-    ComponentToRender = AdminPricingAnalytics;
-  } else if (currentPath === '/admin/create-account') {
-    ComponentToRender = AdminCreateAccount;
-  } else if (currentPath.startsWith('/admin')) {
-    ComponentToRender = AdminDashboard;
-  }
-  // Marketplace & Social
-  else if (currentPath === '/worker-marketplace') {
-    ComponentToRender = WorkerMarketplace;
-  } else if (currentPath === '/chat') {
-    ComponentToRender = Chat;
-  } else if (currentPath === '/saved-ads') {
-    ComponentToRender = SavedAds;
-  } else if (currentPath === '/affiliate') {
-    ComponentToRender = Affiliate;
-  } else if (currentPath === '/growth-pack') {
-    ComponentToRender = GrowthPack;
-  } else if (currentPath === '/boosts') {
-    ComponentToRender = Boosts;
-  } else if (currentPath === '/advanced-search') {
-    ComponentToRender = AdvancedSearch;
-  }
-  // HOA & Groups
-  else if (currentPath === '/groups') {
-    ComponentToRender = Groups;
-  } else if (currentPath.startsWith('/group/')) {
-    ComponentToRender = GroupDetail;
-  } else if (currentPath === '/hoa-management') {
-    ComponentToRender = HoaManagement;
-  } else if (currentPath === '/community') {
-    ComponentToRender = Community;
-  } else if (currentPath === '/community-feed') {
-    ComponentToRender = CommunityFeed;
-  } else if (currentPath === '/community-moderation') {
-    ComponentToRender = CommunityModerationDemo;
-  }
-  // Marketplace & Features
-  else if (currentPath === '/marketplace') {
-    ComponentToRender = Marketplace;
-  } else if (currentPath === '/exchange') {
-    ComponentToRender = Exchange;
-  } else if (currentPath === '/handmade-marketplace') {
-    ComponentToRender = HandmadeMarketplace;
-  } else if (currentPath === '/leaderboard') {
-    ComponentToRender = Leaderboard;
-  } else if (currentPath === '/foundation') {
-    ComponentToRender = Foundation;
-  }
-  // Role-specific Dashboards
-  else if (currentPath === '/contractor-dashboard') {
-    ComponentToRender = ContractorDashboard;
-  } else if (currentPath === '/homeowner-dashboard') {
-    ComponentToRender = HomeownerDashboard;
-  } else if (currentPath === '/realtor-dashboard') {
-    ComponentToRender = RealtorDashboard;
-  } else if (currentPath === '/car-salesman-dashboard') {
-    ComponentToRender = CarSalesmanDashboard;
-  } else if (currentPath === '/helper-dashboard') {
-    ComponentToRender = HelperDashboard;
-  } else if (currentPath === '/insurance-agent-dashboard') {
-    ComponentToRender = InsuranceAgentDashboard;
-  } else if (currentPath === '/property-manager-dashboard') {
-    ComponentToRender = PropertyManagerDashboard;
-  } else if (currentPath === '/mortgage-broker-dashboard') {
-    ComponentToRender = MortgageBrokerDashboard;
-  } else if (currentPath === '/staff-dashboard') {
-    ComponentToRender = StaffDashboard;
-  }
-  // Applications
-  else if (currentPath === '/realtor-application') {
-    ComponentToRender = RealtorApplication;
-  } else if (currentPath === '/car-salesman-application') {
-    ComponentToRender = CarSalesmanApplication;
-  }
-  // Payment & Commerce
-  else if (currentPath === '/checkout') {
-    ComponentToRender = Checkout;
-  } else if (currentPath === '/payment-success') {
-    ComponentToRender = PaymentSuccess;
-  } else if (currentPath === '/payment-history') {
-    ComponentToRender = PaymentHistory;
-  }
-  // User Features
-  else if (currentPath === '/register') {
-    ComponentToRender = Register;
-  } else if (currentPath === '/signup') {
-    ComponentToRender = Signup;
-  } else if (currentPath === '/invite') {
-    ComponentToRender = Invite;
-  } else if (currentPath === '/notifications') {
-    ComponentToRender = Notifications;
-  } else if (currentPath === '/settings') {
-    ComponentToRender = Settings;
-  } else if (currentPath === '/help') {
-    ComponentToRender = Help;
-  }
-  // HOA & Groups Additional
-  else if (currentPath === '/county-hub') {
-    ComponentToRender = CountyHub;
-  }
-  // Verification & Compliance
-  else if (currentPath === '/verification') {
-    ComponentToRender = Verification;
-  } else if (currentPath === '/insurance-verification') {
-    ComponentToRender = InsuranceVerification;
-  } else if (currentPath === '/license-verification') {
-    ComponentToRender = LicenseVerification;
-  } else if (currentPath === '/background-check') {
-    ComponentToRender = BackgroundCheck;
-  } else if (currentPath === '/compliance') {
-    ComponentToRender = Compliance;
-  }
-  // Marketing & Promotions
-  else if (currentPath === '/promotions') {
-    ComponentToRender = Promotions;
-  } else if (currentPath === '/ad-creator') {
-    ComponentToRender = AdCreator;
-  } else if (currentPath === '/analytics') {
-    ComponentToRender = Analytics;
-  } else if (currentPath === '/lead-management') {
-    ComponentToRender = LeadManagement;
-  }
-  // Tools & Utilities
-  else if (currentPath === '/documentation') {
-    ComponentToRender = Documentation;
-  }
-  // New Complete Features
-  else if (currentPath === '/crm' || currentPath === '/crm-dashboard') {
-    ComponentToRender = CRM;
-  } else if (currentPath === '/vehicle-marketplace') {
-    ComponentToRender = VehicleMarketplace;
-  } else if (currentPath === '/hoa-dashboard') {
-    ComponentToRender = HOADashboard;
-  } else if (currentPath === '/real-estate-marketplace') {
-    ComponentToRender = RealEstateMarketplace;
-  } else if (currentPath === '/coffee-company' || currentPath === '/coffee') {
-    ComponentToRender = CoffeeCompany;
-  } else if (currentPath === '/administrative-dashboard') {
-    ComponentToRender = AdministrativeDashboard;
-  } else if (currentPath === '/county-directory') {
-    ComponentToRender = CountyDirectory;
-  } else if (currentPath === '/application-tracker') {
-    ComponentToRender = ApplicationTracker;
-  } else if (currentPath === '/resource-center') {
-    ComponentToRender = ResourceCenter;
-  } else if (currentPath === '/membership-portal' || currentPath === '/membership') {
-    ComponentToRender = MembershipPortal;
-  } else if (currentPath === '/training-center' || currentPath === '/training') {
-    ComponentToRender = TrainingCenter;
-  }
-  // Advanced Social & Integration Features
-  else if (currentPath === '/social-integration' || currentPath === '/social') {
-    ComponentToRender = SocialIntegration;
-  } else if (currentPath === '/community-feed' || currentPath === '/community') {
-    ComponentToRender = CommunityFeed;
-  } else if (currentPath === '/advanced-search') {
-    ComponentToRender = AdvancedSearchNew;
-  } else if (currentPath === '/referral-dashboard' || currentPath === '/referrals') {
-    ComponentToRender = ReferralDashboard;
-  } else if (currentPath === '/event-management' || currentPath === '/events') {
-    ComponentToRender = EventManagement;
-  } else if (currentPath === '/api-integrations' || currentPath === '/api' || currentPath === '/integrations') {
-    ComponentToRender = APIIntegrations;
-  }
-  // Admin Interactive Features
-  else if (currentPath === '/contractor-verification' || currentPath === '/verification') {
-    ComponentToRender = ContractorVerification;
-  } else if (currentPath === '/content-moderation' || currentPath === '/moderation') {
-    ComponentToRender = ContentModeration;
-  } else if (currentPath === '/system-settings' || currentPath === '/settings') {
-    ComponentToRender = SystemSettings;
-  } else if (currentPath === '/support-tickets' || currentPath === '/support') {
-    ComponentToRender = SupportTickets;
-  }
-  // Interactive Action Pages
-  else if (currentPath === '/schedule-consultation' || currentPath === '/consultation') {
-    ComponentToRender = ScheduleConsultation;
-  } else if (currentPath === '/apply-accelerator' || currentPath === '/apply') {
-    ComponentToRender = ApplyAccelerator;
-  } else if (currentPath === '/platform-analytics' || currentPath === '/analytics') {
-    ComponentToRender = PlatformAnalytics;
-  } else if (currentPath === '/manage-users' || currentPath === '/users') {
-    ComponentToRender = ManageUsers;
-  } else if (currentPath === '/payment-processing' || currentPath === '/billing' || currentPath === '/payments') {
-    ComponentToRender = PaymentProcessing;
-  } else if (currentPath === '/file-management' || currentPath === '/files') {
-    ComponentToRender = FileManagement;
-  }
-  // Legal & Info
-  else if (currentPath === '/terms') {
-    ComponentToRender = Terms;
-  } else if (currentPath === '/privacy') {
-    ComponentToRender = Privacy;
-  } else if (currentPath === '/about') {
-    ComponentToRender = About;
-  } else if (currentPath === '/contact') {
-    ComponentToRender = Contact;
-  }
-  // 404 Handling
-  else if (currentPath !== '/') {
-    ComponentToRender = NotFound;
-  } else {
-    // Default landing page
-    ComponentToRender = SimpleLanding;
-  }
+  // Direct component rendering with proper JSX
+  const renderPage = () => {
+    if (currentPath === '/home' || currentPath === '/dashboard') {
+      return <SimpleHome />;
+    } else if (currentPath === '/login') {
+      return <Login />;
+    } else if (currentPath === '/profile-setup') {
+      return <ProfileSetup />;
+    } else if (currentPath === '/address-verification') {
+      return <AddressVerification />;
+    } else if (currentPath.startsWith('/find-contractors')) {
+      return <FindContractors />;
+    } else if (currentPath.startsWith('/contractors')) {
+      return <ContractorBoard />;
+    } else if (currentPath.startsWith('/quote-calculator')) {
+      return <QuoteCalculator />;
+    } else if (currentPath.startsWith('/daily-deals')) {
+      return <DailyDeals />;
+    } else if (currentPath.startsWith('/help-demo')) {
+      return <HelpDemo />;
+    } else if (currentPath.startsWith('/test-page')) {
+      return <TestPage />;
+    } else if (currentPath.startsWith('/profile')) {
+      return <Profile />;
+    } else if (currentPath === '/contractor-apply') {
+      return <ContractorApply />;
+    } else if (currentPath === '/business-listing') {
+      return <BusinessListing />;
+    } else if (currentPath === '/business-owner-dashboard') {
+      return <BusinessOwnerDashboard />;
+    } else if (currentPath === '/accelerator') {
+      return <Accelerator />;
+    } else if (currentPath === '/admin-panel') {
+      return <AdminPanel />;
+    } else if (currentPath === '/admin/users') {
+      return <AdminUsers />;
+    } else if (currentPath === '/admin/user-management') {
+      return <AdminUserManagement />;
+    } else if (currentPath === '/admin/workspace') {
+      return <AdminWorkspace />;
+    } else if (currentPath === '/admin/error-reports') {
+      return <AdminErrorReports />;
+    } else if (currentPath === '/admin/testing') {
+      return <AdminTestingControls />;
+    } else if (currentPath === '/admin/address-verifications') {
+      return <AdminAddressVerifications />;
+    } else if (currentPath === '/admin/professional-verification') {
+      return <AdminProfessionalVerification />;
+    } else if (currentPath === '/admin/listings') {
+      return <AdminListings />;
+    } else if (currentPath === '/admin/attachments') {
+      return <AdminAttachments />;
+    } else if (currentPath === '/admin/pricing-analytics') {
+      return <AdminPricingAnalytics />;
+    } else if (currentPath === '/admin/create-account') {
+      return <AdminCreateAccount />;
+    } else if (currentPath.startsWith('/admin')) {
+      return <AdminDashboard />;
+    } else if (currentPath === '/worker-marketplace') {
+      return <WorkerMarketplace />;
+    } else if (currentPath === '/chat') {
+      return <Chat />;
+    } else if (currentPath === '/saved-ads') {
+      return <SavedAds />;
+    } else if (currentPath === '/affiliate') {
+      return <Affiliate />;
+    } else if (currentPath === '/growth-pack') {
+      return <GrowthPack />;
+    } else if (currentPath === '/boosts') {
+      return <Boosts />;
+    } else if (currentPath === '/advanced-search') {
+      return <AdvancedSearch />;
+    } else if (currentPath === '/groups') {
+      return <Groups />;
+    } else if (currentPath.startsWith('/group/')) {
+      return <GroupDetail />;
+    } else if (currentPath === '/hoa-management') {
+      return <HoaManagement />;
+    } else if (currentPath === '/community') {
+      return <Community />;
+    } else if (currentPath === '/community-feed') {
+      return <CommunityFeed />;
+    } else if (currentPath === '/community-moderation') {
+      return <CommunityModerationDemo />;
+    } else if (currentPath === '/marketplace') {
+      return <Marketplace />;
+    } else if (currentPath === '/exchange') {
+      return <Exchange />;
+    } else if (currentPath === '/handmade-marketplace') {
+      return <HandmadeMarketplace />;
+    } else if (currentPath === '/leaderboard') {
+      return <Leaderboard />;
+    } else if (currentPath === '/foundation') {
+      return <Foundation />;
+    } else if (currentPath === '/contractor-dashboard') {
+      return <ContractorDashboard />;
+    } else if (currentPath === '/homeowner-dashboard') {
+      return <HomeownerDashboard />;
+    } else if (currentPath === '/realtor-dashboard') {
+      return <RealtorDashboard />;
+    } else if (currentPath === '/car-salesman-dashboard') {
+      return <CarSalesmanDashboard />;
+    } else if (currentPath === '/helper-dashboard') {
+      return <HelperDashboard />;
+    } else if (currentPath === '/insurance-agent-dashboard') {
+      return <InsuranceAgentDashboard />;
+    } else if (currentPath === '/property-manager-dashboard') {
+      return <PropertyManagerDashboard />;
+    } else if (currentPath === '/mortgage-broker-dashboard') {
+      return <MortgageBrokerDashboard />;
+    } else if (currentPath === '/staff-dashboard') {
+      return <StaffDashboard />;
+    } else if (currentPath === '/realtor-application') {
+      return <RealtorApplication />;
+    } else if (currentPath === '/car-salesman-application') {
+      return <CarSalesmanApplication />;
+    } else if (currentPath === '/checkout') {
+      return <Checkout />;
+    } else if (currentPath === '/payment-success') {
+      return <PaymentSuccess />;
+    } else if (currentPath === '/payment-history') {
+      return <PaymentHistory />;
+    } else if (currentPath === '/register') {
+      return <Register />;
+    } else if (currentPath === '/signup') {
+      return <Signup />;
+    } else if (currentPath === '/invite') {
+      return <Invite />;
+    } else if (currentPath === '/notifications') {
+      return <Notifications />;
+    } else if (currentPath === '/settings') {
+      return <Settings />;
+    } else if (currentPath === '/help') {
+      return <Help />;
+    } else if (currentPath === '/county-hub') {
+      return <CountyHub />;
+    } else if (currentPath === '/verification') {
+      return <Verification />;
+    } else if (currentPath === '/insurance-verification') {
+      return <InsuranceVerification />;
+    } else if (currentPath === '/license-verification') {
+      return <LicenseVerification />;
+    } else if (currentPath === '/background-check') {
+      return <BackgroundCheck />;
+    } else if (currentPath === '/compliance') {
+      return <Compliance />;
+    } else if (currentPath === '/promotions') {
+      return <Promotions />;
+    } else if (currentPath === '/ad-creator') {
+      return <AdCreator />;
+    } else if (currentPath === '/analytics') {
+      return <Analytics />;
+    } else if (currentPath === '/lead-management') {
+      return <LeadManagement />;
+    } else if (currentPath === '/documentation') {
+      return <Documentation />;
+    } else if (currentPath === '/crm' || currentPath === '/crm-dashboard') {
+      return <CRM />;
+    } else if (currentPath === '/vehicle-marketplace') {
+      return <VehicleMarketplace />;
+    } else if (currentPath === '/hoa-dashboard') {
+      return <HOADashboard />;
+    } else if (currentPath === '/real-estate-marketplace') {
+      return <RealEstateMarketplace />;
+    } else if (currentPath === '/coffee-company' || currentPath === '/coffee') {
+      return <CoffeeCompany />;
+    } else if (currentPath === '/administrative-dashboard') {
+      return <AdministrativeDashboard />;
+    } else if (currentPath === '/county-directory') {
+      return <CountyDirectory />;
+    } else if (currentPath === '/application-tracker') {
+      return <ApplicationTracker />;
+    } else if (currentPath === '/resource-center') {
+      return <ResourceCenter />;
+    } else if (currentPath === '/membership-portal' || currentPath === '/membership') {
+      return <MembershipPortal />;
+    } else if (currentPath === '/training-center' || currentPath === '/training') {
+      return <TrainingCenter />;
+    } else if (currentPath === '/social-integration' || currentPath === '/social') {
+      return <SocialIntegration />;
+    } else if (currentPath === '/referral-dashboard' || currentPath === '/referrals') {
+      return <ReferralDashboard />;
+    } else if (currentPath === '/event-management' || currentPath === '/events') {
+      return <EventManagement />;
+    } else if (currentPath === '/api-integrations' || currentPath === '/api' || currentPath === '/integrations') {
+      return <APIIntegrations />;
+    } else if (currentPath === '/contractor-verification') {
+      return <ContractorVerification />;
+    } else if (currentPath === '/content-moderation' || currentPath === '/moderation') {
+      return <ContentModeration />;
+    } else if (currentPath === '/system-settings') {
+      return <SystemSettings />;
+    } else if (currentPath === '/support-tickets' || currentPath === '/support') {
+      return <SupportTickets />;
+    } else if (currentPath === '/schedule-consultation' || currentPath === '/consultation') {
+      return <ScheduleConsultation />;
+    } else if (currentPath === '/apply-accelerator' || currentPath === '/apply') {
+      return <ApplyAccelerator />;
+    } else if (currentPath === '/platform-analytics') {
+      return <PlatformAnalytics />;
+    } else if (currentPath === '/manage-users' || currentPath === '/users') {
+      return <ManageUsers />;
+    } else if (currentPath === '/payment-processing' || currentPath === '/billing' || currentPath === '/payments') {
+      return <PaymentProcessing />;
+    } else if (currentPath === '/file-management' || currentPath === '/files') {
+      return <FileManagement />;
+    } else if (currentPath === '/terms') {
+      return <Terms />;
+    } else if (currentPath === '/privacy') {
+      return <Privacy />;
+    } else if (currentPath === '/about') {
+      return <About />;
+    } else if (currentPath === '/contact') {
+      return <Contact />;
+    } else if (currentPath !== '/') {
+      return <NotFound />;
+    } else {
+      return <SimpleLanding />;
+    }
+  };
 
   return (
     <SimpleMobileGestures>
@@ -457,7 +408,7 @@ const Router = memo(function Router() {
         <SimpleNavigation />
         
         <main className="flex-1 relative">
-          <ComponentToRender />
+          {renderPage()}
         </main>
         
         <LegalFooter />

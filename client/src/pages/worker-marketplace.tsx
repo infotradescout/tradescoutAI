@@ -281,7 +281,18 @@ export default function WorkerMarketplace() {
       {/* Helper Profile Modal */}
       {selectedHelper && (
         <HelperProfileModal
-          helper={selectedHelper}
+          helper={{
+            ...selectedHelper,
+            profileImageUrl: selectedHelper.profileImageUrl || undefined,
+            bio: selectedHelper.bio || undefined,
+            skills: selectedHelper.skills || undefined,
+            hourlyRate: selectedHelper.hourlyRate || undefined,
+            averageRating: selectedHelper.averageRating || undefined,
+            totalJobsCompleted: selectedHelper.totalJobsCompleted || 0,
+            city: undefined, // Worker type doesn't have city, using undefined
+            transportationMethod: selectedHelper.transportationMethod || undefined,
+            maxTravelDistance: selectedHelper.maxTravelDistance || undefined
+          }}
           isOpen={isProfileModalOpen}
           onClose={() => {
             setIsProfileModalOpen(false);
