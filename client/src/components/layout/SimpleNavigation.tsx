@@ -57,10 +57,18 @@ const SimpleNavigation = memo(function SimpleNavigation() {
             
             {/* Premium CTAs */}
             <div className="flex items-center space-x-4 ml-8 pl-8 border-l border-white/10">
-              <button className="text-gray-300 hover:text-white transition-colors font-medium px-4 py-2">
+              <button 
+                onClick={() => window.location.href = '/login'}
+                className="text-gray-300 hover:text-white transition-colors font-medium px-4 py-2"
+                data-testid="button-sign-in"
+              >
                 Sign In
               </button>
-              <button className="relative group px-6 py-3 bg-gradient-to-r from-orange-500 via-orange-600 to-orange-700 rounded-xl font-semibold text-white transition-all duration-300 hover:scale-105 shadow-lg hover:shadow-orange-500/25">
+              <button 
+                onClick={() => window.location.href = '/login'}
+                className="relative group px-6 py-3 bg-gradient-to-r from-orange-500 via-orange-600 to-orange-700 rounded-xl font-semibold text-white transition-all duration-300 hover:scale-105 shadow-lg hover:shadow-orange-500/25"
+                data-testid="button-get-started"
+              >
                 <span className="relative z-10">Get Started</span>
                 <div className="absolute inset-0 bg-gradient-to-r from-orange-600 to-orange-800 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
               </button>

@@ -46,7 +46,11 @@ const SimpleLanding = memo(function SimpleLanding() {
             
             {/* CTA Buttons */}
             <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-16">
-              <button className="group relative px-8 py-4 bg-gradient-to-r from-orange-500 via-orange-600 to-orange-700 rounded-2xl font-semibold text-white shadow-2xl hover:shadow-orange-500/25 transition-all duration-300 hover:scale-105 min-w-[200px]">
+              <button 
+                onClick={() => window.location.href = '/login'}
+                className="group relative px-8 py-4 bg-gradient-to-r from-orange-500 via-orange-600 to-orange-700 rounded-2xl font-semibold text-white shadow-2xl hover:shadow-orange-500/25 transition-all duration-300 hover:scale-105 min-w-[200px]"
+                data-testid="button-find-contractors"
+              >
                 <span className="relative z-10 flex items-center gap-2">
                   Find Elite Contractors
                   <svg className="w-5 h-5 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -56,7 +60,11 @@ const SimpleLanding = memo(function SimpleLanding() {
                 <div className="absolute inset-0 bg-gradient-to-r from-orange-600 to-orange-800 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
               </button>
               
-              <button className="group relative px-8 py-4 bg-white/5 backdrop-blur-sm border border-white/20 rounded-2xl font-semibold text-white hover:bg-white/10 hover:border-white/30 transition-all duration-300 min-w-[200px]">
+              <button 
+                onClick={() => window.location.href = '/quote-calculator'}
+                className="group relative px-8 py-4 bg-white/5 backdrop-blur-sm border border-white/20 rounded-2xl font-semibold text-white hover:bg-white/10 hover:border-white/30 transition-all duration-300 min-w-[200px]"
+                data-testid="button-get-quote"
+              >
                 Get Instant Quote
               </button>
             </div>
