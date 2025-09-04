@@ -1557,7 +1557,7 @@ export async function registerRoutes(app: Express) {
   // Profile setup endpoint
   app.post('/api/auth/setup-profile', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user?.id;
+      const userId = (req.user as any)?.id || (req.user as any)?.claims?.sub;
       const { role, phone, address, city, state, zipCode, companyName, businessDescription, licenseNumber, yearsInBusiness, serviceAreas, isGeneralContractor, isResidentialContractor, acceptsSubcontractWork } = req.body;
 
       // Update user profile
@@ -1704,7 +1704,7 @@ export async function registerRoutes(app: Express) {
   // Admin user management endpoints
   app.get("/api/admin/users", isAuthenticated, async (req, res) => {
     try {
-      const userId = req.user?.id;
+      const userId = (req.user as any)?.id || (req.user as any)?.claims?.sub;
       const user = await storage.getUser(userId);
 
       if (!user || !['head_admin', 'moderator', 'ops_admin'].includes(user.role || '')) {
@@ -1721,7 +1721,7 @@ export async function registerRoutes(app: Express) {
 
   app.put("/api/admin/users/:userId/role", isAuthenticated, async (req, res) => {
     try {
-      const adminUserId = req.user?.id;
+      const adminUserId = (req.user as any)?.id || (req.user as any)?.claims?.sub;
       const adminUser = await storage.getUser(adminUserId);
       const { userId } = req.params;
       const { role } = req.body;
@@ -1750,7 +1750,7 @@ export async function registerRoutes(app: Express) {
 
   app.delete("/api/admin/users/:userId", isAuthenticated, async (req, res) => {
     try {
-      const adminUserId = req.user?.id;
+      const adminUserId = (req.user as any)?.id || (req.user as any)?.claims?.sub;
       const adminUser = await storage.getUser(adminUserId);
       const { userId } = req.params;
 
@@ -2008,7 +2008,7 @@ export async function registerRoutes(app: Express) {
   // Growth Pack download (requires contractor account)
   app.post("/api/growth-pack", isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user?.id;
+      const userId = (req.user as any)?.id || (req.user as any)?.claims?.sub;
       const user = await storage.getUser(userId);
 
       if (!user) {
@@ -2244,7 +2244,7 @@ export async function registerRoutes(app: Express) {
   // Contractor application submission
   app.post("/api/contractors/apply", isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user?.id;
+      const userId = (req.user as any)?.id || (req.user as any)?.claims?.sub;
       const user = await storage.getUser(userId);
 
       if (!user) {
@@ -2536,7 +2536,7 @@ export async function registerRoutes(app: Express) {
   // Accelerator enrollment
   app.post("/api/accelerator/enroll", isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user?.id;
+      const userId = (req.user as any)?.id || (req.user as any)?.claims?.sub;
       const user = await storage.getUser(userId);
 
       if (!user) {
@@ -5430,7 +5430,7 @@ export async function registerRoutes(app: Express) {
 
   app.post("/api/handmade/products", isAuthenticated, requireAddressVerification, async (req, res) => {
     try {
-      const userId = req.user?.id;
+      const userId = (req.user as any)?.id || (req.user as any)?.claims?.sub;
       const productData = {
         ...req.body,
         sellerId: userId,
@@ -5447,7 +5447,7 @@ export async function registerRoutes(app: Express) {
   app.put("/api/handmade/products/:id", isAuthenticated, requireAddressVerification, async (req, res) => {
     try {
       const { id } = req.params;
-      const userId = req.user?.id;
+      const userId = (req.user as any)?.id || (req.user as any)?.claims?.sub;
 
       // Check if user owns the product
       const product = await storage.getHandmadeProduct(id);
@@ -5467,7 +5467,7 @@ export async function registerRoutes(app: Express) {
   app.post("/api/handmade/products/:id/favorite", isAuthenticated, requireAddressVerification, async (req, res) => {
     try {
       const { id: productId } = req.params;
-      const userId = req.user?.id;
+      const userId = (req.user as any)?.id || (req.user as any)?.claims?.sub;
 
       const result = await storage.toggleProductFavorite(userId, productId);
       res.json(result);
@@ -5479,7 +5479,7 @@ export async function registerRoutes(app: Express) {
 
   app.get("/api/handmade/favorites", isAuthenticated, async (req, res) => {
     try {
-      const userId = req.user?.id;
+      const userId = (req.user as any)?.id || (req.user as any)?.claims?.sub;
       const favorites = await storage.getUserFavoriteProducts(userId);
       res.json(favorites);
     } catch (error: any) {
@@ -5491,7 +5491,7 @@ export async function registerRoutes(app: Express) {
   // Product Orders
   app.post("/api/handmade/orders", isAuthenticated, requireAddressVerification, async (req, res) => {
     try {
-      const userId = req.user?.id;
+      const userId = (req.user as any)?.id || (req.user as any)?.claims?.sub;
       const orderData = {
         ...req.body,
         buyerId: userId,
@@ -5507,7 +5507,7 @@ export async function registerRoutes(app: Express) {
 
   app.get("/api/handmade/orders", isAuthenticated, async (req, res) => {
     try {
-      const userId = req.user?.id;
+      const userId = (req.user as any)?.id || (req.user as any)?.claims?.sub;
       const type = req.query.type as 'buyer' | 'seller' || 'buyer';
 
       const orders = await storage.getUserOrders(userId, type);
@@ -5521,7 +5521,7 @@ export async function registerRoutes(app: Express) {
   app.get("/api/handmade/orders/:id", isAuthenticated, async (req, res) => {
     try {
       const { id } = req.params;
-      const userId = req.user?.id;
+      const userId = (req.user as any)?.id || (req.user as any)?.claims?.sub;
 
       const order = await storage.getProductOrder(id);
       if (!order) {
@@ -5543,7 +5543,7 @@ export async function registerRoutes(app: Express) {
   app.put("/api/handmade/orders/:id", isAuthenticated, requireAddressVerification, async (req, res) => {
     try {
       const { id } = req.params;
-      const userId = req.user?.id;
+      const userId = (req.user as any)?.id || (req.user as any)?.claims?.sub;
 
       const order = await storage.getProductOrder(id);
       if (!order) {
@@ -5566,7 +5566,7 @@ export async function registerRoutes(app: Express) {
   // Product Reviews
   app.post("/api/handmade/reviews", isAuthenticated, requireAddressVerification, async (req, res) => {
     try {
-      const userId = req.user?.id;
+      const userId = (req.user as any)?.id || (req.user as any)?.claims?.sub;
       const reviewData = {
         ...req.body,
         buyerId: userId,
@@ -5621,7 +5621,7 @@ export async function registerRoutes(app: Express) {
 
   app.post("/api/handmade/seller-profile", isAuthenticated, requireAddressVerification, async (req, res) => {
     try {
-      const userId = req.user?.id;
+      const userId = (req.user as any)?.id || (req.user as any)?.claims?.sub;
       const profileData = {
         ...req.body,
         userId,
@@ -5637,7 +5637,7 @@ export async function registerRoutes(app: Express) {
 
   app.put("/api/handmade/seller-profile", isAuthenticated, requireAddressVerification, async (req, res) => {
     try {
-      const userId = req.user?.id;
+      const userId = (req.user as any)?.id || (req.user as any)?.claims?.sub;
       const profile = await storage.updateSellerProfile(userId, req.body);
       res.json(profile);
     } catch (error: any) {
@@ -5648,7 +5648,7 @@ export async function registerRoutes(app: Express) {
 
   app.get("/api/handmade/seller-profile", isAuthenticated, async (req, res) => {
     try {
-      const userId = req.user?.id;
+      const userId = (req.user as any)?.id || (req.user as any)?.claims?.sub;
       const profile = await storage.getSellerProfile(userId);
       res.json(profile);
     } catch (error: any) {
@@ -6592,7 +6592,7 @@ export async function registerRoutes(app: Express) {
   // Tutorial Management Routes
   app.get("/api/tutorials/user-progress", isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user?.id;
+      const userId = (req.user as any)?.id || (req.user as any)?.claims?.sub;
       if (!userId) {
         return res.status(401).json({ message: "User not authenticated" });
       }
@@ -6607,7 +6607,7 @@ export async function registerRoutes(app: Express) {
 
   app.get("/api/tutorials/recommended", isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user?.id;
+      const userId = (req.user as any)?.id || (req.user as any)?.claims?.sub;
       const userRole = req.user?.role || 'homeowner';
 
       if (!userId) {
@@ -6640,7 +6640,7 @@ export async function registerRoutes(app: Express) {
 
   app.post("/api/tutorials/:tutorialId/start", isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user?.id;
+      const userId = (req.user as any)?.id || (req.user as any)?.claims?.sub;
       const { tutorialId } = req.params;
 
       if (!userId) {
@@ -6681,7 +6681,7 @@ export async function registerRoutes(app: Express) {
 
   app.put("/api/tutorials/:tutorialId/progress", isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user?.id;
+      const userId = (req.user as any)?.id || (req.user as any)?.claims?.sub;
       const { tutorialId } = req.params;
       const { stepIndex, action, timeSpent, metadata } = req.body;
 
@@ -6727,7 +6727,7 @@ export async function registerRoutes(app: Express) {
 
   app.post("/api/tutorials/:tutorialId/complete", isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user?.id;
+      const userId = (req.user as any)?.id || (req.user as any)?.claims?.sub;
       const { tutorialId } = req.params;
       const { finalStepIndex } = req.body;
 
@@ -6756,7 +6756,7 @@ export async function registerRoutes(app: Express) {
 
   app.post("/api/tutorials/:tutorialId/skip", isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user?.id;
+      const userId = (req.user as any)?.id || (req.user as any)?.claims?.sub;
       const { tutorialId } = req.params;
 
       if (!userId) {
@@ -6784,7 +6784,7 @@ export async function registerRoutes(app: Express) {
 
   app.get("/api/tutorials/check/:featureId", isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user?.id;
+      const userId = (req.user as any)?.id || (req.user as any)?.claims?.sub;
       const { featureId } = req.params;
 
       if (!userId) {
