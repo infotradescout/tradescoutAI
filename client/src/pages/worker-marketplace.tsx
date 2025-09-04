@@ -289,6 +289,14 @@ export default function WorkerMarketplace() {
             hourlyRate: selectedHelper.hourlyRate || undefined,
             averageRating: selectedHelper.averageRating || undefined,
             totalJobsCompleted: selectedHelper.totalJobsCompleted || 0,
+            isIdVerified: selectedHelper.isIdVerified || false,
+            isBackgroundChecked: selectedHelper.isBackgroundChecked || false,
+            isAvailable: selectedHelper.isAvailable || true,
+            verificationStatus: selectedHelper.verificationStatus || 'pending',
+            workExperience: selectedHelper.workExperience || undefined,
+            education: selectedHelper.education || undefined,
+            certifications: selectedHelper.certifications || undefined,
+            portfolioItems: selectedHelper.portfolioItems || undefined,
             city: undefined, // Worker type doesn't have city, using undefined
             transportationMethod: selectedHelper.transportationMethod || undefined,
             maxTravelDistance: selectedHelper.maxTravelDistance || undefined
