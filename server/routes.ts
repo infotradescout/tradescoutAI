@@ -6305,6 +6305,114 @@ export async function registerRoutes(app: Express) {
     }
   });
 
+  // ==================== PROFESSIONAL PARTNERSHIPS ====================
+
+  // Request partnership between professionals (dealers, contractors, realtors)
+  app.post("/api/partnerships/request", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user?.claims?.sub;
+      const { partnerId, partnershipType, referralTerms, partnershipDescription } = req.body;
+
+      if (!partnerId || !partnershipType) {
+        return res.status(400).json({ message: "Partner ID and partnership type are required" });
+      }
+
+      // Check if partnership already exists (stub for now)
+      // const existingPartnership = await storage.getPartnership(userId, partnerId);
+
+      const partnership = {
+        id: `partnership_${Date.now()}`,
+        initiatorId: userId,
+        partnerId,
+        partnershipType,
+        referralTerms,
+        partnershipDescription,
+        status: 'pending',
+        createdAt: new Date()
+      };
+
+      res.status(201).json(partnership);
+    } catch (error: any) {
+      console.error("Error creating partnership:", error);
+      res.status(500).json({ message: "Failed to create partnership request" });
+    }
+  });
+
+  // Get user's partnerships  
+  app.get("/api/partnerships/my", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user?.claims?.sub;
+      const user = await storage.getUser(userId);
+      
+      // Mock partnerships for different roles
+      const mockPartnerships = user?.role === 'vehicle_dealer' ? [
+        {
+          id: 'partnership_1',
+          initiatorId: userId,
+          partnerId: 'contractor_123',
+          partnerName: 'Thompson Construction',
+          partnershipType: 'dealer_contractor',
+          status: 'active',
+          totalReferrals: 5,
+          successfulReferrals: 3,
+          totalCommissionEarned: '1250.00'
+        },
+        {
+          id: 'partnership_2',  
+          initiatorId: 'contractor_456',
+          partnerId: userId,
+          partnerName: 'Elite Roofing Co',
+          partnershipType: 'dealer_contractor',
+          status: 'pending',
+          totalReferrals: 0,
+          successfulReferrals: 0,
+          totalCommissionEarned: '0.00'
+        }
+      ] : [];
+
+      res.json(mockPartnerships);
+    } catch (error: any) {
+      console.error("Error fetching partnerships:", error);
+      res.status(500).json({ message: "Failed to fetch partnerships" });
+    }
+  });
+
+  // Find potential partners by role
+  app.get("/api/partnerships/find/:role", isAuthenticated, async (req: any, res) => {
+    try {
+      const { role } = req.params;
+      
+      // Mock potential partners based on requested role
+      const mockPartners = role === 'contractor_user' ? [
+        {
+          id: 'contractor_789',
+          firstName: 'Mike',
+          lastName: 'Rodriguez',
+          companyName: 'Rodriguez Construction',
+          specialties: ['Roofing', 'Siding', 'General'],
+          rating: 4.8,
+          completedJobs: 147,
+          location: 'Downtown Area'
+        },
+        {
+          id: 'contractor_101',
+          firstName: 'Sarah',
+          lastName: 'Johnson',
+          companyName: 'Johnson Home Improvements',
+          specialties: ['Kitchen Remodel', 'Bathroom Remodel'],
+          rating: 4.9,
+          completedJobs: 89,
+          location: 'Westside'
+        }
+      ] : [];
+
+      res.json(mockPartners);
+    } catch (error: any) {
+      console.error("Error finding potential partners:", error);
+      res.status(500).json({ message: "Failed to find potential partners" });
+    }
+  });
+
   // ==================== AFFILIATE SYSTEM ROUTES ====================
 
   // Create or get affiliate program for user

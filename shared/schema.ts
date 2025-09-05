@@ -1601,6 +1601,71 @@ export const verificationRequests = pgTable("verification_requests", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
+// Professional Partnerships (Dealer-Contractor connections)
+export const professionalPartnerships = pgTable("professional_partnerships", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  
+  // Partnership members
+  initiatorId: varchar("initiator_id").notNull(), // User who sent partnership request
+  partnerId: varchar("partner_id").notNull(),     // User who received request
+  
+  // Partnership type and details
+  partnershipType: varchar("partnership_type", {
+    enum: ['dealer_contractor', 'contractor_realtor', 'realtor_dealer']
+  }).notNull(),
+  
+  status: varchar("status", {
+    enum: ['pending', 'active', 'paused', 'ended']
+  }).default('pending'),
+  
+  // Terms and agreements
+  commissionRate: decimal("commission_rate").default('10.00'), // 10% default
+  referralTerms: text("referral_terms"),
+  partnershipDescription: text("partnership_description"),
+  
+  // Success metrics
+  totalReferrals: integer("total_referrals").default(0),
+  successfulReferrals: integer("successful_referrals").default(0),
+  totalCommissionEarned: decimal("total_commission_earned").default('0'),
+  
+  // Timestamps
+  requestedAt: timestamp("requested_at").defaultNow(),
+  approvedAt: timestamp("approved_at"),
+  lastReferralAt: timestamp("last_referral_at"),
+  
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const partnershipReferrals = pgTable("partnership_referrals", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  
+  partnershipId: varchar("partnership_id").notNull(),
+  referrerId: varchar("referrer_id").notNull(),    // Who made the referral
+  customerId: varchar("customer_id").notNull(),     // Who was referred
+  
+  referralType: varchar("referral_type", {
+    enum: ['vehicle_purchase', 'home_project', 'financing', 'insurance']
+  }).notNull(),
+  
+  status: varchar("status", {
+    enum: ['sent', 'contacted', 'meeting_scheduled', 'deal_closed', 'no_sale']
+  }).default('sent'),
+  
+  // Deal details
+  estimatedValue: decimal("estimated_value"),
+  actualValue: decimal("actual_value"),
+  commissionAmount: decimal("commission_amount"),
+  
+  // Notes and communication
+  referralNotes: text("referral_notes"),
+  customerMessage: text("customer_message"),
+  partnerResponse: text("partner_response"),
+  
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
 export const errorReports = pgTable("error_reports", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   
