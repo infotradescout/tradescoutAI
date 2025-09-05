@@ -167,6 +167,15 @@ import CarSalesVinLookup from './pages/car-sales-vin-lookup';
 import CarSalesAppointments from './pages/car-sales-appointments';
 import CarSalesFollowUp from './pages/car-sales-follow-up';
 
+// Realtor Pages
+import RealtorClients from './pages/realtor-clients';
+import RealtorMarketAnalysis from './pages/realtor-market-analysis';
+import RealtorConnections from './pages/realtor-connections';
+import RealtorCalculator from './pages/realtor-calculator';
+import RealtorCMA from './pages/realtor-cma';
+import RealtorAppointments from './pages/realtor-appointments';
+import RealtorContacts from './pages/realtor-contacts';
+
 // Legal footer component
 const LegalFooter = memo(function LegalFooter() {
   return (
@@ -400,6 +409,20 @@ const Router = memo(function Router() {
       return <CarSalesAppointments />;
     } else if (currentPath === '/car-sales/follow-up') {
       return <CarSalesFollowUp />;
+    } else if (currentPath === '/realtor/clients') {
+      return <RealtorClients />;
+    } else if (currentPath === '/realtor/market-analysis') {
+      return <RealtorMarketAnalysis />;
+    } else if (currentPath === '/realtor/connections') {
+      return <RealtorConnections />;
+    } else if (currentPath === '/realtor/calculator') {
+      return <RealtorCalculator />;
+    } else if (currentPath === '/realtor/cma') {
+      return <RealtorCMA />;
+    } else if (currentPath === '/realtor/appointments') {
+      return <RealtorAppointments />;
+    } else if (currentPath === '/realtor/contacts') {
+      return <RealtorContacts />;
     } else if (currentPath === '/system-settings') {
       return <SystemSettings />;
     } else if (currentPath === '/support-tickets' || currentPath === '/support') {
