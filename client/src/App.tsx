@@ -1,4 +1,4 @@
-import React, { memo } from 'react';
+import React, { memo, useState, useEffect } from 'react';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { queryClient } from './lib/queryClient';
 import { ErrorBoundary } from './components/ui/error-boundary';
@@ -199,7 +199,39 @@ const LegalFooter = memo(function LegalFooter() {
 
 // Main router component - using proper component rendering
 const Router = memo(function Router() {
-  const currentPath = typeof window !== 'undefined' ? window.location.pathname : '/';
+  const [currentPath, setCurrentPath] = useState(
+    typeof window !== 'undefined' ? window.location.pathname : '/'
+  );
+  
+  // Listen for navigation changes
+  useEffect(() => {
+    const handleLocationChange = () => {
+      setCurrentPath(window.location.pathname);
+    };
+    
+    // Listen for back/forward button
+    window.addEventListener('popstate', handleLocationChange);
+    
+    // Listen for anchor clicks
+    const handleClick = (e: Event) => {
+      const target = e.target as HTMLElement;
+      const anchor = target.closest('a');
+      
+      if (anchor && anchor.href && anchor.href.startsWith(window.location.origin)) {
+        e.preventDefault();
+        const newPath = new URL(anchor.href).pathname;
+        window.history.pushState({}, '', newPath);
+        setCurrentPath(newPath);
+      }
+    };
+    
+    document.addEventListener('click', handleClick);
+    
+    return () => {
+      window.removeEventListener('popstate', handleLocationChange);
+      document.removeEventListener('click', handleClick);
+    };
+  }, []);
   
   // Direct component rendering with proper JSX
   const renderPage = () => {
