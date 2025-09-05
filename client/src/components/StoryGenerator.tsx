@@ -145,7 +145,7 @@ export function StoryGenerator() {
   const [editedStory, setEditedStory] = useState<string>('');
   const [activeCategory, setActiveCategory] = useState<string>('Background');
 
-  const categories = [...new Set(storyTemplates.map(t => t.category))];
+  const categories = Array.from(new Set(storyTemplates.map(t => t.category)));
 
   const generateStoryMutation = useMutation({
     mutationFn: async ({ templateId, userInputs }: { templateId: string; userInputs: Record<string, string> }) => {
