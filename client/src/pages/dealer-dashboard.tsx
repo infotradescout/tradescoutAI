@@ -3,11 +3,27 @@ import { useAuth } from "@/hooks/useAuth";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Car, Users, TrendingUp, DollarSign, Phone, MapPin, Calendar, Plus, Eye } from "lucide-react";
+import { Car, Users, TrendingUp, DollarSign, Phone, MapPin, Calendar, Plus, Eye, Handshake, Star } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
 
 export default function DealerDashboard() {
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState("overview");
+
+  // Fetch partnerships
+  const { data: partnerships = [], isLoading: partnershipsLoading } = useQuery({
+    queryKey: ['/api/partnerships/my'],
+  });
+
+  // Fetch potential partners
+  const { data: potentialPartners = [], isLoading: partnersLoading } = useQuery({
+    queryKey: ['/api/partnerships/find/contractor_user'],
+    enabled: activeTab === 'referrals'
+  });
+
+  // Ensure partnerships is always an array
+  const partnershipsList = Array.isArray(partnerships) ? partnerships : [];
+  const partnersList = Array.isArray(potentialPartners) ? potentialPartners : [];
 
   // Mock dealer stats
   const dealerStats = {
@@ -290,49 +306,133 @@ export default function DealerDashboard() {
           </TabsContent>
 
           <TabsContent value="referrals" className="space-y-6">
-            <Card className="bg-navy-800 border-navy-700">
-              <CardHeader>
-                <CardTitle className="text-white">Contractor Partnerships</CardTitle>
-                <CardDescription className="text-gray-300">
-                  Build referral networks with local contractors
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  <div className="p-4 bg-navy-700 rounded-lg">
-                    <div className="flex justify-between items-start mb-3">
-                      <div>
-                        <h3 className="text-white font-medium">Thompson Construction</h3>
-                        <p className="text-gray-300 text-sm">Residential & Commercial</p>
-                      </div>
-                      <span className="px-2 py-1 bg-green-600 text-white text-xs rounded">Active</span>
-                    </div>
-                    <div className="text-sm text-gray-300 mb-3">
-                      <p>5 successful referrals • $280k in vehicle sales</p>
-                    </div>
-                    <Button size="sm" variant="outline">
-                      View Partnership
-                    </Button>
+            <div className="grid gap-6">
+              {/* Active Partnerships */}
+              <Card className="bg-navy-800 border-navy-700">
+                <CardHeader className="flex flex-row items-center justify-between">
+                  <div>
+                    <CardTitle className="text-white flex items-center gap-2">
+                      <Handshake className="w-5 h-5" />
+                      Active Partnerships ({partnershipsList.length})
+                    </CardTitle>
+                    <CardDescription className="text-gray-300">
+                      Your contractor referral network
+                    </CardDescription>
                   </div>
+                  <Button className="bg-orange-600 hover:bg-orange-700">
+                    <Plus className="w-4 h-4 mr-2" />
+                    New Partnership
+                  </Button>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    {partnershipsLoading ? (
+                      <div className="text-center py-4 text-gray-400">Loading partnerships...</div>
+                    ) : (
+                      partnershipsList.map((partnership: any) => (
+                      <div key={partnership.id} className="p-4 bg-navy-700 rounded-lg">
+                        <div className="flex justify-between items-start mb-3">
+                          <div>
+                            <h3 className="text-white font-medium">{partnership.partnerName}</h3>
+                            <p className="text-gray-300 text-sm">
+                              {partnership.partnershipType === 'dealer_contractor' ? 'Construction Partner' : 'Professional Partner'}
+                            </p>
+                          </div>
+                          <span className={`px-2 py-1 text-white text-xs rounded ${
+                            partnership.status === 'active' ? 'bg-green-600' : 
+                            partnership.status === 'pending' ? 'bg-yellow-600' : 'bg-blue-600'
+                          }`}>
+                            {partnership.status === 'active' ? 'Active' : 
+                             partnership.status === 'pending' ? 'Pending' : 'New'}
+                          </span>
+                        </div>
+                        <div className="text-sm text-gray-300 mb-3">
+                          <p>{partnership.totalReferrals} referrals • ${partnership.totalCommissionEarned} earned</p>
+                        </div>
+                        <div className="flex gap-2">
+                          <Button size="sm" variant="outline">
+                            View Details
+                          </Button>
+                          <Button size="sm" className="bg-orange-600 hover:bg-orange-700">
+                            Send Referral
+                          </Button>
+                        </div>
+                      </div>
+                      ))
+                    )}
 
-                  <div className="p-4 bg-navy-700 rounded-lg">
-                    <div className="flex justify-between items-start mb-3">
-                      <div>
-                        <h3 className="text-white font-medium">Elite Roofing Co</h3>
-                        <p className="text-gray-300 text-sm">Residential Roofing</p>
+                    {!partnershipsLoading && partnershipsList.length === 0 && (
+                      <div className="text-center py-8 text-gray-400">
+                        <Handshake className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                        <p>No partnerships yet</p>
+                        <p className="text-sm">Start building your referral network!</p>
                       </div>
-                      <span className="px-2 py-1 bg-blue-600 text-white text-xs rounded">New</span>
-                    </div>
-                    <div className="text-sm text-gray-300 mb-3">
-                      <p>Just started • Great opportunity for work truck sales</p>
-                    </div>
-                    <Button size="sm" variant="outline">
-                      Build Partnership
-                    </Button>
+                    )}
                   </div>
-                </div>
-              </CardContent>
-            </Card>
+                </CardContent>
+              </Card>
+
+              {/* Find New Partners */}
+              <Card className="bg-navy-800 border-navy-700">
+                <CardHeader>
+                  <CardTitle className="text-white flex items-center gap-2">
+                    <Users className="w-5 h-5" />
+                    Find Contractor Partners
+                  </CardTitle>
+                  <CardDescription className="text-gray-300">
+                    Connect with local contractors in your area
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    {partnersLoading ? (
+                      <div className="text-center py-4 text-gray-400">Finding contractor partners...</div>
+                    ) : (
+                      partnersList.map((partner: any) => (
+                      <div key={partner.id} className="p-4 bg-navy-700 rounded-lg">
+                        <div className="flex justify-between items-start">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-3 mb-2">
+                              <h3 className="text-white font-medium">
+                                {partner.firstName} {partner.lastName}
+                              </h3>
+                              <div className="flex items-center gap-1 text-yellow-400">
+                                <Star className="w-4 h-4 fill-current" />
+                                <span className="text-sm">{partner.rating}</span>
+                              </div>
+                            </div>
+                            <p className="text-gray-300 font-medium mb-1">{partner.companyName}</p>
+                            <p className="text-gray-400 text-sm mb-2">
+                              {partner.specialties.join(', ')} • {partner.completedJobs} jobs completed
+                            </p>
+                            <p className="text-gray-400 text-sm flex items-center gap-1">
+                              <MapPin className="w-4 h-4" />
+                              {partner.location}
+                            </p>
+                          </div>
+                          <div className="flex flex-col gap-2">
+                            <Button size="sm" className="bg-orange-600 hover:bg-orange-700">
+                              Send Request
+                            </Button>
+                            <Button size="sm" variant="outline">
+                              View Profile
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+                      ))
+                    )}
+
+                    {!partnersLoading && partnersList.length === 0 && (
+                      <div className="text-center py-6 text-gray-400">
+                        <Users className="w-10 h-10 mx-auto mb-3 opacity-50" />
+                        <p>Looking for contractor partners...</p>
+                      </div>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
           </TabsContent>
         </Tabs>
       </div>
