@@ -15,7 +15,7 @@ const DailyDeals = memo(function DailyDeals() {
             <p className="text-xl mb-6">Professional Kitchen Renovation - 25% Off</p>
             <div className="text-4xl font-bold mb-4">Save $3,000</div>
             <p className="mb-6">Limited time offer from certified kitchen specialists</p>
-            <button className="bg-white text-orange-600 px-8 py-3 rounded font-semibold hover:bg-gray-100 transition-colors">
+            <button data-testid="claim-featured-deal-btn" className="bg-white text-orange-600 px-8 py-3 rounded font-semibold hover:bg-gray-100 transition-colors">
               Claim Deal
             </button>
           </div>
@@ -33,7 +33,7 @@ const DailyDeals = memo(function DailyDeals() {
               { title: "Flooring Installation", discount: "25% Off", contractor: "Floor Experts", rating: "4.9" },
               { title: "Painting Services", discount: "$200 Off", contractor: "Perfect Paint Co", rating: "4.6" }
             ].map((deal, i) => (
-              <div key={i} className="bg-navy-800 p-6 rounded-lg">
+              <div key={i} data-testid={`deal-card-${i}`} className="bg-navy-800 p-6 rounded-lg">
                 <div className="bg-orange-500 text-white px-3 py-1 rounded text-sm font-semibold mb-3 inline-block">
                   {deal.discount}
                 </div>
@@ -43,7 +43,7 @@ const DailyDeals = memo(function DailyDeals() {
                   <span className="text-yellow-400">★★★★★ {deal.rating}</span>
                   <span className="text-sm text-gray-400">Expires today</span>
                 </div>
-                <button className="w-full bg-orange-500 hover:bg-orange-600 text-white py-2 rounded transition-colors">
+                <button data-testid={`view-deal-btn-${i}`} className="w-full bg-orange-500 hover:bg-orange-600 text-white py-2 rounded transition-colors">
                   View Deal
                 </button>
               </div>

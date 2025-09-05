@@ -12,11 +12,12 @@ const QuoteCalculator = memo(function QuoteCalculator() {
         <section className="mb-12">
           <div className="bg-navy-800 p-6 rounded-lg">
             <h2 className="text-2xl font-semibold mb-6">Get Your Project Estimate</h2>
+            <form data-testid="quote-calculator-form">
             
             <div className="grid md:grid-cols-2 gap-6">
               <div>
                 <label className="block text-sm font-medium mb-2">Project Type</label>
-                <select className="w-full bg-navy-700 text-white p-3 rounded border border-navy-600 focus:border-orange-500">
+                <select data-testid="project-type-select" className="w-full bg-navy-700 text-white p-3 rounded border border-navy-600 focus:border-orange-500">
                   <option>Select project type</option>
                   <option>Kitchen Renovation</option>
                   <option>Bathroom Remodel</option>
@@ -30,6 +31,7 @@ const QuoteCalculator = memo(function QuoteCalculator() {
               <div>
                 <label className="block text-sm font-medium mb-2">Square Footage</label>
                 <input 
+                  data-testid="square-footage-input"
                   type="number" 
                   placeholder="Enter square footage"
                   className="w-full bg-navy-700 text-white p-3 rounded border border-navy-600 focus:border-orange-500"
@@ -59,10 +61,11 @@ const QuoteCalculator = memo(function QuoteCalculator() {
             </div>
             
             <div className="mt-6">
-              <button className="bg-orange-500 hover:bg-orange-600 text-white px-8 py-3 rounded font-semibold transition-colors">
+              <button data-testid="calculate-estimate-btn" className="bg-orange-500 hover:bg-orange-600 text-white px-8 py-3 rounded font-semibold transition-colors">
                 Calculate Estimate
               </button>
             </div>
+            </form>
           </div>
         </section>
 

@@ -245,7 +245,7 @@ const Router = memo(function Router() {
       return <AddressVerification />;
     } else if (currentPath.startsWith('/find-contractors')) {
       return <FindContractors />;
-    } else if (currentPath.startsWith('/contractors')) {
+    } else if (currentPath.startsWith('/contractors') || currentPath.startsWith('/contractor-board')) {
       return <ContractorBoard />;
     } else if (currentPath.startsWith('/quote-calculator')) {
       return <QuoteCalculator />;
