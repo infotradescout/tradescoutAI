@@ -135,21 +135,50 @@ async function routeLeadToTopContractors(lead: any, leadData: any) {
       return;
     }
 
-    // Fetch top 3 contractors for the lead's area and trade
+    // Fetch top contractors for the lead's area and trade with enhanced matching
     const contractors = await storage.getContractors({
       countyId,
       tradeIds: [tradeId],
-      limit: 3,
-      sortBy: 'rating', // Assuming 'rating' is a valid sorting option for performance
+      limit: 5, // Get more candidates for better selection
+      sortBy: 'rating',
     });
 
-    if (!contractors || contractors.length === 0) {
-      console.warn(`No top contractors found for lead ${lead.id} in county ${county} for trade ${trade}.`);
+    // Enhanced matching logic: Score contractors based on multiple factors
+    const scoredContractors = contractors
+      .filter(contractor => contractor.isActive && contractor.acceptsNewClients) // Only active, available contractors
+      .map(contractor => {
+        let score = 0;
+        
+        // Rating score (40% weight) - normalized to 0-40
+        score += (contractor.averageRating || 3.0) * 8;
+        
+        // Response rate score (30% weight) - normalized to 0-30  
+        score += (contractor.responseRate || 0.5) * 30;
+        
+        // Availability score (20% weight) - normalized to 0-20
+        score += contractor.isAvailable ? 20 : 0;
+        
+        // Recent activity score (10% weight) - normalized to 0-10
+        const daysSinceLastActive = contractor.lastActiveDate ? 
+          Math.floor((Date.now() - new Date(contractor.lastActiveDate).getTime()) / (1000 * 60 * 60 * 24)) : 999;
+        score += Math.max(0, 10 - (daysSinceLastActive * 0.5));
+        
+        return { ...contractor, matchScore: score };
+      })
+      .sort((a, b) => b.matchScore - a.matchScore) // Sort by match score
+      .slice(0, 3); // Take top 3
+
+    if (!scoredContractors || scoredContractors.length === 0) {
+      console.warn(`No qualified contractors found for lead ${lead.id} in county ${county} for trade ${trade}.`);
       return;
     }
 
-    const contractorIds = contractors.map(c => c.id);
+    const contractorIds = scoredContractors.map(c => c.id);
     await storage.assignLeadToContractors(lead.id, contractorIds);
+
+    // Log enhanced matching details
+    console.log(`Enhanced matching for lead ${lead.id}: Selected ${scoredContractors.length} contractors with scores:`, 
+      scoredContractors.map(c => ({ name: c.companyName, score: c.matchScore?.toFixed(1) })));
 
     // Notify contractors about the new lead
     const leadDetails = {
@@ -165,7 +194,7 @@ async function routeLeadToTopContractors(lead: any, leadData: any) {
       contactPhone: lead.contactPhone,
     };
 
-    await Promise.all(contractors.map(async (contractor) => {
+    await Promise.all(scoredContractors.map(async (contractor) => {
       try {
         // In a real application, this would involve sending an email or push notification
         // For now, we log it
@@ -179,11 +208,12 @@ async function routeLeadToTopContractors(lead: any, leadData: any) {
         //   actionUrl: `/leads/${lead.id}`,
         // });
 
-        // Log the assignment event
+        // Log the assignment event with match score
         await storage.logEvent('lead_assigned', {
           leadId: lead.id,
           contractorId: contractor.id,
-          assignmentType: 'top3_routing',
+          assignmentType: 'enhanced_matching',
+          matchScore: contractor.matchScore,
         });
 
       } catch (notificationError) {
