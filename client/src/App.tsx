@@ -201,8 +201,6 @@ const LegalFooter = memo(function LegalFooter() {
 const Router = memo(function Router() {
   const currentPath = typeof window !== 'undefined' ? window.location.pathname : '/';
   
-  console.log('Current path:', currentPath); // Debug logging
-  
   // Direct component rendering with proper JSX
   const renderPage = () => {
     if (currentPath === '/home' || currentPath === '/dashboard') {
