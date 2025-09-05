@@ -299,7 +299,7 @@ export default function Foundation() {
                     </CardContent>
                   </Card>
                 ))
-              ) : causes?.length > 0 ? (
+              ) : (causes && causes.length > 0) ? (
                 causes.map((cause) => {
                   const IconComponent = getCategoryIcon(cause.category);
                   const progressPercentage = getProgressPercentage(cause.currentAmount, cause.targetAmount);
