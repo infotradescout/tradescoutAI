@@ -68,6 +68,31 @@ export const userRoleEnum = pgEnum('user_role', [
   'head_admin'          // Ultimate authority - can manage all users and admins
 ]);
 
+// Story template categories for professional story generation
+export const storyTemplateCategoryEnum = pgEnum('story_template_category', [
+  'background',
+  'skills', 
+  'values',
+  'approach',
+  'innovation',
+  'impact'
+]);
+
+// Story tone enum for narrative style
+export const storyToneEnum = pgEnum('story_tone', [
+  'professional',
+  'friendly', 
+  'inspiring',
+  'authoritative'
+]);
+
+// Story length enum
+export const storyLengthEnum = pgEnum('story_length', [
+  'short',
+  'medium',
+  'long'
+]);
+
 // Trade categories enum for contractor specializations
 export const tradeCategoryEnum = pgEnum('trade_category', [
   // Construction & General
@@ -5508,3 +5533,76 @@ export const insertDealEngagementSchema = createInsertSchema(dealEngagements).om
   id: true,
   createdAt: true,
 });
+
+// Professional story generation tables
+export const storyTemplates = pgTable("story_templates", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  name: varchar("name").notNull(),
+  category: storyTemplateCategoryEnum("category").notNull(),
+  description: text("description"),
+  prompts: jsonb("prompts").$type<string[]>(),
+  tone: storyToneEnum("tone").notNull(),
+  length: storyLengthEnum("length").notNull(),
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const generatedStories = pgTable("generated_stories", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: 'cascade' }),
+  templateId: varchar("template_id").references(() => storyTemplates.id, { onDelete: 'set null' }),
+  title: varchar("title").notNull(),
+  content: text("content").notNull(),
+  userInputs: jsonb("user_inputs").$type<Record<string, string>>(),
+  isPublic: boolean("is_public").default(false),
+  isPinned: boolean("is_pinned").default(false),
+  viewCount: integer("view_count").default(0),
+  shareCount: integer("share_count").default(0),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => [
+  index("idx_generated_stories_user").on(table.userId),
+  index("idx_generated_stories_template").on(table.templateId),
+  index("idx_generated_stories_public").on(table.isPublic),
+]);
+
+export const storyInteractions = pgTable("story_interactions", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  storyId: varchar("story_id").notNull().references(() => generatedStories.id, { onDelete: 'cascade' }),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: 'cascade' }),
+  interactionType: varchar("interaction_type").notNull(), // 'view', 'like', 'share', 'copy'
+  metadata: jsonb("metadata").$type<Record<string, any>>(),
+  createdAt: timestamp("created_at").defaultNow(),
+}, (table) => [
+  index("idx_story_interactions_story").on(table.storyId),
+  index("idx_story_interactions_user").on(table.userId),
+]);
+
+// Story generation schemas
+export const insertStoryTemplateSchema = createInsertSchema(storyTemplates).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertGeneratedStorySchema = createInsertSchema(generatedStories).omit({
+  id: true,
+  viewCount: true,
+  shareCount: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertStoryInteractionSchema = createInsertSchema(storyInteractions).omit({
+  id: true,
+  createdAt: true,
+});
+
+// Story types
+export type StoryTemplate = typeof storyTemplates.$inferSelect;
+export type InsertStoryTemplate = typeof storyTemplates.$inferInsert;
+export type GeneratedStory = typeof generatedStories.$inferSelect;
+export type InsertGeneratedStory = typeof generatedStories.$inferInsert;
+export type StoryInteraction = typeof storyInteractions.$inferSelect;
+export type InsertStoryInteraction = typeof storyInteractions.$inferInsert;

@@ -20,7 +20,13 @@ import {
   type InsertRealtorProfile,
   type InsertCarSalesmanProfile,
   affiliatePrograms,
-  type User
+  type User,
+  insertGeneratedStorySchema,
+  insertStoryInteractionSchema,
+  generatedStories,
+  storyInteractions,
+  type GeneratedStory,
+  type StoryInteraction
 } from "@shared/schema";
 import { setupModerationRoutes } from "./moderation";
 import { registerUIIssuesRoutes } from "./routes/admin/ui-issues";
@@ -46,6 +52,7 @@ import {
 import { db } from "./db";
 import { eq, desc, and, or, count, gte, lte, isNull, ne, gt } from "drizzle-orm";
 import { checkTrustedDevice } from "./device-auth";
+import { StoryGenerationService } from "./story-generation-service";
 
 // Middleware to check address verification requirement
 const requireAddressVerification = async (req: any, res: any, next: any) => {
@@ -8184,6 +8191,112 @@ export async function registerRoutes(app: Express) {
   app.get("/api/nationwide/coverage-map", getCoverageMapData);
   app.get("/api/nationwide/affiliate-performance", getAffiliatePerformance);
   app.post("/api/nationwide/request-activation", isAuthenticated, requestCountyActivation);
+
+  // ========================================
+  // PROFESSIONAL STORY GENERATION ROUTES
+  // ========================================
+
+  // Generate a professional story
+  app.post("/api/stories/generate", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user?.id || req.user?.claims?.sub;
+      const { templateId, userInputs } = req.body;
+
+      if (!templateId) {
+        return res.status(400).json({ message: "Template ID is required" });
+      }
+
+      // Generate story using the service
+      const generatedStory = await StoryGenerationService.generateStory({
+        templateId,
+        userInputs: userInputs || {},
+        userId
+      });
+
+      // Track the story generation event
+      await LocalityTracker.trackInteraction('story_generated', req, {
+        templateId,
+        storyLength: generatedStory.content.length,
+        userRole: userInputs?.role || 'unknown'
+      });
+
+      res.status(201).json(generatedStory);
+    } catch (error: any) {
+      console.error("Error generating story:", error);
+      res.status(500).json({ message: "Failed to generate story" });
+    }
+  });
+
+  // Save a generated story
+  app.post("/api/stories", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user?.id || req.user?.claims?.sub;
+      const storyData = { ...req.body, userId };
+
+      // Validate input data
+      const validatedStory = insertGeneratedStorySchema.parse(storyData);
+
+      // Save story to database
+      const [savedStory] = await db
+        .insert(generatedStories)
+        .values(validatedStory)
+        .returning();
+
+      // Log the save event
+      await storage.logEvent('story_saved', {
+        storyId: savedStory.id,
+        userId,
+        templateId: savedStory.templateId
+      });
+
+      res.status(201).json(savedStory);
+    } catch (error: any) {
+      console.error("Error saving story:", error);
+      res.status(500).json({ message: "Failed to save story" });
+    }
+  });
+
+  // Get user's stories
+  app.get("/api/stories", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user?.id || req.user?.claims?.sub;
+      const { page = 1, limit = 10, public_only } = req.query;
+
+      const offset = (parseInt(page) - 1) * parseInt(limit);
+
+      let whereClause = eq(generatedStories.userId, userId);
+      if (public_only === 'true') {
+        whereClause = and(
+          eq(generatedStories.userId, userId),
+          eq(generatedStories.isPublic, true)
+        );
+      }
+
+      const stories = await db
+        .select()
+        .from(generatedStories)
+        .where(whereClause)
+        .orderBy(desc(generatedStories.createdAt))
+        .limit(parseInt(limit))
+        .offset(offset);
+
+      res.json(stories);
+    } catch (error: any) {
+      console.error("Error fetching stories:", error);
+      res.status(500).json({ message: "Failed to fetch stories" });
+    }
+  });
+
+  // Get story templates
+  app.get("/api/stories/templates", async (req, res) => {
+    try {
+      const templates = StoryGenerationService.getTemplates();
+      res.json(templates);
+    } catch (error: any) {
+      console.error("Error fetching templates:", error);
+      res.status(500).json({ message: "Failed to fetch templates" });
+    }
+  });
 
   return httpServer;
 }

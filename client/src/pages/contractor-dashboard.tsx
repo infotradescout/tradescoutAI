@@ -342,6 +342,13 @@ export default function ContractorDashboard() {
                       <p className="text-gray-400 text-xs">Get priority leads and training</p>
                     </div>
                   </div>
+                  <div className="flex items-start space-x-3">
+                    <FileText className="h-4 w-4 text-blue-500 mt-0.5" />
+                    <div>
+                      <p className="text-white text-sm">Create Professional Story</p>
+                      <p className="text-gray-400 text-xs">Generate compelling narratives for your profile</p>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
@@ -352,7 +359,13 @@ export default function ContractorDashboard() {
       {/* Business Navigation Section */}
       <div className="mt-8">
         <h2 className="text-xl font-semibold text-white mb-4">Expand Your Business</h2>
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-6 gap-4">
+          <Link href="/story-generator">
+            <Button variant="outline" className="w-full h-16 border-navy-500 hover:border-orange-500 flex flex-col items-center justify-center space-y-1">
+              <FileText className="h-5 w-5 text-blue-400" />
+              <span className="text-xs">Story Generator</span>
+            </Button>
+          </Link>
           <Link href="/contractor/recommendation-generator">
             <Button variant="outline" className="w-full h-16 border-navy-500 hover:border-orange-500 flex flex-col items-center justify-center space-y-1">
               <Zap className="h-5 w-5 text-blue-400" />
