@@ -157,6 +157,16 @@ import ManageUsers from './pages/manage-users';
 import PaymentProcessing from './pages/payment-processing';
 import FileManagement from './pages/file-management';
 
+// Car Sales Pages
+import CarSalesNewListing from './pages/car-sales-new-listing';
+import CarSalesCustomers from './pages/car-sales-customers';
+import CarSalesFinancing from './pages/car-sales-financing';
+import CarSalesTradeIn from './pages/car-sales-trade-in';
+import CarSalesPaymentCalculator from './pages/car-sales-payment-calculator';
+import CarSalesVinLookup from './pages/car-sales-vin-lookup';
+import CarSalesAppointments from './pages/car-sales-appointments';
+import CarSalesFollowUp from './pages/car-sales-follow-up';
+
 // Legal footer component
 const LegalFooter = memo(function LegalFooter() {
   return (
@@ -214,7 +224,7 @@ const Router = memo(function Router() {
       return <BusinessOwnerDashboard />;
     } else if (currentPath === '/accelerator') {
       return <Accelerator />;
-    } else if (currentPath === '/admin-panel') {
+    } else if (currentPath === '/admin-panel' || currentPath === '/admin/panel') {
       return <AdminPanel />;
     } else if (currentPath === '/admin/users') {
       return <AdminUsers />;
@@ -374,6 +384,22 @@ const Router = memo(function Router() {
       return <ContractorVerification />;
     } else if (currentPath === '/content-moderation' || currentPath === '/moderation') {
       return <ContentModeration />;
+    } else if (currentPath === '/car-sales/new-listing') {
+      return <CarSalesNewListing />;
+    } else if (currentPath === '/car-sales/customers') {
+      return <CarSalesCustomers />;
+    } else if (currentPath === '/car-sales/financing') {
+      return <CarSalesFinancing />;
+    } else if (currentPath === '/car-sales/trade-in') {
+      return <CarSalesTradeIn />;
+    } else if (currentPath === '/car-sales/payment-calculator') {
+      return <CarSalesPaymentCalculator />;
+    } else if (currentPath === '/car-sales/vin-lookup') {
+      return <CarSalesVinLookup />;
+    } else if (currentPath === '/car-sales/appointments') {
+      return <CarSalesAppointments />;
+    } else if (currentPath === '/car-sales/follow-up') {
+      return <CarSalesFollowUp />;
     } else if (currentPath === '/system-settings') {
       return <SystemSettings />;
     } else if (currentPath === '/support-tickets' || currentPath === '/support') {
