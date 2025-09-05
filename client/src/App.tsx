@@ -294,7 +294,7 @@ const Router = memo(function Router() {
     } else if (currentPath === '/leaderboard') {
       return <Leaderboard />;
     } else if (currentPath === '/foundation') {
-      return <Foundation />;
+      return <div className="min-h-screen bg-slate-900 text-white p-8"><h1>Foundation page temporarily disabled</h1></div>;
     } else if (currentPath === '/contractor-dashboard') {
       return <ContractorDashboard />;
     } else if (currentPath === '/homeowner-dashboard') {
