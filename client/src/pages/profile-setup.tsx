@@ -17,7 +17,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { useLocation } from "wouter";
 
 const profileSetupSchema = z.object({
-  role: z.enum(['homeowner', 'contractor_user']),
+  role: z.enum(['homeowner', 'contractor_user', 'realtor']),
   phone: z.string().optional(),
   address: z.string().optional(),
   city: z.string().optional(),
@@ -41,7 +41,7 @@ export default function ProfileSetup() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [, setLocation] = useLocation();
-  const [selectedRole, setSelectedRole] = useState<'homeowner' | 'contractor_user' | null>(null);
+  const [selectedRole, setSelectedRole] = useState<'homeowner' | 'contractor_user' | 'realtor' | null>(null);
 
   const form = useForm<ProfileSetupData>({
     resolver: zodResolver(profileSetupSchema),
@@ -73,12 +73,16 @@ export default function ProfileSetup() {
         title: "Profile Setup Complete!",
         description: selectedRole === 'contractor_user' 
           ? "Welcome to TradeScout! Your contractor profile has been created."
+          : selectedRole === 'realtor'
+          ? "Welcome to TradeScout! Your realtor profile has been created."
           : "Welcome to TradeScout! You can now find and connect with contractors.",
       });
       queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
       // Redirect to appropriate dashboard
       if (selectedRole === 'contractor_user') {
         setLocation('/contractor-dashboard');
+      } else if (selectedRole === 'realtor') {
+        setLocation('/realtor-dashboard');
       } else {
         setLocation('/homeowner-dashboard');
       }
@@ -92,7 +96,7 @@ export default function ProfileSetup() {
     },
   });
 
-  const handleRoleSelection = (role: 'homeowner' | 'contractor_user') => {
+  const handleRoleSelection = (role: 'homeowner' | 'contractor_user' | 'realtor') => {
     setSelectedRole(role);
     form.setValue('role', role);
   };
@@ -118,7 +122,7 @@ export default function ProfileSetup() {
         </div>
 
         {!selectedRole ? (
-          <div className="grid md:grid-cols-2 gap-6 mb-8">
+          <div className="grid md:grid-cols-3 gap-6 mb-8">
             <Card 
               className="cursor-pointer transition-all hover:ring-2 hover:ring-orange-500 bg-navy-800 border-navy-700"
               onClick={() => handleRoleSelection('homeowner')}
@@ -164,6 +168,30 @@ export default function ProfileSetup() {
                 </ul>
               </CardContent>
             </Card>
+
+            <Card 
+              className="cursor-pointer transition-all hover:ring-2 hover:ring-orange-500 bg-navy-800 border-navy-700"
+              onClick={() => handleRoleSelection('realtor')}
+              data-testid="card-select-realtor"
+            >
+              <CardHeader className="text-center">
+                <div className="mx-auto w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mb-4">
+                  <Building className="w-8 h-8 text-green-600" />
+                </div>
+                <CardTitle className="text-white">I'm a Realtor</CardTitle>
+                <CardDescription className="text-gray-300">
+                  I help clients buy and sell properties
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <ul className="space-y-2 text-sm text-gray-300">
+                  <li>• Connect with trusted contractors</li>
+                  <li>• Refer clients to quality professionals</li>
+                  <li>• Build referral partnerships</li>
+                  <li>• Enhance property value insights</li>
+                </ul>
+              </CardContent>
+            </Card>
           </div>
         ) : (
           <Card className="bg-navy-800 border-navy-700">
@@ -173,6 +201,11 @@ export default function ProfileSetup() {
                   <>
                     <HardHat className="w-5 h-5" />
                     Contractor Profile Setup
+                  </>
+                ) : selectedRole === 'realtor' ? (
+                  <>
+                    <Building className="w-5 h-5" />
+                    Realtor Profile Setup
                   </>
                 ) : (
                   <>
@@ -184,6 +217,8 @@ export default function ProfileSetup() {
               <CardDescription className="text-gray-300">
                 {selectedRole === 'contractor_user' 
                   ? "Tell us about your contracting business"
+                  : selectedRole === 'realtor'
+                  ? "Tell us about your real estate business"
                   : "Tell us about your home improvement needs"
                 }
               </CardDescription>
