@@ -88,6 +88,7 @@ import Signup from './pages/signup';
 import ContractorDashboard from './pages/contractor-dashboard-simple';
 import HomeownerDashboard from './pages/homeowner-dashboard';
 import RealtorDashboard from './pages/realtor-dashboard';
+import StoryGeneratorPage from './pages/StoryGeneratorPage';
 import DealerDashboard from './pages/dealer-dashboard';
 import CarSalesmanDashboard from './pages/car-salesman-dashboard';
 import HelperDashboard from './pages/helper-dashboard';
@@ -479,6 +480,8 @@ const Router = memo(function Router() {
       return <About />;
     } else if (currentPath === '/contact') {
       return <Contact />;
+    } else if (currentPath === '/story-generator') {
+      return <StoryGeneratorPage />;
     } else if (currentPath !== '/') {
       return <NotFound />;
     } else {
