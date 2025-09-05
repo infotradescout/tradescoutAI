@@ -143,25 +143,23 @@ async function routeLeadToTopContractors(lead: any, leadData: any) {
       sortBy: 'rating',
     });
 
-    // Enhanced matching logic: Score contractors based on multiple factors
+    // Enhanced matching logic: Score contractors based on available fields
     const scoredContractors = contractors
-      .filter(contractor => contractor.isActive && contractor.acceptsNewClients) // Only active, available contractors
+      .filter(contractor => contractor.isActive) // Only active contractors
       .map(contractor => {
         let score = 0;
         
-        // Rating score (40% weight) - normalized to 0-40
-        score += (contractor.averageRating || 3.0) * 8;
+        // Business experience score (60% weight) - more years = higher score
+        const yearsExp = contractor.yearsInBusiness || 1;
+        score += Math.min(60, yearsExp * 3); // Cap at 60 points for 20+ years
         
-        // Response rate score (30% weight) - normalized to 0-30  
-        score += (contractor.responseRate || 0.5) * 30;
-        
-        // Availability score (20% weight) - normalized to 0-20
-        score += contractor.isAvailable ? 20 : 0;
-        
-        // Recent activity score (10% weight) - normalized to 0-10
-        const daysSinceLastActive = contractor.lastActiveDate ? 
-          Math.floor((Date.now() - new Date(contractor.lastActiveDate).getTime()) / (1000 * 60 * 60 * 24)) : 999;
-        score += Math.max(0, 10 - (daysSinceLastActive * 0.5));
+        // Profile completeness score (40% weight) - more complete = better
+        let completeness = 0;
+        if (contractor.licenseNumber) completeness += 10;
+        if (contractor.website) completeness += 10;
+        if (contractor.phone) completeness += 10; 
+        if (contractor.businessDescription) completeness += 10;
+        score += completeness;
         
         return { ...contractor, matchScore: score };
       })
