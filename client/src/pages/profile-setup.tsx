@@ -12,12 +12,12 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Users, HardHat, Phone, MapPin, Building } from "lucide-react";
+import { Users, HardHat, Phone, MapPin, Building, Car } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useLocation } from "wouter";
 
 const profileSetupSchema = z.object({
-  role: z.enum(['homeowner', 'contractor_user', 'realtor']),
+  role: z.enum(['homeowner', 'contractor_user', 'realtor', 'vehicle_dealer']),
   phone: z.string().optional(),
   address: z.string().optional(),
   city: z.string().optional(),
@@ -41,7 +41,7 @@ export default function ProfileSetup() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [, setLocation] = useLocation();
-  const [selectedRole, setSelectedRole] = useState<'homeowner' | 'contractor_user' | 'realtor' | null>(null);
+  const [selectedRole, setSelectedRole] = useState<'homeowner' | 'contractor_user' | 'realtor' | 'vehicle_dealer' | null>(null);
 
   const form = useForm<ProfileSetupData>({
     resolver: zodResolver(profileSetupSchema),
@@ -75,6 +75,8 @@ export default function ProfileSetup() {
           ? "Welcome to TradeScout! Your contractor profile has been created."
           : selectedRole === 'realtor'
           ? "Welcome to TradeScout! Your realtor profile has been created."
+          : selectedRole === 'vehicle_dealer'
+          ? "Welcome to TradeScout! Your dealer profile has been created."
           : "Welcome to TradeScout! You can now find and connect with contractors.",
       });
       queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
@@ -83,6 +85,8 @@ export default function ProfileSetup() {
         setLocation('/contractor-dashboard');
       } else if (selectedRole === 'realtor') {
         setLocation('/realtor-dashboard');
+      } else if (selectedRole === 'vehicle_dealer') {
+        setLocation('/dealer-dashboard');
       } else {
         setLocation('/homeowner-dashboard');
       }
@@ -96,7 +100,7 @@ export default function ProfileSetup() {
     },
   });
 
-  const handleRoleSelection = (role: 'homeowner' | 'contractor_user' | 'realtor') => {
+  const handleRoleSelection = (role: 'homeowner' | 'contractor_user' | 'realtor' | 'vehicle_dealer') => {
     setSelectedRole(role);
     form.setValue('role', role);
   };
@@ -122,7 +126,7 @@ export default function ProfileSetup() {
         </div>
 
         {!selectedRole ? (
-          <div className="grid md:grid-cols-3 gap-6 mb-8">
+          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
             <Card 
               className="cursor-pointer transition-all hover:ring-2 hover:ring-orange-500 bg-navy-800 border-navy-700"
               onClick={() => handleRoleSelection('homeowner')}
@@ -192,6 +196,30 @@ export default function ProfileSetup() {
                 </ul>
               </CardContent>
             </Card>
+
+            <Card 
+              className="cursor-pointer transition-all hover:ring-2 hover:ring-orange-500 bg-navy-800 border-navy-700"
+              onClick={() => handleRoleSelection('vehicle_dealer')}
+              data-testid="card-select-vehicle-dealer"
+            >
+              <CardHeader className="text-center">
+                <div className="mx-auto w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mb-4">
+                  <Car className="w-8 h-8 text-blue-600" />
+                </div>
+                <CardTitle className="text-white">I'm a Vehicle Dealer</CardTitle>
+                <CardDescription className="text-gray-300">
+                  I sell cars, trucks, and other vehicles
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <ul className="space-y-2 text-sm text-gray-300">
+                  <li>• Connect with homeowner customers</li>
+                  <li>• Partner with contractors for financing</li>
+                  <li>• Build referral networks</li>
+                  <li>• Grow vehicle sales business</li>
+                </ul>
+              </CardContent>
+            </Card>
           </div>
         ) : (
           <Card className="bg-navy-800 border-navy-700">
@@ -207,6 +235,11 @@ export default function ProfileSetup() {
                     <Building className="w-5 h-5" />
                     Realtor Profile Setup
                   </>
+                ) : selectedRole === 'vehicle_dealer' ? (
+                  <>
+                    <Car className="w-5 h-5" />
+                    Vehicle Dealer Profile Setup
+                  </>
                 ) : (
                   <>
                     <Users className="w-5 h-5" />
@@ -219,6 +252,8 @@ export default function ProfileSetup() {
                   ? "Tell us about your contracting business"
                   : selectedRole === 'realtor'
                   ? "Tell us about your real estate business"
+                  : selectedRole === 'vehicle_dealer'
+                  ? "Tell us about your dealership"
                   : "Tell us about your home improvement needs"
                 }
               </CardDescription>
