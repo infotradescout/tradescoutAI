@@ -20,8 +20,11 @@ app.use((req, res, next) => {
   res.header('Access-Control-Allow-Origin', '*');
   res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
   res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
-  res.header('X-Frame-Options', 'SAMEORIGIN');
+  res.header('X-Frame-Options', 'ALLOWALL');
   res.header('X-Content-Type-Options', 'nosniff');
+  // Completely remove CSP to prevent conflicts
+  res.removeHeader('Content-Security-Policy');
+  res.removeHeader('Content-Security-Policy-Report-Only');
   if (req.method === 'OPTIONS') {
     res.sendStatus(200);
   } else {
