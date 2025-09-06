@@ -240,14 +240,14 @@ const Router = memo(function Router() {
       const target = e.target as HTMLElement;
       const anchor = target.closest('a');
       
-      console.log('🔍 Click detected on:', target.tagName, target.className);
+      // console.log('🔍 Click detected on:', target.tagName, target.className);
       
       if (anchor && anchor.href && anchor.href.startsWith(window.location.origin)) {
-        console.log('🔥 Navigation intercepted:', anchor.href);
+        // console.log('🔥 Navigation intercepted:', anchor.href);
         e.preventDefault();
         e.stopPropagation();
         const newPath = new URL(anchor.href).pathname;
-        console.log('🚀 Navigating to:', newPath);
+        // console.log('🚀 Navigating to:', newPath);
         window.history.pushState({}, '', newPath);
         setCurrentPath(newPath);
       }
@@ -263,7 +263,7 @@ const Router = memo(function Router() {
   
   // Render page with lazy loading - all components now use LazyPage wrapper
   const renderPage = () => {
-    console.log('🎯 Rendering page for path:', currentPath);
+    // console.log('🎯 Rendering page for path:', currentPath);
     if (currentPath === '/home' || currentPath === '/dashboard') {
       return <SimpleHome />;
     } else if (currentPath === '/login') {
