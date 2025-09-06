@@ -15,9 +15,10 @@ export function useWebSocket() {
 
   const connect = useCallback(() => {
     try {
-      // Only connect in production or when explicitly needed for development
-      if (process.env.NODE_ENV === 'development') {
-        console.log('WebSocket connection available but optional in development');
+      // Completely disable WebSocket in development and Replit environments
+      if (process.env.NODE_ENV === 'development' || 
+          window.location.hostname.includes('.replit.')) {
+        console.log('WebSocket disabled in development/Replit environment');
         return;
       }
 
