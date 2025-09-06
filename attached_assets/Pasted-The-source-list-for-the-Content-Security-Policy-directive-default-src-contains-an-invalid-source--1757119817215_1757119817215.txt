@@ -1,0 +1,286 @@
+The source list for the Content Security Policy directive 'default-src' contains an invalid source: ''unsafe-dynamic''. It will be ignored.
+The source list for the Content Security Policy directive 'default-src' contains an invalid source: ''unsafe-dynamic''. It will be ignored.
+The source list for the Content Security Policy directive 'default-src' contains an invalid source: ''unsafe-dynamic''. It will be ignored.
+The source list for the Content Security Policy directive 'default-src' contains an invalid source: ''unsafe-dynamic''. It will be ignored.
+The source list for the Content Security Policy directive 'default-src' contains an invalid source: ''unsafe-dynamic''. It will be ignored.
+The source list for the Content Security Policy directive 'default-src' contains an invalid source: ''unsafe-dynamic''. It will be ignored.
+The source list for the Content Security Policy directive 'default-src' contains an invalid source: ''unsafe-dynamic''. It will be ignored.
+The source list for the Content Security Policy directive 'default-src' contains an invalid source: ''unsafe-dynamic''. It will be ignored.
+The source list for the Content Security Policy directive 'default-src' contains an invalid source: ''unsafe-dynamic''. It will be ignored.
+The source list for the Content Security Policy directive 'default-src' contains an invalid source: ''unsafe-dynamic''. It will be ignored.
+The source list for the Content Security Policy directive 'default-src' contains an invalid source: ''unsafe-dynamic''. It will be ignored.
+The source list for the Content Security Policy directive 'default-src' contains an invalid source: ''unsafe-dynamic''. It will be ignored.
+The source list for the Content Security Policy directive 'default-src' contains an invalid source: ''unsafe-dynamic''. It will be ignored.
+The source list for the Content Security Policy directive 'default-src' contains an invalid source: ''unsafe-dynamic''. It will be ignored.
+The source list for the Content Security Policy directive 'default-src' contains an invalid source: ''unsafe-dynamic''. It will be ignored.
+The source list for the Content Security Policy directive 'default-src' contains an invalid source: ''unsafe-dynamic''. It will be ignored.
+The source list for the Content Security Policy directive 'default-src' contains an invalid source: ''unsafe-dynamic''. It will be ignored.
+The source list for the Content Security Policy directive 'default-src' contains an invalid source: ''unsafe-dynamic''. It will be ignored.
+The source list for the Content Security Policy directive 'default-src' contains an invalid source: ''unsafe-dynamic''. It will be ignored.
+The source list for the Content Security Policy directive 'default-src' contains an invalid source: ''unsafe-dynamic''. It will be ignored.
+The source list for the Content Security Policy directive 'default-src' contains an invalid source: ''unsafe-dynamic''. It will be ignored.
+The source list for the Content Security Policy directive 'default-src' contains an invalid source: ''unsafe-dynamic''. It will be ignored.
+The source list for the Content Security Policy directive 'default-src' contains an invalid source: ''unsafe-dynamic''. It will be ignored.
+The source list for the Content Security Policy directive 'default-src' contains an invalid source: ''unsafe-dynamic''. It will be ignored.
+The source list for the Content Security Policy directive 'default-src' contains an invalid source: ''unsafe-dynamic''. It will be ignored.
+The source list for the Content Security Policy directive 'default-src' contains an invalid source: ''unsafe-dynamic''. It will be ignored.
+The source list for the Content Security Policy directive 'default-src' contains an invalid source: ''unsafe-dynamic''. It will be ignored.
+The source list for the Content Security Policy directive 'default-src' contains an invalid source: ''unsafe-dynamic''. It will be ignored.
+The source list for the Content Security Policy directive 'default-src' contains an invalid source: ''unsafe-dynamic''. It will be ignored.
+The source list for the Content Security Policy directive 'default-src' contains an invalid source: ''unsafe-dynamic''. It will be ignored.
+The source list for the Content Security Policy directive 'default-src' contains an invalid source: ''unsafe-dynamic''. It will be ignored.
+The source list for the Content Security Policy directive 'default-src' contains an invalid source: ''unsafe-dynamic''. It will be ignored.
+The source list for the Content Security Policy directive 'default-src' contains an invalid source: ''unsafe-dynamic''. It will be ignored.
+The source list for the Content Security Policy directive 'default-src' contains an invalid source: ''unsafe-dynamic''. It will be ignored.
+The Content-Security-Policy directive 'default-src' contains 'report-uri' as a source expression. Did you want to add it as a directive and forget a semicolon?
+The Content-Security-Policy directive 'default-src' contains 'report-uri' as a source expression. Did you want to add it as a directive and forget a semicolon?
+The Content-Security-Policy directive 'default-src' contains 'report-uri' as a source expression. Did you want to add it as a directive and forget a semicolon?
+The Content-Security-Policy directive 'default-src' contains 'report-uri' as a source expression. Did you want to add it as a directive and forget a semicolon?
+The Content-Security-Policy directive 'default-src' contains 'report-uri' as a source expression. Did you want to add it as a directive and forget a semicolon?
+The Content-Security-Policy directive 'default-src' contains 'report-uri' as a source expression. Did you want to add it as a directive and forget a semicolon?
+The Content-Security-Policy directive 'default-src' contains 'report-uri' as a source expression. Did you want to add it as a directive and forget a semicolon?
+The Content-Security-Policy directive 'default-src' contains 'report-uri' as a source expression. Did you want to add it as a directive and forget a semicolon?
+The Content-Security-Policy directive 'default-src' contains 'report-uri' as a source expression. Did you want to add it as a directive and forget a semicolon?
+The Content-Security-Policy directive 'default-src' contains 'report-uri' as a source expression. Did you want to add it as a directive and forget a semicolon?
+The Content-Security-Policy directive 'default-src' contains 'report-uri' as a source expression. Did you want to add it as a directive and forget a semicolon?
+The Content-Security-Policy directive 'default-src' contains 'report-uri' as a source expression. Did you want to add it as a directive and forget a semicolon?
+The Content-Security-Policy directive 'default-src' contains 'report-uri' as a source expression. Did you want to add it as a directive and forget a semicolon?
+The Content-Security-Policy directive 'default-src' contains 'report-uri' as a source expression. Did you want to add it as a directive and forget a semicolon?
+The Content-Security-Policy directive 'default-src' contains 'report-uri' as a source expression. Did you want to add it as a directive and forget a semicolon?
+The Content-Security-Policy directive 'default-src' contains 'report-uri' as a source expression. Did you want to add it as a directive and forget a semicolon?
+The Content-Security-Policy directive 'default-src' contains 'report-uri' as a source expression. Did you want to add it as a directive and forget a semicolon?
+The Content-Security-Policy directive 'default-src' contains 'report-uri' as a source expression. Did you want to add it as a directive and forget a semicolon?
+The Content-Security-Policy directive 'default-src' contains 'report-uri' as a source expression. Did you want to add it as a directive and forget a semicolon?
+The Content-Security-Policy directive 'default-src' contains 'report-uri' as a source expression. Did you want to add it as a directive and forget a semicolon?
+The Content-Security-Policy directive 'default-src' contains 'report-uri' as a source expression. Did you want to add it as a directive and forget a semicolon?
+The Content-Security-Policy directive 'default-src' contains 'report-uri' as a source expression. Did you want to add it as a directive and forget a semicolon?
+The Content-Security-Policy directive 'default-src' contains 'report-uri' as a source expression. Did you want to add it as a directive and forget a semicolon?
+The Content-Security-Policy directive 'default-src' contains 'report-uri' as a source expression. Did you want to add it as a directive and forget a semicolon?
+The Content-Security-Policy directive 'default-src' contains 'report-uri' as a source expression. Did you want to add it as a directive and forget a semicolon?
+The Content-Security-Policy directive 'default-src' contains 'report-uri' as a source expression. Did you want to add it as a directive and forget a semicolon?
+The Content-Security-Policy directive 'default-src' contains 'report-uri' as a source expression. Did you want to add it as a directive and forget a semicolon?
+The Content-Security-Policy directive 'default-src' contains 'report-uri' as a source expression. Did you want to add it as a directive and forget a semicolon?
+The Content-Security-Policy directive 'default-src' contains 'report-uri' as a source expression. Did you want to add it as a directive and forget a semicolon?
+The Content-Security-Policy directive 'default-src' contains 'report-uri' as a source expression. Did you want to add it as a directive and forget a semicolon?
+The Content-Security-Policy directive 'default-src' contains 'report-uri' as a source expression. Did you want to add it as a directive and forget a semicolon?
+The Content-Security-Policy directive 'default-src' contains 'report-uri' as a source expression. Did you want to add it as a directive and forget a semicolon?
+The Content-Security-Policy directive 'default-src' contains 'report-uri' as a source expression. Did you want to add it as a directive and forget a semicolon?
+The Content-Security-Policy directive 'default-src' contains 'report-uri' as a source expression. Did you want to add it as a directive and forget a semicolon?
+The source list for Content Security Policy directive 'default-src' contains a source with an invalid path: '/api/4509669501698048/security/?sentry_key=7eb3d90eb4660416caf507087367e67e'. The query component, including the '?', will be ignored.
+The source list for Content Security Policy directive 'default-src' contains a source with an invalid path: '/api/4509669501698048/security/?sentry_key=7eb3d90eb4660416caf507087367e67e'. The query component, including the '?', will be ignored.
+The source list for Content Security Policy directive 'default-src' contains a source with an invalid path: '/api/4509669501698048/security/?sentry_key=7eb3d90eb4660416caf507087367e67e'. The query component, including the '?', will be ignored.
+The source list for Content Security Policy directive 'default-src' contains a source with an invalid path: '/api/4509669501698048/security/?sentry_key=7eb3d90eb4660416caf507087367e67e'. The query component, including the '?', will be ignored.
+The source list for Content Security Policy directive 'default-src' contains a source with an invalid path: '/api/4509669501698048/security/?sentry_key=7eb3d90eb4660416caf507087367e67e'. The query component, including the '?', will be ignored.
+The source list for Content Security Policy directive 'default-src' contains a source with an invalid path: '/api/4509669501698048/security/?sentry_key=7eb3d90eb4660416caf507087367e67e'. The query component, including the '?', will be ignored.
+The source list for Content Security Policy directive 'default-src' contains a source with an invalid path: '/api/4509669501698048/security/?sentry_key=7eb3d90eb4660416caf507087367e67e'. The query component, including the '?', will be ignored.
+The source list for Content Security Policy directive 'default-src' contains a source with an invalid path: '/api/4509669501698048/security/?sentry_key=7eb3d90eb4660416caf507087367e67e'. The query component, including the '?', will be ignored.
+The source list for Content Security Policy directive 'default-src' contains a source with an invalid path: '/api/4509669501698048/security/?sentry_key=7eb3d90eb4660416caf507087367e67e'. The query component, including the '?', will be ignored.
+The source list for Content Security Policy directive 'default-src' contains a source with an invalid path: '/api/4509669501698048/security/?sentry_key=7eb3d90eb4660416caf507087367e67e'. The query component, including the '?', will be ignored.
+The source list for Content Security Policy directive 'default-src' contains a source with an invalid path: '/api/4509669501698048/security/?sentry_key=7eb3d90eb4660416caf507087367e67e'. The query component, including the '?', will be ignored.
+The source list for Content Security Policy directive 'default-src' contains a source with an invalid path: '/api/4509669501698048/security/?sentry_key=7eb3d90eb4660416caf507087367e67e'. The query component, including the '?', will be ignored.
+The source list for Content Security Policy directive 'default-src' contains a source with an invalid path: '/api/4509669501698048/security/?sentry_key=7eb3d90eb4660416caf507087367e67e'. The query component, including the '?', will be ignored.
+The source list for Content Security Policy directive 'default-src' contains a source with an invalid path: '/api/4509669501698048/security/?sentry_key=7eb3d90eb4660416caf507087367e67e'. The query component, including the '?', will be ignored.
+The source list for Content Security Policy directive 'default-src' contains a source with an invalid path: '/api/4509669501698048/security/?sentry_key=7eb3d90eb4660416caf507087367e67e'. The query component, including the '?', will be ignored.
+The source list for Content Security Policy directive 'default-src' contains a source with an invalid path: '/api/4509669501698048/security/?sentry_key=7eb3d90eb4660416caf507087367e67e'. The query component, including the '?', will be ignored.
+The source list for Content Security Policy directive 'default-src' contains a source with an invalid path: '/api/4509669501698048/security/?sentry_key=7eb3d90eb4660416caf507087367e67e'. The query component, including the '?', will be ignored.
+The source list for Content Security Policy directive 'default-src' contains a source with an invalid path: '/api/4509669501698048/security/?sentry_key=7eb3d90eb4660416caf507087367e67e'. The query component, including the '?', will be ignored.
+The source list for Content Security Policy directive 'default-src' contains a source with an invalid path: '/api/4509669501698048/security/?sentry_key=7eb3d90eb4660416caf507087367e67e'. The query component, including the '?', will be ignored.
+The source list for Content Security Policy directive 'default-src' contains a source with an invalid path: '/api/4509669501698048/security/?sentry_key=7eb3d90eb4660416caf507087367e67e'. The query component, including the '?', will be ignored.
+The source list for Content Security Policy directive 'default-src' contains a source with an invalid path: '/api/4509669501698048/security/?sentry_key=7eb3d90eb4660416caf507087367e67e'. The query component, including the '?', will be ignored.
+The source list for Content Security Policy directive 'default-src' contains a source with an invalid path: '/api/4509669501698048/security/?sentry_key=7eb3d90eb4660416caf507087367e67e'. The query component, including the '?', will be ignored.
+The source list for Content Security Policy directive 'default-src' contains a source with an invalid path: '/api/4509669501698048/security/?sentry_key=7eb3d90eb4660416caf507087367e67e'. The query component, including the '?', will be ignored.
+The source list for Content Security Policy directive 'default-src' contains a source with an invalid path: '/api/4509669501698048/security/?sentry_key=7eb3d90eb4660416caf507087367e67e'. The query component, including the '?', will be ignored.
+The source list for Content Security Policy directive 'default-src' contains a source with an invalid path: '/api/4509669501698048/security/?sentry_key=7eb3d90eb4660416caf507087367e67e'. The query component, including the '?', will be ignored.
+The source list for Content Security Policy directive 'default-src' contains a source with an invalid path: '/api/4509669501698048/security/?sentry_key=7eb3d90eb4660416caf507087367e67e'. The query component, including the '?', will be ignored.
+The source list for Content Security Policy directive 'default-src' contains a source with an invalid path: '/api/4509669501698048/security/?sentry_key=7eb3d90eb4660416caf507087367e67e'. The query component, including the '?', will be ignored.
+The source list for Content Security Policy directive 'default-src' contains a source with an invalid path: '/api/4509669501698048/security/?sentry_key=7eb3d90eb4660416caf507087367e67e'. The query component, including the '?', will be ignored.
+The source list for Content Security Policy directive 'default-src' contains a source with an invalid path: '/api/4509669501698048/security/?sentry_key=7eb3d90eb4660416caf507087367e67e'. The query component, including the '?', will be ignored.
+The source list for Content Security Policy directive 'default-src' contains a source with an invalid path: '/api/4509669501698048/security/?sentry_key=7eb3d90eb4660416caf507087367e67e'. The query component, including the '?', will be ignored.
+The source list for Content Security Policy directive 'default-src' contains a source with an invalid path: '/api/4509669501698048/security/?sentry_key=7eb3d90eb4660416caf507087367e67e'. The query component, including the '?', will be ignored.
+The source list for Content Security Policy directive 'default-src' contains a source with an invalid path: '/api/4509669501698048/security/?sentry_key=7eb3d90eb4660416caf507087367e67e'. The query component, including the '?', will be ignored.
+The source list for Content Security Policy directive 'default-src' contains a source with an invalid path: '/api/4509669501698048/security/?sentry_key=7eb3d90eb4660416caf507087367e67e'. The query component, including the '?', will be ignored.
+The source list for Content Security Policy directive 'default-src' contains a source with an invalid path: '/api/4509669501698048/security/?sentry_key=7eb3d90eb4660416caf507087367e67e'. The query component, including the '?', will be ignored.
+/~:1 The source list for the Content Security Policy directive 'default-src' contains an invalid source: ''unsafe-dynamic''. It will be ignored.
+/~:1 The Content-Security-Policy directive 'default-src' contains 'report-uri' as a source expression. Did you want to add it as a directive and forget a semicolon?
+/~:1 The source list for Content Security Policy directive 'default-src' contains a source with an invalid path: '/api/4509669501698048/security/?sentry_key=7eb3d90eb4660416caf507087367e67e'. The query component, including the '?', will be ignored.
+_app-3d616b9cc380977f.js:38 
+      /////////////////////
+   ///////////////////////////
+  ////////@@@@@@@//////////////
+  ////////@@@@@@@//////////////
+  ////////@@@@@@@//////////////        Curious and driven?
+  ///////////////@@@@@@@///////        Work with us!
+  ///////////////@@@@@@@///////
+  ///////////////@@@@@@@///////        https://join.replit.com/hack.with.us
+  ////////@@@@@@@//////////////
+  ////////@@@@@@@//////////////
+  ////////@@@@@@#//////////////
+   ///////////////////////////
+      /////////////////////
+      
+_app-3d616b9cc380977f.js:38 [LaunchDarkly] LaunchDarkly client initialized
+/~:1 Banner not shown: beforeinstallpromptevent.preventDefault() called. The page must call beforeinstallpromptevent.prompt() to show the banner.
+Error while parsing the 'sandbox' attribute: 'allow-downloads-without-user-activation' is an invalid sandbox flag.
+Error while parsing the 'sandbox' attribute: 'allow-downloads-without-user-activation' is an invalid sandbox flag.
+Error while parsing the 'sandbox' attribute: 'allow-downloads-without-user-activation' is an invalid sandbox flag.
+Error while parsing the 'sandbox' attribute: 'allow-downloads-without-user-activation' is an invalid sandbox flag.
+Error while parsing the 'sandbox' attribute: 'allow-downloads-without-user-activation' is an invalid sandbox flag.
+Error while parsing the 'sandbox' attribute: 'allow-downloads-without-user-activation' is an invalid sandbox flag.
+Error while parsing the 'sandbox' attribute: 'allow-downloads-without-user-activation' is an invalid sandbox flag.
+Error while parsing the 'sandbox' attribute: 'allow-downloads-without-user-activation' is an invalid sandbox flag.
+Error while parsing the 'sandbox' attribute: 'allow-downloads-without-user-activation' is an invalid sandbox flag.
+Error while parsing the 'sandbox' attribute: 'allow-downloads-without-user-activation' is an invalid sandbox flag.
+Error while parsing the 'sandbox' attribute: 'allow-downloads-without-user-activation' is an invalid sandbox flag.
+Error while parsing the 'sandbox' attribute: 'allow-downloads-without-user-activation' is an invalid sandbox flag.
+Error while parsing the 'sandbox' attribute: 'allow-downloads-without-user-activation' is an invalid sandbox flag.
+Error while parsing the 'sandbox' attribute: 'allow-downloads-without-user-activation' is an invalid sandbox flag.
+Error while parsing the 'sandbox' attribute: 'allow-downloads-without-user-activation' is an invalid sandbox flag.
+Error while parsing the 'sandbox' attribute: 'allow-downloads-without-user-activation' is an invalid sandbox flag.
+Error while parsing the 'sandbox' attribute: 'allow-downloads-without-user-activation' is an invalid sandbox flag.
+Error while parsing the 'sandbox' attribute: 'allow-downloads-without-user-activation' is an invalid sandbox flag.
+Error while parsing the 'sandbox' attribute: 'allow-downloads-without-user-activation' is an invalid sandbox flag.
+Error while parsing the 'sandbox' attribute: 'allow-downloads-without-user-activation' is an invalid sandbox flag.
+Error while parsing the 'sandbox' attribute: 'allow-downloads-without-user-activation' is an invalid sandbox flag.
+Error while parsing the 'sandbox' attribute: 'allow-downloads-without-user-activation' is an invalid sandbox flag.
+Error while parsing the 'sandbox' attribute: 'allow-downloads-without-user-activation' is an invalid sandbox flag.
+Error while parsing the 'sandbox' attribute: 'allow-downloads-without-user-activation' is an invalid sandbox flag.
+Error while parsing the 'sandbox' attribute: 'allow-downloads-without-user-activation' is an invalid sandbox flag.
+Error while parsing the 'sandbox' attribute: 'allow-downloads-without-user-activation' is an invalid sandbox flag.
+Error while parsing the 'sandbox' attribute: 'allow-downloads-without-user-activation' is an invalid sandbox flag.
+Error while parsing the 'sandbox' attribute: 'allow-downloads-without-user-activation' is an invalid sandbox flag.
+framework-c05af7ad4bcd5607.js:1 Unrecognized feature: 'ambient-light-sensor'.
+_ @ framework-c05af7ad4bcd5607.js:1
+framework-c05af7ad4bcd5607.js:1 Unrecognized feature: 'battery'.
+_ @ framework-c05af7ad4bcd5607.js:1
+framework-c05af7ad4bcd5607.js:1 Unrecognized feature: 'execution-while-not-rendered'.
+_ @ framework-c05af7ad4bcd5607.js:1
+framework-c05af7ad4bcd5607.js:1 Unrecognized feature: 'execution-while-out-of-viewport'.
+_ @ framework-c05af7ad4bcd5607.js:1
+framework-c05af7ad4bcd5607.js:1 Unrecognized feature: 'layout-animations'.
+_ @ framework-c05af7ad4bcd5607.js:1
+framework-c05af7ad4bcd5607.js:1 Unrecognized feature: 'legacy-image-formats'.
+_ @ framework-c05af7ad4bcd5607.js:1
+framework-c05af7ad4bcd5607.js:1 Unrecognized feature: 'navigation-override'.
+_ @ framework-c05af7ad4bcd5607.js:1
+framework-c05af7ad4bcd5607.js:1 Unrecognized feature: 'oversized-images'.
+_ @ framework-c05af7ad4bcd5607.js:1
+framework-c05af7ad4bcd5607.js:1 Unrecognized feature: 'publickey-credentials'.
+_ @ framework-c05af7ad4bcd5607.js:1
+framework-c05af7ad4bcd5607.js:1 Unrecognized feature: 'speaker-selection'.
+_ @ framework-c05af7ad4bcd5607.js:1
+framework-c05af7ad4bcd5607.js:1 Unrecognized feature: 'unoptimized-images'.
+_ @ framework-c05af7ad4bcd5607.js:1
+framework-c05af7ad4bcd5607.js:1 Unrecognized feature: 'unsized-media'.
+_ @ framework-c05af7ad4bcd5607.js:1
+framework-c05af7ad4bcd5607.js:1 Unrecognized feature: 'pointer-lock'.
+_ @ framework-c05af7ad4bcd5607.js:1
+framework-c05af7ad4bcd5607.js:1 Allow attribute will take precedence over 'allowfullscreen'.
+_ @ framework-c05af7ad4bcd5607.js:1
+framework-c05af7ad4bcd5607.js:1 Allow attribute will take precedence over 'allowpaymentrequest'.
+_ @ framework-c05af7ad4bcd5607.js:1
+TradeScoutPro:1 Access to fetch at 'https://sp.replit.com/v1/t' from origin 'https://replit.com' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.
+sp.replit.com/v1/t:1  Failed to load resource: net::ERR_FAILED
+dotdevproxy.worf.repl.co/__reachability:1  Failed to load resource: net::ERR_SSL_PROTOCOL_ERROR
+TradeScoutPro:1 Uncaught (in promise) Error: A listener indicated an asynchronous response by returning true, but the message channel closed before a response was received
+TradeScoutPro:1 Uncaught (in promise) Error: A listener indicated an asynchronous response by returning true, but the message channel closed before a response was received
+TradeScoutPro:1 Uncaught (in promise) Error: A listener indicated an asynchronous response by returning true, but the message channel closed before a response was received
+TradeScoutPro:1 Uncaught (in promise) Error: A listener indicated an asynchronous response by returning true, but the message channel closed before a response was received
+TradeScoutPro:1 Uncaught (in promise) Error: A listener indicated an asynchronous response by returning true, but the message channel closed before a response was received
+workspace_iframe.html?initialPath=%2F&id=%3Ar191%3A:32 Unrecognized feature: 'ambient-light-sensor'.
+workspace_iframe.html?initialPath=%2F&id=%3Ar191%3A:32 Unrecognized feature: 'ambient-light-sensor'.
+workspace_iframe.html?initialPath=%2F&id=%3Ar191%3A:32 Unrecognized feature: 'battery'.
+workspace_iframe.html?initialPath=%2F&id=%3Ar191%3A:32 Unrecognized feature: 'battery'.
+workspace_iframe.html?initialPath=%2F&id=%3Ar191%3A:32 Unrecognized feature: 'execution-while-not-rendered'.
+workspace_iframe.html?initialPath=%2F&id=%3Ar191%3A:32 Unrecognized feature: 'execution-while-not-rendered'.
+workspace_iframe.html?initialPath=%2F&id=%3Ar191%3A:32 Unrecognized feature: 'execution-while-out-of-viewport'.
+workspace_iframe.html?initialPath=%2F&id=%3Ar191%3A:32 Unrecognized feature: 'execution-while-out-of-viewport'.
+workspace_iframe.html?initialPath=%2F&id=%3Ar191%3A:32 Unrecognized feature: 'layout-animations'.
+workspace_iframe.html?initialPath=%2F&id=%3Ar191%3A:32 Unrecognized feature: 'layout-animations'.
+workspace_iframe.html?initialPath=%2F&id=%3Ar191%3A:32 Unrecognized feature: 'legacy-image-formats'.
+workspace_iframe.html?initialPath=%2F&id=%3Ar191%3A:32 Unrecognized feature: 'legacy-image-formats'.
+workspace_iframe.html?initialPath=%2F&id=%3Ar191%3A:32 Unrecognized feature: 'navigation-override'.
+workspace_iframe.html?initialPath=%2F&id=%3Ar191%3A:32 Unrecognized feature: 'navigation-override'.
+workspace_iframe.html?initialPath=%2F&id=%3Ar191%3A:32 Unrecognized feature: 'oversized-images'.
+workspace_iframe.html?initialPath=%2F&id=%3Ar191%3A:32 Unrecognized feature: 'oversized-images'.
+workspace_iframe.html?initialPath=%2F&id=%3Ar191%3A:32 Unrecognized feature: 'publickey-credentials'.
+workspace_iframe.html?initialPath=%2F&id=%3Ar191%3A:32 Unrecognized feature: 'publickey-credentials'.
+workspace_iframe.html?initialPath=%2F&id=%3Ar191%3A:32 Unrecognized feature: 'speaker-selection'.
+workspace_iframe.html?initialPath=%2F&id=%3Ar191%3A:32 Unrecognized feature: 'speaker-selection'.
+workspace_iframe.html?initialPath=%2F&id=%3Ar191%3A:32 Unrecognized feature: 'unoptimized-images'.
+workspace_iframe.html?initialPath=%2F&id=%3Ar191%3A:32 Unrecognized feature: 'unoptimized-images'.
+workspace_iframe.html?initialPath=%2F&id=%3Ar191%3A:32 Unrecognized feature: 'unsized-media'.
+workspace_iframe.html?initialPath=%2F&id=%3Ar191%3A:32 Unrecognized feature: 'unsized-media'.
+workspace_iframe.html?initialPath=%2F&id=%3Ar191%3A:32 Allow attribute will take precedence over 'allowfullscreen'.
+workspace_iframe.html?initialPath=%2F&id=%3Ar191%3A:32 Allow attribute will take precedence over 'allowfullscreen'.
+workspace_iframe.html?initialPath=%2F&id=%3Ar191%3A:32 Allow attribute will take precedence over 'allowpaymentrequest'.
+workspace_iframe.html?initialPath=%2F&id=%3Ar191%3A:32 Allow attribute will take precedence over 'allowpaymentrequest'.
+ [vite] connecting...
+client:536 WebSocket connection to 'wss://bb99ef68-07f3-4ff6-8777-53424138d9bd-00-1pdusyubsrg2x.spock.replit.dev/?token=DEM-WGINEBOR' failed: 
+setupWebSocket @ client:536
+ WebSocket connection to 'wss://bb99ef68-07f3-4ff6-8777-53424138d9bd-00-1pdusyubsrg2x.spock.replit.dev/?token=DEM-WGINEBOR' failed: 
+setupWebSocket @ client:536
+client:536 Uncaught (in promise) SyntaxError: Failed to construct 'WebSocket': The URL 'wss://localhost:undefined/?token=DEM-WGINEBOR' is invalid.
+    at setupWebSocket (client:536:19)
+    at fallback (client:509:16)
+    at WebSocket.<anonymous> (client:555:7)
+bb99ef68-07f3-4ff6-8777-53424138d9bd-00-1pdusyubsrg2x.spock.replit.dev/src/pages/about.tsx:1  Failed to load resource: the server responded with a status of 502 (Bad Gateway)
+bb99ef68-07f3-4ff6-8777-53424138d9bd-00-1pdusyubsrg2x.spock.replit.dev/src/pages/about.tsx:1  Failed to load resource: the server responded with a status of 502 (Bad Gateway)
+bb99ef68-07f3-4ff6-8777-53424138d9bd-00-1pdusyubsrg2x.spock.replit.dev/src/pages/contact.tsx:1  Failed to load resource: the server responded with a status of 502 (Bad Gateway)
+bb99ef68-07f3-4ff6-8777-53424138d9bd-00-1pdusyubsrg2x.spock.replit.dev/src/pages/contact.tsx:1  Failed to load resource: the server responded with a status of 502 (Bad Gateway)
+bb99ef68-07f3-4ff6-8777-53424138d9bd-00-1pdusyubsrg2x.spock.replit.dev/src/pages/promotions.tsx:1  Failed to load resource: the server responded with a status of 502 (Bad Gateway)
+bb99ef68-07f3-4ff6-8777-53424138d9bd-00-1pdusyubsrg2x.spock.replit.dev/src/pages/promotions.tsx:1  Failed to load resource: the server responded with a status of 502 (Bad Gateway)
+bb99ef68-07f3-4ff6-8777-53424138d9bd-00-1pdusyubsrg2x.spock.replit.dev/src/pages/ad-creator.tsx:1  Failed to load resource: the server responded with a status of 502 (Bad Gateway)
+bb99ef68-07f3-4ff6-8777-53424138d9bd-00-1pdusyubsrg2x.spock.replit.dev/src/pages/ad-creator.tsx:1  Failed to load resource: the server responded with a status of 502 (Bad Gateway)
+bb99ef68-07f3-4ff6-8777-53424138d9bd-00-1pdusyubsrg2x.spock.replit.dev/src/pages/analytics.tsx:1  Failed to load resource: the server responded with a status of 502 (Bad Gateway)
+bb99ef68-07f3-4ff6-8777-53424138d9bd-00-1pdusyubsrg2x.spock.replit.dev/src/pages/analytics.tsx:1  Failed to load resource: the server responded with a status of 502 (Bad Gateway)
+bb99ef68-07f3-4ff6-8777-53424138d9bd-00-1pdusyubsrg2x.spock.replit.dev/src/pages/lead-management.tsx:1  Failed to load resource: the server responded with a status of 502 (Bad Gateway)
+bb99ef68-07f3-4ff6-8777-53424138d9bd-00-1pdusyubsrg2x.spock.replit.dev/src/pages/lead-management.tsx:1  Failed to load resource: the server responded with a status of 502 (Bad Gateway)
+bb99ef68-07f3-4ff6-8777-53424138d9bd-00-1pdusyubsrg2x.spock.replit.dev/src/pages/county-hub.tsx:1  Failed to load resource: the server responded with a status of 502 (Bad Gateway)
+bb99ef68-07f3-4ff6-8777-53424138d9bd-00-1pdusyubsrg2x.spock.replit.dev/src/pages/county-hub.tsx:1  Failed to load resource: the server responded with a status of 502 (Bad Gateway)
+bb99ef68-07f3-4ff6-8777-53424138d9bd-00-1pdusyubsrg2x.spock.replit.dev/src/pages/verification.tsx:1  Failed to load resource: the server responded with a status of 502 (Bad Gateway)
+bb99ef68-07f3-4ff6-8777-53424138d9bd-00-1pdusyubsrg2x.spock.replit.dev/src/pages/verification.tsx:1  Failed to load resource: the server responded with a status of 502 (Bad Gateway)
+bb99ef68-07f3-4ff6-8777-53424138d9bd-00-1pdusyubsrg2x.spock.replit.dev/src/pages/insurance-verification.tsx:1  Failed to load resource: the server responded with a status of 502 (Bad Gateway)
+bb99ef68-07f3-4ff6-8777-53424138d9bd-00-1pdusyubsrg2x.spock.replit.dev/src/pages/insurance-verification.tsx:1  Failed to load resource: the server responded with a status of 502 (Bad Gateway)
+bb99ef68-07f3-4ff6-8777-53424138d9bd-00-1pdusyubsrg2x.spock.replit.dev/src/pages/license-verification.tsx:1  Failed to load resource: the server responded with a status of 502 (Bad Gateway)
+bb99ef68-07f3-4ff6-8777-53424138d9bd-00-1pdusyubsrg2x.spock.replit.dev/src/pages/license-verification.tsx:1  Failed to load resource: the server responded with a status of 502 (Bad Gateway)
+bb99ef68-07f3-4ff6-8777-53424138d9bd-00-1pdusyubsrg2x.spock.replit.dev/src/pages/background-check.tsx:1  Failed to load resource: the server responded with a status of 502 (Bad Gateway)
+bb99ef68-07f3-4ff6-8777-53424138d9bd-00-1pdusyubsrg2x.spock.replit.dev/src/pages/background-check.tsx:1  Failed to load resource: the server responded with a status of 502 (Bad Gateway)
+bb99ef68-07f3-4ff6-8777-53424138d9bd-00-1pdusyubsrg2x.spock.replit.dev/src/pages/compliance.tsx:1  Failed to load resource: the server responded with a status of 502 (Bad Gateway)
+bb99ef68-07f3-4ff6-8777-53424138d9bd-00-1pdusyubsrg2x.spock.replit.dev/src/pages/compliance.tsx:1  Failed to load resource: the server responded with a status of 502 (Bad Gateway)
+bb99ef68-07f3-4ff6-8777-53424138d9bd-00-1pdusyubsrg2x.spock.replit.dev/src/pages/documentation.tsx:1  Failed to load resource: the server responded with a status of 502 (Bad Gateway)
+bb99ef68-07f3-4ff6-8777-53424138d9bd-00-1pdusyubsrg2x.spock.replit.dev/src/pages/documentation.tsx:1  Failed to load resource: the server responded with a status of 502 (Bad Gateway)
+client:495 [vite] connecting...
+client:536 WebSocket connection to 'wss://bb99ef68-07f3-4ff6-8777-53424138d9bd-00-1pdusyubsrg2x.spock.replit.dev/?token=DEM-WGINEBOR' failed: 
+setupWebSocket @ client:536
+ WebSocket connection to 'wss://bb99ef68-07f3-4ff6-8777-53424138d9bd-00-1pdusyubsrg2x.spock.replit.dev/?token=DEM-WGINEBOR' failed: 
+setupWebSocket @ client:536
+client:536 Uncaught (in promise) SyntaxError: Failed to construct 'WebSocket': The URL 'wss://localhost:undefined/?token=DEM-WGINEBOR' is invalid.
+    at setupWebSocket (client:536:19)
+    at fallback (client:509:16)
+    at WebSocket.<anonymous> (client:555:7)
+bb99ef68-07f3-4ff6-8777-53424138d9bd-00-1pdusyubsrg2x.spock.replit.dev/src/pages/about.tsx:1  Failed to load resource: the server responded with a status of 502 (Bad Gateway)
+bb99ef68-07f3-4ff6-8777-53424138d9bd-00-1pdusyubsrg2x.spock.replit.dev/src/pages/about.tsx:1  Failed to load resource: the server responded with a status of 502 (Bad Gateway)
+bb99ef68-07f3-4ff6-8777-53424138d9bd-00-1pdusyubsrg2x.spock.replit.dev/src/pages/contact.tsx:1  Failed to load resource: the server responded with a status of 502 (Bad Gateway)
+bb99ef68-07f3-4ff6-8777-53424138d9bd-00-1pdusyubsrg2x.spock.replit.dev/src/pages/contact.tsx:1  Failed to load resource: the server responded with a status of 502 (Bad Gateway)
+bb99ef68-07f3-4ff6-8777-53424138d9bd-00-1pdusyubsrg2x.spock.replit.dev/src/pages/promotions.tsx:1  Failed to load resource: the server responded with a status of 502 (Bad Gateway)
+bb99ef68-07f3-4ff6-8777-53424138d9bd-00-1pdusyubsrg2x.spock.replit.dev/src/pages/promotions.tsx:1  Failed to load resource: the server responded with a status of 502 (Bad Gateway)
+bb99ef68-07f3-4ff6-8777-53424138d9bd-00-1pdusyubsrg2x.spock.replit.dev/src/pages/ad-creator.tsx:1  Failed to load resource: the server responded with a status of 502 (Bad Gateway)
+bb99ef68-07f3-4ff6-8777-53424138d9bd-00-1pdusyubsrg2x.spock.replit.dev/src/pages/ad-creator.tsx:1  Failed to load resource: the server responded with a status of 502 (Bad Gateway)
+bb99ef68-07f3-4ff6-8777-53424138d9bd-00-1pdusyubsrg2x.spock.replit.dev/src/pages/analytics.tsx:1  Failed to load resource: the server responded with a status of 502 (Bad Gateway)
+bb99ef68-07f3-4ff6-8777-53424138d9bd-00-1pdusyubsrg2x.spock.replit.dev/src/pages/analytics.tsx:1  Failed to load resource: the server responded with a status of 502 (Bad Gateway)
+bb99ef68-07f3-4ff6-8777-53424138d9bd-00-1pdusyubsrg2x.spock.replit.dev/src/pages/lead-management.tsx:1  Failed to load resource: the server responded with a status of 502 (Bad Gateway)
+bb99ef68-07f3-4ff6-8777-53424138d9bd-00-1pdusyubsrg2x.spock.replit.dev/src/pages/lead-management.tsx:1  Failed to load resource: the server responded with a status of 502 (Bad Gateway)
+bb99ef68-07f3-4ff6-8777-53424138d9bd-00-1pdusyubsrg2x.spock.replit.dev/src/pages/county-hub.tsx:1  Failed to load resource: the server responded with a status of 502 (Bad Gateway)
+bb99ef68-07f3-4ff6-8777-53424138d9bd-00-1pdusyubsrg2x.spock.replit.dev/src/pages/county-hub.tsx:1  Failed to load resource: the server responded with a status of 502 (Bad Gateway)
+bb99ef68-07f3-4ff6-8777-53424138d9bd-00-1pdusyubsrg2x.spock.replit.dev/src/pages/verification.tsx:1  Failed to load resource: the server responded with a status of 502 (Bad Gateway)
+bb99ef68-07f3-4ff6-8777-53424138d9bd-00-1pdusyubsrg2x.spock.replit.dev/src/pages/verification.tsx:1  Failed to load resource: the server responded with a status of 502 (Bad Gateway)
+bb99ef68-07f3-4ff6-8777-53424138d9bd-00-1pdusyubsrg2x.spock.replit.dev/src/pages/insurance-verification.tsx:1  Failed to load resource: the server responded with a status of 502 (Bad Gateway)
+bb99ef68-07f3-4ff6-8777-53424138d9bd-00-1pdusyubsrg2x.spock.replit.dev/src/pages/insurance-verification.tsx:1  Failed to load resource: the server responded with a status of 502 (Bad Gateway)
+bb99ef68-07f3-4ff6-8777-53424138d9bd-00-1pdusyubsrg2x.spock.replit.dev/src/pages/license-verification.tsx:1  Failed to load resource: the server responded with a status of 502 (Bad Gateway)
+bb99ef68-07f3-4ff6-8777-53424138d9bd-00-1pdusyubsrg2x.spock.replit.dev/src/pages/license-verification.tsx:1  Failed to load resource: the server responded with a status of 502 (Bad Gateway)
+bb99ef68-07f3-4ff6-8777-53424138d9bd-00-1pdusyubsrg2x.spock.replit.dev/src/pages/background-check.tsx:1  Failed to load resource: the server responded with a status of 502 (Bad Gateway)
+bb99ef68-07f3-4ff6-8777-53424138d9bd-00-1pdusyubsrg2x.spock.replit.dev/src/pages/background-check.tsx:1  Failed to load resource: the server responded with a status of 502 (Bad Gateway)
+bb99ef68-07f3-4ff6-8777-53424138d9bd-00-1pdusyubsrg2x.spock.replit.dev/src/pages/compliance.tsx:1  Failed to load resource: the server responded with a status of 502 (Bad Gateway)
+bb99ef68-07f3-4ff6-8777-53424138d9bd-00-1pdusyubsrg2x.spock.replit.dev/src/pages/compliance.tsx:1  Failed to load resource: the server responded with a status of 502 (Bad Gateway)
+bb99ef68-07f3-4ff6-8777-53424138d9bd-00-1pdusyubsrg2x.spock.replit.dev/src/pages/documentation.tsx:1  Failed to load resource: the server responded with a status of 502 (Bad Gateway)
+bb99ef68-07f3-4ff6-8777-53424138d9bd-00-1pdusyubsrg2x.spock.replit.dev/src/pages/documentation.tsx:1  Failed to load resource: the server responded with a status of 502 (Bad Gateway)
