@@ -8,12 +8,15 @@ class WebSocketClient {
   private reconnectDelay = 1000; // Start with 1 second
 
   constructor() {
-    // Only auto-connect in production environments with valid hosts
+    // Completely disable WebSocket connections in development
+    // Only enable in true production environments
     if (typeof window !== 'undefined' && 
+        process.env.NODE_ENV === 'production' &&
         window.location.protocol === 'https:' && 
         !window.location.hostname.includes('localhost') &&
         !window.location.hostname.includes('127.0.0.1') &&
-        !window.location.hostname.includes('.replit.dev')) {
+        !window.location.hostname.includes('.replit.dev') &&
+        !window.location.hostname.includes('.replit.')) {
       this.connect();
     }
   }

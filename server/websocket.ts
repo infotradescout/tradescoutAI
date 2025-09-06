@@ -18,7 +18,11 @@ class WebSocketManager {
       server, 
       path: '/ws',
       verifyClient: (info: any) => {
-        // Allow all connections for now - can add auth later
+        // Only allow connections in production environments
+        const isDevelopment = process.env.NODE_ENV !== 'production';
+        if (isDevelopment) {
+          return false; // Block all WebSocket connections in development
+        }
         return true;
       },
       // Handle protocols properly
