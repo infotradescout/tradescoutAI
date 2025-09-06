@@ -1,4 +1,4 @@
-import { memo } from 'react';
+import React, { memo } from 'react';
 
 const SimpleLanding = memo(function SimpleLanding() {
   return (

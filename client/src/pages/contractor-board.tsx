@@ -1,4 +1,4 @@
-import { memo } from 'react';
+import React, { memo } from 'react';
 
 const ContractorBoard = memo(function ContractorBoard() {
   return (
