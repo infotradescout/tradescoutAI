@@ -236,6 +236,8 @@ const Router = memo(function Router() {
   
   // Direct component rendering with proper JSX
   const renderPage = () => {
+    console.log('Router - Current path:', currentPath);
+    
     if (currentPath === '/home' || currentPath === '/dashboard') {
       return <SimpleHome />;
     } else if (currentPath === '/login') {
@@ -483,8 +485,10 @@ const Router = memo(function Router() {
     } else if (currentPath === '/story-generator') {
       return <StoryGeneratorPage />;
     } else if (currentPath !== '/') {
+      console.log('Router - Rendering NotFound for path:', currentPath);
       return <NotFound />;
     } else {
+      console.log('Router - Rendering SimpleLanding for root path');
       return <SimpleLanding />;
     }
   };
@@ -516,7 +520,7 @@ const Router = memo(function Router() {
 
 const App = memo(function App() {
   return (
-    <ErrorBoundary fallback={<div className="min-h-screen gradient-bg flex items-center justify-center text-white">Loading...</div>}>
+    <ErrorBoundary fallback={<div className="min-h-screen bg-red-500 flex items-center justify-center text-white">ERROR CAUGHT BY BOUNDARY</div>}>
       <QueryClientProvider client={queryClient}>
         {/* Toast notifications disabled for now */}
         <SimpleRouter>
