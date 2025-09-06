@@ -235,10 +235,12 @@ const Router = memo(function Router() {
     // Listen for back/forward button
     window.addEventListener('popstate', handleLocationChange);
     
-    // Listen for anchor clicks
+    // Listen for anchor clicks with capture phase
     const handleClick = (e: Event) => {
       const target = e.target as HTMLElement;
       const anchor = target.closest('a');
+      
+      console.log('🔍 Click detected on:', target.tagName, target.className);
       
       if (anchor && anchor.href && anchor.href.startsWith(window.location.origin)) {
         console.log('🔥 Navigation intercepted:', anchor.href);
@@ -251,7 +253,7 @@ const Router = memo(function Router() {
       }
     };
     
-    document.addEventListener('click', handleClick);
+    document.addEventListener('click', handleClick, true); // Use capture phase
     
     return () => {
       window.removeEventListener('popstate', handleLocationChange);
