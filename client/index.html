@@ -7,19 +7,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>TradeScout - Connect with Local Contractors</title>
     <meta name="description" content="Find trusted contractors, get quotes, and manage home improvement projects with TradeScout." />
-    <script>
-      // Override CSP errors by catching and ignoring them
-      window.addEventListener('securitypolicyviolation', function(e) {
-        e.preventDefault();
-        e.stopPropagation();
-        return false;
-      });
-      
-      // Force override any CSP restrictions
-      document.addEventListener('DOMContentLoaded', function() {
-        console.log('DOM loaded, attempting CSP override');
-      });
-    </script>
   </head>
   <body>
     <div id="root"></div>
