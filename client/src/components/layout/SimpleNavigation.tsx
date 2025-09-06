@@ -7,7 +7,7 @@ const SimpleNavigation = memo(function SimpleNavigation() {
         <div className="flex items-center justify-between h-20">
           {/* Premium Logo */}
           <div className="flex items-center">
-            <a href="/" className="flex items-center gap-3 group">
+            <button onClick={() => window.location.pathname = '/'} className="flex items-center gap-3 group">
               <div className="relative">
                 <div className="w-12 h-12 bg-gradient-to-br from-orange-500 via-orange-600 to-orange-700 rounded-2xl flex items-center justify-center group-hover:scale-110 transition-all duration-300 shadow-lg">
                   <svg className="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -24,16 +24,16 @@ const SimpleNavigation = memo(function SimpleNavigation() {
                 </span>
                 <div className="text-xs text-orange-400 font-medium -mt-1">PREMIUM</div>
               </div>
-            </a>
+            </button>
           </div>
 
           {/* Premium Navigation - Full TradeScout Features */}
           <div className="hidden lg:flex items-center space-x-6">
-            <a href="/find-contractors" className="group relative px-3 py-2 text-gray-300 hover:text-white transition-all duration-300">
+            <button onClick={() => window.location.pathname = '/find-contractors'} className="group relative px-3 py-2 text-gray-300 hover:text-white transition-all duration-300">
               <span className="relative z-10 font-medium">Find Contractors</span>
               <div className="absolute inset-0 bg-white/5 rounded-lg opacity-0 group-hover:opacity-100 transition-all duration-300"></div>
               <div className="absolute bottom-0 left-1/2 w-0 h-0.5 bg-gradient-to-r from-orange-500 to-orange-600 group-hover:w-full group-hover:left-0 transition-all duration-300"></div>
-            </a>
+            </button>
             <div className="relative group">
               <button className="group relative px-3 py-2 text-gray-300 hover:text-white transition-all duration-300 flex items-center gap-2">
                 <span className="relative z-10 font-medium">Marketplace</span>
