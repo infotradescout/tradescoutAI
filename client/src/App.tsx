@@ -1,181 +1,203 @@
-import React, { memo, useState, useEffect } from 'react';
+import React, { memo, useState, useEffect, Suspense } from 'react';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { queryClient } from './lib/queryClient';
 import { ErrorBoundary } from './components/ui/error-boundary';
 
-// Simple components - using correct paths
+// Only load essential components eagerly
 import SimpleLanding from './pages/SimpleLanding';
 import SimpleHome from './pages/SimpleHome';
 import SimpleNavigation from './components/layout/SimpleNavigation';
 import SimpleMobileGestures from './components/SimpleMobileGestures';
 import SimpleSubtleHints from './components/onboarding/SimpleSubtleHints';
 import SimpleBugReportTool from './components/SimpleBugReportTool';
-// import SimpleToaster from './components/ui/simple-toaster';
 import SimpleFloatingHelp from './components/ui/simple-floating-help';
 import SimpleRouter from './components/SimpleRouter';
 import MobileAppBar from './components/navigation/MobileAppBar';
 
-// Core TradeScout Pages - Import all functionality
-import FindContractors from './pages/find-contractors';
-import ContractorBoard from './pages/contractor-board';
-import QuoteCalculator from './pages/quote-calculator';
-import DailyDeals from './pages/daily-deals';
-import HelpDemo from './pages/help-demo';
-import TestPage from './pages/test-page';
-import Profile from './pages/profile';
-import AdminDashboard from './pages/admin-dashboard';
+// Loading component for lazy-loaded pages
+import { PageLoadingSpinner } from './components/LoadingSpinner';
 
-// Authentication & User Management (existing pages)
-import Login from './pages/login';
-import ProfileSetup from './pages/profile-setup';
-import AddressVerification from './pages/address-verification';
+const PageLoader = memo(function PageLoader() {
+  return <PageLoadingSpinner message="Loading TradeScout..." />;
+});
 
-// Contractor Features (existing pages)
-import ContractorApply from './pages/contractor-apply';
-import BusinessListing from './pages/business-listing';
-import BusinessOwnerDashboard from './pages/business-owner-dashboard';
-import Accelerator from './pages/accelerator';
+// Lazy load all pages by category for better code splitting
+// Core Pages
+const FindContractors = React.lazy(() => import('./pages/find-contractors'));
+const ContractorBoard = React.lazy(() => import('./pages/contractor-board'));
+const QuoteCalculator = React.lazy(() => import('./pages/quote-calculator'));
+const DailyDeals = React.lazy(() => import('./pages/daily-deals'));
+const HelpDemo = React.lazy(() => import('./pages/help-demo'));
+const TestPage = React.lazy(() => import('./pages/test-page'));
+const Profile = React.lazy(() => import('./pages/profile'));
 
-// Admin Features (existing pages)
-import AdminPanel from './pages/admin-panel';
-import AdminUserManagement from './pages/AdminUserManagement';
-import AdminUsers from './pages/admin-users';
-import AdminWorkspace from './pages/admin-workspace';
-import AdminErrorReports from './pages/admin-error-reports';
-import AdminTestingControls from './pages/admin-testing-controls';
-import AdminAddressVerifications from './pages/admin-address-verifications';
-import AdminProfessionalVerification from './pages/admin-professional-verification';
-import AdminListings from './pages/admin-listings';
-import AdminAttachments from './pages/admin-attachments';
-import AdminPricingAnalytics from './pages/admin-pricing-analytics';
-import AdminCreateAccount from './pages/admin-create-account';
+// Authentication & User Management
+const Login = React.lazy(() => import('./pages/login'));
+const ProfileSetup = React.lazy(() => import('./pages/profile-setup'));
+const AddressVerification = React.lazy(() => import('./pages/address-verification'));
+const Register = React.lazy(() => import('./pages/register'));
+const Signup = React.lazy(() => import('./pages/signup'));
 
-// Marketplace & Social (existing pages)
-import WorkerMarketplace from './pages/worker-marketplace';
-import Chat from './pages/chat';
-import SavedAds from './pages/saved-ads';
-import Affiliate from './pages/affiliate';
-import GrowthPack from './pages/growth-pack';
-import Boosts from './pages/boosts';
-import AdvancedSearch from './pages/advanced-search';
+// Contractor Features
+const ContractorApply = React.lazy(() => import('./pages/contractor-apply'));
+const BusinessListing = React.lazy(() => import('./pages/business-listing'));
+const BusinessOwnerDashboard = React.lazy(() => import('./pages/business-owner-dashboard'));
+const Accelerator = React.lazy(() => import('./pages/accelerator'));
 
-// HOA & Groups (existing pages)
-import Groups from './pages/groups';
-import GroupDetail from './pages/group-detail';
-import HoaManagement from './pages/hoa-management';
-import Community from './pages/community';
+// Admin Features (heavy components)
+const AdminPanel = React.lazy(() => import('./pages/admin-panel'));
+const AdminDashboard = React.lazy(() => import('./pages/admin-dashboard'));
+const AdminUserManagement = React.lazy(() => import('./pages/AdminUserManagement'));
+const AdminUsers = React.lazy(() => import('./pages/admin-users'));
+const AdminWorkspace = React.lazy(() => import('./pages/admin-workspace'));
+const AdminErrorReports = React.lazy(() => import('./pages/admin-error-reports'));
+const AdminTestingControls = React.lazy(() => import('./pages/admin-testing-controls'));
+const AdminAddressVerifications = React.lazy(() => import('./pages/admin-address-verifications'));
+const AdminProfessionalVerification = React.lazy(() => import('./pages/admin-professional-verification'));
+const AdminListings = React.lazy(() => import('./pages/admin-listings'));
+const AdminAttachments = React.lazy(() => import('./pages/admin-attachments'));
+const AdminPricingAnalytics = React.lazy(() => import('./pages/admin-pricing-analytics'));
+const AdminCreateAccount = React.lazy(() => import('./pages/admin-create-account'));
 
-// Additional Features (existing pages)
-import Marketplace from './pages/marketplace';
-import Exchange from './pages/exchange';
-import HandmadeMarketplace from './pages/handmade-marketplace';
-import Leaderboard from './pages/leaderboard';
-import Foundation from './pages/foundation';
-import CommunityFeedOld from './pages/CommunityFeed';
-import CommunityModerationDemo from './pages/CommunityModerationDemo';
-import Checkout from './pages/checkout';
-import PaymentSuccess from './pages/payment-success';
-import PaymentHistory from './pages/payment-history';
-import Notifications from './pages/notifications';
-import Settings from './pages/settings';
-import Help from './pages/help';
-import Invite from './pages/invite';
-import Dashboard from './pages/dashboard';
-import Register from './pages/register';
-import Signup from './pages/signup';
+// Marketplace & Social
+const WorkerMarketplace = React.lazy(() => import('./pages/worker-marketplace'));
+const Chat = React.lazy(() => import('./pages/chat'));
+const SavedAds = React.lazy(() => import('./pages/saved-ads'));
+const Affiliate = React.lazy(() => import('./pages/affiliate'));
+const GrowthPack = React.lazy(() => import('./pages/growth-pack'));
+const Boosts = React.lazy(() => import('./pages/boosts'));
+const AdvancedSearch = React.lazy(() => import('./pages/advanced-search'));
 
-// Role-specific Dashboards (existing pages)
-import ContractorDashboard from './pages/contractor-dashboard-simple';
-import HomeownerDashboard from './pages/homeowner-dashboard';
-import RealtorDashboard from './pages/realtor-dashboard';
-import StoryGeneratorPage from './pages/StoryGeneratorPage';
-import DealerDashboard from './pages/dealer-dashboard';
-import CarSalesmanDashboard from './pages/car-salesman-dashboard';
-import HelperDashboard from './pages/helper-dashboard';
-import InsuranceAgentDashboard from './pages/insurance-agent-dashboard';
-import PropertyManagerDashboard from './pages/property-manager-dashboard';
-import MortgageBrokerDashboard from './pages/mortgage-broker-dashboard';
-import StaffDashboard from './pages/staff-dashboard';
+// HOA & Groups
+const Groups = React.lazy(() => import('./pages/groups'));
+const GroupDetail = React.lazy(() => import('./pages/group-detail'));
+const HoaManagement = React.lazy(() => import('./pages/hoa-management'));
+const Community = React.lazy(() => import('./pages/community'));
 
-// Applications (existing pages)
-import RealtorApplication from './pages/realtor-application';
-import CarSalesmanApplication from './pages/car-salesman-application';
+// Additional Features
+const Marketplace = React.lazy(() => import('./pages/marketplace'));
+const Exchange = React.lazy(() => import('./pages/exchange'));
+const HandmadeMarketplace = React.lazy(() => import('./pages/handmade-marketplace'));
+const Leaderboard = React.lazy(() => import('./pages/leaderboard'));
+const Foundation = React.lazy(() => import('./pages/foundation'));
+const CommunityFeedOld = React.lazy(() => import('./pages/CommunityFeed'));
+const CommunityModerationDemo = React.lazy(() => import('./pages/CommunityModerationDemo'));
+const Checkout = React.lazy(() => import('./pages/checkout'));
+const PaymentSuccess = React.lazy(() => import('./pages/payment-success'));
+const PaymentHistory = React.lazy(() => import('./pages/payment-history'));
+const Notifications = React.lazy(() => import('./pages/notifications'));
+const Settings = React.lazy(() => import('./pages/settings'));
+const Help = React.lazy(() => import('./pages/help'));
+const Invite = React.lazy(() => import('./pages/invite'));
+const Dashboard = React.lazy(() => import('./pages/dashboard'));
 
-// Legal & Info (existing pages)
-import Terms from './pages/terms';
-import Privacy from './pages/privacy';
-import About from './pages/about';
-import Contact from './pages/contact';
-import NotFound from './pages/not-found';
+// Role-specific Dashboards (heavy components)
+const ContractorDashboard = React.lazy(() => import('./pages/contractor-dashboard-simple'));
+const HomeownerDashboard = React.lazy(() => import('./pages/homeowner-dashboard'));
+const RealtorDashboard = React.lazy(() => import('./pages/realtor-dashboard'));
+const StoryGeneratorPage = React.lazy(() => import('./pages/StoryGeneratorPage'));
+const DealerDashboard = React.lazy(() => import('./pages/dealer-dashboard'));
+const CarSalesmanDashboard = React.lazy(() => import('./pages/car-salesman-dashboard'));
+const HelperDashboard = React.lazy(() => import('./pages/helper-dashboard'));
+const InsuranceAgentDashboard = React.lazy(() => import('./pages/insurance-agent-dashboard'));
+const PropertyManagerDashboard = React.lazy(() => import('./pages/property-manager-dashboard'));
+const MortgageBrokerDashboard = React.lazy(() => import('./pages/mortgage-broker-dashboard'));
+const StaffDashboard = React.lazy(() => import('./pages/staff-dashboard'));
 
-// Marketing & Promotions (existing pages)
-import Promotions from './pages/promotions';
-import AdCreator from './pages/ad-creator';
-import Analytics from './pages/analytics';
-import LeadManagement from './pages/lead-management';
+// Applications
+const RealtorApplication = React.lazy(() => import('./pages/realtor-application'));
+const CarSalesmanApplication = React.lazy(() => import('./pages/car-salesman-application'));
+
+// Legal & Info
+const Terms = React.lazy(() => import('./pages/terms'));
+const Privacy = React.lazy(() => import('./pages/privacy'));
+const About = React.lazy(() => import('./pages/about'));
+const Contact = React.lazy(() => import('./pages/contact'));
+const NotFound = React.lazy(() => import('./pages/not-found'));
+
+// Marketing & Promotions
+const Promotions = React.lazy(() => import('./pages/promotions'));
+const AdCreator = React.lazy(() => import('./pages/ad-creator'));
+const Analytics = React.lazy(() => import('./pages/analytics'));
+const LeadManagement = React.lazy(() => import('./pages/lead-management'));
 
 // Additional Missing Pages
-import CountyHub from './pages/county-hub';
-import Verification from './pages/verification';
-import InsuranceVerification from './pages/insurance-verification';
-import LicenseVerification from './pages/license-verification';
-import BackgroundCheck from './pages/background-check';
-import Compliance from './pages/compliance';
-import Documentation from './pages/documentation';
+const CountyHub = React.lazy(() => import('./pages/county-hub'));
+const Verification = React.lazy(() => import('./pages/verification'));
+const InsuranceVerification = React.lazy(() => import('./pages/insurance-verification'));
+const LicenseVerification = React.lazy(() => import('./pages/license-verification'));
+const BackgroundCheck = React.lazy(() => import('./pages/background-check'));
+const Compliance = React.lazy(() => import('./pages/compliance'));
+const Documentation = React.lazy(() => import('./pages/documentation'));
 
 // New Complete Pages
-import CRM from './pages/crm';
-import VehicleMarketplace from './pages/vehicle-marketplace';
-import HOADashboard from './pages/hoa-dashboard';
-import RealEstateMarketplace from './pages/real-estate-marketplace';
-import CoffeeCompany from './pages/coffee-company';
-import AdministrativeDashboard from './pages/administrative-dashboard';
-import CountyDirectory from './pages/county-directory';
-import ApplicationTracker from './pages/application-tracker';
-import ResourceCenter from './pages/resource-center';
-import MembershipPortal from './pages/membership-portal';
-import TrainingCenter from './pages/training-center';
+const CRM = React.lazy(() => import('./pages/crm'));
+const VehicleMarketplace = React.lazy(() => import('./pages/vehicle-marketplace'));
+const HOADashboard = React.lazy(() => import('./pages/hoa-dashboard'));
+const RealEstateMarketplace = React.lazy(() => import('./pages/real-estate-marketplace'));
+const CoffeeCompany = React.lazy(() => import('./pages/coffee-company'));
+const AdministrativeDashboard = React.lazy(() => import('./pages/administrative-dashboard'));
+const CountyDirectory = React.lazy(() => import('./pages/county-directory'));
+const ApplicationTracker = React.lazy(() => import('./pages/application-tracker'));
+const ResourceCenter = React.lazy(() => import('./pages/resource-center'));
+const MembershipPortal = React.lazy(() => import('./pages/membership-portal'));
+const TrainingCenter = React.lazy(() => import('./pages/training-center'));
 
 // Advanced Social & Integration Features
-import SocialIntegration from './pages/social-integration';
-import CommunityFeed from './pages/community-feed';
-import AdvancedSearchNew from './pages/advanced-search';
-import ReferralDashboard from './pages/referral-dashboard';
-import EventManagement from './pages/event-management';
-import APIIntegrations from './pages/api-integrations';
+const SocialIntegration = React.lazy(() => import('./pages/social-integration'));
+const CommunityFeed = React.lazy(() => import('./pages/community-feed'));
+const AdvancedSearchNew = React.lazy(() => import('./pages/advanced-search'));
+const ReferralDashboard = React.lazy(() => import('./pages/referral-dashboard'));
+const EventManagement = React.lazy(() => import('./pages/event-management'));
+const APIIntegrations = React.lazy(() => import('./pages/api-integrations'));
 
 // Admin Interactive Features
-import ContractorVerification from './pages/contractor-verification';
-import ContentModeration from './pages/content-moderation';
-import SystemSettings from './pages/system-settings';
-import SupportTickets from './pages/support-tickets';
+const ContractorVerification = React.lazy(() => import('./pages/contractor-verification'));
+const ContentModeration = React.lazy(() => import('./pages/content-moderation'));
+const SystemSettings = React.lazy(() => import('./pages/system-settings'));
+const SupportTickets = React.lazy(() => import('./pages/support-tickets'));
 
 // Interactive Action Pages
-import ScheduleConsultation from './pages/schedule-consultation';
-import ApplyAccelerator from './pages/apply-accelerator';
-import PlatformAnalytics from './pages/platform-analytics';
-import ManageUsers from './pages/manage-users';
-import PaymentProcessing from './pages/payment-processing';
-import FileManagement from './pages/file-management';
+const ScheduleConsultation = React.lazy(() => import('./pages/schedule-consultation'));
+const ApplyAccelerator = React.lazy(() => import('./pages/apply-accelerator'));
+const PlatformAnalytics = React.lazy(() => import('./pages/platform-analytics'));
+const ManageUsers = React.lazy(() => import('./pages/manage-users'));
+const PaymentProcessing = React.lazy(() => import('./pages/payment-processing'));
+const FileManagement = React.lazy(() => import('./pages/file-management'));
 
 // Car Sales Pages
-import CarSalesNewListing from './pages/car-sales-new-listing';
-import CarSalesCustomers from './pages/car-sales-customers';
-import CarSalesFinancing from './pages/car-sales-financing';
-import CarSalesTradeIn from './pages/car-sales-trade-in';
-import CarSalesPaymentCalculator from './pages/car-sales-payment-calculator';
-import CarSalesVinLookup from './pages/car-sales-vin-lookup';
-import CarSalesAppointments from './pages/car-sales-appointments';
-import CarSalesFollowUp from './pages/car-sales-follow-up';
+const CarSalesNewListing = React.lazy(() => import('./pages/car-sales-new-listing'));
+const CarSalesCustomers = React.lazy(() => import('./pages/car-sales-customers'));
+const CarSalesFinancing = React.lazy(() => import('./pages/car-sales-financing'));
+const CarSalesTradeIn = React.lazy(() => import('./pages/car-sales-trade-in'));
+const CarSalesPaymentCalculator = React.lazy(() => import('./pages/car-sales-payment-calculator'));
+const CarSalesVinLookup = React.lazy(() => import('./pages/car-sales-vin-lookup'));
+const CarSalesAppointments = React.lazy(() => import('./pages/car-sales-appointments'));
+const CarSalesFollowUp = React.lazy(() => import('./pages/car-sales-follow-up'));
 
 // Realtor Pages
-import RealtorClients from './pages/realtor-clients';
-import RealtorMarketAnalysis from './pages/realtor-market-analysis';
-import RealtorConnections from './pages/realtor-connections';
-import RealtorCalculator from './pages/realtor-calculator';
-import RealtorCMA from './pages/realtor-cma';
-import RealtorAppointments from './pages/realtor-appointments';
-import RealtorContacts from './pages/realtor-contacts';
+const RealtorClients = React.lazy(() => import('./pages/realtor-clients'));
+const RealtorMarketAnalysis = React.lazy(() => import('./pages/realtor-market-analysis'));
+const RealtorConnections = React.lazy(() => import('./pages/realtor-connections'));
+const RealtorCalculator = React.lazy(() => import('./pages/realtor-calculator'));
+const RealtorCMA = React.lazy(() => import('./pages/realtor-cma'));
+const RealtorAppointments = React.lazy(() => import('./pages/realtor-appointments'));
+const RealtorContacts = React.lazy(() => import('./pages/realtor-contacts'));
+
+// Lazy component wrapper for better error handling
+const LazyPage = memo(function LazyPage({ 
+  Component, 
+  fallback = <PageLoader />
+}: { 
+  Component: React.LazyExoticComponent<React.ComponentType<any>>;
+  fallback?: React.ReactNode;
+}) {
+  return (
+    <Suspense fallback={fallback}>
+      <Component />
+    </Suspense>
+  );
+});
 
 // Legal footer component
 const LegalFooter = memo(function LegalFooter() {
@@ -198,7 +220,7 @@ const LegalFooter = memo(function LegalFooter() {
   );
 });
 
-// Main router component - using proper component rendering
+// Main router component with lazy loading
 const Router = memo(function Router() {
   const [currentPath, setCurrentPath] = useState(
     typeof window !== 'undefined' ? window.location.pathname : '/'
@@ -234,256 +256,256 @@ const Router = memo(function Router() {
     };
   }, []);
   
-  // Direct component rendering with proper JSX
+  // Render page with lazy loading - all components now use LazyPage wrapper
   const renderPage = () => {
     if (currentPath === '/home' || currentPath === '/dashboard') {
       return <SimpleHome />;
     } else if (currentPath === '/login') {
-      return <Login />;
+      return <LazyPage Component={Login} />;
     } else if (currentPath === '/profile-setup') {
-      return <ProfileSetup />;
+      return <LazyPage Component={ProfileSetup} />;
     } else if (currentPath === '/address-verification') {
-      return <AddressVerification />;
+      return <LazyPage Component={AddressVerification} />;
     } else if (currentPath.startsWith('/find-contractors')) {
-      return <FindContractors />;
+      return <LazyPage Component={FindContractors} />;
     } else if (currentPath.startsWith('/contractors') || currentPath.startsWith('/contractor-board')) {
-      return <ContractorBoard />;
+      return <LazyPage Component={ContractorBoard} />;
     } else if (currentPath.startsWith('/quote-calculator')) {
-      return <QuoteCalculator />;
+      return <LazyPage Component={QuoteCalculator} />;
     } else if (currentPath.startsWith('/daily-deals')) {
-      return <DailyDeals />;
+      return <LazyPage Component={DailyDeals} />;
     } else if (currentPath.startsWith('/help-demo')) {
-      return <HelpDemo />;
+      return <LazyPage Component={HelpDemo} />;
     } else if (currentPath.startsWith('/test-page')) {
-      return <TestPage />;
+      return <LazyPage Component={TestPage} />;
     } else if (currentPath.startsWith('/profile')) {
-      return <Profile />;
+      return <LazyPage Component={Profile} />;
     } else if (currentPath === '/contractor-apply') {
-      return <ContractorApply />;
+      return <LazyPage Component={ContractorApply} />;
     } else if (currentPath === '/business-listing') {
-      return <BusinessListing />;
+      return <LazyPage Component={BusinessListing} />;
     } else if (currentPath === '/business-owner-dashboard') {
-      return <BusinessOwnerDashboard />;
+      return <LazyPage Component={BusinessOwnerDashboard} />;
     } else if (currentPath === '/accelerator') {
-      return <Accelerator />;
+      return <LazyPage Component={Accelerator} />;
     } else if (currentPath === '/admin-panel' || currentPath === '/admin/panel') {
-      return <AdminPanel />;
+      return <LazyPage Component={AdminPanel} />;
     } else if (currentPath === '/admin/users') {
-      return <AdminUsers />;
+      return <LazyPage Component={AdminUsers} />;
     } else if (currentPath === '/admin/user-management') {
-      return <AdminUserManagement />;
+      return <LazyPage Component={AdminUserManagement} />;
     } else if (currentPath === '/admin/workspace') {
-      return <AdminWorkspace />;
+      return <LazyPage Component={AdminWorkspace} />;
     } else if (currentPath === '/admin/error-reports') {
-      return <AdminErrorReports />;
+      return <LazyPage Component={AdminErrorReports} />;
     } else if (currentPath === '/admin/testing') {
-      return <AdminTestingControls />;
+      return <LazyPage Component={AdminTestingControls} />;
     } else if (currentPath === '/admin/address-verifications') {
-      return <AdminAddressVerifications />;
+      return <LazyPage Component={AdminAddressVerifications} />;
     } else if (currentPath === '/admin/professional-verification') {
-      return <AdminProfessionalVerification />;
+      return <LazyPage Component={AdminProfessionalVerification} />;
     } else if (currentPath === '/admin/listings') {
-      return <AdminListings />;
+      return <LazyPage Component={AdminListings} />;
     } else if (currentPath === '/admin/attachments') {
-      return <AdminAttachments />;
+      return <LazyPage Component={AdminAttachments} />;
     } else if (currentPath === '/admin/pricing-analytics') {
-      return <AdminPricingAnalytics />;
+      return <LazyPage Component={AdminPricingAnalytics} />;
     } else if (currentPath === '/admin/create-account') {
-      return <AdminCreateAccount />;
+      return <LazyPage Component={AdminCreateAccount} />;
     } else if (currentPath.startsWith('/admin')) {
-      return <AdminDashboard />;
+      return <LazyPage Component={AdminDashboard} />;
     } else if (currentPath === '/worker-marketplace') {
-      return <WorkerMarketplace />;
+      return <LazyPage Component={WorkerMarketplace} />;
     } else if (currentPath === '/chat') {
-      return <Chat />;
+      return <LazyPage Component={Chat} />;
     } else if (currentPath === '/saved-ads') {
-      return <SavedAds />;
+      return <LazyPage Component={SavedAds} />;
     } else if (currentPath === '/affiliate') {
-      return <Affiliate />;
+      return <LazyPage Component={Affiliate} />;
     } else if (currentPath === '/growth-pack') {
-      return <GrowthPack />;
+      return <LazyPage Component={GrowthPack} />;
     } else if (currentPath === '/boosts') {
-      return <Boosts />;
+      return <LazyPage Component={Boosts} />;
     } else if (currentPath === '/advanced-search') {
-      return <AdvancedSearch />;
+      return <LazyPage Component={AdvancedSearch} />;
     } else if (currentPath === '/groups') {
-      return <Groups />;
+      return <LazyPage Component={Groups} />;
     } else if (currentPath.startsWith('/group/')) {
-      return <GroupDetail />;
+      return <LazyPage Component={GroupDetail} />;
     } else if (currentPath === '/hoa-management') {
-      return <HoaManagement />;
+      return <LazyPage Component={HoaManagement} />;
     } else if (currentPath === '/community') {
-      return <Community />;
+      return <LazyPage Component={Community} />;
     } else if (currentPath === '/community-feed') {
-      return <CommunityFeed />;
+      return <LazyPage Component={CommunityFeed} />;
     } else if (currentPath === '/community-moderation') {
-      return <CommunityModerationDemo />;
+      return <LazyPage Component={CommunityModerationDemo} />;
     } else if (currentPath === '/marketplace') {
-      return <Marketplace />;
+      return <LazyPage Component={Marketplace} />;
     } else if (currentPath === '/exchange') {
-      return <Exchange />;
+      return <LazyPage Component={Exchange} />;
     } else if (currentPath === '/handmade-marketplace') {
-      return <HandmadeMarketplace />;
+      return <LazyPage Component={HandmadeMarketplace} />;
     } else if (currentPath === '/leaderboard') {
-      return <Leaderboard />;
+      return <LazyPage Component={Leaderboard} />;
     } else if (currentPath === '/foundation') {
-      return <div className="min-h-screen bg-slate-900 text-white p-8"><h1>Foundation page temporarily disabled</h1></div>;
+      return <LazyPage Component={Foundation} />;
     } else if (currentPath === '/contractor-dashboard') {
-      return <ContractorDashboard />;
+      return <LazyPage Component={ContractorDashboard} />;
     } else if (currentPath === '/homeowner-dashboard') {
-      return <HomeownerDashboard />;
+      return <LazyPage Component={HomeownerDashboard} />;
     } else if (currentPath === '/realtor-dashboard') {
-      return <RealtorDashboard />;
+      return <LazyPage Component={RealtorDashboard} />;
     } else if (currentPath === '/dealer-dashboard') {
-      return <DealerDashboard />;
+      return <LazyPage Component={DealerDashboard} />;
     } else if (currentPath === '/car-salesman-dashboard') {
-      return <CarSalesmanDashboard />;
+      return <LazyPage Component={CarSalesmanDashboard} />;
     } else if (currentPath === '/helper-dashboard') {
-      return <HelperDashboard />;
+      return <LazyPage Component={HelperDashboard} />;
     } else if (currentPath === '/insurance-agent-dashboard') {
-      return <InsuranceAgentDashboard />;
+      return <LazyPage Component={InsuranceAgentDashboard} />;
     } else if (currentPath === '/property-manager-dashboard') {
-      return <PropertyManagerDashboard />;
+      return <LazyPage Component={PropertyManagerDashboard} />;
     } else if (currentPath === '/mortgage-broker-dashboard') {
-      return <MortgageBrokerDashboard />;
+      return <LazyPage Component={MortgageBrokerDashboard} />;
     } else if (currentPath === '/staff-dashboard') {
-      return <StaffDashboard />;
+      return <LazyPage Component={StaffDashboard} />;
     } else if (currentPath === '/realtor-application') {
-      return <RealtorApplication />;
+      return <LazyPage Component={RealtorApplication} />;
     } else if (currentPath === '/car-salesman-application') {
-      return <CarSalesmanApplication />;
+      return <LazyPage Component={CarSalesmanApplication} />;
     } else if (currentPath === '/checkout') {
-      return <Checkout />;
+      return <LazyPage Component={Checkout} />;
     } else if (currentPath === '/payment-success') {
-      return <PaymentSuccess />;
+      return <LazyPage Component={PaymentSuccess} />;
     } else if (currentPath === '/payment-history') {
-      return <PaymentHistory />;
+      return <LazyPage Component={PaymentHistory} />;
     } else if (currentPath === '/register') {
-      return <Register />;
+      return <LazyPage Component={Register} />;
     } else if (currentPath === '/signup') {
-      return <Signup />;
+      return <LazyPage Component={Signup} />;
     } else if (currentPath === '/invite') {
-      return <Invite />;
+      return <LazyPage Component={Invite} />;
     } else if (currentPath === '/notifications') {
-      return <Notifications />;
+      return <LazyPage Component={Notifications} />;
     } else if (currentPath === '/settings') {
-      return <Settings />;
+      return <LazyPage Component={Settings} />;
     } else if (currentPath === '/help') {
-      return <Help />;
+      return <LazyPage Component={Help} />;
     } else if (currentPath === '/county-hub') {
-      return <CountyHub />;
+      return <LazyPage Component={CountyHub} />;
     } else if (currentPath === '/verification') {
-      return <Verification />;
+      return <LazyPage Component={Verification} />;
     } else if (currentPath === '/insurance-verification') {
-      return <InsuranceVerification />;
+      return <LazyPage Component={InsuranceVerification} />;
     } else if (currentPath === '/license-verification') {
-      return <LicenseVerification />;
+      return <LazyPage Component={LicenseVerification} />;
     } else if (currentPath === '/background-check') {
-      return <BackgroundCheck />;
+      return <LazyPage Component={BackgroundCheck} />;
     } else if (currentPath === '/compliance') {
-      return <Compliance />;
+      return <LazyPage Component={Compliance} />;
     } else if (currentPath === '/promotions') {
-      return <Promotions />;
+      return <LazyPage Component={Promotions} />;
     } else if (currentPath === '/ad-creator') {
-      return <AdCreator />;
+      return <LazyPage Component={AdCreator} />;
     } else if (currentPath === '/analytics') {
-      return <Analytics />;
+      return <LazyPage Component={Analytics} />;
     } else if (currentPath === '/lead-management') {
-      return <LeadManagement />;
+      return <LazyPage Component={LeadManagement} />;
     } else if (currentPath === '/documentation') {
-      return <Documentation />;
+      return <LazyPage Component={Documentation} />;
     } else if (currentPath === '/crm' || currentPath === '/crm-dashboard') {
-      return <CRM />;
+      return <LazyPage Component={CRM} />;
     } else if (currentPath === '/vehicle-marketplace') {
-      return <VehicleMarketplace />;
+      return <LazyPage Component={VehicleMarketplace} />;
     } else if (currentPath === '/hoa-dashboard') {
-      return <HOADashboard />;
+      return <LazyPage Component={HOADashboard} />;
     } else if (currentPath === '/real-estate-marketplace') {
-      return <RealEstateMarketplace />;
+      return <LazyPage Component={RealEstateMarketplace} />;
     } else if (currentPath === '/coffee-company' || currentPath === '/coffee') {
-      return <CoffeeCompany />;
+      return <LazyPage Component={CoffeeCompany} />;
     } else if (currentPath === '/administrative-dashboard') {
-      return <AdministrativeDashboard />;
+      return <LazyPage Component={AdministrativeDashboard} />;
     } else if (currentPath === '/county-directory') {
-      return <CountyDirectory />;
+      return <LazyPage Component={CountyDirectory} />;
     } else if (currentPath === '/application-tracker') {
-      return <ApplicationTracker />;
+      return <LazyPage Component={ApplicationTracker} />;
     } else if (currentPath === '/resource-center') {
-      return <ResourceCenter />;
+      return <LazyPage Component={ResourceCenter} />;
     } else if (currentPath === '/membership-portal' || currentPath === '/membership') {
-      return <MembershipPortal />;
+      return <LazyPage Component={MembershipPortal} />;
     } else if (currentPath === '/training-center' || currentPath === '/training') {
-      return <TrainingCenter />;
+      return <LazyPage Component={TrainingCenter} />;
     } else if (currentPath === '/social-integration' || currentPath === '/social') {
-      return <SocialIntegration />;
+      return <LazyPage Component={SocialIntegration} />;
     } else if (currentPath === '/referral-dashboard' || currentPath === '/referrals') {
-      return <ReferralDashboard />;
+      return <LazyPage Component={ReferralDashboard} />;
     } else if (currentPath === '/event-management' || currentPath === '/events') {
-      return <EventManagement />;
+      return <LazyPage Component={EventManagement} />;
     } else if (currentPath === '/api-integrations' || currentPath === '/api' || currentPath === '/integrations') {
-      return <APIIntegrations />;
+      return <LazyPage Component={APIIntegrations} />;
     } else if (currentPath === '/contractor-verification') {
-      return <ContractorVerification />;
+      return <LazyPage Component={ContractorVerification} />;
     } else if (currentPath === '/content-moderation' || currentPath === '/moderation') {
-      return <ContentModeration />;
+      return <LazyPage Component={ContentModeration} />;
     } else if (currentPath === '/car-sales/new-listing') {
-      return <CarSalesNewListing />;
+      return <LazyPage Component={CarSalesNewListing} />;
     } else if (currentPath === '/car-sales/customers') {
-      return <CarSalesCustomers />;
+      return <LazyPage Component={CarSalesCustomers} />;
     } else if (currentPath === '/car-sales/financing') {
-      return <CarSalesFinancing />;
+      return <LazyPage Component={CarSalesFinancing} />;
     } else if (currentPath === '/car-sales/trade-in') {
-      return <CarSalesTradeIn />;
+      return <LazyPage Component={CarSalesTradeIn} />;
     } else if (currentPath === '/car-sales/payment-calculator') {
-      return <CarSalesPaymentCalculator />;
+      return <LazyPage Component={CarSalesPaymentCalculator} />;
     } else if (currentPath === '/car-sales/vin-lookup') {
-      return <CarSalesVinLookup />;
+      return <LazyPage Component={CarSalesVinLookup} />;
     } else if (currentPath === '/car-sales/appointments') {
-      return <CarSalesAppointments />;
+      return <LazyPage Component={CarSalesAppointments} />;
     } else if (currentPath === '/car-sales/follow-up') {
-      return <CarSalesFollowUp />;
+      return <LazyPage Component={CarSalesFollowUp} />;
     } else if (currentPath === '/realtor/clients') {
-      return <RealtorClients />;
+      return <LazyPage Component={RealtorClients} />;
     } else if (currentPath === '/realtor/market-analysis') {
-      return <RealtorMarketAnalysis />;
+      return <LazyPage Component={RealtorMarketAnalysis} />;
     } else if (currentPath === '/realtor/connections') {
-      return <RealtorConnections />;
+      return <LazyPage Component={RealtorConnections} />;
     } else if (currentPath === '/realtor/calculator') {
-      return <RealtorCalculator />;
+      return <LazyPage Component={RealtorCalculator} />;
     } else if (currentPath === '/realtor/cma') {
-      return <RealtorCMA />;
+      return <LazyPage Component={RealtorCMA} />;
     } else if (currentPath === '/realtor/appointments') {
-      return <RealtorAppointments />;
+      return <LazyPage Component={RealtorAppointments} />;
     } else if (currentPath === '/realtor/contacts') {
-      return <RealtorContacts />;
+      return <LazyPage Component={RealtorContacts} />;
     } else if (currentPath === '/system-settings') {
-      return <SystemSettings />;
+      return <LazyPage Component={SystemSettings} />;
     } else if (currentPath === '/support-tickets' || currentPath === '/support') {
-      return <SupportTickets />;
+      return <LazyPage Component={SupportTickets} />;
     } else if (currentPath === '/schedule-consultation' || currentPath === '/consultation') {
-      return <ScheduleConsultation />;
+      return <LazyPage Component={ScheduleConsultation} />;
     } else if (currentPath === '/apply-accelerator' || currentPath === '/apply') {
-      return <ApplyAccelerator />;
+      return <LazyPage Component={ApplyAccelerator} />;
     } else if (currentPath === '/platform-analytics') {
-      return <PlatformAnalytics />;
+      return <LazyPage Component={PlatformAnalytics} />;
     } else if (currentPath === '/manage-users' || currentPath === '/users') {
-      return <ManageUsers />;
+      return <LazyPage Component={ManageUsers} />;
     } else if (currentPath === '/payment-processing' || currentPath === '/billing' || currentPath === '/payments') {
-      return <PaymentProcessing />;
+      return <LazyPage Component={PaymentProcessing} />;
     } else if (currentPath === '/file-management' || currentPath === '/files') {
-      return <FileManagement />;
+      return <LazyPage Component={FileManagement} />;
     } else if (currentPath === '/terms') {
-      return <Terms />;
+      return <LazyPage Component={Terms} />;
     } else if (currentPath === '/privacy') {
-      return <Privacy />;
+      return <LazyPage Component={Privacy} />;
     } else if (currentPath === '/about') {
-      return <About />;
+      return <LazyPage Component={About} />;
     } else if (currentPath === '/contact') {
-      return <Contact />;
+      return <LazyPage Component={Contact} />;
     } else if (currentPath === '/story-generator') {
-      return <StoryGeneratorPage />;
+      return <LazyPage Component={StoryGeneratorPage} />;
     } else if (currentPath !== '/') {
-      return <NotFound />;
+      return <LazyPage Component={NotFound} />;
     } else {
       return <SimpleLanding />;
     }
@@ -495,7 +517,9 @@ const Router = memo(function Router() {
         <SimpleNavigation />
         
         <main className="flex-1 relative">
-          {renderPage()}
+          <ErrorBoundary fallback={<PageLoader />}>
+            {renderPage()}
+          </ErrorBoundary>
         </main>
         
         <LegalFooter />
@@ -516,9 +540,8 @@ const Router = memo(function Router() {
 
 const App = memo(function App() {
   return (
-    <ErrorBoundary fallback={<div className="min-h-screen gradient-bg flex items-center justify-center text-white">Loading...</div>}>
+    <ErrorBoundary fallback={<PageLoader />}>
       <QueryClientProvider client={queryClient}>
-        {/* Toast notifications disabled for now */}
         <SimpleRouter>
           <Router />
         </SimpleRouter>
