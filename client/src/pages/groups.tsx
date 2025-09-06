@@ -10,7 +10,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { Users, MessageSquare, Plus, Search, MapPin, Tag, Heart, MessageCircle, Crown } from "lucide-react";
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
-import { Link } from "wouter";
+// import { Link } from "wouter"; // Removed - using custom router
 
 interface Group {
   id: string;

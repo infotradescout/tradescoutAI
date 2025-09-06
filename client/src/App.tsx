@@ -241,8 +241,11 @@ const Router = memo(function Router() {
       const anchor = target.closest('a');
       
       if (anchor && anchor.href && anchor.href.startsWith(window.location.origin)) {
+        // console.log('Navigation intercepted:', anchor.href);
         e.preventDefault();
+        e.stopPropagation();
         const newPath = new URL(anchor.href).pathname;
+        // console.log('Navigating to:', newPath);
         window.history.pushState({}, '', newPath);
         setCurrentPath(newPath);
       }
