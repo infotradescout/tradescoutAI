@@ -76,12 +76,14 @@ export default function HOAManagement() {
 
   const { data: vendors = [], isLoading: vendorsLoading } = useQuery({
     queryKey: ['/api/hoa', hoaId, 'vendors'],
-    queryFn: () => fetch(`/api/hoa/${hoaId}/vendors`).then(res => res.json())
+    queryFn: () => fetch(`/api/hoa/${hoaId}/vendors`).then(res => res.json()),
+    initialData: []
   });
 
   const { data: votes = [], isLoading: votesLoading } = useQuery({
     queryKey: ['/api/hoa', hoaId, 'votes'],
-    queryFn: () => fetch(`/api/hoa/${hoaId}/votes`).then(res => res.json())
+    queryFn: () => fetch(`/api/hoa/${hoaId}/votes`).then(res => res.json()),
+    initialData: []
   });
 
   // Placeholder for refreshing financial data
@@ -261,7 +263,7 @@ export default function HOAManagement() {
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-4">
-                    {hoa.boardMembers.map((member: any, index: number) => (
+                    {(hoa.boardMembers || []).map((member: any, index: number) => (
                       <div key={index} className="flex justify-between items-center p-3 bg-slate-700/50 rounded-lg">
                         <div>
                           <div className="font-semibold text-white">{member.name}</div>
@@ -284,7 +286,7 @@ export default function HOAManagement() {
                   </CardHeader>
                   <CardContent>
                     <div className="grid grid-cols-2 gap-2">
-                      {hoa.amenities.map((amenity: string, index: number) => (
+                      {(hoa.amenities || []).map((amenity: string, index: number) => (
                         <Badge key={index} variant="secondary" className="bg-orange-500/20 text-orange-400 justify-center">
                           {amenity}
                         </Badge>
@@ -332,7 +334,7 @@ export default function HOAManagement() {
                     <CardTitle className="text-white">Expense Breakdown</CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-3">
-                    {finances.expenseCategories.map((category: any, index: number) => (
+                    {(finances.expenseCategories || []).map((category: any, index: number) => (
                       <div key={index} className="space-y-2">
                         <div className="flex justify-between text-sm">
                           <span className="text-slate-300">{category.category}</span>
@@ -353,7 +355,7 @@ export default function HOAManagement() {
                 <Vote className="w-5 h-5 text-purple-400" />
                 <span>Active Votes</span>
               </h3>
-              {votes.map((vote: Vote) => (
+              {(votes || []).map((vote: Vote) => (
                 <Card key={vote.id} className="bg-slate-800/50 border-slate-700" data-testid={`vote-${vote.id}`}>
                   <CardHeader>
                     <div className="flex justify-between items-start">
@@ -423,7 +425,7 @@ export default function HOAManagement() {
 
           <TabsContent value="vendors" className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {vendors.map((vendor: Vendor) => (
+              {(vendors || []).map((vendor: Vendor) => (
                 <Card key={vendor.id} className="bg-slate-800/50 border-slate-700" data-testid={`vendor-${vendor.id}`}>
                   <CardHeader>
                     <div className="flex justify-between items-start">
@@ -459,7 +461,7 @@ export default function HOAManagement() {
                     <div className="space-y-2">
                       <h4 className="text-white font-medium">Services:</h4>
                       <div className="flex flex-wrap gap-1">
-                        {vendor.services.map((service, index) => (
+                        {(vendor.services || []).map((service, index) => (
                           <Badge key={index} variant="outline" className="text-xs border-slate-600 text-slate-400">
                             {service}
                           </Badge>
