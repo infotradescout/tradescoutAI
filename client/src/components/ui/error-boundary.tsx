@@ -25,6 +25,12 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
     // Always log errors for debugging
     console.error('Error boundary caught an error:', error, errorInfo);
     console.error('Component stack:', errorInfo.componentStack);
+    
+    // Special handling for common array mapping errors
+    if (error.message.includes('map is not a function')) {
+      console.error('Array mapping error detected - likely data structure issue');
+      console.error('Check for undefined/null arrays or incorrect API response format');
+    }
   }
 
   render() {

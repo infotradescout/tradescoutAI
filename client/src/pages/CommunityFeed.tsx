@@ -145,7 +145,8 @@ export default function CommunityFeed() {
     }
   };
 
-  const filteredPosts = samplePosts.filter(post => {
+  const filteredPosts = (samplePosts || []).filter(post => {
+    if (!post) return false;
     if (filter !== "all" && post.postType !== filter) return false;
     if (searchQuery && !post.content.toLowerCase().includes(searchQuery.toLowerCase())) return false;
     return true;
@@ -264,7 +265,7 @@ export default function CommunityFeed() {
 
         {/* Community Posts */}
         <div className="space-y-6">
-          {filteredPosts.map((post) => (
+          {(filteredPosts || []).map((post) => (
             <Card key={post.id} className="hover:shadow-md transition-shadow">
               <CardHeader className="pb-3">
                 <div className="flex items-start justify-between">
@@ -303,9 +304,9 @@ export default function CommunityFeed() {
                   <p className="text-sm leading-relaxed">{post.content}</p>
                 </div>
 
-                {post.tags.length > 0 && (
+                {(post.tags || []).length > 0 && (
                   <div className="flex flex-wrap gap-1 mb-4">
-                    {post.tags.map((tag) => (
+                    {(post.tags || []).map((tag) => (
                       <Badge key={tag} variant="secondary" className="text-xs">
                         #{tag}
                       </Badge>
