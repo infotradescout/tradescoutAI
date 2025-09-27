@@ -474,7 +474,7 @@ export function PersonalEventsManager() {
             </Button>
           </div>
         ) : (
-          events.map((event: PersonalEvent) => {
+          Array.isArray(events) ? events.map((event: PersonalEvent) => {
             const typeInfo = getEventTypeInfo(event.eventType);
             const TypeIcon = typeInfo.icon;
             
@@ -543,7 +543,7 @@ export function PersonalEventsManager() {
                 </div>
               </div>
             );
-          })
+          }) : null
         )}
       </div>
     </div>

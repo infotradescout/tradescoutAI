@@ -219,7 +219,7 @@ export function NotificationCenter() {
               <p className="text-sm">We'll let you know when something important happens.</p>
             </div>
           ) : (
-            notifications.map((notification: Notification) => (
+            Array.isArray(notifications) ? notifications.map((notification: Notification) => (
               <div
                 key={notification.id}
                 className={cn(
@@ -302,7 +302,7 @@ export function NotificationCenter() {
                   )}
                 </div>
               </div>
-            ))
+            )) : null
           )}
         </ScrollArea>
 
