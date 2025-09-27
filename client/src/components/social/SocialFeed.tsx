@@ -284,9 +284,9 @@ export function SocialFeed({ className }: SocialFeedProps) {
                 </Card>
               ) : posts && Array.isArray(posts) && posts.length > 0 ? (
                 <div className="space-y-4">
-                  {posts.map((post: any) => (
+                  {Array.isArray(posts) ? posts.map((post: any) => (
                     <PostCard key={post.id} post={post} />
-                  ))}
+                  )) : null}
                 </div>
               ) : (
                 <Card>

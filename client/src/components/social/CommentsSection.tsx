@@ -297,14 +297,14 @@ function Comment({ comment, postId, level = 0 }: CommentProps) {
       {/* Nested Replies */}
       {showReplies && comment.replies && comment.replies.length > 0 && (
         <div className="space-y-3">
-          {comment.replies.map((reply: any) => (
+          {Array.isArray(comment.replies) ? comment.replies.map((reply: any) => (
             <Comment
               key={reply.id}
               comment={reply}
               postId={postId}
               level={level + 1}
             />
-          ))}
+          )) : null}
         </div>
       )}
     </div>
@@ -439,14 +439,14 @@ export function CommentsSection({ postId }: CommentsSectionProps) {
             <div className="text-sm font-medium text-muted-foreground">
               {comments.length} comment{comments.length !== 1 ? 's' : ''}
             </div>
-            {comments.map((comment: any) => (
+            {Array.isArray(comments) ? comments.map((comment: any) => (
               <Comment
                 key={comment.id}
                 comment={comment}
                 postId={postId}
                 level={0}
               />
-            ))}
+            )) : null}
           </>
         )}
       </div>
