@@ -10,7 +10,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { Users, MessageSquare, Plus, Search, MapPin, Tag, Heart, MessageCircle, Crown } from "lucide-react";
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
-// import { Link } from "wouter"; // Removed - using custom router
+import { Link } from "wouter";
 
 interface Group {
   id: string;
@@ -56,7 +56,7 @@ export default function Groups() {
     }
   });
 
-  const { data: userGroups = [] } = useQuery({
+  const { data: userGroups = [] } = useQuery<Group[]>({
     queryKey: ['/api/groups/user'],
   });
 
