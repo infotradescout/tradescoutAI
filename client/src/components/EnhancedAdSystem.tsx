@@ -78,7 +78,7 @@ export function EnhancedAdSystem({
       
       if (response.ok) {
         const adData = await response.json();
-        setAds(adData);
+        setAds(Array.isArray(adData) ? adData : []);
       }
     } catch (error) {
       console.error('Error fetching ads:', error);
@@ -138,7 +138,7 @@ export function EnhancedAdSystem({
 
   return (
     <div className="ad-container" data-placement={placement}>
-      {ads.map(renderAd)}
+      {Array.isArray(ads) ? ads.map(renderAd) : null}
     </div>
   );
 }
