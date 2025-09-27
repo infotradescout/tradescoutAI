@@ -39,7 +39,7 @@ export function SocialFeed({ className }: SocialFeedProps) {
 
   // Fetch social feed
   const {
-    data: posts,
+    data,
     isLoading,
     error,
     refetch
@@ -53,6 +53,13 @@ export function SocialFeed({ className }: SocialFeedProps) {
     }),
     enabled: isAuthenticated,
   });
+
+  // Normalize posts data - handle both array response and object response
+  const posts = Array.isArray(data) 
+    ? data 
+    : Array.isArray(data?.posts) 
+    ? data.posts 
+    : [];
 
   // Fetch trending topics
   const { data: trending } = useQuery({
@@ -282,11 +289,11 @@ export function SocialFeed({ className }: SocialFeedProps) {
                     </Button>
                   </CardContent>
                 </Card>
-              ) : posts && Array.isArray(posts) && posts.length > 0 ? (
+              ) : posts.length > 0 ? (
                 <div className="space-y-4">
-                  {Array.isArray(posts) ? posts.map((post: any) => (
+                  {posts.map((post: any) => (
                     <PostCard key={post.id} post={post} />
-                  )) : null}
+                  ))}
                 </div>
               ) : (
                 <Card>
