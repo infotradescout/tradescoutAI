@@ -185,7 +185,7 @@ import {
   type CommentLike,
   type InsertCommentLike,
   type UserFollow,
-  type any,
+  type InsertUserFollow,
   type CommunityGroup,
   type InsertCommunityGroup,
   type GroupMember,
@@ -1134,7 +1134,7 @@ export class DatabaseStorage implements IStorage {
       .orderBy(desc(recommendations.createdAt));
   }
 
-  async createRecommendation(recommendation: InsertRecommendation): Promise<Recommendation> {
+  async createBasicRecommendation(recommendation: InsertRecommendation): Promise<Recommendation> {
     const [newRecommendation] = await db
       .insert(recommendations)
       .values(recommendation)
