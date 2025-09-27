@@ -271,14 +271,14 @@ const CommunityFeed = memo(function CommunityFeed() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-3">
-                  {trendingTopics.map((topic, index) => (
+                  {Array.isArray(trendingTopics) ? trendingTopics.map((topic, index) => (
                     <div key={index} className="flex justify-between items-center">
                       <span className="text-orange-400 hover:text-orange-300 cursor-pointer">
                         {topic.tag}
                       </span>
                       <span className="text-gray-400 text-sm">{topic.posts}</span>
                     </div>
-                  ))}
+                  )) : null}
                 </div>
               </CardContent>
             </Card>
@@ -383,7 +383,7 @@ const CommunityFeed = memo(function CommunityFeed() {
 
               <TabsContent value="feed" className="mt-0">
                 <div className="space-y-6">
-                  {posts.map((post) => (
+                  {Array.isArray(posts) ? posts.map((post) => (
                     <Card key={post.id} className="bg-navy-800/50 border-navy-600 backdrop-blur-sm">
                       <CardContent className="p-6">
                         {/* Post Header */}
@@ -448,7 +448,7 @@ const CommunityFeed = memo(function CommunityFeed() {
                         <div className="mb-4">
                           <p className="text-gray-300 mb-3">{post.content}</p>
 
-                          {post.tags && post.tags.length > 0 && (
+                          {Array.isArray(post.tags) && post.tags.length > 0 && (
                             <div className="flex flex-wrap gap-1 mb-3">
                               {post.tags.map((tag, index) => (
                                 <span key={index} className="text-orange-400 text-sm hover:text-orange-300 cursor-pointer">
@@ -458,7 +458,7 @@ const CommunityFeed = memo(function CommunityFeed() {
                             </div>
                           )}
 
-                          {post.images && post.images.length > 0 && (
+                          {Array.isArray(post.images) && post.images.length > 0 && (
                             <div className="grid grid-cols-2 gap-2 mb-3">
                               {post.images.map((image, index) => (
                                 <img
@@ -510,7 +510,7 @@ const CommunityFeed = memo(function CommunityFeed() {
                         </div>
                       </CardContent>
                     </Card>
-                  ))}
+                  )) : null}
                 </div>
               </TabsContent>
 
