@@ -165,7 +165,7 @@ async function routeLeadToTopContractors(lead: any, leadData: any) {
         if (contractor.licenseNumber) completeness += 10;
         if (contractor.website) completeness += 10;
         if (contractor.phone) completeness += 10; 
-        if (contractor.businessDescription) completeness += 10;
+        if (contractor.description) completeness += 10;
         score += completeness;
         
         return { ...contractor, matchScore: score };
@@ -1034,13 +1034,13 @@ export async function registerRoutes(app: Express) {
       // Include contractor-specific data if user is a contractor
       let profileData = { ...user, password: undefined };
 
-      if (user.role === 'contractor_user') {
-        const contractor = await storage.getContractorByUserId(user?.id);
+      if (user && user.role === 'contractor_user') {
+        const contractor = await storage.getContractorByUserId(user.id);
         if (contractor) {
           profileData = {
             ...profileData,
             companyName: contractor.companyName,
-            businessDescription: contractor.businessDescription,
+            description: contractor.description,
             licenseNumber: contractor.licenseNumber,
             yearsInBusiness: contractor.yearsInBusiness,
             isGeneralContractor: contractor.isGeneralContractor,
@@ -1096,7 +1096,7 @@ export async function registerRoutes(app: Express) {
         if (contractor) {
           await storage.updateContractor(contractor.id, {
             companyName: companyName || contractor.companyName,
-            businessDescription: businessDescription || contractor.businessDescription,
+            description: businessDescription || contractor.description,
             licenseNumber: licenseNumber || contractor.licenseNumber,
             yearsInBusiness: yearsInBusiness !== undefined ? yearsInBusiness : contractor.yearsInBusiness,
             isGeneralContractor: isGeneralContractor !== undefined ? isGeneralContractor : contractor.isGeneralContractor,
@@ -1965,8 +1965,11 @@ export async function registerRoutes(app: Express) {
         projectType: 'recommendation'
       });
 
-      const validatedRecommendation = insertRecommendationSchema.parse(recommendationData);
-      const recommendation = await storage.createRecommendation(validatedRecommendation);
+      const recommendation = await storage.createRecommendation({
+        ...recommendationData,
+        ipAddress: req.ip || null,
+        userAgent: req.get('user-agent') || null
+      });
 
       // Update leaderboard stats when recommendation is created
       await storage.updateContractorLeaderboardStats(recommendationData.contractorId, recommendationData.rating);
