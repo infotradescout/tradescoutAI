@@ -208,7 +208,7 @@ const VehicleMarketplace = memo(function VehicleMarketplace() {
 
         {/* Vehicle Listings */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-6">
-          {vehicles.map((vehicle) => (
+          {Array.isArray(vehicles) ? vehicles.map((vehicle) => (
             <Card key={vehicle.id} className="bg-navy-800/50 border-navy-600 backdrop-blur-sm hover:bg-navy-700/50 transition-colors">
               <CardHeader className="p-0">
                 <div className="relative">
@@ -306,7 +306,7 @@ const VehicleMarketplace = memo(function VehicleMarketplace() {
                 </div>
               </CardContent>
             </Card>
-          ))}
+          )) : null}
         </div>
 
         {/* Load More */}
