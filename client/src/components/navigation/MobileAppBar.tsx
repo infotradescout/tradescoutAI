@@ -23,15 +23,13 @@ const MobileAppBar = memo(function MobileAppBar() {
       <div className="lg:hidden fixed top-0 left-0 right-0 z-50 bg-slate-900/95 backdrop-blur-xl border-b border-white/10">
         <div className="flex items-center justify-between h-16 px-4">
           {/* Logo */}
-          <Link href="/">
-            <a className="flex items-center gap-2" onClick={closeMenu}>
-              <div className="w-8 h-8 bg-gradient-to-br from-orange-500 to-orange-600 rounded-lg flex items-center justify-center">
-                <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4" />
-                </svg>
-              </div>
-              <span className="text-lg font-bold text-white">TradeScout</span>
-            </a>
+          <Link href="/" className="flex items-center gap-2" onClick={closeMenu}>
+            <div className="w-8 h-8 bg-gradient-to-br from-orange-500 to-orange-600 rounded-lg flex items-center justify-center">
+              <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4" />
+              </svg>
+            </div>
+            <span className="text-lg font-bold text-white">TradeScout</span>
           </Link>
 
           {/* Menu Button */}
@@ -52,72 +50,60 @@ const MobileAppBar = memo(function MobileAppBar() {
             <div className="flex flex-col h-full">
               <div className="flex-1 overflow-y-auto p-4 space-y-2">
                 {/* Main Navigation */}
-                <Link href="/">
-                  <a 
-                    onClick={closeMenu}
-                    data-testid="link-home"
-                    className="flex items-center gap-3 p-3 rounded-lg text-white hover:bg-white/10 transition-colors"
-                  >
-                    <Home className="w-5 h-5" />
-                    <span>Home</span>
-                  </a>
+                <Link href="/" 
+                  onClick={closeMenu}
+                  data-testid="link-home"
+                  className="flex items-center gap-3 p-3 rounded-lg text-white hover:bg-white/10 transition-colors"
+                >
+                  <Home className="w-5 h-5" />
+                  <span>Home</span>
                 </Link>
                 
-                <Link href="/find-contractors">
-                  <a 
-                    onClick={closeMenu}
-                    data-testid="link-find-contractors"
-                    className="flex items-center gap-3 p-3 rounded-lg text-white hover:bg-white/10 transition-colors"
-                  >
-                    <Search className="w-5 h-5" />
-                    <span>Find Contractors</span>
-                  </a>
+                <Link href="/find-contractors" 
+                  onClick={closeMenu}
+                  data-testid="link-find-contractors"
+                  className="flex items-center gap-3 p-3 rounded-lg text-white hover:bg-white/10 transition-colors"
+                >
+                  <Search className="w-5 h-5" />
+                  <span>Find Contractors</span>
                 </Link>
 
-                <Link href="/worker-marketplace">
-                  <a 
-                    onClick={closeMenu}
-                    data-testid="link-marketplace"
-                    className="flex items-center gap-3 p-3 rounded-lg text-white hover:bg-white/10 transition-colors"
-                  >
-                    <Users className="w-5 h-5" />
-                    <span>Marketplace</span>
-                  </a>
+                <Link href="/worker-marketplace" 
+                  onClick={closeMenu}
+                  data-testid="link-marketplace"
+                  className="flex items-center gap-3 p-3 rounded-lg text-white hover:bg-white/10 transition-colors"
+                >
+                  <Users className="w-5 h-5" />
+                  <span>Marketplace</span>
                 </Link>
 
-                <Link href="/groups">
-                  <a 
-                    onClick={closeMenu}
-                    data-testid="link-groups"
-                    className="flex items-center gap-3 p-3 rounded-lg text-white hover:bg-white/10 transition-colors"
-                  >
-                    <Users className="w-5 h-5" />
-                    <span>Groups</span>
-                  </a>
+                <Link href="/groups" 
+                  onClick={closeMenu}
+                  data-testid="link-groups"
+                  className="flex items-center gap-3 p-3 rounded-lg text-white hover:bg-white/10 transition-colors"
+                >
+                  <Users className="w-5 h-5" />
+                  <span>Groups</span>
                 </Link>
 
                 {user && (
                   <>
-                    <Link href="/profile">
-                      <a 
-                        onClick={closeMenu}
-                        data-testid="link-profile"
-                        className="flex items-center gap-3 p-3 rounded-lg text-white hover:bg-white/10 transition-colors"
-                      >
-                        <User className="w-5 h-5" />
-                        <span>Profile</span>
-                      </a>
+                    <Link href="/profile" 
+                      onClick={closeMenu}
+                      data-testid="link-profile"
+                      className="flex items-center gap-3 p-3 rounded-lg text-white hover:bg-white/10 transition-colors"
+                    >
+                      <User className="w-5 h-5" />
+                      <span>Profile</span>
                     </Link>
 
-                    <Link href="/notifications">
-                      <a 
-                        onClick={closeMenu}
-                        data-testid="link-notifications"
-                        className="flex items-center gap-3 p-3 rounded-lg text-white hover:bg-white/10 transition-colors"
-                      >
-                        <Bell className="w-5 h-5" />
-                        <span>Notifications</span>
-                      </a>
+                    <Link href="/notifications" 
+                      onClick={closeMenu}
+                      data-testid="link-notifications"
+                      className="flex items-center gap-3 p-3 rounded-lg text-white hover:bg-white/10 transition-colors"
+                    >
+                      <Bell className="w-5 h-5" />
+                      <span>Notifications</span>
                     </Link>
                   </>
                 )}
@@ -144,26 +130,22 @@ const MobileAppBar = memo(function MobileAppBar() {
                   </div>
                 ) : (
                   <div className="space-y-2">
-                    <Link href="/login">
-                      <a onClick={closeMenu}>
-                        <Button 
-                          variant="outline" 
-                          className="w-full text-white border-white/20 hover:bg-white/10"
-                          data-testid="button-sign-in"
-                        >
-                          Sign In
-                        </Button>
-                      </a>
+                    <Link href="/login" onClick={closeMenu}>
+                      <Button 
+                        variant="outline" 
+                        className="w-full text-white border-white/20 hover:bg-white/10"
+                        data-testid="button-sign-in"
+                      >
+                        Sign In
+                      </Button>
                     </Link>
-                    <Link href="/signup">
-                      <a onClick={closeMenu}>
-                        <Button 
-                          className="w-full bg-orange-600 hover:bg-orange-700 text-white"
-                          data-testid="button-sign-up"
-                        >
-                          Sign Up
-                        </Button>
-                      </a>
+                    <Link href="/signup" onClick={closeMenu}>
+                      <Button 
+                        className="w-full bg-orange-600 hover:bg-orange-700 text-white"
+                        data-testid="button-sign-up"
+                      >
+                        Sign Up
+                      </Button>
                     </Link>
                   </div>
                 )}
