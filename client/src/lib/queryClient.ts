@@ -82,7 +82,21 @@ export const queryClient = new QueryClient({
           url += `?${searchParams.toString()}`;
         }
 
-        return apiRequest("GET", url);
+        // Make raw fetch call and return Response for React Query to handle
+        const fullUrl = url.startsWith('http') ? url : `${import.meta.env.VITE_API_URL || ""}${url}`;
+        const response = await fetch(fullUrl, {
+          credentials: 'include',
+          headers: {
+            'Accept': 'application/json',
+            'Content-Type': 'application/json',
+          },
+        });
+
+        if (!response.ok) {
+          throw new Error(`Request failed with status ${response.status}`);
+        }
+
+        return response.json();
       },
       retry: (failureCount, error: any) => {
         // Only retry on network errors
