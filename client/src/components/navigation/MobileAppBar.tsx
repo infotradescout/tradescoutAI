@@ -1,11 +1,12 @@
 import { memo, useState } from 'react';
-import { useAuth } from '@/hooks/useAuth';
+import { useAuth, useLogout } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { Menu, X, Home, Search, Users, User, Settings, Bell } from 'lucide-react';
 
 const MobileAppBar = memo(function MobileAppBar() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const { user, signOut } = useAuth();
+  const { user } = useAuth();
+  const logout = useLogout();
 
   const toggleMenu = () => {
     setIsMenuOpen(!isMenuOpen);
@@ -122,7 +123,7 @@ const MobileAppBar = memo(function MobileAppBar() {
                     </div>
                     <Button
                       onClick={() => {
-                        signOut();
+                        logout();
                         closeMenu();
                       }}
                       data-testid="button-sign-out"
