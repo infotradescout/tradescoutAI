@@ -1,0 +1,221 @@
+index-Bdk_oVpV.js:40 TypeError: p.map is not a function
+    at $r (index-Bdk_oVpV.js:974:284203)
+    at oj (index-Bdk_oVpV.js:38:17018)
+    at K0 (index-Bdk_oVpV.js:40:3139)
+    at fS (index-Bdk_oVpV.js:40:44833)
+    at mS (index-Bdk_oVpV.js:40:39790)
+    at nR (index-Bdk_oVpV.js:40:39718)
+    at cx (index-Bdk_oVpV.js:40:39570)
+    at tv (index-Bdk_oVpV.js:40:35934)
+    at bN (index-Bdk_oVpV.js:40:36738)
+    at pl (index-Bdk_oVpV.js:38:3279)
+overrideMethod @ hook.js:608
+V0 @ index-Bdk_oVpV.js:40
+W2.i.componentDidCatch.r.callback @ index-Bdk_oVpV.js:40
+nN @ index-Bdk_oVpV.js:38
+yN @ index-Bdk_oVpV.js:40
+cS @ index-Bdk_oVpV.js:40
+tR @ index-Bdk_oVpV.js:40
+iR @ index-Bdk_oVpV.js:40
+Cl @ index-Bdk_oVpV.js:40
+bN @ index-Bdk_oVpV.js:40
+pl @ index-Bdk_oVpV.js:38
+(anonymous) @ index-Bdk_oVpV.js:40
+setTimeout
+a @ index-Bdk_oVpV.js:48
+l @ index-Bdk_oVpV.js:48
+batch @ index-Bdk_oVpV.js:48
+Ra @ index-Bdk_oVpV.js:48
+setData @ index-Bdk_oVpV.js:48
+onSuccess @ index-Bdk_oVpV.js:48
+u @ index-Bdk_oVpV.js:48
+Promise.then
+f @ index-Bdk_oVpV.js:48
+start @ index-Bdk_oVpV.js:48
+fetch @ index-Bdk_oVpV.js:48
+Wd @ index-Bdk_oVpV.js:48
+onSubscribe @ index-Bdk_oVpV.js:48
+subscribe @ index-Bdk_oVpV.js:48
+(anonymous) @ index-Bdk_oVpV.js:48
+I2 @ index-Bdk_oVpV.js:38
+Nf @ index-Bdk_oVpV.js:40
+oc @ index-Bdk_oVpV.js:40
+iR @ index-Bdk_oVpV.js:40
+Cl @ index-Bdk_oVpV.js:40
+bN @ index-Bdk_oVpV.js:40
+pl @ index-Bdk_oVpV.js:38
+(anonymous) @ index-Bdk_oVpV.js:40
+setTimeout
+a @ index-Bdk_oVpV.js:48
+l @ index-Bdk_oVpV.js:48
+batch @ index-Bdk_oVpV.js:48
+Ra @ index-Bdk_oVpV.js:48
+setData @ index-Bdk_oVpV.js:48
+onSuccess @ index-Bdk_oVpV.js:48
+u @ index-Bdk_oVpV.js:48
+Promise.then
+f @ index-Bdk_oVpV.js:48
+start @ index-Bdk_oVpV.js:48
+fetch @ index-Bdk_oVpV.js:48
+Wd @ index-Bdk_oVpV.js:48
+onSubscribe @ index-Bdk_oVpV.js:48
+subscribe @ index-Bdk_oVpV.js:48
+(anonymous) @ index-Bdk_oVpV.js:48
+I2 @ index-Bdk_oVpV.js:38
+Nf @ index-Bdk_oVpV.js:40
+oc @ index-Bdk_oVpV.js:40
+bN @ index-Bdk_oVpV.js:40
+pl @ index-Bdk_oVpV.js:38
+iR @ index-Bdk_oVpV.js:40
+Cl @ index-Bdk_oVpV.js:40
+dS @ index-Bdk_oVpV.js:40
+w @ index-Bdk_oVpV.js:25
+V @ index-Bdk_oVpV.js:25
+index-Bdk_oVpV.js:863 Error boundary caught an error: TypeError: p.map is not a function
+    at $r (index-Bdk_oVpV.js:974:284203)
+    at oj (index-Bdk_oVpV.js:38:17018)
+    at K0 (index-Bdk_oVpV.js:40:3139)
+    at fS (index-Bdk_oVpV.js:40:44833)
+    at mS (index-Bdk_oVpV.js:40:39790)
+    at nR (index-Bdk_oVpV.js:40:39718)
+    at cx (index-Bdk_oVpV.js:40:39570)
+    at tv (index-Bdk_oVpV.js:40:35934)
+    at bN (index-Bdk_oVpV.js:40:36738)
+    at pl (index-Bdk_oVpV.js:38:3279) {componentStack: '\n    at $r (https://trade-scout-pro-traderscornerl…ll.replit.app/assets/index-Bdk_oVpV.js:863:70413)'}
+overrideMethod @ hook.js:608
+componentDidCatch @ index-Bdk_oVpV.js:863
+W2.i.componentDidCatch.r.callback @ index-Bdk_oVpV.js:40
+nN @ index-Bdk_oVpV.js:38
+yN @ index-Bdk_oVpV.js:40
+cS @ index-Bdk_oVpV.js:40
+tR @ index-Bdk_oVpV.js:40
+iR @ index-Bdk_oVpV.js:40
+Cl @ index-Bdk_oVpV.js:40
+bN @ index-Bdk_oVpV.js:40
+pl @ index-Bdk_oVpV.js:38
+(anonymous) @ index-Bdk_oVpV.js:40
+setTimeout
+a @ index-Bdk_oVpV.js:48
+l @ index-Bdk_oVpV.js:48
+batch @ index-Bdk_oVpV.js:48
+Ra @ index-Bdk_oVpV.js:48
+setData @ index-Bdk_oVpV.js:48
+onSuccess @ index-Bdk_oVpV.js:48
+u @ index-Bdk_oVpV.js:48
+Promise.then
+f @ index-Bdk_oVpV.js:48
+start @ index-Bdk_oVpV.js:48
+fetch @ index-Bdk_oVpV.js:48
+Wd @ index-Bdk_oVpV.js:48
+onSubscribe @ index-Bdk_oVpV.js:48
+subscribe @ index-Bdk_oVpV.js:48
+(anonymous) @ index-Bdk_oVpV.js:48
+I2 @ index-Bdk_oVpV.js:38
+Nf @ index-Bdk_oVpV.js:40
+oc @ index-Bdk_oVpV.js:40
+iR @ index-Bdk_oVpV.js:40
+Cl @ index-Bdk_oVpV.js:40
+bN @ index-Bdk_oVpV.js:40
+pl @ index-Bdk_oVpV.js:38
+(anonymous) @ index-Bdk_oVpV.js:40
+setTimeout
+a @ index-Bdk_oVpV.js:48
+l @ index-Bdk_oVpV.js:48
+batch @ index-Bdk_oVpV.js:48
+Ra @ index-Bdk_oVpV.js:48
+setData @ index-Bdk_oVpV.js:48
+onSuccess @ index-Bdk_oVpV.js:48
+u @ index-Bdk_oVpV.js:48
+Promise.then
+f @ index-Bdk_oVpV.js:48
+start @ index-Bdk_oVpV.js:48
+fetch @ index-Bdk_oVpV.js:48
+Wd @ index-Bdk_oVpV.js:48
+onSubscribe @ index-Bdk_oVpV.js:48
+subscribe @ index-Bdk_oVpV.js:48
+(anonymous) @ index-Bdk_oVpV.js:48
+I2 @ index-Bdk_oVpV.js:38
+Nf @ index-Bdk_oVpV.js:40
+oc @ index-Bdk_oVpV.js:40
+bN @ index-Bdk_oVpV.js:40
+pl @ index-Bdk_oVpV.js:38
+iR @ index-Bdk_oVpV.js:40
+Cl @ index-Bdk_oVpV.js:40
+dS @ index-Bdk_oVpV.js:40
+w @ index-Bdk_oVpV.js:25
+V @ index-Bdk_oVpV.js:25
+index-Bdk_oVpV.js:863 Component stack: 
+    at $r (https://trade-scout-pro-traderscornerll.replit.app/assets/index-Bdk_oVpV.js:974:274736)
+    at Ae (https://trade-scout-pro-traderscornerll.replit.app/assets/index-Bdk_oVpV.js:48:3233)
+    at qR (https://trade-scout-pro-traderscornerll.replit.app/assets/index-Bdk_oVpV.js:48:4046)
+    at main
+    at div
+    at div
+    at hG (https://trade-scout-pro-traderscornerll.replit.app/assets/index-Bdk_oVpV.js:969:127175)
+    at https://trade-scout-pro-traderscornerll.replit.app/assets/index-Bdk_oVpV.js:1066:93335
+    at d (https://trade-scout-pro-traderscornerll.replit.app/assets/index-Bdk_oVpV.js:48:46336)
+    at fk (https://trade-scout-pro-traderscornerll.replit.app/assets/index-Bdk_oVpV.js:863:50519)
+    at hM (https://trade-scout-pro-traderscornerll.replit.app/assets/index-Bdk_oVpV.js:48:40331)
+    at wO (https://trade-scout-pro-traderscornerll.replit.app/assets/index-Bdk_oVpV.js:863:70413)
+overrideMethod @ hook.js:608
+componentDidCatch @ index-Bdk_oVpV.js:863
+W2.i.componentDidCatch.r.callback @ index-Bdk_oVpV.js:40
+nN @ index-Bdk_oVpV.js:38
+yN @ index-Bdk_oVpV.js:40
+cS @ index-Bdk_oVpV.js:40
+tR @ index-Bdk_oVpV.js:40
+iR @ index-Bdk_oVpV.js:40
+Cl @ index-Bdk_oVpV.js:40
+bN @ index-Bdk_oVpV.js:40
+pl @ index-Bdk_oVpV.js:38
+(anonymous) @ index-Bdk_oVpV.js:40
+setTimeout
+a @ index-Bdk_oVpV.js:48
+l @ index-Bdk_oVpV.js:48
+batch @ index-Bdk_oVpV.js:48
+Ra @ index-Bdk_oVpV.js:48
+setData @ index-Bdk_oVpV.js:48
+onSuccess @ index-Bdk_oVpV.js:48
+u @ index-Bdk_oVpV.js:48
+Promise.then
+f @ index-Bdk_oVpV.js:48
+start @ index-Bdk_oVpV.js:48
+fetch @ index-Bdk_oVpV.js:48
+Wd @ index-Bdk_oVpV.js:48
+onSubscribe @ index-Bdk_oVpV.js:48
+subscribe @ index-Bdk_oVpV.js:48
+(anonymous) @ index-Bdk_oVpV.js:48
+I2 @ index-Bdk_oVpV.js:38
+Nf @ index-Bdk_oVpV.js:40
+oc @ index-Bdk_oVpV.js:40
+iR @ index-Bdk_oVpV.js:40
+Cl @ index-Bdk_oVpV.js:40
+bN @ index-Bdk_oVpV.js:40
+pl @ index-Bdk_oVpV.js:38
+(anonymous) @ index-Bdk_oVpV.js:40
+setTimeout
+a @ index-Bdk_oVpV.js:48
+l @ index-Bdk_oVpV.js:48
+batch @ index-Bdk_oVpV.js:48
+Ra @ index-Bdk_oVpV.js:48
+setData @ index-Bdk_oVpV.js:48
+onSuccess @ index-Bdk_oVpV.js:48
+u @ index-Bdk_oVpV.js:48
+Promise.then
+f @ index-Bdk_oVpV.js:48
+start @ index-Bdk_oVpV.js:48
+fetch @ index-Bdk_oVpV.js:48
+Wd @ index-Bdk_oVpV.js:48
+onSubscribe @ index-Bdk_oVpV.js:48
+subscribe @ index-Bdk_oVpV.js:48
+(anonymous) @ index-Bdk_oVpV.js:48
+I2 @ index-Bdk_oVpV.js:38
+Nf @ index-Bdk_oVpV.js:40
+oc @ index-Bdk_oVpV.js:40
+bN @ index-Bdk_oVpV.js:40
+pl @ index-Bdk_oVpV.js:38
+iR @ index-Bdk_oVpV.js:40
+Cl @ index-Bdk_oVpV.js:40
+dS @ index-Bdk_oVpV.js:40
+w @ index-Bdk_oVpV.js:25
+V @ index-Bdk_oVpV.js:25

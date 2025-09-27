@@ -539,7 +539,7 @@ export default function Chat() {
                       </CardHeader>
                       <CardContent>
                         <div className="space-y-3">
-                          {materialList.items?.map((item: any, index: number) => (
+                          {Array.isArray(materialList.items) ? materialList.items.map((item: any, index: number) => (
                             <div key={index} className="flex items-center justify-between p-3 bg-navy-700 rounded-lg border border-navy-500">
                               <div className="flex-1">
                                 <div className="flex items-center gap-2 mb-1">
@@ -573,7 +573,7 @@ export default function Chat() {
                                 </div>
                               </div>
                             </div>
-                          ))}
+                          )) : null}
                         </div>
                         
                         {materialList.totalEstimatedCost && (
