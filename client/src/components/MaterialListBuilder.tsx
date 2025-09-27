@@ -317,7 +317,7 @@ export function MaterialListBuilder({
             </div>
             
             <div className="space-y-4">
-              {items.map((item, index) => (
+              {Array.isArray(items) ? items.map((item, index) => (
                 <Card key={index} className="bg-navy-600 border-navy-500">
                   <CardContent className="p-4">
                     <div className="grid grid-cols-1 md:grid-cols-6 gap-4 items-end">
@@ -465,7 +465,7 @@ export function MaterialListBuilder({
                     )}
                   </CardContent>
                 </Card>
-              ))}
+              )) : null}
             </div>
           </div>
 
