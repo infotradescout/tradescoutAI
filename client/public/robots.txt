@@ -1,6 +1,11 @@
 User-agent: *
 Allow: /
 
+Sitemap: https://tradescout.com/sitemap.xml
+
+# Optimize crawl budget
+Crawl-delay: 1
+
 # Prioritize important pages
 Allow: /contractors/board
 Allow: /quote
@@ -24,9 +29,3 @@ Allow: /contractors/*
 # Block test and temporary files
 Disallow: /*.json$
 Disallow: /*?test=*
-
-# Sitemap location
-Sitemap: https://trade-scout-pro-traderscornerll.replit.app/sitemap.xml
-
-# Crawl delay for better server performance
-Crawl-delay: 1

@@ -9,13 +9,16 @@ interface WebSocketClient {
   conversationId?: string;
 }
 
+// In-memory store for rooms and their associated clients
+const rooms: Map<string, Set<WebSocket>> = new Map();
+
 class WebSocketManager {
   private wss: WebSocketServer;
   private clients: Map<string, WebSocketClient> = new Map();
 
   constructor(server: Server) {
-    this.wss = new WebSocketServer({ 
-      server, 
+    this.wss = new WebSocketServer({
+      server,
       path: '/ws',
       verifyClient: (info: any) => {
         // Only allow connections in production environments
@@ -35,14 +38,14 @@ class WebSocketManager {
     this.wss.on('error', (error) => {
       console.error('WebSocket server error:', error);
     });
-    
+
     console.log('WebSocket server initialized on /ws');
   }
 
   private handleConnection(ws: WebSocket, request: any) {
     const clientId = this.generateClientId();
     const client: WebSocketClient = { ws };
-    
+
     this.clients.set(clientId, client);
     console.log(`WebSocket client connected: ${clientId}`);
 
@@ -64,6 +67,13 @@ class WebSocketManager {
     // Handle client disconnect
     ws.on('close', (code, reason) => {
       this.clients.delete(clientId);
+      // Remove client from any rooms they were in
+      rooms.forEach((clientsInRoom, roomId) => {
+        clientsInRoom.delete(ws);
+        if (clientsInRoom.size === 0) {
+          rooms.delete(roomId);
+        }
+      });
       console.log(`WebSocket client disconnected: ${clientId}, code: ${code}, reason: ${reason}`);
     });
 
@@ -71,6 +81,13 @@ class WebSocketManager {
     ws.on('error', (error) => {
       console.error(`WebSocket error for client ${clientId}:`, error);
       this.clients.delete(clientId);
+      // Remove client from any rooms they were in
+      rooms.forEach((clientsInRoom, roomId) => {
+        clientsInRoom.delete(ws);
+        if (clientsInRoom.size === 0) {
+          rooms.delete(roomId);
+        }
+      });
     });
 
     // Send initial connection confirmation
@@ -90,7 +107,7 @@ class WebSocketManager {
         // Authenticate user and associate with WebSocket
         client.userId = message.userId;
         client.sessionId = message.sessionId;
-        
+
         // Send unread notification count
         if (client.userId) {
           const notifications = await storage.getUserNotifications(client.userId, true);
@@ -108,11 +125,28 @@ class WebSocketManager {
       case 'join_conversation':
         // Join a conversation room for real-time messages
         client.conversationId = message.conversationId;
+        const roomId = `conversation_${message.conversationId}`;
+        if (!rooms.has(roomId)) {
+          rooms.set(roomId, new Set());
+        }
+        rooms.get(roomId)!.add(client.ws);
         break;
 
       case 'leave_conversation':
         // Leave conversation room
+        const leaveRoomId = `conversation_${client.conversationId}`;
+        if (rooms.has(leaveRoomId)) {
+          rooms.get(leaveRoomId)!.delete(client.ws);
+          if (rooms.get(leaveRoomId)!.size === 0) {
+            rooms.delete(leaveRoomId);
+          }
+        }
         delete client.conversationId;
+        break;
+
+      case 'chat_message':
+        // Handle chat messages
+        handleChatMessage(client.ws, message);
         break;
 
       default:
@@ -143,17 +177,12 @@ class WebSocketManager {
   }
 
   public async sendMessageToConversation(conversationId: string, message: any) {
-    const conversationClients = Array.from(this.clients.entries())
-      .filter(([_, client]) => (client as any).conversationId === conversationId);
-
-    for (const [clientId, client] of conversationClients) {
-      if (client.ws.readyState === WebSocket.OPEN) {
-        this.sendToClient(clientId, {
-          type: 'new_message',
-          message
-        });
-      }
-    }
+    const roomId = `conversation_${conversationId}`;
+    broadcastToRoom(roomId, {
+      type: 'new_message',
+      message,
+      timestamp: new Date()
+    });
   }
 
   public async sendTransactionUpdate(userId: string, transaction: any) {
@@ -183,7 +212,7 @@ class WebSocketManager {
   }
 
   private generateClientId(): string {
-    return Math.random().toString(36).substring(2, 15) + 
+    return Math.random().toString(36).substring(2, 15) +
            Math.random().toString(36).substring(2, 15);
   }
 
@@ -201,3 +230,31 @@ class WebSocketManager {
 }
 
 export { WebSocketManager };
+
+// Helper function to broadcast messages to a specific room
+export const broadcastToRoom = (roomId: string, message: any) => {
+  if (rooms.has(roomId)) {
+    const clients = rooms.get(roomId)!;
+    clients.forEach(client => {
+      if (client.readyState === WebSocket.OPEN) {
+        client.send(JSON.stringify(message));
+      }
+    });
+  }
+};
+
+// Handler for incoming chat messages
+export const handleChatMessage = (ws: WebSocket, data: any) => {
+  const { conversationId, message, senderId } = data;
+
+  // TODO: Store message in database
+  console.log(`Received message from ${senderId} in conversation ${conversationId}: ${message}`);
+
+  // Broadcast to conversation participants
+  broadcastToRoom(`conversation_${conversationId}`, {
+    type: 'new_message',
+    message,
+    senderId,
+    timestamp: new Date()
+  });
+};

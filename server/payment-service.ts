@@ -25,12 +25,12 @@ export class PaymentService {
   // Calculate fees based on payment configuration
   async calculatePaymentFees(amount: number, paymentType: string) {
     const config = await storage.getPaymentConfiguration(paymentType);
-    
+
     if (!config) {
       // Default configuration
       const platformFee = Math.max(0.50, amount * 0.025); // 2.5% with $0.50 minimum
       const stripeFee = (amount * 0.029) + 0.30; // Standard Stripe fee
-      
+
       return {
         platformFee: Number(platformFee.toFixed(2)),
         stripeFee: Number(stripeFee.toFixed(2)),
@@ -196,7 +196,7 @@ export class PaymentService {
       case 'payment_intent.succeeded':
         const paymentIntent = event.data.object as Stripe.PaymentIntent;
         const metadata = paymentIntent.metadata;
-        
+
         if (metadata.type === 'contractor_payment') {
           await storage.updateContractorPayment(metadata.paymentId, {
             status: 'completed',
@@ -216,7 +216,7 @@ export class PaymentService {
       case 'payment_intent.payment_failed':
         const failedIntent = event.data.object as Stripe.PaymentIntent;
         const failedMetadata = failedIntent.metadata;
-        
+
         if (failedMetadata.type === 'contractor_payment') {
           await storage.updateContractorPayment(failedMetadata.paymentId, {
             status: 'failed'

@@ -4,7 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useAuth } from "@/hooks/useAuth";
+import { useAuth } from "@/hooks/use-auth";
 import { Building, DollarSign, Users, Vote, Wrench, Calendar, TrendingUp, Phone, Mail, Star, CheckCircle, XCircle } from "lucide-react";
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
@@ -59,6 +59,7 @@ export default function HOAManagement() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [selectedVote, setSelectedVote] = useState<string | null>(null);
+  const [notification, setNotification] = useState<{ type: 'success' | 'error', message: string } | null>(null);
 
   // Mock HOA ID for demo purposes
   const hoaId = 'hoa-1';
@@ -82,6 +83,11 @@ export default function HOAManagement() {
     queryKey: ['/api/hoa', hoaId, 'votes'],
     queryFn: () => fetch(`/api/hoa/${hoaId}/votes`).then(res => res.json())
   });
+
+  // Placeholder for refreshing financial data
+  const refreshFinancials = () => {
+    queryClient.invalidateQueries({ queryKey: ['/api/hoa', hoaId, 'finances'] });
+  };
 
   const submitVoteMutation = useMutation({
     mutationFn: async ({ voteId, decision }: { voteId: string; decision: string }) => {
@@ -124,6 +130,40 @@ export default function HOAManagement() {
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
     return diffDays > 0 ? `${diffDays} days remaining` : 'Voting closed';
   };
+
+  // New function for fee collection
+  const handleFeeCollection = async (residentId: string, amount: number) => {
+    try {
+      const response = await fetch('/api/hoa/collect-fee', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          hoaId: hoa?.id, // Use hoa?.id to safely access the id
+          residentId,
+          amount,
+          description: 'Monthly HOA dues'
+        })
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        setNotification({
+          type: 'success',
+          message: `Fee collection initiated for $${amount}`
+        });
+        refreshFinancials();
+      } else {
+        throw new Error('Fee collection failed');
+      }
+    } catch (error) {
+      console.error("Fee collection error:", error);
+      setNotification({
+        type: 'error',
+        message: 'Fee collection failed'
+      });
+    }
+  };
+
 
   if (hoaLoading) {
     return (
@@ -280,6 +320,10 @@ export default function HOAManagement() {
                       <span className="text-slate-400">Outstanding Fees</span>
                       <span className="text-orange-400 font-semibold">${parseInt(finances.outstandingFees).toLocaleString()}</span>
                     </div>
+                    {/* Button to trigger fee collection */}
+                    <Button onClick={() => handleFeeCollection(user?.id || '', parseInt(hoa?.monthlyFees || '0'))} className="w-full bg-teal-600 hover:bg-teal-700" disabled={!hoa}>
+                      Collect Monthly Fees
+                    </Button>
                   </CardContent>
                 </Card>
 
@@ -327,7 +371,7 @@ export default function HOAManagement() {
                   </CardHeader>
                   <CardContent className="space-y-6">
                     <p className="text-slate-300 leading-relaxed">{vote.description}</p>
-                    
+
                     <div className="space-y-2">
                       <div className="flex justify-between text-sm">
                         <span className="text-slate-400">Participation ({vote.currentVotes} / {vote.requiredQuorum} required)</span>
@@ -406,7 +450,7 @@ export default function HOAManagement() {
                         <span className="text-slate-300">{vendor.email}</span>
                       </div>
                     </div>
-                    
+
                     <div className="text-center p-3 bg-green-500/20 rounded-lg">
                       <div className="text-xl font-bold text-green-400">${parseInt(vendor.monthlyContract).toLocaleString()}</div>
                       <p className="text-green-300">Monthly Contract</p>

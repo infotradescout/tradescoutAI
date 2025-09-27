@@ -12,6 +12,49 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 const CommunityFeed = memo(function CommunityFeed() {
   const [activeTab, setActiveTab] = useState("feed");
   const [newPostContent, setNewPostContent] = useState("");
+  const [showNewPostForm, setShowNewPostForm] = useState(false); // State to control the visibility of the new post form
+  const [selectedCounty, setSelectedCounty] = useState(''); // Placeholder for county selection
+  const user = { id: 'user123' }; // Placeholder for logged-in user
+
+  // Placeholder for fetching posts and setting state
+  const fetchPosts = async () => {
+    // In a real app, this would fetch posts from an API
+    console.log('Fetching posts...');
+  };
+
+  const handleCreatePost = async (postData: {
+    title: string;
+    content: string;
+    type: 'discussion' | 'poll' | 'announcement';
+    pollOptions?: string[];
+  }) => {
+    try {
+      const response = await fetch('/api/posts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ...postData,
+          countyId: selectedCounty,
+          userId: user?.id
+        })
+      });
+      if (response.ok) {
+        fetchPosts(); // Refresh feed
+        setShowNewPostForm(false); // Close the form after successful creation
+        setNewPostContent(''); // Clear the input
+      } else {
+        console.error('Failed to create post:', response.statusText);
+      }
+    } catch (error) {
+      console.error('Failed to create post:', error);
+    }
+  };
+
+  // Placeholder for handling post likes/votes
+  const handleLikePost = async (postId: number) => {
+    console.log(`Liking post ${postId}`);
+    // In a real app, this would send a request to the API to like a post
+  };
 
   const posts = [
     {
@@ -137,6 +180,12 @@ const CommunityFeed = memo(function CommunityFeed() {
         return <TrendingUp className="h-4 w-4 text-green-400" />;
       case 'community_highlight':
         return <Trophy className="h-4 w-4 text-orange-400" />;
+      case 'discussion':
+        return <MessageSquare className="h-4 w-4 text-blue-400" />;
+      case 'poll':
+        return <BarChart3 className="h-4 w-4 text-purple-400" />;
+      case 'announcement':
+        return <Flag className="h-4 w-4 text-red-400" />;
       default:
         return <MessageSquare className="h-4 w-4 text-gray-400" />;
     }
@@ -154,6 +203,12 @@ const CommunityFeed = memo(function CommunityFeed() {
         return 'Community Highlight';
       case 'service_available':
         return 'Available for Work';
+      case 'discussion':
+        return 'Discussion';
+      case 'poll':
+        return 'Poll';
+      case 'announcement':
+        return 'Announcement';
       default:
         return 'Community Post';
     }
@@ -187,7 +242,7 @@ const CommunityFeed = memo(function CommunityFeed() {
                     <div className="text-2xl font-bold text-orange-400">{communityStats.totalMembers.toLocaleString()}</div>
                     <div className="text-gray-400 text-sm">Total Members</div>
                   </div>
-                  
+
                   <div className="grid grid-cols-1 gap-3 text-sm">
                     <div className="flex justify-between">
                       <span className="text-gray-400">Active today</span>
@@ -235,23 +290,23 @@ const CommunityFeed = memo(function CommunityFeed() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-2">
-                  <Button 
+                  <Button
                     className="w-full bg-orange-600 hover:bg-orange-700 justify-start"
                     onClick={() => setShowNewPostForm(true)}
                   >
                     <Plus className="h-4 w-4 mr-2" />
                     Create Post
                   </Button>
-                  <Button 
-                    variant="outline" 
+                  <Button
+                    variant="outline"
                     className="w-full border-orange-600 text-orange-400 hover:bg-orange-600/20 justify-start"
                     onClick={() => window.location.pathname = '/event-management'}
                   >
                     <Calendar className="h-4 w-4 mr-2" />
                     Local Events
                   </Button>
-                  <Button 
-                    variant="outline" 
+                  <Button
+                    variant="outline"
                     className="w-full border-orange-600 text-orange-400 hover:bg-orange-600/20 justify-start"
                     onClick={() => window.location.pathname = '/find-contractors'}
                   >
@@ -274,49 +329,57 @@ const CommunityFeed = memo(function CommunityFeed() {
               </TabsList>
 
               {/* New Post Creator */}
-              <Card className="bg-navy-800/50 border-navy-600 backdrop-blur-sm mb-6">
-                <CardContent className="p-6">
-                  <div className="flex gap-4">
-                    <Avatar className="w-10 h-10">
-                      <AvatarImage src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=40&h=40&fit=crop&crop=face" />
-                      <AvatarFallback>MJ</AvatarFallback>
-                    </Avatar>
-                    <div className="flex-1">
-                      <Textarea
-                        placeholder="Share your project, ask a question, or offer your services..."
-                        value={newPostContent}
-                        onChange={(e) => setNewPostContent(e.target.value)}
-                        className="bg-navy-700 border-navy-600 text-white mb-3"
-                        rows={3}
-                      />
-                      
-                      <div className="flex justify-between items-center">
-                        <div className="flex gap-2">
-                          <Button size="sm" variant="outline" className="border-navy-600 text-gray-400 hover:bg-navy-600/50">
-                            <Image className="h-4 w-4 mr-1" />
-                            Photo
-                          </Button>
-                          <Button size="sm" variant="outline" className="border-navy-600 text-gray-400 hover:bg-navy-600/50">
-                            <Video className="h-4 w-4 mr-1" />
-                            Video
-                          </Button>
-                          <Button size="sm" variant="outline" className="border-navy-600 text-gray-400 hover:bg-navy-600/50">
-                            <BarChart3 className="h-4 w-4 mr-1" />
-                            Poll
+              {showNewPostForm && (
+                <Card className="bg-navy-800/50 border-navy-600 backdrop-blur-sm mb-6">
+                  <CardContent className="p-6">
+                    <div className="flex gap-4">
+                      <Avatar className="w-10 h-10">
+                        <AvatarImage src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=40&h=40&fit=crop&crop=face" />
+                        <AvatarFallback>{user?.id.substring(0, 2)}</AvatarFallback>
+                      </Avatar>
+                      <div className="flex-1">
+                        <Textarea
+                          placeholder="Share your project, ask a question, or offer your services..."
+                          value={newPostContent}
+                          onChange={(e) => setNewPostContent(e.target.value)}
+                          className="bg-navy-700 border-navy-600 text-white mb-3"
+                          rows={3}
+                        />
+
+                        <div className="flex justify-between items-center">
+                          <div className="flex gap-2">
+                            <Button size="sm" variant="outline" className="border-navy-600 text-gray-400 hover:bg-navy-600/50">
+                              <Image className="h-4 w-4 mr-1" />
+                              Photo
+                            </Button>
+                            <Button size="sm" variant="outline" className="border-navy-600 text-gray-400 hover:bg-navy-600/50">
+                              <Video className="h-4 w-4 mr-1" />
+                              Video
+                            </Button>
+                            <Button size="sm" variant="outline" className="border-navy-600 text-gray-400 hover:bg-navy-600/50">
+                              <BarChart3 className="h-4 w-4 mr-1" />
+                              Poll
+                            </Button>
+                          </div>
+
+                          <Button
+                            className="bg-orange-600 hover:bg-orange-700"
+                            onClick={() => handleCreatePost({
+                              title: 'New Post', // Placeholder title
+                              content: newPostContent,
+                              type: 'discussion', // Default type, could be dynamic
+                              // pollOptions: [] // Add poll options if type is 'poll'
+                            })}
+                            disabled={!newPostContent.trim()}
+                          >
+                            Post
                           </Button>
                         </div>
-                        
-                        <Button 
-                          className="bg-orange-600 hover:bg-orange-700"
-                          disabled={!newPostContent.trim()}
-                        >
-                          Post
-                        </Button>
                       </div>
                     </div>
-                  </div>
-                </CardContent>
-              </Card>
+                  </CardContent>
+                </Card>
+              )}
 
               <TabsContent value="feed" className="mt-0">
                 <div className="space-y-6">
@@ -330,7 +393,7 @@ const CommunityFeed = memo(function CommunityFeed() {
                               <AvatarImage src={post.author.avatar} />
                               <AvatarFallback>{post.author.name.split(' ').map(n => n[0]).join('')}</AvatarFallback>
                             </Avatar>
-                            
+
                             <div>
                               <div className="flex items-center gap-2">
                                 <h3 className="text-white font-semibold">{post.author.name}</h3>
@@ -343,7 +406,7 @@ const CommunityFeed = memo(function CommunityFeed() {
                                   {post.author.role}
                                 </Badge>
                               </div>
-                              
+
                               <div className="flex items-center gap-2 text-sm text-gray-400">
                                 <span>{post.timestamp}</span>
                                 <span>•</span>
@@ -360,7 +423,7 @@ const CommunityFeed = memo(function CommunityFeed() {
                               {getPostTypeIcon(post.type)}
                               <span className="text-xs text-gray-400">{getPostTypeLabel(post.type)}</span>
                             </div>
-                            
+
                             <DropdownMenu>
                               <DropdownMenuTrigger asChild>
                                 <Button size="sm" variant="ghost" className="text-gray-400 hover:text-white">
@@ -384,7 +447,7 @@ const CommunityFeed = memo(function CommunityFeed() {
                         {/* Post Content */}
                         <div className="mb-4">
                           <p className="text-gray-300 mb-3">{post.content}</p>
-                          
+
                           {post.tags && post.tags.length > 0 && (
                             <div className="flex flex-wrap gap-1 mb-3">
                               {post.tags.map((tag, index) => (
@@ -412,20 +475,21 @@ const CommunityFeed = memo(function CommunityFeed() {
                         {/* Post Actions */}
                         <div className="flex items-center justify-between pt-3 border-t border-navy-600">
                           <div className="flex items-center gap-6">
-                            <Button 
-                              variant="ghost" 
-                              size="sm" 
+                            <Button
+                              variant="ghost"
+                              size="sm"
                               className={`text-gray-400 hover:text-red-400 ${post.liked ? 'text-red-400' : ''}`}
+                              onClick={() => handleLikePost(post.id)}
                             >
                               <Zap className={`h-4 w-4 mr-1 ${post.liked ? 'fill-current' : ''}`} />
                               {post.likes}
                             </Button>
-                            
+
                             <Button variant="ghost" size="sm" className="text-gray-400 hover:text-blue-400">
                               <MessageSquare className="h-4 w-4 mr-1" />
                               {post.comments}
                             </Button>
-                            
+
                             <Button variant="ghost" size="sm" className="text-gray-400 hover:text-green-400">
                               <Share className="h-4 w-4 mr-1" />
                               {post.shares}
