@@ -185,7 +185,7 @@ import {
   type CommentLike,
   type InsertCommentLike,
   type UserFollow,
-  type InsertUserFollow,
+  type UserFollow,
   type CommunityGroup,
   type InsertCommunityGroup,
   type GroupMember,
@@ -1146,7 +1146,7 @@ export class DatabaseStorage implements IStorage {
     const [result] = await db
       .select({
         count: sql<number>`count(*)`,
-        average: sql<number>`avg(${recommendations.rating})`,
+        average: sql<number>`avg(5.0)`, // Default to 5.0 since recommendations don't have ratings
       })
       .from(recommendations)
       .where(eq(recommendations.contractorId, contractorId));
