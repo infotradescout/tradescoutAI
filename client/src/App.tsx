@@ -350,9 +350,9 @@ const App = memo(function App() {
   return (
     <ErrorBoundary fallback={<PageLoader />}>
       <QueryClientProvider client={queryClient}>
-        <SimpleRouter>
-          <Router />
-        </SimpleRouter>
+        <Router>
+          <AppLayout />
+        </Router>
         <SimpleFloatingHelp />
       </QueryClientProvider>
     </ErrorBoundary>
