@@ -1,5 +1,6 @@
-import React, { memo, useState, useEffect, Suspense } from 'react';
+import React, { memo, Suspense } from 'react';
 import { QueryClientProvider } from '@tanstack/react-query';
+import { Router, Route, Switch } from 'wouter';
 import { queryClient } from './lib/queryClient';
 import { ErrorBoundary } from './components/ui/error-boundary';
 
@@ -11,7 +12,6 @@ import SimpleMobileGestures from './components/SimpleMobileGestures';
 import SimpleSubtleHints from './components/onboarding/SimpleSubtleHints';
 import SimpleBugReportTool from './components/SimpleBugReportTool';
 import SimpleFloatingHelp from './components/ui/simple-floating-help';
-import SimpleRouter from './components/SimpleRouter';
 import MobileAppBar from './components/navigation/MobileAppBar';
 
 // Loading component for lazy-loaded pages
@@ -220,303 +220,8 @@ const LegalFooter = memo(function LegalFooter() {
   );
 });
 
-// Main router component with lazy loading
-const Router = memo(function Router() {
-  const [currentPath, setCurrentPath] = useState(
-    typeof window !== 'undefined' ? window.location.pathname : '/'
-  );
-  
-  // Listen for navigation changes
-  useEffect(() => {
-    const handleLocationChange = () => {
-      setCurrentPath(window.location.pathname);
-    };
-    
-    // Listen for back/forward button
-    window.addEventListener('popstate', handleLocationChange);
-    
-    // Listen for anchor clicks with capture phase
-    const handleClick = (e: Event) => {
-      const target = e.target as HTMLElement;
-      const anchor = target.closest('a');
-      
-      // console.log('🔍 Click detected on:', target.tagName, target.className);
-      
-      if (anchor && anchor.href && anchor.href.startsWith(window.location.origin)) {
-        // console.log('🔥 Navigation intercepted:', anchor.href);
-        e.preventDefault();
-        e.stopPropagation();
-        const newPath = new URL(anchor.href).pathname;
-        // console.log('🚀 Navigating to:', newPath);
-        window.history.pushState({}, '', newPath);
-        setCurrentPath(newPath);
-      }
-    };
-    
-    document.addEventListener('click', handleClick, true); // Use capture phase
-    
-    return () => {
-      window.removeEventListener('popstate', handleLocationChange);
-      document.removeEventListener('click', handleClick);
-    };
-  }, []);
-  
-  // Render page with lazy loading - all components now use LazyPage wrapper
-  const renderPage = () => {
-    // console.log('🎯 Rendering page for path:', currentPath);
-    if (currentPath === '/home' || currentPath === '/dashboard') {
-      return <SimpleHome />;
-    } else if (currentPath === '/login') {
-      return <LazyPage Component={Login} />;
-    } else if (currentPath === '/profile-setup') {
-      return <LazyPage Component={ProfileSetup} />;
-    } else if (currentPath === '/address-verification') {
-      return <LazyPage Component={AddressVerification} />;
-    } else if (currentPath.startsWith('/find-contractors')) {
-      return <LazyPage Component={FindContractors} />;
-    } else if (currentPath.startsWith('/contractors') || currentPath.startsWith('/contractor-board')) {
-      return <LazyPage Component={ContractorBoard} />;
-    } else if (currentPath.startsWith('/quote-calculator')) {
-      return <LazyPage Component={QuoteCalculator} />;
-    } else if (currentPath.startsWith('/daily-deals')) {
-      return <LazyPage Component={DailyDeals} />;
-    } else if (currentPath.startsWith('/help-demo')) {
-      return <LazyPage Component={HelpDemo} />;
-    } else if (currentPath.startsWith('/test-page')) {
-      return <LazyPage Component={TestPage} />;
-    } else if (currentPath.startsWith('/profile')) {
-      return <LazyPage Component={Profile} />;
-    } else if (currentPath === '/contractor-apply') {
-      return <LazyPage Component={ContractorApply} />;
-    } else if (currentPath === '/business-listing') {
-      return <LazyPage Component={BusinessListing} />;
-    } else if (currentPath === '/business-owner-dashboard') {
-      return <LazyPage Component={BusinessOwnerDashboard} />;
-    } else if (currentPath === '/accelerator') {
-      return <LazyPage Component={Accelerator} />;
-    } else if (currentPath === '/admin-panel' || currentPath === '/admin/panel') {
-      return <LazyPage Component={AdminPanel} />;
-    } else if (currentPath === '/admin/users') {
-      return <LazyPage Component={AdminUsers} />;
-    } else if (currentPath === '/admin/user-management') {
-      return <LazyPage Component={AdminUserManagement} />;
-    } else if (currentPath === '/admin/workspace') {
-      return <LazyPage Component={AdminWorkspace} />;
-    } else if (currentPath === '/admin/error-reports') {
-      return <LazyPage Component={AdminErrorReports} />;
-    } else if (currentPath === '/admin/testing') {
-      return <LazyPage Component={AdminTestingControls} />;
-    } else if (currentPath === '/admin/address-verifications') {
-      return <LazyPage Component={AdminAddressVerifications} />;
-    } else if (currentPath === '/admin/professional-verification') {
-      return <LazyPage Component={AdminProfessionalVerification} />;
-    } else if (currentPath === '/admin/listings') {
-      return <LazyPage Component={AdminListings} />;
-    } else if (currentPath === '/admin/attachments') {
-      return <LazyPage Component={AdminAttachments} />;
-    } else if (currentPath === '/admin/pricing-analytics') {
-      return <LazyPage Component={AdminPricingAnalytics} />;
-    } else if (currentPath === '/admin/create-account') {
-      return <LazyPage Component={AdminCreateAccount} />;
-    } else if (currentPath.startsWith('/admin')) {
-      return <LazyPage Component={AdminDashboard} />;
-    } else if (currentPath === '/worker-marketplace') {
-      return <LazyPage Component={WorkerMarketplace} />;
-    } else if (currentPath === '/chat') {
-      return <LazyPage Component={Chat} />;
-    } else if (currentPath === '/saved-ads') {
-      return <LazyPage Component={SavedAds} />;
-    } else if (currentPath === '/affiliate') {
-      return <LazyPage Component={Affiliate} />;
-    } else if (currentPath === '/growth-pack') {
-      return <LazyPage Component={GrowthPack} />;
-    } else if (currentPath === '/boosts') {
-      return <LazyPage Component={Boosts} />;
-    } else if (currentPath === '/advanced-search') {
-      return <LazyPage Component={AdvancedSearch} />;
-    } else if (currentPath === '/groups') {
-      return <LazyPage Component={Groups} />;
-    } else if (currentPath.startsWith('/group/')) {
-      return <LazyPage Component={GroupDetail} />;
-    } else if (currentPath === '/hoa-management') {
-      return <LazyPage Component={HoaManagement} />;
-    } else if (currentPath === '/community') {
-      return <LazyPage Component={Community} />;
-    } else if (currentPath === '/community-feed') {
-      return <LazyPage Component={CommunityFeed} />;
-    } else if (currentPath === '/community-moderation') {
-      return <LazyPage Component={CommunityModerationDemo} />;
-    } else if (currentPath === '/marketplace') {
-      return <LazyPage Component={Marketplace} />;
-    } else if (currentPath === '/exchange') {
-      return <LazyPage Component={Exchange} />;
-    } else if (currentPath === '/handmade-marketplace') {
-      return <LazyPage Component={HandmadeMarketplace} />;
-    } else if (currentPath === '/leaderboard') {
-      return <LazyPage Component={Leaderboard} />;
-    } else if (currentPath === '/foundation') {
-      return <LazyPage Component={Foundation} />;
-    } else if (currentPath === '/contractor-dashboard') {
-      return <LazyPage Component={ContractorDashboard} />;
-    } else if (currentPath === '/homeowner-dashboard') {
-      return <LazyPage Component={HomeownerDashboard} />;
-    } else if (currentPath === '/realtor-dashboard') {
-      return <LazyPage Component={RealtorDashboard} />;
-    } else if (currentPath === '/dealer-dashboard') {
-      return <LazyPage Component={DealerDashboard} />;
-    } else if (currentPath === '/car-salesman-dashboard') {
-      return <LazyPage Component={CarSalesmanDashboard} />;
-    } else if (currentPath === '/helper-dashboard') {
-      return <LazyPage Component={HelperDashboard} />;
-    } else if (currentPath === '/insurance-agent-dashboard') {
-      return <LazyPage Component={InsuranceAgentDashboard} />;
-    } else if (currentPath === '/property-manager-dashboard') {
-      return <LazyPage Component={PropertyManagerDashboard} />;
-    } else if (currentPath === '/mortgage-broker-dashboard') {
-      return <LazyPage Component={MortgageBrokerDashboard} />;
-    } else if (currentPath === '/staff-dashboard') {
-      return <LazyPage Component={StaffDashboard} />;
-    } else if (currentPath === '/realtor-application') {
-      return <LazyPage Component={RealtorApplication} />;
-    } else if (currentPath === '/car-salesman-application') {
-      return <LazyPage Component={CarSalesmanApplication} />;
-    } else if (currentPath === '/checkout') {
-      return <LazyPage Component={Checkout} />;
-    } else if (currentPath === '/payment-success') {
-      return <LazyPage Component={PaymentSuccess} />;
-    } else if (currentPath === '/payment-history') {
-      return <LazyPage Component={PaymentHistory} />;
-    } else if (currentPath === '/register') {
-      return <LazyPage Component={Register} />;
-    } else if (currentPath === '/signup') {
-      return <LazyPage Component={Signup} />;
-    } else if (currentPath === '/invite') {
-      return <LazyPage Component={Invite} />;
-    } else if (currentPath === '/notifications') {
-      return <LazyPage Component={Notifications} />;
-    } else if (currentPath === '/settings') {
-      return <LazyPage Component={Settings} />;
-    } else if (currentPath === '/help') {
-      return <LazyPage Component={Help} />;
-    } else if (currentPath === '/county-hub') {
-      return <LazyPage Component={CountyHub} />;
-    } else if (currentPath === '/verification') {
-      return <LazyPage Component={Verification} />;
-    } else if (currentPath === '/insurance-verification') {
-      return <LazyPage Component={InsuranceVerification} />;
-    } else if (currentPath === '/license-verification') {
-      return <LazyPage Component={LicenseVerification} />;
-    } else if (currentPath === '/background-check') {
-      return <LazyPage Component={BackgroundCheck} />;
-    } else if (currentPath === '/compliance') {
-      return <LazyPage Component={Compliance} />;
-    } else if (currentPath === '/promotions') {
-      return <LazyPage Component={Promotions} />;
-    } else if (currentPath === '/ad-creator') {
-      return <LazyPage Component={AdCreator} />;
-    } else if (currentPath === '/analytics') {
-      return <LazyPage Component={Analytics} />;
-    } else if (currentPath === '/lead-management') {
-      return <LazyPage Component={LeadManagement} />;
-    } else if (currentPath === '/documentation') {
-      return <LazyPage Component={Documentation} />;
-    } else if (currentPath === '/crm' || currentPath === '/crm-dashboard') {
-      return <LazyPage Component={CRM} />;
-    } else if (currentPath === '/vehicle-marketplace') {
-      return <LazyPage Component={VehicleMarketplace} />;
-    } else if (currentPath === '/hoa-dashboard') {
-      return <LazyPage Component={HOADashboard} />;
-    } else if (currentPath === '/real-estate-marketplace') {
-      return <LazyPage Component={RealEstateMarketplace} />;
-    } else if (currentPath === '/coffee-company' || currentPath === '/coffee') {
-      return <LazyPage Component={CoffeeCompany} />;
-    } else if (currentPath === '/administrative-dashboard') {
-      return <LazyPage Component={AdministrativeDashboard} />;
-    } else if (currentPath === '/county-directory') {
-      return <LazyPage Component={CountyDirectory} />;
-    } else if (currentPath === '/application-tracker') {
-      return <LazyPage Component={ApplicationTracker} />;
-    } else if (currentPath === '/resource-center') {
-      return <LazyPage Component={ResourceCenter} />;
-    } else if (currentPath === '/membership-portal' || currentPath === '/membership') {
-      return <LazyPage Component={MembershipPortal} />;
-    } else if (currentPath === '/training-center' || currentPath === '/training') {
-      return <LazyPage Component={TrainingCenter} />;
-    } else if (currentPath === '/social-integration' || currentPath === '/social') {
-      return <LazyPage Component={SocialIntegration} />;
-    } else if (currentPath === '/referral-dashboard' || currentPath === '/referrals') {
-      return <LazyPage Component={ReferralDashboard} />;
-    } else if (currentPath === '/event-management' || currentPath === '/events') {
-      return <LazyPage Component={EventManagement} />;
-    } else if (currentPath === '/api-integrations' || currentPath === '/api' || currentPath === '/integrations') {
-      return <LazyPage Component={APIIntegrations} />;
-    } else if (currentPath === '/contractor-verification') {
-      return <LazyPage Component={ContractorVerification} />;
-    } else if (currentPath === '/content-moderation' || currentPath === '/moderation') {
-      return <LazyPage Component={ContentModeration} />;
-    } else if (currentPath === '/car-sales/new-listing') {
-      return <LazyPage Component={CarSalesNewListing} />;
-    } else if (currentPath === '/car-sales/customers') {
-      return <LazyPage Component={CarSalesCustomers} />;
-    } else if (currentPath === '/car-sales/financing') {
-      return <LazyPage Component={CarSalesFinancing} />;
-    } else if (currentPath === '/car-sales/trade-in') {
-      return <LazyPage Component={CarSalesTradeIn} />;
-    } else if (currentPath === '/car-sales/payment-calculator') {
-      return <LazyPage Component={CarSalesPaymentCalculator} />;
-    } else if (currentPath === '/car-sales/vin-lookup') {
-      return <LazyPage Component={CarSalesVinLookup} />;
-    } else if (currentPath === '/car-sales/appointments') {
-      return <LazyPage Component={CarSalesAppointments} />;
-    } else if (currentPath === '/car-sales/follow-up') {
-      return <LazyPage Component={CarSalesFollowUp} />;
-    } else if (currentPath === '/realtor/clients') {
-      return <LazyPage Component={RealtorClients} />;
-    } else if (currentPath === '/realtor/market-analysis') {
-      return <LazyPage Component={RealtorMarketAnalysis} />;
-    } else if (currentPath === '/realtor/connections') {
-      return <LazyPage Component={RealtorConnections} />;
-    } else if (currentPath === '/realtor/calculator') {
-      return <LazyPage Component={RealtorCalculator} />;
-    } else if (currentPath === '/realtor/cma') {
-      return <LazyPage Component={RealtorCMA} />;
-    } else if (currentPath === '/realtor/appointments') {
-      return <LazyPage Component={RealtorAppointments} />;
-    } else if (currentPath === '/realtor/contacts') {
-      return <LazyPage Component={RealtorContacts} />;
-    } else if (currentPath === '/system-settings') {
-      return <LazyPage Component={SystemSettings} />;
-    } else if (currentPath === '/support-tickets' || currentPath === '/support') {
-      return <LazyPage Component={SupportTickets} />;
-    } else if (currentPath === '/schedule-consultation' || currentPath === '/consultation') {
-      return <LazyPage Component={ScheduleConsultation} />;
-    } else if (currentPath === '/apply-accelerator' || currentPath === '/apply') {
-      return <LazyPage Component={ApplyAccelerator} />;
-    } else if (currentPath === '/platform-analytics') {
-      return <LazyPage Component={PlatformAnalytics} />;
-    } else if (currentPath === '/manage-users' || currentPath === '/users') {
-      return <LazyPage Component={ManageUsers} />;
-    } else if (currentPath === '/payment-processing' || currentPath === '/billing' || currentPath === '/payments') {
-      return <LazyPage Component={PaymentProcessing} />;
-    } else if (currentPath === '/file-management' || currentPath === '/files') {
-      return <LazyPage Component={FileManagement} />;
-    } else if (currentPath === '/terms') {
-      return <LazyPage Component={Terms} />;
-    } else if (currentPath === '/privacy') {
-      return <LazyPage Component={Privacy} />;
-    } else if (currentPath === '/about') {
-      return <LazyPage Component={About} />;
-    } else if (currentPath === '/contact') {
-      return <LazyPage Component={Contact} />;
-    } else if (currentPath === '/story-generator') {
-      return <LazyPage Component={StoryGeneratorPage} />;
-    } else if (currentPath !== '/') {
-      return <LazyPage Component={NotFound} />;
-    } else {
-      return <SimpleLanding />;
-    }
-  };
-
+// Main app layout component
+const AppLayout = memo(function AppLayout() {
   return (
     <SimpleMobileGestures>
       <div className="min-h-screen gradient-bg flex flex-col">
@@ -524,7 +229,104 @@ const Router = memo(function Router() {
         
         <main className="flex-1 relative">
           <ErrorBoundary fallback={<PageLoader />}>
-            {renderPage()}
+            <Switch>
+              {/* Home routes */}
+              <Route path="/" component={SimpleLanding} />
+              <Route path="/home" component={SimpleHome} />
+              <Route path="/dashboard" component={SimpleHome} />
+              
+              {/* Auth routes */}
+              <Route path="/login"><LazyPage Component={Login} /></Route>
+              <Route path="/register"><LazyPage Component={Register} /></Route>
+              <Route path="/signup"><LazyPage Component={Signup} /></Route>
+              <Route path="/profile-setup"><LazyPage Component={ProfileSetup} /></Route>
+              <Route path="/address-verification"><LazyPage Component={AddressVerification} /></Route>
+              
+              {/* Core pages */}
+              <Route path="/find-contractors/:rest*"><LazyPage Component={FindContractors} /></Route>
+              <Route path="/find-contractors"><LazyPage Component={FindContractors} /></Route>
+              <Route path="/contractors/:rest*"><LazyPage Component={ContractorBoard} /></Route>
+              <Route path="/contractor-board/:rest*"><LazyPage Component={ContractorBoard} /></Route>
+              <Route path="/quote-calculator/:rest*"><LazyPage Component={QuoteCalculator} /></Route>
+              <Route path="/daily-deals/:rest*"><LazyPage Component={DailyDeals} /></Route>
+              <Route path="/help-demo/:rest*"><LazyPage Component={HelpDemo} /></Route>
+              <Route path="/test-page/:rest*"><LazyPage Component={TestPage} /></Route>
+              <Route path="/profile/:rest*"><LazyPage Component={Profile} /></Route>
+              
+              {/* Business routes */}
+              <Route path="/contractor-apply"><LazyPage Component={ContractorApply} /></Route>
+              <Route path="/business-listing"><LazyPage Component={BusinessListing} /></Route>
+              <Route path="/business-owner-dashboard"><LazyPage Component={BusinessOwnerDashboard} /></Route>
+              <Route path="/accelerator"><LazyPage Component={Accelerator} /></Route>
+              
+              {/* Marketplace routes */}
+              <Route path="/worker-marketplace"><LazyPage Component={WorkerMarketplace} /></Route>
+              <Route path="/marketplace"><LazyPage Component={Marketplace} /></Route>
+              <Route path="/vehicle-marketplace"><LazyPage Component={VehicleMarketplace} /></Route>
+              <Route path="/real-estate-marketplace"><LazyPage Component={RealEstateMarketplace} /></Route>
+              <Route path="/handmade-marketplace"><LazyPage Component={HandmadeMarketplace} /></Route>
+              <Route path="/exchange"><LazyPage Component={Exchange} /></Route>
+              
+              {/* Groups routes */}
+              <Route path="/groups"><LazyPage Component={Groups} /></Route>
+              <Route path="/group/:id"><LazyPage Component={GroupDetail} /></Route>
+              <Route path="/hoa-management"><LazyPage Component={HoaManagement} /></Route>
+              <Route path="/community"><LazyPage Component={Community} /></Route>
+              <Route path="/community-feed"><LazyPage Component={CommunityFeed} /></Route>
+              <Route path="/community-moderation"><LazyPage Component={CommunityModerationDemo} /></Route>
+              
+              {/* Admin routes */}
+              <Route path="/admin-panel"><LazyPage Component={AdminPanel} /></Route>
+              <Route path="/admin/panel"><LazyPage Component={AdminPanel} /></Route>
+              <Route path="/admin/users"><LazyPage Component={AdminUsers} /></Route>
+              <Route path="/admin/user-management"><LazyPage Component={AdminUserManagement} /></Route>
+              <Route path="/admin/workspace"><LazyPage Component={AdminWorkspace} /></Route>
+              <Route path="/admin/error-reports"><LazyPage Component={AdminErrorReports} /></Route>
+              <Route path="/admin/testing"><LazyPage Component={AdminTestingControls} /></Route>
+              <Route path="/admin/address-verifications"><LazyPage Component={AdminAddressVerifications} /></Route>
+              <Route path="/admin/professional-verification"><LazyPage Component={AdminProfessionalVerification} /></Route>
+              <Route path="/admin/listings"><LazyPage Component={AdminListings} /></Route>
+              <Route path="/admin/attachments"><LazyPage Component={AdminAttachments} /></Route>
+              <Route path="/admin/pricing-analytics"><LazyPage Component={AdminPricingAnalytics} /></Route>
+              <Route path="/admin/create-account"><LazyPage Component={AdminCreateAccount} /></Route>
+              <Route path="/admin/:rest*"><LazyPage Component={AdminDashboard} /></Route>
+              
+              {/* Dashboard routes */}
+              <Route path="/contractor-dashboard"><LazyPage Component={ContractorDashboard} /></Route>
+              <Route path="/homeowner-dashboard"><LazyPage Component={HomeownerDashboard} /></Route>
+              <Route path="/realtor-dashboard"><LazyPage Component={RealtorDashboard} /></Route>
+              <Route path="/dealer-dashboard"><LazyPage Component={DealerDashboard} /></Route>
+              <Route path="/car-salesman-dashboard"><LazyPage Component={CarSalesmanDashboard} /></Route>
+              <Route path="/helper-dashboard"><LazyPage Component={HelperDashboard} /></Route>
+              <Route path="/insurance-agent-dashboard"><LazyPage Component={InsuranceAgentDashboard} /></Route>
+              <Route path="/property-manager-dashboard"><LazyPage Component={PropertyManagerDashboard} /></Route>
+              <Route path="/mortgage-broker-dashboard"><LazyPage Component={MortgageBrokerDashboard} /></Route>
+              <Route path="/staff-dashboard"><LazyPage Component={StaffDashboard} /></Route>
+              
+              {/* Common pages */}
+              <Route path="/chat"><LazyPage Component={Chat} /></Route>
+              <Route path="/saved-ads"><LazyPage Component={SavedAds} /></Route>
+              <Route path="/affiliate"><LazyPage Component={Affiliate} /></Route>
+              <Route path="/notifications"><LazyPage Component={Notifications} /></Route>
+              <Route path="/settings"><LazyPage Component={Settings} /></Route>
+              <Route path="/help"><LazyPage Component={Help} /></Route>
+              <Route path="/invite"><LazyPage Component={Invite} /></Route>
+              <Route path="/checkout"><LazyPage Component={Checkout} /></Route>
+              <Route path="/payment-success"><LazyPage Component={PaymentSuccess} /></Route>
+              <Route path="/payment-history"><LazyPage Component={PaymentHistory} /></Route>
+              
+              {/* Legal pages */}
+              <Route path="/terms"><LazyPage Component={Terms} /></Route>
+              <Route path="/privacy"><LazyPage Component={Privacy} /></Route>
+              <Route path="/about"><LazyPage Component={About} /></Route>
+              <Route path="/contact"><LazyPage Component={Contact} /></Route>
+              
+              {/* Story Generator */}
+              <Route path="/story-generator"><LazyPage Component={StoryGeneratorPage} /></Route>
+              
+              {/* 404 - this should be last */}
+              <Route path="/:rest*"><LazyPage Component={NotFound} /></Route>
+            </Switch>
           </ErrorBoundary>
         </main>
         
