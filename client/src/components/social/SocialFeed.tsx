@@ -136,7 +136,7 @@ export function SocialFeed({ className }: SocialFeedProps) {
               )}
 
               {/* Trending Topics */}
-              {trending && trending.length > 0 && (
+              {trending && Array.isArray(trending) && trending.length > 0 && (
                 <Card>
                   <CardHeader>
                     <div className="flex items-center gap-2">
@@ -282,7 +282,7 @@ export function SocialFeed({ className }: SocialFeedProps) {
                     </Button>
                   </CardContent>
                 </Card>
-              ) : posts && posts.length > 0 ? (
+              ) : posts && Array.isArray(posts) && posts.length > 0 ? (
                 <div className="space-y-4">
                   {posts.map((post: any) => (
                     <PostCard key={post.id} post={post} />
