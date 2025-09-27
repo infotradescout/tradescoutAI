@@ -238,7 +238,7 @@ const RealEstateMarketplace = memo(function RealEstateMarketplace() {
 
         {/* Property Listings */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {properties.map((property) => (
+          {Array.isArray(properties) ? properties.map((property) => (
             <Card key={property.id} className="bg-navy-800/50 border-navy-600 backdrop-blur-sm hover:bg-navy-700/50 transition-colors">
               <CardHeader className="p-0">
                 <div className="relative">
@@ -351,7 +351,7 @@ const RealEstateMarketplace = memo(function RealEstateMarketplace() {
                 </div>
               </CardContent>
             </Card>
-          ))}
+          )) : null}
         </div>
 
         {/* Load More */}
