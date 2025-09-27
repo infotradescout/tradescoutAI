@@ -268,7 +268,7 @@ export default function Groups() {
               <span>My Groups</span>
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {userGroups.map((group: Group) => (
+              {Array.isArray(userGroups) ? userGroups.map((group: Group) => (
                 <Card key={group.id} className="bg-slate-800/50 border-slate-700 hover:border-blue-500/50 transition-all duration-300">
                   <CardHeader className="pb-3">
                     <div className="flex items-start justify-between">
@@ -299,7 +299,7 @@ export default function Groups() {
                     </Link>
                   </CardContent>
                 </Card>
-              ))}
+              )) : null}
             </div>
           </div>
         )}
@@ -311,7 +311,7 @@ export default function Groups() {
             <span>Discover Groups</span>
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {groups.map((group: Group) => (
+            {Array.isArray(groups) ? groups.map((group: Group) => (
               <Card 
                 key={group.id} 
                 className="bg-slate-800/50 border-slate-700 hover:border-orange-500/50 transition-all duration-300"
@@ -336,7 +336,7 @@ export default function Groups() {
                 <CardContent className="space-y-4">
                   <p className="text-slate-300 text-sm leading-relaxed line-clamp-3">{group.description}</p>
                   
-                  {group.tags.length > 0 && (
+                  {Array.isArray(group.tags) && group.tags.length > 0 && (
                     <div className="flex flex-wrap gap-1">
                       {group.tags.slice(0, 3).map((tag, index) => (
                         <Badge key={index} variant="outline" className="text-xs border-slate-600 text-slate-400">
@@ -386,7 +386,7 @@ export default function Groups() {
                   )}
                 </CardContent>
               </Card>
-            ))}
+            )) : null}
           </div>
         </div>
 
