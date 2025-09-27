@@ -90,48 +90,6 @@ app.use((req, res, next) => {
     throw err;
   });
 
-  // importantly only setup vite in development and after
-  // setting up all the other routes so the catch-all route
-  // doesn't interfere with the other routes
-  const isProduction = process.env.NODE_ENV === "production" || app.get("env") === "production";
-  console.log(`Environment check: NODE_ENV=${process.env.NODE_ENV}, app.env=${app.get("env")}, isProduction=${isProduction}`);
-  
-  if (!isProduction) {
-    await setupVite(app, server);
-  } else {
-    // Serve static files from client/dist directory with absolute path resolution
-    const workspaceRoot = process.cwd();
-    const clientDistPath = path.join(workspaceRoot, 'client/dist');
-    
-    console.log('Production mode - serving static files from:', clientDistPath);
-    app.use(express.static(clientDistPath));
-
-    // Catch all handler for client-side routing
-    app.get('*', (req, res) => {
-      const indexPath = path.join(clientDistPath, 'index.html');
-      console.log('Serving index.html from:', indexPath);
-      
-      // Check if file exists before trying to serve
-      if (fs.existsSync(indexPath)) {
-        res.sendFile(indexPath, (err) => {
-          if (err) {
-            console.error('Error serving index.html:', err);
-            res.status(500).send('Error loading application');
-          }
-        });
-      } else {
-        console.error('index.html not found at:', indexPath);
-        try {
-          const files = fs.readdirSync(clientDistPath, { withFileTypes: true }).map(d => d.name);
-          console.log('Available files in client/dist:', files);
-        } catch (dirErr) {
-          console.error('Cannot read client/dist directory:', dirErr);
-        }
-        res.status(404).send('Application files not found');
-      }
-    });
-  }
-
   // ALWAYS serve the app on the port specified in the environment variable PORT
   // Other ports are firewalled. Default to 5000 if not specified.
   // this serves both the API and the client.
@@ -141,7 +99,53 @@ app.use((req, res, next) => {
     port,
     host: "0.0.0.0",
     reusePort: true,
-  }, () => {
+  }, async () => {
     log(`serving on port ${port}`);
+    
+    // Setup vite AFTER the server is listening so the port is available
+    const isProduction = process.env.NODE_ENV === "production" || app.get("env") === "production";
+    console.log(`Environment check: NODE_ENV=${process.env.NODE_ENV}, app.env=${app.get("env")}, isProduction=${isProduction}`);
+    
+    if (!isProduction) {
+      // Set HMR environment variables to fix WebSocket connection issues
+      if (process.env.REPL_SLUG && process.env.REPL_OWNER) {
+        process.env.VITE_HMR_HOST = `${process.env.REPL_SLUG}.${process.env.REPL_OWNER}.replit.dev`;
+        process.env.VITE_HMR_PORT = '443';
+        process.env.VITE_HMR_PROTOCOL = 'wss';
+      }
+      await setupVite(app, server);
+    } else {
+      // Serve static files from client/dist directory with absolute path resolution
+      const workspaceRoot = process.cwd();
+      const clientDistPath = path.join(workspaceRoot, 'client/dist');
+      
+      console.log('Production mode - serving static files from:', clientDistPath);
+      app.use(express.static(clientDistPath));
+
+      // Catch all handler for client-side routing
+      app.get('*', (req, res) => {
+        const indexPath = path.join(clientDistPath, 'index.html');
+        console.log('Serving index.html from:', indexPath);
+        
+        // Check if file exists before trying to serve
+        if (fs.existsSync(indexPath)) {
+          res.sendFile(indexPath, (err) => {
+            if (err) {
+              console.error('Error serving index.html:', err);
+              res.status(500).send('Error loading application');
+            }
+          });
+        } else {
+          console.error('index.html not found at:', indexPath);
+          try {
+            const files = fs.readdirSync(clientDistPath, { withFileTypes: true }).map(d => d.name);
+            console.log('Available files in client/dist:', files);
+          } catch (dirErr) {
+            console.error('Cannot read client/dist directory:', dirErr);
+          }
+          res.status(404).send('Application files not found');
+        }
+      });
+    }
   });
 })();
