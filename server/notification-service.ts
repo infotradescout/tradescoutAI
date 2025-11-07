@@ -37,7 +37,12 @@ export class NotificationService {
   // =====================================
 
   async createNotification(notification: InsertNotification): Promise<Notification> {
-    const [created] = await db.insert(notifications).values([notification]).returning();
+    const notificationData: InsertNotification = {
+      ...notification,
+      deliveryMethods: notification.deliveryMethods || (['in_app'] as string[]),
+    };
+    
+    const [created] = await db.insert(notifications).values([notificationData]).returning();
     
     // Send notification if not scheduled
     if (!notification.scheduledFor) {
@@ -66,21 +71,16 @@ export class NotificationService {
       conditions.push(eq(notifications.type, options.type as any));
     }
 
-    let query = db
+    const baseQuery = db
       .select()
       .from(notifications)
       .where(and(...conditions))
       .orderBy(desc(notifications.createdAt));
 
-    if (options.limit) {
-      query = query.limit(options.limit);
-    }
+    const withLimit = options.limit ? baseQuery.limit(options.limit) : baseQuery;
+    const finalQuery = options.offset ? withLimit.offset(options.offset) : withLimit;
 
-    if (options.offset) {
-      query = query.offset(options.offset);
-    }
-
-    return await query;
+    return await finalQuery;
   }
 
   async markNotificationAsRead(notificationId: string, userId: string): Promise<void> {
@@ -164,6 +164,16 @@ export class NotificationService {
   }
 
   async createDefaultPreferences(userId: string): Promise<NotificationPreferences> {
+    const typePreferences: Record<string, { enabled: boolean; delivery_methods: string[] }> = {
+      birthday: { enabled: true, delivery_methods: ['in_app', 'email'] as string[] },
+      anniversary: { enabled: true, delivery_methods: ['in_app'] as string[] },
+      new_message: { enabled: true, delivery_methods: ['in_app', 'email'] as string[] },
+      new_inquiry: { enabled: true, delivery_methods: ['in_app', 'email'] as string[] },
+      review_received: { enabled: true, delivery_methods: ['in_app'] as string[] },
+      system_update: { enabled: true, delivery_methods: ['in_app'] as string[] },
+      promotional: { enabled: false, delivery_methods: ['in_app'] as string[] },
+    };
+
     const [created] = await db
       .insert(notificationPreferences)
       .values([{
@@ -172,15 +182,7 @@ export class NotificationService {
         enableEmailNotifications: true,
         enableSmsNotifications: false,
         enablePushNotifications: true,
-        typePreferences: {
-          birthday: { enabled: true, delivery_methods: ['in_app', 'email'] as string[] },
-          anniversary: { enabled: true, delivery_methods: ['in_app'] as string[] },
-          new_message: { enabled: true, delivery_methods: ['in_app', 'email'] as string[] },
-          new_inquiry: { enabled: true, delivery_methods: ['in_app', 'email'] as string[] },
-          review_received: { enabled: true, delivery_methods: ['in_app'] as string[] },
-          system_update: { enabled: true, delivery_methods: ['in_app'] as string[] },
-          promotional: { enabled: false, delivery_methods: ['in_app'] as string[] },
-        } as any,
+        typePreferences: typePreferences as any,
       }])
       .returning();
     
@@ -192,7 +194,12 @@ export class NotificationService {
   // =====================================
 
   async addPersonalEvent(event: InsertUserPersonalEvent): Promise<UserPersonalEvent> {
-    const [created] = await db.insert(userPersonalEvents).values([event]).returning();
+    const eventData: InsertUserPersonalEvent = {
+      ...event,
+      notifyDaysBefore: event.notifyDaysBefore || ([0, 1, 7] as number[]),
+    };
+    
+    const [created] = await db.insert(userPersonalEvents).values([eventData]).returning();
     return created;
   }
 
@@ -492,6 +499,7 @@ export class NotificationService {
     const notificationRecords: InsertNotification[] = userIds.map(userId => ({
       ...notification,
       userId,
+      deliveryMethods: notification.deliveryMethods || (['in_app'] as string[]),
     }));
 
     await db.insert(notifications).values(notificationRecords);
