@@ -37,9 +37,9 @@ export class NotificationService {
   // =====================================
 
   async createNotification(notification: InsertNotification): Promise<Notification> {
-    const notificationData: InsertNotification = {
+    const notificationData: any = {
       ...notification,
-      deliveryMethods: notification.deliveryMethods || (['in_app'] as string[]),
+      deliveryMethods: notification.deliveryMethods || ['in_app'],
     };
     
     const [created] = await db.insert(notifications).values([notificationData]).returning();
@@ -164,26 +164,26 @@ export class NotificationService {
   }
 
   async createDefaultPreferences(userId: string): Promise<NotificationPreferences> {
-    const typePreferences: Record<string, { enabled: boolean; delivery_methods: string[] }> = {
-      birthday: { enabled: true, delivery_methods: ['in_app', 'email'] as string[] },
-      anniversary: { enabled: true, delivery_methods: ['in_app'] as string[] },
-      new_message: { enabled: true, delivery_methods: ['in_app', 'email'] as string[] },
-      new_inquiry: { enabled: true, delivery_methods: ['in_app', 'email'] as string[] },
-      review_received: { enabled: true, delivery_methods: ['in_app'] as string[] },
-      system_update: { enabled: true, delivery_methods: ['in_app'] as string[] },
-      promotional: { enabled: false, delivery_methods: ['in_app'] as string[] },
+    const preferencesData: any = {
+      userId,
+      enableNotifications: true,
+      enableEmailNotifications: true,
+      enableSmsNotifications: false,
+      enablePushNotifications: true,
+      typePreferences: {
+        birthday: { enabled: true, delivery_methods: ['in_app', 'email'] },
+        anniversary: { enabled: true, delivery_methods: ['in_app'] },
+        new_message: { enabled: true, delivery_methods: ['in_app', 'email'] },
+        new_inquiry: { enabled: true, delivery_methods: ['in_app', 'email'] },
+        review_received: { enabled: true, delivery_methods: ['in_app'] },
+        system_update: { enabled: true, delivery_methods: ['in_app'] },
+        promotional: { enabled: false, delivery_methods: ['in_app'] },
+      },
     };
 
     const [created] = await db
       .insert(notificationPreferences)
-      .values([{
-        userId,
-        enableNotifications: true,
-        enableEmailNotifications: true,
-        enableSmsNotifications: false,
-        enablePushNotifications: true,
-        typePreferences: typePreferences as any,
-      }])
+      .values([preferencesData])
       .returning();
     
     return created;
@@ -194,9 +194,9 @@ export class NotificationService {
   // =====================================
 
   async addPersonalEvent(event: InsertUserPersonalEvent): Promise<UserPersonalEvent> {
-    const eventData: InsertUserPersonalEvent = {
+    const eventData: any = {
       ...event,
-      notifyDaysBefore: event.notifyDaysBefore || ([0, 1, 7] as number[]),
+      notifyDaysBefore: event.notifyDaysBefore || [0, 1, 7],
     };
     
     const [created] = await db.insert(userPersonalEvents).values([eventData]).returning();
@@ -496,10 +496,10 @@ export class NotificationService {
     userIds: string[],
     notification: Omit<InsertNotification, 'userId'>
   ): Promise<void> {
-    const notificationRecords: InsertNotification[] = userIds.map(userId => ({
+    const notificationRecords: any[] = userIds.map(userId => ({
       ...notification,
       userId,
-      deliveryMethods: notification.deliveryMethods || (['in_app'] as string[]),
+      deliveryMethods: notification.deliveryMethods || ['in_app'],
     }));
 
     await db.insert(notifications).values(notificationRecords);
