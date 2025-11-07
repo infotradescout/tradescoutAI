@@ -17,7 +17,7 @@ import {
   type InsertNotificationTemplate,
   type User,
 } from "@shared/schema";
-import { eq, and, or, sql, desc, asc } from "drizzle-orm";
+import { eq, and, or, sql, desc, asc, isNull } from "drizzle-orm";
 import { MailService } from '@sendgrid/mail';
 
 // Notification Service Class
@@ -37,7 +37,7 @@ export class NotificationService {
   // =====================================
 
   async createNotification(notification: InsertNotification): Promise<Notification> {
-    const [created] = await db.insert(notifications).values(notification).returning();
+    const [created] = await db.insert(notifications).values([notification]).returning();
     
     // Send notification if not scheduled
     if (!notification.scheduledFor) {
@@ -56,23 +56,21 @@ export class NotificationService {
       type?: string;
     } = {}
   ): Promise<Notification[]> {
-    let query = db.select().from(notifications).where(eq(notifications.userId, userId));
+    const conditions = [eq(notifications.userId, userId)];
 
     if (options.unreadOnly) {
-      query = query.where(and(
-        eq(notifications.userId, userId),
-        eq(notifications.isRead, false)
-      ));
+      conditions.push(eq(notifications.isRead, false));
     }
 
     if (options.type) {
-      query = query.where(and(
-        eq(notifications.userId, userId),
-        eq(notifications.type, options.type as any)
-      ));
+      conditions.push(eq(notifications.type, options.type as any));
     }
 
-    query = query.orderBy(desc(notifications.createdAt));
+    let query = db
+      .select()
+      .from(notifications)
+      .where(and(...conditions))
+      .orderBy(desc(notifications.createdAt));
 
     if (options.limit) {
       query = query.limit(options.limit);
@@ -148,9 +146,10 @@ export class NotificationService {
     const existing = await this.getUserPreferences(userId);
     
     if (existing) {
+      const updateData: any = { ...preferences, updatedAt: new Date() };
       const [updated] = await db
         .update(notificationPreferences)
-        .set({ ...preferences, updatedAt: new Date() })
+        .set(updateData)
         .where(eq(notificationPreferences.userId, userId))
         .returning();
       return updated;
@@ -158,7 +157,7 @@ export class NotificationService {
       // Create new preferences
       const [created] = await db
         .insert(notificationPreferences)
-        .values({ userId, ...preferences })
+        .values([{ userId, ...preferences }])
         .returning();
       return created;
     }
@@ -167,22 +166,22 @@ export class NotificationService {
   async createDefaultPreferences(userId: string): Promise<NotificationPreferences> {
     const [created] = await db
       .insert(notificationPreferences)
-      .values({
+      .values([{
         userId,
         enableNotifications: true,
         enableEmailNotifications: true,
         enableSmsNotifications: false,
         enablePushNotifications: true,
         typePreferences: {
-          birthday: { enabled: true, delivery_methods: ['in_app', 'email'] },
-          anniversary: { enabled: true, delivery_methods: ['in_app'] },
-          new_message: { enabled: true, delivery_methods: ['in_app', 'email'] },
-          new_inquiry: { enabled: true, delivery_methods: ['in_app', 'email'] },
-          review_received: { enabled: true, delivery_methods: ['in_app'] },
-          system_update: { enabled: true, delivery_methods: ['in_app'] },
-          promotional: { enabled: false, delivery_methods: ['in_app'] },
-        },
-      })
+          birthday: { enabled: true, delivery_methods: ['in_app', 'email'] as string[] },
+          anniversary: { enabled: true, delivery_methods: ['in_app'] as string[] },
+          new_message: { enabled: true, delivery_methods: ['in_app', 'email'] as string[] },
+          new_inquiry: { enabled: true, delivery_methods: ['in_app', 'email'] as string[] },
+          review_received: { enabled: true, delivery_methods: ['in_app'] as string[] },
+          system_update: { enabled: true, delivery_methods: ['in_app'] as string[] },
+          promotional: { enabled: false, delivery_methods: ['in_app'] as string[] },
+        } as any,
+      }])
       .returning();
     
     return created;
@@ -193,7 +192,7 @@ export class NotificationService {
   // =====================================
 
   async addPersonalEvent(event: InsertUserPersonalEvent): Promise<UserPersonalEvent> {
-    const [created] = await db.insert(userPersonalEvents).values(event).returning();
+    const [created] = await db.insert(userPersonalEvents).values([event]).returning();
     return created;
   }
 
@@ -210,9 +209,10 @@ export class NotificationService {
     userId: string, 
     updates: Partial<InsertUserPersonalEvent>
   ): Promise<UserPersonalEvent | null> {
+    const updateData: any = { ...updates, updatedAt: new Date() };
     const [updated] = await db
       .update(userPersonalEvents)
-      .set({ ...updates, updatedAt: new Date() })
+      .set(updateData)
       .where(and(
         eq(userPersonalEvents.id, eventId),
         eq(userPersonalEvents.userId, userId)
@@ -268,12 +268,12 @@ export class NotificationService {
           `${user.firstName ? `Happy birthday, ${user.firstName}` : 'Happy birthday'}! 🎉 Wishing you a wonderful day filled with joy and celebration.`,
         iconName: 'gift',
         iconColor: 'pink',
-        deliveryMethods: ['in_app', 'email'],
+        deliveryMethods: ['in_app', 'email'] as string[],
         metadata: {
-          age,
+          age: age,
           eventType: 'birthday',
           celebrationYear: today.getFullYear(),
-        },
+        } as any,
       });
     }
 
@@ -319,12 +319,12 @@ export class NotificationService {
           `Congratulations on your ${years ? `${years} year ` : ''}${anniversaryType} anniversary! 🎊`,
         iconName: 'award',
         iconColor: 'gold',
-        deliveryMethods: ['in_app', 'email'],
+        deliveryMethods: ['in_app', 'email'] as string[],
         metadata: {
-          years,
+          years: years,
           eventType: event.eventType,
           anniversaryYear: new Date().getFullYear(),
-        },
+        } as any,
       });
     }
   }
@@ -365,7 +365,7 @@ export class NotificationService {
             }
             break;
           case 'sms':
-            if (preferences?.enableSmsNotifications && user.phoneNumber) {
+            if (preferences?.enableSmsNotifications && user.phone) {
               await this.sendSMSNotification(notification, user);
             }
             break;
@@ -409,8 +409,8 @@ export class NotificationService {
   private async sendSMSNotification(notification: Notification, user: User): Promise<void> {
     // SMS implementation would go here (Twilio, etc.)
     // For now, just log that SMS would be sent
-    console.log(`SMS notification would be sent to ${user.phoneNumber}: ${notification.message}`);
-    await this.logDelivery(notification.id, user.id, 'sms', 'sent', user.phoneNumber);
+    console.log(`SMS notification would be sent to ${user.phone}: ${notification.message}`);
+    await this.logDelivery(notification.id, user.id, 'sms', 'sent', user.phone || undefined);
   }
 
   private generateEmailHTML(notification: Notification, user: User): string {
@@ -489,12 +489,12 @@ export class NotificationService {
     userIds: string[],
     notification: Omit<InsertNotification, 'userId'>
   ): Promise<void> {
-    const notifications: InsertNotification[] = userIds.map(userId => ({
+    const notificationRecords: InsertNotification[] = userIds.map(userId => ({
       ...notification,
       userId,
     }));
 
-    await db.insert(notifications).values(notifications);
+    await db.insert(notifications).values(notificationRecords);
   }
 
   async processScheduledNotifications(): Promise<void> {
@@ -506,7 +506,7 @@ export class NotificationService {
       .from(notifications)
       .where(and(
         sql`${notifications.scheduledFor} <= ${now}`,
-        eq(notifications.sentAt, null)
+        isNull(notifications.sentAt)
       ));
 
     for (const notification of scheduledNotifications) {
@@ -558,7 +558,7 @@ export class NotificationService {
       actionText: 'Get Started',
       iconName: 'sparkles',
       iconColor: 'blue',
-      deliveryMethods: ['in_app', 'email'],
+      deliveryMethods: ['in_app', 'email'] as string[],
     });
   }
 
@@ -576,11 +576,11 @@ export class NotificationService {
       message: description,
       iconName: 'award',
       iconColor: 'gold',
-      deliveryMethods: ['in_app'],
+      deliveryMethods: ['in_app'] as string[],
       metadata: {
-        milestone,
+        milestone: milestone,
         ...metadata,
-      },
+      } as any,
     });
   }
 }
