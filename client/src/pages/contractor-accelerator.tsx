@@ -193,7 +193,7 @@ export default function ContractorAccelerator() {
               <div className="space-y-3">
                 <div className="flex items-center gap-3">
                   <Check className="h-5 w-5 text-green-500" />
-                  <span className="text-gray-300">Priority lead placement</span>
+                  <span className="text-gray-300">Priority project placement</span>
                 </div>
                 <div className="flex items-center gap-3">
                   <Check className="h-5 w-5 text-green-500" />
@@ -201,7 +201,7 @@ export default function ContractorAccelerator() {
                 </div>
                 <div className="flex items-center gap-3">
                   <Check className="h-5 w-5 text-green-500" />
-                  <span className="text-gray-300">Custom lead filters</span>
+                  <span className="text-gray-300">Custom project filters</span>
                 </div>
                 <div className="flex items-center gap-3">
                   <Check className="h-5 w-5 text-green-500" />
@@ -285,9 +285,9 @@ export default function ContractorAccelerator() {
               <div className="w-16 h-16 bg-purple-500 rounded-full flex items-center justify-center mx-auto mb-4">
                 <Zap className="h-8 w-8 text-white" />
               </div>
-              <h3 className="text-xl font-semibold text-white mb-3">Priority Lead Access</h3>
+              <h3 className="text-xl font-semibold text-white mb-3">Priority Project Access</h3>
               <p className="text-gray-300">
-                Get first access to the highest-quality leads in your service area before standard members.
+                Get first access to the highest-quality project requests in your service area before standard members.
               </p>
             </CardContent>
           </Card>
@@ -299,7 +299,7 @@ export default function ContractorAccelerator() {
               </div>
               <h3 className="text-xl font-semibold text-white mb-3">Advanced Analytics</h3>
               <p className="text-gray-300">
-                Deep insights into lead performance, conversion rates, and ROI optimization tools.
+                Deep insights into project performance, conversion rates, and ROI optimization tools.
               </p>
             </CardContent>
           </Card>
@@ -309,9 +309,9 @@ export default function ContractorAccelerator() {
               <div className="w-16 h-16 bg-purple-500 rounded-full flex items-center justify-center mx-auto mb-4">
                 <Target className="h-8 w-8 text-white" />
               </div>
-              <h3 className="text-xl font-semibold text-white mb-3">Custom Lead Filters</h3>
+              <h3 className="text-xl font-semibold text-white mb-3">Custom Project Filters</h3>
               <p className="text-gray-300">
-                Set precise criteria for lead quality, project size, and customer preferences.
+                Set precise criteria for project quality, size, and customer preferences.
               </p>
             </CardContent>
           </Card>

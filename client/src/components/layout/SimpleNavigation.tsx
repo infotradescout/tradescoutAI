@@ -200,9 +200,9 @@ const SimpleNavigation = memo(function SimpleNavigation() {
                       <div className="font-medium">CRM</div>
                       <div className="text-xs text-gray-400">Manage customers</div>
                     </Link>
-                    <Link href="/lead-management" className="block px-4 py-2 text-sm text-gray-300 hover:text-white hover:bg-slate-700/50">
-                      <div className="font-medium">Lead Management</div>
-                      <div className="text-xs text-gray-400">Track opportunities</div>
+                    <Link href="/project-tracker" className="block px-4 py-2 text-sm text-gray-300 hover:text-white hover:bg-slate-700/50">
+                      <div className="font-medium">Project Tracker</div>
+                      <div className="text-xs text-gray-400">Track your work</div>
                     </Link>
                     <Link href="/ad-creator" className="block px-4 py-2 text-sm text-gray-300 hover:text-white hover:bg-slate-700/50">
                       <div className="font-medium flex items-center gap-2">

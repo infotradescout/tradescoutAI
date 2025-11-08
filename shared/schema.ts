@@ -1338,7 +1338,7 @@ export const advertisements = pgTable("advertisements", {
 
 export const contractorSettings = pgTable("contractor_settings", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  category: varchar("category").notNull(), // 'verification', 'pricing', 'lead_routing'
+  category: varchar("category").notNull(), // 'verification', 'pricing', 'project_routing'
   setting: varchar("setting").notNull(),
   value: jsonb("value").notNull(),
   description: text("description"),
@@ -1770,7 +1770,7 @@ export const contractorPromos = pgTable("contractor_promos", {
   slug: varchar("slug").notNull().unique(), // For shareable URLs
   viewCount: integer("view_count").default(0),
   clickCount: integer("click_count").default(0),
-  leadCount: integer("lead_count").default(0), // Leads generated from this promo
+  projectRequestCount: integer("project_request_count").default(0), // Project requests from this promo
   
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
@@ -1783,7 +1783,7 @@ export const promoInteractions = pgTable("promo_interactions", {
   
   // Interaction details
   interactionType: varchar("interaction_type", {
-    enum: ['view', 'click', 'share', 'lead_generated', 'contact_made']
+    enum: ['view', 'click', 'share', 'project_request', 'contact_made']
   }).notNull(),
   
   // User/visitor info
@@ -5105,7 +5105,7 @@ export const notificationTypeEnum = pgEnum('notification_type', [
   
   // Activity notifications
   'new_message',
-  'new_lead',
+  'new_project_request',
   'new_application',
   'project_update',
   'payment_received',

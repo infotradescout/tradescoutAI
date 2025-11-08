@@ -183,9 +183,9 @@ export default function GrowthPack() {
                   <div>
                     <h4 className="text-white font-semibold flex items-center gap-2">
                       <Target className="h-4 w-4" />
-                      Lead Generation Templates
+                      Outreach Templates
                     </h4>
-                    <p className="text-gray-300 text-sm">Proven email and social media templates that convert prospects into customers</p>
+                    <p className="text-gray-300 text-sm">Proven email and social media templates that connect with prospects and build relationships</p>
                   </div>
                 </div>
                 

@@ -119,7 +119,7 @@ const NotFound = React.lazy(() => import('./pages/not-found'));
 const Promotions = React.lazy(() => import('./pages/promotions'));
 const AdCreator = React.lazy(() => import('./pages/ad-creator'));
 const Analytics = React.lazy(() => import('./pages/analytics'));
-const LeadManagement = React.lazy(() => import('./pages/lead-management'));
+const ProjectTracker = React.lazy(() => import('./pages/lead-management'));
 
 // Additional Missing Pages
 const CountyHub = React.lazy(() => import('./pages/county-hub'));
@@ -319,7 +319,8 @@ const AppLayout = memo(function AppLayout() {
               <Route path="/boosts"><LazyPage Component={Boosts} /></Route>
               <Route path="/analytics"><LazyPage Component={Analytics} /></Route>
               <Route path="/crm"><LazyPage Component={CRM} /></Route>
-              <Route path="/lead-management"><LazyPage Component={LeadManagement} /></Route>
+              <Route path="/project-tracker"><LazyPage Component={ProjectTracker} /></Route>
+              <Route path="/lead-management"><LazyPage Component={ProjectTracker} /></Route>
               <Route path="/ad-creator"><LazyPage Component={AdCreator} /></Route>
               <Route path="/promotions"><LazyPage Component={Promotions} /></Route>
               <Route path="/growth-pack"><LazyPage Component={GrowthPack} /></Route>

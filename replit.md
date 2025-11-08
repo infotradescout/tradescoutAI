@@ -8,7 +8,7 @@ TradeScout is a comprehensive social platform connecting homeowners with contrac
 
 Preferred communication style: Simple, everyday language.
 Marketplace language preference: Avoid explicit "investment" or "asset" terminology - let users naturally discover the value-building potential through subtle language and quality indicators.
-Lead generation preference: Never reference "getting leads" or "lead generation" - focus on showcasing contractor businesses, building reputation, and connecting with homeowners naturally.
+Lead generation preference: **NEVER use "lead/leads" terminology anywhere** - use "projects", "opportunities", "requests", "connections" instead. Focus on showcasing contractor businesses, building reputation, and connecting with homeowners naturally.
 
 # Full Specification Alignment - LOCKED ROADMAP
 
@@ -157,6 +157,12 @@ Lead generation preference: Never reference "getting leads" or "lead generation"
 - ✅ Created master admin account
 - ✅ Verified Facebook authentication fully operational
 - ✅ Removed 16 outdated documentation files
+- ✅ **Eliminated ALL "lead/leads" terminology** from user-facing interface (Nov 8, 2025)
+  - Renamed "Lead Management" → "Project Tracker" (/project-tracker)
+  - Changed navigation and UI text to use "projects", "opportunities", "requests"
+  - Updated database enums: 'new_lead' → 'new_project_request', 'lead_generated' → 'project_request'
+  - Updated promo tracking: 'leadCount' → 'projectRequestCount'
+  - Modified 10+ page files to remove "lead generation" language
 
 ## Next Steps for Production
 1. Seed county data (3,112 counties) for geographic features
