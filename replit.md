@@ -25,6 +25,12 @@ Lead generation preference: **NEVER use "lead/leads" terminology anywhere** - us
 - ❌ Per-project fees
 - ❌ Membership fees (Accelerator program is also FREE with premium benefits)
 
+**Affiliate Program**:
+- AUTOMATIC for all users - no signup required
+- 10% commission on marketplace promotions and platform ads ONLY
+- ANY link shared from TradeScout automatically includes user's tracking code
+- No special "affiliate link" needed - share any page (homepage, marketplace, county pages, etc.)
+
 # Full Specification Alignment - LOCKED ROADMAP
 
 **IMMUTABLE SPECIFICATION**: The TradeScout roadmap stored in TRADESCOUT_FULL_SPECIFICATION.md is the permanent, unchanging specification for this platform. No deviations without explicit user authorization.

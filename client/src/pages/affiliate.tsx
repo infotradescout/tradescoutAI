@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
-import { Copy, Share2, TrendingUp, Users, DollarSign, Calendar, Check, ExternalLink } from "lucide-react";
+import { Copy, Share2, TrendingUp, Users, DollarSign, Calendar, Check, ExternalLink, Zap } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 
@@ -220,37 +220,40 @@ export default function AffiliatePage() {
           </Card>
         </div>
 
-        {/* Your Referral Link */}
+        {/* Automatic Affiliate Tracking */}
         <Card className="bg-gradient-to-br from-orange-500/10 to-amber-500/10 border-orange-500/30 mb-8">
           <CardHeader>
             <CardTitle className="text-white flex items-center gap-2">
               <Share2 className="w-5 h-5" />
-              Your Personal Affiliate Link
+              Automatic Affiliate Tracking
             </CardTitle>
             <CardDescription className="text-gray-300">
-              Share this link anywhere - every signup through it automatically credits you 10% commission
+              ANY link you share from TradeScout automatically includes your tracking code - no special link needed
             </CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="flex gap-3">
-              <Input 
-                value={affiliateLink}
-                readOnly
-                className="bg-slate-900/50 border-slate-700 text-white font-mono"
-              />
-              <Button 
-                onClick={() => copyToClipboard(affiliateLink, "Affiliate link")}
-                className="bg-orange-500 hover:bg-orange-600"
-              >
-                {copySuccess === "Affiliate link" ? (
-                  <Check className="w-4 h-4" />
-                ) : (
-                  <Copy className="w-4 h-4" />
-                )}
-              </Button>
+          <CardContent className="space-y-6">
+            <div className="bg-slate-800/50 p-6 rounded-lg border border-slate-700">
+              <h4 className="text-white font-semibold mb-3 flex items-center gap-2">
+                <Zap className="w-5 h-5 text-orange-400" />
+                How It Works
+              </h4>
+              <p className="text-gray-300 mb-4">
+                Share any page from TradeScout - the homepage, a marketplace listing, a contractor profile, or a county page. 
+                Your unique tracking code is automatically attached to every URL you share.
+              </p>
+              <div className="bg-slate-900/50 p-4 rounded border border-slate-700">
+                <p className="text-gray-400 text-sm mb-2">Examples of links you can share:</p>
+                <ul className="text-gray-300 text-sm space-y-1 font-mono">
+                  <li>→ tradescout.com <span className="text-orange-400">?ref=your_code</span></li>
+                  <li>→ tradescout.com/marketplace <span className="text-orange-400">?ref=your_code</span></li>
+                  <li>→ tradescout.com/county/cook-il <span className="text-orange-400">?ref=your_code</span></li>
+                  <li>→ tradescout.com/contractors <span className="text-orange-400">?ref=your_code</span></li>
+                </ul>
+                <p className="text-emerald-400 text-xs mt-3">✓ Tracking code automatically added when you share any link</p>
+              </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="bg-slate-800/50 p-4 rounded-lg">
                 <h4 className="text-white font-semibold mb-2">10% Marketplace Promotions</h4>
                 <p className="text-sm text-gray-400">Commission when contractors boost marketplace listings</p>
@@ -288,9 +291,9 @@ export default function AffiliatePage() {
                     <div className="w-12 h-12 bg-orange-500/20 rounded-lg flex items-center justify-center mb-3">
                       <Share2 className="w-6 h-6 text-orange-400" />
                     </div>
-                    <h3 className="text-white font-semibold mb-2">1. Share Your Link</h3>
+                    <h3 className="text-white font-semibold mb-2">1. Share ANY Link</h3>
                     <p className="text-gray-400 text-sm">
-                      Share your personalized link on social media, email, or anywhere online. Every link you share is automatically tracked.
+                      Share any page from TradeScout on social media, email, or anywhere online. Your tracking code is automatically added to every URL.
                     </p>
                   </div>
                   <div>
