@@ -315,6 +315,82 @@ const AppLayout = memo(function AppLayout() {
               <Route path="/payment-success"><LazyPage Component={PaymentSuccess} /></Route>
               <Route path="/payment-history"><LazyPage Component={PaymentHistory} /></Route>
               
+              {/* Business Tools */}
+              <Route path="/boosts"><LazyPage Component={Boosts} /></Route>
+              <Route path="/analytics"><LazyPage Component={Analytics} /></Route>
+              <Route path="/crm"><LazyPage Component={CRM} /></Route>
+              <Route path="/lead-management"><LazyPage Component={LeadManagement} /></Route>
+              <Route path="/ad-creator"><LazyPage Component={AdCreator} /></Route>
+              <Route path="/promotions"><LazyPage Component={Promotions} /></Route>
+              <Route path="/growth-pack"><LazyPage Component={GrowthPack} /></Route>
+              
+              {/* Community & Geographic */}
+              <Route path="/county-directory"><LazyPage Component={CountyDirectory} /></Route>
+              <Route path="/county-hub"><LazyPage Component={CountyHub} /></Route>
+              <Route path="/leaderboard"><LazyPage Component={Leaderboard} /></Route>
+              <Route path="/foundation"><LazyPage Component={Foundation} /></Route>
+              <Route path="/coffee-company"><LazyPage Component={CoffeeCompany} /></Route>
+              <Route path="/resource-center"><LazyPage Component={ResourceCenter} /></Route>
+              
+              {/* Additional Features */}
+              <Route path="/hoa-dashboard"><LazyPage Component={HOADashboard} /></Route>
+              <Route path="/membership-portal"><LazyPage Component={MembershipPortal} /></Route>
+              <Route path="/training-center"><LazyPage Component={TrainingCenter} /></Route>
+              <Route path="/application-tracker"><LazyPage Component={ApplicationTracker} /></Route>
+              <Route path="/administrative-dashboard"><LazyPage Component={AdministrativeDashboard} /></Route>
+              <Route path="/advanced-search"><LazyPage Component={AdvancedSearch} /></Route>
+              
+              {/* Applications */}
+              <Route path="/realtor-application"><LazyPage Component={RealtorApplication} /></Route>
+              <Route path="/car-salesman-application"><LazyPage Component={CarSalesmanApplication} /></Route>
+              
+              {/* Car Sales Features */}
+              <Route path="/car-sales-new-listing"><LazyPage Component={CarSalesNewListing} /></Route>
+              <Route path="/car-sales-customers"><LazyPage Component={CarSalesCustomers} /></Route>
+              <Route path="/car-sales-financing"><LazyPage Component={CarSalesFinancing} /></Route>
+              <Route path="/car-sales-trade-in"><LazyPage Component={CarSalesTradeIn} /></Route>
+              <Route path="/car-sales-payment-calculator"><LazyPage Component={CarSalesPaymentCalculator} /></Route>
+              <Route path="/car-sales-vin-lookup"><LazyPage Component={CarSalesVinLookup} /></Route>
+              <Route path="/car-sales-appointments"><LazyPage Component={CarSalesAppointments} /></Route>
+              <Route path="/car-sales-follow-up"><LazyPage Component={CarSalesFollowUp} /></Route>
+              
+              {/* Realtor Features */}
+              <Route path="/realtor-clients"><LazyPage Component={RealtorClients} /></Route>
+              <Route path="/realtor-market-analysis"><LazyPage Component={RealtorMarketAnalysis} /></Route>
+              <Route path="/realtor-connections"><LazyPage Component={RealtorConnections} /></Route>
+              <Route path="/realtor-calculator"><LazyPage Component={RealtorCalculator} /></Route>
+              <Route path="/realtor-cma"><LazyPage Component={RealtorCMA} /></Route>
+              <Route path="/realtor-appointments"><LazyPage Component={RealtorAppointments} /></Route>
+              <Route path="/realtor-contacts"><LazyPage Component={RealtorContacts} /></Route>
+              
+              {/* Verification & Compliance */}
+              <Route path="/verification"><LazyPage Component={Verification} /></Route>
+              <Route path="/insurance-verification"><LazyPage Component={InsuranceVerification} /></Route>
+              <Route path="/license-verification"><LazyPage Component={LicenseVerification} /></Route>
+              <Route path="/background-check"><LazyPage Component={BackgroundCheck} /></Route>
+              <Route path="/compliance"><LazyPage Component={Compliance} /></Route>
+              <Route path="/documentation"><LazyPage Component={Documentation} /></Route>
+              
+              {/* Advanced Admin */}
+              <Route path="/contractor-verification"><LazyPage Component={ContractorVerification} /></Route>
+              <Route path="/content-moderation"><LazyPage Component={ContentModeration} /></Route>
+              <Route path="/system-settings"><LazyPage Component={SystemSettings} /></Route>
+              <Route path="/support-tickets"><LazyPage Component={SupportTickets} /></Route>
+              <Route path="/platform-analytics"><LazyPage Component={PlatformAnalytics} /></Route>
+              <Route path="/manage-users"><LazyPage Component={ManageUsers} /></Route>
+              <Route path="/payment-processing"><LazyPage Component={PaymentProcessing} /></Route>
+              <Route path="/file-management"><LazyPage Component={FileManagement} /></Route>
+              
+              {/* Social & Integration */}
+              <Route path="/social-integration"><LazyPage Component={SocialIntegration} /></Route>
+              <Route path="/referral-dashboard"><LazyPage Component={ReferralDashboard} /></Route>
+              <Route path="/event-management"><LazyPage Component={EventManagement} /></Route>
+              <Route path="/api-integrations"><LazyPage Component={APIIntegrations} /></Route>
+              
+              {/* Interactive Pages */}
+              <Route path="/schedule-consultation"><LazyPage Component={ScheduleConsultation} /></Route>
+              <Route path="/apply-accelerator"><LazyPage Component={ApplyAccelerator} /></Route>
+              
               {/* Legal pages */}
               <Route path="/terms"><LazyPage Component={Terms} /></Route>
               <Route path="/privacy"><LazyPage Component={Privacy} /></Route>
