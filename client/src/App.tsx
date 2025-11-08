@@ -231,9 +231,8 @@ const AppLayout = memo(function AppLayout() {
           <ErrorBoundary fallback={<PageLoader />}>
             <Switch>
               {/* Home routes */}
-              <Route path="/" component={SimpleHome} />
+              <Route path="/" component={SimpleLanding} />
               <Route path="/home" component={SimpleHome} />
-              <Route path="/landing" component={SimpleLanding} />
               <Route path="/dashboard" component={SimpleHome} />
               
               {/* Auth routes */}
