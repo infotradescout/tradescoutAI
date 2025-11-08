@@ -12,11 +12,14 @@ import {
   Clock,
   ChevronRight,
   Home,
-  TrendingUp,
   Users,
   CheckCircle,
   AlertCircle,
-  Calendar
+  Calendar,
+  Heart,
+  MessageSquare,
+  Share2,
+  Trophy
 } from "lucide-react";
 
 interface ProjectData {
@@ -301,34 +304,158 @@ export default function HomeownerDashboard() {
         </Card>
       </div>
 
-      {/* Additional Navigation Section */}
+      {/* Community Feed - Social Media Style */}
       <div className="mt-8">
-        <h2 className="text-xl font-semibold text-white mb-4">Explore TradeScout</h2>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <Link href="/marketplace">
-            <Button variant="outline" className="w-full h-16 border-navy-500 hover:border-orange-500 flex flex-col items-center justify-center space-y-1">
-              <Star className="h-5 w-5 text-yellow-400" />
-              <span className="text-xs">Marketplace</span>
+        <h2 className="text-2xl font-bold text-white mb-6">Community Feed</h2>
+        
+        {/* Feed Posts */}
+        <div className="space-y-6 max-w-2xl">
+          {/* Sample Post 1 - Contractor Showcase */}
+          <Card className="bg-navy-700 border-navy-600">
+            <CardContent className="p-6">
+              {/* Post Header */}
+              <div className="flex items-center space-x-3 mb-4">
+                <div className="w-12 h-12 bg-orange-500 rounded-full flex items-center justify-center text-white font-bold">
+                  AC
+                </div>
+                <div className="flex-1">
+                  <p className="text-white font-semibold">Apex Construction</p>
+                  <p className="text-gray-400 text-sm">2 hours ago • Los Angeles, CA</p>
+                </div>
+                <Badge className="bg-blue-500">Contractor</Badge>
+              </div>
+
+              {/* Post Content */}
+              <p className="text-white mb-4">
+                Just completed this beautiful kitchen renovation for the Martinez family! 
+                Modern cabinets, quartz countertops, and all new appliances. 
+                What do you think? 🔨✨
+              </p>
+
+              {/* Post Image */}
+              <div className="bg-navy-600 rounded-lg h-64 flex items-center justify-center mb-4">
+                <p className="text-gray-400">Kitchen renovation photo</p>
+              </div>
+
+              {/* Post Actions */}
+              <div className="flex items-center justify-between pt-4 border-t border-navy-600">
+                <Button variant="ghost" className="text-gray-400 hover:text-orange-500">
+                  <Heart className="h-5 w-5 mr-2" />
+                  24 likes
+                </Button>
+                <Button variant="ghost" className="text-gray-400 hover:text-orange-500">
+                  <MessageSquare className="h-5 w-5 mr-2" />
+                  8 comments
+                </Button>
+                <Button variant="ghost" className="text-gray-400 hover:text-orange-500">
+                  <Share2 className="h-5 w-5 mr-2" />
+                  Share
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Sample Post 2 - Community Question */}
+          <Card className="bg-navy-700 border-navy-600">
+            <CardContent className="p-6">
+              <div className="flex items-center space-x-3 mb-4">
+                <div className="w-12 h-12 bg-green-500 rounded-full flex items-center justify-center text-white font-bold">
+                  SM
+                </div>
+                <div className="flex-1">
+                  <p className="text-white font-semibold">Sarah Martinez</p>
+                  <p className="text-gray-400 text-sm">5 hours ago • Sunset Hills</p>
+                </div>
+                <Badge className="bg-green-500">Homeowner</Badge>
+              </div>
+
+              <p className="text-white mb-4">
+                Looking for recommendations for a reliable plumber in the area. 
+                Need help with a kitchen sink issue. Any suggestions?
+              </p>
+
+              <div className="flex items-center justify-between pt-4 border-t border-navy-600">
+                <Button variant="ghost" className="text-gray-400 hover:text-orange-500">
+                  <Heart className="h-5 w-5 mr-2" />
+                  12 likes
+                </Button>
+                <Button variant="ghost" className="text-gray-400 hover:text-orange-500">
+                  <MessageSquare className="h-5 w-5 mr-2" />
+                  15 comments
+                </Button>
+                <Button variant="ghost" className="text-gray-400 hover:text-orange-500">
+                  <Share2 className="h-5 w-5 mr-2" />
+                  Share
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Sample Post 3 - Marketplace Item */}
+          <Card className="bg-navy-700 border-navy-600">
+            <CardContent className="p-6">
+              <div className="flex items-center space-x-3 mb-4">
+                <div className="w-12 h-12 bg-purple-500 rounded-full flex items-center justify-center text-white font-bold">
+                  JD
+                </div>
+                <div className="flex-1">
+                  <p className="text-white font-semibold">John Davis</p>
+                  <p className="text-gray-400 text-sm">1 day ago</p>
+                </div>
+                <Badge className="bg-purple-500">Marketplace</Badge>
+              </div>
+
+              <p className="text-white font-semibold mb-2">DeWalt Power Drill Set - $120</p>
+              <p className="text-gray-300 mb-4">
+                Barely used, includes case and 2 batteries. Perfect condition!
+              </p>
+
+              <div className="bg-navy-600 rounded-lg h-48 flex items-center justify-center mb-4">
+                <p className="text-gray-400">Power drill photo</p>
+              </div>
+
+              <div className="flex items-center justify-between">
+                <Button className="bg-orange-500 hover:bg-orange-600 text-white flex-1 mr-2">
+                  View Details
+                </Button>
+                <Button variant="outline" className="border-orange-500 text-orange-500 hover:bg-orange-500/10">
+                  <Heart className="h-5 w-5" />
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Load More */}
+          <div className="text-center py-4">
+            <Button variant="outline" className="border-orange-500 text-orange-500 hover:bg-orange-500/10">
+              Load More Posts
             </Button>
-          </Link>
-          <Link href="/exchange">
-            <Button variant="outline" className="w-full h-16 border-navy-500 hover:border-orange-500 flex flex-col items-center justify-center space-y-1">
-              <TrendingUp className="h-5 w-5 text-green-400" />
-              <span className="text-xs">Exchange</span>
-            </Button>
-          </Link>
-          <Link href="/leaderboard">
-            <Button variant="outline" className="w-full h-16 border-navy-500 hover:border-orange-500 flex flex-col items-center justify-center space-y-1">
-              <Star className="h-5 w-5 text-orange-400" />
-              <span className="text-xs">Leaderboard</span>
-            </Button>
-          </Link>
-          <Link href="/foundation">
-            <Button variant="outline" className="w-full h-16 border-navy-500 hover:border-orange-500 flex flex-col items-center justify-center space-y-1">
-              <Home className="h-5 w-5 text-blue-400" />
-              <span className="text-xs">Foundation</span>
-            </Button>
-          </Link>
+          </div>
+        </div>
+
+        {/* Sidebar - Quick Links */}
+        <div className="mt-8">
+          <h3 className="text-lg font-semibold text-white mb-4">Quick Links</h3>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <Link href="/marketplace">
+              <Button variant="outline" className="w-full h-16 border-navy-500 hover:border-orange-500 flex flex-col items-center justify-center space-y-1">
+                <Star className="h-5 w-5 text-yellow-400" />
+                <span className="text-xs">Marketplace</span>
+              </Button>
+            </Link>
+            <Link href="/leaderboard">
+              <Button variant="outline" className="w-full h-16 border-navy-500 hover:border-orange-500 flex flex-col items-center justify-center space-y-1">
+                <Trophy className="h-5 w-5 text-orange-400" />
+                <span className="text-xs">Leaderboard</span>
+              </Button>
+            </Link>
+            <Link href="/foundation">
+              <Button variant="outline" className="w-full h-16 border-navy-500 hover:border-orange-500 flex flex-col items-center justify-center space-y-1">
+                <Home className="h-5 w-5 text-blue-400" />
+                <span className="text-xs">Foundation</span>
+              </Button>
+            </Link>
+          </div>
         </div>
       </div>
     </div>
