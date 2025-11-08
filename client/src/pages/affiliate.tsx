@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
@@ -6,8 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Copy, ExternalLink, TrendingUp, Users, DollarSign, Calendar } from "lucide-react";
+import { Copy, Share2, TrendingUp, Users, DollarSign, Calendar, Check, ExternalLink } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 
@@ -66,26 +65,7 @@ interface Payout {
 export default function AffiliatePage() {
   const [copySuccess, setCopySuccess] = useState<string | null>(null);
 
-  // Join affiliate program mutation
-  const joinAffiliateMutation = useMutation({
-    mutationFn: () => apiRequest("POST", "/api/affiliate/join"),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/affiliate/dashboard"] });
-      toast({
-        title: "Welcome to TradeScout Affiliates!",
-        description: "Your affiliate program has been activated. Start sharing your link to earn 25% commission on all revenue from your referrals!",
-      });
-    },
-    onError: (error: any) => {
-      toast({
-        title: "Error",
-        description: error.message || "Failed to join affiliate program",
-        variant: "destructive",
-      });
-    },
-  });
-
-  // Get affiliate dashboard data
+  // Get affiliate dashboard data - automatically created for all users
   const { data: dashboardData, isLoading } = useQuery<{
     program: AffiliateProgram;
     stats: AffiliateStats;
@@ -105,7 +85,7 @@ export default function AffiliatePage() {
       queryClient.invalidateQueries({ queryKey: ["/api/affiliate/dashboard"] });
       toast({
         title: "Settings Updated",
-        description: "Your affiliate settings have been saved successfully.",
+        description: "Your payout settings have been saved successfully.",
       });
     },
     onError: (error: any) => {
@@ -137,304 +117,260 @@ export default function AffiliatePage() {
 
   if (isLoading) {
     return (
-      <div className="container mx-auto px-4 py-8">
-        <div className="h-screen flex items-center justify-center">
-          <div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full" />
-        </div>
+      <div className="min-h-screen gradient-bg flex items-center justify-center">
+        <div className="animate-spin w-8 h-8 border-4 border-orange-500 border-t-transparent rounded-full" />
       </div>
     );
   }
 
-  // If user hasn't joined the affiliate program yet
-  if (!dashboardData || !dashboardData.program) {
-    return (
-      <div className="container mx-auto px-4 py-8">
-        <div className="max-w-4xl mx-auto">
-          <div className="text-center mb-8">
-            <h1 className="text-4xl font-bold mb-4">TradeScout Affiliate Program</h1>
-            <p className="text-xl text-muted-foreground mb-8">
-              Earn 25% commission on all revenue from your referrals
-            </p>
-          </div>
+  const program = dashboardData?.program;
+  const stats = dashboardData?.stats;
+  const referrals = dashboardData?.referrals || [];
+  const commissions = dashboardData?.commissions || [];
+  const payouts = dashboardData?.payouts || [];
 
-          <Card className="max-w-2xl mx-auto">
-            <CardHeader>
-              <CardTitle className="text-center">Join Our Affiliate Program</CardTitle>
-              <CardDescription className="text-center">
-                Start earning recurring commissions by sharing TradeScout with your network
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="text-center">
-                  <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-2">
-                    <Users className="w-6 h-6 text-primary" />
-                  </div>
-                  <h3 className="font-semibold">Share Your Link</h3>
-                  <p className="text-sm text-muted-foreground">Get a personalized referral link to share</p>
-                </div>
-                <div className="text-center">
-                  <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-2">
-                    <TrendingUp className="w-6 h-6 text-primary" />
-                  </div>
-                  <h3 className="font-semibold">Earn Commissions</h3>
-                  <p className="text-sm text-muted-foreground">Get 25% of all revenue from your referrals</p>
-                </div>
-                <div className="text-center">
-                  <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-2">
-                    <DollarSign className="w-6 h-6 text-primary" />
-                  </div>
-                  <h3 className="font-semibold">Get Paid</h3>
-                  <p className="text-sm text-muted-foreground">Receive recurring payouts from subscription revenue</p>
-                </div>
-              </div>
-              
-              <div className="bg-primary/5 p-4 rounded-lg">
-                <h4 className="font-semibold mb-2">What you'll earn commission on:</h4>
-                <ul className="space-y-1 text-sm">
-                  <li>• Contractor subscription fees (recurring)</li>
-                  <li>• Marketplace transaction fees</li>
-                  <li>• Premium services and features</li>
-                  <li>• Foundation donations (platform fees)</li>
-                </ul>
-              </div>
-
-              <Button 
-                onClick={() => joinAffiliateMutation.mutate()} 
-                disabled={joinAffiliateMutation.isPending}
-                className="w-full"
-                size="lg"
-              >
-                {joinAffiliateMutation.isPending ? "Joining..." : "Join Affiliate Program"}
-              </Button>
-            </CardContent>
-          </Card>
-        </div>
-      </div>
-    );
-  }
-
-  const { program, stats, referrals, commissions, payouts } = dashboardData as {
-    program: AffiliateProgram;
-    stats: AffiliateStats;
-    referrals: Referral[];
-    commissions: Commission[];
-    payouts: Payout[];
-  };
+  // Generate referral link (even if program not set up yet)
+  const baseUrl = window.location.origin;
+  const affiliateLink = program?.referralLink || `${baseUrl}/?ref=YOUR_CODE`;
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <div className="max-w-6xl mx-auto">
+    <div className="min-h-screen gradient-bg pt-24 pb-16 px-4">
+      <div className="container mx-auto max-w-7xl">
+        {/* Header */}
         <div className="mb-8">
-          <h1 className="text-4xl font-bold mb-2">Affiliate Dashboard</h1>
-          <p className="text-muted-foreground">
-            Track your referrals, commissions, and earnings
-          </p>
+          <div className="flex items-center gap-3 mb-3">
+            <div className="p-3 bg-orange-500/20 rounded-lg">
+              <Share2 className="w-8 h-8 text-orange-500" />
+            </div>
+            <div>
+              <h1 className="text-4xl font-bold text-white">Your Affiliate Dashboard</h1>
+              <p className="text-gray-400">Every link you share automatically earns you 10% commission</p>
+            </div>
+          </div>
+          
+          <div className="bg-blue-500/10 border border-blue-500/20 rounded-lg p-4 flex items-start gap-3">
+            <Check className="w-5 h-5 text-blue-400 mt-0.5 flex-shrink-0" />
+            <div>
+              <p className="text-blue-200 font-medium">Automatic Affiliate Program</p>
+              <p className="text-blue-300/80 text-sm">No signup needed! As a TradeScout member, you automatically earn 10% commission on ALL revenue from anyone who signs up through your links.</p>
+            </div>
+          </div>
         </div>
 
-        {/* Stats Overview */}
+        {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Referrals</CardTitle>
-              <Users className="h-4 w-4 text-muted-foreground" />
+          <Card className="bg-slate-800/50 border-slate-700">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm text-gray-400 flex items-center gap-2">
+                <Users className="w-4 h-4" />
+                Total Referrals
+              </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{stats.totalReferrals}</div>
-              <p className="text-xs text-muted-foreground">
-                {stats.convertedReferrals} converted ({stats.conversionRate.toFixed(1)}%)
+              <div className="text-3xl font-bold text-white">{stats?.totalReferrals || 0}</div>
+              <p className="text-sm text-gray-400 mt-1">
+                {stats?.convertedReferrals || 0} converted ({stats?.conversionRate || 0}%)
               </p>
             </CardContent>
           </Card>
 
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Commission Earned</CardTitle>
-              <DollarSign className="h-4 w-4 text-muted-foreground" />
+          <Card className="bg-slate-800/50 border-slate-700">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm text-gray-400 flex items-center gap-2">
+                <DollarSign className="w-4 h-4" />
+                Total Earned
+              </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">${stats.totalCommissionEarned}</div>
-              <p className="text-xs text-muted-foreground">Total lifetime earnings</p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Commission Paid</CardTitle>
-              <TrendingUp className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">${stats.totalCommissionPaid}</div>
-              <p className="text-xs text-muted-foreground">Total payments received</p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Pending Balance</CardTitle>
-              <Calendar className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">
-                ${(parseFloat(stats.totalCommissionEarned) - parseFloat(stats.totalCommissionPaid)).toFixed(2)}
+              <div className="text-3xl font-bold text-emerald-400">
+                ${stats?.totalCommissionEarned || "0.00"}
               </div>
-              <p className="text-xs text-muted-foreground">Awaiting next payout</p>
+              <p className="text-sm text-gray-400 mt-1">Lifetime commissions</p>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-slate-800/50 border-slate-700">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm text-gray-400 flex items-center gap-2">
+                <TrendingUp className="w-4 h-4" />
+                Paid Out
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-3xl font-bold text-blue-400">
+                ${stats?.totalCommissionPaid || "0.00"}
+              </div>
+              <p className="text-sm text-gray-400 mt-1">Total payments received</p>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-slate-800/50 border-slate-700">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm text-gray-400 flex items-center gap-2">
+                <Calendar className="w-4 h-4" />
+                Commission Rate
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-3xl font-bold text-orange-400">
+                {program?.commissionRate || "10"}%
+              </div>
+              <p className="text-sm text-gray-400 mt-1">On all revenue</p>
             </CardContent>
           </Card>
         </div>
 
-        {/* Main Content Tabs */}
+        {/* Your Referral Link */}
+        <Card className="bg-gradient-to-br from-orange-500/10 to-amber-500/10 border-orange-500/30 mb-8">
+          <CardHeader>
+            <CardTitle className="text-white flex items-center gap-2">
+              <Share2 className="w-5 h-5" />
+              Your Personal Affiliate Link
+            </CardTitle>
+            <CardDescription className="text-gray-300">
+              Share this link anywhere - every signup through it automatically credits you 10% commission
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex gap-3">
+              <Input 
+                value={affiliateLink}
+                readOnly
+                className="bg-slate-900/50 border-slate-700 text-white font-mono"
+              />
+              <Button 
+                onClick={() => copyToClipboard(affiliateLink, "Affiliate link")}
+                className="bg-orange-500 hover:bg-orange-600"
+              >
+                {copySuccess === "Affiliate link" ? (
+                  <Check className="w-4 h-4" />
+                ) : (
+                  <Copy className="w-4 h-4" />
+                )}
+              </Button>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-4">
+              <div className="bg-slate-800/50 p-4 rounded-lg">
+                <h4 className="text-white font-semibold mb-2">10% Contractor Fees</h4>
+                <p className="text-sm text-gray-400">Recurring monthly income from contractor subscriptions</p>
+              </div>
+              <div className="bg-slate-800/50 p-4 rounded-lg">
+                <h4 className="text-white font-semibold mb-2">10% Marketplace Fees</h4>
+                <p className="text-sm text-gray-400">Commission on all marketplace transactions</p>
+              </div>
+              <div className="bg-slate-800/50 p-4 rounded-lg">
+                <h4 className="text-white font-semibold mb-2">10% Premium Services</h4>
+                <p className="text-sm text-gray-400">Earnings from boosts, promotions, and features</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Tabs */}
         <Tabs defaultValue="overview" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-5">
+          <TabsList className="grid w-full grid-cols-4 bg-slate-800">
             <TabsTrigger value="overview">Overview</TabsTrigger>
             <TabsTrigger value="referrals">Referrals</TabsTrigger>
             <TabsTrigger value="commissions">Commissions</TabsTrigger>
             <TabsTrigger value="payouts">Payouts</TabsTrigger>
-            <TabsTrigger value="settings">Settings</TabsTrigger>
           </TabsList>
 
-          <TabsContent value="overview" className="space-y-6">
-            {/* Referral Link Section */}
-            <Card>
+          <TabsContent value="overview">
+            <Card className="bg-slate-800/50 border-slate-700">
               <CardHeader>
-                <CardTitle>Your Referral Link</CardTitle>
-                <CardDescription>Share this link to earn commissions on all revenue from your referrals</CardDescription>
+                <CardTitle className="text-white">How It Works</CardTitle>
+                <CardDescription>Your automatic affiliate program explained</CardDescription>
               </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="flex items-center space-x-2">
-                  <Input 
-                    value={program.referralLink} 
-                    readOnly 
-                    className="flex-1"
-                  />
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => copyToClipboard(program.referralLink, "Referral link")}
-                  >
-                    <Copy className="w-4 h-4" />
-                  </Button>
-                </div>
-                
-                <div className="flex items-center space-x-2">
-                  <div className="text-sm">
-                    <strong>Affiliate Code:</strong> {program.affiliateCode}
+              <CardContent className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  <div>
+                    <div className="w-12 h-12 bg-orange-500/20 rounded-lg flex items-center justify-center mb-3">
+                      <Share2 className="w-6 h-6 text-orange-400" />
+                    </div>
+                    <h3 className="text-white font-semibold mb-2">1. Share Your Link</h3>
+                    <p className="text-gray-400 text-sm">
+                      Share your personalized link on social media, email, or anywhere online. Every link you share is automatically tracked.
+                    </p>
                   </div>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => copyToClipboard(program.affiliateCode, "Affiliate code")}
-                  >
-                    <Copy className="w-4 h-4" />
-                  </Button>
+                  <div>
+                    <div className="w-12 h-12 bg-blue-500/20 rounded-lg flex items-center justify-center mb-3">
+                      <Users className="w-6 h-6 text-blue-400" />
+                    </div>
+                    <h3 className="text-white font-semibold mb-2">2. People Sign Up</h3>
+                    <p className="text-gray-400 text-sm">
+                      When someone joins TradeScout through your link, they're automatically tracked as your referral forever.
+                    </p>
+                  </div>
+                  <div>
+                    <div className="w-12 h-12 bg-emerald-500/20 rounded-lg flex items-center justify-center mb-3">
+                      <DollarSign className="w-6 h-6 text-emerald-400" />
+                    </div>
+                    <h3 className="text-white font-semibold mb-2">3. Earn 10% Forever</h3>
+                    <p className="text-gray-400 text-sm">
+                      You earn 10% of ALL revenue from your referrals - contractors, marketplace fees, subscriptions, everything.
+                    </p>
+                  </div>
                 </div>
 
-                <div className="bg-blue-50 p-4 rounded-lg">
-                  <h4 className="font-semibold mb-2">Commission Rate: {program.commissionRate}%</h4>
-                  <p className="text-sm text-muted-foreground">
-                    You earn 25% commission on all revenue generated by users who sign up through your referral link, 
-                    including recurring subscription fees and transaction fees.
-                  </p>
+                <div className="bg-slate-700/30 p-6 rounded-lg">
+                  <h4 className="text-white font-semibold mb-3">Why 10% is Powerful</h4>
+                  <ul className="space-y-2 text-gray-300 text-sm">
+                    <li className="flex items-start gap-2">
+                      <Check className="w-5 h-5 text-emerald-400 flex-shrink-0 mt-0.5" />
+                      <span><strong>Recurring Income:</strong> Contractors pay monthly fees - you earn every month they stay active</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <Check className="w-5 h-5 text-emerald-400 flex-shrink-0 mt-0.5" />
+                      <span><strong>Marketplace Revenue:</strong> Every transaction on the marketplace generates commission for you</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <Check className="w-5 h-5 text-emerald-400 flex-shrink-0 mt-0.5" />
+                      <span><strong>No Cap:</strong> There's no limit to how much you can earn - the more people you refer, the more you make</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <Check className="w-5 h-5 text-emerald-400 flex-shrink-0 mt-0.5" />
+                      <span><strong>Passive Income:</strong> After sharing once, you continue earning from your referrals indefinitely</span>
+                    </li>
+                  </ul>
                 </div>
               </CardContent>
             </Card>
-
-            {/* Recent Activity */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Recent Referrals</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  {referrals.length === 0 ? (
-                    <p className="text-muted-foreground">No referrals yet. Start sharing your link!</p>
-                  ) : (
-                    <div className="space-y-3">
-                      {referrals.slice(0, 5).map((referral: Referral) => (
-                        <div key={referral.id} className="flex items-center justify-between">
-                          <div>
-                            <div className="text-sm font-medium">
-                              {referral.status === 'converted' ? 'Converted' : 'Clicked'}
-                            </div>
-                            <div className="text-xs text-muted-foreground">
-                              {format(new Date(referral.createdAt), 'MMM d, yyyy')}
-                            </div>
-                          </div>
-                          <Badge variant={referral.status === 'converted' ? 'default' : 'secondary'}>
-                            {referral.status}
-                          </Badge>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader>
-                  <CardTitle>Recent Commissions</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  {commissions.length === 0 ? (
-                    <p className="text-muted-foreground">No commissions yet.</p>
-                  ) : (
-                    <div className="space-y-3">
-                      {commissions.slice(0, 5).map((commission: Commission) => (
-                        <div key={commission.id} className="flex items-center justify-between">
-                          <div>
-                            <div className="text-sm font-medium">${commission.commissionAmount}</div>
-                            <div className="text-xs text-muted-foreground">
-                              {commission.description}
-                            </div>
-                          </div>
-                          <Badge variant={
-                            commission.status === 'approved' ? 'default' : 
-                            commission.status === 'pending' ? 'secondary' : 'outline'
-                          }>
-                            {commission.status}
-                          </Badge>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            </div>
           </TabsContent>
 
           <TabsContent value="referrals">
-            <Card>
+            <Card className="bg-slate-800/50 border-slate-700">
               <CardHeader>
-                <CardTitle>All Referrals</CardTitle>
-                <CardDescription>Track all clicks and conversions from your referral link</CardDescription>
+                <CardTitle className="text-white">Your Referrals</CardTitle>
+                <CardDescription>Track everyone who joined through your link</CardDescription>
               </CardHeader>
               <CardContent>
-                {referrals.length === 0 ? (
-                  <p className="text-muted-foreground">No referrals yet. Share your link to get started!</p>
-                ) : (
-                  <div className="space-y-4">
-                    {referrals.map((referral: Referral) => (
-                      <div key={referral.id} className="border rounded-lg p-4">
-                        <div className="flex items-center justify-between mb-2">
-                          <Badge variant={referral.status === 'converted' ? 'default' : 'secondary'}>
-                            {referral.status}
-                          </Badge>
-                          <span className="text-sm text-muted-foreground">
-                            {format(new Date(referral.createdAt), 'MMM d, yyyy h:mm a')}
-                          </span>
+                {referrals.length > 0 ? (
+                  <div className="space-y-3">
+                    {referrals.map((referral) => (
+                      <div key={referral.id} className="flex items-center justify-between p-4 bg-slate-700/30 rounded-lg">
+                        <div>
+                          <p className="text-white font-medium">Referral #{referral.id.slice(0, 8)}</p>
+                          <p className="text-sm text-gray-400">{format(new Date(referral.createdAt), "MMM d, yyyy")}</p>
                         </div>
-                        {referral.sourceUrl && (
-                          <div className="text-sm text-muted-foreground">
-                            Source: {referral.sourceUrl}
-                          </div>
-                        )}
-                        {referral.convertedAt && (
-                          <div className="text-sm text-green-600">
-                            Converted: {format(new Date(referral.convertedAt), 'MMM d, yyyy h:mm a')}
-                          </div>
-                        )}
+                        <Badge className={referral.status === 'converted' ? 'bg-emerald-500' : 'bg-gray-600'}>
+                          {referral.status}
+                        </Badge>
                       </div>
                     ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-12">
+                    <Users className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+                    <h3 className="text-xl font-semibold text-white mb-2">No referrals yet</h3>
+                    <p className="text-gray-400 mb-6">Start sharing your link to earn commissions!</p>
+                    <Button 
+                      onClick={() => copyToClipboard(affiliateLink, "Affiliate link")}
+                      className="bg-orange-500 hover:bg-orange-600"
+                    >
+                      <Copy className="w-4 h-4 mr-2" />
+                      Copy Your Link
+                    </Button>
                   </div>
                 )}
               </CardContent>
@@ -442,39 +378,34 @@ export default function AffiliatePage() {
           </TabsContent>
 
           <TabsContent value="commissions">
-            <Card>
+            <Card className="bg-slate-800/50 border-slate-700">
               <CardHeader>
-                <CardTitle>Commission History</CardTitle>
-                <CardDescription>View all commissions earned from your referrals</CardDescription>
+                <CardTitle className="text-white">Commission History</CardTitle>
+                <CardDescription>View all commissions earned</CardDescription>
               </CardHeader>
               <CardContent>
-                {commissions.length === 0 ? (
-                  <p className="text-muted-foreground">No commissions yet.</p>
-                ) : (
-                  <div className="space-y-4">
-                    {commissions.map((commission: Commission) => (
-                      <div key={commission.id} className="border rounded-lg p-4">
-                        <div className="flex items-center justify-between mb-2">
-                          <div className="font-semibold">${commission.commissionAmount}</div>
-                          <Badge variant={
-                            commission.status === 'approved' ? 'default' : 
-                            commission.status === 'pending' ? 'secondary' : 'outline'
-                          }>
+                {commissions.length > 0 ? (
+                  <div className="space-y-3">
+                    {commissions.map((commission) => (
+                      <div key={commission.id} className="flex items-center justify-between p-4 bg-slate-700/30 rounded-lg">
+                        <div className="flex-1">
+                          <p className="text-white font-medium">{commission.description}</p>
+                          <p className="text-sm text-gray-400">{format(new Date(commission.createdAt), "MMM d, yyyy h:mm a")}</p>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-emerald-400 font-bold text-lg">${commission.commissionAmount}</p>
+                          <Badge className={commission.status === 'paid' ? 'bg-emerald-500' : 'bg-yellow-500'}>
                             {commission.status}
                           </Badge>
                         </div>
-                        <div className="text-sm text-muted-foreground mb-1">
-                          {commission.description}
-                        </div>
-                        <div className="text-xs text-muted-foreground">
-                          Revenue: ${commission.revenueAmount} • 
-                          Created: {format(new Date(commission.createdAt), 'MMM d, yyyy')}
-                          {commission.approvedAt && (
-                            <> • Approved: {format(new Date(commission.approvedAt), 'MMM d, yyyy')}</>
-                          )}
-                        </div>
                       </div>
                     ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-12">
+                    <DollarSign className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+                    <h3 className="text-xl font-semibold text-white mb-2">No commissions yet</h3>
+                    <p className="text-gray-400">Your commission earnings will appear here</p>
                   </div>
                 )}
               </CardContent>
@@ -482,98 +413,35 @@ export default function AffiliatePage() {
           </TabsContent>
 
           <TabsContent value="payouts">
-            <Card>
+            <Card className="bg-slate-800/50 border-slate-700">
               <CardHeader>
-                <CardTitle>Payout History</CardTitle>
-                <CardDescription>Track all payments received from your affiliate commissions</CardDescription>
+                <CardTitle className="text-white">Payout History</CardTitle>
+                <CardDescription>View your payment history and update payout settings</CardDescription>
               </CardHeader>
               <CardContent>
-                {payouts.length === 0 ? (
-                  <p className="text-muted-foreground">No payouts yet. Commissions are paid monthly once they reach $100.</p>
-                ) : (
-                  <div className="space-y-4">
-                    {payouts.map((payout: Payout) => (
-                      <div key={payout.id} className="border rounded-lg p-4">
-                        <div className="flex items-center justify-between mb-2">
-                          <div className="font-semibold">${payout.totalAmount}</div>
-                          <Badge variant={
-                            payout.status === 'completed' ? 'default' : 
-                            payout.status === 'processing' ? 'secondary' : 'outline'
-                          }>
-                            {payout.status}
-                          </Badge>
+                {payouts.length > 0 ? (
+                  <div className="space-y-3">
+                    {payouts.map((payout) => (
+                      <div key={payout.id} className="flex items-center justify-between p-4 bg-slate-700/30 rounded-lg">
+                        <div>
+                          <p className="text-white font-medium">${payout.totalAmount}</p>
+                          <p className="text-sm text-gray-400">
+                            {payout.payoutMethod} • {format(new Date(payout.createdAt), "MMM d, yyyy")}
+                          </p>
                         </div>
-                        <div className="text-sm text-muted-foreground mb-1">
-                          Method: {payout.payoutMethod}
-                        </div>
-                        <div className="text-xs text-muted-foreground">
-                          Created: {format(new Date(payout.createdAt), 'MMM d, yyyy')}
-                          {payout.processedAt && (
-                            <> • Processed: {format(new Date(payout.processedAt), 'MMM d, yyyy')}</>
-                          )}
-                        </div>
-                        {payout.notes && (
-                          <div className="text-sm text-muted-foreground mt-2">
-                            Notes: {payout.notes}
-                          </div>
-                        )}
+                        <Badge className={payout.status === 'completed' ? 'bg-emerald-500' : 'bg-yellow-500'}>
+                          {payout.status}
+                        </Badge>
                       </div>
                     ))}
                   </div>
+                ) : (
+                  <div className="text-center py-12">
+                    <Calendar className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+                    <h3 className="text-xl font-semibold text-white mb-2">No payouts yet</h3>
+                    <p className="text-gray-400">Payouts are processed monthly once you reach $50</p>
+                  </div>
                 )}
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="settings">
-            <Card>
-              <CardHeader>
-                <CardTitle>Affiliate Settings</CardTitle>
-                <CardDescription>Configure your payout preferences</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="payoutMethod">Payout Method</Label>
-                  <select 
-                    id="payoutMethod"
-                    className="w-full p-2 border rounded-md"
-                    defaultValue={program.payoutMethod || 'paypal'}
-                  >
-                    <option value="paypal">PayPal</option>
-                    <option value="bank_transfer">Bank Transfer</option>
-                    <option value="stripe">Stripe Connect</option>
-                  </select>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="payoutDetails">Payout Details</Label>
-                  <Input
-                    id="payoutDetails"
-                    placeholder="Email for PayPal, account details for bank transfer"
-                    defaultValue={program.payoutDetails || ''}
-                  />
-                </div>
-
-                <Button 
-                  onClick={() => {
-                    const payoutMethod = (document.getElementById('payoutMethod') as HTMLSelectElement).value;
-                    const payoutDetails = (document.getElementById('payoutDetails') as HTMLInputElement).value;
-                    updateSettingsMutation.mutate({ payoutMethod, payoutDetails });
-                  }}
-                  disabled={updateSettingsMutation.isPending}
-                >
-                  {updateSettingsMutation.isPending ? "Saving..." : "Save Settings"}
-                </Button>
-
-                <div className="bg-yellow-50 p-4 rounded-lg mt-6">
-                  <h4 className="font-semibold mb-2">Payout Schedule</h4>
-                  <ul className="text-sm space-y-1">
-                    <li>• Payouts are processed monthly on the 1st</li>
-                    <li>• Minimum payout amount: $100</li>
-                    <li>• Commissions are held for 30 days before being eligible for payout</li>
-                    <li>• PayPal payouts typically process within 1-2 business days</li>
-                  </ul>
-                </div>
               </CardContent>
             </Card>
           </TabsContent>
