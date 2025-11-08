@@ -433,6 +433,7 @@ export default function HOAManagement() {
               </div>
             )}
           </TabsContent>
+          )}
 
           <TabsContent value="voting" className="space-y-6">
             <div className="space-y-6">
