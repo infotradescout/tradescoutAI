@@ -95,7 +95,7 @@ export default function Accelerator() {
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 <div className="flex items-center text-purple-200">
                   <Zap className="h-4 w-4 text-green-400 mr-3" />
-                  <span>Reduced platform fees (15% → 8%)</span>
+                  <span>Priority project matching algorithm</span>
                 </div>
                 <div className="flex items-center text-purple-200">
                   <Zap className="h-4 w-4 text-green-400 mr-3" />
@@ -132,27 +132,27 @@ export default function Accelerator() {
               </div>
             </div>
 
-            {/* Investment & ROI Section */}
+            {/* Free Platform Notice */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
-              <div className="bg-gradient-to-br from-purple-800/80 to-purple-700/60 rounded-xl p-8 border border-purple-500 text-center backdrop-blur-sm">
-                <DollarSign className="h-12 w-12 text-purple-300 mx-auto mb-4" />
-                <h3 className="text-3xl font-bold text-white mb-2">$199/month</h3>
-                <p className="text-purple-200 text-lg">
-                  Professional Investment
+              <div className="bg-gradient-to-br from-green-800/80 to-green-700/60 rounded-xl p-8 border border-green-500 text-center backdrop-blur-sm">
+                <Shield className="h-12 w-12 text-green-300 mx-auto mb-4" />
+                <h3 className="text-3xl font-bold text-white mb-2">100% FREE</h3>
+                <p className="text-green-200 text-lg">
+                  TradeScout Platform
                 </p>
-                <p className="text-purple-300 text-sm mt-2">
-                  Cancel anytime • No setup fees
+                <p className="text-green-300 text-sm mt-2">
+                  No fees • No commissions • Always free for contractors
                 </p>
               </div>
 
-              <div className="bg-gradient-to-br from-green-800/80 to-green-700/60 rounded-xl p-8 border border-green-500 text-center backdrop-blur-sm">
-                <TrendingUp className="h-12 w-12 text-green-300 mx-auto mb-4" />
-                <h3 className="text-3xl font-bold text-white mb-2">300-500%</h3>
-                <p className="text-green-200 text-lg">
-                  Typical ROI within 6 months
+              <div className="bg-gradient-to-br from-purple-800/80 to-purple-700/60 rounded-xl p-8 border border-purple-500 text-center backdrop-blur-sm">
+                <TrendingUp className="h-12 w-12 text-purple-300 mx-auto mb-4" />
+                <h3 className="text-3xl font-bold text-white mb-2">5-10x More</h3>
+                <p className="text-purple-200 text-lg">
+                  Project Opportunities
                 </p>
-                <p className="text-green-300 text-sm mt-2">
-                  Based on accelerator member data
+                <p className="text-purple-300 text-sm mt-2">
+                  Accelerator members get priority access to projects
                 </p>
               </div>
             </div>
