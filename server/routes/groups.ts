@@ -119,27 +119,12 @@ const mockUserMemberships = [
 export async function getGroups(req: Request, res: Response) {
   try {
     const { county, type, search, limit = '20' } = req.query;
-    
-    let groups;
-    try {
-      groups = await (storage as any).getGroups?.({
-        countyFips: county as string,
-        type: type as string,
-        search: search as string,
-        limit: parseInt(limit as string)
-      });
-      if (!groups) throw new Error('Method not implemented');
-    } catch (dbError) {
-      console.log('Database offline, using mock group data');
-      // Filter groups based on query parameters
-      groups = mockGroups.filter(group => {
-        if (county && group.countyFips !== county) return false;
-        if (type && group.type !== type) return false;
-        if (search && !group.name.toLowerCase().includes((search as string).toLowerCase())) return false;
-        return group.isActive;
-      }).slice(0, parseInt(limit as string));
-    }
-
+    const groups = await storage.getGroups({
+      countyFips: county as string,
+      type: type as string,
+      search: search as string,
+      limit: parseInt(limit as string)
+    });
     res.json(groups);
   } catch (error) {
     console.error('Error fetching groups:', error);
@@ -151,15 +136,7 @@ export async function getGroups(req: Request, res: Response) {
 export async function getGroupDetails(req: Request, res: Response) {
   try {
     const { groupId } = req.params;
-    
-    let group;
-    try {
-      group = await (storage as any).getGroupById?.(groupId);
-      if (!group) throw new Error('Method not implemented');
-    } catch (dbError) {
-      console.log('Database offline, using mock group details');
-      group = mockGroups.find(g => g.id === groupId);
-    }
+    const group = await storage.getGroupById(groupId);
 
     if (!group) {
       return res.status(404).json({ message: 'Group not found' });
@@ -181,23 +158,7 @@ export async function joinGroup(req: Request, res: Response) {
     }
 
     const { groupId } = req.params;
-
-    let membership;
-    try {
-      membership = await (storage as any).joinGroup?.(userId, groupId);
-      if (!membership) throw new Error('Method not implemented');
-    } catch (dbError) {
-      console.log('Database offline, simulating group join');
-      membership = {
-        id: 'membership-' + Date.now(),
-        userId,
-        groupId,
-        role: 'member',
-        joinedAt: new Date().toISOString(),
-        isActive: true
-      };
-    }
-
+    const membership = await storage.joinGroup(userId, groupId);
     res.status(201).json(membership);
   } catch (error) {
     console.error('Error joining group:', error);
@@ -209,21 +170,7 @@ export async function joinGroup(req: Request, res: Response) {
 export async function getGroupPosts(req: Request, res: Response) {
   try {
     const { groupId } = req.params;
-    const { limit = '20', offset = '0' } = req.query;
-
-    let posts;
-    try {
-      posts = await (storage as any).getGroupPosts?.(groupId, {
-        limit: parseInt(limit as string),
-        offset: parseInt(offset as string)
-      });
-      if (!posts) throw new Error('Method not implemented');
-    } catch (dbError) {
-      console.log('Database offline, using mock group posts');
-      posts = mockGroupPosts.filter(post => post.groupId === groupId)
-        .slice(parseInt(offset as string), parseInt(offset as string) + parseInt(limit as string));
-    }
-
+    const posts = await storage.getGroupPosts(groupId);
     res.json(posts);
   } catch (error) {
     console.error('Error fetching group posts:', error);
@@ -240,36 +187,14 @@ export async function createGroupPost(req: Request, res: Response) {
     }
 
     const { groupId } = req.params;
-    const { content, images, tags } = req.body;
-
-    let post;
-    try {
-      post = await (storage as any).createGroupPost?.({
-        groupId,
-        authorId: userId,
-        content,
-        images: images || [],
-        tags: tags || []
-      });
-      if (!post) throw new Error('Method not implemented');
-    } catch (dbError) {
-      console.log('Database offline, simulating post creation');
-      post = {
-        id: 'post-' + Date.now(),
-        groupId,
-        authorId: userId,
-        authorName: 'User',
-        authorRole: 'member',
-        content,
-        images: images || [],
-        likes: 0,
-        comments: 0,
-        isSticky: false,
-        tags: tags || [],
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString()
-      };
-    }
+    const { content, images } = req.body;
+    
+    const post = await storage.createGroupPost({
+      groupId,
+      authorId: userId,
+      content,
+      images: images || []
+    });
 
     res.status(201).json(post);
   } catch (error) {
