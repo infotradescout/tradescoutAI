@@ -1,5 +1,6 @@
 import { memo, useState } from 'react';
-import { MessageSquare, Zap, TrendingUp, MoreHorizontal, Image, Video, Calendar, Compass, Users2, Crown, Award, Flag, Plus, SlidersHorizontal, Trophy, BarChart3, Share, Target } from 'lucide-react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { MessageSquare, Zap, TrendingUp, MoreHorizontal, Image, Video, Calendar, Compass, Users2, Crown, Award, Flag, Plus, SlidersHorizontal, Trophy, BarChart3, Share, Target, Heart, Send } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -8,52 +9,92 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { useAuth } from '@/hooks/useAuth';
+import { useToast } from '@/hooks/use-toast';
+import { apiRequest } from '@/lib/queryClient';
+
+interface Post {
+  id: string;
+  authorId: string;
+  title?: string;
+  content: string;
+  images?: string[];
+  postType: string;
+  countyFips?: string;
+  createdAt: string;
+  likeCount: number;
+  commentCount: number;
+  shareCount: number;
+}
 
 const CommunityFeed = memo(function CommunityFeed() {
   const [activeTab, setActiveTab] = useState("feed");
   const [newPostContent, setNewPostContent] = useState("");
-  const [showNewPostForm, setShowNewPostForm] = useState(false); // State to control the visibility of the new post form
-  const [selectedCounty, setSelectedCounty] = useState(''); // Placeholder for county selection
-  const user = { id: 'user123' }; // Placeholder for logged-in user
+  const [showNewPostForm, setShowNewPostForm] = useState(false);
+  const { user } = useAuth();
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
 
-  // Placeholder for fetching posts and setting state
-  const fetchPosts = async () => {
-    // In a real app, this would fetch posts from an API
-    console.log('Fetching posts...');
-  };
+  // Fetch posts from the API
+  const { data: postsData, isLoading: postsLoading } = useQuery({
+    queryKey: ['/api/community/posts'],
+    queryFn: async () => {
+      const response = await fetch('/api/community/posts');
+      if (!response.ok) throw new Error('Failed to fetch posts');
+      return response.json();
+    }
+  });
 
-  const handleCreatePost = async (postData: {
-    title: string;
-    content: string;
-    type: 'discussion' | 'poll' | 'announcement';
-    pollOptions?: string[];
-  }) => {
-    try {
-      const response = await fetch('/api/posts', {
+  // Create post mutation
+  const createPostMutation = useMutation({
+    mutationFn: async (postData: { content: string; title?: string }) => {
+      return apiRequest('/api/community/posts', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          ...postData,
-          countyId: selectedCounty,
-          userId: user?.id
+          content: postData.content,
+          title: postData.title,
+          postType: 'discussion',
+          visibility: 'public'
         })
       });
-      if (response.ok) {
-        fetchPosts(); // Refresh feed
-        setShowNewPostForm(false); // Close the form after successful creation
-        setNewPostContent(''); // Clear the input
-      } else {
-        console.error('Failed to create post:', response.statusText);
-      }
-    } catch (error) {
-      console.error('Failed to create post:', error);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/community/posts'] });
+      setShowNewPostForm(false);
+      setNewPostContent('');
+      toast({
+        title: "Post Created",
+        description: "Your post has been shared with the community!",
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to create post. Please try again.",
+        variant: "destructive",
+      });
     }
+  });
+
+  // Like post mutation
+  const likePostMutation = useMutation({
+    mutationFn: async (postId: string) => {
+      return apiRequest(`/api/community/posts/${postId}/like`, {
+        method: 'POST'
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/community/posts'] });
+    }
+  });
+
+  const handleCreatePost = () => {
+    if (!newPostContent.trim()) return;
+    createPostMutation.mutate({ content: newPostContent });
   };
 
-  // Placeholder for handling post likes/votes
-  const handleLikePost = async (postId: number) => {
-    console.log(`Liking post ${postId}`);
-    // In a real app, this would send a request to the API to like a post
+  const handleLikePost = (postId: string) => {
+    likePostMutation.mutate(postId);
   };
 
   const posts = [
