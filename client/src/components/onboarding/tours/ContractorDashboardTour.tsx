@@ -10,13 +10,13 @@ const contractorDashboardSteps: TourStep[] = [
   },
   {
     id: "manage-connections",
-    target: "[data-testid='leads-widget']",
+    target: "[data-testid='projects-widget']",
     title: "Manage Connections",
     description: "Review and respond to new customer inquiries",
     position: "bottom",
     primaryAction: {
       label: "View Connections", 
-      href: "/lead-management"
+      href: "/project-tracker"
     }
   },
   {

@@ -166,7 +166,7 @@ export function LeadsWidget({ count, newToday }: { count: number; newToday: numb
       tooltipContent="Track customer inquiries and manage your sales pipeline like organizing your job queue"
       tooltipIllustration="wrench"
       actionLabel="Manage Connections"
-      actionHref="/lead-management"
+      actionHref="/project-tracker"
     />
   );
 }
