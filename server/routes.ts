@@ -8165,11 +8165,19 @@ export async function registerRoutes(app: Express) {
     getHOAVotes,
     submitVote,
     requestVendorService,
-    searchHOAs
+    searchHOAs,
+    getHOAMember,
+    getHOAMembers,
+    addHOAMember,
+    updateHOAMemberRole
   } = await import("./routes/hoa");
 
   app.get("/api/hoa/search", searchHOAs);
   app.get("/api/hoa/:hoaId", getHOA);
+  app.get("/api/hoa/:hoaId/member", isAuthenticated, getHOAMember);
+  app.get("/api/hoa/:hoaId/members", isAuthenticated, getHOAMembers);
+  app.post("/api/hoa/:hoaId/members", isAuthenticated, addHOAMember);
+  app.put("/api/hoa/:hoaId/members/:memberId/role", isAuthenticated, updateHOAMemberRole);
   app.get("/api/hoa/:hoaId/finances", getHOAFinances);
   app.get("/api/hoa/:hoaId/vendors", getHOAVendors);
   app.get("/api/hoa/:hoaId/votes", getHOAVotes);

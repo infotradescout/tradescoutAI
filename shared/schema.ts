@@ -3027,6 +3027,38 @@ export const hoaDocuments = pgTable("hoa_documents", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+// HOA Membership and Roles
+export const hoaMembers = pgTable("hoa_members", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  hoaId: varchar("hoa_id").notNull().references(() => homeownerAssociations.id, { onDelete: 'cascade' }),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: 'cascade' }),
+  
+  // Membership Details
+  unitNumber: varchar("unit_number"),
+  role: varchar("role").notNull().default('member'), // member, board_member, president, vice_president, treasurer, secretary
+  joinedAt: timestamp("joined_at").defaultNow(),
+  termStart: timestamp("term_start"), // For board members
+  termEnd: timestamp("term_end"), // For board members
+  
+  // Contact & Status
+  isPrimary: boolean("is_primary").default(true), // Primary owner of unit
+  votingRights: boolean("voting_rights").default(true),
+  inGoodStanding: boolean("in_good_standing").default(true),
+  
+  // Permissions
+  canViewFinances: boolean("can_view_finances").default(false),
+  canEditDocuments: boolean("can_edit_documents").default(false),
+  canManageVendors: boolean("can_manage_vendors").default(false),
+  canCreateVotes: boolean("can_create_votes").default(false),
+  
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => [
+  index("idx_hoa_members_hoa").on(table.hoaId),
+  index("idx_hoa_members_user").on(table.userId),
+  index("idx_hoa_members_role").on(table.role),
+]);
+
 // Relations for social features
 export const communityPostsRelations = relations(communityPosts, ({ one, many }) => ({
   author: one(users, {

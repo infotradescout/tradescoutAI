@@ -1,6 +1,28 @@
 import { Request, Response } from 'express';
 import { storage } from '../storage';
 
+// Middleware to check HOA permissions
+async function checkHOAPermission(userId: string, hoaId: string, requiredPermission: 'view' | 'viewFinances' | 'editDocuments' | 'manageVendors' | 'createVotes') {
+  const member = await storage.getHOAMemberByUserId(userId, hoaId);
+  
+  if (!member) {
+    return { authorized: false, member: null };
+  }
+
+  switch (requiredPermission) {
+    case 'viewFinances':
+      return { authorized: member.canViewFinances, member };
+    case 'editDocuments':
+      return { authorized: member.canEditDocuments, member };
+    case 'manageVendors':
+      return { authorized: member.canManageVendors, member };
+    case 'createVotes':
+      return { authorized: member.canCreateVotes, member };
+    default:
+      return { authorized: true, member }; // Basic view permission
+  }
+}
+
 // Mock HOA data for Phase 4 implementation
 const mockHOAs = [
   {
@@ -230,5 +252,105 @@ export async function searchHOAs(req: Request, res: Response) {
   } catch (error) {
     console.error('Error searching HOAs:', error);
     res.status(500).json({ message: 'Failed to search HOAs' });
+  }
+}
+
+// HOA Member Management Routes
+export async function getHOAMember(req: Request, res: Response) {
+  try {
+    const userId = (req.user as any)?.id || (req.user as any)?.claims?.sub;
+    if (!userId) {
+      return res.status(401).json({ message: 'Authentication required' });
+    }
+
+    const { hoaId } = req.params;
+    const member = await storage.getHOAMemberByUserId(userId, hoaId);
+
+    if (!member) {
+      return res.status(404).json({ message: 'Not a member of this HOA' });
+    }
+
+    res.json(member);
+  } catch (error) {
+    console.error('Error fetching HOA member:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+}
+
+export async function getHOAMembers(req: Request, res: Response) {
+  try {
+    const userId = (req.user as any)?.id || (req.user as any)?.claims?.sub;
+    if (!userId) {
+      return res.status(401).json({ message: 'Authentication required' });
+    }
+
+    const { hoaId } = req.params;
+    
+    // Check if user has permission to view members
+    const { authorized } = await checkHOAPermission(userId, hoaId, 'view');
+    if (!authorized) {
+      return res.status(403).json({ message: 'Forbidden' });
+    }
+
+    const members = await storage.getHOAMembers(hoaId);
+    res.json(members);
+  } catch (error) {
+    console.error('Error fetching HOA members:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+}
+
+export async function addHOAMember(req: Request, res: Response) {
+  try {
+    const userId = (req.user as any)?.id || (req.user as any)?.claims?.sub;
+    if (!userId) {
+      return res.status(401).json({ message: 'Authentication required' });
+    }
+
+    const { hoaId } = req.params;
+    const { userId: newUserId, unitNumber, role, votingRights } = req.body;
+
+    // Check if requesting user has permission (president/vice_president only)
+    const { authorized, member } = await checkHOAPermission(userId, hoaId, 'manageVendors');
+    if (!authorized || !['president', 'vice_president'].includes(member?.role)) {
+      return res.status(403).json({ message: 'Only presidents and vice presidents can add members' });
+    }
+
+    const newMember = await storage.addHOAMember({
+      hoaId,
+      userId: newUserId,
+      unitNumber,
+      role,
+      votingRights
+    });
+
+    res.json(newMember);
+  } catch (error) {
+    console.error('Error adding HOA member:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+}
+
+export async function updateHOAMemberRole(req: Request, res: Response) {
+  try {
+    const userId = (req.user as any)?.id || (req.user as any)?.claims?.sub;
+    if (!userId) {
+      return res.status(401).json({ message: 'Authentication required' });
+    }
+
+    const { hoaId, memberId } = req.params;
+    const { role } = req.body;
+
+    // Check if requesting user has permission (president only)
+    const { authorized, member } = await checkHOAPermission(userId, hoaId, 'manageVendors');
+    if (!authorized || member?.role !== 'president') {
+      return res.status(403).json({ message: 'Only presidents can change member roles' });
+    }
+
+    const updatedMember = await storage.updateHOAMemberRole(memberId, role);
+    res.json(updatedMember);
+  } catch (error) {
+    console.error('Error updating HOA member role:', error);
+    res.status(500).json({ message: 'Internal server error' });
   }
 }
