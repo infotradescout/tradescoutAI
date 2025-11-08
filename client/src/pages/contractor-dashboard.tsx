@@ -232,7 +232,7 @@ export default function ContractorDashboard() {
         </Card>
       </div>
 
-      {/* Recent Leads & Performance */}
+      {/* Recent Requests & Performance */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         <Card className="bg-navy-700 border-navy-600">
           <CardHeader>
@@ -339,7 +339,7 @@ export default function ContractorDashboard() {
                     <Award className="h-4 w-4 text-purple-500 mt-0.5" />
                     <div>
                       <p className="text-white text-sm">Join Accelerator Program</p>
-                      <p className="text-gray-400 text-xs">Get priority leads and training</p>
+                      <p className="text-gray-400 text-xs">Get priority opportunities and training</p>
                     </div>
                   </div>
                   <div className="flex items-start space-x-3">

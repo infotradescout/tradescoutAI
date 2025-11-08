@@ -7,18 +7,18 @@ import { TrendingUp, Users, DollarSign, Eye, Calendar, Target, MapPin, Clock } f
 
 const Analytics = memo(function Analytics() {
   const metrics = [
-    { label: 'Total Leads', value: '247', change: '+12%', icon: Users, color: 'blue' },
+    { label: 'Total Requests', value: '247', change: '+12%', icon: Users, color: 'blue' },
     { label: 'Revenue', value: '$42,380', change: '+18%', icon: DollarSign, color: 'emerald' },
     { label: 'Profile Views', value: '1,284', change: '+7%', icon: Eye, color: 'purple' },
     { label: 'Conversion Rate', value: '24.3%', change: '+3%', icon: Target, color: 'orange' }
   ];
 
-  const leadSources = [
-    { source: 'Direct Search', leads: 89, percentage: 36 },
-    { source: 'Facebook Groups', leads: 67, percentage: 27 },
-    { source: 'Referrals', leads: 45, percentage: 18 },
-    { source: 'Daily Deals', leads: 32, percentage: 13 },
-    { source: 'Other', leads: 14, percentage: 6 }
+  const requestSources = [
+    { source: 'Direct Search', requests: 89, percentage: 36 },
+    { source: 'Facebook Groups', requests: 67, percentage: 27 },
+    { source: 'Referrals', requests: 45, percentage: 18 },
+    { source: 'Daily Deals', requests: 32, percentage: 13 },
+    { source: 'Other', requests: 14, percentage: 6 }
   ];
 
   const recentProjects = [
@@ -77,7 +77,7 @@ const Analytics = memo(function Analytics() {
         <div className="mb-8">
           <h1 className="text-4xl font-bold text-white mb-4">Business Analytics</h1>
           <p className="text-xl text-gray-300">
-            Track your performance, leads, and revenue with detailed insights
+            Track your performance, opportunities, and revenue with detailed insights
           </p>
         </div>
 
@@ -108,24 +108,24 @@ const Analytics = memo(function Analytics() {
         <Tabs defaultValue="overview" className="space-y-6">
           <TabsList className="grid w-full grid-cols-4 bg-slate-800">
             <TabsTrigger value="overview" className="data-[state=active]:bg-orange-600">Overview</TabsTrigger>
-            <TabsTrigger value="leads" className="data-[state=active]:bg-orange-600">Leads</TabsTrigger>
+            <TabsTrigger value="requests" className="data-[state=active]:bg-orange-600">Requests</TabsTrigger>
             <TabsTrigger value="projects" className="data-[state=active]:bg-orange-600">Projects</TabsTrigger>
             <TabsTrigger value="performance" className="data-[state=active]:bg-orange-600">Performance</TabsTrigger>
           </TabsList>
 
           <TabsContent value="overview">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-              {/* Lead Sources */}
+              {/* Request Sources */}
               <Card className="bg-slate-800/50 border-slate-700">
                 <CardHeader>
-                  <CardTitle className="text-white">Lead Sources</CardTitle>
+                  <CardTitle className="text-white">Request Sources</CardTitle>
                   <CardDescription className="text-gray-400">
-                    Where your leads are coming from this month
+                    Where your project requests are coming from this month
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-4">
-                    {leadSources.map((source, index) => (
+                    {requestSources.map((source, index) => (
                       <div key={index} className="flex items-center justify-between">
                         <div className="flex items-center gap-3 flex-1">
                           <div className="w-3 h-3 bg-orange-500 rounded-full"></div>
@@ -138,7 +138,7 @@ const Analytics = memo(function Analytics() {
                               style={{ width: `${source.percentage}%` }}
                             ></div>
                           </div>
-                          <span className="text-white font-medium w-8">{source.leads}</span>
+                          <span className="text-white font-medium w-8">{source.requests}</span>
                         </div>
                       </div>
                     ))}
@@ -185,19 +185,19 @@ const Analytics = memo(function Analytics() {
             </div>
           </TabsContent>
 
-          <TabsContent value="leads">
+          <TabsContent value="requests">
             <Card className="bg-slate-800/50 border-slate-700">
               <CardHeader>
-                <CardTitle className="text-white">Connection Management</CardTitle>
+                <CardTitle className="text-white">Request Management</CardTitle>
                 <CardDescription className="text-gray-400">
-                  Track and analyze your lead pipeline
+                  Track and analyze your opportunity pipeline
                 </CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
                   <div className="p-4 bg-blue-600/10 border border-blue-600/20 rounded-lg text-center">
                     <h3 className="text-2xl font-bold text-blue-400 mb-1">73</h3>
-                    <p className="text-gray-300">New Leads</p>
+                    <p className="text-gray-300">New Requests</p>
                     <p className="text-xs text-gray-500">This month</p>
                   </div>
                   <div className="p-4 bg-yellow-600/10 border border-yellow-600/20 rounded-lg text-center">
@@ -213,10 +213,10 @@ const Analytics = memo(function Analytics() {
                 </div>
 
                 <div className="space-y-4">
-                  <h4 className="font-semibold text-white">Lead Conversion Funnel</h4>
+                  <h4 className="font-semibold text-white">Conversion Funnel</h4>
                   <div className="space-y-2">
                     <div className="flex items-center justify-between p-3 bg-slate-700/30 rounded-lg">
-                      <span className="text-gray-300">Leads Generated</span>
+                      <span className="text-gray-300">Requests Received</span>
                       <span className="text-white font-medium">247</span>
                     </div>
                     <div className="flex items-center justify-between p-3 bg-slate-700/30 rounded-lg">
@@ -284,40 +284,23 @@ const Analytics = memo(function Analytics() {
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
               <Card className="bg-slate-800/50 border-slate-700">
                 <CardHeader>
-                  <CardTitle className="text-white">Response Time Analytics</CardTitle>
+                  <CardTitle className="text-white">Response Time</CardTitle>
                   <CardDescription className="text-gray-400">
-                    How quickly you respond to leads
+                    How quickly you respond to new requests
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <div className="space-y-4">
-                    <div className="p-4 bg-emerald-600/10 border border-emerald-600/20 rounded-lg">
-                      <div className="flex items-center gap-2 mb-2">
-                        <Clock className="w-5 h-5 text-emerald-400" />
-                        <h3 className="font-semibold text-emerald-400">Average Response Time</h3>
-                      </div>
-                      <p className="text-2xl font-bold text-white">2.3 hours</p>
-                      <p className="text-sm text-gray-400">Industry average: 4.2 hours</p>
-                    </div>
-                    
-                    <div className="space-y-2">
-                      <div className="flex justify-between text-gray-300">
-                        <span>&lt; 1 hour</span>
-                        <span>45%</span>
-                      </div>
-                      <div className="flex justify-between text-gray-300">
-                        <span>1-4 hours</span>
-                        <span>32%</span>
-                      </div>
-                      <div className="flex justify-between text-gray-300">
-                        <span>4-24 hours</span>
-                        <span>18%</span>
-                      </div>
-                      <div className="flex justify-between text-gray-300">
-                        <span>&gt; 24 hours</span>
-                        <span>5%</span>
+                  <div className="text-center py-6">
+                    <div className="inline-flex items-center justify-center w-24 h-24 rounded-full bg-orange-600/10 border-4 border-orange-600/20 mb-4">
+                      <div className="flex items-baseline">
+                        <span className="text-4xl font-bold text-orange-400">2.3</span>
+                        <span className="text-lg text-gray-400 ml-1">hrs</span>
                       </div>
                     </div>
+                    <p className="text-gray-300">Average Response Time</p>
+                    <Badge variant="outline" className="mt-2 text-emerald-400 border-emerald-400/50">
+                      -15% from last month
+                    </Badge>
                   </div>
                 </CardContent>
               </Card>
@@ -326,38 +309,24 @@ const Analytics = memo(function Analytics() {
                 <CardHeader>
                   <CardTitle className="text-white">Customer Satisfaction</CardTitle>
                   <CardDescription className="text-gray-400">
-                    Your ratings and customer feedback
+                    Average rating from completed projects
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <div className="space-y-4">
-                    <div className="text-center p-4 bg-orange-600/10 border border-orange-600/20 rounded-lg">
-                      <div className="text-4xl font-bold text-orange-400 mb-2">4.8</div>
-                      <div className="flex justify-center gap-1 mb-2">
-                        {[1, 2, 3, 4, 5].map((star) => (
-                          <div key={star} className="w-5 h-5 bg-yellow-400 rounded-sm"></div>
-                        ))}
+                  <div className="text-center py-6">
+                    <div className="inline-flex items-center justify-center w-24 h-24 rounded-full bg-emerald-600/10 border-4 border-emerald-600/20 mb-4">
+                      <div className="flex items-baseline">
+                        <span className="text-4xl font-bold text-emerald-400">4.8</span>
+                        <span className="text-lg text-gray-400 ml-1">/5</span>
                       </div>
-                      <p className="text-gray-300">Based on 127 reviews</p>
                     </div>
-                    
-                    <div className="space-y-2">
-                      {[5, 4, 3, 2, 1].map((rating) => {
-                        const percentages = [78, 15, 4, 2, 1];
-                        const percentage = percentages[5 - rating];
-                        return (
-                          <div key={rating} className="flex items-center gap-3">
-                            <span className="text-gray-300 w-6">{rating}★</span>
-                            <div className="flex-1 bg-slate-700 rounded-full h-2">
-                              <div 
-                                className="bg-yellow-400 h-2 rounded-full"
-                                style={{ width: `${percentage}%` }}
-                              ></div>
-                            </div>
-                            <span className="text-gray-400 w-8 text-sm">{percentage}%</span>
-                          </div>
-                        );
-                      })}
+                    <p className="text-gray-300">Overall Rating</p>
+                    <div className="flex items-center justify-center gap-1 mt-2">
+                      {[1,2,3,4,5].map((star) => (
+                        <svg key={star} className="w-5 h-5 fill-yellow-400" viewBox="0 0 20 20">
+                          <path d="M10 15l-5.878 3.09 1.123-6.545L.489 6.91l6.572-.955L10 0l2.939 5.955 6.572.955-4.756 4.635 1.123 6.545z"/>
+                        </svg>
+                      ))}
                     </div>
                   </div>
                 </CardContent>
@@ -366,13 +335,15 @@ const Analytics = memo(function Analytics() {
           </TabsContent>
         </Tabs>
 
-        {/* Export Options */}
-        <div className="mt-8 flex flex-col sm:flex-row gap-4">
-          <Button variant="outline" className="flex-1">
-            Export PDF Report
+        {/* Action Buttons */}
+        <div className="mt-8 flex gap-4">
+          <Button className="bg-orange-600 hover:bg-orange-700 text-white">
+            <TrendingUp className="w-4 h-4 mr-2" />
+            Export Report
           </Button>
-          <Button className="flex-1 bg-orange-600 hover:bg-orange-700">
-            Schedule Email Reports
+          <Button variant="outline" className="border-slate-700 text-white hover:bg-slate-800">
+            <Calendar className="w-4 h-4 mr-2" />
+            View Full History
           </Button>
         </div>
       </div>
