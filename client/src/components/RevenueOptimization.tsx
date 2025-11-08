@@ -302,9 +302,9 @@ export function RevenueAnalytics() {
 }
 
 /**
- * Smart Lead Magnet - Captures contractor interest for Accelerator program
+ * Smart Project Magnet - Captures contractor interest for Accelerator program
  */
-export function SmartLeadMagnet({ trigger }: { trigger: 'quote-view' | 'competitor-check' | 'lead-miss' }) {
+export function SmartProjectMagnet({ trigger }: { trigger: 'quote-view' | 'competitor-check' | 'project-miss' }) {
   const getContent = () => {
     switch (trigger) {
       case 'quote-view':
@@ -316,13 +316,13 @@ export function SmartLeadMagnet({ trigger }: { trigger: 'quote-view' | 'competit
       case 'competitor-check':
         return {
           title: 'See what your competitors are missing',
-          description: 'Get exclusive access to leads they can\'t see',
-          cta: 'Unlock Hidden Leads'
+          description: 'Get exclusive access to projects they can\'t see',
+          cta: 'Unlock Hidden Projects'
         };
-      case 'lead-miss':
+      case 'project-miss':
         return {
           title: 'Don\'t miss the next opportunity',
-          description: 'Get priority access to new leads in your service area',
+          description: 'Get priority access to new projects in your service area',
           cta: 'Join Priority List'
         };
     }

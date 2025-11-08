@@ -248,7 +248,7 @@ export function ContextualHelp({ topic, compact = false }: ContextualHelpProps) 
                       <span className="text-green-400 text-sm">💡</span>
                     </div>
                     <p className="text-sm text-gray-300">
-                      Respond to leads within 15 minutes - you'll win 80% more jobs than slow responders.
+                      Respond to customer requests within 15 minutes - you'll win 80% more jobs than slow responders.
                     </p>
                   </div>
                   <div className="flex items-start space-x-3">
