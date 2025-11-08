@@ -81,7 +81,7 @@ export default function Dashboard() {
             {user.role === 'contractor_user' ? (
               <div className="space-y-4">
                 <p className="text-gray-400 text-sm">
-                  As a contractor, you'll be able to receive leads, build your reputation, and grow your business.
+                  As a contractor, you'll be able to receive project requests, build your reputation, and grow your business.
                 </p>
                 <Link href="/contractors/apply">
                   <Button className="bg-orange-500 hover:bg-orange-600 text-white">

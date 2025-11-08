@@ -173,7 +173,7 @@ export default function Boosts() {
                             <Target className="w-4 h-4 text-purple-400" />
                             <span className="text-lg font-bold text-white">{userBoost.conversions}</span>
                           </div>
-                          <p className="text-xs text-slate-400">Leads</p>
+                          <p className="text-xs text-slate-400">Requests</p>
                         </div>
                       </div>
                       <Button variant="outline" className="w-full" data-testid={`analytics-${userBoost.id}`}>
@@ -278,7 +278,7 @@ export default function Boosts() {
                   <div className="w-16 h-16 bg-green-500/20 rounded-full flex items-center justify-center mx-auto">
                     <Target className="w-8 h-8 text-green-400" />
                   </div>
-                  <h4 className="text-xl font-semibold text-white">Quality Leads</h4>
+                  <h4 className="text-xl font-semibold text-white">Quality Connections</h4>
                   <p className="text-slate-400">Attract serious buyers and clients who are ready to make decisions.</p>
                 </div>
                 <div className="text-center space-y-3">
