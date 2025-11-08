@@ -116,15 +116,7 @@ const mockActiveVotes = [
 export async function getHOA(req: Request, res: Response) {
   try {
     const { hoaId } = req.params;
-    
-    let hoa;
-    try {
-      hoa = await (storage as any).getHOAById?.(hoaId);
-      if (!hoa) throw new Error('Method not implemented');
-    } catch (dbError) {
-      console.log('Database offline, using mock HOA data');
-      hoa = mockHOAs.find(h => h.id === hoaId);
-    }
+    const hoa = await storage.getHOAById(hoaId);
 
     if (!hoa) {
       return res.status(404).json({ message: 'HOA not found' });
@@ -141,15 +133,7 @@ export async function getHOA(req: Request, res: Response) {
 export async function getHOAFinances(req: Request, res: Response) {
   try {
     const { hoaId } = req.params;
-    
-    let finances;
-    try {
-      finances = await (storage as any).getHOAFinances?.(hoaId);
-      if (!finances) throw new Error('Method not implemented');
-    } catch (dbError) {
-      console.log('Database offline, using mock financial data');
-      finances = mockHOAFinances[hoaId as keyof typeof mockHOAFinances];
-    }
+    const finances = await storage.getHOAFinances(hoaId);
 
     if (!finances) {
       return res.status(404).json({ message: 'Financial data not found' });
@@ -166,16 +150,7 @@ export async function getHOAFinances(req: Request, res: Response) {
 export async function getHOAVendors(req: Request, res: Response) {
   try {
     const { hoaId } = req.params;
-    
-    let vendors;
-    try {
-      vendors = await (storage as any).getHOAVendors?.(hoaId);
-      if (!vendors) throw new Error('Method not implemented');
-    } catch (dbError) {
-      console.log('Database offline, using mock vendor data');
-      vendors = mockHOAVendors.filter(v => v.hoaId === hoaId);
-    }
-
+    const vendors = await storage.getHOAVendors(hoaId);
     res.json(vendors);
   } catch (error) {
     console.error('Error fetching HOA vendors:', error);
@@ -187,16 +162,7 @@ export async function getHOAVendors(req: Request, res: Response) {
 export async function getHOAVotes(req: Request, res: Response) {
   try {
     const { hoaId } = req.params;
-    
-    let votes;
-    try {
-      votes = await (storage as any).getHOAVotes?.(hoaId);
-      if (!votes) throw new Error('Method not implemented');
-    } catch (dbError) {
-      console.log('Database offline, using mock voting data');
-      votes = mockActiveVotes.filter(v => v.hoaId === hoaId);
-    }
-
+    const votes = await storage.getHOAVotes(hoaId);
     res.json(votes);
   } catch (error) {
     console.error('Error fetching HOA votes:', error);
@@ -213,23 +179,8 @@ export async function submitVote(req: Request, res: Response) {
     }
 
     const { voteId } = req.params;
-    const { decision } = req.body; // 'for' or 'against'
-
-    let voteResult;
-    try {
-      voteResult = await (storage as any).submitHOAVote?.(userId, voteId, decision);
-      if (!voteResult) throw new Error('Method not implemented');
-    } catch (dbError) {
-      console.log('Database offline, simulating vote submission');
-      voteResult = {
-        voteId,
-        userId,
-        decision,
-        submittedAt: new Date().toISOString(),
-        status: 'recorded'
-      };
-    }
-
+    const { decision } = req.body;
+    const voteResult = await storage.submitHOAVote(userId, voteId, decision);
     res.status(201).json(voteResult);
   } catch (error) {
     console.error('Error submitting vote:', error);
@@ -247,32 +198,15 @@ export async function requestVendorService(req: Request, res: Response) {
 
     const { vendorId } = req.params;
     const { serviceType, description, urgency, contactPreference } = req.body;
-
-    let serviceRequest;
-    try {
-      serviceRequest = await (storage as any).createVendorServiceRequest?.({
-        userId,
-        vendorId,
-        serviceType,
-        description,
-        urgency,
-        contactPreference
-      });
-      if (!serviceRequest) throw new Error('Method not implemented');
-    } catch (dbError) {
-      console.log('Database offline, simulating service request');
-      serviceRequest = {
-        id: 'request-' + Date.now(),
-        userId,
-        vendorId,
-        serviceType,
-        description,
-        urgency,
-        contactPreference,
-        status: 'submitted',
-        submittedAt: new Date().toISOString()
-      };
-    }
+    
+    const serviceRequest = await storage.createVendorServiceRequest({
+      userId,
+      vendorId,
+      serviceType,
+      description,
+      urgency,
+      contactPreference
+    });
 
     res.status(201).json(serviceRequest);
   } catch (error) {
@@ -285,23 +219,12 @@ export async function requestVendorService(req: Request, res: Response) {
 export async function searchHOAs(req: Request, res: Response) {
   try {
     const { county, zip, city, state } = req.query;
-    
-    let hoas;
-    try {
-      hoas = await (storage as any).searchHOAs?.({
-        countyFips: county as string,
-        zip: zip as string,
-        city: city as string,
-        state: state as string
-      });
-      if (!hoas) throw new Error('Method not implemented');
-    } catch (dbError) {
-      console.log('Database offline, using mock HOA search results');
-      hoas = mockHOAs.filter(hoa => {
-        if (county && hoa.countyFips !== county) return false;
-        return hoa.isActive;
-      });
-    }
+    const hoas = await storage.searchHOAs({
+      countyFips: county as string,
+      zip: zip as string,
+      city: city as string,
+      state: state as string
+    });
 
     res.json(hoas);
   } catch (error) {

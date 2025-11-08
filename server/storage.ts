@@ -97,6 +97,14 @@ import {
   type InsertAffiliateCommission,
   type AffiliatePayout,
   type InsertAffiliatePayout,
+  // HOA Management
+  homeownerAssociations,
+  hoaFinancialRecords,
+  hoaVendors,
+  hoaVotes,
+  hoaVoteResponses,
+  hoaServiceRequests,
+  hoaDocuments,
   // Trusted devices
   trustedDevices,
   type TrustedDevice,
@@ -782,6 +790,35 @@ export interface IStorage {
   getCrmPipeline(id: string): Promise<CrmPipeline | undefined>;
   getAllCrmPipelines(): Promise<Array<CrmPipeline & { createdBy?: User }>>;
   getDefaultCrmPipeline(): Promise<CrmPipeline | undefined>;
+
+  // HOA Management operations
+  getHOAById(hoaId: string): Promise<any>;
+  searchHOAs(filters: { countyFips?: string; zip?: string; city?: string; state?: string }): Promise<any[]>;
+  getHOAFinances(hoaId: string): Promise<any>;
+  getHOAVendors(hoaId: string): Promise<any[]>;
+  getHOAVotes(hoaId: string): Promise<any[]>;
+  submitHOAVote(userId: string, voteId: string, decision: string): Promise<any>;
+  createVendorServiceRequest(request: { userId: string; vendorId: string; serviceType: string; description: string; urgency: string; contactPreference: string }): Promise<any>;
+
+  // Groups/Community operations
+  getGroups(filters: { countyFips?: string; type?: string; search?: string; limit: number }): Promise<any[]>;
+  getGroupById(groupId: string): Promise<any>;
+  joinGroup(userId: string, groupId: string): Promise<any>;
+  leaveGroup(userId: string, groupId: string): Promise<void>;
+  getGroupPosts(groupId: string): Promise<any[]>;
+  createGroupPost(post: { groupId: string; authorId: string; content: string; images?: string[] }): Promise<any>;
+
+  // Boosts/Promotions operations
+  getBoostsByRole(userRole: string): Promise<any[]>;
+  purchaseBoost(data: { userId: string; boostId: string; paymentMethodId?: string }): Promise<any>;
+  getUserBoosts(userId: string): Promise<any[]>;
+  getBoostAnalytics(boostId: string, userId: string): Promise<any>;
+
+  // Nationwide Dashboard operations
+  getNationwideMetrics(): Promise<{ totalUsers: number; totalContractors: number; totalProjects: number; totalRevenue: string }>;
+  getTopPerformingCounties(limit: number): Promise<any[]>;
+  getExpansionPipeline(): Promise<any[]>;
+  getGeographicDistribution(): Promise<any>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -6213,6 +6250,359 @@ export class DatabaseStorage implements IStorage {
     }
     
     return flag.enabled;
+  }
+
+  // HOA Management operations
+  async getHOAById(hoaId: string): Promise<any> {
+    const [hoa] = await db.select().from(homeownerAssociations).where(eq(homeownerAssociations.id, hoaId));
+    return hoa;
+  }
+
+  async searchHOAs(filters: { countyFips?: string; zip?: string; city?: string; state?: string }): Promise<any[]> {
+    let query = db.select().from(homeownerAssociations).where(eq(homeownerAssociations.isActive, true));
+    
+    if (filters.countyFips) {
+      query = query.where(eq(homeownerAssociations.countyFips, filters.countyFips)) as any;
+    }
+    if (filters.state) {
+      query = query.where(eq(homeownerAssociations.state, filters.state)) as any;
+    }
+    if (filters.city) {
+      query = query.where(eq(homeownerAssociations.city, filters.city)) as any;
+    }
+    if (filters.zip) {
+      query = query.where(eq(homeownerAssociations.zipCode, filters.zip)) as any;
+    }
+    
+    return await query;
+  }
+
+  async getHOAFinances(hoaId: string): Promise<any> {
+    const currentYear = new Date().getFullYear();
+    const records = await db
+      .select()
+      .from(hoaFinancialRecords)
+      .where(and(
+        eq(hoaFinancialRecords.hoaId, hoaId),
+        eq(hoaFinancialRecords.year, currentYear)
+      ))
+      .orderBy(desc(hoaFinancialRecords.month));
+
+    if (records.length === 0) return null;
+
+    const totalRevenue = records.reduce((sum, r) => sum + Number(r.totalRevenue || 0), 0);
+    const totalExpenses = records.reduce((sum, r) => sum + Number(r.totalExpenses || 0), 0);
+    const latest = records[0];
+
+    return {
+      totalRevenue: totalRevenue.toString(),
+      totalExpenses: totalExpenses.toString(),
+      reserves: latest.reserves,
+      outstandingFees: latest.outstandingFees,
+      monthlyBreakdown: records.map(r => ({
+        month: `${r.year}-${String(r.month).padStart(2, '0')}`,
+        revenue: r.totalRevenue,
+        expenses: r.totalExpenses
+      })),
+      expenseCategories: latest.expenseCategories || []
+    };
+  }
+
+  async getHOAVendors(hoaId: string): Promise<any[]> {
+    return await db
+      .select()
+      .from(hoaVendors)
+      .where(eq(hoaVendors.hoaId, hoaId))
+      .orderBy(hoaVendors.name);
+  }
+
+  async getHOAVotes(hoaId: string): Promise<any[]> {
+    return await db
+      .select()
+      .from(hoaVotes)
+      .where(and(
+        eq(hoaVotes.hoaId, hoaId),
+        eq(hoaVotes.status, 'active')
+      ))
+      .orderBy(desc(hoaVotes.createdAt));
+  }
+
+  async submitHOAVote(userId: string, voteId: string, decision: string): Promise<any> {
+    const [voteResponse] = await db
+      .insert(hoaVoteResponses)
+      .values({
+        voteId,
+        userId,
+        decision,
+        submittedAt: new Date()
+      })
+      .returning();
+
+    await db
+      .update(hoaVotes)
+      .set({
+        currentVotes: sql`${hoaVotes.currentVotes} + 1`,
+        votesFor: decision === 'for' ? sql`${hoaVotes.votesFor} + 1` : hoaVotes.votesFor,
+        votesAgainst: decision === 'against' ? sql`${hoaVotes.votesAgainst} + 1` : hoaVotes.votesAgainst,
+        votesAbstain: decision === 'abstain' ? sql`${hoaVotes.votesAbstain} + 1` : hoaVotes.votesAbstain
+      })
+      .where(eq(hoaVotes.id, voteId));
+
+    return voteResponse;
+  }
+
+  async createVendorServiceRequest(request: { userId: string; vendorId: string; serviceType: string; description: string; urgency: string; contactPreference: string }): Promise<any> {
+    const vendor = await db.select().from(hoaVendors).where(eq(hoaVendors.id, request.vendorId)).limit(1);
+    if (!vendor[0]) throw new Error('Vendor not found');
+
+    const [serviceRequest] = await db
+      .insert(hoaServiceRequests)
+      .values({
+        hoaId: vendor[0].hoaId,
+        vendorId: request.vendorId,
+        userId: request.userId,
+        serviceType: request.serviceType,
+        description: request.description,
+        urgency: request.urgency,
+        contactPreference: request.contactPreference,
+        status: 'submitted'
+      })
+      .returning();
+
+    return serviceRequest;
+  }
+
+  // Groups/Community operations
+  async getGroups(filters: { countyFips?: string; type?: string; search?: string; limit: number }): Promise<any[]> {
+    let query = db.select().from(communityGroups).where(eq(communityGroups.isActive, true));
+
+    if (filters.countyFips) {
+      query = query.where(eq(communityGroups.countyFips, filters.countyFips)) as any;
+    }
+    if (filters.type) {
+      query = query.where(eq(communityGroups.groupType, filters.type)) as any;
+    }
+
+    const results = await query.limit(filters.limit);
+
+    if (filters.search) {
+      return results.filter(g => g.name.toLowerCase().includes(filters.search!.toLowerCase()));
+    }
+
+    return results;
+  }
+
+  async getGroupById(groupId: string): Promise<any> {
+    const [group] = await db.select().from(communityGroups).where(eq(communityGroups.id, groupId));
+    return group;
+  }
+
+  async joinGroup(userId: string, groupId: string): Promise<any> {
+    const [membership] = await db
+      .insert(groupMembers)
+      .values({
+        groupId,
+        userId,
+        role: 'member',
+        isActive: true
+      })
+      .returning();
+
+    await db
+      .update(communityGroups)
+      .set({ memberCount: sql`${communityGroups.memberCount} + 1` })
+      .where(eq(communityGroups.id, groupId));
+
+    return membership;
+  }
+
+  async leaveGroup(userId: string, groupId: string): Promise<void> {
+    await db
+      .update(groupMembers)
+      .set({ isActive: false })
+      .where(and(
+        eq(groupMembers.userId, userId),
+        eq(groupMembers.groupId, groupId)
+      ));
+
+    await db
+      .update(communityGroups)
+      .set({ memberCount: sql`${communityGroups.memberCount} - 1` })
+      .where(eq(communityGroups.id, groupId));
+  }
+
+  async getGroupPosts(groupId: string): Promise<any[]> {
+    return await db
+      .select()
+      .from(communityPosts)
+      .where(eq(communityPosts.groupId, groupId))
+      .orderBy(desc(communityPosts.createdAt))
+      .limit(50);
+  }
+
+  async createGroupPost(post: { groupId: string; authorId: string; content: string; images?: string[] }): Promise<any> {
+    const [newPost] = await db
+      .insert(communityPosts)
+      .values({
+        groupId: post.groupId,
+        authorId: post.authorId,
+        content: post.content,
+        images: post.images || [],
+        postType: 'general'
+      })
+      .returning();
+
+    await db
+      .update(communityGroups)
+      .set({ postCount: sql`${communityGroups.postCount} + 1` })
+      .where(eq(communityGroups.id, post.groupId));
+
+    return newPost;
+  }
+
+  // Boosts/Promotions operations
+  async getBoostsByRole(userRole: string): Promise<any[]> {
+    return await db
+      .select()
+      .from(contractorPromos)
+      .where(eq(contractorPromos.isActive, true))
+      .orderBy(desc(contractorPromos.createdAt))
+      .limit(20);
+  }
+
+  async purchaseBoost(data: { userId: string; boostId: string; paymentMethodId?: string }): Promise<any> {
+    const [promo] = await db.select().from(contractorPromos).where(eq(contractorPromos.id, data.boostId));
+    if (!promo) throw new Error('Boost not found');
+
+    const [interaction] = await db
+      .insert(promoInteractions)
+      .values({
+        promoId: data.boostId,
+        userId: data.userId,
+        interactionType: 'purchase',
+        metadata: { paymentMethodId: data.paymentMethodId }
+      })
+      .returning();
+
+    return {
+      id: interaction.id,
+      userId: data.userId,
+      boostId: data.boostId,
+      status: 'active',
+      startDate: new Date().toISOString(),
+      endDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+      impressions: 0,
+      clicks: 0,
+      conversions: 0,
+      totalSpent: '49.99',
+      createdAt: new Date().toISOString()
+    };
+  }
+
+  async getUserBoosts(userId: string): Promise<any[]> {
+    return await db
+      .select()
+      .from(promoInteractions)
+      .where(and(
+        eq(promoInteractions.userId, userId),
+        eq(promoInteractions.interactionType, 'purchase')
+      ))
+      .orderBy(desc(promoInteractions.timestamp))
+      .limit(50);
+  }
+
+  async getBoostAnalytics(boostId: string, userId: string): Promise<any> {
+    const interactions = await db
+      .select()
+      .from(promoInteractions)
+      .where(and(
+        eq(promoInteractions.promoId, boostId),
+        eq(promoInteractions.userId, userId)
+      ));
+
+    const totalImpressions = interactions.filter(i => i.interactionType === 'view').length;
+    const totalClicks = interactions.filter(i => i.interactionType === 'click').length;
+    const conversions = interactions.filter(i => i.interactionType === 'conversion').length;
+
+    return {
+      impressions: totalImpressions,
+      clicks: totalClicks,
+      conversions,
+      ctr: totalImpressions > 0 ? (totalClicks / totalImpressions * 100).toFixed(2) : '0'
+    };
+  }
+
+  // Nationwide Dashboard operations
+  async getNationwideMetrics(): Promise<{ totalUsers: number; totalContractors: number; totalProjects: number; totalRevenue: string }> {
+    const [userCount] = await db.select({ count: sql<number>`count(*)::int` }).from(users);
+    const [contractorCount] = await db.select({ count: sql<number>`count(*)::int` }).from(contractors);
+    const [projectCount] = await db.select({ count: sql<number>`count(*)::int` }).from(leads);
+
+    return {
+      totalUsers: userCount?.count || 0,
+      totalContractors: contractorCount?.count || 0,
+      totalProjects: projectCount?.count || 0,
+      totalRevenue: '0'
+    };
+  }
+
+  async getTopPerformingCounties(limit: number): Promise<any[]> {
+    const results = await db
+      .select({
+        countyFips: contractors.countyFips,
+        contractorCount: sql<number>`count(distinct ${contractors.id})::int`,
+        avgRating: sql<number>`avg(${contractors.rating})::float`
+      })
+      .from(contractors)
+      .groupBy(contractors.countyFips)
+      .orderBy(sql`count(distinct ${contractors.id}) desc`)
+      .limit(limit);
+
+    return results.map(r => ({
+      fips: r.countyFips,
+      contractorCount: r.contractorCount,
+      avgRating: r.avgRating || 0,
+      growthRate: 0
+    }));
+  }
+
+  async getExpansionPipeline(): Promise<any[]> {
+    const countiesWithData = await db
+      .select({
+        fips: counties.fips,
+        name: counties.name,
+        state: counties.stateCode,
+        population: counties.population
+      })
+      .from(counties)
+      .limit(100);
+
+    return countiesWithData.map(c => ({
+      county: c.name,
+      state: c.state,
+      population: c.population || 0,
+      status: 'planning',
+      priority: 'medium',
+      estimatedLaunch: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString()
+    }));
+  }
+
+  async getGeographicDistribution(): Promise<any> {
+    const distribution = await db
+      .select({
+        state: users.state,
+        userCount: sql<number>`count(*)::int`
+      })
+      .from(users)
+      .where(sql`${users.state} IS NOT NULL`)
+      .groupBy(users.state);
+
+    return distribution.reduce((acc: any, item) => {
+      if (item.state) {
+        acc[item.state] = item.userCount;
+      }
+      return acc;
+    }, {});
   }
 }
 
