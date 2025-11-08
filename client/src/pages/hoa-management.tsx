@@ -54,6 +54,18 @@ interface Vendor {
   services: string[];
 }
 
+interface HOAMember {
+  id: string;
+  role: string;
+  unitNumber?: string;
+  canViewFinances: boolean;
+  canEditDocuments: boolean;
+  canManageVendors: boolean;
+  canCreateVotes: boolean;
+  votingRights: boolean;
+  inGoodStanding: boolean;
+}
+
 export default function HOAManagement() {
   const { user } = useAuth();
   const { toast } = useToast();
@@ -64,6 +76,20 @@ export default function HOAManagement() {
   // Mock HOA ID for demo purposes
   const hoaId = 'hoa-1';
 
+  // Fetch user's HOA membership and permissions
+  const { data: memberData, isLoading: memberLoading } = useQuery<HOAMember>({
+    queryKey: ['/api/hoa', hoaId, 'member'],
+    queryFn: async () => {
+      const response = await fetch(`/api/hoa/${hoaId}/member`);
+      if (!response.ok) {
+        throw new Error('Not a member of this HOA');
+      }
+      return response.json();
+    },
+    enabled: !!user,
+    retry: false
+  });
+
   const { data: hoa, isLoading: hoaLoading } = useQuery({
     queryKey: ['/api/hoa', hoaId],
     queryFn: () => fetch(`/api/hoa/${hoaId}`).then(res => res.json())
@@ -71,7 +97,8 @@ export default function HOAManagement() {
 
   const { data: finances, isLoading: financesLoading } = useQuery({
     queryKey: ['/api/hoa', hoaId, 'finances'],
-    queryFn: () => fetch(`/api/hoa/${hoaId}/finances`).then(res => res.json())
+    queryFn: () => fetch(`/api/hoa/${hoaId}/finances`).then(res => res.json()),
+    enabled: memberData?.canViewFinances || false
   });
 
   const { data: vendors = [], isLoading: vendorsLoading } = useQuery({
@@ -167,7 +194,20 @@ export default function HOAManagement() {
   };
 
 
-  if (hoaLoading) {
+  // Helper function to get role display name
+  const getRoleDisplayName = (role: string) => {
+    const roleNames: Record<string, string> = {
+      'member': 'Member',
+      'board_member': 'Board Member',
+      'president': 'President',
+      'vice_president': 'Vice President',
+      'treasurer': 'Treasurer',
+      'secretary': 'Secretary'
+    };
+    return roleNames[role] || role;
+  };
+
+  if (hoaLoading || memberLoading) {
     return (
       <div className="min-h-screen gradient-bg p-6">
         <div className="max-w-7xl mx-auto">
@@ -175,6 +215,24 @@ export default function HOAManagement() {
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500 mx-auto"></div>
             <p className="mt-2 text-slate-400">Loading HOA information...</p>
           </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Show message if user is not a member
+  if (!memberData && !memberLoading) {
+    return (
+      <div className="min-h-screen gradient-bg p-6">
+        <div className="max-w-7xl mx-auto">
+          <Card className="bg-slate-800/50 border-slate-700 text-center p-12">
+            <Building className="w-16 h-16 text-orange-400 mx-auto mb-4" />
+            <h2 className="text-2xl font-bold text-white mb-2">Not an HOA Member</h2>
+            <p className="text-slate-400 mb-6">You need to be a member of this HOA to access this page.</p>
+            <Button data-testid="button-back-home" onClick={() => window.location.href = '/'} className="bg-orange-500 hover:bg-orange-600">
+              Return Home
+            </Button>
+          </Card>
         </div>
       </div>
     );
@@ -195,6 +253,18 @@ export default function HOAManagement() {
             <div className="text-center space-y-2">
               <h2 className="text-2xl font-semibold text-orange-400">{hoa.name}</h2>
               <p className="text-slate-300">{hoa.address}</p>
+              {memberData && (
+                <div className="flex items-center justify-center gap-2 mt-2">
+                  <Badge className="bg-teal-600 text-white" data-testid="badge-member-role">
+                    {getRoleDisplayName(memberData.role)}
+                  </Badge>
+                  {memberData.unitNumber && (
+                    <Badge variant="outline" className="border-slate-600 text-slate-300">
+                      Unit {memberData.unitNumber}
+                    </Badge>
+                  )}
+                </div>
+              )}
             </div>
           )}
         </div>
@@ -244,9 +314,13 @@ export default function HOAManagement() {
         )}
 
         <Tabs defaultValue="overview" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-5 bg-slate-800/50">
+          <TabsList className={`grid w-full ${memberData?.canViewFinances ? 'grid-cols-5' : 'grid-cols-4'} bg-slate-800/50`}>
             <TabsTrigger value="overview" className="data-[state=active]:bg-orange-500">Overview</TabsTrigger>
-            <TabsTrigger value="finances" className="data-[state=active]:bg-orange-500">Finances</TabsTrigger>
+            {memberData?.canViewFinances && (
+              <TabsTrigger value="finances" className="data-[state=active]:bg-orange-500" data-testid="tab-finances">
+                Finances
+              </TabsTrigger>
+            )}
             <TabsTrigger value="voting" className="data-[state=active]:bg-orange-500">Voting</TabsTrigger>
             <TabsTrigger value="vendors" className="data-[state=active]:bg-orange-500">Vendors</TabsTrigger>
             <TabsTrigger value="documents" className="data-[state=active]:bg-orange-500">Documents</TabsTrigger>
@@ -298,36 +372,47 @@ export default function HOAManagement() {
             )}
           </TabsContent>
 
-          <TabsContent value="finances" className="space-y-6">
-            {finances && !financesLoading && (
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <Card className="bg-slate-800/50 border-slate-700">
-                  <CardHeader>
-                    <CardTitle className="text-white">Financial Summary</CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div className="flex justify-between items-center">
-                      <span className="text-slate-400">Total Revenue</span>
-                      <span className="text-green-400 font-semibold">${parseInt(finances.totalRevenue).toLocaleString()}</span>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <span className="text-slate-400">Total Expenses</span>
-                      <span className="text-red-400 font-semibold">${parseInt(finances.totalExpenses).toLocaleString()}</span>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <span className="text-slate-400">Reserves</span>
-                      <span className="text-blue-400 font-semibold">${parseInt(finances.reserves).toLocaleString()}</span>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <span className="text-slate-400">Outstanding Fees</span>
-                      <span className="text-orange-400 font-semibold">${parseInt(finances.outstandingFees).toLocaleString()}</span>
-                    </div>
-                    {/* Button to trigger fee collection */}
-                    <Button onClick={() => handleFeeCollection(user?.id || '', parseInt(hoa?.monthlyFees || '0'))} className="w-full bg-teal-600 hover:bg-teal-700" disabled={!hoa}>
-                      Collect Monthly Fees
-                    </Button>
-                  </CardContent>
-                </Card>
+          {memberData?.canViewFinances && (
+            <TabsContent value="finances" className="space-y-6">
+              {finances && !financesLoading && (
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  <Card className="bg-slate-800/50 border-slate-700">
+                    <CardHeader>
+                      <CardTitle className="text-white">Financial Summary</CardTitle>
+                      {['treasurer', 'president', 'vice_president'].includes(memberData.role) && (
+                        <p className="text-sm text-green-400 mt-1">Full Access</p>
+                      )}
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <div className="flex justify-between items-center">
+                        <span className="text-slate-400">Total Revenue</span>
+                        <span className="text-green-400 font-semibold">${parseInt(finances.totalRevenue).toLocaleString()}</span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="text-slate-400">Total Expenses</span>
+                        <span className="text-red-400 font-semibold">${parseInt(finances.totalExpenses).toLocaleString()}</span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="text-slate-400">Reserves</span>
+                        <span className="text-blue-400 font-semibold">${parseInt(finances.reserves).toLocaleString()}</span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="text-slate-400">Outstanding Fees</span>
+                        <span className="text-orange-400 font-semibold">${parseInt(finances.outstandingFees).toLocaleString()}</span>
+                      </div>
+                      {/* Button to trigger fee collection - only for treasurer/president */}
+                      {['treasurer', 'president', 'vice_president'].includes(memberData.role) && (
+                        <Button 
+                          onClick={() => handleFeeCollection(user?.id || '', parseInt(hoa?.monthlyFees || '0'))} 
+                          className="w-full bg-teal-600 hover:bg-teal-700" 
+                          disabled={!hoa}
+                          data-testid="button-collect-fees"
+                        >
+                          Collect Monthly Fees
+                        </Button>
+                      )}
+                    </CardContent>
+                  </Card>
 
                 <Card className="bg-slate-800/50 border-slate-700">
                   <CardHeader>
@@ -351,10 +436,26 @@ export default function HOAManagement() {
 
           <TabsContent value="voting" className="space-y-6">
             <div className="space-y-6">
-              <h3 className="text-xl font-semibold text-white flex items-center space-x-2">
-                <Vote className="w-5 h-5 text-purple-400" />
-                <span>Active Votes</span>
-              </h3>
+              <div className="flex items-center justify-between">
+                <h3 className="text-xl font-semibold text-white flex items-center space-x-2">
+                  <Vote className="w-5 h-5 text-purple-400" />
+                  <span>Active Votes</span>
+                </h3>
+                {memberData?.canCreateVotes && (
+                  <Badge className="bg-purple-600 text-white" data-testid="badge-can-create-votes">
+                    Can Create Votes
+                  </Badge>
+                )}
+              </div>
+              {!memberData?.votingRights && (
+                <Card className="bg-yellow-500/10 border-yellow-500/50">
+                  <CardContent className="p-4">
+                    <p className="text-yellow-400 text-sm">
+                      ⚠️ Your voting rights are currently suspended. Please contact the HOA board.
+                    </p>
+                  </CardContent>
+                </Card>
+              )}
               {(votes || []).map((vote: Vote) => (
                 <Card key={vote.id} className="bg-slate-800/50 border-slate-700" data-testid={`vote-${vote.id}`}>
                   <CardHeader>
@@ -394,7 +495,7 @@ export default function HOAManagement() {
                       </div>
                     </div>
 
-                    {vote.status === 'active' && (
+                    {vote.status === 'active' && memberData?.votingRights && (
                       <div className="flex space-x-4">
                         <Button 
                           className="flex-1 bg-green-600 hover:bg-green-700"
@@ -416,6 +517,11 @@ export default function HOAManagement() {
                           Vote Against
                         </Button>
                       </div>
+                    )}
+                    {vote.status === 'active' && !memberData?.votingRights && (
+                      <p className="text-yellow-400 text-sm text-center">
+                        Voting rights suspended - Contact HOA board
+                      </p>
                     )}
                   </CardContent>
                 </Card>
