@@ -26,7 +26,7 @@ import {
  */
 export function AcceleratorPromotion({ placement }: { placement: 'sidebar' | 'inline' | 'modal' }) {
   const benefits = [
-    'Priority lead distribution',
+    'Priority project access',
     'Advanced analytics dashboard',
     'Premium listing placement',
     'Dedicated account manager',
@@ -65,7 +65,7 @@ export function AcceleratorPromotion({ placement }: { placement: 'sidebar' | 'in
     <Alert className="border-amber-500 bg-amber-50 dark:bg-amber-950/20">
       <Crown className="h-4 w-4 text-amber-600" />
       <AlertDescription className="text-amber-800 dark:text-amber-200">
-        <strong>Ready to grow your business?</strong> Join TradeScout Pro and get 3x more leads.{' '}
+        <strong>Ready to grow your business?</strong> Join TradeScout Pro and get 3x more project requests.{' '}
         <Button variant="link" className="text-amber-600 p-0 h-auto">
           Learn more →
         </Button>

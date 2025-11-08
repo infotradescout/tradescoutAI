@@ -56,13 +56,13 @@ const helpTopics: HelpTopic[] = [
     }
   },
   {
-    id: 'lead-management',
-    title: 'Managing Leads',
+    id: 'project-tracker',
+    title: 'Managing Customer Requests',
     description: 'Handle customer inquiries like a pro - no more missed opportunities.',
     category: 'features',
     illustration: 'wrench',
     content: {
-      overview: 'Our lead management system is like having a project manager who never loses paperwork.',
+      overview: 'Our project tracker is like having a project manager who never loses paperwork.',
       steps: [
         'Receive notifications when customers request quotes',
         'Review project details and customer requirements',
@@ -74,7 +74,7 @@ const helpTopics: HelpTopic[] = [
         'Ask clarifying questions to provide accurate quotes',
         'Use our templates to save time on common projects'
       ],
-      wittyNote: 'Managing leads with TradeScout is smoother than buttering toast with a heated knife.'
+      wittyNote: 'Managing customer requests with TradeScout is smoother than buttering toast with a heated knife.'
     }
   },
   {
