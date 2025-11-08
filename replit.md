@@ -10,6 +10,21 @@ Preferred communication style: Simple, everyday language.
 Marketplace language preference: Avoid explicit "investment" or "asset" terminology - let users naturally discover the value-building potential through subtle language and quality indicators.
 Lead generation preference: **NEVER use "lead/leads" terminology anywhere** - use "projects", "opportunities", "requests", "connections" instead. Focus on showcasing contractor businesses, building reputation, and connecting with homeowners naturally.
 
+# Business Model (CRITICAL)
+
+**TradeScout is 100% FREE for contractors** - No fees, no commissions, no subscriptions. Ever.
+
+**Revenue Sources (ONLY)**:
+- Marketplace promotions (contractors can pay to boost their marketplace listings)
+- Platform advertisements (display ads shown throughout the platform)
+
+**NOT Revenue Sources**:
+- ❌ Contractor fees
+- ❌ Platform commissions
+- ❌ Subscription fees
+- ❌ Per-project fees
+- ❌ Membership fees (Accelerator program is also FREE with premium benefits)
+
 # Full Specification Alignment - LOCKED ROADMAP
 
 **IMMUTABLE SPECIFICATION**: The TradeScout roadmap stored in TRADESCOUT_FULL_SPECIFICATION.md is the permanent, unchanging specification for this platform. No deviations without explicit user authorization.
