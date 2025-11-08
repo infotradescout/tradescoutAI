@@ -153,8 +153,8 @@ export function RoleSelection({ onRoleSelect, userInfo }: RoleSelectionProps) {
                 <div className="flex items-start gap-3">
                   <Users className="w-5 h-5 text-orange-400 mt-0.5 flex-shrink-0" />
                   <div>
-                    <div className="text-white font-medium">Get Quality Leads</div>
-                    <div className="text-slate-400 text-sm">Connect with local homeowners</div>
+                    <div className="text-white font-medium">Connect with Homeowners</div>
+                    <div className="text-slate-400 text-sm">Find quality project opportunities</div>
                   </div>
                 </div>
                 <div className="flex items-start gap-3">
