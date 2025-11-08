@@ -5,13 +5,13 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Users, Phone, Mail, MapPin, Calendar, Clock, Filter, Search, TrendingUp } from 'lucide-react';
+import { Users, Phone, Mail, MapPin, Calendar, Clock, Filter, Search, TrendingUp, Wrench, DollarSign } from 'lucide-react';
 
-const LeadManagement = memo(function LeadManagement() {
-  const [selectedLead, setSelectedLead] = useState(null);
+const ProjectTracker = memo(function ProjectTracker() {
+  const [selectedProject, setSelectedProject] = useState(null);
   const [filterStatus, setFilterStatus] = useState('all');
 
-  const leads = [
+  const projects = [
     {
       id: 1,
       name: "Sarah Johnson",
@@ -110,261 +110,170 @@ const LeadManagement = memo(function LeadManagement() {
     }
   };
 
-  const filteredLeads = filterStatus === 'all' 
-    ? leads 
-    : leads.filter(lead => lead.status === filterStatus);
+  const filteredProjects = filterStatus === 'all' 
+    ? projects 
+    : projects.filter(project => project.status === filterStatus);
 
-  const leadStats = {
-    total: leads.length,
-    new: leads.filter(l => l.status === 'new').length,
-    contacted: leads.filter(l => l.status === 'contacted').length,
-    quoted: leads.filter(l => l.status === 'quoted').length,
-    won: leads.filter(l => l.status === 'won').length
+  const projectStats = {
+    total: projects.length,
+    new: projects.filter(p => p.status === 'new').length,
+    contacted: projects.filter(p => p.status === 'contacted').length,
+    quoted: projects.filter(p => p.status === 'quoted').length,
+    won: projects.filter(p => p.status === 'won').length
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-6">
-      <div className="max-w-7xl mx-auto">
+    <div className="min-h-screen gradient-bg pt-24 pb-16 px-4">
+      <div className="container mx-auto max-w-7xl">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-4xl font-bold text-white mb-4">Connection Management</h1>
-          <p className="text-xl text-gray-300">
-            Track and manage your customer leads through the sales pipeline
-          </p>
+          <h1 className="text-4xl font-bold text-white mb-2">Project Tracker</h1>
+          <p className="text-gray-400">Manage and track your project opportunities</p>
         </div>
 
-        {/* Lead Stats */}
+        {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-8">
           <Card className="bg-slate-800/50 border-slate-700">
-            <CardContent className="p-4 text-center">
-              <p className="text-2xl font-bold text-white">{leadStats.total}</p>
-              <p className="text-gray-400 text-sm">Total Leads</p>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm text-gray-400">Total Projects</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-3xl font-bold text-white">{projectStats.total}</div>
             </CardContent>
           </Card>
+
           <Card className="bg-slate-800/50 border-slate-700">
-            <CardContent className="p-4 text-center">
-              <p className="text-2xl font-bold text-blue-400">{leadStats.new}</p>
-              <p className="text-gray-400 text-sm">New</p>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm text-gray-400">New Requests</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-3xl font-bold text-blue-400">{projectStats.new}</div>
             </CardContent>
           </Card>
+
           <Card className="bg-slate-800/50 border-slate-700">
-            <CardContent className="p-4 text-center">
-              <p className="text-2xl font-bold text-yellow-400">{leadStats.contacted}</p>
-              <p className="text-gray-400 text-sm">Contacted</p>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm text-gray-400">In Progress</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-3xl font-bold text-yellow-400">{projectStats.contacted}</div>
             </CardContent>
           </Card>
+
           <Card className="bg-slate-800/50 border-slate-700">
-            <CardContent className="p-4 text-center">
-              <p className="text-2xl font-bold text-purple-400">{leadStats.quoted}</p>
-              <p className="text-gray-400 text-sm">Quoted</p>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm text-gray-400">Quoted</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-3xl font-bold text-purple-400">{projectStats.quoted}</div>
             </CardContent>
           </Card>
+
           <Card className="bg-slate-800/50 border-slate-700">
-            <CardContent className="p-4 text-center">
-              <p className="text-2xl font-bold text-emerald-400">{leadStats.won}</p>
-              <p className="text-gray-400 text-sm">Won</p>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm text-gray-400">Projects Won</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-3xl font-bold text-emerald-400">{projectStats.won}</div>
             </CardContent>
           </Card>
         </div>
 
-        <Tabs defaultValue="pipeline" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-3 bg-slate-800">
-            <TabsTrigger value="pipeline" className="data-[state=active]:bg-orange-600">Sales Pipeline</TabsTrigger>
-            <TabsTrigger value="details" className="data-[state=active]:bg-orange-600">Lead Details</TabsTrigger>
-            <TabsTrigger value="analytics" className="data-[state=active]:bg-orange-600">Analytics</TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="pipeline">
-            <Card className="bg-slate-800/50 border-slate-700">
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <div>
-                    <CardTitle className="text-white flex items-center gap-2">
-                      <Users className="w-5 h-5 text-orange-500" />
-                      Lead Pipeline
-                    </CardTitle>
-                    <CardDescription className="text-gray-400">
-                      Manage leads through your sales process
-                    </CardDescription>
-                  </div>
-                  
-                  <div className="flex items-center gap-4">
-                    <div className="flex items-center gap-2">
-                      <Filter className="w-4 h-4 text-gray-400" />
-                      <Select value={filterStatus} onValueChange={setFilterStatus}>
-                        <SelectTrigger className="w-40 bg-slate-700 border-slate-600 text-white">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent className="bg-slate-700 border-slate-600">
-                          <SelectItem value="all">All Leads</SelectItem>
-                          <SelectItem value="new">New</SelectItem>
-                          <SelectItem value="contacted">Contacted</SelectItem>
-                          <SelectItem value="quoted">Quoted</SelectItem>
-                          <SelectItem value="proposal">Proposal</SelectItem>
-                          <SelectItem value="won">Won</SelectItem>
-                          <SelectItem value="lost">Lost</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    
-                    <div className="relative">
-                      <Search className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" />
-                      <Input 
-                        placeholder="Search leads..."
-                        className="pl-10 w-64 bg-slate-700 border-slate-600 text-white"
-                      />
-                    </div>
-                  </div>
+        {/* Filters and Search */}
+        <Card className="bg-slate-800/50 border-slate-700 mb-6">
+          <CardHeader>
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+              <div>
+                <CardTitle className="text-white">All Projects</CardTitle>
+                <CardDescription>Track and manage project requests</CardDescription>
+              </div>
+              
+              <div className="flex items-center gap-3">
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                  <Input 
+                    placeholder="Search projects..." 
+                    className="pl-10 bg-slate-900/50 border-slate-700 text-white"
+                  />
                 </div>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {filteredLeads.map((lead) => (
-                    <div key={lead.id} className="p-4 bg-slate-700/30 rounded-lg">
-                      <div className="flex items-start justify-between mb-3">
-                        <div>
-                          <h3 className="font-semibold text-white mb-1">{lead.name}</h3>
-                          <p className="text-gray-400 text-sm">{lead.service}</p>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <Badge className={`border ${getPriorityColor(lead.priority)}`}>
-                            {lead.priority}
-                          </Badge>
-                          <Badge className={getStatusColor(lead.status)}>
-                            {lead.status}
-                          </Badge>
-                        </div>
-                      </div>
-                      
-                      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 text-sm mb-4">
-                        <div className="flex items-center gap-2 text-gray-300">
-                          <Phone className="w-4 h-4 text-blue-400" />
-                          <span>{lead.phone}</span>
-                        </div>
-                        <div className="flex items-center gap-2 text-gray-300">
-                          <Mail className="w-4 h-4 text-emerald-400" />
-                          <span>{lead.email}</span>
-                        </div>
-                        <div className="flex items-center gap-2 text-gray-300">
-                          <MapPin className="w-4 h-4 text-purple-400" />
-                          <span>{lead.location}</span>
-                        </div>
-                        <div className="flex items-center gap-2 text-gray-300">
-                          <Calendar className="w-4 h-4 text-orange-400" />
-                          <span>{lead.dateAdded}</span>
-                        </div>
-                      </div>
-                      
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <p className="text-gray-300 text-sm">Budget: <span className="text-emerald-400 font-medium">{lead.budget}</span></p>
-                          <p className="text-gray-400 text-xs">Source: {lead.source}</p>
-                        </div>
-                        <div className="flex gap-2">
-                          <Button size="sm" variant="outline">Call</Button>
-                          <Button size="sm" variant="outline">Email</Button>
-                          <Button size="sm" className="bg-orange-600 hover:bg-orange-700">View</Button>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="details">
-            <Card className="bg-slate-800/50 border-slate-700">
-              <CardHeader>
-                <CardTitle className="text-white">Lead Details</CardTitle>
-                <CardDescription className="text-gray-400">
-                  Detailed view and interaction history
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                {selectedLead ? (
-                  <div>Lead details would go here</div>
-                ) : (
-                  <div className="text-center py-12">
-                    <Users className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                    <p className="text-gray-400">Select a lead from the pipeline to view details</p>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="analytics">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-              <Card className="bg-slate-800/50 border-slate-700">
-                <CardHeader>
-                  <CardTitle className="text-white flex items-center gap-2">
-                    <TrendingUp className="w-5 h-5 text-emerald-400" />
-                    Conversion Rates
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    <div className="flex items-center justify-between">
-                      <span className="text-gray-300">Lead to Contact</span>
-                      <span className="text-emerald-400 font-medium">85%</span>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-gray-300">Contact to Quote</span>
-                      <span className="text-emerald-400 font-medium">67%</span>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-gray-300">Quote to Proposal</span>
-                      <span className="text-emerald-400 font-medium">45%</span>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-gray-300">Proposal to Win</span>
-                      <span className="text-emerald-400 font-medium">30%</span>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card className="bg-slate-800/50 border-slate-700">
-                <CardHeader>
-                  <CardTitle className="text-white flex items-center gap-2">
-                    <Clock className="w-5 h-5 text-blue-400" />
-                    Response Times
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    <div className="p-4 bg-blue-600/10 border border-blue-600/20 rounded-lg">
-                      <p className="text-blue-400 font-medium">Average Response Time</p>
-                      <p className="text-2xl font-bold text-white">2.3 hours</p>
-                    </div>
-                    <div className="space-y-2">
-                      <div className="flex justify-between text-gray-300">
-                        <span>&lt; 1 hour</span>
-                        <span>45%</span>
-                      </div>
-                      <div className="flex justify-between text-gray-300">
-                        <span>1-4 hours</span>
-                        <span>32%</span>
-                      </div>
-                      <div className="flex justify-between text-gray-300">
-                        <span>4-24 hours</span>
-                        <span>18%</span>
-                      </div>
-                      <div className="flex justify-between text-gray-300">
-                        <span>&gt; 24 hours</span>
-                        <span>5%</span>
-                      </div>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
+                
+                <Select value={filterStatus} onValueChange={setFilterStatus}>
+                  <SelectTrigger className="w-40 bg-slate-900/50 border-slate-700 text-white">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Status</SelectItem>
+                    <SelectItem value="new">New</SelectItem>
+                    <SelectItem value="contacted">Contacted</SelectItem>
+                    <SelectItem value="quoted">Quoted</SelectItem>
+                    <SelectItem value="proposal">Proposal</SelectItem>
+                    <SelectItem value="won">Won</SelectItem>
+                    <SelectItem value="lost">Lost</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
-          </TabsContent>
-        </Tabs>
+          </CardHeader>
+
+          <CardContent>
+            <div className="space-y-3">
+              {filteredProjects.map((project) => (
+                <Card key={project.id} className="bg-slate-900/50 border-slate-700 hover:border-orange-500/50 transition-colors cursor-pointer">
+                  <CardContent className="p-4">
+                    <div className="flex items-center justify-between">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-3 mb-2">
+                          <h3 className="text-lg font-semibold text-white">{project.name}</h3>
+                          <Badge className={`${getStatusColor(project.status)} text-white border-0`}>
+                            {project.status}
+                          </Badge>
+                          <Badge variant="outline" className={`${getPriorityColor(project.priority)} border`}>
+                            {project.priority}
+                          </Badge>
+                        </div>
+                        
+                        <div className="grid grid-cols-1 md:grid-cols-4 gap-3 text-sm text-gray-400">
+                          <div className="flex items-center gap-2">
+                            <Wrench className="w-4 h-4" />
+                            <span>{project.service}</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <MapPin className="w-4 h-4" />
+                            <span>{project.location}</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <DollarSign className="w-4 h-4" />
+                            <span>{project.budget}</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <Calendar className="w-4 h-4" />
+                            <span>Added {project.dateAdded}</span>
+                          </div>
+                        </div>
+
+                        <p className="text-sm text-gray-500 mt-2">{project.notes}</p>
+                      </div>
+
+                      <div className="flex items-center gap-2 ml-4">
+                        <Button variant="outline" size="sm" className="border-slate-700 hover:bg-slate-700">
+                          <Phone className="w-4 h-4 mr-2" />
+                          Call
+                        </Button>
+                        <Button variant="outline" size="sm" className="border-slate-700 hover:bg-slate-700">
+                          <Mail className="w-4 h-4 mr-2" />
+                          Email
+                        </Button>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
       </div>
     </div>
   );
 });
 
-export default LeadManagement;
+export default ProjectTracker;

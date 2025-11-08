@@ -610,7 +610,7 @@ export default function Help() {
       quickActions: [
         { title: "Client CRM", description: "Manage your client relationships", icon: Users, action: "/crm" },
         { title: "Referral Network", description: "Connect with other professionals", icon: Users, action: "network" },
-        { title: "Lead Generation", description: "Generate automotive leads", icon: TrendingUp, action: "leads" },
+        { title: "Find Opportunities", description: "Connect with automotive customers", icon: TrendingUp, action: "opportunities" },
         { title: "Industry News", description: "Stay updated on automotive trends", icon: Globe, action: "news" }
       ],
       categories: [
@@ -641,7 +641,7 @@ export default function Help() {
         { title: "Client Portal", description: "Manage insurance clients", icon: Users, action: "/dashboard" },
         { title: "Policy Management", description: "Manage client policies", icon: Shield, action: "policies" },
         { title: "Claims Support", description: "Help clients with claims", icon: MessageCircle, action: "claims" },
-        { title: "Lead Generation", description: "Generate insurance leads", icon: TrendingUp, action: "leads" }
+        { title: "Find Clients", description: "Connect with insurance prospects", icon: TrendingUp, action: "opportunities" }
       ],
       categories: [
         {

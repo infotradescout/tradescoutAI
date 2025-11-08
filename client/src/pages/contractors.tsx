@@ -87,7 +87,7 @@ export default function ForContractors() {
               <div className="space-y-2">
                 <div className="flex items-center text-sm text-gray-300">
                   <CheckCircle className="h-4 w-4 mr-2 text-green-400" />
-                  Lead generation templates
+                  Outreach templates
                 </div>
                 <div className="flex items-center text-sm text-gray-300">
                   <CheckCircle className="h-4 w-4 mr-2 text-green-400" />
@@ -127,8 +127,8 @@ export default function ForContractors() {
             </CardHeader>
             <CardContent className="space-y-4">
               <p className="text-gray-300">
-                Join our exclusive accelerator program for advanced business coaching, priority leads, 
-                and networking opportunities with top contractors.
+                Join our exclusive accelerator program for advanced business coaching, priority opportunities, 
+                and networking with top contractors.
               </p>
 
               <div className="space-y-2">
@@ -138,7 +138,7 @@ export default function ForContractors() {
                 </div>
                 <div className="flex items-center text-sm text-gray-300">
                   <Target className="h-4 w-4 mr-2 text-blue-400" />
-                  Priority lead access
+                  Priority project access
                 </div>
                 <div className="flex items-center text-sm text-gray-300">
                   <Users className="h-4 w-4 mr-2 text-green-400" />
@@ -176,7 +176,7 @@ export default function ForContractors() {
               <Briefcase className="h-12 w-12 text-orange-500 mx-auto mb-4" />
               <h3 className="text-lg font-semibold text-white mb-2">Contractor Dashboard</h3>
               <p className="text-gray-300 text-sm mb-4">
-                Manage your leads, track projects, and monitor your business performance.
+                Manage your projects, track opportunities, and monitor your business performance.
               </p>
               {isContractor ? (
                 <Link href="/contractor-dashboard">
@@ -197,9 +197,9 @@ export default function ForContractors() {
           <Card className="bg-navy-700 border-navy-600 hover:border-orange-500/50 transition-colors">
             <CardContent className="p-6 text-center">
               <DollarSign className="h-12 w-12 text-green-500 mx-auto mb-4" />
-              <h3 className="text-lg font-semibold text-white mb-2">Lead Generation</h3>
+              <h3 className="text-lg font-semibold text-white mb-2">Find Homeowners</h3>
               <p className="text-gray-300 text-sm mb-4">
-                Get connected with homeowners actively seeking contractors in your area.
+                Connect with homeowners actively seeking contractors in your area.
               </p>
               <Link href="/contractors/board">
                 <Button variant="outline" className="border-green-500 text-green-500 hover:bg-green-500 hover:text-white">
