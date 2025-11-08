@@ -105,6 +105,7 @@ import {
   hoaVoteResponses,
   hoaServiceRequests,
   hoaDocuments,
+  hoaMembers,
   // Trusted devices
   trustedDevices,
   type TrustedDevice,
@@ -6370,6 +6371,118 @@ export class DatabaseStorage implements IStorage {
       .returning();
 
     return serviceRequest;
+  }
+
+  // HOA Member Management
+  async getHOAMemberByUserId(userId: string, hoaId: string): Promise<any> {
+    const [member] = await db
+      .select()
+      .from(hoaMembers)
+      .where(and(
+        eq(hoaMembers.userId, userId),
+        eq(hoaMembers.hoaId, hoaId)
+      ));
+    return member;
+  }
+
+  async getHOAMembers(hoaId: string): Promise<any[]> {
+    return await db
+      .select()
+      .from(hoaMembers)
+      .where(eq(hoaMembers.hoaId, hoaId))
+      .orderBy(hoaMembers.role);
+  }
+
+  async addHOAMember(data: {
+    hoaId: string;
+    userId: string;
+    unitNumber?: string;
+    role?: string;
+    votingRights?: boolean;
+  }): Promise<any> {
+    const role = data.role || 'member';
+    
+    // Set permissions based on role
+    const permissions = this.getPermissionsByRole(role);
+
+    const [member] = await db
+      .insert(hoaMembers)
+      .values({
+        hoaId: data.hoaId,
+        userId: data.userId,
+        unitNumber: data.unitNumber,
+        role,
+        votingRights: data.votingRights ?? true,
+        ...permissions
+      })
+      .returning();
+
+    return member;
+  }
+
+  async updateHOAMemberRole(memberId: string, role: string): Promise<any> {
+    const permissions = this.getPermissionsByRole(role);
+    
+    const [updated] = await db
+      .update(hoaMembers)
+      .set({
+        role,
+        ...permissions,
+        updatedAt: new Date()
+      })
+      .where(eq(hoaMembers.id, memberId))
+      .returning();
+
+    return updated;
+  }
+
+  private getPermissionsByRole(role: string) {
+    const permissions = {
+      canViewFinances: false,
+      canEditDocuments: false,
+      canManageVendors: false,
+      canCreateVotes: false
+    };
+
+    switch (role) {
+      case 'president':
+        return {
+          canViewFinances: true,
+          canEditDocuments: true,
+          canManageVendors: true,
+          canCreateVotes: true
+        };
+      case 'vice_president':
+        return {
+          canViewFinances: true,
+          canEditDocuments: true,
+          canManageVendors: true,
+          canCreateVotes: true
+        };
+      case 'treasurer':
+        return {
+          canViewFinances: true,
+          canEditDocuments: true,
+          canManageVendors: false,
+          canCreateVotes: true
+        };
+      case 'secretary':
+        return {
+          canViewFinances: false,
+          canEditDocuments: true,
+          canManageVendors: false,
+          canCreateVotes: true
+        };
+      case 'board_member':
+        return {
+          canViewFinances: true,
+          canEditDocuments: false,
+          canManageVendors: false,
+          canCreateVotes: true
+        };
+      default: // member
+        return permissions;
+    }
   }
 
   // Groups/Community operations
