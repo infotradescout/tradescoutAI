@@ -252,16 +252,16 @@ export default function AffiliatePage() {
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-4">
               <div className="bg-slate-800/50 p-4 rounded-lg">
-                <h4 className="text-white font-semibold mb-2">10% Contractor Fees</h4>
-                <p className="text-sm text-gray-400">Recurring monthly income from contractor subscriptions</p>
+                <h4 className="text-white font-semibold mb-2">10% Marketplace Promotions</h4>
+                <p className="text-sm text-gray-400">Commission when contractors boost marketplace listings</p>
               </div>
               <div className="bg-slate-800/50 p-4 rounded-lg">
-                <h4 className="text-white font-semibold mb-2">10% Marketplace Fees</h4>
-                <p className="text-sm text-gray-400">Commission on all marketplace transactions</p>
+                <h4 className="text-white font-semibold mb-2">10% Marketplace Sales</h4>
+                <p className="text-sm text-gray-400">Earnings from all marketplace transactions</p>
               </div>
               <div className="bg-slate-800/50 p-4 rounded-lg">
-                <h4 className="text-white font-semibold mb-2">10% Premium Services</h4>
-                <p className="text-sm text-gray-400">Earnings from boosts, promotions, and features</p>
+                <h4 className="text-white font-semibold mb-2">10% Ad Revenue</h4>
+                <p className="text-sm text-gray-400">Share of platform advertising revenue</p>
               </div>
             </div>
           </CardContent>
@@ -308,7 +308,7 @@ export default function AffiliatePage() {
                     </div>
                     <h3 className="text-white font-semibold mb-2">3. Earn 10% Forever</h3>
                     <p className="text-gray-400 text-sm">
-                      You earn 10% of ALL revenue from your referrals - contractors, marketplace fees, subscriptions, everything.
+                      You earn 10% of ALL revenue from your referrals - marketplace promotions, sales, and platform ads.
                     </p>
                   </div>
                 </div>
@@ -318,11 +318,11 @@ export default function AffiliatePage() {
                   <ul className="space-y-2 text-gray-300 text-sm">
                     <li className="flex items-start gap-2">
                       <Check className="w-5 h-5 text-emerald-400 flex-shrink-0 mt-0.5" />
-                      <span><strong>Recurring Income:</strong> Contractors pay monthly fees - you earn every month they stay active</span>
+                      <span><strong>Free Platform:</strong> TradeScout is 100% free for contractors - no fees ever - making it easy to refer</span>
                     </li>
                     <li className="flex items-start gap-2">
                       <Check className="w-5 h-5 text-emerald-400 flex-shrink-0 mt-0.5" />
-                      <span><strong>Marketplace Revenue:</strong> Every transaction on the marketplace generates commission for you</span>
+                      <span><strong>Marketplace Revenue:</strong> Every marketplace promotion and transaction generates commission for you</span>
                     </li>
                     <li className="flex items-start gap-2">
                       <Check className="w-5 h-5 text-emerald-400 flex-shrink-0 mt-0.5" />
