@@ -2863,6 +2863,170 @@ export const regions = pgTable("regions", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
+// HOA (Homeowner Association) Management - Phase 4
+export const homeownerAssociations = pgTable("homeowner_associations", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  name: varchar("name").notNull(),
+  address: text("address").notNull(),
+  city: varchar("city").notNull(),
+  state: varchar("state").notNull(),
+  countyFips: varchar("county_fips").notNull(),
+  zipCode: varchar("zip_code"),
+  
+  // HOA Details
+  establishedYear: integer("established_year"),
+  totalUnits: integer("total_units").notNull(),
+  monthlyFees: decimal("monthly_fees", { precision: 10, scale: 2 }),
+  reserves: decimal("reserves", { precision: 12, scale: 2 }),
+  managementCompany: varchar("management_company"),
+  
+  // Board Information
+  boardMembers: jsonb("board_members").$type<Array<{
+    name: string;
+    position: string;
+    term: string;
+  }>>(),
+  
+  // Amenities and Features
+  amenities: text("amenities").array(),
+  nextMeeting: timestamp("next_meeting"),
+  
+  // Status
+  isActive: boolean("is_active").default(true),
+  
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const hoaFinancialRecords = pgTable("hoa_financial_records", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  hoaId: varchar("hoa_id").notNull().references(() => homeownerAssociations.id, { onDelete: 'cascade' }),
+  
+  // Financial Summary
+  year: integer("year").notNull(),
+  month: integer("month").notNull(), // 1-12
+  totalRevenue: decimal("total_revenue", { precision: 12, scale: 2 }),
+  totalExpenses: decimal("total_expenses", { precision: 12, scale: 2 }),
+  netIncome: decimal("net_income", { precision: 12, scale: 2 }),
+  reserves: decimal("reserves", { precision: 12, scale: 2 }),
+  outstandingFees: decimal("outstanding_fees", { precision: 12, scale: 2 }),
+  
+  // Expense Breakdown
+  expenseCategories: jsonb("expense_categories").$type<Array<{
+    category: string;
+    amount: string;
+    percentage: number;
+  }>>(),
+  
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const hoaVendors = pgTable("hoa_vendors", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  hoaId: varchar("hoa_id").notNull().references(() => homeownerAssociations.id, { onDelete: 'cascade' }),
+  
+  // Vendor Details
+  name: varchar("name").notNull(),
+  category: varchar("category").notNull(), // Landscaping, Pool Maintenance, etc.
+  contactPerson: varchar("contact_person"),
+  phone: varchar("phone"),
+  email: varchar("email"),
+  
+  // Contract Information
+  monthlyContract: decimal("monthly_contract", { precision: 10, scale: 2 }),
+  contractStart: timestamp("contract_start"),
+  contractEnd: timestamp("contract_end"),
+  
+  // Performance
+  rating: decimal("rating", { precision: 3, scale: 2 }),
+  status: varchar("status").default('active'), // active, inactive, pending
+  services: text("services").array(),
+  
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const hoaVotes = pgTable("hoa_votes", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  hoaId: varchar("hoa_id").notNull().references(() => homeownerAssociations.id, { onDelete: 'cascade' }),
+  
+  // Vote Details
+  title: varchar("title").notNull(),
+  description: text("description").notNull(),
+  voteType: varchar("vote_type").notNull(), // capital_improvement, rule_change, board_election, etc.
+  createdBy: varchar("created_by").notNull().references(() => users.id),
+  
+  // Voting Period
+  startDate: timestamp("start_date").notNull(),
+  endDate: timestamp("end_date").notNull(),
+  
+  // Quorum and Results
+  requiredQuorum: integer("required_quorum").notNull(),
+  currentVotes: integer("current_votes").default(0),
+  votesFor: integer("votes_for").default(0),
+  votesAgainst: integer("votes_against").default(0),
+  votesAbstain: integer("votes_abstain").default(0),
+  
+  // Additional Info
+  estimatedCost: decimal("estimated_cost", { precision: 12, scale: 2 }),
+  status: varchar("status").default('active'), // active, passed, failed, cancelled
+  
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const hoaVoteResponses = pgTable("hoa_vote_responses", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  voteId: varchar("vote_id").notNull().references(() => hoaVotes.id, { onDelete: 'cascade' }),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: 'cascade' }),
+  
+  decision: varchar("decision").notNull(), // for, against, abstain
+  submittedAt: timestamp("submitted_at").defaultNow(),
+  
+  createdAt: timestamp("created_at").defaultNow(),
+}, (table) => [
+  index("idx_hoa_vote_responses_vote").on(table.voteId),
+  index("idx_hoa_vote_responses_user").on(table.userId),
+]);
+
+export const hoaServiceRequests = pgTable("hoa_service_requests", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  hoaId: varchar("hoa_id").notNull().references(() => homeownerAssociations.id, { onDelete: 'cascade' }),
+  vendorId: varchar("vendor_id").notNull().references(() => hoaVendors.id, { onDelete: 'cascade' }),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: 'cascade' }),
+  
+  // Request Details
+  serviceType: varchar("service_type").notNull(),
+  description: text("description").notNull(),
+  urgency: varchar("urgency").default('normal'), // low, normal, high, emergency
+  contactPreference: varchar("contact_preference").default('email'), // email, phone, both
+  
+  // Status Tracking
+  status: varchar("status").default('submitted'), // submitted, assigned, in_progress, completed, cancelled
+  assignedTo: varchar("assigned_to"),
+  completedAt: timestamp("completed_at"),
+  
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const hoaDocuments = pgTable("hoa_documents", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  hoaId: varchar("hoa_id").notNull().references(() => homeownerAssociations.id, { onDelete: 'cascade' }),
+  
+  name: varchar("name").notNull(),
+  documentType: varchar("document_type").notNull(), // governing, financial, minutes, notice, other
+  fileUrl: varchar("file_url").notNull(),
+  fileSize: integer("file_size"), // in bytes
+  uploadedBy: varchar("uploaded_by").notNull().references(() => users.id),
+  
+  isPublic: boolean("is_public").default(false),
+  lastUpdated: timestamp("last_updated").defaultNow(),
+  
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
 // Relations for social features
 export const communityPostsRelations = relations(communityPosts, ({ one, many }) => ({
   author: one(users, {
