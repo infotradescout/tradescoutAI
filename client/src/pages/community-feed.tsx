@@ -480,7 +480,7 @@ const CommunityFeed = memo(function CommunityFeed() {
                         </div>
                       </CardContent>
                     </Card>
-                  )) : null}
+                  ))}
                 </div>
               </TabsContent>
 
