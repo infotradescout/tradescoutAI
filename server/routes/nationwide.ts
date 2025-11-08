@@ -139,15 +139,7 @@ const mockFoundationImpact = {
 // Get nationwide expansion metrics
 export async function getNationwideMetrics(req: Request, res: Response) {
   try {
-    let metrics;
-    try {
-      metrics = await (storage as any).getNationwideMetrics?.();
-      if (!metrics) throw new Error('Method not implemented');
-    } catch (dbError) {
-      console.log('Database offline, using mock nationwide metrics');
-      metrics = mockNationwideMetrics;
-    }
-
+    const metrics = await storage.getNationwideMetrics();
     res.json(metrics);
   } catch (error) {
     console.error('Error fetching nationwide metrics:', error);
@@ -159,16 +151,7 @@ export async function getNationwideMetrics(req: Request, res: Response) {
 export async function getTopCounties(req: Request, res: Response) {
   try {
     const { limit = '10' } = req.query;
-    
-    let counties;
-    try {
-      counties = await (storage as any).getTopPerformingCounties?.(parseInt(limit as string));
-      if (!counties) throw new Error('Method not implemented');
-    } catch (dbError) {
-      console.log('Database offline, using mock top counties data');
-      counties = mockTopPerformingCounties.slice(0, parseInt(limit as string));
-    }
-
+    const counties = await storage.getTopPerformingCounties(parseInt(limit as string));
     res.json(counties);
   } catch (error) {
     console.error('Error fetching top counties:', error);
@@ -179,15 +162,7 @@ export async function getTopCounties(req: Request, res: Response) {
 // Get expansion pipeline
 export async function getExpansionPipeline(req: Request, res: Response) {
   try {
-    let pipeline;
-    try {
-      pipeline = await (storage as any).getExpansionPipeline?.();
-      if (!pipeline) throw new Error('Method not implemented');
-    } catch (dbError) {
-      console.log('Database offline, using mock expansion pipeline');
-      pipeline = mockExpansionPipeline;
-    }
-
+    const pipeline = await storage.getExpansionPipeline();
     res.json(pipeline);
   } catch (error) {
     console.error('Error fetching expansion pipeline:', error);
