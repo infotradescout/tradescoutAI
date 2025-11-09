@@ -476,12 +476,16 @@ const SimpleHome = memo(function SimpleHome() {
                 {(dashboardData?.recentActivity?.length ?? 0) > 0 ? (
                   <div className="space-y-3">
                     {dashboardData?.recentActivity?.slice(0, 5).map((activity: any, idx: number) => (
-                      <div key={idx} className="text-sm">
-                        <p className="text-white">{activity.title}</p>
+                      <Link 
+                        key={idx} 
+                        href={`/community/post/${activity.id}`}
+                        className="block text-sm hover:bg-[#0f1419] p-2 rounded transition-colors cursor-pointer"
+                      >
+                        <p className="text-white hover:text-orange-500 transition-colors">{activity.title}</p>
                         <p className="text-xs text-slate-500 dark:text-slate-300">
                           {formatDistanceToNow(new Date(activity.createdAt), { addSuffix: true })}
                         </p>
-                      </div>
+                      </Link>
                     ))}
                   </div>
                 ) : (
