@@ -87,3 +87,15 @@ The architecture emphasizes a "community-first" advertising approach and a "no p
   - Three-tier flow: Account type → Role selection → Onboarding
   - Visual distinction: Blue (homeowners) vs Orange (professionals)
   - Clear "100% FREE - No fees" messaging for professionals
+
+## Community Posts Enhancement (November 9, 2025)
+- ✅ **Author Information Display** - Posts now show proper author details
+  - Database query updated to JOIN with users table
+  - Posts display: author name, avatar, email, role, verification status
+  - Graceful fallback to "Anonymous" for posts without author data
+  - Privacy-aware display (respects isPrivateProfile setting)
+- ✅ **TradeScout Branding** - Removed all Facebook group references
+  - County hub pages now reference "TradeScout Community Groups"
+  - Analytics changed from "Facebook Groups" to "Community Groups"
+  - Interactive county map updated to use TradeScout branding
+  - Consistent orange brand color for community CTAs
