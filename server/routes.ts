@@ -898,6 +898,46 @@ export async function registerRoutes(app: Express) {
     }
   });
 
+  // User preferences endpoints (dashboard, notifications, etc.)
+  app.get('/api/users/preferences', isAuthenticated, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user?.id || (req.user as any)?.claims?.sub);
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      res.json(user.preferences || {});
+    } catch (error: any) {
+      console.error("Error fetching user preferences:", error);
+      res.status(500).json({ message: "Failed to fetch user preferences" });
+    }
+  });
+
+  app.patch('/api/users/preferences', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user?.id || (req.user as any)?.claims?.sub;
+      const currentUser = await storage.getUser(userId);
+      if (!currentUser) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      const currentPrefs = currentUser.preferences || {};
+      const updatedPreferences = {
+        ...currentPrefs,
+        ...req.body
+      };
+
+      const user = await storage.updateUser(userId, {
+        preferences: updatedPreferences,
+        updatedAt: new Date(),
+      });
+
+      res.json({ preferences: user.preferences });
+    } catch (error: any) {
+      console.error("Error updating user preferences:", error);
+      res.status(500).json({ message: "Failed to update user preferences" });
+    }
+  });
+
   // Account security and management endpoints
   app.get("/api/user/trusted-devices", isAuthenticated, async (req: any, res) => {
     try {
