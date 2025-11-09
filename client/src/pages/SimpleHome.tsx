@@ -46,22 +46,12 @@ const SimpleHome = memo(function SimpleHome() {
       <div className="max-w-7xl mx-auto px-4 py-6">
         {/* Welcome Header */}
         <div className="mb-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-3xl font-bold text-slate-900 dark:text-white mb-2">
-                Welcome back, {user?.firstName || user?.email?.split('@')[0] || 'there'}! 👋
-              </h1>
-              <p className="text-slate-600 dark:text-slate-400">
-                Here's your personalized TradeScout dashboard
-              </p>
-            </div>
-            <Avatar className="h-20 w-20 border-4 border-orange-500">
-              <AvatarImage src={user?.profileImageUrl} />
-              <AvatarFallback className="bg-orange-500 text-white text-2xl">
-                {user?.firstName?.[0] || user?.email?.[0] || 'U'}
-              </AvatarFallback>
-            </Avatar>
-          </div>
+          <h1 className="text-3xl font-bold text-slate-900 dark:text-white mb-2">
+            Welcome back, {user?.firstName || user?.email?.split('@')[0] || 'there'}
+          </h1>
+          <p className="text-slate-600 dark:text-slate-400">
+            Your personalized dashboard
+          </p>
         </div>
 
         {/* Quick Stats Grid */}
@@ -390,7 +380,7 @@ const SimpleHome = memo(function SimpleHome() {
           <div className="space-y-6">
             
             {/* Quick Actions */}
-            <Card className="bg-gradient-to-br from-orange-500 to-orange-600 text-white">
+            <Card className="bg-white dark:bg-slate-800">
               <CardHeader>
                 <CardTitle className="text-lg">Quick Actions</CardTitle>
               </CardHeader>
@@ -398,13 +388,13 @@ const SimpleHome = memo(function SimpleHome() {
                 {isContractor ? (
                   <>
                     <Link href="/contractor/leads">
-                      <Button variant="secondary" size="sm" className="w-full justify-start bg-white/20 hover:bg-white/30 text-white border-0">
+                      <Button variant="outline" size="sm" className="w-full justify-start">
                         <TrendingUp className="h-4 w-4 mr-2" />
                         Find New Projects
                       </Button>
                     </Link>
                     <Link href="/contractor-profile">
-                      <Button variant="secondary" size="sm" className="w-full justify-start bg-white/20 hover:bg-white/30 text-white border-0">
+                      <Button variant="outline" size="sm" className="w-full justify-start">
                         <Star className="h-4 w-4 mr-2" />
                         Update Profile
                       </Button>
@@ -412,14 +402,20 @@ const SimpleHome = memo(function SimpleHome() {
                   </>
                 ) : (
                   <>
+                    <Link href="/quote-calculator">
+                      <Button variant="outline" size="sm" className="w-full justify-start">
+                        <DollarSign className="h-4 w-4 mr-2" />
+                        Quote Calculator
+                      </Button>
+                    </Link>
                     <Link href="/find-contractors">
-                      <Button variant="secondary" size="sm" className="w-full justify-start bg-white/20 hover:bg-white/30 text-white border-0">
+                      <Button variant="outline" size="sm" className="w-full justify-start">
                         <Wrench className="h-4 w-4 mr-2" />
                         Find Contractors
                       </Button>
                     </Link>
                     <Link href="/request-quote">
-                      <Button variant="secondary" size="sm" className="w-full justify-start bg-white/20 hover:bg-white/30 text-white border-0">
+                      <Button variant="outline" size="sm" className="w-full justify-start">
                         <MessageSquare className="h-4 w-4 mr-2" />
                         Request Quote
                       </Button>
@@ -427,13 +423,13 @@ const SimpleHome = memo(function SimpleHome() {
                   </>
                 )}
                 <Link href="/marketplace">
-                  <Button variant="secondary" size="sm" className="w-full justify-start bg-white/20 hover:bg-white/30 text-white border-0">
+                  <Button variant="outline" size="sm" className="w-full justify-start">
                     <ShoppingCart className="h-4 w-4 mr-2" />
                     Browse Marketplace
                   </Button>
                 </Link>
                 <Link href="/community">
-                  <Button variant="secondary" size="sm" className="w-full justify-start bg-white/20 hover:bg-white/30 text-white border-0">
+                  <Button variant="outline" size="sm" className="w-full justify-start">
                     <Users className="h-4 w-4 mr-2" />
                     Community Feed
                   </Button>
