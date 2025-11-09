@@ -52,15 +52,15 @@ The architecture emphasizes a "community-first" advertising approach and a "no p
   - Statistics pull from: verified contractors (approved status), homeowner users, completed leads
   - Success rate calculated from completed vs. cancelled projects
 
-## Navigation Reorganization (November 9, 2025)
-- ✅ **Community-Centric Navigation** - Groups integrated into community experience
-  - **Main Feed**: Dashboard (`/dashboard`) is now the primary community hub
-  - **Groups Integration**: Groups accessible from Community section, not standalone
-  - **HOA Access**: HOA Management visible for HOA board members and managers
-  - **Mobile Nav**: Home and Community both route to dashboard feed
-  - **Desktop Nav**: Profile dropdown includes "My Groups" and "HOA Management"
-  - **Left Sidebar**: Community section with groups and HOA sub-items
-  - **Feature Visibility**: All major features accessible (County Hub, Find Contractors, Marketplace)
+## Navigation Structure (November 9, 2025)
+- ✅ **Separated Home and Community Pages**
+  - **Home** (`/dashboard`): Personalized dashboard showing user-relevant community activity, saved contractors, quick actions
+  - **Community** (`/community`): Full ecosystem overview with categories, events, filtering, search, and trending topics
+  - **Mobile Nav**: 5-icon bottom bar with separate Home and Community buttons
+  - **Desktop Nav**: Top navigation bar with distinct Home and Community tabs
+  - **Groups Integration**: Groups accessible from Community section
+  - **HOA Access**: HOA Management visible for HOA board members and managers (role-based)
+  - **Profile Dropdown**: Includes "My Groups" and "HOA Management" for quick access
 
 ## Customizable Dashboard (November 9, 2025)
 - ✅ **User-Configurable Dashboard** - Personalized widget system
