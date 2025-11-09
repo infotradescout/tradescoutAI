@@ -89,7 +89,6 @@ const Notifications = React.lazy(() => import('./pages/notifications'));
 const Settings = React.lazy(() => import('./pages/settings'));
 const Help = React.lazy(() => import('./pages/help'));
 const Invite = React.lazy(() => import('./pages/invite'));
-const Dashboard = React.lazy(() => import('./pages/dashboard'));
 const CustomDashboard = React.lazy(() => import('./pages/Dashboard'));
 const DashboardSettings = React.lazy(() => import('./pages/DashboardSettings'));
 

@@ -2194,7 +2194,7 @@ export const insertContractorPromoSchema = createInsertSchema(contractorPromos).
   slug: true,
   viewCount: true,
   clickCount: true,
-  leadCount: true,
+  projectRequestCount: true,
   currentUses: true,
   createdAt: true,
   updatedAt: true,
