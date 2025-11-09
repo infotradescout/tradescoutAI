@@ -76,7 +76,7 @@ const AdCreator = memo(function AdCreator() {
           {/* Ad Creation Panel */}
           <div className="lg:col-span-2 space-y-6">
             <Tabs value={adType} onValueChange={setAdType}>
-              <TabsList className="grid w-full grid-cols-3 bg-slate-800">
+              <TabsList className="grid w-full grid-cols-3 bg-[#1a2332]">
                 <TabsTrigger value="social" className="data-[state=active]:bg-orange-600">Social Media</TabsTrigger>
                 <TabsTrigger value="display" className="data-[state=active]:bg-orange-600">Display Ads</TabsTrigger>
                 <TabsTrigger value="print" className="data-[state=active]:bg-orange-600">Print Materials</TabsTrigger>
@@ -84,7 +84,7 @@ const AdCreator = memo(function AdCreator() {
 
               <TabsContent value={adType} className="space-y-6">
                 {/* Ad Size Selection */}
-                <Card className="bg-slate-800/50 border-slate-700">
+                <Card className="bg-[#1a2332]/50 border-slate-700">
                   <CardHeader>
                     <CardTitle className="text-white">Choose Ad Size</CardTitle>
                     <CardDescription className="text-gray-400">
@@ -107,7 +107,7 @@ const AdCreator = memo(function AdCreator() {
                 </Card>
 
                 {/* Template Selection */}
-                <Card className="bg-slate-800/50 border-slate-700">
+                <Card className="bg-[#1a2332]/50 border-slate-700">
                   <CardHeader>
                     <CardTitle className="text-white flex items-center gap-2">
                       <Palette className="w-5 h-5 text-orange-500" />
@@ -139,7 +139,7 @@ const AdCreator = memo(function AdCreator() {
                 </Card>
 
                 {/* Content Input */}
-                <Card className="bg-slate-800/50 border-slate-700">
+                <Card className="bg-[#1a2332]/50 border-slate-700">
                   <CardHeader>
                     <CardTitle className="text-white flex items-center gap-2">
                       <Type className="w-5 h-5 text-orange-500" />
@@ -211,7 +211,7 @@ const AdCreator = memo(function AdCreator() {
                 </Card>
 
                 {/* AI Enhancement */}
-                <Card className="bg-slate-800/50 border-slate-700">
+                <Card className="bg-[#1a2332]/50 border-slate-700">
                   <CardHeader>
                     <CardTitle className="text-white flex items-center gap-2">
                       <Sparkles className="w-5 h-5 text-purple-500" />
@@ -248,7 +248,7 @@ const AdCreator = memo(function AdCreator() {
 
           {/* Preview Panel */}
           <div className="space-y-6">
-            <Card className="bg-slate-800/50 border-slate-700">
+            <Card className="bg-[#1a2332]/50 border-slate-700">
               <CardHeader>
                 <CardTitle className="text-white flex items-center gap-2">
                   <Eye className="w-5 h-5 text-orange-500" />
@@ -268,7 +268,7 @@ const AdCreator = memo(function AdCreator() {
                       <p className="text-blue-200 text-xs">Expert craftsmanship with guaranteed satisfaction...</p>
                     </div>
                     <div className="flex items-end justify-between">
-                      <Button size="sm" className="bg-white text-blue-600 hover:bg-blue-50">
+                      <Button size="sm" className="bg-[#0f1419] text-blue-600 hover:bg-blue-50">
                         Get Free Quote
                       </Button>
                       <p className="text-blue-100 text-xs">(555) 123-4567</p>
@@ -287,7 +287,7 @@ const AdCreator = memo(function AdCreator() {
             </Card>
 
             {/* Export Options */}
-            <Card className="bg-slate-800/50 border-slate-700">
+            <Card className="bg-[#1a2332]/50 border-slate-700">
               <CardHeader>
                 <CardTitle className="text-white">Export & Share</CardTitle>
                 <CardDescription className="text-gray-400">
@@ -313,7 +313,7 @@ const AdCreator = memo(function AdCreator() {
             </Card>
 
             {/* Performance Tips */}
-            <Card className="bg-slate-800/50 border-slate-700">
+            <Card className="bg-[#1a2332]/50 border-slate-700">
               <CardHeader>
                 <CardTitle className="text-white text-sm">Performance Tips</CardTitle>
               </CardHeader>

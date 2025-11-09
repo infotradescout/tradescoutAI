@@ -104,7 +104,7 @@ export default function AdminListings() {
   return (
     <div className="container mx-auto px-4 py-8 max-w-6xl">
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
+        <h1 className="text-3xl font-bold text-orange-500 mb-2">
           Pending Listings Approval
         </h1>
         <p className="text-gray-600 dark:text-gray-400">
@@ -116,7 +116,7 @@ export default function AdminListings() {
         <Card>
           <CardContent className="text-center py-12">
             <CheckCircle className="h-12 w-12 text-green-500 mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
+            <h3 className="text-lg font-medium text-orange-500 mb-2">
               No Pending Listings
             </h3>
             <p className="text-gray-600 dark:text-gray-400">
@@ -128,7 +128,7 @@ export default function AdminListings() {
         <div className="grid md:grid-cols-2 gap-6">
           {/* Listings List */}
           <div className="space-y-4">
-            <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
+            <h2 className="text-xl font-semibold text-orange-500">
               Pending Approval ({pendingListings.length})
             </h2>
             
@@ -144,7 +144,7 @@ export default function AdminListings() {
               >
                 <CardContent className="p-4">
                   <div className="flex items-start justify-between mb-3">
-                    <h3 className="font-medium text-gray-900 dark:text-white line-clamp-2">
+                    <h3 className="font-medium text-orange-500 line-clamp-2">
                       {listing.title}
                     </h3>
                     <Badge variant="outline" className="ml-2">
@@ -188,7 +188,7 @@ export default function AdminListings() {
                 <CardContent className="space-y-6">
                   {/* Listing Details */}
                   <div>
-                    <h3 className="font-medium text-gray-900 dark:text-white mb-2">
+                    <h3 className="font-medium text-orange-500 mb-2">
                       {selectedListing.title}
                     </h3>
                     <p className="text-sm text-gray-600 dark:text-gray-400 line-clamp-3">
@@ -276,7 +276,7 @@ export default function AdminListings() {
               <Card>
                 <CardContent className="text-center py-12">
                   <User className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                  <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
+                  <h3 className="text-lg font-medium text-orange-500 mb-2">
                     Select a Listing
                   </h3>
                   <p className="text-gray-600 dark:text-gray-400">

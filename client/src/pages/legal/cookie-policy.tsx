@@ -151,7 +151,7 @@ export default function CookiePolicy() {
   ];
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+    <div className="min-h-screen bg-[#0f1419]">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <Card>
           <CardHeader className="text-center">
@@ -338,7 +338,7 @@ export default function CookiePolicy() {
 
                   <section>
                     <h2 className="text-2xl font-semibold mb-4">Contact Us</h2>
-                    <div className="bg-gray-50 dark:bg-gray-800 p-6 rounded-lg">
+                    <div className="bg-[#0f1419] dark:bg-[#1a2332] p-6 rounded-lg">
                       <p className="mb-2">
                         If you have questions about our use of cookies, please contact us:
                       </p>

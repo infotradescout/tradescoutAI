@@ -15,7 +15,7 @@ const DailyDeals = memo(function DailyDeals() {
             <p className="text-xl mb-6">Professional Kitchen Renovation - 25% Off</p>
             <div className="text-4xl font-bold mb-4">Save $3,000</div>
             <p className="mb-6">Limited time offer from certified kitchen specialists</p>
-            <button data-testid="claim-featured-deal-btn" className="bg-white text-orange-600 px-8 py-3 rounded font-semibold hover:bg-gray-100 transition-colors">
+            <button data-testid="claim-featured-deal-btn" className="bg-[#0f1419] text-orange-600 px-8 py-3 rounded font-semibold hover:bg-[#0f1419] transition-colors">
               Claim Deal
             </button>
           </div>

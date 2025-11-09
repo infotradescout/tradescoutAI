@@ -47,9 +47,9 @@ export default function AdminErrorReports() {
       case 'open': return 'bg-red-500/20 text-red-500';
       case 'in_progress': return 'bg-yellow-500/20 text-yellow-500';
       case 'resolved': return 'bg-green-500/20 text-green-500';
-      case 'closed': return 'bg-gray-500/20 text-gray-500';
+      case 'closed': return 'bg-[#0f1419]0/20 text-gray-500';
       case 'duplicate': return 'bg-blue-500/20 text-blue-500';
-      default: return 'bg-gray-500/20 text-gray-500';
+      default: return 'bg-[#0f1419]0/20 text-gray-500';
     }
   };
 
@@ -59,7 +59,7 @@ export default function AdminErrorReports() {
       case 'medium': return 'bg-yellow-500/20 text-yellow-500';
       case 'high': return 'bg-orange-500/20 text-orange-500';
       case 'critical': return 'bg-red-500/20 text-red-500';
-      default: return 'bg-gray-500/20 text-gray-500';
+      default: return 'bg-[#0f1419]0/20 text-gray-500';
     }
   };
 
@@ -91,7 +91,7 @@ export default function AdminErrorReports() {
           <img 
             src={screenshot.data} 
             alt="Bug report screenshot" 
-            className="w-full h-auto max-h-96 object-contain bg-gray-800"
+            className="w-full h-auto max-h-96 object-contain bg-[#1a2332]"
             style={{ imageRendering: 'auto' }}
           />
         </div>

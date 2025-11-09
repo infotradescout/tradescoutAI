@@ -72,7 +72,7 @@ const LicenseVerification = memo(function LicenseVerification() {
         </div>
 
         {/* License Information Form */}
-        <Card className="bg-slate-800/50 border-slate-700 mb-8">
+        <Card className="bg-[#1a2332]/50 border-slate-700 mb-8">
           <CardHeader>
             <CardTitle className="text-white flex items-center gap-2">
               <Award className="w-5 h-5 text-orange-500" />
@@ -177,7 +177,7 @@ const LicenseVerification = memo(function LicenseVerification() {
 
         {/* License Requirements */}
         {selectedTrade && licenseRequirements[selectedTrade as keyof typeof licenseRequirements] && (
-          <Card className="bg-slate-800/50 border-slate-700 mb-8">
+          <Card className="bg-[#1a2332]/50 border-slate-700 mb-8">
             <CardHeader>
               <CardTitle className="text-white">
                 {tradeCategories.find(t => t.value === selectedTrade)?.label} Requirements
@@ -223,7 +223,7 @@ const LicenseVerification = memo(function LicenseVerification() {
         )}
 
         {/* Document Upload */}
-        <Card className="bg-slate-800/50 border-slate-700 mb-8">
+        <Card className="bg-[#1a2332]/50 border-slate-700 mb-8">
           <CardHeader>
             <CardTitle className="text-white">License Document Upload</CardTitle>
             <CardDescription className="text-gray-400">

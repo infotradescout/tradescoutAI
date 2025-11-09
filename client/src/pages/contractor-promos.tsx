@@ -415,7 +415,7 @@ function PromoCard({ promo }: { promo: ContractorPromo }) {
           {promo.promoCode && (
             <div className="text-sm">
               <p className="font-medium">Promo Code:</p>
-              <code className="bg-gray-100 px-2 py-1 rounded text-sm">{promo.promoCode}</code>
+              <code className="bg-[#0f1419] px-2 py-1 rounded text-sm">{promo.promoCode}</code>
             </div>
           )}
 
@@ -466,7 +466,7 @@ function PromoCard({ promo }: { promo: ContractorPromo }) {
                 Copy Link
               </Button>
             </div>
-            <div className="mt-2 p-2 bg-gray-50 rounded text-xs break-all">
+            <div className="mt-2 p-2 bg-[#0f1419] rounded text-xs break-all">
               {shareUrl}
             </div>
           </div>
@@ -485,7 +485,7 @@ export default function ContractorPromos() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gray-50 py-8">
+      <div className="min-h-screen bg-[#0f1419] py-8">
         <div className="max-w-7xl mx-auto px-4">
           <div className="text-center">Loading your promos...</div>
         </div>
@@ -494,7 +494,7 @@ export default function ContractorPromos() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
+    <div className="min-h-screen bg-[#0f1419] py-8">
       <div className="max-w-7xl mx-auto px-4">
         <div className="flex justify-between items-center mb-8">
           <div>

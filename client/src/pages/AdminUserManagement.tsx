@@ -31,7 +31,7 @@ export default function AdminUserManagement() {
       {/* Page Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white flex items-center gap-3">
+          <h1 className="text-3xl font-bold text-orange-500 flex items-center gap-3">
             <Users className="w-8 h-8" />
             User Management
           </h1>

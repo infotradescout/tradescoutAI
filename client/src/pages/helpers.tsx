@@ -244,7 +244,7 @@ export default function Helpers() {
 
         <TabsContent value="find-helpers" className="space-y-6">
           {/* Search and Filters */}
-          <Card className="bg-slate-800 border-slate-700">
+          <Card className="bg-[#1a2332] border-slate-700">
             <CardContent className="p-6">
               <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                 <div className="relative">
@@ -261,7 +261,7 @@ export default function Helpers() {
                   <SelectTrigger className="bg-slate-700 border-slate-600 text-white">
                     <SelectValue placeholder="Category" />
                   </SelectTrigger>
-                  <SelectContent className="bg-slate-800 border-slate-700">
+                  <SelectContent className="bg-[#1a2332] border-slate-700">
                     <SelectItem value="all">All Categories</SelectItem>
                     {categories?.map(category => (
                       <SelectItem key={category.id} value={category.id}>
@@ -282,7 +282,7 @@ export default function Helpers() {
                   <SelectTrigger className="bg-slate-700 border-slate-600 text-white">
                     <SelectValue placeholder="Sort By" />
                   </SelectTrigger>
-                  <SelectContent className="bg-slate-800 border-slate-700">
+                  <SelectContent className="bg-[#1a2332] border-slate-700">
                     <SelectItem value="rating">Highest Rated</SelectItem>
                     <SelectItem value="experience">Most Experienced</SelectItem>
                     <SelectItem value="price">Lowest Price</SelectItem>
@@ -297,7 +297,7 @@ export default function Helpers() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {workersLoading ? (
               Array.from({ length: 6 }).map((_, i) => (
-                <Card key={i} className="bg-slate-800 border-slate-700 animate-pulse">
+                <Card key={i} className="bg-[#1a2332] border-slate-700 animate-pulse">
                   <CardContent className="p-6">
                     <div className="flex items-center mb-4">
                       <div className="w-16 h-16 bg-slate-600 rounded-full mr-4"></div>
@@ -315,7 +315,7 @@ export default function Helpers() {
               ))
             ) : filteredWorkers?.length > 0 ? (
               filteredWorkers.map((worker) => (
-                <Card key={worker.id} className="bg-slate-800 border-slate-700 hover:border-orange-500/50 transition-colors">
+                <Card key={worker.id} className="bg-[#1a2332] border-slate-700 hover:border-orange-500/50 transition-colors">
                   <CardContent className="p-6">
                     <div className="flex items-start justify-between mb-4">
                       <div className="flex items-center">
@@ -410,7 +410,7 @@ export default function Helpers() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {tasksLoading ? (
               Array.from({ length: 4 }).map((_, i) => (
-                <Card key={i} className="bg-slate-800 border-slate-700 animate-pulse">
+                <Card key={i} className="bg-[#1a2332] border-slate-700 animate-pulse">
                   <CardContent className="p-6">
                     <div className="h-6 bg-slate-600 rounded mb-4"></div>
                     <div className="h-4 bg-slate-600 rounded mb-2"></div>
@@ -424,7 +424,7 @@ export default function Helpers() {
               ))
             ) : filteredTasks?.length > 0 ? (
               filteredTasks.map((task) => (
-                <Card key={task.id} className="bg-slate-800 border-slate-700 hover:border-orange-500/50 transition-colors">
+                <Card key={task.id} className="bg-[#1a2332] border-slate-700 hover:border-orange-500/50 transition-colors">
                   <CardContent className="p-6">
                     <div className="flex items-start justify-between mb-4">
                       <h3 className="font-semibold text-white text-lg">{task.title}</h3>
@@ -475,7 +475,7 @@ export default function Helpers() {
         </TabsContent>
 
         <TabsContent value="post-task" className="space-y-6">
-          <Card className="bg-slate-800 border-slate-700">
+          <Card className="bg-[#1a2332] border-slate-700">
             <CardHeader>
               <h2 className="text-xl font-semibold text-white">Post a New Task</h2>
               <p className="text-gray-400">Describe your task and find the right helper</p>
@@ -497,7 +497,7 @@ export default function Helpers() {
                       <SelectTrigger className="bg-slate-700 border-slate-600 text-white">
                         <SelectValue placeholder="Select category" />
                       </SelectTrigger>
-                      <SelectContent className="bg-slate-800 border-slate-700">
+                      <SelectContent className="bg-[#1a2332] border-slate-700">
                         {categories?.map(category => (
                           <SelectItem key={category.id} value={category.id}>
                             {category.name}
@@ -548,7 +548,7 @@ export default function Helpers() {
                       <SelectTrigger className="bg-slate-700 border-slate-600 text-white">
                         <SelectValue placeholder="When do you need this done?" />
                       </SelectTrigger>
-                      <SelectContent className="bg-slate-800 border-slate-700">
+                      <SelectContent className="bg-[#1a2332] border-slate-700">
                         <SelectItem value="urgent">Urgent (Within 24 hours)</SelectItem>
                         <SelectItem value="soon">Soon (Within a week)</SelectItem>
                         <SelectItem value="flexible">Flexible (Within a month)</SelectItem>

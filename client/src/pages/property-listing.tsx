@@ -190,7 +190,7 @@ export default function PropertyListing() {
         <div className="flex items-center gap-3 mb-4">
           <Home className="h-8 w-8 text-orange-600" />
           <div>
-            <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
+            <h1 className="text-3xl font-bold text-orange-500">
               List Your Property
             </h1>
             <p className="text-gray-600 dark:text-gray-400">
@@ -225,7 +225,7 @@ export default function PropertyListing() {
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
               {/* Basic Information */}
               <div className="space-y-4">
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                <h3 className="text-lg font-semibold text-orange-500">
                   Basic Information
                 </h3>
                 
@@ -319,7 +319,7 @@ export default function PropertyListing() {
 
               {/* Location */}
               <div className="space-y-4">
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                <h3 className="text-lg font-semibold text-orange-500 flex items-center gap-2">
                   <MapPin className="h-5 w-5 text-orange-600" />
                   Location
                 </h3>
@@ -385,7 +385,7 @@ export default function PropertyListing() {
 
               {/* Property Details */}
               <div className="space-y-4">
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                <h3 className="text-lg font-semibold text-orange-500">
                   Property Details
                 </h3>
                 
@@ -464,7 +464,7 @@ export default function PropertyListing() {
 
               {/* Pricing */}
               <div className="space-y-4">
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                <h3 className="text-lg font-semibold text-orange-500 flex items-center gap-2">
                   <DollarSign className="h-5 w-5 text-orange-600" />
                   Pricing
                 </h3>
@@ -561,7 +561,7 @@ export default function PropertyListing() {
 
               {/* Property Features */}
               <div className="space-y-4">
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                <h3 className="text-lg font-semibold text-orange-500">
                   Property Features
                 </h3>
                 <p className="text-sm text-gray-600 dark:text-gray-400">

@@ -96,7 +96,7 @@ export default function MortgageBrokerDashboard() {
       case 'approved': return 'bg-green-500';
       case 'closed': return 'bg-emerald-500';
       case 'denied': return 'bg-red-500';
-      default: return 'bg-gray-500';
+      default: return 'bg-[#0f1419]0';
     }
   };
 
