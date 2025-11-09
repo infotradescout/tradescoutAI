@@ -10,11 +10,12 @@ type AuthFlowStep = 'facebook-signup' | 'role-selection' | 'onboarding' | 'compl
 
 interface AuthFlowProps {
   onComplete: () => void;
+  initialType?: 'homeowner' | 'professional';
 }
 
-export function AuthFlow({ onComplete }: AuthFlowProps) {
+export function AuthFlow({ onComplete, initialType }: AuthFlowProps) {
   const [currentStep, setCurrentStep] = useState<AuthFlowStep>('facebook-signup');
-  const [selectedRole, setSelectedRole] = useState<'homeowner' | 'contractor' | null>(null);
+  const [selectedRole, setSelectedRole] = useState<string | null>(null);
   const [userInfo, setUserInfo] = useState<{
     name?: string;
     email?: string;
@@ -55,7 +56,7 @@ export function AuthFlow({ onComplete }: AuthFlowProps) {
   };
 
   const updateRoleMutation = useMutation({
-    mutationFn: async (role: 'homeowner' | 'contractor') => {
+    mutationFn: async (role: string) => {
       const response = await fetch('/api/auth/update-role', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -69,7 +70,7 @@ export function AuthFlow({ onComplete }: AuthFlowProps) {
     },
   });
 
-  const handleRoleSelect = async (role: 'homeowner' | 'contractor') => {
+  const handleRoleSelect = async (role: string) => {
     try {
       setSelectedRole(role);
       await updateRoleMutation.mutateAsync(role);
@@ -133,7 +134,7 @@ export function AuthFlow({ onComplete }: AuthFlowProps) {
   };
 
   const skipOnboardingMutation = useMutation({
-    mutationFn: async (role: 'homeowner' | 'contractor') => {
+    mutationFn: async (role: string) => {
       const response = await fetch('/api/auth/skip-onboarding', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -183,6 +184,7 @@ export function AuthFlow({ onComplete }: AuthFlowProps) {
         <RoleSelection 
           onRoleSelect={handleRoleSelect}
           userInfo={userInfo}
+          initialType={initialType}
         />
       );
 
