@@ -46,14 +46,11 @@ const SimpleHome = memo(function SimpleHome() {
   // Create post mutation
   const createPostMutation = useMutation({
     mutationFn: async (postData: { content: string; title?: string }) => {
-      return apiRequest('/api/community/posts', {
-        method: 'POST',
-        body: JSON.stringify({
-          content: postData.content,
-          title: postData.title,
-          postType: 'discussion',
-          visibility: 'public'
-        })
+      return apiRequest('POST', '/api/community/posts', {
+        content: postData.content,
+        title: postData.title,
+        postType: 'discussion',
+        visibility: 'public'
       });
     },
     onSuccess: () => {
@@ -77,9 +74,7 @@ const SimpleHome = memo(function SimpleHome() {
   // Like post mutation
   const likePostMutation = useMutation({
     mutationFn: async (postId: string) => {
-      return apiRequest(`/api/community/posts/${postId}/like`, {
-        method: 'POST'
-      });
+      return apiRequest('POST', `/api/community/posts/${postId}/like`);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/community/posts'] });

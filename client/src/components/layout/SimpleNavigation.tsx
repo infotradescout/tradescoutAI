@@ -39,6 +39,52 @@ const SimpleNavigation = memo(function SimpleNavigation() {
 
           {/* Main Navigation */}
           <div className="hidden xl:flex items-center space-x-1">
+            {/* Home / Feed */}
+            <Link href={isAuthenticated ? "/home" : "/"} className="px-3 py-2 text-sm text-gray-300 hover:text-white transition-colors flex items-center gap-1">
+              <Home className="w-4 h-4" />
+              {isAuthenticated ? "Feed" : "Home"}
+            </Link>
+
+            {/* Community */}
+            <div 
+              className="relative"
+              onMouseEnter={() => handleMouseEnter('community')}
+              onMouseLeave={handleMouseLeave}
+            >
+              <button className="px-3 py-2 text-sm text-gray-300 hover:text-white transition-colors flex items-center gap-1">
+                <Users className="w-4 h-4" />
+                Community
+                <ChevronDown className="w-3 h-3" />
+              </button>
+              {activeDropdown === 'community' && (
+                <div className="absolute top-full left-0 mt-1 w-64 bg-slate-800 border border-slate-700 rounded-lg shadow-xl py-2">
+                  <Link href="/groups" className="block px-4 py-2 text-sm text-gray-300 hover:text-white hover:bg-slate-700/50">
+                    <div className="font-medium">Groups</div>
+                    <div className="text-xs text-gray-400">Join local communities</div>
+                  </Link>
+                  <Link href="/county-hub" className="block px-4 py-2 text-sm text-gray-300 hover:text-white hover:bg-slate-700/50">
+                    <div className="font-medium flex items-center gap-2">
+                      <MapPin className="w-4 h-4" />
+                      County Hub
+                    </div>
+                    <div className="text-xs text-gray-400">Explore your county</div>
+                  </Link>
+                  <Link href="/hoa-management" className="block px-4 py-2 text-sm text-gray-300 hover:text-white hover:bg-slate-700/50">
+                    <div className="font-medium">HOA Management</div>
+                    <div className="text-xs text-gray-400">For community associations</div>
+                  </Link>
+                  <Link href="/community-feed" className="block px-4 py-2 text-sm text-gray-300 hover:text-white hover:bg-slate-700/50">
+                    <div className="font-medium">Community Feed</div>
+                    <div className="text-xs text-gray-400">Latest updates & posts</div>
+                  </Link>
+                  <Link href="/county-directory" className="block px-4 py-2 text-sm text-gray-300 hover:text-white hover:bg-slate-700/50">
+                    <div className="font-medium">County Directory</div>
+                    <div className="text-xs text-gray-400">Browse all counties</div>
+                  </Link>
+                </div>
+              )}
+            </div>
+
             {/* Contractors */}
             <div 
               className="relative"
