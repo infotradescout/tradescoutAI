@@ -20,23 +20,6 @@ const SimpleHome = memo(function SimpleHome() {
   const { data: dashboardData, isLoading } = useQuery({
     queryKey: ['/api/dashboard', user?.id],
     enabled: !!user?.id,
-    queryFn: async () => {
-      // For now, return mock data structure - will be replaced with real API
-      return {
-        stats: {
-          activeProjects: 0,
-          savedContractors: 0,
-          marketplaceListings: 0,
-          realEstateListings: 0,
-          totalViews: 0,
-          notifications: 0
-        },
-        recentActivity: [],
-        myProjects: [],
-        myListings: [],
-        savedItems: []
-      };
-    }
   });
 
   const stats = dashboardData?.stats || {
@@ -293,6 +276,74 @@ const SimpleHome = memo(function SimpleHome() {
                       </Link>
                     </div>
                   )}
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Quotes & Estimates (contractor and homeowner) */}
+            {((dashboardData?.quotes?.length ?? 0) > 0) && (
+              <Card className="bg-white dark:bg-slate-800">
+                <CardHeader className="flex flex-row items-center justify-between">
+                  <CardTitle className="text-lg flex items-center gap-2">
+                    <DollarSign className="h-5 w-5 text-purple-500" />
+                    {isContractor ? 'My Quotes' : 'Received Quotes'}
+                  </CardTitle>
+                  <Link href="/messages">
+                    <Button variant="ghost" size="sm">View All</Button>
+                  </Link>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-3">
+                    {dashboardData?.quotes?.slice(0, 5).map((quote: any) => (
+                      <div key={quote.id} className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-700 rounded-lg">
+                        <div className="flex-1">
+                          <p className="font-medium text-slate-900 dark:text-white">{quote.title}</p>
+                          <p className="text-sm text-slate-600 dark:text-slate-400">
+                            ${Number(quote.totalCost).toLocaleString()}
+                          </p>
+                        </div>
+                        <Badge variant={quote.status === 'accepted' ? 'default' : quote.status === 'sent' ? 'secondary' : 'outline'}>
+                          {quote.status}
+                        </Badge>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Active Conversations */}
+            {((dashboardData?.conversations?.length ?? 0) > 0) && (
+              <Card className="bg-white dark:bg-slate-800">
+                <CardHeader className="flex flex-row items-center justify-between">
+                  <CardTitle className="text-lg flex items-center gap-2">
+                    <MessageSquare className="h-5 w-5 text-indigo-500" />
+                    Active Conversations
+                  </CardTitle>
+                  <Link href="/messages">
+                    <Button variant="ghost" size="sm">View All</Button>
+                  </Link>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-3">
+                    {dashboardData?.conversations?.slice(0, 5).map((conversation: any) => (
+                      <Link key={conversation.id} href={`/messages/${conversation.id}`}>
+                        <div className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-700 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-600 transition-colors cursor-pointer">
+                          <div className="flex-1">
+                            <p className="font-medium text-slate-900 dark:text-white">
+                              {conversation.projectType || 'Project Discussion'}
+                            </p>
+                            <p className="text-xs text-slate-500 dark:text-slate-400">
+                              {formatDistanceToNow(new Date(conversation.lastMessageAt), { addSuffix: true })}
+                            </p>
+                          </div>
+                          <Badge variant={conversation.status === 'active' ? 'default' : 'secondary'}>
+                            {conversation.status}
+                          </Badge>
+                        </div>
+                      </Link>
+                    ))}
+                  </div>
                 </CardContent>
               </Card>
             )}
