@@ -47,7 +47,12 @@ import {
   addressVerifications, 
   communityPosts,
   moderationReports,
-  moderationAppeals
+  moderationAppeals,
+  leads,
+  quotes,
+  conversations,
+  users,
+  marketplaceListings
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and, or, count, gte, lte, isNull, ne, gt } from "drizzle-orm";
@@ -8364,7 +8369,11 @@ export async function registerRoutes(app: Express) {
   app.get("/api/dashboard", isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user?.id || req.user?.claims?.sub;
-      const user = await storage.getUserById(userId);
+      const [user] = await db
+        .select()
+        .from(users)
+        .where(eq(users.id, userId))
+        .limit(1);
       
       if (!user) {
         return res.status(404).json({ message: "User not found" });
@@ -8479,13 +8488,12 @@ export async function registerRoutes(app: Express) {
           dashboardData.quotes = homeownerQuotes;
         }
 
-        // Get saved contractors count
-        const savedContractors = await db
-          .select()
-          .from(savedContractorsTable)
-          .where(eq(savedContractorsTable.userId, userId));
-
-        dashboardData.stats.savedContractors = savedContractors.length;
+        // TODO: Get saved contractors count when table is created
+        // const savedContractors = await db
+        //   .select()
+        //   .from(savedContractorsTable)
+        //   .where(eq(savedContractorsTable.userId, userId));
+        // dashboardData.stats.savedContractors = savedContractors.length;
       }
 
       // Get marketplace listings for all users
@@ -8501,20 +8509,19 @@ export async function registerRoutes(app: Express) {
         (l: any) => l.status === 'active'
       ).length;
 
-      // Get realtor listings if realtor
-      if (user.role === 'realtor') {
-        const realtorListings = await db
-          .select()
-          .from(realEstateListings)
-          .where(eq(realEstateListings.sellerId, userId))
-          .orderBy(desc(realEstateListings.createdAt))
-          .limit(10);
-
-        dashboardData.realEstateListings = realtorListings;
-        dashboardData.stats.realEstateListings = realtorListings.filter(
-          (l: any) => l.status === 'active'
-        ).length;
-      }
+      // TODO: Get realtor listings if realtor when realEstateListings table is created
+      // if (user.role === 'realtor') {
+      //   const realtorListings = await db
+      //     .select()
+      //     .from(realEstateListings)
+      //     .where(eq(realEstateListings.sellerId, userId))
+      //     .orderBy(desc(realEstateListings.createdAt))
+      //     .limit(10);
+      //   dashboardData.realEstateListings = realtorListings;
+      //   dashboardData.stats.realEstateListings = realtorListings.filter(
+      //     (l: any) => l.status === 'active'
+      //   ).length;
+      // }
 
       // Get recent community activity
       const recentPosts = await db
