@@ -1,137 +1,330 @@
-import { memo } from 'react';
+import { memo, useState } from 'react';
+import { useAuth } from "@/hooks/useAuth";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
+import { User, Mail, Phone, MapPin, Bell, Clock, Camera } from "lucide-react";
 
 const Profile = memo(function Profile() {
+  const { user } = useAuth();
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+
+  const [formData, setFormData] = useState({
+    firstName: user?.firstName || '',
+    lastName: user?.lastName || '',
+    email: user?.email || '',
+    phone: user?.phone || '',
+    address: user?.address || ''
+  });
+
+  const [preferences, setPreferences] = useState({
+    emailDeals: true,
+    smsUpdates: false,
+    weeklyRecommendations: true
+  });
+
+  const updateProfileMutation = useMutation({
+    mutationFn: async (data: typeof formData) => {
+      return apiRequest('PATCH', '/api/user/profile', data);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/auth/user'] });
+      toast({
+        title: "Profile Updated!",
+        description: "Your profile information has been saved successfully.",
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to update profile. Please try again.",
+        variant: "destructive",
+      });
+    }
+  });
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    updateProfileMutation.mutate(formData);
+  };
+
+  const handleChange = (field: keyof typeof formData) => (e: React.ChangeEvent<HTMLInputElement>) => {
+    setFormData(prev => ({ ...prev, [field]: e.target.value }));
+  };
+
   return (
     <div className="min-h-screen bg-[#0f1419] text-white pb-20 lg:pb-0">
-      <div className="container mx-auto px-4 py-8">
-        <h1 className="text-3xl font-bold mb-8 text-orange-500">
-          User Profile
-        </h1>
-        
-        {/* Profile Header */}
-        <section className="mb-12">
-          <div className="bg-[#1a2332] p-6 rounded-lg border border-[#2d3748]">
-            <div className="flex items-center space-x-6">
-              <div className="w-20 h-20 bg-orange-500 rounded-full flex items-center justify-center text-2xl font-bold text-white">
-                JD
+      <div className="container mx-auto px-4 py-6 lg:py-10">
+        <div className="max-w-5xl mx-auto">
+          {/* Modern Header */}
+          <div className="mb-8 lg:mb-12">
+            <div className="flex items-center gap-4 mb-3">
+              <div className="h-12 w-12 bg-gradient-to-br from-orange-500 to-orange-600 rounded-xl flex items-center justify-center shadow-lg">
+                <User className="h-6 w-6 text-white" />
               </div>
               <div>
-                <h2 className="text-2xl font-semibold mb-2 text-white">John Doe</h2>
-                <p className="text-slate-300">Homeowner • Member since 2024</p>
-                <p className="text-slate-300">Los Angeles, CA</p>
+                <h1 className="text-3xl lg:text-5xl font-bold text-white mb-1">My Profile</h1>
+                <p className="text-lg text-slate-400">
+                  Manage your personal information and preferences
+                </p>
               </div>
             </div>
           </div>
-        </section>
 
-        {/* Profile Information */}
-        <section className="mb-12">
-          <h2 className="text-2xl font-semibold mb-6 text-orange-500">Profile Information</h2>
-          <div className="bg-[#1a2332] p-6 rounded-lg border border-[#2d3748]">
-            <div className="grid md:grid-cols-2 gap-6">
-              <div>
-                <label className="block text-sm font-medium mb-2 text-slate-300">First Name</label>
-                <input 
-                  type="text" 
-                  value="John"
-                  className="w-full bg-[#0f1419] text-white p-3 rounded border border-[#2d3748] focus:border-orange-500 focus:outline-none"
-                />
+          {/* Profile Header Card */}
+          <Card className="bg-[#1a2332] border-[#2d3748] shadow-xl mb-8">
+            <CardContent className="pt-6">
+              <div className="flex flex-col sm:flex-row items-center sm:items-start gap-6">
+                <div className="relative">
+                  <div className="w-24 h-24 bg-gradient-to-br from-orange-500 to-orange-600 rounded-full flex items-center justify-center text-3xl font-bold text-white shadow-lg">
+                    {user?.firstName?.[0]}{user?.lastName?.[0]}
+                  </div>
+                  <button className="absolute bottom-0 right-0 h-8 w-8 bg-orange-500 rounded-full flex items-center justify-center border-2 border-[#1a2332] hover:bg-orange-600 transition-colors">
+                    <Camera className="h-4 w-4 text-white" />
+                  </button>
+                </div>
+                <div className="text-center sm:text-left flex-1">
+                  <h2 className="text-2xl font-bold text-white mb-2">
+                    {user?.firstName} {user?.lastName}
+                  </h2>
+                  <div className="space-y-1">
+                    <p className="text-slate-300 flex items-center gap-2 justify-center sm:justify-start">
+                      <User className="h-4 w-4" />
+                      {user?.role || 'Homeowner'} • Member since {new Date(user?.createdAt || Date.now()).getFullYear()}
+                    </p>
+                    {user?.address && (
+                      <p className="text-slate-300 flex items-center gap-2 justify-center sm:justify-start">
+                        <MapPin className="h-4 w-4" />
+                        {user.address}
+                      </p>
+                    )}
+                  </div>
+                </div>
               </div>
-              <div>
-                <label className="block text-sm font-medium mb-2 text-slate-300">Last Name</label>
-                <input 
-                  type="text" 
-                  value="Doe"
-                  className="w-full bg-[#0f1419] text-white p-3 rounded border border-[#2d3748] focus:border-orange-500 focus:outline-none"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-2 text-slate-300">Email</label>
-                <input 
-                  type="email" 
-                  value="john.doe@example.com"
-                  className="w-full bg-[#0f1419] text-white p-3 rounded border border-[#2d3748] focus:border-orange-500 focus:outline-none"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-2 text-slate-300">Phone</label>
-                <input 
-                  type="tel" 
-                  value="(555) 123-4567"
-                  className="w-full bg-[#0f1419] text-white p-3 rounded border border-[#2d3748] focus:border-orange-500 focus:outline-none"
-                />
-              </div>
-              <div className="md:col-span-2">
-                <label className="block text-sm font-medium mb-2 text-slate-300">Address</label>
-                <input 
-                  type="text" 
-                  value="123 Main St, Los Angeles, CA 90210"
-                  className="w-full bg-[#0f1419] text-white p-3 rounded border border-[#2d3748] focus:border-orange-500 focus:outline-none"
-                />
-              </div>
-            </div>
-            <div className="mt-6">
-              <button className="bg-orange-500 hover:bg-orange-600 text-white px-6 py-3 rounded font-semibold transition-colors">
-                Update Profile
-              </button>
-            </div>
-          </div>
-        </section>
+            </CardContent>
+          </Card>
 
-        {/* Account Preferences */}
-        <section className="mb-12">
-          <h2 className="text-2xl font-semibold mb-6 text-orange-500">Preferences</h2>
-          <div className="bg-[#1a2332] p-6 rounded-lg border border-[#2d3748]">
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <span className="text-white">Email notifications for new deals</span>
-                <input type="checkbox" className="rounded" checked />
+          {/* Profile Information Form */}
+          <Card className="bg-[#1a2332] border-[#2d3748] shadow-xl mb-8">
+            <CardHeader className="border-b border-[#2d3748] pb-6">
+              <div className="flex items-center gap-3">
+                <div className="h-10 w-10 bg-orange-500/20 rounded-lg flex items-center justify-center">
+                  <User className="w-5 h-5 text-orange-500" />
+                </div>
+                <div>
+                  <CardTitle className="text-xl text-white">Profile Information</CardTitle>
+                  <p className="text-sm text-slate-400 mt-1">Update your personal details</p>
+                </div>
               </div>
-              <div className="flex items-center justify-between">
-                <span className="text-white">SMS notifications for project updates</span>
-                <input type="checkbox" className="rounded" />
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-white">Weekly contractor recommendations</span>
-                <input type="checkbox" className="rounded" checked />
-              </div>
-            </div>
-          </div>
-        </section>
+            </CardHeader>
+            <CardContent className="pt-6">
+              <form onSubmit={handleSubmit}>
+                <div className="grid md:grid-cols-2 gap-6">
+                  <div className="space-y-2">
+                    <Label htmlFor="firstName" className="text-white font-medium">
+                      First Name
+                    </Label>
+                    <Input
+                      id="firstName"
+                      type="text"
+                      value={formData.firstName}
+                      onChange={handleChange('firstName')}
+                      className="bg-[#0f1419] border-[#2d3748] text-white h-11 focus:border-orange-500 transition-colors"
+                      placeholder="Enter first name"
+                      data-testid="input-firstName"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="lastName" className="text-white font-medium">
+                      Last Name
+                    </Label>
+                    <Input
+                      id="lastName"
+                      type="text"
+                      value={formData.lastName}
+                      onChange={handleChange('lastName')}
+                      className="bg-[#0f1419] border-[#2d3748] text-white h-11 focus:border-orange-500 transition-colors"
+                      placeholder="Enter last name"
+                      data-testid="input-lastName"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="email" className="text-white font-medium flex items-center gap-2">
+                      <Mail className="h-4 w-4 text-orange-500" />
+                      Email
+                    </Label>
+                    <Input
+                      id="email"
+                      type="email"
+                      value={formData.email}
+                      onChange={handleChange('email')}
+                      className="bg-[#0f1419] border-[#2d3748] text-white h-11 focus:border-orange-500 transition-colors"
+                      placeholder="email@example.com"
+                      data-testid="input-email"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="phone" className="text-white font-medium flex items-center gap-2">
+                      <Phone className="h-4 w-4 text-orange-500" />
+                      Phone
+                    </Label>
+                    <Input
+                      id="phone"
+                      type="tel"
+                      value={formData.phone}
+                      onChange={handleChange('phone')}
+                      className="bg-[#0f1419] border-[#2d3748] text-white h-11 focus:border-orange-500 transition-colors"
+                      placeholder="(555) 123-4567"
+                      data-testid="input-phone"
+                    />
+                  </div>
+                  <div className="md:col-span-2 space-y-2">
+                    <Label htmlFor="address" className="text-white font-medium flex items-center gap-2">
+                      <MapPin className="h-4 w-4 text-orange-500" />
+                      Address
+                    </Label>
+                    <Input
+                      id="address"
+                      type="text"
+                      value={formData.address}
+                      onChange={handleChange('address')}
+                      className="bg-[#0f1419] border-[#2d3748] text-white h-11 focus:border-orange-500 transition-colors"
+                      placeholder="123 Main St, Los Angeles, CA 90210"
+                      data-testid="input-address"
+                    />
+                  </div>
+                </div>
+                <div className="flex items-center gap-3 mt-8 pt-6 border-t border-[#2d3748]">
+                  <Button
+                    type="submit"
+                    disabled={updateProfileMutation.isPending}
+                    className="bg-orange-500 hover:bg-orange-600 text-white px-8 shadow-lg"
+                    data-testid="button-updateProfile"
+                  >
+                    {updateProfileMutation.isPending ? 'Saving...' : 'Update Profile'}
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="border-[#2d3748] text-slate-300 hover:bg-[#0f1419]"
+                    onClick={() => setFormData({
+                      firstName: user?.firstName || '',
+                      lastName: user?.lastName || '',
+                      email: user?.email || '',
+                      phone: user?.phone || '',
+                      address: user?.address || ''
+                    })}
+                  >
+                    Reset
+                  </Button>
+                </div>
+              </form>
+            </CardContent>
+          </Card>
 
-        {/* Recent Activity */}
-        <section>
-          <h2 className="text-2xl font-semibold mb-6 text-orange-500">Recent Activity</h2>
-          <div className="space-y-4">
-            <div className="bg-[#1a2332] p-4 rounded-lg border border-[#2d3748]">
-              <div className="flex justify-between items-start">
-                <div>
-                  <h3 className="font-semibold text-orange-500">Requested quote for kitchen renovation</h3>
-                  <p className="text-slate-300 text-sm">2 days ago</p>
+          {/* Preferences */}
+          <Card className="bg-[#1a2332] border-[#2d3748] shadow-xl mb-8">
+            <CardHeader className="border-b border-[#2d3748] pb-6">
+              <div className="flex items-center gap-3">
+                <div className="h-10 w-10 bg-orange-500/20 rounded-lg flex items-center justify-center">
+                  <Bell className="w-5 h-5 text-orange-500" />
                 </div>
-                <span className="text-yellow-400 text-sm">Pending</span>
-              </div>
-            </div>
-            <div className="bg-[#1a2332] p-4 rounded-lg border border-[#2d3748]">
-              <div className="flex justify-between items-start">
                 <div>
-                  <h3 className="font-semibold text-orange-500">Contacted ABC Plumbing for bathroom repair</h3>
-                  <p className="text-slate-300 text-sm">1 week ago</p>
+                  <CardTitle className="text-xl text-white">Notification Preferences</CardTitle>
+                  <p className="text-sm text-slate-400 mt-1">Manage how you receive updates</p>
                 </div>
-                <span className="text-green-400 text-sm">Completed</span>
               </div>
-            </div>
-            <div className="bg-[#1a2332] p-4 rounded-lg border border-[#2d3748]">
-              <div className="flex justify-between items-start">
+            </CardHeader>
+            <CardContent className="space-y-4 pt-6">
+              <div className="flex items-center justify-between p-4 bg-[#0f1419] rounded-xl border border-[#2d3748]">
                 <div>
-                  <h3 className="font-semibold text-orange-500">Joined TradeScout platform</h3>
-                  <p className="text-slate-300 text-sm">2 weeks ago</p>
+                  <p className="text-white font-medium">Email notifications for new deals</p>
+                  <p className="text-slate-400 text-sm">Get notified about special offers and deals</p>
                 </div>
-                <span className="text-blue-400 text-sm">Account Created</span>
+                <Switch
+                  checked={preferences.emailDeals}
+                  onCheckedChange={(checked) => setPreferences(prev => ({ ...prev, emailDeals: checked }))}
+                />
               </div>
-            </div>
-          </div>
-        </section>
+              <div className="flex items-center justify-between p-4 bg-[#0f1419] rounded-xl border border-[#2d3748]">
+                <div>
+                  <p className="text-white font-medium">SMS notifications for project updates</p>
+                  <p className="text-slate-400 text-sm">Receive text messages about your projects</p>
+                </div>
+                <Switch
+                  checked={preferences.smsUpdates}
+                  onCheckedChange={(checked) => setPreferences(prev => ({ ...prev, smsUpdates: checked }))}
+                />
+              </div>
+              <div className="flex items-center justify-between p-4 bg-[#0f1419] rounded-xl border border-[#2d3748]">
+                <div>
+                  <p className="text-white font-medium">Weekly contractor recommendations</p>
+                  <p className="text-slate-400 text-sm">Get personalized contractor suggestions</p>
+                </div>
+                <Switch
+                  checked={preferences.weeklyRecommendations}
+                  onCheckedChange={(checked) => setPreferences(prev => ({ ...prev, weeklyRecommendations: checked }))}
+                />
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Recent Activity */}
+          <Card className="bg-[#1a2332] border-[#2d3748] shadow-xl">
+            <CardHeader className="border-b border-[#2d3748] pb-6">
+              <div className="flex items-center gap-3">
+                <div className="h-10 w-10 bg-orange-500/20 rounded-lg flex items-center justify-center">
+                  <Clock className="w-5 h-5 text-orange-500" />
+                </div>
+                <div>
+                  <CardTitle className="text-xl text-white">Recent Activity</CardTitle>
+                  <p className="text-sm text-slate-400 mt-1">Your latest actions on TradeScout</p>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-3 pt-6">
+              <div className="bg-[#0f1419] p-4 rounded-xl border border-[#2d3748] hover:border-orange-500/30 transition-all">
+                <div className="flex justify-between items-start">
+                  <div>
+                    <h3 className="font-semibold text-white mb-1">Requested quote for kitchen renovation</h3>
+                    <p className="text-slate-400 text-sm">2 days ago</p>
+                  </div>
+                  <span className="text-yellow-400 text-sm font-medium bg-yellow-400/10 px-3 py-1 rounded-full">
+                    Pending
+                  </span>
+                </div>
+              </div>
+              <div className="bg-[#0f1419] p-4 rounded-xl border border-[#2d3748] hover:border-orange-500/30 transition-all">
+                <div className="flex justify-between items-start">
+                  <div>
+                    <h3 className="font-semibold text-white mb-1">Contacted ABC Plumbing for bathroom repair</h3>
+                    <p className="text-slate-400 text-sm">1 week ago</p>
+                  </div>
+                  <span className="text-green-400 text-sm font-medium bg-green-400/10 px-3 py-1 rounded-full">
+                    Completed
+                  </span>
+                </div>
+              </div>
+              <div className="bg-[#0f1419] p-4 rounded-xl border border-[#2d3748] hover:border-orange-500/30 transition-all">
+                <div className="flex justify-between items-start">
+                  <div>
+                    <h3 className="font-semibold text-white mb-1">Joined TradeScout platform</h3>
+                    <p className="text-slate-400 text-sm">2 weeks ago</p>
+                  </div>
+                  <span className="text-blue-400 text-sm font-medium bg-blue-400/10 px-3 py-1 rounded-full">
+                    Account Created
+                  </span>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
       </div>
     </div>
   );
