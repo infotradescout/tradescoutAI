@@ -338,7 +338,11 @@ const SimpleLanding = memo(function SimpleLanding() {
             </p>
             
             <div className="flex flex-col sm:flex-row gap-6 justify-center items-center mb-12">
-              <button className="group relative px-10 py-5 bg-gradient-to-r from-orange-500 via-orange-600 to-orange-700 rounded-2xl font-bold text-white text-lg shadow-2xl hover:shadow-orange-500/25 transition-all duration-300 hover:scale-105 min-w-[280px]">
+              <a 
+                href="/signup?type=homeowner"
+                className="group relative px-10 py-5 bg-gradient-to-r from-orange-500 via-orange-600 to-orange-700 rounded-2xl font-bold text-white text-lg shadow-2xl hover:shadow-orange-500/25 transition-all duration-300 hover:scale-105 min-w-[280px] inline-block text-center"
+                data-testid="button-find-contractors"
+              >
                 <span className="relative z-10 flex items-center justify-center gap-3">
                   Find Contractors
                   <svg className="w-6 h-6 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -346,16 +350,20 @@ const SimpleLanding = memo(function SimpleLanding() {
                   </svg>
                 </span>
                 <div className="absolute inset-0 bg-gradient-to-r from-orange-600 to-orange-800 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-              </button>
+              </a>
               
-              <button className="group relative px-10 py-5 bg-white/5 backdrop-blur-sm border border-white/20 rounded-2xl font-bold text-white text-lg hover:bg-white/10 hover:border-white/30 transition-all duration-300 min-w-[280px]">
+              <a 
+                href="/signup?type=homeowner"
+                className="group relative px-10 py-5 bg-white/5 backdrop-blur-sm border border-white/20 rounded-2xl font-bold text-white text-lg hover:bg-white/10 hover:border-white/30 transition-all duration-300 min-w-[280px] inline-block text-center"
+                data-testid="button-schedule-consultation"
+              >
                 <span className="flex items-center justify-center gap-3">
                   Schedule Consultation
                   <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                   </svg>
                 </span>
-              </button>
+              </a>
             </div>
             
             {/* Premium Guarantees */}
