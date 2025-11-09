@@ -1,0 +1,527 @@
+import { memo, useState } from 'react';
+import { Link, useLocation } from 'wouter';
+import { useAuth } from '@/hooks/useAuth';
+import { getRolePermissions } from '@shared/roles';
+import type { UserRole } from '@shared/roles';
+import {
+  Home,
+  Users,
+  Search,
+  Bell,
+  MessageSquare,
+  Settings,
+  Shield,
+  BarChart,
+  Briefcase,
+  Building,
+  Car,
+  Heart,
+  CreditCard,
+  Star,
+  UserPlus,
+  FileText,
+  Hammer,
+  Calendar,
+  ShoppingBag,
+  TrendingUp,
+  Award,
+  DollarSign,
+  Package,
+  Truck,
+  HomeIcon,
+  MapPin,
+  ChevronDown,
+  Menu,
+  X,
+  Zap,
+  Users as GroupIcon,
+  Building2,
+  LayoutDashboard,
+  Target,
+  Megaphone,
+  Percent,
+  Gift,
+  ChartBar,
+  UserCheck,
+  ClipboardList,
+  Wrench,
+  PaintBucket,
+  Droplets,
+  TreePine,
+  Lightbulb,
+  Wind,
+  Flame,
+  Snowflake,
+  Sparkles,
+  BadgeCheck,
+  FileCheck,
+  Calculator,
+  Tags,
+  Filter,
+  PlusCircle,
+  ListChecks,
+  Timer
+} from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+  DropdownMenuSub,
+  DropdownMenuSubTrigger,
+  DropdownMenuSubContent,
+} from '@/components/ui/dropdown-menu';
+
+interface NavItem {
+  label: string;
+  href: string;
+  icon: React.ComponentType<{ className?: string }>;
+  roles?: UserRole[];
+  permission?: keyof ReturnType<typeof getRolePermissions>;
+  children?: NavItem[];
+}
+
+// Complete navigation structure for ALL features
+const ALL_NAVIGATION: NavItem[] = [
+  // CORE PLATFORM
+  {
+    label: 'Home',
+    href: '/dashboard',
+    icon: Home,
+  },
+  {
+    label: 'Community',
+    href: '/community',
+    icon: Users,
+    children: [
+      { label: 'Community Feed', href: '/community', icon: Users },
+      { label: 'Groups', href: '/groups', icon: GroupIcon },
+      { label: 'Events', href: '/events', icon: Calendar },
+      { label: 'Leaderboard', href: '/leaderboard', icon: Award },
+    ],
+  },
+
+  // CONTRACTORS
+  {
+    label: 'Contractors',
+    href: '/find-contractors',
+    icon: Hammer,
+    children: [
+      { label: 'Find Contractors', href: '/find-contractors', icon: Search },
+      { label: 'Contractor Board', href: '/contractor-board', icon: LayoutDashboard },
+      { label: 'Quote Calculator', href: '/quote-calculator', icon: Calculator },
+      { label: 'Top Contractors', href: '/contractors/top', icon: Award },
+    ],
+  },
+
+  // CONTRACTOR TOOLS
+  {
+    label: 'Contractor Dashboard',
+    href: '/contractor-dashboard',
+    icon: Wrench,
+    roles: ['contractor_user', 'accelerator_member'],
+    children: [
+      { label: 'Dashboard', href: '/contractor-dashboard', icon: LayoutDashboard },
+      { label: 'Project Requests', href: '/contractor/leads', icon: ClipboardList, roles: ['contractor_user'] },
+      { label: 'My Projects', href: '/contractor/projects', icon: ListChecks, roles: ['contractor_user'] },
+      { label: 'Accelerator Program', href: '/contractors/accelerator', icon: Zap, roles: ['contractor_user'] },
+      { label: 'Promotions', href: '/contractor-promos', icon: Megaphone, roles: ['contractor_user'] },
+      { label: 'Growth Pack', href: '/growth-pack', icon: TrendingUp, roles: ['contractor_user'] },
+      { label: 'Performance Analytics', href: '/contractor/analytics', icon: ChartBar, roles: ['contractor_user'] },
+      { label: 'Reviews & Ratings', href: '/contractor/reviews', icon: Star, roles: ['contractor_user'] },
+      { label: 'Apply as Contractor', href: '/contractor-apply', icon: UserPlus },
+    ],
+  },
+
+  // MARKETPLACE
+  {
+    label: 'Marketplace',
+    href: '/marketplace',
+    icon: ShoppingBag,
+    children: [
+      { label: 'All Categories', href: '/marketplace', icon: ShoppingBag },
+      { label: 'Real Estate', href: '/real-estate-marketplace', icon: Building },
+      { label: 'Vehicles', href: '/vehicle-marketplace', icon: Car },
+      { label: 'Handmade & Crafts', href: '/handmade-marketplace', icon: Sparkles },
+      { label: 'Services', href: '/marketplace/services', icon: Briefcase },
+      { label: 'Products', href: '/marketplace/products', icon: Package },
+      { label: 'Daily Deals', href: '/daily-deals', icon: Tags },
+      { label: 'My Listings', href: '/marketplace/my-listings', icon: FileText },
+      { label: 'Saved Items', href: '/saved-ads', icon: Heart },
+    ],
+  },
+
+  // EXCHANGE
+  {
+    label: 'Exchange',
+    href: '/exchange',
+    icon: Briefcase,
+    children: [
+      { label: 'Browse Exchange', href: '/exchange', icon: Briefcase },
+      { label: 'List Item', href: '/exchange/list', icon: PlusCircle },
+      { label: 'Property Listing', href: '/property-listing', icon: Building },
+      { label: 'Business Listing', href: '/business-listing', icon: Building2 },
+      { label: 'My Exchange Items', href: '/exchange/my-items', icon: Package },
+    ],
+  },
+
+  // PROFESSIONAL DASHBOARDS
+  {
+    label: 'Professional Tools',
+    href: '#',
+    icon: Briefcase,
+    roles: ['realtor', 'car_salesman', 'insurance_agent', 'mortgage_broker', 'property_manager'],
+    children: [
+      { label: 'Realtor Dashboard', href: '/realtor-dashboard', icon: Building, roles: ['realtor'] },
+      { label: 'Realtor Application', href: '/realtor-application', icon: UserPlus },
+      { label: 'Car Sales Dashboard', href: '/car-salesman-dashboard', icon: Car, roles: ['car_salesman'] },
+      { label: 'Car Sales Application', href: '/car-salesman-application', icon: UserPlus },
+      { label: 'Dealer Dashboard', href: '/dealer-dashboard', icon: Car },
+      { label: 'Dealer Application', href: '/dealer-application', icon: UserPlus },
+      { label: 'Insurance Dashboard', href: '/insurance-agent-dashboard', icon: Shield, roles: ['insurance_agent'] },
+      { label: 'Insurance Application', href: '/insurance-agent-application', icon: UserPlus },
+      { label: 'Mortgage Dashboard', href: '/mortgage-broker-dashboard', icon: DollarSign, roles: ['mortgage_broker'] },
+      { label: 'Mortgage Application', href: '/mortgage-broker-application', icon: UserPlus },
+      { label: 'Property Manager Dashboard', href: '/property-manager-dashboard', icon: Building2, roles: ['property_manager'] },
+      { label: 'Property Manager Application', href: '/property-manager-application', icon: UserPlus },
+    ],
+  },
+
+  // HOA MANAGEMENT (Available for property_manager role)
+  {
+    label: 'HOA Management',
+    href: '/hoa-management',
+    icon: Building2,
+    roles: ['property_manager', 'community_leader'],
+    children: [
+      { label: 'HOA Dashboard', href: '/hoa-dashboard', icon: LayoutDashboard },
+      { label: 'HOA Management', href: '/hoa-management', icon: Building2 },
+      { label: 'Residents', href: '/hoa/residents', icon: Users },
+      { label: 'Violations', href: '/hoa/violations', icon: FileCheck },
+      { label: 'Maintenance Requests', href: '/hoa/maintenance', icon: Wrench },
+      { label: 'Documents', href: '/hoa/documents', icon: FileText },
+    ],
+  },
+
+  // BUSINESS OWNER
+  {
+    label: 'Business Owner',
+    href: '/business-owner-dashboard',
+    icon: Building2,
+    roles: ['business_owner'],
+    children: [
+      { label: 'Business Dashboard', href: '/business-owner-dashboard', icon: LayoutDashboard, roles: ['business_owner'] },
+      { label: 'Business Listing', href: '/business-listing', icon: Building2 },
+      { label: 'Business Analytics', href: '/business/analytics', icon: ChartBar, roles: ['business_owner'] },
+      { label: 'Customer Reviews', href: '/business/reviews', icon: Star, roles: ['business_owner'] },
+    ],
+  },
+
+  // HELPER/WORKER
+  {
+    label: 'Helper Marketplace',
+    href: '/worker-marketplace',
+    icon: Users,
+    children: [
+      { label: 'Find Work', href: '/worker-marketplace', icon: Search },
+      { label: 'Helper Dashboard', href: '/helper-dashboard', icon: LayoutDashboard, roles: ['helper'] },
+      { label: 'My Jobs', href: '/helper/jobs', icon: ClipboardList, roles: ['helper'] },
+    ],
+  },
+
+  // AFFILIATE PROGRAM
+  {
+    label: 'Affiliate Program',
+    href: '/affiliate',
+    icon: Percent,
+    children: [
+      { label: 'Affiliate Dashboard', href: '/affiliate', icon: LayoutDashboard },
+      { label: 'Referral Links', href: '/affiliate/links', icon: Target },
+      { label: 'Earnings', href: '/affiliate/earnings', icon: DollarSign },
+      { label: 'Commission History', href: '/affiliate/history', icon: ChartBar },
+    ],
+  },
+
+  // FOUNDATION (CHARITY)
+  {
+    label: 'Foundation',
+    href: '/foundation',
+    icon: Heart,
+  },
+
+  // MODERATION
+  {
+    label: 'Moderation',
+    href: '/moderation',
+    icon: Shield,
+    permission: 'canModerateContent',
+    children: [
+      { label: 'Content Moderation', href: '/moderation', icon: Shield },
+      { label: 'Community Moderation', href: '/community-moderation', icon: Users },
+      { label: 'Reported Content', href: '/moderation/reports', icon: FileCheck },
+    ],
+  },
+
+  // ADMIN PANEL
+  {
+    label: 'Admin Panel',
+    href: '/admin',
+    icon: Settings,
+    permission: 'canAccessAdminPanel',
+    children: [
+      { label: 'Admin Dashboard', href: '/admin', icon: LayoutDashboard },
+      { label: 'Admin Panel', href: '/admin/panel', icon: Settings },
+      { label: 'User Management', href: '/admin/user-management', icon: Users },
+      { label: 'Users', href: '/admin/users', icon: Users },
+      { label: 'Workspace', href: '/admin/workspace', icon: Building2 },
+      { label: 'Error Reports', href: '/admin/error-reports', icon: FileCheck },
+      { label: 'Testing Controls', href: '/admin/testing-controls', icon: Wrench },
+      { label: 'Address Verifications', href: '/admin/address-verifications', icon: MapPin },
+      { label: 'Professional Verification', href: '/admin/professional-verification', icon: UserCheck },
+      { label: 'Listings Management', href: '/admin/listings', icon: FileText },
+      { label: 'Attachments', href: '/admin/attachments', icon: Package },
+      { label: 'Pricing Analytics', href: '/admin/pricing-analytics', icon: ChartBar },
+      { label: 'Create Account', href: '/admin/create-account', icon: UserPlus },
+      { label: 'Platform Analytics', href: '/analytics', icon: ChartBar },
+    ],
+  },
+
+  // ACCOUNT & SETTINGS
+  {
+    label: 'Account',
+    href: '/profile',
+    icon: Users,
+    children: [
+      { label: 'My Profile', href: '/profile', icon: Users },
+      { label: 'Settings', href: '/settings', icon: Settings },
+      { label: 'Dashboard Settings', href: '/dashboard-settings', icon: LayoutDashboard },
+      { label: 'Notifications', href: '/notifications', icon: Bell },
+      { label: 'Messages', href: '/chat', icon: MessageSquare },
+      { label: 'Payment History', href: '/payment-history', icon: CreditCard },
+      { label: 'Invite Friends', href: '/invite', icon: UserPlus },
+    ],
+  },
+
+  // UTILITIES
+  {
+    label: 'More',
+    href: '#',
+    icon: Menu,
+    children: [
+      { label: 'Advanced Search', href: '/advanced-search', icon: Search },
+      { label: 'Interactive Map', href: '/interactive-county-map', icon: MapPin },
+      { label: 'Nationwide Dashboard', href: '/nationwide-dashboard', icon: BarChart },
+      { label: 'Help & Support', href: '/help', icon: FileText },
+      { label: 'Story Generator', href: '/story-generator', icon: Sparkles },
+    ],
+  },
+];
+
+const ComprehensiveNav = memo(function ComprehensiveNav() {
+  const { user } = useAuth();
+  const [location] = useLocation();
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  const hasPermission = (item: NavItem): boolean => {
+    if (!user) return !item.roles && !item.permission;
+
+    // Check role requirement
+    if (item.roles && item.roles.length > 0) {
+      const userRoles = user.roles || [user.role];
+      const hasRole = item.roles.some(role => userRoles.includes(role));
+      if (!hasRole) return false;
+    }
+
+    // Check permission requirement
+    if (item.permission) {
+      const permissions = getRolePermissions(user.activeRole || user.role || 'homeowner');
+      if (!permissions[item.permission]) return false;
+    }
+
+    return true;
+  };
+
+  const filterItems = (items: NavItem[]): NavItem[] => {
+    return items.filter(item => {
+      if (!hasPermission(item)) return false;
+      if (item.children) {
+        item.children = filterItems(item.children);
+      }
+      return true;
+    });
+  };
+
+  const visibleItems = filterItems(ALL_NAVIGATION);
+
+  const NavMenuItem = ({ item }: { item: NavItem }) => {
+    const Icon = item.icon;
+    const isActive = location === item.href;
+
+    if (item.children && item.children.length > 0) {
+      return (
+        <DropdownMenuSub>
+          <DropdownMenuSubTrigger>
+            <Icon className="h-4 w-4 mr-2" />
+            {item.label}
+          </DropdownMenuSubTrigger>
+          <DropdownMenuSubContent>
+            {item.children.map((child) => (
+              <NavMenuItem key={child.href} item={child} />
+            ))}
+          </DropdownMenuSubContent>
+        </DropdownMenuSub>
+      );
+    }
+
+    return (
+      <DropdownMenuItem asChild>
+        <Link href={item.href}>
+          <Icon className="h-4 w-4 mr-2" />
+          <span className={isActive ? 'font-semibold text-orange-600' : ''}>
+            {item.label}
+          </span>
+        </Link>
+      </DropdownMenuItem>
+    );
+  };
+
+  return (
+    <div className="bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 shadow-sm">
+      <div className="max-w-7xl mx-auto px-4">
+        <div className="flex items-center justify-between h-14">
+          {/* Logo */}
+          <Link href="/dashboard">
+            <div className="flex items-center gap-2 cursor-pointer hover:opacity-80 transition-opacity">
+              <div className="w-8 h-8 bg-gradient-to-br from-orange-500 to-orange-600 rounded-lg flex items-center justify-center">
+                <span className="text-white font-bold text-lg">T</span>
+              </div>
+              <span className="text-xl font-bold bg-gradient-to-r from-orange-600 to-orange-500 bg-clip-text text-transparent">
+                TradeScout
+              </span>
+            </div>
+          </Link>
+
+          {/* Desktop Navigation */}
+          <div className="hidden lg:flex items-center gap-2">
+            {visibleItems.slice(0, 6).map((item) => {
+              if (item.children && item.children.length > 0) {
+                return (
+                  <DropdownMenu key={item.label}>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" size="sm" className="gap-1">
+                        <item.icon className="h-4 w-4" />
+                        {item.label}
+                        <ChevronDown className="h-3 w-3 opacity-50" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="start" className="w-56">
+                      {item.children.map((child) => (
+                        <NavMenuItem key={child.href} item={child} />
+                      ))}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                );
+              }
+
+              return (
+                <Link key={item.href} href={item.href}>
+                  <Button
+                    variant={location === item.href ? 'default' : 'ghost'}
+                    size="sm"
+                    className={location === item.href ? 'bg-orange-600 hover:bg-orange-700' : ''}
+                  >
+                    <item.icon className="h-4 w-4 mr-2" />
+                    {item.label}
+                  </Button>
+                </Link>
+              );
+            })}
+
+            {/* All Features Menu */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="sm" className="gap-1">
+                  <Menu className="h-4 w-4" />
+                  All Features
+                  <ChevronDown className="h-3 w-3 opacity-50" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-72 max-h-[600px] overflow-y-auto">
+                <DropdownMenuLabel>Complete Platform Access</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                {visibleItems.map((item) => (
+                  <NavMenuItem key={item.href || item.label} item={item} />
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+
+          {/* Mobile Menu Toggle */}
+          <Button
+            variant="ghost"
+            size="sm"
+            className="lg:hidden"
+            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            data-testid="button-mobile-menu"
+          >
+            {mobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+          </Button>
+        </div>
+
+        {/* Mobile Menu */}
+        {mobileMenuOpen && (
+          <div className="lg:hidden border-t border-slate-200 dark:border-slate-700 py-4 max-h-[70vh] overflow-y-auto">
+            <div className="space-y-2">
+              {visibleItems.map((item) => {
+                if (item.children && item.children.length > 0) {
+                  return (
+                    <div key={item.label} className="space-y-1">
+                      <div className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-slate-700 dark:text-slate-300">
+                        <item.icon className="h-4 w-4" />
+                        {item.label}
+                      </div>
+                      <div className="pl-8 space-y-1">
+                        {item.children.map((child) => (
+                          <Link key={child.href} href={child.href}>
+                            <div
+                              className={`flex items-center gap-2 px-4 py-2 text-sm hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-colors ${
+                                location === child.href ? 'bg-orange-50 dark:bg-orange-900/20 text-orange-600 font-medium' : ''
+                              }`}
+                              onClick={() => setMobileMenuOpen(false)}
+                            >
+                              <child.icon className="h-4 w-4" />
+                              {child.label}
+                            </div>
+                          </Link>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                }
+
+                return (
+                  <Link key={item.href} href={item.href}>
+                    <div
+                      className={`flex items-center gap-2 px-4 py-2 text-sm hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-colors ${
+                        location === item.href ? 'bg-orange-50 dark:bg-orange-900/20 text-orange-600 font-medium' : ''
+                      }`}
+                      onClick={() => setMobileMenuOpen(false)}
+                    >
+                      <item.icon className="h-4 w-4" />
+                      {item.label}
+                    </div>
+                  </Link>
+                );
+              })}
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+});
+
+export default ComprehensiveNav;
