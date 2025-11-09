@@ -8360,5 +8360,184 @@ export async function registerRoutes(app: Express) {
     }
   });
 
+  // Dashboard data endpoint - personalized user dashboard data
+  app.get("/api/dashboard", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user?.id || req.user?.claims?.sub;
+      const user = await storage.getUserById(userId);
+      
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      const dashboardData: any = {
+        stats: {
+          activeProjects: 0,
+          savedContractors: 0,
+          marketplaceListings: 0,
+          realEstateListings: 0,
+          totalViews: 0,
+          notifications: 0,
+        },
+        recentActivity: [],
+        myProjects: [],
+        myListings: [],
+        savedItems: [],
+        quotes: [],
+        conversations: [],
+      };
+
+      // Fetch contractor-specific data
+      if (user.role === 'contractor_user' || user.role === 'accelerator_member') {
+        const contractor = await storage.getContractorByUserId(userId);
+        
+        if (contractor) {
+          // Get contractor's assigned leads (projects)
+          const contractorLeads = await db
+            .select()
+            .from(leads)
+            .where(eq(leads.contractorId, contractor.id))
+            .orderBy(desc(leads.createdAt))
+            .limit(10);
+
+          dashboardData.myProjects = contractorLeads.map((lead: any) => ({
+            id: lead.id,
+            title: `${lead.projectType} - ${lead.urgency}`,
+            status: lead.status,
+            value: lead.estimatedValue,
+            createdAt: lead.createdAt,
+          }));
+
+          dashboardData.stats.activeProjects = contractorLeads.filter(
+            (l: any) => l.status === 'new' || l.status === 'contacted' || l.status === 'qualified'
+          ).length;
+
+          // Get contractor's quotes
+          const contractorQuotes = await db
+            .select()
+            .from(quotes)
+            .where(eq(quotes.contractorId, contractor.id))
+            .orderBy(desc(quotes.createdAt))
+            .limit(10);
+
+          dashboardData.quotes = contractorQuotes;
+          
+          // Get contractor's conversations
+          const contractorConversations = await db
+            .select()
+            .from(conversations)
+            .where(eq(conversations.contractorId, contractor.id))
+            .orderBy(desc(conversations.lastMessageAt))
+            .limit(10);
+
+          dashboardData.conversations = contractorConversations;
+        }
+      }
+
+      // Fetch homeowner-specific data
+      if (user.role === 'homeowner') {
+        // Get homeowner's leads (project requests)
+        const homeownerLeads = await db
+          .select()
+          .from(leads)
+          .where(eq(leads.userId, userId))
+          .orderBy(desc(leads.createdAt))
+          .limit(10);
+
+        dashboardData.myProjects = homeownerLeads.map((lead: any) => ({
+          id: lead.id,
+          title: `${lead.projectType} - ${lead.urgency}`,
+          status: lead.status,
+          value: lead.estimatedValue,
+          createdAt: lead.createdAt,
+        }));
+
+        dashboardData.stats.activeProjects = homeownerLeads.filter(
+          (l: any) => l.status === 'new' || l.status === 'contacted' || l.status === 'qualified'
+        ).length;
+
+        // Get homeowner's conversations
+        const homeownerConversations = await db
+          .select()
+          .from(conversations)
+          .where(eq(conversations.homeownerId, userId))
+          .orderBy(desc(conversations.lastMessageAt))
+          .limit(10);
+
+        dashboardData.conversations = homeownerConversations;
+
+        // Get quotes from conversations
+        if (homeownerConversations.length > 0) {
+          const conversationIds = homeownerConversations.map((c: any) => c.id);
+          const homeownerQuotes = await db
+            .select()
+            .from(quotes)
+            .where(sql`${quotes.conversationId} = ANY(${conversationIds})`)
+            .orderBy(desc(quotes.createdAt))
+            .limit(10);
+
+          dashboardData.quotes = homeownerQuotes;
+        }
+
+        // Get saved contractors count
+        const savedContractors = await db
+          .select()
+          .from(savedContractorsTable)
+          .where(eq(savedContractorsTable.userId, userId));
+
+        dashboardData.stats.savedContractors = savedContractors.length;
+      }
+
+      // Get marketplace listings for all users
+      const userListings = await db
+        .select()
+        .from(marketplaceListings)
+        .where(eq(marketplaceListings.sellerId, userId))
+        .orderBy(desc(marketplaceListings.createdAt))
+        .limit(10);
+
+      dashboardData.myListings = userListings;
+      dashboardData.stats.marketplaceListings = userListings.filter(
+        (l: any) => l.status === 'active'
+      ).length;
+
+      // Get realtor listings if realtor
+      if (user.role === 'realtor') {
+        const realtorListings = await db
+          .select()
+          .from(realEstateListings)
+          .where(eq(realEstateListings.sellerId, userId))
+          .orderBy(desc(realEstateListings.createdAt))
+          .limit(10);
+
+        dashboardData.realEstateListings = realtorListings;
+        dashboardData.stats.realEstateListings = realtorListings.filter(
+          (l: any) => l.status === 'active'
+        ).length;
+      }
+
+      // Get recent community activity
+      const recentPosts = await db
+        .select()
+        .from(communityPosts)
+        .where(eq(communityPosts.authorId, userId))
+        .orderBy(desc(communityPosts.createdAt))
+        .limit(5);
+
+      dashboardData.recentActivity = recentPosts.map((post: any) => ({
+        title: `Posted: ${post.title || post.content.substring(0, 50)}`,
+        createdAt: post.createdAt,
+      }));
+
+      // Get profile views (if we track this)
+      dashboardData.stats.totalViews = user.profileViews || 0;
+
+      res.json(dashboardData);
+    } catch (error: any) {
+      console.error("Error fetching dashboard data:", error);
+      res.status(500).json({ message: "Failed to fetch dashboard data" });
+    }
+  });
+
   return httpServer;
 }
