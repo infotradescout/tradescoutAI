@@ -260,7 +260,7 @@ const SimpleHome = memo(function SimpleHome() {
                       <Home className="h-12 w-12 text-slate-300 dark:text-slate-600 mx-auto mb-3" />
                       <p className="text-slate-300 mb-4">No projects yet</p>
                       <Link href="/request-quote">
-                        <Button size="sm" className="bg-green-600 hover:bg-green-700">
+                        <Button size="sm" className="bg-orange-500 hover:bg-orange-600 text-white">
                           Start Your First Project
                         </Button>
                       </Link>
@@ -366,7 +366,7 @@ const SimpleHome = memo(function SimpleHome() {
                     <Package className="h-12 w-12 text-slate-300 dark:text-slate-600 mx-auto mb-3" />
                     <p className="text-slate-300 mb-4">No marketplace listings</p>
                     <Link href="/marketplace/create">
-                      <Button size="sm" className="bg-green-600 hover:bg-green-700">
+                      <Button size="sm" className="bg-orange-500 hover:bg-orange-600 text-white">
                         Create Your First Listing
                       </Button>
                     </Link>
