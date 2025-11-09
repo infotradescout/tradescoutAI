@@ -24,15 +24,18 @@ export default function DashboardSettings() {
     .map(w => w.id);
 
   const [enabledWidgets, setEnabledWidgets] = useState<string[]>(
-    preferences?.dashboard?.enabledWidgets || defaultEnabledWidgets
+    (preferences && (preferences as any).dashboard?.enabledWidgets) || defaultEnabledWidgets
   );
 
   const savePreferencesMutation = useMutation({
     mutationFn: async (data: { dashboard: { enabledWidgets: string[] } }) => {
-      return apiRequest('/api/users/preferences', {
+      const response = await fetch('/api/users/preferences', {
         method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data),
       });
+      if (!response.ok) throw new Error('Failed to save preferences');
+      return response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/users/preferences'] });

@@ -90,6 +90,8 @@ const Settings = React.lazy(() => import('./pages/settings'));
 const Help = React.lazy(() => import('./pages/help'));
 const Invite = React.lazy(() => import('./pages/invite'));
 const Dashboard = React.lazy(() => import('./pages/dashboard'));
+const CustomDashboard = React.lazy(() => import('./pages/Dashboard'));
+const DashboardSettings = React.lazy(() => import('./pages/DashboardSettings'));
 
 // Role-specific Dashboards (heavy components)
 const ContractorDashboard = React.lazy(() => import('./pages/contractor-dashboard-simple'));
@@ -232,8 +234,9 @@ const AppLayout = memo(function AppLayout() {
             <Switch>
               {/* Home routes */}
               <Route path="/" component={SimpleLanding} />
-              <Route path="/home" component={SimpleHome} />
+              <Route path="/home"><LazyPage Component={CustomDashboard} /></Route>
               <Route path="/dashboard" component={SimpleHome} />
+              <Route path="/dashboard-settings"><LazyPage Component={DashboardSettings} /></Route>
               
               {/* Auth routes */}
               <Route path="/login"><LazyPage Component={Login} /></Route>
