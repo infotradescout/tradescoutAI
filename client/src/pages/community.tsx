@@ -165,23 +165,23 @@ export default function Community() {
 
   return (
     <div className="min-h-screen bg-[#0f1419] pb-16 lg:pb-0">
-      <div className="max-w-4xl mx-auto px-2 sm:px-4 py-4">
+      <div className="max-w-4xl mx-auto px-2 sm:px-4 py-6">
         
         {/* Header */}
-        <div className="mb-6">
-          <h1 className="text-2xl font-bold text-orange-500 mb-1">Community</h1>
-          <p className="text-sm text-slate-600 dark:text-slate-400">Connect with neighbors and local contractors</p>
+        <div className="mb-8">
+          <h1 className="text-4xl font-bold text-orange-500 mb-2">Community</h1>
+          <p className="text-base text-slate-300">Connect with neighbors and local contractors</p>
         </div>
 
         {/* Navigation Tabs */}
-        <div className="mb-4">
-          <div className="flex gap-1 bg-[#1a2332] rounded-lg p-1 shadow-sm border border-[#2d3748]">
+        <div className="mb-6">
+          <div className="flex gap-2 bg-[#1a2332] rounded-xl p-1.5 shadow-lg border border-[#2d3748]">
             <button
               onClick={() => setActiveTab("feed")}
-              className={`flex-1 px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+              className={`flex-1 px-6 py-3 rounded-lg text-sm font-semibold transition-all ${
                 activeTab === "feed"
-                  ? "bg-orange-500 text-white"
-                  : "text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
+                  ? "bg-orange-500 text-white shadow-lg shadow-orange-500/50"
+                  : "text-slate-300 hover:bg-[#0f1419] hover:text-white"
               }`}
               data-testid="tab-feed"
             >
@@ -189,10 +189,10 @@ export default function Community() {
             </button>
             <button
               onClick={() => setActiveTab("events")}
-              className={`flex-1 px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+              className={`flex-1 px-6 py-3 rounded-lg text-sm font-semibold transition-all ${
                 activeTab === "events"
-                  ? "bg-orange-500 text-white"
-                  : "text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
+                  ? "bg-orange-500 text-white shadow-lg shadow-orange-500/50"
+                  : "text-slate-300 hover:bg-[#0f1419] hover:text-white"
               }`}
               data-testid="tab-events"
             >
@@ -200,14 +200,14 @@ export default function Community() {
             </button>
             <button
               onClick={() => setActiveTab("trending")}
-              className={`flex-1 px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+              className={`flex-1 px-6 py-3 rounded-lg text-sm font-semibold transition-all ${
                 activeTab === "trending"
-                  ? "bg-orange-500 text-white"
-                  : "text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
+                  ? "bg-orange-500 text-white shadow-lg shadow-orange-500/50"
+                  : "text-slate-300 hover:bg-[#0f1419] hover:text-white"
               }`}
               data-testid="tab-trending"
             >
-              <TrendingUp className="w-4 h-4 inline mr-1" />
+              <TrendingUp className="w-4 h-4 inline mr-1.5" />
               Trending
             </button>
           </div>
@@ -218,12 +218,12 @@ export default function Community() {
           <div className="space-y-4">
             
             {/* Post Composer */}
-            <Card className="bg-[#1a2332] shadow-sm border-[#2d3748]">
-              <CardContent className="p-4">
-                <div className="flex gap-3">
-                  <Avatar className="h-10 w-10">
+            <Card className="bg-[#1a2332] shadow-xl border-2 border-[#2d3748] hover:border-orange-500/30 transition-all">
+              <CardContent className="p-5">
+                <div className="flex gap-4">
+                  <Avatar className="h-12 w-12 ring-2 ring-orange-500/50">
                     <AvatarImage src={user?.profileImageUrl} />
-                    <AvatarFallback className="bg-orange-500 text-white">
+                    <AvatarFallback className="bg-gradient-to-br from-orange-500 to-orange-600 text-white text-lg font-semibold">
                       {user?.firstName?.[0] || user?.email?.[0] || 'U'}
                     </AvatarFallback>
                   </Avatar>
@@ -231,7 +231,7 @@ export default function Community() {
                   {!showPostComposer ? (
                     <button
                       onClick={() => setShowPostComposer(true)}
-                      className="flex-1 text-left px-4 py-2.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-full text-slate-500 dark:text-slate-400 transition-colors"
+                      className="flex-1 text-left px-5 py-3.5 bg-[#0f1419] hover:bg-[#0a0f14] border border-[#2d3748] hover:border-orange-500/50 rounded-full text-slate-300 transition-all shadow-inner"
                       data-testid="button-open-composer"
                     >
                       What's on your mind?
@@ -242,7 +242,7 @@ export default function Community() {
                         placeholder="What's on your mind?"
                         value={newPostContent}
                         onChange={(e) => setNewPostContent(e.target.value)}
-                        className="min-h-[100px] resize-none border-0 focus-visible:ring-0 px-0 text-orange-500"
+                        className="min-h-[120px] resize-none border-0 focus-visible:ring-0 px-0 text-white text-lg bg-transparent"
                         data-testid="textarea-new-post"
                       />
                       <Separator />
@@ -290,15 +290,15 @@ export default function Community() {
             </Card>
 
             {/* Category Filters */}
-            <Card className="bg-[#1a2332] shadow-sm border-[#2d3748]">
-              <CardContent className="p-3">
-                <div className="flex gap-2 overflow-x-auto">
+            <Card className="bg-[#1a2332] shadow-lg border-2 border-[#2d3748]">
+              <CardContent className="p-4">
+                <div className="flex gap-2.5 overflow-x-auto pb-1">
                   {POST_CATEGORIES.map((category) => {
                     const Icon = category.icon;
                     return (
                       <button
                         key={category.id}
-                        className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-sm font-medium text-slate-700 dark:text-slate-300 whitespace-nowrap transition-colors"
+                        className="flex items-center gap-2 px-4 py-2.5 rounded-lg bg-[#0f1419] border border-[#2d3748] hover:border-orange-500 hover:bg-orange-500/10 text-sm font-semibold text-slate-200 hover:text-orange-400 whitespace-nowrap transition-all shadow-sm"
                         data-testid={`filter-${category.id}`}
                       >
                         <Icon className="w-4 h-4" />
@@ -317,84 +317,84 @@ export default function Community() {
                 <p className="mt-2 text-slate-600 dark:text-slate-400">Loading posts...</p>
               </div>
             ) : filteredPosts.length === 0 ? (
-              <Card className="bg-[#1a2332] shadow-sm border-[#2d3748]">
-                <CardContent className="py-16 text-center">
-                  <MessageSquare className="w-16 h-16 mx-auto text-slate-300 dark:text-slate-700 mb-4" />
-                  <h3 className="text-lg font-semibold text-orange-500 mb-2">
+              <Card className="bg-[#1a2332] shadow-xl border-2 border-[#2d3748]">
+                <CardContent className="py-20 text-center">
+                  <MessageSquare className="w-20 h-20 mx-auto text-orange-500/30 mb-6" />
+                  <h3 className="text-2xl font-bold text-white mb-3">
                     No posts yet
                   </h3>
-                  <p className="text-slate-600 dark:text-slate-400 mb-4">
+                  <p className="text-slate-300 text-base mb-6">
                     Be the first to share something with your community!
                   </p>
                   <Button
                     onClick={() => setShowPostComposer(true)}
-                    className="bg-orange-500 hover:bg-orange-600 text-white"
+                    className="bg-orange-500 hover:bg-orange-600 text-white shadow-lg shadow-orange-500/50 px-8 py-6 text-lg"
                     data-testid="button-create-first-post"
                   >
-                    <Plus className="w-4 h-4 mr-2" />
+                    <Plus className="w-5 h-5 mr-2" />
                     Create Post
                   </Button>
                 </CardContent>
               </Card>
             ) : (
-              <div className="space-y-4">
+              <div className="space-y-5">
                 {filteredPosts.map((post) => (
-                  <Card key={post.id} className="bg-[#1a2332] shadow-sm hover:shadow-md transition-shadow border-[#2d3748]">
-                    <CardContent className="p-4">
+                  <Card key={post.id} className="bg-[#1a2332] shadow-xl hover:shadow-2xl transition-all border-2 border-[#2d3748] hover:border-orange-500/30">
+                    <CardContent className="p-6">
                       {/* Post Header */}
-                      <div className="flex items-start justify-between mb-3">
+                      <div className="flex items-start justify-between mb-4">
                         <div className="flex gap-3">
-                          <Avatar className="h-10 w-10">
+                          <Avatar className="h-12 w-12 ring-2 ring-orange-500/30">
                             <AvatarImage src={post.author?.avatar} />
-                            <AvatarFallback className="bg-orange-500 text-white">
+                            <AvatarFallback className="bg-gradient-to-br from-orange-500 to-orange-600 text-white font-semibold">
                               {post.author?.name?.[0] || 'U'}
                             </AvatarFallback>
                           </Avatar>
                           <div>
                             <div className="flex items-center gap-2">
-                              <span className="font-semibold text-orange-500">
+                              <span className="font-bold text-white text-base">
                                 {post.author?.name || 'Anonymous'}
                               </span>
                               {post.author?.verified && (
-                                <Badge className="bg-blue-500 text-white text-xs px-1.5 py-0">
-                                  ✓
+                                <Badge className="bg-blue-500 text-white text-xs px-2 py-0.5 shadow-sm">
+                                  ✓ Verified
                                 </Badge>
                               )}
                             </div>
-                            <div className="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400">
+                            <div className="flex items-center gap-2 text-sm text-slate-400">
                               <span>{formatTimeAgo(post.createdAt)}</span>
                               {post.location && (
                                 <>
                                   <span>•</span>
-                                  <MapPin className="w-3 h-3" />
+                                  <MapPin className="w-3.5 h-3.5" />
                                   <span>{post.location}</span>
                                 </>
                               )}
                             </div>
                           </div>
                         </div>
-                        <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                          <MoreHorizontal className="w-4 h-4" />
+                        <Button variant="ghost" size="sm" className="h-9 w-9 p-0 text-slate-400 hover:text-white hover:bg-[#0f1419]">
+                          <MoreHorizontal className="w-5 h-5" />
                         </Button>
                       </div>
 
                       {/* Post Content */}
-                      <div className="mb-3">
+                      <div className="mb-4">
                         {post.title && (
-                          <h3 className="font-semibold text-orange-500 mb-2">
+                          <h3 className="font-bold text-orange-400 text-lg mb-3">
                             {post.title}
                           </h3>
                         )}
-                        <p className="text-slate-700 dark:text-slate-300 whitespace-pre-wrap">
+                        <p className="text-slate-200 text-base leading-relaxed whitespace-pre-wrap">
                           {post.content}
                         </p>
                         {post.tags && post.tags.length > 0 && (
-                          <div className="flex flex-wrap gap-1.5 mt-3">
+                          <div className="flex flex-wrap gap-2 mt-4">
                             {post.tags.map((tag, idx) => (
                               <Badge
                                 key={idx}
                                 variant="secondary"
-                                className="text-xs bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400"
+                                className="text-xs bg-orange-500/10 border border-orange-500/30 text-orange-400 px-3 py-1"
                               >
                                 #{tag}
                               </Badge>
@@ -403,44 +403,44 @@ export default function Community() {
                         )}
                       </div>
 
-                      <Separator className="mb-3" />
+                      <Separator className="mb-3 bg-[#2d3748]" />
 
                       {/* Post Stats */}
-                      <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400 mb-2">
+                      <div className="flex items-center justify-between text-sm text-slate-300 mb-3 font-medium">
                         <span>{post.upvotes || 0} likes</span>
                         <span>{post.comments || 0} comments</span>
                       </div>
 
-                      <Separator className="mb-2" />
+                      <Separator className="mb-3 bg-[#2d3748]" />
 
                       {/* Action Buttons */}
-                      <div className="flex items-center justify-around">
+                      <div className="flex items-center gap-2">
                         <Button
                           variant="ghost"
                           size="sm"
                           onClick={() => handleLike(post.id)}
-                          className="flex-1 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400"
+                          className="flex-1 hover:bg-orange-500/10 hover:text-orange-400 text-slate-300 font-semibold py-2.5"
                           data-testid={`button-like-${post.id}`}
                         >
-                          <Heart className="w-4 h-4 mr-2" />
+                          <Heart className="w-5 h-5 mr-2" />
                           Like
                         </Button>
                         <Button
                           variant="ghost"
                           size="sm"
-                          className="flex-1 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400"
+                          className="flex-1 hover:bg-orange-500/10 hover:text-orange-400 text-slate-300 font-semibold py-2.5"
                           data-testid={`button-comment-${post.id}`}
                         >
-                          <MessageSquare className="w-4 h-4 mr-2" />
+                          <MessageSquare className="w-5 h-5 mr-2" />
                           Comment
                         </Button>
                         <Button
                           variant="ghost"
                           size="sm"
-                          className="flex-1 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400"
+                          className="flex-1 hover:bg-orange-500/10 hover:text-orange-400 text-slate-300 font-semibold py-2.5"
                           data-testid={`button-share-${post.id}`}
                         >
-                          <Share2 className="w-4 h-4 mr-2" />
+                          <Share2 className="w-5 h-5 mr-2" />
                           Share
                         </Button>
                       </div>
@@ -455,17 +455,17 @@ export default function Community() {
         {/* Events Tab */}
         {activeTab === "events" && (
           <div className="space-y-4">
-            <Card className="bg-[#1a2332] shadow-sm border-[#2d3748]">
-              <CardContent className="py-16 text-center">
-                <Calendar className="w-16 h-16 mx-auto text-slate-300 dark:text-slate-700 mb-4" />
-                <h3 className="text-lg font-semibold text-orange-500 mb-2">
+            <Card className="bg-[#1a2332] shadow-xl border-2 border-[#2d3748]">
+              <CardContent className="py-20 text-center">
+                <Calendar className="w-20 h-20 mx-auto text-orange-500/30 mb-6" />
+                <h3 className="text-2xl font-bold text-white mb-3">
                   No upcoming events
                 </h3>
-                <p className="text-slate-600 dark:text-slate-400 mb-4">
+                <p className="text-slate-300 text-base mb-6">
                   Check back soon for community events in your area
                 </p>
-                <Button className="bg-orange-500 hover:bg-orange-600 text-white">
-                  <Plus className="w-4 h-4 mr-2" />
+                <Button className="bg-orange-500 hover:bg-orange-600 text-white shadow-lg shadow-orange-500/50 px-8 py-6 text-lg">
+                  <Plus className="w-5 h-5 mr-2" />
                   Create Event
                 </Button>
               </CardContent>
@@ -476,13 +476,13 @@ export default function Community() {
         {/* Trending Tab */}
         {activeTab === "trending" && (
           <div className="space-y-4">
-            <Card className="bg-[#1a2332] shadow-sm border-[#2d3748]">
-              <CardContent className="py-16 text-center">
-                <TrendingUp className="w-16 h-16 mx-auto text-slate-300 dark:text-slate-700 mb-4" />
-                <h3 className="text-lg font-semibold text-orange-500 mb-2">
+            <Card className="bg-[#1a2332] shadow-xl border-2 border-[#2d3748]">
+              <CardContent className="py-20 text-center">
+                <TrendingUp className="w-20 h-20 mx-auto text-orange-500/30 mb-6" />
+                <h3 className="text-2xl font-bold text-white mb-3">
                   Nothing trending yet
                 </h3>
-                <p className="text-slate-600 dark:text-slate-400">
+                <p className="text-slate-300 text-base">
                   Popular posts will appear here
                 </p>
               </CardContent>
