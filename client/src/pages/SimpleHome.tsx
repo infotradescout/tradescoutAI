@@ -354,7 +354,12 @@ const SimpleHome = memo(function SimpleHome() {
                     { name: "Elite Electrical", rating: 4.8, reviews: 189 },
                     { name: "Pro Landscaping", rating: 4.7, reviews: 312 }
                   ].map((contractor, idx) => (
-                    <div key={idx} className="flex items-center justify-between">
+                    <Link 
+                      key={idx} 
+                      href="/find-contractors" 
+                      className="flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-700/50 rounded-lg p-2 -mx-2 transition-colors cursor-pointer"
+                      data-testid={`contractor-link-${idx}`}
+                    >
                       <div className="flex-1">
                         <div className="flex items-center gap-1.5">
                           <p className="font-medium text-sm text-slate-900 dark:text-white">{contractor.name}</p>
@@ -369,7 +374,7 @@ const SimpleHome = memo(function SimpleHome() {
                           </span>
                         </div>
                       </div>
-                    </div>
+                    </Link>
                   ))}
                 </div>
               </div>
