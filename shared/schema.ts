@@ -291,6 +291,11 @@ export const users = pgTable("users", {
       allowMessages?: boolean;
       shareActivity?: boolean;
     };
+    dashboard?: {
+      enabledWidgets?: string[]; // Which widgets to show on dashboard
+      widgetOrder?: string[]; // Order of widgets
+      layout?: 'single' | 'two-column' | 'three-column'; // Dashboard layout
+    };
   }>(),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
