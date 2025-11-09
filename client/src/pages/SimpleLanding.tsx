@@ -1,6 +1,54 @@
 import React, { memo } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { useAuth } from '@/hooks/useAuth';
+import { useLocation } from 'wouter';
 
 const SimpleLanding = memo(function SimpleLanding() {
+  const { isAuthenticated } = useAuth();
+  const [, setLocation] = useLocation();
+
+  // Redirect authenticated users to dashboard
+  React.useEffect(() => {
+    if (isAuthenticated) {
+      setLocation('/dashboard');
+    }
+  }, [isAuthenticated, setLocation]);
+
+  // Fetch real-time platform statistics
+  const { data: stats, isLoading: statsLoading } = useQuery<{
+    totalContractors: number;
+    totalHomeowners: number;
+    totalProjectsCompleted: number;
+    successRate: number;
+    totalProjectValue: number;
+  }>({
+    queryKey: ['/api/stats/platform'],
+    refetchInterval: 60000, // Refetch every minute
+    staleTime: 30000, // Consider data stale after 30 seconds
+  });
+
+  // Format large numbers for display
+  const formatNumber = (num: number) => {
+    if (num >= 1000000) {
+      return `${(num / 1000000).toFixed(2)}M`;
+    } else if (num >= 1000) {
+      return `${(num / 1000).toFixed(1)}K`;
+    }
+    return num.toLocaleString();
+  };
+
+  // Format currency
+  const formatCurrency = (num: number) => {
+    if (num >= 1000000000) {
+      return `$${(num / 1000000000).toFixed(2)}B`;
+    } else if (num >= 1000000) {
+      return `$${(num / 1000000).toFixed(2)}M`;
+    } else if (num >= 1000) {
+      return `$${(num / 1000).toFixed(1)}K`;
+    }
+    return `$${num.toLocaleString()}`;
+  };
+
   return (
     <div className="min-h-screen bg-slate-900 text-white">
       {/* Premium Hero Section */}
@@ -21,10 +69,12 @@ const SimpleLanding = memo(function SimpleLanding() {
         
         <div className="container mx-auto px-6 relative z-10">
           <div className="max-w-5xl mx-auto text-center">
-            {/* Trust Badge */}
+            {/* Trust Badge - Dynamic */}
             <div className="inline-flex items-center gap-2 px-6 py-3 bg-white/5 backdrop-blur-sm border border-white/10 rounded-full text-sm font-medium mb-8 hover:bg-white/10 transition-all duration-300">
               <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
-              <span className="text-gray-300">Trusted by 125,000+ homeowners nationwide</span>
+              <span className="text-gray-300">
+                {statsLoading ? 'Loading...' : `Trusted by ${formatNumber(stats?.totalHomeowners || 0)}+ homeowners nationwide`}
+              </span>
             </div>
             
             {/* Main Headline */}
@@ -238,7 +288,7 @@ const SimpleLanding = memo(function SimpleLanding() {
                 <div className="absolute inset-0 bg-gradient-to-br from-orange-500/20 to-orange-600/20 rounded-3xl blur-lg group-hover:blur-xl transition-all duration-500"></div>
                 <div className="relative bg-slate-800/80 backdrop-blur-sm border border-slate-700/50 rounded-3xl p-8 group-hover:border-orange-500/30 transition-all duration-500">
                   <div className="text-5xl md:text-6xl font-bold bg-gradient-to-br from-orange-400 via-orange-500 to-orange-600 bg-clip-text text-transparent mb-3">
-                    28,500+
+                    {statsLoading ? '...' : `${formatNumber(stats?.totalContractors || 0)}+`}
                   </div>
                   <div className="text-white text-lg font-semibold mb-2">Great Contractors</div>
                   <div className="text-gray-500 text-sm">Trusted professionals</div>
@@ -257,14 +307,14 @@ const SimpleLanding = memo(function SimpleLanding() {
                 <div className="absolute inset-0 bg-gradient-to-br from-blue-500/20 to-purple-500/20 rounded-3xl blur-lg group-hover:blur-xl transition-all duration-500"></div>
                 <div className="relative bg-slate-800/80 backdrop-blur-sm border border-slate-700/50 rounded-3xl p-8 group-hover:border-blue-500/30 transition-all duration-500">
                   <div className="text-5xl md:text-6xl font-bold bg-gradient-to-br from-blue-400 via-blue-500 to-purple-600 bg-clip-text text-transparent mb-3">
-                    125,000+
+                    {statsLoading ? '...' : `${formatNumber(stats?.totalHomeowners || 0)}+`}
                   </div>
                   <div className="text-white text-lg font-semibold mb-2">Happy Homeowners</div>
                   <div className="text-gray-500 text-sm">Satisfied customers</div>
                   <div className="mt-4 pt-4 border-t border-slate-700">
                     <div className="flex items-center justify-center gap-2 text-xs text-blue-400">
                       <div className="w-1.5 h-1.5 bg-blue-500 rounded-full"></div>
-                      98% Satisfaction Rate
+                      {statsLoading ? '98%' : `${(stats?.successRate || 98).toFixed(1)}%`} Satisfaction Rate
                     </div>
                   </div>
                 </div>
@@ -276,7 +326,7 @@ const SimpleLanding = memo(function SimpleLanding() {
                 <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/20 to-teal-500/20 rounded-3xl blur-lg group-hover:blur-xl transition-all duration-500"></div>
                 <div className="relative bg-slate-800/80 backdrop-blur-sm border border-slate-700/50 rounded-3xl p-8 group-hover:border-emerald-500/30 transition-all duration-500">
                   <div className="text-5xl md:text-6xl font-bold bg-gradient-to-br from-emerald-400 via-emerald-500 to-teal-600 bg-clip-text text-transparent mb-3">
-                    $2.45M
+                    {statsLoading ? '...' : formatCurrency(stats?.totalProjectValue || 0)}
                   </div>
                   <div className="text-white text-lg font-semibold mb-2">Projects Completed</div>
                   <div className="text-gray-500 text-sm">Total project value</div>
@@ -295,7 +345,7 @@ const SimpleLanding = memo(function SimpleLanding() {
                 <div className="absolute inset-0 bg-gradient-to-br from-violet-500/20 to-purple-500/20 rounded-3xl blur-lg group-hover:blur-xl transition-all duration-500"></div>
                 <div className="relative bg-slate-800/80 backdrop-blur-sm border border-slate-700/50 rounded-3xl p-8 group-hover:border-violet-500/30 transition-all duration-500">
                   <div className="text-5xl md:text-6xl font-bold bg-gradient-to-br from-violet-400 via-violet-500 to-purple-600 bg-clip-text text-transparent mb-3">
-                    99.2%
+                    {statsLoading ? '...' : `${(stats?.successRate || 99.2).toFixed(1)}%`}
                   </div>
                   <div className="text-white text-lg font-semibold mb-2">Success Rate</div>
                   <div className="text-gray-500 text-sm">Project completion</div>
