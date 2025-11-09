@@ -183,16 +183,17 @@ export function AuthFlow({ onComplete, initialType }: AuthFlowProps) {
       return (
         <RoleSelection 
           onRoleSelect={handleRoleSelect}
-          userInfo={userInfo}
+          userInfo={userInfo || undefined}
           initialType={initialType}
         />
       );
 
     case 'onboarding':
       if (!selectedRole) return null;
+      const onboardingRole = (selectedRole === 'homeowner' ? 'homeowner' : 'contractor') as 'homeowner' | 'contractor';
       return (
         <OnboardingFlow
-          role={selectedRole}
+          role={onboardingRole}
           userInfo={userInfo || {}}
           onComplete={handleOnboardingComplete}
           onSkip={handleSkipOnboarding}
