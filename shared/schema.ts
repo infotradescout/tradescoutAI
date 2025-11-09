@@ -1290,6 +1290,9 @@ export type InsertCommunityGroup = typeof communityGroups.$inferInsert;
 export type GroupMember = typeof groupMembers.$inferSelect;
 export type InsertGroupMember = typeof groupMembers.$inferInsert;
 
+export type GroupCountyLink = typeof groupCountyLinks.$inferSelect;
+export type InsertGroupCountyLink = typeof groupCountyLinks.$inferInsert;
+
 export type Region = typeof regions.$inferSelect;
 export type InsertRegion = typeof regions.$inferInsert;
 
@@ -2802,6 +2805,12 @@ export const communityGroups = pgTable("community_groups", {
   imageUrl: varchar("image_url"),
   bannerUrl: varchar("banner_url"),
   
+  // Group type
+  groupType: varchar("group_type", {
+    enum: ['auto_county', 'custom', 'trade', 'business', 'interest', 'neighborhood']
+  }).default('custom').notNull(),
+  autoCreated: boolean("auto_created").default(false), // System-created county groups
+  
   // Geographic scope
   scope: varchar("scope", {
     enum: ['national', 'state', 'region', 'county', 'city', 'trade_specific']
@@ -2815,13 +2824,14 @@ export const communityGroups = pgTable("community_groups", {
   isPrivate: boolean("is_private").default(false),
   requiresApproval: boolean("requires_approval").default(false),
   allowPostApproval: boolean("allow_post_approval").default(false),
+  allowCrossCounty: boolean("allow_cross_county").default(false), // For custom groups spanning multiple counties
   
   // Stats
   memberCount: integer("member_count").default(0),
   postCount: integer("post_count").default(0),
   
   // Management
-  createdBy: varchar("created_by").notNull().references(() => users.id),
+  createdBy: varchar("created_by").references(() => users.id), // Nullable for auto-created
   isActive: boolean("is_active").default(true),
   
   createdAt: timestamp("created_at").defaultNow(),
@@ -2847,6 +2857,24 @@ export const groupMembers = pgTable("group_members", {
   bannedBy: varchar("banned_by"),
   bannedAt: timestamp("banned_at"),
 });
+
+// Links custom groups to multiple counties
+export const groupCountyLinks = pgTable("group_county_links", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  groupId: varchar("group_id").notNull().references(() => communityGroups.id),
+  countyFips: varchar("county_fips", { length: 5 }).notNull(),
+  stateCode: varchar("state_code", { length: 2 }).notNull(),
+  
+  // For display purposes
+  countyName: varchar("county_name"),
+  
+  isActive: boolean("is_active").default(true),
+  addedBy: varchar("added_by").references(() => users.id),
+  addedAt: timestamp("added_at").defaultNow(),
+}, (table) => [
+  index("group_county_links_group_idx").on(table.groupId),
+  index("group_county_links_county_idx").on(table.countyFips),
+]);
 
 export const regions = pgTable("regions", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -3106,6 +3134,7 @@ export const communityGroupsRelations = relations(communityGroups, ({ one, many 
     references: [users.id],
   }),
   members: many(groupMembers),
+  countyLinks: many(groupCountyLinks),
 }));
 
 export const groupMembersRelations = relations(groupMembers, ({ one }) => ({
@@ -3115,6 +3144,17 @@ export const groupMembersRelations = relations(groupMembers, ({ one }) => ({
   }),
   user: one(users, {
     fields: [groupMembers.userId],
+    references: [users.id],
+  }),
+}));
+
+export const groupCountyLinksRelations = relations(groupCountyLinks, ({ one }) => ({
+  group: one(communityGroups, {
+    fields: [groupCountyLinks.groupId],
+    references: [communityGroups.id],
+  }),
+  addedByUser: one(users, {
+    fields: [groupCountyLinks.addedBy],
     references: [users.id],
   }),
 }));
