@@ -44,28 +44,41 @@ const SimpleLanding = memo(function SimpleLanding() {
               <span className="text-white font-medium"> Quality work, fair pricing, great results.</span>
             </p>
             
-            {/* CTA Buttons */}
+            {/* CTA Buttons - Clear Separation */}
             <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-16">
               <a 
-                href="/find-contractors"
-                className="group relative px-8 py-4 bg-gradient-to-r from-orange-500 via-orange-600 to-orange-700 rounded-2xl font-semibold text-white shadow-2xl hover:shadow-orange-500/25 transition-all duration-300 hover:scale-105 min-w-[200px] inline-block text-center"
-                data-testid="button-find-contractors"
+                href="/signup?type=homeowner"
+                className="group relative px-8 py-4 bg-gradient-to-r from-blue-500 via-blue-600 to-blue-700 rounded-2xl font-semibold text-white shadow-2xl hover:shadow-blue-500/25 transition-all duration-300 hover:scale-105 min-w-[240px] inline-block text-center"
+                data-testid="button-homeowner-signup"
               >
-                <span className="relative z-10 flex items-center gap-2">
-                  Find Great Contractors
-                  <svg className="w-5 h-5 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
+                <span className="relative z-10 flex items-center justify-center gap-2">
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
                   </svg>
+                  I'm a Homeowner
                 </span>
-                <div className="absolute inset-0 bg-gradient-to-r from-orange-600 to-orange-800 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                <div className="absolute inset-0 bg-gradient-to-r from-blue-600 to-blue-800 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
               </a>
               
               <a 
-                href="/quote-calculator"
-                className="group relative px-8 py-4 bg-white/5 backdrop-blur-sm border border-white/20 rounded-2xl font-semibold text-white hover:bg-white/10 hover:border-white/30 transition-all duration-300 min-w-[200px] inline-block text-center"
-                data-testid="button-get-quote"
+                href="/signup?type=professional"
+                className="group relative px-8 py-4 bg-gradient-to-r from-orange-500 via-orange-600 to-orange-700 rounded-2xl font-semibold text-white shadow-2xl hover:shadow-orange-500/25 transition-all duration-300 hover:scale-105 min-w-[240px] inline-block text-center"
+                data-testid="button-professional-signup"
               >
-                Get Instant Quote
+                <span className="relative z-10 flex items-center justify-center gap-2">
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                  </svg>
+                  I'm a Professional
+                </span>
+                <div className="absolute inset-0 bg-gradient-to-r from-orange-600 to-orange-800 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+              </a>
+            </div>
+            
+            {/* Already have account */}
+            <div className="text-center mb-8">
+              <a href="/login" className="text-sm text-gray-400 hover:text-white transition-colors">
+                Already have an account? <span className="underline">Sign in</span>
               </a>
             </div>
             

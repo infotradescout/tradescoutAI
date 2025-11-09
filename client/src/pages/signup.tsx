@@ -7,6 +7,10 @@ import { useLocation } from "wouter";
 export default function Signup() {
   const { isAuthenticated, isLoading } = useAuth();
   const [, setLocation] = useLocation();
+  
+  // Get account type from URL query parameter
+  const searchParams = new URLSearchParams(window.location.search);
+  const accountType = searchParams.get('type') as 'homeowner' | 'professional' | null;
 
   // Redirect if already authenticated
   useEffect(() => {
@@ -29,7 +33,10 @@ export default function Signup() {
 
   return (
     <div className="min-h-screen gradient-bg">
-      <AuthFlow onComplete={() => setLocation('/')} />
+      <AuthFlow 
+        onComplete={() => setLocation('/')} 
+        initialType={accountType || undefined}
+      />
     </div>
   );
 }
