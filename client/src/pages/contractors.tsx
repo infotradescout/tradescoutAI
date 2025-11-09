@@ -39,18 +39,18 @@ export default function ForContractors() {
   const totalContractorCount = allContractors?.length || 0;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-navy-900 via-navy-800 to-navy-900">
+    <div className="min-h-screen bg-[#0f1419]">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         {/* Header */}
         <div className="text-center mb-12">
-          <h1 className="text-4xl md:text-5xl font-bold text-white mb-6">
+          <h1 className="text-4xl md:text-5xl font-bold text-orange-500 mb-6">
             Grow Your Contracting Business
           </h1>
           <p className="text-xl text-gray-300 max-w-3xl mx-auto mb-4">
             Access exclusive resources, join our accelerator program, and connect with homeowners 
             looking for quality contractors in your area.
           </p>
-          <div className="inline-flex items-center px-4 py-2 bg-navy-700/50 rounded-full border border-navy-600">
+          <div className="inline-flex items-center px-4 py-2 bg-[#1a2332] rounded-full border border-[#2d3748]">
             <Users className="h-5 w-5 text-orange-500 mr-2" />
             <span className="text-gray-300">
               Connect with verified, local contractors for your next project
@@ -66,14 +66,14 @@ export default function ForContractors() {
         {/* Main Content Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-12">
           {/* Free Growth Pack */}
-          <Card className="bg-gradient-to-br from-orange-500/20 to-amber-500/20 border-orange-500/50 glow-effect">
+          <Card className="bg-[#1a2332] border-[#2d3748] glow-effect">
             <CardHeader>
               <div className="flex items-center justify-between">
-                <CardTitle className="text-2xl font-bold text-white flex items-center">
+                <CardTitle className="text-2xl font-bold text-orange-500 flex items-center">
                   <Download className="h-6 w-6 mr-2 text-orange-500" />
                   Free Growth Pack
                 </CardTitle>
-                <Badge className="bg-orange-500 text-white">
+                <Badge className="bg-orange-500 text-orange-500">
                   FREE
                 </Badge>
               </div>
@@ -104,7 +104,7 @@ export default function ForContractors() {
               </div>
 
               <Link href="/growth-pack">
-                <Button className="w-full bg-orange-500 hover:bg-orange-600 text-white py-3 text-lg font-semibold">
+                <Button className="w-full bg-orange-500 hover:bg-orange-600 text-orange-500 py-3 text-lg font-semibold">
                   Download Free Growth Pack
                   <ArrowRight className="h-5 w-5 ml-2" />
                 </Button>
@@ -116,11 +116,11 @@ export default function ForContractors() {
           <Card className="bg-gradient-to-br from-purple-500/20 to-blue-500/20 border-purple-500/50">
             <CardHeader>
               <div className="flex items-center justify-between">
-                <CardTitle className="text-2xl font-bold text-white flex items-center">
+                <CardTitle className="text-2xl font-bold text-orange-500 flex items-center">
                   <Award className="h-6 w-6 mr-2 text-purple-500" />
                   Accelerator Program
                 </CardTitle>
-                <Badge className="bg-purple-500 text-white">
+                <Badge className="bg-purple-500 text-orange-500">
                   PREMIUM
                 </Badge>
               </div>
@@ -152,14 +152,14 @@ export default function ForContractors() {
 
               {isContractor ? (
                 <Link href="/contractors/accelerator">
-                  <Button className="w-full bg-purple-500 hover:bg-purple-600 text-white py-3 text-lg font-semibold">
+                  <Button className="w-full bg-purple-500 hover:bg-purple-600 text-orange-500 py-3 text-lg font-semibold">
                     Join Accelerator Program
                     <ArrowRight className="h-5 w-5 ml-2" />
                   </Button>
                 </Link>
               ) : (
                 <Link href="/contractors/apply">
-                  <Button className="w-full bg-purple-500 hover:bg-purple-600 text-white py-3 text-lg font-semibold">
+                  <Button className="w-full bg-purple-500 hover:bg-purple-600 text-orange-500 py-3 text-lg font-semibold">
                     Apply to Join
                     <ArrowRight className="h-5 w-5 ml-2" />
                   </Button>
@@ -171,22 +171,22 @@ export default function ForContractors() {
 
         {/* Additional Features */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
-          <Card className="bg-navy-700 border-navy-600 hover:border-orange-500/50 transition-colors">
+          <Card className="bg-navy-700 border-[#2d3748] hover:border-orange-500/50 transition-colors">
             <CardContent className="p-6 text-center">
               <Briefcase className="h-12 w-12 text-orange-500 mx-auto mb-4" />
-              <h3 className="text-lg font-semibold text-white mb-2">Contractor Dashboard</h3>
+              <h3 className="text-lg font-semibold text-orange-500 mb-2">Contractor Dashboard</h3>
               <p className="text-gray-300 text-sm mb-4">
                 Manage your projects, track opportunities, and monitor your business performance.
               </p>
               {isContractor ? (
                 <Link href="/contractor-dashboard">
-                  <Button variant="outline" className="border-orange-500 text-orange-500 hover:bg-orange-500 hover:text-white">
+                  <Button variant="outline" className="border-orange-500 text-orange-500 hover:bg-orange-500 hover:text-orange-500">
                     Go to Dashboard
                   </Button>
                 </Link>
               ) : (
                 <Link href="/contractors/apply">
-                  <Button variant="outline" className="border-orange-500 text-orange-500 hover:bg-orange-500 hover:text-white">
+                  <Button variant="outline" className="border-orange-500 text-orange-500 hover:bg-orange-500 hover:text-orange-500">
                     Join Now
                   </Button>
                 </Link>
@@ -194,30 +194,30 @@ export default function ForContractors() {
             </CardContent>
           </Card>
 
-          <Card className="bg-navy-700 border-navy-600 hover:border-orange-500/50 transition-colors">
+          <Card className="bg-navy-700 border-[#2d3748] hover:border-orange-500/50 transition-colors">
             <CardContent className="p-6 text-center">
               <DollarSign className="h-12 w-12 text-green-500 mx-auto mb-4" />
-              <h3 className="text-lg font-semibold text-white mb-2">Find Homeowners</h3>
+              <h3 className="text-lg font-semibold text-orange-500 mb-2">Find Homeowners</h3>
               <p className="text-gray-300 text-sm mb-4">
                 Connect with homeowners actively seeking contractors in your area.
               </p>
               <Link href="/contractors/board">
-                <Button variant="outline" className="border-green-500 text-green-500 hover:bg-green-500 hover:text-white">
+                <Button variant="outline" className="border-green-500 text-green-500 hover:bg-green-500 hover:text-orange-500">
                   View Opportunities
                 </Button>
               </Link>
             </CardContent>
           </Card>
 
-          <Card className="bg-navy-700 border-navy-600 hover:border-orange-500/50 transition-colors">
+          <Card className="bg-navy-700 border-[#2d3748] hover:border-orange-500/50 transition-colors">
             <CardContent className="p-6 text-center">
               <FileText className="h-12 w-12 text-blue-500 mx-auto mb-4" />
-              <h3 className="text-lg font-semibold text-white mb-2">Business Resources</h3>
+              <h3 className="text-lg font-semibold text-orange-500 mb-2">Business Resources</h3>
               <p className="text-gray-300 text-sm mb-4">
                 Access contracts, pricing guides, and industry best practices.
               </p>
               <Link href="/growth-pack">
-                <Button variant="outline" className="border-blue-500 text-blue-500 hover:bg-blue-500 hover:text-white">
+                <Button variant="outline" className="border-blue-500 text-blue-500 hover:bg-blue-500 hover:text-orange-500">
                   Get Resources
                 </Button>
               </Link>
@@ -229,7 +229,7 @@ export default function ForContractors() {
         <div className="text-center">
           <Card className="bg-gradient-to-r from-navy-700 to-navy-600 border-navy-500">
             <CardContent className="p-8">
-              <h2 className="text-3xl font-bold text-white mb-4">
+              <h2 className="text-3xl font-bold text-orange-500 mb-4">
                 Ready to Grow Your Business?
               </h2>
               <p className="text-xl text-gray-300 mb-6 max-w-2xl mx-auto">
@@ -237,13 +237,13 @@ export default function ForContractors() {
               </p>
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
                 <Link href="/growth-pack">
-                  <Button className="bg-orange-500 hover:bg-orange-600 text-white px-8 py-3 text-lg">
+                  <Button className="bg-orange-500 hover:bg-orange-600 text-orange-500 px-8 py-3 text-lg">
                     Start with Free Pack
                   </Button>
                 </Link>
                 {!isContractor && (
                   <Link href="/contractors/apply">
-                    <Button variant="outline" className="border-white text-white hover:bg-white hover:text-navy-800 px-8 py-3 text-lg">
+                    <Button variant="outline" className="border-white text-orange-500 hover:bg-white hover:text-navy-800 px-8 py-3 text-lg">
                       Accelerator Program
                     </Button>
                   </Link>
