@@ -25,8 +25,8 @@ const SimpleNavigation = memo(function SimpleNavigation() {
   const isActivePath = (path: string) => location === path;
 
   const mainNavItems = [
-    { icon: Home, label: 'Home', path: '/home', testId: 'nav-home' },
-    { icon: Users, label: 'Community', path: '/groups', testId: 'nav-community' },
+    { icon: Home, label: 'Home', path: '/dashboard', testId: 'nav-home' },
+    { icon: Users, label: 'Community', path: '/dashboard', testId: 'nav-community' },
     { icon: Wrench, label: 'Contractors', path: '/find-contractors', testId: 'nav-contractors' },
     { icon: ShoppingCart, label: 'Marketplace', path: '/marketplace', testId: 'nav-marketplace' },
   ];
@@ -135,6 +135,20 @@ const SimpleNavigation = memo(function SimpleNavigation() {
                         Profile
                       </Link>
                     </DropdownMenuItem>
+                    <DropdownMenuItem asChild>
+                      <Link href="/groups" className="cursor-pointer">
+                        <Users className="w-4 h-4 mr-2" />
+                        My Groups
+                      </Link>
+                    </DropdownMenuItem>
+                    {(user?.role === 'hoa_board' || user?.role === 'hoa_manager') && (
+                      <DropdownMenuItem asChild>
+                        <Link href="/hoa-dashboard" className="cursor-pointer">
+                          <Home className="w-4 h-4 mr-2" />
+                          HOA Management
+                        </Link>
+                      </DropdownMenuItem>
+                    )}
                     <DropdownMenuItem asChild>
                       <Link href="/settings" className="cursor-pointer">
                         <Settings className="w-4 h-4 mr-2" />

@@ -10,8 +10,8 @@ const MobileAppBar = memo(function MobileAppBar() {
   if (!isAuthenticated) return null;
 
   const navItems = [
-    { icon: Home, label: 'Home', path: '/home', testId: 'mobile-nav-home' },
-    { icon: Users, label: 'Community', path: '/groups', testId: 'mobile-nav-community' },
+    { icon: Home, label: 'Home', path: '/dashboard', testId: 'mobile-nav-home' },
+    { icon: Users, label: 'Community', path: '/dashboard', testId: 'mobile-nav-community' },
     { icon: Wrench, label: 'Contractors', path: '/find-contractors', testId: 'mobile-nav-contractors' },
     { icon: ShoppingCart, label: 'Marketplace', path: '/marketplace', testId: 'mobile-nav-marketplace' },
     { icon: User, label: 'Profile', path: '/profile', testId: 'mobile-nav-profile' },
