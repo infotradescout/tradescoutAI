@@ -164,7 +164,7 @@ const CheckoutForm = ({
         
         <CardContent className="space-y-6">
           {/* Payment Summary */}
-          <div className="bg-gray-50 dark:bg-gray-800 p-4 rounded-lg">
+          <div className="bg-[#0f1419] dark:bg-[#1a2332] p-4 rounded-lg">
             <div className="flex justify-between items-center">
               <span className="font-medium">Amount</span>
               <span className="text-xl font-bold">${amount.toFixed(2)}</span>
@@ -208,7 +208,7 @@ const CheckoutForm = ({
                 {paymentMethods.map((method: any) => (
                   <div key={method.id} 
                        className={`p-3 border rounded-lg cursor-pointer transition-colors ${
-                         method.recommended ? 'border-primary bg-primary/5' : 'border-gray-200 hover:bg-gray-50'
+                         method.recommended ? 'border-primary bg-primary/5' : 'border-[#2d3748] hover:bg-[#0f1419]'
                        }`}>
                     <div className="flex justify-between items-start">
                       <div>

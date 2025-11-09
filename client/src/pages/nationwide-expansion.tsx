@@ -111,7 +111,7 @@ export default function NationwideExpansion() {
         {/* Key Metrics Dashboard */}
         {metrics && (
           <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
-            <Card className="bg-slate-800/50 border-slate-700">
+            <Card className="bg-[#1a2332]/50 border-slate-700">
               <CardContent className="p-4 text-center">
                 <div className="w-8 h-8 bg-blue-500/20 rounded-full flex items-center justify-center mx-auto mb-2">
                   <MapPin className="w-4 h-4 text-blue-400" />
@@ -124,7 +124,7 @@ export default function NationwideExpansion() {
               </CardContent>
             </Card>
             
-            <Card className="bg-slate-800/50 border-slate-700">
+            <Card className="bg-[#1a2332]/50 border-slate-700">
               <CardContent className="p-4 text-center">
                 <div className="w-8 h-8 bg-green-500/20 rounded-full flex items-center justify-center mx-auto mb-2">
                   <Users className="w-4 h-4 text-green-400" />
@@ -137,7 +137,7 @@ export default function NationwideExpansion() {
               </CardContent>
             </Card>
 
-            <Card className="bg-slate-800/50 border-slate-700">
+            <Card className="bg-[#1a2332]/50 border-slate-700">
               <CardContent className="p-4 text-center">
                 <div className="w-8 h-8 bg-orange-500/20 rounded-full flex items-center justify-center mx-auto mb-2">
                   <Zap className="w-4 h-4 text-orange-400" />
@@ -150,7 +150,7 @@ export default function NationwideExpansion() {
               </CardContent>
             </Card>
 
-            <Card className="bg-slate-800/50 border-slate-700">
+            <Card className="bg-[#1a2332]/50 border-slate-700">
               <CardContent className="p-4 text-center">
                 <div className="w-8 h-8 bg-purple-500/20 rounded-full flex items-center justify-center mx-auto mb-2">
                   <Building className="w-4 h-4 text-purple-400" />
@@ -160,7 +160,7 @@ export default function NationwideExpansion() {
               </CardContent>
             </Card>
 
-            <Card className="bg-slate-800/50 border-slate-700">
+            <Card className="bg-[#1a2332]/50 border-slate-700">
               <CardContent className="p-4 text-center">
                 <div className="w-8 h-8 bg-teal-500/20 rounded-full flex items-center justify-center mx-auto mb-2">
                   <DollarSign className="w-4 h-4 text-teal-400" />
@@ -173,7 +173,7 @@ export default function NationwideExpansion() {
               </CardContent>
             </Card>
 
-            <Card className="bg-slate-800/50 border-slate-700">
+            <Card className="bg-[#1a2332]/50 border-slate-700">
               <CardContent className="p-4 text-center">
                 <div className="w-8 h-8 bg-pink-500/20 rounded-full flex items-center justify-center mx-auto mb-2">
                   <Heart className="w-4 h-4 text-pink-400" />
@@ -189,7 +189,7 @@ export default function NationwideExpansion() {
         )}
 
         <Tabs defaultValue="overview" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-5 bg-slate-800/50">
+          <TabsList className="grid w-full grid-cols-5 bg-[#1a2332]/50">
             <TabsTrigger value="overview" className="data-[state=active]:bg-purple-500">Overview</TabsTrigger>
             <TabsTrigger value="counties" className="data-[state=active]:bg-purple-500">Top Counties</TabsTrigger>
             <TabsTrigger value="expansion" className="data-[state=active]:bg-purple-500">Expansion</TabsTrigger>
@@ -199,7 +199,7 @@ export default function NationwideExpansion() {
 
           <TabsContent value="overview" className="space-y-6">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <Card className="bg-slate-800/50 border-slate-700">
+              <Card className="bg-[#1a2332]/50 border-slate-700">
                 <CardHeader>
                   <CardTitle className="text-white flex items-center space-x-2">
                     <Target className="w-5 h-5 text-green-400" />
@@ -231,7 +231,7 @@ export default function NationwideExpansion() {
                 </CardContent>
               </Card>
 
-              <Card className="bg-slate-800/50 border-slate-700">
+              <Card className="bg-[#1a2332]/50 border-slate-700">
                 <CardHeader>
                   <CardTitle className="text-white flex items-center space-x-2">
                     <Heart className="w-5 h-5 text-pink-400" />
@@ -279,7 +279,7 @@ export default function NationwideExpansion() {
               </h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {topCounties.map((county: County, index: number) => (
-                  <Card key={county.fipsCode} className="bg-slate-800/50 border-slate-700" data-testid={`county-${county.fipsCode}`}>
+                  <Card key={county.fipsCode} className="bg-[#1a2332]/50 border-slate-700" data-testid={`county-${county.fipsCode}`}>
                     <CardHeader className="pb-3">
                       <div className="flex justify-between items-start">
                         <div className="space-y-1">
@@ -339,13 +339,13 @@ export default function NationwideExpansion() {
                 <span>Expansion Pipeline</span>
               </h3>
               {expansionPipeline.map((phase: ExpansionPhase, index: number) => (
-                <Card key={index} className="bg-slate-800/50 border-slate-700" data-testid={`expansion-phase-${index}`}>
+                <Card key={index} className="bg-[#1a2332]/50 border-slate-700" data-testid={`expansion-phase-${index}`}>
                   <CardHeader>
                     <div className="flex justify-between items-start">
                       <div className="space-y-2">
                         <CardTitle className="text-white">{phase.phase}</CardTitle>
                         <Badge variant={phase.status === 'in_progress' ? 'default' : 'secondary'} 
-                               className={phase.status === 'in_progress' ? 'bg-green-500/20 text-green-400' : 'bg-slate-500/20 text-slate-400'}>
+                               className={phase.status === 'in_progress' ? 'bg-green-500/20 text-green-400' : 'bg-[#0f1419]0/20 text-slate-400'}>
                           {phase.status.replace('_', ' ')}
                         </Badge>
                       </div>
@@ -385,7 +385,7 @@ export default function NationwideExpansion() {
           <TabsContent value="foundation" className="space-y-6">
             {foundationImpact && (
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <Card className="bg-slate-800/50 border-slate-700">
+                <Card className="bg-[#1a2332]/50 border-slate-700">
                   <CardHeader>
                     <CardTitle className="text-white flex items-center space-x-2">
                       <Heart className="w-5 h-5 text-pink-400" />
@@ -414,7 +414,7 @@ export default function NationwideExpansion() {
                   </CardContent>
                 </Card>
 
-                <Card className="bg-slate-800/50 border-slate-700">
+                <Card className="bg-[#1a2332]/50 border-slate-700">
                   <CardHeader>
                     <CardTitle className="text-white flex items-center space-x-2">
                       <Building className="w-5 h-5 text-teal-400" />
@@ -451,7 +451,7 @@ export default function NationwideExpansion() {
             {affiliatePerformance && (
               <div className="space-y-6">
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-                  <Card className="bg-slate-800/50 border-slate-700">
+                  <Card className="bg-[#1a2332]/50 border-slate-700">
                     <CardContent className="p-6 text-center">
                       <div className="w-12 h-12 bg-green-500/20 rounded-full flex items-center justify-center mx-auto mb-3">
                         <Users className="w-6 h-6 text-green-400" />
@@ -461,7 +461,7 @@ export default function NationwideExpansion() {
                     </CardContent>
                   </Card>
                   
-                  <Card className="bg-slate-800/50 border-slate-700">
+                  <Card className="bg-[#1a2332]/50 border-slate-700">
                     <CardContent className="p-6 text-center">
                       <div className="w-12 h-12 bg-blue-500/20 rounded-full flex items-center justify-center mx-auto mb-3">
                         <Zap className="w-6 h-6 text-blue-400" />
@@ -471,7 +471,7 @@ export default function NationwideExpansion() {
                     </CardContent>
                   </Card>
 
-                  <Card className="bg-slate-800/50 border-slate-700">
+                  <Card className="bg-[#1a2332]/50 border-slate-700">
                     <CardContent className="p-6 text-center">
                       <div className="w-12 h-12 bg-purple-500/20 rounded-full flex items-center justify-center mx-auto mb-3">
                         <DollarSign className="w-6 h-6 text-purple-400" />
@@ -481,7 +481,7 @@ export default function NationwideExpansion() {
                     </CardContent>
                   </Card>
 
-                  <Card className="bg-slate-800/50 border-slate-700">
+                  <Card className="bg-[#1a2332]/50 border-slate-700">
                     <CardContent className="p-6 text-center">
                       <div className="w-12 h-12 bg-orange-500/20 rounded-full flex items-center justify-center mx-auto mb-3">
                         <TrendingUp className="w-6 h-6 text-orange-400" />
@@ -492,7 +492,7 @@ export default function NationwideExpansion() {
                   </Card>
                 </div>
 
-                <Card className="bg-slate-800/50 border-slate-700">
+                <Card className="bg-[#1a2332]/50 border-slate-700">
                   <CardHeader>
                     <CardTitle className="text-white flex items-center space-x-2">
                       <Award className="w-5 h-5 text-yellow-400" />

@@ -249,7 +249,7 @@ const Documentation = memo(function Documentation() {
                   {videoTutorials.map((video, index) => (
                     <div key={index} className="bg-slate-700/30 rounded-lg overflow-hidden">
                       <div className={`h-40 ${video.thumbnail} flex items-center justify-center`}>
-                        <div className="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center backdrop-blur-sm">
+                        <div className="w-16 h-16 bg-[#0f1419]/20 rounded-full flex items-center justify-center backdrop-blur-sm">
                           <Video className="w-8 h-8 text-white" />
                         </div>
                       </div>

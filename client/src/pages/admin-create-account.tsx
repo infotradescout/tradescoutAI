@@ -87,7 +87,7 @@ export default function AdminCreateAccount() {
   if (!canCreateAdmins) {
     return (
       <div className="min-h-screen gradient-bg flex items-center justify-center p-6">
-        <Card className="w-full max-w-md bg-slate-800/50 border-slate-700">
+        <Card className="w-full max-w-md bg-[#1a2332]/50 border-slate-700">
           <CardContent className="p-8 text-center">
             <Shield className="mx-auto h-16 w-16 text-red-500 mb-4" />
             <h2 className="text-xl font-bold text-white mb-2">Access Denied</h2>
@@ -109,7 +109,7 @@ export default function AdminCreateAccount() {
           <p className="text-slate-300">Add a new administrator to the platform</p>
         </div>
 
-        <Card className="bg-slate-800/50 border-slate-700 backdrop-blur-xl">
+        <Card className="bg-[#1a2332]/50 border-slate-700 backdrop-blur-xl">
           <CardHeader className="text-center pb-8">
             <CardTitle className="text-xl text-white flex items-center justify-center gap-2">
               <Shield className="w-6 h-6 text-orange-500" />
@@ -219,7 +219,7 @@ export default function AdminCreateAccount() {
                   <SelectTrigger className="bg-slate-700/50 border-slate-600 text-white">
                     <SelectValue placeholder="Select admin role" />
                   </SelectTrigger>
-                  <SelectContent className="bg-slate-800 border-slate-700">
+                  <SelectContent className="bg-[#1a2332] border-slate-700">
                     <SelectItem value="moderator" className="text-slate-200 hover:bg-slate-700">
                       Moderator - Content moderation and user management
                     </SelectItem>

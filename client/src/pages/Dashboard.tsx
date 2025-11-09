@@ -130,14 +130,14 @@ const Dashboard = memo(function Dashboard() {
 
   if (preferencesLoading) {
     return (
-      <div className="min-h-screen bg-slate-50 dark:bg-slate-900 flex items-center justify-center">
+      <div className="min-h-screen bg-[#0f1419] dark:bg-slate-900 flex items-center justify-center">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500"></div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-900 pb-16 lg:pb-0">
+    <div className="min-h-screen bg-[#0f1419] dark:bg-slate-900 pb-16 lg:pb-0">
       <div className="max-w-7xl mx-auto px-4 py-6">
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
@@ -162,7 +162,7 @@ const Dashboard = memo(function Dashboard() {
           {/* Main Column */}
           <div className="lg:col-span-2 space-y-4">
             {/* Community Feed Widget - Always at the top */}
-            <Card className="bg-white dark:bg-slate-800 border-0 shadow-sm">
+            <Card className="bg-[#0f1419] dark:bg-slate-800 border-0 shadow-sm">
               <CardContent className="p-4">
                 <div className="flex items-center gap-3 mb-4">
                   <Avatar className="h-10 w-10">
@@ -218,14 +218,14 @@ const Dashboard = memo(function Dashboard() {
 
             {/* Community Posts Feed */}
             {postsLoading ? (
-              <Card className="bg-white dark:bg-slate-800 border-0 shadow-sm">
+              <Card className="bg-[#0f1419] dark:bg-slate-800 border-0 shadow-sm">
                 <CardContent className="p-8 text-center">
                   <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500 mx-auto"></div>
                   <p className="text-slate-500 dark:text-slate-400 mt-4 text-sm">Loading feed...</p>
                 </CardContent>
               </Card>
             ) : (!Array.isArray(posts) || posts.length === 0) ? (
-              <Card className="bg-white dark:bg-slate-800 border-0 shadow-sm">
+              <Card className="bg-[#0f1419] dark:bg-slate-800 border-0 shadow-sm">
                 <CardContent className="p-12 text-center">
                   <h3 className="text-lg font-semibold mb-2 text-slate-900 dark:text-white">Welcome to your neighborhood!</h3>
                   <p className="text-sm text-slate-500 dark:text-slate-400">Be the first to share something with your community.</p>
@@ -233,7 +233,7 @@ const Dashboard = memo(function Dashboard() {
               </Card>
             ) : (
               Array.isArray(posts) && posts.map((post: Post) => (
-                <Card key={post.id} className="bg-white dark:bg-slate-800 border-0 shadow-sm hover:shadow-md transition-shadow">
+                <Card key={post.id} className="bg-[#0f1419] dark:bg-slate-800 border-0 shadow-sm hover:shadow-md transition-shadow">
                   <CardContent className="p-4">
                     <div className="flex items-start gap-3 mb-3">
                       <Avatar className="h-10 w-10">
@@ -302,7 +302,7 @@ const Dashboard = memo(function Dashboard() {
             })}
             
             {(!Array.isArray(enabledWidgets) || enabledWidgets.length === 0) && (
-              <Card className="bg-white dark:bg-slate-800 border-0 shadow-sm">
+              <Card className="bg-[#0f1419] dark:bg-slate-800 border-0 shadow-sm">
                 <CardContent className="p-6 text-center">
                   <p className="text-sm text-slate-600 dark:text-slate-400 mb-4">
                     No widgets enabled. Customize your dashboard to add widgets.

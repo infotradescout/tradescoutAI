@@ -103,7 +103,7 @@ const Promotions = memo(function Promotions() {
 
         {/* Quick Stats */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-          <Card className="bg-slate-800/50 border-slate-700">
+          <Card className="bg-[#1a2332]/50 border-slate-700">
             <CardContent className="p-6">
               <div className="flex items-center gap-3">
                 <div className="p-3 bg-blue-600/20 rounded-lg">
@@ -117,7 +117,7 @@ const Promotions = memo(function Promotions() {
             </CardContent>
           </Card>
 
-          <Card className="bg-slate-800/50 border-slate-700">
+          <Card className="bg-[#1a2332]/50 border-slate-700">
             <CardContent className="p-6">
               <div className="flex items-center gap-3">
                 <div className="p-3 bg-orange-600/20 rounded-lg">
@@ -131,7 +131,7 @@ const Promotions = memo(function Promotions() {
             </CardContent>
           </Card>
 
-          <Card className="bg-slate-800/50 border-slate-700">
+          <Card className="bg-[#1a2332]/50 border-slate-700">
             <CardContent className="p-6">
               <div className="flex items-center gap-3">
                 <div className="p-3 bg-emerald-600/20 rounded-lg">
@@ -145,7 +145,7 @@ const Promotions = memo(function Promotions() {
             </CardContent>
           </Card>
 
-          <Card className="bg-slate-800/50 border-slate-700">
+          <Card className="bg-[#1a2332]/50 border-slate-700">
             <CardContent className="p-6">
               <div className="flex items-center gap-3">
                 <div className="p-3 bg-purple-600/20 rounded-lg">
@@ -162,14 +162,14 @@ const Promotions = memo(function Promotions() {
 
         {/* Main Content Tabs */}
         <Tabs defaultValue="active" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-3 bg-slate-800">
+          <TabsList className="grid w-full grid-cols-3 bg-[#1a2332]">
             <TabsTrigger value="active" className="data-[state=active]:bg-orange-600">Active Promotions</TabsTrigger>
             <TabsTrigger value="create" className="data-[state=active]:bg-orange-600">Create New</TabsTrigger>
             <TabsTrigger value="templates" className="data-[state=active]:bg-orange-600">Templates</TabsTrigger>
           </TabsList>
 
           <TabsContent value="active">
-            <Card className="bg-slate-800/50 border-slate-700">
+            <Card className="bg-[#1a2332]/50 border-slate-700">
               <CardHeader>
                 <CardTitle className="text-white flex items-center gap-2">
                   <Megaphone className="w-5 h-5 text-orange-500" />
@@ -206,23 +206,23 @@ const Promotions = memo(function Promotions() {
                       </div>
 
                       <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-4">
-                        <div className="text-center p-3 bg-slate-800/50 rounded-lg">
+                        <div className="text-center p-3 bg-[#1a2332]/50 rounded-lg">
                           <p className="text-lg font-bold text-blue-400">{promo.views}</p>
                           <p className="text-xs text-gray-400">Views</p>
                         </div>
-                        <div className="text-center p-3 bg-slate-800/50 rounded-lg">
+                        <div className="text-center p-3 bg-[#1a2332]/50 rounded-lg">
                           <p className="text-lg font-bold text-orange-400">{promo.clicks}</p>
                           <p className="text-xs text-gray-400">Clicks</p>
                         </div>
-                        <div className="text-center p-3 bg-slate-800/50 rounded-lg">
+                        <div className="text-center p-3 bg-[#1a2332]/50 rounded-lg">
                           <p className="text-lg font-bold text-emerald-400">{promo.conversions}</p>
                           <p className="text-xs text-gray-400">Conversions</p>
                         </div>
-                        <div className="text-center p-3 bg-slate-800/50 rounded-lg">
+                        <div className="text-center p-3 bg-[#1a2332]/50 rounded-lg">
                           <p className="text-lg font-bold text-purple-400">{promo.spent}</p>
                           <p className="text-xs text-gray-400">Spent</p>
                         </div>
-                        <div className="text-center p-3 bg-slate-800/50 rounded-lg">
+                        <div className="text-center p-3 bg-[#1a2332]/50 rounded-lg">
                           <p className="text-lg font-bold text-gray-400">{promo.budget}</p>
                           <p className="text-xs text-gray-400">Budget</p>
                         </div>
@@ -241,7 +241,7 @@ const Promotions = memo(function Promotions() {
           </TabsContent>
 
           <TabsContent value="create">
-            <Card className="bg-slate-800/50 border-slate-700">
+            <Card className="bg-[#1a2332]/50 border-slate-700">
               <CardHeader>
                 <CardTitle className="text-white">Create New Promotion</CardTitle>
                 <CardDescription className="text-gray-400">
@@ -379,7 +379,7 @@ const Promotions = memo(function Promotions() {
           </TabsContent>
 
           <TabsContent value="templates">
-            <Card className="bg-slate-800/50 border-slate-700">
+            <Card className="bg-[#1a2332]/50 border-slate-700">
               <CardHeader>
                 <CardTitle className="text-white">Promotion Templates</CardTitle>
                 <CardDescription className="text-gray-400">

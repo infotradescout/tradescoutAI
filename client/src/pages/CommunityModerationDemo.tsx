@@ -133,7 +133,7 @@ export default function CommunityModerationDemo() {
       case "event": return "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200";
       case "safety": return "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200";
       case "discussion": return "bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200";
-      default: return "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-200";
+      default: return "bg-[#0f1419] text-gray-800 dark:bg-[#1a2332] dark:text-gray-200";
     }
   };
 
@@ -145,11 +145,11 @@ export default function CommunityModerationDemo() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+    <div className="min-h-screen bg-[#0f1419]">
       <div className="max-w-6xl mx-auto px-4 py-8">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-4xl font-bold text-gray-900 dark:text-white mb-4">
+          <h1 className="text-4xl font-bold text-orange-500 mb-4">
             Community Moderation System
           </h1>
           <p className="text-lg text-gray-600 dark:text-gray-300 mb-6">
@@ -251,7 +251,7 @@ export default function CommunityModerationDemo() {
         {/* Live Demo Posts */}
         <div className="space-y-6">
           <div className="flex items-center justify-between">
-            <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
+            <h2 className="text-2xl font-bold text-orange-500">
               Live Community Posts
             </h2>
             <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">

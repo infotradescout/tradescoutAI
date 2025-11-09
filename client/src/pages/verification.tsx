@@ -47,7 +47,7 @@ const Verification = memo(function Verification() {
         </div>
 
         {/* Verification Status Overview */}
-        <Card className="bg-slate-800/50 border-slate-700 mb-8">
+        <Card className="bg-[#1a2332]/50 border-slate-700 mb-8">
           <CardHeader>
             <CardTitle className="text-white flex items-center gap-2">
               <Shield className="w-5 h-5 text-orange-500" />
@@ -77,7 +77,7 @@ const Verification = memo(function Verification() {
 
         {/* Verification Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="grid w-full grid-cols-5 bg-slate-800">
+          <TabsList className="grid w-full grid-cols-5 bg-[#1a2332]">
             <TabsTrigger value="overview" className="data-[state=active]:bg-orange-600">Overview</TabsTrigger>
             <TabsTrigger value="identity" className="data-[state=active]:bg-orange-600">Identity</TabsTrigger>
             <TabsTrigger value="address" className="data-[state=active]:bg-orange-600">Address</TabsTrigger>
@@ -86,7 +86,7 @@ const Verification = memo(function Verification() {
           </TabsList>
 
           <TabsContent value="overview">
-            <Card className="bg-slate-800/50 border-slate-700">
+            <Card className="bg-[#1a2332]/50 border-slate-700">
               <CardHeader>
                 <CardTitle className="text-white">Verification Overview</CardTitle>
                 <CardDescription className="text-gray-400">
@@ -146,7 +146,7 @@ const Verification = memo(function Verification() {
           </TabsContent>
 
           <TabsContent value="identity">
-            <Card className="bg-slate-800/50 border-slate-700">
+            <Card className="bg-[#1a2332]/50 border-slate-700">
               <CardHeader>
                 <CardTitle className="text-white flex items-center gap-2">
                   <CheckCircle className="w-5 h-5 text-emerald-400" />
@@ -192,7 +192,7 @@ const Verification = memo(function Verification() {
           </TabsContent>
 
           <TabsContent value="address">
-            <Card className="bg-slate-800/50 border-slate-700">
+            <Card className="bg-[#1a2332]/50 border-slate-700">
               <CardHeader>
                 <CardTitle className="text-white flex items-center gap-2">
                   <Clock className="w-5 h-5 text-yellow-400" />
@@ -244,7 +244,7 @@ const Verification = memo(function Verification() {
           </TabsContent>
 
           <TabsContent value="professional">
-            <Card className="bg-slate-800/50 border-slate-700">
+            <Card className="bg-[#1a2332]/50 border-slate-700">
               <CardHeader>
                 <CardTitle className="text-white flex items-center gap-2">
                   <AlertCircle className="w-5 h-5 text-red-400" />
@@ -295,7 +295,7 @@ const Verification = memo(function Verification() {
           </TabsContent>
 
           <TabsContent value="background">
-            <Card className="bg-slate-800/50 border-slate-700">
+            <Card className="bg-[#1a2332]/50 border-slate-700">
               <CardHeader>
                 <CardTitle className="text-white flex items-center gap-2">
                   <Shield className="w-5 h-5 text-blue-400" />

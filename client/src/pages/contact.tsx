@@ -88,7 +88,7 @@ const Contact = memo(function Contact() {
           {contactMethods.map((method, index) => {
             const Icon = method.icon;
             return (
-              <Card key={index} className="bg-slate-800/50 border-slate-700 text-center">
+              <Card key={index} className="bg-[#1a2332]/50 border-slate-700 text-center">
                 <CardContent className="p-6">
                   <div className="w-16 h-16 bg-orange-600/20 rounded-full flex items-center justify-center mx-auto mb-4">
                     <Icon className="w-8 h-8 text-orange-400" />
@@ -122,7 +122,7 @@ const Contact = memo(function Contact() {
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
           {/* Contact Form */}
-          <Card className="bg-slate-800/50 border-slate-700">
+          <Card className="bg-[#1a2332]/50 border-slate-700">
             <CardHeader>
               <CardTitle className="text-white flex items-center gap-2">
                 <MessageSquare className="w-5 h-5 text-orange-500" />
@@ -226,7 +226,7 @@ const Contact = memo(function Contact() {
           {/* Contact Information & FAQ */}
           <div className="space-y-8">
             {/* Business Hours */}
-            <Card className="bg-slate-800/50 border-slate-700">
+            <Card className="bg-[#1a2332]/50 border-slate-700">
               <CardHeader>
                 <CardTitle className="text-white flex items-center gap-2">
                   <Clock className="w-5 h-5 text-orange-500" />
@@ -259,7 +259,7 @@ const Contact = memo(function Contact() {
             </Card>
 
             {/* Office Locations */}
-            <Card className="bg-slate-800/50 border-slate-700">
+            <Card className="bg-[#1a2332]/50 border-slate-700">
               <CardHeader>
                 <CardTitle className="text-white flex items-center gap-2">
                   <MapPin className="w-5 h-5 text-orange-500" />
@@ -290,7 +290,7 @@ const Contact = memo(function Contact() {
             </Card>
 
             {/* Quick Help */}
-            <Card className="bg-slate-800/50 border-slate-700">
+            <Card className="bg-[#1a2332]/50 border-slate-700">
               <CardHeader>
                 <CardTitle className="text-white flex items-center gap-2">
                   <HelpCircle className="w-5 h-5 text-orange-500" />

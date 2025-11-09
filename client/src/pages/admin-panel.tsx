@@ -231,7 +231,7 @@ export default function AdminPanel() {
         </div>
 
         <Tabs value={selectedTab} onValueChange={setSelectedTab} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-10 bg-slate-800">
+          <TabsList className="grid w-full grid-cols-10 bg-[#1a2332]">
             <TabsTrigger value="heatmap" className="flex items-center gap-2">
               <Map className="w-4 h-4" />
               User Heatmap
@@ -452,7 +452,7 @@ export default function AdminPanel() {
                           {setting.description && (
                             <p className="text-gray-300 text-sm mb-2">{setting.description}</p>
                           )}
-                          <div className="text-xs text-gray-400 font-mono bg-slate-800 p-2 rounded">
+                          <div className="text-xs text-gray-400 font-mono bg-[#1a2332] p-2 rounded">
                             {JSON.stringify(setting.value, null, 2)}
                           </div>
                         </div>
@@ -520,7 +520,7 @@ export default function AdminPanel() {
                           {setting.description && (
                             <p className="text-gray-300 text-sm mb-2">{setting.description}</p>
                           )}
-                          <div className="text-xs text-gray-400 font-mono bg-slate-800 p-2 rounded">
+                          <div className="text-xs text-gray-400 font-mono bg-[#1a2332] p-2 rounded">
                             {JSON.stringify(setting.value, null, 2)}
                           </div>
                         </div>

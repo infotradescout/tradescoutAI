@@ -129,7 +129,7 @@ export default function CompliancePage() {
       case "Pending":
         return "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200";
       default:
-        return "bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200";
+        return "bg-[#0f1419] text-gray-800 dark:bg-gray-900 dark:text-gray-200";
     }
   };
 
@@ -145,12 +145,12 @@ export default function CompliancePage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+    <div className="min-h-screen bg-[#0f1419]">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-4">
+          <h1 className="text-3xl font-bold text-orange-500 mb-4">
             Legal Compliance Dashboard
           </h1>
           <p className="text-gray-600 dark:text-gray-300">
@@ -167,7 +167,7 @@ export default function CompliancePage() {
                   <p className="text-sm font-medium text-gray-600 dark:text-gray-400">
                     Total Compliance Areas
                   </p>
-                  <p className="text-2xl font-bold text-gray-900 dark:text-white">
+                  <p className="text-2xl font-bold text-orange-500">
                     {complianceAreas.length}
                   </p>
                 </div>
@@ -238,7 +238,7 @@ export default function CompliancePage() {
                       {area.description}
                     </p>
                     <div className="space-y-2">
-                      <p className="text-sm font-medium text-gray-900 dark:text-white">
+                      <p className="text-sm font-medium text-orange-500">
                         Key Requirements:
                       </p>
                       <ul className="text-sm text-gray-600 dark:text-gray-300 space-y-1">
@@ -282,12 +282,12 @@ export default function CompliancePage() {
                   </p>
                 </CardHeader>
                 <CardContent>
-                  <h4 className="font-medium text-gray-900 dark:text-white mb-3">
+                  <h4 className="font-medium text-orange-500 mb-3">
                     Implementation Requirements:
                   </h4>
                   <div className="space-y-3">
                     {area.requirements.map((req, index) => (
-                      <div key={index} className="flex items-start space-x-3 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                      <div key={index} className="flex items-start space-x-3 p-3 bg-[#0f1419] dark:bg-[#1a2332] rounded-lg">
                         <CheckCircle className="h-5 w-5 text-green-500 mt-0.5 flex-shrink-0" />
                         <span className="text-sm text-gray-700 dark:text-gray-300">
                           {req}

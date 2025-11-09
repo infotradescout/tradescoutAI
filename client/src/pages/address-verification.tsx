@@ -139,7 +139,7 @@ export default function AddressVerification() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
+      <div className="min-h-screen bg-[#0f1419] flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
           <p className="text-gray-600 dark:text-gray-400">Loading verification status...</p>
@@ -151,7 +151,7 @@ export default function AddressVerification() {
   // Show verification status if already verified or has verification in progress
   if ((verificationStatus as any)?.isVerified) {
     return (
-      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 p-6">
+      <div className="min-h-screen bg-[#0f1419] p-6">
         <div className="max-w-2xl mx-auto">
           <Card>
             <CardHeader className="text-center">
@@ -176,14 +176,14 @@ export default function AddressVerification() {
   const isExpired = (verificationStatus as any)?.isExpired || false;
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 p-6">
+    <div className="min-h-screen bg-[#0f1419] p-6">
       <div className="max-w-4xl mx-auto">
         {/* Header */}
         <div className="text-center mb-8">
           <div className="mx-auto w-16 h-16 bg-blue-100 dark:bg-blue-900 rounded-full flex items-center justify-center mb-4">
             <Shield className="w-8 h-8 text-blue-600 dark:text-blue-400" />
           </div>
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
+          <h1 className="text-3xl font-bold text-orange-500 mb-2">
             Address Verification Required
           </h1>
           <p className="text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
@@ -338,7 +338,7 @@ export default function AddressVerification() {
                     </div>
                   </div>
 
-                  <div className="flex items-start space-x-3 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                  <div className="flex items-start space-x-3 p-3 bg-[#0f1419] dark:bg-[#1a2332] rounded-lg">
                     <Upload className="w-5 h-5 text-gray-600 mt-1" />
                     <div>
                       <h4 className="font-medium text-gray-900 dark:text-gray-100">Document Upload</h4>

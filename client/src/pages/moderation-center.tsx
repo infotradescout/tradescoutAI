@@ -74,7 +74,7 @@ export default function ModerationCenter() {
       case "pending": return "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200";
       case "resolved": return "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200";
       case "escalated": return "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200";
-      default: return "bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200";
+      default: return "bg-[#0f1419] text-gray-800 dark:bg-gray-900 dark:text-gray-200";
     }
   };
 
@@ -131,7 +131,7 @@ export default function ModerationCenter() {
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Community Moderation Center</h1>
+        <h1 className="text-3xl font-bold text-orange-500">Community Moderation Center</h1>
         <p className="text-gray-600 dark:text-gray-400 mt-2">
           Help keep our community safe by reviewing and voting on reported content
         </p>
@@ -199,7 +199,7 @@ export default function ModerationCenter() {
         <Card>
           <CardContent className="p-8 text-center">
             <Flag className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+            <h3 className="text-lg font-semibold text-orange-500 mb-2">
               No Reports Found
             </h3>
             <p className="text-gray-600 dark:text-gray-400">
@@ -250,7 +250,7 @@ export default function ModerationCenter() {
                   )}
 
                   {/* Voting Statistics */}
-                  <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-4">
+                  <div className="bg-[#0f1419] dark:bg-[#1a2332] rounded-lg p-4">
                     <h4 className="font-semibold mb-3">Community Votes</h4>
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                       <div className="text-center">

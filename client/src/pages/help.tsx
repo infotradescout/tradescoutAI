@@ -1167,7 +1167,7 @@ export default function Help() {
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-4">
-                  <div className="bg-white/20 rounded-lg p-3">
+                  <div className="bg-[#0f1419]/20 rounded-lg p-3">
                     <roleConfig.icon className="h-8 w-8 text-white" />
                   </div>
                   <div>
@@ -1175,7 +1175,7 @@ export default function Help() {
                     <p className="text-white/80">{roleConfig.description}</p>
                   </div>
                 </div>
-                <Badge className="bg-white/20 text-white border-white/30">
+                <Badge className="bg-[#0f1419]/20 text-white border-white/30">
                   {filteredArticles.length} articles
                 </Badge>
               </div>

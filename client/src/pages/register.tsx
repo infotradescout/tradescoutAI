@@ -81,7 +81,7 @@ export default function Register() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center px-4">
+    <div className="min-h-screen bg-[#0f1419] flex items-center justify-center px-4">
       <div className="max-w-md w-full">
         {/* Back to Demo Button */}
         <div className="mb-6">

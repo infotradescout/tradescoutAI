@@ -139,7 +139,7 @@ const About = memo(function About() {
             {missionPoints.map((point, index) => {
               const Icon = point.icon;
               return (
-                <Card key={index} className="bg-slate-800/50 border-slate-700 text-center">
+                <Card key={index} className="bg-[#1a2332]/50 border-slate-700 text-center">
                   <CardContent className="p-6">
                     <div className="w-16 h-16 bg-orange-600/20 rounded-full flex items-center justify-center mx-auto mb-4">
                       <Icon className="w-8 h-8 text-orange-400" />
@@ -164,7 +164,7 @@ const About = memo(function About() {
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
             {stats.map((stat, index) => (
-              <Card key={index} className="bg-slate-800/50 border-slate-700 text-center">
+              <Card key={index} className="bg-[#1a2332]/50 border-slate-700 text-center">
                 <CardContent className="p-6">
                   <div className="text-4xl font-bold text-orange-400 mb-2">{stat.number}</div>
                   <h3 className="font-semibold text-white mb-2">{stat.label}</h3>
@@ -188,7 +188,7 @@ const About = memo(function About() {
             {values.map((value, index) => {
               const Icon = value.icon;
               return (
-                <Card key={index} className="bg-slate-800/50 border-slate-700">
+                <Card key={index} className="bg-[#1a2332]/50 border-slate-700">
                   <CardHeader>
                     <CardTitle className="text-white flex items-center gap-3">
                       <div className="w-10 h-10 bg-orange-600/20 rounded-lg flex items-center justify-center">
@@ -221,7 +221,7 @@ const About = memo(function About() {
               {timeline.map((event, index) => (
                 <div key={index} className={`flex items-center ${index % 2 === 0 ? 'flex-row' : 'flex-row-reverse'}`}>
                   <div className="flex-1">
-                    <Card className={`bg-slate-800/50 border-slate-700 ${index % 2 === 0 ? 'mr-8' : 'ml-8'}`}>
+                    <Card className={`bg-[#1a2332]/50 border-slate-700 ${index % 2 === 0 ? 'mr-8' : 'ml-8'}`}>
                       <CardContent className="p-6">
                         <div className="flex items-center gap-3 mb-3">
                           <Badge className="bg-orange-600 hover:bg-orange-700">
@@ -263,22 +263,22 @@ const About = memo(function About() {
               </div>
               
               <div className="grid grid-cols-2 gap-4">
-                <div className="p-4 bg-slate-800/50 rounded-lg text-center">
+                <div className="p-4 bg-[#1a2332]/50 rounded-lg text-center">
                   <Building className="w-8 h-8 text-orange-400 mx-auto mb-2" />
                   <p className="font-semibold text-white">Trade Schools</p>
                   <p className="text-sm text-gray-400">Supported nationwide</p>
                 </div>
-                <div className="p-4 bg-slate-800/50 rounded-lg text-center">
+                <div className="p-4 bg-[#1a2332]/50 rounded-lg text-center">
                   <Users className="w-8 h-8 text-orange-400 mx-auto mb-2" />
                   <p className="font-semibold text-white">Students</p>
                   <p className="text-sm text-gray-400">Scholarships provided</p>
                 </div>
-                <div className="p-4 bg-slate-800/50 rounded-lg text-center">
+                <div className="p-4 bg-[#1a2332]/50 rounded-lg text-center">
                   <Globe className="w-8 h-8 text-orange-400 mx-auto mb-2" />
                   <p className="font-semibold text-white">Communities</p>
                   <p className="text-sm text-gray-400">Local programs funded</p>
                 </div>
-                <div className="p-4 bg-slate-800/50 rounded-lg text-center">
+                <div className="p-4 bg-[#1a2332]/50 rounded-lg text-center">
                   <Heart className="w-8 h-8 text-orange-400 mx-auto mb-2" />
                   <p className="font-semibold text-white">Impact</p>
                   <p className="text-sm text-gray-400">Lives changed</p>
@@ -289,7 +289,7 @@ const About = memo(function About() {
         </Card>
 
         {/* Call to Action */}
-        <Card className="bg-slate-800/50 border-slate-700">
+        <Card className="bg-[#1a2332]/50 border-slate-700">
           <CardContent className="p-8 text-center">
             <h2 className="text-3xl font-bold text-white mb-4">Join the TradeScout Community</h2>
             <p className="text-xl text-gray-300 mb-8 max-w-2xl mx-auto">

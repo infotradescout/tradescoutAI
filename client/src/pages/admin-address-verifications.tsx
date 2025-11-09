@@ -172,7 +172,7 @@ export default function AdminAddressVerifications() {
     <div className="p-6 max-w-7xl mx-auto space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Address Verifications</h1>
+        <h1 className="text-3xl font-bold text-orange-500">Address Verifications</h1>
         <p className="text-gray-600 dark:text-gray-400 mt-2">
           Manage user address verification requests and monitor platform compliance.
         </p>
@@ -339,7 +339,7 @@ export default function AdminAddressVerifications() {
                                 {/* Address Info */}
                                 <div>
                                   <Label className="text-sm font-medium">Address</Label>
-                                  <div className="mt-1 p-3 bg-gray-50 dark:bg-gray-800 rounded-md">
+                                  <div className="mt-1 p-3 bg-[#0f1419] dark:bg-[#1a2332] rounded-md">
                                     <p>{selectedVerification.verification.fullAddress}</p>
                                     <p className="text-sm text-gray-500">
                                       {selectedVerification.verification.city}, {selectedVerification.verification.state} {selectedVerification.verification.zipCode}

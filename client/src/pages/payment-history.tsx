@@ -203,7 +203,7 @@ export default function PaymentHistory() {
                 .slice(0, 10)
                 .map((transaction, index) => (
                   <div key={`${transaction.type}-${transaction.id}-${index}`} 
-                       className="flex items-center space-x-4 p-4 border rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
+                       className="flex items-center space-x-4 p-4 border rounded-lg hover:bg-[#0f1419] dark:hover:bg-[#1a2332] transition-colors">
                     <div className="flex-shrink-0">
                       {transaction.role === 'homeowner' || transaction.role === 'buyer' ? (
                         <ArrowUpRight className="w-5 h-5 text-red-500" />
@@ -213,7 +213,7 @@ export default function PaymentHistory() {
                     </div>
                     
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
+                      <p className="text-sm font-medium text-orange-500 truncate">
                         {transaction.title}
                       </p>
                       <p className="text-sm text-gray-500 truncate">
@@ -245,7 +245,7 @@ export default function PaymentHistory() {
                 {[...contractorPayments.asHomeowner, ...contractorPayments.asContractor, ...marketplaceTransactions.asBuyer, ...marketplaceTransactions.asSeller].length === 0 && (
                   <div className="text-center py-8">
                     <CreditCard className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                    <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
+                    <h3 className="text-lg font-medium text-orange-500 mb-2">
                       No payments yet
                     </h3>
                     <p className="text-gray-600 dark:text-gray-300">
@@ -477,7 +477,7 @@ export default function PaymentHistory() {
             <CardContent>
               <div className="text-center py-8">
                 <Calendar className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
+                <h3 className="text-lg font-medium text-orange-500 mb-2">
                   Receipt Generation
                 </h3>
                 <p className="text-gray-600 dark:text-gray-300 mb-4">

@@ -116,7 +116,7 @@ export default function HandmadeMarketplace() {
               className="w-full h-full object-cover group-hover:scale-105 transition-transform"
             />
           ) : (
-            <div className="w-full h-full bg-gray-100 flex items-center justify-center">
+            <div className="w-full h-full bg-[#0f1419] flex items-center justify-center">
               <ShoppingBag className="w-16 h-16 text-gray-400" />
             </div>
           )}
@@ -126,7 +126,7 @@ export default function HandmadeMarketplace() {
           <Button
             variant="ghost"
             size="icon"
-            className="absolute top-2 right-2 bg-white/80 hover:bg-white"
+            className="absolute top-2 right-2 bg-[#0f1419]/80 hover:bg-[#0f1419]"
             onClick={(e) => {
               e.preventDefault();
               handleToggleFavorite(product.id);

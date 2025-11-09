@@ -125,7 +125,7 @@ export default function Conversations() {
 
   if (!isAuthenticated) {
     return (
-      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
+      <div className="min-h-screen bg-[#0f1419] flex items-center justify-center">
         <Card className="w-96">
           <CardContent className="p-6 text-center">
             <MessageCircle className="h-12 w-12 mx-auto mb-4 text-gray-400" />
@@ -143,10 +143,10 @@ export default function Conversations() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+    <div className="min-h-screen bg-[#0f1419]">
       <div className="max-w-7xl mx-auto p-4">
         <div className="mb-6">
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
+          <h1 className="text-3xl font-bold text-orange-500 mb-2">
             Your Conversations
           </h1>
           <p className="text-gray-600 dark:text-gray-400">
@@ -186,7 +186,7 @@ export default function Conversations() {
                   ) : conversations.length === 0 ? (
                     <div className="p-6 text-center">
                       <MessageCircle className="h-12 w-12 mx-auto mb-4 text-gray-400" />
-                      <h3 className="font-medium text-gray-900 dark:text-white mb-2">
+                      <h3 className="font-medium text-orange-500 mb-2">
                         No conversations yet
                       </h3>
                       <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
@@ -209,7 +209,7 @@ export default function Conversations() {
                           <div
                             key={conversation.id}
                             onClick={() => handleSelectConversation(conversation.id)}
-                            className={`p-4 cursor-pointer transition-colors border-b border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800 ${
+                            className={`p-4 cursor-pointer transition-colors border-b border-gray-100 dark:border-gray-800 hover:bg-[#0f1419] dark:hover:bg-[#1a2332] ${
                               selectedConversation === conversation.id 
                                 ? 'bg-orange-50 dark:bg-orange-900/20 border-orange-200 dark:border-orange-800' 
                                 : ''
@@ -225,7 +225,7 @@ export default function Conversations() {
                               
                               <div className="flex-1 min-w-0">
                                 <div className="flex items-center justify-between mb-1">
-                                  <h4 className={`font-medium truncate ${isUnread ? 'text-gray-900 dark:text-white' : 'text-gray-700 dark:text-gray-300'}`}>
+                                  <h4 className={`font-medium truncate ${isUnread ? 'text-orange-500' : 'text-gray-700 dark:text-gray-300'}`}>
                                     {otherParticipant.firstName} {otherParticipant.lastName}
                                   </h4>
                                   {isUnread && (
@@ -269,7 +269,7 @@ export default function Conversations() {
           <div className="lg:col-span-2">
             {selectedConversation && selectedConversationData ? (
               <Card className="h-full flex flex-col">
-                <CardHeader className="border-b border-gray-200 dark:border-gray-700">
+                <CardHeader className="border-b border-[#2d3748]">
                   <div className="flex items-center gap-4">
                     <Button 
                       variant="ghost" 
@@ -289,7 +289,7 @@ export default function Conversations() {
                     </Avatar>
                     
                     <div className="flex-1">
-                      <h3 className="font-semibold text-gray-900 dark:text-white">
+                      <h3 className="font-semibold text-orange-500">
                         {getOtherParticipant(selectedConversationData).firstName} {getOtherParticipant(selectedConversationData).lastName}
                       </h3>
                       <p className="text-sm text-gray-600 dark:text-gray-400">
@@ -353,7 +353,7 @@ export default function Conversations() {
                                 <div className={`inline-block p-3 rounded-lg ${
                                   isOwn 
                                     ? 'bg-orange-600 text-white' 
-                                    : 'bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white'
+                                    : 'bg-[#0f1419] dark:bg-[#1a2332] text-orange-500'
                                 }`}>
                                   <p className="text-sm">{message.content}</p>
                                 </div>
@@ -370,7 +370,7 @@ export default function Conversations() {
                 </CardContent>
 
                 {/* Message Input */}
-                <div className="border-t border-gray-200 dark:border-gray-700 p-4">
+                <div className="border-t border-[#2d3748] p-4">
                   <form onSubmit={handleSendMessage} className="flex gap-2">
                     <Input
                       value={newMessage}
@@ -393,7 +393,7 @@ export default function Conversations() {
               <Card className="h-full flex items-center justify-center">
                 <CardContent className="text-center">
                   <MessageCircle className="h-16 w-16 mx-auto mb-4 text-gray-400" />
-                  <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
+                  <h3 className="text-xl font-semibold text-orange-500 mb-2">
                     Select a conversation
                   </h3>
                   <p className="text-gray-600 dark:text-gray-400">

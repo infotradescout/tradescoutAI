@@ -84,7 +84,7 @@ const Compliance = memo(function Compliance() {
         </div>
 
         {/* Compliance Overview */}
-        <Card className="bg-slate-800/50 border-slate-700 mb-8">
+        <Card className="bg-[#1a2332]/50 border-slate-700 mb-8">
           <CardHeader>
             <CardTitle className="text-white flex items-center gap-2">
               <Shield className="w-5 h-5 text-orange-500" />
@@ -124,7 +124,7 @@ const Compliance = memo(function Compliance() {
 
         {/* Detailed Compliance Information */}
         <Tabs defaultValue="privacy" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-4 bg-slate-800">
+          <TabsList className="grid w-full grid-cols-4 bg-[#1a2332]">
             <TabsTrigger value="privacy" className="data-[state=active]:bg-orange-600">Privacy</TabsTrigger>
             <TabsTrigger value="accessibility" className="data-[state=active]:bg-orange-600">Accessibility</TabsTrigger>
             <TabsTrigger value="business" className="data-[state=active]:bg-orange-600">Business</TabsTrigger>
@@ -132,7 +132,7 @@ const Compliance = memo(function Compliance() {
           </TabsList>
 
           <TabsContent value="privacy">
-            <Card className="bg-slate-800/50 border-slate-700">
+            <Card className="bg-[#1a2332]/50 border-slate-700">
               <CardHeader>
                 <CardTitle className="text-white flex items-center gap-2">
                   <Lock className="w-5 h-5 text-emerald-400" />
@@ -198,7 +198,7 @@ const Compliance = memo(function Compliance() {
           </TabsContent>
 
           <TabsContent value="accessibility">
-            <Card className="bg-slate-800/50 border-slate-700">
+            <Card className="bg-[#1a2332]/50 border-slate-700">
               <CardHeader>
                 <CardTitle className="text-white flex items-center gap-2">
                   <Eye className="w-5 h-5 text-blue-400" />
@@ -262,7 +262,7 @@ const Compliance = memo(function Compliance() {
           </TabsContent>
 
           <TabsContent value="business">
-            <Card className="bg-slate-800/50 border-slate-700">
+            <Card className="bg-[#1a2332]/50 border-slate-700">
               <CardHeader>
                 <CardTitle className="text-white flex items-center gap-2">
                   <Scale className="w-5 h-5 text-purple-400" />
@@ -315,7 +315,7 @@ const Compliance = memo(function Compliance() {
           </TabsContent>
 
           <TabsContent value="certifications">
-            <Card className="bg-slate-800/50 border-slate-700">
+            <Card className="bg-[#1a2332]/50 border-slate-700">
               <CardHeader>
                 <CardTitle className="text-white flex items-center gap-2">
                   <Shield className="w-5 h-5 text-orange-400" />

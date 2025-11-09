@@ -157,7 +157,7 @@ export default function AdminProfessionalVerification() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 p-6">
+      <div className="min-h-screen bg-[#0f1419] p-6">
         <div className="max-w-7xl mx-auto">
           <div className="flex items-center justify-center h-64">
             <div className="animate-spin w-8 h-8 border-4 border-orange-600 border-t-transparent rounded-full"></div>
@@ -171,11 +171,11 @@ export default function AdminProfessionalVerification() {
   const carSalesmen = pendingApplications?.carSalesmen || [];
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 p-6">
+    <div className="min-h-screen bg-[#0f1419] p-6">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
+          <h1 className="text-3xl font-bold text-orange-500 mb-2">
             Professional Network Verification
           </h1>
           <p className="text-gray-600 dark:text-gray-400">
@@ -193,7 +193,7 @@ export default function AdminProfessionalVerification() {
                 </div>
                 <div>
                   <p className="text-sm text-gray-600 dark:text-gray-400">Pending Realtors</p>
-                  <p className="text-2xl font-bold text-gray-900 dark:text-white">{realtors.length}</p>
+                  <p className="text-2xl font-bold text-orange-500">{realtors.length}</p>
                 </div>
               </div>
             </CardContent>
@@ -207,7 +207,7 @@ export default function AdminProfessionalVerification() {
                 </div>
                 <div>
                   <p className="text-sm text-gray-600 dark:text-gray-400">Pending Car Salesmen</p>
-                  <p className="text-2xl font-bold text-gray-900 dark:text-white">{carSalesmen.length}</p>
+                  <p className="text-2xl font-bold text-orange-500">{carSalesmen.length}</p>
                 </div>
               </div>
             </CardContent>
@@ -221,7 +221,7 @@ export default function AdminProfessionalVerification() {
                 </div>
                 <div>
                   <p className="text-sm text-gray-600 dark:text-gray-400">Total Pending</p>
-                  <p className="text-2xl font-bold text-gray-900 dark:text-white">{realtors.length + carSalesmen.length}</p>
+                  <p className="text-2xl font-bold text-orange-500">{realtors.length + carSalesmen.length}</p>
                 </div>
               </div>
             </CardContent>
@@ -246,7 +246,7 @@ export default function AdminProfessionalVerification() {
               <Card>
                 <CardContent className="p-12 text-center">
                   <Home className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+                  <h3 className="text-lg font-semibold text-orange-500 mb-2">
                     No Pending Realtor Applications
                   </h3>
                   <p className="text-gray-600 dark:text-gray-400">
@@ -279,7 +279,7 @@ export default function AdminProfessionalVerification() {
                       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                         {/* Personal Info */}
                         <div className="space-y-4">
-                          <h4 className="font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                          <h4 className="font-semibold text-orange-500 flex items-center gap-2">
                             <User className="h-4 w-4" />
                             Personal Information
                           </h4>
@@ -305,7 +305,7 @@ export default function AdminProfessionalVerification() {
 
                         {/* License Info */}
                         <div className="space-y-4">
-                          <h4 className="font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                          <h4 className="font-semibold text-orange-500 flex items-center gap-2">
                             <FileText className="h-4 w-4" />
                             License Information
                           </h4>
@@ -336,7 +336,7 @@ export default function AdminProfessionalVerification() {
                         {/* Specializations & Service Areas */}
                         <div className="lg:col-span-2 space-y-4">
                           <div>
-                            <h4 className="font-semibold text-gray-900 dark:text-white mb-2">Specializations</h4>
+                            <h4 className="font-semibold text-orange-500 mb-2">Specializations</h4>
                             <div className="flex flex-wrap gap-2">
                               {realtor.specializations.map((spec, index) => (
                                 <Badge key={index} variant="secondary">{spec}</Badge>
@@ -344,7 +344,7 @@ export default function AdminProfessionalVerification() {
                             </div>
                           </div>
                           <div>
-                            <h4 className="font-semibold text-gray-900 dark:text-white mb-2">Service Areas</h4>
+                            <h4 className="font-semibold text-orange-500 mb-2">Service Areas</h4>
                             <div className="flex flex-wrap gap-2">
                               {realtor.serviceAreas.map((area, index) => (
                                 <Badge key={index} variant="outline" className="flex items-center gap-1">
@@ -359,7 +359,7 @@ export default function AdminProfessionalVerification() {
                         {/* Verification Documents */}
                         {realtor.verificationDocuments && realtor.verificationDocuments.length > 0 && (
                           <div className="lg:col-span-2">
-                            <h4 className="font-semibold text-gray-900 dark:text-white mb-2">Verification Documents</h4>
+                            <h4 className="font-semibold text-orange-500 mb-2">Verification Documents</h4>
                             <div className="flex flex-wrap gap-2">
                               {realtor.verificationDocuments.map((doc, index) => (
                                 <Badge key={index} variant="outline" className="flex items-center gap-1">
@@ -373,7 +373,7 @@ export default function AdminProfessionalVerification() {
 
                         {/* Verification Notes */}
                         <div className="lg:col-span-2">
-                          <h4 className="font-semibold text-gray-900 dark:text-white mb-2">Verification Notes</h4>
+                          <h4 className="font-semibold text-orange-500 mb-2">Verification Notes</h4>
                           <Textarea
                             placeholder="Add notes about this verification decision..."
                             value={verificationNotes[realtor.id] || ""}
@@ -417,7 +417,7 @@ export default function AdminProfessionalVerification() {
               <Card>
                 <CardContent className="p-12 text-center">
                   <Car className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+                  <h3 className="text-lg font-semibold text-orange-500 mb-2">
                     No Pending Car Salesman Applications
                   </h3>
                   <p className="text-gray-600 dark:text-gray-400">
@@ -450,7 +450,7 @@ export default function AdminProfessionalVerification() {
                       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                         {/* Personal Info */}
                         <div className="space-y-4">
-                          <h4 className="font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                          <h4 className="font-semibold text-orange-500 flex items-center gap-2">
                             <User className="h-4 w-4" />
                             Personal Information
                           </h4>
@@ -476,7 +476,7 @@ export default function AdminProfessionalVerification() {
 
                         {/* License Info */}
                         <div className="space-y-4">
-                          <h4 className="font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                          <h4 className="font-semibold text-orange-500 flex items-center gap-2">
                             <FileText className="h-4 w-4" />
                             License Information
                           </h4>
@@ -507,7 +507,7 @@ export default function AdminProfessionalVerification() {
                         {/* Specializations & Brands */}
                         <div className="lg:col-span-2 space-y-4">
                           <div>
-                            <h4 className="font-semibold text-gray-900 dark:text-white mb-2">Specializations</h4>
+                            <h4 className="font-semibold text-orange-500 mb-2">Specializations</h4>
                             <div className="flex flex-wrap gap-2">
                               {salesman.specializations.map((spec, index) => (
                                 <Badge key={index} variant="secondary">{spec}</Badge>
@@ -515,7 +515,7 @@ export default function AdminProfessionalVerification() {
                             </div>
                           </div>
                           <div>
-                            <h4 className="font-semibold text-gray-900 dark:text-white mb-2">Brand Specialties</h4>
+                            <h4 className="font-semibold text-orange-500 mb-2">Brand Specialties</h4>
                             <div className="flex flex-wrap gap-2">
                               {salesman.brandsSpecialty.map((brand, index) => (
                                 <Badge key={index} variant="outline">{brand}</Badge>
@@ -523,7 +523,7 @@ export default function AdminProfessionalVerification() {
                             </div>
                           </div>
                           <div>
-                            <h4 className="font-semibold text-gray-900 dark:text-white mb-2">Service Areas</h4>
+                            <h4 className="font-semibold text-orange-500 mb-2">Service Areas</h4>
                             <div className="flex flex-wrap gap-2">
                               {salesman.serviceAreas.map((area, index) => (
                                 <Badge key={index} variant="outline" className="flex items-center gap-1">
@@ -538,7 +538,7 @@ export default function AdminProfessionalVerification() {
                         {/* Verification Documents */}
                         {salesman.verificationDocuments && salesman.verificationDocuments.length > 0 && (
                           <div className="lg:col-span-2">
-                            <h4 className="font-semibold text-gray-900 dark:text-white mb-2">Verification Documents</h4>
+                            <h4 className="font-semibold text-orange-500 mb-2">Verification Documents</h4>
                             <div className="flex flex-wrap gap-2">
                               {salesman.verificationDocuments.map((doc, index) => (
                                 <Badge key={index} variant="outline" className="flex items-center gap-1">
@@ -552,7 +552,7 @@ export default function AdminProfessionalVerification() {
 
                         {/* Verification Notes */}
                         <div className="lg:col-span-2">
-                          <h4 className="font-semibold text-gray-900 dark:text-white mb-2">Verification Notes</h4>
+                          <h4 className="font-semibold text-orange-500 mb-2">Verification Notes</h4>
                           <Textarea
                             placeholder="Add notes about this verification decision..."
                             value={verificationNotes[salesman.id] || ""}

@@ -30,7 +30,7 @@ export default function PaymentSuccess() {
   }, [location]);
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-[#0f1419] flex items-center justify-center p-4">
       <Card className="max-w-md w-full">
         <CardContent className="pt-6 text-center space-y-6">
           {/* Success Icon */}
@@ -40,7 +40,7 @@ export default function PaymentSuccess() {
 
           {/* Success Message */}
           <div className="space-y-2">
-            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
+            <h1 className="text-2xl font-bold text-orange-500">
               Payment Successful!
             </h1>
             <p className="text-gray-600 dark:text-gray-300">
@@ -50,8 +50,8 @@ export default function PaymentSuccess() {
 
           {/* Payment Details */}
           {paymentDetails && (
-            <div className="bg-gray-50 dark:bg-gray-800 p-4 rounded-lg text-left">
-              <h3 className="font-medium text-gray-900 dark:text-white mb-2">
+            <div className="bg-[#0f1419] dark:bg-[#1a2332] p-4 rounded-lg text-left">
+              <h3 className="font-medium text-orange-500 mb-2">
                 Transaction Details
               </h3>
               <div className="text-sm text-gray-600 dark:text-gray-300 space-y-1">
