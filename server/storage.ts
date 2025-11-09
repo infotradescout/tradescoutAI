@@ -6734,49 +6734,58 @@ export class DatabaseStorage implements IStorage {
     successRate: number;
     totalProjectValue: number;
   }> {
-    // Count verified contractors
-    const [contractorCount] = await db
-      .select({ count: sql<number>`count(*)::int` })
-      .from(contractors)
-      .where(sql`${contractors.verificationStatus} = 'approved'`);
+    try {
+      // Count all contractors (simplified - just count total contractors)
+      const contractorsResult = await db.execute(
+        sql`SELECT COUNT(*)::int as count FROM ${contractors} WHERE verification_status = 'approved'`
+      );
+      const totalContractors = (contractorsResult.rows[0] as any)?.count || 0;
 
-    // Count homeowners (users with homeowner role)
-    const [homeownerCount] = await db
-      .select({ count: sql<number>`count(*)::int` })
-      .from(users)
-      .where(sql`${users.role} = 'homeowner'`);
+      // Count homeowners
+      const homeownersResult = await db.execute(
+        sql`SELECT COUNT(*)::int as count FROM ${users} WHERE role = 'homeowner'`
+      );
+      const totalHomeowners = (homeownersResult.rows[0] as any)?.count || 0;
 
-    // Count completed projects (leads with status = 'completed')
-    const [projectCount] = await db
-      .select({ count: sql<number>`count(*)::int` })
-      .from(leads)
-      .where(sql`${leads.status} = 'completed'`);
+      // Count completed projects
+      const projectsResult = await db.execute(
+        sql`SELECT COUNT(*)::int as count FROM ${leads} WHERE status = 'completed'`
+      );
+      const totalProjectsCompleted = (projectsResult.rows[0] as any)?.count || 0;
 
-    // Calculate success rate (completed / (completed + cancelled))
-    const [totalFinished] = await db
-      .select({ count: sql<number>`count(*)::int` })
-      .from(leads)
-      .where(sql`${leads.status} IN ('completed', 'cancelled')`);
+      // Calculate success rate
+      const finishedResult = await db.execute(
+        sql`SELECT COUNT(*)::int as count FROM ${leads} WHERE status IN ('completed', 'cancelled')`
+      );
+      const totalFinished = (finishedResult.rows[0] as any)?.count || 0;
+      const successRate = totalFinished > 0
+        ? (totalProjectsCompleted / totalFinished) * 100
+        : 99.2;
 
-    const successRate = totalFinished && totalFinished.count > 0
-      ? (projectCount.count / totalFinished.count) * 100
-      : 99.2; // Default to 99.2% if no data yet
+      // Calculate total project value
+      const valueResult = await db.execute(
+        sql`SELECT COALESCE(SUM(estimated_value::numeric), 0)::numeric as total FROM ${leads} WHERE status = 'completed'`
+      );
+      const totalProjectValue = Number((valueResult.rows[0] as any)?.total || 0);
 
-    // Calculate total project value from completed leads
-    const [projectValue] = await db
-      .select({ 
-        total: sql<string>`COALESCE(SUM(CAST(${leads.estimatedValue} AS DECIMAL)), 0)`
-      })
-      .from(leads)
-      .where(sql`${leads.status} = 'completed'`);
-
-    return {
-      totalContractors: contractorCount.count || 0,
-      totalHomeowners: homeownerCount.count || 0,
-      totalProjectsCompleted: projectCount.count || 0,
-      successRate: Math.min(successRate, 100), // Cap at 100%
-      totalProjectValue: parseFloat(projectValue.total || '0')
-    };
+      return {
+        totalContractors,
+        totalHomeowners,
+        totalProjectsCompleted,
+        successRate: Math.min(successRate, 100),
+        totalProjectValue
+      };
+    } catch (error) {
+      console.error('Error fetching platform statistics:', error);
+      // Return default values if query fails
+      return {
+        totalContractors: 0,
+        totalHomeowners: 0,
+        totalProjectsCompleted: 0,
+        successRate: 99.2,
+        totalProjectValue: 0
+      };
+    }
   }
 }
 
