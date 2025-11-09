@@ -8579,8 +8579,10 @@ export async function registerRoutes(app: Express) {
         .limit(5);
 
       dashboardData.recentActivity = recentPosts.map((post: any) => ({
+        id: post.id,
         title: `Posted: ${post.title || post.content.substring(0, 50)}`,
         createdAt: post.createdAt,
+        type: 'post',
       }));
 
       // Get profile views (if we track this)
