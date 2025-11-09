@@ -289,10 +289,10 @@ export default function Settings() {
 
             {/* Notification Settings */}
             <TabsContent value="notifications">
-              <Card className="bg-navy-800 border-navy-600">
+              <Card className="bg-[#1a2332] border-[#2d3748]">
                 <CardHeader>
-                  <CardTitle className="flex items-center text-white">
-                    <Bell className="w-5 h-5 text-orange-500 mr-2" />
+                  <CardTitle className="flex items-center text-orange-500">
+                    <Bell className="w-5 h-5 mr-2" />
                     Notification Preferences
                   </CardTitle>
                 </CardHeader>
@@ -328,10 +328,10 @@ export default function Settings() {
 
             {/* Privacy Settings */}
             <TabsContent value="privacy">
-              <Card className="bg-navy-800 border-navy-600">
+              <Card className="bg-[#1a2332] border-[#2d3748]">
                 <CardHeader>
-                  <CardTitle className="flex items-center text-white">
-                    <Eye className="w-5 h-5 text-orange-500 mr-2" />
+                  <CardTitle className="flex items-center text-orange-500">
+                    <Eye className="w-5 h-5 mr-2" />
                     Privacy Settings
                   </CardTitle>
                 </CardHeader>
@@ -355,10 +355,10 @@ export default function Settings() {
                   <div>
                     <Label className="text-gray-300">Who can contact you?</Label>
                     <Select defaultValue="verified">
-                      <SelectTrigger className="bg-navy-700 border-navy-600 text-white">
+                      <SelectTrigger className="bg-[#0f1419] border-[#2d3748] text-white">
                         <SelectValue />
                       </SelectTrigger>
-                      <SelectContent className="bg-navy-700 border-navy-600">
+                      <SelectContent className="bg-[#0f1419] border-[#2d3748]">
                         <SelectItem value="everyone">Everyone</SelectItem>
                         <SelectItem value="verified">Verified users only</SelectItem>
                         <SelectItem value="contractors">Contractors only</SelectItem>
@@ -372,10 +372,10 @@ export default function Settings() {
 
             {/* Security Settings */}
             <TabsContent value="security">
-              <Card className="bg-navy-800 border-navy-600">
+              <Card className="bg-[#1a2332] border-[#2d3748]">
                 <CardHeader>
-                  <CardTitle className="flex items-center text-white">
-                    <Shield className="w-5 h-5 text-orange-500 mr-2" />
+                  <CardTitle className="flex items-center text-orange-500">
+                    <Shield className="w-5 h-5 mr-2" />
                     Security Settings
                   </CardTitle>
                 </CardHeader>
@@ -386,19 +386,19 @@ export default function Settings() {
                       <Input 
                         type="password" 
                         placeholder="Current password"
-                        className="bg-navy-700 border-navy-600 text-white"
+                        className="bg-[#0f1419] border-[#2d3748] text-white"
                       />
                       <Input 
                         type="password" 
                         placeholder="New password"
-                        className="bg-navy-700 border-navy-600 text-white"
+                        className="bg-[#0f1419] border-[#2d3748] text-white"
                       />
                       <Input 
                         type="password" 
                         placeholder="Confirm new password"
-                        className="bg-navy-700 border-navy-600 text-white"
+                        className="bg-[#0f1419] border-[#2d3748] text-white"
                       />
-                      <Button variant="outline" className="border-orange-500 text-orange-500">
+                      <Button variant="outline" className="border-orange-500 text-orange-500 hover:bg-orange-500 hover:text-white">
                         Update Password
                       </Button>
                     </div>
@@ -409,7 +409,7 @@ export default function Settings() {
                       <p className="text-white font-medium">Two-Factor Authentication</p>
                       <p className="text-gray-400 text-sm">Add an extra layer of security</p>
                     </div>
-                    <Button variant="outline" className="border-orange-500 text-orange-500">
+                    <Button variant="outline" className="border-orange-500 text-orange-500 hover:bg-orange-500 hover:text-white">
                       Enable 2FA
                     </Button>
                   </div>
