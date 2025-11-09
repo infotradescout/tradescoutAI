@@ -887,6 +887,27 @@ export async function registerRoutes(app: Express) {
     }
   });
 
+  // Update user theme preferences endpoint
+  app.patch('/api/user/theme', isAuthenticated, async (req: any, res) => {
+    try {
+      const { themePreference, customThemeColors } = req.body;
+      
+      const userId = req.user?.id || (req.user as any)?.claims?.sub;
+      
+      // Update theme preferences
+      const user = await storage.updateUser(userId, {
+        themePreference: themePreference || 'default',
+        customThemeColors: customThemeColors || null,
+        updatedAt: new Date(),
+      });
+      
+      res.json({ ...user, password: undefined });
+    } catch (error: any) {
+      console.error("Error updating theme:", error);
+      res.status(500).json({ message: "Failed to update theme" });
+    }
+  });
+
   // Navigation preferences endpoints
   app.put('/api/user/navigation-preferences', isAuthenticated, async (req: any, res) => {
     try {
