@@ -44,12 +44,11 @@ export default function Settings() {
           </div>
 
           <Tabs defaultValue="profile" className="space-y-6">
-            <TabsList className="grid w-full grid-cols-2 lg:grid-cols-5 bg-navy-800">
+            <TabsList className="grid w-full grid-cols-2 lg:grid-cols-4 bg-navy-800">
               <TabsTrigger value="profile">Profile</TabsTrigger>
               <TabsTrigger value="notifications">Notifications</TabsTrigger>
               <TabsTrigger value="privacy">Privacy</TabsTrigger>
               <TabsTrigger value="security">Security</TabsTrigger>
-              <TabsTrigger value="billing">Billing</TabsTrigger>
             </TabsList>
 
             {/* Profile Settings */}
@@ -237,27 +236,6 @@ export default function Settings() {
               </Card>
             </TabsContent>
 
-            {/* Billing Settings */}
-            <TabsContent value="billing">
-              <Card className="bg-navy-800 border-navy-600">
-                <CardHeader>
-                  <CardTitle className="flex items-center text-white">
-                    <CreditCard className="w-5 h-5 text-orange-500 mr-2" />
-                    Billing & Subscriptions
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-6">
-                  <div className="text-center py-8">
-                    <CreditCard className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-                    <h3 className="text-white font-medium mb-2">No active subscriptions</h3>
-                    <p className="text-gray-400">You're currently on our free plan</p>
-                    <Button className="bg-orange-500 hover:bg-orange-600 mt-4">
-                      Upgrade to Pro
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            </TabsContent>
           </Tabs>
         </div>
       </div>
