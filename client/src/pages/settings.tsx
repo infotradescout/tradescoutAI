@@ -195,104 +195,169 @@ export default function Settings() {
 
   return (
     <div className="min-h-screen bg-[#0f1419] pb-20 lg:pb-0">
-      <div className="container mx-auto px-4 py-8">
-        <div className="max-w-4xl mx-auto">
-          {/* Header */}
-          <div className="mb-8">
-            <h1 className="text-4xl font-bold text-orange-500 mb-4">Settings</h1>
-            <p className="text-xl text-slate-300">
-              Manage your account preferences and privacy settings
-            </p>
+      <div className="container mx-auto px-4 py-6 lg:py-10">
+        <div className="max-w-5xl mx-auto">
+          {/* Modern Header */}
+          <div className="mb-8 lg:mb-12">
+            <div className="flex items-center gap-4 mb-3">
+              <div className="h-12 w-12 bg-gradient-to-br from-orange-500 to-orange-600 rounded-xl flex items-center justify-center shadow-lg">
+                <User className="h-6 w-6 text-white" />
+              </div>
+              <div>
+                <h1 className="text-3xl lg:text-5xl font-bold text-white mb-1">Settings</h1>
+                <p className="text-lg text-slate-400">
+                  Manage your account preferences and privacy
+                </p>
+              </div>
+            </div>
           </div>
 
           <Tabs defaultValue="profile" className="space-y-6">
-            <TabsList className="grid w-full grid-cols-2 lg:grid-cols-6 bg-[#1a2332] border-[#2d3748]">
-              <TabsTrigger value="profile">Profile</TabsTrigger>
-              <TabsTrigger value="roles">Roles</TabsTrigger>
-              <TabsTrigger value="appearance">Appearance</TabsTrigger>
-              <TabsTrigger value="notifications">Notifications</TabsTrigger>
-              <TabsTrigger value="privacy">Privacy</TabsTrigger>
-              <TabsTrigger value="security">Security</TabsTrigger>
+            <TabsList className="w-full bg-[#1a2332] border border-[#2d3748] p-1.5 rounded-xl shadow-lg overflow-x-auto flex lg:grid lg:grid-cols-6">
+              <TabsTrigger value="profile" className="data-[state=active]:bg-orange-500 data-[state=active]:text-white transition-all rounded-lg">
+                Profile
+              </TabsTrigger>
+              <TabsTrigger value="roles" className="data-[state=active]:bg-orange-500 data-[state=active]:text-white transition-all rounded-lg">
+                Roles
+              </TabsTrigger>
+              <TabsTrigger value="appearance" className="data-[state=active]:bg-orange-500 data-[state=active]:text-white transition-all rounded-lg">
+                Appearance
+              </TabsTrigger>
+              <TabsTrigger value="notifications" className="data-[state=active]:bg-orange-500 data-[state=active]:text-white transition-all rounded-lg">
+                Notifications
+              </TabsTrigger>
+              <TabsTrigger value="privacy" className="data-[state=active]:bg-orange-500 data-[state=active]:text-white transition-all rounded-lg">
+                Privacy
+              </TabsTrigger>
+              <TabsTrigger value="security" className="data-[state=active]:bg-orange-500 data-[state=active]:text-white transition-all rounded-lg">
+                Security
+              </TabsTrigger>
             </TabsList>
 
             {/* Profile Settings */}
             <TabsContent value="profile">
-              <Card className="bg-[#1a2332] border-[#2d3748]">
-                <CardHeader>
-                  <CardTitle className="flex items-center text-orange-500">
-                    <User className="w-5 h-5 mr-2" />
-                    Profile Information
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <Card className="bg-[#1a2332] border-[#2d3748] shadow-xl">
+                <CardHeader className="border-b border-[#2d3748] pb-6">
+                  <div className="flex items-center gap-3">
+                    <div className="h-10 w-10 bg-orange-500/20 rounded-lg flex items-center justify-center">
+                      <User className="w-5 h-5 text-orange-500" />
+                    </div>
                     <div>
-                      <Label htmlFor="firstName" className="text-gray-300">First Name</Label>
+                      <CardTitle className="text-xl text-white">Profile Information</CardTitle>
+                      <p className="text-sm text-slate-400 mt-1">Update your personal details and profile</p>
+                    </div>
+                  </div>
+                </CardHeader>
+                <CardContent className="space-y-8 pt-6">
+                  {/* Profile Photo Section */}
+                  <div className="flex items-center gap-6 pb-6 border-b border-[#2d3748]">
+                    <div className="h-20 w-20 bg-gradient-to-br from-orange-500 to-orange-600 rounded-full flex items-center justify-center text-white text-2xl font-bold shadow-lg">
+                      {user?.firstName?.[0]}{user?.lastName?.[0]}
+                    </div>
+                    <div className="flex-1">
+                      <h3 className="text-white font-medium mb-1">Profile Photo</h3>
+                      <p className="text-sm text-slate-400 mb-3">Update your profile picture</p>
+                      <Button size="sm" variant="outline" className="border-orange-500 text-orange-500 hover:bg-orange-500 hover:text-white">
+                        Upload Photo
+                      </Button>
+                    </div>
+                  </div>
+
+                  {/* Name Fields */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="space-y-2">
+                      <Label htmlFor="firstName" className="text-white font-medium">First Name</Label>
                       <Input 
                         id="firstName" 
                         defaultValue={user?.firstName || ""}
-                        className="bg-[#0f1419] border-[#2d3748] text-white"
+                        className="bg-[#0f1419] border-[#2d3748] text-white h-11 focus:border-orange-500 transition-colors"
+                        placeholder="Enter first name"
                       />
                     </div>
-                    <div>
-                      <Label htmlFor="lastName" className="text-gray-300">Last Name</Label>
+                    <div className="space-y-2">
+                      <Label htmlFor="lastName" className="text-white font-medium">Last Name</Label>
                       <Input 
                         id="lastName" 
                         defaultValue={user?.lastName || ""}
-                        className="bg-[#0f1419] border-[#2d3748] text-white"
+                        className="bg-[#0f1419] border-[#2d3748] text-white h-11 focus:border-orange-500 transition-colors"
+                        placeholder="Enter last name"
                       />
                     </div>
                   </div>
                   
-                  <div>
-                    <Label htmlFor="email" className="text-gray-300">Email Address</Label>
+                  {/* Email Field */}
+                  <div className="space-y-2">
+                    <Label htmlFor="email" className="text-white font-medium flex items-center gap-2">
+                      <Mail className="h-4 w-4 text-orange-500" />
+                      Email Address
+                    </Label>
                     <Input 
                       id="email" 
                       type="email"
                       defaultValue={user?.email || ""}
-                      className="bg-[#0f1419] border-[#2d3748] text-white"
+                      className="bg-[#0f1419] border-[#2d3748] text-white h-11 focus:border-orange-500 transition-colors"
+                      placeholder="email@example.com"
                     />
+                    <p className="text-xs text-slate-400">We'll never share your email with anyone</p>
                   </div>
 
-                  <div>
-                    <Label htmlFor="bio" className="text-gray-300">Bio</Label>
+                  {/* Bio Field */}
+                  <div className="space-y-2">
+                    <Label htmlFor="bio" className="text-white font-medium">Bio</Label>
                     <Textarea 
                       id="bio"
                       placeholder="Tell us about yourself..."
-                      className="bg-[#0f1419] border-[#2d3748] text-white"
+                      className="bg-[#0f1419] border-[#2d3748] text-white min-h-[120px] focus:border-orange-500 transition-colors resize-none"
+                      rows={5}
                     />
+                    <p className="text-xs text-slate-400">Brief description for your profile. Maximum 500 characters.</p>
                   </div>
 
-                  <Button className="bg-orange-500 hover:bg-orange-600 text-white">
-                    Save Changes
-                  </Button>
+                  {/* Action Buttons */}
+                  <div className="flex items-center gap-3 pt-4 border-t border-[#2d3748]">
+                    <Button className="bg-orange-500 hover:bg-orange-600 text-white px-6 shadow-lg">
+                      Save Changes
+                    </Button>
+                    <Button variant="outline" className="border-[#2d3748] text-slate-300 hover:bg-[#0f1419]">
+                      Cancel
+                    </Button>
+                  </div>
                 </CardContent>
               </Card>
             </TabsContent>
 
             {/* Roles Management */}
             <TabsContent value="roles">
-              <Card className="bg-[#1a2332] border-[#2d3748]">
-                <CardHeader>
-                  <CardTitle className="flex items-center text-orange-500">
-                    <Briefcase className="w-5 h-5 mr-2" />
-                    Manage Your Roles
-                  </CardTitle>
-                  <p className="text-slate-300 text-sm mt-2">
-                    Select all the roles that apply to you. Your dashboard and experience will automatically adapt.
-                  </p>
+              <Card className="bg-[#1a2332] border-[#2d3748] shadow-xl">
+                <CardHeader className="border-b border-[#2d3748] pb-6">
+                  <div className="flex items-center gap-3">
+                    <div className="h-10 w-10 bg-orange-500/20 rounded-lg flex items-center justify-center">
+                      <Briefcase className="w-5 h-5 text-orange-500" />
+                    </div>
+                    <div>
+                      <CardTitle className="text-xl text-white">Manage Your Roles</CardTitle>
+                      <p className="text-sm text-slate-400 mt-1">
+                        Select all the roles that apply to you. Your dashboard and experience will automatically adapt.
+                      </p>
+                    </div>
+                  </div>
                 </CardHeader>
-                <CardContent className="space-y-6">
+                <CardContent className="space-y-8 pt-6">
                   {/* Current Roles Summary */}
-                  <div className="bg-[#0f1419] border border-[#2d3748] rounded-lg p-4">
-                    <h3 className="text-white font-medium mb-3">Currently Active Roles</h3>
+                  <div className="bg-gradient-to-br from-[#0f1419] to-[#1a2332] border border-[#2d3748] rounded-xl p-6 shadow-lg">
+                    <div className="flex items-center gap-2 mb-4">
+                      <CheckCircle2 className="h-5 w-5 text-orange-500" />
+                      <h3 className="text-white font-semibold text-lg">Currently Active Roles</h3>
+                    </div>
                     <div className="flex flex-wrap gap-2">
                       {selectedRoles.length > 0 ? (
                         selectedRoles.map((roleKey) => {
                           const config = ROLE_CONFIG[roleKey as keyof typeof ROLE_CONFIG];
                           if (!config) return null;
+                          const Icon = config.icon;
                           return (
-                            <Badge key={roleKey} className="bg-orange-500 text-white">
+                            <Badge key={roleKey} className="bg-orange-500 text-white px-3 py-1.5 text-sm font-medium flex items-center gap-1.5">
+                              <Icon className="h-3.5 w-3.5" />
                               {config.label}
                             </Badge>
                           );
@@ -305,7 +370,7 @@ export default function Settings() {
 
                   {/* Available Roles */}
                   <div>
-                    <h3 className="text-white font-medium mb-4">Available Roles</h3>
+                    <h3 className="text-white font-semibold text-lg mb-5">Available Roles</h3>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       {Object.entries(ROLE_CONFIG).map(([roleKey, config]) => {
                         const Icon = config.icon;
@@ -315,26 +380,26 @@ export default function Settings() {
                             key={roleKey}
                             onClick={() => toggleRole(roleKey)}
                             className={`
-                              relative p-4 rounded-lg border-2 cursor-pointer transition-all
+                              relative p-5 rounded-xl border-2 cursor-pointer transition-all duration-200 hover:shadow-lg
                               ${isSelected 
-                                ? 'bg-orange-500/20 border-orange-500' 
-                                : 'bg-[#0f1419] border-[#2d3748] hover:border-orange-500/50'
+                                ? 'bg-gradient-to-br from-orange-500/20 to-orange-600/10 border-orange-500 shadow-orange-500/20' 
+                                : 'bg-[#0f1419] border-[#2d3748] hover:border-orange-500/50 hover:bg-[#1a2332]/50'
                               }
                             `}
                             data-testid={`role-option-${roleKey}`}
                           >
-                            <div className="flex items-start gap-3">
-                              <div className={`p-2 rounded-lg ${isSelected ? 'bg-orange-500' : 'bg-[#2d3748]'}`}>
-                                <Icon className={`h-5 w-5 ${isSelected ? 'text-white' : 'text-orange-500'}`} />
+                            <div className="flex items-start gap-4">
+                              <div className={`p-3 rounded-xl transition-all ${isSelected ? 'bg-orange-500 shadow-lg' : 'bg-[#2d3748]'}`}>
+                                <Icon className={`h-6 w-6 ${isSelected ? 'text-white' : 'text-orange-500'}`} />
                               </div>
                               <div className="flex-1">
-                                <div className="flex items-center gap-2 mb-1">
-                                  <h4 className="font-medium text-white">{config.label}</h4>
+                                <div className="flex items-center gap-2 mb-1.5">
+                                  <h4 className="font-semibold text-white text-base">{config.label}</h4>
                                   {isSelected && (
-                                    <CheckCircle2 className="h-4 w-4 text-orange-500" />
+                                    <CheckCircle2 className="h-5 w-5 text-orange-500" />
                                   )}
                                 </div>
-                                <p className="text-sm text-slate-300">{config.desc}</p>
+                                <p className="text-sm text-slate-400 leading-relaxed">{config.desc}</p>
                               </div>
                             </div>
                           </div>
@@ -344,14 +409,19 @@ export default function Settings() {
                   </div>
 
                   {/* Save Button */}
-                  <div className="flex items-center justify-between pt-4 border-t border-[#2d3748]">
-                    <p className="text-sm text-slate-300">
-                      {selectedRoles.length} role{selectedRoles.length !== 1 ? 's' : ''} selected
-                    </p>
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pt-6 border-t border-[#2d3748]">
+                    <div className="flex items-center gap-2">
+                      <div className="h-8 w-8 bg-orange-500/20 rounded-lg flex items-center justify-center">
+                        <span className="text-orange-500 font-bold text-sm">{selectedRoles.length}</span>
+                      </div>
+                      <p className="text-sm text-slate-300">
+                        role{selectedRoles.length !== 1 ? 's' : ''} selected
+                      </p>
+                    </div>
                     <Button 
                       onClick={saveRoles}
                       disabled={updateRolesMutation.isPending || selectedRoles.length === 0}
-                      className="bg-orange-500 hover:bg-orange-600 text-white"
+                      className="bg-orange-500 hover:bg-orange-600 text-white px-8 shadow-lg disabled:opacity-50"
                       data-testid="button-save-roles"
                     >
                       {updateRolesMutation.isPending ? 'Saving...' : 'Save Roles'}
@@ -363,17 +433,21 @@ export default function Settings() {
 
             {/* Appearance Settings */}
             <TabsContent value="appearance">
-              <Card className="bg-[#1a2332] border-[#2d3748]">
-                <CardHeader>
-                  <CardTitle className="flex items-center text-orange-500">
-                    <Palette className="w-5 h-5 mr-2" />
-                    Theme & Appearance
-                  </CardTitle>
-                  <p className="text-slate-300 text-sm mt-2">
-                    Customize your color scheme and visual preferences
-                  </p>
+              <Card className="bg-[#1a2332] border-[#2d3748] shadow-xl">
+                <CardHeader className="border-b border-[#2d3748] pb-6">
+                  <div className="flex items-center gap-3">
+                    <div className="h-10 w-10 bg-orange-500/20 rounded-lg flex items-center justify-center">
+                      <Palette className="w-5 h-5 text-orange-500" />
+                    </div>
+                    <div>
+                      <CardTitle className="text-xl text-white">Theme & Appearance</CardTitle>
+                      <p className="text-sm text-slate-400 mt-1">
+                        Customize your color scheme and visual preferences
+                      </p>
+                    </div>
+                  </div>
                 </CardHeader>
-                <CardContent className="space-y-6">
+                <CardContent className="space-y-6 pt-6">
                   <ThemeSelector />
                 </CardContent>
               </Card>
@@ -381,14 +455,21 @@ export default function Settings() {
 
             {/* Notification Settings */}
             <TabsContent value="notifications">
-              <Card className="bg-[#1a2332] border-[#2d3748]">
-                <CardHeader>
-                  <CardTitle className="flex items-center text-orange-500">
-                    <Bell className="w-5 h-5 mr-2" />
-                    Notification Preferences
-                  </CardTitle>
+              <Card className="bg-[#1a2332] border-[#2d3748] shadow-xl">
+                <CardHeader className="border-b border-[#2d3748] pb-6">
+                  <div className="flex items-center gap-3">
+                    <div className="h-10 w-10 bg-orange-500/20 rounded-lg flex items-center justify-center">
+                      <Bell className="w-5 h-5 text-orange-500" />
+                    </div>
+                    <div>
+                      <CardTitle className="text-xl text-white">Notification Preferences</CardTitle>
+                      <p className="text-sm text-slate-400 mt-1">
+                        Choose how you want to receive updates and alerts
+                      </p>
+                    </div>
+                  </div>
                 </CardHeader>
-                <CardContent className="space-y-6">
+                <CardContent className="space-y-4 pt-6">
                   {Object.entries({
                     email: { icon: Mail, label: "Email Notifications", desc: "Receive updates via email" },
                     sms: { icon: Smartphone, label: "SMS Notifications", desc: "Get text message alerts" },
@@ -397,12 +478,14 @@ export default function Settings() {
                   }).map(([key, config]) => {
                     const Icon = config.icon;
                     return (
-                      <div key={key} className="flex items-center justify-between">
-                        <div className="flex items-center space-x-3">
-                          <Icon className="w-5 h-5 text-orange-500" />
+                      <div key={key} className="flex items-center justify-between p-4 bg-[#0f1419] rounded-xl border border-[#2d3748] hover:border-orange-500/30 transition-all">
+                        <div className="flex items-center space-x-4">
+                          <div className="h-10 w-10 bg-orange-500/20 rounded-lg flex items-center justify-center flex-shrink-0">
+                            <Icon className="w-5 h-5 text-orange-500" />
+                          </div>
                           <div>
                             <p className="text-white font-medium">{config.label}</p>
-                            <p className="text-gray-400 text-sm">{config.desc}</p>
+                            <p className="text-slate-400 text-sm">{config.desc}</p>
                           </div>
                         </div>
                         <Switch 
@@ -420,37 +503,62 @@ export default function Settings() {
 
             {/* Privacy Settings */}
             <TabsContent value="privacy">
-              <Card className="bg-[#1a2332] border-[#2d3748]">
-                <CardHeader>
-                  <CardTitle className="flex items-center text-orange-500">
-                    <Eye className="w-5 h-5 mr-2" />
-                    Privacy Settings
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-6">
-                  <div className="flex items-center justify-between">
+              <Card className="bg-[#1a2332] border-[#2d3748] shadow-xl">
+                <CardHeader className="border-b border-[#2d3748] pb-6">
+                  <div className="flex items-center gap-3">
+                    <div className="h-10 w-10 bg-orange-500/20 rounded-lg flex items-center justify-center">
+                      <Eye className="w-5 h-5 text-orange-500" />
+                    </div>
                     <div>
-                      <p className="text-white font-medium">Profile Visibility</p>
-                      <p className="text-gray-400 text-sm">Make your profile visible to other users</p>
+                      <CardTitle className="text-xl text-white">Privacy Settings</CardTitle>
+                      <p className="text-sm text-slate-400 mt-1">
+                        Control who can see your information and contact you
+                      </p>
+                    </div>
+                  </div>
+                </CardHeader>
+                <CardContent className="space-y-6 pt-6">
+                  <div className="flex items-center justify-between p-4 bg-[#0f1419] rounded-xl border border-[#2d3748]">
+                    <div className="flex items-center gap-4">
+                      <div className="h-10 w-10 bg-orange-500/20 rounded-lg flex items-center justify-center flex-shrink-0">
+                        <User className="w-5 h-5 text-orange-500" />
+                      </div>
+                      <div>
+                        <p className="text-white font-medium">Profile Visibility</p>
+                        <p className="text-slate-400 text-sm">Make your profile visible to other users</p>
+                      </div>
                     </div>
                     <Switch defaultChecked />
                   </div>
                   
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-white font-medium">Show in Search Results</p>
-                      <p className="text-gray-400 text-sm">Allow others to find you through search</p>
+                  <div className="flex items-center justify-between p-4 bg-[#0f1419] rounded-xl border border-[#2d3748]">
+                    <div className="flex items-center gap-4">
+                      <div className="h-10 w-10 bg-orange-500/20 rounded-lg flex items-center justify-center flex-shrink-0">
+                        <Globe className="w-5 h-5 text-orange-500" />
+                      </div>
+                      <div>
+                        <p className="text-white font-medium">Show in Search Results</p>
+                        <p className="text-slate-400 text-sm">Allow others to find you through search</p>
+                      </div>
                     </div>
                     <Switch defaultChecked />
                   </div>
 
-                  <div>
-                    <Label className="text-gray-300">Who can contact you?</Label>
+                  <div className="space-y-3 p-4 bg-[#0f1419] rounded-xl border border-[#2d3748]">
+                    <div className="flex items-center gap-4 mb-3">
+                      <div className="h-10 w-10 bg-orange-500/20 rounded-lg flex items-center justify-center flex-shrink-0">
+                        <Mail className="w-5 h-5 text-orange-500" />
+                      </div>
+                      <div>
+                        <Label className="text-white font-medium">Who can contact you?</Label>
+                        <p className="text-slate-400 text-sm">Choose who can send you messages</p>
+                      </div>
+                    </div>
                     <Select defaultValue="verified">
-                      <SelectTrigger className="bg-[#0f1419] border-[#2d3748] text-white">
+                      <SelectTrigger className="bg-[#1a2332] border-[#2d3748] text-white h-11">
                         <SelectValue />
                       </SelectTrigger>
-                      <SelectContent className="bg-[#0f1419] border-[#2d3748]">
+                      <SelectContent className="bg-[#1a2332] border-[#2d3748]">
                         <SelectItem value="everyone">Everyone</SelectItem>
                         <SelectItem value="verified">Verified users only</SelectItem>
                         <SelectItem value="contractors">Contractors only</SelectItem>
@@ -464,44 +572,73 @@ export default function Settings() {
 
             {/* Security Settings */}
             <TabsContent value="security">
-              <Card className="bg-[#1a2332] border-[#2d3748]">
-                <CardHeader>
-                  <CardTitle className="flex items-center text-orange-500">
-                    <Shield className="w-5 h-5 mr-2" />
-                    Security Settings
-                  </CardTitle>
+              <Card className="bg-[#1a2332] border-[#2d3748] shadow-xl">
+                <CardHeader className="border-b border-[#2d3748] pb-6">
+                  <div className="flex items-center gap-3">
+                    <div className="h-10 w-10 bg-orange-500/20 rounded-lg flex items-center justify-center">
+                      <Shield className="w-5 h-5 text-orange-500" />
+                    </div>
+                    <div>
+                      <CardTitle className="text-xl text-white">Security Settings</CardTitle>
+                      <p className="text-sm text-slate-400 mt-1">
+                        Manage your password and account security
+                      </p>
+                    </div>
+                  </div>
                 </CardHeader>
-                <CardContent className="space-y-6">
-                  <div>
-                    <h3 className="text-white font-medium mb-4">Change Password</h3>
-                    <div className="space-y-3">
-                      <Input 
-                        type="password" 
-                        placeholder="Current password"
-                        className="bg-[#0f1419] border-[#2d3748] text-white"
-                      />
-                      <Input 
-                        type="password" 
-                        placeholder="New password"
-                        className="bg-[#0f1419] border-[#2d3748] text-white"
-                      />
-                      <Input 
-                        type="password" 
-                        placeholder="Confirm new password"
-                        className="bg-[#0f1419] border-[#2d3748] text-white"
-                      />
-                      <Button variant="outline" className="border-orange-500 text-orange-500 hover:bg-orange-500 hover:text-white">
+                <CardContent className="space-y-6 pt-6">
+                  <div className="p-6 bg-[#0f1419] rounded-xl border border-[#2d3748]">
+                    <div className="flex items-center gap-3 mb-5">
+                      <div className="h-10 w-10 bg-orange-500/20 rounded-lg flex items-center justify-center">
+                        <Lock className="w-5 h-5 text-orange-500" />
+                      </div>
+                      <div>
+                        <h3 className="text-white font-semibold">Change Password</h3>
+                        <p className="text-sm text-slate-400">Update your account password</p>
+                      </div>
+                    </div>
+                    <div className="space-y-4">
+                      <div className="space-y-2">
+                        <Label className="text-white font-medium">Current Password</Label>
+                        <Input 
+                          type="password" 
+                          placeholder="Enter current password"
+                          className="bg-[#1a2332] border-[#2d3748] text-white h-11 focus:border-orange-500 transition-colors"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label className="text-white font-medium">New Password</Label>
+                        <Input 
+                          type="password" 
+                          placeholder="Enter new password"
+                          className="bg-[#1a2332] border-[#2d3748] text-white h-11 focus:border-orange-500 transition-colors"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label className="text-white font-medium">Confirm New Password</Label>
+                        <Input 
+                          type="password" 
+                          placeholder="Confirm new password"
+                          className="bg-[#1a2332] border-[#2d3748] text-white h-11 focus:border-orange-500 transition-colors"
+                        />
+                      </div>
+                      <Button className="bg-orange-500 hover:bg-orange-600 text-white w-full mt-2 shadow-lg">
                         Update Password
                       </Button>
                     </div>
                   </div>
 
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-white font-medium">Two-Factor Authentication</p>
-                      <p className="text-gray-400 text-sm">Add an extra layer of security</p>
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-6 bg-[#0f1419] rounded-xl border border-[#2d3748]">
+                    <div className="flex items-center gap-4">
+                      <div className="h-12 w-12 bg-orange-500/20 rounded-lg flex items-center justify-center flex-shrink-0">
+                        <Shield className="w-6 h-6 text-orange-500" />
+                      </div>
+                      <div>
+                        <p className="text-white font-semibold">Two-Factor Authentication</p>
+                        <p className="text-slate-400 text-sm">Add an extra layer of security to your account</p>
+                      </div>
                     </div>
-                    <Button variant="outline" className="border-orange-500 text-orange-500 hover:bg-orange-500 hover:text-white">
+                    <Button variant="outline" className="border-orange-500 text-orange-500 hover:bg-orange-500 hover:text-white px-6">
                       Enable 2FA
                     </Button>
                   </div>
