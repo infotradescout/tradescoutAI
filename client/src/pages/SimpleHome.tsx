@@ -388,13 +388,13 @@ const SimpleHome = memo(function SimpleHome() {
                 {isContractor ? (
                   <>
                     <Link href="/contractor/leads">
-                      <Button variant="outline" size="sm" className="w-full justify-start">
+                      <Button size="sm" className="bg-orange-500 hover:bg-orange-600 text-white w-full justify-start">
                         <TrendingUp className="h-4 w-4 mr-2" />
                         Find New Projects
                       </Button>
                     </Link>
                     <Link href="/contractor-profile">
-                      <Button variant="outline" size="sm" className="w-full justify-start">
+                      <Button size="sm" className="bg-orange-500 hover:bg-orange-600 text-white w-full justify-start">
                         <Star className="h-4 w-4 mr-2" />
                         Update Profile
                       </Button>
@@ -403,19 +403,19 @@ const SimpleHome = memo(function SimpleHome() {
                 ) : (
                   <>
                     <Link href="/quote-calculator">
-                      <Button variant="outline" size="sm" className="w-full justify-start">
+                      <Button size="sm" className="bg-orange-500 hover:bg-orange-600 text-white w-full justify-start">
                         <DollarSign className="h-4 w-4 mr-2" />
                         Quote Calculator
                       </Button>
                     </Link>
                     <Link href="/find-contractors">
-                      <Button variant="outline" size="sm" className="w-full justify-start">
+                      <Button size="sm" className="bg-orange-500 hover:bg-orange-600 text-white w-full justify-start">
                         <Wrench className="h-4 w-4 mr-2" />
                         Find Contractors
                       </Button>
                     </Link>
                     <Link href="/request-quote">
-                      <Button variant="outline" size="sm" className="w-full justify-start">
+                      <Button size="sm" className="bg-orange-500 hover:bg-orange-600 text-white w-full justify-start">
                         <MessageSquare className="h-4 w-4 mr-2" />
                         Request Quote
                       </Button>
@@ -423,13 +423,13 @@ const SimpleHome = memo(function SimpleHome() {
                   </>
                 )}
                 <Link href="/marketplace">
-                  <Button variant="outline" size="sm" className="w-full justify-start">
+                  <Button size="sm" className="bg-orange-500 hover:bg-orange-600 text-white w-full justify-start">
                     <ShoppingCart className="h-4 w-4 mr-2" />
                     Browse Marketplace
                   </Button>
                 </Link>
                 <Link href="/community">
-                  <Button variant="outline" size="sm" className="w-full justify-start">
+                  <Button size="sm" className="bg-orange-500 hover:bg-orange-600 text-white w-full justify-start">
                     <Users className="h-4 w-4 mr-2" />
                     Community Feed
                   </Button>
