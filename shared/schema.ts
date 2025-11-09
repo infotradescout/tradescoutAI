@@ -297,6 +297,8 @@ export const users = pgTable("users", {
       layout?: 'single' | 'two-column' | 'three-column'; // Dashboard layout
     };
   }>(),
+  themePreference: varchar("theme_preference").default('default'), // Selected theme ID
+  customThemeColors: text("custom_theme_colors"), // JSON string of custom colors
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });

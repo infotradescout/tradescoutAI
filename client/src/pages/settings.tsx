@@ -34,6 +34,79 @@ import {
 import { useAuth } from "@/hooks/useAuth";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { useTheme } from "@/contexts/ThemeContext";
+import { PRESET_THEMES } from "@/lib/themes";
+
+// Theme Selector Component
+function ThemeSelector() {
+  const { currentTheme, setTheme } = useTheme();
+  
+  return (
+    <div className="space-y-4">
+      <div>
+        <h3 className="text-white font-medium mb-4">Select a Theme</h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {PRESET_THEMES.map((theme) => {
+            const isSelected = currentTheme.id === theme.id;
+            return (
+              <div
+                key={theme.id}
+                onClick={() => setTheme(theme.id)}
+                className={`
+                  relative p-4 rounded-lg border-2 cursor-pointer transition-all
+                  ${isSelected 
+                    ? 'border-orange-500 bg-orange-500/10' 
+                    : 'border-[#2d3748] bg-[#0f1419] hover:border-orange-500/50'
+                  }
+                `}
+                data-testid={`theme-${theme.id}`}
+              >
+                <div className="flex items-start justify-between mb-3">
+                  <div>
+                    <h4 className="font-medium text-white mb-1">{theme.name}</h4>
+                    <p className="text-sm text-slate-300">{theme.description}</p>
+                  </div>
+                  {isSelected && (
+                    <CheckCircle2 className="h-5 w-5 text-orange-500 flex-shrink-0" />
+                  )}
+                </div>
+                
+                {/* Color Preview */}
+                <div className="flex gap-2 mt-3">
+                  <div 
+                    className="w-8 h-8 rounded border border-white/20"
+                    style={{ backgroundColor: theme.colors.bgPrimary }}
+                  />
+                  <div 
+                    className="w-8 h-8 rounded border border-white/20"
+                    style={{ backgroundColor: theme.colors.bgSecondary }}
+                  />
+                  <div 
+                    className="w-8 h-8 rounded border border-white/20"
+                    style={{ backgroundColor: theme.colors.accentPrimary }}
+                  />
+                  <div 
+                    className="w-8 h-8 rounded border border-white/20"
+                    style={{ backgroundColor: theme.colors.accentSecondary }}
+                  />
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+      
+      <div className="mt-6 p-4 bg-[#0f1419] border border-[#2d3748] rounded-lg">
+        <p className="text-sm text-slate-300">
+          <strong className="text-white">Current Theme:</strong> {currentTheme.name}
+        </p>
+        <p className="text-xs text-slate-400 mt-1">
+          Your theme choice is saved automatically and will apply across your entire experience.
+        </p>
+      </div>
+    </div>
+  );
+}
 
 // Role configurations
 const ROLE_CONFIG = {
@@ -133,9 +206,10 @@ export default function Settings() {
           </div>
 
           <Tabs defaultValue="profile" className="space-y-6">
-            <TabsList className="grid w-full grid-cols-2 lg:grid-cols-5 bg-[#1a2332] border-[#2d3748]">
+            <TabsList className="grid w-full grid-cols-2 lg:grid-cols-6 bg-[#1a2332] border-[#2d3748]">
               <TabsTrigger value="profile">Profile</TabsTrigger>
               <TabsTrigger value="roles">Roles</TabsTrigger>
+              <TabsTrigger value="appearance">Appearance</TabsTrigger>
               <TabsTrigger value="notifications">Notifications</TabsTrigger>
               <TabsTrigger value="privacy">Privacy</TabsTrigger>
               <TabsTrigger value="security">Security</TabsTrigger>
@@ -283,6 +357,24 @@ export default function Settings() {
                       {updateRolesMutation.isPending ? 'Saving...' : 'Save Roles'}
                     </Button>
                   </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            {/* Appearance Settings */}
+            <TabsContent value="appearance">
+              <Card className="bg-[#1a2332] border-[#2d3748]">
+                <CardHeader>
+                  <CardTitle className="flex items-center text-orange-500">
+                    <Palette className="w-5 h-5 mr-2" />
+                    Theme & Appearance
+                  </CardTitle>
+                  <p className="text-slate-300 text-sm mt-2">
+                    Customize your color scheme and visual preferences
+                  </p>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  <ThemeSelector />
                 </CardContent>
               </Card>
             </TabsContent>
