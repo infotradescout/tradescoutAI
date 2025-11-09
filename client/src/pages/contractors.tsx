@@ -73,7 +73,7 @@ export default function ForContractors() {
                   <Download className="h-6 w-6 mr-2 text-orange-500" />
                   Free Growth Pack
                 </CardTitle>
-                <Badge className="bg-orange-500 text-orange-500">
+                <Badge className="bg-orange-500 text-white">
                   FREE
                 </Badge>
               </div>
@@ -104,7 +104,7 @@ export default function ForContractors() {
               </div>
 
               <Link href="/growth-pack">
-                <Button className="w-full bg-orange-500 hover:bg-orange-600 text-orange-500 py-3 text-lg font-semibold">
+                <Button className="w-full bg-orange-500 hover:bg-orange-600 text-white py-3 text-lg font-semibold">
                   Download Free Growth Pack
                   <ArrowRight className="h-5 w-5 ml-2" />
                 </Button>
@@ -120,7 +120,7 @@ export default function ForContractors() {
                   <Award className="h-6 w-6 mr-2 text-purple-500" />
                   Accelerator Program
                 </CardTitle>
-                <Badge className="bg-purple-500 text-orange-500">
+                <Badge className="bg-purple-500 text-white">
                   PREMIUM
                 </Badge>
               </div>
@@ -152,14 +152,14 @@ export default function ForContractors() {
 
               {isContractor ? (
                 <Link href="/contractors/accelerator">
-                  <Button className="w-full bg-purple-500 hover:bg-purple-600 text-orange-500 py-3 text-lg font-semibold">
+                  <Button className="w-full bg-purple-500 hover:bg-purple-600 text-white py-3 text-lg font-semibold">
                     Join Accelerator Program
                     <ArrowRight className="h-5 w-5 ml-2" />
                   </Button>
                 </Link>
               ) : (
                 <Link href="/contractors/apply">
-                  <Button className="w-full bg-purple-500 hover:bg-purple-600 text-orange-500 py-3 text-lg font-semibold">
+                  <Button className="w-full bg-purple-500 hover:bg-purple-600 text-white py-3 text-lg font-semibold">
                     Apply to Join
                     <ArrowRight className="h-5 w-5 ml-2" />
                   </Button>
@@ -180,13 +180,13 @@ export default function ForContractors() {
               </p>
               {isContractor ? (
                 <Link href="/contractor-dashboard">
-                  <Button variant="outline" className="border-orange-500 text-orange-500 hover:bg-orange-500 hover:text-orange-500">
+                  <Button variant="outline" className="border-orange-500 text-orange-500 hover:bg-orange-500 hover:text-white hover:text-white">
                     Go to Dashboard
                   </Button>
                 </Link>
               ) : (
                 <Link href="/contractors/apply">
-                  <Button variant="outline" className="border-orange-500 text-orange-500 hover:bg-orange-500 hover:text-orange-500">
+                  <Button variant="outline" className="border-orange-500 text-orange-500 hover:bg-orange-500 hover:text-white hover:text-white">
                     Join Now
                   </Button>
                 </Link>
@@ -202,7 +202,7 @@ export default function ForContractors() {
                 Connect with homeowners actively seeking contractors in your area.
               </p>
               <Link href="/contractors/board">
-                <Button variant="outline" className="border-green-500 text-green-500 hover:bg-green-500 hover:text-orange-500">
+                <Button variant="outline" className="border-green-500 text-green-500 hover:bg-green-500 hover:text-white">
                   View Opportunities
                 </Button>
               </Link>
@@ -217,7 +217,7 @@ export default function ForContractors() {
                 Access contracts, pricing guides, and industry best practices.
               </p>
               <Link href="/growth-pack">
-                <Button variant="outline" className="border-blue-500 text-blue-500 hover:bg-blue-500 hover:text-orange-500">
+                <Button variant="outline" className="border-blue-500 text-blue-500 hover:bg-blue-500 hover:text-white">
                   Get Resources
                 </Button>
               </Link>
@@ -237,7 +237,7 @@ export default function ForContractors() {
               </p>
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
                 <Link href="/growth-pack">
-                  <Button className="bg-orange-500 hover:bg-orange-600 text-orange-500 px-8 py-3 text-lg">
+                  <Button className="bg-orange-500 hover:bg-orange-600 text-white px-8 py-3 text-lg">
                     Start with Free Pack
                   </Button>
                 </Link>
