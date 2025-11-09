@@ -394,7 +394,7 @@ export default function Marketplace() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+    <div className="min-h-screen bg-[#0f1419]">
       {/* Smart Value Banner */}
       <div className="bg-gradient-to-r from-orange-600 via-amber-600 to-orange-500 text-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
@@ -439,7 +439,7 @@ export default function Marketplace() {
         {/* Header */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8">
           <div>
-            <h1 className="text-4xl font-bold text-gray-900 dark:text-white mb-3">
+            <h1 className="text-4xl font-bold text-orange-500 mb-3">
               Quality Exchange
             </h1>
             <p className="text-lg text-gray-600 dark:text-gray-300 mb-4">
@@ -489,7 +489,7 @@ export default function Marketplace() {
         <div className="mb-8">
           <div className="flex items-center justify-between mb-6">
             <div>
-              <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
+              <h2 className="text-2xl font-bold text-orange-500 mb-2">
                 Smart Choices for Every Need
               </h2>
               <p className="text-gray-600 dark:text-gray-400">
@@ -506,7 +506,7 @@ export default function Marketplace() {
                   <CheckCircle className="h-6 w-6 text-blue-600" />
                 </div>
                 <div>
-                  <h3 className="font-semibold text-gray-900 dark:text-white">Smart Value Decisions</h3>
+                  <h3 className="font-semibold text-orange-500">Smart Value Decisions</h3>
                   <p className="text-sm text-gray-600 dark:text-gray-400">
                     Whether you're building a business or enhancing your home, quality choices lead to lasting satisfaction
                   </p>
@@ -531,7 +531,7 @@ export default function Marketplace() {
                 className={`cursor-pointer transition-all hover:shadow-xl hover:scale-105 border-2 group ${
                   selectedCategory === category.id 
                     ? `border-orange-500 bg-orange-50 dark:bg-orange-900/20 shadow-lg`
-                    : 'border-gray-200 dark:border-gray-700 hover:border-orange-300 dark:hover:border-orange-600'
+                    : 'border-[#2d3748] hover:border-orange-300 dark:hover:border-orange-600'
                 }`}
                 onClick={() => {
                   setSelectedCategory(selectedCategory === category.id ? '' : category.id);
@@ -543,7 +543,7 @@ export default function Marketplace() {
                       {getFeaturedCategoryIcon(category.icon)}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <h3 className="font-bold text-lg text-gray-900 dark:text-white mb-1">
+                      <h3 className="font-bold text-lg text-orange-500 mb-1">
                         {category.name}
                       </h3>
                       <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
@@ -761,8 +761,8 @@ export default function Marketplace() {
                   </p>
                   
                   <div className="grid md:grid-cols-2 gap-4">
-                    <div className="bg-white dark:bg-gray-800 p-4 rounded-lg">
-                      <h4 className="font-medium text-gray-900 dark:text-white mb-2">Trust & Safety:</h4>
+                    <div className="bg-[#1a2332] p-4 rounded-lg">
+                      <h4 className="font-medium text-orange-500 mb-2">Trust & Safety:</h4>
                       <ul className="text-sm text-gray-600 dark:text-gray-300 space-y-1">
                         <li>• Address verification required</li>
                         <li>• Community reputation scores</li>
@@ -770,8 +770,8 @@ export default function Marketplace() {
                         <li>• Transaction protection guidance</li>
                       </ul>
                     </div>
-                    <div className="bg-white dark:bg-gray-800 p-4 rounded-lg">
-                      <h4 className="font-medium text-gray-900 dark:text-white mb-2">Community Benefits:</h4>
+                    <div className="bg-[#1a2332] p-4 rounded-lg">
+                      <h4 className="font-medium text-orange-500 mb-2">Community Benefits:</h4>
                       <ul className="text-sm text-gray-600 dark:text-gray-300 space-y-1">
                         <li>• Support local contractors</li>
                         <li>• Reduce transportation costs</li>
@@ -813,8 +813,8 @@ export default function Marketplace() {
                   </p>
                   
                   <div className="grid md:grid-cols-4 gap-4">
-                    <div className="bg-white dark:bg-gray-800 p-4 rounded-lg">
-                      <h4 className="font-medium text-gray-900 dark:text-white mb-2 flex items-center">
+                    <div className="bg-[#1a2332] p-4 rounded-lg">
+                      <h4 className="font-medium text-orange-500 mb-2 flex items-center">
                         <CheckCircle className="h-4 w-4 mr-2 text-green-600" />
                         Quality Verified
                       </h4>
@@ -822,8 +822,8 @@ export default function Marketplace() {
                         Items checked by knowledgeable owners
                       </p>
                     </div>
-                    <div className="bg-white dark:bg-gray-800 p-4 rounded-lg">
-                      <h4 className="font-medium text-gray-900 dark:text-white mb-2 flex items-center">
+                    <div className="bg-[#1a2332] p-4 rounded-lg">
+                      <h4 className="font-medium text-orange-500 mb-2 flex items-center">
                         <TrendingUp className="h-4 w-4 mr-2 text-blue-600" />
                         Smart Value
                       </h4>
@@ -831,8 +831,8 @@ export default function Marketplace() {
                         Quality items maintain worth over time
                       </p>
                     </div>
-                    <div className="bg-white dark:bg-gray-800 p-4 rounded-lg">
-                      <h4 className="font-medium text-gray-900 dark:text-white mb-2 flex items-center">
+                    <div className="bg-[#1a2332] p-4 rounded-lg">
+                      <h4 className="font-medium text-orange-500 mb-2 flex items-center">
                         <Users className="h-4 w-4 mr-2 text-purple-600" />
                         Owner Stories
                       </h4>
@@ -840,8 +840,8 @@ export default function Marketplace() {
                         Learn from experienced equipment owners
                       </p>
                     </div>
-                    <div className="bg-white dark:bg-gray-800 p-4 rounded-lg">
-                      <h4 className="font-medium text-gray-900 dark:text-white mb-2 flex items-center">
+                    <div className="bg-[#1a2332] p-4 rounded-lg">
+                      <h4 className="font-medium text-orange-500 mb-2 flex items-center">
                         <Shield className="h-4 w-4 mr-2 text-emerald-600" />
                         Trust Network
                       </h4>
@@ -874,8 +874,8 @@ export default function Marketplace() {
                   </p>
                   
                   <div className="grid md:grid-cols-3 gap-4">
-                    <div className="bg-white dark:bg-gray-800 p-4 rounded-lg">
-                      <h4 className="font-medium text-gray-900 dark:text-white mb-2 flex items-center">
+                    <div className="bg-[#1a2332] p-4 rounded-lg">
+                      <h4 className="font-medium text-orange-500 mb-2 flex items-center">
                         <TrendingUp className="h-4 w-4 mr-2 text-emerald-600" />
                         Property Value
                       </h4>
@@ -883,8 +883,8 @@ export default function Marketplace() {
                         Quality improvements that add lasting value
                       </p>
                     </div>
-                    <div className="bg-white dark:bg-gray-800 p-4 rounded-lg">
-                      <h4 className="font-medium text-gray-900 dark:text-white mb-2 flex items-center">
+                    <div className="bg-[#1a2332] p-4 rounded-lg">
+                      <h4 className="font-medium text-orange-500 mb-2 flex items-center">
                         <Award className="h-4 w-4 mr-2 text-blue-600" />
                         Proven Results
                       </h4>
@@ -892,8 +892,8 @@ export default function Marketplace() {
                         Items with track records of performance
                       </p>
                     </div>
-                    <div className="bg-white dark:bg-gray-800 p-4 rounded-lg">
-                      <h4 className="font-medium text-gray-900 dark:text-white mb-2 flex items-center">
+                    <div className="bg-[#1a2332] p-4 rounded-lg">
+                      <h4 className="font-medium text-orange-500 mb-2 flex items-center">
                         <Users className="h-4 w-4 mr-2 text-purple-600" />
                         Community Tips
                       </h4>
@@ -926,8 +926,8 @@ export default function Marketplace() {
                   </p>
                   
                   <div className="grid md:grid-cols-3 gap-4">
-                    <div className="bg-white dark:bg-gray-800 p-4 rounded-lg">
-                      <h4 className="font-medium text-gray-900 dark:text-white mb-2 flex items-center">
+                    <div className="bg-[#1a2332] p-4 rounded-lg">
+                      <h4 className="font-medium text-orange-500 mb-2 flex items-center">
                         <CheckCircle className="h-4 w-4 mr-2 text-purple-600" />
                         Authenticated Items
                       </h4>
@@ -935,8 +935,8 @@ export default function Marketplace() {
                         Verified provenance and quality documentation
                       </p>
                     </div>
-                    <div className="bg-white dark:bg-gray-800 p-4 rounded-lg">
-                      <h4 className="font-medium text-gray-900 dark:text-white mb-2 flex items-center">
+                    <div className="bg-[#1a2332] p-4 rounded-lg">
+                      <h4 className="font-medium text-orange-500 mb-2 flex items-center">
                         <TrendingUp className="h-4 w-4 mr-2 text-emerald-600" />
                         Value Appreciation
                       </h4>
@@ -944,8 +944,8 @@ export default function Marketplace() {
                         Quality pieces that often gain worth over time
                       </p>
                     </div>
-                    <div className="bg-white dark:bg-gray-800 p-4 rounded-lg">
-                      <h4 className="font-medium text-gray-900 dark:text-white mb-2 flex items-center">
+                    <div className="bg-[#1a2332] p-4 rounded-lg">
+                      <h4 className="font-medium text-orange-500 mb-2 flex items-center">
                         <Users className="h-4 w-4 mr-2 text-blue-600" />
                         Expert Network
                       </h4>
@@ -977,8 +977,8 @@ export default function Marketplace() {
                   </p>
                   
                   <div className="grid md:grid-cols-4 gap-4">
-                    <div className="bg-white dark:bg-gray-800 p-4 rounded-lg">
-                      <h4 className="font-medium text-gray-900 dark:text-white mb-2 flex items-center">
+                    <div className="bg-[#1a2332] p-4 rounded-lg">
+                      <h4 className="font-medium text-orange-500 mb-2 flex items-center">
                         <TrendingUp className="h-4 w-4 mr-2 text-emerald-600" />
                         Complete Businesses
                       </h4>
@@ -986,8 +986,8 @@ export default function Marketplace() {
                         Established operations with proven revenue streams
                       </p>
                     </div>
-                    <div className="bg-white dark:bg-gray-800 p-4 rounded-lg">
-                      <h4 className="font-medium text-gray-900 dark:text-white mb-2 flex items-center">
+                    <div className="bg-[#1a2332] p-4 rounded-lg">
+                      <h4 className="font-medium text-orange-500 mb-2 flex items-center">
                         <CheckCircle className="h-4 w-4 mr-2 text-blue-600" />
                         Business Packages
                       </h4>
@@ -995,8 +995,8 @@ export default function Marketplace() {
                         Tested business models with systems and training
                       </p>
                     </div>
-                    <div className="bg-white dark:bg-gray-800 p-4 rounded-lg">
-                      <h4 className="font-medium text-gray-900 dark:text-white mb-2 flex items-center">
+                    <div className="bg-[#1a2332] p-4 rounded-lg">
+                      <h4 className="font-medium text-orange-500 mb-2 flex items-center">
                         <Users className="h-4 w-4 mr-2 text-purple-600" />
                         Franchises
                       </h4>
@@ -1004,8 +1004,8 @@ export default function Marketplace() {
                         Proven brands with ongoing support and territory rights
                       </p>
                     </div>
-                    <div className="bg-white dark:bg-gray-800 p-4 rounded-lg">
-                      <h4 className="font-medium text-gray-900 dark:text-white mb-2 flex items-center">
+                    <div className="bg-[#1a2332] p-4 rounded-lg">
+                      <h4 className="font-medium text-orange-500 mb-2 flex items-center">
                         <Star className="h-4 w-4 mr-2 text-amber-600" />
                         Turnkey Solutions
                       </h4>
@@ -1045,8 +1045,8 @@ export default function Marketplace() {
                   </p>
                   
                   <div className="grid md:grid-cols-3 gap-4">
-                    <div className="bg-white dark:bg-gray-800 p-4 rounded-lg">
-                      <h4 className="font-medium text-gray-900 dark:text-white mb-2 flex items-center">
+                    <div className="bg-[#1a2332] p-4 rounded-lg">
+                      <h4 className="font-medium text-orange-500 mb-2 flex items-center">
                         <TrendingUp className="h-4 w-4 mr-2 text-violet-600" />
                         Market Value
                       </h4>
@@ -1054,8 +1054,8 @@ export default function Marketplace() {
                         Competitive pricing based on local market conditions
                       </p>
                     </div>
-                    <div className="bg-white dark:bg-gray-800 p-4 rounded-lg">
-                      <h4 className="font-medium text-gray-900 dark:text-white mb-2 flex items-center">
+                    <div className="bg-[#1a2332] p-4 rounded-lg">
+                      <h4 className="font-medium text-orange-500 mb-2 flex items-center">
                         <CheckCircle className="h-4 w-4 mr-2 text-emerald-600" />
                         Detailed Information
                       </h4>
@@ -1063,8 +1063,8 @@ export default function Marketplace() {
                         Complete property details and neighborhood insights
                       </p>
                     </div>
-                    <div className="bg-white dark:bg-gray-800 p-4 rounded-lg">
-                      <h4 className="font-medium text-gray-900 dark:text-white mb-2 flex items-center">
+                    <div className="bg-[#1a2332] p-4 rounded-lg">
+                      <h4 className="font-medium text-orange-500 mb-2 flex items-center">
                         <Shield className="h-4 w-4 mr-2 text-blue-600" />
                         Trusted Sellers
                       </h4>
@@ -1089,7 +1089,7 @@ export default function Marketplace() {
         {/* Results Section */}
         <div className="flex justify-between items-center mb-6">
           <div className="flex items-center gap-4">
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+            <h3 className="text-lg font-semibold text-orange-500">
               {isLoading ? "Loading..." : `${listings.length} items found`}
             </h3>
             {listings.length > 0 && (
@@ -1138,7 +1138,7 @@ export default function Marketplace() {
               <Card className="text-center py-12">
                 <CardContent>
                   <Package className="h-16 w-16 text-gray-300 mx-auto mb-4" />
-                  <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
+                  <h3 className="text-xl font-semibold text-orange-500 mb-2">
                     No listings found
                   </h3>
                   <p className="text-gray-600 dark:text-gray-400 mb-6">
@@ -1189,7 +1189,7 @@ export default function Marketplace() {
                       </div>
                     </div>
                     <CardContent className="p-4">
-                      <h3 className="font-semibold text-gray-900 dark:text-white mb-1 line-clamp-2">
+                      <h3 className="font-semibold text-orange-500 mb-1 line-clamp-2">
                         {listing.title}
                       </h3>
                       <p className="text-sm text-gray-600 dark:text-gray-400 mb-3 line-clamp-2">
@@ -1270,7 +1270,7 @@ export default function Marketplace() {
                       <div className="flex-1 min-w-0">
                         <div className="flex items-start justify-between">
                           <div className="flex-1">
-                            <h3 className="font-semibold text-gray-900 dark:text-white mb-1">
+                            <h3 className="font-semibold text-orange-500 mb-1">
                               {listing.title}
                             </h3>
                             <p className="text-sm text-gray-600 dark:text-gray-400 mb-2 line-clamp-2">

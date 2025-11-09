@@ -164,18 +164,18 @@ export default function Community() {
   const filteredPosts = posts || [];
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 pb-16 lg:pb-0">
+    <div className="min-h-screen bg-[#0f1419] pb-16 lg:pb-0">
       <div className="max-w-4xl mx-auto px-2 sm:px-4 py-4">
         
         {/* Header */}
         <div className="mb-6">
-          <h1 className="text-2xl font-bold text-slate-900 dark:text-white mb-1">Community</h1>
+          <h1 className="text-2xl font-bold text-orange-500 mb-1">Community</h1>
           <p className="text-sm text-slate-600 dark:text-slate-400">Connect with neighbors and local contractors</p>
         </div>
 
         {/* Navigation Tabs */}
         <div className="mb-4">
-          <div className="flex gap-1 bg-white dark:bg-slate-900 rounded-lg p-1 shadow-sm border border-slate-200 dark:border-slate-800">
+          <div className="flex gap-1 bg-[#1a2332] rounded-lg p-1 shadow-sm border border-[#2d3748]">
             <button
               onClick={() => setActiveTab("feed")}
               className={`flex-1 px-4 py-2 rounded-md text-sm font-medium transition-colors ${
@@ -218,7 +218,7 @@ export default function Community() {
           <div className="space-y-4">
             
             {/* Post Composer */}
-            <Card className="bg-white dark:bg-slate-900 shadow-sm border-slate-200 dark:border-slate-800">
+            <Card className="bg-[#1a2332] shadow-sm border-[#2d3748]">
               <CardContent className="p-4">
                 <div className="flex gap-3">
                   <Avatar className="h-10 w-10">
@@ -242,7 +242,7 @@ export default function Community() {
                         placeholder="What's on your mind?"
                         value={newPostContent}
                         onChange={(e) => setNewPostContent(e.target.value)}
-                        className="min-h-[100px] resize-none border-0 focus-visible:ring-0 px-0 text-slate-900 dark:text-white"
+                        className="min-h-[100px] resize-none border-0 focus-visible:ring-0 px-0 text-orange-500"
                         data-testid="textarea-new-post"
                       />
                       <Separator />
@@ -290,7 +290,7 @@ export default function Community() {
             </Card>
 
             {/* Category Filters */}
-            <Card className="bg-white dark:bg-slate-900 shadow-sm border-slate-200 dark:border-slate-800">
+            <Card className="bg-[#1a2332] shadow-sm border-[#2d3748]">
               <CardContent className="p-3">
                 <div className="flex gap-2 overflow-x-auto">
                   {POST_CATEGORIES.map((category) => {
@@ -317,10 +317,10 @@ export default function Community() {
                 <p className="mt-2 text-slate-600 dark:text-slate-400">Loading posts...</p>
               </div>
             ) : filteredPosts.length === 0 ? (
-              <Card className="bg-white dark:bg-slate-900 shadow-sm border-slate-200 dark:border-slate-800">
+              <Card className="bg-[#1a2332] shadow-sm border-[#2d3748]">
                 <CardContent className="py-16 text-center">
                   <MessageSquare className="w-16 h-16 mx-auto text-slate-300 dark:text-slate-700 mb-4" />
-                  <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-2">
+                  <h3 className="text-lg font-semibold text-orange-500 mb-2">
                     No posts yet
                   </h3>
                   <p className="text-slate-600 dark:text-slate-400 mb-4">
@@ -339,7 +339,7 @@ export default function Community() {
             ) : (
               <div className="space-y-4">
                 {filteredPosts.map((post) => (
-                  <Card key={post.id} className="bg-white dark:bg-slate-900 shadow-sm hover:shadow-md transition-shadow border-slate-200 dark:border-slate-800">
+                  <Card key={post.id} className="bg-[#1a2332] shadow-sm hover:shadow-md transition-shadow border-[#2d3748]">
                     <CardContent className="p-4">
                       {/* Post Header */}
                       <div className="flex items-start justify-between mb-3">
@@ -352,7 +352,7 @@ export default function Community() {
                           </Avatar>
                           <div>
                             <div className="flex items-center gap-2">
-                              <span className="font-semibold text-slate-900 dark:text-white">
+                              <span className="font-semibold text-orange-500">
                                 {post.author?.name || 'Anonymous'}
                               </span>
                               {post.author?.verified && (
@@ -381,7 +381,7 @@ export default function Community() {
                       {/* Post Content */}
                       <div className="mb-3">
                         {post.title && (
-                          <h3 className="font-semibold text-slate-900 dark:text-white mb-2">
+                          <h3 className="font-semibold text-orange-500 mb-2">
                             {post.title}
                           </h3>
                         )}
@@ -455,10 +455,10 @@ export default function Community() {
         {/* Events Tab */}
         {activeTab === "events" && (
           <div className="space-y-4">
-            <Card className="bg-white dark:bg-slate-900 shadow-sm border-slate-200 dark:border-slate-800">
+            <Card className="bg-[#1a2332] shadow-sm border-[#2d3748]">
               <CardContent className="py-16 text-center">
                 <Calendar className="w-16 h-16 mx-auto text-slate-300 dark:text-slate-700 mb-4" />
-                <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-2">
+                <h3 className="text-lg font-semibold text-orange-500 mb-2">
                   No upcoming events
                 </h3>
                 <p className="text-slate-600 dark:text-slate-400 mb-4">
@@ -476,10 +476,10 @@ export default function Community() {
         {/* Trending Tab */}
         {activeTab === "trending" && (
           <div className="space-y-4">
-            <Card className="bg-white dark:bg-slate-900 shadow-sm border-slate-200 dark:border-slate-800">
+            <Card className="bg-[#1a2332] shadow-sm border-[#2d3748]">
               <CardContent className="py-16 text-center">
                 <TrendingUp className="w-16 h-16 mx-auto text-slate-300 dark:text-slate-700 mb-4" />
-                <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-2">
+                <h3 className="text-lg font-semibold text-orange-500 mb-2">
                   Nothing trending yet
                 </h3>
                 <p className="text-slate-600 dark:text-slate-400">
