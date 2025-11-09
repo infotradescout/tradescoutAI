@@ -43,6 +43,20 @@ The architecture emphasizes a "community-first" advertising approach and a "no p
 
 # Recent Changes (November 2025)
 
+## User-Customizable Themes (November 9, 2025)
+- ✅ **Theme Customization System** - Full color scheme personalization
+  - Created 6 preset themes: Default (TradeScout Orange), Ocean Blue, Forest Green, Purple Haze, Sunset Orange, Monochrome
+  - **Theme Library** (`client/src/lib/themes.ts`): Centralized theme definitions with color presets
+  - **Theme Context Provider** (`client/src/contexts/ThemeContext.tsx`): Global theme management with automatic CSS variable updates
+  - **Dynamic CSS Application**: Theme colors applied via CSS custom properties across entire platform
+  - **Database Storage**: `themePreference` (preset ID) and `customThemeColors` (JSON) fields in users table
+  - **Settings Integration**: New "Appearance" tab in Settings with visual theme selector
+  - **API Endpoint**: PATCH `/api/user/theme` for saving theme preferences
+  - **User Experience**: Theme persists across sessions, applies immediately on selection
+  - **Theme Properties**: Primary background, secondary background (cards), accent colors, text colors, border colors
+  - **Consistent Branding**: Default theme maintains TradeScout brand colors (dark navy #0f1419, orange accents)
+  - Addresses user feedback about color inconsistencies - now users can choose preferred themes
+
 ## Personalized Dashboard System (November 9, 2025)
 - ✅ **Role-Based Dashboard Router** - Smart routing to appropriate dashboards based on user role
   - Created `RoleDashboardRouter.tsx` component that routes users to role-specific dashboards
