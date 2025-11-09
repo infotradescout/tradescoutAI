@@ -1126,163 +1126,39 @@ export default function Marketplace() {
               </Card>
             ))}
           </div>
-        ) : listings.length === 0 ? (
-          <>
-            {/* Smart Marketplace Insights Section */}
-            <div className="mb-8">
-              <Card className="border-2 border-dashed border-orange-200 bg-gradient-to-br from-orange-50 via-white to-amber-50 dark:from-orange-900/10 dark:via-gray-800 dark:to-amber-900/10">
-                <CardContent className="p-8">
-                  <div className="text-center mb-6">
-                    <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">
-                      Smart Marketplace Insights
-                    </h3>
-                    <p className="text-gray-600 dark:text-gray-400">
-                      Learn what makes a quality marketplace transaction
-                    </p>
-                  </div>
-                  
-                  <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
-                    <div className="text-center">
-                      <div className="w-12 h-12 mx-auto mb-3 bg-orange-100 dark:bg-orange-900/30 rounded-full flex items-center justify-center">
-                        <TrendingUp className="h-6 w-6 text-orange-600" />
-                      </div>
-                      <h4 className="font-semibold text-gray-900 dark:text-white mb-2">Value Retention</h4>
-                      <p className="text-sm text-gray-600 dark:text-gray-400">
-                        Quality items maintain their worth and can appreciate over time through proper care
-                      </p>
-                    </div>
-                    
-                    <div className="text-center">
-                      <div className="w-12 h-12 mx-auto mb-3 bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center">
-                        <CheckCircle className="h-6 w-6 text-blue-600" />
-                      </div>
-                      <h4 className="font-semibold text-gray-900 dark:text-white mb-2">Quality Indicators</h4>
-                      <p className="text-sm text-gray-600 dark:text-gray-400">
-                        Look for maintenance records, original documentation, and honest condition reports
-                      </p>
-                    </div>
-                    
-                    <div className="text-center">
-                      <div className="w-12 h-12 mx-auto mb-3 bg-emerald-100 dark:bg-emerald-900/30 rounded-full flex items-center justify-center">
-                        <Users className="h-6 w-6 text-emerald-600" />
-                      </div>
-                      <h4 className="font-semibold text-gray-900 dark:text-white mb-2">Seller Reputation</h4>
-                      <p className="text-sm text-gray-600 dark:text-gray-400">
-                        Connect with verified community members who have established track records
-                      </p>
-                    </div>
-                    
-                    <div className="text-center">
-                      <div className="w-12 h-12 mx-auto mb-3 bg-purple-100 dark:bg-purple-900/30 rounded-full flex items-center justify-center">
-                        <Award className="h-6 w-6 text-purple-600" />
-                      </div>
-                      <h4 className="font-semibold text-gray-900 dark:text-white mb-2">Smart Timing</h4>
-                      <p className="text-sm text-gray-600 dark:text-gray-400">
-                        The best opportunities often come from upgrading owners, not desperate sellers
-                      </p>
-                    </div>
-                  </div>
-                  
-                  <div className="mt-8 p-6 bg-gradient-to-r from-orange-100 to-amber-100 dark:from-orange-900/20 dark:to-amber-900/20 rounded-lg">
-                    <div className="flex items-start gap-4">
-                      <div className="flex-shrink-0">
-                        <Star className="h-6 w-6 text-orange-600" />
-                      </div>
-                      <div className="flex-1">
-                        <h4 className="font-semibold text-orange-900 dark:text-orange-100 mb-2">
-                          The TradeScout Advantage
-                        </h4>
-                        <p className="text-orange-800 dark:text-orange-200 text-sm mb-4">
-                          Our marketplace connects quality-minded buyers with sellers who understand the true value of their items. 
-                          Whether you're building a business, improving your home, or finding unique pieces, smart decisions start here.
-                        </p>
-                        <div className="flex flex-wrap gap-2">
-                          <Badge className="bg-white text-orange-700 border-orange-200">
-                            <Shield className="h-3 w-3 mr-1" />
-                            Verified Sellers
-                          </Badge>
-                          <Badge className="bg-white text-orange-700 border-orange-200">
-                            <TrendingUp className="h-3 w-3 mr-1" />
-                            Value Focus
-                          </Badge>
-                          <Badge className="bg-white text-orange-700 border-orange-200">
-                            <Users className="h-3 w-3 mr-1" />
-                            Community Trust
-                          </Badge>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
+        )}
+        
+        {/* Marketplace Listings Grid */}
+        <div className={
+          viewMode === 'grid' 
+            ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6" 
+            : "space-y-4"
+        }>
+          {listings.length === 0 ? (
+            <div className="col-span-full">
+              <Card className="text-center py-12">
+                <CardContent>
+                  <Package className="h-16 w-16 text-gray-300 mx-auto mb-4" />
+                  <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
+                    No listings found
+                  </h3>
+                  <p className="text-gray-600 dark:text-gray-400 mb-6">
+                    Try adjusting your filters or check back later for new items.
+                  </p>
+                  {isAuthenticated && (
+                    <Button 
+                      onClick={() => setLocation('/marketplace/list')}
+                      className="bg-orange-600 hover:bg-orange-700"
+                    >
+                      <Plus className="h-4 w-4 mr-2" />
+                      List an Item
+                    </Button>
+                  )}
                 </CardContent>
               </Card>
             </div>
-            <Card className="text-center py-16 bg-gradient-to-br from-orange-50 to-amber-50 dark:from-orange-900/20 dark:to-amber-900/20">
-              <CardContent>
-              <div className="flex flex-col items-center justify-center">
-                <div className="w-32 h-32 bg-gradient-to-br from-orange-100 to-amber-100 dark:from-orange-900/30 dark:to-amber-900/30 rounded-full flex items-center justify-center mb-6">
-                  <Wrench className="h-12 w-12 text-orange-600" />
-                </div>
-                <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-3">
-                  Quality Items Await Discovery
-                </h3>
-                <p className="text-gray-600 dark:text-gray-300 mb-6 max-w-lg text-lg">
-                  Smart buyers and quality sellers connect here to share items that deliver lasting value and satisfaction.
-                </p>
-                <div className="flex flex-col sm:flex-row gap-4 items-center">
-                  {isAuthenticated ? (
-                    <>
-                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 w-full max-w-2xl">
-                        <Button 
-                          onClick={() => setLocation('/marketplace/list')}
-                          className="bg-orange-600 hover:bg-orange-700 text-white px-4 py-3 text-sm"
-                        >
-                          <Plus className="h-4 w-4 mr-2" />
-                          List Items
-                        </Button>
-                        <Button 
-                          onClick={() => setLocation('/property-listing')}
-                          className="bg-violet-600 hover:bg-violet-700 text-white px-4 py-3 text-sm"
-                        >
-                          <Home className="h-4 w-4 mr-2" />
-                          List Property
-                        </Button>
-                        <Button 
-                          onClick={() => setLocation('/business-listing')}
-                          className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-3 text-sm"
-                        >
-                          <Building2 className="h-4 w-4 mr-2" />
-                          List Business
-                        </Button>
-                      </div>
-                      <p className="text-sm text-gray-500">
-                        Help others discover the value you've experienced
-                      </p>
-                    </>
-                  ) : (
-                    <>
-                      <Button 
-                        onClick={() => setLocation('/api/login')}
-                        className="bg-orange-600 hover:bg-orange-700 text-white px-8 py-3"
-                      >
-                        Join Our Community
-                      </Button>
-                      <p className="text-sm text-gray-500">
-                        Connect with quality-minded neighbors
-                      </p>
-                    </>
-                  )}
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          </>
-        ) : (
-          <div className={
-            viewMode === 'grid' 
-              ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6" 
-              : "space-y-4"
-          }>
-            {listings.map((listing) => (
+          ) : (
+            listings.map((listing) => (
               <Card 
                 key={listing.id} 
                 className="group cursor-pointer transition-all hover:shadow-lg"
@@ -1451,9 +1327,9 @@ export default function Marketplace() {
                   </CardContent>
                 )}
               </Card>
-            ))}
-          </div>
-        )}
+            ))
+          )}
+        </div>
       </div>
     </div>
   );
