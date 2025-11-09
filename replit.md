@@ -43,6 +43,15 @@ The architecture emphasizes a "community-first" advertising approach and a "no p
 
 # Recent Changes (November 2025)
 
+## Real-Time Platform Statistics (November 9, 2025)
+- ✅ **Live Statistics System** - Dynamic platform metrics from real database data
+  - API endpoint `/api/stats/platform` fetching real-time data
+  - Statistics displayed on landing page: contractors count, homeowners count, project value, success rate
+  - Auto-refresh every 60 seconds to show latest numbers
+  - Graceful fallbacks for new platforms with no data yet
+  - Statistics pull from: verified contractors (approved status), homeowner users, completed leads
+  - Success rate calculated from completed vs. cancelled projects
+
 ## Navigation Reorganization (November 9, 2025)
 - ✅ **Community-Centric Navigation** - Groups integrated into community experience
   - **Main Feed**: Dashboard (`/dashboard`) is now the primary community hub
