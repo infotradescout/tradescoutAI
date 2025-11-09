@@ -179,7 +179,7 @@ const SimpleHome = memo(function SimpleHome() {
                         <Wrench className="h-12 w-12 text-slate-300 dark:text-slate-600 mx-auto mb-3" />
                         <p className="text-slate-300 mb-4">No active projects yet</p>
                         <Link href="/contractor/leads">
-                          <Button size="sm" className="bg-emerald-600 hover:bg-emerald-700">
+                          <Button size="sm" className="bg-orange-600 hover:bg-orange-700">
                             Browse Project Requests
                           </Button>
                         </Link>
@@ -220,7 +220,7 @@ const SimpleHome = memo(function SimpleHome() {
                       <Building className="h-12 w-12 text-slate-300 dark:text-slate-600 mx-auto mb-3" />
                       <p className="text-slate-300 mb-4">No property listings yet</p>
                       <Link href="/exchange/real-estate/create">
-                        <Button size="sm" className="bg-emerald-600 hover:bg-emerald-700">
+                        <Button size="sm" className="bg-orange-600 hover:bg-orange-700">
                           Create Listing
                         </Button>
                       </Link>
