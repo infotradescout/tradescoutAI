@@ -43,16 +43,32 @@ The architecture emphasizes a "community-first" advertising approach and a "no p
 
 # Recent Changes (November 2025)
 
+## Navigation Reorganization (November 9, 2025)
+- ✅ **Community-Centric Navigation** - Groups integrated into community experience
+  - **Main Feed**: Dashboard (`/dashboard`) is now the primary community hub
+  - **Groups Integration**: Groups accessible from Community section, not standalone
+  - **HOA Access**: HOA Management visible for HOA board members and managers
+  - **Mobile Nav**: Home and Community both route to dashboard feed
+  - **Desktop Nav**: Profile dropdown includes "My Groups" and "HOA Management"
+  - **Left Sidebar**: Community section with groups and HOA sub-items
+  - **Feature Visibility**: All major features accessible (County Hub, Find Contractors, Marketplace)
+
+## Customizable Dashboard (November 9, 2025)
+- ✅ **User-Configurable Dashboard** - Personalized widget system
+  - Dashboard preferences stored in user settings (JSON field)
+  - Toggleable widgets: Activity Stats, Recent Posts, Saved Contractors, Quick Actions, Notifications, Top Contractors
+  - Dashboard Settings page for customization
+  - Responsive layout adapts to enabled widgets
+
 ## UI/UX Redesign (November 9, 2025)
 - ✅ **Complete Facebook/Nextdoor-Style Interface** - Redesigned entire UI for familiar, intuitive experience
   - **Top Navigation**: Clean Facebook-style bar with logo, icon navigation, search, and profile dropdown
-  - **Left Sidebar**: Simplified Nextdoor-style quick links (Profile, Groups, Contractors, Marketplace, County)
+  - **Left Sidebar**: Simplified Nextdoor-style quick links with community section
   - **Center Feed**: Facebook-style "What's on your mind?" post creation with clean card-based posts
   - **Right Sidebar**: Trending topics and top contractors (like Facebook suggestions)
   - **Mobile Navigation**: Bottom navigation bar with 5 key icons (matches Facebook mobile app)
   - **Color Scheme**: Light/white background with subtle shadows (Facebook/Nextdoor aesthetic)
   - **Post Actions**: Familiar Like/Comment/Share buttons in horizontal layout
-  - All features retained - only presentation simplified for familiarity
 
 ## Signup Flow Enhancement (November 9, 2025)
 - ✅ **Seamless Professional/Homeowner Separation**
