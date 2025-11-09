@@ -49,41 +49,41 @@ const MobileAppBar = memo(function MobileAppBar() {
           <div className="fixed inset-0 top-16 bg-slate-900/95 backdrop-blur-xl z-40">
             <div className="flex flex-col h-full">
               <div className="flex-1 overflow-y-auto p-4 space-y-2">
-                {/* Main Navigation */}
-                <Link href="/" 
+                {/* Main Navigation - Social First */}
+                <Link href="/home" 
                   onClick={closeMenu}
                   data-testid="link-home"
                   className="flex items-center gap-3 p-3 rounded-lg text-white hover:bg-white/10 transition-colors"
                 >
                   <Home className="w-5 h-5" />
-                  <span>Home</span>
+                  <span>Feed</span>
                 </Link>
                 
-                <Link href="/find-contractors" 
-                  onClick={closeMenu}
-                  data-testid="link-find-contractors"
-                  className="flex items-center gap-3 p-3 rounded-lg text-white hover:bg-white/10 transition-colors"
-                >
-                  <Search className="w-5 h-5" />
-                  <span>Find Contractors</span>
-                </Link>
-
-                <Link href="/worker-marketplace" 
-                  onClick={closeMenu}
-                  data-testid="link-marketplace"
-                  className="flex items-center gap-3 p-3 rounded-lg text-white hover:bg-white/10 transition-colors"
-                >
-                  <Users className="w-5 h-5" />
-                  <span>Marketplace</span>
-                </Link>
-
                 <Link href="/groups" 
                   onClick={closeMenu}
                   data-testid="link-groups"
                   className="flex items-center gap-3 p-3 rounded-lg text-white hover:bg-white/10 transition-colors"
                 >
                   <Users className="w-5 h-5" />
-                  <span>Groups</span>
+                  <span>Community</span>
+                </Link>
+
+                <Link href="/find-contractors" 
+                  onClick={closeMenu}
+                  data-testid="link-find-contractors"
+                  className="flex items-center gap-3 p-3 rounded-lg text-white hover:bg-white/10 transition-colors"
+                >
+                  <Search className="w-5 h-5" />
+                  <span>Contractors</span>
+                </Link>
+
+                <Link href="/marketplace" 
+                  onClick={closeMenu}
+                  data-testid="link-marketplace"
+                  className="flex items-center gap-3 p-3 rounded-lg text-white hover:bg-white/10 transition-colors"
+                >
+                  <Users className="w-5 h-5" />
+                  <span>Marketplace</span>
                 </Link>
 
                 {user && (
