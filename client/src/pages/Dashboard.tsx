@@ -142,7 +142,7 @@ const Dashboard = memo(function Dashboard() {
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
           <div>
-            <h1 className="text-3xl font-bold text-slate-900 dark:text-white">
+            <h1 className="text-3xl font-bold text-orange-500">
               Welcome back, {user?.firstName || 'Friend'}!
             </h1>
             <p className="text-slate-600 dark:text-slate-400 mt-1">
@@ -227,7 +227,7 @@ const Dashboard = memo(function Dashboard() {
             ) : (!Array.isArray(posts) || posts.length === 0) ? (
               <Card className="bg-[#0f1419] dark:bg-slate-800 border-0 shadow-sm">
                 <CardContent className="p-12 text-center">
-                  <h3 className="text-lg font-semibold mb-2 text-slate-900 dark:text-white">Welcome to your neighborhood!</h3>
+                  <h3 className="text-lg font-semibold mb-2 text-orange-500">Welcome to your neighborhood!</h3>
                   <p className="text-sm text-slate-500 dark:text-slate-400">Be the first to share something with your community.</p>
                 </CardContent>
               </Card>
@@ -243,7 +243,7 @@ const Dashboard = memo(function Dashboard() {
                       </Avatar>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-0.5">
-                          <h4 className="font-semibold text-sm text-slate-900 dark:text-white">
+                          <h4 className="font-semibold text-sm text-orange-500">
                             Neighbor
                           </h4>
                           {post.postType === 'promotion' && (
@@ -259,7 +259,7 @@ const Dashboard = memo(function Dashboard() {
                     </div>
 
                     {post.title && (
-                      <h3 className="text-base font-semibold mb-2 text-slate-900 dark:text-white">{post.title}</h3>
+                      <h3 className="text-base font-semibold mb-2 text-orange-500">{post.title}</h3>
                     )}
                     <p className="text-sm text-slate-700 dark:text-slate-300 mb-3 whitespace-pre-wrap">{post.content}</p>
 

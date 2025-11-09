@@ -109,7 +109,7 @@ export default function PromoPublic() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-orange-50 to-orange-100">
       {/* Header */}
-      <div className="bg-white shadow-sm border-b">
+      <div className="bg-[#0f1419] shadow-sm border-b">
         <div className="max-w-4xl mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <a href="/" className="text-2xl font-bold text-orange-600">
@@ -129,11 +129,11 @@ export default function PromoPublic() {
             <Card className="overflow-hidden border-2 border-orange-200">
               <div className="bg-gradient-to-r from-orange-600 to-orange-700 text-white p-6">
                 <div className="flex items-center justify-between mb-4">
-                  <Badge variant="secondary" className="bg-white/20 text-white border-white/20">
+                  <Badge variant="secondary" className="bg-[#0f1419]/20 text-white border-white/20">
                     {formatDiscountValue(promo.discountType, promo.discountValue)}
                   </Badge>
                   {promo.expiresAt && (
-                    <Badge variant="secondary" className="bg-white/20 text-white border-white/20">
+                    <Badge variant="secondary" className="bg-[#0f1419]/20 text-white border-white/20">
                       <Calendar className="h-3 w-3 mr-1" />
                       {isExpired ? "Expired" : `Expires ${new Date(promo.expiresAt).toLocaleDateString()}`}
                     </Badge>
@@ -162,12 +162,12 @@ export default function PromoPublic() {
                   )}
 
                   {promo.promoCode && (
-                    <div className="bg-gray-50 p-4 rounded-lg">
+                    <div className="bg-[#0f1419] p-4 rounded-lg">
                       <p className="text-sm text-gray-600 mb-2">
                         <strong>Promo Code:</strong>
                       </p>
                       <div className="flex items-center space-x-2">
-                        <code className="bg-white px-3 py-2 rounded border text-lg font-mono">
+                        <code className="bg-[#0f1419] px-3 py-2 rounded border text-lg font-mono">
                           {promo.promoCode}
                         </code>
                         <span className="text-sm text-gray-500">Mention this code when contacting</span>
@@ -286,7 +286,7 @@ export default function PromoPublic() {
             </Card>
 
             {/* TradeScout Branding */}
-            <Card className="bg-gray-50">
+            <Card className="bg-[#0f1419]">
               <CardContent className="p-4 text-center">
                 <p className="text-xs text-gray-500 mb-2">
                   This offer is powered by
