@@ -861,6 +861,32 @@ export async function registerRoutes(app: Express) {
     }
   });
 
+  // Update user roles endpoint
+  app.patch('/api/user/roles', isAuthenticated, async (req: any, res) => {
+    try {
+      const { roles } = req.body;
+      
+      // Validate roles array
+      if (!Array.isArray(roles) || roles.length === 0) {
+        return res.status(400).json({ message: "Roles must be a non-empty array" });
+      }
+
+      const userId = req.user?.id || (req.user as any)?.claims?.sub;
+      
+      // Update user roles and primary role
+      const user = await storage.updateUser(userId, {
+        roles: roles,
+        role: roles[0], // Set primary role to first selected role
+        updatedAt: new Date(),
+      });
+      
+      res.json({ ...user, password: undefined });
+    } catch (error: any) {
+      console.error("Error updating user roles:", error);
+      res.status(500).json({ message: "Failed to update roles" });
+    }
+  });
+
   // Navigation preferences endpoints
   app.put('/api/user/navigation-preferences', isAuthenticated, async (req: any, res) => {
     try {
