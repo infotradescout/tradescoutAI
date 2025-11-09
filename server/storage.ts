@@ -2732,8 +2732,14 @@ export class DatabaseStorage implements IStorage {
     authorId?: string;
     limit?: number;
     offset?: number;
-  }): Promise<CommunityPost[]> {
-    let query = db.select().from(communityPosts);
+  }): Promise<any[]> {
+    let query = db
+      .select({
+        post: communityPosts,
+        user: users
+      })
+      .from(communityPosts)
+      .leftJoin(users, eq(communityPosts.authorId, users.id));
     
     if (filters?.scope) {
       query = query.where(eq(communityPosts.scope, filters.scope));
@@ -2751,12 +2757,33 @@ export class DatabaseStorage implements IStorage {
       query = query.where(eq(communityPosts.authorId, filters.authorId));
     }
 
-    return await query
+    const results = await query
       .where(eq(communityPosts.isPublished, true))
       .where(eq(communityPosts.isHidden, false))
       .orderBy(desc(communityPosts.createdAt))
       .limit(filters?.limit || 20)
       .offset(filters?.offset || 0);
+
+    // Format posts with author information
+    return results.map(({ post, user }) => ({
+      ...post,
+      author: {
+        id: post.authorId,
+        name: user ? `${user.firstName || ''} ${user.lastName || ''}`.trim() || 'Anonymous' : 'Anonymous',
+        avatar: user?.profileImageUrl,
+        email: user?.email,
+        role: user?.role,
+        verified: user?.addressVerified || false,
+        isPrivateProfile: user?.isPrivateProfile || false
+      },
+      tags: [],
+      location: post.countyFips || '',
+      upvotes: post.likeCount,
+      downvotes: 0,
+      comments: post.commentCount,
+      pinned: false,
+      trending: false
+    }));
   }
 
   async getCommunityPost(id: string): Promise<CommunityPost | undefined> {

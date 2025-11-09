@@ -83,7 +83,7 @@ const CountyHub = memo(function CountyHub() {
                 <div className="flex items-center gap-3">
                   <MessageSquare className="w-6 h-6 text-purple-400" />
                   <div>
-                    <p className="text-lg font-bold text-white">Facebook</p>
+                    <p className="text-lg font-bold text-white">TradeScout</p>
                     <p className="text-sm text-gray-400">Community Group</p>
                   </div>
                 </div>
@@ -164,10 +164,10 @@ const CountyHub = memo(function CountyHub() {
                 Join the {countyData.name} Community
               </h2>
               <p className="text-gray-300 mb-6">
-                Connect with local contractors, homeowners, and community members on Facebook
+                Connect with local contractors, homeowners, and community members on TradeScout
               </p>
-              <Button size="lg" className="bg-blue-600 hover:bg-blue-700">
-                Join Facebook Group
+              <Button size="lg" className="bg-orange-600 hover:bg-orange-700">
+                Join Community Group
               </Button>
             </CardContent>
           </Card>
