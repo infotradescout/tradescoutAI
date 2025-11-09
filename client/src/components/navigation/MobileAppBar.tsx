@@ -11,7 +11,7 @@ const MobileAppBar = memo(function MobileAppBar() {
 
   const navItems = [
     { icon: Home, label: 'Home', path: '/dashboard', testId: 'mobile-nav-home', key: 'home' },
-    { icon: Users, label: 'Community', path: '/dashboard', testId: 'mobile-nav-community', key: 'community' },
+    { icon: Users, label: 'Community', path: '/community', testId: 'mobile-nav-community', key: 'community' },
     { icon: Wrench, label: 'Contractors', path: '/find-contractors', testId: 'mobile-nav-contractors', key: 'contractors' },
     { icon: ShoppingCart, label: 'Marketplace', path: '/marketplace', testId: 'mobile-nav-marketplace', key: 'marketplace' },
     { icon: User, label: 'Profile', path: '/profile', testId: 'mobile-nav-profile', key: 'profile' },

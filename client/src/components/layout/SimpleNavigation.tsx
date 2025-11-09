@@ -26,7 +26,7 @@ const SimpleNavigation = memo(function SimpleNavigation() {
 
   const mainNavItems = [
     { icon: Home, label: 'Home', path: '/dashboard', testId: 'nav-home', key: 'home' },
-    { icon: Users, label: 'Community', path: '/dashboard', testId: 'nav-community', key: 'community' },
+    { icon: Users, label: 'Community', path: '/community', testId: 'nav-community', key: 'community' },
     { icon: Wrench, label: 'Contractors', path: '/find-contractors', testId: 'nav-contractors', key: 'contractors' },
     { icon: ShoppingCart, label: 'Marketplace', path: '/marketplace', testId: 'nav-marketplace', key: 'marketplace' },
   ];
