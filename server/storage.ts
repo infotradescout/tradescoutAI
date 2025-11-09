@@ -6735,9 +6735,9 @@ export class DatabaseStorage implements IStorage {
     totalProjectValue: number;
   }> {
     try {
-      // Count all contractors (simplified - just count total contractors)
+      // Count all active contractors
       const contractorsResult = await db.execute(
-        sql`SELECT COUNT(*)::int as count FROM ${contractors} WHERE verification_status = 'approved'`
+        sql`SELECT COUNT(*)::int as count FROM ${contractors} WHERE is_active = true`
       );
       const totalContractors = (contractorsResult.rows[0] as any)?.count || 0;
 
