@@ -1,6 +1,8 @@
 # Overview
 
-TradeScout is a social platform connecting homeowners with contractors, characterized by multi-role user accounts, county-centric community hubs, and an affiliate-driven growth model. It supports universal signup with role switching, robust verification systems, and aims to develop into a comprehensive marketplace ecosystem. The platform is designed to be 100% free for contractors, generating revenue solely through marketplace promotions and platform advertisements. It also commits to donating 10% of profits to charitable causes.
+TradeScout is a social platform connecting homeowners with contractors, characterized by multi-role user accounts, county-centric community hubs, and an affiliate-driven growth model. It supports universal signup with role switching, robust verification systems, and aims to develop into a comprehensive marketplace ecosystem. 
+
+**CRITICAL: The platform is 100% FREE for ALL users - there are NO subscriptions, NO membership fees, NO usage charges. The ONLY paid features are marketplace promotions and platform advertisements (optional). Revenue is generated solely through these optional promotional services, NOT through user subscriptions or access fees.** The platform commits to donating 10% of profits to charitable causes.
 
 # User Preferences
 
