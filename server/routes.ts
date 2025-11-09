@@ -5290,7 +5290,7 @@ export async function registerRoutes(app: Express) {
 
   app.post("/api/community/posts", isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user?.claims?.sub;
+      const userId = req.user?.id || (req.user as any)?.claims?.sub;
       const { title, content, category, scope, stateCode, countyFips, images } = req.body;
 
       const newPost = await storage.createCommunityPost({
@@ -5334,7 +5334,7 @@ export async function registerRoutes(app: Express) {
   // Post Interactions
   app.post("/api/community/posts/:id/like", isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user?.claims?.sub;
+      const userId = req.user?.id || (req.user as any)?.claims?.sub;
       const { id: postId } = req.params;
 
       const result = await storage.togglePostLike(userId, postId);
