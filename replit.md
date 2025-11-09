@@ -38,3 +38,25 @@ The architecture emphasizes a "community-first" advertising approach and a "no p
 - **Formspree**: For bug reporting
 - **Analytics**: Event tracking system
 - **CSV Processing**: Server-side parsing
+
+# Recent Changes (November 2025)
+
+## UI/UX Redesign (November 9, 2025)
+- ✅ **Complete Facebook/Nextdoor-Style Interface** - Redesigned entire UI for familiar, intuitive experience
+  - **Top Navigation**: Clean Facebook-style bar with logo, icon navigation, search, and profile dropdown
+  - **Left Sidebar**: Simplified Nextdoor-style quick links (Profile, Groups, Contractors, Marketplace, County)
+  - **Center Feed**: Facebook-style "What's on your mind?" post creation with clean card-based posts
+  - **Right Sidebar**: Trending topics and top contractors (like Facebook suggestions)
+  - **Mobile Navigation**: Bottom navigation bar with 5 key icons (matches Facebook mobile app)
+  - **Color Scheme**: Light/white background with subtle shadows (Facebook/Nextdoor aesthetic)
+  - **Post Actions**: Familiar Like/Comment/Share buttons in horizontal layout
+  - All features retained - only presentation simplified for familiarity
+
+## Signup Flow Enhancement (November 9, 2025)
+- ✅ **Seamless Professional/Homeowner Separation**
+  - Landing page CTAs: Clear "I'm a Homeowner" vs "I'm a Professional" buttons
+  - Expanded professional roles: Contractor, Realtor, Car Dealer, Insurance Agent, Property Manager, Mortgage Broker
+  - Query parameter routing: /signup?type=homeowner or /signup?type=professional
+  - Three-tier flow: Account type → Role selection → Onboarding
+  - Visual distinction: Blue (homeowners) vs Orange (professionals)
+  - Clear "100% FREE - No fees" messaging for professionals
