@@ -1,457 +1,474 @@
 import { memo, useState } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { MessageSquare, Plus, TrendingUp, Users2, Award, Heart, Send, Image as ImageIcon, MapPin, Star, Clock, Share2, Bookmark, Home as HomeIcon, Wrench } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
+import { 
+  Home, Wrench, ShoppingCart, Building, Car, Shield, DollarSign, 
+  TrendingUp, Clock, Star, Users, Package, MessageSquare, Heart,
+  CheckCircle2, AlertCircle, Calendar, MapPin, Award, Eye
+} from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Textarea } from '@/components/ui/textarea';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
-import { Input } from '@/components/ui/input';
 import { Link } from 'wouter';
 import { useAuth } from '@/hooks/useAuth';
-import { useToast } from '@/hooks/use-toast';
-import { apiRequest } from '@/lib/queryClient';
 import { formatDistanceToNow } from 'date-fns';
 
-interface Post {
-  id: string;
-  authorId: string;
-  title?: string;
-  content: string;
-  images?: string[];
-  postType: string;
-  countyFips?: string;
-  createdAt: string;
-  likeCount: number;
-  commentCount: number;
-  shareCount: number;
-}
-
 const SimpleHome = memo(function SimpleHome() {
-  const [newPostContent, setNewPostContent] = useState("");
-  const [showNewPostForm, setShowNewPostForm] = useState(false);
   const { user } = useAuth();
-  const { toast } = useToast();
-  const queryClient = useQueryClient();
 
-  // Fetch posts from the API
-  const { data: postsData, isLoading: postsLoading } = useQuery({
-    queryKey: ['/api/community/posts'],
+  // Fetch user-specific dashboard data
+  const { data: dashboardData, isLoading } = useQuery({
+    queryKey: ['/api/dashboard', user?.id],
+    enabled: !!user?.id,
     queryFn: async () => {
-      const response = await fetch('/api/community/posts');
-      if (!response.ok) throw new Error('Failed to fetch posts');
-      return response.json();
+      // For now, return mock data structure - will be replaced with real API
+      return {
+        stats: {
+          activeProjects: 0,
+          savedContractors: 0,
+          marketplaceListings: 0,
+          realEstateListings: 0,
+          totalViews: 0,
+          notifications: 0
+        },
+        recentActivity: [],
+        myProjects: [],
+        myListings: [],
+        savedItems: []
+      };
     }
   });
 
-  // Create post mutation
-  const createPostMutation = useMutation({
-    mutationFn: async (postData: { content: string; title?: string }) => {
-      return apiRequest('POST', '/api/community/posts', {
-        content: postData.content,
-        title: postData.title,
-        postType: 'discussion',
-        visibility: 'public'
-      });
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/community/posts'] });
-      setShowNewPostForm(false);
-      setNewPostContent('');
-      toast({
-        title: "Posted!",
-        description: "Your post is now live in the community.",
-      });
-    },
-    onError: () => {
-      toast({
-        title: "Error",
-        description: "Failed to create post. Please try again.",
-        variant: "destructive",
-      });
-    }
-  });
-
-  // Like post mutation
-  const likePostMutation = useMutation({
-    mutationFn: async (postId: string) => {
-      return apiRequest('POST', `/api/community/posts/${postId}/like`);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/community/posts'] });
-    }
-  });
-
-  const handleCreatePost = () => {
-    if (!newPostContent.trim()) return;
-    createPostMutation.mutate({ content: newPostContent });
+  const stats = dashboardData?.stats || {
+    activeProjects: 0,
+    savedContractors: 0,
+    marketplaceListings: 0,
+    realEstateListings: 0,
+    totalViews: 0,
+    notifications: 0
   };
 
-  const handleLikePost = (postId: string) => {
-    likePostMutation.mutate(postId);
-  };
-
-  const posts = postsData || [];
+  // Determine dashboard sections based on user role
+  const isContractor = user?.role === 'contractor_user' || user?.role === 'accelerator_member';
+  const isRealtor = user?.role === 'realtor';
+  const isCarSalesman = user?.role === 'car_salesman';
+  const isInsuranceAgent = user?.role === 'insurance_agent';
+  const isMortgageBroker = user?.role === 'mortgage_broker';
+  const isPropertyManager = user?.role === 'property_manager';
+  const isHelper = user?.role === 'helper';
+  const isProfessional = isContractor || isRealtor || isCarSalesman || isInsuranceAgent || isMortgageBroker || isPropertyManager;
 
   return (
-    <div className="min-h-screen bg-slate-100 dark:bg-slate-900 pb-16 lg:pb-0">
-      {/* Main Content - Facebook/Nextdoor Style Layout */}
-      <div className="max-w-7xl mx-auto px-2 sm:px-4 py-4">
-        <div className="grid lg:grid-cols-12 gap-4">
-          
-          {/* Left Sidebar - Quick Navigation (Nextdoor Style) */}
-          <aside className="hidden lg:block lg:col-span-3">
-            <div className="sticky top-16 space-y-2">
-              {/* User Profile Card */}
-              <Link href="/profile">
-                <div className="flex items-center gap-3 p-3 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors cursor-pointer">
-                  <Avatar className="h-9 w-9">
-                    <AvatarImage src={user?.profileImageUrl} />
-                    <AvatarFallback className="bg-orange-500 text-white text-sm">
-                      {user?.firstName?.[0] || user?.email?.[0] || 'U'}
-                    </AvatarFallback>
-                  </Avatar>
-                  <span className="font-semibold text-sm text-slate-900 dark:text-white">
-                    {user?.firstName && user?.lastName
-                      ? `${user.firstName} ${user.lastName}`
-                      : user?.email?.split('@')[0] || 'My Profile'}
-                  </span>
-                </div>
-              </Link>
-
-              {/* Quick Links */}
-              <nav className="space-y-1">
-                <Link href="/find-contractors">
-                  <div className="flex items-center gap-3 p-3 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors cursor-pointer">
-                    <Wrench className="h-5 w-5 text-slate-600 dark:text-slate-400" />
-                    <span className="text-sm font-medium text-slate-900 dark:text-white">Find Contractors</span>
-                  </div>
-                </Link>
-                
-                <Link href="/marketplace">
-                  <div className="flex items-center gap-3 p-3 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors cursor-pointer">
-                    <Star className="h-5 w-5 text-slate-600 dark:text-slate-400" />
-                    <span className="text-sm font-medium text-slate-900 dark:text-white">Marketplace</span>
-                  </div>
-                </Link>
-
-                <Link href="/county-hub">
-                  <div className="flex items-center gap-3 p-3 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors cursor-pointer">
-                    <MapPin className="h-5 w-5 text-slate-600 dark:text-slate-400" />
-                    <span className="text-sm font-medium text-slate-900 dark:text-white">My County</span>
-                  </div>
-                </Link>
-
-                {/* Community Section with Groups */}
-                <div className="pt-2 border-t border-slate-200 dark:border-slate-700 mt-2">
-                  <div className="px-3 py-2 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">
-                    Community
-                  </div>
-                  <Link href="/groups">
-                    <div className="flex items-center gap-3 p-3 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors cursor-pointer">
-                      <Users2 className="h-5 w-5 text-slate-600 dark:text-slate-400" />
-                      <span className="text-sm font-medium text-slate-900 dark:text-white">My Groups</span>
-                    </div>
-                  </Link>
-                  
-                  {/* Show HOA link if user is HOA member */}
-                  {(user?.role === 'hoa_board' || user?.role === 'hoa_manager') && (
-                    <Link href="/hoa-dashboard">
-                      <div className="flex items-center gap-3 p-3 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors cursor-pointer">
-                        <HomeIcon className="h-5 w-5 text-slate-600 dark:text-slate-400" />
-                        <span className="text-sm font-medium text-slate-900 dark:text-white">HOA Management</span>
-                      </div>
-                    </Link>
-                  )}
-                </div>
-              </nav>
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-900 pb-20 lg:pb-0">
+      <div className="max-w-7xl mx-auto px-4 py-6">
+        {/* Welcome Header */}
+        <div className="mb-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-3xl font-bold text-slate-900 dark:text-white mb-2">
+                Welcome back, {user?.firstName || user?.email?.split('@')[0] || 'there'}! 👋
+              </h1>
+              <p className="text-slate-600 dark:text-slate-400">
+                Here's your personalized TradeScout dashboard
+              </p>
             </div>
-          </aside>
+            <Avatar className="h-20 w-20 border-4 border-orange-500">
+              <AvatarImage src={user?.profileImageUrl} />
+              <AvatarFallback className="bg-orange-500 text-white text-2xl">
+                {user?.firstName?.[0] || user?.email?.[0] || 'U'}
+              </AvatarFallback>
+            </Avatar>
+          </div>
+        </div>
 
-          {/* Center Feed - Main Content (Facebook/Nextdoor Style) */}
-          <main className="lg:col-span-6 space-y-3">
-            {/* User Snapshot Dashboard */}
-            <Card className="bg-gradient-to-br from-orange-500 to-orange-600 border-0 shadow-md text-white">
-              <CardContent className="p-6">
-                <div className="flex items-start justify-between mb-4">
-                  <div>
-                    <h2 className="text-2xl font-bold mb-1">
-                      Welcome back, {user?.firstName || user?.email?.split('@')[0] || 'there'}! 👋
-                    </h2>
-                    <p className="text-orange-100 text-sm">
-                      Here's what's happening in your TradeScout community
-                    </p>
+        {/* Quick Stats Grid */}
+        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4 mb-6">
+          {/* Stats based on user role */}
+          {isContractor && (
+            <>
+              <Card className="bg-white dark:bg-slate-800">
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between mb-2">
+                    <Wrench className="h-5 w-5 text-orange-500" />
+                    <Badge variant="secondary" className="text-xs">{stats.activeProjects}</Badge>
                   </div>
-                  <Avatar className="h-16 w-16 border-4 border-white/20">
-                    <AvatarImage src={user?.profileImageUrl} />
-                    <AvatarFallback className="bg-orange-700 text-white text-xl">
-                      {user?.firstName?.[0] || user?.email?.[0] || 'U'}
-                    </AvatarFallback>
-                  </Avatar>
-                </div>
+                  <div className="text-2xl font-bold text-slate-900 dark:text-white mb-1">
+                    {stats.activeProjects}
+                  </div>
+                  <p className="text-xs text-slate-600 dark:text-slate-400">Active Projects</p>
+                </CardContent>
+              </Card>
+              <Card className="bg-white dark:bg-slate-800">
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between mb-2">
+                    <Star className="h-5 w-5 text-yellow-500" />
+                    <Badge variant="secondary" className="text-xs">4.8</Badge>
+                  </div>
+                  <div className="text-2xl font-bold text-slate-900 dark:text-white mb-1">
+                    4.8
+                  </div>
+                  <p className="text-xs text-slate-600 dark:text-slate-400">Average Rating</p>
+                </CardContent>
+              </Card>
+            </>
+          )}
 
-                {/* Quick Stats */}
-                <div className="grid grid-cols-3 gap-3 mb-4">
-                  <div className="bg-white/10 backdrop-blur-sm rounded-lg p-3 text-center">
-                    <div className="text-2xl font-bold mb-1">0</div>
-                    <div className="text-xs text-orange-100">Saved Contractors</div>
-                  </div>
-                  <div className="bg-white/10 backdrop-blur-sm rounded-lg p-3 text-center">
-                    <div className="text-2xl font-bold mb-1">{posts.length}</div>
-                    <div className="text-xs text-orange-100">Community Posts</div>
-                  </div>
-                  <div className="bg-white/10 backdrop-blur-sm rounded-lg p-3 text-center">
-                    <div className="text-2xl font-bold mb-1">0</div>
-                    <div className="text-xs text-orange-100">Active Projects</div>
-                  </div>
-                </div>
-
-                {/* Quick Actions */}
-                <div className="flex flex-wrap gap-2">
-                  <Link href="/find-contractors">
-                    <Button size="sm" variant="secondary" className="bg-white text-orange-600 hover:bg-orange-50">
-                      <Wrench className="h-4 w-4 mr-1.5" />
-                      Find Contractors
-                    </Button>
-                  </Link>
-                  <Link href="/marketplace">
-                    <Button size="sm" variant="secondary" className="bg-white text-orange-600 hover:bg-orange-50">
-                      <Star className="h-4 w-4 mr-1.5" />
-                      Browse Marketplace
-                    </Button>
-                  </Link>
-                  <Link href="/groups">
-                    <Button size="sm" variant="secondary" className="bg-white text-orange-600 hover:bg-orange-50">
-                      <Users2 className="h-4 w-4 mr-1.5" />
-                      Join Groups
-                    </Button>
-                  </Link>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Create Post Card - Facebook Style */}
-            <Card className="bg-white dark:bg-slate-800 border-0 shadow-sm">
+          {isRealtor && (
+            <Card className="bg-white dark:bg-slate-800">
               <CardContent className="p-4">
-                <div className="flex items-center gap-3">
-                  <Avatar className="h-10 w-10">
-                    <AvatarImage src={user?.profileImageUrl} />
-                    <AvatarFallback className="bg-orange-500 text-white">
-                      {user?.firstName?.[0] || user?.email?.[0] || 'U'}
-                    </AvatarFallback>
-                  </Avatar>
-                  {!showNewPostForm ? (
-                    <button
-                      onClick={() => setShowNewPostForm(true)}
-                      className="flex-1 text-left px-4 py-2.5 rounded-full bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors text-sm"
-                      data-testid="button-create-post"
-                    >
-                      What's on your mind?
-                    </button>
-                  ) : (
-                    <div className="flex-1 space-y-3">
-                      <Textarea
-                        placeholder="Share an update, ask for recommendations, or post a project..."
-                        value={newPostContent}
-                        onChange={(e) => setNewPostContent(e.target.value)}
-                        className="min-h-[100px] border-slate-200 dark:border-slate-600 resize-none"
-                        data-testid="input-post-content"
-                        autoFocus
-                      />
-                      <div className="flex items-center justify-between">
-                        <Button variant="ghost" size="sm" className="text-slate-600 dark:text-slate-400">
-                          <ImageIcon className="h-4 w-4 mr-1.5" />
-                          Photo
-                        </Button>
-                        <div className="flex gap-2">
-                          <Button 
-                            variant="ghost" 
-                            size="sm"
-                            onClick={() => {
-                              setShowNewPostForm(false);
-                              setNewPostContent('');
-                            }}
-                          >
-                            Cancel
-                          </Button>
-                          <Button 
-                            onClick={handleCreatePost}
-                            disabled={!newPostContent.trim() || createPostMutation.isPending}
-                            size="sm"
-                            className="bg-orange-600 hover:bg-orange-700 text-white"
-                            data-testid="button-submit-post"
-                          >
-                            {createPostMutation.isPending ? 'Posting...' : 'Post'}
-                          </Button>
-                        </div>
-                      </div>
-                    </div>
-                  )}
+                <div className="flex items-center justify-between mb-2">
+                  <Building className="h-5 w-5 text-blue-500" />
+                  <Badge variant="secondary" className="text-xs">{stats.realEstateListings}</Badge>
                 </div>
+                <div className="text-2xl font-bold text-slate-900 dark:text-white mb-1">
+                  {stats.realEstateListings}
+                </div>
+                <p className="text-xs text-slate-600 dark:text-slate-400">Property Listings</p>
               </CardContent>
             </Card>
+          )}
 
-            {/* Feed Posts */}
-            {postsLoading ? (
-              <Card className="bg-white dark:bg-slate-800 border-0 shadow-sm">
-                <CardContent className="p-8 text-center">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500 mx-auto"></div>
-                  <p className="text-slate-500 dark:text-slate-400 mt-4 text-sm">Loading feed...</p>
-                </CardContent>
-              </Card>
-            ) : posts.length === 0 ? (
-              <Card className="bg-white dark:bg-slate-800 border-0 shadow-sm">
-                <CardContent className="p-12 text-center">
-                  <Users2 className="h-12 w-12 text-slate-400 mx-auto mb-3" />
-                  <h3 className="text-lg font-semibold mb-2 text-slate-900 dark:text-white">Welcome to your neighborhood!</h3>
-                  <p className="text-sm text-slate-500 dark:text-slate-400">Be the first to share something with your community.</p>
-                </CardContent>
-              </Card>
-            ) : (
-              posts.map((post: Post) => (
-                <Card key={post.id} className="bg-white dark:bg-slate-800 border-0 shadow-sm hover:shadow-md transition-shadow">
-                  <CardContent className="p-4">
-                    {/* Post Header */}
-                    <div className="flex items-start gap-3 mb-3">
-                      <Avatar className="h-10 w-10">
-                        <AvatarFallback className="bg-blue-500 text-white text-sm">
-                          {post.authorId?.charAt(0)?.toUpperCase() || 'U'}
-                        </AvatarFallback>
-                      </Avatar>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 mb-0.5">
-                          <h4 className="font-semibold text-sm text-slate-900 dark:text-white">
-                            Neighbor
-                          </h4>
-                          {post.postType === 'promotion' && (
-                            <Badge className="bg-orange-100 text-orange-700 dark:bg-orange-900 dark:text-orange-300 text-xs">
-                              Contractor
-                            </Badge>
-                          )}
-                        </div>
-                        <p className="text-xs text-slate-500 dark:text-slate-400">
-                          {formatDistanceToNow(new Date(post.createdAt), { addSuffix: true })}
-                        </p>
+          {/* Universal stats for all users */}
+          <Card className="bg-white dark:bg-slate-800">
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between mb-2">
+                <Heart className="h-5 w-5 text-red-500" />
+                <Badge variant="secondary" className="text-xs">{stats.savedContractors}</Badge>
+              </div>
+              <div className="text-2xl font-bold text-slate-900 dark:text-white mb-1">
+                {stats.savedContractors}
+              </div>
+              <p className="text-xs text-slate-600 dark:text-slate-400">Saved Items</p>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-white dark:bg-slate-800">
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between mb-2">
+                <ShoppingCart className="h-5 w-5 text-green-500" />
+                <Badge variant="secondary" className="text-xs">{stats.marketplaceListings}</Badge>
+              </div>
+              <div className="text-2xl font-bold text-slate-900 dark:text-white mb-1">
+                {stats.marketplaceListings}
+              </div>
+              <p className="text-xs text-slate-600 dark:text-slate-400">My Listings</p>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-white dark:bg-slate-800">
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between mb-2">
+                <Eye className="h-5 w-5 text-purple-500" />
+                <Badge variant="secondary" className="text-xs">New</Badge>
+              </div>
+              <div className="text-2xl font-bold text-slate-900 dark:text-white mb-1">
+                {stats.totalViews}
+              </div>
+              <p className="text-xs text-slate-600 dark:text-slate-400">Profile Views</p>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Main Dashboard Grid - Role-based content */}
+        <div className="grid lg:grid-cols-3 gap-6">
+          
+          {/* Left Column - Primary Content */}
+          <div className="lg:col-span-2 space-y-6">
+            
+            {/* Contractor-specific sections */}
+            {isContractor && (
+              <>
+                <Card className="bg-white dark:bg-slate-800">
+                  <CardHeader className="flex flex-row items-center justify-between">
+                    <CardTitle className="text-lg flex items-center gap-2">
+                      <Wrench className="h-5 w-5 text-orange-500" />
+                      My Active Projects
+                    </CardTitle>
+                    <Link href="/contractor/projects">
+                      <Button variant="ghost" size="sm">View All</Button>
+                    </Link>
+                  </CardHeader>
+                  <CardContent>
+                    {dashboardData?.myProjects?.length > 0 ? (
+                      <div className="space-y-3">
+                        {dashboardData.myProjects.map((project: any) => (
+                          <div key={project.id} className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-700 rounded-lg">
+                            <div>
+                              <p className="font-medium text-slate-900 dark:text-white">{project.title}</p>
+                              <p className="text-sm text-slate-600 dark:text-slate-400">{project.status}</p>
+                            </div>
+                            <Badge>{project.status}</Badge>
+                          </div>
+                        ))}
                       </div>
-                    </div>
-
-                    {/* Post Content */}
-                    {post.title && (
-                      <h3 className="text-base font-semibold mb-2 text-slate-900 dark:text-white">{post.title}</h3>
-                    )}
-                    <p className="text-sm text-slate-700 dark:text-slate-300 mb-3 whitespace-pre-wrap">{post.content}</p>
-
-                    {/* Post Stats */}
-                    {(post.likeCount > 0 || post.commentCount > 0) && (
-                      <div className="flex items-center gap-4 text-xs text-slate-500 dark:text-slate-400 mb-2 pb-2 border-b border-slate-200 dark:border-slate-700">
-                        {post.likeCount > 0 && <span>{post.likeCount} {post.likeCount === 1 ? 'like' : 'likes'}</span>}
-                        {post.commentCount > 0 && <span>{post.commentCount} {post.commentCount === 1 ? 'comment' : 'comments'}</span>}
+                    ) : (
+                      <div className="text-center py-8">
+                        <Wrench className="h-12 w-12 text-slate-300 dark:text-slate-600 mx-auto mb-3" />
+                        <p className="text-slate-600 dark:text-slate-400 mb-4">No active projects yet</p>
+                        <Link href="/contractor/leads">
+                          <Button size="sm" className="bg-orange-600 hover:bg-orange-700">
+                            Browse Project Requests
+                          </Button>
+                        </Link>
                       </div>
                     )}
-
-                    {/* Post Actions - Facebook Style */}
-                    <div className="flex items-center justify-around gap-1">
-                      <button
-                        onClick={() => handleLikePost(post.id)}
-                        className="flex-1 flex items-center justify-center gap-2 py-2 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-colors"
-                        data-testid={`button-like-${post.id}`}
-                      >
-                        <Heart className="h-4 w-4" />
-                        <span className="text-sm font-medium">Like</span>
-                      </button>
-                      <button className="flex-1 flex items-center justify-center gap-2 py-2 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-colors">
-                        <MessageSquare className="h-4 w-4" />
-                        <span className="text-sm font-medium">Comment</span>
-                      </button>
-                      <button className="flex-1 flex items-center justify-center gap-2 py-2 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-colors">
-                        <Share2 className="h-4 w-4" />
-                        <span className="text-sm font-medium">Share</span>
-                      </button>
-                    </div>
                   </CardContent>
                 </Card>
-              ))
+              </>
             )}
-          </main>
 
-          {/* Right Sidebar - Suggestions (Facebook/Nextdoor Style) */}
-          <aside className="hidden lg:block lg:col-span-3">
-            <div className="sticky top-16 space-y-4">
-              {/* Trending Topics */}
-              <div className="bg-white dark:bg-slate-800 rounded-lg shadow-sm p-4">
-                <h3 className="font-semibold text-sm text-slate-900 dark:text-white mb-3">
-                  Trending in your area
-                </h3>
-                <div className="space-y-2">
-                  <a href="#" className="block text-sm text-orange-600 dark:text-orange-500 hover:underline">
-                    #SpringRenovations
-                  </a>
-                  <a href="#" className="block text-sm text-orange-600 dark:text-orange-500 hover:underline">
-                    #KitchenRemodel
-                  </a>
-                  <a href="#" className="block text-sm text-orange-600 dark:text-orange-500 hover:underline">
-                    #LandscapingTips
-                  </a>
-                  <a href="#" className="block text-sm text-orange-600 dark:text-orange-500 hover:underline">
-                    #HomeImprovement
-                  </a>
-                </div>
-              </div>
-
-              {/* Top Rated Contractors */}
-              <div className="bg-white dark:bg-slate-800 rounded-lg shadow-sm p-4">
-                <div className="flex items-center justify-between mb-3">
-                  <h3 className="font-semibold text-sm text-slate-900 dark:text-white">
-                    Top Contractors
-                  </h3>
-                  <Link href="/leaderboard" className="text-xs text-orange-600 hover:underline">
-                    See all
+            {/* Realtor-specific sections */}
+            {isRealtor && (
+              <Card className="bg-white dark:bg-slate-800">
+                <CardHeader className="flex flex-row items-center justify-between">
+                  <CardTitle className="text-lg flex items-center gap-2">
+                    <Building className="h-5 w-5 text-blue-500" />
+                    My Property Listings
+                  </CardTitle>
+                  <Link href="/exchange/real-estate/my-listings">
+                    <Button variant="ghost" size="sm">View All</Button>
                   </Link>
-                </div>
-                <div className="space-y-3">
-                  {[
-                    { name: "Mike's Plumbing", rating: 4.9, reviews: 247 },
-                    { name: "Elite Electrical", rating: 4.8, reviews: 189 },
-                    { name: "Pro Landscaping", rating: 4.7, reviews: 312 }
-                  ].map((contractor, idx) => (
-                    <Link 
-                      key={idx} 
-                      href="/find-contractors" 
-                      className="flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-700/50 rounded-lg p-2 -mx-2 transition-colors cursor-pointer"
-                      data-testid={`contractor-link-${idx}`}
-                    >
-                      <div className="flex-1">
-                        <div className="flex items-center gap-1.5">
-                          <p className="font-medium text-sm text-slate-900 dark:text-white">{contractor.name}</p>
-                          <Badge className="bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300 text-[10px] px-1.5 py-0">
-                            ✓
-                          </Badge>
+                </CardHeader>
+                <CardContent>
+                  {dashboardData?.myListings?.length > 0 ? (
+                    <div className="space-y-3">
+                      {dashboardData.myListings.map((listing: any) => (
+                        <div key={listing.id} className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-700 rounded-lg">
+                          <div>
+                            <p className="font-medium text-slate-900 dark:text-white">{listing.title}</p>
+                            <p className="text-sm text-slate-600 dark:text-slate-400">${listing.price?.toLocaleString()}</p>
+                          </div>
+                          <Badge variant="secondary">{listing.views || 0} views</Badge>
                         </div>
-                        <div className="flex items-center gap-1 mt-0.5">
-                          <Star className="h-3 w-3 fill-orange-400 text-orange-400" />
-                          <span className="text-xs text-slate-600 dark:text-slate-400">
-                            {contractor.rating} · {contractor.reviews} reviews
-                          </span>
-                        </div>
-                      </div>
-                    </Link>
-                  ))}
-                </div>
-              </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-center py-8">
+                      <Building className="h-12 w-12 text-slate-300 dark:text-slate-600 mx-auto mb-3" />
+                      <p className="text-slate-600 dark:text-slate-400 mb-4">No property listings yet</p>
+                      <Link href="/exchange/real-estate/create">
+                        <Button size="sm" className="bg-blue-600 hover:bg-blue-700">
+                          Create Listing
+                        </Button>
+                      </Link>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            )}
 
-              {/* Footer Links */}
-              <div className="text-xs text-slate-500 dark:text-slate-400 space-y-1 px-2">
-                <div className="flex flex-wrap gap-x-2 gap-y-1">
-                  <a href="/privacy" className="hover:underline">Privacy</a>
-                  <span>·</span>
-                  <a href="/terms" className="hover:underline">Terms</a>
-                  <span>·</span>
-                  <a href="/help" className="hover:underline">Help</a>
-                </div>
-                <p className="text-slate-400 dark:text-slate-500">TradeScout © 2025</p>
-              </div>
-            </div>
-          </aside>
+            {/* Homeowner-specific sections */}
+            {!isProfessional && (
+              <Card className="bg-white dark:bg-slate-800">
+                <CardHeader className="flex flex-row items-center justify-between">
+                  <CardTitle className="text-lg flex items-center gap-2">
+                    <Home className="h-5 w-5 text-green-500" />
+                    My Home Projects
+                  </CardTitle>
+                  <Link href="/request-quote">
+                    <Button variant="ghost" size="sm">New Project</Button>
+                  </Link>
+                </CardHeader>
+                <CardContent>
+                  {dashboardData?.myProjects?.length > 0 ? (
+                    <div className="space-y-3">
+                      {dashboardData.myProjects.map((project: any) => (
+                        <div key={project.id} className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-700 rounded-lg">
+                          <div>
+                            <p className="font-medium text-slate-900 dark:text-white">{project.title}</p>
+                            <p className="text-sm text-slate-600 dark:text-slate-400">{project.status}</p>
+                          </div>
+                          <Badge>{project.status}</Badge>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-center py-8">
+                      <Home className="h-12 w-12 text-slate-300 dark:text-slate-600 mx-auto mb-3" />
+                      <p className="text-slate-600 dark:text-slate-400 mb-4">No projects yet</p>
+                      <Link href="/request-quote">
+                        <Button size="sm" className="bg-green-600 hover:bg-green-700">
+                          Start Your First Project
+                        </Button>
+                      </Link>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Marketplace Listings (for anyone selling) */}
+            <Card className="bg-white dark:bg-slate-800">
+              <CardHeader className="flex flex-row items-center justify-between">
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <ShoppingCart className="h-5 w-5 text-green-500" />
+                  My Marketplace Listings
+                </CardTitle>
+                <Link href="/marketplace/create">
+                  <Button variant="ghost" size="sm">Create Listing</Button>
+                </Link>
+              </CardHeader>
+              <CardContent>
+                {stats.marketplaceListings > 0 ? (
+                  <div className="space-y-3">
+                    <p className="text-sm text-slate-600 dark:text-slate-400">
+                      You have {stats.marketplaceListings} active listing{stats.marketplaceListings !== 1 ? 's' : ''}
+                    </p>
+                    <Link href="/marketplace/my-listings">
+                      <Button size="sm" variant="outline" className="w-full">
+                        Manage Listings
+                      </Button>
+                    </Link>
+                  </div>
+                ) : (
+                  <div className="text-center py-8">
+                    <Package className="h-12 w-12 text-slate-300 dark:text-slate-600 mx-auto mb-3" />
+                    <p className="text-slate-600 dark:text-slate-400 mb-4">No marketplace listings</p>
+                    <Link href="/marketplace/create">
+                      <Button size="sm" className="bg-green-600 hover:bg-green-700">
+                        Create Your First Listing
+                      </Button>
+                    </Link>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Right Column - Quick Actions & Widgets */}
+          <div className="space-y-6">
+            
+            {/* Quick Actions */}
+            <Card className="bg-gradient-to-br from-orange-500 to-orange-600 text-white">
+              <CardHeader>
+                <CardTitle className="text-lg">Quick Actions</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-2">
+                {isContractor ? (
+                  <>
+                    <Link href="/contractor/leads">
+                      <Button variant="secondary" size="sm" className="w-full justify-start bg-white/20 hover:bg-white/30 text-white border-0">
+                        <TrendingUp className="h-4 w-4 mr-2" />
+                        Find New Projects
+                      </Button>
+                    </Link>
+                    <Link href="/contractor-profile">
+                      <Button variant="secondary" size="sm" className="w-full justify-start bg-white/20 hover:bg-white/30 text-white border-0">
+                        <Star className="h-4 w-4 mr-2" />
+                        Update Profile
+                      </Button>
+                    </Link>
+                  </>
+                ) : (
+                  <>
+                    <Link href="/find-contractors">
+                      <Button variant="secondary" size="sm" className="w-full justify-start bg-white/20 hover:bg-white/30 text-white border-0">
+                        <Wrench className="h-4 w-4 mr-2" />
+                        Find Contractors
+                      </Button>
+                    </Link>
+                    <Link href="/request-quote">
+                      <Button variant="secondary" size="sm" className="w-full justify-start bg-white/20 hover:bg-white/30 text-white border-0">
+                        <MessageSquare className="h-4 w-4 mr-2" />
+                        Request Quote
+                      </Button>
+                    </Link>
+                  </>
+                )}
+                <Link href="/marketplace">
+                  <Button variant="secondary" size="sm" className="w-full justify-start bg-white/20 hover:bg-white/30 text-white border-0">
+                    <ShoppingCart className="h-4 w-4 mr-2" />
+                    Browse Marketplace
+                  </Button>
+                </Link>
+                <Link href="/community">
+                  <Button variant="secondary" size="sm" className="w-full justify-start bg-white/20 hover:bg-white/30 text-white border-0">
+                    <Users className="h-4 w-4 mr-2" />
+                    Community Feed
+                  </Button>
+                </Link>
+              </CardContent>
+            </Card>
+
+            {/* Saved Contractors (for homeowners) */}
+            {!isProfessional && (
+              <Card className="bg-white dark:bg-slate-800">
+                <CardHeader className="flex flex-row items-center justify-between">
+                  <CardTitle className="text-lg flex items-center gap-2">
+                    <Heart className="h-5 w-5 text-red-500" />
+                    Saved Contractors
+                  </CardTitle>
+                  <Link href="/saved-contractors">
+                    <Button variant="ghost" size="sm">View All</Button>
+                  </Link>
+                </CardHeader>
+                <CardContent>
+                  {stats.savedContractors > 0 ? (
+                    <p className="text-sm text-slate-600 dark:text-slate-400">
+                      You have {stats.savedContractors} saved contractor{stats.savedContractors !== 1 ? 's' : ''}
+                    </p>
+                  ) : (
+                    <div className="text-center py-6">
+                      <Heart className="h-10 w-10 text-slate-300 dark:text-slate-600 mx-auto mb-2" />
+                      <p className="text-sm text-slate-600 dark:text-slate-400">No saved contractors yet</p>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Recent Activity */}
+            <Card className="bg-white dark:bg-slate-800">
+              <CardHeader>
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <Clock className="h-5 w-5 text-blue-500" />
+                  Recent Activity
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {dashboardData?.recentActivity?.length > 0 ? (
+                  <div className="space-y-3">
+                    {dashboardData.recentActivity.slice(0, 5).map((activity: any, idx: number) => (
+                      <div key={idx} className="text-sm">
+                        <p className="text-slate-900 dark:text-white">{activity.title}</p>
+                        <p className="text-xs text-slate-500 dark:text-slate-400">
+                          {formatDistanceToNow(new Date(activity.createdAt), { addSuffix: true })}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-6">
+                    <Clock className="h-10 w-10 text-slate-300 dark:text-slate-600 mx-auto mb-2" />
+                    <p className="text-sm text-slate-600 dark:text-slate-400">No recent activity</p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Community Preview Widget */}
+            <Card className="bg-white dark:bg-slate-800">
+              <CardHeader className="flex flex-row items-center justify-between">
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <Users className="h-5 w-5 text-purple-500" />
+                  Community
+                </CardTitle>
+                <Link href="/community">
+                  <Button variant="ghost" size="sm">View All</Button>
+                </Link>
+              </CardHeader>
+              <CardContent>
+                <p className="text-sm text-slate-600 dark:text-slate-400 mb-3">
+                  See what's happening in your neighborhood
+                </p>
+                <Link href="/community">
+                  <Button size="sm" variant="outline" className="w-full">
+                    Go to Community Feed
+                  </Button>
+                </Link>
+              </CardContent>
+            </Card>
+          </div>
         </div>
       </div>
     </div>
