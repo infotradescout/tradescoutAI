@@ -3,6 +3,7 @@ import { QueryClientProvider } from '@tanstack/react-query';
 import { Router, Route, Switch } from 'wouter';
 import { queryClient } from './lib/queryClient';
 import { ErrorBoundary } from './components/ui/error-boundary';
+import { ThemeProvider } from './contexts/ThemeContext';
 
 // Only load essential components eagerly
 import SimpleLanding from './pages/SimpleLanding';
@@ -430,10 +431,12 @@ const App = memo(function App() {
   return (
     <ErrorBoundary fallback={<PageLoader />}>
       <QueryClientProvider client={queryClient}>
-        <Router>
-          <AppLayout />
-        </Router>
-        <SimpleFloatingHelp />
+        <ThemeProvider>
+          <Router>
+            <AppLayout />
+          </Router>
+          <SimpleFloatingHelp />
+        </ThemeProvider>
       </QueryClientProvider>
     </ErrorBoundary>
   );
