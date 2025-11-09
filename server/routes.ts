@@ -773,6 +773,17 @@ export async function registerRoutes(app: Express) {
     }
   );
 
+  // Platform statistics endpoint - real-time data
+  app.get('/api/stats/platform', async (req, res) => {
+    try {
+      const stats = await storage.getPlatformStatistics();
+      res.json(stats);
+    } catch (error: any) {
+      console.error('Platform statistics error:', error);
+      res.status(500).json({ message: 'Failed to fetch statistics' });
+    }
+  });
+
   // Auth user endpoint - critical for useAuth hook
   app.get('/api/auth/user', async (req: any, res) => {
     if (!req.user) {
