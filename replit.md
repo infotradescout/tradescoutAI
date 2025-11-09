@@ -64,15 +64,35 @@ The architecture emphasizes a "community-first" advertising approach and a "no p
 - ✅ **Personalized Homepage Dashboard** - Custom user experience based on role and activity
   - Homepage (`/dashboard` or `/home`) shows personalized snapshot of user's platform activity
   - **Role-specific content**:
-    - Contractors: Active projects, ratings, project requests
+    - Contractors: Active projects, ratings, project requests, quotes created, conversations
     - Realtors: Property listings, views, performance metrics
-    - Homeowners: Home projects, saved contractors, quote requests
+    - Homeowners: Home projects, saved contractors, quote requests, received quotes, active conversations
     - All users: Marketplace listings, saved items, recent activity
   - **Quick stats grid**: Real-time metrics specific to user type (projects, listings, views, ratings)
   - **Quick actions panel**: Context-aware shortcuts (Find Contractors, Browse Marketplace, Community Feed)
   - **Community preview widget**: Community feed accessible but not the main focus
   - **Customizable experience**: Users see only relevant content for their role
   - Replaces generic community feed with personalized data dashboard
+
+- ✅ **Project Management Integration** - Full contractor-homeowner planning system integrated into dashboard
+  - **API Endpoint**: `/api/dashboard` fetches real user data (projects, quotes, conversations, listings)
+  - **Contractor Dashboard Features**:
+    - Active project requests (leads) with status tracking
+    - Quotes created with status badges (draft, sent, accepted, declined)
+    - Active conversations with homeowners
+    - Quick access to project management tools
+  - **Homeowner Dashboard Features**:
+    - Project requests submitted with urgency and status
+    - Received quotes from contractors with pricing details
+    - Active conversations for project planning
+    - Saved contractors quick access
+  - **Planning & Estimation Tools**:
+    - Quote management system (labor cost, material cost, total cost)
+    - Conversation threads for project discussions
+    - Material lists for project planning
+    - Schedule coordination capabilities
+  - **Real-time Data**: Dashboard pulls from actual database tables (leads, quotes, conversations, listings)
+  - **Smart Routing**: Projects link to appropriate management pages based on user role
 
 ## Real-Time Platform Statistics (November 9, 2025)
 - ✅ **Live Statistics System** - Dynamic platform metrics from real database data
