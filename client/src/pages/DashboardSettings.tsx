@@ -79,7 +79,7 @@ export default function DashboardSettings() {
               <Settings className="h-6 w-6 text-orange-600 dark:text-orange-500" />
             </div>
             <div>
-              <h1 className="text-3xl font-bold text-slate-900 dark:text-white">
+              <h1 className="text-3xl font-bold text-orange-500">
                 Dashboard Settings
               </h1>
               <p className="text-slate-600 dark:text-slate-400 text-sm">
@@ -109,7 +109,7 @@ export default function DashboardSettings() {
                 <div className="flex-1">
                   <Label
                     htmlFor={widget.id}
-                    className="font-medium text-slate-900 dark:text-white cursor-pointer"
+                    className="font-medium text-orange-500 cursor-pointer"
                   >
                     {widget.name}
                   </Label>

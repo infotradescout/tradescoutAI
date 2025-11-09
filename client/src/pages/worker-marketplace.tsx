@@ -412,7 +412,7 @@ function TaskCard({ task }: { task: Task }) {
           <Badge className={`ml-2 ${
             task.status === 'open' ? 'bg-green-500/20 text-green-400 border-green-500/50' :
             task.status === 'assigned' ? 'bg-blue-500/20 text-blue-400 border-blue-500/50' :
-            'bg-gray-500/20 text-gray-400 border-gray-500/50'
+            'bg-[#0f1419]0/20 text-gray-400 border-gray-500/50'
           }`}>
             {task.status?.replace('_', ' ') || 'Unknown'}
           </Badge>
