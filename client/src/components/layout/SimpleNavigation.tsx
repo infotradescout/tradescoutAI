@@ -25,10 +25,10 @@ const SimpleNavigation = memo(function SimpleNavigation() {
   const isActivePath = (path: string) => location === path;
 
   const mainNavItems = [
-    { icon: Home, label: 'Home', path: '/dashboard', testId: 'nav-home' },
-    { icon: Users, label: 'Community', path: '/dashboard', testId: 'nav-community' },
-    { icon: Wrench, label: 'Contractors', path: '/find-contractors', testId: 'nav-contractors' },
-    { icon: ShoppingCart, label: 'Marketplace', path: '/marketplace', testId: 'nav-marketplace' },
+    { icon: Home, label: 'Home', path: '/dashboard', testId: 'nav-home', key: 'home' },
+    { icon: Users, label: 'Community', path: '/dashboard', testId: 'nav-community', key: 'community' },
+    { icon: Wrench, label: 'Contractors', path: '/find-contractors', testId: 'nav-contractors', key: 'contractors' },
+    { icon: ShoppingCart, label: 'Marketplace', path: '/marketplace', testId: 'nav-marketplace', key: 'marketplace' },
   ];
 
   return (
@@ -70,7 +70,7 @@ const SimpleNavigation = memo(function SimpleNavigation() {
                 const isActive = isActivePath(item.path);
                 return (
                   <Link
-                    key={item.path}
+                    key={item.key || item.path}
                     href={item.path}
                     data-testid={item.testId}
                     className={`relative flex items-center justify-center h-14 px-8 transition-colors ${

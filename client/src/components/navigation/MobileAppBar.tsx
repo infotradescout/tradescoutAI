@@ -10,11 +10,11 @@ const MobileAppBar = memo(function MobileAppBar() {
   if (!isAuthenticated) return null;
 
   const navItems = [
-    { icon: Home, label: 'Home', path: '/dashboard', testId: 'mobile-nav-home' },
-    { icon: Users, label: 'Community', path: '/dashboard', testId: 'mobile-nav-community' },
-    { icon: Wrench, label: 'Contractors', path: '/find-contractors', testId: 'mobile-nav-contractors' },
-    { icon: ShoppingCart, label: 'Marketplace', path: '/marketplace', testId: 'mobile-nav-marketplace' },
-    { icon: User, label: 'Profile', path: '/profile', testId: 'mobile-nav-profile' },
+    { icon: Home, label: 'Home', path: '/dashboard', testId: 'mobile-nav-home', key: 'home' },
+    { icon: Users, label: 'Community', path: '/dashboard', testId: 'mobile-nav-community', key: 'community' },
+    { icon: Wrench, label: 'Contractors', path: '/find-contractors', testId: 'mobile-nav-contractors', key: 'contractors' },
+    { icon: ShoppingCart, label: 'Marketplace', path: '/marketplace', testId: 'mobile-nav-marketplace', key: 'marketplace' },
+    { icon: User, label: 'Profile', path: '/profile', testId: 'mobile-nav-profile', key: 'profile' },
   ];
 
   return (
@@ -26,7 +26,7 @@ const MobileAppBar = memo(function MobileAppBar() {
           
           return (
             <Link
-              key={item.path}
+              key={item.key || item.path}
               href={item.path}
               data-testid={item.testId}
               className={`flex flex-col items-center justify-center gap-0.5 transition-colors ${
