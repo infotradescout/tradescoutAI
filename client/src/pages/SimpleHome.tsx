@@ -46,7 +46,7 @@ const SimpleHome = memo(function SimpleHome() {
       <div className="max-w-7xl mx-auto px-4 py-6">
         {/* Welcome Header */}
         <div className="mb-6">
-          <h1 className="text-3xl font-bold text-white mb-2">
+          <h1 className="text-3xl font-bold text-orange-500 mb-2">
             Welcome back, {user?.firstName || user?.email?.split('@')[0] || 'there'}
           </h1>
           <p className="text-slate-300 text-base">
@@ -90,7 +90,7 @@ const SimpleHome = memo(function SimpleHome() {
             <Card className="bg-[#1a2332] border-[#2d3748]">
               <CardContent className="p-4">
                 <div className="flex items-center justify-between mb-2">
-                  <Building className="h-5 w-5 text-blue-500" />
+                  <Building className="h-5 w-5 text-orange-500" />
                   <Badge variant="secondary" className="text-xs">{stats.realEstateListings}</Badge>
                 </div>
                 <div className="text-2xl font-bold text-white mb-1">
@@ -105,7 +105,7 @@ const SimpleHome = memo(function SimpleHome() {
           <Card className="bg-[#1a2332] border-[#2d3748]">
             <CardContent className="p-4">
               <div className="flex items-center justify-between mb-2">
-                <Heart className="h-5 w-5 text-red-500" />
+                <Heart className="h-5 w-5 text-orange-500" />
                 <Badge variant="secondary" className="text-xs">{stats.savedContractors}</Badge>
               </div>
               <div className="text-2xl font-bold text-white mb-1">
@@ -118,7 +118,7 @@ const SimpleHome = memo(function SimpleHome() {
           <Card className="bg-[#1a2332] border-[#2d3748]">
             <CardContent className="p-4">
               <div className="flex items-center justify-between mb-2">
-                <ShoppingCart className="h-5 w-5 text-green-500" />
+                <ShoppingCart className="h-5 w-5 text-orange-500" />
                 <Badge variant="secondary" className="text-xs">{stats.marketplaceListings}</Badge>
               </div>
               <div className="text-2xl font-bold text-white mb-1">
@@ -131,7 +131,7 @@ const SimpleHome = memo(function SimpleHome() {
           <Card className="bg-[#1a2332] border-[#2d3748]">
             <CardContent className="p-4">
               <div className="flex items-center justify-between mb-2">
-                <Eye className="h-5 w-5 text-purple-500" />
+                <Eye className="h-5 w-5 text-orange-500" />
                 <Badge variant="secondary" className="text-xs">New</Badge>
               </div>
               <div className="text-2xl font-bold text-white mb-1">
@@ -153,7 +153,7 @@ const SimpleHome = memo(function SimpleHome() {
               <>
                 <Card className="bg-[#1a2332] border-[#2d3748]">
                   <CardHeader className="flex flex-row items-center justify-between">
-                    <CardTitle className="text-lg flex items-center gap-2">
+                    <CardTitle className="text-lg text-orange-500 flex items-center gap-2">
                       <Wrench className="h-5 w-5 text-orange-500" />
                       My Active Projects
                     </CardTitle>
@@ -194,8 +194,8 @@ const SimpleHome = memo(function SimpleHome() {
             {isRealtor && (
               <Card className="bg-[#1a2332] border-[#2d3748]">
                 <CardHeader className="flex flex-row items-center justify-between">
-                  <CardTitle className="text-lg flex items-center gap-2">
-                    <Building className="h-5 w-5 text-blue-500" />
+                  <CardTitle className="text-lg text-orange-500 flex items-center gap-2">
+                    <Building className="h-5 w-5 text-orange-500" />
                     My Property Listings
                   </CardTitle>
                   <Link href="/exchange/real-estate/my-listings">
@@ -234,8 +234,8 @@ const SimpleHome = memo(function SimpleHome() {
             {!isProfessional && (
               <Card className="bg-[#1a2332] border-[#2d3748]">
                 <CardHeader className="flex flex-row items-center justify-between">
-                  <CardTitle className="text-lg flex items-center gap-2">
-                    <Home className="h-5 w-5 text-green-500" />
+                  <CardTitle className="text-lg text-orange-500 flex items-center gap-2">
+                    <Home className="h-5 w-5 text-orange-500" />
                     My Home Projects
                   </CardTitle>
                   <Link href="/request-quote">
@@ -274,8 +274,8 @@ const SimpleHome = memo(function SimpleHome() {
             {((dashboardData?.quotes?.length ?? 0) > 0) && (
               <Card className="bg-[#1a2332] border-[#2d3748]">
                 <CardHeader className="flex flex-row items-center justify-between">
-                  <CardTitle className="text-lg flex items-center gap-2">
-                    <DollarSign className="h-5 w-5 text-purple-500" />
+                  <CardTitle className="text-lg text-orange-500 flex items-center gap-2">
+                    <DollarSign className="h-5 w-5 text-orange-500" />
                     {isContractor ? 'My Quotes' : 'Received Quotes'}
                   </CardTitle>
                   <Link href="/messages">
@@ -306,7 +306,7 @@ const SimpleHome = memo(function SimpleHome() {
             {((dashboardData?.conversations?.length ?? 0) > 0) && (
               <Card className="bg-[#1a2332] border-[#2d3748]">
                 <CardHeader className="flex flex-row items-center justify-between">
-                  <CardTitle className="text-lg flex items-center gap-2">
+                  <CardTitle className="text-lg text-orange-500 flex items-center gap-2">
                     <MessageSquare className="h-5 w-5 text-indigo-500" />
                     Active Conversations
                   </CardTitle>
@@ -341,8 +341,8 @@ const SimpleHome = memo(function SimpleHome() {
             {/* Marketplace Listings (for anyone selling) */}
             <Card className="bg-[#1a2332] border-[#2d3748]">
               <CardHeader className="flex flex-row items-center justify-between">
-                <CardTitle className="text-lg flex items-center gap-2">
-                  <ShoppingCart className="h-5 w-5 text-green-500" />
+                <CardTitle className="text-lg text-orange-500 flex items-center gap-2">
+                  <ShoppingCart className="h-5 w-5 text-orange-500" />
                   My Marketplace Listings
                 </CardTitle>
                 <Link href="/marketplace/create">
@@ -382,7 +382,7 @@ const SimpleHome = memo(function SimpleHome() {
             {/* Quick Actions */}
             <Card className="bg-[#1a2332] border-[#2d3748]">
               <CardHeader>
-                <CardTitle className="text-lg">Quick Actions</CardTitle>
+                <CardTitle className="text-lg text-orange-500">Quick Actions</CardTitle>
               </CardHeader>
               <CardContent className="space-y-2">
                 {isContractor ? (
@@ -441,8 +441,8 @@ const SimpleHome = memo(function SimpleHome() {
             {!isProfessional && (
               <Card className="bg-[#1a2332] border-[#2d3748]">
                 <CardHeader className="flex flex-row items-center justify-between">
-                  <CardTitle className="text-lg flex items-center gap-2">
-                    <Heart className="h-5 w-5 text-red-500" />
+                  <CardTitle className="text-lg text-orange-500 flex items-center gap-2">
+                    <Heart className="h-5 w-5 text-orange-500" />
                     Saved Contractors
                   </CardTitle>
                   <Link href="/saved-contractors">
@@ -467,8 +467,8 @@ const SimpleHome = memo(function SimpleHome() {
             {/* Recent Activity */}
             <Card className="bg-[#1a2332] border-[#2d3748]">
               <CardHeader>
-                <CardTitle className="text-lg flex items-center gap-2">
-                  <Clock className="h-5 w-5 text-blue-500" />
+                <CardTitle className="text-lg text-orange-500 flex items-center gap-2">
+                  <Clock className="h-5 w-5 text-orange-500" />
                   Recent Activity
                 </CardTitle>
               </CardHeader>
@@ -496,8 +496,8 @@ const SimpleHome = memo(function SimpleHome() {
             {/* Community Preview Widget */}
             <Card className="bg-[#1a2332] border-[#2d3748]">
               <CardHeader className="flex flex-row items-center justify-between">
-                <CardTitle className="text-lg flex items-center gap-2">
-                  <Users className="h-5 w-5 text-purple-500" />
+                <CardTitle className="text-lg text-orange-500 flex items-center gap-2">
+                  <Users className="h-5 w-5 text-orange-500" />
                   Community
                 </CardTitle>
                 <Link href="/community">
