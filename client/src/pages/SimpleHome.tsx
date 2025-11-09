@@ -189,9 +189,9 @@ const SimpleHome = memo(function SimpleHome() {
                     </Link>
                   </CardHeader>
                   <CardContent>
-                    {dashboardData?.myProjects?.length > 0 ? (
+                    {(dashboardData?.myProjects?.length ?? 0) > 0 ? (
                       <div className="space-y-3">
-                        {dashboardData.myProjects.map((project: any) => (
+                        {dashboardData?.myProjects?.map((project: any) => (
                           <div key={project.id} className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-700 rounded-lg">
                             <div>
                               <p className="font-medium text-slate-900 dark:text-white">{project.title}</p>
@@ -230,9 +230,9 @@ const SimpleHome = memo(function SimpleHome() {
                   </Link>
                 </CardHeader>
                 <CardContent>
-                  {dashboardData?.myListings?.length > 0 ? (
+                  {(dashboardData?.myListings?.length ?? 0) > 0 ? (
                     <div className="space-y-3">
-                      {dashboardData.myListings.map((listing: any) => (
+                      {dashboardData?.myListings?.map((listing: any) => (
                         <div key={listing.id} className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-700 rounded-lg">
                           <div>
                             <p className="font-medium text-slate-900 dark:text-white">{listing.title}</p>
@@ -270,9 +270,9 @@ const SimpleHome = memo(function SimpleHome() {
                   </Link>
                 </CardHeader>
                 <CardContent>
-                  {dashboardData?.myProjects?.length > 0 ? (
+                  {(dashboardData?.myProjects?.length ?? 0) > 0 ? (
                     <div className="space-y-3">
-                      {dashboardData.myProjects.map((project: any) => (
+                      {dashboardData?.myProjects?.map((project: any) => (
                         <div key={project.id} className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-700 rounded-lg">
                           <div>
                             <p className="font-medium text-slate-900 dark:text-white">{project.title}</p>
@@ -426,9 +426,9 @@ const SimpleHome = memo(function SimpleHome() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                {dashboardData?.recentActivity?.length > 0 ? (
+                {(dashboardData?.recentActivity?.length ?? 0) > 0 ? (
                   <div className="space-y-3">
-                    {dashboardData.recentActivity.slice(0, 5).map((activity: any, idx: number) => (
+                    {dashboardData?.recentActivity?.slice(0, 5).map((activity: any, idx: number) => (
                       <div key={idx} className="text-sm">
                         <p className="text-slate-900 dark:text-white">{activity.title}</p>
                         <p className="text-xs text-slate-500 dark:text-slate-400">
