@@ -170,6 +170,66 @@ const SimpleHome = memo(function SimpleHome() {
 
           {/* Center Feed - Main Content (Facebook/Nextdoor Style) */}
           <main className="lg:col-span-6 space-y-3">
+            {/* User Snapshot Dashboard */}
+            <Card className="bg-gradient-to-br from-orange-500 to-orange-600 border-0 shadow-md text-white">
+              <CardContent className="p-6">
+                <div className="flex items-start justify-between mb-4">
+                  <div>
+                    <h2 className="text-2xl font-bold mb-1">
+                      Welcome back, {user?.firstName || user?.email?.split('@')[0] || 'there'}! 👋
+                    </h2>
+                    <p className="text-orange-100 text-sm">
+                      Here's what's happening in your TradeScout community
+                    </p>
+                  </div>
+                  <Avatar className="h-16 w-16 border-4 border-white/20">
+                    <AvatarImage src={user?.profileImageUrl} />
+                    <AvatarFallback className="bg-orange-700 text-white text-xl">
+                      {user?.firstName?.[0] || user?.email?.[0] || 'U'}
+                    </AvatarFallback>
+                  </Avatar>
+                </div>
+
+                {/* Quick Stats */}
+                <div className="grid grid-cols-3 gap-3 mb-4">
+                  <div className="bg-white/10 backdrop-blur-sm rounded-lg p-3 text-center">
+                    <div className="text-2xl font-bold mb-1">0</div>
+                    <div className="text-xs text-orange-100">Saved Contractors</div>
+                  </div>
+                  <div className="bg-white/10 backdrop-blur-sm rounded-lg p-3 text-center">
+                    <div className="text-2xl font-bold mb-1">{posts.length}</div>
+                    <div className="text-xs text-orange-100">Community Posts</div>
+                  </div>
+                  <div className="bg-white/10 backdrop-blur-sm rounded-lg p-3 text-center">
+                    <div className="text-2xl font-bold mb-1">0</div>
+                    <div className="text-xs text-orange-100">Active Projects</div>
+                  </div>
+                </div>
+
+                {/* Quick Actions */}
+                <div className="flex flex-wrap gap-2">
+                  <Link href="/find-contractors">
+                    <Button size="sm" variant="secondary" className="bg-white text-orange-600 hover:bg-orange-50">
+                      <Wrench className="h-4 w-4 mr-1.5" />
+                      Find Contractors
+                    </Button>
+                  </Link>
+                  <Link href="/marketplace">
+                    <Button size="sm" variant="secondary" className="bg-white text-orange-600 hover:bg-orange-50">
+                      <Star className="h-4 w-4 mr-1.5" />
+                      Browse Marketplace
+                    </Button>
+                  </Link>
+                  <Link href="/groups">
+                    <Button size="sm" variant="secondary" className="bg-white text-orange-600 hover:bg-orange-50">
+                      <Users2 className="h-4 w-4 mr-1.5" />
+                      Join Groups
+                    </Button>
+                  </Link>
+                </div>
+              </CardContent>
+            </Card>
+
             {/* Create Post Card - Facebook Style */}
             <Card className="bg-white dark:bg-slate-800 border-0 shadow-sm">
               <CardContent className="p-4">
