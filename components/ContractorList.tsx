@@ -1,3 +1,4 @@
+
 import React, { useMemo } from 'react';
 import { Contractor, User, Review } from '../types';
 import ContractorCard from './ContractorCard';
@@ -39,7 +40,7 @@ const ContractorList: React.FC<ContractorListProps> = ({
   searchTerm
 }) => {
   const sortedContractors = useMemo(() => {
-    // The contractors prop is now pre-filtered
+    // 1. Sort by the user's selected option first
     const sorted = [...contractors].sort((a, b) => {
       if (sortOption === 'lifetimeScore') {
         return b.lifetimeScore - a.lifetimeScore;
@@ -52,7 +53,15 @@ const ContractorList: React.FC<ContractorListProps> = ({
       // Default sort by monthly score
       return b.monthlyScore - a.monthlyScore;
     });
-    return sorted;
+
+    // 2. Apply "Promoted" weighting
+    // We want promoted items to float to the top, but perhaps not *all* of them if there are many.
+    // For now, simple logic: Promoted items always win unless the score difference is massive (handled by simply putting them first)
+    return sorted.sort((a, b) => {
+        if (a.isPromoted && !b.isPromoted) return -1;
+        if (!a.isPromoted && b.isPromoted) return 1;
+        return 0; // Maintain previous sort order if both are promoted or both are not
+    });
   }, [contractors, sortOption]);
 
   if (sortedContractors.length === 0) {
@@ -119,6 +128,8 @@ const ContractorList: React.FC<ContractorListProps> = ({
     );
   }
 
+  // Determine "Top Rated" based on score, but promoted items are already sorted to top.
+  // We can treat the first 3 as "Featured/Top" regardless of why they are there.
   const topContractors = sortedContractors.slice(0, 3);
   const otherContractors = sortedContractors.slice(3);
 
@@ -126,8 +137,8 @@ const ContractorList: React.FC<ContractorListProps> = ({
     <div className="space-y-8">
       {topContractors.length > 0 && (
         <section>
-          <h2 className="text-2xl font-bold text-slate-800 mb-4 pb-2 border-b-2 border-slate-200">
-            Top Rated Pros
+          <h2 className="text-2xl font-bold text-slate-800 mb-4 pb-2 border-b-2 border-slate-200 flex items-center">
+            Featured & Top Rated
           </h2>
           <div className="grid gap-6 lg:grid-cols-1">
             {topContractors.map(c => renderCard(c, true))}

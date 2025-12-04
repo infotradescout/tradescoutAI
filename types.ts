@@ -8,6 +8,8 @@ export enum Category {
   GENERAL = 'General Contractor',
 }
 
+export type UserRole = 'homeowner' | 'contractor' | 'realtor';
+
 export interface Review {
   id: string;
   userId: string;
@@ -23,6 +25,76 @@ export interface User {
   bio: string;
   savedContractorIds: string[];
   isAdmin?: boolean;
+  role?: UserRole;
+  linkedContractorId?: string; // If they are a pro, link to their business profile
+}
+
+export interface Lead {
+    id: string;
+    userId: string; // Homeowner who requested it
+    userName: string;
+    category: string;
+    description: string;
+    location: string;
+    date: string;
+    status: 'open' | 'claimed';
+}
+
+// New Interface for Active Projects
+export interface ProjectTask {
+    id: string;
+    title: string;
+    status: 'pending' | 'in-progress' | 'completed';
+    dueDate?: string;
+}
+
+export interface ProjectDocument {
+    id: string;
+    name: string;
+    type: 'invoice' | 'permit' | 'photo' | 'other';
+    url: string; // In a real app this is a cloud URL, here we might simulate or use dataURIs
+    date: string;
+}
+
+export interface ActiveProject {
+    id: string;
+    userId: string;
+    title: string;
+    category: string;
+    status: 'planning' | 'in-progress' | 'completed' | 'paused';
+    contractorId?: string; // Optional, they might DIY or haven't hired yet
+    tasks: ProjectTask[];
+    documents: ProjectDocument[];
+    notes: string;
+    startDate: string;
+    budget: number;
+}
+
+// Community Forum Interfaces
+export interface ForumComment {
+    id: string;
+    postId: string;
+    userId: string; // 'ai' for bot
+    username: string;
+    userRole: UserRole | 'ai';
+    content: string;
+    date: string;
+    upvotes: number;
+}
+
+export interface ForumPost {
+    id: string;
+    userId: string;
+    username: string;
+    userRole: UserRole;
+    title: string;
+    content: string;
+    category: string;
+    location?: string;
+    date: string;
+    upvotes: number;
+    comments: ForumComment[];
+    views: number;
 }
 
 export interface Contractor {
@@ -45,6 +117,7 @@ export interface Contractor {
   website?: string;
   sourceUrl?: string;
   distance?: number; // Distance in miles from user
+  isPromoted?: boolean; // New field for Sponsored/Partner status
 }
 
 export interface ProjectAnalysis {
@@ -56,6 +129,11 @@ export interface ProjectAnalysis {
   jobSummary: string;
   processSteps: string[];
   costFactors: string;
+  relatedServices: string[]; // Internal cross-sells (e.g. search for 'Painters')
+  affiliateOffers: { title: string; type: string }[]; // External money-makers (e.g. 'Get Financing')
+  thoughtProcess: string; // The "Brain" log
+  intent?: 'PROJECT' | 'CODES' | 'VEHICLE' | 'GENERAL'; // New: Intent Classification
+  recommendations?: { name: string; specs: string; link?: string }[]; // New: For Vehicle/Tool intent
 }
 
 export interface KnowledgeEntry {
@@ -63,6 +141,17 @@ export interface KnowledgeEntry {
   title: string;
   content: string;
   dateAdded: string;
+  isActive: boolean;
+}
+
+export interface Partnership {
+  id: string;
+  title: string;
+  description: string;
+  link: string;
+  type: 'Marketplace' | 'Affiliate' | 'Sponsored';
+  triggerKeywords: string[]; // Keywords that trigger this ad
+  priority: number; // 1-10
   isActive: boolean;
 }
 
