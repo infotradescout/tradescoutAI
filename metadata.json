@@ -1,0 +1,7 @@
+{
+  "name": "TradeScout",
+  "description": "The smart way to find trusted local contractors. TradeScout connects you with verified professionals for any home project.",
+  "requestFramePermissions": [
+    "geolocation"
+  ]
+}
