@@ -1,6 +1,6 @@
 {
-  "name": "Community Scout",
-  "description": "Your community tool for finding trusted local contractors and accessing nationwide home improvement resources.",
+  "name": "TradeScout",
+  "description": "The ultimate community interaction platform. Connect with neighbors, access local intelligence, and manage projects.",
   "requestFramePermissions": [
     "geolocation"
   ]

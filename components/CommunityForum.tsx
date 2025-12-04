@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { User, ForumPost, ForumComment, Category } from '../types';
 import * as db from '../services/db';
-import { ChatBubbleLeftRightIcon, HandThumbUpIcon, UserCircleIcon, PlusCircleIcon, SparklesIcon, CheckBadgeIcon } from './Icons';
+import { ChatBubbleLeftRightIcon, HandThumbUpIcon, UserCircleIcon, PlusCircleIcon, SparklesIcon, CheckBadgeIcon, TrashIcon } from './Icons';
 import { GoogleGenAI } from '@google/genai';
 
 interface CommunityForumProps {
@@ -96,6 +96,13 @@ const CommunityForum: React.FC<CommunityForumProps> = ({ currentUser, onLoginCli
         setPosts(db.getForumPosts());
     };
 
+    const handleDeletePost = (postId: string) => {
+        if(confirm("Are you sure you want to delete this post?")) {
+            db.deleteForumPost(postId);
+            setPosts(db.getForumPosts());
+        }
+    };
+
     const filteredPosts = filterCategory === 'All' 
         ? posts 
         : posts.filter(p => p.category === filterCategory);
@@ -179,7 +186,19 @@ const CommunityForum: React.FC<CommunityForumProps> = ({ currentUser, onLoginCli
             {/* Feed */}
             <div className="space-y-4">
                 {filteredPosts.map(post => (
-                    <div key={post.id} className="bg-slate-800 rounded-xl border border-slate-700 shadow-sm p-6 hover:border-slate-600 transition-colors">
+                    <div key={post.id} className="bg-slate-800 rounded-xl border border-slate-700 shadow-sm p-6 hover:border-slate-600 transition-colors relative group">
+                        
+                        {/* ADMIN DELETE BUTTON */}
+                        {currentUser?.isAdmin && (
+                            <button 
+                                onClick={() => handleDeletePost(post.id)}
+                                className="absolute top-4 right-4 text-red-400/50 hover:text-red-400 hover:bg-red-900/30 p-2 rounded-lg transition-all"
+                                title="Admin: Delete Post"
+                            >
+                                <TrashIcon className="w-5 h-5" />
+                            </button>
+                        )}
+
                         <div className="flex justify-between items-start mb-4">
                             <div className="flex items-center space-x-3">
                                 <div className={`w-10 h-10 rounded-full flex items-center justify-center ${post.userRole === 'contractor' ? 'bg-cyan-900/30 text-cyan-400 border border-cyan-800' : 'bg-slate-700 text-slate-400'}`}>
@@ -195,7 +214,7 @@ const CommunityForum: React.FC<CommunityForumProps> = ({ currentUser, onLoginCli
                                     <p className="text-xs text-slate-500">{post.date} • {post.location || 'Local'}</p>
                                 </div>
                             </div>
-                            <span className="text-xs font-bold text-orange-400 bg-slate-900 px-2 py-1 rounded-lg border border-slate-700">
+                            <span className="text-xs font-bold text-orange-400 bg-slate-900 px-2 py-1 rounded-lg border border-slate-700 mr-8">
                                 {post.category}
                             </span>
                         </div>

@@ -16,6 +16,7 @@ interface ContractorListProps {
   onToggleSave: (contractorId: string) => void;
   onClaim: (contractor: Contractor) => void;
   onEdit: (contractor: Contractor) => void;
+  onDelete?: (contractor: Contractor) => void; // New prop for admin delete
   onSearchOnline: () => void;
   isSearchingOnline: boolean;
   onFilterByCategory?: (category: string) => void;
@@ -33,6 +34,7 @@ const ContractorList: React.FC<ContractorListProps> = ({
   onToggleSave, 
   onClaim, 
   onEdit,
+  onDelete,
   onSearchOnline,
   isSearchingOnline,
   onFilterByCategory,
@@ -109,6 +111,7 @@ const ContractorList: React.FC<ContractorListProps> = ({
       onToggleSave={onToggleSave}
       onClaimClick={onClaim}
       onEditClick={onEdit}
+      onDelete={onDelete}
       onFilterByCategory={onFilterByCategory}
       onFilterByTerm={onFilterByTerm}
       searchTerm={searchTerm}

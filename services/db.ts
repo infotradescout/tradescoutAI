@@ -1,549 +1,219 @@
 
-import { Contractor, User, Review, Category, KnowledgeEntry, LocalTradeData, LocalDataContext, Partnership, Lead, ActiveProject, ForumPost, ForumComment } from '../types';
-
-// --- Initial Seed Data ---
-
-const seedUsers: User[] = [
-  { 
-    id: 'admin', 
-    username: 'admin', 
-    avatarUrl: 'https://ui-avatars.com/api/?name=Admin&background=000&color=fff', 
-    bio: 'System Administrator', 
-    savedContractorIds: [], 
-    isAdmin: true, 
-    role: 'homeowner'
-  }
-];
-
-const seedContractors: Contractor[] = [
-  {
-    id: 'real-ne-1',
-    name: 'Suffolk Construction',
-    category: Category.GENERAL,
-    location: 'Boston, MA',
-    monthlyScore: 95,
-    lifetimeScore: 4200,
-    avatarUrl: 'https://ui-avatars.com/api/?name=Suffolk&background=B22222&color=fff',
-    description: 'Providing general contracting and construction management services across New England.',
-    specialties: ['Commercial', 'Construction Management'],
-    reviews: [],
-    verified: true,
-    lat: 42.3601,
-    lng: -71.0589,
-    claimed: false,
-    phone: '(617) 517-4000',
-    website: 'suffolk.com',
-    isPromoted: true
-  },
-  {
-      id: 'real-ne-2',
-      name: 'ABM Industries',
-      category: Category.GENERAL,
-      location: 'New York, NY',
-      monthlyScore: 94,
-      lifetimeScore: 5500,
-      avatarUrl: 'https://ui-avatars.com/api/?name=ABM&background=000&color=fff',
-      description: 'A leading provider of facility solutions in the NYC metro area.',
-      specialties: ['Janitorial', 'Engineering', 'Parking'],
-      reviews: [],
-      verified: true,
-      lat: 40.7128,
-      lng: -74.0060,
-      claimed: false,
-      phone: '(212) 297-0200',
-      website: 'abm.com'
-  },
-  {
-      id: 'real-ne-3',
-      name: 'BrightView Landscapes',
-      category: Category.LANDSCAPING,
-      location: 'Blue Bell, PA',
-      monthlyScore: 92,
-      lifetimeScore: 3200,
-      avatarUrl: 'https://ui-avatars.com/api/?name=BrightView&background=4CAF50&color=fff',
-      description: 'The nation\'s leading landscape design, construction, and maintenance company.',
-      specialties: ['Landscape Maintenance', 'Design & Build'],
-      reviews: [],
-      verified: true,
-      lat: 40.1476,
-      lng: -75.2680,
-      claimed: false,
-      phone: '(484) 567-7204',
-      website: 'brightview.com',
-      isPromoted: true
-  },
-  {
-      id: 'real-ne-4',
-      name: 'Power Home Remodeling',
-      category: Category.GENERAL,
-      location: 'Philadelphia, PA',
-      monthlyScore: 97,
-      lifetimeScore: 4800,
-      avatarUrl: 'https://ui-avatars.com/api/?name=Power&background=0047AB&color=fff',
-      description: 'The nation\'s largest full-service exterior home remodeler.',
-      specialties: ['Windows', 'Siding', 'Roofing'],
-      reviews: [],
-      verified: true,
-      lat: 39.9526,
-      lng: -75.1652,
-      claimed: false,
-      phone: '(610) 874-5000',
-      website: 'powerhrg.com'
-  },
-  {
-      id: 'real-ne-5',
-      name: 'Benjamin Franklin Plumbing',
-      category: Category.PLUMBING,
-      location: 'Columbia, MD',
-      monthlyScore: 92,
-      lifetimeScore: 3100,
-      avatarUrl: 'https://ui-avatars.com/api/?name=Ben+Franklin&background=00F&color=fff',
-      description: 'The Punctual Plumber. Serving the greater DC/Maryland area.',
-      specialties: ['Plumbing Repair', 'Water Heaters'],
-      reviews: [],
-      verified: true,
-      lat: 39.1737,
-      lng: -76.8476,
-      claimed: false,
-      phone: '(866) 496-9634',
-      website: 'benjaminfranklinplumbing.com',
-      isPromoted: true
-  },
-  {
-      id: 'real-se-1',
-      name: 'Baker Roofing Company',
-      category: Category.ROOFING,
-      location: 'Raleigh, NC',
-      monthlyScore: 98,
-      lifetimeScore: 4500,
-      avatarUrl: 'https://ui-avatars.com/api/?name=Baker+Roofing&background=0D8ABC&color=fff',
-      description: 'Specializing in commercial and residential roofing throughout the Southeast.',
-      specialties: ['Commercial Roofing', 'Residential Roofing'],
-      reviews: [],
-      verified: true,
-      lat: 35.7796,
-      lng: -78.6382,
-      claimed: false,
-      phone: '(919) 828-2975',
-      website: 'bakerroofing.com',
-      isPromoted: true
-  },
-  {
-      id: 'real-se-2',
-      name: 'MasTec',
-      category: Category.ELECTRICAL,
-      location: 'Coral Gables, FL',
-      monthlyScore: 95,
-      lifetimeScore: 4600,
-      avatarUrl: 'https://ui-avatars.com/api/?name=MasTec&background=8B0000&color=fff',
-      description: 'Infrastructure engineering and construction company based in Florida.',
-      specialties: ['Communications', 'Clean Energy'],
-      reviews: [],
-      verified: true,
-      lat: 25.7215,
-      lng: -80.2684,
-      claimed: false,
-      phone: '(305) 599-1800',
-      website: 'mastec.com'
-  },
-  {
-      id: 'real-se-3',
-      name: 'TruGreen',
-      category: Category.LANDSCAPING,
-      location: 'Memphis, TN',
-      monthlyScore: 87,
-      lifetimeScore: 4100,
-      avatarUrl: 'https://ui-avatars.com/api/?name=TruGreen&background=32CD32&color=fff',
-      description: 'America\'s #1 lawn care company.',
-      specialties: ['Lawn Care', 'Tree & Shrub'],
-      reviews: [],
-      verified: true,
-      lat: 35.1495,
-      lng: -90.0490,
-      claimed: false,
-      phone: '1-800-464-0171',
-      website: 'trugreen.com',
-      isPromoted: true
-  },
-  {
-      id: 'real-se-4',
-      name: 'Mister Sparky',
-      category: Category.ELECTRICAL,
-      location: 'Houston, TX',
-      monthlyScore: 88,
-      lifetimeScore: 1750,
-      avatarUrl: 'https://ui-avatars.com/api/?name=Mr+Sparky&background=D32F2F&color=fff',
-      description: 'Leading electrician service provider in Texas.',
-      specialties: ['Residential Electrical', 'Repairs'],
-      reviews: [],
-      verified: true,
-      lat: 29.7604,
-      lng: -95.3698,
-      claimed: false,
-      phone: '(888) 877-2759',
-      website: 'mistersparky.com',
-      isPromoted: true
-  },
-  {
-      id: 'real-se-5',
-      name: 'TDIndustries',
-      category: Category.PLUMBING,
-      location: 'Dallas, TX',
-      monthlyScore: 91,
-      lifetimeScore: 2800,
-      avatarUrl: 'https://ui-avatars.com/api/?name=TD&background=003366&color=fff',
-      description: 'Premier mechanical construction and facility services in Dallas.',
-      specialties: ['Mechanical Construction', 'Complex Plumbing'],
-      reviews: [],
-      verified: true,
-      lat: 32.7767,
-      lng: -96.7970,
-      claimed: false,
-      phone: '(972) 888-9500',
-      website: 'tdindustries.com'
-  },
-  {
-      id: 'real-se-6',
-      name: 'Comfort Systems USA',
-      category: Category.GENERAL,
-      location: 'Houston, TX',
-      monthlyScore: 90,
-      lifetimeScore: 2900,
-      avatarUrl: 'https://ui-avatars.com/api/?name=Comfort&background=008080&color=fff',
-      description: 'Commercial HVAC, mechanical and electrical services.',
-      specialties: ['HVAC', 'Mechanical'],
-      reviews: [],
-      verified: true,
-      lat: 29.76,
-      lng: -95.37,
-      claimed: false,
-      phone: '(713) 830-9600',
-      website: 'comfortsystemsusa.com'
-  },
-  {
-      id: 'real-mw-1',
-      name: 'Roto-Rooter Plumbing',
-      category: Category.PLUMBING,
-      location: 'Cincinnati, OH',
-      monthlyScore: 94,
-      lifetimeScore: 5100,
-      avatarUrl: 'https://ui-avatars.com/api/?name=Roto+Rooter&background=222&color=fff',
-      description: 'North America\'s largest plumbing and drain cleaning service.',
-      specialties: ['Emergency Plumbing', 'Drain Cleaning'],
-      reviews: [],
-      verified: true,
-      lat: 39.1031,
-      lng: -84.5120,
-      claimed: false,
-      phone: '1-800-768-6911',
-      website: 'rotorooter.com',
-      isPromoted: true
-  },
-  {
-      id: 'real-mw-2',
-      name: 'Tecta America',
-      category: Category.ROOFING,
-      location: 'Rosemont, IL',
-      monthlyScore: 93,
-      lifetimeScore: 3100,
-      avatarUrl: 'https://ui-avatars.com/api/?name=Tecta&background=333&color=fff',
-      description: 'Commercial roofing contractor serving the Chicago area and beyond.',
-      specialties: ['Commercial Roofing', 'Roof Replacement'],
-      reviews: [],
-      verified: true,
-      lat: 41.9868,
-      lng: -87.8722,
-      claimed: false,
-      phone: '(847) 581-3838',
-      website: 'tectaamerica.com'
-  },
-  {
-      id: 'real-mw-3',
-      name: 'Davey Tree Expert Company',
-      category: Category.LANDSCAPING,
-      location: 'Kent, OH',
-      monthlyScore: 90,
-      lifetimeScore: 3400,
-      avatarUrl: 'https://ui-avatars.com/api/?name=Davey&background=2E7D32&color=fff',
-      description: 'Residential, commercial, and utility tree and landscape services.',
-      specialties: ['Tree Services', 'Grounds Management'],
-      reviews: [],
-      verified: true,
-      lat: 41.1537,
-      lng: -81.3579,
-      claimed: false,
-      phone: '1-800-445-8733',
-      website: 'davey.com',
-      isPromoted: true
-  },
-  {
-      id: 'real-w-1',
-      name: 'Rosendin Electric',
-      category: Category.ELECTRICAL,
-      location: 'San Jose, CA',
-      monthlyScore: 96,
-      lifetimeScore: 3850,
-      avatarUrl: 'https://ui-avatars.com/api/?name=Rosendin&background=FFD700&color=000',
-      description: 'One of the largest employee-owned electrical contractors.',
-      specialties: ['Commercial Electrical', 'Renewable Energy'],
-      reviews: [],
-      verified: true,
-      lat: 37.3382,
-      lng: -121.8863,
-      claimed: false,
-      phone: '(408) 286-2800',
-      website: 'rosendin.com',
-      isPromoted: true
-  },
-  {
-      id: 'real-w-2',
-      name: 'Helix Electric',
-      category: Category.ELECTRICAL,
-      location: 'San Diego, CA',
-      monthlyScore: 89,
-      lifetimeScore: 2100,
-      avatarUrl: 'https://ui-avatars.com/api/?name=Helix&background=000080&color=fff',
-      description: 'Full-service electrical contractor in Southern California.',
-      specialties: ['Design-Build', 'Mission Critical'],
-      reviews: [],
-      verified: true,
-      lat: 32.7157,
-      lng: -117.1611,
-      claimed: false,
-      phone: '(858) 535-0505',
-      website: 'helixelectric.com'
-  },
-  {
-      id: 'real-w-3',
-      name: 'DPR Construction',
-      category: Category.GENERAL,
-      location: 'Redwood City, CA',
-      monthlyScore: 93,
-      lifetimeScore: 3600,
-      avatarUrl: 'https://ui-avatars.com/api/?name=DPR&background=D22&color=fff',
-      description: 'Forward-thinking general contractor and construction manager.',
-      specialties: ['Advanced Tech', 'Life Sciences', 'Healthcare'],
-      reviews: [],
-      verified: true,
-      lat: 37.4852,
-      lng: -122.2364,
-      claimed: false,
-      phone: '(650) 474-1450',
-      website: 'dpr.com',
-      isPromoted: true
-  },
-  {
-      id: 'real-w-4',
-      name: 'McKinstry',
-      category: Category.GENERAL,
-      location: 'Seattle, WA',
-      monthlyScore: 91,
-      lifetimeScore: 2900,
-      avatarUrl: 'https://ui-avatars.com/api/?name=McKinstry&background=2F4F4F&color=fff',
-      description: 'National leader in designing, constructing, operating and maintaining high-performing buildings.',
-      specialties: ['Construction', 'Energy', 'Consulting'],
-      reviews: [],
-      verified: true,
-      lat: 47.6062,
-      lng: -122.3321,
-      claimed: false,
-      phone: '(206) 762-3311',
-      website: 'mckinstry.com'
-  },
-  {
-      id: 'real-w-5',
-      name: 'PCL Construction',
-      category: Category.GENERAL,
-      location: 'Denver, CO',
-      monthlyScore: 92,
-      lifetimeScore: 3100,
-      avatarUrl: 'https://ui-avatars.com/api/?name=PCL&background=FFC107&color=000',
-      description: 'Group of independent construction companies across the United States.',
-      specialties: ['Commercial', 'Industrial', 'Civil'],
-      reviews: [],
-      verified: true,
-      lat: 39.7392,
-      lng: -104.9903,
-      claimed: false,
-      phone: '(303) 365-6500',
-      website: 'pcl.com'
-  },
-  {
-      id: 'real-w-6',
-      name: 'Interstate Roofing',
-      category: Category.ROOFING,
-      location: 'Portland, OR',
-      monthlyScore: 89,
-      lifetimeScore: 2400,
-      avatarUrl: 'https://ui-avatars.com/api/?name=Interstate&background=607D8B&color=fff',
-      description: 'One of the largest roofing contractors in the Western US.',
-      specialties: ['Residential Roofing', 'Commercial Roofing'],
-      reviews: [],
-      verified: true,
-      lat: 45.5152,
-      lng: -122.6784,
-      claimed: false,
-      phone: '(503) 684-5611',
-      website: 'interstateroofing.com',
-      isPromoted: true
-  },
-  {
-      id: 'real-sw-1',
-      name: 'Sundt Construction',
-      category: Category.GENERAL,
-      location: 'Phoenix, AZ',
-      monthlyScore: 90,
-      lifetimeScore: 3300,
-      avatarUrl: 'https://ui-avatars.com/api/?name=Sundt&background=8B4513&color=fff',
-      description: 'One of the country\'s largest and most respected general contractors.',
-      specialties: ['Transportation', 'Industrial', 'Building'],
-      reviews: [],
-      verified: true,
-      lat: 33.4484,
-      lng: -112.0740,
-      claimed: false,
-      phone: '(480) 293-3000',
-      website: 'sundt.com'
-  }
-];
-
-const DEFAULT_PROMPTS = [
-    "Cost to remodel a 5x8 bathroom",
-    "Replace asphalt shingle roof",
-    "Install EV charger in garage",
-    "Fix a leaking kitchen faucet",
-    "Landscaping for small backyard"
-];
-
-const nationalData: LocalTradeData = {
-    permitsRequired: ["Structural changes", "New electrical circuits", "Major plumbing additions"],
-    typicalCosts: {
-        "Plumbing": { low: 100, high: 250, unit: "USD" },
-        "Electrical": { low: 90, high: 200, unit: "USD" },
-        "Roofing": { low: 450, high: 800, unit: "USD" }, // per square
-        "General Contractor": { low: 10, high: 20, unit: "USD" } // % markup
-    },
-    climateFactors: ["Varies by region"],
-    riskFactors: ["Check for lead paint in homes pre-1978"],
-    materialAvailability: ["Generally good availability", "Specialty items may have lead times"],
-    contractorRegulations: ["EPA Lead-Safe Certification required for pre-1978 homes"],
-    popularProjectTypes: ["Kitchen Remodel", "Bathroom Remodel", "Deck Building"]
-};
-
-const txData: LocalTradeData = {
-    permitsRequired: ["Varies by municipality (no county-level general permits in unincorporated areas usually)"],
-    typicalCosts: {
-        "Plumbing": { low: 90, high: 180, unit: "USD" },
-        "Electrical": { low: 85, high: 160, unit: "USD" },
-        "Roofing": { low: 350, high: 600, unit: "USD" },
-        "General Contractor": { low: 15, high: 25, unit: "USD" }
-    },
-    climateFactors: ["High Heat", "Humidity", "Hurricanes (Gulf Coast)", "Flash Flooding"],
-    riskFactors: ["Foundation shifting due to clay soil", "Termites"],
-    materialAvailability: ["High availability of concrete and brick"],
-    contractorRegulations: ["No state-wide General Contractor license (Local only)", "State Plumbing & Electrical licenses required"],
-    popularProjectTypes: ["Foundation Repair", "AC Installation", "Outdoor Kitchens"]
-};
-
-const travisCountyData: LocalTradeData = {
-    permitsRequired: ["Austin Energy Green Building requirements", "Tree Ordinance permits", "Impervious cover limits"],
-    typicalCosts: {
-        "Plumbing": { low: 120, high: 220, unit: "USD" },
-        "Electrical": { low: 100, high: 180, unit: "USD" },
-        "Roofing": { low: 400, high: 700, unit: "USD" },
-        "General Contractor": { low: 18, high: 28, unit: "USD" }
-    },
-    climateFactors: ["Flash Alley flooding zone", "Extreme summer heat"],
-    riskFactors: ["Limestone excavation costs", "Oak Wilt protection"],
-    materialAvailability: ["Local Limestone", "Xeriscaping plants"],
-    contractorRegulations: ["Strict City of Austin inspections", "Wildland-Urban Interface codes"],
-    popularProjectTypes: ["Xeriscaping", "Solar Installation", "Accessory Dwelling Units (ADUs)"]
-};
-
-const caData: LocalTradeData = {
-    permitsRequired: ["Title 24 Energy Standards", "Seismic retrofitting"],
-    typicalCosts: {
-        "Plumbing": { low: 150, high: 300, unit: "USD" },
-        "Electrical": { low: 120, high: 250, unit: "USD" },
-        "Roofing": { low: 600, high: 1000, unit: "USD" },
-        "General Contractor": { low: 20, high: 30, unit: "USD" }
-    },
-    climateFactors: ["Seismic activity", "Wildfires", "Coastal salt air"],
-    riskFactors: ["Earthquakes", "Landslides"],
-    materialAvailability: ["Strict VOC regulations on paints/adhesives"],
-    contractorRegulations: ["CSLB License required for jobs over $500", "Strict workers comp laws"],
-    popularProjectTypes: ["Seismic Retrofit", "Drought-tolerant Landscaping", "Solar"]
-};
-
-const laCountyData: LocalTradeData = {
-    permitsRequired: ["LADBS structural observation", "Hillside grading permits"],
-    typicalCosts: {
-        "Plumbing": { low: 160, high: 320, unit: "USD" },
-        "Electrical": { low: 130, high: 260, unit: "USD" },
-        "Roofing": { low: 650, high: 1100, unit: "USD" },
-        "General Contractor": { low: 20, high: 35, unit: "USD" }
-    },
-    climateFactors: ["Santa Ana winds", "Urban heat island"],
-    riskFactors: ["Liquefaction zones"],
-    materialAvailability: ["High cost of lumber"],
-    contractorRegulations: ["Local hire initiatives in some zones"],
-    popularProjectTypes: ["ADU Conversion", "Pool Building", "Smart Home Tech"]
-};
-
-const seedPartnerships: Partnership[] = [];
-const seedPosts: ForumPost[] = [];
+import { Contractor, User, Review, Category, KnowledgeEntry, LocalTradeData, LocalDataContext, Partnership, Lead, ActiveProject, ForumPost, ForumComment, CountyConfig } from '../types';
 
 const DB_KEYS = {
-  CONTRACTORS: 'localpro_contractors_v6_clean',
-  USERS: 'localpro_users_v6_clean',
-  PROMPTS: 'localpro_suggested_prompts_v6_clean',
-  KNOWLEDGE_BASE: 'localpro_knowledge_base_v6_clean',
-  LOCAL_DATA: 'localpro_local_data_store_v6_clean',
-  ADS_PARTNERSHIPS: 'localpro_partnerships_v6_clean',
-  LEADS: 'localpro_leads_v6_clean',
-  PROJECTS: 'localpro_active_projects_v6_clean',
-  FORUM_POSTS: 'localpro_forum_posts_v6_clean' 
+    CONTRACTORS: 'scout_contractors',
+    USERS: 'scout_users',
+    REVIEWS: 'scout_reviews',
+    LEADS: 'scout_leads',
+    PROJECTS: 'scout_projects',
+    FORUM_POSTS: 'scout_forum_posts',
+    LOCAL_DATA: 'scout_local_data',
+    PROMPTS: 'scout_prompts',
+    KNOWLEDGE_BASE: 'scout_knowledge_base',
+    ADS_PARTNERSHIPS: 'scout_partnerships',
+    COUNTY_CONFIGS: 'scout_county_configs'
 };
 
-// --- Initialization ---
+const SEED_CONTRACTORS: Contractor[] = [
+    {
+        id: 'c1',
+        name: "Joe's Plumbing",
+        category: Category.PLUMBING,
+        location: "Oakville, ON",
+        monthlyScore: 85,
+        lifetimeScore: 920,
+        avatarUrl: "https://ui-avatars.com/api/?name=Joes+Plumbing&background=random",
+        description: "Expert plumbing services for residential and commercial needs. 20 years of experience.",
+        specialties: ["Leak Repair", "Pipe Installation", "Water Heaters"],
+        reviews: [
+            { id: 'r1', userId: 'u2', rating: 5, comment: "Fast and reliable service!", date: "2023-10-15" },
+            { id: 'r2', userId: 'u3', rating: 4, comment: "Good work, slightly pricey.", date: "2023-09-20" }
+        ],
+        verified: true,
+        lat: 43.4675,
+        lng: -79.6877,
+        claimed: true,
+        phone: "555-0101",
+        website: "www.joesplumbing.com",
+        distance: 2.5
+    },
+    {
+        id: 'c2',
+        name: "Elite Electricians",
+        category: Category.ELECTRICAL,
+        location: "Burlington, ON",
+        monthlyScore: 92,
+        lifetimeScore: 1150,
+        avatarUrl: "https://ui-avatars.com/api/?name=Elite+Electricians&background=random",
+        description: "Certified electricians specializing in smart home installations and rewiring.",
+        specialties: ["Smart Home", "Rewiring", "Panel Upgrades"],
+        reviews: [
+            { id: 'r3', userId: 'u2', rating: 5, comment: "Installed my EV charger perfectly.", date: "2023-11-01" }
+        ],
+        verified: true,
+        lat: 43.3255,
+        lng: -79.7990,
+        claimed: true,
+        phone: "555-0102",
+        website: "www.eliteelectric.ca",
+        distance: 5.0
+    },
+    {
+        id: 'c3',
+        name: "Prestige Painters",
+        category: Category.PAINTING,
+        location: "Mississauga, ON",
+        monthlyScore: 78,
+        lifetimeScore: 600,
+        avatarUrl: "https://ui-avatars.com/api/?name=Prestige+Painters&background=random",
+        description: "Interior and exterior painting services with a focus on detail.",
+        specialties: ["Interior", "Exterior", "Staining"],
+        reviews: [],
+        verified: false,
+        lat: 43.5890,
+        lng: -79.6441,
+        claimed: false,
+        phone: "555-0103",
+        distance: 8.2
+    },
+    {
+        id: 'c4',
+        name: "Roofing Masters",
+        category: Category.ROOFING,
+        location: "Hamilton, ON",
+        monthlyScore: 88,
+        lifetimeScore: 980,
+        avatarUrl: "https://ui-avatars.com/api/?name=Roofing+Masters&background=random",
+        description: "Top-rated roofing company for repairs and replacements.",
+        specialties: ["Shingles", "Flat Roofs", "Repairs"],
+        reviews: [],
+        verified: true,
+        lat: 43.2557,
+        lng: -79.8711,
+        claimed: true,
+        phone: "555-0104",
+        website: "www.roofingmasters.ca",
+        distance: 12.0
+    },
+    {
+        id: 'c5',
+        name: "Green Thumb Landscaping",
+        category: Category.LANDSCAPING,
+        location: "Oakville, ON",
+        monthlyScore: 95,
+        lifetimeScore: 1300,
+        avatarUrl: "https://ui-avatars.com/api/?name=Green+Thumb&background=random",
+        description: "Transforming your outdoor space into a paradise.",
+        specialties: ["Garden Design", "Lawn Care", "Hardscaping"],
+        reviews: [],
+        verified: true,
+        lat: 43.4600,
+        lng: -79.6900,
+        claimed: true,
+        phone: "555-0105",
+        distance: 1.5,
+        isPromoted: true
+    }
+];
+
+const SEED_USERS: User[] = [
+    { id: 'u1', username: 'HomeOwner1', avatarUrl: 'https://ui-avatars.com/api/?name=HomeOwner1&background=random', bio: 'Renovating my 1980s home.', savedContractorIds: ['c2'], role: 'homeowner' },
+    { id: 'u2', username: 'CondoDweller', avatarUrl: 'https://ui-avatars.com/api/?name=CondoDweller&background=random', bio: 'Looking for reliable maintenance pros.', savedContractorIds: [], role: 'homeowner' },
+    { id: 'u3', username: 'DIYDave', avatarUrl: 'https://ui-avatars.com/api/?name=DIYDave&background=random', bio: 'I do most things myself, but need help sometimes.', savedContractorIds: ['c1'], role: 'homeowner' },
+    { id: 'admin', username: 'Admin', avatarUrl: 'https://ui-avatars.com/api/?name=Admin&background=random', bio: 'System Administrator', savedContractorIds: [], isAdmin: true, role: 'homeowner' }
+];
+
+const SEED_PROMPTS = [
+    "Find a reliable plumber for a kitchen leak",
+    "How much does it cost to paint a 12x12 room?",
+    "Roof repair specialists near me",
+    "Permits needed for a deck in Texas",
+    "Best work van for HVAC technician",
+    "Landscaping ideas for small backyards"
+];
+
+const SEED_KNOWLEDGE: KnowledgeEntry[] = [
+    { id: 'kb1', title: 'Permit Basics', content: 'Most structural changes require a permit. Electrical and plumbing work often requires separate trade permits.', dateAdded: new Date().toISOString(), isActive: true }
+];
+
+const SEED_PARTNERSHIPS: Partnership[] = [
+    { id: 'p1', title: 'Home Depot Pro', description: '5% off bulk lumber', link: 'https://homedepot.com', type: 'Affiliate', triggerKeywords: ['lumber', 'deck', 'wood'], priority: 1, isActive: true },
+    { id: 'p2', title: 'Ford Fleet', description: 'Lease deals on Transit vans', link: 'https://ford.com', type: 'Sponsored', triggerKeywords: ['van', 'truck', 'vehicle'], priority: 10, isActive: true }
+];
+
+const SEED_FORUM_POSTS: ForumPost[] = [
+    {
+        id: 'post-1',
+        userId: 'u1',
+        username: 'HomeOwner1',
+        userRole: 'homeowner',
+        title: 'Best insulation for attic?',
+        content: 'I am looking to upgrade my attic insulation. Blown-in or batts? Any recommendations?',
+        category: 'General Contractor',
+        date: '2023-11-10',
+        upvotes: 5,
+        views: 120,
+        comments: [
+            { id: 'c1', postId: 'post-1', userId: 'c5', username: 'Joe\'s Plumbing', userRole: 'contractor', content: 'While I do plumbing, I recommend blown-in for better coverage in tight corners.', date: '2023-11-10', upvotes: 2 }
+        ]
+    }
+];
+
 export const initDB = () => {
-  if (!localStorage.getItem(DB_KEYS.CONTRACTORS)) {
-    localStorage.setItem(DB_KEYS.CONTRACTORS, JSON.stringify(seedContractors));
-  }
-  if (!localStorage.getItem(DB_KEYS.USERS)) {
-    localStorage.setItem(DB_KEYS.USERS, JSON.stringify(seedUsers));
-  }
-  if (!localStorage.getItem(DB_KEYS.PROMPTS)) {
-    localStorage.setItem(DB_KEYS.PROMPTS, JSON.stringify(DEFAULT_PROMPTS));
-  }
-  if (!localStorage.getItem(DB_KEYS.KNOWLEDGE_BASE)) {
-    localStorage.setItem(DB_KEYS.KNOWLEDGE_BASE, JSON.stringify([]));
-  }
-  if (!localStorage.getItem(DB_KEYS.ADS_PARTNERSHIPS)) {
-    localStorage.setItem(DB_KEYS.ADS_PARTNERSHIPS, JSON.stringify(seedPartnerships));
-  }
-  if (!localStorage.getItem(DB_KEYS.LEADS)) {
-    localStorage.setItem(DB_KEYS.LEADS, JSON.stringify([]));
-  }
-  if (!localStorage.getItem(DB_KEYS.PROJECTS)) {
-    localStorage.setItem(DB_KEYS.PROJECTS, JSON.stringify([]));
-  }
-  if (!localStorage.getItem(DB_KEYS.FORUM_POSTS)) {
-      localStorage.setItem(DB_KEYS.FORUM_POSTS, JSON.stringify(seedPosts));
-  }
-  
-  // Seed Local Data Hierarchy
-  if (!localStorage.getItem(DB_KEYS.LOCAL_DATA)) {
-      const initialStore = {
-          'national': nationalData,
-          'state_TX': txData,
-          'county_TX_Travis': travisCountyData,
-          'state_CA': caData,
-          'county_CA_LosAngeles': laCountyData
-      };
-      localStorage.setItem(DB_KEYS.LOCAL_DATA, JSON.stringify(initialStore));
-  }
+    if (!localStorage.getItem(DB_KEYS.CONTRACTORS)) {
+        localStorage.setItem(DB_KEYS.CONTRACTORS, JSON.stringify(SEED_CONTRACTORS));
+    }
+    if (!localStorage.getItem(DB_KEYS.USERS)) {
+        localStorage.setItem(DB_KEYS.USERS, JSON.stringify(SEED_USERS));
+    }
+    if (!localStorage.getItem(DB_KEYS.PROMPTS)) {
+        localStorage.setItem(DB_KEYS.PROMPTS, JSON.stringify(SEED_PROMPTS));
+    }
+    if (!localStorage.getItem(DB_KEYS.KNOWLEDGE_BASE)) {
+        localStorage.setItem(DB_KEYS.KNOWLEDGE_BASE, JSON.stringify(SEED_KNOWLEDGE));
+    }
+    if (!localStorage.getItem(DB_KEYS.ADS_PARTNERSHIPS)) {
+        localStorage.setItem(DB_KEYS.ADS_PARTNERSHIPS, JSON.stringify(SEED_PARTNERSHIPS));
+    }
+    if (!localStorage.getItem(DB_KEYS.FORUM_POSTS)) {
+        localStorage.setItem(DB_KEYS.FORUM_POSTS, JSON.stringify(SEED_FORUM_POSTS));
+    }
 };
+
+export const getSystemStats = () => {
+    return {
+        users: getUsers().length,
+        contractors: getContractors().length,
+        leads: getLeads().length,
+        posts: getForumPosts().length,
+        projects: JSON.parse(localStorage.getItem(DB_KEYS.PROJECTS) || '[]').length
+    };
+};
+
+export const deleteUser = (userId: string) => {
+    const users = getUsers().filter(u => u.id !== userId);
+    localStorage.setItem(DB_KEYS.USERS, JSON.stringify(users));
+}
+
+export const removeContractor = (id: string) => {
+    const list = getContractors().filter(c => c.id !== id);
+    localStorage.setItem(DB_KEYS.CONTRACTORS, JSON.stringify(list));
+}
+
+export const deleteReview = (contractorId: string, reviewId: string) => {
+    const contractors = getContractors();
+    const contractorIndex = contractors.findIndex(c => c.id === contractorId);
+    if (contractorIndex > -1) {
+        contractors[contractorIndex].reviews = contractors[contractorIndex].reviews.filter(r => r.id !== reviewId);
+        localStorage.setItem(DB_KEYS.CONTRACTORS, JSON.stringify(contractors));
+    }
+}
+
+export const deleteForumPost = (postId: string) => {
+    const posts = getForumPosts().filter(p => p.id !== postId);
+    localStorage.setItem(DB_KEYS.FORUM_POSTS, JSON.stringify(posts));
+}
 
 export const getContractors = (): Contractor[] => {
   const contractorsJSON = localStorage.getItem(DB_KEYS.CONTRACTORS);
@@ -557,7 +227,7 @@ export const getUsers = (): User[] => {
 
 export const getSuggestedPrompts = (): string[] => {
     const prompts = localStorage.getItem(DB_KEYS.PROMPTS);
-    return prompts ? JSON.parse(prompts) : DEFAULT_PROMPTS;
+    return prompts ? JSON.parse(prompts) : [];
 };
 
 export const getKnowledgeBase = (): KnowledgeEntry[] => {
@@ -603,7 +273,7 @@ export const getLocalDataContext = (state?: string, county?: string): LocalDataC
     const store = JSON.parse(storeJSON || '{}');
     
     const context: LocalDataContext = {
-        national: store['national'] || nationalData
+        national: store['national'] || {} as any
     };
     
     if (state && store[`state_${state}`]) {
@@ -633,7 +303,42 @@ export const saveLocalTradeData = (scope: 'national' | 'state' | 'county', locat
     localStorage.setItem(DB_KEYS.LOCAL_DATA, JSON.stringify(store));
 };
 
-// --- Setters / Updaters ---
+export const getCountyConfig = (county: string, state: string): CountyConfig | null => {
+    const configsJSON = localStorage.getItem(DB_KEYS.COUNTY_CONFIGS);
+    if (!configsJSON) return null;
+    const configs: CountyConfig[] = JSON.parse(configsJSON);
+    
+    // Normalize search
+    const normalizedCounty = county.toLowerCase().trim();
+    const normalizedState = state.toLowerCase().trim();
+    
+    return configs.find(c => 
+        c.countyCode.toLowerCase().trim() === normalizedCounty && 
+        c.stateCode.toLowerCase().trim() === normalizedState
+    ) || null;
+};
+
+export const saveCountyConfig = (config: CountyConfig) => {
+    const configsJSON = localStorage.getItem(DB_KEYS.COUNTY_CONFIGS);
+    const configs: CountyConfig[] = configsJSON ? JSON.parse(configsJSON) : [];
+    
+    const index = configs.findIndex(c => 
+        c.countyCode.toLowerCase() === config.countyCode.toLowerCase() && 
+        c.stateCode.toLowerCase() === config.stateCode.toLowerCase()
+    );
+    
+    if (index > -1) {
+        configs[index] = config;
+    } else {
+        configs.push(config);
+    }
+    
+    localStorage.setItem(DB_KEYS.COUNTY_CONFIGS, JSON.stringify(configs));
+    
+    // Sync with LOCAL_DATA for app consumption
+    const normalizedCounty = config.countyCode.replace(' County', '').replace(' ', '');
+    saveLocalTradeData('county', `${config.stateCode}_${normalizedCounty}`, config.localTradeData);
+};
 
 export const contractorExists = (name: string): boolean => {
     const contractors = getContractors();
@@ -695,8 +400,6 @@ export const toggleSavedContractor = (userId: string, contractorId: string) => {
     }
 };
 
-// --- Leads / Quotes Management ---
-
 export const addLead = (lead: Lead) => {
     const leads = getLeads();
     leads.push(lead);
@@ -711,8 +414,6 @@ export const getLeadsForPro = (category: string, location: string): Lead[] => {
         (l.location.includes(location) || location.includes(l.location) || location === 'National' || l.location === 'US')
     );
 };
-
-// --- Active Project Management ---
 
 export const addProject = (project: ActiveProject) => {
     const p = localStorage.getItem(DB_KEYS.PROJECTS);
@@ -730,8 +431,6 @@ export const updateProject = (project: ActiveProject) => {
         localStorage.setItem(DB_KEYS.PROJECTS, JSON.stringify(projects));
     }
 }
-
-// --- Forum Management ---
 
 export const addForumPost = (post: ForumPost) => {
     const posts = getForumPosts();
@@ -756,8 +455,6 @@ export const togglePostUpvote = (postId: string) => {
         localStorage.setItem(DB_KEYS.FORUM_POSTS, JSON.stringify(posts));
     }
 }
-
-// --- Admin Features ---
 
 export const updateSuggestedPrompts = (prompts: string[]) => {
     localStorage.setItem(DB_KEYS.PROMPTS, JSON.stringify(prompts));

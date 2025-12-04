@@ -1,9 +1,35 @@
-
 import React, { useState, useRef, useEffect } from 'react';
 import { ChatBubbleOvalLeftEllipsisIcon, XIcon, SparklesIcon, Cog6ToothIcon } from './Icons';
 import { GoogleGenAI, FunctionDeclaration, Type } from '@google/genai';
 import { User, Lead, Category } from '../types';
 import * as db from '../services/db';
+
+// SYSTEM PROMPT - Same as App.tsx to ensure consistency
+const SYSTEM_PROMPT = `
+You are Community Scout — a strictly local-first home project assistant.
+
+LOCAL-DATA PRIORITY (critical):
+1. COUNTY data (highest priority)
+2. STATE data
+3. REGION data
+4. NATIONAL data (lowest)
+
+Rules:
+- Never guess or fabricate missing county or state values.
+- Always cite which level you are using: "county", "state", "region", or "national".
+- If county-level data is incomplete, fall back in order without inventing anything.
+- Recommend only contractors passed in the request.
+- Never reference external directories or non-existent businesses.
+- If the app lacks contractor matches, admit it and suggest next steps.
+- Use structured JSON when asked, matching the schema exactly.
+- For cost ranges: use county.typicalCosts first → then state → region → national.
+- Admit when the database has gaps; never hallucinate.
+- Safety: emphasize licensed pros for electrical, structural, gas, and roof work.
+
+Tone:
+- Direct, actionable, local, community-first.
+- Avoid corporate language.
+`;
 
 interface ChatbotProps {
     currentUser: User | null;
@@ -307,7 +333,10 @@ const Chatbot: React.FC<ChatbotProps> = ({ currentUser, onLogin, onSignup, onSea
             const ai = new GoogleGenAI({ apiKey: process.env.API_KEY as string });
             const historyText = messages.slice(-8).map(m => `${m.role.toUpperCase()}: ${m.content}`).join('\n');
 
-            const systemInstruction = `You are the Scout Guide for Community Scout.
+            const systemInstruction = `${SYSTEM_PROMPT}
+            
+            ADDITIONAL AGENT CONTEXT:
+            You are the Scout Guide for TradeScout.
             You are a smart system interface designed to facilitate community actions.
             
             YOUR ROLE:

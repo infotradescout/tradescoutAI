@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { SparklesIcon, CalculatorIcon, ClipboardDocumentListIcon, LightBulbIcon, WrenchIcon, PlusCircleIcon, GlobeAltIcon, ChevronDownIcon, TruckIcon, InformationCircleIcon, ScaleIcon } from './Icons';
 import { ProjectAnalysis } from '../types';
@@ -72,7 +71,7 @@ const ProjectAssistant: React.FC<ProjectAssistantProps> = ({ onQuerySubmit, isLo
                         </div>
                         <div>
                             <h3 className="text-xl font-extrabold text-white">{config.title}</h3>
-                            <p className="text-xs text-slate-400 font-semibold uppercase tracking-wider">Smart Project Analysis</p>
+                            <p className="text-xs text-slate-400 font-semibold uppercase tracking-wider">Local Intelligence</p>
                         </div>
                     </div>
 
@@ -105,7 +104,7 @@ const ProjectAssistant: React.FC<ProjectAssistantProps> = ({ onQuerySubmit, isLo
                         <div className="bg-slate-800/50 p-4 rounded-xl border border-slate-700 shadow-sm">
                             <div className="flex items-center mb-2">
                                 <div className="w-1.5 h-1.5 rounded-full bg-orange-500 mr-2"></div>
-                                <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">Task Summary</p>
+                                <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">Summary</p>
                             </div>
                             <p className="text-sm font-medium text-slate-200 leading-relaxed">{analysisResult.jobSummary}</p>
                         </div>
@@ -240,21 +239,21 @@ const ProjectAssistant: React.FC<ProjectAssistantProps> = ({ onQuerySubmit, isLo
                     <SparklesIcon className="w-6 h-6 text-orange-500"/>
                 </div>
                 <div>
-                    <h3 className="text-xl font-bold text-white">Project Planner</h3>
-                    <p className="text-xs text-slate-400 font-medium mt-0.5">Tactical Cost & Plan Estimation</p>
+                    <h3 className="text-xl font-bold text-white">Scout Intelligence</h3>
+                    <p className="text-xs text-slate-400 font-medium mt-0.5">Local Data & Resource Analysis</p>
                 </div>
             </div>
             
             <div className="flex-grow">
                 <p className="text-sm text-slate-300 mb-6 leading-relaxed">
-                    Identify your objective (scope, issue, location), and we'll generate a <strong>tactical scout report</strong> with cost estimates, materials lists, and verified local assets.
+                    Whether you're planning a project, looking for local regulations, or need community advice, I'm here to help.
                 </p>
                 <form onSubmit={handleSubmit} className="space-y-4">
                     <div className="relative">
                         <textarea
                             value={query}
                             onChange={(e) => setQuery(e.target.value)}
-                            placeholder="e.g., 'Install recessed lighting in 15x20 living room, Austin TX. Request budget estimation.'"
+                            placeholder="e.g., 'What are the rules for fences in my county?' or 'Estimate cost for bathroom tile in Chicago'..."
                             rows={6}
                             className="w-full p-4 text-sm border border-slate-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500 bg-slate-900 text-white shadow-inner resize-none transition-all placeholder-slate-500"
                             required
@@ -273,7 +272,7 @@ const ProjectAssistant: React.FC<ProjectAssistantProps> = ({ onQuerySubmit, isLo
                                 </svg>
                                 Scouting...
                             </>
-                        ) : 'Analyze Project & Find Pros'}
+                        ) : 'Analyze & Scout'}
                     </button>
                 </form>
             </div>

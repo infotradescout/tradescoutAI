@@ -1,6 +1,5 @@
-
 import React, { useState, useEffect } from 'react';
-import { HomeIcon, SparklesIcon, GlobeAltIcon } from './Icons';
+import { HomeIcon, SparklesIcon, GlobeAltIcon, UserCircleIcon } from './Icons';
 import * as db from '../services/db';
 
 interface LandingPageProps {
@@ -42,15 +41,15 @@ const LandingPage: React.FC<LandingPageProps> = ({ onQuerySubmit, isLoading }) =
                 
                 <div className="space-y-3 md:space-y-5">
                     <div className="inline-flex items-center px-3 py-1 rounded-full bg-slate-800 border border-slate-700 text-orange-400 text-xs font-bold uppercase tracking-wider mb-2 shadow-sm">
-                        <SparklesIcon className="w-3 h-3 mr-1.5 text-orange-500" />
-                        Project Command Center
+                        <UserCircleIcon className="w-3 h-3 mr-1.5 text-orange-500" />
+                        Community Operating System
                     </div>
                     <h1 className="text-4xl sm:text-5xl md:text-6xl font-extrabold text-white tracking-tight leading-tight uppercase">
-                        Plan Your <br/>
-                        <span className="text-transparent bg-clip-text bg-gradient-to-r from-orange-400 to-red-500">Community Projects</span>
+                        Empower Your <br/>
+                        <span className="text-transparent bg-clip-text bg-gradient-to-r from-orange-400 to-red-500">Local Community</span>
                     </h1>
                     <p className="text-lg sm:text-xl md:text-2xl text-slate-400 max-w-2xl mx-auto font-medium leading-relaxed px-2">
-                        Execute home improvements with precision. Find verified pros, estimate costs, and access nationwide resources.
+                        Interact with neighbors, find verified local talent, and access real-time area intelligence.
                     </p>
                 </div>
                 
@@ -60,14 +59,14 @@ const LandingPage: React.FC<LandingPageProps> = ({ onQuerySubmit, isLoading }) =
                         <textarea
                             value={query}
                             onChange={(e) => setQuery(e.target.value)}
-                            placeholder="Brief your objective: e.g. 'Secure a plumber for kitchen leak in Austin'..."
+                            placeholder="Ask a question, find a pro, check local codes, or get advice..."
                             rows={3}
                             className="w-full p-4 md:p-6 text-base md:text-xl bg-transparent border-0 rounded-2xl focus:outline-none focus:ring-0 text-white resize-none placeholder-slate-500 font-medium"
                         />
                         <div className="px-4 pb-4 md:px-6 md:pb-6 flex justify-between items-center border-t border-slate-700 pt-3">
                             <span className="text-xs font-bold text-cyan-400 uppercase tracking-wide flex items-center">
                                 <SparklesIcon className="w-4 h-4 mr-1" />
-                                Systems Online
+                                Scout Active
                             </span>
                             <button 
                                 type="submit"
@@ -80,11 +79,11 @@ const LandingPage: React.FC<LandingPageProps> = ({ onQuerySubmit, isLoading }) =
                                             <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                                             <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                                         </svg>
-                                        <span>Calculating...</span>
+                                        <span>Processing...</span>
                                     </div>
                                 ) : (
                                     <>
-                                        Initiate Scan
+                                        Start Search
                                         <span className="ml-2">→</span>
                                     </>
                                 )}
@@ -95,7 +94,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onQuerySubmit, isLoading }) =
 
                 {/* Suggested Prompts */}
                 <div className="mt-6 flex flex-wrap justify-center gap-2 md:gap-3 max-w-3xl mx-auto">
-                    <span className="w-full text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Standard Operations:</span>
+                    <span className="w-full text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Explore Community Tools:</span>
                     {prompts.map((prompt, index) => (
                         <button
                             key={index}
@@ -110,7 +109,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onQuerySubmit, isLoading }) =
                 <div className="pt-8 md:pt-10 flex justify-center">
                     <a href="#" className="flex items-center text-sm font-bold text-slate-500 hover:text-cyan-400 transition-colors uppercase tracking-wide">
                         <GlobeAltIcon className="w-4 h-4 mr-2" />
-                        Enterprise Access: CommunityScout.com
+                        Enterprise Access: TradeScout.com
                     </a>
                 </div>
             </div>

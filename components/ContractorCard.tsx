@@ -1,7 +1,7 @@
 
 import React, { useState, useMemo } from 'react';
 import { Contractor, User, Review } from '../types';
-import { StarIcon, MapPinIcon, BriefcaseIcon, CheckBadgeIcon, SparklesIcon, DocumentTextIcon, ClipboardDocumentListIcon, BookmarkIcon, PencilIcon, GlobeAltIcon, PhoneIcon, ChevronDownIcon, ShieldCheckIcon, MapIcon, AwardIcon } from './Icons';
+import { StarIcon, MapPinIcon, BriefcaseIcon, CheckBadgeIcon, SparklesIcon, DocumentTextIcon, ClipboardDocumentListIcon, BookmarkIcon, PencilIcon, GlobeAltIcon, PhoneIcon, ChevronDownIcon, ShieldCheckIcon, MapIcon, AwardIcon, TrashIcon } from './Icons';
 import ReviewForm from './ReviewForm';
 import { GoogleGenAI } from '@google/genai';
 
@@ -15,6 +15,7 @@ interface ContractorCardProps {
   onToggleSave: (contractorId: string) => void;
   onClaimClick: (contractor: Contractor) => void;
   onEditClick: (contractor: Contractor) => void;
+  onDelete?: (contractor: Contractor) => void;
   onFilterByCategory?: (category: string) => void;
   onFilterByTerm?: (term: string) => void;
   searchTerm?: string;
@@ -66,6 +67,7 @@ const ContractorCard: React.FC<ContractorCardProps> = ({
   onToggleSave, 
   onClaimClick, 
   onEditClick,
+  onDelete,
   onFilterByCategory,
   onFilterByTerm,
   searchTerm
@@ -343,6 +345,18 @@ const ContractorCard: React.FC<ContractorCardProps> = ({
                  >
                      <PencilIcon className="w-4 h-4 mr-2" />
                      Edit Profile
+                 </button>
+             )}
+
+             {/* Admin Delete Action */}
+             {currentUser?.isAdmin && (
+                 <button 
+                    onClick={() => onDelete && onDelete(contractor)} 
+                    className="flex-1 sm:flex-none flex items-center justify-center px-4 py-2 text-sm font-bold rounded-lg transition-all duration-200 bg-red-900/20 text-red-400 border border-red-900/50 hover:bg-red-900/40 shadow-sm"
+                    title="Admin Delete"
+                 >
+                     <TrashIcon className="w-4 h-4 mr-2" />
+                     Delete
                  </button>
              )}
 
