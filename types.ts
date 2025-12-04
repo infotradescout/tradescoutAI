@@ -27,6 +27,9 @@ export interface User {
   isAdmin?: boolean;
   role?: UserRole;
   linkedContractorId?: string; // If they are a pro, link to their business profile
+  passwordHash?: string;
+  salt?: string;
+  sessionToken?: string;
 }
 
 export interface Lead {
@@ -169,6 +172,14 @@ export interface LocalTradeData {
   materialAvailability: string[];
   contractorRegulations: string[];
   popularProjectTypes: string[];
+}
+
+export interface CountyConfig {
+  countyCode: string;        // e.g. FIPS or normalized slug
+  stateCode: string;         // 2-letter or standardized
+  displayName: string;       // "Harris County", "Clark County", etc.
+  localTradeData: LocalTradeData; // uses your existing structure
+  updatedAt: number;         // timestamp for versioning
 }
 
 export interface LocalDataContext {

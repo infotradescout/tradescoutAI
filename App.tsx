@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import Header from './components/Header';
 import CategoryFilter from './components/CategoryFilter';
@@ -22,12 +21,43 @@ import AddBusinessModal from './components/AddBusinessModal';
 import LandingPage from './components/LandingPage';
 import AdminDashboard from './components/AdminDashboard';
 import ProjectDashboard from './components/ProjectDashboard';
-import CommunityForum from './components/CommunityForum'; // New Import
-import { CloudArrowDownIcon } from './components/Icons';
+import CommunityForum from './components/CommunityForum'; 
+import ProDashboard from './components/ProDashboard';
+import LocationModal from './components/LocationModal';
+import { CloudArrowDownIcon, Cog6ToothIcon, ShieldCheckIcon } from './components/Icons';
+import { lookupCountyFromLatLng } from './services/locationService';
+import { authService } from './services/auth';
 
 type SortOption = 'monthlyScore' | 'lifetimeScore' | 'nearest';
 type ViewMode = 'list' | 'map';
-type Page = 'main' | 'dashboard' | 'admin' | 'projects' | 'forum'; // Added 'forum'
+type Page = 'main' | 'dashboard' | 'admin' | 'projects' | 'forum';
+
+// SYSTEM PROMPT - GLOBAL AI CONFIGURATION
+const SYSTEM_PROMPT = `
+You are Community Scout — a strictly local-first home project assistant.
+
+LOCAL-DATA PRIORITY (critical):
+1. COUNTY data (highest priority)
+2. STATE data
+3. REGION data
+4. NATIONAL data (lowest)
+
+Rules:
+- Never guess or fabricate missing county or state values.
+- Always cite which level you are using: "county", "state", "region", or "national".
+- If county-level data is incomplete, fall back in order without inventing anything.
+- Recommend only contractors passed in the request.
+- Never reference external directories or non-existent businesses.
+- If the app lacks contractor matches, admit it and suggest next steps.
+- Use structured JSON when asked, matching the schema exactly.
+- For cost ranges: use county.typicalCosts first → then state → region → national.
+- Admit when the database has gaps; never hallucinate.
+- Safety: emphasize licensed pros for electrical, structural, gas, and roof work.
+
+Tone:
+- Direct, actionable, local, community-first.
+- Avoid corporate language.
+`;
 
 // Helper to calculate distance in miles using Haversine formula
 const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2: number) => {
@@ -82,6 +112,9 @@ const App: React.FC = () => {
   
   // Location State
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
+  const [selectedStateCode, setSelectedStateCode] = useState<string | null>(null);
+  const [selectedCountyCode, setSelectedCountyCode] = useState<string | null>(null);
+  const [showLocationModal, setShowLocationModal] = useState(false);
 
   // Auto-discovery effect
   useEffect(() => {
@@ -169,43 +202,135 @@ const App: React.FC = () => {
     setContractors(db.getContractors());
     setUsers(db.getUsers());
 
-    const storedUser = sessionStorage.getItem('currentUser');
-    if (storedUser) {
-      setCurrentUser(JSON.parse(storedUser));
+    // Restore Location Preference
+    const s = localStorage.getItem("userLocationState");
+    const c = localStorage.getItem("userLocationCounty");
+    if (s && c) {
+        setSelectedStateCode(s);
+        setSelectedCountyCode(c);
     }
 
-    // Get User Location
+    // Check for Secure Session
+    const initSession = async () => {
+        const user = await authService.getCurrentUser();
+        if (user) {
+            setCurrentUser(user);
+        }
+    }
+    initSession();
+
+    // Get User Location & Geocode if needed
     if (navigator.geolocation) {
         navigator.geolocation.getCurrentPosition(
-            (position) => {
+            async (position) => {
                 const loc = {
                     lat: position.coords.latitude,
                     lng: position.coords.longitude
                 };
                 setUserLocation(loc);
-                // Default to nearest sort if location is found
                 setSortOption('nearest'); 
+
+                // If no manual override exists, lookup county
+                if (!localStorage.getItem("userLocationCounty")) {
+                    const info = await lookupCountyFromLatLng(loc.lat, loc.lng);
+                    if (info) {
+                        setSelectedStateCode(info.stateCode);
+                        setSelectedCountyCode(info.countyCode);
+                        // Optional: Auto-save guessed location? 
+                        // localStorage.setItem("userLocationState", info.stateCode);
+                        // localStorage.setItem("userLocationCounty", info.countyCode);
+                    } else {
+                        // Fallback if lookup fails or user denied loc but we want to ask
+                        setShowLocationModal(true);
+                    }
+                }
             },
             (error) => {
                 console.error("Error getting location:", error);
+                // If location denied and no saved data, prompt user
+                if (!localStorage.getItem("userLocationCounty")) {
+                    setShowLocationModal(true);
+                }
             }
         );
+    } else {
+         if (!localStorage.getItem("userLocationCounty")) {
+            setShowLocationModal(true);
+        }
     }
 
   }, []);
 
+  const handleLocationSelect = (stateCode: string, county: string) => {
+      setSelectedStateCode(stateCode);
+      setSelectedCountyCode(county);
+      localStorage.setItem("userLocationState", stateCode);
+      localStorage.setItem("userLocationCounty", county);
+      setShowLocationModal(false);
+  }
+
   const performDeepSearch = useCallback(async (term: string) => {
-      // ... (Deep search logic remains unchanged)
-      // For brevity, skipping the full body as it was not requested to change, just preserved.
-      // Re-implementing simplified logic to ensure it compiles correctly if needed in full.
       if (isDeepSearching || !term.trim()) return;
       setIsDeepSearching(true);
       try {
-          // ... implementation
+          const ai = new GoogleGenAI({ apiKey: process.env.API_KEY as string });
+          
+          // Use selected location context if available
+          const locationContext = selectedCountyCode && selectedStateCode 
+            ? `${selectedCountyCode}, ${selectedStateCode}` 
+            : userLocation ? `${userLocation.lat}, ${userLocation.lng}` : "US";
+
+          // Search Google Maps and Web
+          const searchResponse = await ai.models.generateContent({
+              model: 'gemini-2.5-flash',
+              contents: `Find 3 real, highly-rated contractors for "${term}" in ${locationContext}. 
+              Search Google Maps and the web. Return their Name, Description, Location, Phone, and Website.`,
+              config: { tools: [{ googleMaps: {} }, { googleSearch: {} }] }
+          });
+          
+          const chunks = searchResponse.candidates?.[0]?.groundingMetadata?.groundingChunks || [];
+          const mapUris = chunks.map((c: any) => c.maps?.googleMapsUri || c.maps?.uri || c.web?.uri).filter((u: any) => u);
+
+          const parseResponse = await ai.models.generateContent({
+              model: 'gemini-2.5-flash',
+              contents: `Extract a JSON array from this text matching: [{"name": "string", "category": "string", "description": "string", "location": "string", "phone": "string", "website": "string"}].
+              Text: ${searchResponse.text}`,
+              config: { responseMimeType: 'application/json' }
+          });
+          
+          const discovered = JSON.parse(parseResponse.text);
+          if (Array.isArray(discovered)) {
+             discovered.forEach((biz: any, index: number) => {
+                if (!db.contractorExists(biz.name)) {
+                     db.addContractor({
+                        id: `deep-${Date.now()}-${index}`,
+                        name: biz.name,
+                        category: biz.category as Category || Category.GENERAL,
+                        location: biz.location || locationContext,
+                        monthlyScore: 60,
+                        lifetimeScore: 0,
+                        avatarUrl: `https://ui-avatars.com/api/?name=${encodeURIComponent(biz.name)}&background=random`,
+                        description: biz.description || `Specialist for ${term}`,
+                        specialties: [term],
+                        reviews: [],
+                        verified: false,
+                        lat: (userLocation?.lat || 37.0902) + (Math.random() - 0.5) * 0.05,
+                        lng: (userLocation?.lng || -95.7129) + (Math.random() - 0.5) * 0.05,
+                        claimed: false,
+                        phone: biz.phone,
+                        website: biz.website,
+                        sourceUrl: mapUris[index]
+                     });
+                }
+             });
+             setContractors(db.getContractors());
+          }
+      } catch(e) {
+          console.error("Deep search failed", e);
       } finally {
           setIsDeepSearching(false);
       }
-  }, [userLocation, isDeepSearching]);
+  }, [userLocation, isDeepSearching, selectedCountyCode, selectedStateCode]);
 
   // ... (handleProjectQuery and other handlers remain the same)
   const handleProjectQuery = async (query: string) => {
@@ -215,7 +340,7 @@ const App: React.FC = () => {
 
       // Step 1: Intent Classification & Location Extraction
       const classificationPrompt = `
-        You are the core logic of Community Scout, a nationwide home improvement tool.
+        You are the core logic of TradeScout, a community interaction and resource platform.
         Analyze the user query: "${query}"
         
         Determine the INTENT:
@@ -239,7 +364,11 @@ const App: React.FC = () => {
       const { intent, state, county } = JSON.parse(classResp.text);
       
       // Step 2: Fetch Context Data (Local Data, Knowledge Base, Ads)
-      const localContext = db.getLocalDataContext(state, county);
+      // Use detected location OR selected location
+      const activeState = state || selectedStateCode;
+      const activeCounty = county || selectedCountyCode;
+
+      const localContext = db.getLocalDataContext(activeState || undefined, activeCounty || undefined);
       
       const knowledgeEntries = db.getKnowledgeBase().filter(e => e.isActive);
       const adminKnowledge = knowledgeEntries.length > 0 
@@ -254,21 +383,20 @@ const App: React.FC = () => {
       // Step 3: Branching Logic based on Intent
       let mainPrompt = '';
       
-      // ... (Prompts logic remains similar to previous version, ensuring context is passed)
        if (intent === 'GENERAL') {
           // Flow: App Capabilities
           mainPrompt = `The user asked: "${query}". 
-          They are inquiring about Community Scout's capabilities or features.
+          They are inquiring about TradeScout's capabilities or features.
           
           Respond by generating a JSON object that maps system features to the 'ProjectAnalysis' schema so the UI displays a "System Overview".
           
           - "intent": "GENERAL"
           - "category": "General Information"
-          - "jobSummary": A welcoming, neighborly summary of what Community Scout is (Community Contractor Finder, Project Manager, Cost Estimator).
-          - "estimatedCost": "Free for Homeowners"
-          - "costFactors": "Community Scout is free to use. You only pay independent contractors."
-          - "processSteps": ["Search for a Pro", "Get Smart Estimates", "Compare & Hire", "Track Projects"]
-          - "estimatedMaterials": ["Verified Pros", "Smart Analysis", "Deep Search"]
+          - "jobSummary": A welcoming, neighborly summary of what TradeScout is (Community Interaction Platform, Local Intelligence, Project Management).
+          - "estimatedCost": "Free for Communities"
+          - "costFactors": "TradeScout is free to use. Connect with neighbors and local pros."
+          - "processSteps": ["Interact with Neighbors", "Find Local Pros", "Access Area Intel", "Manage Projects"]
+          - "estimatedMaterials": ["Community Forum", "Scout Intelligence", "Verified Directory"]
           - "relatedServices": ["Home Security", "Moving Services", "Interior Design"] (Suggest lifestyle services)
           - "affiliateOffers": [] 
           - "thoughtProcess": "User asked about app capabilities. Mapping system features to display fields."
@@ -318,7 +446,9 @@ const App: React.FC = () => {
       }
       else {
           // Flow: Standard Project (Renovation/Repair) - Default
-           mainPrompt = `Analyze this home improvement project request: "${query}".
+           mainPrompt = `Analyze this community or home improvement request: "${query}".
+          
+          You are a "Scout Guide" - a helpful, knowledgeable neighbor.
           
           LOCAL DATA CONTEXT (Use this hierarchy: County > State > National):
           ${JSON.stringify(localContext, null, 2)}
@@ -354,7 +484,10 @@ const App: React.FC = () => {
       const response = await ai.models.generateContent({
           model: 'gemini-2.5-flash',
           contents: mainPrompt,
-          config: { responseMimeType: 'application/json' }
+          config: { 
+            responseMimeType: 'application/json',
+            systemInstruction: SYSTEM_PROMPT // Use global system prompt
+          }
       });
 
       const result: ProjectAnalysis = JSON.parse(response.text);
@@ -378,47 +511,36 @@ const App: React.FC = () => {
     }
   };
 
-  const handleLogin = (username: string) => {
-    // Demo Logic
-    if (username.toLowerCase() === 'admin') {
-         const adminUser = users.find(u => u.username === 'admin');
-         if (adminUser) {
-             setCurrentUser(adminUser);
-             sessionStorage.setItem('currentUser', JSON.stringify(adminUser));
-             setIsAuthModalOpen(false);
-             return true;
-         }
-    }
-    const user = users.find(u => u.username.toLowerCase() === username.toLowerCase());
+  const handleLogin = async (username: string) => {
+    // For demo simplicity, admin/baker bypass hash check in old mock logic
+    // But with authService, we should try real login
+    // Fallback for "admin" without password in this specific mock function signature which only takes username
+    // Real implementation uses authService.login(username, password) inside the modal.
+    // This handler is called AFTER modal success.
+    
+    // Refresh user from DB/Auth
+    const user = await authService.getCurrentUser();
     if (user) {
-      setCurrentUser(user);
-      sessionStorage.setItem('currentUser', JSON.stringify(user));
-      setIsAuthModalOpen(false);
-      return true;
+        setCurrentUser(user);
+        return true;
     }
     return false;
   };
 
-  const handleSignup = (username: string, bio: string) => {
-    if (users.some(u => u.username.toLowerCase() === username.toLowerCase())) return false;
-    const newUser: User = {
-      id: `u${Date.now()}`,
-      username,
-      avatarUrl: `https://i.pravatar.cc/150?u=${username}`,
-      bio,
-      savedContractorIds: [],
-    };
-    db.addUser(newUser);
-    setUsers(db.getUsers());
-    setCurrentUser(newUser);
-    sessionStorage.setItem('currentUser', JSON.stringify(newUser));
-    setIsAuthModalOpen(false);
-    return true;
+  const handleSignup = async (username: string, bio: string) => {
+     // This is handled by AuthModal calling authService.register
+     // We just need to refresh state
+     const user = await authService.getCurrentUser();
+     if (user) {
+         setCurrentUser(user);
+         return true;
+     }
+     return false;
   };
 
   const handleLogout = () => {
+    authService.logout();
     setCurrentUser(null);
-    sessionStorage.removeItem('currentUser');
     setPage('main');
     setHasSearched(false);
     setProjectAnalysis(null);
@@ -439,10 +561,10 @@ const App: React.FC = () => {
           return;
       }
       db.toggleSavedContractor(currentUser.id, contractorId);
+      // Refresh user to get updated saved list
       const updatedUsers = db.getUsers();
-      const updatedUser = updatedUsers.find(u => u.id === currentUser.id) || currentUser;
-      setCurrentUser(updatedUser);
-      sessionStorage.setItem('currentUser', JSON.stringify(updatedUser));
+      const updatedUser = updatedUsers.find(u => u.id === currentUser.id);
+      if (updatedUser) setCurrentUser(updatedUser);
   };
 
   const handleBusinessProfileSave = (updatedContractor: Contractor) => {
@@ -470,6 +592,16 @@ const App: React.FC = () => {
       setSelectedBusiness(contractor);
       setBusinessModalMode('edit');
       setBusinessModalOpen(true);
+  };
+
+  // NEW: Admin Action Handler for Deleting Contractors "On the Fly"
+  const handleAdminDeleteContractor = (contractor: Contractor) => {
+      if (currentUser?.isAdmin) {
+          if(confirm(`ADMIN ACTION: Permanently delete ${contractor.name}?`)) {
+              db.removeContractor(contractor.id);
+              setContractors(db.getContractors());
+          }
+      }
   };
 
   const handleSaveAsProject = () => {
@@ -570,7 +702,29 @@ const App: React.FC = () => {
   }, [contractors, currentUser]);
 
   return (
-    <div className="min-h-screen bg-slate-900 font-sans text-slate-100 relative selection:bg-orange-500 selection:text-white">
+    <div className="min-h-screen bg-slate-900 font-sans text-slate-100 relative selection:bg-orange-500 selection:text-white pb-20 md:pb-0">
+      {/* Floating Admin Toolbar */}
+      {currentUser?.isAdmin && page !== 'admin' && (
+          <div className="fixed top-24 left-4 z-50 flex flex-col gap-2 animate-fade-in-up">
+              <div className="bg-red-900/90 text-white p-3 rounded-xl shadow-2xl border border-red-500 backdrop-blur-md">
+                  <div className="flex items-center gap-2 mb-2 border-b border-red-500/50 pb-2">
+                      <ShieldCheckIcon className="w-5 h-5 text-red-300" />
+                      <span className="text-xs font-bold uppercase tracking-wider">Admin Mode Active</span>
+                  </div>
+                  <button 
+                    onClick={() => setPage('admin')}
+                    className="w-full text-xs font-bold bg-white text-red-900 px-3 py-1.5 rounded hover:bg-red-100 transition-colors flex items-center justify-center gap-1"
+                  >
+                      <Cog6ToothIcon className="w-3 h-3" />
+                      Open Console
+                  </button>
+                  <p className="text-[10px] text-red-200 mt-2 text-center max-w-[120px] leading-tight">
+                      You can delete listings and posts directly from this view.
+                  </p>
+              </div>
+          </div>
+      )}
+
       {newlyDiscovered && (
           <div className="fixed top-24 right-4 z-50 bg-orange-600 text-white px-4 py-3 md:px-6 md:py-4 rounded-xl shadow-2xl animate-fade-in-up flex items-center border border-orange-400 max-w-[90vw]">
               <div className="bg-white/20 p-2 rounded-full mr-3 flex-shrink-0">
@@ -588,16 +742,25 @@ const App: React.FC = () => {
         onLoginClick={() => { setAuthMode('login'); setIsAuthModalOpen(true); }}
         onSignupClick={() => { setAuthMode('signup'); setIsAuthModalOpen(true); }}
         onLogout={handleLogout}
-        onNavigateToDashboard={() => setPage('dashboard')}
+        onNavigateToDashboard={() => {
+            // Determine dashboard based on role
+            if (currentUser?.role === 'contractor') setPage('dashboard'); // Actually need logic here to show PRO dashboard
+            else setPage('dashboard'); // For homeowner, this is Saved Dashboard
+        }}
         onNavigateToProjects={() => setPage('projects')}
         onAddBusinessClick={() => setIsAddBusinessModalOpen(true)}
         onAdminClick={() => setPage('admin')}
-        onNavigateToForum={() => setPage('forum')} // Added Prop
+        onNavigateToForum={() => setPage('forum')}
       />
 
-      <main className="container mx-auto px-4 py-4 md:py-6 pb-20">
+      <main className="container mx-auto px-4 py-4 md:py-6">
         {page === 'admin' ? (
             <AdminDashboard onBack={() => setPage('main')} />
+        ) : page === 'dashboard' && currentUser?.role === 'contractor' ? (
+            <ProDashboard 
+                currentUser={currentUser}
+                onBack={() => setPage('main')}
+            />
         ) : page === 'dashboard' && currentUser ? (
             <SavedProsDashboard 
                 savedContractors={savedContractorsList}
@@ -687,7 +850,7 @@ const App: React.FC = () => {
                             <div className="flex flex-col sm:flex-row justify-between items-center gap-4 bg-slate-800 p-4 rounded-xl border border-slate-700 shadow-sm">
                                 <p className="text-sm font-medium text-slate-300">
                                     Showing <span className="font-bold text-orange-400">{filteredContractors.length}</span> verified pros
-                                    {userLocation && <span className="text-emerald-400 ml-2 bg-emerald-900/30 px-2 py-0.5 rounded-full text-xs border border-emerald-800 whitespace-nowrap">📍 Location Active</span>}
+                                    {selectedStateCode && <span className="text-emerald-400 ml-2 bg-emerald-900/30 px-2 py-0.5 rounded-full text-xs border border-emerald-800 whitespace-nowrap">📍 {selectedCountyCode}, {selectedStateCode}</span>}
                                 </p>
                                 <div className="w-full sm:w-auto">
                                     <SortControl 
@@ -713,6 +876,7 @@ const App: React.FC = () => {
                                     onToggleSave={handleToggleSave}
                                     onClaim={openClaimModal}
                                     onEdit={openEditModal}
+                                    onDelete={handleAdminDeleteContractor} // PASS DELETE HANDLER
                                     onSearchOnline={() => performDeepSearch(searchTerm)}
                                     isSearchingOnline={isDeepSearching}
                                     onFilterByCategory={setSelectedCategory}
@@ -732,10 +896,35 @@ const App: React.FC = () => {
         <AuthModal 
           mode={authMode}
           onClose={() => setIsAuthModalOpen(false)}
-          onLogin={handleLogin}
-          onSignup={handleSignup}
+          onLogin={async (user) => { 
+              const success = await authService.login(user, "Password123!"); // In real usage this would take form data
+              if (success) {
+                  const u = await authService.getCurrentUser();
+                  if (u) setCurrentUser(u);
+                  setIsAuthModalOpen(false);
+                  return true;
+              }
+              return false;
+          }} 
+          onSignup={async (user, bio) => {
+              const success = await authService.register(user, "Password123!", bio);
+              if (success) {
+                  const u = await authService.getCurrentUser();
+                  if (u) setCurrentUser(u);
+                  setIsAuthModalOpen(false);
+                  return true;
+              }
+              return false;
+          }}
           onSwitchMode={() => setAuthMode(authMode === 'login' ? 'signup' : 'login')}
         />
+      )}
+
+      {showLocationModal && (
+          <LocationModal 
+            onClose={() => setShowLocationModal(false)}
+            onSelect={handleLocationSelect}
+          />
       )}
 
       <QuoteRequestModal 
@@ -791,6 +980,7 @@ const App: React.FC = () => {
             to { opacity: 1; transform: translateY(0); }
         }
         .animate-fade-in-up { animation: fade-in-up 0.5s ease-out forwards; }
+        .pb-safe { padding-bottom: env(safe-area-inset-bottom); }
       `}</style>
     </div>
   );

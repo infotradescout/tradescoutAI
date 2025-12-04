@@ -1,16 +1,23 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import * as db from '../services/db';
-import { KnowledgeEntry, LocalTradeData, Partnership } from '../types';
-import { TrashIcon, PlusCircleIcon, DocumentPlusIcon, ArrowLeftIcon, LightBulbIcon, MapPinIcon, CurrencyDollarIcon, CloudArrowUpIcon, SparklesIcon } from './Icons';
+import { KnowledgeEntry, LocalTradeData, Partnership, User, Contractor, ForumPost, CountyConfig, Category } from '../types';
+import { TrashIcon, PlusCircleIcon, ArrowLeftIcon, LightBulbIcon, MapPinIcon, CurrencyDollarIcon, CloudArrowUpIcon, SparklesIcon, ChartBarIcon, UserIcon, TableCellsIcon, BuildingStorefrontIcon, ChatBubbleLeftRightIcon } from './Icons';
 import { GoogleGenAI } from '@google/genai';
+import { US_STATES } from '../services/locationService';
 
 interface AdminDashboardProps {
     onBack: () => void;
 }
 
 const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack }) => {
-    const [activeTab, setActiveTab] = useState<'prompts' | 'knowledge' | 'localdata' | 'monetization'>('prompts');
+    const [activeTab, setActiveTab] = useState<'overview' | 'users' | 'businesses' | 'content' | 'ai' | 'localdata' | 'countymanager'>('overview');
+    
+    // Data State
+    const [stats, setStats] = useState({ users: 0, contractors: 0, leads: 0, posts: 0, projects: 0 });
+    const [users, setUsers] = useState<User[]>([]);
+    const [contractors, setContractors] = useState<Contractor[]>([]);
+    const [forumPosts, setForumPosts] = useState<ForumPost[]>([]);
     const [prompts, setPrompts] = useState<string[]>([]);
     const [knowledgeBase, setKnowledgeBase] = useState<KnowledgeEntry[]>([]);
     const [partnerships, setPartnerships] = useState<Partnership[]>([]);
@@ -25,20 +32,34 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack }) => {
     const [aiStatus, setAiStatus] = useState('');
     const fileInputRef = useRef<HTMLInputElement>(null);
 
-    // Local Data Inputs
+    // Local Data Inputs (Raw JSON)
     const [localScope, setLocalScope] = useState<'national' | 'state' | 'county'>('national');
-    const [localId, setLocalId] = useState(''); // e.g., 'TX' or 'TX_Travis'
+    const [localId, setLocalId] = useState(''); 
     const [localData, setLocalData] = useState<LocalTradeData | null>(null);
     const [jsonInput, setJsonInput] = useState('');
     const [saveStatus, setSaveStatus] = useState('');
 
+    // County Manager State
+    const [cmState, setCmState] = useState('');
+    const [cmCounty, setCmCounty] = useState('');
+    const [cmConfig, setCmConfig] = useState<CountyConfig | null>(null);
+    const [cmStatus, setCmStatus] = useState('');
+
     useEffect(() => {
+        refreshAllData();
+    }, []);
+
+    const refreshAllData = () => {
+        setStats(db.getSystemStats());
+        setUsers(db.getUsers());
+        setContractors(db.getContractors());
+        setForumPosts(db.getForumPosts());
         setPrompts(db.getSuggestedPrompts());
         setKnowledgeBase(db.getKnowledgeBase());
         setPartnerships(db.getPartnerships());
-    }, []);
+    };
 
-    // Load Local Data when scope/id changes
+    // Load Local Data (Raw JSON Tab)
     useEffect(() => {
         if (activeTab === 'localdata') {
             const data = db.getLocalTradeData(localScope, localId);
@@ -47,6 +68,104 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack }) => {
             setSaveStatus('');
         }
     }, [activeTab, localScope, localId]);
+
+    // County Manager Logic
+    const handleLoadCountyConfig = () => {
+        if (!cmState || !cmCounty.trim()) {
+            setCmStatus('Please select a state and enter a county name.');
+            return;
+        }
+        const existing = db.getCountyConfig(cmCounty.trim(), cmState);
+        if (existing) {
+            setCmConfig(existing);
+            setCmStatus('Loaded existing configuration.');
+        } else {
+            setCmConfig(null);
+            setCmStatus('No configuration found for this county.');
+        }
+    };
+
+    const handleCreateCountyConfig = () => {
+        if (!cmState || !cmCounty.trim()) return;
+        const newConfig: CountyConfig = {
+            countyCode: cmCounty.trim(),
+            stateCode: cmState,
+            displayName: `${cmCounty.trim()} County`,
+            localTradeData: {
+                permitsRequired: [],
+                typicalCosts: {},
+                climateFactors: [],
+                riskFactors: [],
+                materialAvailability: [],
+                contractorRegulations: [],
+                popularProjectTypes: []
+            },
+            updatedAt: Date.now()
+        };
+        setCmConfig(newConfig);
+        setCmStatus('New configuration created. Remember to save.');
+    };
+
+    const handleSaveCountyConfig = () => {
+        if (!cmConfig) return;
+        db.saveCountyConfig(cmConfig);
+        setCmStatus(`Saved configuration for ${cmConfig.displayName} at ${new Date().toLocaleTimeString()}.`);
+    };
+
+    const updateCmArrayField = (field: keyof LocalTradeData, value: string) => {
+        if (!cmConfig) return;
+        const array = value.split('\n'); // Keep empty lines? Filter? Let's keep raw split for editing ease
+        setCmConfig({
+            ...cmConfig,
+            localTradeData: {
+                ...cmConfig.localTradeData,
+                [field]: array
+            }
+        });
+    };
+
+    const updateCmCost = (category: string, field: 'low' | 'high', value: string) => {
+        if (!cmConfig) return;
+        const numVal = parseFloat(value);
+        const costs = { ...cmConfig.localTradeData.typicalCosts };
+        if (!costs[category]) {
+            costs[category] = { low: 0, high: 0, unit: 'USD' };
+        }
+        costs[category] = {
+            ...costs[category],
+            [field]: isNaN(numVal) ? 0 : numVal
+        };
+        setCmConfig({
+            ...cmConfig,
+            localTradeData: {
+                ...cmConfig.localTradeData,
+                typicalCosts: costs
+            }
+        });
+    };
+
+    // --- Action Handlers ---
+
+    const handleDeleteUser = (id: string) => {
+        if (confirm("Are you sure you want to delete this user?")) {
+            db.deleteUser(id);
+            refreshAllData();
+        }
+    };
+
+    const handleDeleteBusiness = (id: string) => {
+        if (confirm("Delete this contractor listing?")) {
+            db.removeContractor(id);
+            refreshAllData();
+        }
+    };
+
+    const handleDeletePost = (id: string) => {
+        if (confirm("Remove this post?")) {
+            db.deleteForumPost(id);
+            refreshAllData();
+        }
+    };
 
     const handleAddPrompt = (e: React.FormEvent) => {
         e.preventDefault();
@@ -91,393 +210,491 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack }) => {
         }
     };
 
-    // --- AI Command Center Logic ---
+    // --- AI Processor ---
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        if (e.target.files && e.target.files[0]) {
-            setAiFile(e.target.files[0]);
-        }
+        if (e.target.files && e.target.files[0]) setAiFile(e.target.files[0]);
     };
 
-    const handleAIUpdate = async () => {
+    const handleAIUpdate = async (mode: 'knowledge' | 'monetization') => {
         if (!aiInput.trim() && !aiFile) return;
         setIsProcessing(true);
         setAiStatus('Reading input...');
 
         try {
             let contextText = aiInput;
+            if (aiFile) contextText += `\n\n[FILE CONTENT]:\n${await aiFile.text()}`;
 
-            // 1. Read File if present
-            if (aiFile) {
-                const text = await aiFile.text();
-                contextText += `\n\n[FILE CONTENT]:\n${text}`;
-            }
-
-            setAiStatus('Consulting AI...');
             const ai = new GoogleGenAI({ apiKey: process.env.API_KEY as string });
 
-            if (activeTab === 'knowledge') {
-                // Knowledge Base Processing
-                const prompt = `You are a Knowledge Base Administrator.
-                Analyze the following input (User Text + Optional File).
-                Create a structured Knowledge Entry based on this information.
-                
-                Input:
-                ${contextText}
-
-                Return JSON schema:
-                {
-                    "title": "Short descriptive title",
-                    "content": "The full detailed content formatted as plain text",
-                }`;
-
+            if (mode === 'knowledge') {
+                const prompt = `You are a Knowledge Base Administrator. Create a structured entry from this input:\n${contextText}\nReturn JSON: { "title": "string", "content": "string" }`;
                 const response = await ai.models.generateContent({
                     model: 'gemini-2.5-flash',
                     contents: prompt,
                     config: { responseMimeType: 'application/json' }
                 });
-
                 const result = JSON.parse(response.text);
                 db.addKnowledgeEntry(result.title, result.content);
-                setKnowledgeBase(db.getKnowledgeBase());
-                setAiStatus('Knowledge Base Updated!');
-
-            } else if (activeTab === 'monetization') {
-                // Monetization Processing
-                const currentAds = JSON.stringify(partnerships);
-                const prompt = `You are an Ad Monetization Manager.
-                Analyze the input to Add, Update, or Remove partnerships.
-                
-                Current Partnerships JSON:
-                ${currentAds}
-
-                User Instructions / New Data:
-                ${contextText}
-
-                Return the FULL updated list of partnerships as a JSON array.
-                Schema per item:
-                {
-                    "id": "string (preserve existing, generate new for new items)",
-                    "title": "string",
-                    "description": "string",
-                    "link": "string (URL)",
-                    "type": "Marketplace" | "Affiliate" | "Sponsored",
-                    "triggerKeywords": ["string"],
-                    "priority": number (1-10),
-                    "isActive": boolean
-                }`;
-
+                setAiStatus('Knowledge Added');
+            } else {
+                const prompt = `You are an Ad Manager. Add/Update partnerships based on:\n${contextText}\nCurrent: ${JSON.stringify(partnerships)}\nReturn FULL JSON array of Partnership objects.`;
                 const response = await ai.models.generateContent({
                     model: 'gemini-2.5-flash',
                     contents: prompt,
                     config: { responseMimeType: 'application/json' }
                 });
-
-                const newPartnerships = JSON.parse(response.text);
-                if (Array.isArray(newPartnerships)) {
-                    setPartnerships(newPartnerships);
-                    db.updatePartnerships(newPartnerships);
-                    setAiStatus('Partnerships Updated!');
-                } else {
-                    throw new Error('Invalid AI response format');
-                }
+                const result = JSON.parse(response.text);
+                db.updatePartnerships(result);
+                setAiStatus('Partnerships Updated');
             }
-
-            // Cleanup
+            
+            refreshAllData();
             setAiInput('');
             setAiFile(null);
             if (fileInputRef.current) fileInputRef.current.value = '';
-            setTimeout(() => setAiStatus(''), 3000);
-
         } catch (error) {
-            console.error(error);
-            setAiStatus('Error processing request.');
+            setAiStatus('Error processing.');
         } finally {
             setIsProcessing(false);
+            setTimeout(() => setAiStatus(''), 3000);
         }
     };
 
+    const SidebarItem = ({ id, label, icon: Icon }: any) => (
+        <button 
+            onClick={() => setActiveTab(id)}
+            className={`w-full flex items-center space-x-3 px-4 py-3 rounded-xl transition-all font-medium text-sm ${activeTab === id ? 'bg-indigo-600 text-white shadow-md' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}
+        >
+            <Icon className="w-5 h-5" />
+            <span>{label}</span>
+        </button>
+    );
+
     return (
-        <div className="bg-white rounded-2xl shadow-lg border border-slate-200 min-h-[80vh] flex flex-col">
-            <div className="p-6 border-b border-slate-200 flex justify-between items-center bg-slate-50 rounded-t-2xl">
-                <div className="flex items-center space-x-4">
-                    <button onClick={onBack} className="text-slate-500 hover:text-indigo-600 transition-colors">
-                        <ArrowLeftIcon className="w-6 h-6" />
+        <div className="flex flex-col md:flex-row min-h-[90vh] bg-slate-900 rounded-2xl overflow-hidden border border-slate-700 shadow-2xl">
+            {/* Sidebar */}
+            <div className="w-full md:w-64 bg-slate-950 p-4 border-b md:border-b-0 md:border-r border-slate-800 flex flex-col">
+                <div className="flex items-center space-x-3 mb-8 px-2 pt-2">
+                    <button onClick={onBack} className="bg-slate-800 p-2 rounded-lg text-slate-400 hover:text-white transition-colors">
+                        <ArrowLeftIcon className="w-5 h-5" />
                     </button>
                     <div>
-                        <h2 className="text-2xl font-bold text-slate-800">Admin Console</h2>
-                        <p className="text-sm text-slate-500">Manage AI Configuration & Partnerships</p>
+                        <h2 className="text-white font-bold">Admin Console</h2>
+                        <p className="text-xs text-slate-500">v1.2.0</p>
                     </div>
                 </div>
+                
+                <nav className="space-y-1 flex-grow">
+                    <SidebarItem id="overview" label="System Overview" icon={ChartBarIcon} />
+                    <SidebarItem id="users" label="User Management" icon={UserIcon} />
+                    <SidebarItem id="businesses" label="Business Directory" icon={BuildingStorefrontIcon} />
+                    <SidebarItem id="content" label="Content Moderation" icon={ChatBubbleLeftRightIcon} />
+                    <div className="pt-4 pb-2">
+                        <p className="px-4 text-xs font-bold text-slate-600 uppercase tracking-wider">AI Configuration</p>
+                    </div>
+                    <SidebarItem id="ai" label="Intelligence & Ads" icon={SparklesIcon} />
+                    <SidebarItem id="localdata" label="Location Profiles" icon={MapPinIcon} />
+                    <SidebarItem id="countymanager" label="County Manager" icon={MapPinIcon} />
+                </nav>
             </div>
 
-            <div className="flex border-b border-slate-200 overflow-x-auto">
-                <button 
-                    onClick={() => setActiveTab('prompts')}
-                    className={`flex-1 py-4 text-sm font-bold text-center border-b-2 transition-colors whitespace-nowrap px-4 ${activeTab === 'prompts' ? 'border-indigo-600 text-indigo-600 bg-indigo-50/50' : 'border-transparent text-slate-500 hover:text-slate-700'}`}
-                >
-                    Suggested Prompts
-                </button>
-                <button 
-                    onClick={() => setActiveTab('knowledge')}
-                    className={`flex-1 py-4 text-sm font-bold text-center border-b-2 transition-colors whitespace-nowrap px-4 ${activeTab === 'knowledge' ? 'border-indigo-600 text-indigo-600 bg-indigo-50/50' : 'border-transparent text-slate-500 hover:text-slate-700'}`}
-                >
-                    Knowledge Base
-                </button>
-                <button 
-                    onClick={() => setActiveTab('monetization')}
-                    className={`flex-1 py-4 text-sm font-bold text-center border-b-2 transition-colors whitespace-nowrap px-4 ${activeTab === 'monetization' ? 'border-indigo-600 text-indigo-600 bg-indigo-50/50' : 'border-transparent text-slate-500 hover:text-slate-700'}`}
-                >
-                    Monetization
-                </button>
-                <button 
-                    onClick={() => setActiveTab('localdata')}
-                    className={`flex-1 py-4 text-sm font-bold text-center border-b-2 transition-colors whitespace-nowrap px-4 ${activeTab === 'localdata' ? 'border-indigo-600 text-indigo-600 bg-indigo-50/50' : 'border-transparent text-slate-500 hover:text-slate-700'}`}
-                >
-                    Location Profiles
-                </button>
-            </div>
-
-            <div className="p-6 flex-grow overflow-y-auto">
-                {activeTab === 'prompts' && (
-                    <div className="max-w-3xl mx-auto">
-                        <div className="mb-8">
-                            <h3 className="text-lg font-bold text-slate-800 mb-2">Edit Suggested Prompts</h3>
-                            <p className="text-sm text-slate-500 mb-4">These prompts appear on the main landing page. Add new ideas to guide users.</p>
-                            
-                            <form onSubmit={handleAddPrompt} className="flex gap-2">
-                                <input 
-                                    type="text" 
-                                    value={newPrompt}
-                                    onChange={(e) => setNewPrompt(e.target.value)}
-                                    placeholder="Enter a new suggested prompt..."
-                                    className="flex-grow p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                                />
-                                <button type="submit" className="bg-indigo-600 text-white px-4 py-2 rounded-lg font-bold hover:bg-indigo-700 flex items-center">
-                                    <PlusCircleIcon className="w-5 h-5 mr-1" /> Add
-                                </button>
-                            </form>
+            {/* Main Content */}
+            <div className="flex-1 bg-slate-900 overflow-y-auto">
+                <div className="p-6 md:p-8">
+                    
+                    {/* Overview */}
+                    {activeTab === 'overview' && (
+                        <div className="space-y-6">
+                            <h2 className="text-2xl font-bold text-white mb-6">System Health</h2>
+                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                                <div className="bg-slate-800 p-5 rounded-xl border border-slate-700">
+                                    <p className="text-slate-400 text-sm font-medium">Total Users</p>
+                                    <p className="text-3xl font-bold text-white mt-1">{stats.users}</p>
+                                </div>
+                                <div className="bg-slate-800 p-5 rounded-xl border border-slate-700">
+                                    <p className="text-slate-400 text-sm font-medium">Verified Pros</p>
+                                    <p className="text-3xl font-bold text-orange-500 mt-1">{stats.contractors}</p>
+                                </div>
+                                <div className="bg-slate-800 p-5 rounded-xl border border-slate-700">
+                                    <p className="text-slate-400 text-sm font-medium">Active Leads</p>
+                                    <p className="text-3xl font-bold text-emerald-500 mt-1">{stats.leads}</p>
+                                </div>
+                                <div className="bg-slate-800 p-5 rounded-xl border border-slate-700">
+                                    <p className="text-slate-400 text-sm font-medium">Forum Posts</p>
+                                    <p className="text-3xl font-bold text-cyan-500 mt-1">{stats.posts}</p>
+                                </div>
+                            </div>
                         </div>
+                    )}
 
-                        <div className="space-y-3">
-                            {prompts.map((prompt, idx) => (
-                                <div key={idx} className="flex items-center justify-between p-4 bg-white border border-slate-200 rounded-lg shadow-sm group hover:border-indigo-200 transition-all">
-                                    <span className="text-slate-700 font-medium">{prompt}</span>
-                                    <button 
-                                        onClick={() => handleDeletePrompt(idx)}
-                                        className="text-slate-400 hover:text-red-500 transition-colors p-2"
-                                        title="Remove Prompt"
-                                    >
-                                        <TrashIcon className="w-5 h-5" />
+                    {/* Users Table */}
+                    {activeTab === 'users' && (
+                        <div>
+                            <div className="flex justify-between items-center mb-6">
+                                <h2 className="text-2xl font-bold text-white">User Management</h2>
+                                <span className="bg-slate-800 text-slate-300 px-3 py-1 rounded-full text-xs font-bold">{users.length} Registered</span>
+                            </div>
+                            <div className="bg-slate-800 rounded-xl border border-slate-700 overflow-hidden">
+                                <table className="w-full text-sm text-left text-slate-300">
+                                    <thead className="bg-slate-900 text-xs uppercase font-bold text-slate-500">
+                                        <tr>
+                                            <th className="px-6 py-4">User</th>
+                                            <th className="px-6 py-4">Role</th>
+                                            <th className="px-6 py-4">Saved Pros</th>
+                                            <th className="px-6 py-4 text-right">Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-slate-700">
+                                        {users.map(user => (
+                                            <tr key={user.id} className="hover:bg-slate-700/50 transition-colors">
+                                                <td className="px-6 py-4 flex items-center gap-3">
+                                                    <img src={user.avatarUrl} className="w-8 h-8 rounded-full" />
+                                                    <span className="font-medium text-white">{user.username}</span>
+                                                </td>
+                                                <td className="px-6 py-4">
+                                                    <span className={`px-2 py-1 rounded text-xs font-bold uppercase ${user.isAdmin ? 'bg-red-900/50 text-red-400' : user.role === 'contractor' ? 'bg-cyan-900/50 text-cyan-400' : 'bg-slate-700 text-slate-300'}`}>
+                                                        {user.isAdmin ? 'Admin' : user.role || 'Homeowner'}
+                                                    </span>
+                                                </td>
+                                                <td className="px-6 py-4">{user.savedContractorIds.length}</td>
+                                                <td className="px-6 py-4 text-right">
+                                                    {!user.isAdmin && (
+                                                        <button onClick={() => handleDeleteUser(user.id)} className="text-red-400 hover:text-red-300 font-medium">Delete</button>
+                                                    )}
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Businesses Table */}
+                    {activeTab === 'businesses' && (
+                        <div>
+                            <h2 className="text-2xl font-bold text-white mb-6">Business Directory</h2>
+                            <div className="grid gap-4">
+                                {contractors.map(c => (
+                                    <div key={c.id} className="bg-slate-800 p-4 rounded-xl border border-slate-700 flex justify-between items-center">
+                                        <div className="flex items-center gap-4">
+                                            <img src={c.avatarUrl} className="w-12 h-12 rounded-lg object-cover" />
+                                            <div>
+                                                <h4 className="font-bold text-white">{c.name}</h4>
+                                                <p className="text-xs text-slate-400">{c.category} • {c.location}</p>
+                                            </div>
+                                        </div>
+                                        <div className="flex items-center gap-4">
+                                            <span className={`text-xs px-2 py-1 rounded ${c.claimed ? 'bg-green-900/30 text-green-400' : 'bg-slate-700 text-slate-400'}`}>
+                                                {c.claimed ? 'Claimed' : 'Unclaimed'}
+                                            </span>
+                                            <button onClick={() => handleDeleteBusiness(c.id)} className="p-2 bg-red-900/20 text-red-400 rounded-lg hover:bg-red-900/40">
+                                                <TrashIcon className="w-5 h-5" />
+                                            </button>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Content Moderation */}
+                    {activeTab === 'content' && (
+                        <div>
+                            <h2 className="text-2xl font-bold text-white mb-6">Content Moderation</h2>
+                            <div className="space-y-4">
+                                {forumPosts.length === 0 ? <p className="text-slate-500">No content to moderate.</p> : forumPosts.map(post => (
+                                    <div key={post.id} className="bg-slate-800 p-4 rounded-xl border border-slate-700">
+                                        <div className="flex justify-between items-start">
+                                            <div>
+                                                <div className="flex items-center gap-2 mb-1">
+                                                    <span className="text-xs font-bold bg-slate-700 text-slate-300 px-2 py-0.5 rounded">{post.category}</span>
+                                                    <span className="text-xs text-slate-500">by {post.username}</span>
+                                                </div>
+                                                <h3 className="font-bold text-white">{post.title}</h3>
+                                                <p className="text-sm text-slate-400 mt-1 line-clamp-2">{post.content}</p>
+                                            </div>
+                                            <button onClick={() => handleDeletePost(post.id)} className="text-red-400 hover:text-red-300 text-xs font-bold border border-red-900/50 bg-red-900/10 px-3 py-1.5 rounded-lg">
+                                                Remove Post
+                                            </button>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+
+                    {/* AI Configuration (Merged Knowledge & Monetization & Prompts) */}
+                    {activeTab === 'ai' && (
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                            {/* Left Col: Prompts & AI Input */}
+                            <div className="space-y-8">
+                                {/* Suggestion Prompts */}
+                                <div className="bg-slate-800 p-6 rounded-xl border border-slate-700">
+                                    <h3 className="font-bold text-white mb-4">Suggested Prompts</h3>
+                                    <div className="flex gap-2 mb-4">
+                                        <input 
+                                            value={newPrompt}
+                                            onChange={e => setNewPrompt(e.target.value)}
+                                            className="flex-1 bg-slate-900 border border-slate-600 rounded-lg px-3 py-2 text-sm text-white"
+                                            placeholder="New suggestion..."
+                                        />
+                                        <button onClick={handleAddPrompt} className="bg-indigo-600 px-3 rounded-lg text-white">
+                                            <PlusCircleIcon className="w-5 h-5" />
+                                        </button>
+                                    </div>
+                                    <div className="flex flex-wrap gap-2">
+                                        {prompts.map((p, i) => (
+                                            <span key={i} className="bg-slate-700 text-slate-300 px-3 py-1 rounded-full text-xs flex items-center">
+                                                {p}
+                                                <button onClick={() => handleDeletePrompt(i)} className="ml-2 text-slate-500 hover:text-red-400">×</button>
+                                            </span>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                {/* AI Command Center */}
+                                <div className="bg-gradient-to-br from-indigo-900/40 to-purple-900/40 p-6 rounded-xl border border-indigo-500/30">
+                                    <div className="flex items-center gap-2 mb-4 text-indigo-400">
+                                        <SparklesIcon className="w-5 h-5" />
+                                        <h3 className="font-bold">AI Processor</h3>
+                                    </div>
+                                    <textarea 
+                                        value={aiInput}
+                                        onChange={e => setAiInput(e.target.value)}
+                                        className="w-full bg-slate-900 border border-slate-700 rounded-lg p-3 text-sm text-white h-32 mb-3"
+                                        placeholder="Describe a new rule, partnership, or knowledge entry..."
+                                    />
+                                    <div className="flex gap-2">
+                                        <button 
+                                            onClick={() => handleAIUpdate('knowledge')}
+                                            disabled={isProcessing}
+                                            className="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white py-2 rounded-lg text-sm font-bold disabled:opacity-50"
+                                        >
+                                            Update Knowledge
+                                        </button>
+                                        <button 
+                                            onClick={() => handleAIUpdate('monetization')}
+                                            disabled={isProcessing}
+                                            className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white py-2 rounded-lg text-sm font-bold disabled:opacity-50"
+                                        >
+                                            Update Ads
+                                        </button>
+                                    </div>
+                                    {aiStatus && <p className="text-center text-xs text-indigo-300 mt-2">{aiStatus}</p>}
+                                </div>
+                            </div>
+
+                            {/* Right Col: Lists */}
+                            <div className="space-y-8">
+                                <div>
+                                    <h3 className="font-bold text-white mb-3">Knowledge Base ({knowledgeBase.length})</h3>
+                                    <div className="space-y-2 max-h-60 overflow-y-auto">
+                                        {knowledgeBase.map(k => (
+                                            <div key={k.id} className="bg-slate-800 p-3 rounded-lg border border-slate-700 flex justify-between">
+                                                <span className="text-sm text-slate-300">{k.title}</span>
+                                                <div className="flex gap-2">
+                                                    <button onClick={() => handleToggleKnowledge(k.id)} className={`w-2 h-2 rounded-full ${k.isActive ? 'bg-green-500' : 'bg-red-500'}`} />
+                                                    <button onClick={() => handleDeleteKnowledge(k.id)} className="text-slate-500 hover:text-red-400"><TrashIcon className="w-4 h-4" /></button>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                                <div>
+                                    <h3 className="font-bold text-white mb-3">Partnerships ({partnerships.length})</h3>
+                                    <div className="space-y-2 max-h-60 overflow-y-auto">
+                                        {partnerships.map(p => (
+                                            <div key={p.id} className="bg-slate-800 p-3 rounded-lg border border-slate-700 flex justify-between">
+                                                <div>
+                                                    <span className="text-sm font-bold text-slate-200">{p.title}</span>
+                                                    <span className="ml-2 text-xs text-slate-500 bg-slate-900 px-1 rounded">{p.type}</span>
+                                                </div>
+                                                <button onClick={() => handleDeletePartnership(p.id)} className="text-slate-500 hover:text-red-400"><TrashIcon className="w-4 h-4" /></button>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Local Data Editor (Raw JSON) */}
+                    {activeTab === 'localdata' && (
+                        <div className="max-w-4xl">
+                            <h2 className="text-2xl font-bold text-white mb-6">Location Profiles (JSON)</h2>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                                <select 
+                                    value={localScope} 
+                                    onChange={(e) => { setLocalScope(e.target.value as any); setLocalId(''); }}
+                                    className="bg-slate-800 text-white p-3 rounded-lg border border-slate-700"
+                                >
+                                    <option value="national">National</option>
+                                    <option value="state">State</option>
+                                    <option value="county">County</option>
+                                </select>
+                                {localScope !== 'national' && (
+                                    <input 
+                                        value={localId}
+                                        onChange={e => setLocalId(e.target.value)}
+                                        placeholder={localScope === 'state' ? 'TX' : 'TX_Travis'}
+                                        className="bg-slate-800 text-white p-3 rounded-lg border border-slate-700"
+                                    />
+                                )}
+                            </div>
+                            <div className="relative">
+                                <textarea
+                                    value={jsonInput}
+                                    onChange={e => setJsonInput(e.target.value)}
+                                    className="w-full h-96 bg-slate-950 font-mono text-xs text-green-400 p-4 rounded-xl border border-slate-800 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
+                                />
+                                <div className="absolute top-4 right-4 flex items-center gap-4">
+                                    <span className={saveStatus.includes('Error') ? 'text-red-500 text-xs' : 'text-green-500 text-xs'}>{saveStatus}</span>
+                                    <button onClick={handleSaveLocalData} className="bg-indigo-600 text-white px-4 py-2 rounded-lg text-sm font-bold hover:bg-indigo-700">
+                                        Save JSON
                                     </button>
                                 </div>
-                            ))}
-                            {prompts.length === 0 && <p className="text-slate-400 italic text-center">No prompts configured.</p>}
-                        </div>
-                    </div>
-                )}
-
-                {(activeTab === 'knowledge' || activeTab === 'monetization') && (
-                    <div className="max-w-4xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-6">
-                        {/* Left: AI Command Center */}
-                        <div className="lg:col-span-1 space-y-4">
-                            <div className="bg-gradient-to-br from-indigo-50 to-purple-50 p-5 rounded-2xl border border-indigo-100 shadow-sm">
-                                <div className="flex items-center mb-3">
-                                    <div className="bg-white p-2 rounded-lg shadow-sm text-indigo-600 mr-2">
-                                        <SparklesIcon className="w-5 h-5" />
-                                    </div>
-                                    <h4 className="font-bold text-indigo-900">AI Command Center</h4>
-                                </div>
-                                <p className="text-xs text-indigo-800 leading-relaxed mb-4">
-                                    {activeTab === 'knowledge' 
-                                        ? "Describe new knowledge or upload a file. The AI will format and add it to the system."
-                                        : "Describe a new partnership or upload a CSV. The AI will categorize and add it to the ad engine."}
-                                </p>
-                                
-                                <textarea
-                                    value={aiInput}
-                                    onChange={(e) => setAiInput(e.target.value)}
-                                    placeholder={activeTab === 'knowledge' ? "e.g. 'Add a rule about 2025 permits...'" : "e.g. 'Add Home Depot affiliate link for lumber...'"}
-                                    className="w-full p-3 text-sm border border-indigo-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white min-h-[100px] mb-3"
-                                />
-
-                                <div className="flex items-center space-x-2 mb-3">
-                                    <label className="flex-1 cursor-pointer bg-white border border-indigo-200 rounded-lg p-2 flex items-center justify-center hover:bg-indigo-50 transition-colors">
-                                        <CloudArrowUpIcon className="w-4 h-4 text-indigo-500 mr-2" />
-                                        <span className="text-xs font-semibold text-indigo-700 truncate max-w-[100px]">
-                                            {aiFile ? aiFile.name : 'Upload File'}
-                                        </span>
-                                        <input 
-                                            type="file" 
-                                            ref={fileInputRef}
-                                            onChange={handleFileChange}
-                                            className="hidden" 
-                                            accept=".txt,.csv,.json,.md"
-                                        />
-                                    </label>
-                                </div>
-
-                                <button 
-                                    onClick={handleAIUpdate}
-                                    disabled={isProcessing || (!aiInput && !aiFile)}
-                                    className="w-full bg-indigo-600 text-white py-2.5 rounded-lg font-bold text-sm hover:bg-indigo-700 flex items-center justify-center disabled:bg-indigo-300 transition-colors shadow-md"
-                                >
-                                    {isProcessing ? (
-                                        <span className="animate-pulse">Processing...</span>
-                                    ) : (
-                                        <>
-                                            <SparklesIcon className="w-4 h-4 mr-2" />
-                                            Process with AI
-                                        </>
-                                    )}
-                                </button>
-                                {aiStatus && <p className="text-xs text-center mt-2 text-indigo-700 font-medium animate-fade-in-up">{aiStatus}</p>}
                             </div>
                         </div>
+                    )}
 
-                        {/* Right: List View */}
-                        <div className="lg:col-span-2 space-y-4">
-                            <h3 className="font-bold text-slate-800 flex items-center">
-                                {activeTab === 'knowledge' ? (
-                                    <><LightBulbIcon className="w-5 h-5 mr-2 text-amber-500" /> Active Knowledge</>
-                                ) : (
-                                    <><CurrencyDollarIcon className="w-5 h-5 mr-2 text-emerald-500" /> Active Partnerships</>
-                                )}
-                            </h3>
-
-                            <div className="space-y-3">
-                                {activeTab === 'knowledge' && (
-                                    knowledgeBase.length === 0 ? <div className="text-slate-400 italic p-4 text-center border-2 border-dashed border-slate-200 rounded-xl">No entries. Use the AI Command Center to add data.</div> :
-                                    knowledgeBase.map((entry) => (
-                                        <div key={entry.id} className={`p-4 rounded-xl border transition-all ${entry.isActive ? 'bg-white border-slate-200 shadow-sm' : 'bg-slate-50 border-slate-100 opacity-60'}`}>
-                                            <div className="flex justify-between items-start mb-2">
-                                                <div>
-                                                    <h4 className="font-bold text-slate-800">{entry.title}</h4>
-                                                    <p className="text-xs text-slate-400">Added: {new Date(entry.dateAdded).toLocaleDateString()}</p>
-                                                </div>
-                                                <div className="flex items-center space-x-2">
-                                                    <button onClick={() => handleToggleKnowledge(entry.id)} className={`text-xs font-bold px-2 py-1 rounded ${entry.isActive ? 'bg-green-100 text-green-700' : 'bg-slate-200 text-slate-600'}`}>
-                                                        {entry.isActive ? 'Active' : 'Inactive'}
-                                                    </button>
-                                                    <button onClick={() => handleDeleteKnowledge(entry.id)} className="text-slate-400 hover:text-red-500 p-1">
-                                                        <TrashIcon className="w-5 h-5" />
-                                                    </button>
-                                                </div>
-                                            </div>
-                                            <div className="bg-slate-50 p-3 rounded-lg text-xs font-mono text-slate-600 border border-slate-100 max-h-32 overflow-y-auto whitespace-pre-wrap">
-                                                {entry.content}
-                                            </div>
-                                        </div>
-                                    ))
-                                )}
-
-                                {activeTab === 'monetization' && (
-                                    partnerships.length === 0 ? <div className="text-slate-400 italic p-4 text-center border-2 border-dashed border-slate-200 rounded-xl">No partnerships. Use AI to add them.</div> :
-                                    partnerships.map((p) => (
-                                        <div key={p.id} className="p-4 bg-white border border-slate-200 rounded-xl shadow-sm hover:border-indigo-200 transition-all">
-                                            <div className="flex justify-between items-start">
-                                                <div>
-                                                    <div className="flex items-center gap-2 mb-1">
-                                                        <span className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded-full ${p.type === 'Affiliate' ? 'bg-blue-100 text-blue-700' : p.type === 'Sponsored' ? 'bg-amber-100 text-amber-700' : 'bg-emerald-100 text-emerald-700'}`}>
-                                                            {p.type}
-                                                        </span>
-                                                        <h4 className="font-bold text-slate-800">{p.title}</h4>
-                                                    </div>
-                                                    <a href={p.link} target="_blank" rel="noreferrer" className="text-xs text-indigo-500 hover:underline mb-2 block">{p.link}</a>
-                                                    <p className="text-sm text-slate-600 mb-2">{p.description}</p>
-                                                    <div className="flex flex-wrap gap-1">
-                                                        {p.triggerKeywords.map((k, i) => (
-                                                            <span key={i} className="text-[10px] bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded border border-slate-200">#{k}</span>
-                                                        ))}
-                                                    </div>
-                                                </div>
-                                                <div className="flex flex-col items-end space-y-2">
-                                                    <span className="text-xs font-bold text-slate-400">Pri: {p.priority}</span>
-                                                    <button onClick={() => handleDeletePartnership(p.id)} className="text-slate-400 hover:text-red-500">
-                                                        <TrashIcon className="w-5 h-5" />
-                                                    </button>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    ))
-                                )}
-                            </div>
-                        </div>
-                    </div>
-                )}
-
-
-                {activeTab === 'localdata' && (
-                    <div className="max-w-4xl mx-auto">
-                        <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm mb-6">
-                            <h3 className="text-lg font-bold text-slate-800 mb-4 flex items-center">
-                                <MapPinIcon className="w-5 h-5 mr-2 text-indigo-600" />
-                                Select Data Profile
-                            </h3>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                                <div>
-                                    <label className="block text-sm font-medium text-slate-700 mb-1">Scope</label>
-                                    <select 
-                                        value={localScope} 
-                                        onChange={(e) => {
-                                            setLocalScope(e.target.value as any);
-                                            setLocalId(e.target.value === 'national' ? '' : localId);
-                                        }}
-                                        className="w-full border border-slate-300 rounded-lg p-2.5 bg-slate-50"
-                                    >
-                                        <option value="national">National (Default)</option>
-                                        <option value="state">State</option>
-                                        <option value="county">County</option>
-                                    </select>
-                                </div>
-                                {localScope !== 'national' && (
+                    {/* County Config Manager */}
+                    {activeTab === 'countymanager' && (
+                        <div className="max-w-6xl mx-auto pb-10">
+                            <h2 className="text-2xl font-bold text-white mb-6">County Config Manager</h2>
+                            
+                            {/* Selector */}
+                            <div className="bg-slate-800 p-6 rounded-xl border border-slate-700 mb-8">
+                                <h3 className="font-bold text-slate-300 mb-4 text-sm uppercase">Select Location</h3>
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                                     <div>
-                                        <label className="block text-sm font-medium text-slate-700 mb-1">
-                                            {localScope === 'state' ? 'State Code (e.g. TX)' : 'State_County (e.g. TX_Travis)'}
-                                        </label>
+                                        <label className="block text-xs font-bold text-slate-500 mb-1">State</label>
+                                        <select 
+                                            value={cmState} 
+                                            onChange={e => { setCmState(e.target.value); setCmConfig(null); setCmStatus(''); }}
+                                            className="w-full bg-slate-900 border border-slate-600 rounded-lg p-3 text-white"
+                                        >
+                                            <option value="">Select State...</option>
+                                            {US_STATES.map(s => <option key={s.code} value={s.code}>{s.name} ({s.code})</option>)}
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label className="block text-xs font-bold text-slate-500 mb-1">County</label>
                                         <input 
-                                            type="text" 
-                                            value={localId}
-                                            onChange={(e) => setLocalId(e.target.value)}
-                                            placeholder={localScope === 'state' ? 'TX' : 'TX_Travis'}
-                                            className="w-full border border-slate-300 rounded-lg p-2.5"
+                                            value={cmCounty}
+                                            onChange={e => { setCmCounty(e.target.value); setCmConfig(null); setCmStatus(''); }}
+                                            placeholder="e.g. Travis"
+                                            className="w-full bg-slate-900 border border-slate-600 rounded-lg p-3 text-white"
                                         />
                                     </div>
-                                )}
+                                    <div className="flex items-end">
+                                        <button 
+                                            onClick={handleLoadCountyConfig}
+                                            disabled={!cmState || !cmCounty}
+                                            className="w-full bg-indigo-600 hover:bg-indigo-700 disabled:bg-slate-700 disabled:text-slate-500 text-white font-bold py-3 rounded-lg transition-colors"
+                                        >
+                                            Load Configuration
+                                        </button>
+                                    </div>
+                                </div>
+                                {cmStatus && <p className="mt-3 text-sm text-cyan-400">{cmStatus}</p>}
                             </div>
-                            <p className="text-sm text-slate-500 mb-2">
-                                Current Status: 
-                                <span className={`ml-2 font-bold ${localData ? 'text-green-600' : 'text-amber-600'}`}>
-                                    {localData ? 'Profile Loaded' : 'No Profile Found (Will Create New)'}
-                                </span>
-                            </p>
-                        </div>
 
-                        <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm relative">
-                            <h3 className="text-lg font-bold text-slate-800 mb-2">Edit JSON Data</h3>
-                            <p className="text-xs text-slate-500 mb-4">
-                                Edit the schema strictly. Ensure valid JSON format for keys like <code>permitsRequired</code>, <code>typicalCosts</code>, etc.
-                            </p>
-                            
-                            <textarea
-                                value={jsonInput}
-                                onChange={(e) => setJsonInput(e.target.value)}
-                                className="w-full h-96 font-mono text-xs p-4 bg-slate-900 text-green-400 rounded-lg shadow-inner focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                            />
-                            
-                            <div className="flex justify-between items-center mt-4">
-                                <span className={`text-sm font-bold ${saveStatus.includes('Error') ? 'text-red-500' : 'text-green-600'}`}>
-                                    {saveStatus}
-                                </span>
-                                <button 
-                                    onClick={handleSaveLocalData}
-                                    className="bg-indigo-600 text-white px-6 py-2.5 rounded-lg font-bold hover:bg-indigo-700 shadow-md transition-all"
-                                >
-                                    Save Profile
-                                </button>
-                            </div>
+                            {/* Create New Prompt */}
+                            {!cmConfig && cmState && cmCounty && cmStatus.includes('No configuration') && (
+                                <div className="text-center p-8 bg-slate-800/50 rounded-xl border-2 border-dashed border-slate-700">
+                                    <p className="text-slate-400 mb-4">No data found for {cmCounty} County, {cmState}.</p>
+                                    <button 
+                                        onClick={handleCreateCountyConfig}
+                                        className="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-6 rounded-lg transition-colors"
+                                    >
+                                        Create New Config
+                                    </button>
+                                </div>
+                            )}
+
+                            {/* Editor Form */}
+                            {cmConfig && (
+                                <div className="space-y-6 animate-fade-in-up">
+                                    <div className="flex justify-between items-center">
+                                        <h3 className="text-xl font-bold text-white">Editing: {cmConfig.displayName}</h3>
+                                        <button 
+                                            onClick={handleSaveCountyConfig}
+                                            className="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-6 rounded-lg shadow-lg"
+                                        >
+                                            Save Changes
+                                        </button>
+                                    </div>
+
+                                    {/* Data Fields */}
+                                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                                        {/* Left Col: Lists */}
+                                        <div className="space-y-6">
+                                            {[
+                                                { key: 'permitsRequired', label: 'Permits Required' },
+                                                { key: 'climateFactors', label: 'Climate Factors' },
+                                                { key: 'riskFactors', label: 'Risk Factors' },
+                                                { key: 'materialAvailability', label: 'Material Availability' },
+                                                { key: 'contractorRegulations', label: 'Contractor Regulations' },
+                                                { key: 'popularProjectTypes', label: 'Popular Projects' },
+                                            ].map((field) => (
+                                                <div key={field.key} className="bg-slate-800 p-4 rounded-xl border border-slate-700">
+                                                    <label className="block text-sm font-bold text-slate-300 mb-2">{field.label} (One per line)</label>
+                                                    <textarea 
+                                                        value={(cmConfig.localTradeData[field.key as keyof LocalTradeData] as string[]).join('\n')}
+                                                        onChange={e => updateCmArrayField(field.key as keyof LocalTradeData, e.target.value)}
+                                                        className="w-full h-32 bg-slate-900 border border-slate-600 rounded-lg p-3 text-sm text-white resize-none"
+                                                    />
+                                                </div>
+                                            ))}
+                                        </div>
+
+                                        {/* Right Col: Costs */}
+                                        <div>
+                                            <div className="bg-slate-800 p-6 rounded-xl border border-slate-700 sticky top-4">
+                                                <h3 className="font-bold text-white mb-4 flex items-center">
+                                                    <CurrencyDollarIcon className="w-5 h-5 mr-2 text-green-500" />
+                                                    Typical Costs (USD)
+                                                </h3>
+                                                <div className="space-y-4">
+                                                    {Object.values(Category).map(cat => {
+                                                        const cost = cmConfig.localTradeData.typicalCosts[cat] || { low: 0, high: 0, unit: 'USD' };
+                                                        return (
+                                                            <div key={cat} className="bg-slate-900 p-3 rounded-lg border border-slate-700">
+                                                                <p className="text-xs font-bold text-slate-400 uppercase mb-2">{cat}</p>
+                                                                <div className="flex gap-4">
+                                                                    <div>
+                                                                        <label className="text-[10px] text-slate-500 block">Low</label>
+                                                                        <input 
+                                                                            type="number"
+                                                                            value={cost.low}
+                                                                            onChange={e => updateCmCost(cat, 'low', e.target.value)}
+                                                                            className="w-full bg-slate-800 border border-slate-600 rounded px-2 py-1 text-white text-sm"
+                                                                        />
+                                                                    </div>
+                                                                    <div>
+                                                                        <label className="text-[10px] text-slate-500 block">High</label>
+                                                                        <input 
+                                                                            type="number"
+                                                                            value={cost.high}
+                                                                            onChange={e => updateCmCost(cat, 'high', e.target.value)}
+                                                                            className="w-full bg-slate-800 border border-slate-600 rounded px-2 py-1 text-white text-sm"
+                                                                        />
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        );
+                                                    })}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
                         </div>
-                    </div>
-                )}
+                    )}
+
+                </div>
             </div>
         </div>
     );
