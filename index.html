@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>TradeScout</title>
+    <title>Community Scout</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -21,6 +21,20 @@
         width: 100%;
         border-radius: 0.5rem;
       }
+      /* Custom Scrollbar for Dark Theme */
+      ::-webkit-scrollbar {
+        width: 8px;
+      }
+      ::-webkit-scrollbar-track {
+        background: #0f172a; 
+      }
+      ::-webkit-scrollbar-thumb {
+        background: #334155; 
+        border-radius: 4px;
+      }
+      ::-webkit-scrollbar-thumb:hover {
+        background: #475569; 
+      }
     </style>
   <script type="importmap">
 {
@@ -34,7 +48,7 @@
 }
 </script>
 </head>
-  <body class="bg-slate-50 selection:bg-indigo-100 selection:text-indigo-700">
+  <body class="bg-slate-900 text-slate-100 selection:bg-orange-500 selection:text-white">
     <div id="root"></div>
     <!-- Leaflet JS for Map View -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>

@@ -1,24 +1,29 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import * as db from '../services/db';
-import { KnowledgeEntry, LocalTradeData } from '../types';
-import { TrashIcon, PlusCircleIcon, DocumentPlusIcon, ArrowLeftIcon, LightBulbIcon, MapPinIcon } from './Icons';
+import { KnowledgeEntry, LocalTradeData, Partnership } from '../types';
+import { TrashIcon, PlusCircleIcon, DocumentPlusIcon, ArrowLeftIcon, LightBulbIcon, MapPinIcon, CurrencyDollarIcon, CloudArrowUpIcon, SparklesIcon } from './Icons';
+import { GoogleGenAI } from '@google/genai';
 
 interface AdminDashboardProps {
     onBack: () => void;
 }
 
 const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack }) => {
-    const [activeTab, setActiveTab] = useState<'prompts' | 'knowledge' | 'localdata'>('prompts');
+    const [activeTab, setActiveTab] = useState<'prompts' | 'knowledge' | 'localdata' | 'monetization'>('prompts');
     const [prompts, setPrompts] = useState<string[]>([]);
     const [knowledgeBase, setKnowledgeBase] = useState<KnowledgeEntry[]>([]);
+    const [partnerships, setPartnerships] = useState<Partnership[]>([]);
     
     // Prompt Inputs
     const [newPrompt, setNewPrompt] = useState('');
     
-    // Knowledge Inputs
-    const [kbTitle, setKbTitle] = useState('');
-    const [kbContent, setKbContent] = useState('');
+    // AI Processor State
+    const [aiInput, setAiInput] = useState('');
+    const [aiFile, setAiFile] = useState<File | null>(null);
+    const [isProcessing, setIsProcessing] = useState(false);
+    const [aiStatus, setAiStatus] = useState('');
+    const fileInputRef = useRef<HTMLInputElement>(null);
 
     // Local Data Inputs
     const [localScope, setLocalScope] = useState<'national' | 'state' | 'county'>('national');
@@ -30,6 +35,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack }) => {
     useEffect(() => {
         setPrompts(db.getSuggestedPrompts());
         setKnowledgeBase(db.getKnowledgeBase());
+        setPartnerships(db.getPartnerships());
     }, []);
 
     // Load Local Data when scope/id changes
@@ -58,16 +64,6 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack }) => {
         db.updateSuggestedPrompts(updated);
     };
 
-    const handleAddKnowledge = (e: React.FormEvent) => {
-        e.preventDefault();
-        if (kbTitle.trim() && kbContent.trim()) {
-            db.addKnowledgeEntry(kbTitle.trim(), kbContent.trim());
-            setKnowledgeBase(db.getKnowledgeBase());
-            setKbTitle('');
-            setKbContent('');
-        }
-    };
-
     const handleDeleteKnowledge = (id: string) => {
         db.removeKnowledgeEntry(id);
         setKnowledgeBase(db.getKnowledgeBase());
@@ -76,6 +72,12 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack }) => {
     const handleToggleKnowledge = (id: string) => {
         db.toggleKnowledgeEntry(id);
         setKnowledgeBase(db.getKnowledgeBase());
+    };
+
+    const handleDeletePartnership = (id: string) => {
+        const updated = partnerships.filter(p => p.id !== id);
+        setPartnerships(updated);
+        db.updatePartnerships(updated);
     };
 
     const handleSaveLocalData = () => {
@@ -89,6 +91,111 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack }) => {
         }
     };
 
+    // --- AI Command Center Logic ---
+    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (e.target.files && e.target.files[0]) {
+            setAiFile(e.target.files[0]);
+        }
+    };
+
+    const handleAIUpdate = async () => {
+        if (!aiInput.trim() && !aiFile) return;
+        setIsProcessing(true);
+        setAiStatus('Reading input...');
+
+        try {
+            let contextText = aiInput;
+
+            // 1. Read File if present
+            if (aiFile) {
+                const text = await aiFile.text();
+                contextText += `\n\n[FILE CONTENT]:\n${text}`;
+            }
+
+            setAiStatus('Consulting AI...');
+            const ai = new GoogleGenAI({ apiKey: process.env.API_KEY as string });
+
+            if (activeTab === 'knowledge') {
+                // Knowledge Base Processing
+                const prompt = `You are a Knowledge Base Administrator.
+                Analyze the following input (User Text + Optional File).
+                Create a structured Knowledge Entry based on this information.
+                
+                Input:
+                ${contextText}
+
+                Return JSON schema:
+                {
+                    "title": "Short descriptive title",
+                    "content": "The full detailed content formatted as plain text",
+                }`;
+
+                const response = await ai.models.generateContent({
+                    model: 'gemini-2.5-flash',
+                    contents: prompt,
+                    config: { responseMimeType: 'application/json' }
+                });
+
+                const result = JSON.parse(response.text);
+                db.addKnowledgeEntry(result.title, result.content);
+                setKnowledgeBase(db.getKnowledgeBase());
+                setAiStatus('Knowledge Base Updated!');
+
+            } else if (activeTab === 'monetization') {
+                // Monetization Processing
+                const currentAds = JSON.stringify(partnerships);
+                const prompt = `You are an Ad Monetization Manager.
+                Analyze the input to Add, Update, or Remove partnerships.
+                
+                Current Partnerships JSON:
+                ${currentAds}
+
+                User Instructions / New Data:
+                ${contextText}
+
+                Return the FULL updated list of partnerships as a JSON array.
+                Schema per item:
+                {
+                    "id": "string (preserve existing, generate new for new items)",
+                    "title": "string",
+                    "description": "string",
+                    "link": "string (URL)",
+                    "type": "Marketplace" | "Affiliate" | "Sponsored",
+                    "triggerKeywords": ["string"],
+                    "priority": number (1-10),
+                    "isActive": boolean
+                }`;
+
+                const response = await ai.models.generateContent({
+                    model: 'gemini-2.5-flash',
+                    contents: prompt,
+                    config: { responseMimeType: 'application/json' }
+                });
+
+                const newPartnerships = JSON.parse(response.text);
+                if (Array.isArray(newPartnerships)) {
+                    setPartnerships(newPartnerships);
+                    db.updatePartnerships(newPartnerships);
+                    setAiStatus('Partnerships Updated!');
+                } else {
+                    throw new Error('Invalid AI response format');
+                }
+            }
+
+            // Cleanup
+            setAiInput('');
+            setAiFile(null);
+            if (fileInputRef.current) fileInputRef.current.value = '';
+            setTimeout(() => setAiStatus(''), 3000);
+
+        } catch (error) {
+            console.error(error);
+            setAiStatus('Error processing request.');
+        } finally {
+            setIsProcessing(false);
+        }
+    };
+
     return (
         <div className="bg-white rounded-2xl shadow-lg border border-slate-200 min-h-[80vh] flex flex-col">
             <div className="p-6 border-b border-slate-200 flex justify-between items-center bg-slate-50 rounded-t-2xl">
@@ -98,7 +205,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack }) => {
                     </button>
                     <div>
                         <h2 className="text-2xl font-bold text-slate-800">Admin Console</h2>
-                        <p className="text-sm text-slate-500">Manage AI Configuration</p>
+                        <p className="text-sm text-slate-500">Manage AI Configuration & Partnerships</p>
                     </div>
                 </div>
             </div>
@@ -115,6 +222,12 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack }) => {
                     className={`flex-1 py-4 text-sm font-bold text-center border-b-2 transition-colors whitespace-nowrap px-4 ${activeTab === 'knowledge' ? 'border-indigo-600 text-indigo-600 bg-indigo-50/50' : 'border-transparent text-slate-500 hover:text-slate-700'}`}
                 >
                     Knowledge Base
+                </button>
+                <button 
+                    onClick={() => setActiveTab('monetization')}
+                    className={`flex-1 py-4 text-sm font-bold text-center border-b-2 transition-colors whitespace-nowrap px-4 ${activeTab === 'monetization' ? 'border-indigo-600 text-indigo-600 bg-indigo-50/50' : 'border-transparent text-slate-500 hover:text-slate-700'}`}
+                >
+                    Monetization
                 </button>
                 <button 
                     onClick={() => setActiveTab('localdata')}
@@ -163,55 +276,77 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack }) => {
                     </div>
                 )}
 
-                {activeTab === 'knowledge' && (
-                    <div className="max-w-4xl mx-auto">
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                            <div className="md:col-span-1 space-y-4">
-                                <div className="bg-indigo-50 p-4 rounded-xl border border-indigo-100">
-                                    <h4 className="font-bold text-indigo-900 mb-2 flex items-center">
-                                        <LightBulbIcon className="w-5 h-5 mr-2" />
-                                        Context Injection
-                                    </h4>
-                                    <p className="text-xs text-indigo-800 leading-relaxed">
-                                        Data added here is injected into the AI's "System Prompt". Use this to teach the AI about local building codes, labor rates, or specific company policies.
-                                    </p>
+                {(activeTab === 'knowledge' || activeTab === 'monetization') && (
+                    <div className="max-w-4xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-6">
+                        {/* Left: AI Command Center */}
+                        <div className="lg:col-span-1 space-y-4">
+                            <div className="bg-gradient-to-br from-indigo-50 to-purple-50 p-5 rounded-2xl border border-indigo-100 shadow-sm">
+                                <div className="flex items-center mb-3">
+                                    <div className="bg-white p-2 rounded-lg shadow-sm text-indigo-600 mr-2">
+                                        <SparklesIcon className="w-5 h-5" />
+                                    </div>
+                                    <h4 className="font-bold text-indigo-900">AI Command Center</h4>
                                 </div>
-                                <form onSubmit={handleAddKnowledge} className="space-y-3 bg-white p-4 border border-slate-200 rounded-xl shadow-sm">
-                                    <div>
-                                        <label className="block text-xs font-bold text-slate-700 mb-1">Title / Topic</label>
-                                        <input 
-                                            type="text" 
-                                            value={kbTitle}
-                                            onChange={e => setKbTitle(e.target.value)}
-                                            className="w-full p-2 text-sm border border-slate-300 rounded-md focus:ring-indigo-500"
-                                            placeholder="e.g. 2024 Labor Rates"
-                                            required
-                                        />
-                                    </div>
-                                    <div>
-                                        <label className="block text-xs font-bold text-slate-700 mb-1">Content (Text)</label>
-                                        <textarea 
-                                            value={kbContent}
-                                            onChange={e => setKbContent(e.target.value)}
-                                            className="w-full p-2 text-sm border border-slate-300 rounded-md focus:ring-indigo-500 h-32"
-                                            placeholder="Paste relevant text, rules, or data here..."
-                                            required
-                                        />
-                                    </div>
-                                    <button type="submit" className="w-full bg-indigo-600 text-white py-2 rounded-lg font-bold text-sm hover:bg-indigo-700 flex items-center justify-center">
-                                        <DocumentPlusIcon className="w-4 h-4 mr-2" />
-                                        Add to Knowledge Base
-                                    </button>
-                                </form>
-                            </div>
+                                <p className="text-xs text-indigo-800 leading-relaxed mb-4">
+                                    {activeTab === 'knowledge' 
+                                        ? "Describe new knowledge or upload a file. The AI will format and add it to the system."
+                                        : "Describe a new partnership or upload a CSV. The AI will categorize and add it to the ad engine."}
+                                </p>
+                                
+                                <textarea
+                                    value={aiInput}
+                                    onChange={(e) => setAiInput(e.target.value)}
+                                    placeholder={activeTab === 'knowledge' ? "e.g. 'Add a rule about 2025 permits...'" : "e.g. 'Add Home Depot affiliate link for lumber...'"}
+                                    className="w-full p-3 text-sm border border-indigo-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white min-h-[100px] mb-3"
+                                />
 
-                            <div className="md:col-span-2 space-y-4">
-                                <h3 className="font-bold text-slate-800">Active Knowledge Files</h3>
-                                {knowledgeBase.length === 0 ? (
-                                    <div className="text-center py-10 border-2 border-dashed border-slate-200 rounded-xl">
-                                        <p className="text-slate-500">No knowledge entries found.</p>
-                                    </div>
+                                <div className="flex items-center space-x-2 mb-3">
+                                    <label className="flex-1 cursor-pointer bg-white border border-indigo-200 rounded-lg p-2 flex items-center justify-center hover:bg-indigo-50 transition-colors">
+                                        <CloudArrowUpIcon className="w-4 h-4 text-indigo-500 mr-2" />
+                                        <span className="text-xs font-semibold text-indigo-700 truncate max-w-[100px]">
+                                            {aiFile ? aiFile.name : 'Upload File'}
+                                        </span>
+                                        <input 
+                                            type="file" 
+                                            ref={fileInputRef}
+                                            onChange={handleFileChange}
+                                            className="hidden" 
+                                            accept=".txt,.csv,.json,.md"
+                                        />
+                                    </label>
+                                </div>
+
+                                <button 
+                                    onClick={handleAIUpdate}
+                                    disabled={isProcessing || (!aiInput && !aiFile)}
+                                    className="w-full bg-indigo-600 text-white py-2.5 rounded-lg font-bold text-sm hover:bg-indigo-700 flex items-center justify-center disabled:bg-indigo-300 transition-colors shadow-md"
+                                >
+                                    {isProcessing ? (
+                                        <span className="animate-pulse">Processing...</span>
+                                    ) : (
+                                        <>
+                                            <SparklesIcon className="w-4 h-4 mr-2" />
+                                            Process with AI
+                                        </>
+                                    )}
+                                </button>
+                                {aiStatus && <p className="text-xs text-center mt-2 text-indigo-700 font-medium animate-fade-in-up">{aiStatus}</p>}
+                            </div>
+                        </div>
+
+                        {/* Right: List View */}
+                        <div className="lg:col-span-2 space-y-4">
+                            <h3 className="font-bold text-slate-800 flex items-center">
+                                {activeTab === 'knowledge' ? (
+                                    <><LightBulbIcon className="w-5 h-5 mr-2 text-amber-500" /> Active Knowledge</>
                                 ) : (
+                                    <><CurrencyDollarIcon className="w-5 h-5 mr-2 text-emerald-500" /> Active Partnerships</>
+                                )}
+                            </h3>
+
+                            <div className="space-y-3">
+                                {activeTab === 'knowledge' && (
+                                    knowledgeBase.length === 0 ? <div className="text-slate-400 italic p-4 text-center border-2 border-dashed border-slate-200 rounded-xl">No entries. Use the AI Command Center to add data.</div> :
                                     knowledgeBase.map((entry) => (
                                         <div key={entry.id} className={`p-4 rounded-xl border transition-all ${entry.isActive ? 'bg-white border-slate-200 shadow-sm' : 'bg-slate-50 border-slate-100 opacity-60'}`}>
                                             <div className="flex justify-between items-start mb-2">
@@ -220,10 +355,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack }) => {
                                                     <p className="text-xs text-slate-400">Added: {new Date(entry.dateAdded).toLocaleDateString()}</p>
                                                 </div>
                                                 <div className="flex items-center space-x-2">
-                                                    <button 
-                                                        onClick={() => handleToggleKnowledge(entry.id)}
-                                                        className={`text-xs font-bold px-2 py-1 rounded ${entry.isActive ? 'bg-green-100 text-green-700' : 'bg-slate-200 text-slate-600'}`}
-                                                    >
+                                                    <button onClick={() => handleToggleKnowledge(entry.id)} className={`text-xs font-bold px-2 py-1 rounded ${entry.isActive ? 'bg-green-100 text-green-700' : 'bg-slate-200 text-slate-600'}`}>
                                                         {entry.isActive ? 'Active' : 'Inactive'}
                                                     </button>
                                                     <button onClick={() => handleDeleteKnowledge(entry.id)} className="text-slate-400 hover:text-red-500 p-1">
@@ -237,10 +369,42 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack }) => {
                                         </div>
                                     ))
                                 )}
+
+                                {activeTab === 'monetization' && (
+                                    partnerships.length === 0 ? <div className="text-slate-400 italic p-4 text-center border-2 border-dashed border-slate-200 rounded-xl">No partnerships. Use AI to add them.</div> :
+                                    partnerships.map((p) => (
+                                        <div key={p.id} className="p-4 bg-white border border-slate-200 rounded-xl shadow-sm hover:border-indigo-200 transition-all">
+                                            <div className="flex justify-between items-start">
+                                                <div>
+                                                    <div className="flex items-center gap-2 mb-1">
+                                                        <span className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded-full ${p.type === 'Affiliate' ? 'bg-blue-100 text-blue-700' : p.type === 'Sponsored' ? 'bg-amber-100 text-amber-700' : 'bg-emerald-100 text-emerald-700'}`}>
+                                                            {p.type}
+                                                        </span>
+                                                        <h4 className="font-bold text-slate-800">{p.title}</h4>
+                                                    </div>
+                                                    <a href={p.link} target="_blank" rel="noreferrer" className="text-xs text-indigo-500 hover:underline mb-2 block">{p.link}</a>
+                                                    <p className="text-sm text-slate-600 mb-2">{p.description}</p>
+                                                    <div className="flex flex-wrap gap-1">
+                                                        {p.triggerKeywords.map((k, i) => (
+                                                            <span key={i} className="text-[10px] bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded border border-slate-200">#{k}</span>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                                <div className="flex flex-col items-end space-y-2">
+                                                    <span className="text-xs font-bold text-slate-400">Pri: {p.priority}</span>
+                                                    <button onClick={() => handleDeletePartnership(p.id)} className="text-slate-400 hover:text-red-500">
+                                                        <TrashIcon className="w-5 h-5" />
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ))
+                                )}
                             </div>
                         </div>
                     </div>
                 )}
+
 
                 {activeTab === 'localdata' && (
                     <div className="max-w-4xl mx-auto">
