@@ -6,7 +6,7 @@ export interface User {
   email: string;
   firstName: string;
   lastName: string;
-  role: 'homeowner' | 'contractor_user' | 'realtor' | 'car_salesman' | 'accelerator_member' | 'moderator' | 'ops_admin' | 'head_admin';
+  role: 'homeowner' | 'contractor_user' | 'realtor' | 'car_salesman' | 'accelerator_member' | 'moderator' | 'ops_admin' | 'head_admin' | 'super_admin';
   profileImageUrl?: string;
   emailVerified: boolean;
   addressVerified: boolean;

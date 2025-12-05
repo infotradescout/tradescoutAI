@@ -558,7 +558,51 @@ export default function AdminPanel() {
             <div className="flex justify-between items-center">
               <h2 className="text-xl font-semibold">User Error Reports</h2>
             </div>
-            {/* TODO: Add error reports table */}
+            
+            <Card className="bg-navy-700 border-navy-600">
+              <CardHeader>
+                <CardTitle>Recent Error Reports</CardTitle>
+                <CardDescription>User-submitted error reports and system issues</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Table>
+                  <TableHeader>
+                    <TableRow className="border-navy-600">
+                      <TableHead>Date</TableHead>
+                      <TableHead>User</TableHead>
+                      <TableHead>Error Type</TableHead>
+                      <TableHead>Description</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {/* Sample data - replace with actual error reports from API */}
+                    <TableRow className="border-navy-600">
+                      <TableCell className="text-navy-200">
+                        {new Date().toLocaleDateString()}
+                      </TableCell>
+                      <TableCell className="text-navy-200">user@example.com</TableCell>
+                      <TableCell>
+                        <Badge variant="destructive">API Error</Badge>
+                      </TableCell>
+                      <TableCell className="text-navy-200">Failed to load contractor data</TableCell>
+                      <TableCell>
+                        <Badge variant="outline">Pending</Badge>
+                      </TableCell>
+                      <TableCell>
+                        <Button variant="outline" size="sm">View Details</Button>
+                      </TableCell>
+                    </TableRow>
+                    <TableRow className="border-navy-600">
+                      <TableCell colSpan={6} className="text-center text-navy-400 py-8">
+                        No error reports to display. Error reporting system is ready for submissions.
+                      </TableCell>
+                    </TableRow>
+                  </TableBody>
+                </Table>
+              </CardContent>
+            </Card>
           </TabsContent>
 
           <TabsContent value="ai-fixes" className="space-y-6">

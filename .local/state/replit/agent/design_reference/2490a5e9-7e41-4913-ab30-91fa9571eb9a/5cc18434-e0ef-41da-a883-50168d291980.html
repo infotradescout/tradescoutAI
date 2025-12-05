@@ -1,0 +1,846 @@
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Trade Scout - Find Verified Contractors in Your County</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+    tailwind.config = {
+        theme: {
+            extend: {
+                colors: {
+                    'navy-primary': '#1A2332',
+                    'navy-secondary': '#243447',
+                    'orange-accent': '#FF6B35',
+                    'text-light': '#B8BCC8'
+                },
+                fontFamily: {
+                    'sans': ['Inter', 'system-ui', 'sans-serif']
+                }
+            }
+        }
+    };
+    </script>
+    <style>
+        body {
+            background: linear-gradient(135deg, #1A2332 0%, #243447 100%);
+            min-height: 100vh;
+        }
+        .glow-button:hover {
+            box-shadow: 0 0 20px rgba(255, 107, 53, 0.4);
+        }
+        .card-glow {
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
+        }
+        .sticky-bottom-cta {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            z-index: 50;
+        }
+        @media (min-width: 768px) {
+            .sticky-bottom-cta {
+                display: none;
+            }
+        }
+    </style>
+</head>
+<body class="font-sans text-white">
+
+<!-- @COMPONENT: Header [navigation, search, auth] -->
+<header class="bg-navy-secondary/90 backdrop-blur-sm border-b border-navy-primary sticky top-0 z-40">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="flex justify-between items-center h-16">
+            <div class="flex items-center space-x-4">
+                <div class="flex items-center">
+                    <i class="fas fa-tools text-orange-accent text-2xl mr-2"></i>
+                    <span class="text-xl font-bold">Trade Scout</span>
+                </div>
+                <!-- @STATE: activeTab:string = 'board' -->
+                <nav class="hidden md:flex space-x-6">
+                    <a href="#board" class="text-white hover:text-orange-accent transition-colors">Find Contractors</a>
+                    <a href="#quote" class="text-text-light hover:text-orange-accent transition-colors">Get Quote</a>
+                    <a href="#growth-pack" class="text-text-light hover:text-orange-accent transition-colors">For Contractors</a>
+                </nav>
+            </div>
+            
+            <div class="flex items-center space-x-4">
+                <!-- @FUNCTIONALITY: County search autocomplete -->
+                <div class="hidden sm:block relative">
+                    <input type="search" placeholder="Enter your county..." 
+                           class="bg-navy-primary border border-gray-600 rounded-lg px-4 py-2 text-sm focus:outline-none focus:border-orange-accent w-64">
+                    <i class="fas fa-search absolute right-3 top-2.5 text-text-light"></i>
+                </div>
+                
+                <!-- @FUNCTIONALITY: Auth integration with Facebook/Replit Auth -->
+                <button class="bg-orange-accent hover:bg-orange-600 text-white px-4 py-2 rounded-lg font-medium glow-button transition-all">
+                    <i class="fab fa-facebook-f mr-2"></i>Sign In
+                </button>
+            </div>
+        </div>
+    </div>
+</header>
+<!-- @END_COMPONENT: Header -->
+
+<!-- Mobile Search Bar -->
+<div class="sm:hidden bg-navy-secondary px-4 py-3 border-b border-navy-primary">
+    <div class="relative">
+        <input type="search" placeholder="Enter your county..." 
+               class="w-full bg-navy-primary border border-gray-600 rounded-lg px-4 py-2 text-sm focus:outline-none focus:border-orange-accent">
+        <i class="fas fa-search absolute right-3 top-2.5 text-text-light"></i>
+    </div>
+</div>
+
+<!-- @COMPONENT: HeroSection [value proposition, county search] -->
+<section class="py-12 lg:py-20">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="text-center max-w-4xl mx-auto">
+            <h1 class="text-4xl lg:text-6xl font-bold mb-6">
+                Find <span class="text-orange-accent">Verified Contractors</span><br>
+                in Your County
+            </h1>
+            <p class="text-xl text-text-light mb-8 max-w-2xl mx-auto">
+                Connect with licensed, insured contractors in your area. Get quotes, read reviews, and hire with confidence.
+            </p>
+            
+            <!-- @FUNCTIONALITY: County autocomplete with state/FIPS lookup -->
+            <div class="bg-navy-secondary rounded-2xl p-6 card-glow max-w-2xl mx-auto">
+                <div class="flex flex-col sm:flex-row gap-4">
+                    <div class="flex-1">
+                        <label class="block text-sm font-medium mb-2">Select Your County</label>
+                        <select class="w-full bg-navy-primary border border-gray-600 rounded-lg px-4 py-3 focus:outline-none focus:border-orange-accent">
+                            <option>Choose county...</option>
+                            <!-- @DATA: Populated from county taxonomy with FIPS codes -->
+                            <option data-bind="counties.map(county => county.name)">Los Angeles County, CA</option>
+                        </select>
+                    </div>
+                    <div class="flex-1">
+                        <label class="block text-sm font-medium mb-2">What do you need?</label>
+                        <select class="w-full bg-navy-primary border border-gray-600 rounded-lg px-4 py-3 focus:outline-none focus:border-orange-accent">
+                            <option>All trades...</option>
+                            <!-- @DATA: Populated from trade taxonomy -->
+                            <option data-bind="trades.map(trade => trade.name)">Electrical</option>
+                        </select>
+                    </div>
+                    <div class="sm:self-end">
+                        <button class="w-full sm:w-auto bg-orange-accent hover:bg-orange-600 text-white px-8 py-3 rounded-lg font-semibold glow-button transition-all">
+                            <i class="fas fa-search mr-2"></i>Find Contractors
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+<!-- @END_COMPONENT: HeroSection -->
+
+<!-- @COMPONENT: ContractorBoard [filtering, sorting, pagination] -->
+<section id="board" class="py-16">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="flex justify-between items-center mb-8">
+            <h2 class="text-3xl font-bold">Available Contractors</h2>
+            <div class="flex items-center space-x-4">
+                <select class="bg-navy-secondary border border-gray-600 rounded-lg px-4 py-2 text-sm focus:outline-none focus:border-orange-accent">
+                    <option>Most Recommended</option>
+                    <option>Highest Rated</option>
+                    <option>Years in Business</option>
+                    <option>Recently Verified</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- Filter Bar -->
+        <div class="bg-navy-secondary rounded-xl p-6 mb-8 card-glow">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div>
+                    <label class="block text-sm font-medium mb-2">Trade</label>
+                    <select class="w-full bg-navy-primary border border-gray-600 rounded-lg px-3 py-2 focus:outline-none focus:border-orange-accent">
+                        <option>All Trades</option>
+                        <option>Electrical</option>
+                        <option>Plumbing</option>
+                        <option>HVAC</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium mb-2">Service Area</label>
+                    <select class="w-full bg-navy-primary border border-gray-600 rounded-lg px-3 py-2 focus:outline-none focus:border-orange-accent">
+                        <option>Current County</option>
+                        <option>Within 25 miles</option>
+                        <option>Statewide</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium mb-2">Availability</label>
+                    <select class="w-full bg-navy-primary border border-gray-600 rounded-lg px-3 py-2 focus:outline-none focus:border-orange-accent">
+                        <option>Any Time</option>
+                        <option>This Week</option>
+                        <option>Next 2 Weeks</option>
+                    </select>
+                </div>
+                <div class="flex items-end">
+                    <button class="w-full bg-orange-accent hover:bg-orange-600 text-white px-4 py-2 rounded-lg font-medium glow-button transition-all">
+                        Apply Filters
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- @MAP: contractors.map(contractor => ( -->
+        <!-- Contractor Cards -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6 mb-12">
+            <!-- Contractor Card 1 -->
+            <div class="bg-navy-secondary rounded-xl p-6 card-glow hover:scale-105 transition-transform duration-200">
+                <div class="flex items-start justify-between mb-4">
+                    <div class="flex items-center">
+                        <!-- @DATA: contractor.logo or default -->
+                        <div class="w-12 h-12 bg-orange-accent rounded-lg flex items-center justify-center mr-3">
+                            <i class="fas fa-bolt text-white text-xl"></i>
+                        </div>
+                        <div>
+                            <h3 class="font-semibold text-lg" data-bind="contractor.company_name">Elite Electric Pro</h3>
+                            <div class="flex items-center text-sm text-text-light">
+                                <span data-bind="contractor.years_in_business">12</span> years • 
+                                <div class="flex items-center ml-1">
+                                    <div class="flex text-yellow-400">
+                                        <i class="fas fa-star"></i>
+                                        <i class="fas fa-star"></i>
+                                        <i class="fas fa-star"></i>
+                                        <i class="fas fa-star"></i>
+                                        <i class="fas fa-star"></i>
+                                    </div>
+                                    <span class="ml-1" data-bind="contractor.avg_rating">4.9</span>
+                                    <span class="ml-1">(<span data-bind="contractor.review_count">127</span>)</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="flex flex-col items-end">
+                        <span class="bg-green-500 text-white text-xs px-2 py-1 rounded-full mb-1">Verified</span>
+                        <span class="text-xs text-text-light" data-bind="contractor.last_verified">Last verified 2 days ago</span>
+                    </div>
+                </div>
+
+                <div class="mb-4">
+                    <div class="flex flex-wrap gap-2 mb-3">
+                        <!-- @DATA: contractor.trades -->
+                        <span class="bg-navy-primary text-xs px-2 py-1 rounded-full">Electrical</span>
+                        <span class="bg-navy-primary text-xs px-2 py-1 rounded-full">Smart Home</span>
+                    </div>
+                    <div class="text-sm text-text-light mb-2">
+                        <i class="fas fa-map-marker-alt mr-1"></i>
+                        <span data-bind="contractor.service_areas">Los Angeles, Orange County +3 more</span>
+                    </div>
+                    <div class="text-sm text-text-light">
+                        <i class="fas fa-clock mr-1"></i>
+                        <span data-bind="contractor.response_time_sla">Responds within 2 hours</span>
+                    </div>
+                </div>
+
+                <div class="flex space-x-2">
+                    <button class="flex-1 bg-orange-accent hover:bg-orange-600 text-white py-2 px-4 rounded-lg font-medium glow-button transition-all" 
+                            data-event="click:callContractor">
+                        <i class="fas fa-phone mr-2"></i>Call Now
+                    </button>
+                    <button class="flex-1 border border-orange-accent text-orange-accent hover:bg-orange-accent hover:text-white py-2 px-4 rounded-lg font-medium transition-all">
+                        View Profile
+                    </button>
+                </div>
+            </div>
+
+            <!-- Contractor Card 2 -->
+            <div class="bg-navy-secondary rounded-xl p-6 card-glow hover:scale-105 transition-transform duration-200">
+                <div class="flex items-start justify-between mb-4">
+                    <div class="flex items-center">
+                        <div class="w-12 h-12 bg-blue-500 rounded-lg flex items-center justify-center mr-3">
+                            <i class="fas fa-wrench text-white text-xl"></i>
+                        </div>
+                        <div>
+                            <h3 class="font-semibold text-lg">Premier Plumbing Solutions</h3>
+                            <div class="flex items-center text-sm text-text-light">
+                                8 years • 
+                                <div class="flex items-center ml-1">
+                                    <div class="flex text-yellow-400">
+                                        <i class="fas fa-star"></i>
+                                        <i class="fas fa-star"></i>
+                                        <i class="fas fa-star"></i>
+                                        <i class="fas fa-star"></i>
+                                        <i class="fas fa-star-half-alt"></i>
+                                    </div>
+                                    <span class="ml-1">4.7</span>
+                                    <span class="ml-1">(89)</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="flex flex-col items-end">
+                        <span class="bg-green-500 text-white text-xs px-2 py-1 rounded-full mb-1">Verified</span>
+                        <span class="text-xs text-text-light">Last verified 1 week ago</span>
+                    </div>
+                </div>
+
+                <div class="mb-4">
+                    <div class="flex flex-wrap gap-2 mb-3">
+                        <span class="bg-navy-primary text-xs px-2 py-1 rounded-full">Plumbing</span>
+                        <span class="bg-navy-primary text-xs px-2 py-1 rounded-full">Emergency Service</span>
+                    </div>
+                    <div class="text-sm text-text-light mb-2">
+                        <i class="fas fa-map-marker-alt mr-1"></i>
+                        Los Angeles, Riverside County +2 more
+                    </div>
+                    <div class="text-sm text-text-light">
+                        <i class="fas fa-clock mr-1"></i>
+                        Responds within 4 hours
+                    </div>
+                </div>
+
+                <div class="flex space-x-2">
+                    <button class="flex-1 bg-orange-accent hover:bg-orange-600 text-white py-2 px-4 rounded-lg font-medium glow-button transition-all">
+                        <i class="fas fa-phone mr-2"></i>Call Now
+                    </button>
+                    <button class="flex-1 border border-orange-accent text-orange-accent hover:bg-orange-accent hover:text-white py-2 px-4 rounded-lg font-medium transition-all">
+                        View Profile
+                    </button>
+                </div>
+            </div>
+
+            <!-- Contractor Card 3 -->
+            <div class="bg-navy-secondary rounded-xl p-6 card-glow hover:scale-105 transition-transform duration-200">
+                <div class="flex items-start justify-between mb-4">
+                    <div class="flex items-center">
+                        <div class="w-12 h-12 bg-red-500 rounded-lg flex items-center justify-center mr-3">
+                            <i class="fas fa-hammer text-white text-xl"></i>
+                        </div>
+                        <div>
+                            <h3 class="font-semibold text-lg">Quality Roofing & Construction</h3>
+                            <div class="flex items-center text-sm text-text-light">
+                                15 years • 
+                                <div class="flex items-center ml-1">
+                                    <div class="flex text-yellow-400">
+                                        <i class="fas fa-star"></i>
+                                        <i class="fas fa-star"></i>
+                                        <i class="fas fa-star"></i>
+                                        <i class="fas fa-star"></i>
+                                        <i class="fas fa-star"></i>
+                                    </div>
+                                    <span class="ml-1">4.8</span>
+                                    <span class="ml-1">(156)</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="flex flex-col items-end">
+                        <span class="bg-yellow-500 text-black text-xs px-2 py-1 rounded-full mb-1">Accelerator</span>
+                        <span class="text-xs text-text-light">Last verified 3 days ago</span>
+                    </div>
+                </div>
+
+                <div class="mb-4">
+                    <div class="flex flex-wrap gap-2 mb-3">
+                        <span class="bg-navy-primary text-xs px-2 py-1 rounded-full">Roofing</span>
+                        <span class="bg-navy-primary text-xs px-2 py-1 rounded-full">Construction</span>
+                        <span class="bg-navy-primary text-xs px-2 py-1 rounded-full">Storm Damage</span>
+                    </div>
+                    <div class="text-sm text-text-light mb-2">
+                        <i class="fas fa-map-marker-alt mr-1"></i>
+                        Los Angeles, Ventura County +1 more
+                    </div>
+                    <div class="text-sm text-text-light">
+                        <i class="fas fa-clock mr-1"></i>
+                        Responds within 1 hour
+                    </div>
+                </div>
+
+                <div class="flex space-x-2">
+                    <button class="flex-1 bg-orange-accent hover:bg-orange-600 text-white py-2 px-4 rounded-lg font-medium glow-button transition-all">
+                        <i class="fas fa-phone mr-2"></i>Call Now
+                    </button>
+                    <button class="flex-1 border border-orange-accent text-orange-accent hover:bg-orange-accent hover:text-white py-2 px-4 rounded-lg font-medium transition-all">
+                        View Profile
+                    </button>
+                </div>
+            </div>
+        </div>
+        <!-- @END_MAP -->
+
+        <!-- Get Quotes CTA -->
+        <div class="bg-orange-accent/10 border border-orange-accent rounded-xl p-8 text-center">
+            <h3 class="text-2xl font-bold mb-4">Can't decide? Get quotes from top 3 contractors</h3>
+            <p class="text-text-light mb-6 max-w-2xl mx-auto">
+                We'll match you with the best contractors in your area based on your specific needs and their availability.
+            </p>
+            <button class="bg-orange-accent hover:bg-orange-600 text-white px-8 py-3 rounded-lg font-semibold glow-button transition-all">
+                <i class="fas fa-users mr-2"></i>Get 3 Free Quotes
+            </button>
+        </div>
+    </div>
+</section>
+<!-- @END_COMPONENT: ContractorBoard -->
+
+<!-- @COMPONENT: QuoteCalculator [progressive forms, CSV-driven pricing] -->
+<section id="quote" class="py-16 bg-navy-primary/30">
+    <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="text-center mb-12">
+            <h2 class="text-3xl font-bold mb-4">Get an Instant Quote</h2>
+            <p class="text-text-light max-w-2xl mx-auto">
+                Our advanced calculator uses local pricing data to give you accurate estimates for your project.
+            </p>
+        </div>
+
+        <div class="bg-navy-secondary rounded-xl p-8 card-glow">
+            <!-- @FUNCTIONALITY: Multi-step calculator form with CSV pricing data -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                <div>
+                    <label class="block text-sm font-medium mb-2">Project Type</label>
+                    <select class="w-full bg-navy-primary border border-gray-600 rounded-lg px-4 py-3 focus:outline-none focus:border-orange-accent" 
+                            data-implementation="Load pricing CSV for selected service">
+                        <option>Select project type...</option>
+                        <option value="electrical">Electrical Work</option>
+                        <option value="plumbing">Plumbing</option>
+                        <option value="roofing">Roofing</option>
+                        <option value="hvac">HVAC</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium mb-2">Property Size</label>
+                    <select class="w-full bg-navy-primary border border-gray-600 rounded-lg px-4 py-3 focus:outline-none focus:border-orange-accent">
+                        <option>Select size...</option>
+                        <option>Under 1,000 sq ft</option>
+                        <option>1,000 - 2,000 sq ft</option>
+                        <option>2,000 - 3,000 sq ft</option>
+                        <option>Over 3,000 sq ft</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Progressive disclosure based on project type -->
+            <div class="space-y-6" data-implementation="Show/hide fields based on selected project type">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <label class="block text-sm font-medium mb-2">Timeline</label>
+                        <select class="w-full bg-navy-primary border border-gray-600 rounded-lg px-4 py-3 focus:outline-none focus:border-orange-accent">
+                            <option>ASAP</option>
+                            <option>Within 2 weeks</option>
+                            <option>Within a month</option>
+                            <option>Flexible</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium mb-2">Quality Level</label>
+                        <select class="w-full bg-navy-primary border border-gray-600 rounded-lg px-4 py-3 focus:outline-none focus:border-orange-accent">
+                            <option>Standard</option>
+                            <option>Premium</option>
+                            <option>Luxury</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium mb-2">Additional Details</label>
+                    <textarea class="w-full bg-navy-primary border border-gray-600 rounded-lg px-4 py-3 focus:outline-none focus:border-orange-accent" 
+                              rows="3" placeholder="Describe your project requirements..."></textarea>
+                </div>
+            </div>
+
+            <!-- Quote Results -->
+            <div class="mt-8 p-6 bg-navy-primary rounded-lg border border-orange-accent/30" data-implementation="Calculate pricing using CSV data and county FIPS">
+                <h3 class="text-xl font-semibold mb-4">Estimated Cost Range</h3>
+                <div class="grid grid-cols-3 gap-4 mb-4">
+                    <div class="text-center">
+                        <div class="text-2xl font-bold text-green-400" data-bind="calculator.low_estimate">$2,500</div>
+                        <div class="text-sm text-text-light">Low</div>
+                    </div>
+                    <div class="text-center">
+                        <div class="text-2xl font-bold text-orange-accent" data-bind="calculator.mid_estimate">$3,750</div>
+                        <div class="text-sm text-text-light">Average</div>
+                    </div>
+                    <div class="text-center">
+                        <div class="text-2xl font-bold text-red-400" data-bind="calculator.high_estimate">$5,000</div>
+                        <div class="text-sm text-text-light">High</div>
+                    </div>
+                </div>
+                <p class="text-xs text-text-light text-center mb-6">
+                    This is an estimate. Contractors will provide exact quotes based on your specific requirements.
+                </p>
+                
+                <div class="flex flex-col sm:flex-row gap-4">
+                    <button class="flex-1 bg-orange-accent hover:bg-orange-600 text-white py-3 px-6 rounded-lg font-semibold glow-button transition-all"
+                            data-event="click:submitQuoteRequest">
+                        <i class="fas fa-paper-plane mr-2"></i>Get Exact Quotes
+                    </button>
+                    <button class="flex-1 border border-orange-accent text-orange-accent hover:bg-orange-accent hover:text-white py-3 px-6 rounded-lg font-semibold transition-all">
+                        <i class="fas fa-download mr-2"></i>Save Estimate
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+<!-- @END_COMPONENT: QuoteCalculator -->
+
+<!-- @COMPONENT: TeamDashboard [admin interface, lead management, KPIs] -->
+<section class="py-16">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="flex justify-between items-center mb-8">
+            <h2 class="text-3xl font-bold">Team Dashboard</h2>
+            <div class="flex items-center space-x-4">
+                <select class="bg-navy-secondary border border-gray-600 rounded-lg px-4 py-2 text-sm focus:outline-none focus:border-orange-accent">
+                    <option>Last 7 days</option>
+                    <option>Last 30 days</option>
+                    <option>Last 3 months</option>
+                </select>
+                <button class="bg-orange-accent hover:bg-orange-600 text-white px-4 py-2 rounded-lg font-medium glow-button transition-all">
+                    <i class="fas fa-plus mr-2"></i>Add Team Member
+                </button>
+            </div>
+        </div>
+
+        <!-- KPI Cards -->
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+            <div class="bg-navy-secondary rounded-xl p-6 card-glow">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-text-light text-sm">Total Leads</p>
+                        <p class="text-2xl font-bold" data-bind="kpis.total_leads">1,247</p>
+                    </div>
+                    <div class="bg-green-500/20 rounded-lg p-3">
+                        <i class="fas fa-arrow-up text-green-400"></i>
+                    </div>
+                </div>
+                <div class="flex items-center mt-2 text-sm">
+                    <span class="text-green-400">+12%</span>
+                    <span class="text-text-light ml-1">vs last period</span>
+                </div>
+            </div>
+
+            <div class="bg-navy-secondary rounded-xl p-6 card-glow">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-text-light text-sm">Verified Contractors</p>
+                        <p class="text-2xl font-bold" data-bind="kpis.verified_contractors">89</p>
+                    </div>
+                    <div class="bg-blue-500/20 rounded-lg p-3">
+                        <i class="fas fa-certificate text-blue-400"></i>
+                    </div>
+                </div>
+                <div class="flex items-center mt-2 text-sm">
+                    <span class="text-green-400">+8%</span>
+                    <span class="text-text-light ml-1">vs last period</span>
+                </div>
+            </div>
+
+            <div class="bg-navy-secondary rounded-xl p-6 card-glow">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-text-light text-sm">Match Rate</p>
+                        <p class="text-2xl font-bold" data-bind="kpis.match_rate">87%</p>
+                    </div>
+                    <div class="bg-orange-500/20 rounded-lg p-3">
+                        <i class="fas fa-handshake text-orange-400"></i>
+                    </div>
+                </div>
+                <div class="flex items-center mt-2 text-sm">
+                    <span class="text-green-400">+3%</span>
+                    <span class="text-text-light ml-1">vs last period</span>
+                </div>
+            </div>
+
+            <div class="bg-navy-secondary rounded-xl p-6 card-glow">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-text-light text-sm">Revenue</p>
+                        <p class="text-2xl font-bold" data-bind="kpis.revenue">$12,456</p>
+                    </div>
+                    <div class="bg-purple-500/20 rounded-lg p-3">
+                        <i class="fas fa-dollar-sign text-purple-400"></i>
+                    </div>
+                </div>
+                <div class="flex items-center mt-2 text-sm">
+                    <span class="text-green-400">+18%</span>
+                    <span class="text-text-light ml-1">vs last period</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Team Management Tabs -->
+        <div class="bg-navy-secondary rounded-xl card-glow">
+            <div class="border-b border-gray-600">
+                <nav class="flex space-x-8 px-6" data-implementation="Tab switching for different management views">
+                    <button class="py-4 px-2 border-b-2 border-orange-accent text-orange-accent font-medium">Pending Verification</button>
+                    <button class="py-4 px-2 border-b-2 border-transparent text-text-light hover:text-white">Active Leads</button>
+                    <button class="py-4 px-2 border-b-2 border-transparent text-text-light hover:text-white">Lead Routing</button>
+                    <button class="py-4 px-2 border-b-2 border-transparent text-text-light hover:text-white">Team Members</button>
+                    <button class="py-4 px-2 border-b-2 border-transparent text-text-light hover:text-white">Data Import</button>
+                </nav>
+            </div>
+
+            <div class="p-6">
+                <!-- Pending Verification Queue -->
+                <div class="space-y-4" data-implementation="Queue of contractors awaiting verification">
+                    <div class="flex items-center justify-between p-4 bg-navy-primary rounded-lg border border-yellow-500/30">
+                        <div class="flex items-center space-x-4">
+                            <div class="w-10 h-10 bg-yellow-500 rounded-lg flex items-center justify-center">
+                                <i class="fas fa-exclamation text-white"></i>
+                            </div>
+                            <div>
+                                <h4 class="font-semibold">ABC Electrical Services</h4>
+                                <p class="text-sm text-text-light">Submitted 2 days ago • Missing insurance certificate</p>
+                            </div>
+                        </div>
+                        <div class="flex space-x-2">
+                            <button class="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg text-sm transition-all">
+                                Reject
+                            </button>
+                            <button class="bg-yellow-500 hover:bg-yellow-600 text-white px-4 py-2 rounded-lg text-sm transition-all">
+                                Request Info
+                            </button>
+                            <button class="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg text-sm transition-all">
+                                Approve
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="flex items-center justify-between p-4 bg-navy-primary rounded-lg border border-green-500/30">
+                        <div class="flex items-center space-x-4">
+                            <div class="w-10 h-10 bg-green-500 rounded-lg flex items-center justify-center">
+                                <i class="fas fa-check text-white"></i>
+                            </div>
+                            <div>
+                                <h4 class="font-semibold">Pro Plumbing Solutions</h4>
+                                <p class="text-sm text-text-light">Submitted 1 day ago • All documents complete</p>
+                            </div>
+                        </div>
+                        <div class="flex space-x-2">
+                            <button class="bg-green-500 hover:bg-green-600 text-white px-6 py-2 rounded-lg text-sm transition-all">
+                                <i class="fas fa-check mr-2"></i>Approve
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Bulk Actions -->
+                <div class="mt-6 flex justify-between items-center">
+                    <p class="text-sm text-text-light">2 contractors pending verification</p>
+                    <div class="flex space-x-2">
+                        <button class="bg-navy-primary hover:bg-gray-600 text-white px-4 py-2 rounded-lg text-sm transition-all">
+                            Bulk Actions
+                        </button>
+                        <button class="bg-orange-accent hover:bg-orange-600 text-white px-4 py-2 rounded-lg text-sm glow-button transition-all">
+                            Export Report
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+<!-- @END_COMPONENT: TeamDashboard -->
+
+<!-- @COMPONENT: GrowthPackLanding [lead magnet for contractors] -->
+<section id="growth-pack" class="py-16 bg-navy-primary/30">
+    <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="bg-navy-secondary rounded-xl p-8 lg:p-12 card-glow text-center">
+            <div class="max-w-2xl mx-auto">
+                <h2 class="text-3xl lg:text-4xl font-bold mb-6">
+                    Free <span class="text-orange-accent">Growth Pack</span> for Contractors
+                </h2>
+                <p class="text-xl text-text-light mb-8">
+                    Get our proven strategies to increase leads, improve your online presence, and grow your contracting business.
+                </p>
+
+                <!-- Benefits List -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8 text-left">
+                    <div class="flex items-center space-x-3">
+                        <i class="fas fa-check-circle text-green-400"></i>
+                        <span>Lead generation strategies</span>
+                    </div>
+                    <div class="flex items-center space-x-3">
+                        <i class="fas fa-check-circle text-green-400"></i>
+                        <span>SEO optimization guide</span>
+                    </div>
+                    <div class="flex items-center space-x-3">
+                        <i class="fas fa-check-circle text-green-400"></i>
+                        <span>Pricing calculator templates</span>
+                    </div>
+                    <div class="flex items-center space-x-3">
+                        <i class="fas fa-check-circle text-green-400"></i>
+                        <span>Customer retention tactics</span>
+                    </div>
+                </div>
+
+                <!-- Lead Capture Form -->
+                <form class="space-y-4" data-implementation="Gated content form with email delivery">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <input type="text" placeholder="Company Name" 
+                               class="bg-navy-primary border border-gray-600 rounded-lg px-4 py-3 focus:outline-none focus:border-orange-accent">
+                        <input type="email" placeholder="Email Address" 
+                               class="bg-navy-primary border border-gray-600 rounded-lg px-4 py-3 focus:outline-none focus:border-orange-accent">
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <select class="bg-navy-primary border border-gray-600 rounded-lg px-4 py-3 focus:outline-none focus:border-orange-accent">
+                            <option>Primary Trade</option>
+                            <option>Electrical</option>
+                            <option>Plumbing</option>
+                            <option>HVAC</option>
+                            <option>Roofing</option>
+                        </select>
+                        <select class="bg-navy-primary border border-gray-600 rounded-lg px-4 py-3 focus:outline-none focus:border-orange-accent">
+                            <option>Business Size</option>
+                            <option>Solo contractor</option>
+                            <option>2-5 employees</option>
+                            <option>6-20 employees</option>
+                            <option>20+ employees</option>
+                        </select>
+                    </div>
+                    
+                    <button type="submit" class="w-full bg-orange-accent hover:bg-orange-600 text-white py-3 px-8 rounded-lg font-semibold glow-button transition-all"
+                            data-event="click:downloadGrowthPack">
+                        <i class="fas fa-download mr-2"></i>Download Free Growth Pack
+                    </button>
+                    
+                    <p class="text-xs text-text-light">
+                        By downloading, you agree to receive helpful tips and updates. Unsubscribe anytime.
+                    </p>
+                </form>
+
+                <!-- Post-Download CTAs -->
+                <div class="mt-8 pt-8 border-t border-gray-600">
+                    <h3 class="text-lg font-semibold mb-4">Ready to take it further?</h3>
+                    <div class="flex flex-col sm:flex-row gap-4 justify-center">
+                        <button class="bg-transparent border border-orange-accent text-orange-accent hover:bg-orange-accent hover:text-white py-2 px-6 rounded-lg transition-all">
+                            Apply to Join Board
+                        </button>
+                        <button class="bg-orange-accent hover:bg-orange-600 text-white py-2 px-6 rounded-lg glow-button transition-all">
+                            View Accelerator Program
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+<!-- @END_COMPONENT: GrowthPackLanding -->
+
+<!-- Sticky Mobile CTA -->
+<div class="sticky-bottom-cta bg-orange-accent p-4">
+    <button class="w-full text-white font-semibold py-3 rounded-lg glow-button transition-all">
+        <i class="fas fa-users mr-2"></i>Get 3 Free Quotes
+    </button>
+</div>
+
+<!-- Footer -->
+<footer class="bg-navy-primary border-t border-navy-secondary py-12">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-8">
+            <div>
+                <div class="flex items-center mb-4">
+                    <i class="fas fa-tools text-orange-accent text-2xl mr-2"></i>
+                    <span class="text-xl font-bold">Trade Scout</span>
+                </div>
+                <p class="text-text-light">
+                    Connecting homeowners with verified contractors in their county.
+                </p>
+            </div>
+            
+            <div>
+                <h3 class="font-semibold mb-4">For Homeowners</h3>
+                <ul class="space-y-2 text-text-light">
+                    <li><a href="#" class="hover:text-orange-accent transition-colors">Find Contractors</a></li>
+                    <li><a href="#" class="hover:text-orange-accent transition-colors">Get Quotes</a></li>
+                    <li><a href="#" class="hover:text-orange-accent transition-colors">Read Reviews</a></li>
+                </ul>
+            </div>
+            
+            <div>
+                <h3 class="font-semibold mb-4">For Contractors</h3>
+                <ul class="space-y-2 text-text-light">
+                    <li><a href="#" class="hover:text-orange-accent transition-colors">Join Our Network</a></li>
+                    <li><a href="#" class="hover:text-orange-accent transition-colors">Growth Pack</a></li>
+                    <li><a href="#" class="hover:text-orange-accent transition-colors">Accelerator Program</a></li>
+                </ul>
+            </div>
+            
+            <div>
+                <h3 class="font-semibold mb-4">Support</h3>
+                <ul class="space-y-2 text-text-light">
+                    <li><a href="#" class="hover:text-orange-accent transition-colors">Help Center</a></li>
+                    <li><a href="#" class="hover:text-orange-accent transition-colors">Contact Us</a></li>
+                    <li><a href="#" class="hover:text-orange-accent transition-colors">Privacy Policy</a></li>
+                </ul>
+            </div>
+        </div>
+        
+        <div class="border-t border-navy-secondary mt-8 pt-8 text-center text-text-light">
+            <p>&copy; 2024 Trade Scout. All rights reserved.</p>
+        </div>
+    </div>
+</footer>
+
+<script>
+// TODO: Implement business logic, API calls, and state management
+(function() {
+    'use strict';
+    
+    // Progressive enhancement for interactive elements
+    const enhanceInteractivity = () => {
+        // Filter functionality
+        const filterSelects = document.querySelectorAll('select');
+        filterSelects.forEach(select => {
+            select.addEventListener('change', function() {
+                // TODO: Implement filtering logic
+                console.log('Filter changed:', this.value);
+            });
+        });
+
+        // Quote calculator enhancement
+        const calculatorForm = document.querySelector('#quote form');
+        if (calculatorForm) {
+            calculatorForm.addEventListener('submit', function(e) {
+                e.preventDefault();
+                // TODO: Implement quote calculation using CSV pricing data
+                console.log('Quote calculation requested');
+            });
+        }
+
+        // Lead capture forms
+        const leadForms = document.querySelectorAll('form[data-implementation*="lead"]');
+        leadForms.forEach(form => {
+            form.addEventListener('submit', function(e) {
+                e.preventDefault();
+                // TODO: Implement lead routing and round-robin assignment
+                console.log('Lead form submitted');
+            });
+        });
+
+        // Contractor contact buttons
+        const callButtons = document.querySelectorAll('[data-event*="callContractor"]');
+        callButtons.forEach(button => {
+            button.addEventListener('click', function() {
+                // TODO: Log call event and reveal phone number
+                console.log('Call contractor clicked');
+            });
+        });
+
+        // Team dashboard actions
+        const approveButtons = document.querySelectorAll('button:contains("Approve")');
+        approveButtons.forEach(button => {
+            button.addEventListener('click', function() {
+                // TODO: Implement contractor verification approval
+                console.log('Contractor approved');
+            });
+        });
+    };
+
+    // Initialize enhancements when DOM is ready
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', enhanceInteractivity);
+    } else {
+        enhanceInteractivity();
+    }
+})();
+</script>
+
+</body>
+</html>
