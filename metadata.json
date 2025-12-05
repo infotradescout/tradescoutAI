@@ -1,0 +1,7 @@
+{
+  "name": "TradeScout",
+  "description": "The ultimate community interaction platform. Connect with neighbors, access local intelligence, and manage projects.",
+  "requestFramePermissions": [
+    "geolocation"
+  ]
+}
