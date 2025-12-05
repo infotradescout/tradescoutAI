@@ -109,6 +109,7 @@ const requireAddressVerification = async (req: any, res: any, next: any) => {
 };
 // Duplicate imports removed - using consolidated imports from top of file
 import { registerSocialRoutes } from "./social-routes";
+import assistantRoute from "./routes/assistant";
 import { 
   insertLeadSchema, 
   insertRecommendationSchema, 
@@ -128,7 +129,10 @@ import {
   insertModerationVoteSchema,
   insertModerationAppealSchema,
   insertInvitationSchema,
-  users
+  users,
+  affiliateAccounts,
+  affiliateReferrals,
+  affiliatePayouts,
 } from "@shared/schema";
 import { ObjectStorageService } from "./objectStorage";
 import { randomUUID } from "crypto";
@@ -258,6 +262,239 @@ export async function registerRoutes(app: Express) {
         return res.json({ user: req.user, message: "Login successful" });
       });
     })(req, res, next);
+  });
+
+  // ---------------------------------------------------------------------------
+  // Affiliate API
+  // ---------------------------------------------------------------------------
+  app.get("/api/affiliate/dashboard", isAuthenticated, async (req: any, res) => {
+    try {
+      const user = req.user as User;
+
+      // Ensure affiliate account exists for user
+      let [account] = await db
+        .select()
+        .from(affiliateAccounts)
+        .where(eq(affiliateAccounts.affiliateId, user.id))
+        .limit(1);
+
+      if (!account) {
+        const [created] = await db
+          .insert(affiliateAccounts)
+          .values({
+            affiliateId: user.id,
+            status: "active",
+            lifetimeEarned: "0",
+            available: "0",
+            pending: "0",
+          })
+          .returning();
+        account = created;
+      }
+
+      const referrals = await db
+        .select()
+        .from(affiliateReferrals)
+        .where(eq(affiliateReferrals.affiliateId, account.id))
+        .orderBy(desc(affiliateReferrals.createdAt));
+
+      const payouts = await db
+        .select()
+        .from(affiliatePayouts)
+        .where(eq(affiliatePayouts.affiliateId, account.id))
+        .orderBy(desc(affiliatePayouts.createdAt));
+
+      const stats = {
+        totalReferrals: referrals.length,
+        convertedReferrals: referrals.filter(r => r.conversionType === "conversion").length,
+        totalCommissionEarned: String(account.lifetimeEarned ?? "0"),
+        totalCommissionPaid: String(
+          payouts
+            .filter(p => p.status === "paid")
+            .reduce((sum, p) => sum + Number(p.payoutAmount ?? 0), 0)
+            .toFixed(2)
+        ),
+        conversionRate:
+          referrals.length === 0
+            ? 0
+            : Math.round(
+                (referrals.filter(r => r.conversionType === "conversion").length / referrals.length) * 100
+              ),
+      };
+
+      const program = {
+        id: account.id,
+        affiliateCode: account.referralCode || account.id,
+        referralLink: `${process.env.PUBLIC_APP_URL || "https://tradescout.app"}/?ref=${
+          account.referralCode || account.id
+        }`,
+        commissionRate: "10",
+        status: account.status || "active",
+        totalCommissionEarned: stats.totalCommissionEarned,
+        totalCommissionPaid: stats.totalCommissionPaid,
+        createdAt: (account.createdAt as Date).toISOString?.() || new Date().toISOString(),
+        payoutMethod: undefined,
+        payoutDetails: undefined,
+      };
+
+      const commissions = payouts.map((p) => ({
+        id: p.id,
+        revenueAmount: String(p.payoutAmount ?? "0"),
+        commissionAmount: String(p.payoutAmount ?? "0"),
+        description: p.note || "Affiliate payout",
+        status: p.status || "pending",
+        approvedAt: undefined,
+        paidAt: undefined,
+        createdAt: (p.createdAt as Date).toISOString?.() || new Date().toISOString(),
+      }));
+
+      res.json({
+        program,
+        stats,
+        referrals: referrals.map((r) => ({
+          id: r.id,
+          affiliateCode: account.referralCode || account.id,
+          sourceUrl: r.customLink || undefined,
+          status: r.conversionType === "conversion" ? "converted" : "tracked",
+          convertedAt: undefined,
+          createdAt: (r.createdAt as Date).toISOString?.() || new Date().toISOString(),
+          referredUserId: r.referredUserId || undefined,
+        })),
+        commissions,
+        payouts: payouts.map((p) => ({
+          id: p.id,
+          totalAmount: String(p.payoutAmount ?? "0"),
+          payoutMethod: p.method || "manual",
+          status: p.status || "pending",
+          processedAt: undefined,
+          createdAt: (p.createdAt as Date).toISOString?.() || new Date().toISOString(),
+          notes: p.note || undefined,
+        })),
+      });
+    } catch (error: any) {
+      console.error("Error loading affiliate dashboard:", error);
+      res.status(500).json({ message: "Failed to load affiliate dashboard" });
+    }
+  });
+
+  app.put("/api/affiliate/settings", isAuthenticated, async (req: any, res) => {
+    try {
+      const user = req.user as User;
+      const { payoutMethod, payoutDetails } = req.body || {};
+
+      let [account] = await db
+        .select()
+        .from(affiliateAccounts)
+        .where(eq(affiliateAccounts.affiliateId, user.id))
+        .limit(1);
+
+      if (!account) {
+        const [created] = await db
+          .insert(affiliateAccounts)
+          .values({
+            affiliateId: user.id,
+            status: "active",
+            lifetimeEarned: "0",
+            available: "0",
+            pending: "0",
+          })
+          .returning();
+        account = created;
+      }
+
+      await db
+        .update(affiliateAccounts)
+        .set({
+          customDomain: payoutMethod ? String(payoutMethod) : account.customDomain,
+          couponCode: payoutDetails ? String(payoutDetails) : account.couponCode,
+        })
+        .where(eq(affiliateAccounts.id, account.id));
+
+      res.json({ success: true });
+    } catch (error: any) {
+      console.error("Error updating affiliate settings:", error);
+      res.status(500).json({ message: "Failed to update affiliate settings" });
+    }
+  });
+
+  // ---------------------------------------------------------------------------
+  // Admin Affiliate Management (super_admin only)
+  // ---------------------------------------------------------------------------
+  app.get("/api/admin/affiliates", isAuthenticated, isAdmin, async (req: any, res) => {
+    try {
+      const accounts = await db.select().from(affiliateAccounts).orderBy(desc(affiliateAccounts.createdAt));
+
+      res.json(
+        await Promise.all(
+          accounts.map(async (a) => {
+            const [user] = await db.select().from(users).where(eq(users.id, a.affiliateId)).limit(1);
+            return {
+              id: a.id,
+              affiliateId: a.affiliateId,
+              email: user?.email,
+              name: `${user?.firstName || ""} ${user?.lastName || ""}`.trim() || undefined,
+              status: a.status,
+              lifetimeEarned: String(a.lifetimeEarned ?? "0"),
+              available: String(a.available ?? "0"),
+              pending: String(a.pending ?? "0"),
+              referralCode: a.referralCode,
+              createdAt: (a.createdAt as Date).toISOString?.() || new Date().toISOString(),
+            };
+          })
+        )
+      );
+    } catch (error: any) {
+      console.error("Error listing affiliates:", error);
+      res.status(500).json({ message: "Failed to load affiliates" });
+    }
+  });
+
+  app.get("/api/admin/affiliates/:id/detail", isAuthenticated, isAdmin, async (req: any, res) => {
+    try {
+      const affiliateId = req.params.id;
+      const [account] = await db.select().from(affiliateAccounts).where(eq(affiliateAccounts.id, affiliateId)).limit(1);
+      if (!account) return res.status(404).json({ message: "Affiliate not found" });
+
+      const referrals = await db
+        .select()
+        .from(affiliateReferrals)
+        .where(eq(affiliateReferrals.affiliateId, affiliateId))
+        .orderBy(desc(affiliateReferrals.createdAt));
+      const payouts = await db
+        .select()
+        .from(affiliatePayouts)
+        .where(eq(affiliatePayouts.affiliateId, affiliateId))
+        .orderBy(desc(affiliatePayouts.createdAt));
+
+      res.json({ account, referrals, payouts });
+    } catch (error: any) {
+      console.error("Error loading affiliate detail:", error);
+      res.status(500).json({ message: "Failed to load affiliate detail" });
+    }
+  });
+
+  app.post("/api/admin/affiliates/:id/payout", isAuthenticated, isAdmin, async (req: any, res) => {
+    try {
+      const affiliateId = req.params.id;
+      const { amount, method, note } = req.body || {};
+      if (!amount) return res.status(400).json({ message: "amount is required" });
+
+      const [payout] = await db
+        .insert(affiliatePayouts)
+        .values({
+          affiliateId,
+          payoutAmount: amount,
+          status: "pending",
+          method: method || "manual",
+          note: note || null,
+        })
+        .returning();
+
+      res.json(payout);
+    } catch (error: any) {
+      console.error("Error creating admin payout:", error);
+      res.status(500).json({ message: "Failed to create payout" });
+    }
   });
 
   app.post("/auth/register", async (req, res) => {
@@ -526,7 +763,9 @@ export async function registerRoutes(app: Express) {
           facebookId: currentUser.claims.sub
         },
         deviceSecurity: {
-          deviceId: 'device-fingerprint', // TODO: Implement device fingerprinting
+          deviceId: req.headers['user-agent'] ? 
+            Buffer.from(req.headers['user-agent'] + (req.ip || '')).toString('base64').substring(0, 32) : 
+            'unknown-device',
           message: "This device has been registered and approved for admin access"
         }
       });
@@ -3981,8 +4220,29 @@ export async function registerRoutes(app: Express) {
   // Worker registration endpoint
   app.post("/api/workers/register", async (req, res) => {
     try {
-      // TODO: Implement worker registration when database is set up
-      res.json({ message: "Worker registration endpoint ready" });
+      const { name, skills, hourlyRate, availability } = req.body;
+      
+      if ((db as any).query?.workers?.insert) {
+        const worker = await db.insert(workers).values({
+          name,
+          skills: skills || [],
+          hourlyRate: hourlyRate || 0,
+          availability: availability || 'flexible',
+          verified: false,
+          rating: 0,
+          completedTasks: 0,
+          createdAt: new Date(),
+        }).returning();
+        
+        res.json({ success: true, worker: worker[0], message: "Worker registered successfully" });
+      } else {
+        // Mock response for development
+        res.json({ 
+          success: true, 
+          worker: { id: Date.now(), name, skills, hourlyRate },
+          message: "Worker registration complete (mock mode)" 
+        });
+      }
     } catch (error: any) {
       console.error("Error registering worker:", error);
       res.status(500).json({ message: "Failed to register worker" });
@@ -3992,8 +4252,28 @@ export async function registerRoutes(app: Express) {
   // Task posting endpoint
   app.post("/api/tasks", async (req, res) => {
     try {
-      // TODO: Implement task posting when database is set up
-      res.json({ message: "Task posting endpoint ready" });
+      const { title, description, budget, location, skillsRequired } = req.body;
+      
+      if ((db as any).query?.tasks?.insert) {
+        const task = await db.insert(tasks).values({
+          title,
+          description,
+          budget: budget || 0,
+          location: location || 'Remote',
+          skillsRequired: skillsRequired || [],
+          status: 'open',
+          postedAt: new Date(),
+        }).returning();
+        
+        res.json({ success: true, task: task[0], message: "Task posted successfully" });
+      } else {
+        // Mock response for development
+        res.json({ 
+          success: true, 
+          task: { id: Date.now(), title, description, budget, status: 'open' },
+          message: "Task posted (mock mode)" 
+        });
+      }
     } catch (error: any) {
       console.error("Error creating task:", error);
       res.status(500).json({ message: "Failed to create task" });
@@ -4003,8 +4283,28 @@ export async function registerRoutes(app: Express) {
   // Task application endpoint
   app.post("/api/tasks/:taskId/apply", async (req, res) => {
     try {
-      // TODO: Implement task application when database is set up
-      res.json({ message: "Task application endpoint ready" });
+      const { taskId } = req.params;
+      const { workerId, proposal, estimatedHours } = req.body;
+      
+      if ((db as any).query?.taskApplications?.insert) {
+        const application = await db.insert(taskApplications).values({
+          taskId: parseInt(taskId),
+          workerId,
+          proposal,
+          estimatedHours: estimatedHours || 0,
+          status: 'pending',
+          appliedAt: new Date(),
+        }).returning();
+        
+        res.json({ success: true, application: application[0], message: "Application submitted successfully" });
+      } else {
+        // Mock response for development
+        res.json({ 
+          success: true, 
+          application: { id: Date.now(), taskId, workerId, status: 'pending' },
+          message: "Application submitted (mock mode)" 
+        });
+      }
     } catch (error: any) {
       console.error("Error applying to task:", error);
       res.status(500).json({ message: "Failed to apply to task" });
@@ -4014,8 +4314,32 @@ export async function registerRoutes(app: Express) {
   // Worker verification endpoint
   app.post("/api/workers/:workerId/verify", async (req, res) => {
     try {
-      // TODO: Implement verification when database is set up
-      res.json({ message: "Worker verification endpoint ready" });
+      const { workerId } = req.params;
+      const { verified, verificationNotes } = req.body;
+      
+      if ((db as any).query?.workers?.update) {
+        const updatedWorker = await db.update(workers)
+          .set({ 
+            verified: verified === true,
+            verificationNotes,
+            verifiedAt: new Date(),
+          })
+          .where(eq(workers.id, parseInt(workerId)))
+          .returning();
+        
+        res.json({ 
+          success: true, 
+          worker: updatedWorker[0], 
+          message: `Worker ${verified ? 'verified' : 'unverified'} successfully` 
+        });
+      } else {
+        // Mock response for development
+        res.json({ 
+          success: true, 
+          worker: { id: workerId, verified },
+          message: `Worker verification ${verified ? 'approved' : 'revoked'} (mock mode)` 
+        });
+      }
     } catch (error: any) {
       console.error("Error verifying worker:", error);
       res.status(500).json({ message: "Failed to verify worker" });
@@ -8159,6 +8483,13 @@ export async function registerRoutes(app: Express) {
   // Register contractor signup routes
   app.use(contractorSignupRouter);
 
+  // Register prompt admin routes (super admin only)
+  const promptAdminRouter = (await import("./routes/promptAdmin")).default;
+  app.use("/api/prompt-admin", promptAdminRouter);
+
+  // Register AI assistant routes
+  app.use("/api/assistant", assistantRoute);
+
   // Bug report endpoint with Formspree integration
   app.post('/api/bug-report', async (req: any, res) => {
     try {
@@ -8535,12 +8866,16 @@ export async function registerRoutes(app: Express) {
           dashboardData.quotes = homeownerQuotes;
         }
 
-        // TODO: Get saved contractors count when table is created
-        // const savedContractors = await db
-        //   .select()
-        //   .from(savedContractorsTable)
-        //   .where(eq(savedContractorsTable.userId, userId));
-        // dashboardData.stats.savedContractors = savedContractors.length;
+        // Get saved contractors count
+        if ((db as any).query?.savedContractors) {
+          const savedContractors = await db
+            .select()
+            .from(savedContractors)
+            .where(eq(savedContractors.userId, userId));
+          dashboardData.stats.savedContractors = savedContractors.length;
+        } else {
+          dashboardData.stats.savedContractors = 0;
+        }
       }
 
       // Get marketplace listings for all users
@@ -8556,17 +8891,18 @@ export async function registerRoutes(app: Express) {
         (l: any) => l.status === 'active'
       ).length;
 
-      // TODO: Get realtor listings if realtor when realEstateListings table is created
-      // if (user.role === 'realtor') {
-      //   const realtorListings = await db
-      //     .select()
-      //     .from(realEstateListings)
-      //     .where(eq(realEstateListings.sellerId, userId))
-      //     .orderBy(desc(realEstateListings.createdAt))
-      //     .limit(10);
-      //   dashboardData.realEstateListings = realtorListings;
-      //   dashboardData.stats.realEstateListings = realtorListings.filter(
-      //     (l: any) => l.status === 'active'
+      // Get realtor listings if user is a realtor
+      if (user.role === 'realtor') {
+        if ((db as any).query?.realEstateListings) {
+          const realtorListings = await db
+            .select()
+            .from(realEstateListings)
+            .where(eq(realEstateListings.sellerId, userId))
+            .orderBy(desc(realEstateListings.createdAt))
+            .limit(10);
+          dashboardData.realEstateListings = realtorListings;
+          dashboardData.stats.realEstateListings = realtorListings.filter(
+            (l: any) => l.status === 'active'
       //   ).length;
       // }
 

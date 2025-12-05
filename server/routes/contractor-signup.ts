@@ -55,9 +55,41 @@ router.post('/api/contractor-signup', async (req, res) => {
     
     console.log('Contractor application saved to database:', application.id);
     
-    // TODO: Send email notifications
-    // 1. Send email notification to admin
-    // 2. Send confirmation email to contractor
+    // Send email notifications (if SendGrid configured)
+    try {
+      if (process.env.SENDGRID_API_KEY) {
+        const sgMail = require('@sendgrid/mail');
+        sgMail.setApiKey(process.env.SENDGRID_API_KEY);
+        
+        // Send admin notification
+        await sgMail.send({
+          to: process.env.ADMIN_EMAIL || 'admin@tradescout.com',
+          from: 'notifications@tradescout.com',
+          subject: 'New Contractor Application',
+          html: `<p>New contractor application received from ${validatedData.firstName} ${validatedData.lastName}</p>
+                 <p>Business: ${validatedData.businessName}</p>
+                 <p>Email: ${validatedData.email}</p>
+                 <p>Phone: ${validatedData.phone}</p>`,
+        });
+        
+        // Send confirmation to contractor
+        await sgMail.send({
+          to: validatedData.email,
+          from: 'applications@tradescout.com',
+          subject: 'Application Received - TradeScout',
+          html: `<p>Hi ${validatedData.firstName},</p>
+                 <p>Thank you for applying to join TradeScout! We've received your application and will review it within 24-48 hours.</p>
+                 <p>We'll contact you at ${validatedData.email} once the review is complete.</p>
+                 <p>Best regards,<br>TradeScout Team</p>`,
+        });
+        
+        console.log('Email notifications sent successfully');
+      } else {
+        console.log('SendGrid not configured - skipping email notifications');
+      }
+    } catch (emailError) {
+      console.error('Error sending email notifications:', emailError);
+    }
     
     res.json({ 
       success: true, 

@@ -4,6 +4,7 @@ import { Router, Route, Switch } from 'wouter';
 import { queryClient } from './lib/queryClient';
 import { ErrorBoundary } from './components/ui/error-boundary';
 import { ThemeProvider } from './contexts/ThemeContext';
+import { ProtectedRoute } from './components/ProtectedRoute';
 
 // Only load essential components eagerly
 import SimpleLanding from './pages/SimpleLanding';
@@ -14,6 +15,7 @@ import SimpleSubtleHints from './components/onboarding/SimpleSubtleHints';
 import SimpleBugReportTool from './components/SimpleBugReportTool';
 import SimpleFloatingHelp from './components/ui/simple-floating-help';
 import MobileAppBar from './components/navigation/MobileAppBar';
+import { AssistantChat } from './components/AssistantChat';
 
 // Loading component for lazy-loaded pages
 import { PageLoadingSpinner } from './components/LoadingSpinner';
@@ -59,6 +61,8 @@ const AdminListings = React.lazy(() => import('./pages/admin-listings'));
 const AdminAttachments = React.lazy(() => import('./pages/admin-attachments'));
 const AdminPricingAnalytics = React.lazy(() => import('./pages/admin-pricing-analytics'));
 const AdminCreateAccount = React.lazy(() => import('./pages/admin-create-account'));
+const AdminAffiliates = React.lazy(() => import('./pages/admin-affiliates'));
+const PromptAdminPage = React.lazy(() => import('./pages/PromptAdminPage'));
 
 // Marketplace & Social
 const WorkerMarketplace = React.lazy(() => import('./pages/worker-marketplace'));
@@ -293,6 +297,16 @@ const AppLayout = memo(function AppLayout() {
               <Route path="/admin/attachments"><LazyPage Component={AdminAttachments} /></Route>
               <Route path="/admin/pricing-analytics"><LazyPage Component={AdminPricingAnalytics} /></Route>
               <Route path="/admin/create-account"><LazyPage Component={AdminCreateAccount} /></Route>
+              <Route path="/admin/affiliates">
+                <ProtectedRoute requiredRoles={['super_admin']}>
+                  <LazyPage Component={AdminAffiliates} />
+                </ProtectedRoute>
+              </Route>
+              <Route path="/admin/system-prompt">
+                <ProtectedRoute requiredRoles={['super_admin', 'head_admin']}>
+                  <LazyPage Component={PromptAdminPage} />
+                </ProtectedRoute>
+              </Route>
               <Route path="/admin/:rest*"><LazyPage Component={AdminDashboard} /></Route>
               
               {/* Dashboard routes */}
@@ -422,6 +436,9 @@ const AppLayout = memo(function AppLayout() {
       
       {/* Bug report tool - always available */}
       <SimpleBugReportTool />
+      
+      {/* AI Assistant Chat - always available */}
+      <AssistantChat />
       
     </SimpleMobileGestures>
   );

@@ -1,4 +1,4 @@
-// TODO: Track commissions
+// Track affiliate commissions and update balances
 export const trackCommission = async (
   affiliateId: string,
   transactionId: string,

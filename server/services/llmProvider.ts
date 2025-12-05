@@ -1,0 +1,60 @@
+// LLM Provider abstraction for multi-model and fallback (PHASE 3)
+import { GoogleGenerativeAI } from "@google/generative-ai";
+// import { OpenAI } from "openai"; // Uncomment if OpenAI is used
+
+export type LLMModel = "gemini" | "openai";
+
+export interface LLMProvider {
+  name: LLMModel;
+  isConfigured(): boolean;
+  generate(prompt: string, options?: any): Promise<string>;
+}
+
+export class GeminiProvider implements LLMProvider {
+  name: LLMModel = "gemini";
+  private genAI: GoogleGenerativeAI;
+  constructor(apiKey: string) {
+    this.genAI = new GoogleGenerativeAI(apiKey);
+  }
+  isConfigured() {
+    return !!process.env.GEMINI_API_KEY;
+  }
+  async generate(prompt: string) {
+    const model = this.genAI.getGenerativeModel({ model: "gemini-pro" });
+    const result = await model.generateContent(prompt);
+    return result.response.text();
+  }
+}
+
+// Example OpenAI provider (scaffold)
+// export class OpenAIProvider implements LLMProvider {
+//   name: LLMModel = "openai";
+//   private openai: OpenAI;
+//   constructor(apiKey: string) {
+//     this.openai = new OpenAI({ apiKey });
+//   }
+//   isConfigured() {
+//     return !!process.env.OPENAI_API_KEY;
+//   }
+//   async generate(prompt: string) {
+//     const result = await this.openai.chat.completions.create({
+//       model: "gpt-4",
+//       messages: [{ role: "user", content: prompt }],
+//     });
+//     return result.choices[0].message.content;
+//   }
+// }
+
+export async function generateWithFallback(prompt: string, providers: LLMProvider[]): Promise<{ text: string, provider: string }> {
+  for (const provider of providers) {
+    if (!provider.isConfigured()) continue;
+    try {
+      const text = await provider.generate(prompt);
+      return { text, provider: provider.name };
+    } catch (e) {
+      // Log error and try next
+      console.error(`[LLM Fallback] ${provider.name} failed:`, e);
+    }
+  }
+  throw new Error("All LLM providers failed");
+}

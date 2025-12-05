@@ -322,6 +322,87 @@ export const trustedDevices = pgTable("trusted_devices", {
   index("idx_trusted_devices_session").on(table.sessionToken),
 ]);
 
+// Affiliate program core tables
+export const affiliateAccounts = pgTable("affiliate_accounts", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  affiliateId: varchar("affiliate_id").notNull().references(() => users.id),
+  status: varchar("status").default('active'),
+  lifetimeEarned: decimal("lifetime_earned").default('0'),
+  available: decimal("available").default('0'),
+  pending: decimal("pending").default('0'),
+  lastPayoutAmount: decimal("last_payout_amount").default('0'),
+  lastPayoutAt: timestamp("last_payout_at"),
+  referralCode: varchar("referral_code"),
+  customDomain: varchar("custom_domain"),
+  couponCode: varchar("coupon_code"),
+  createdAt: timestamp("created_at").defaultNow(),
+}, (table) => [
+  index("idx_affiliate_accounts_affiliate").on(table.affiliateId),
+  index("idx_affiliate_accounts_referral_code").on(table.referralCode),
+]);
+
+export const affiliatePayouts = pgTable("affiliate_payouts", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  affiliateId: varchar("affiliate_id").notNull().references(() => affiliateAccounts.id),
+  status: varchar("status").default('pending'),
+  payoutAmount: decimal("payout_amount").default('0'),
+  method: varchar("method").default('stripe'),
+  note: text("note"),
+  createdAt: timestamp("created_at").defaultNow(),
+}, (table) => [
+  index("idx_affiliate_payouts_affiliate").on(table.affiliateId),
+]);
+
+export const affiliateShareLinks = pgTable("affiliate_share_links", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  affiliateId: varchar("affiliate_id").notNull().references(() => affiliateAccounts.id),
+  userId: varchar("user_id").references(() => users.id),
+  fullUrl: varchar("full_url").notNull(),
+  friendlySlug: varchar("friendly_slug"),
+  description: text("description"),
+  views: integer("views").default(0),
+  shares: integer("shares").default(0),
+  createdAt: timestamp("created_at").defaultNow(),
+}, (table) => [
+  index("idx_affiliate_share_links_affiliate").on(table.affiliateId),
+  index("idx_affiliate_share_links_user").on(table.userId),
+  index("idx_affiliate_share_links_slug").on(table.friendlySlug),
+]);
+
+export const affiliateTrafficEvents = pgTable("affiliate_traffic_events", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  shareLinkId: varchar("share_link_id").notNull().references(() => affiliateShareLinks.id),
+  ipAddress: varchar("ip_address"),
+  userAgent: text("user_agent"),
+  deviceType: varchar("device_type"),
+  conversionSource: varchar("conversion_source"),
+  conversionType: varchar("conversion_type"),
+  conversionsCount: integer("conversions_count").default(0),
+  computedConversion: boolean("computed_conversion").default(false),
+  createdAt: timestamp("created_at").defaultNow(),
+}, (table) => [
+  index("idx_affiliate_traffic_share_link").on(table.shareLinkId),
+  index("idx_affiliate_traffic_conversion").on(table.conversionType),
+]);
+
+export const affiliateReferrals = pgTable("affiliate_referrals", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  affiliateId: varchar("affiliate_id").notNull().references(() => affiliateAccounts.id),
+  referredUserId: varchar("referred_user_id").references(() => users.id),
+  shareLinkId: varchar("share_link_id").references(() => affiliateShareLinks.id),
+  customLink: varchar("custom_link"),
+  commissionAmount: decimal("commission_amount").default('0'),
+  discountAmount: decimal("discount_amount").default('0'),
+  conversionSource: varchar("conversion_source"),
+  conversionType: varchar("conversion_type").default('lead'),
+  couponCode: varchar("coupon_code"),
+  createdAt: timestamp("created_at").defaultNow(),
+}, (table) => [
+  index("idx_affiliate_referrals_affiliate").on(table.affiliateId),
+  index("idx_affiliate_referrals_user").on(table.referredUserId),
+  index("idx_affiliate_referrals_share_link").on(table.shareLinkId),
+]);
+
 // Realtor profiles
 export const realtorProfiles = pgTable("realtor_profiles", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),

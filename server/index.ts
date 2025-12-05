@@ -3,6 +3,7 @@ import { registerRoutes } from "./routes";
 import { seedDatabase } from "./seed-data";
 import { setupVite, serveStatic, log } from "./vite";
 import { notificationService } from "./notification-service";
+import { startCrawlerScheduler } from "./services/crawlerScheduler";
 import path from "path";
 import fs from "fs";
 import { fileURLToPath } from "url";
@@ -68,6 +69,9 @@ app.use((req, res, next) => {
   // If 'routes' is not implicitly available, it needs to be imported.
   // For this example, assuming 'routes' is handled within 'registerRoutes' or imported elsewhere.
   const server = await registerRoutes(app);
+
+  // Start the crawler scheduler for auto-caching
+  startCrawlerScheduler();
 
   // Start birthday notification processing - runs daily at 9 AM
   setInterval(async () => {

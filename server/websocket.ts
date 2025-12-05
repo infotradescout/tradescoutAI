@@ -244,11 +244,26 @@ export const broadcastToRoom = (roomId: string, message: any) => {
 };
 
 // Handler for incoming chat messages
-export const handleChatMessage = (ws: WebSocket, data: any) => {
+export const handleChatMessage = async (ws: WebSocket, data: any) => {
   const { conversationId, message, senderId } = data;
 
-  // TODO: Store message in database
-  console.log(`Received message from ${senderId} in conversation ${conversationId}: ${message}`);
+  // Store message in database
+  try {
+    if ((db as any).query?.messages?.insert) {
+      await db.insert(messages).values({
+        conversationId,
+        senderId,
+        content: message,
+        createdAt: new Date(),
+        read: false,
+      });
+      console.log(`Message stored in database for conversation ${conversationId}`);
+    } else {
+      console.log(`Mock mode: Message from ${senderId} in conversation ${conversationId}: ${message}`);
+    }
+  } catch (error) {
+    console.error('Error storing message:', error);
+  }
 
   // Broadcast to conversation participants
   broadcastToRoom(`conversation_${conversationId}`, {

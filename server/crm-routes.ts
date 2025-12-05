@@ -455,8 +455,28 @@ export function registerCrmRoutes(app: Express) {
         body = body.replace(/{{company}}/g, contact.company || '');
       }
 
-      // TODO: Integrate with SendGrid here
-      // For now, we'll just log the activity
+      // Integrate with SendGrid for email campaigns
+      try {
+        if (process.env.SENDGRID_API_KEY) {
+          const sgMail = require('@sendgrid/mail');
+          sgMail.setApiKey(process.env.SENDGRID_API_KEY);
+          
+          await sgMail.send({
+            to: contact.email,
+            from: req.user?.email || 'campaigns@tradescout.com',
+            subject: subject,
+            html: body,
+          });
+          
+          console.log(`Email sent via SendGrid to ${contact.email}`);
+        } else {
+          console.log(`SendGrid not configured - email logged but not sent to ${contact.email}`);
+        }
+      } catch (sendError) {
+        console.error('SendGrid email error:', sendError);
+      }
+      
+      // Log the activity
       await storage.createCrmActivity({
         type: 'email',
         subject: `Email: ${subject}`,
