@@ -87,8 +87,9 @@ export function ScoutChat({ defaultOpen = false, isAuthenticated = false }: Scou
 
   // Seed intro + auto-run prompt (cancellable on interaction)
   useEffect(() => {
-    const hasSeenIntro = localStorage.getItem('ts_seen_intro_prompt') === 'true';
-
+    const hasSeenIntro = isAuthenticated && localStorage.getItem('ts_seen_intro_prompt') === 'true';
+    
+    // Always show intro message on first mount
     if (messagesRef.current.length === 0) {
       const introMessage: Message = {
         role: 'assistant',
@@ -97,18 +98,63 @@ export function ScoutChat({ defaultOpen = false, isAuthenticated = false }: Scou
           : "Hey, I'm Scout—your TradeScout guide. I can: find local pros, search marketplace deals, launch community growth, and run MealScout. Tell me your project or pick a prompt below and I'll get it done.",
         timestamp: new Date(),
       };
-
       setMessages([introMessage]);
       messagesRef.current = [introMessage];
+    }
 
-      if (!hasSeenIntro) {
-        setInputValue(INTRO_PROMPT);
-        autoRunTimeoutRef.current = window.setTimeout(() => {
-          if (userInteractedRef.current || hasAutoRunRef.current) return;
-          hasAutoRunRef.current = true;
-          handleSendMessage(INTRO_PROMPT);
-        }, 1200);
-      }
+    // For guests (not authenticated), always auto-run
+    // For authenticated users, only run if they haven't seen it before
+    const shouldAutoRun = !isAuthenticated || !hasSeenIntro;
+    
+    if (shouldAutoRun && !hasAutoRunRef.current && !userInteractedRef.current) {
+      const autoRunFn = async () => {
+        try {
+          const userMsg: Message = {
+            role: 'user',
+            content: INTRO_PROMPT,
+            timestamp: new Date(),
+          };
+          
+          setMessages(prev => [...prev, userMsg]);
+          messagesRef.current = [...messagesRef.current, userMsg];
+          
+          // Mark as seen for authenticated users
+          if (isAuthenticated) {
+            localStorage.setItem('ts_seen_intro_prompt', 'true');
+          }
+          
+          const response = await fetch('/api/scout', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify({
+              message: INTRO_PROMPT,
+              history: [
+                ...messagesRef.current.slice(0, -1).map((msg) => ({
+                  role: msg.role,
+                  content: msg.content,
+                })),
+              ],
+            }),
+          });
+
+          if (!response.ok) throw new Error('Scout request failed');
+          
+          const data = await response.json();
+          const assistantMsg: Message = {
+            role: 'assistant',
+            content: data.message || 'No response',
+            timestamp: new Date(),
+          };
+          
+          setMessages(prev => [...prev, assistantMsg]);
+          messagesRef.current = [...messagesRef.current, assistantMsg];
+        } catch (err) {
+          console.error('[ScoutChat] Auto-prompt error:', err);
+        }
+      };
+
+      autoRunTimeoutRef.current = window.setTimeout(autoRunFn, 600);
     }
 
     return () => {
@@ -116,7 +162,6 @@ export function ScoutChat({ defaultOpen = false, isAuthenticated = false }: Scou
         window.clearTimeout(autoRunTimeoutRef.current);
       }
     };
-    // run once on mount
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -143,7 +188,7 @@ export function ScoutChat({ defaultOpen = false, isAuthenticated = false }: Scou
 
   const handleSendMessage = async (prompt?: string) => {
     const messageToSend = (prompt ?? inputValue).trim();
-    if (!messageToSend || isLoading || isGuest) return;
+    if (!messageToSend || isLoading) return;
 
     if (containsProfanity(messageToSend)) {
       const blocked: Message = {

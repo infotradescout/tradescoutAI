@@ -462,7 +462,7 @@ async function searchInternet(
     if (!gemini) return { source: "none", data: null, layer: 0 };
 
     // Use stable model name; "-latest" can 404 on some API versions
-    const model = gemini.getGenerativeModel({ model: "gemini-1.5-flash" });
+    const model = gemini.getGenerativeModel({ model: "gemini-2.5-flash" });
     const result = await model.generateContent(
       `Search the web and provide accurate information about: ${message}`
     );

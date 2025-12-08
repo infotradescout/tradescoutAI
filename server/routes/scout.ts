@@ -64,7 +64,7 @@ async function generateAutoPrompt(gemini: GoogleGenerativeAI | null) {
   }
 
   try {
-    const model = gemini.getGenerativeModel({ model: "gemini-1.5-flash" });
+    const model = gemini.getGenerativeModel({ model: "gemini-2.5-flash" });
     const prompt = `Create a single concise starter prompt a user should ask an AI concierge for a local contractor/marketplace app. Also return 6 short suggestions.
 Return JSON with keys autoPrompt (string) and suggestions (string array).`;
     const result = await model.generateContent(prompt);
