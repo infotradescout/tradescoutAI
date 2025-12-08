@@ -17,7 +17,7 @@
  * - Managing multiple platforms
  * 
  * Users can select a preset or create their own custom color scheme.
- * Public profiles are crawlable by the AI assistant for discovery.
+ * Public profiles are crawlable by Scout for discovery.
  */
 
 export interface ColorScheme {
@@ -33,7 +33,7 @@ export const COLOR_PRESETS: Record<string, ColorScheme> = {
   default: {
     primary: '#f97316', // Orange
     secondary: '#fb923c', // Light Orange
-    background: '#0a0f1e', // Dark Navy
+    background: '#0a0f1ee7', // Dark Navy
     text: '#f1f5f9', // Light Gray
     accent: '#ea580c', // Deep Orange
     border: '#1e293b', // Navy Border
@@ -41,7 +41,7 @@ export const COLOR_PRESETS: Record<string, ColorScheme> = {
   warm: {
     primary: '#dc2626', // Red
     secondary: '#f59e0b', // Amber
-    background: '#1c1917', // Warm Dark
+    background: '#1c1917ff', // Warm Dark
     text: '#fef3c7', // Warm Light
     accent: '#fb923c', // Orange
     border: '#292524', // Warm Border
@@ -150,7 +150,8 @@ export function generateColorCSS(colorScheme: ColorScheme): string {
  * Validate hex color format
  */
 export function isValidHexColor(color: string): boolean {
-  return /^#[0-9A-F]{6}$/i.test(color);
+  // Allow 6-digit or 8-digit hex (with alpha) to match preset usage
+  return /^#[0-9A-F]{6}([0-9A-F]{2})?$/i.test(color);
 }
 
 /**

@@ -14,6 +14,8 @@
     "seed:test-user": "cross-env NODE_ENV=development tsx -r dotenv/config scripts/seed-test-user.ts"
   },
   "dependencies": {
+    "axios": "^1.7.7",
+    "multer": "^1.4.5-lts.1",
     "@anthropic-ai/sdk": "^0.37.0",
     "@google-cloud/storage": "^7.16.0",
     "@google/generative-ai": "^0.12.0",
@@ -119,6 +121,7 @@
     "zod-validation-error": "^3.4.0"
   },
   "devDependencies": {
+    "@types/multer": "^1.4.11",
     "@replit/vite-plugin-cartographer": "^0.4.2",
     "@replit/vite-plugin-runtime-error-modal": "^0.0.3",
     "@tailwindcss/typography": "^0.5.15",

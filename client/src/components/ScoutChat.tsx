@@ -24,6 +24,21 @@ type ScoutChatProps = {
 };
 
 const INTRO_PROMPT = "What can TradeScout do for my community?";
+const BANNED_TERMS = ["fuck", "shit", "bitch", "asshole", "cunt", "slut", "whore"];
+
+const containsProfanity = (text: string) => {
+  const lower = text.toLowerCase();
+  return BANNED_TERMS.some(term => lower.includes(term));
+};
+
+const censorProfanity = (text: string) => {
+  let cleaned = text;
+  BANNED_TERMS.forEach(term => {
+    const re = new RegExp(term, "gi");
+    cleaned = cleaned.replace(re, `${term[0]}***`);
+  });
+  return cleaned;
+};
 
 export function ScoutChat({ defaultOpen = false, isAuthenticated = false }: ScoutChatProps) {
   const [isOpen, setIsOpen] = useState(defaultOpen);
@@ -129,6 +144,21 @@ export function ScoutChat({ defaultOpen = false, isAuthenticated = false }: Scou
   const handleSendMessage = async (prompt?: string) => {
     const messageToSend = (prompt ?? inputValue).trim();
     if (!messageToSend || isLoading || isGuest) return;
+
+    if (containsProfanity(messageToSend)) {
+      const blocked: Message = {
+        role: 'assistant',
+        content: 'That prompt isn’t allowed. Please keep it respectful.',
+        timestamp: new Date(),
+      };
+      setMessages((prev) => {
+        const next = [...prev, blocked];
+        messagesRef.current = next;
+        return next;
+      });
+      setInputValue(censorProfanity(messageToSend));
+      return;
+    }
 
     markUserInteracted();
 

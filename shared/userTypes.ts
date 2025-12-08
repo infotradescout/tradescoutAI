@@ -1,6 +1,8 @@
 /**
  * User Type Metadata
- * 27 comprehensive user types with descriptions, icons, and experience customization
+ * User type metadata used for dashboards and feature gating.
+ * HOA roles are not user types; they are per-neighborhood roles handled elsewhere.
+ * The "community_builder" badge is not a user type.
  */
 
 export interface UserTypeMetadata {
@@ -8,10 +10,44 @@ export interface UserTypeMetadata {
   label: string;
   description: string;
   icon: string;
-  category: 'property' | 'business' | 'service' | 'realestate' | 'automotive' | 'community' | 'platform';
+  category: 'property' | 'business' | 'service' | 'realestate' | 'automotive' | 'platform';
   defaultView: 'homeowner' | 'contractor' | 'business' | 'professional' | 'admin';
   features: string[]; // Features accessible to this user type
 }
+
+// Distinct badge labels for each user type and related roles.
+// Community Builder and HOA roles are not selectable types but have badges.
+export const USER_TYPE_BADGES: Record<string, string> = {
+  homeowner: 'Homeowner Badge',
+  renter: 'Renter/Tenant Badge',
+  landlord: 'Landlord Badge',
+  property_manager: 'Property Manager Badge',
+  business_owner: 'Business Owner Badge',
+  commercial_property: 'Commercial Property Badge',
+  franchise_owner: 'Franchise Owner Badge',
+  startup_founder: 'Startup Founder Badge',
+  contractor: 'Contractor Badge',
+  handyman: 'Handyman Badge',
+  service_provider: 'Service Provider Badge',
+  specialty_tradesperson: 'Specialty Trades Badge',
+  designer: 'Designer/Architect Badge',
+  inspector: 'Inspector/Appraiser Badge',
+  realtor: 'Real Estate Agent Badge',
+  mortgage_broker: 'Mortgage Broker Badge',
+  insurance_agent: 'Insurance Agent Badge',
+  title_company: 'Title/Escrow Badge',
+  car_dealer: 'Car Dealer Badge',
+  auto_service: 'Auto Service Badge',
+  nonprofit_org: 'Non-Profit Badge',
+  affiliate: 'Affiliate Partner Badge', // auto-applied to everyone
+  content_creator: 'Content Creator Badge',
+  admin: 'Administrator Badge',
+  // Non-selectable HOA roles (per-neighborhood)
+  hoa_member: 'HOA Member Badge',
+  hoa_board: 'HOA Board Badge',
+  // Community Builder badge: granted via monetized community actions (donations, referrals, spending)
+  community_builder: 'Community Builder Badge',
+};
 
 export const USER_TYPES: Record<string, UserTypeMetadata> = {
   // Property Owners & Managers (5)
@@ -51,16 +87,15 @@ export const USER_TYPES: Record<string, UserTypeMetadata> = {
     defaultView: 'business',
     features: ['multi_property', 'vendor_management', 'tenant_portal', 'financial_reports'],
   },
-  hoa_member: {
-    id: 'hoa_member',
-    label: 'HOA Member',
-    description: 'Homeowner in an HOA community',
-    icon: 'Users',
-    category: 'property',
-    defaultView: 'homeowner',
-    features: ['community_forum', 'hoa_documents', 'find_contractors', 'neighborhood_updates'],
+  other: {
+    id: 'other',
+    label: 'Other (specify)',
+    description: 'Custom role entered by the user; we will add a dedicated badge if enough users share it',
+    icon: 'Tag',
+    category: 'platform',
+    defaultView: 'professional',
+    features: [],
   },
-
   // Business & Commercial (4)
   business_owner: {
     id: 'business_owner',
@@ -214,30 +249,12 @@ export const USER_TYPES: Record<string, UserTypeMetadata> = {
   },
 
   // Community & Admin (3)
-  hoa_board: {
-    id: 'hoa_board',
-    label: 'HOA Board',
-    description: 'HOA board member or community administrator',
-    icon: 'Crown',
-    category: 'community',
-    defaultView: 'admin',
-    features: ['community_management', 'violation_tracking', 'budget_management', 'document_library'],
-  },
-  community_builder: {
-    id: 'community_builder',
-    label: 'Community Builder',
-    description: 'Active participant in community building program',
-    icon: 'Heart',
-    category: 'community',
-    defaultView: 'homeowner',
-    features: ['contribution_tracking', 'volunteer_opportunities', 'rewards', 'leaderboard'],
-  },
   nonprofit_org: {
     id: 'nonprofit_org',
     label: 'Non-Profit',
     description: 'Non-profit organization or charity',
     icon: 'HandHeart',
-    category: 'community',
+    category: 'business',
     defaultView: 'business',
     features: ['volunteer_coordination', 'donation_portal', 'event_management', 'impact_reporting'],
   },
@@ -298,17 +315,56 @@ export const USER_TYPE_CATEGORIES = {
     description: 'Car dealers and auto service providers',
     icon: 'Car',
   },
-  community: {
-    label: 'Community & Organizations',
-    description: 'HOA boards, community builders, non-profits',
-    icon: 'Users',
-  },
   platform: {
     label: 'Platform Partners',
     description: 'Affiliates, content creators, and administrators',
     icon: 'Star',
   },
 };
+
+// User types selectable during account creation and profile settings.
+// Excludes HOA roles (handled per-neighborhood), affiliate (auto-applied), and admin (backend only).
+export const ACCOUNT_CREATION_USER_TYPES: string[] = [
+  'homeowner',
+  'renter',
+  'landlord',
+  'property_manager',
+  'other',
+  'business_owner',
+  'commercial_property',
+  'franchise_owner',
+  'startup_founder',
+  'contractor',
+  'handyman',
+  'service_provider',
+  'specialty_tradesperson',
+  'designer',
+  'inspector',
+  'realtor',
+  'mortgage_broker',
+  'insurance_agent',
+  'title_company',
+  'car_dealer',
+  'auto_service',
+  'nonprofit_org',
+  'content_creator',
+];
+
+// Helper: resolve a badge label for a given user type/role id
+export function getUserTypeBadgeLabel(typeId: string): string | undefined {
+  return USER_TYPE_BADGES[typeId];
+}
+
+// Helper: derive badges from a list of user types/roles
+export function getUserTypeBadges(userTypes: string[]): string[] {
+  if (!userTypes || userTypes.length === 0) return [];
+  const badges = new Set<string>();
+  for (const typeId of userTypes) {
+    const badge = getUserTypeBadgeLabel(typeId);
+    if (badge) badges.add(badge);
+  }
+  return Array.from(badges);
+}
 
 // Helper to get user type metadata
 export function getUserTypeMetadata(typeId: string): UserTypeMetadata | undefined {

@@ -10,7 +10,7 @@
                                    │
                                    ↓
                         ┌──────────────────────────┐
-                        │  POST /api/assistant     │
+                        │  POST /api/scout (alias /api/assistant) │
                         │  {"message": "..."}      │
                         └──────────┬───────────────┘
                                    │
@@ -137,7 +137,7 @@ SERVER STARTUP
             │     └─ _metadata.json
             │
             ├─ OR manual trigger:
-            │  POST /api/assistant/crawl-now
+            │  POST /api/scout/crawl-now
             │  → runCrawler() immediately
             │
             └─ Cache ready for AI queries
@@ -167,7 +167,7 @@ index.ts (Server Entry)
     │
     ├─→ imports routes.ts
     │        │
-    │        └─→ includes assistant.ts
+    │        └─→ includes scout.ts (aliases /api/assistant)
     │                 │
     │                 ├─→ imports knowledgeService
     │                 │   │
@@ -188,9 +188,9 @@ index.ts (Server Entry)
     │                     (with cache context)
     │
     ├─→ App.tsx (Frontend)
-    │   └─→ components/AssistantChat.tsx
-    │       └─→ POST /api/assistant
-    │           (chat endpoint)
+    │   └─→ components/ScoutChat.tsx
+    │       └─→ POST /api/scout
+    │           (assistant alias supported)
     │
     └─→ .env
         ├─ GEMINI_API_KEY
@@ -205,7 +205,7 @@ index.ts (Server Entry)
 
 **Request:**
 ```json
-POST /api/assistant
+POST /api/scout
 {
   "message": "Find contractors in Los Angeles",
   "history": []
@@ -236,7 +236,7 @@ POST /api/assistant
 
 **Request:**
 ```
-GET /api/assistant/health
+GET /api/scout/health
 ```
 
 **Response:**

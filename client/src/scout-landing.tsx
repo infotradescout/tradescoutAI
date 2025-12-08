@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import { Activity, Send, Home } from "lucide-react";
 import { useAuth } from "./hooks/useAuth";
+import { useLocation } from "wouter";
 import "./index.css";
 
 type Message = {
@@ -16,13 +17,66 @@ type ScoutResponse = {
   timestamp: string;
 };
 
+type TrendingItem = {
+  title: string;
+  stat?: string;
+  delta?: string;
+  category?: string;
+};
+
+const isTooSpecific = (text: string) => {
+  const lower = text.toLowerCase();
+  const hasUrl = lower.includes("http") || lower.includes("www.");
+  const hasEmail = lower.includes("@");
+  const hasLongNumber = /\d{5,}/.test(lower);
+  const tooLong = text.length > 140;
+  return hasUrl || hasEmail || hasLongNumber || tooLong;
+};
+
+const normalizeTrendingItem = (item: any, place: string): TrendingItem | null => {
+  const rawTitle = item?.title || item?.name || "";
+  if (!rawTitle) return null;
+  if (isTooSpecific(rawTitle)) return null;
+
+  const title = rawTitle.replace(/\s+/g, " ").trim();
+  if (!title) return null;
+
+  const category = item?.category || item?.type || item?.topic || "Community";
+  const stat = item?.stat || item?.metric;
+  const delta = item?.delta || item?.change;
+
+  // Force subject-level phrasing if the title looks like a direct prompt
+  const isDirectQuestion = /\?$/.test(title) && title.length < 80;
+  const subjectTitle = isDirectQuestion ? `${title.replace(/\?$/, "")} (trend in ${place})` : title;
+
+  return { title: subjectTitle, stat, delta, category };
+};
+
 const INTRO_PROMPT = "What can TradeScout do for my community?";
+const BANNED_TERMS = ["fuck", "shit", "bitch", "asshole", "cunt", "slut", "whore"];
+
+const containsProfanity = (text: string) => {
+  const lower = text.toLowerCase();
+  return BANNED_TERMS.some(term => lower.includes(term));
+};
+
+const censorProfanity = (text: string) => {
+  let cleaned = text;
+  BANNED_TERMS.forEach(term => {
+    const re = new RegExp(term, "gi");
+    cleaned = cleaned.replace(re, `${term[0]}***`);
+  });
+  return cleaned;
+};
 
 export default function ScoutLanding() {
   const { user, isAuthenticated } = useAuth();
   const [messages, setMessages] = useState<Message[]>([]);
+  const [, navigate] = useLocation();
   const [inputValue, setInputValue] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [trendingItems, setTrendingItems] = useState<TrendingItem[]>([]);
+  const [trendingStatus, setTrendingStatus] = useState<"idle" | "loading" | "ready" | "error">("idle");
   const scrollRef = useRef<HTMLDivElement>(null);
   const messagesRef = useRef<Message[]>([]);
   const autoRunTimeoutRef = useRef<number | null>(null);
@@ -82,7 +136,20 @@ export default function ScoutLanding() {
     const messageToSend = (prompt ?? inputValue).trim();
     if (!messageToSend || isLoading) return;
 
+    if (containsProfanity(messageToSend)) {
+      const blocked: Message = {
+        role: "assistant",
+        content: "That prompt isn’t allowed. Please keep it respectful.",
+        timestamp: new Date(),
+      };
+      pushMessage(blocked);
+      setInputValue(censorProfanity(messageToSend));
+      return;
+    }
+
     markUserInteracted();
+
+    const isFirstUserTurn = !messagesRef.current.some((m) => m.role === "user");
 
     const userMessage: Message = {
       role: "user",
@@ -132,6 +199,16 @@ export default function ScoutLanding() {
         };
         pushMessage(resultsMessage);
       }
+
+      if (isFirstUserTurn) {
+        const highlight: Message = {
+          role: "assistant",
+          content:
+            `Got it — '${messageToSend}'. Here's how I can move fast right now:\n• Contractors: I can find and message verified pros in your county.\n• Marketplace: Surface deals or list your gear with price recommendations.\n• Community Builder: Launch outreach posts and welcome messages.\n• MealScout: Pull nearby food trucks, restaurants, and offers.\nWant me to execute one of these or refine your request?`,
+          timestamp: new Date(),
+        };
+        pushMessage(highlight);
+      }
     } catch (error) {
       console.error("Error sending message:", error);
       const errorMessage: Message = {
@@ -158,7 +235,9 @@ export default function ScoutLanding() {
       const introMessage: Message = {
         role: "assistant",
         content:
-          "Hi! I'm Scout, your TradeScout controller. I can run actions for you: find contractors, search marketplace, launch Community Builder, or trigger MealScout flows. Ask or tap a suggestion to get started.",
+          isAuthenticated
+          ? "Welcome back! I'm Scout, your TradeScout operating system. I can:\n• Find and message verified contractors for your county\n• Spin up Community Builder and launch outreach posts\n• Search marketplace deals or list your gear fast\n• Run MealScout to surface food trucks and local offers\nAsk me anything specific (project, location, budget, timing) and I'll act immediately."
+          : "Hey, I'm Scout—your TradeScout guide. I can: find local pros, search marketplace deals, launch community growth, and run MealScout. Tell me your project or pick a prompt below and I'll get it done.",
         timestamp: new Date(),
       };
 
@@ -206,6 +285,69 @@ export default function ScoutLanding() {
     handleSendMessage(prompt);
   };
 
+  const getTrendingFallback = (countyKey: string): TrendingItem[] => {
+    const place = countyKey || "your area";
+    return [
+      { title: `Kitchen leak repairs in ${place}`, stat: "↑ 17%", category: "Repairs" },
+      { title: `Deck permits in ${place}`, stat: "Faster approvals", category: "Permits" },
+      { title: "Small landscaping ideas", stat: "Popular this week", category: "Outdoor" },
+      { title: "Roof inspections requested", stat: "Peak season", category: "Roofing" },
+    ];
+  };
+
+  useEffect(() => {
+    const countyKey = headlineCommunity || "national";
+    const cacheKey = `ts_trending_${countyKey.toLowerCase().replace(/\s+/g, "_")}`;
+    const CACHE_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
+
+    if (typeof window !== "undefined") {
+      const cached = localStorage.getItem(cacheKey);
+      if (cached) {
+        try {
+          const parsed = JSON.parse(cached);
+          const ageMs = Date.now() - parsed.timestamp;
+          if (ageMs < CACHE_TTL_MS && Array.isArray(parsed.items)) {
+            setTrendingItems(parsed.items);
+            setTrendingStatus("ready");
+            return;
+          }
+        } catch (err) {
+          console.warn("Failed to parse cached trending", err);
+        }
+      }
+    }
+
+    const loadTrending = async () => {
+      setTrendingStatus("loading");
+      try {
+        const resp = await fetch(`/api/trending?county=${encodeURIComponent(countyKey)}`);
+        if (!resp.ok) throw new Error("Failed trending fetch");
+        const data = await resp.json();
+        const items: TrendingItem[] = Array.isArray(data?.items)
+          ? data.items
+              .map((item: any) => normalizeTrendingItem(item, countyKey))
+              .filter(Boolean)
+              .slice(0, 8) as TrendingItem[]
+          : [];
+
+        const finalItems = items.length ? items : getTrendingFallback(countyKey);
+        setTrendingItems(finalItems);
+        setTrendingStatus("ready");
+
+        if (typeof window !== "undefined") {
+          localStorage.setItem(cacheKey, JSON.stringify({ items: finalItems, timestamp: Date.now() }));
+        }
+      } catch (err) {
+        console.warn("Trending fetch failed", err);
+        const fallback = getTrendingFallback(countyKey);
+        setTrendingItems(fallback);
+        setTrendingStatus(fallback.length ? "ready" : "error");
+      }
+    };
+
+    loadTrending();
+  }, [headlineCommunity]);
+
   const smartFirstResponses: { title: string; body: string; next: string[] }[] = [
     {
       title: "Community Builder",
@@ -228,6 +370,83 @@ export default function ScoutLanding() {
       next: ["Find food trucks near me", "What pizza deals are nearby?", "Add my restaurant to MealScout"],
     },
   ];
+
+  const quickPrompts = [
+    "Find roofers available this week",
+    "Start the Community Builder for my county",
+    "Show me today’s best tool deals",
+    "Message the top 3 electricians near me",
+    "Create a project for kitchen remodel",
+    "List my pressure washer for $250",
+    "Find food trucks near me tonight",
+  ];
+
+  const navClusters = [
+    {
+      label: "Primary — Task Execution",
+      tone: "primary" as const,
+      items: [
+        { label: "Find Contractors", href: "/find-contractors", desc: "Post a job or pull vetted pros fast" },
+        { label: "Contractor Board", href: "/contractor-board", desc: "See active leads and bids" },
+        { label: "Marketplace", href: "/marketplace", desc: "Shop or list gear with pricing help" },
+      ],
+    },
+    {
+      label: "Personal — Account / Productivity",
+      tone: "secondary" as const,
+      items: [
+        { label: "Dashboard", href: "/dashboard", desc: "Your saved workstreams" },
+        { label: "Notifications", href: "/notifications", desc: "Stay on top of actions" },
+        { label: "Settings", href: "/settings", desc: "Preferences and alerts" },
+      ],
+    },
+    {
+      label: "Community — Local Engagement",
+      tone: "muted" as const,
+      items: [
+        { label: "Groups", href: "/groups", desc: "Neighborhood threads" },
+        { label: "County Hub", href: "/county-hub", desc: "County resources and timelines" },
+        { label: "Help", href: "/help", desc: "Get unstuck fast" },
+      ],
+    },
+  ];
+
+  const footerColumns = [
+    {
+      title: "Company",
+      links: [
+        { label: "About", href: "/about" },
+        { label: "Contact", href: "/contact" },
+        { label: "Community Promise", href: "/community" },
+      ],
+    },
+    {
+      title: "Legal",
+      links: [
+        { label: "Terms", href: "/terms" },
+        { label: "Privacy", href: "/privacy" },
+        { label: "Compliance", href: "/compliance" },
+      ],
+    },
+    {
+      title: "Platform",
+      links: [
+        { label: "County Coverage", href: "/county-hub" },
+        { label: "Safety", href: "/help" },
+        { label: "Press Kit", href: "/about" },
+      ],
+    },
+    {
+      title: "Social",
+      links: [
+        { label: "Facebook", href: "https://facebook.com" },
+        { label: "Instagram", href: "https://instagram.com" },
+        { label: "LinkedIn", href: "https://linkedin.com" },
+      ],
+    },
+  ];
+
+  const isScoutActive = isLoading || messages.length > 0;
 
   return (
     <div className="min-h-[calc(100vh-4.5rem)] bg-[#060b1c] text-white flex items-start justify-center px-3 sm:px-4 pb-16">
@@ -261,16 +480,47 @@ export default function ScoutLanding() {
             </p>
           </div>
 
+          {!isAuthenticated && (
+            <div className="w-full max-w-3xl">
+              <div className="mt-2 rounded-2xl border border-orange-500/30 bg-orange-500/10 px-5 py-4 shadow-lg shadow-orange-500/20 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 text-left">
+                <div className="space-y-1">
+                  <div className="text-sm font-semibold text-white">Create a free account</div>
+                  <div className="text-sm text-tsTextMuted">Save projects, set alerts, and message contractors instantly.</div>
+                </div>
+                <div className="flex items-center gap-3">
+                  <a
+                    href="/register"
+                    className="inline-flex items-center justify-center rounded-xl bg-gradient-to-r from-orange-500 to-orange-600 px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-orange-600/30 hover:-translate-y-[1px] transition-transform duration-100"
+                  >
+                    Create Free Account
+                  </a>
+                  <a href="/login" className="text-sm text-tsAccent hover:text-orange-300 transition">
+                    Already have an account?
+                  </a>
+                </div>
+              </div>
+            </div>
+          )}
+
           <div className="w-full max-w-4xl space-y-5">
             <div className="bg-[#0c152c]/90 border border-tsBorder rounded-2xl shadow-2xl shadow-black/40 overflow-hidden">
               <div className="border-b border-tsBorder px-4 sm:px-5 py-4 flex items-center justify-between text-xs uppercase tracking-[0.14em] text-tsTextMuted">
-                <div className="flex items-center gap-2">
-                  <span className="inline-flex h-2 w-2 rounded-full bg-cyan-400 animate-pulse" />
-                  Live AI thread
+                <div className="flex items-center gap-3">
+                  <span
+                    className={`inline-flex h-2.5 w-2.5 rounded-full ${
+                      isLoading ? "bg-orange-400 animate-ping" : "bg-cyan-400 animate-pulse"
+                    }`}
+                  />
+                  <div className="flex items-center gap-2">
+                    <span>Scout Active</span>
+                    <span className="text-[11px] text-tsTextMuted/80 lowercase tracking-normal">
+                      {isLoading ? "running actions" : "standing by"}
+                    </span>
+                  </div>
                 </div>
                 <div className="flex items-center gap-2 text-[11px]">
                   <Activity className="w-4 h-4" />
-                  Real-time intelligence
+                  Live AI thread
                 </div>
               </div>
 
@@ -315,6 +565,7 @@ export default function ScoutLanding() {
                         setInputValue(e.target.value);
                       }}
                       onKeyPress={handleKeyPress}
+                      onFocus={markUserInteracted}
                       disabled={isLoading}
                     />
                   </div>
@@ -333,16 +584,7 @@ export default function ScoutLanding() {
             </div>
 
             <div className="flex flex-wrap justify-start sm:justify-center gap-2 text-sm text-tsTextMuted">
-              {[
-                "Launch Community Builder to grow my area",
-                "What can TradeScout do for my community?",
-                "Find licensed contractors for a roofing job",
-                "Browse marketplace deals for tools",
-                "Find food deals nearby with MealScout",
-                "Compare permits and timelines for a deck",
-                "Set up alerts for new contractor opportunities",
-                "Show me top marketplace listings this week",
-              ].map((prompt) => (
+              {quickPrompts.map((prompt) => (
                 <button
                   key={prompt}
                   type="button"
@@ -353,9 +595,70 @@ export default function ScoutLanding() {
                 </button>
               ))}
             </div>
+            <div className="w-full">
+              <div className="flex items-center justify-between mb-2 px-1">
+                <div className="text-xs uppercase tracking-[0.16em] text-tsTextMuted">Popular in {headlineCommunity || "your county"} this month</div>
+                <div className="text-[11px] text-tsTextMuted">{trendingStatus === "loading" ? "Updating..." : "Refreshed every 24h"}</div>
+              </div>
+              <div className="overflow-x-auto pb-2">
+                <div className="flex gap-3 min-w-full">
+                  {trendingStatus === "loading" && trendingItems.length === 0
+                    ? Array.from({ length: 4 }).map((_, idx) => (
+                        <div
+                          key={idx}
+                          className="w-60 rounded-xl border border-white/5 bg-slate-900/60 p-4 animate-pulse"
+                        >
+                          <div className="h-3 w-32 bg-white/10 rounded mb-2" />
+                          <div className="h-3 w-20 bg-white/10 rounded" />
+                        </div>
+                      ))
+                    : trendingItems.map((item, idx) => (
+                        <div
+                          key={`${item.title}-${idx}`}
+                          className="w-60 rounded-xl border border-tsBorder bg-slate-900/70 p-4 shadow-lg shadow-black/20 hover:border-tsAccent transition hover:-translate-y-[1px] duration-100"
+                        >
+                          <div className="text-sm font-semibold text-white line-clamp-2">{item.title}</div>
+                          <div className="text-[11px] text-tsTextMuted mt-2 flex items-center gap-2">
+                            {item.stat && <span className="text-orange-300">{item.stat}</span>}
+                            {item.delta && <span className="text-cyan-300">{item.delta}</span>}
+                            {item.category && <span className="px-2 py-0.5 rounded-full bg-white/5 border border-white/10">{item.category}</span>}
+                          </div>
+                        </div>
+                      ))}
+                </div>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 w-full">
+              {navClusters.map((cluster) => (
+                <div key={cluster.label} className="rounded-2xl border border-white/5 bg-slate-950/70 p-5 shadow-lg shadow-black/30 space-y-3">
+                  <div className="text-xs uppercase tracking-[0.18em] text-tsTextMuted">{cluster.label}</div>
+                  <div className="space-y-3">
+                    {cluster.items.map((item) => {
+                      const tone =
+                        cluster.tone === "primary"
+                          ? "border-orange-500/60 text-white hover:border-orange-400 hover:shadow-orange-500/30"
+                          : cluster.tone === "secondary"
+                            ? "border-white/10 text-tsTextMain hover:border-tsAccent"
+                            : "border-white/5 text-tsTextMuted hover:border-white/15";
+                      return (
+                        <a
+                          key={item.href}
+                          href={item.href}
+                          className={`block rounded-xl border bg-slate-900/60 px-4 py-3 transition duration-100 hover:-translate-y-[1px] hover:shadow-lg ${tone}`}
+                        >
+                          <div className="text-sm font-semibold">{item.label}</div>
+                          <div className="text-xs text-tsTextMuted leading-relaxed">{item.desc}</div>
+                        </a>
+                      );
+                    })}
+                  </div>
+                </div>
+              ))}
+            </div>
 
             <div className="w-full bg-slate-900/70 border border-tsBorder rounded-2xl p-4 sm:p-5 shadow-xl shadow-black/30 space-y-3 text-left">
-              <div className="text-xs uppercase tracking-[0.16em] text-tsTextMuted">Jump into the full site</div>
+              <div className="text-xs uppercase tracking-[0.16em] text-tsTextMuted">Quick starts</div>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
                 {smartFirstResponses.map((card) => (
                   <div key={card.title} className="rounded-xl border border-white/5 bg-slate-950/70 p-4 shadow-inner shadow-black/20 space-y-3">
@@ -376,35 +679,37 @@ export default function ScoutLanding() {
                   </div>
                 ))}
               </div>
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                {[
-                  { label: "Marketplace", href: "/marketplace" },
-                  { label: "Dashboard", href: "/dashboard" },
-                  { label: "Contractor Board", href: "/contractor-board" },
-                  { label: "Find Contractors", href: "/find-contractors" },
-                  { label: "Groups", href: "/groups" },
-                  { label: "County Hub", href: "/county-hub" },
-                  { label: "Login", href: "/login" },
-                  { label: "Register", href: "/signup" },
-                  { label: "Profile", href: "/profile" },
-                  { label: "Help", href: "/help" },
-                  { label: "Notifications", href: "/notifications" },
-                  { label: "Settings", href: "/settings" },
-                ].map((link) => (
-                  <a
-                    key={link.href}
-                    href={link.href}
-                    className="inline-flex items-center justify-center rounded-xl border border-tsBorder bg-slate-950/60 px-3 py-2 text-sm font-semibold text-tsTextMain hover:border-tsAccent hover:text-white transition shadow-sm shadow-black/20"
-                  >
-                    {link.label}
-                  </a>
-                ))}
-              </div>
-              <p className="text-xs text-tsTextMuted">Scout is the fast front door. Use these shortcuts to continue anywhere in the full TradeScout experience.</p>
             </div>
           </div>
         </div>
       </div>
     </div>
+
+    <footer className="w-full bg-slate-950 border-t border-tsBorder/60 mt-8">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 py-8 flex flex-col gap-6">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+          {footerColumns.map((col) => (
+            <div key={col.title} className="space-y-2">
+              <div className="text-sm font-semibold text-white">{col.title}</div>
+              <div className="space-y-1.5">
+                {col.links.map((link) => (
+                  <a
+                    key={link.label}
+                    href={link.href}
+                    className="block text-sm text-tsTextMuted hover:text-white transition"
+                  >
+                    {link.label}
+                  </a>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between text-sm text-tsTextMuted">
+          <div className="text-tsTextMain">TradeScout: The #1 source for #1 sources.</div>
+          <div className="text-xs text-tsTextMuted">Charcoal base, thin accents. Built for confidence at first glance.</div>
+        </div>
+      </div>
+    </footer>
   );
 }

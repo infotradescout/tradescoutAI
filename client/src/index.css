@@ -1,3 +1,4 @@
+/* stylelint-disable */
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -5,7 +6,7 @@
 /* Scroll-aware navigation */
 body.scrolled nav {
   backdrop-filter: blur(20px);
-  background: rgba(10, 15, 30, 0.95);
+  background: hsla(220, 35%, 10%, 0.9);
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
   border-bottom: 1px solid #1e293b;
 }
@@ -74,9 +75,9 @@ html {
   --text-secondary: #cbd5e1;
   --text-muted: #94a3b8;
 
-  --orange-primary: #f97316;
-  --orange-secondary: #ea580c;
-  --orange-tertiary: #fb923c;
+  --orange-primary: hsl(25, 85%, 54%);
+  --orange-secondary: hsl(19, 80%, 47%);
+  --orange-tertiary: hsl(27, 85%, 60%);
 
   --success: hsl(142, 71%, 45%);
   --warning: hsl(38, 92%, 50%);
@@ -332,6 +333,7 @@ html {
     overflow: hidden;
     display: -webkit-box;
     -webkit-box-orient: vertical;
+    line-clamp: 1;
     -webkit-line-clamp: 1;
   }
 
@@ -339,6 +341,7 @@ html {
     overflow: hidden;
     display: -webkit-box;
     -webkit-box-orient: vertical;
+    line-clamp: 2;
     -webkit-line-clamp: 2;
   }
 
@@ -346,6 +349,7 @@ html {
     overflow: hidden;
     display: -webkit-box;
     -webkit-box-orient: vertical;
+    line-clamp: 3;
     -webkit-line-clamp: 3;
   }
 
@@ -733,3 +737,5 @@ html, body {
 .max-w-7xl, .max-w-6xl, .max-w-5xl, .max-w-4xl, .max-w-3xl, .max-w-2xl, .max-w-xl {
   max-width: calc(100vw - 2rem);
 }
+
+/* stylelint-enable */

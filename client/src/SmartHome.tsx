@@ -1,12 +1,12 @@
 import { useEffect } from 'react';
 import { useLocation } from 'wouter';
 import { useAuth } from './hooks/useAuth';
-import AssistantLanding from './assistant-landing';
+import ScoutLanding from './scout-landing';
 
 /**
  * Smart Home Route Component
  * Redirects users to their preferred default home page
- * Falls back to AssistantLanding (LLM) if no preference is set
+ * Falls back to ScoutLanding (LLM) if no preference is set
  */
 export default function SmartHome() {
   const { user } = useAuth();
@@ -35,6 +35,6 @@ export default function SmartHome() {
     }
   }, [user, setLocation]);
 
-  // Show the AssistantLanding (LLM) by default
-  return <AssistantLanding />;
+  // Show the ScoutLanding (LLM) by default
+  return <ScoutLanding />;
 }
