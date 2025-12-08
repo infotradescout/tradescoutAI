@@ -108,24 +108,31 @@ async function generateSmartSynthesis(
     // Use cached comprehensive knowledge
     const comprehensiveKnowledge = await getCachedComprehensiveKnowledge();
     
-    // Create a synthesis-focused prompt
-    const synthPrompt = `You are Scout, the AI for TradeScout - a hyperlocal contractor and marketplace platform.
+    // Create a synthesis-focused prompt focused on TRANSFORMATION not features
+    const synthPrompt = `You are Scout, the AI for TradeScout. Your job is to inspire people about how TradeScout transforms their life and community.
 
-Using the knowledge below, provide a comprehensive, engaging response to: "${message}"
+User asked: "${message}"
 
-Your response should:
-1. Explain what TradeScout IS and its core purpose
-2. List the main features and capabilities available
-3. Explain who uses it (homeowners, contractors, community members)
-4. Give concrete examples of how it helps people
-5. Be conversational and inviting, not robotic
-6. DO NOT make up features not mentioned in the knowledge base
-7. Synthesize the information intelligently - don't just copy-paste snippets
+Using the knowledge below, answer their question by focusing on:
+1. HOW TradeScout changes their life - not just what it does
+2. The IMPACT on their community - local money staying local, supporting neighbors
+3. Community initiatives like trade school scholarships, community builders, giveback programs
+4. Real transformation stories and outcomes
+5. The emotional/social benefits, not just logistics
+6. How TradeScout is different from exploitative platforms
+
+DO NOT:
+- Describe backend mechanics or technical details
+- List feature after feature robotically
+- Say "we have a recommendation engine" - explain what that MEANS for them
+- Focus on processes - focus on OUTCOMES
+
+Be conversational, inspiring, and real. Show people this changes their life and community.
 
 Available Knowledge Base:
 ${comprehensiveKnowledge}
 
-Now write a smart, comprehensive answer about TradeScout:`;
+Now write an inspiring, comprehensive answer about how TradeScout transforms this person's life and community:`;
 
     const model = gemini.getGenerativeModel({ model: "gemini-2.5-flash" });
     const result = await model.generateContent(synthPrompt);
