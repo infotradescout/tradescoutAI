@@ -117,6 +117,57 @@ Now write a smart, comprehensive answer about TradeScout:`;
   }
 }
 
+/**
+ * Generate smart synthesis using knowledge + conversation context
+ * Used for ALL responses to turn raw knowledge into intelligent answers
+ */
+async function synthesizeResponse(
+  userMessage: string,
+  knowledge: { answer: string; sources: string[]; layer: number; confidence: string },
+  gemini: GoogleGenerativeAI | null,
+  systemPrompt: string,
+  conversationHistory: string
+): Promise<string> {
+  if (!gemini) {
+    return knowledge.answer; // Fall back to raw knowledge if no Gemini
+  }
+
+  try {
+    const model = gemini.getGenerativeModel({ model: "gemini-2.5-flash" });
+    
+    const synthesisPrompt = `You are Scout, the TradeScout AI assistant.
+
+System Instructions:
+${systemPrompt}
+
+Knowledge Retrieved (Layer ${knowledge.layer}):
+Sources: ${knowledge.sources.join(", ")}
+Confidence: ${knowledge.confidence}
+Data:
+${knowledge.answer}
+
+${conversationHistory ? `Previous conversation:\n${conversationHistory}\n\n` : ""}
+User question: ${userMessage}
+
+Your job:
+1. Use the knowledge provided to give an accurate, helpful answer
+2. If the knowledge is from Layer 1 or 2 (TradeScout data), speak confidently
+3. If from Layer 3 (internet), clearly state it's not local TradeScout data
+4. If Layer 4 (no data), be honest about limitations
+5. Be conversational and helpful
+6. DO NOT invent information not in the knowledge
+7. Keep responses concise but complete
+
+Provide your response now:`;
+
+    const result = await model.generateContent(synthesisPrompt);
+    return result.response.text();
+  } catch (error) {
+    console.error("[Scout] Synthesis error:", error);
+    return knowledge.answer; // Fall back to raw knowledge on error
+  }
+}
+
 async function generateAutoPrompt(gemini: GoogleGenerativeAI | null) {
   if (!gemini) {
     return {
@@ -304,66 +355,26 @@ router.post("/", async (req: Request, res: Response) => {
       }
     }
 
-    // Build the prompt with strict knowledge hierarchy guidance
-    let sourceGuidance = "";
-    if (knowledge.layer === 1) {
-      sourceGuidance = "This information comes from ADMIN MANUAL OVERRIDES. Use it exactly as provided. Speak confidently: 'Based on TradeScout's local rules...'";
-    } else if (knowledge.layer === 2) {
-      sourceGuidance = "This information comes from TRADESCOUT'S WEBSITE DATA (cache or database). This is real platform data. Say: 'Based on TradeScout county data...' or 'According to contractors in our database...'";
-    } else if (knowledge.layer === 3) {
-      sourceGuidance = "This information comes from INTERNET SEARCH. This is NOT local TradeScout data. MUST say: 'I couldn't find this in TradeScout's local data, but based on the wider web...'";
-    } else {
-      sourceGuidance = "NO RELIABLE DATA FOUND. Be honest. Say: 'I don't have information about this in TradeScout or on the web. Please check with a local professional.' DO NOT invent data.";
-    }
+    // SMART SYNTHESIS: Use Gemini to synthesize knowledge into intelligent answer
+    // Instead of passing raw knowledge to the LLM, first synthesize it smartly
+    const synthesizedAnswer = await synthesizeResponse(
+      message,
+      knowledge,
+      geminiClient,
+      systemPrompt,
+      conversationHistory
+    );
 
-    // Create the enhanced prompt with knowledge context
-    const prompt = `${systemPrompt}
+    // The synthesized answer is our response!
+    // Just return it directly with knowledge metadata
+    const aiResponse: ScoutResponse = {
+      message: synthesizedAnswer,
+      actions: [],
+    };
 
-KNOWLEDGE RESOLUTION RESULT:
-Layer: ${knowledge.layer} of 4
-Sources: ${knowledge.sources.join(", ") || "None"}
-Confidence: ${knowledge.confidence}
-
-${sourceGuidance}
-
-DATA:
-${knowledge.answer}
-${localGuideContext}
-
-${conversationHistory ? `Previous conversation:\n${conversationHistory}\n\n` : ""}User: ${message}
-
-CRITICAL INSTRUCTIONS:
-- If Layer 1 or 2: Answer confidently using the data provided
-- If Layer 3: Explicitly state this is from the wider web, NOT local TradeScout data
-- If Layer 4: Be honest that you don't have the information. Do NOT make up data.
-- NEVER invent contractors, prices, businesses, or local rules
-- Always cite your source clearly`;
-
-
-    // Get AI response with fallback
-    let text: string, provider: string;
-    try {
-      const result = await generateWithFallback(prompt, llmProviders);
-      text = result.text;
-      provider = result.provider;
-    } catch (e) {
-      recordFallback();
-      throw e;
-    }
-    // Parse the AI's response
-    let aiResponse: ScoutResponse;
-    try {
-      // Extract JSON from the response (in case it's wrapped in markdown code blocks)
-      const jsonMatch = text.match(/```json\s*([\s\S]*?)\s*```/) || text.match(/\{[\s\S]*\}/);
-      const jsonText = jsonMatch ? (jsonMatch[1] || jsonMatch[0]) : text;
-      aiResponse = JSON.parse(jsonText);
-    } catch (parseError) {
-      // If parsing fails, treat the entire response as a message
-      aiResponse = {
-        message: text,
-        actions: [],
-      };
-    }
+    // Execute any actions if mentioned in the synthesized answer
+    // (In this simple case, we don't extract actions - the synthesized answer is final)
+    const actionResults = [];
 
     // Apply fraud/scam safety filter
     if (aiResponse.message) {
@@ -372,19 +383,6 @@ CRITICAL INSTRUCTIONS:
       if (safety.flagged) {
         // Drop actions if content looks unsafe
         aiResponse.actions = [];
-      }
-    }
-
-    // Execute any actions requested by the AI
-    const actionResults = [];
-    if (aiResponse.actions && aiResponse.actions.length > 0) {
-      for (const action of aiResponse.actions) {
-        // Pass user object with role information to action executor
-        const result = await executeAssistantAction(action, user);
-        actionResults.push({
-          action: action.type,
-          ...result,
-        });
       }
     }
 
@@ -414,7 +412,7 @@ CRITICAL INSTRUCTIONS:
         sources: knowledge.sources,
         confidence: knowledge.confidence,
       },
-      llmProvider: provider,
+      llmProvider: "gemini",
       promptVersion,
       timestamp: new Date().toISOString(),
     });

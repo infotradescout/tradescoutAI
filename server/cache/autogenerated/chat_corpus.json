@@ -28,5 +28,34 @@
     ],
     "actions": [],
     "timestamp": "2025-12-08T16:35:26.014Z"
+  },
+  {
+    "question": "List my pressure washer for $250",
+    "layer": 1,
+    "sources": [
+      "TradeScout Brain (data folder)"
+    ],
+    "actions": [
+      "CREATE_MARKETPLACE_LISTING"
+    ],
+    "timestamp": "2025-12-08T16:59:19.574Z"
+  },
+  {
+    "question": "How do I find contractors in my area?",
+    "layer": 1,
+    "sources": [
+      "TradeScout Brain (data folder)"
+    ],
+    "actions": [],
+    "timestamp": "2025-12-08T16:59:33.433Z"
+  },
+  {
+    "question": "How does TradeScout help homeowners?",
+    "layer": 1,
+    "sources": [
+      "TradeScout Brain (data folder)"
+    ],
+    "actions": [],
+    "timestamp": "2025-12-08T17:00:42.845Z"
   }
 ]
