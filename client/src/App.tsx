@@ -282,7 +282,7 @@ const AppLayout = memo(function AppLayout() {
       <div className="min-h-screen bg-tsBg text-tsTextMain font-sans flex flex-col">
         {!isLlmRoute && (
           <header className="hidden md:block sticky top-0 z-40 backdrop-blur-md bg-slate-950/85 border-b border-tsBorder shadow-lg">
-            <div className="max-w-6xl mx-auto px-6 py-4 flex flex-col items-center gap-3 text-center">
+            <div className="w-full px-6 py-4 flex flex-col items-center gap-3 text-center">
               <div className="flex items-center gap-3">
                 <div className="bg-gradient-to-br from-tsAccent to-orange-700 p-2 rounded-xl shadow-lg shadow-orange-500/40" />
                 <div className="text-left">
@@ -330,7 +330,7 @@ const AppLayout = memo(function AppLayout() {
           </div>
         )}
 
-        <main className="flex-1 relative w-full max-w-none lg:max-w-6xl mx-auto px-3 sm:px-4 py-6">
+        <main className="flex-1 relative w-full px-3 sm:px-4 md:px-6 py-6">
           <ErrorBoundary fallback={<PageLoader />}>
             <Switch>
               {/* Home routes - Smart routing based on user preferences */}
