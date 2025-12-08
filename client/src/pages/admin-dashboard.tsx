@@ -98,6 +98,34 @@ const AdminDashboard = memo(function AdminDashboard() {
           </div>
         </section>
 
+        {/* Admin & LLM Tools */}
+        <section className="mb-12">
+          <h2 className="text-2xl font-semibold mb-6">Admin & LLM Tools</h2>
+          <div className="grid md:grid-cols-3 gap-6">
+            <div 
+              className="bg-navy-800 p-6 rounded-lg hover:bg-navy-700 transition-colors cursor-pointer"
+              onClick={() => window.location.pathname = '/admin/system-prompt'}
+            >
+              <h3 className="text-lg font-semibold mb-2 text-orange-400">Prompt / LLM Controls</h3>
+              <p className="text-gray-300">Update system prompts, manage knowledge hierarchy, and hot-reload the assistant.</p>
+            </div>
+            <div 
+              className="bg-navy-800 p-6 rounded-lg hover:bg-navy-700 transition-colors cursor-pointer"
+              onClick={() => window.location.pathname = '/admin-panel'}
+            >
+              <h3 className="text-lg font-semibold mb-2 text-orange-400">Site Ops Panel</h3>
+              <p className="text-gray-300">Prizes, ads, site settings, contractor settings, and monitoring utilities.</p>
+            </div>
+            <div 
+              className="bg-navy-800 p-6 rounded-lg hover:bg-navy-700 transition-colors cursor-pointer"
+              onClick={() => window.location.pathname = '/admin/testing'}
+            >
+              <h3 className="text-lg font-semibold mb-2 text-orange-400">Testing & Error Controls</h3>
+              <p className="text-gray-300">Access testing toggles, error reports, and environment checks.</p>
+            </div>
+          </div>
+        </section>
+
         {/* Recent Activity */}
         <section className="mb-12">
           <h2 className="text-2xl font-semibold mb-6">Recent Platform Activity</h2>
