@@ -390,7 +390,7 @@ export default function ScoutLanding() {
     const loadTrending = async () => {
       setTrendingStatus("loading");
       try {
-        const resp = await fetch(`/api/trending?county=${encodeURIComponent(countyKey)}`);
+        const resp = await fetch(`${apiBase}/trending?county=${encodeURIComponent(countyKey)}`);
         if (!resp.ok) throw new Error("Failed trending fetch");
         const data = await resp.json();
         const items: TrendingItem[] = Array.isArray(data?.items)
