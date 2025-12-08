@@ -44,6 +44,54 @@ function sanitizeSuspiciousContent(text: string): { flagged: boolean; message: s
   };
 }
 
+const DEFAULT_AUTO_PROMPT = "What can TradeScout do for my community?";
+const DEFAULT_SUGGESTIONS = [
+  "Find roofers available this week",
+  "List my pressure washer for $250",
+  "Start the Community Builder for my county",
+  "Find food trucks near me with MealScout",
+  "Draft a welcome post for neighbors",
+  "Show me top marketplace listings this week",
+];
+
+async function generateAutoPrompt(gemini: GoogleGenerativeAI | null) {
+  if (!gemini) {
+    return {
+      source: "static" as const,
+      autoPrompt: DEFAULT_AUTO_PROMPT,
+      suggestions: DEFAULT_SUGGESTIONS,
+    };
+  }
+
+  try {
+    const model = gemini.getGenerativeModel({ model: "gemini-1.5-flash-latest" });
+    const prompt = `Create a single concise starter prompt a user should ask an AI concierge for a local contractor/marketplace app. Also return 6 short suggestions.
+Return JSON with keys autoPrompt (string) and suggestions (string array).`;
+    const result = await model.generateContent(prompt);
+    const text = result.response.text();
+    const jsonMatch = text.match(/\{[\s\S]*\}/);
+    if (jsonMatch) {
+      const parsed = JSON.parse(jsonMatch[0]);
+      const autoPrompt = typeof parsed.autoPrompt === "string" && parsed.autoPrompt.trim().length > 0
+        ? parsed.autoPrompt.trim()
+        : DEFAULT_AUTO_PROMPT;
+      const suggestions = Array.isArray(parsed.suggestions) && parsed.suggestions.length > 0
+        ? parsed.suggestions.slice(0, 6).map((s: any) => String(s))
+        : DEFAULT_SUGGESTIONS;
+
+      return { source: "gemini" as const, autoPrompt, suggestions };
+    }
+  } catch (error) {
+    console.warn("[Scout] Auto-prompt generation failed; falling back to defaults", error);
+  }
+
+  return {
+    source: "static" as const,
+    autoPrompt: DEFAULT_AUTO_PROMPT,
+    suggestions: DEFAULT_SUGGESTIONS,
+  };
+}
+
 // Initialize LLM providers (add more as needed)
 const llmProviders: LLMProvider[] = [
   new GeminiProvider(process.env.GEMINI_API_KEY || ""),
@@ -308,6 +356,20 @@ router.get("/health", (req: Request, res: Response) => {
     status: "ok",
     geminiConfigured: !!process.env.GEMINI_API_KEY,
     timestamp: new Date().toISOString(),
+  });
+});
+
+// Pregenerated starter prompt + suggestions (for UI auto-run / quick taps)
+router.get("/auto-prompt", async (_req: Request, res: Response) => {
+  const { content: systemPrompt, version: promptVersion } = loadSystemPrompt();
+  const auto = await generateAutoPrompt(geminiClient);
+
+  res.json({
+    autoPrompt: auto.autoPrompt,
+    suggestions: auto.suggestions,
+    source: auto.source,
+    promptVersion,
+    systemPromptBytes: systemPrompt.length,
   });
 });
 
