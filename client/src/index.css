@@ -26,6 +26,48 @@ html {
 .hero-section {
   transition: transform 0.1s ease-out;
 }
+.scout-type {
+  --count: 34;
+  display: inline-block;
+  overflow: hidden;
+  white-space: nowrap;
+  width: 0;
+  animation: typing 1.2s steps(var(--count)) forwards;
+}
+
+@keyframes typing {
+  to {
+    width: 100%;
+  }
+}
+
+.loading-bubble {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(6px);
+  width: fit-content;
+}
+
+.loading-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: #f5a524;
+  animation: dotPulse 0.9s ease-in-out infinite;
+}
+
+.loading-dot:nth-child(2) { animation-delay: 0.1s; }
+.loading-dot:nth-child(3) { animation-delay: 0.2s; }
+
+@keyframes dotPulse {
+  0%, 100% { transform: translateY(0); opacity: 0.6; }
+  50% { transform: translateY(-3px); opacity: 1; }
+}
 
 /* Scroll area enhancements */
 .scroll-area-viewport {

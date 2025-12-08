@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Activity, Send, Home } from "lucide-react";
 import { useAuth } from "./hooks/useAuth";
 import { useLocation } from "wouter";
@@ -9,7 +9,6 @@ type Message = {
   content: string;
   timestamp: Date;
   id?: string;
-  isThinking?: boolean;
 };
 
 type ScoutResponse = {
@@ -77,14 +76,22 @@ export default function ScoutLanding() {
   const [, navigate] = useLocation();
   const [inputValue, setInputValue] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [sendPulse, setSendPulse] = useState(false);
+  const [autoPromptPreview, setAutoPromptPreview] = useState<string | null>(null);
   const [trendingItems, setTrendingItems] = useState<TrendingItem[]>([]);
   const [trendingStatus, setTrendingStatus] = useState<"idle" | "loading" | "ready" | "error">("idle");
   const scrollRef = useRef<HTMLDivElement>(null);
   const messagesRef = useRef<Message[]>([]);
   const autoRunTimeoutRef = useRef<number | null>(null);
-  const typingAnimationRef = useRef<number | null>(null);
   const hasAutoRunRef = useRef(false);
   const userInteractedRef = useRef(false);
+  const introInitializedRef = useRef(false);
+  const bootShownRef = useRef(false);
+
+  useEffect(() => {
+    // Always reset autorun state on load so guests auto-run every visit
+    hasAutoRunRef.current = false;
+  }, []);
 
   const addressParts = user?.address?.split(",").map((part: string) => part.trim()).filter(Boolean) || [];
   const addressDerivedCommunity = addressParts[1] || addressParts[0] || "";
@@ -94,40 +101,28 @@ export default function ScoutLanding() {
   const ownerName = user?.firstName || user?.lastName || "you";
 
   const pushMessage = (message: Message) => {
+    const id = message.id || `msg-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+    const prepared: Message = { ...message, id };
+
     setMessages((prev) => {
-      const next = [...prev, message];
+      const next = [...prev, prepared];
       messagesRef.current = next;
       return next;
     });
   };
 
-  // Animate typing the prompt, then send it
+  // Auto-run prompt with CSS typing illusion then send
   const animateAndSendPrompt = async (promptText: string) => {
-    // Clear any existing timeouts
-    if (typingAnimationRef.current) {
-      window.clearTimeout(typingAnimationRef.current);
-    }
-
-    // Animate typing the prompt character by character
-    let displayedText = "";
-    const totalChars = promptText.length;
-    let charIndex = 0;
-
-    const typeCharacter = () => {
-      if (charIndex < totalChars && !userInteractedRef.current) {
-        displayedText += promptText[charIndex];
-        setInputValue(displayedText);
-        charIndex++;
-        typingAnimationRef.current = window.setTimeout(typeCharacter, 50); // 50ms per character
-      } else if (charIndex === totalChars && !userInteractedRef.current) {
-        // Finished typing, wait a moment then send
-        typingAnimationRef.current = window.setTimeout(() => {
-          handleSendMessage(promptText);
-        }, 300); // 300ms pause before sending
-      }
-    };
-
-    typeCharacter();
+    if (userInteractedRef.current) return;
+    setAutoPromptPreview(promptText);
+    // Wait for CSS typing (~1.2s) then send
+    window.setTimeout(() => {
+      setInputValue(promptText);
+      setSendPulse(true);
+      handleSendMessage(promptText);
+      setSendPulse(false);
+      setAutoPromptPreview(null);
+    }, 1200);
   };
 
   const markUserInteracted = () => {
@@ -137,10 +132,6 @@ export default function ScoutLanding() {
     if (autoRunTimeoutRef.current) {
       window.clearTimeout(autoRunTimeoutRef.current);
       autoRunTimeoutRef.current = null;
-    }
-    if (typingAnimationRef.current) {
-      window.clearTimeout(typingAnimationRef.current);
-      typingAnimationRef.current = null;
     }
   };
 
@@ -197,17 +188,6 @@ export default function ScoutLanding() {
     setInputValue(""); // Always clear input after sending
     setIsLoading(true);
 
-    // Show thinking message while processing
-    const thinkingMsgId = `thinking-${Date.now()}`;
-    const thinkingMessage: Message = {
-      id: thinkingMsgId,
-      role: "assistant",
-      content: "🧠 Thinking... analyzing your request and pulling insights from our knowledge base...",
-      timestamp: new Date(),
-      isThinking: true,
-    };
-    pushMessage(thinkingMessage);
-
     try {
       const response = await fetch("/api/scout", {
         method: "POST",
@@ -237,11 +217,6 @@ export default function ScoutLanding() {
         throw new Error("Empty response from Scout API");
       }
 
-      // Remove thinking message and replace with actual response
-      const messagesWithoutThinking = messagesRef.current.filter((m) => m.id !== thinkingMsgId);
-      messagesRef.current = messagesWithoutThinking;
-      setMessages([...messagesWithoutThinking]);
-
       const scoutMessage: Message = {
         role: "assistant",
         content: data.message,
@@ -259,15 +234,7 @@ export default function ScoutLanding() {
         pushMessage(resultsMessage);
       }
 
-      if (isFirstUserTurn) {
-        const highlight: Message = {
-          role: "assistant",
-          content:
-            `Got it — '${messageToSend}'. Here's how I can move fast right now:\n• Contractors: I can find and message verified pros in your county.\n• Marketplace: Surface deals or list your gear with price recommendations.\n• Community Builder: Launch outreach posts and welcome messages.\n• MealScout: Pull nearby food trucks, restaurants, and offers.\nWant me to execute one of these or refine your request?`,
-          timestamp: new Date(),
-        };
-        pushMessage(highlight);
-      }
+      // Suppress legacy highlight follow-up
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : String(error);
       console.error("[Scout] Error sending message:", errorMsg, error);
@@ -284,44 +251,62 @@ export default function ScoutLanding() {
 
   useEffect(() => {
     if (scrollRef.current) {
-      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+      scrollRef.current.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
     }
-  }, [messages]);
+  }, [messages.length]);
 
   useEffect(() => {
-    const hasSeenIntro = localStorage.getItem("ts_seen_intro_prompt") === "true";
+    if (introInitializedRef.current) return;
+    introInitializedRef.current = true;
 
-    if (messagesRef.current.length === 0) {
+    if (messagesRef.current.length === 0 && isAuthenticated) {
       const introMessage: Message = {
         role: "assistant",
         content:
-          isAuthenticated
-          ? "Welcome back! I'm Scout, your TradeScout operating system. I can:\n• Find and message verified contractors for your county\n• Spin up Community Builder and launch outreach posts\n• Search marketplace deals or list your gear fast\n• Run MealScout to surface food trucks and local offers\nAsk me anything specific (project, location, budget, timing) and I'll act immediately."
-          : "Hey, I'm Scout—your TradeScout guide. I can: find local pros, search marketplace deals, launch community growth, and run MealScout. Tell me your project or pick a prompt below and I'll get it done.",
+          "Welcome back! I'm Scout, your TradeScout operating system. I can:\n• Find and message verified contractors for your county\n• Spin up Community Builder and launch outreach posts\n• Search marketplace deals or list your gear fast\n• Run MealScout to surface food trucks and local offers\nAsk me anything specific (project, location, budget, timing) and I'll act immediately.",
         timestamp: new Date(),
       };
-
       pushMessage(introMessage);
-
-      if (!hasSeenIntro) {
-        // Start typing animation after intro message appears
-        autoRunTimeoutRef.current = window.setTimeout(() => {
-          if (userInteractedRef.current || hasAutoRunRef.current) return;
-          hasAutoRunRef.current = true;
-          animateAndSendPrompt(INTRO_PROMPT);
-        }, 500); // Start typing animation after 500ms
-      }
     }
 
     return () => {
       if (autoRunTimeoutRef.current) {
         window.clearTimeout(autoRunTimeoutRef.current);
       }
-      if (typingAnimationRef.current) {
-        window.clearTimeout(typingAnimationRef.current);
+    };
+  }, [isAuthenticated]);
+
+  // Guest-only boot + autorun separated to survive StrictMode double-mount
+  useEffect(() => {
+    if (isAuthenticated) return;
+    if (userInteractedRef.current) return;
+
+    if (!bootShownRef.current) {
+      bootShownRef.current = true;
+      window.setTimeout(() => {
+        pushMessage({
+          role: "assistant",
+          content: "Booting Scout…",
+          timestamp: new Date(),
+        });
+      }, 400);
+    }
+
+    if (!autoRunTimeoutRef.current && !hasAutoRunRef.current) {
+      autoRunTimeoutRef.current = window.setTimeout(() => {
+        if (userInteractedRef.current || hasAutoRunRef.current) return;
+        hasAutoRunRef.current = true;
+        animateAndSendPrompt(INTRO_PROMPT);
+      }, 1500);
+    }
+
+    return () => {
+      if (autoRunTimeoutRef.current) {
+        window.clearTimeout(autoRunTimeoutRef.current);
+        autoRunTimeoutRef.current = null;
       }
     };
-  }, []);
+  }, [isAuthenticated]);
 
   useEffect(() => {
     messagesRef.current = messages;
@@ -329,10 +314,7 @@ export default function ScoutLanding() {
 
   // After user sends anything, mark intro as seen so default placeholder returns on next visit
   useEffect(() => {
-    const userHasSent = messages.some((m) => m.role === "user");
-    if (userHasSent) {
-      localStorage.setItem("ts_seen_intro_prompt", "true");
-    }
+    // No-op: intro prompt now always runs for guests on load; no stored flag needed
   }, [messages]);
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
@@ -511,6 +493,102 @@ export default function ScoutLanding() {
 
   const isScoutActive = isLoading || messages.length > 0;
 
+  const separateThought = (text: string) => {
+    const marker = /how i['’]m thinking:/i;
+    if (!marker.test(text)) return { thought: "", response: text };
+
+    const parts = text.split(/\n\n+/); // split by blank lines
+    let thought = "";
+    const remainder: string[] = [];
+
+    let skippingThought = false;
+    parts.forEach((block) => {
+      if (!skippingThought && marker.test(block)) {
+        thought = block.trim();
+        skippingThought = true;
+        return;
+      }
+      if (skippingThought && !block.trim()) return;
+      remainder.push(block.trim());
+    });
+
+    const response = remainder.filter(Boolean).join("\n\n");
+    return { thought, response: response || text.replace(marker, "").trim() };
+  };
+
+  const renderAssistantContent = (text: string) => {
+    const { response } = separateThought(text);
+    const lines = response.trim().split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
+    const blocks: React.ReactNode[] = [];
+    let list: string[] = [];
+
+    const flushList = () => {
+      if (!list.length) return;
+      blocks.push(
+        <ul key={`list-${blocks.length}`} className="list-disc list-outside pl-5 space-y-1 text-white/90">
+          {list.map((item, idx) => (
+            <li key={idx}>{item}</li>
+          ))}
+        </ul>
+      );
+      list = [];
+    };
+
+    lines.forEach((line, idx) => {
+      const bulletMatch = line.match(/^[*-]\s+(.*)$/);
+      const dotMatch = line.match(/^•\s+(.*)$/);
+      if (bulletMatch || dotMatch) {
+        list.push((bulletMatch?.[1] || dotMatch?.[1] || "").trim());
+        return;
+      }
+
+      // Line is not a bullet; flush any accumulated list
+      flushList();
+
+      const isHeading = /:$/g.test(line) || idx === 0;
+      if (isHeading) {
+        blocks.push(
+          <div key={`head-${blocks.length}`} className="font-semibold text-tsAccent/90">
+            {line.replace(/:$/, "")}
+          </div>
+        );
+      } else {
+        blocks.push(
+          <p key={`p-${blocks.length}`} className="text-white/90 leading-relaxed">
+            {line}
+          </p>
+        );
+      }
+    });
+
+    flushList();
+
+    return <div className="space-y-2">{blocks}</div>;
+  };
+
+  const Messages = useMemo(
+    () =>
+      React.memo(function MessagesList({ items }: { items: Message[] }) {
+        return (
+          <>
+            {items.map((message) => (
+              <div key={message.id || `${message.role}-${message.timestamp.getTime()}`} className="space-y-1">
+                <div className="text-[11px] uppercase tracking-[0.12em] text-tsTextMuted flex items-center gap-2">
+                  <span className={`inline-flex h-1.5 w-1.5 rounded-full ${message.role === "user" ? "bg-tsAccent" : "bg-orange-400"}`} />
+                  {message.role === "user" ? "You" : "Scout"}
+                </div>
+                <div className="text-sm whitespace-pre-wrap leading-relaxed text-white">{message.content}</div>
+                <div className="text-[10px] text-tsTextMuted">
+                  {message.timestamp.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                </div>
+              </div>
+            ))}
+          </>
+        );
+      }),
+    []
+  );
+
   return (
     <>
     <div className="min-h-[calc(100vh-4.5rem)] bg-[#060b1c] text-white flex items-start justify-center px-3 sm:px-4 pb-16">
@@ -570,11 +648,14 @@ export default function ScoutLanding() {
                     <span className="text-[11px] text-tsTextMuted/80 lowercase tracking-normal">
                       {isLoading ? "running actions" : "standing by"}
                     </span>
+                    <span className="text-[11px] text-tsTextMuted/70 lowercase tracking-normal">
+                      find pros, deals, growth, MealScout — tell me a project.
+                    </span>
                   </div>
                 </div>
                 <div className="flex items-center gap-2 text-[11px]">
                   <Activity className="w-4 h-4" />
-                  Live AI thread
+                  Live Scout thread
                 </div>
               </div>
 
@@ -583,21 +664,39 @@ export default function ScoutLanding() {
                   className="rounded-xl border border-white/5 bg-[#0c1a33]/70 p-4 max-h-80 overflow-y-auto shadow-inner shadow-black/20 space-y-4"
                   ref={scrollRef}
                 >
-                  {messages.map((message, index) => (
-                    <div key={`${message.role}-${index}`} className="space-y-1">
-                      <div className="text-[11px] uppercase tracking-[0.12em] text-tsTextMuted flex items-center gap-2">
-                        <span className={`inline-flex h-1.5 w-1.5 rounded-full ${message.role === "user" ? "bg-tsAccent" : "bg-orange-400"}`} />
-                        {message.role === "user" ? "You" : "Scout"}
+                  <div className="space-y-3">
+                    {messages.map((message) => (
+                      <div
+                        key={message.id || `${message.role}-${message.timestamp.getTime()}`}
+                        className={`space-y-1 ${message.role === "user" ? "text-right" : "text-left"}`}
+                      >
+                        <div className="text-[11px] uppercase tracking-[0.12em] text-tsTextMuted flex items-center gap-2">
+                          <span className={`inline-flex h-1.5 w-1.5 rounded-full ${message.role === "user" ? "bg-tsAccent" : "bg-orange-400"}`} />
+                          {message.role === "user" ? "You" : "Scout"}
+                        </div>
+                        <div
+                          className={`inline-block max-w-full rounded-xl border px-3 py-2 text-sm leading-relaxed shadow-sm text-left
+                            ${message.role === "user"
+                              ? "bg-slate-900/80 border-tsAccent/40 text-white"
+                              : "bg-orange-500/10 border-orange-400/30 text-white"}
+                          `}
+                        >
+                          {message.role === "assistant" ? renderAssistantContent(message.content) : message.content}
+                        </div>
+                        <div className="text-[10px] text-tsTextMuted">
+                          {message.timestamp.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                        </div>
                       </div>
-                      <div className="text-sm whitespace-pre-wrap leading-relaxed text-white">
-                        {message.content}
+                    ))}
+                    {isLoading && (
+                      <div className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-slate-900/70 px-3 py-2 text-xs text-tsTextMuted italic shadow-sm">
+                        <span className="loading-dot" />
+                        <span className="loading-dot" />
+                        <span className="loading-dot" />
+                        <span className="ml-1">Scout is thinking…</span>
                       </div>
-                      <div className="text-[10px] text-tsTextMuted">
-                        {message.timestamp.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
-                      </div>
-                    </div>
-                  ))}
-                  {isLoading && <div className="text-xs text-tsTextMuted">Thinking...</div>}
+                    )}
+                  </div>
                 </div>
 
                 <form
@@ -609,30 +708,41 @@ export default function ScoutLanding() {
                   }}
                 >
                   <div className="flex-1">
-                    <textarea
-                      className="w-full rounded-xl bg-[#0c1a33] border border-white/10 px-4 py-3 text-base text-white placeholder:text-white/55 focus:outline-none focus:ring-2 focus:ring-tsAccent/80 min-h-[90px]"
-                      rows={3}
-                      placeholder="Ask anything—local intel, permits, pros, or shortcuts across the site."
-                      value={inputValue}
-                      onChange={(e) => {
-                        markUserInteracted();
-                        setInputValue(e.target.value);
-                      }}
-                      onKeyPress={handleKeyPress}
-                      onFocus={markUserInteracted}
-                      disabled={isLoading}
-                    />
+                    <div className="relative">
+                      <textarea
+                        className={`w-full rounded-xl bg-[#0c1a33] border border-white/10 px-4 py-3 text-base text-white placeholder:text-white/55 focus:outline-none focus:ring-2 focus:ring-tsAccent/80 min-h-[90px] ${autoPromptPreview ? "placeholder:opacity-0 text-transparent caret-transparent" : ""}`}
+                        rows={3}
+                        placeholder="Ask anything—local intel, permits, pros, or shortcuts across the site."
+                        value={inputValue}
+                        onChange={(e) => {
+                          markUserInteracted();
+                          setInputValue(e.target.value);
+                        }}
+                        onKeyPress={handleKeyPress}
+                        onFocus={markUserInteracted}
+                        disabled={isLoading}
+                      />
+                      {autoPromptPreview && (
+                        <div className="pointer-events-none absolute inset-0 px-4 py-3 text-base text-white/90">
+                          <span className="scout-type" style={{ ['--count' as any]: autoPromptPreview.length }}>
+                            {autoPromptPreview}
+                          </span>
+                        </div>
+                      )}
+                    </div>
                   </div>
-                  <div className="sm:w-32 flex sm:flex-col gap-3">
-                    <button
-                      type="submit"
-                      disabled={!inputValue.trim() || isLoading}
-                      className="w-full h-12 rounded-xl bg-gradient-to-r from-tsAccent to-orange-600 text-white font-semibold shadow-lg shadow-orange-600/30 disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center justify-center"
-                    >
-                      {isLoading ? "Working..." : "Send"}
-                      <Send className="w-4 h-4 ml-2" />
-                    </button>
-                  </div>
+                    <div className="sm:w-32 flex sm:flex-col gap-3">
+                      <button
+                        type="submit"
+                        disabled={!inputValue.trim() || isLoading}
+                        className={`w-full h-12 rounded-xl bg-gradient-to-r from-tsAccent to-orange-600 text-white font-semibold shadow-lg shadow-orange-600/30 disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center justify-center
+                          ${sendPulse && !isLoading ? "ring-2 ring-amber-300 scale-[1.01]" : ""}
+                        `}
+                      >
+                        {isLoading ? "Working..." : "Send"}
+                        <Send className="w-4 h-4 ml-2" />
+                      </button>
+                    </div>
                 </form>
               </div>
             </div>
