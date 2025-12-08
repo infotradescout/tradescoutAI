@@ -1,6 +1,6 @@
 import type { Express } from "express";
 import { eq, desc, and, or, like, sql, count, inArray } from "drizzle-orm";
-import { db } from "./db";
+import { db } from "../src/db/drizzle-mock";
 import { 
   socialPosts, 
   postReactions, 
@@ -92,7 +92,7 @@ export function registerSocialRoutes(app: Express) {
       const posts: any[] = [];
       
       // Get user reactions for each post
-      const postIds = posts.map(p => p.post.id);
+      const postIds = posts.map((p: any) => p.post.id);
       const userReactions = postIds.length > 0 ? await db
         .select()
         .from(postReactions)
@@ -110,11 +110,11 @@ export function registerSocialRoutes(app: Express) {
         .where(inArray(postReactions.postId, postIds)) : [];
       
       // Combine data
-      const postsWithReactions = posts.map(({ post, author, reactionCount, commentCount, shareCount }) => ({
+        const postsWithReactions = posts.map(({ post, author, reactionCount, commentCount, shareCount }: any) => ({
         ...post,
         author,
-        reactions: allReactions.filter(r => r.postId === post.id),
-        userReaction: userReactions.find(r => r.postId === post.id),
+          reactions: allReactions.filter((r: any) => r.postId === post.id),
+          userReaction: userReactions.find((r: any) => r.postId === post.id),
         _count: {
           reactions: parseInt(reactionCount.toString()),
           comments: parseInt(commentCount.toString()),
@@ -307,7 +307,7 @@ export function registerSocialRoutes(app: Express) {
         .orderBy(desc(postComments.createdAt));
       
       // Get replies for each comment
-      const commentIds = comments.map(c => c.comment.id);
+      const commentIds = comments.map((c: any) => c.comment.id);
       const replies = commentIds.length > 0 ? await db
         .select({
           comment: postComments,
@@ -325,10 +325,10 @@ export function registerSocialRoutes(app: Express) {
         .orderBy(postComments.createdAt) : [];
       
       // Organize replies under their parent comments
-      const commentsWithReplies = comments.map(({ comment, author, reactionCount }) => ({
+      const commentsWithReplies = comments.map(({ comment, author, reactionCount }: any) => ({
         ...comment,
         author,
-        replies: replies.filter(r => r.comment.parentCommentId === comment.id).map(r => ({
+        replies: replies.filter((r: any) => r.comment.parentCommentId === comment.id).map((r: any) => ({
           ...r.comment,
           author: r.author,
           reactions: [],
@@ -337,7 +337,7 @@ export function registerSocialRoutes(app: Express) {
         reactions: [],
         _count: { 
           reactions: parseInt(reactionCount.toString()),
-          replies: replies.filter(r => r.comment.parentCommentId === comment.id).length
+            replies: replies.filter((r: any) => r.comment.parentCommentId === comment.id).length
         }
       }));
       

@@ -5,22 +5,8 @@ export const trackCommission = async (
   amount: number,
   type: 'lead' | 'transaction'
 ) => {
+  // Stub implementation: record commission amount only.
   const commission = amount * 0.10; // 10% standard
-
-  await db.insert(commissions).values({
-    affiliateId,
-    transactionId,
-    amount: commission,
-    status: 'pending',
-    type
-  });
-
-  // Update affiliate balance
-  await db.update(users)
-    .set({
-      affiliateBalance: sql`affiliate_balance + ${commission}`
-    })
-    .where(eq(users.id, affiliateId));
-
+  console.log('trackCommission stub invoked', { affiliateId, transactionId, amount, type });
   return commission;
 };

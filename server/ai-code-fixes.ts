@@ -1,8 +1,8 @@
 
 import { Express } from "express";
 import { isAuthenticated } from "./auth";
-import fs from 'fs/promises';
-import path from 'path';
+import * as fs from 'fs/promises';
+import * as path from 'path';
 
 interface CodeFix {
   id: string;
@@ -19,7 +19,7 @@ interface CodeFix {
 
 interface AutoFixRule {
   pattern: RegExp;
-  fix: (match: string, filePath: string) => string;
+  fix: (match: string, filePath: string) => string | Promise<string>;
   description: string;
   confidence: number;
 }
@@ -61,7 +61,7 @@ class AICodeFixingService {
           if (!filePath) continue;
 
           const originalCode = await this.readFile(filePath);
-          const fixedCode = rule.fix(issueDescription, filePath);
+          const fixedCode = await Promise.resolve(rule.fix(issueDescription, filePath));
           
           if (fixedCode && fixedCode !== originalCode) {
             const fix: CodeFix = {

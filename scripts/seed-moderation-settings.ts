@@ -1,6 +1,6 @@
 #!/usr/bin/env tsx
 
-import { db } from "../server/db";
+import { db } from "../src/db/drizzle-mock";
 import { moderationSettings } from "../shared/schema";
 
 async function seedModerationSettings() {

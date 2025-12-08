@@ -5,11 +5,15 @@ import fs from "fs";
 import path from "path";
 import { reloadSystemPrompt, getPromptStatus } from "../services/promptService";
 import type { AuthenticatedUser } from "../types";
+import { fileURLToPath } from "url";
 
 const router = express.Router();
 
+// ESM-safe directory resolution
+const routeDir = path.dirname(fileURLToPath(import.meta.url));
+
 const PROMPT_PATH = path.join(
-  __dirname,
+  routeDir,
   "..",
   "cache",
   "manual",

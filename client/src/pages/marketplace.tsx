@@ -61,7 +61,6 @@ import {
   Camera,
   Laptop,
   Smartphone,
-  Tool,
   TreePine,
   Utensils,
   Wine,
@@ -368,6 +367,7 @@ export default function Marketplace() {
 
   const getFeaturedCategoryIcon = (iconName: string) => {
     const iconMap = {
+      ...categoryIcons,
       tools: Wrench,
       truck: Truck,
       construction: Building,
@@ -375,8 +375,7 @@ export default function Marketplace() {
       briefcase: Briefcase,
       users: Users,
       home: Home,
-      gem: Gem,
-      ...categoryIcons
+      gem: Gem
     };
     const IconComponent = iconMap[iconName as keyof typeof iconMap] || Package;
     return <IconComponent className="h-6 w-6 text-orange-600" />;
@@ -1198,7 +1197,7 @@ export default function Marketplace() {
                       <div className="flex items-center justify-between">
                         <div>
                           <span className="text-lg font-bold text-orange-600">
-                            {formatPrice(parseFloat(listing.price), listing.priceType)}
+                            {formatPrice(parseFloat(listing.price), listing.priceType || 'fixed')}
                           </span>
                           {listing.originalPrice && parseFloat(listing.originalPrice) > parseFloat(listing.price) && (
                             <div className="text-sm text-gray-500 line-through">
@@ -1210,19 +1209,6 @@ export default function Marketplace() {
                           <div className="flex items-center text-xs text-gray-500 mb-1">
                             <MapPin className="h-3 w-3 mr-1" />
                             {formatLocationString(listing)}
-                          </div>
-                          <div className="flex flex-col gap-1">
-                            {listing.sellerType === 'contractor' && (
-                              <Badge variant="outline" className="text-xs border-orange-200 text-orange-700">
-                                Pro Seller
-                              </Badge>
-                            )}
-                            <ProfessionalBadge 
-                              userRole={listing.sellerRole} 
-                              verificationStatus="approved"
-                              size="sm"
-                              showText={false}
-                            />
                           </div>
                         </div>
                       </div>
@@ -1237,12 +1223,6 @@ export default function Marketplace() {
                             {listing.viewCount || 0}
                           </div>
                         </div>
-                        {listing.isHighValue && (
-                          <Badge className="text-xs bg-amber-100 text-amber-800 border-amber-200">
-                            <Star className="h-3 w-3 mr-1" />
-                            Quality Pick
-                          </Badge>
-                        )}
                       </div>
                       {/* Contact Seller Button */}
                       <div 
@@ -1250,10 +1230,8 @@ export default function Marketplace() {
                         onClick={(e) => e.stopPropagation()}
                       >
                         <QuickContactButton
-                          listingId={listing.id}
+                          listing={listing}
                           sellerId={listing.sellerId}
-                          sellerName={listing.sellerName || 'Seller'}
-                          listingTitle={listing.title}
                           className="w-full"
                         />
                       </div>
@@ -1293,18 +1271,12 @@ export default function Marketplace() {
                           </div>
                           <div className="text-right">
                             <div className="text-lg font-bold text-emerald-600 mb-1">
-                              {formatPrice(parseFloat(listing.price), listing.priceType)}
+                              {formatPrice(parseFloat(listing.price), listing.priceType || 'fixed')}
                             </div>
                             <div className="flex flex-col gap-1">
                               <Badge variant="secondary" className="text-xs">
                                 {listing.condition}
                               </Badge>
-                              <ProfessionalBadge 
-                                userRole={listing.sellerRole} 
-                                verificationStatus="approved"
-                                size="sm"
-                                showText={false}
-                              />
                             </div>
                             {/* Contact Seller Button */}
                             <div 
@@ -1312,10 +1284,8 @@ export default function Marketplace() {
                               onClick={(e) => e.stopPropagation()}
                             >
                               <QuickContactButton
-                                listingId={listing.id}
+                                listing={listing}
                                 sellerId={listing.sellerId}
-                                sellerName={listing.sellerName || 'Seller'}
-                                listingTitle={listing.title}
                                 className="text-xs"
                               />
                             </div>

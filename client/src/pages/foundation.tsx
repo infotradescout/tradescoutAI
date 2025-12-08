@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Link } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -110,6 +111,18 @@ export default function Foundation() {
     enabled: activeTab === "impact",
   });
 
+  const { data: vaultSnapshot, isLoading: vaultLoading } = useQuery({
+    queryKey: ['/api/vaults/my-county'],
+    queryFn: async () => {
+      const res = await fetch('/api/vaults/my-county');
+      if (res.status === 400) return null;
+      if (!res.ok) throw new Error('Failed to load vault');
+      return res.json();
+    },
+    enabled: isAuthenticated,
+    staleTime: 5 * 60 * 1000,
+  });
+
   // Donation mutation
   const donateMutation = useMutation({
     mutationFn: async ({ causeId, amount, anonymous, message }: { 
@@ -214,6 +227,66 @@ export default function Foundation() {
         <h1 className="text-3xl font-bold text-white mb-2">TradeScout Foundation</h1>
         <p className="text-gray-300">Supporting communities across America through local charitable giving</p>
       </div>
+
+      {isAuthenticated && (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
+          <Card className="bg-slate-800 border-slate-700">
+            <CardContent className="p-6">
+              <div className="flex items-start justify-between mb-4">
+                <div>
+                  <p className="text-sm text-gray-400">Your County Vault</p>
+                  <h3 className="text-xl font-semibold text-white">
+                    {vaultSnapshot?.county ? `${vaultSnapshot.county.name}, ${vaultSnapshot.county.stateCode}` : 'Add your county in profile'}
+                  </h3>
+                </div>
+                <Badge className="bg-green-600 text-white">Transparent</Badge>
+              </div>
+              <p className="text-3xl font-bold text-white">
+                {vaultLoading ? 'Loading…' : formatCurrency(vaultSnapshot?.vault?.currentBalance ?? 0)}
+              </p>
+              <p className="text-sm text-gray-400">Funds earmarked for your community</p>
+              <div className="mt-4 flex items-center space-x-3 text-sm text-gray-300">
+                <TrendingUp className="h-4 w-4 text-green-400" />
+                <span>Last 30d inflow: {formatCurrency(vaultSnapshot?.last30dInflow ?? 0)}</span>
+              </div>
+              <div className="mt-4 flex flex-wrap gap-2">
+                {vaultSnapshot?.sourcesBreakdown && Object.keys(vaultSnapshot.sourcesBreakdown).length > 0 ? (
+                  Object.entries(vaultSnapshot.sourcesBreakdown).map(([source, amount]) => (
+                    <Badge key={source} variant="outline" className="border-slate-600 text-slate-200">
+                      {source.replace(/_/g, ' ')} · {formatCurrency(amount as number)}
+                    </Badge>
+                  ))
+                ) : (
+                  <span className="text-sm text-gray-400">No contributions recorded yet</span>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-slate-800 border-slate-700">
+            <CardContent className="p-6">
+              <div className="flex items-start justify-between mb-4">
+                <div>
+                  <p className="text-sm text-gray-400">Community Builders</p>
+                  <h3 className="text-xl font-semibold text-white">Fuel the vault</h3>
+                </div>
+                <Badge variant="outline" className="border-orange-500 text-orange-300">Give back</Badge>
+              </div>
+              <p className="text-gray-300 text-sm mb-3">
+                Donations, marketplace givebacks, and contractor programs all ladder into the county vault. Every dollar is traceable.
+              </p>
+              <div className="flex items-center space-x-3">
+                <Button asChild className="bg-orange-500 hover:bg-orange-600">
+                  <Link href="/community-builder">Join as Community Builder</Link>
+                </Button>
+                <Button asChild variant="outline" className="border-slate-600 text-white hover:border-orange-500">
+                  <Link href="/foundation?tab=impact">View impact</Link>
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <TabsList className="grid w-full grid-cols-4 mb-6 bg-slate-800 border-slate-700">

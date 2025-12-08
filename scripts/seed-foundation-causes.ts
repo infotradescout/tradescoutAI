@@ -1,4 +1,4 @@
-import { db } from "../server/db";
+import { db } from "../src/db/drizzle-mock";
 import { foundationCauses, counties } from "../shared/schema";
 import { eq } from "drizzle-orm";
 

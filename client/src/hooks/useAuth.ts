@@ -4,14 +4,25 @@ import { useCallback } from "react";
 export interface User {
   id: string;
   email: string;
-  firstName: string;
-  lastName: string;
-  role: 'homeowner' | 'contractor_user' | 'realtor' | 'car_salesman' | 'accelerator_member' | 'moderator' | 'ops_admin' | 'head_admin' | 'super_admin';
+  firstName?: string;
+  lastName?: string;
+  role?: string;
+  roles?: string[];
+  badges?: string[];
+  preferences?: any;
   profileImageUrl?: string;
-  emailVerified: boolean;
-  addressVerified: boolean;
-  createdAt: Date;
-  updatedAt: Date;
+  emailVerified?: boolean;
+  addressVerified?: boolean;
+  phone?: string;
+  address?: string;
+  city?: string;
+  state?: string;
+  zipCode?: string;
+  county?: string;
+  isImpersonating?: boolean;
+  originalRole?: string;
+  createdAt?: string | Date;
+  updatedAt?: string | Date;
 }
 
 export function useAuth() {
@@ -54,7 +65,7 @@ export function useAuth() {
     }
   }, []);
 
-  const { data: user, isLoading, error } = useQuery({
+  const { data: user, isLoading, error, refetch } = useQuery({
     queryKey: ["/api/auth/user"],
     queryFn: authQuery,
     retry: (failureCount, error) => {
@@ -77,6 +88,7 @@ export function useAuth() {
     isLoading,
     isAuthenticated: !!user,
     error,
+    refetch,
   };
 }
 

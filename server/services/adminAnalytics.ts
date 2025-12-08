@@ -1,8 +1,12 @@
 // Admin analytics and audit logging (PHASE 4)
 import fs from "fs";
-import path from "path";
+import { fileURLToPath } from "url";
+import { dirname, join } from "path";
 
-const AUDIT_LOG_PATH = path.join(__dirname, "..", "admin_audit.log");
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+
+const AUDIT_LOG_PATH = join(__dirname, "..", "admin_audit.log");
 
 export function logAdminAction(action: string, user: any, details: any = {}) {
   const entry = {

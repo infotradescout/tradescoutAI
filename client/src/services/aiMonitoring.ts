@@ -82,7 +82,7 @@ class AIMonitoringService {
           // Check for slow page loads
           if (entry.entryType === 'navigation') {
             const nav = entry as PerformanceNavigationTiming;
-            const loadTime = nav.loadEventEnd - nav.navigationStart;
+            const loadTime = nav.loadEventEnd - nav.startTime;
 
             if (loadTime > 3000) {
               this.addIssue({
@@ -423,13 +423,13 @@ class AIMonitoringService {
           const now = Date.now();
           const lastMemoryReport = this.lastMemoryReport || 0;
 
-          if (usagePercent > 95 && (now - lastMemoryReport > 60000)) { // Report max once per minute
+          if (heapUsagePercent > 95 && (now - lastMemoryReport > 60000)) { // Report max once per minute
             this.lastMemoryReport = now;
             this.addIssue({
               type: 'performance',
               severity: 'high',
               title: 'High Memory Usage',
-              description: `JavaScript heap usage at ${(usagePercent).toFixed(1)}%`,
+              description: `JavaScript heap usage at ${(heapUsagePercent).toFixed(1)}%`,
               location: window.location.pathname,
               userAgent: navigator.userAgent,
               suggestions: [

@@ -5,6 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { BookOpen, Search, FileText, Video, Download, ExternalLink, Lightbulb, Settings, Users } from 'lucide-react';
+import { getCategoryColorClass } from '@/lib/colors';
 
 const Documentation = memo(function Documentation() {
   const [searchQuery, setSearchQuery] = useState('');
@@ -96,14 +97,7 @@ const Documentation = memo(function Documentation() {
   ];
 
   const getTypeColor = (type: string) => {
-    switch (type) {
-      case 'guide': return 'bg-blue-600 hover:bg-blue-700';
-      case 'reference': return 'bg-purple-600 hover:bg-purple-700';
-      case 'template': return 'bg-emerald-600 hover:bg-emerald-700';
-      case 'tip': return 'bg-orange-600 hover:bg-orange-700';
-      case 'overview': return 'bg-gray-600 hover:bg-gray-700';
-      default: return 'bg-gray-600 hover:bg-gray-700';
-    }
+    return getCategoryColorClass(type);
   };
 
   return (
@@ -172,7 +166,7 @@ const Documentation = memo(function Documentation() {
                                 <p className="text-xs text-gray-400">{article.views} views</p>
                               </div>
                             </div>
-                            <Badge size="sm" className={getTypeColor(article.type)}>
+                            <Badge className={getTypeColor(article.type)}>
                               {article.type}
                             </Badge>
                           </div>

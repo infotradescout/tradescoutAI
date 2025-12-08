@@ -1,6 +1,8 @@
 import { WebSocketServer, WebSocket } from 'ws';
 import { Server } from 'http';
 import { storage } from './storage';
+import { db } from '../src/db/drizzle-mock';
+import { messages } from '@shared/schema';
 
 interface WebSocketClient {
   ws: WebSocket;

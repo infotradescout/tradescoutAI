@@ -87,8 +87,13 @@ export default function AdminProfessionalVerification() {
   const [selectedTab, setSelectedTab] = useState("realtors");
   const [verificationNotes, setVerificationNotes] = useState<{[key: string]: string}>({});
 
+  interface PendingApplications {
+    realtors: RealtorProfile[];
+    carSalesmen: CarSalesmanProfile[];
+  }
+
   // Fetch pending applications
-  const { data: pendingApplications, isLoading } = useQuery({
+  const { data: pendingApplications = { realtors: [], carSalesmen: [] }, isLoading } = useQuery<PendingApplications>({
     queryKey: ["/api/admin/professional/pending"],
     refetchInterval: 30000, // Refresh every 30 seconds
   });

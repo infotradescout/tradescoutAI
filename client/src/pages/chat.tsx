@@ -150,9 +150,10 @@ export default function Chat() {
   });
 
   // Fetch material lists for current conversation
-  const { data: materialLists = [] } = useQuery({
+  const { data: materialLists = [] } = useQuery<MaterialList[]>({
     queryKey: ["/api/conversations", conversationId, "material-lists"],
     enabled: isAuthenticated && !!conversationId,
+    placeholderData: [] as MaterialList[],
   });
 
   // Send message mutation

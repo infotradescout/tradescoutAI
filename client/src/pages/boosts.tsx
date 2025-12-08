@@ -42,11 +42,11 @@ export default function Boosts() {
   const queryClient = useQueryClient();
   const [selectedBoost, setSelectedBoost] = useState<string | null>(null);
 
-  const { data: availableBoosts = [], isLoading: boostsLoading } = useQuery({
+  const { data: availableBoosts = [], isLoading: boostsLoading } = useQuery<Boost[]>({
     queryKey: ['/api/boosts/available'],
   });
 
-  const { data: userBoosts = [], isLoading: userBoostsLoading } = useQuery({
+  const { data: userBoosts = [], isLoading: userBoostsLoading } = useQuery<UserBoost[]>({
     queryKey: ['/api/boosts/user'],
   });
 

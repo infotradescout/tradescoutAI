@@ -50,6 +50,24 @@ const ROLE_HIERARCHY = {
   'head_admin': 7
 };
 
+interface UserManagementData {
+  users: User[];
+  totalCount: number;
+  filters: {
+    search: string;
+    role: string | null;
+  };
+}
+
+const defaultUserManagementData: UserManagementData = {
+  users: [],
+  totalCount: 0,
+  filters: {
+    search: '',
+    role: null
+  }
+};
+
 export default function UserManagement() {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
@@ -57,7 +75,7 @@ export default function UserManagement() {
   const [newActiveRole, setNewActiveRole] = useState('');
   const { toast } = useToast();
 
-  const { data: users, isLoading } = useQuery({
+  const { data: userManagement = defaultUserManagementData, isLoading } = useQuery<UserManagementData>({
     queryKey: ['/api/admin/users'],
     retry: false,
   });
@@ -108,11 +126,11 @@ export default function UserManagement() {
     },
   });
 
-  const filteredUsers = users?.filter((user: User) => 
+  const filteredUsers = userManagement.users.filter((user) => 
     user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
     `${user.firstName} ${user.lastName}`.toLowerCase().includes(searchTerm.toLowerCase()) ||
     user.roles?.some(role => role.toLowerCase().includes(searchTerm.toLowerCase()))
-  ) || [];
+  );
 
   const getRoleInfo = (roleName: string) => {
     return AVAILABLE_ROLES.find(role => role.value === roleName) || 
@@ -356,7 +374,6 @@ export default function UserManagement() {
                           >
                             <Checkbox
                               checked={isSelected}
-                              readOnly
                               data-testid={`checkbox-role-${role.value}`}
                             />
                             <div className={`w-8 h-8 rounded ${role.color} flex items-center justify-center`}>

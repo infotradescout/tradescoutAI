@@ -1,4 +1,4 @@
-import { db } from "./db";
+import { db } from "../src/db/drizzle-mock";
 import { siteSettings, prizeConfigurations, advertisements, contractorSettings } from "@shared/schema";
 
 export async function seedAdminData() {

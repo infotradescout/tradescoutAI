@@ -4,10 +4,9 @@ import {
   type ContractorPayment, 
   type MarketplaceTransaction,
   type PaymentConfiguration,
-  contractorPayments,
-  marketplaceTransactions,
-  paymentConfigurations
 } from '@shared/schema';
+
+type PaymentType = 'marketplace_transaction' | 'contractor_service' | 'premium_subscription';
 
 // Payment service for handling platform transactions
 export class PaymentService {
@@ -23,7 +22,7 @@ export class PaymentService {
   }
 
   // Calculate fees based on payment configuration
-  async calculatePaymentFees(amount: number, paymentType: string) {
+  async calculatePaymentFees(amount: number, paymentType: PaymentType) {
     const config = await storage.getPaymentConfiguration(paymentType);
 
     if (!config) {
@@ -65,7 +64,7 @@ export class PaymentService {
   async trackAffiliateCommission(
     userId: string, 
     amount: number, 
-    paymentType: string,
+    paymentType: PaymentType,
     referenceId: string
   ) {
     try {
@@ -73,8 +72,8 @@ export class PaymentService {
       const referralRecord = await storage.getReferralByReferredUserId(userId);
       if (!referralRecord) return null;
 
-      const affiliateProgram = await storage.getAffiliateProgram(referralRecord.affiliateProgramId);
-      if (!affiliateProgram || !affiliateProgram.isActive) return null;
+      const affiliateProgram = await storage.getAffiliateProgram(referralRecord.affiliateId);
+      if (!affiliateProgram || affiliateProgram.status === 'inactive') return null;
 
       // Calculate commission (25% of platform fees)
       const fees = await this.calculatePaymentFees(amount, paymentType);
@@ -85,15 +84,12 @@ export class PaymentService {
       const commission = await storage.createCommission({
         affiliateProgramId: affiliateProgram.id,
         referralId: referralRecord.id,
-        revenueSource: paymentType,
-        sourceTransactionId: referenceId,
-        originalAmount: amount.toString(),
-        commissionRate: commissionRate.toString(),
+        transactionId: referenceId,
+        revenueAmount: amount.toString(),
         commissionAmount: commissionAmount.toString(),
         status: 'pending',
         description: `Commission from ${paymentType} payment`,
         createdAt: new Date(),
-        updatedAt: new Date()
       });
 
       return commission;

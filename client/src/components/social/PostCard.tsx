@@ -50,7 +50,7 @@ export function PostCard({ post }: PostCardProps) {
     mutationFn: () => apiRequest('POST', `/api/social/posts/${post.id}/like`),
     onSuccess: () => {
       setIsLiked(!isLiked);
-      setLikeCount(prev => isLiked ? prev - 1 : prev + 1);
+      setLikeCount((prev: number) => isLiked ? prev - 1 : prev + 1);
       queryClient.invalidateQueries({ queryKey: ['/api/social/feed'] });
     },
     onError: (error: any) => {

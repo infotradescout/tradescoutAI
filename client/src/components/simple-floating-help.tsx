@@ -3,10 +3,11 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { HelpCircle, X, BookOpen, Play, Settings } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { showToast } from '@/components/ui/simple-toaster';
+import { useToast } from '@/hooks/use-toast';
 
 export function SimpleFloatingHelp() {
   const [isOpen, setIsOpen] = useState(false);
+  const { toast } = useToast();
 
   const helpOptions = [
     {
@@ -27,7 +28,7 @@ export function SimpleFloatingHelp() {
   ];
 
   const handleStartTour = (tourId: string) => {
-    showToast(`Starting ${tourId} tour!`, 'info');
+    toast({ title: `Starting ${tourId} tour!` });
     setIsOpen(false);
   };
 
@@ -93,7 +94,7 @@ export function SimpleFloatingHelp() {
                       size="sm"
                       className="w-full border-gray-500 text-gray-300 hover:bg-slate-700"
                       onClick={() => {
-                        showToast('Opening help center...', 'info');
+                        toast({ title: 'Opening help center...' });
                         setIsOpen(false);
                       }}
                     >

@@ -10,6 +10,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
+import { getPriorityColorClass, getCategoryColorClass } from '@/lib/colors';
 
 const SupportTickets = memo(function SupportTickets() {
   const [activeTab, setActiveTab] = useState("open");
@@ -103,31 +104,11 @@ const SupportTickets = memo(function SupportTickets() {
   };
 
   const getPriorityColor = (priority: string) => {
-    switch (priority) {
-      case 'high':
-        return 'border-red-600 text-red-400';
-      case 'medium':
-        return 'border-yellow-600 text-yellow-400';
-      case 'low':
-        return 'border-green-600 text-green-400';
-      default:
-        return 'border-gray-600 text-gray-400';
-    }
+    return getPriorityColorClass(priority);
   };
 
   const getCategoryColor = (category: string) => {
-    switch (category) {
-      case 'Account':
-        return 'bg-blue-600';
-      case 'Billing':
-        return 'bg-purple-600';
-      case 'Technical':
-        return 'bg-orange-600';
-      case 'General':
-        return 'bg-gray-600';
-      default:
-        return 'bg-gray-600';
-    }
+    return getCategoryColorClass(category);
   };
 
   return (

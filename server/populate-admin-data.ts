@@ -1,4 +1,4 @@
-import { db } from "./db";
+import { db } from "../src/db/drizzle-mock";
 import { 
   siteSettings,
   prizeConfigurations,

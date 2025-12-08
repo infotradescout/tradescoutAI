@@ -17,19 +17,26 @@ export default {
         '2xl': '1536px',
       },
       colors: {
+        tsBg: "#0a0f1e",
+        tsCard: "#111827",
+        tsBorder: "#1e293b",
+        tsAccent: "#f97316",
+        tsAccentSoft: "#fb923c",
+        tsTextMain: "#f1f5f9",
+        tsTextMuted: "#94a3b8",
         background: "hsl(var(--background))",
         foreground: "hsl(var(--foreground))",
         
         // TradeScout specific colors
-        'navy-900': 'hsl(213, 35%, 8%)',
-        'navy-800': 'hsl(211, 24%, 14%)',
-        'navy-700': 'hsl(210, 21%, 20%)',
-        'navy-600': 'hsl(209, 18%, 27%)',
-        'navy-500': 'hsl(208, 16%, 35%)',
+        'navy-900': '#0a0f1e',
+        'navy-800': '#0f172a',
+        'navy-700': '#1e293b',
+        'navy-600': '#334155',
+        'navy-500': '#475569',
         
-        'orange-500': 'hsl(15, 100%, 60%)',
-        'orange-600': 'hsl(15, 79%, 54%)',
-        'orange-400': 'hsl(15, 100%, 65%)',
+        'orange-500': '#f97316',
+        'orange-600': '#ea580c',
+        'orange-400': '#fb923c',
         
         card: {
           DEFAULT: "hsl(var(--card))",

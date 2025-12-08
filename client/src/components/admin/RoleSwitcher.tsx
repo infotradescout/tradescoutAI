@@ -125,7 +125,7 @@ export default function RoleSwitcher() {
         <div className="space-y-3">
           <h4 className="font-medium text-sm">Your Available Roles</h4>
           <div className="grid grid-cols-1 gap-2">
-            {userRoles.map((role) => {
+            {userRoles.map((role: string) => {
               const roleConfig = ROLE_CONFIG[role as keyof typeof ROLE_CONFIG] || 
                                 { label: role, icon: User, color: 'bg-gray-500' };
               const Icon = roleConfig.icon;
@@ -169,7 +169,7 @@ export default function RoleSwitcher() {
                 <SelectValue placeholder="Select a role to switch to" />
               </SelectTrigger>
               <SelectContent>
-                {userRoles.map((role) => {
+                {userRoles.map((role: string) => {
                   const roleConfig = ROLE_CONFIG[role as keyof typeof ROLE_CONFIG] || 
                                     { label: role, icon: User, color: 'bg-gray-500' };
                   const Icon = roleConfig.icon;

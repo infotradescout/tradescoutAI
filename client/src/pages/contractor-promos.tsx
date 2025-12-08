@@ -479,8 +479,9 @@ function PromoCard({ promo }: { promo: ContractorPromo }) {
 export default function ContractorPromos() {
   const [showForm, setShowForm] = useState(false);
   
-  const { data: promos, isLoading } = useQuery({
+  const { data: promos = [], isLoading } = useQuery<ContractorPromo[]>({
     queryKey: ["/api/contractor-promos"],
+    placeholderData: [] as ContractorPromo[],
   });
 
   if (isLoading) {
@@ -523,7 +524,7 @@ export default function ContractorPromos() {
           </Dialog>
         </div>
 
-        {!promos || promos.length === 0 ? (
+        {promos.length === 0 ? (
           <Card className="text-center py-12">
             <CardContent>
               <div className="text-gray-500 mb-4">

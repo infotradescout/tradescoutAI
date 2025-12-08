@@ -1,4 +1,4 @@
-import { db } from "../server/db";
+import { db } from "../src/db/drizzle-mock";
 import { states } from "@shared/schema";
 
 const US_STATES = [

@@ -1,4 +1,4 @@
-import { db } from "../server/db";
+import { db } from "../src/db/drizzle-mock";
 import { handmadeCategories, handmadeProducts, sellerProfiles, users } from "../shared/schema";
 import { randomUUID } from "crypto";
 import { sql } from "drizzle-orm";

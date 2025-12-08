@@ -96,8 +96,9 @@ export function PersonalEventsManager() {
   const queryClient = useQueryClient();
 
   // Fetch events
-  const { data: events = [], isLoading } = useQuery({
+  const { data: events = [], isLoading } = useQuery<PersonalEvent[]>({
     queryKey: ['/api/notifications/personal-events'],
+    placeholderData: [] as PersonalEvent[],
   });
 
   const form = useForm<EventForm>({
@@ -193,7 +194,7 @@ export function PersonalEventsManager() {
         eventDate: event.eventDate,
         eventYear: event.eventYear || undefined,
         enableNotifications: event.enableNotifications,
-        notifyDaysBefore: event.notifyDaysBefore,
+        notifyDaysBefore: event.notifyDaysBefore ?? [],
         customMessage: event.customMessage || '',
         isPublic: event.isPublic,
         shareWithTeam: event.shareWithTeam,
@@ -477,6 +478,7 @@ export function PersonalEventsManager() {
           Array.isArray(events) ? events.map((event: PersonalEvent) => {
             const typeInfo = getEventTypeInfo(event.eventType);
             const TypeIcon = typeInfo.icon;
+            const reminders = event.notifyDaysBefore ?? [];
             
             return (
               <div
@@ -507,9 +509,9 @@ export function PersonalEventsManager() {
                           </Badge>
                         )}
                         
-                        {event.notifyDaysBefore.length > 0 && (
+                        {reminders.length > 0 && (
                           <Badge variant="secondary" className="text-xs">
-                            {event.notifyDaysBefore.length} reminder{event.notifyDaysBefore.length > 1 ? 's' : ''}
+                            {reminders.length} reminder{reminders.length > 1 ? 's' : ''}
                           </Badge>
                         )}
                       </div>

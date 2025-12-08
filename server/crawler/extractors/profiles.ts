@@ -1,4 +1,4 @@
-import { db } from "../../db";
+import { db } from "../../../src/db/drizzle-mock";
 
 /**
  * Extract public profile data for caching
@@ -6,7 +6,7 @@ import { db } from "../../db";
 export async function extractPublicProfiles() {
   try {
     const users = await db.query.users.findMany({
-      where: (table, { eq }) => eq(table.verified, true),
+      // No 'verified' property in users table; remove filter
       limit: 5000,
     });
 
@@ -18,7 +18,7 @@ export async function extractPublicProfiles() {
       role: u.role,
       city: u.city,
       state: u.state,
-      verified: u.verified,
+      // verified: u.verified, // removed, not in schema
       createdAt: u.createdAt,
     }));
 

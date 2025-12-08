@@ -145,7 +145,12 @@ export async function createDailyDeal(req: Request, res: Response) {
 
     // Verify user can create deals
     const user = await storage.getUser(userId);
-    if (!user || !['contractor_user', 'service_provider', 'business_owner'].includes(user.activeRole || user.role)) {
+    if (!user) {
+      return res.status(403).json({ message: 'Only contractors and service providers can create deals' });
+    }
+
+    const role = user.activeRole || user.role || '';
+    if (!['contractor_user', 'service_provider', 'business_owner'].includes(role)) {
       return res.status(403).json({ message: 'Only contractors and service providers can create deals' });
     }
 

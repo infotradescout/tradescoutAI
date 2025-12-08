@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { useQuery } from "@tanstack/react-query";
 import { 
   Calendar, 
   MapPin, 
@@ -18,12 +19,36 @@ import {
   TrendingUp
 } from "lucide-react";
 import { AdDisplay, useUserLocation } from "@/components/AdDisplay";
-import { PublicHeatmap } from "@/components/PublicHeatmap";
 import { InteractiveCountyMap } from "@/components/InteractiveCountyMap";
 
 export default function Home() {
   const { user } = useAuth();
   const userLocation = useUserLocation();
+
+  const formatCurrency = (amount: number) =>
+    new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD',
+      maximumFractionDigits: 0,
+    }).format(amount || 0);
+
+  const { data: vaultSnapshot, isLoading: vaultLoading } = useQuery({
+    queryKey: ["/api/vaults/my-county"],
+    queryFn: async () => {
+      const res = await fetch('/api/vaults/my-county');
+      if (res.status === 400) return null;
+      if (!res.ok) throw new Error('Failed to load vault');
+      return res.json();
+    },
+    enabled: !!user,
+    staleTime: 5 * 60 * 1000,
+  });
+
+  const countyLabel = vaultSnapshot?.county
+    ? `${vaultSnapshot.county.name}, ${vaultSnapshot.county.stateCode}`
+    : user?.county && user?.state
+      ? `${user.county}, ${user.state}`
+      : "Your county";
 
   return (
     <ScrollArea 
@@ -38,6 +63,63 @@ export default function Home() {
           Welcome back, {user?.firstName || 'User'}
         </h1>
         <p className="text-gray-300">Here's what's happening in your area</p>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+        <Card className="bg-gradient-to-r from-slate-800 to-navy-700 border-navy-600 card-enhanced">
+          <CardContent className="p-6">
+            <div className="flex items-start justify-between mb-4">
+              <div>
+                <p className="text-sm text-gray-400">Community Vault</p>
+                <h2 className="text-xl font-semibold text-white">{countyLabel}</h2>
+              </div>
+              <Badge className="bg-orange-500 text-white">Local Impact</Badge>
+            </div>
+            <div className="flex items-end justify-between">
+              <div>
+                <p className="text-3xl font-bold text-white">
+                  {vaultLoading ? 'Loading…' : formatCurrency(vaultSnapshot?.vault?.currentBalance ?? 0)}
+                </p>
+                <p className="text-sm text-gray-400">Current balance reinvested in your county</p>
+                <div className="mt-3 text-sm text-green-400 flex items-center space-x-2">
+                  <TrendingUp className="h-4 w-4" />
+                  <span>Last 30d inflow: {formatCurrency(vaultSnapshot?.last30dInflow ?? 0)}</span>
+                </div>
+              </div>
+              <div className="space-y-2 text-right">
+                {vaultSnapshot?.sourcesBreakdown && Object.keys(vaultSnapshot.sourcesBreakdown).length > 0 ? (
+                  Object.entries(vaultSnapshot.sourcesBreakdown).map(([source, amount]) => (
+                    <Badge key={source} variant="outline" className="border-slate-500 text-slate-200">
+                      {source.replace(/_/g, ' ')} · {formatCurrency(amount as number)}
+                    </Badge>
+                  ))
+                ) : (
+                  <span className="text-sm text-gray-400">No contributions yet</span>
+                )}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-navy-700 border-navy-600 card-enhanced">
+          <CardContent className="p-6 h-full flex flex-col justify-between">
+            <div>
+              <p className="text-sm text-gray-300 mb-1">Transparency</p>
+              <h2 className="text-xl font-semibold text-white mb-2">See where dollars go</h2>
+              <p className="text-gray-400 text-sm">
+                Track TradeScout contributions flowing back into your county across marketplace fees, contractor programs, and Foundation donations.
+              </p>
+            </div>
+            <div className="flex items-center space-x-3 pt-4">
+              <Button asChild className="bg-orange-500 hover:bg-orange-600">
+                <Link href="/foundation">View Foundation</Link>
+              </Button>
+              <Button asChild variant="outline" className="border-slate-600 text-white hover:border-orange-500">
+                <Link href="/community-builder">Community Builder</Link>
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
       </div>
 
       {/* Quick Actions */}

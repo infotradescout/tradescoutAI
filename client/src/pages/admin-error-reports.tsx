@@ -19,7 +19,7 @@ export default function AdminErrorReports() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  const { data: reports = [], isLoading } = useQuery({
+  const { data: reports = [], isLoading } = useQuery<ErrorReport[]>({
     queryKey: ['/api/admin/error-reports'],
   });
 
@@ -41,6 +41,10 @@ export default function AdminErrorReports() {
     if (filterType !== "all" && report.errorType !== filterType) return false;
     return true;
   });
+
+  const safeStatus = (status?: string | null) => status || 'open';
+  const safePriority = (priority?: string | null) => priority || 'medium';
+  const safeType = (type?: string | null) => type || 'bug';
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -189,13 +193,13 @@ export default function AdminErrorReports() {
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
                     <div className="flex items-center gap-3 mb-2">
-                      {getTypeIcon(report.errorType)}
+                      {getTypeIcon(safeType(report.errorType))}
                       <h3 className="text-lg font-semibold text-white">{report.title}</h3>
-                      <Badge className={getStatusColor(report.status)}>
-                        {report.status.replace('_', ' ').toUpperCase()}
+                      <Badge className={getStatusColor(safeStatus(report.status))}>
+                        {safeStatus(report.status).replace('_', ' ').toUpperCase()}
                       </Badge>
-                      <Badge className={getPriorityColor(report.priority)}>
-                        {report.priority.toUpperCase()}
+                      <Badge className={getPriorityColor(safePriority(report.priority))}>
+                        {safePriority(report.priority).toUpperCase()}
                       </Badge>
                     </div>
                     
@@ -204,7 +208,7 @@ export default function AdminErrorReports() {
                     <div className="flex items-center gap-4 text-sm text-gray-400">
                       <div className="flex items-center gap-1">
                         <Calendar className="h-4 w-4" />
-                        {new Date(report.createdAt).toLocaleDateString()}
+                        {report.createdAt ? new Date(report.createdAt).toLocaleDateString() : 'Unknown'}
                       </div>
                       {report.userEmail && (
                         <div className="flex items-center gap-1">
@@ -229,7 +233,7 @@ export default function AdminErrorReports() {
                   
                   <div className="flex items-center gap-2 ml-4">
                     <Select
-                      value={report.status}
+                      value={safeStatus(report.status)}
                       onValueChange={(value) => handleStatusChange(report.id, value)}
                     >
                       <SelectTrigger className="w-32 bg-navy-600 border-navy-500 text-white">
@@ -245,7 +249,7 @@ export default function AdminErrorReports() {
                     </Select>
 
                     <Select
-                      value={report.priority}
+                      value={safePriority(report.priority)}
                       onValueChange={(value) => handlePriorityChange(report.id, value)}
                     >
                       <SelectTrigger className="w-28 bg-navy-600 border-navy-500 text-white">
@@ -292,21 +296,21 @@ export default function AdminErrorReports() {
           <DialogContent className="sm:max-w-[700px] bg-navy-800 border-navy-600 max-h-[80vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle className="text-white flex items-center gap-2">
-                {getTypeIcon(selectedReport.errorType)}
+                {getTypeIcon(safeType(selectedReport.errorType))}
                 {selectedReport.title}
               </DialogTitle>
             </DialogHeader>
 
             <div className="space-y-6">
               <div className="flex gap-2">
-                <Badge className={getStatusColor(selectedReport.status)}>
-                  {selectedReport.status.replace('_', ' ').toUpperCase()}
+                <Badge className={getStatusColor(safeStatus(selectedReport.status))}>
+                  {safeStatus(selectedReport.status).replace('_', ' ').toUpperCase()}
                 </Badge>
-                <Badge className={getPriorityColor(selectedReport.priority)}>
-                  {selectedReport.priority.toUpperCase()}
+                <Badge className={getPriorityColor(safePriority(selectedReport.priority))}>
+                  {safePriority(selectedReport.priority).toUpperCase()}
                 </Badge>
                 <Badge variant="outline" className="border-navy-500 text-gray-300">
-                  {selectedReport.errorType.replace('_', ' ').toUpperCase()}
+                  {safeType(selectedReport.errorType).replace('_', ' ').toUpperCase()}
                 </Badge>
               </div>
 
@@ -323,7 +327,7 @@ export default function AdminErrorReports() {
                   <div className="space-y-1 text-sm text-gray-400">
                     <p>Email: {selectedReport.userEmail || 'Anonymous'}</p>
                     <p>User ID: {selectedReport.userId || 'N/A'}</p>
-                    <p>Date: {new Date(selectedReport.createdAt).toLocaleString()}</p>
+                    <p>Date: {selectedReport.createdAt ? new Date(selectedReport.createdAt).toLocaleString() : 'Unknown'}</p>
                   </div>
                 </div>
 

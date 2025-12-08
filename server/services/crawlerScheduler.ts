@@ -1,3 +1,4 @@
+// @ts-expect-error - runtime module without TypeScript types in this build
 import cron from "node-cron";
 import { runCrawler } from "../crawler/crawl";
 
@@ -14,6 +15,10 @@ let crawlerTask: any = null;
  * Runs every 5 minutes by default (configurable via env)
  */
 export function startCrawlerScheduler() {
+  if (process.env.DISABLE_CRAWLER === "true") {
+    console.log("Crawler scheduler disabled via DISABLE_CRAWLER env flag");
+    return;
+  }
   // Get schedule from env, default to every 5 minutes: "*/5 * * * *"
   const schedule = process.env.CRAWLER_SCHEDULE || "*/5 * * * *";
 

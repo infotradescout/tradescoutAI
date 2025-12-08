@@ -1,119 +1,6 @@
 import { Request, Response } from 'express';
 import { storage } from '../storage';
 
-// Mock group data for Phase 3 implementation
-const mockGroups = [
-  {
-    id: 'group-1',
-    name: 'Los Angeles Home Renovators',
-    description: 'A community for homeowners and contractors in LA sharing renovation tips, recommendations, and project showcases.',
-    type: 'county_community',
-    countyFips: '06037',
-    memberCount: 1247,
-    isPublic: true,
-    tags: ['renovation', 'homeowners', 'contractors', 'los-angeles'],
-    createdBy: 'user-admin',
-    admins: ['user-admin', 'user-mod1'],
-    rules: [
-      'Keep discussions relevant to home renovation',
-      'Be respectful and professional',
-      'No spam or self-promotion without approval',
-      'Share photos and progress updates'
-    ],
-    coverImageUrl: null,
-    isActive: true,
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString()
-  },
-  {
-    id: 'group-2',
-    name: 'Kitchen Remodel Experts',
-    description: 'Specialized group for kitchen renovation projects, design ideas, and contractor recommendations.',
-    type: 'specialty_trade',
-    countyFips: null,
-    memberCount: 892,
-    isPublic: true,
-    tags: ['kitchen', 'remodel', 'design', 'cabinets'],
-    createdBy: 'contractor-kitchen-pro',
-    admins: ['contractor-kitchen-pro'],
-    rules: [
-      'Kitchen-focused discussions only',
-      'Share before/after photos',
-      'Provide cost breakdowns when possible',
-      'Help fellow members with advice'
-    ],
-    coverImageUrl: null,
-    isActive: true,
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString()
-  },
-  {
-    id: 'group-3',
-    name: 'Sustainable Building Practices',
-    description: 'For contractors and homeowners interested in eco-friendly construction and renovation methods.',
-    type: 'interest_based',
-    countyFips: null,
-    memberCount: 456,
-    isPublic: true,
-    tags: ['sustainable', 'eco-friendly', 'green-building', 'environment'],
-    createdBy: 'eco-contractor',
-    admins: ['eco-contractor', 'green-advocate'],
-    rules: [
-      'Focus on sustainable practices',
-      'Share eco-friendly product recommendations',
-      'Discuss energy efficiency improvements',
-      'Support green building initiatives'
-    ],
-    coverImageUrl: null,
-    isActive: true,
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString()
-  }
-];
-
-const mockGroupPosts = [
-  {
-    id: 'post-1',
-    groupId: 'group-1',
-    authorId: 'homeowner-1',
-    authorName: 'Sarah Johnson',
-    authorRole: 'homeowner',
-    content: 'Just finished our bathroom renovation! The contractor did an amazing job. Here are some before/after photos. Total cost was around $15k for a full remodel.',
-    images: ['bathroom-before.jpg', 'bathroom-after.jpg'],
-    likes: 23,
-    comments: 8,
-    isSticky: false,
-    tags: ['bathroom', 'renovation', 'before-after'],
-    createdAt: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(), // 2 hours ago
-    updatedAt: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString()
-  },
-  {
-    id: 'post-2',
-    groupId: 'group-1',
-    authorId: 'contractor-2',
-    authorName: 'Mike Thompson',
-    authorRole: 'contractor_user',
-    content: 'Pro tip: When planning electrical work, always add 20% more outlets than you think you need. Future you will thank you! Also, USB outlets are becoming standard.',
-    images: [],
-    likes: 45,
-    comments: 12,
-    isSticky: true,
-    tags: ['electrical', 'pro-tip', 'planning'],
-    createdAt: new Date(Date.now() - 5 * 60 * 60 * 1000).toISOString(), // 5 hours ago
-    updatedAt: new Date(Date.now() - 5 * 60 * 60 * 1000).toISOString()
-  }
-];
-
-const mockUserMemberships = [
-  {
-    id: 'membership-1',
-    userId: 'user-1',
-    groupId: 'group-1',
-    role: 'member',
-    joinedAt: new Date().toISOString(),
-    isActive: true
-  }
-];
 
 // Get groups based on user location and interests
 export async function getGroups(req: Request, res: Response) {
@@ -211,23 +98,7 @@ export async function getUserGroups(req: Request, res: Response) {
       return res.status(401).json({ message: 'Authentication required' });
     }
 
-    let userGroups;
-    try {
-      userGroups = await (storage as any).getUserGroups?.(userId);
-      if (!userGroups) throw new Error('Method not implemented');
-    } catch (dbError) {
-      console.log('Database offline, using mock user groups');
-      const userMemberships = mockUserMemberships.filter(m => m.userId === userId && m.isActive);
-      userGroups = userMemberships.map(membership => {
-        const group = mockGroups.find(g => g.id === membership.groupId);
-        return {
-          ...group,
-          membershipRole: membership.role,
-          joinedAt: membership.joinedAt
-        };
-      });
-    }
-
+    const userGroups = await (storage as any).getUserGroups?.(userId);
     res.json(userGroups);
   } catch (error) {
     console.error('Error fetching user groups:', error);

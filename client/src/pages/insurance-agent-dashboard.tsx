@@ -252,67 +252,8 @@ export default function InsuranceAgentDashboard() {
                     <p className="text-yellow-400 text-xs">Follow up needed</p>
                   </div>
                   <Button size="sm" variant="outline" className="border-yellow-500 text-yellow-400">
-                    Follow Up
+                    View
                   </Button>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Quick Tools */}
-          <Card className="bg-navy-700 border-navy-600">
-            <CardHeader>
-              <CardTitle className="text-white">Quick Tools</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                <Button className="w-full bg-blue-500 hover:bg-blue-600 text-white justify-start">
-                  <FileText className="h-4 w-4 mr-2" />
-                  Generate Quote
-                </Button>
-                <Button variant="outline" className="w-full border-navy-400 text-gray-300 justify-start">
-                  <Users className="h-4 w-4 mr-2" />
-                  Find Prospects
-                </Button>
-                <Button variant="outline" className="w-full border-navy-400 text-gray-300 justify-start">
-                  <TrendingUp className="h-4 w-4 mr-2" />
-                  View Reports
-                </Button>
-                <Button variant="outline" className="w-full border-navy-400 text-gray-300 justify-start">
-                  <Calendar className="h-4 w-4 mr-2" />
-                  Schedule Appointments
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Performance */}
-          <Card className="bg-navy-700 border-navy-600">
-            <CardHeader>
-              <CardTitle className="text-white">This Month's Performance</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                <div>
-                  <div className="flex justify-between text-sm mb-2">
-                    <span className="text-gray-400">New Policies</span>
-                    <span className="text-white">8 / 10</span>
-                  </div>
-                  <Progress value={80} className="h-2" />
-                </div>
-                <div>
-                  <div className="flex justify-between text-sm mb-2">
-                    <span className="text-gray-400">Renewal Rate</span>
-                    <span className="text-white">92%</span>
-                  </div>
-                  <Progress value={92} className="h-2" />
-                </div>
-                <div>
-                  <div className="flex justify-between text-sm mb-2">
-                    <span className="text-gray-400">Commission Goal</span>
-                    <span className="text-white">75%</span>
-                  </div>
-                  <Progress value={75} className="h-2" />
                 </div>
               </div>
             </CardContent>

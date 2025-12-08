@@ -1,4 +1,6 @@
 import { memo } from 'react';
+import { Search } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 
 const FindContractors = memo(function FindContractors() {
   return (
@@ -26,9 +28,13 @@ const FindContractors = memo(function FindContractors() {
                 <option>Roofing</option>
                 <option>Flooring</option>
               </select>
-              <button className="bg-orange-500 hover:bg-orange-600 text-white p-3 rounded font-semibold transition-colors">
-                Search
-              </button>
+              <Button
+                type="submit"
+                className="bg-gradient-to-r from-orange-500 to-orange-600 shadow-lg hover:from-orange-600 hover:to-orange-700 text-white px-8 py-3 text-lg rounded-full flex items-center gap-2 font-semibold transition-all border-2 border-orange-400/30 focus-visible:ring-2 focus-visible:ring-orange-400"
+              >
+                <Search className="h-5 w-5" />
+                <span>Search</span>
+              </Button>
             </div>
           </div>
         </section>

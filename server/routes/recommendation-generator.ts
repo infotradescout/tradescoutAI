@@ -109,6 +109,7 @@ export function registerRecommendationGeneratorRoutes(app: Express) {
       const goal = await storage.createRecommendationGoal({
         contractorId,
         ...goalData,
+        targetRating: goalData.targetRating?.toString?.() ?? String(goalData.targetRating),
         startingRecommendations: startingCount,
       });
 

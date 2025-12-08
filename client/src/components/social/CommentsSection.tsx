@@ -69,7 +69,7 @@ function Comment({ comment, postId, level = 0 }: CommentProps) {
     mutationFn: () => apiRequest('POST', `/api/social/comments/${comment.id}/like`),
     onSuccess: () => {
       setIsLiked(!isLiked);
-      setLikeCount(prev => isLiked ? prev - 1 : prev + 1);
+      setLikeCount((prev: number) => isLiked ? prev - 1 : prev + 1);
     },
     onError: (error: any) => {
       toast({

@@ -636,7 +636,7 @@ export default function Helpers() {
               filteredTasks.map((task) => (
                 <Card key={task.id} className="bg-navy-800/50 border-navy-600 hover:border-orange-500/50 transition-colors">
                   <CardContent className="p-6">
-                    <div className="flex items-start justify-between mb-4">
+                    <div className="flex items-center justify-between mb-4">
                       <div>
                         <h3 className="font-semibold text-white mb-1">{task.title}</h3>
                         <div className="flex items-center text-sm text-gray-400">
@@ -644,7 +644,7 @@ export default function Helpers() {
                           {task.city}, {task.stateCode}
                         </div>
                       </div>
-                      {getUrgencyBadge(task.urgency || 'standard')}
+                      {getUrgencyBadge('standard')}
                     </div>
 
                     <p className="text-gray-300 text-sm mb-4 line-clamp-3">{task.description}</p>

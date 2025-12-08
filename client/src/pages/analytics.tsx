@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { TrendingUp, Users, DollarSign, Eye, Calendar, Target, MapPin, Clock } from 'lucide-react';
+import { getStatusColorClass } from '@/lib/colors';
 
 const Analytics = memo(function Analytics() {
   const metrics = [
@@ -62,12 +63,7 @@ const Analytics = memo(function Analytics() {
   };
 
   const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'Completed': return 'bg-emerald-600 hover:bg-emerald-700';
-      case 'In Progress': return 'bg-blue-600 hover:bg-blue-700';
-      case 'Quoted': return 'bg-yellow-600 hover:bg-yellow-700';
-      default: return 'bg-gray-600 hover:bg-gray-700';
-    }
+    return getStatusColorClass(status);
   };
 
   return (

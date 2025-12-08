@@ -22,11 +22,15 @@ interface CodeFix {
   aiReasoning: string;
 }
 
+interface FixesResponse {
+  fixes: CodeFix[];
+}
+
 export function AICodeFixingDashboard() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  const { data: fixes, isLoading } = useQuery({
+  const { data: fixes = { fixes: [] }, isLoading } = useQuery<FixesResponse>({
     queryKey: ["/api/ai/fixes"],
     refetchInterval: 10000, // Refresh every 10 seconds
   });
