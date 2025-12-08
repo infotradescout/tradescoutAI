@@ -482,7 +482,8 @@ async function searchInternet(
 }
 
 /**
- * Main resolver: 4-layer strict knowledge resolution
+ * Main resolver: 4-layer aggregated knowledge resolution
+ * Combines information from ALL relevant sources instead of stopping at first match
  * NEVER invents data. NEVER uses mocks in production.
  * Priority: Admin Cache → Website Data (Cache + DB) → Internet Search → Honest "I don't know"
  */
@@ -492,9 +493,12 @@ export async function resolveKnowledge(
 ): Promise<KnowledgeResponse> {
   const { message, userId, countyCode, stateCode } = request;
   const sources: string[] = [];
+  const aggregatedContent: string[] = [];
+  let highestLayer = 4;
+  let hasManualOverride = false;
 
   // LAYER 1: Manual Admin Overrides (Highest Authority)
-  // If admin has set a rule, local guide, or override → use it exactly
+  // If admin has set a rule, local guide, or override → use it exactly and STOP
   const manualResult = checkManualOverrides(message, countyCode);
   if (manualResult.source !== "none" && manualResult.data) {
     if (manualResult.data.override) {
@@ -508,38 +512,27 @@ export async function resolveKnowledge(
     }
     if (manualResult.data.fact) {
       sources.push("Admin Forced Fact");
-      return {
-        answer: manualResult.data.content,
-        sources,
-        layer: 1,
-        confidence: "high",
-      };
+      aggregatedContent.push(`ADMIN FACT:\n${manualResult.data.content}`);
+      highestLayer = 1;
+      hasManualOverride = true;
     }
     // County-specific admin data
-    sources.push(`Admin County Override (${countyCode})`);
-    return {
-      answer: JSON.stringify(manualResult.data, null, 2),
-      sources,
-      layer: 1,
-      confidence: "high",
-    };
+    if (manualResult.data.override === undefined && manualResult.data.fact === undefined) {
+      sources.push(`Admin County Override (${countyCode})`);
+      aggregatedContent.push(`ADMIN COUNTY DATA:\n${JSON.stringify(manualResult.data, null, 2)}`);
+      highestLayer = 1;
+    }
   }
 
   // LAYER 1B: Curated knowledge base in data/TradeScout Brain (docx/txt/md)
   const knowledgeBaseResult = await searchLocalKnowledgeBase(message);
-  if (knowledgeBaseResult.source === "manual" && Array.isArray(knowledgeBaseResult.data)) {
+  if (knowledgeBaseResult.source === "manual" && Array.isArray(knowledgeBaseResult.data) && knowledgeBaseResult.data.length > 0) {
     sources.push("TradeScout Brain (data folder)");
     const formatted = knowledgeBaseResult.data
-      .map((item: any) => `${item.file}\n${item.snippet}`)
-      .join("\n\n---\n\n")
-      .slice(0, 3000);
-
-    return {
-      answer: formatted,
-      sources,
-      layer: 1,
-      confidence: "high",
-    };
+      .map((item: any) => `SOURCE: ${item.file}\n${item.snippet}`)
+      .join("\n\n---\n\n");
+    aggregatedContent.push(`KNOWLEDGE BASE:\n${formatted}`);
+    highestLayer = Math.min(highestLayer, 1);
   }
 
   // LAYER 2: Website Data (Auto-Generated Cache + Database)
@@ -550,23 +543,27 @@ export async function resolveKnowledge(
   const cacheResult = readAutoCache(category);
   if (cacheResult.source !== "none" && cacheResult.data && Array.isArray(cacheResult.data) && cacheResult.data.length > 0) {
     sources.push(`TradeScout Cache (${category})`);
-    return {
-      answer: JSON.stringify(cacheResult.data, null, 2).slice(0, 3000),
-      sources,
-      layer: 2,
-      confidence: "high",
-    };
+    aggregatedContent.push(`CACHED DATA (${category}):\n${JSON.stringify(cacheResult.data, null, 2)}`);
+    highestLayer = Math.min(highestLayer, 2);
   }
 
   // Try live database query
   const dbResult = await queryWebsite(message, userId, countyCode);
   if (dbResult.source === "database" && dbResult.data?.items?.length > 0) {
     sources.push(`TradeScout Database (${dbResult.data.category})`);
+    aggregatedContent.push(`DATABASE (${dbResult.data.category}):\n${JSON.stringify(dbResult.data.items, null, 2)}`);
+    highestLayer = Math.min(highestLayer, 2);
+  }
+
+  // If we have enough content from Layers 1-2, return it
+  if (aggregatedContent.length > 0) {
+    // Combine all sources and truncate to reasonable size
+    const combinedAnswer = aggregatedContent.join("\n\n========\n\n").slice(0, 5000);
     return {
-      answer: JSON.stringify(dbResult.data.items, null, 2).slice(0, 3000),
+      answer: combinedAnswer,
       sources,
-      layer: 2,
-      confidence: "high",
+      layer: highestLayer as 1 | 2 | 3 | 4,
+      confidence: highestLayer === 1 ? "high" : "high",
     };
   }
 
