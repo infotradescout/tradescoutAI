@@ -53,7 +53,7 @@ const normalizeTrendingItem = (item: any, place: string): TrendingItem | null =>
   return { title: subjectTitle, stat, delta, category };
 };
 
-const INTRO_PROMPT = "What can TradeScout do for my community? Also, can user profiles replace the need for my business website?";
+const INTRO_PROMPT = "What can TradeScout do for my community?";
 const apiBase = (import.meta as any).env?.VITE_SCOUT_API_BASE || "/api";
 const scoutEndpoint = `${apiBase.replace(/\/$/, "")}/scout`;
 const BANNED_TERMS = ["fuck", "shit", "bitch", "asshole", "cunt", "slut", "whore"];
@@ -219,9 +219,21 @@ export default function ScoutLanding() {
         throw new Error("Empty response from Scout API");
       }
 
+      const introProfileAddendum = `
+
+---
+**TradeScout profiles can replace a traditional website**
+- Public, shareable profile with your services, coverage areas, and reviews
+- SEO-friendly page you can text, post, or link in ads without hosting costs
+- Built-in messaging and lead capture so prospects contact you directly
+`;
+
+      const finalContent =
+        messageToSend === INTRO_PROMPT ? `${data.message}${introProfileAddendum}` : data.message;
+
       const scoutMessage: Message = {
         role: "assistant",
-        content: data.message,
+        content: finalContent,
         timestamp: new Date(data.timestamp),
       };
 
@@ -550,7 +562,7 @@ export default function ScoutLanding() {
       const isHeading = /:$/g.test(line) || idx === 0;
       if (isHeading) {
         blocks.push(
-          <div key={`head-${blocks.length}`} className="font-semibold text-tsAccent/90">
+          <div key={`head-${blocks.length}`} className="font-semibold text-tsAccent">
             {line.replace(/:$/, "")}
           </div>
         );
@@ -565,7 +577,7 @@ export default function ScoutLanding() {
 
     flushList();
 
-    return <div className="space-y-2">{blocks}</div>;
+    return <div className="space-y-3 text-white/90 leading-relaxed">{blocks}</div>;
   };
 
   const Messages = useMemo(
@@ -677,11 +689,12 @@ export default function ScoutLanding() {
                           {message.role === "user" ? "You" : "Scout"}
                         </div>
                         <div
-                          className={`inline-block max-w-full rounded-xl border px-3 py-2 text-sm leading-relaxed shadow-sm text-left
+                          className={`inline-block max-w-full rounded-xl border px-4 py-3 text-sm leading-relaxed shadow-md text-left
                             ${message.role === "user"
                               ? "bg-slate-900/80 border-tsAccent/40 text-white"
-                              : "bg-orange-500/10 border-orange-400/30 text-white"}
+                              : "bg-slate-900/85 border-orange-300/50 text-white shadow-orange-500/15"}
                           `}
+                          style={message.role === "assistant" ? { borderLeftWidth: 3, borderLeftColor: "#f59e0b" } : undefined}
                         >
                           {message.role === "assistant" ? renderAssistantContent(message.content) : message.content}
                         </div>
