@@ -1,9 +1,9 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useLocation } from 'wouter';
 import { Send, MessageCircle, X, Minimize2 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
-import { ScrollArea } from '@/components/ui/scroll-area';
+import { Button } from './ui/button';
+import { Card } from './ui/card';
+import { ScrollArea } from './ui/scroll-area';
 
 interface Message {
   role: 'user' | 'assistant';

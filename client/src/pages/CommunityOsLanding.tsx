@@ -38,7 +38,7 @@ export default function CommunityOsLanding() {
     setResponse('');
 
     try {
-      const res = await fetch('/api/assistant', {
+      const res = await fetch('/api/scout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',

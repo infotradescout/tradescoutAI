@@ -9,14 +9,14 @@ import { ProtectedRoute } from './components/ProtectedRoute';
 import { useAuth } from './hooks/useAuth';
 
 // Only load essential components eagerly
-import AssistantLanding from './assistant-landing';
 import SmartHome from './SmartHome';
+import ScoutLanding from './scout-landing';
 import SimpleMobileGestures from './components/SimpleMobileGestures';
 import SimpleSubtleHints from './components/onboarding/SimpleSubtleHints';
 import SimpleBugReportTool from './components/SimpleBugReportTool';
 import SimpleFloatingHelp from './components/ui/simple-floating-help';
 import MobileAppBar from './components/navigation/MobileAppBar';
-import { AssistantChat } from './components/AssistantChat';
+import { ScoutChat } from './components/ScoutChat';
 import ComingSoon from './pages/coming-soon';
 
 // Loading component for lazy-loaded pages
@@ -335,6 +335,7 @@ const AppLayout = memo(function AppLayout() {
             <Switch>
               {/* Home routes - Smart routing based on user preferences */}
               <Route path="/" component={SmartHome} />
+              <Route path="/scout" component={ScoutLanding} />
               {FULL_SITE_PAUSED ? (
                 <Route path="/:rest*">
                   <ComingSoon />
@@ -726,8 +727,8 @@ const AppLayout = memo(function AppLayout() {
         {/* Bug report tool - always available */}
         <SimpleBugReportTool />
 
-        {/* AI Assistant Chat - hidden on LLM page to avoid duplication */}
-        {!isLlmRoute && <AssistantChat isAuthenticated={isAuthenticated} />}
+        {/* Scout Chat - hidden on LLM page to avoid duplication */}
+        {!isLlmRoute && <ScoutChat isAuthenticated={isAuthenticated} />}
     </SimpleMobileGestures>
   );
 });

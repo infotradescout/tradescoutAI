@@ -136,8 +136,8 @@ export function PromptAdminPage() {
       <div className="border-b pb-6">
         <h1 className="text-3xl font-bold mb-2">System Prompt Editor</h1>
         <p className="text-gray-600 max-w-2xl">
-          Edit the AI assistant's system prompt in real-time. Changes apply
-          immediately to all new conversations. This controls how the assistant
+          Edit Scout's system prompt in real-time. Changes apply
+          immediately to all new conversations. This controls how Scout
           behaves, interprets user requests, and resolves the knowledge
           hierarchy.
         </p>

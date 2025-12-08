@@ -254,7 +254,7 @@ export default function ProfilePage() {
                     </li>
                     <li className="flex items-start gap-2">
                       <Check className="h-4 w-4 text-green-400 mt-0.5 flex-shrink-0" />
-                      <span>Public profiles are searchable by the AI assistant</span>
+                      <span>Public profiles are searchable by Scout</span>
                     </li>
                     <li className="flex items-start gap-2">
                       <Check className="h-4 w-4 text-green-400 mt-0.5 flex-shrink-0" />
@@ -398,7 +398,7 @@ export default function ProfilePage() {
                     Make Your Profile Public
                   </h3>
                   <p className="text-sm text-tsTextMuted mb-4">
-                    Turn your profile into a public website that can be found by potential clients and the AI assistant.
+                    Turn your profile into a public website that can be found by potential clients and Scout.
                     Share your URL instead of maintaining a separate website.
                   </p>
                   <Button

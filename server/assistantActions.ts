@@ -8,6 +8,9 @@ import * as groupService from "./services/groupService.js";
 import * as messagingService from "./services/messagingService.js";
 import * as projectService from "./services/projectService.js";
 import { writeManualCacheFile } from "./services/knowledgeService.js";
+import { storage } from "./storage.js";
+import { mealscoutAction } from "../services/mealscoutClient.js";
+import { webSearch } from "./services/webSearchService.js";
 
 /**
  * Assistant Actions - Backend operations the AI can perform
@@ -21,6 +24,8 @@ export interface User {
   county?: string;
   state?: string;
 }
+
+type AdminRole = "admin" | "super_admin" | "head_admin";
 
 export interface AssistantAction {
   type: string;
@@ -136,6 +141,20 @@ export async function executeAssistantAction(
       case "admin_override_delete":
         return await adminOverrideDeleteAction(user, action.params);
 
+      case "admin_get_user_info":
+        return await adminGetUserInfoAction(user, action.params);
+
+      case "admin_reset_user_password":
+        return await adminResetUserPasswordAction(user, action.params);
+
+      // MealScout universal action proxy
+      case "mealscout_action":
+        return await mealscoutProxyAction(action.params);
+
+      // Internet/web search fallback
+      case "web_search":
+        return await webSearchAction(action.params);
+
       // Helper/Worker actions
       case "register_worker":
         return await registerWorkerAction(user, action.params);
@@ -194,6 +213,34 @@ export async function executeAssistantAction(
   }
 }
 
+// ============================================================================
+// MEALSCOUT + WEB SEARCH TOOLS
+// ============================================================================
+
+async function mealscoutProxyAction(params?: Record<string, any>) {
+  if (!params?.action) {
+    return { success: false, error: "action is required for mealscout_action" };
+  }
+  try {
+    const data = await mealscoutAction(params.action, params.params || {});
+    return { success: true, data };
+  } catch (error: any) {
+    return { success: false, error: error?.message || "MealScout action failed" };
+  }
+}
+
+async function webSearchAction(params?: Record<string, any>) {
+  const query = params?.query || params?.q;
+  if (!query) {
+    return { success: false, error: "query is required for web_search" };
+  }
+  const nResults = params?.n_results || params?.limit || 5;
+  const result = await webSearch(String(query), Number(nResults));
+  return result.success
+    ? { success: true, data: { content: result.content, provider: result.provider } }
+    : { success: false, error: result.error || "Web search failed" };
+}
+
 /**
  * Check if action requires authentication
  */
@@ -206,6 +253,10 @@ function isAuthenticationRequired(actionType: string): boolean {
     "get_local_groups",
   ];
   return !unauthenticatedActions.includes(actionType);
+}
+
+function isAdminUser(user?: User): boolean {
+  return !!user && ["admin", "super_admin", "head_admin"].includes(user.role as AdminRole);
 }
 
 
@@ -631,6 +682,84 @@ async function adminOverrideDeleteAction(user: User | undefined, params?: Record
       success: false,
       error: `Failed to delete override: ${error instanceof Error ? error.message : "Unknown error"}`,
     };
+  }
+}
+
+async function adminGetUserInfoAction(user: User | undefined, params?: Record<string, any>) {
+  if (!isAdminUser(user)) {
+    return { success: false, error: "Admin access required" };
+  }
+
+  const { email, userId } = params || {};
+  if (!email && !userId) {
+    return { success: false, error: "Provide email or userId" };
+  }
+
+  try {
+    const target = email
+      ? await (storage as any).getUserByEmail?.(email)
+      : await (storage as any).getUserById?.(userId);
+
+    if (!target) {
+      return { success: false, error: "User not found" };
+    }
+
+    const sanitized = {
+      id: target.id,
+      email: target.email,
+      roles: target.roles || [target.role].filter(Boolean),
+      activeRole: target.activeRole || target.role,
+      verificationStatus: target.verificationStatus,
+      badges: target.badges,
+      preferences: target.preferences,
+      createdAt: target.createdAt,
+      updatedAt: target.updatedAt,
+      lastLoginAt: target.lastLoginAt,
+      addressVerified: target.addressVerified,
+      emailVerified: target.emailVerified,
+      passwordResetEnabled: true,
+    };
+
+    return { success: true, data: sanitized };
+  } catch (error: any) {
+    console.error("adminGetUserInfoAction error", error);
+    return { success: false, error: error?.message || "Lookup failed" };
+  }
+}
+
+async function adminResetUserPasswordAction(user: User | undefined, params?: Record<string, any>) {
+  if (!isAdminUser(user)) {
+    return { success: false, error: "Admin access required" };
+  }
+
+  const { email, userId, newPassword } = params || {};
+  if (!newPassword || typeof newPassword !== "string" || newPassword.length < 8) {
+    return { success: false, error: "newPassword is required and must be at least 8 characters" };
+  }
+
+  try {
+    const target = email
+      ? await (storage as any).getUserByEmail?.(email)
+      : await (storage as any).getUserById?.(userId);
+
+    if (!target) {
+      return { success: false, error: "User not found" };
+    }
+
+    const passwordHash = await (await import("./auth.js")).hashPassword(newPassword);
+    await (storage as any).updateUser?.(target.id, {
+      password: passwordHash,
+      updatedAt: new Date(),
+    });
+
+    return {
+      success: true,
+      data: { userId: target.id, email: target.email },
+      message: "Password reset successfully",
+    };
+  } catch (error: any) {
+    console.error("adminResetUserPasswordAction error", error);
+    return { success: false, error: error?.message || "Password reset failed" };
   }
 }
 

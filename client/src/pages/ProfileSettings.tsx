@@ -263,7 +263,7 @@ export default function ProfileSettings() {
                 <SelectValue placeholder="Choose your landing page" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="llm">AI Assistant (Default)</SelectItem>
+                <SelectItem value="llm">Scout (Default)</SelectItem>
                 <SelectItem value="dashboard">My Dashboard</SelectItem>
                 <SelectItem value="marketplace">Marketplace</SelectItem>
                 <SelectItem value="contractor-board">Contractor Board</SelectItem>
@@ -287,7 +287,7 @@ export default function ProfileSettings() {
             Profile Visibility
           </CardTitle>
           <CardDescription>
-            Control who can see your profile. Public profiles are searchable and can be found by the AI assistant.
+            Control who can see your profile. Public profiles are searchable and can be found by Scout.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -309,7 +309,7 @@ export default function ProfileSettings() {
             <div className="p-4 bg-tsAccent/10 rounded-lg border border-tsAccent/20">
               <p className="text-sm text-tsTextMain">
                 <strong>Your profile is your website.</strong> When public, visitors will see your customized colors,
-                user types, activity, and information. The AI assistant can reference your profile when answering questions.
+                user types, activity, and information. Scout can reference your profile when answering questions.
               </p>
             </div>
           )}
