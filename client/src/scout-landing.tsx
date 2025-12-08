@@ -128,14 +128,14 @@ export default function ScoutLanding() {
   const animateAndSendPrompt = async (promptText: string) => {
     if (userInteractedRef.current) return;
     setAutoPromptPreview(promptText);
-    // Wait for CSS typing (~2.4s) then send
+    // Wait for CSS typing (~2.4s) + 200ms buffer, then send
     window.setTimeout(() => {
       setInputValue(promptText);
       setSendPulse(true);
       handleSendMessage(promptText);
       setSendPulse(false);
       setAutoPromptPreview(null);
-    }, 2400);
+    }, 2600);
   };
 
   const markUserInteracted = () => {
