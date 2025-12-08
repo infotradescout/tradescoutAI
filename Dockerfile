@@ -21,7 +21,6 @@ COPY --from=builder /app/package.json ./
 COPY --from=builder /app/server ./server
 COPY --from=builder /app/server/cache ./server/cache
 COPY --from=builder /app/client ./client
-COPY --from=builder /app/public ./public
 COPY --from=builder /app/.env ./
 
 # Expose port (default: 3000)
