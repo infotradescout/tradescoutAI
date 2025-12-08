@@ -655,3 +655,49 @@ export function getLocalMarkdownGuide(topic: string, county: string): string | n
 
   return null;
 }
+
+/**
+ * Load comprehensive knowledge from ALL sources for synthesis (used when Gemini needs full context)
+ * This gathers everything: admin docs, data/TradeScout Brain, manual cache, etc.
+ * Returns concatenated knowledge base up to a limit
+ */
+export async function loadComprehensiveKnowledge(): Promise<string> {
+  const chunks: string[] = [];
+  const maxSize = 50000; // 50KB total
+  
+  try {
+    // 1. Load all manual admin cache files
+    if (fs.existsSync(MANUAL_CACHE_DIR)) {
+      const manualFiles = walkKnowledgeFiles(MANUAL_CACHE_DIR);
+      for (const file of manualFiles) {
+        if (chunks.join('').length > maxSize) break;
+        
+        const text = await loadKnowledgeText(file);
+        if (text) {
+          const relPath = path.relative(MANUAL_CACHE_DIR, file);
+          chunks.push(`\n[ADMIN CACHE: ${relPath}]\n${text.slice(0, 2000)}`);
+        }
+      }
+    }
+    
+    // 2. Load all files from data/TradeScout Brain
+    if (fs.existsSync(KNOWLEDGE_BASE_DIR)) {
+      const knowledgeFiles = walkKnowledgeFiles(KNOWLEDGE_BASE_DIR);
+      for (const file of knowledgeFiles) {
+        if (chunks.join('').length > maxSize) break;
+        
+        const text = await loadKnowledgeText(file);
+        if (text) {
+          const relPath = path.relative(KNOWLEDGE_BASE_DIR, file);
+          chunks.push(`\n[KNOWLEDGE BASE: ${relPath}]\n${text.slice(0, 2000)}`);
+        }
+      }
+    }
+    
+    const combined = chunks.join('\n').slice(0, maxSize);
+    return combined || "No comprehensive knowledge available";
+  } catch (error) {
+    console.error("Error loading comprehensive knowledge:", error);
+    return "Error loading knowledge base";
+  }
+}
