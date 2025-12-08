@@ -31,6 +31,7 @@ export function ScoutChat({ defaultOpen = false, isAuthenticated = false }: Scou
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputValue, setInputValue] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const messagesRef = useRef<Message[]>([]);
   const autoRunTimeoutRef = useRef<number | null>(null);
@@ -39,10 +40,25 @@ export function ScoutChat({ defaultOpen = false, isAuthenticated = false }: Scou
   const [, navigate] = useLocation();
 
   const isGuest = !isAuthenticated;
-  const floatingPosition: React.CSSProperties = {
-    right: '1rem',
-    bottom: 'clamp(24px, calc(env(safe-area-inset-bottom, 0px) + 32px), 96px)',
-  };
+
+  useEffect(() => {
+    const mq = window.matchMedia('(max-width: 640px)');
+    const update = () => setIsMobile(mq.matches);
+    update();
+    mq.addEventListener('change', update);
+    return () => mq.removeEventListener('change', update);
+  }, []);
+
+  const floatingPosition: React.CSSProperties = isMobile
+    ? {
+        left: 0,
+        right: 0,
+        bottom: 'clamp(8px, calc(env(safe-area-inset-bottom, 0px) + 12px), 64px)',
+      }
+    : {
+        right: '1rem',
+        bottom: 'clamp(24px, calc(env(safe-area-inset-bottom, 0px) + 32px), 96px)',
+      };
 
   // Auto-scroll to bottom when new messages arrive
   useEffect(() => {
@@ -285,7 +301,11 @@ export function ScoutChat({ defaultOpen = false, isAuthenticated = false }: Scou
     <Card 
       style={floatingPosition}
       className={`fixed z-50 shadow-2xl transition-all ${
-        isMinimized ? 'w-80 h-14' : 'w-96 h-[600px]'
+        isMinimized
+          ? 'w-80 h-14'
+          : isMobile
+            ? 'w-[100vw] max-w-[100vw] h-[78vh] rounded-none'
+            : 'w-96 h-[600px]'
       }`}
     >
       {/* Header */}
@@ -317,7 +337,7 @@ export function ScoutChat({ defaultOpen = false, isAuthenticated = false }: Scou
       {/* Chat Area */}
       {!isMinimized && (
         <>
-          <ScrollArea className="flex-1 h-[480px] p-4" ref={scrollAreaRef}>
+          <ScrollArea className={`flex-1 ${isMobile ? 'h-[64vh]' : 'h-[480px]'} p-4`} ref={scrollAreaRef}>
             <div className="space-y-4">
               {messages.map((message, index) => (
                 <div
