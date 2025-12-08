@@ -8,6 +8,7 @@ import {
   getLocalGuide,
   getLocalMarkdownGuide,
   appendChatKnowledge,
+  loadComprehensiveKnowledge,
 } from "../services/knowledgeService";
 import { loadSystemPrompt } from "../services/promptService";
 import fs from "fs";
@@ -53,6 +54,68 @@ const DEFAULT_SUGGESTIONS = [
   "Draft a welcome post for neighbors",
   "Show me top marketplace listings this week",
 ];
+
+/**
+ * Detect if a message is an intro/overview question
+ */
+function isIntroQuestion(message: string): boolean {
+  const lower = message.toLowerCase();
+  const introPatterns = [
+    /what\s+can\s+tradescout\s+do/i,
+    /what\s+is\s+tradescout/i,
+    /how\s+does\s+tradescout\s+work/i,
+    /tell\s+me\s+about\s+tradescout/i,
+    /overview\s+of\s+tradescout/i,
+    /tradescout\s+features/i,
+    /tradescout\s+capabilities/i,
+  ];
+  
+  return introPatterns.some(pattern => pattern.test(lower));
+}
+
+/**
+ * Generate smart synthesis response using comprehensive knowledge
+ */
+async function generateSmartSynthesis(
+  message: string,
+  gemini: GoogleGenerativeAI | null,
+  llmProviders: LLMProvider[]
+): Promise<string> {
+  if (!gemini || !llmProviders.some(p => p.isConfigured())) {
+    return "I need the Gemini API configured to provide a comprehensive overview.";
+  }
+
+  try {
+    // Load all available knowledge from admin cache and data folders
+    const comprehensiveKnowledge = await loadComprehensiveKnowledge();
+    
+    // Create a synthesis-focused prompt
+    const synthPrompt = `You are Scout, the AI for TradeScout - a hyperlocal contractor and marketplace platform.
+
+Using the knowledge below, provide a comprehensive, engaging response to: "${message}"
+
+Your response should:
+1. Explain what TradeScout IS and its core purpose
+2. List the main features and capabilities available
+3. Explain who uses it (homeowners, contractors, community members)
+4. Give concrete examples of how it helps people
+5. Be conversational and inviting, not robotic
+6. DO NOT make up features not mentioned in the knowledge base
+7. Synthesize the information intelligently - don't just copy-paste snippets
+
+Available Knowledge Base:
+${comprehensiveKnowledge}
+
+Now write a smart, comprehensive answer about TradeScout:`;
+
+    const model = gemini.getGenerativeModel({ model: "gemini-2.5-flash" });
+    const result = await model.generateContent(synthPrompt);
+    return result.response.text();
+  } catch (error) {
+    console.error("[Scout] Synthesis error:", error);
+    return "I encountered an error creating a comprehensive overview. Please try again.";
+  }
+}
 
 async function generateAutoPrompt(gemini: GoogleGenerativeAI | null) {
   if (!gemini) {
@@ -143,6 +206,22 @@ router.post("/", async (req: Request, res: Response) => {
       });
     }
 
+    // SPECIAL HANDLING: Detect intro/overview questions and use comprehensive synthesis
+    if (isIntroQuestion(message)) {
+      try {
+        const synthesisResponse = await generateSmartSynthesis(message, geminiClient, llmProviders);
+        return res.json({
+          message: synthesisResponse,
+          actions: [],
+          actionResults: [],
+          knowledgeLayer: "synthesis",
+          timestamp: new Date().toISOString(),
+        });
+      } catch (error) {
+        console.error("[Scout] Intro synthesis failed:", error);
+        // Fall through to normal processing if synthesis fails
+      }
+    }
 
     const llmAvailable = llmProviders.some((p) => p.isConfigured());
 
