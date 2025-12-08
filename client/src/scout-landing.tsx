@@ -53,7 +53,7 @@ const normalizeTrendingItem = (item: any, place: string): TrendingItem | null =>
   return { title: subjectTitle, stat, delta, category };
 };
 
-const INTRO_PROMPT = "What can TradeScout do for my community?";
+const INTRO_PROMPT = "What can TradeScout do for my community? Also, can user profiles replace the need for my business website?";
 const apiBase = (import.meta as any).env?.VITE_SCOUT_API_BASE || "/api";
 const scoutEndpoint = `${apiBase.replace(/\/$/, "")}/scout`;
 const BANNED_TERMS = ["fuck", "shit", "bitch", "asshole", "cunt", "slut", "whore"];
