@@ -23,21 +23,19 @@ type ScoutChatProps = {
   isAuthenticated?: boolean;
 };
 
+const INTRO_PROMPT = "What can TradeScout do for my community?";
+
 export function ScoutChat({ defaultOpen = false, isAuthenticated = false }: ScoutChatProps) {
   const [isOpen, setIsOpen] = useState(defaultOpen);
   const [isMinimized, setIsMinimized] = useState(false);
-  const [messages, setMessages] = useState<Message[]>(() => [
-    {
-      role: 'assistant',
-      content: isAuthenticated
-        ? "Hi! I'm Scout, your TradeScout controller. I can help you find contractors, search the marketplace, get your profile info, and route you anywhere in the site. What do you want to do?"
-        : "Hi! I'm Scout. Sign in to chat so I can personalize help, save your history, and route you faster.",
-      timestamp: new Date(),
-    },
-  ]);
+  const [messages, setMessages] = useState<Message[]>([]);
   const [inputValue, setInputValue] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
+  const messagesRef = useRef<Message[]>([]);
+  const autoRunTimeoutRef = useRef<number | null>(null);
+  const hasAutoRunRef = useRef(false);
+  const userInteractedRef = useRef(false);
   const [, navigate] = useLocation();
 
   const isGuest = !isAuthenticated;
@@ -56,17 +54,82 @@ export function ScoutChat({ defaultOpen = false, isAuthenticated = false }: Scou
     }
   }, [messages]);
 
-  const handleSendMessage = async () => {
-    if (!inputValue.trim() || isLoading || isGuest) return;
+  // Seed intro + auto-run prompt (cancellable on interaction)
+  useEffect(() => {
+    const hasSeenIntro = localStorage.getItem('ts_seen_intro_prompt') === 'true';
+
+    if (messagesRef.current.length === 0) {
+      const introMessage: Message = {
+        role: 'assistant',
+        content: isAuthenticated
+          ? "Welcome back! I'm Scout, your TradeScout operating system. I can:\n• Find and message verified contractors for your county\n• Spin up Community Builder and launch outreach posts\n• Search marketplace deals or list your gear fast\n• Run MealScout to surface food trucks and local offers\nAsk me anything specific (project, location, budget, timing) and I'll act immediately."
+          : "Hey, I'm Scout—your TradeScout guide. I can: find local pros, search marketplace deals, launch community growth, and run MealScout. Tell me your project or pick a prompt below and I'll get it done.",
+        timestamp: new Date(),
+      };
+
+      setMessages([introMessage]);
+      messagesRef.current = [introMessage];
+
+      if (!hasSeenIntro) {
+        setInputValue(INTRO_PROMPT);
+        autoRunTimeoutRef.current = window.setTimeout(() => {
+          if (userInteractedRef.current || hasAutoRunRef.current) return;
+          hasAutoRunRef.current = true;
+          handleSendMessage(INTRO_PROMPT);
+        }, 1200);
+      }
+    }
+
+    return () => {
+      if (autoRunTimeoutRef.current) {
+        window.clearTimeout(autoRunTimeoutRef.current);
+      }
+    };
+    // run once on mount
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    messagesRef.current = messages;
+  }, [messages]);
+
+  useEffect(() => {
+    const userHasSent = messages.some((m) => m.role === 'user');
+    if (userHasSent) {
+      localStorage.setItem('ts_seen_intro_prompt', 'true');
+    }
+  }, [messages]);
+
+  const markUserInteracted = () => {
+    if (!userInteractedRef.current) {
+      userInteractedRef.current = true;
+    }
+    if (autoRunTimeoutRef.current) {
+      window.clearTimeout(autoRunTimeoutRef.current);
+      autoRunTimeoutRef.current = null;
+    }
+  };
+
+  const handleSendMessage = async (prompt?: string) => {
+    const messageToSend = (prompt ?? inputValue).trim();
+    if (!messageToSend || isLoading || isGuest) return;
+
+    markUserInteracted();
+
+    const isFirstUserTurn = !messagesRef.current.some((m) => m.role === 'user');
 
     const userMessage: Message = {
       role: 'user',
-      content: inputValue,
+      content: messageToSend,
       timestamp: new Date(),
     };
 
-    setMessages((prev) => [...prev, userMessage]);
-    setInputValue('');
+    setMessages((prev) => {
+      const next = [...prev, userMessage];
+      messagesRef.current = next;
+      return next;
+    });
+    if (!prompt) setInputValue('');
     setIsLoading(true);
 
     try {
@@ -78,8 +141,8 @@ export function ScoutChat({ defaultOpen = false, isAuthenticated = false }: Scou
         },
         credentials: 'include',
         body: JSON.stringify({
-          message: inputValue,
-          history: messages.map((msg) => ({
+          message: messageToSend,
+          history: messagesRef.current.map((msg) => ({
             role: msg.role,
             content: msg.content,
           })),
@@ -99,7 +162,11 @@ export function ScoutChat({ defaultOpen = false, isAuthenticated = false }: Scou
         timestamp: new Date(data.timestamp),
       };
 
-      setMessages((prev) => [...prev, scoutMessage]);
+      setMessages((prev) => {
+        const next = [...prev, scoutMessage];
+        messagesRef.current = next;
+        return next;
+      });
 
       // If there are action results, add them as a follow-up message
       if (data.actionResults && data.actionResults.length > 0) {
@@ -108,7 +175,25 @@ export function ScoutChat({ defaultOpen = false, isAuthenticated = false }: Scou
           content: formatActionResults(data.actionResults),
           timestamp: new Date(data.timestamp),
         };
-        setMessages((prev) => [...prev, resultsMessage]);
+        setMessages((prev) => {
+          const next = [...prev, resultsMessage];
+          messagesRef.current = next;
+          return next;
+        });
+      }
+
+      // Flashier first-response booster: echo intent + service highlights
+      if (isFirstUserTurn) {
+        const highlight: Message = {
+          role: 'assistant',
+          content: `Got it — '${messageToSend}'. Here's how I can move fast right now:\n• Contractors: I can find and message verified pros in your county.\n• Marketplace: Surface deals or list your gear with price recommendations.\n• Community Builder: Launch outreach posts and welcome messages.\n• MealScout: Pull nearby food trucks, restaurants, and offers.\nWant me to execute one of these or refine your request?` ,
+          timestamp: new Date(),
+        };
+        setMessages((prev) => {
+          const next = [...prev, highlight];
+          messagesRef.current = next;
+          return next;
+        });
       }
     } catch (error) {
       console.error('Error sending message:', error);
@@ -117,7 +202,11 @@ export function ScoutChat({ defaultOpen = false, isAuthenticated = false }: Scou
         content: 'Sorry, Scout hit an error processing your request. Please try again.',
         timestamp: new Date(),
       };
-      setMessages((prev) => [...prev, errorMessage]);
+      setMessages((prev) => {
+        const next = [...prev, errorMessage];
+        messagesRef.current = next;
+        return next;
+      });
     } finally {
       setIsLoading(false);
     }
@@ -153,6 +242,31 @@ export function ScoutChat({ defaultOpen = false, isAuthenticated = false }: Scou
       handleSendMessage();
     }
   };
+
+  const handleQuickPrompt = (prompt: string) => {
+    markUserInteracted();
+    setInputValue(prompt);
+    handleSendMessage(prompt);
+  };
+
+  const quickPrompts = [
+    'Find roofers available this week',
+    'Start the Community Builder for my county',
+    'Show me today\'s best tool deals',
+    'Message the top 3 electricians near me',
+    'Create a project for kitchen remodel',
+    'List my pressure washer for $250',
+    'Find food trucks near me tonight',
+  ];
+
+  const navButtons = [
+    { label: 'Open Dashboard', path: '/dashboard' },
+    { label: 'Browse Contractors', path: '/contractors' },
+    { label: 'Marketplace', path: '/marketplace' },
+    { label: 'Community Builder', path: '/community' },
+    { label: 'MealScout', path: '/mealscout' },
+    { label: 'Help Center', path: '/help' },
+  ];
 
   if (!isOpen) {
     return (
@@ -245,10 +359,38 @@ export function ScoutChat({ defaultOpen = false, isAuthenticated = false }: Scou
 
           {/* Input Area */}
           <div className="p-4 border-t space-y-3">
+            <div className="flex flex-wrap gap-2">
+              {quickPrompts.map((prompt) => (
+                <Button
+                  key={prompt}
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => handleQuickPrompt(prompt)}
+                >
+                  {prompt}
+                </Button>
+              ))}
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {navButtons.map((item) => (
+                <Button
+                  key={item.label}
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    markUserInteracted();
+                    navigate(item.path);
+                  }}
+                >
+                  {item.label}
+                </Button>
+              ))}
+            </div>
             <textarea
               value={inputValue}
               onChange={(e) => setInputValue(e.target.value)}
               onKeyPress={handleKeyPress}
+              onFocus={markUserInteracted}
               placeholder={
                 isGuest
                   ? "Sign in to chat with Scout"
@@ -260,7 +402,7 @@ export function ScoutChat({ defaultOpen = false, isAuthenticated = false }: Scou
             <div className="flex items-center justify-between gap-2">
               <Button
                 className="flex-1"
-                onClick={handleSendMessage}
+                onClick={() => handleSendMessage()}
                 disabled={isLoading || !inputValue.trim() || isGuest}
               >
                 {isLoading ? 'Working...' : 'Send'}

@@ -1,4 +1,7 @@
-import assistantRoute from "./routes/assistant";
+import scoutRoute from "./routes/scout";
+import { ingestKnowledgeFolder } from "./services/knowledgeIngest";
+import fs from "fs";
+import path from "path";
 import { contractorSignupRouter } from "./routes/contractor-signup";
 import { registerRecommendationGeneratorRoutes } from "./routes/recommendation-generator";
 import { registerNotificationRoutes } from "./routes/notification-routes";
@@ -36,6 +39,7 @@ import {
   insertCarSalesmanProfileSchema,
   insertGeneratedStorySchema,
 } from "../shared/schema";
+import { getUserTypeBadgeLabel } from "../shared/userTypes";
 import type { AffiliateAccount, AffiliateReferral, AffiliatePayout } from "../shared/schema";
 import { storage } from "./storage";
 import { setupAuth, isAuthenticated, isAdmin, hashPassword, requireRole, isContractor } from "./auth";
@@ -52,6 +56,7 @@ import { tutorialStorage } from "./tutorialStorage";
 import { DataManagementService } from "./data-management";
 import { StoryGenerationService } from "./story-generation-service";
 import { communityBuilderPaymentService } from "./community-builder-payment-service";
+import { antiScrapeShield } from "./middleware/antiScrape";
 // Shared HTTP types for all route handlers
 type AuthedRequest = Request & {
   user?: {
@@ -102,11 +107,11 @@ const dataManagementService = new DataManagementService();
 interface Contractor {
   id: string;
   companyName: string;
-  isActive: boolean;
-  yearsInBusiness?: number;
-  licenseNumber?: string;
-  website?: string;
-  phone?: string;
+  isActive: boolean | null;
+  yearsInBusiness: number | null;
+  licenseNumber: string | null;
+  website: string | null;
+  phone: string | null;
   description?: string;
   [key: string]: any;
 }
@@ -129,7 +134,7 @@ async function routeLeadToTopContractors(lead: any, leadData: any) {
 
     // Enhanced matching logic: Score contractors based on available fields
     const scoredContractors = contractors
-      .filter((contractor: Contractor) => contractor.isActive) // Only active contractors
+      .filter((contractor: Contractor) => !!contractor.isActive) // Only active contractors
       .map((contractor: Contractor): ScoredContractor => {
         let score = 0;
         // Business experience score (60% weight) - more years = higher score
@@ -198,6 +203,9 @@ async function routeLeadToTopContractors(lead: any, leadData: any) {
 export async function registerRoutes(app: any) {
   // Setup authentication
   await setupAuth(app);
+
+  // Anti-scraping guard: blocks obvious bots and throttles bursts
+  app.use(antiScrapeShield);
 
   const loginLimiter = rateLimit({
     windowMs: 15 * 60 * 1000, // 15 minutes
@@ -412,6 +420,12 @@ export async function registerRoutes(app: any) {
       // Badge helpers
       const formatRoleLabel = (role: string) => role.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
       const badges = new Set<string>();
+
+      // Role badges for each selected user type
+      for (const role of userTypes) {
+        const roleBadge = getUserTypeBadgeLabel(role);
+        if (roleBadge) badges.add(roleBadge);
+      }
 
       // Founder badge: first of each type in a county
       if (county) {
@@ -4333,6 +4347,118 @@ export async function registerRoutes(app: any) {
     }
   });
 
+  // Admin: ingest a folder of knowledge files into the manual cache
+  app.post("/api/admin/knowledge/ingest-folder", isAuthenticated, isAdmin, async (req: any, res: any) => {
+    try {
+      const { folderPath } = req.body || {};
+      if (!folderPath || typeof folderPath !== "string") {
+        return res.status(400).json({ error: "folderPath is required" });
+      }
+
+      const summary = ingestKnowledgeFolder(folderPath);
+      res.json({ message: "Knowledge folder ingested", summary });
+    } catch (error: any) {
+      console.error("Error ingesting knowledge folder:", error);
+      res.status(500).json({ error: error?.message || "Failed to ingest folder" });
+    }
+  });
+
+  // Admin: direct file upload (text/images/etc), then ingest and sort
+  app.post("/api/admin/knowledge/upload", isAuthenticated, isAdmin, async (req: any, res: any) => {
+    try {
+      const multer = (await import("multer")).default;
+      const uploadDir = path.join(__dirname, "uploads", `batch_${Date.now()}`);
+      if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
+
+      const upload = multer({ dest: uploadDir }).array("files", 50);
+
+      upload(req, res, (err: any) => {
+        if (err) {
+          console.error("Upload error:", err);
+          return res.status(500).json({ error: "Upload failed" });
+        }
+
+        // Multer already wrote files; ingest the temp directory
+        const summary = ingestKnowledgeFolder(uploadDir);
+        res.json({ message: "Files uploaded and ingested", summary });
+      });
+    } catch (error: any) {
+      console.error("Error uploading knowledge files:", error);
+      res.status(500).json({ error: error?.message || "Failed to upload files" });
+    }
+  });
+
+  // Admin: get user info (sanitized)
+  app.post("/api/admin/users/info", isAuthenticated, isAdmin, async (req: any, res: any) => {
+    try {
+      const { email, userId } = req.body || {};
+      if (!email && !userId) {
+        return res.status(400).json({ error: "Provide email or userId" });
+      }
+
+      const target = email
+        ? await storage.getUserByEmail(String(email).toLowerCase())
+        : await storage.getUser(userId);
+
+      if (!target) {
+        return res.status(404).json({ error: "User not found" });
+      }
+
+      const sanitized = {
+        id: target.id,
+        email: target.email,
+        roles: target.roles || (target.role ? [target.role] : []),
+        activeRole: target.activeRole || target.role,
+        verificationStatus: target.verificationStatus,
+        badges: target.badges,
+        preferences: target.preferences,
+        createdAt: target.createdAt,
+        updatedAt: target.updatedAt,
+        addressVerified: target.addressVerified,
+        emailVerified: target.emailVerified,
+        passwordResetEnabled: true,
+      };
+
+      res.json({ user: sanitized });
+    } catch (error: any) {
+      console.error("Error fetching user info:", error);
+      res.status(500).json({ error: error?.message || "Failed to fetch user info" });
+    }
+  });
+
+  // Admin: reset user password directly
+  app.post("/api/admin/users/reset-password", isAuthenticated, isAdmin, async (req: any, res: any) => {
+    try {
+      const { email, userId, newPassword } = req.body || {};
+      if (!newPassword || typeof newPassword !== "string" || newPassword.length < 8) {
+        return res.status(400).json({ error: "newPassword is required and must be at least 8 characters" });
+      }
+
+      if (!email && !userId) {
+        return res.status(400).json({ error: "Provide email or userId" });
+      }
+
+      const target = email
+        ? await storage.getUserByEmail(String(email).toLowerCase())
+        : await storage.getUser(userId);
+
+      if (!target) {
+        return res.status(404).json({ error: "User not found" });
+      }
+
+      const passwordHash = await hashPassword(newPassword);
+      await storage.updateUser(target.id, {
+        password: passwordHash,
+        updatedAt: new Date(),
+      });
+
+      res.json({ message: "Password reset successfully", userId: target.id, email: target.email });
+    } catch (error: any) {
+      console.error("Error resetting user password:", error);
+      res.status(500).json({ error: error?.message || "Failed to reset password" });
+    }
+  });
+
   app.post("/api/error-reports", async (req: any, res: any) => {
     try {
       const userId = req.user?.claims?.sub || null;
@@ -8033,8 +8159,9 @@ export async function registerRoutes(app: any) {
   const promptAdminRouter = (await import("./routes/promptAdmin")).default;
   app.use("/api/prompt-admin", promptAdminRouter);
 
-  // Register AI assistant routes
-  app.use("/api/assistant", assistantRoute);
+  // Register AI Scout routes (with assistant alias for backward compatibility)
+  app.use("/api/scout", scoutRoute);
+  app.use("/api/assistant", scoutRoute);
 
   // Bug report endpoint with Formspree integration
   app.post('/api/bug-report', async (req: any, res: any) => {
