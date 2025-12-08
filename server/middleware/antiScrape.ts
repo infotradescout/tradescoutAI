@@ -3,8 +3,8 @@ import type { NextFunction, Request, Response } from "express";
 // Simple in-memory anti-scraping guard. For production, back with Redis.
 const WINDOW_MS = 5 * 60 * 1000; // 5 minutes
 const BURST_WINDOW_MS = 30 * 1000; // 30 seconds
-const MAX_WINDOW_HITS = 180; // generous for normal browsing
-const MAX_BURST_HITS = 40; // throttles short bursts
+const MAX_WINDOW_HITS = 300; // generous for normal browsing with dev tools
+const MAX_BURST_HITS = 100; // allows legitimate page loads with many assets
 
 const sensitivePathPatterns = [
   /\/api\/.*users/i,
@@ -53,8 +53,14 @@ export function antiScrapeShield(req: Request, res: Response, next: NextFunction
   const ua = req.get("user-agent") || "";
   const path = req.path || req.originalUrl || "";
 
-  // Allow internal health/monitoring checks even from curl/PowerShell
-  const allowlistedPaths = [/^\/api\/health/i, /^\/api\/(scout|assistant)\/health/i];
+  // Allow internal health/monitoring checks and static assets
+  const allowlistedPaths = [
+    /^\/api\/health/i, 
+    /^\/api\/(scout|assistant)\/health/i,
+    /\.(js|css|png|jpg|jpeg|gif|svg|ico|woff|woff2|ttf|eot|map)$/i, // static assets
+    /^\/@vite/i, // vite HMR
+    /^\/node_modules/i, // dev dependencies
+  ];
   if (allowlistedPaths.some((p) => p.test(path))) {
     return next();
   }
@@ -91,10 +97,15 @@ export function antiScrapeShield(req: Request, res: Response, next: NextFunction
   const windowLimit = isSensitivePath(path) ? Math.floor(MAX_WINDOW_HITS / 3) : MAX_WINDOW_HITS;
   const burstLimit = isSensitivePath(path) ? Math.floor(MAX_BURST_HITS / 2) : MAX_BURST_HITS;
 
+  // In development, log but don't block
   if (burstHits > burstLimit || windowHits > windowLimit) {
-    return res.status(429).json({
-      error: "Too many requests. Slow down to continue.",
-    });
+    if (process.env.NODE_ENV === 'production') {
+      return res.status(429).json({
+        error: "Too many requests. Slow down to continue.",
+      });
+    } else {
+      console.log(`[AntiScrape] Rate limit hit but allowing in dev: ${windowHits}/${windowLimit} window, ${burstHits}/${burstLimit} burst`);
+    }
   }
 
   res.setHeader("X-Scout-Guard", "enabled");

@@ -15,6 +15,13 @@ const PROMPT_PATH = path.join(
   "system_prompt.md"
 );
 
+// Minimal fallback prompt to keep Scout responding even if the file is missing in production
+const DEFAULT_PROMPT = `You are Scout, the TradeScout operating system.
+- Always prioritize verified TradeScout data; never invent contractors or prices.
+- If data comes from the open web, say so explicitly.
+- If no reliable data exists, say you don't have it and avoid guesses.
+- Keep answers concise, actionable, and friendly.`;
+
 const RELOAD_INTERVAL_MS = 30_000; // 30s hot reload window
 
 /**
@@ -30,9 +37,12 @@ export function loadSystemPrompt(force = false): { content: string, version: str
     return { content: cachedPrompt, version: getPromptVersion() };
   }
 
-  // Verify file exists
+  // Verify file exists; if missing, fall back to safe default prompt
   if (!fs.existsSync(PROMPT_PATH)) {
-    throw new Error(`system_prompt.md not found at ${PROMPT_PATH}`);
+    console.warn(`[PromptService] system_prompt.md missing at ${PROMPT_PATH}; using built-in default prompt`);
+    cachedPrompt = DEFAULT_PROMPT;
+    lastLoaded = now;
+    return { content: DEFAULT_PROMPT, version: "default" };
   }
 
   // Read from disk

@@ -447,8 +447,15 @@ export class LocalityTracker {
  */
 export function localityTrackingMiddleware() {
   return async (req: any, res: any, next: any) => {
-    // Track page view with locality context
-    if (req.method === 'GET' && !req.path.startsWith('/api/')) {
+    // Only track actual HTML page loads, not assets or HMR
+    const isPageLoad = req.method === 'GET' 
+      && !req.path.startsWith('/api/')
+      && !req.path.match(/\.(js|css|png|jpg|jpeg|gif|svg|ico|woff|woff2|ttf|eot|map|json)$/i)
+      && !req.path.startsWith('/@vite')
+      && !req.path.startsWith('/node_modules')
+      && !req.path.startsWith('/src/');
+    
+    if (isPageLoad) {
       await LocalityTracker.trackInteraction('page_view', req);
     }
     next();

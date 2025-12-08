@@ -106,6 +106,16 @@ const corsOptions: cors.CorsOptions = {
     // No origin (curl/server-side) → allow
     if (!origin) return callback(null, true);
     const normalized = origin.toLowerCase();
+
+    // Always allow same-host access on the API port (common for prod localhost testing)
+    const sameHostOrigins = [
+      `http://localhost:${PORT}`.toLowerCase(),
+      `https://localhost:${PORT}`.toLowerCase(),
+    ];
+    if (sameHostOrigins.includes(normalized)) {
+      return callback(null, true);
+    }
+
     if (ALLOWED_ORIGINS.includes(normalized)) {
       return callback(null, true);
     }
@@ -261,18 +271,18 @@ app.use((req, res, next) => {
         }
       })();
     } else {
-      // Serve static files from client/dist directory with absolute path resolution
+      // Serve static files from dist/public (Vite build output)
       const workspaceRoot = process.cwd();
-      const clientDistPath = path.join(workspaceRoot, 'client/dist');
-      
-      console.log('Production mode - serving static files from:', clientDistPath);
-      app.use(express.static(clientDistPath));
+      const publicDistPath = path.join(workspaceRoot, 'dist/public');
+
+      console.log('Production mode - serving static files from:', publicDistPath);
+      app.use(express.static(publicDistPath));
 
       // Catch all handler for client-side routing
       app.get('*', (req, res) => {
-        const indexPath = path.join(clientDistPath, 'index.html');
+        const indexPath = path.join(publicDistPath, 'index.html');
         console.log('Serving index.html from:', indexPath);
-        
+
         // Check if file exists before trying to serve
         if (fs.existsSync(indexPath)) {
           res.sendFile(indexPath, (err) => {
@@ -284,10 +294,10 @@ app.use((req, res, next) => {
         } else {
           console.error('index.html not found at:', indexPath);
           try {
-            const files = fs.readdirSync(clientDistPath, { withFileTypes: true }).map(d => d.name);
-            console.log('Available files in client/dist:', files);
+            const files = fs.readdirSync(publicDistPath, { withFileTypes: true }).map(d => d.name);
+            console.log('Available files in dist/public:', files);
           } catch (dirErr) {
-            console.error('Cannot read client/dist directory:', dirErr);
+            console.error('Cannot read dist/public directory:', dirErr);
           }
           res.status(404).send('Application files not found');
         }

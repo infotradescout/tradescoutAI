@@ -449,6 +449,7 @@ export default function ScoutLanding() {
   const isScoutActive = isLoading || messages.length > 0;
 
   return (
+    <>
     <div className="min-h-[calc(100vh-4.5rem)] bg-[#060b1c] text-white flex items-start justify-center px-3 sm:px-4 pb-16">
       <div className="relative w-full max-w-6xl overflow-hidden rounded-2xl border border-tsBorder bg-slate-950/85 shadow-2xl shadow-black/60 px-4 sm:px-8 py-8 sm:py-10">
         <div className="absolute inset-0 pointer-events-none">
@@ -481,20 +482,20 @@ export default function ScoutLanding() {
           </div>
 
           {!isAuthenticated && (
-            <div className="w-full max-w-3xl">
-              <div className="mt-2 rounded-2xl border border-orange-500/30 bg-orange-500/10 px-5 py-4 shadow-lg shadow-orange-500/20 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 text-left">
-                <div className="space-y-1">
+            <div className="w-full max-w-2xl">
+              <div className="mt-2 rounded-xl border border-orange-500/30 bg-orange-500/10 px-4 py-3 shadow-lg shadow-orange-500/20 flex flex-col gap-3 text-left md:flex-row md:items-center md:justify-between">
+                <div className="space-y-0.5">
                   <div className="text-sm font-semibold text-white">Create a free account</div>
-                  <div className="text-sm text-tsTextMuted">Save projects, set alerts, and message contractors instantly.</div>
+                  <div className="text-xs text-tsTextMuted">Save projects, set alerts, and message contractors instantly.</div>
                 </div>
-                <div className="flex items-center gap-3">
+                <div className="flex flex-col gap-2 w-full md:w-auto md:flex-row md:items-center">
                   <a
                     href="/register"
-                    className="inline-flex items-center justify-center rounded-xl bg-gradient-to-r from-orange-500 to-orange-600 px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-orange-600/30 hover:-translate-y-[1px] transition-transform duration-100"
+                    className="inline-flex w-full md:w-auto items-center justify-center rounded-lg bg-gradient-to-r from-orange-500 to-orange-600 px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-orange-600/30 hover:-translate-y-[1px] transition-transform duration-100"
                   >
                     Create Free Account
                   </a>
-                  <a href="/login" className="text-sm text-tsAccent hover:text-orange-300 transition">
+                  <a href="/login" className="text-xs md:text-sm text-tsAccent hover:text-orange-300 transition text-center md:text-left">
                     Already have an account?
                   </a>
                 </div>
@@ -711,5 +712,6 @@ export default function ScoutLanding() {
         </div>
       </div>
     </footer>
+    </>
   );
 }
