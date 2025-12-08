@@ -55,11 +55,17 @@ const normalizeTrendingItem = (item: any, place: string): TrendingItem | null =>
 
 const INTRO_PROMPT = "What can TradeScout do for my community?";
 const apiBaseEnv = (import.meta as any).env?.VITE_SCOUT_API_BASE;
-const apiBase =
-  apiBaseEnv ||
-  (typeof window !== "undefined" && window.location.hostname.endsWith("thetradescout.com")
-    ? "https://www.thetradescout.com/api"
-    : "/api");
+const isLocalHost = () => {
+  if (typeof window === "undefined") return false;
+  const h = window.location.hostname;
+  return h === "localhost" || h === "127.0.0.1" || h === "0.0.0.0";
+};
+
+// Always use the production API when not on localhost, even if env var is missing
+const apiBase = apiBaseEnv || (typeof window !== "undefined" && !isLocalHost()
+  ? "https://www.thetradescout.com/api"
+  : "/api");
+
 const scoutEndpoint = `${apiBase.replace(/\/$/, "")}/scout`;
 const BANNED_TERMS = ["fuck", "shit", "bitch", "asshole", "cunt", "slut", "whore"];
 
