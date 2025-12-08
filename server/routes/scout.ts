@@ -123,6 +123,11 @@ Using the knowledge below, answer their question by focusing on:
 7. The emotional/social benefits, not just logistics
 8. How TradeScout is different from exploitative platforms
 
+  Show your thought process briefly so users see progress:
+  - Start with a short "How I'm thinking" section (3 bullets): what matters for this user, which roles are involved, what outcomes to emphasize.
+  - Then "What this means for you" with concrete outcomes for their role and community.
+  - Add 2-4 specific next steps they can take right now (e.g., who to contact, what to list, what to launch).
+
 DO NOT:
 - Describe backend mechanics or technical details
 - List feature after feature robotically
@@ -130,7 +135,7 @@ DO NOT:
 - Focus on processes - focus on OUTCOMES
 - Limit scope to just contractors and homeowners
 
-Be conversational, inspiring, and real. Show people this changes their life, their business, and their community.
+  Be conversational, inspiring, and real. Show people this changes their life, their business, and their community. Avoid generic filler; be concrete.
 
 Available Knowledge Base:
 ${comprehensiveKnowledge}
@@ -165,7 +170,7 @@ async function synthesizeResponse(
     const model = gemini.getGenerativeModel({ model: "gemini-2.5-flash" });
     
     // Smart synthesis that elaborates on knowledge while keeping facts intact
-    const synthesisPrompt = `You are Scout, the TradeScout AI assistant. Your job is to make knowledge helpful and engaging.
+    const synthesisPrompt = `You are Scout, the TradeScout AI assistant. Your job is to make knowledge helpful, specific, and engaging.
 
 User asked: "${userMessage}"
 
@@ -174,19 +179,20 @@ ${knowledge.answer}
 
 TASK: Transform this knowledge into a helpful, conversational response that:
 1. Answers the user's question directly
-2. Elaborates with examples and context from the knowledge
-3. Explains WHY and HOW things work, not just WHAT
-4. Makes connections between related concepts
-5. Uses conversational, friendly tone
-6. Includes specific benefits or use cases
-7. Is organized and easy to scan (use bullets/formatting)
+  2. Shows a brief thought process: start with "How I'm thinking" (2-4 bullets on what matters, which roles are involved, and what outcomes to focus on)
+  3. Elaborates with examples and context from the knowledge; include concrete, role-specific details (contractors, homeowners, dealers, realtors, HOA, property managers, community leaders)
+  4. Explains WHY and HOW things work, not just WHAT
+  5. Makes connections between related concepts and community impact (local dollars, trust, faster coordination)
+  6. Uses conversational, friendly tone
+  7. Includes specific benefits or use cases and 2-4 immediate next steps the user can take
+  8. Is organized and easy to scan (use bullets/formatting)
 
 ${knowledge.layer === 1 || knowledge.layer === 2 ? "This is TradeScout data - speak with confidence and authority." : ""}
 ${knowledge.layer === 3 ? "This is from the internet, not local TradeScout data - be clear about that." : ""}
 ${knowledge.layer === 4 ? "You don't have reliable info - be honest about it." : ""}
 
 DO NOT invent features or facts. ONLY use what's in the knowledge above.
-Make it smart and helpful, not robotic.`;
+  Avoid generic filler. Make it smart, specific, and helpful.`;
 
     const result = await model.generateContent(synthesisPrompt);
     return result.response.text();
