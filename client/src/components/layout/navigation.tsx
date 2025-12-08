@@ -65,16 +65,16 @@ export default function Navigation() {
 
   return (
     <nav className={cn(
-      "bg-[#0a0f1e]/95 border-b border-[#1e293b] sticky top-0 z-50 backdrop-blur-md transition-all duration-300",
+      "bg-[#0a0f1e]/95 border-b border-[#1e293b] sticky top-0 z-50 backdrop-blur-md transition-all duration-300 pt-[env(safe-area-inset-top)]",
       isScrolled && "bg-[#0b1120]/98 shadow-lg border-[#1e293b]/70"
     )}>
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between items-center h-16">
+      <div className="max-w-7xl mx-auto px-3 sm:px-5 lg:px-8">
+        <div className="flex justify-between items-center h-14">
           {/* Logo */}
-          <div className="flex items-center space-x-8">
-            <Link href="/" onClick={closeMobileMenu}>
-              <div className="flex-shrink-0 flex items-center gap-2 md:gap-3 group">
-                <div className="relative">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className={`text-xs px-2 py-1 ${
                   <ConstructionEmblem className="w-6 h-6 md:w-8 md:h-8 transition-transform duration-200 group-hover:scale-110" />
                   <div className="absolute inset-0 bg-orange-400/20 rounded-full blur-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200"></div>
                 </div>
@@ -215,7 +215,7 @@ export default function Navigation() {
                   Menu
                 </Button>
               </SheetTrigger>
-              <SheetContent side="right" className="bg-gradient-to-br from-[#0a0f1e] to-[#111827] border-[#1e293b] w-80">
+              <SheetContent side="right" className="bg-gradient-to-br from-[#0a0f1e] to-[#111827] border-[#1e293b] w-72">
                 <div className="flex flex-col space-y-2 mt-8">
                   {/* Mobile Brand */}
                   <div className="flex items-center gap-3 px-3 pb-6 border-b border-navy-600">
@@ -299,13 +299,13 @@ export default function Navigation() {
           </div>
 
           {/* Mobile Navigation Buttons */}
-          <div className="md:hidden flex items-center space-x-2">
+          <div className="md:hidden flex items-center space-x-1">
             {/* Find Contractors - Always visible */}
             <Link href="/contractors/board">
               <Button 
                 variant="ghost" 
                 size="sm"
-                className={`text-xs px-2 py-1 ${
+                className={`text-[11px] px-2 py-1 rounded-md ${
                   location === '/contractors/board' 
                     ? 'text-orange-500 bg-orange-500/15' 
                     : 'text-gray-300 hover:text-white'
@@ -322,7 +322,7 @@ export default function Navigation() {
                 <Button 
                   variant="ghost" 
                   size="sm"
-                  className={`text-xs px-2 py-1 ${
+                  className={`text-[11px] px-2 py-1 rounded-md ${
                     location === '/contractors' 
                       ? 'text-orange-500 bg-orange-500/15' 
                       : 'text-gray-300 hover:text-white'
@@ -340,7 +340,7 @@ export default function Navigation() {
                 <Button 
                   variant="ghost" 
                   size="sm"
-                  className={`text-xs px-2 py-1 ${
+                  className={`text-[11px] px-2 py-1 rounded-md ${
                     (location === '/contractor-dashboard' || location === '/dashboard') 
                       ? 'text-orange-500 bg-orange-500/15' 
                       : 'text-gray-300 hover:text-white'
@@ -363,7 +363,7 @@ export default function Navigation() {
                   <Menu className="h-6 w-6" />
                 </Button>
               </SheetTrigger>
-              <SheetContent side="right" className="bg-gradient-to-br from-[#0a0f1e] to-[#111827] border-[#1e293b] w-80">
+              <SheetContent side="right" className="bg-gradient-to-br from-[#0a0f1e] to-[#111827] border-[#1e293b] w-72">
                 <div className="flex flex-col space-y-2 mt-8">
                   {/* Mobile Brand */}
                   <div className="flex items-center gap-3 px-3 pb-6 border-b border-navy-600">

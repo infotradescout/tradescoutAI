@@ -1,6 +1,6 @@
 import React, { memo, Suspense } from 'react';
 import { QueryClientProvider } from '@tanstack/react-query';
-import { Router, Route, Switch } from 'wouter';
+import { Router, Route, Switch, useLocation } from 'wouter';
 import { queryClient } from './lib/queryClient';
 import { ErrorBoundary } from './components/ui/error-boundary';
 import { ThemeProvider } from './contexts/ThemeContext';
@@ -247,6 +247,8 @@ const LegalFooter = memo(function LegalFooter() {
 // Main app layout component
 const AppLayout = memo(function AppLayout() {
   const { isAuthenticated } = useAuth();
+  const [location] = useLocation();
+  const isLlmRoute = location === '/' || location.startsWith('/?');
 
   const sharedNav = [
     { label: 'Scout', href: '/' },
@@ -645,8 +647,8 @@ const AppLayout = memo(function AppLayout() {
         {/* Bug report tool - always available */}
         <SimpleBugReportTool />
 
-        {/* AI Assistant Chat - always available */}
-        <AssistantChat />
+        {/* AI Assistant Chat - hidden on LLM page to avoid duplication */}
+        {!isLlmRoute && <AssistantChat isAuthenticated={isAuthenticated} />}
     </SimpleMobileGestures>
   );
 });

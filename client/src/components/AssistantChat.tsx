@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { useLocation } from 'wouter';
 import { Send, MessageCircle, X, Minimize2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -19,21 +20,31 @@ interface AssistantResponse {
 
 type AssistantChatProps = {
   defaultOpen?: boolean;
+  isAuthenticated?: boolean;
 };
 
-export function AssistantChat({ defaultOpen = false }: AssistantChatProps) {
+export function AssistantChat({ defaultOpen = false, isAuthenticated = false }: AssistantChatProps) {
   const [isOpen, setIsOpen] = useState(defaultOpen);
   const [isMinimized, setIsMinimized] = useState(false);
-  const [messages, setMessages] = useState<Message[]>([
+  const [messages, setMessages] = useState<Message[]>(() => [
     {
       role: 'assistant',
-      content: "Hi! I'm Scout, your TradeScout controller. I can help you find contractors, search the marketplace, get your profile info, and route you anywhere in the site. What do you want to do?",
+      content: isAuthenticated
+        ? "Hi! I'm Scout, your TradeScout controller. I can help you find contractors, search the marketplace, get your profile info, and route you anywhere in the site. What do you want to do?"
+        : "Hi! I'm Scout. Sign in to chat so I can personalize help, save your history, and route you faster.",
       timestamp: new Date(),
     },
   ]);
   const [inputValue, setInputValue] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
+  const [, navigate] = useLocation();
+
+  const isGuest = !isAuthenticated;
+  const floatingPosition: React.CSSProperties = {
+    right: '1rem',
+    bottom: 'clamp(24px, calc(env(safe-area-inset-bottom, 0px) + 32px), 96px)',
+  };
 
   // Auto-scroll to bottom when new messages arrive
   useEffect(() => {
@@ -46,7 +57,7 @@ export function AssistantChat({ defaultOpen = false }: AssistantChatProps) {
   }, [messages]);
 
   const handleSendMessage = async () => {
-    if (!inputValue.trim() || isLoading) return;
+    if (!inputValue.trim() || isLoading || isGuest) return;
 
     const userMessage: Message = {
       role: 'user',
@@ -147,7 +158,8 @@ export function AssistantChat({ defaultOpen = false }: AssistantChatProps) {
     return (
       <Button
         onClick={() => setIsOpen(true)}
-        className="fixed bottom-4 right-4 z-50 rounded-full w-14 h-14 shadow-lg hover:shadow-xl transition-all"
+        style={floatingPosition}
+        className="fixed z-50 rounded-full w-14 h-14 shadow-lg hover:shadow-xl transition-all"
         size="icon"
       >
         <MessageCircle className="h-6 w-6" />
@@ -157,7 +169,8 @@ export function AssistantChat({ defaultOpen = false }: AssistantChatProps) {
 
   return (
     <Card 
-      className={`fixed bottom-4 right-4 z-50 shadow-2xl transition-all ${
+      style={floatingPosition}
+      className={`fixed z-50 shadow-2xl transition-all ${
         isMinimized ? 'w-80 h-14' : 'w-96 h-[600px]'
       }`}
     >
@@ -232,25 +245,41 @@ export function AssistantChat({ defaultOpen = false }: AssistantChatProps) {
 
           {/* Input Area */}
           <div className="p-4 border-t">
-            <div className="flex gap-2">
-              <textarea
-                value={inputValue}
-                onChange={(e) => setInputValue(e.target.value)}
-                onKeyPress={handleKeyPress}
-                placeholder="Ask me anything about TradeScout..."
-                className="flex-1 resize-none rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                rows={2}
-                disabled={isLoading}
-              />
-              <Button
-                onClick={handleSendMessage}
-                disabled={!inputValue.trim() || isLoading}
-                size="icon"
-                className="shrink-0"
-              >
-                <Send className="h-4 w-4" />
-              </Button>
-            </div>
+            {isGuest ? (
+              <div className="space-y-3">
+                <p className="text-sm text-muted-foreground">
+                  Sign in to chat with Scout, save history, and get role-aware assistance.
+                </p>
+                <div className="flex gap-2">
+                  <Button className="flex-1" onClick={() => navigate('/login')}>
+                    Sign in
+                  </Button>
+                  <Button variant="outline" className="flex-1" onClick={() => navigate('/signup')}>
+                    Create account
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <div className="flex gap-2">
+                <textarea
+                  value={inputValue}
+                  onChange={(e) => setInputValue(e.target.value)}
+                  onKeyPress={handleKeyPress}
+                  placeholder="Ask me anything about TradeScout..."
+                  className="flex-1 resize-none rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                  rows={2}
+                  disabled={isLoading}
+                />
+                <Button
+                  onClick={handleSendMessage}
+                  disabled={!inputValue.trim() || isLoading}
+                  size="icon"
+                  className="shrink-0"
+                >
+                  <Send className="h-4 w-4" />
+                </Button>
+              </div>
+            )}
           </div>
         </>
       )}
