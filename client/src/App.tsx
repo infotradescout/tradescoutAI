@@ -1,14 +1,12 @@
-import React, { memo, Suspense } from 'react';
+import React, { memo, Suspense, useEffect, useState } from 'react';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { Router, Route, Switch, useLocation } from 'wouter';
-import { Menu, LayoutDashboard, User, Settings as SettingsIcon, Home, LogOut } from 'lucide-react';
+import { X } from 'lucide-react';
 import { queryClient } from './lib/queryClient';
 import { ErrorBoundary } from './components/ui/error-boundary';
 import { ThemeProvider } from './contexts/ThemeContext';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { useAuth } from './hooks/useAuth';
-import { Button } from './components/ui/button';
-import { Sheet, SheetContent, SheetTrigger } from './components/ui/sheet';
 
 // Only load essential components eagerly
 import AssistantLanding from './assistant-landing';
@@ -253,122 +251,45 @@ const AppLayout = memo(function AppLayout() {
   const [location] = useLocation();
   const isLlmRoute = location === '/' || location.startsWith('/?');
 
-  const sharedNav = [
-    { label: 'Scout', href: '/' },
-    { label: 'Find Contractors', href: '/find-contractors' },
-    { label: 'Marketplace', href: '/marketplace' },
-    { label: 'Community', href: '/community' },
-  ];
+  const [showBetaNotice, setShowBetaNotice] = useState(false);
 
-  const authedNav = [
-    ...sharedNav,
-    { label: 'Dashboard', href: '/dashboard' },
-  ];
+  useEffect(() => {
+    const dismissed = typeof window !== 'undefined' ? localStorage.getItem('ts_beta_notice_dismissed') : null;
+    if (!dismissed) {
+      setShowBetaNotice(true);
+    }
+  }, []);
 
-  const guestNav = [
-    ...sharedNav,
-    { label: 'About', href: '/about' },
-  ];
-
-  const navLinks = isAuthenticated ? authedNav : guestNav;
-  const authedSideLinks = [
-    { label: 'Dashboard', href: '/dashboard', icon: LayoutDashboard, description: 'Your personalized hub' },
-    { label: 'Profile', href: '/profile', icon: User, description: 'View and manage your profile' },
-    { label: 'Settings', href: '/settings', icon: SettingsIcon, description: 'Preferences and account settings' },
-    { label: 'Site Pages', href: '/community-feed', icon: Home, description: 'Explore community & updates' },
-  ];
+  const dismissBetaNotice = () => {
+    localStorage.setItem('ts_beta_notice_dismissed', 'true');
+    setShowBetaNotice(false);
+  };
 
   return (
     <SimpleMobileGestures>
       <div className="min-h-screen bg-tsBg text-tsTextMain font-sans flex flex-col">
-        {!isLlmRoute && (
-          <header className="sticky top-0 z-50 backdrop-blur-md bg-slate-950/70 border-b border-tsBorder shadow-lg">
-            <div className="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between gap-4">
-              <div className="flex items-center gap-3 cursor-pointer">
-                <div className="bg-gradient-to-br from-tsAccent to-orange-700 p-2 rounded-xl shadow-lg shadow-orange-500/40" />
-                <div>
-                  <div className="text-xs uppercase tracking-[0.22em] text-tsAccentSoft">TRADE SCOUT</div>
-                  <div className="text-lg font-semibold text-tsTextMain leading-tight">Connection Without Compromise</div>
-                </div>
+        {showBetaNotice && (
+          <div className="fixed bottom-24 right-4 z-50 max-w-sm rounded-2xl border border-orange-400/50 bg-slate-950/95 shadow-2xl shadow-orange-500/20 p-4 text-sm text-gray-100">
+            <div className="flex items-start gap-3">
+              <div className="mt-0.5 h-2 w-2 rounded-full bg-orange-400 shadow-[0_0_0_4px_rgba(249,115,22,0.25)]" />
+              <div className="space-y-1">
+                <p className="text-orange-200 font-semibold">TradeScout is in active beta</p>
+                <p className="text-gray-300 leading-relaxed">
+                  You may encounter rough edges, non-working features, or intermittent errors. Thanks for exploring—please share issues so we can polish fast.
+                </p>
               </div>
-
-              <nav className="flex items-center gap-4 text-sm text-tsTextMuted">
-                {navLinks.map((item) => (
-                  <a key={item.href} href={item.href} className="hover:text-tsAccent transition">
-                    {item.label}
-                  </a>
-                ))}
-                {isAuthenticated ? (
-                  <Sheet>
-                    <SheetTrigger asChild>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="border-tsBorder text-tsTextMain hover:border-orange-400 hover:text-orange-200"
-                      >
-                        <Menu className="h-4 w-4 mr-2" />
-                        Menu
-                      </Button>
-                    </SheetTrigger>
-                    <SheetContent side="right" className="bg-slate-950 text-white border-tsBorder w-72">
-                      <div className="space-y-4 mt-6">
-                        <div>
-                          <p className="text-xs uppercase tracking-[0.18em] text-tsAccentSoft">Quick nav</p>
-                        </div>
-                        <div className="space-y-3">
-                          {authedSideLinks.map((item) => {
-                            const Icon = item.icon;
-                            return (
-                              <a
-                                key={item.href}
-                                href={item.href}
-                                className="flex items-start gap-3 rounded-lg border border-white/5 bg-white/5 px-4 py-3 hover:border-orange-400/60 hover:bg-orange-500/5 transition"
-                              >
-                                <Icon className="h-5 w-5 text-orange-400" />
-                                <div className="flex-1">
-                                  <div className="font-semibold text-white">{item.label}</div>
-                                  <div className="text-xs text-gray-400">{item.description}</div>
-                                </div>
-                              </a>
-                            );
-                          })}
-                        </div>
-                        <div className="pt-2 border-t border-white/5 space-y-2">
-                          <a
-                            href="/profile-settings"
-                            className="flex items-center gap-3 text-sm text-gray-200 hover:text-white"
-                          >
-                            <SettingsIcon className="h-4 w-4" />
-                            Profile settings
-                          </a>
-                          <a
-                            href="/api/logout"
-                            className="flex items-center gap-3 text-sm text-red-300 hover:text-red-200"
-                          >
-                            <LogOut className="h-4 w-4" />
-                            Sign out
-                          </a>
-                        </div>
-                      </div>
-                    </SheetContent>
-                  </Sheet>
-                ) : (
-                  <>
-                    <a href="/login" className="hover:text-tsAccent transition">Log in</a>
-                    <a
-                      href="/signup"
-                      className="rounded-lg bg-gradient-to-r from-orange-500 to-orange-600 px-3 py-1.5 text-white font-semibold shadow-lg shadow-orange-500/40 hover:translate-y-[-1px] hover:shadow-orange-500/50 transition"
-                    >
-                      Get started
-                    </a>
-                  </>
-                )}
-              </nav>
+              <button
+                aria-label="Dismiss beta notice"
+                onClick={dismissBetaNotice}
+                className="ml-auto text-gray-400 hover:text-white transition"
+              >
+                <X className="h-4 w-4" />
+              </button>
             </div>
-          </header>
+          </div>
         )}
 
-        <main className="flex-1 relative max-w-6xl mx-auto px-4 py-6 w-full">
+        <main className="flex-1 relative w-full max-w-none lg:max-w-6xl mx-auto px-3 sm:px-4 py-6">
           <ErrorBoundary fallback={<PageLoader />}>
             <Switch>
               {/* Home routes - Smart routing based on user preferences */}
