@@ -118,10 +118,13 @@ async function routeLeadToTopContractors(lead: any, leadData: any) {
   try {
     const { countyId, tradeId } = lead;
     const { county, trade, city, state, zipCode } = leadData;
-    // TODO: Add logic to fetch contractors based on countyId and tradeId
-    // Example:
-    // const contractors = await db.getContractors({ countyId, tradeId });
-    const contractors: Contractor[] = [];
+    // Fetch active contractors that match the lead's geography and trade
+    const contractors: Contractor[] = await storage.getContractors({
+      countyId,
+      tradeIds: tradeId ? [tradeId] : undefined,
+      sortBy: 'verified',
+      limit: 50,
+    });
     // ...rest of the function remains unchanged...
 
     // Enhanced matching logic: Score contractors based on available fields
@@ -242,89 +245,35 @@ export async function registerRoutes(app: any) {
       const user = req.user as any;
       const userId = (user as any)?.claims?.sub || (user as any)?.id || "";
 
-      // Find affiliate account for user
-      // TODO: Implement proper Drizzle ORM queries
-      const affiliateAccountsData: AffiliateAccount[] = [];
-      let account = affiliateAccountsData.find((a) => a.affiliateId === userId);
+      // Ensure an affiliate program exists for this user
+      let account = await storage.getAffiliateProgram(userId);
       if (!account) {
-        account = {
-          id: "stub-id",
-          affiliateId: userId,
-          status: "active",
-          lifetimeEarned: "0",
-          available: "0",
-          pending: "0",
-          lastPayoutAmount: "0",
-          lastPayoutAt: null,
-          referralCode: "stub-code",
-          customDomain: null,
-          couponCode: null,
-          createdAt: new Date(),
-        } as AffiliateAccount;
+        account = await storage.createAffiliateProgram({ userId });
       }
 
-      const referrals = ([] as AffiliateReferral[]).filter(
-        (r) => r.affiliateId === account.id
-      );
-      const payouts = ([] as AffiliatePayout[]).filter(
-        (p) => p.affiliateId === account.id
-      );
+      const [referrals, payouts] = await Promise.all([
+        storage.getReferralsByAffiliate(account.id),
+        storage.getPayoutsForAffiliate(account.id),
+      ]);
 
-      const stats = {
-        totalReferrals: referrals.length,
-        convertedReferrals: referrals.filter((r) => r.conversionType === "conversion").length,
-        totalCommissionEarned: String(account.lifetimeEarned ?? "0"),
-        totalCommissionPaid: String(
-          payouts
-            .filter((p) => p.status === "paid")
-            .reduce((sum: number, p) => sum + Number(p.payoutAmount ?? 0), 0)
-            .toFixed(2)
-        ),
-        conversionRate:
-          referrals.length === 0
-            ? "0"
-            : ((referrals.filter((r) => r.conversionType === "conversion").length / referrals.length) * 100).toFixed(2),
-        commissionRate: "10",
-        status: account.status || "active",
-        createdAt: (account.createdAt as Date)?.toISOString?.() || new Date().toISOString(),
-        payoutMethod: undefined,
-        payoutDetails: undefined,
+      let stats: Awaited<ReturnType<typeof storage.getAffiliateStats>> | undefined;
+      try {
+        stats = await storage.getAffiliateStats(account.id);
+      } catch (err) {
+        console.error("Failed to compute affiliate stats", err);
+      }
+
+      const totalPaid = payouts.reduce((sum, p) => sum + Number(p.payoutAmount || 0), 0);
+      const enrichedAccount: AffiliateAccount = {
+        ...account,
+        lastPayoutAmount: payouts[0]?.payoutAmount ?? account.lastPayoutAmount,
+        lastPayoutAt: payouts[0]?.createdAt ?? account.lastPayoutAt,
+        lifetimeEarned: account.lifetimeEarned ?? totalPaid.toString(),
+        available: account.available ?? '0',
+        pending: account.pending ?? '0',
       };
 
-      const commissions = payouts.map((p) => ({
-        id: p.id,
-        revenueAmount: String(p.payoutAmount ?? "0"),
-        commissionAmount: String(p.payoutAmount ?? "0"),
-        description: p.note || "Affiliate payout",
-        status: p.status || "pending",
-        approvedAt: undefined,
-        paidAt: undefined,
-        createdAt: (p.createdAt as Date)?.toISOString?.() || new Date().toISOString(),
-      }));
-
-      res.json({
-        program,
-        stats,
-        referrals: referrals.map((r) => ({
-          id: r.id,
-          affiliateCode: account.referralCode || account.id,
-          sourceUrl: r.customLink || undefined,
-          status: r.conversionType === "conversion" ? "converted" : "tracked",
-          convertedAt: undefined,
-          createdAt: (r.createdAt as Date)?.toISOString?.() || new Date().toISOString(),
-          referredUserId: r.referredUserId || undefined,
-        })),
-        commissions,
-        payouts: payouts.map((p) => ({
-          id: p.id,
-          totalAmount: String(p.payoutAmount ?? "0"),
-          payoutMethod: p.method || "manual",
-          status: p.status || "pending",
-          processedAt: undefined,
-          createdAt: (p.createdAt as Date)?.toISOString?.() || new Date().toISOString(),
-          notes: p.note || undefined,
-        })),
-      });
+      res.json({ account: enrichedAccount, referrals, payouts, stats });
     } catch (error: any) {
       console.error("Error loading affiliate dashboard:", error);
       res.status(500).json({ message: "Failed to load affiliate dashboard" });
