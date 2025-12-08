@@ -91,9 +91,13 @@ const ALLOWED_ORIGINS = rawAllowlist
   .map((o) => o.trim().toLowerCase())
   .filter((o) => o.length > 0);
 
-// Always allow localhost:3000 and the server's own port in dev
+// Always allow localhost dev ports (client + API) in dev
 if (process.env.NODE_ENV !== "production") {
-  const devOrigins = ["http://localhost:3000", `http://localhost:${PORT}`];
+  const devOrigins = [
+    "http://localhost:3000",
+    "http://localhost:5173",
+    `http://localhost:${PORT}`,
+  ];
   for (const devOrigin of devOrigins) {
     if (!ALLOWED_ORIGINS.includes(devOrigin)) {
       ALLOWED_ORIGINS.push(devOrigin);

@@ -8130,6 +8130,11 @@ export async function registerRoutes(app: any) {
   // Register social media routes
   registerSocialRoutes(app);
 
+  // Fallback for legacy client trending endpoint
+  app.get("/api/trending", (_req, res) => {
+    res.json({ items: [], message: "Trending data not available yet." });
+  });
+
   // Set up community moderation routes
   setupModerationRoutes(app);
 
