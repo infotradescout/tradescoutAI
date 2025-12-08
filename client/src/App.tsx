@@ -423,40 +423,96 @@ const AppLayout = memo(function AppLayout() {
                   </Route>
                   
                   {/* Admin routes */}
-                  <Route path="/admin-panel"><LazyPage Component={AdminPanel} /></Route>
-                  <Route path="/admin/panel"><LazyPage Component={AdminPanel} /></Route>
-                  <Route path="/admin/users"><LazyPage Component={AdminUsers} /></Route>
-                  <Route path="/admin/user-management"><LazyPage Component={AdminUserManagement} /></Route>
-                  <Route path="/admin/workspace"><LazyPage Component={AdminWorkspace} /></Route>
-                  <Route path="/admin/error-reports"><LazyPage Component={AdminErrorReports} /></Route>
-                  <Route path="/admin/testing"><LazyPage Component={AdminTestingControls} /></Route>
-                  <Route path="/admin/address-verifications"><LazyPage Component={AdminAddressVerifications} /></Route>
-                  <Route path="/admin/professional-verification"><LazyPage Component={AdminProfessionalVerification} /></Route>
-                  <Route path="/admin/listings"><LazyPage Component={AdminListings} /></Route>
-                  <Route path="/admin/attachments"><LazyPage Component={AdminAttachments} /></Route>
-                  <Route path="/admin/pricing-analytics"><LazyPage Component={AdminPricingAnalytics} /></Route>
-                  <Route path="/admin/create-account"><LazyPage Component={AdminCreateAccount} /></Route>
+                  <Route path="/admin-panel">
+                    <ProtectedRoute requiredRoles={['super_admin']}>
+                      <LazyPage Component={AdminPanel} />
+                    </ProtectedRoute>
+                  </Route>
+                  <Route path="/admin/panel">
+                    <ProtectedRoute requiredRoles={['super_admin']}>
+                      <LazyPage Component={AdminPanel} />
+                    </ProtectedRoute>
+                  </Route>
+                  <Route path="/admin/users">
+                    <ProtectedRoute requiredRoles={['super_admin']}>
+                      <LazyPage Component={AdminUsers} />
+                    </ProtectedRoute>
+                  </Route>
+                  <Route path="/admin/user-management">
+                    <ProtectedRoute requiredRoles={['super_admin']}>
+                      <LazyPage Component={AdminUserManagement} />
+                    </ProtectedRoute>
+                  </Route>
+                  <Route path="/admin/workspace">
+                    <ProtectedRoute requiredRoles={['super_admin']}>
+                      <LazyPage Component={AdminWorkspace} />
+                    </ProtectedRoute>
+                  </Route>
+                  <Route path="/admin/error-reports">
+                    <ProtectedRoute requiredRoles={['super_admin']}>
+                      <LazyPage Component={AdminErrorReports} />
+                    </ProtectedRoute>
+                  </Route>
+                  <Route path="/admin/testing">
+                    <ProtectedRoute requiredRoles={['super_admin']}>
+                      <LazyPage Component={AdminTestingControls} />
+                    </ProtectedRoute>
+                  </Route>
+                  <Route path="/admin/address-verifications">
+                    <ProtectedRoute requiredRoles={['super_admin']}>
+                      <LazyPage Component={AdminAddressVerifications} />
+                    </ProtectedRoute>
+                  </Route>
+                  <Route path="/admin/professional-verification">
+                    <ProtectedRoute requiredRoles={['super_admin']}>
+                      <LazyPage Component={AdminProfessionalVerification} />
+                    </ProtectedRoute>
+                  </Route>
+                  <Route path="/admin/listings">
+                    <ProtectedRoute requiredRoles={['super_admin']}>
+                      <LazyPage Component={AdminListings} />
+                    </ProtectedRoute>
+                  </Route>
+                  <Route path="/admin/attachments">
+                    <ProtectedRoute requiredRoles={['super_admin']}>
+                      <LazyPage Component={AdminAttachments} />
+                    </ProtectedRoute>
+                  </Route>
+                  <Route path="/admin/pricing-analytics">
+                    <ProtectedRoute requiredRoles={['super_admin']}>
+                      <LazyPage Component={AdminPricingAnalytics} />
+                    </ProtectedRoute>
+                  </Route>
+                  <Route path="/admin/create-account">
+                    <ProtectedRoute requiredRoles={['super_admin']}>
+                      <LazyPage Component={AdminCreateAccount} />
+                    </ProtectedRoute>
+                  </Route>
                   <Route path="/admin/affiliates">
                     <ProtectedRoute requiredRoles={['super_admin']}>
                       <LazyPage Component={AdminAffiliates} />
                     </ProtectedRoute>
                   </Route>
                   <Route path="/admin/system-prompt">
-                    <ProtectedRoute requiredRoles={['super_admin', 'head_admin']}>
+                    <ProtectedRoute requiredRoles={['super_admin']}>
                       <LazyPage Component={PromptAdminPage} />
                     </ProtectedRoute>
                   </Route>
                   <Route path="/admin/community-builder/reconciliation">
-                    <ProtectedRoute requiredRoles={['admin', 'super_admin']}>
+                    <ProtectedRoute requiredRoles={['super_admin']}>
                       <LazyPage Component={AdminCommunityBuilderReconciliation} />
                     </ProtectedRoute>
                   </Route>
                   <Route path="/admin/community-builder/builders">
-                    <ProtectedRoute requiredRoles={['admin', 'super_admin']}>
+                    <ProtectedRoute requiredRoles={['super_admin']}>
                       <LazyPage Component={AdminCommunityBuilderBuilders} />
                     </ProtectedRoute>
                   </Route>
-                  <Route path="/admin/:rest*"><LazyPage Component={AdminDashboard} /></Route>
+                  <Route path="/admin/:rest*">
+                    <ProtectedRoute requiredRoles={['super_admin']}>
+                      <LazyPage Component={AdminDashboard} />
+                    </ProtectedRoute>
+                  </Route>
                   
                   {/* Dashboard routes (auth required) */}
                   <Route path="/contractor-dashboard">
