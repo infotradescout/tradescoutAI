@@ -55,6 +55,25 @@ const DEFAULT_SUGGESTIONS = [
   "Show me top marketplace listings this week",
 ];
 
+// Cache comprehensive knowledge to avoid reloading on every request
+let cachedComprehensiveKnowledge: string | null = null;
+let lastKnowledgeCache = 0;
+const KNOWLEDGE_CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+
+/**
+ * Get cached comprehensive knowledge or reload if stale
+ */
+async function getCachedComprehensiveKnowledge(): Promise<string> {
+  const now = Date.now();
+  if (cachedComprehensiveKnowledge && now - lastKnowledgeCache < KNOWLEDGE_CACHE_TTL) {
+    return cachedComprehensiveKnowledge;
+  }
+  
+  cachedComprehensiveKnowledge = await loadComprehensiveKnowledge();
+  lastKnowledgeCache = now;
+  return cachedComprehensiveKnowledge;
+}
+
 /**
  * Detect if a message is an intro/overview question
  */
@@ -74,7 +93,7 @@ function isIntroQuestion(message: string): boolean {
 }
 
 /**
- * Generate smart synthesis response using comprehensive knowledge
+ * Generate smart synthesis response using comprehensive knowledge (for intro questions)
  */
 async function generateSmartSynthesis(
   message: string,
@@ -86,8 +105,8 @@ async function generateSmartSynthesis(
   }
 
   try {
-    // Load all available knowledge from admin cache and data folders
-    const comprehensiveKnowledge = await loadComprehensiveKnowledge();
+    // Use cached comprehensive knowledge
+    const comprehensiveKnowledge = await getCachedComprehensiveKnowledge();
     
     // Create a synthesis-focused prompt
     const synthPrompt = `You are Scout, the AI for TradeScout - a hyperlocal contractor and marketplace platform.
@@ -119,7 +138,7 @@ Now write a smart, comprehensive answer about TradeScout:`;
 
 /**
  * Generate smart synthesis using knowledge + conversation context
- * Used for ALL responses to turn raw knowledge into intelligent answers
+ * FAST version for regular questions - just polishes the knowledge, doesn't rewrite
  */
 async function synthesizeResponse(
   userMessage: string,
@@ -135,30 +154,19 @@ async function synthesizeResponse(
   try {
     const model = gemini.getGenerativeModel({ model: "gemini-2.5-flash" });
     
-    const synthesisPrompt = `You are Scout, the TradeScout AI assistant.
+    // FAST synthesis - just polish the knowledge into conversational format
+    // Don't rewrite, just enhance for clarity and tone
+    const synthesisPrompt = `You are Scout, the TradeScout AI. Make this knowledge conversational and helpful.
 
-System Instructions:
-${systemPrompt}
-
-Knowledge Retrieved (Layer ${knowledge.layer}):
-Sources: ${knowledge.sources.join(", ")}
-Confidence: ${knowledge.confidence}
-Data:
+Knowledge (Layer ${knowledge.layer}):
 ${knowledge.answer}
 
-${conversationHistory ? `Previous conversation:\n${conversationHistory}\n\n` : ""}
-User question: ${userMessage}
+User asked: ${userMessage}
 
-Your job:
-1. Use the knowledge provided to give an accurate, helpful answer
-2. If the knowledge is from Layer 1 or 2 (TradeScout data), speak confidently
-3. If from Layer 3 (internet), clearly state it's not local TradeScout data
-4. If Layer 4 (no data), be honest about limitations
-5. Be conversational and helpful
-6. DO NOT invent information not in the knowledge
-7. Keep responses concise but complete
-
-Provide your response now:`;
+Task: Make the knowledge above conversational and helpful. Keep all facts intact.
+Be brief, natural, friendly. Don't add new information.
+${knowledge.layer === 3 ? "Remember: This info is from the internet, NOT TradeScout data." : ""}
+${knowledge.layer === 4 ? "Be honest: You don't have reliable info." : ""}`;
 
     const result = await model.generateContent(synthesisPrompt);
     return result.response.text();
@@ -365,10 +373,48 @@ router.post("/", async (req: Request, res: Response) => {
       conversationHistory
     );
 
+    // Check if this action requires authentication
+    const authRequiredActions = [
+      "create",
+      "list",
+      "post",
+      "message",
+      "find",
+      "search",
+      "contact",
+      "apply",
+      "join",
+      "start",
+      "launch",
+      "apply for",
+    ];
+    
+    const userAskedForAction = authRequiredActions.some(action => 
+      message.toLowerCase().includes(action)
+    );
+
+    // If user is not authenticated and asked for an action, guide them to signup
+    let finalAnswer = synthesizedAnswer;
+    if (!userId && userAskedForAction && knowledge.layer < 4) {
+      finalAnswer = `${synthesizedAnswer}
+
+---
+
+**To do this, you'll need a TradeScout account!** It only takes a minute:
+
+1. Click the **"Create Account"** button at the top
+2. Choose your role (Homeowner, Contractor, or Community Member)
+3. Enter your email and create a password
+4. Verify your email
+5. Come back here and I'll help you with \`${message}\`
+
+Ready? Let's set you up! 🚀`;
+    }
+
     // The synthesized answer is our response!
     // Just return it directly with knowledge metadata
     const aiResponse: ScoutResponse = {
-      message: synthesizedAnswer,
+      message: finalAnswer,
       actions: [],
     };
 
