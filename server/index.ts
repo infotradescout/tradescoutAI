@@ -8,6 +8,7 @@ import { setupVite, serveStatic, log } from "./vite";
 import { notificationService } from "./notification-service";
 import { startCrawlerScheduler } from "./services/crawlerScheduler";
 import { initializeMessagingService } from "./messaging-service";
+import { storage } from "./storage";
 import path from "path";
 import fs from "fs";
 import { fileURLToPath } from "url";
@@ -160,6 +161,27 @@ app.use((req, res, next) => {
 
 (async () => {
   try {
+  const ensureMasterAdmin = async () => {
+    const email = process.env.MASTER_ADMIN_EMAIL;
+    const password = process.env.MASTER_ADMIN_PASSWORD;
+    if (!email || !password) {
+      console.warn('[Bootstrap] MASTER_ADMIN_EMAIL/PASSWORD not set; skipping master admin bootstrap');
+      return;
+    }
+
+    const existingHeadAdmin = await storage.getUserByRole('head_admin');
+    if (existingHeadAdmin) {
+      return;
+    }
+
+    const firstName = process.env.MASTER_ADMIN_FIRST_NAME || 'Super';
+    const lastName = process.env.MASTER_ADMIN_LAST_NAME || 'Admin';
+
+    await storage.createMasterAdmin(email, password, firstName, lastName);
+    console.log(`[Bootstrap] Created head_admin account for ${email}`);
+  };
+
+  await ensureMasterAdmin();
   // NOTE: Ensure 'routes' is imported or defined before this point if 'registerRoutes' uses it directly.
   // If 'routes' is not implicitly available, it needs to be imported.
   // For this example, assuming 'routes' is handled within 'registerRoutes' or imported elsewhere.

@@ -15,6 +15,13 @@
       "when": 1760000000000,
       "tag": "0001_community_builder",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1765401600000,
+      "tag": "0002_add_user_badges",
+      "breakpoints": false
     }
   ]
 }
