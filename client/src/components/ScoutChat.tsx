@@ -271,21 +271,6 @@ export function ScoutChat({ defaultOpen = false, isAuthenticated = false }: Scou
     setInputValue(''); // Always clear input after sending
     setIsLoading(true);
 
-    // Show thinking message while processing
-    const thinkingMsgId = `thinking-${Date.now()}`;
-    const thinkingMessage: Message = {
-      id: thinkingMsgId,
-      role: 'assistant',
-      content: '🧠 Thinking... analyzing your request and pulling insights from our knowledge base...',
-      timestamp: new Date(),
-      isThinking: true,
-    };
-    setMessages((prev) => {
-      const next = [...prev, thinkingMessage];
-      messagesRef.current = next;
-      return next;
-    });
-
     try {
       // Send message to backend
       const response = await fetch('/api/scout', {
@@ -316,7 +301,7 @@ export function ScoutChat({ defaultOpen = false, isAuthenticated = false }: Scou
         throw new Error('Empty response from Scout API');
       }
 
-      // Add Scout response to messages, removing thinking message
+      // Add Scout response to messages
       const scoutMessage: Message = {
         role: 'assistant',
         content: data.message,
@@ -324,9 +309,7 @@ export function ScoutChat({ defaultOpen = false, isAuthenticated = false }: Scou
       };
 
       setMessages((prev) => {
-        // Remove thinking message and add actual response
-        const filtered = prev.filter((m) => m.id !== thinkingMsgId);
-        const next = [...filtered, scoutMessage];
+        const next = [...prev, scoutMessage];
         messagesRef.current = next;
         return next;
       });
