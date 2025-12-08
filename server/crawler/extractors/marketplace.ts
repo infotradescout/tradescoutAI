@@ -1,4 +1,4 @@
-import { db } from "../../db";
+import { db } from "../../../src/db/drizzle-mock";
 
 /**
  * Extract active marketplace listings for caching
@@ -7,7 +7,7 @@ import { db } from "../../db";
 export async function extractMarketplace() {
   try {
     const listings = await db.query.marketplaceListings.findMany({
-      where: (table, { eq }) => eq(table.status, "active"),
+      where: (table: any, { eq }: any) => eq(table.status, "active"),
       limit: 1000,
     });
 

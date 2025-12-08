@@ -9,6 +9,11 @@ export interface TourStep {
     element?: string;
     value?: string;
   };
+  primaryAction?: {
+    label: string;
+    href: string;
+  };
+  targetElement?: string;
   condition?: () => boolean; // Optional condition to show this step
 }
 

@@ -760,6 +760,7 @@ export function getRoleDisplayName(role: UserRole): string {
     car_salesman: 'Car Salesman',
     insurance_agent: 'Insurance Agent',
     mortgage_broker: 'Mortgage Broker',
+    helper: 'Helper',
     
     // Community roles
     community_member: 'Community Member',

@@ -1,4 +1,4 @@
-import { db } from "../server/db";
+import { db } from "../src/db/drizzle-mock";
 import { pricingData } from "@shared/schema";
 
 // Sample pricing data for major counties and common trades

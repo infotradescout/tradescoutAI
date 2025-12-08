@@ -1,5 +1,5 @@
 import { ReactNode } from "react";
-import { Navigation } from "./navigation";
+import Navigation from "./navigation";
 
 interface PageHeaderProps {
   children?: ReactNode;

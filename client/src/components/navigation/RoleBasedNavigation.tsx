@@ -64,8 +64,8 @@ const NAVIGATION_ITEMS: NavigationItem[] = [
     href: "/exchange",
     icon: Briefcase,
     children: [
-      { label: "List Item", href: "/exchange/list", icon: UserPlus },
-      { label: "Property Listing", href: "/property-listing", icon: Building },
+      { label: "Browse Exchange", href: "/exchange", icon: Briefcase },
+      { label: "Real Estate", href: "/real-estate-marketplace", icon: Building },
       { label: "Business Listing", href: "/business-listing", icon: Building },
     ],
   },
@@ -78,8 +78,8 @@ const NAVIGATION_ITEMS: NavigationItem[] = [
     requiredRoles: ['contractor_user', 'accelerator_member'],
     children: [
       { label: "Dashboard", href: "/contractor-dashboard", icon: Home },
-      { label: "Accelerator", href: "/contractors/accelerator", icon: Star },
-      { label: "Promotions", href: "/contractor-promos", icon: Star },
+      { label: "Accelerator", href: "/accelerator", icon: Star },
+      { label: "Promotions", href: "/promotions", icon: Star },
       { label: "Growth Pack", href: "/growth-pack", icon: UserPlus },
     ],
   },
@@ -110,7 +110,7 @@ const NAVIGATION_ITEMS: NavigationItem[] = [
   // Staff & Moderation
   {
     label: "Moderation",
-    href: "/moderation",
+    href: "/content-moderation",
     icon: Shield,
     requiredPermission: "canModerateContent",
   },
@@ -122,7 +122,7 @@ const NAVIGATION_ITEMS: NavigationItem[] = [
     icon: Settings,
     requiredPermission: "canAccessAdminPanel",
     children: [
-      { label: "Dashboard", href: "/admin", icon: Home },
+      { label: "Dashboard", href: "/admin-panel", icon: Home },
       { label: "Panel", href: "/admin/panel", icon: Settings },
       { label: "Users", href: "/admin/users", icon: Users },
       { label: "Analytics", href: "/admin/workspace", icon: BarChart },
@@ -343,7 +343,7 @@ export function UserMenu() {
           </Link>
         </DropdownMenuItem>
         <DropdownMenuItem asChild>
-          <Link href="/conversations" className="flex items-center gap-3 cursor-pointer text-slate-200 hover:text-white px-3 py-2 hover:bg-slate-700/60">
+          <Link href="/chat" className="flex items-center gap-3 cursor-pointer text-slate-200 hover:text-white px-3 py-2 hover:bg-slate-700/60">
             <MessageSquare className="h-4 w-4" />
             Conversations
           </Link>
@@ -356,7 +356,7 @@ export function UserMenu() {
         </DropdownMenuItem>
         <DropdownMenuSeparator className="bg-slate-700" />
         <DropdownMenuItem asChild>
-          <Link href="/payments/history" className="flex items-center gap-3 cursor-pointer text-slate-200 hover:text-white px-3 py-2 hover:bg-slate-700/60">
+          <Link href="/payment-history" className="flex items-center gap-3 cursor-pointer text-slate-200 hover:text-white px-3 py-2 hover:bg-slate-700/60">
             <CreditCard className="h-4 w-4" />
             Payment History
           </Link>

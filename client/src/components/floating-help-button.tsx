@@ -14,6 +14,18 @@ export function FloatingHelpButton() {
     startTour: () => {},
     tours: {}
   };
+  const context = useHelpSystemContext?.();
+  const { config, updateConfig, startTour } = context || helpSystem;
+
+  const safeStartTour = (id?: string) => {
+    const fn = startTour as unknown as ((id?: string) => void) | undefined;
+    fn?.(id);
+  };
+
+  const safeUpdateConfig = (opts: Record<string, any>) => {
+    const fn = updateConfig as unknown as ((opts: Record<string, any>) => void) | undefined;
+    fn?.(opts);
+  };
 
   const helpOptions = [
     {
@@ -70,7 +82,7 @@ export function FloatingHelpButton() {
                     <button
                       key={option.id}
                       onClick={() => {
-                        startTour(option.id);
+                        safeStartTour(option.id);
                         setIsOpen(false);
                       }}
                       className="w-full text-left p-2 rounded hover:bg-slate-700 transition-colors group"
@@ -99,7 +111,7 @@ export function FloatingHelpButton() {
                       <input
                         type="checkbox"
                         checked={config.enableTooltips}
-                        onChange={(e) => updateConfig({ enableTooltips: e.target.checked })}
+                        onChange={(e) => safeUpdateConfig({ enableTooltips: e.target.checked })}
                         className="rounded border-slate-600 bg-slate-700 text-blue-500 focus:ring-blue-500"
                       />
                       <span className="text-slate-300">Enable tooltips</span>
@@ -108,7 +120,7 @@ export function FloatingHelpButton() {
                       <input
                         type="checkbox"
                         checked={config.contextualHints}
-                        onChange={(e) => updateConfig({ contextualHints: e.target.checked })}
+                        onChange={(e) => safeUpdateConfig({ contextualHints: e.target.checked })}
                         className="rounded border-slate-600 bg-slate-700 text-blue-500 focus:ring-blue-500"
                       />
                       <span className="text-slate-300">Show contextual hints</span>

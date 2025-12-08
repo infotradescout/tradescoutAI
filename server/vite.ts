@@ -32,8 +32,12 @@ export async function setupVite(app: Express, server: Server) {
     customLogger: {
       ...viteLogger,
       error: (msg, options) => {
+        console.error('[VITE ERROR]', msg, options);
         viteLogger.error(msg, options);
-        process.exit(1);
+        // Don't exit immediately in development - let dev see the error
+        if (process.env.NODE_ENV === 'production') {
+          process.exit(1);
+        }
       },
     },
     server: serverOptions,
@@ -41,8 +45,19 @@ export async function setupVite(app: Express, server: Server) {
   });
 
   app.use(vite.middlewares);
+  // Only serve HTML for non-API, non-asset routes
   app.use("*", async (req, res, next) => {
     const url = req.originalUrl;
+    
+    // Skip API routes - let them be handled by the API router
+    if (url.startsWith('/api/')) {
+      return next();
+    }
+
+    // Skip asset requests (they're handled by vite.middlewares)
+    if (url.includes('/src/') || url.includes('/node_modules/') || url.match(/\.(js|css|json|wasm|map)$/i)) {
+      return next();
+    }
 
     try {
       const clientTemplate = path.resolve(
@@ -61,6 +76,8 @@ export async function setupVite(app: Express, server: Server) {
       const page = await vite.transformIndexHtml(url, template);
       res.status(200).set({ "Content-Type": "text/html" }).end(page);
     } catch (e) {
+      console.error('[VITE TRANSFORM ERROR]', e);
+      console.error('[VITE TRANSFORM ERROR] Stack:', (e as Error).stack);
       vite.ssrFixStacktrace(e as Error);
       next(e);
     }

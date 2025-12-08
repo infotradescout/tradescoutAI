@@ -1,21 +1,29 @@
 import { memo } from 'react';
 import { Link, useLocation } from 'wouter';
 import { useAuth } from '@/hooks/useAuth';
-import { Home, Users, ShoppingCart, Wrench, User, Bell } from 'lucide-react';
+import { Home, Users, ShoppingCart, Wrench, User, LogIn } from 'lucide-react';
 
 const MobileAppBar = memo(function MobileAppBar() {
   const { isAuthenticated } = useAuth();
   const [location] = useLocation();
 
-  if (!isAuthenticated) return null;
+  const guestNav = [
+    { icon: Home, label: 'Assistant', path: '/', testId: 'mobile-nav-assistant', key: 'assistant' },
+    { icon: Wrench, label: 'Contractors', path: '/find-contractors', testId: 'mobile-nav-contractors', key: 'contractors' },
+    { icon: ShoppingCart, label: 'Marketplace', path: '/marketplace', testId: 'mobile-nav-marketplace', key: 'marketplace' },
+    { icon: Users, label: 'Community', path: '/community', testId: 'mobile-nav-community', key: 'community' },
+    { icon: LogIn, label: 'Log in', path: '/login', testId: 'mobile-nav-login', key: 'login' },
+  ];
 
-  const navItems = [
-    { icon: Home, label: 'Home', path: '/dashboard', testId: 'mobile-nav-home', key: 'home' },
+  const authedNav = [
+    { icon: Home, label: 'Dashboard', path: '/dashboard', testId: 'mobile-nav-home', key: 'home' },
     { icon: Users, label: 'Community', path: '/community', testId: 'mobile-nav-community', key: 'community' },
     { icon: Wrench, label: 'Contractors', path: '/find-contractors', testId: 'mobile-nav-contractors', key: 'contractors' },
     { icon: ShoppingCart, label: 'Marketplace', path: '/marketplace', testId: 'mobile-nav-marketplace', key: 'marketplace' },
     { icon: User, label: 'Profile', path: '/profile', testId: 'mobile-nav-profile', key: 'profile' },
   ];
+
+  const navItems = isAuthenticated ? authedNav : guestNav;
 
   return (
     <div className="lg:hidden fixed bottom-0 left-0 right-0 z-50 bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 shadow-lg">

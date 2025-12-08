@@ -19,8 +19,7 @@ export function EnhancedNavigation({ className = "" }: EnhancedNavigationProps) 
 
   const isActive = (path: string) => {
     if (path === "/") return location === "/";
-    // Prevent /contractors from matching /contractors/for-contractors
-    if (path === "/contractors") return location === "/contractors" || location === "/contractors/";
+    if (path === "/find-contractors") return location === "/find-contractors" || location.startsWith("/contractor-board") || location.startsWith("/contractors");
     return location.startsWith(path);
   };
 
@@ -43,26 +42,26 @@ export function EnhancedNavigation({ className = "" }: EnhancedNavigationProps) 
 
         {/* Desktop Navigation - All 7 Items in Header */}
         <nav className="hidden lg:flex items-center space-x-1 flex-1 justify-center">
-          <Link href="/contractors">
-            <Button variant={isActive("/contractors") ? "secondary" : "ghost"} size="sm" className="px-3 py-2 rounded-lg nav-button hover:bg-slate-800/60 text-sm">
+          <Link href="/find-contractors">
+            <Button variant={isActive("/find-contractors") ? "secondary" : "ghost"} size="sm" className="px-3 py-2 rounded-lg nav-button hover:bg-slate-800/60 text-sm">
               Find Contractors
             </Button>
           </Link>
           
-          <Link href="/calculator">
-            <Button variant={isActive("/calculator") ? "secondary" : "ghost"} size="sm" className="px-3 py-2 rounded-lg nav-button hover:bg-slate-800/60 text-sm">
+          <Link href="/quote-calculator">
+            <Button variant={isActive("/quote-calculator") ? "secondary" : "ghost"} size="sm" className="px-3 py-2 rounded-lg nav-button hover:bg-slate-800/60 text-sm">
               Calculator
             </Button>
           </Link>
           
-          <Link href="/contractors/for-contractors">
-            <Button variant={isActive("/contractors/for-contractors") ? "secondary" : "ghost"} size="sm" className="px-3 py-2 rounded-lg nav-button hover:bg-slate-800/60 text-sm">
+          <Link href="/contractor-board">
+            <Button variant={isActive("/contractor-board") ? "secondary" : "ghost"} size="sm" className="px-3 py-2 rounded-lg nav-button hover:bg-slate-800/60 text-sm">
               For Contractors
             </Button>
           </Link>
           
-          <Link href="/helpers">
-            <Button variant={isActive("/helpers") ? "secondary" : "ghost"} size="sm" className="px-3 py-2 rounded-lg nav-button hover:bg-slate-800/60 text-sm">
+          <Link href="/worker-marketplace">
+            <Button variant={isActive("/worker-marketplace") ? "secondary" : "ghost"} size="sm" className="px-3 py-2 rounded-lg nav-button hover:bg-slate-800/60 text-sm">
               Helpers
             </Button>
           </Link>
@@ -98,7 +97,7 @@ export function EnhancedNavigation({ className = "" }: EnhancedNavigationProps) 
                   Sign In
                 </Button>
               </Link>
-              <Link href="/setup">
+              <Link href="/signup">
                 <Button variant="outline" size="sm" className="border-orange-500/50 text-orange-400 hover:bg-orange-500/10 hover:border-orange-500">
                   Get Started
                 </Button>
@@ -138,22 +137,22 @@ export function EnhancedNavigation({ className = "" }: EnhancedNavigationProps) 
                   <h3 className="text-sm font-semibold text-gray-400 uppercase tracking-wider">
                     Navigation
                   </h3>
-                  <Link href="/contractors" onClick={() => setIsMobileMenuOpen(false)}>
+                  <Link href="/find-contractors" onClick={() => setIsMobileMenuOpen(false)}>
                     <Button variant="ghost" className="w-full justify-start text-slate-200 hover:text-white hover:bg-slate-800/60">
                       Find Contractors
                     </Button>
                   </Link>
-                  <Link href="/calculator" onClick={() => setIsMobileMenuOpen(false)}>
+                  <Link href="/quote-calculator" onClick={() => setIsMobileMenuOpen(false)}>
                     <Button variant="ghost" className="w-full justify-start text-slate-200 hover:text-white hover:bg-slate-800/60">
                       Calculator
                     </Button>
                   </Link>
-                  <Link href="/contractors/for-contractors" onClick={() => setIsMobileMenuOpen(false)}>
+                  <Link href="/contractor-board" onClick={() => setIsMobileMenuOpen(false)}>
                     <Button variant="ghost" className="w-full justify-start text-slate-200 hover:text-white hover:bg-slate-800/60">
                       For Contractors
                     </Button>
                   </Link>
-                  <Link href="/helpers" onClick={() => setIsMobileMenuOpen(false)}>
+                  <Link href="/worker-marketplace" onClick={() => setIsMobileMenuOpen(false)}>
                     <Button variant="ghost" className="w-full justify-start text-slate-200 hover:text-white hover:bg-slate-800/60">
                       Helpers
                     </Button>
@@ -186,7 +185,7 @@ export function EnhancedNavigation({ className = "" }: EnhancedNavigationProps) 
                         Sign In
                       </Button>
                     </Link>
-                    <Link href="/setup" onClick={() => setIsMobileMenuOpen(false)}>
+                    <Link href="/signup" onClick={() => setIsMobileMenuOpen(false)}>
                       <Button variant="outline" className="w-full justify-start border-orange-500/50 text-orange-400 hover:bg-orange-500/10">
                         Get Started
                       </Button>

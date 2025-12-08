@@ -88,13 +88,13 @@ export function NotificationCenter() {
   const queryClient = useQueryClient();
 
   // Fetch unread count
-  const { data: unreadData } = useQuery({
+  const { data: unreadData } = useQuery<{ count: number }>({
     queryKey: ['/api/notifications/unread-count'],
     refetchInterval: 30000, // Poll every 30 seconds
   });
 
   // Fetch notifications
-  const { data: notifications = [], isLoading } = useQuery({
+  const { data: notifications = [], isLoading } = useQuery<Notification[]>({
     queryKey: ['/api/notifications'],
     queryFn: () => apiRequest('/api/notifications?limit=20'),
     enabled: isOpen,

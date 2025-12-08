@@ -108,6 +108,7 @@ export class DeviceAuthService {
     }
 
     // Create new device registration
+    const sessionToken = crypto.randomBytes(32).toString('hex');
     const [newDevice] = await db
       .insert(trustedDevices)
       .values({
@@ -116,6 +117,7 @@ export class DeviceAuthService {
         deviceName,
         userAgent: req.headers['user-agent'],
         ipAddress: req.ip || req.connection.remoteAddress,
+        sessionToken,
         status: autoApprove ? 'approved' : 'pending',
         approvedAt: autoApprove ? new Date() : null,
         expiresAt: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000) // 1 year

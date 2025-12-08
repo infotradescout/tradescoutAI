@@ -79,7 +79,7 @@ export default function Help() {
   const [selectedCategory, setSelectedCategory] = useState("all");
 
   // Role-specific help configurations
-  const roleConfigs: Record<UserRole, RoleConfig> = {
+  const roleConfigs: Partial<Record<UserRole, RoleConfig>> = {
     homeowner: {
       name: "Homeowner",
       color: "bg-blue-600",
@@ -1126,14 +1126,14 @@ export default function Help() {
   };
 
   // Get current user's role configuration
-  const currentRole = user?.role || 'homeowner';
-  const roleConfig = roleConfigs[currentRole];
+  const currentRole = (user?.role || 'homeowner') as UserRole;
+  const roleConfig = roleConfigs[currentRole] || roleConfigs.homeowner!;
 
   // Filter articles based on search and category
   const filteredArticles = useMemo(() => {
     let allArticles: HelpArticle[] = [];
     
-    roleConfig.categories.forEach(category => {
+    roleConfig.categories.forEach((category: { articles: HelpArticle[] }) => {
       allArticles = [...allArticles, ...category.articles];
     });
 
@@ -1185,7 +1185,7 @@ export default function Help() {
 
         {/* Quick Actions */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
-          {roleConfig.quickActions.map((action, index) => (
+          {roleConfig.quickActions.map((action: { icon: React.ElementType; title: string; description: string }, index: number) => (
             <Card key={index} className="bg-navy-800/50 border-navy-600 hover:bg-navy-700/50 transition-colors cursor-pointer">
               <CardContent className="p-4 text-center">
                 <action.icon className="w-8 h-8 text-orange-500 mx-auto mb-2" />
@@ -1218,7 +1218,7 @@ export default function Help() {
                   className="w-full p-2 bg-navy-700 border border-navy-600 rounded-md text-white"
                 >
                   <option value="all">All Categories</option>
-                  {roleConfig.categories.map((category, index) => (
+                  {roleConfig.categories.map((category: { title: string }, index: number) => (
                     <option key={index} value={category.title}>{category.title}</option>
                   ))}
                 </select>
@@ -1284,7 +1284,7 @@ export default function Help() {
 
           <TabsContent value="categories">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {roleConfig.categories.map((category, index) => (
+              {roleConfig.categories.map((category: { icon: React.ElementType; title: string; articles: HelpArticle[] }, index: number) => (
                 <Card key={index} className="bg-navy-800/50 border-navy-600">
                   <CardHeader>
                     <CardTitle className="flex items-center space-x-3 text-white">
@@ -1296,7 +1296,7 @@ export default function Help() {
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-3">
-                    {category.articles.map((article, articleIndex) => (
+                    {category.articles.map((article: HelpArticle, articleIndex: number) => (
                       <div 
                         key={articleIndex}
                         className="flex items-center justify-between p-3 bg-navy-700/50 rounded-lg hover:bg-navy-700 transition-colors cursor-pointer"

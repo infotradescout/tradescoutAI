@@ -1,9 +1,13 @@
+import "dotenv/config";
 import express, { type Request, Response, NextFunction } from "express";
+import cors from "cors";
+import * as Sentry from "@sentry/node";
+import "@sentry/tracing";
 import { registerRoutes } from "./routes";
-import { seedDatabase } from "./seed-data";
 import { setupVite, serveStatic, log } from "./vite";
 import { notificationService } from "./notification-service";
 import { startCrawlerScheduler } from "./services/crawlerScheduler";
+import { initializeMessagingService } from "./messaging-service";
 import path from "path";
 import fs from "fs";
 import { fileURLToPath } from "url";
@@ -12,26 +16,116 @@ import { fileURLToPath } from "url";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-const app = express();
-app.use(express.json());
-app.use(express.urlencoded({ extended: false }));
-
-// CORS configuration and iframe compatibility
-app.use((req, res, next) => {
-  res.header('Access-Control-Allow-Origin', '*');
-  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
-  res.header('X-Frame-Options', 'ALLOWALL');
-  res.header('X-Content-Type-Options', 'nosniff');
-  // Completely remove CSP to prevent conflicts
-  res.removeHeader('Content-Security-Policy');
-  res.removeHeader('Content-Security-Policy-Report-Only');
-  if (req.method === 'OPTIONS') {
-    res.sendStatus(200);
-  } else {
-    next();
-  }
+// Global error handlers
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('Unhandled Rejection at:', promise, 'reason:', reason);
 });
+
+process.on('uncaughtException', (error) => {
+  console.error('Uncaught Exception:', error);
+  console.error('Stack:', error.stack);
+});
+
+process.on('exit', (code) => {
+  console.log(`Process exiting with code: ${code}`);
+  console.trace('Exit stack trace:');
+});
+
+process.on('beforeExit', (code) => {
+  console.log(`Before exit with code: ${code}`);
+});
+
+process.on('SIGINT', () => {
+  console.log('Received SIGINT - ignoring (server should stay running)');
+  // Don't exit - we want the server to keep running
+});
+
+process.on('SIGTERM', () => {
+  console.log('Received SIGTERM - shutting down gracefully');
+  process.exit(0);
+});
+
+const requiredEnv = ["DATABASE_URL", "SESSION_SECRET"];
+for (const key of requiredEnv) {
+  if (!process.env[key]) {
+    console.error(`Missing required env: ${key}`);
+    process.exit(1);
+  }
+}
+
+const app = express();
+const PORT = parseInt(process.env.PORT || '5000', 10);
+
+// Sentry setup (request and tracing handlers should come before other middleware)
+if (process.env.SENTRY_DSN) {
+  Sentry.init({
+    dsn: process.env.SENTRY_DSN,
+    environment: process.env.NODE_ENV,
+    tracesSampleRate: Number(process.env.SENTRY_TRACES_SAMPLE_RATE ?? 0.1),
+  });
+
+  app.use(Sentry.Handlers.requestHandler());
+  app.use(Sentry.Handlers.tracingHandler());
+}
+
+// Stripe webhooks need the raw body; route-specific raw parser lives here before global JSON parser.
+app.use("/api/payments/stripe/webhook", express.raw({ type: "application/json" }));
+
+const jsonMiddleware = express.json();
+const urlencodedMiddleware = express.urlencoded({ extended: false });
+
+// Skip JSON parsing for the Stripe webhook path to preserve the raw body for signature verification.
+app.use((req, res, next) => {
+  if (req.originalUrl === "/api/payments/stripe/webhook") return next();
+  jsonMiddleware(req, res, (err) => {
+    if (err) return next(err);
+    urlencodedMiddleware(req, res, next);
+  });
+});
+
+// Deterministic CORS configuration
+const rawAllowlist = process.env.CORS_ALLOWED_ORIGINS || "";
+const ALLOWED_ORIGINS = rawAllowlist
+  .split(",")
+  .map((o) => o.trim().toLowerCase())
+  .filter((o) => o.length > 0);
+
+// Always allow localhost:3000 and the server's own port in dev
+if (process.env.NODE_ENV !== "production") {
+  const devOrigins = ["http://localhost:3000", `http://localhost:${PORT}`];
+  for (const devOrigin of devOrigins) {
+    if (!ALLOWED_ORIGINS.includes(devOrigin)) {
+      ALLOWED_ORIGINS.push(devOrigin);
+    }
+  }
+}
+
+const corsOptions: cors.CorsOptions = {
+  origin: (origin, callback) => {
+    // No origin (curl/server-side) → allow
+    if (!origin) return callback(null, true);
+    const normalized = origin.toLowerCase();
+    if (ALLOWED_ORIGINS.includes(normalized)) {
+      return callback(null, true);
+    }
+    return callback(new Error(`CORS: Origin not allowed: ${origin}`));
+  },
+  credentials: true,
+  methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization", "Origin", "Accept"],
+  exposedHeaders: ["Content-Length", "ETag"],
+};
+
+// Always vary by Origin
+app.use((_, res, next) => {
+  res.header("Vary", "Origin");
+  next();
+});
+
+// Apply CORS before routes
+app.use(cors(corsOptions));
+// Preflight handler
+app.options("*", cors(corsOptions));
 
 
 app.use((req, res, next) => {
@@ -65,13 +159,19 @@ app.use((req, res, next) => {
 });
 
 (async () => {
+  try {
   // NOTE: Ensure 'routes' is imported or defined before this point if 'registerRoutes' uses it directly.
   // If 'routes' is not implicitly available, it needs to be imported.
   // For this example, assuming 'routes' is handled within 'registerRoutes' or imported elsewhere.
   const server = await registerRoutes(app);
 
+  // Initialize WebSocket messaging service
+  initializeMessagingService(server);
+  console.log('[Messaging] Socket.io service initialized');
+
   // Start the crawler scheduler for auto-caching
-  startCrawlerScheduler();
+  // TEMPORARILY DISABLED for smoke testing (pre-existing bug in hoa.ts extractor)
+  // startCrawlerScheduler();
 
   // Start birthday notification processing - runs daily at 9 AM
   setInterval(async () => {
@@ -86,6 +186,10 @@ app.use((req, res, next) => {
     }
   }, 60000); // Check every minute
 
+  if (process.env.SENTRY_DSN) {
+    app.use(Sentry.Handlers.errorHandler());
+  }
+
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
     const status = err.status || err.statusCode || 500;
     const message = err.message || "Internal Server Error";
@@ -98,26 +202,42 @@ app.use((req, res, next) => {
   // Other ports are firewalled. Default to 5000 if not specified.
   // this serves both the API and the client.
   // It is the only port that is not firewalled.
-  const port = parseInt(process.env.PORT || '5000', 10);
   server.listen({
-    port,
+    port: PORT,
     host: "0.0.0.0",
-    reusePort: true,
-  }, async () => {
-    log(`serving on port ${port}`);
+  }, () => {
+    log(`serving on port ${PORT}`);
     
     // Setup vite AFTER the server is listening so the port is available
     const isProduction = process.env.NODE_ENV === "production" || app.get("env") === "production";
     console.log(`Environment check: NODE_ENV=${process.env.NODE_ENV}, app.env=${app.get("env")}, isProduction=${isProduction}`);
     
     if (!isProduction) {
-      // Set HMR environment variables to fix WebSocket connection issues
-      if (process.env.REPL_SLUG && process.env.REPL_OWNER) {
-        process.env.VITE_HMR_HOST = `${process.env.REPL_SLUG}.${process.env.REPL_OWNER}.replit.dev`;
-        process.env.VITE_HMR_PORT = '443';
-        process.env.VITE_HMR_PROTOCOL = 'wss';
-      }
-      await setupVite(app, server);
+      (async () => {
+        try {
+          // Set HMR environment variables to fix WebSocket connection issues
+          if (process.env.REPL_SLUG && process.env.REPL_OWNER) {
+            process.env.VITE_HMR_HOST = `${process.env.REPL_SLUG}.${process.env.REPL_OWNER}.replit.dev`;
+            process.env.VITE_HMR_PORT = '443';
+            process.env.VITE_HMR_PROTOCOL = 'wss';
+          }
+          const skipVite = process.env.SKIP_VITE === 'true';
+          console.log(`[DEV] Vite mode: ${skipVite ? 'skipped' : 'enabled'}`);
+          // Vite enabled by default in dev; set SKIP_VITE=true to disable.
+          if (skipVite) {
+            console.log('[DEV] Vite skipped - API server will run without client');
+          } else {
+            console.log('[DEV] Setting up Vite...');
+            await setupVite(app, server);
+            console.log('[DEV] Vite setup complete - ready to accept connections');
+          }
+        } catch (viteError) {
+          console.error('[DEV] Failed to setup Vite:', viteError);
+          console.error('[DEV] Stack:', (viteError as Error).stack);
+          // Don't exit - let the server continue running without Vite
+          console.log('[DEV] Server will continue running without Vite dev server');
+        }
+      })();
     } else {
       // Serve static files from client/dist directory with absolute path resolution
       const workspaceRoot = process.cwd();
@@ -152,4 +272,9 @@ app.use((req, res, next) => {
       });
     }
   });
+  } catch (error) {
+    console.error('FATAL ERROR during server initialization:', error);
+    console.error('Stack:', (error as Error).stack);
+    process.exit(1);
+  }
 })();

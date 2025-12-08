@@ -1,4 +1,4 @@
-import { db } from '../server/db.js';
+import { db } from "../src/db/drizzle-mock";
 import { counties } from '../shared/schema.js';
 import { eq } from 'drizzle-orm';
 

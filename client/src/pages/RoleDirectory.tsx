@@ -137,7 +137,7 @@ export default function RoleDirectory() {
               <div key={categoryName} className="space-y-4">
                 <TradeCategoryHeader 
                   category={categoryName as keyof typeof TRADE_CATEGORIES}
-                  trades={trades as TradeCategory[]}
+                  trades={[...trades] as TradeCategory[]}
                 />
                 
                 <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">

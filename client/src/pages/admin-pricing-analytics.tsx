@@ -74,9 +74,12 @@ export default function AdminPricingAnalytics() {
   const [selectedView, setSelectedView] = useState<'overview' | 'trades' | 'regions' | 'trends'>('overview');
 
   // Fetch pricing analytics
-  const { data: analytics, isLoading, refetch } = useQuery({
+  const { data: analytics, isLoading, refetch } = useQuery<PricingAnalytics>({
     queryKey: ['/api/admin/pricing-analytics', timeframe],
-    queryFn: () => apiRequest('GET', `/api/admin/pricing-analytics?timeframe=${timeframe}`),
+    queryFn: async () => {
+      const result = await apiRequest('GET', `/api/admin/pricing-analytics?timeframe=${timeframe}`);
+      return result as PricingAnalytics;
+    },
     enabled: !!user && ['head_admin', 'ops_admin'].includes(user.role || ''),
   });
 
@@ -215,11 +218,11 @@ export default function AdminPricingAnalytics() {
             <div>
               <p className="text-gray-300 text-sm">Avg Quote Value</p>
               <p className="text-2xl font-bold text-white">
-                ${Math.round(
-                  Object.values(analytics?.averageQuotes?.byTrade || {})
+                ${Math.round((
+                  ((Object.values(analytics?.averageQuotes?.byTrade || {}) as Array<{ average: number }>))
                     .reduce((sum, trade) => sum + trade.average, 0) /
                   Math.max(Object.keys(analytics?.averageQuotes?.byTrade || {}).length, 1)
-                ).toLocaleString()}
+                )).toLocaleString()}
               </p>
             </div>
             <DollarSign className="h-8 w-8 text-yellow-500" />
@@ -237,7 +240,7 @@ export default function AdminPricingAnalytics() {
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
-            {analytics?.priceFluctuations?.trades?.slice(0, 10).map((trade) => (
+            {analytics?.priceFluctuations?.trades?.slice(0, 10).map((trade: PricingAnalytics['priceFluctuations']['trades'][number]) => (
               <div key={trade.tradeId} className="flex items-center justify-between">
                 <div>
                   <p className="text-white font-medium">{trade.tradeName}</p>
@@ -267,7 +270,7 @@ export default function AdminPricingAnalytics() {
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
-            {analytics?.priceFluctuations?.regions?.slice(0, 10).map((region) => (
+            {analytics?.priceFluctuations?.regions?.slice(0, 10).map((region: PricingAnalytics['priceFluctuations']['regions'][number]) => (
               <div key={region.countyId} className="flex items-center justify-between">
                 <div>
                   <p className="text-white font-medium">{region.countyName}, {region.stateCode}</p>
@@ -300,7 +303,7 @@ export default function AdminPricingAnalytics() {
       </CardHeader>
       <CardContent>
         <div className="space-y-4">
-          {analytics?.popularProjects?.slice(0, 15).map((project, index) => (
+          {analytics?.popularProjects?.slice(0, 15).map((project: PricingAnalytics['popularProjects'][number], index: number) => (
             <div key={project.projectType} className="flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <Badge variant="secondary" className="w-8 h-8 rounded-full flex items-center justify-center">
@@ -392,7 +395,7 @@ export default function AdminPricingAnalytics() {
                 <div>
                   <h4 className="text-white font-medium mb-3">Top Performing Regions</h4>
                   <div className="space-y-2">
-                    {analytics?.marketInsights?.topPerformingRegions?.slice(0, 5).map((region) => (
+                    {analytics?.marketInsights?.topPerformingRegions?.slice(0, 5).map((region: PricingAnalytics['marketInsights']['topPerformingRegions'][number]) => (
                       <div key={`${region.county}-${region.state}`} className="flex justify-between">
                         <span className="text-gray-300">{region.county}, {region.state}</span>
                         <span className="text-white">${region.averageQuote.toLocaleString()}</span>
@@ -404,7 +407,7 @@ export default function AdminPricingAnalytics() {
                 <div>
                   <h4 className="text-white font-medium mb-3">Emerging Trends</h4>
                   <div className="space-y-3">
-                    {analytics?.marketInsights?.emergingTrends?.map((trend) => (
+                    {analytics?.marketInsights?.emergingTrends?.map((trend: PricingAnalytics['marketInsights']['emergingTrends'][number]) => (
                       <div key={trend.trend} className="border-l-2 border-orange-500 pl-3">
                         <div className="flex items-center justify-between mb-1">
                           <span className="text-white font-medium">{trend.trend}</span>

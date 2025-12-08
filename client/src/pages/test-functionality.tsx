@@ -86,7 +86,7 @@ export default function TestFunctionality() {
     testResults.push({
       name: "Database - Counties",
       status: countiesLoading ? 'loading' : (countiesData?.data?.length > 0 ? 'pass' : 'fail'),
-      message: countiesLoading ? 'Loading counties...' : (countiesData?.data?.length > 0 ? `${countiesData.data.length} counties loaded (${countiesData.timing}ms)` : 'No counties found'),
+      message: countiesLoading ? 'Loading counties...' : (countiesData?.data?.length > 0 ? `${countiesData?.data.length} counties loaded (${countiesData?.timing ?? 0}ms)` : 'No counties found'),
       timing: countiesData?.timing
     });
 
@@ -94,7 +94,7 @@ export default function TestFunctionality() {
     testResults.push({
       name: "Database - Trades",
       status: tradesLoading ? 'loading' : (tradesData?.data?.length > 0 ? 'pass' : 'fail'),
-      message: tradesLoading ? 'Loading trades...' : (tradesData?.data?.length > 0 ? `${tradesData.data.length} trades loaded (${tradesData.timing}ms)` : 'No trades found'),
+      message: tradesLoading ? 'Loading trades...' : (tradesData?.data?.length > 0 ? `${tradesData?.data.length} trades loaded (${tradesData?.timing ?? 0}ms)` : 'No trades found'),
       timing: tradesData?.timing
     });
 
@@ -102,7 +102,7 @@ export default function TestFunctionality() {
     testResults.push({
       name: "Database - Contractors",
       status: contractorsLoading ? 'loading' : (contractorsData?.data?.length > 0 ? 'pass' : 'fail'),
-      message: contractorsLoading ? 'Loading contractors...' : (contractorsData?.data?.length > 0 ? `${contractorsData.data.length} contractors loaded (${contractorsData.timing}ms)` : 'No contractors found'),
+      message: contractorsLoading ? 'Loading contractors...' : (contractorsData?.data?.length > 0 ? `${contractorsData?.data.length} contractors loaded (${contractorsData?.timing ?? 0}ms)` : 'No contractors found'),
       timing: contractorsData?.timing
     });
 

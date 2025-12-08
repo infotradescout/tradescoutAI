@@ -66,7 +66,7 @@ export default function AdminUsers() {
   const isHeadAdmin = user?.role === 'head_admin';
   const currentUserLevel = roleHierarchy[user?.role as keyof typeof roleHierarchy]?.level || 0;
 
-  const { data: users = [], isLoading } = useQuery({
+  const { data: users = [], isLoading } = useQuery<User[]>({
     queryKey: ["/api/admin/users", searchTerm, selectedRole],
     enabled: isHeadAdmin || currentUserLevel >= 70, // Moderators and above can view users
   });

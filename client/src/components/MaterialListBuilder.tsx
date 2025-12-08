@@ -291,7 +291,7 @@ export function MaterialListBuilder({
                       vendor: "Home Depot", 
                       sku: "",
                       suggestedBy: userRole,
-                      status: 'pending',
+                      status: 'pending' as const,
                       notes: ""
                     };
                     setItems([...items, newItem]);

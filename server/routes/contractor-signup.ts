@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { z } from "zod";
-import { storage } from "../storage";
+import { emailService } from "../services/emailService";
 
 const router = Router();
 
@@ -57,38 +57,33 @@ router.post('/api/contractor-signup', async (req, res) => {
     
     // Send email notifications (if SendGrid configured)
     try {
-      if (process.env.SENDGRID_API_KEY) {
-        const sgMail = require('@sendgrid/mail');
-        sgMail.setApiKey(process.env.SENDGRID_API_KEY);
-        
-        // Send admin notification
-        await sgMail.send({
-          to: process.env.ADMIN_EMAIL || 'admin@tradescout.com',
-          from: 'notifications@tradescout.com',
-          subject: 'New Contractor Application',
-          html: `<p>New contractor application received from ${validatedData.firstName} ${validatedData.lastName}</p>
-                 <p>Business: ${validatedData.businessName}</p>
-                 <p>Email: ${validatedData.email}</p>
-                 <p>Phone: ${validatedData.phone}</p>`,
+      if (emailService.isConfigured()) {
+        await emailService.sendEmail({
+          to: process.env.ADMIN_EMAIL || "admin@tradescout.com",
+          from: "notifications@tradescout.com",
+          subject: "New Contractor Application",
+          html: `<p>New contractor application received from ${validatedData.companyName}</p>
+               <p>Business: ${validatedData.companyName}</p>
+               <p>Email: ${validatedData.email}</p>
+               <p>Phone: ${validatedData.phone}</p>`,
         });
-        
-        // Send confirmation to contractor
-        await sgMail.send({
+
+        await emailService.sendEmail({
           to: validatedData.email,
-          from: 'applications@tradescout.com',
-          subject: 'Application Received - TradeScout',
-          html: `<p>Hi ${validatedData.firstName},</p>
-                 <p>Thank you for applying to join TradeScout! We've received your application and will review it within 24-48 hours.</p>
-                 <p>We'll contact you at ${validatedData.email} once the review is complete.</p>
-                 <p>Best regards,<br>TradeScout Team</p>`,
+          from: "applications@tradescout.com",
+          subject: "Application Received - TradeScout",
+          html: `<p>Hi ${validatedData.companyName},</p>
+               <p>Thank you for applying to join TradeScout! We've received your application and will review it within 24-48 hours.</p>
+               <p>We'll contact you at ${validatedData.email} once the review is complete.</p>
+               <p>Best regards,<br>TradeScout Team</p>`,
         });
-        
-        console.log('Email notifications sent successfully');
+
+        console.log("Email notifications sent successfully");
       } else {
-        console.log('SendGrid not configured - skipping email notifications');
+        console.log("SendGrid not configured - skipping email notifications");
       }
     } catch (emailError) {
-      console.error('Error sending email notifications:', emailError);
+      console.error("Error sending email notifications:", emailError);
     }
     
     res.json({ 

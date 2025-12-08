@@ -21,8 +21,14 @@ export function getSession() {
     ttl: sessionTtl,
     tableName: "sessions",
   });
+
+  const sessionSecret = process.env.SESSION_SECRET || "dev-session-secret";
+  if (!process.env.SESSION_SECRET) {
+    console.warn("SESSION_SECRET not set; using a development default. Set SESSION_SECRET for production.");
+  }
+
   return session({
-    secret: process.env.SESSION_SECRET!,
+    secret: sessionSecret,
     store: sessionStore,
     resave: false,
     saveUninitialized: false,
@@ -68,13 +74,14 @@ export async function setupAuth(app: Express) {
   ));
 
   // Facebook strategy for social authentication
-  console.log('Facebook env check:', !!process.env.FACEBOOK_APP_ID, !!process.env.FACEBOOK_APP_SECRET);
+  const facebookDisabled = process.env.DISABLE_FACEBOOK_AUTH === "true";
   const facebookAppId = process.env.FACEBOOK_APP_ID;
   const facebookAppSecret = process.env.FACEBOOK_APP_SECRET;
-  
-  if (facebookAppId && facebookAppSecret) {
+
+  if (facebookDisabled || !facebookAppId || !facebookAppSecret) {
+    console.log("Facebook strategy skipped (set FACEBOOK_APP_ID/SECRET to enable; set DISABLE_FACEBOOK_AUTH=true to silence this message)");
+  } else {
     console.log('Registering Facebook strategy with App ID:', facebookAppId.substring(0, 4) + '...');
-    
     try {
       passport.use('facebook', new FacebookStrategy({
         clientID: facebookAppId,
@@ -84,20 +91,16 @@ export async function setupAuth(app: Express) {
       },
     async (accessToken, refreshToken, profile, done) => {
       try {
-        // Check if user already exists with this Facebook ID
         let user = await storage.getUserByFacebookId(profile.id);
         
         if (user) {
-          // Update last login and return existing user
           return done(null, user);
         }
 
-        // Check if user exists with same email address
         const email = profile.emails?.[0]?.value;
         if (email) {
           user = await storage.getUserByEmail(email);
           if (user) {
-            // Link Facebook account to existing user
             await storage.updateUser(user.id, {
               facebookId: profile.id,
               profileImageUrl: profile.photos?.[0]?.value
@@ -106,15 +109,14 @@ export async function setupAuth(app: Express) {
           }
         }
 
-        // Create new user from Facebook profile - role will be selected during onboarding
         const newUser = await storage.createUser({
           email: email || `${profile.id}@facebook.local`,
           firstName: profile.name?.givenName || profile.displayName,
           lastName: profile.name?.familyName || '',
           profileImageUrl: profile.photos?.[0]?.value,
           facebookId: profile.id,
-          role: null, // Will be set during role selection
-          emailVerified: !!email, // Consider Facebook email verified
+          role: null,
+          emailVerified: !!email,
           onboardingCompleted: false,
           createdAt: new Date(),
           updatedAt: new Date()
@@ -125,15 +127,10 @@ export async function setupAuth(app: Express) {
         return done(error);
       }
       }));
-      
       console.log('Facebook strategy successfully registered');
     } catch (error) {
       console.error('Error registering Facebook strategy:', error);
     }
-  } else {
-    console.log('Facebook strategy not registered - missing APP_ID or APP_SECRET');
-    console.log('APP_ID present:', !!facebookAppId);
-    console.log('APP_SECRET present:', !!facebookAppSecret);
   }
 
   // Serialize/deserialize user for session
@@ -156,6 +153,7 @@ export const isAuthenticated: RequestHandler = (req, res, next) => {
   if (req.isAuthenticated()) {
     return next();
   }
+
   res.status(401).json({ message: "Authentication required" });
 };
 
@@ -230,6 +228,22 @@ export async function validatePassword(password: string, hash: string): Promise<
 }
 
 // Master admin setup function
+// Middleware to require authentication
+export const requireAuth = (req: any, res: any, next: any) => {
+  if (req.isAuthenticated()) {
+    return next();
+  }
+  res.status(401).json({ error: 'Authentication required' });
+};
+
+// Middleware to require admin role
+export const requireAdmin = (req: any, res: any, next: any) => {
+  if (req.isAuthenticated() && req.user?.role === 'admin') {
+    return next();
+  }
+  res.status(403).json({ error: 'Admin access required' });
+};
+
 export async function createMasterAdmin(email: string, password: string, firstName: string, lastName: string): Promise<User> {
   const passwordHash = await hashPassword(password);
   

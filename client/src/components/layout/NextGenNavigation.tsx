@@ -36,7 +36,7 @@ export function NextGenNavigation({ className = "" }: NextGenNavigationProps) {
     
     // Base navigation items with role-specific priorities
     const baseItems = [
-      { href: "/contractors/board", label: "Contractors", icon: Users, priority: 10 },
+      { href: "/find-contractors", label: "Contractors", icon: Users, priority: 10 },
       { href: "/quote-calculator", label: "Calculator", icon: Calculator, priority: 9 },
       { href: "/daily-deals", label: "Daily Deals", icon: Percent, priority: 8 },
       // Full features available for authenticated users
@@ -44,17 +44,17 @@ export function NextGenNavigation({ className = "" }: NextGenNavigationProps) {
         { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard, priority: 7 },
         { href: "/boosts", label: "Boosts", icon: TrendingUp, priority: 6 },
         { href: "/groups", label: "Groups", icon: Users, priority: 5 },
-        { href: "/hoa", label: "HOA", icon: Building, priority: 4 },
-        { href: "/nationwide", label: "Nationwide", icon: Users, priority: 3 },
+        { href: "/hoa-dashboard", label: "HOA", icon: Building, priority: 4 },
+        { href: "/county-directory", label: "County Directory", icon: Users, priority: 3 },
         { href: "/foundation", label: "Foundation", icon: Building, priority: 2 },
         { href: "/community", label: "Community", icon: MessageSquare, priority: 3 },
-        { href: "/helpers", label: "Helpers", icon: Users, priority: 4 },
+        { href: "/worker-marketplace", label: "Helpers", icon: Users, priority: 4 },
         { href: "/exchange", label: "Exchange", icon: ArrowLeftRight, priority: 3 },
         { href: "/accelerator", label: "Accelerator", icon: Crown, priority: 2 },
         // Admin navigation for head_admin users
         ...(userRole === 'head_admin' || userRole === 'ops_admin' ? [
-          { href: "/admin", label: "Admin", icon: Shield, priority: 15 },
-          { href: "/admin/dashboard", label: "Admin Dashboard", icon: Settings, priority: 14 }
+          { href: "/admin/panel", label: "Admin", icon: Shield, priority: 15 },
+          { href: "/admin/users", label: "Admin Users", icon: Settings, priority: 14 }
         ] : [])
       ] : [])
     ];
@@ -62,26 +62,26 @@ export function NextGenNavigation({ className = "" }: NextGenNavigationProps) {
     // Adjust priorities based on user role
     if (userRole === 'head_admin' || userRole === 'ops_admin') {
       return baseItems.map(item => {
-        if (item.href === '/admin') return { ...item, priority: 20 }; // Highest priority
-        if (item.href === '/admin/dashboard') return { ...item, priority: 19 };
+        if (item.href === '/admin/panel') return { ...item, priority: 20 }; // Highest priority
+        if (item.href === '/admin/users') return { ...item, priority: 19 };
         if (item.href === '/dashboard') return { ...item, priority: 18 };
-        if (item.href === '/contractors/board') return { ...item, priority: 17 };
+        if (item.href === '/find-contractors') return { ...item, priority: 17 };
         return item;
       });
     } else if (userRole === 'contractor_user' || userRole === 'accelerator_member') {
       return baseItems.map(item => {
         if (item.href === '/dashboard') return { ...item, priority: 15 }; // Highest priority
-        if (item.href === '/contractors/board') return { ...item, priority: 14 };
+        if (item.href === '/find-contractors') return { ...item, priority: 14 };
         if (item.href === '/accelerator') return { ...item, priority: 13 };
-        if (item.href === '/helpers') return { ...item, priority: 12 };
+        if (item.href === '/worker-marketplace') return { ...item, priority: 12 };
         if (item.href === '/quote-calculator') return { ...item, priority: 11 };
         return item;
       });
     } else if (userRole === 'helper') {
       return baseItems.map(item => {
         if (item.href === '/dashboard') return { ...item, priority: 15 }; // Highest priority for helper dashboard
-        if (item.href === '/helpers') return { ...item, priority: 14 }; // Second priority for job listings
-        if (item.href === '/contractors/board') return { ...item, priority: 13 }; // To find work from contractors
+        if (item.href === '/worker-marketplace') return { ...item, priority: 14 }; // Second priority for job listings
+        if (item.href === '/find-contractors') return { ...item, priority: 13 }; // To find work from contractors
         if (item.href === '/community') return { ...item, priority: 12 };
         if (item.href === '/quote-calculator') return { ...item, priority: 11 };
         return item;
@@ -90,17 +90,17 @@ export function NextGenNavigation({ className = "" }: NextGenNavigationProps) {
       return baseItems.map(item => {
         if (item.href === '/dashboard') return { ...item, priority: 15 };
         if (item.href === '/community') return { ...item, priority: 14 };
-        if (item.href === '/contractors/board') return { ...item, priority: 13 };
+        if (item.href === '/find-contractors') return { ...item, priority: 13 };
         if (item.href === '/foundation') return { ...item, priority: 12 };
         return item;
       });
     } else { // homeowner (default)
       return baseItems.map(item => {
         if (item.href === '/dashboard') return { ...item, priority: 15 };
-        if (item.href === '/contractors/board') return { ...item, priority: 14 };
-        if (item.href === '/calculator') return { ...item, priority: 13 };
+        if (item.href === '/find-contractors') return { ...item, priority: 14 };
+        if (item.href === '/quote-calculator') return { ...item, priority: 13 };
         if (item.href === '/community') return { ...item, priority: 12 };
-        if (item.href === '/helpers') return { ...item, priority: 11 };
+        if (item.href === '/worker-marketplace') return { ...item, priority: 11 };
         return item;
       });
     }
@@ -116,7 +116,7 @@ export function NextGenNavigation({ className = "" }: NextGenNavigationProps) {
 
   const isActive = (path: string) => {
     if (path === "/") return location === "/";
-    if (path === "/contractors/board") return location === "/contractors/board" || location.startsWith("/contractors/board");
+    if (path === "/find-contractors") return location === "/find-contractors" || location.startsWith("/contractor-board") || location.startsWith("/contractors");
     return location.startsWith(path);
   };
 
@@ -237,8 +237,8 @@ export function NextGenNavigation({ className = "" }: NextGenNavigationProps) {
                     } ${showTextLabel ? 'px-3 py-2 gap-2' : 'px-2.5 py-2'}`}
                     title={!showTextLabel ? item.label : undefined}
                     data-nav-item={item.label.toLowerCase().replace(/\s+/g, '-')}
-                    data-nav-contractors={item.href === '/contractors' ? 'true' : undefined}
-                    data-nav-calculator={item.href === '/calculator' ? 'true' : undefined}
+                    data-nav-contractors={item.href === '/find-contractors' ? 'true' : undefined}
+                    data-nav-calculator={item.href === '/quote-calculator' ? 'true' : undefined}
                     data-nav-dashboard={item.href === '/dashboard' ? 'true' : undefined}
                     data-nav-growth={item.href === '/growth-pack' ? 'true' : undefined}
                   >

@@ -24,7 +24,7 @@ export default function AdminAttachments() {
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [filterType, setFilterType] = useState("all");
 
-  const { data: reports = [], isLoading } = useQuery({
+  const { data: reports = [], isLoading } = useQuery<ErrorReportWithAttachments[]>({
     queryKey: ['/api/admin/error-reports'],
   });
 

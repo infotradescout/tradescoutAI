@@ -10,6 +10,24 @@ import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { Mail, Users, Gift, Copy, Check } from "lucide-react";
 
+type ReferralCodeResponse = { referralCode?: string } | undefined;
+type ReferralStats = {
+  totalInvitationsSent?: number;
+  totalInvitationsAccepted?: number;
+  contractorReferrals?: number;
+  homeownerReferrals?: number;
+} | undefined;
+
+type Invitation = {
+  id: string;
+  email: string;
+  targetRole: string;
+  code: string;
+  status: string;
+  sentAt?: string;
+  acceptedAt?: string | null;
+};
+
 export default function InvitePage() {
   const [email, setEmail] = useState("");
   const [targetRole, setTargetRole] = useState("");
@@ -19,19 +37,19 @@ export default function InvitePage() {
   const queryClient = useQueryClient();
 
   // Fetch user's referral code
-  const { data: referralCodeData } = useQuery({
+  const { data: referralCodeData } = useQuery<ReferralCodeResponse>({
     queryKey: ["/api/referrals/generate-code"],
     retry: false,
   });
 
   // Fetch user's invitations
-  const { data: invitations, isLoading: invitationsLoading } = useQuery({
+  const { data: invitations = [], isLoading: invitationsLoading } = useQuery<Invitation[]>({
     queryKey: ["/api/invitations/my"],
     retry: false,
   });
 
   // Fetch user's referral stats
-  const { data: stats } = useQuery({
+  const { data: stats } = useQuery<ReferralStats>({
     queryKey: ["/api/referrals/stats"],
     retry: false,
   });

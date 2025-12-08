@@ -1,11 +1,13 @@
 import { recordQuery, recordFallback, getAnalytics, getAuditLog } from "../services/adminAnalytics";
 import { Router, type Request, Response } from "express";
 import { GeminiProvider, generateWithFallback, LLMProvider } from "../services/llmProvider";
+import { GoogleGenerativeAI } from "@google/generative-ai";
 import { executeAssistantAction, type AssistantAction, type User } from "../assistantActions";
 import {
   resolveKnowledge,
   getLocalGuide,
   getLocalMarkdownGuide,
+  appendChatKnowledge,
 } from "../services/knowledgeService";
 import { loadSystemPrompt } from "../services/promptService";
 import fs from "fs";
@@ -21,6 +23,12 @@ const llmProviders: LLMProvider[] = [
   new GeminiProvider(process.env.GEMINI_API_KEY || ""),
   // Add new OpenAIProvider(process.env.OPENAI_API_KEY) here if needed
 ];
+const llmEnabled = llmProviders.some((p) => p.isConfigured());
+
+// Dedicated Gemini client for knowledge layer (internet search)
+const geminiClient = process.env.GEMINI_API_KEY
+  ? new GoogleGenerativeAI(process.env.GEMINI_API_KEY)
+  : null;
 
 interface ChatMessage {
   role: "user" | "assistant";
@@ -94,10 +102,28 @@ router.post("/", async (req: Request, res: Response) => {
     };
 
     // Use Gemini as primary, fallback to others if needed for Layer 3 (internet search)
-    const knowledge = await resolveKnowledge(knowledgeRequest, llmProviders[0]);
+    const knowledge = await resolveKnowledge(knowledgeRequest, geminiClient);
 
     // Load system prompt (with version)
     const { content: systemPrompt, version: promptVersion } = loadSystemPrompt();
+
+    // If no LLM providers configured, return a structured offline response so app can be tested
+    if (!llmEnabled) {
+      return res.json({
+        message: "LLM disabled in this environment. Returning knowledge result only.",
+        actions: [],
+        actionResults: [],
+        knowledge: {
+          layer: knowledge.layer,
+          sources: knowledge.sources,
+          confidence: knowledge.confidence,
+          data: knowledge.answer,
+        },
+        llmProvider: "disabled",
+        promptVersion,
+        timestamp: new Date().toISOString(),
+      });
+    }
 
     // Build conversation history
     const conversationHistory = history
@@ -223,6 +249,22 @@ router.get("/admin/audit-log", (req: Request, res: Response) => {
           ...result,
         });
       }
+    }
+
+    // Persist non-sensitive Q&A back into the knowledge corpus for future retrieval
+    try {
+      appendChatKnowledge({
+        question: message,
+        answer: aiResponse.message,
+        userId,
+        countyCode,
+        stateCode,
+        layer: knowledge.layer,
+        sources: knowledge.sources,
+        actions: aiResponse.actions?.map((a) => a.type),
+      });
+    } catch (persistError) {
+      console.error("Failed to append chat knowledge:", persistError);
     }
 
     // Return the response with knowledge layer information and prompt version

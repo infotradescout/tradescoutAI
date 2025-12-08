@@ -21,7 +21,8 @@ import {
   Home,
   Plus,
   TrendingUp,
-  Key
+  Key,
+  Eye
 } from "lucide-react";
 
 interface Property {

@@ -1,4 +1,4 @@
-import { db } from "../db.js";
+import { db } from "../../src/db/drizzle-mock";
 import { eq } from "drizzle-orm";
 
 /**

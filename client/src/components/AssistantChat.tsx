@@ -17,13 +17,17 @@ interface AssistantResponse {
   timestamp: string;
 }
 
-export function AssistantChat() {
-  const [isOpen, setIsOpen] = useState(false);
+type AssistantChatProps = {
+  defaultOpen?: boolean;
+};
+
+export function AssistantChat({ defaultOpen = false }: AssistantChatProps) {
+  const [isOpen, setIsOpen] = useState(defaultOpen);
   const [isMinimized, setIsMinimized] = useState(false);
   const [messages, setMessages] = useState<Message[]>([
     {
       role: 'assistant',
-      content: 'Hi! I\'m your TradeScout AI assistant. I can help you find contractors, search the marketplace, get your profile info, and more. How can I help you today?',
+      content: "Hi! I'm Scout, your TradeScout controller. I can help you find contractors, search the marketplace, get your profile info, and route you anywhere in the site. What do you want to do?",
       timestamp: new Date(),
     },
   ]);
@@ -72,7 +76,7 @@ export function AssistantChat() {
       });
 
       if (!response.ok) {
-        throw new Error('Failed to get response from assistant');
+        throw new Error('Failed to get response from Scout');
       }
 
       const data: AssistantResponse = await response.json();
@@ -99,7 +103,7 @@ export function AssistantChat() {
       console.error('Error sending message:', error);
       const errorMessage: Message = {
         role: 'assistant',
-        content: 'Sorry, I encountered an error processing your request. Please try again.',
+        content: 'Sorry, Scout hit an error processing your request. Please try again.',
         timestamp: new Date(),
       };
       setMessages((prev) => [...prev, errorMessage]);
@@ -161,7 +165,7 @@ export function AssistantChat() {
       <div className="flex items-center justify-between p-4 border-b bg-primary text-primary-foreground rounded-t-lg">
         <div className="flex items-center gap-2">
           <MessageCircle className="h-5 w-5" />
-          <h3 className="font-semibold">TradeScout Assistant</h3>
+          <h3 className="font-semibold">TradeScout Scout</h3>
         </div>
         <div className="flex items-center gap-2">
           <Button

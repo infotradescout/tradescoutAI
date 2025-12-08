@@ -1,4 +1,4 @@
-import { db } from "../../db";
+import { db } from "../../../src/db/drizzle-mock";
 
 /**
  * Extract community groups for caching
@@ -6,7 +6,7 @@ import { db } from "../../db";
 export async function extractGroups() {
   try {
     const groups = await db.query.communityGroups.findMany({
-      where: (table, { eq }) => eq(table.isActive, true),
+      where: (table: any, { eq }: any) => eq(table.isActive, true),
       limit: 2000,
     });
 

@@ -1,4 +1,4 @@
-import { db } from "../db";
+import { db } from "../../src/db/drizzle-mock";
 import { eq, ilike } from "drizzle-orm";
 // Note: Schema types are imported from @shared/schema when DATABASE_URL is connected
 

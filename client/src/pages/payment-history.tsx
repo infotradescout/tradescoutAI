@@ -21,6 +21,27 @@ import {
 } from "lucide-react";
 import { formatDistance } from "date-fns";
 
+interface PaymentRecord {
+  id: string;
+  createdAt: string | Date | null;
+  status: string;
+  totalAmount?: number | string | null;
+  description?: string | null;
+  isOffPlatform?: boolean;
+  [key: string]: any;
+}
+
+interface PaymentHistoryResponse {
+  contractorPayments: {
+    asHomeowner: PaymentRecord[];
+    asContractor: PaymentRecord[];
+  };
+  marketplaceTransactions: {
+    asBuyer: PaymentRecord[];
+    asSeller: PaymentRecord[];
+  };
+}
+
 interface PaymentHistoryProps {}
 
 const getStatusIcon = (status: string) => {
@@ -52,7 +73,7 @@ const getStatusColor = (status: string) => {
 export default function PaymentHistory() {
   const [filterType, setFilterType] = useState('all');
   
-  const { data: paymentHistory, isLoading } = useQuery({
+  const { data: paymentHistory, isLoading } = useQuery<PaymentHistoryResponse>({
     queryKey: ["/api/payments/history", { type: filterType }],
   });
 

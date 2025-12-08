@@ -4,10 +4,32 @@ import { QueryClient } from "@tanstack/react-query";
 const API_BASE_URL = import.meta.env.VITE_API_URL || "";
 
 // Enhanced API request function with better error handling
-export async function apiRequest(method: string, url: string, data?: any) {
+export async function apiRequest(method: string, url: string, data?: any): Promise<any>;
+export async function apiRequest(url: string, options?: { method?: string; body?: any; data?: any } | any): Promise<any>;
+export async function apiRequest(methodOrUrl: string, urlOrData?: string | Record<string, any>, data?: any) {
   try {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 second timeout
+
+    // Normalize arguments to support both apiRequest(method, url, data) and apiRequest(url, options)
+    let method = 'GET';
+    let url = '';
+    let payload: any;
+
+    if (typeof urlOrData === 'string') {
+      method = methodOrUrl?.toUpperCase?.() || 'GET';
+      url = urlOrData;
+      payload = data;
+    } else {
+      url = methodOrUrl;
+      method = (urlOrData as any)?.method?.toUpperCase?.() || 'GET';
+      payload = (urlOrData as any)?.body ?? (urlOrData as any)?.data;
+
+      // If no explicit body provided but options look like payload, send it for non-GET
+      if (payload === undefined && urlOrData && typeof urlOrData === 'object' && method !== 'GET') {
+        payload = urlOrData;
+      }
+    }
 
     const config: RequestInit = {
       method,
@@ -19,8 +41,8 @@ export async function apiRequest(method: string, url: string, data?: any) {
       },
     };
 
-    if (data && (method === 'POST' || method === 'PUT' || method === 'PATCH')) {
-      config.body = JSON.stringify(data);
+    if (payload && (method === 'POST' || method === 'PUT' || method === 'PATCH' || method === 'DELETE')) {
+      config.body = JSON.stringify(payload);
     }
 
     const fullUrl = url.startsWith('http') ? url : `${API_BASE_URL}${url}`;

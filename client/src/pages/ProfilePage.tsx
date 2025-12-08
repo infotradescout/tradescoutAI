@@ -1,0 +1,418 @@
+import { useState } from "react";
+import { useAuth } from "@/hooks/useAuth";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { USER_TYPES } from "@shared/userTypes";
+import { 
+  MapPin, Calendar, Building, Award, Star, Settings, 
+  Eye, Share2, Edit, ExternalLink, Globe, Copy, Check
+} from "lucide-react";
+import { useLocation } from "wouter";
+
+export default function ProfilePage() {
+  const { user } = useAuth();
+  const [, setLocation] = useLocation();
+  const [copied, setCopied] = useState(false);
+
+  if (!user) {
+    return (
+      <div className="container mx-auto py-12 text-center">
+        <p className="text-tsTextMuted">Please log in to view your profile</p>
+      </div>
+    );
+  }
+
+  const displayName = user.firstName && user.lastName
+    ? `${user.firstName} ${user.lastName}`
+    : user.firstName || 'TradeScout User';
+
+  const location = user.city && user.state
+    ? `${user.city}, ${user.state}`
+    : user.city || user.state || 'Location not set';
+
+  const badges = user.badges || [];
+  const showBadges = user.preferences?.badges?.show !== false;
+  const hasCommunityBuilder = (user.roles || []).includes('community_builder');
+
+  const profileUrl = `${window.location.origin}/profile/${user.id}`;
+  const isPublic = user.preferences?.profileVisibility === 'public';
+
+  const copyProfileUrl = () => {
+    navigator.clipboard.writeText(profileUrl);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  return (
+    <div className="min-h-screen bg-tsBg">
+      <div className="container mx-auto py-8 space-y-6 max-w-6xl">
+        {/* Profile Header */}
+        <div className="bg-tsCard rounded-lg p-8 shadow-lg border border-tsBorder">
+          <div className="flex flex-col md:flex-row gap-6 items-start md:items-center">
+            {user.profileImageUrl ? (
+              <img
+                src={user.profileImageUrl}
+                alt={displayName}
+                className="w-32 h-32 rounded-full object-cover border-4 border-tsAccent"
+              />
+            ) : (
+              <div className="w-32 h-32 rounded-full bg-tsAccent flex items-center justify-center text-5xl font-bold text-white">
+                {displayName.charAt(0).toUpperCase()}
+              </div>
+            )}
+
+            <div className="flex-1">
+              <div className="flex items-start justify-between mb-4">
+                <div>
+                  <h1 className="text-4xl font-bold text-tsTextMain mb-2">{displayName}</h1>
+                  <div className="flex flex-wrap gap-3 text-sm text-tsTextMuted">
+                    {location && (
+                      <div className="flex items-center gap-1">
+                        <MapPin className="h-4 w-4" />
+                        <span>{location}</span>
+                      </div>
+                    )}
+                    {user.createdAt && (
+                      <div className="flex items-center gap-1">
+                        <Calendar className="h-4 w-4" />
+                        <span>Member since {new Date(user.createdAt).getFullYear()}</span>
+                      </div>
+                    )}
+                    <div className="flex items-center gap-1">
+                      {isPublic ? (
+                        <>
+                          <Globe className="h-4 w-4 text-green-400" />
+                          <span className="text-green-400">Public Profile</span>
+                        </>
+                      ) : (
+                        <>
+                          <Eye className="h-4 w-4 text-tsTextMuted" />
+                          <span>Private Profile</span>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                <Button
+                  onClick={() => setLocation('/profile-settings')}
+                  variant="outline"
+                  className="border-tsAccent text-tsAccent hover:bg-tsAccent hover:text-white"
+                >
+                  <Settings className="h-4 w-4 mr-2" />
+                  Edit Profile
+                </Button>
+              </div>
+
+              {showBadges && (badges.length > 0 || hasCommunityBuilder) && (
+                <div className="flex flex-wrap gap-2 mt-2">
+                  {hasCommunityBuilder && (
+                    <Badge className="bg-emerald-500 text-white px-3 py-1">
+                      <Award className="h-3 w-3 mr-1" />
+                      Community Builder
+                    </Badge>
+                  )}
+                  {badges.map((badge: string) => (
+                    <Badge key={badge} className="bg-tsAccent text-white px-3 py-1">
+                      {badge}
+                    </Badge>
+                  ))}
+                </div>
+              )}
+
+              {/* User Types */}
+              {user.roles && user.roles.length > 0 && (
+                <div className="mb-4">
+                  <p className="text-sm text-tsTextMuted mb-2">User Types</p>
+                  <div className="flex flex-wrap gap-2">
+                    {user.roles.map((roleId: string) => {
+                      const userType = USER_TYPES[roleId];
+                      if (!userType) return null;
+
+                      return (
+                        <Badge
+                          key={roleId}
+                          className="bg-tsAccent text-white px-3 py-1"
+                        >
+                          {userType.label}
+                        </Badge>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* Share Profile */}
+              {isPublic && (
+                <div className="bg-tsBg border border-tsBorder rounded-lg p-4">
+                  <div className="flex items-center justify-between gap-4">
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs text-tsTextMuted mb-1">Your Public Profile URL</p>
+                      <code className="text-sm text-tsAccent truncate block">
+                        {profileUrl}
+                      </code>
+                    </div>
+                    <div className="flex gap-2">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={copyProfileUrl}
+                        className="border-tsAccent text-tsAccent hover:bg-tsAccent hover:text-white"
+                      >
+                        {copied ? (
+                          <>
+                            <Check className="h-4 w-4 mr-1" />
+                            Copied
+                          </>
+                        ) : (
+                          <>
+                            <Copy className="h-4 w-4 mr-1" />
+                            Copy
+                          </>
+                        )}
+                      </Button>
+                      <Button
+                        size="sm"
+                        onClick={() => window.open(profileUrl, '_blank')}
+                        className="bg-tsAccent text-white hover:bg-tsAccent/90"
+                      >
+                        <ExternalLink className="h-4 w-4 mr-1" />
+                        View
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Profile Tabs */}
+        <Tabs defaultValue="overview" className="w-full">
+          <TabsList className="bg-tsCard border border-tsBorder">
+            <TabsTrigger value="overview">Overview</TabsTrigger>
+            <TabsTrigger value="activity">Activity</TabsTrigger>
+            <TabsTrigger value="listings">Listings</TabsTrigger>
+            <TabsTrigger value="reviews">Reviews</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="overview" className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* About Section */}
+              <Card className="bg-tsCard border-tsBorder">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 text-tsTextMain">
+                    <Building className="h-5 w-5 text-tsAccent" />
+                    About
+                  </CardTitle>
+                  <CardDescription className="text-tsTextMuted">
+                    Your professional profile information
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="text-tsTextMain">
+                  <div className="space-y-3">
+                    <div>
+                      <p className="text-sm text-tsTextMuted">Email</p>
+                      <p className="text-sm font-medium">{user.email}</p>
+                    </div>
+                    {user.phone && (
+                      <div>
+                        <p className="text-sm text-tsTextMuted">Phone</p>
+                        <p className="text-sm font-medium">{user.phone}</p>
+                      </div>
+                    )}
+                    <div>
+                      <p className="text-sm text-tsTextMuted">Location</p>
+                      <p className="text-sm font-medium">{location}</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Profile Website Features */}
+              <Card className="bg-tsCard border-tsBorder">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 text-tsTextMain">
+                    <Globe className="h-5 w-5 text-tsAccent" />
+                    Your Profile is Your Website
+                  </CardTitle>
+                  <CardDescription className="text-tsTextMuted">
+                    Your profile replaces the need for a traditional website
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="text-tsTextMain">
+                  <ul className="space-y-2 text-sm">
+                    <li className="flex items-start gap-2">
+                      <Check className="h-4 w-4 text-green-400 mt-0.5 flex-shrink-0" />
+                      <span>Custom color schemes that match your brand</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <Check className="h-4 w-4 text-green-400 mt-0.5 flex-shrink-0" />
+                      <span>Automatic layout based on your user types</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <Check className="h-4 w-4 text-green-400 mt-0.5 flex-shrink-0" />
+                      <span>Public profiles are searchable by the AI assistant</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <Check className="h-4 w-4 text-green-400 mt-0.5 flex-shrink-0" />
+                      <span>Share your profile URL instead of a website</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <Check className="h-4 w-4 text-green-400 mt-0.5 flex-shrink-0" />
+                      <span>Activity and reviews build your reputation</span>
+                    </li>
+                  </ul>
+                </CardContent>
+              </Card>
+
+              {/* Preferences */}
+              <Card className="bg-tsCard border-tsBorder">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 text-tsTextMain">
+                    <Settings className="h-5 w-5 text-tsAccent" />
+                    Preferences
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="text-tsTextMain">
+                  <div className="space-y-3 text-sm">
+                    <div className="flex justify-between items-center">
+                      <span className="text-tsTextMuted">Default Home Page</span>
+                      <span className="font-medium capitalize">
+                        {user.preferences?.defaultHomePage || 'llm'}
+                      </span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-tsTextMuted">Profile Visibility</span>
+                      <span className="font-medium capitalize">
+                        {user.preferences?.profileVisibility || 'public'}
+                      </span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-tsTextMuted">Color Scheme</span>
+                      <span className="font-medium capitalize">
+                        {user.preferences?.colorScheme?.preset || 'default'}
+                      </span>
+                    </div>
+                  </div>
+                  <Button
+                    className="w-full mt-4 bg-tsAccent text-white hover:bg-tsAccent/90"
+                    onClick={() => setLocation('/profile-settings')}
+                  >
+                    Customize Settings
+                  </Button>
+                </CardContent>
+              </Card>
+
+              {/* Stats Card */}
+              <Card className="bg-tsCard border-tsBorder">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 text-tsTextMain">
+                    <Award className="h-5 w-5 text-tsAccent" />
+                    Profile Stats
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-3 gap-4 text-center">
+                    <div>
+                      <div className="text-2xl font-bold text-tsAccent">0</div>
+                      <div className="text-xs text-tsTextMuted">Listings</div>
+                    </div>
+                    <div>
+                      <div className="text-2xl font-bold text-tsAccent">0</div>
+                      <div className="text-xs text-tsTextMuted">Reviews</div>
+                    </div>
+                    <div>
+                      <div className="text-2xl font-bold text-tsAccent flex items-center justify-center gap-1">
+                        0.0 <Star className="h-4 w-4 fill-current" />
+                      </div>
+                      <div className="text-xs text-tsTextMuted">Rating</div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          </TabsContent>
+
+          <TabsContent value="activity">
+            <Card className="bg-tsCard border-tsBorder">
+              <CardHeader>
+                <CardTitle className="text-tsTextMain">Recent Activity</CardTitle>
+                <CardDescription className="text-tsTextMuted">
+                  Your activity helps build your professional reputation
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <p className="text-sm text-tsTextMuted text-center py-8">
+                  No activity yet. Start engaging with the community!
+                </p>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="listings">
+            <Card className="bg-tsCard border-tsBorder">
+              <CardHeader>
+                <CardTitle className="text-tsTextMain">My Listings</CardTitle>
+                <CardDescription className="text-tsTextMuted">
+                  Manage your marketplace listings
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <p className="text-sm text-tsTextMuted text-center py-8">
+                  No listings yet. Create your first listing to get started!
+                </p>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="reviews">
+            <Card className="bg-tsCard border-tsBorder">
+              <CardHeader>
+                <CardTitle className="text-tsTextMain">Reviews</CardTitle>
+                <CardDescription className="text-tsTextMuted">
+                  Reviews from other community members
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <p className="text-sm text-tsTextMuted text-center py-8">
+                  No reviews yet. Complete transactions to receive reviews!
+                </p>
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
+
+        {/* Call to Action */}
+        {!isPublic && (
+          <Card className="bg-gradient-to-r from-tsAccent/20 to-tsAccent/10 border-tsAccent">
+            <CardContent className="p-6">
+              <div className="flex items-start gap-4">
+                <div className="p-3 bg-tsAccent rounded-lg">
+                  <Globe className="h-6 w-6 text-white" />
+                </div>
+                <div className="flex-1">
+                  <h3 className="text-lg font-semibold text-tsTextMain mb-2">
+                    Make Your Profile Public
+                  </h3>
+                  <p className="text-sm text-tsTextMuted mb-4">
+                    Turn your profile into a public website that can be found by potential clients and the AI assistant.
+                    Share your URL instead of maintaining a separate website.
+                  </p>
+                  <Button
+                    onClick={() => setLocation('/profile-settings')}
+                    className="bg-tsAccent text-white hover:bg-tsAccent/90"
+                  >
+                    Enable Public Profile
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+      </div>
+    </div>
+  );
+}

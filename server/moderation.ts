@@ -1,5 +1,5 @@
 import type { Express } from "express";
-import { db } from "./db";
+import { db } from "../src/db/drizzle-mock";
 import { moderationVotes, moderationScores, userReputation, socialPosts, postComments } from "@shared/schema";
 import { eq, and, sql } from "drizzle-orm";
 import { isAuthenticated } from "./auth";
@@ -202,7 +202,7 @@ async function recalculateModerationScore(targetType: string, targetId: string) 
     let upvoteCount = 0, downvoteCount = 0, flagCount = 0, hideCount = 0;
     let upvoteWeight = 0, downvoteWeight = 0;
 
-    voteResults.forEach(result => {
+    voteResults.forEach((result: any) => {
       const count = parseInt(result.count.toString());
       const weight = parseFloat(result.totalWeight.toString());
       

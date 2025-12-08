@@ -65,8 +65,8 @@ export default function Navigation() {
 
   return (
     <nav className={cn(
-      "bg-navy-800/95 border-b border-navy-600 sticky top-0 z-50 backdrop-blur-md transition-all duration-300",
-      isScrolled && "bg-navy-800/98 shadow-lg border-navy-500/50"
+      "bg-[#0a0f1e]/95 border-b border-[#1e293b] sticky top-0 z-50 backdrop-blur-md transition-all duration-300",
+      isScrolled && "bg-[#0b1120]/98 shadow-lg border-[#1e293b]/70"
     )}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
@@ -215,7 +215,7 @@ export default function Navigation() {
                   Menu
                 </Button>
               </SheetTrigger>
-              <SheetContent side="right" className="bg-gradient-to-br from-navy-900 to-navy-800 border-navy-600 w-80">
+              <SheetContent side="right" className="bg-gradient-to-br from-[#0a0f1e] to-[#111827] border-[#1e293b] w-80">
                 <div className="flex flex-col space-y-2 mt-8">
                   {/* Mobile Brand */}
                   <div className="flex items-center gap-3 px-3 pb-6 border-b border-navy-600">
@@ -363,7 +363,7 @@ export default function Navigation() {
                   <Menu className="h-6 w-6" />
                 </Button>
               </SheetTrigger>
-              <SheetContent side="right" className="bg-gradient-to-br from-navy-900 to-navy-800 border-navy-600 w-80">
+              <SheetContent side="right" className="bg-gradient-to-br from-[#0a0f1e] to-[#111827] border-[#1e293b] w-80">
                 <div className="flex flex-col space-y-2 mt-8">
                   {/* Mobile Brand */}
                   <div className="flex items-center gap-3 px-3 pb-6 border-b border-navy-600">
@@ -437,7 +437,7 @@ export default function Navigation() {
                         <Link href="/saved-ads" onClick={closeMobileMenu}>
                           <Button 
                             variant="outline" 
-                            className="w-full justify-start border-navy-500 text-gray-300 hover:bg-navy-600 hover:text-white"
+                            className="w-full justify-start border-[#1e293b] text-gray-200 hover:bg-[#1e293b] hover:text-white"
                           >
                             <Bookmark className="h-4 w-4 mr-2" />
                             Saved Ads
@@ -447,9 +447,19 @@ export default function Navigation() {
                         <Link href="/profile" onClick={closeMobileMenu}>
                           <Button 
                             variant="outline" 
-                            className="w-full justify-start border-navy-500 text-gray-300 hover:bg-navy-600 hover:text-white"
+                            className="w-full justify-start border-[#1e293b] text-gray-200 hover:bg-[#1e293b] hover:text-white"
                           >
                             <User className="h-4 w-4 mr-2" />
+                            My Profile
+                          </Button>
+                        </Link>
+
+                        <Link href="/profile-settings" onClick={closeMobileMenu}>
+                          <Button 
+                            variant="outline" 
+                            className="w-full justify-start border-[#1e293b] text-gray-200 hover:bg-[#1e293b] hover:text-white"
+                          >
+                            <Settings className="h-4 w-4 mr-2" />
                             Profile Settings
                           </Button>
                         </Link>

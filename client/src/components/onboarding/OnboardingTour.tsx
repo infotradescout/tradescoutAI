@@ -322,7 +322,7 @@ export function OnboardingTour({
       </Card>
 
       {/* Global styles for highlighting */}
-      <style jsx global>{`
+      <style>{`
         .onboarding-highlight {
           position: relative;
           z-index: 9998;

@@ -75,21 +75,21 @@ function getDefaultNavigationItems(userRole: string): NavigationItem[] {
       id: 'contractors',
       label: 'Find Contractors',
       icon: 'Search',
-      href: '/contractors/board',
+      href: '/find-contractors',
       visible: true,
     },
     {
       id: 'quote-calculator',
       label: 'Quote Calculator',
       icon: 'Calculator',
-      href: '/quote',
+      href: '/quote-calculator',
       visible: true,
     },
     {
       id: 'workers',
       label: 'Helpers',
       icon: 'Users',
-      href: '/workers',
+      href: '/worker-marketplace',
       visible: true,
     },
     {
@@ -129,7 +129,7 @@ function getDefaultNavigationItems(userRole: string): NavigationItem[] {
         id: 'conversations',
         label: 'Messages',
         icon: 'MessageSquare',
-        href: '/conversations',
+        href: '/chat',
         visible: true,
       },
       {
@@ -187,7 +187,7 @@ function getDefaultNavigationItems(userRole: string): NavigationItem[] {
         id: 'contractor-network',
         label: 'For Contractors',
         icon: 'Wrench',
-        href: '/contractors',
+        href: '/find-contractors',
         visible: true,
       },
       {
@@ -201,7 +201,7 @@ function getDefaultNavigationItems(userRole: string): NavigationItem[] {
         id: 'contractor-promos',
         label: 'My Promos',
         icon: 'Star',
-        href: '/contractor-promos',
+        href: '/promotions',
         visible: true,
       }
     );
@@ -272,7 +272,7 @@ function getDefaultNavigationItems(userRole: string): NavigationItem[] {
       id: 'moderation',
       label: 'Moderation',
       icon: 'Shield',
-      href: '/moderation',
+      href: '/content-moderation',
       visible: true,
     });
   }
@@ -284,7 +284,7 @@ function getDefaultNavigationItems(userRole: string): NavigationItem[] {
         id: 'admin-dashboard',
         label: 'Admin Dashboard',
         icon: 'Settings',
-        href: '/admin',
+        href: '/admin-panel',
         visible: true,
       },
       {

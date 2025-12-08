@@ -1,4 +1,4 @@
-import { db } from "./db";
+import { db } from "../src/db/drizzle-mock";
 import { eq, desc, and, or, isNull, isNotNull, sql } from "drizzle-orm";
 import { 
   users, 
@@ -239,7 +239,7 @@ For questions about your data, contact: support@tradescout.com
       });
 
       // Delete in order to respect foreign key constraints
-      await db.transaction(async (tx) => {
+      await db.transaction(async (tx: any) => {
         // Delete messages
         await tx.delete(messages).where(eq(messages.senderId, userId));
         

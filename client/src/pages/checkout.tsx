@@ -43,7 +43,7 @@ const CheckoutForm = ({
   const [clientSecret, setClientSecret] = useState("");
   
   // Get payment methods
-  const { data: paymentMethods } = useQuery({
+  const { data: paymentMethods } = useQuery<any[]>({
     queryKey: ["/api/payments/methods"],
   });
 
@@ -85,26 +85,25 @@ const CheckoutForm = ({
     e.preventDefault();
 
     if (isOffPlatform) {
-      // Handle off-platform payment confirmation
-      const result = await apiRequest("POST", "/api/payments/confirm-off-platform", {
-        paymentId,
-        paymentType,
-        confirmationData: {
-          method: "direct_payment", // This would come from a form
-          notes: "Payment completed off-platform"
-        }
-      });
+      try {
+        await apiRequest("POST", "/api/payments/confirm-off-platform", {
+          paymentId,
+          paymentType,
+          confirmationData: {
+            method: "direct_payment", // This would come from a form
+            notes: "Payment completed off-platform"
+          }
+        });
 
-      if (result.ok) {
         toast({
           title: "Payment Confirmed",
           description: "Off-platform payment has been recorded.",
         });
         onSuccess?.();
-      } else {
+      } catch (error: any) {
         toast({
           title: "Confirmation Failed",
-          description: "Unable to confirm off-platform payment.",
+          description: error?.message || "Unable to confirm off-platform payment.",
           variant: "destructive",
         });
       }

@@ -1,6 +1,7 @@
 import { sql } from 'drizzle-orm';
 import {
   index,
+  uniqueIndex,
   jsonb,
   pgTable,
   timestamp,
@@ -26,37 +27,48 @@ export const sessions = pgTable(
   (table) => [index("IDX_session_expire").on(table.expire)],
 );
 
-// User roles enum - Hierarchical structure
+// User roles enum - 27 comprehensive user types
 export const userRoleEnum = pgEnum('user_role', [
-  // Customer roles
-  'homeowner',
-  'property_manager',
-  'business_owner',
+  // Property Owners & Managers (5)
+  'homeowner',              // 1. Single-family homeowner
+  'renter',                 // 2. Tenant/Renter
+  'landlord',               // 3. Property owner who rents out
+  'property_manager',       // 4. Professional property manager
+  'hoa_member',             // 5. HOA community member
   
-  // Service provider roles  
-  'contractor_user',
-  'helper',             // New role for workers/helpers
-  'service_provider',   // Phase 1: Cleaners, movers, landscapers, etc.
-  'vehicle_dealer',     // Phase 1: Vehicle dealers/sellers
-  'accelerator_member',
-  'realtor',
-  'car_salesman',
-  'insurance_agent',
-  'mortgage_broker',
+  // Business & Commercial (4)
+  'business_owner',         // 6. Local business owner
+  'commercial_property',    // 7. Commercial property owner/manager
+  'franchise_owner',        // 8. Franchise business owner
+  'startup_founder',        // 9. Startup/Entrepreneur
   
-  // HOA & Community roles
-  'hoa_admin',          // Phase 4: HOA administrators
+  // Service Providers & Contractors (6)
+  'contractor',             // 10. Licensed contractor
+  'handyman',               // 11. General handyman/helper
+  'service_provider',       // 12. Service professional (cleaner, landscaper, etc.)
+  'specialty_tradesperson', // 13. Plumber, electrician, HVAC, etc.
+  'designer',               // 14. Interior designer, architect
+  'inspector',              // 15. Home inspector, appraiser
   
-  // Community roles
-  'community_member',
-  'community_moderator',
-  'community_leader',
+  // Real Estate & Finance (4)
+  'realtor',                // 16. Real estate agent
+  'mortgage_broker',        // 17. Mortgage/loan specialist
+  'insurance_agent',        // 18. Insurance professional
+  'title_company',          // 19. Title/escrow services
   
-  // Platform staff roles (ascending hierarchy)
-  'support_agent',
-  'content_moderator',
-  'territory_manager',
-  'contractor_success',
+  // Automotive (2)
+  'car_dealer',             // 20. Vehicle dealer/salesperson
+  'auto_service',           // 21. Auto repair, detailing, etc.
+  
+  // Community & Admin (3)
+  'hoa_board',              // 22. HOA board member/administrator
+  'community_builder',      // 23. Community builder program participant
+  'nonprofit_org',          // 24. Non-profit organization
+  
+  // Platform & Special (3)
+  'affiliate',              // 25. Affiliate marketer
+  'content_creator',        // 26. Blogger, influencer, reviewer
+  'admin',                  // 27. Platform administrator
   'content_seo',
   'analytics_specialist',
   'marketing_specialist',
@@ -269,6 +281,7 @@ export const users = pgTable("users", {
   providerId: varchar("provider_id"), // social login ID
   facebookId: varchar("facebook_id"), // Add facebookId field
   googleId: varchar("google_id"), // Add googleId field
+  badges: jsonb("badges").$type<string[]>().default(sql`'[]'::jsonb`), // Manual + automatic badges
   emailVerified: boolean("email_verified").default(false),
   addressVerified: boolean("address_verified").default(false),
   addressVerificationDeadline: timestamp("address_verification_deadline"),
@@ -285,6 +298,18 @@ export const users = pgTable("users", {
       customOrder?: string[]; // Array of navigation items in user's preferred order
       hiddenFromSwipe?: string[]; // Navigation items to hide from swipe navigation
       enableSwipeNavigation?: boolean; // Whether swipe navigation is enabled
+    };
+    defaultHomePage?: 'llm' | 'marketplace' | 'contractor-board' | 'dashboard' | 'profile' | 'community'; // User's preferred landing page
+    profileVisibility?: 'public' | 'private'; // Public profiles are crawlable by LLM
+    colorScheme?: {
+      primary?: string; // Main brand color (hex)
+      secondary?: string; // Secondary accent color (hex)
+      background?: string; // Background color (hex)
+      text?: string; // Text color (hex)
+      preset?: 'default' | 'warm' | 'cool' | 'vibrant' | 'minimal' | 'custom'; // Color preset or custom
+    };
+    badges?: {
+      show?: boolean; // Toggle badge visibility
     };
     privacy?: {
       showProfile?: boolean;
@@ -312,10 +337,14 @@ export const trustedDevices = pgTable("trusted_devices", {
   userAgent: text("user_agent"),
   ipAddress: varchar("ip_address"),
   lastUsed: timestamp("last_used").defaultNow(),
+  lastUsedAt: timestamp("last_used_at").defaultNow(), // Alias for lastUsed for backward compatibility
   isActive: boolean("is_active").default(true),
+  status: varchar("status").default('pending'), // 'pending', 'approved', 'revoked'
+  approvedAt: timestamp("approved_at"),
   sessionToken: varchar("session_token").notNull().unique(),
   expiresAt: timestamp("expires_at").notNull(),
   createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
 }, (table) => [
   index("idx_trusted_devices_user").on(table.userId),
   index("idx_trusted_devices_fingerprint").on(table.deviceFingerprint),
@@ -385,6 +414,7 @@ export const affiliateTrafficEvents = pgTable("affiliate_traffic_events", {
   index("idx_affiliate_traffic_conversion").on(table.conversionType),
 ]);
 
+// Core affiliate referrals table used by the MVP affiliate system
 export const affiliateReferrals = pgTable("affiliate_referrals", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   affiliateId: varchar("affiliate_id").notNull().references(() => affiliateAccounts.id),
@@ -996,6 +1026,11 @@ export const socialPostsRelations = relations(socialPosts, ({ one, many }) => ({
   shares: many(postShares),
   reports: many(contentReports),
 }));
+
+// Type-only exports for main tables used in routes and db stub
+export type AffiliateAccount = typeof affiliateAccounts.$inferSelect;
+export type AffiliateReferral = typeof affiliateReferrals.$inferSelect;
+export type AffiliatePayout = typeof affiliatePayouts.$inferSelect;
 
 export const postReactionsRelations = relations(postReactions, ({ one }) => ({
   post: one(socialPosts, { fields: [postReactions.postId], references: [socialPosts.id] }),
@@ -3862,11 +3897,52 @@ export const crmActivityTypeEnum = pgEnum('crm_activity_type', [
 
 export const crmDealStageEnum = pgEnum('crm_deal_stage', [
   'prospecting',
-  'qualification',
-  'proposal',
   'negotiation',
   'closed_won',
   'closed_lost'
+]);
+
+// County vault ledger sources (transparent breakdown of inflows/outflows)
+export const vaultSourceEnum = pgEnum('vault_source_type', [
+  'foundation_donation',
+  'marketplace_fee_share',
+  'contractor_fee_share',
+  'subscription_share',
+  'sponsorship',
+  'corporate_match',
+  'manual_adjustment',
+  'other'
+]);
+
+// County community vaults (aggregate balances per county)
+export const countyVaults = pgTable("county_vaults", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  countyId: varchar("county_id").notNull().references(() => counties.id),
+  currentBalance: decimal("current_balance", { precision: 14, scale: 2 }).notNull().default('0'),
+  lifetimeInflow: decimal("lifetime_inflow", { precision: 14, scale: 2 }).notNull().default('0'),
+  lifetimeOutflow: decimal("lifetime_outflow", { precision: 14, scale: 2 }).notNull().default('0'),
+  lastContributionAt: timestamp("last_contribution_at"),
+  lastUpdated: timestamp("last_updated").defaultNow(),
+  metadata: jsonb("metadata"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => [
+  uniqueIndex("county_vaults_county_uidx").on(table.countyId),
+  index("county_vaults_county_idx").on(table.countyId),
+]);
+
+// Immutable ledger of vault movements
+export const vaultLedgerEntries = pgTable("vault_ledger_entries", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  vaultId: varchar("vault_id").notNull().references(() => countyVaults.id),
+  sourceType: vaultSourceEnum("source_type").notNull(),
+  sourceId: varchar("source_id"), // e.g. donation id, transaction id
+  amount: decimal("amount", { precision: 14, scale: 2 }).notNull(), // positive for inflow, negative for outflow
+  memo: text("memo"),
+  createdAt: timestamp("created_at").defaultNow(),
+}, (table) => [
+  index("vault_ledger_vault_idx").on(table.vaultId),
+  index("vault_ledger_created_idx").on(table.createdAt),
 ]);
 
 export const crmPriorityEnum = pgEnum('crm_priority', [
@@ -5032,6 +5108,21 @@ export const foundationImpactReportsRelations = relations(foundationImpactReport
   }),
 }));
 
+export const countyVaultsRelations = relations(countyVaults, ({ one, many }) => ({
+  county: one(counties, {
+    fields: [countyVaults.countyId],
+    references: [counties.id],
+  }),
+  ledgerEntries: many(vaultLedgerEntries),
+}));
+
+export const vaultLedgerEntriesRelations = relations(vaultLedgerEntries, ({ one }) => ({
+  vault: one(countyVaults, {
+    fields: [vaultLedgerEntries.vaultId],
+    references: [countyVaults.id],
+  }),
+}));
+
 // Foundation system types
 export type FoundationCause = typeof foundationCauses.$inferSelect;
 export type InsertFoundationCause = typeof foundationCauses.$inferInsert;
@@ -5047,6 +5138,12 @@ export type InsertUserDonationPreferences = typeof userDonationPreferences.$infe
 
 export type FoundationImpactReport = typeof foundationImpactReports.$inferSelect;
 export type InsertFoundationImpactReport = typeof foundationImpactReports.$inferInsert;
+
+export type CountyVault = typeof countyVaults.$inferSelect;
+export type InsertCountyVault = typeof countyVaults.$inferInsert;
+
+export type VaultLedgerEntry = typeof vaultLedgerEntries.$inferSelect;
+export type InsertVaultLedgerEntry = typeof vaultLedgerEntries.$inferInsert;
 
 // Foundation system Zod schemas
 export const insertFoundationCauseSchema = createInsertSchema(foundationCauses).omit({
@@ -5082,164 +5179,30 @@ export const insertFoundationImpactReportSchema = createInsertSchema(foundationI
   createdAt: true,
 });
 
-// ==================== AFFILIATE SYSTEM ====================
-
-// Affiliate program participation
-export const affiliatePrograms = pgTable("affiliate_programs", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  userId: varchar("user_id").notNull().references(() => users.id),
-  
-  // Affiliate tracking
-  affiliateCode: varchar("affiliate_code", { length: 20 }).unique().notNull(), // e.g., "JOHN2024ABC"
-  referralUrl: varchar("referral_url", { length: 500 }).notNull(), // https://tradescout.com/?ref=JOHN2024ABC
-  
-  // Commission settings
-  commissionRate: decimal("commission_rate", { precision: 5, scale: 2 }).default('25.00'), // 25% default
-  isActive: boolean("is_active").default(true),
-  
-  // Performance tracking
-  totalReferrals: integer("total_referrals").default(0),
-  totalCommissionEarned: decimal("total_commission_earned", { precision: 12, scale: 2 }).default('0'),
-  totalCommissionPaid: decimal("total_commission_paid", { precision: 12, scale: 2 }).default('0'),
-  
-  // Payment info
-  paymentMethod: varchar("payment_method", { length: 50 }), // paypal, bank_transfer, crypto, etc.
-  paymentDetails: jsonb("payment_details"), // encrypted payment info
-  
-  createdAt: timestamp("created_at").defaultNow(),
-  updatedAt: timestamp("updated_at").defaultNow(),
-});
-
-// Referral tracking - tracks when someone clicks an affiliate link
-export const affiliateReferrals = pgTable("affiliate_referrals", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  affiliateProgramId: varchar("affiliate_program_id").notNull().references(() => affiliatePrograms.id),
-  referredUserId: varchar("referred_user_id").references(() => users.id), // null until they sign up
-  
-  // Tracking data
-  affiliateCode: varchar("affiliate_code", { length: 20 }).notNull(),
-  clickedAt: timestamp("clicked_at").defaultNow(),
-  convertedAt: timestamp("converted_at"), // when they signed up
-  ipAddress: varchar("ip_address", { length: 45 }),
-  userAgent: text("user_agent"),
-  utmSource: varchar("utm_source", { length: 100 }),
-  utmMedium: varchar("utm_medium", { length: 100 }),
-  utmCampaign: varchar("utm_campaign", { length: 100 }),
-  
-  // Status tracking
-  status: varchar("status", { length: 20 }).default('clicked'), // clicked, converted, churned
-  firstPurchaseAt: timestamp("first_purchase_at"),
-  
-  createdAt: timestamp("created_at").defaultNow(),
-});
-
-// Commission tracking - tracks earnings from each referred user
-export const affiliateCommissions = pgTable("affiliate_commissions", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  affiliateProgramId: varchar("affiliate_program_id").notNull().references(() => affiliatePrograms.id),
-  referralId: varchar("referral_id").notNull().references(() => affiliateReferrals.id),
-  
-  // Revenue source tracking
-  revenueSource: varchar("revenue_source", { length: 50 }).notNull(), // contractor_fee, marketplace_transaction, foundation_donation, subscription
-  sourceTransactionId: varchar("source_transaction_id", { length: 255 }), // link to original transaction
-  
-  // Commission calculation
-  originalAmount: decimal("original_amount", { precision: 12, scale: 2 }).notNull(), // TradeScout's revenue
-  commissionRate: decimal("commission_rate", { precision: 5, scale: 2 }).notNull(),
-  commissionAmount: decimal("commission_amount", { precision: 12, scale: 2 }).notNull(),
-  
-  // Payment tracking
-  status: varchar("status", { length: 20 }).default('pending'), // pending, approved, paid, disputed
-  approvedAt: timestamp("approved_at"),
-  paidAt: timestamp("paid_at"),
-  paymentMethod: varchar("payment_method", { length: 50 }),
-  paymentReference: varchar("payment_reference", { length: 255 }),
-  
-  // Metadata
-  description: text("description"), // "Commission from contractor listing fee"
-  isRecurring: boolean("is_recurring").default(false), // for subscription-based commissions
-  recurringPeriod: varchar("recurring_period", { length: 20 }), // monthly, yearly
-  
-  createdAt: timestamp("created_at").defaultNow(),
-  updatedAt: timestamp("updated_at").defaultNow(),
-});
-
-// Commission payouts - batch payments to affiliates  
-export const affiliatePayouts = pgTable("affiliate_payouts", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  affiliateProgramId: varchar("affiliate_program_id").notNull().references(() => affiliatePrograms.id),
-  
-  // Payout details
-  totalAmount: decimal("total_amount", { precision: 12, scale: 2 }).notNull(),
-  commissionCount: integer("commission_count").notNull(), // number of commissions included
-  payoutPeriodStart: timestamp("payout_period_start").notNull(),
-  payoutPeriodEnd: timestamp("payout_period_end").notNull(),
-  
-  // Payment processing
-  paymentMethod: varchar("payment_method", { length: 50 }).notNull(),
-  paymentReference: varchar("payment_reference", { length: 255 }),
-  processingFee: decimal("processing_fee", { precision: 10, scale: 2 }).default('0'),
-  netAmount: decimal("net_amount", { precision: 12, scale: 2 }).notNull(),
-  
-  // Status
-  status: varchar("status", { length: 20 }).default('pending'), // pending, processing, completed, failed
-  processedAt: timestamp("processed_at"),
-  failureReason: text("failure_reason"),
-  
-  createdAt: timestamp("created_at").defaultNow(),
-  updatedAt: timestamp("updated_at").defaultNow(),
-});
-
-// Relations for affiliate system
-export const affiliateProgramsRelations = relations(affiliatePrograms, ({ one, many }) => ({
-  user: one(users, {
-    fields: [affiliatePrograms.userId],
-    references: [users.id],
-  }),
-  referrals: many(affiliateReferrals),
-  commissions: many(affiliateCommissions),
-  payouts: many(affiliatePayouts),
-}));
-
-export const affiliateReferralsRelations = relations(affiliateReferrals, ({ one, many }) => ({
-  affiliateProgram: one(affiliatePrograms, {
-    fields: [affiliateReferrals.affiliateProgramId],
-    references: [affiliatePrograms.id],
-  }),
-  referredUser: one(users, {
-    fields: [affiliateReferrals.referredUserId],
-    references: [users.id],
-  }),
-  commissions: many(affiliateCommissions),
-}));
-
-export const affiliateCommissionsRelations = relations(affiliateCommissions, ({ one }) => ({
-  affiliateProgram: one(affiliatePrograms, {
-    fields: [affiliateCommissions.affiliateProgramId],
-    references: [affiliatePrograms.id],
-  }),
-  referral: one(affiliateReferrals, {
-    fields: [affiliateCommissions.referralId],
-    references: [affiliateReferrals.id],
-  }),
-}));
-
-export const affiliatePayoutsRelations = relations(affiliatePayouts, ({ one }) => ({
-  affiliateProgram: one(affiliatePrograms, {
-    fields: [affiliatePayouts.affiliateProgramId],
-    references: [affiliatePrograms.id],
-  }),
-}));
-
-// Affiliate system types
-export type AffiliateProgram = typeof affiliatePrograms.$inferSelect;
-export type InsertAffiliateProgram = typeof affiliatePrograms.$inferInsert;
-export type AffiliateReferral = typeof affiliateReferrals.$inferSelect;
-export type InsertAffiliateReferral = typeof affiliateReferrals.$inferInsert;
-export type AffiliateCommission = typeof affiliateCommissions.$inferSelect;
-export type InsertAffiliateCommission = typeof affiliateCommissions.$inferInsert;
-export type AffiliatePayout = typeof affiliatePayouts.$inferSelect;
-export type InsertAffiliatePayout = typeof affiliatePayouts.$inferInsert;
+// ==================== ADVANCED AFFILIATE PROGRAM (DISABLED FOR MVP) ====================
+// NOTE: A more complex affiliate program schema lives here, but it's
+// temporarily disabled for the MVP to avoid conflicting with the
+// simpler affiliate account system already in production.
+//
+// When ready to activate, reintroduce these tables & relations with
+// a migration and wire them into services/routes.
+//
+// export const affiliatePrograms = pgTable("affiliate_programs", { ... });
+// export const affiliateReferralsV2 = pgTable("affiliate_referrals_v2", { ... });
+// export const affiliateCommissions = pgTable("affiliate_commissions", { ... });
+// export const affiliateProgramPayouts = pgTable("affiliate_program_payouts", { ... });
+// export const affiliateProgramsRelations = relations(...);
+// export const affiliateReferralsV2Relations = relations(...);
+// export const affiliateCommissionsRelations = relations(...);
+// export const affiliateProgramPayoutsRelations = relations(...);
+// export type AffiliateProgram = typeof affiliatePrograms.$inferSelect;
+// export type InsertAffiliateProgram = typeof affiliatePrograms.$inferInsert;
+// export type AdvancedAffiliateReferral = typeof affiliateReferralsV2.$inferSelect;
+// export type InsertAdvancedAffiliateReferral = typeof affiliateReferralsV2.$inferInsert;
+// export type AffiliateCommission = typeof affiliateCommissions.$inferSelect;
+// export type InsertAffiliateCommission = typeof affiliateCommissions.$inferInsert;
+// export type AffiliateProgramPayout = typeof affiliateProgramPayouts.$inferSelect;
+// export type InsertAffiliateProgramPayout = typeof affiliateProgramPayouts.$inferInsert;
 
 // Foundation system form types
 export type InsertFoundationCauseType = z.infer<typeof insertFoundationCauseSchema>;
@@ -5922,6 +5885,420 @@ export const insertStoryInteractionSchema = createInsertSchema(storyInteractions
   id: true,
   createdAt: true,
 });
+
+// ==================== COMMUNITY BUILDER SYSTEM ====================
+
+// Enum for builder rank/status
+export const builderRankEnum = pgEnum('builder_rank', [
+  'prospect',           // New builders, pre-approved
+  'bronze',             // <$1k contribution
+  'silver',             // $1k-$5k contribution
+  'gold',               // $5k-$25k contribution
+  'platinum',           // $25k-$100k contribution
+  'diamond',            // $100k+ contribution
+]);
+
+// Enum for contribution types
+export const contributionTypeEnum = pgEnum('contribution_type', [
+  'service_hours',      // Hours donated
+  'materials',          // Physical materials/goods
+  'equipment_rental',   // Equipment/machinery
+  'financial',          // Direct payment/funding
+  'expertise',          // Professional consulting/skills
+  'promotion',          // Marketing/visibility assistance
+  'administration',     // Admin/coordination help
+]);
+
+// Enum for contribution status
+export const contributionStatusEnum = pgEnum('contribution_status', [
+  'proposed',           // Builder submitted idea
+  'pending_approval',   // Under review by admin
+  'approved',           // Ready to execute
+  'in_progress',        // Currently happening
+  'completed',          // Done, pending audit
+  'verified',           // Audited & locked
+  'disputed',           // Under dispute resolution
+  'cancelled',          // Withdrawn or rejected
+]);
+
+// Community Builder Profiles
+export const communityBuilderProfiles = pgTable("community_builder_profiles", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().unique().references(() => users.id, { onDelete: 'cascade' }),
+  countyId: varchar("county_id").notNull().references(() => counties.id),
+  
+  // Profile Details
+  businessName: varchar("business_name"),
+  description: text("description"),
+  profileImageUrl: varchar("profile_image_url"),
+  website: varchar("website"),
+  
+  // Contribution Tracking
+  currentRank: builderRankEnum("current_rank").notNull().default('prospect'),
+  totalContributionValue: decimal("total_contribution_value", { precision: 14, scale: 2 }).notNull().default('0'),
+  totalHoursDonated: decimal("total_hours_donated", { precision: 12, scale: 2 }).notNull().default('0'),
+  activeContributionsCount: integer("active_contributions_count").notNull().default(0),
+  completedContributionsCount: integer("completed_contributions_count").notNull().default(0),
+  
+  // Reputation & Performance
+  ratingScore: decimal("rating_score", { precision: 3, scale: 2 }).default('0'), // 0-5 stars
+  ratingCount: integer("rating_count").notNull().default(0),
+  verificationRate: decimal("verification_rate", { precision: 5, scale: 2 }).default('100'), // 0-100%
+  
+  // Payout Info
+  bankAccountId: varchar("bank_account_id"), // Foreign reference to external payout provider
+  payoutEmail: varchar("payout_email"),
+  payoutFrequency: varchar("payout_frequency").default('monthly'), // weekly, biweekly, monthly
+  lastPayoutAt: timestamp("last_payout_at"),
+  
+  // Program Participation
+  isProgramMember: boolean("is_program_member").default(true),
+  programJoinedAt: timestamp("program_joined_at").defaultNow(),
+  isVerified: boolean("is_verified").default(false),
+  verificationSubmittedAt: timestamp("verification_submitted_at"),
+  verificationApprovedAt: timestamp("verification_approved_at"),
+  
+  // Status
+  status: varchar("status").notNull().default('active'), // active, inactive, suspended, terminated
+  suspensionReason: text("suspension_reason"),
+  suspendedAt: timestamp("suspended_at"),
+  
+  // Metadata & Settings
+  preferences: jsonb("preferences").$type<{
+    communicationChannel?: 'email' | 'sms' | 'both';
+    leaderboardVisibility?: 'public' | 'private' | 'county_only';
+    autoAcceptSmallTasks?: boolean;
+    notificationPrefs?: Record<string, boolean>;
+  }>(),
+  
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => [
+  uniqueIndex("builder_profile_user_uidx").on(table.userId),
+  index("builder_profile_county_idx").on(table.countyId),
+  index("builder_profile_rank_idx").on(table.currentRank),
+  index("builder_profile_status_idx").on(table.status),
+]);
+
+// Proposed Contributions (Tasks/Projects)
+export const builderContributions = pgTable("builder_contributions", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  builderId: varchar("builder_id").notNull().references(() => communityBuilderProfiles.id, { onDelete: 'cascade' }),
+  countyId: varchar("county_id").notNull().references(() => counties.id),
+  
+  // Contribution Details
+  title: varchar("title").notNull(),
+  description: text("description").notNull(),
+  type: contributionTypeEnum("type").notNull(),
+  status: contributionStatusEnum("status").notNull().default('proposed'),
+  
+  // Value & Impact
+  estimatedValue: decimal("estimated_value", { precision: 12, scale: 2 }).notNull(),
+  estimatedHours: decimal("estimated_hours", { precision: 10, scale: 2 }),
+  actualValue: decimal("actual_value", { precision: 12, scale: 2 }),
+  actualHours: decimal("actual_hours", { precision: 10, scale: 2 }),
+  
+  // Timeline
+  proposedStartDate: timestamp("proposed_start_date"),
+  proposedEndDate: timestamp("proposed_end_date"),
+  actualStartDate: timestamp("actual_start_date"),
+  actualEndDate: timestamp("actual_end_date"),
+  
+  // Approval & Auditing
+  approvedBy: varchar("approved_by").references(() => users.id),
+  approvedAt: timestamp("approved_at"),
+  verifiedBy: varchar("verified_by").references(() => users.id),
+  verifiedAt: timestamp("verified_at"),
+  
+  // Evidence & Documentation
+  evidence: jsonb("evidence").$type<Array<{
+    type: 'photo' | 'video' | 'invoice' | 'receipt' | 'document';
+    url: string;
+    description?: string;
+    uploadedAt: string;
+  }>>(),
+  
+  // Payout Info
+  isPaidOut: boolean("is_paid_out").default(false),
+  paidOutAmount: decimal("paid_out_amount", { precision: 12, scale: 2 }),
+  paidOutAt: timestamp("paid_out_at"),
+  paidOutToVault: boolean("paid_out_to_vault").default(true), // vs. directly to builder
+  
+  // Dispute Resolution
+  isDisputed: boolean("is_disputed").default(false),
+  disputeReason: text("dispute_reason"),
+  disputeResolvedAt: timestamp("dispute_resolved_at"),
+  disputeResolution: text("dispute_resolution"),
+  
+  // Metadata
+  tags: text("tags").array(),
+  impact: text("impact"), // Description of community impact
+  
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => [
+  index("builder_contrib_builder_idx").on(table.builderId),
+  index("builder_contrib_county_idx").on(table.countyId),
+  index("builder_contrib_status_idx").on(table.status),
+  index("builder_contrib_created_idx").on(table.createdAt),
+]);
+
+// Contribution Audits (immutable record)
+export const builderAuditLogs = pgTable("builder_audit_logs", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  contributionId: varchar("contribution_id").notNull().references(() => builderContributions.id, { onDelete: 'cascade' }),
+  
+  // Audit Details
+  auditorId: varchar("auditor_id").notNull().references(() => users.id),
+  action: varchar("action").notNull(), // approved, verified, rejected, disputed, resolved, adjusted
+  
+  // Value Adjustments
+  originalValue: decimal("original_value", { precision: 12, scale: 2 }),
+  adjustedValue: decimal("adjusted_value", { precision: 12, scale: 2 }),
+  adjustmentReason: text("adjustment_reason"),
+  
+  // Notes & Evidence
+  notes: text("notes"),
+  supportingDocuments: jsonb("supporting_documents").$type<Array<{
+    url: string;
+    type: string;
+    description?: string;
+  }>>(),
+  
+  // Change Tracking
+  changedFields: jsonb("changed_fields").$type<Record<string, { old: any; new: any }>>(),
+  
+  createdAt: timestamp("created_at").defaultNow(),
+}, (table) => [
+  index("builder_audit_contribution_idx").on(table.contributionId),
+  index("builder_audit_auditor_idx").on(table.auditorId),
+  index("builder_audit_action_idx").on(table.action),
+]);
+
+// Builder Payouts
+export const builderPayouts = pgTable("builder_payouts", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  builderId: varchar("builder_id").notNull().references(() => communityBuilderProfiles.id, { onDelete: 'cascade' }),
+  countyId: varchar("county_id").notNull().references(() => counties.id),
+  
+  // Payout Details
+  amount: decimal("amount", { precision: 14, scale: 2 }).notNull(),
+  currency: varchar("currency").default('USD'),
+  payoutType: varchar("payout_type").notNull(), // contribution_earnings, bonus, penalty_adjustment, referral_bonus
+  
+  // Related Contribution(s)
+  relatedContributionIds: text("related_contribution_ids").array(), // JSON array of contribution IDs
+  
+  // Processing
+  status: varchar("status").notNull().default('pending'), // pending, processing, completed, failed, disputed
+  processingMethod: varchar("processing_method"), // ach, wire, check, stripe
+  
+  // Timing
+  scheduledFor: timestamp("scheduled_for"),
+  processedAt: timestamp("processed_at"),
+  
+  // External Reference
+  externalPaymentId: varchar("external_payment_id"), // From payment processor (Stripe Connect, etc.)
+  transactionId: varchar("transaction_id"),
+  
+  // Dispute/Resolution
+  failureReason: text("failure_reason"),
+  resolvedAt: timestamp("resolved_at"),
+  
+  // Audit Trail
+  createdBy: varchar("created_by").references(() => users.id),
+  approvedBy: varchar("approved_by").references(() => users.id),
+  approvedAt: timestamp("approved_at"),
+  
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => [
+  index("builder_payout_builder_idx").on(table.builderId),
+  index("builder_payout_county_idx").on(table.countyId),
+  index("builder_payout_status_idx").on(table.status),
+  index("builder_payout_created_idx").on(table.createdAt),
+]);
+
+// Builder Rankings/Leaderboard (denormalized for performance)
+export const builderLeaderboard = pgTable("builder_leaderboard", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  builderId: varchar("builder_id").notNull().unique().references(() => communityBuilderProfiles.id, { onDelete: 'cascade' }),
+  countyId: varchar("county_id").notNull().references(() => counties.id),
+  
+  // Metrics
+  totalContributionValue: decimal("total_contribution_value", { precision: 14, scale: 2 }).notNull().default('0'),
+  totalHoursDonated: decimal("total_hours_donated", { precision: 12, scale: 2 }).notNull().default('0'),
+  completedContributions: integer("completed_contributions").notNull().default(0),
+  
+  // Rankings
+  valueRank: integer("value_rank"), // 1st, 2nd, 3rd place etc. for total value
+  hoursRank: integer("hours_rank"), // 1st, 2nd, 3rd place etc. for hours
+  overallRank: integer("overall_rank"), // Combined ranking
+  
+  // Monthly/Period Rankings
+  monthlyRank: integer("monthly_rank"),
+  yearlyRank: integer("yearly_rank"),
+  
+  // Performance Score
+  performanceScore: decimal("performance_score", { precision: 5, scale: 2 }).default('0'), // 0-100
+  trustScore: decimal("trust_score", { precision: 5, scale: 2 }).default('100'), // 0-100
+  
+  // Last Updated
+  lastUpdated: timestamp("last_updated").defaultNow(),
+  periodStart: timestamp("period_start"),
+  periodEnd: timestamp("period_end"),
+});
+
+// Builder Referrals (for referral bonuses)
+export const builderReferrals = pgTable("builder_referrals", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  referrerId: varchar("referrer_id").notNull().references(() => communityBuilderProfiles.id, { onDelete: 'cascade' }),
+  referredBuilderId: varchar("referred_builder_id").notNull().references(() => communityBuilderProfiles.id, { onDelete: 'cascade' }),
+  
+  // Referral Details
+  referralCode: varchar("referral_code").unique(),
+  bonusAmount: decimal("bonus_amount", { precision: 12, scale: 2 }).default('0'),
+  
+  // Status
+  status: varchar("status").notNull().default('pending'), // pending, earned, paid_out, cancelled
+  earnedAt: timestamp("earned_at"),
+  paidOutAt: timestamp("paid_out_at"),
+  
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// Builder Notifications & Updates
+export const builderNotifications = pgTable("builder_notifications", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  builderId: varchar("builder_id").notNull().references(() => communityBuilderProfiles.id, { onDelete: 'cascade' }),
+  
+  type: varchar("type").notNull(), // contribution_approved, contribution_verified, payout_processed, rank_updated, etc.
+  title: varchar("title").notNull(),
+  message: text("message"),
+  
+  relatedId: varchar("related_id"), // Link to contribution, payout, etc.
+  
+  isRead: boolean("is_read").default(false),
+  readAt: timestamp("read_at"),
+  
+  actionUrl: varchar("action_url"),
+  
+  createdAt: timestamp("created_at").defaultNow(),
+}, (table) => [
+  index("builder_notif_builder_idx").on(table.builderId),
+  index("builder_notif_read_idx").on(table.isRead),
+]);
+
+// Relations for Community Builder
+export const communityBuilderProfilesRelations = relations(communityBuilderProfiles, ({ one, many }) => ({
+  user: one(users, {
+    fields: [communityBuilderProfiles.userId],
+    references: [users.id],
+  }),
+  county: one(counties, {
+    fields: [communityBuilderProfiles.countyId],
+    references: [counties.id],
+  }),
+  contributions: many(builderContributions),
+  payouts: many(builderPayouts),
+  leaderboard: one(builderLeaderboard),
+  referrals: many(builderReferrals),
+  notifications: many(builderNotifications),
+}));
+
+export const builderContributionsRelations = relations(builderContributions, ({ one, many }) => ({
+  builder: one(communityBuilderProfiles, {
+    fields: [builderContributions.builderId],
+    references: [communityBuilderProfiles.id],
+  }),
+  county: one(counties, {
+    fields: [builderContributions.countyId],
+    references: [counties.id],
+  }),
+  auditLogs: many(builderAuditLogs),
+}));
+
+export const builderAuditLogsRelations = relations(builderAuditLogs, ({ one }) => ({
+  contribution: one(builderContributions, {
+    fields: [builderAuditLogs.contributionId],
+    references: [builderContributions.id],
+  }),
+  auditor: one(users, {
+    fields: [builderAuditLogs.auditorId],
+    references: [users.id],
+  }),
+}));
+
+export const builderPayoutsRelations = relations(builderPayouts, ({ one }) => ({
+  builder: one(communityBuilderProfiles, {
+    fields: [builderPayouts.builderId],
+    references: [communityBuilderProfiles.id],
+  }),
+  county: one(counties, {
+    fields: [builderPayouts.countyId],
+    references: [counties.id],
+  }),
+}));
+
+export const builderLeaderboardRelations = relations(builderLeaderboard, ({ one }) => ({
+  builder: one(communityBuilderProfiles, {
+    fields: [builderLeaderboard.builderId],
+    references: [communityBuilderProfiles.id],
+  }),
+  county: one(counties, {
+    fields: [builderLeaderboard.countyId],
+    references: [counties.id],
+  }),
+}));
+
+export const builderReferralsRelations = relations(builderReferrals, ({ one }) => ({
+  referrer: one(communityBuilderProfiles, {
+    fields: [builderReferrals.referrerId],
+    references: [communityBuilderProfiles.id],
+  }),
+  referredBuilder: one(communityBuilderProfiles, {
+    fields: [builderReferrals.referredBuilderId],
+    references: [communityBuilderProfiles.id],
+  }),
+}));
+
+export const builderNotificationsRelations = relations(builderNotifications, ({ one }) => ({
+  builder: one(communityBuilderProfiles, {
+    fields: [builderNotifications.builderId],
+    references: [communityBuilderProfiles.id],
+  }),
+}));
+
+// Zod schemas for validation
+export const insertCommunityBuilderProfileSchema = createInsertSchema(communityBuilderProfiles).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertBuilderContributionSchema = createInsertSchema(builderContributions).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertBuilderPayoutSchema = createInsertSchema(builderPayouts).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+// Type exports
+export type CommunityBuilderProfile = typeof communityBuilderProfiles.$inferSelect;
+export type InsertCommunityBuilderProfile = typeof communityBuilderProfiles.$inferInsert;
+export type BuilderContribution = typeof builderContributions.$inferSelect;
+export type InsertBuilderContribution = typeof builderContributions.$inferInsert;
+export type BuilderPayout = typeof builderPayouts.$inferSelect;
+export type InsertBuilderPayout = typeof builderPayouts.$inferInsert;
+export type BuilderAuditLog = typeof builderAuditLogs.$inferSelect;
+export type BuilderLeaderboard = typeof builderLeaderboard.$inferSelect;
+export type BuilderReferral = typeof builderReferrals.$inferSelect;
+export type BuilderNotification = typeof builderNotifications.$inferSelect;
 
 // Story types
 export type StoryTemplate = typeof storyTemplates.$inferSelect;

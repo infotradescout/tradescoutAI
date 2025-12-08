@@ -1,4 +1,4 @@
-import { memo, useState } from 'react';
+import { memo, useRef, useState } from 'react';
 import { useAuth } from "@/hooks/useAuth";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
@@ -14,13 +14,19 @@ const Profile = memo(function Profile() {
   const { user } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [formData, setFormData] = useState({
     firstName: user?.firstName || '',
     lastName: user?.lastName || '',
     email: user?.email || '',
     phone: user?.phone || '',
-    address: user?.address || ''
+    address: user?.address || '',
+    city: user?.city || '',
+    state: user?.state || '',
+    zipCode: user?.zipCode || '',
+    county: user?.county || '',
+    profileImageUrl: user?.profileImageUrl || ''
   });
 
   const [preferences, setPreferences] = useState({
@@ -31,7 +37,7 @@ const Profile = memo(function Profile() {
 
   const updateProfileMutation = useMutation({
     mutationFn: async (data: typeof formData) => {
-      return apiRequest('PATCH', '/api/user/profile', data);
+      return apiRequest('PUT', '/api/user/profile', { ...data, preferences });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/auth/user'] });
@@ -48,6 +54,36 @@ const Profile = memo(function Profile() {
       });
     }
   });
+
+  const handleUploadClick = () => fileInputRef.current?.click();
+
+  const handlePhotoSelected = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    try {
+      const uploadResponse = await apiRequest('POST', '/api/objects/upload');
+      const { uploadURL } = await uploadResponse.json();
+
+      await fetch(uploadURL, {
+        method: 'PUT',
+        body: file,
+        headers: { 'Content-Type': file.type || 'application/octet-stream' },
+      });
+
+      setFormData((prev) => ({ ...prev, profileImageUrl: uploadURL }));
+      toast({ title: 'Photo updated', description: 'Your profile picture was uploaded.' });
+    } catch (error) {
+      console.error('Profile photo upload failed:', error);
+      toast({
+        title: 'Upload failed',
+        description: 'Could not upload your photo. Please try again.',
+        variant: 'destructive',
+      });
+    } finally {
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -82,12 +118,27 @@ const Profile = memo(function Profile() {
             <CardContent className="pt-6">
               <div className="flex flex-col sm:flex-row items-center sm:items-start gap-6">
                 <div className="relative">
-                  <div className="w-24 h-24 bg-gradient-to-br from-orange-500 to-orange-600 rounded-full flex items-center justify-center text-3xl font-bold text-white shadow-lg">
-                    {user?.firstName?.[0]}{user?.lastName?.[0]}
+                  <div className="w-24 h-24 bg-gradient-to-br from-orange-500 to-orange-600 rounded-full flex items-center justify-center text-3xl font-bold text-white shadow-lg overflow-hidden">
+                    {formData.profileImageUrl ? (
+                      <img src={formData.profileImageUrl} alt="Profile" className="w-full h-full object-cover" />
+                    ) : (
+                      <>{user?.firstName?.[0]}{user?.lastName?.[0]}</>
+                    )}
                   </div>
-                  <button className="absolute bottom-0 right-0 h-8 w-8 bg-orange-500 rounded-full flex items-center justify-center border-2 border-[#1a2332] hover:bg-orange-600 transition-colors">
+                  <button
+                    type="button"
+                    onClick={handleUploadClick}
+                    className="absolute bottom-0 right-0 h-8 w-8 bg-orange-500 rounded-full flex items-center justify-center border-2 border-[#1a2332] hover:bg-orange-600 transition-colors"
+                  >
                     <Camera className="h-4 w-4 text-white" />
                   </button>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={handlePhotoSelected}
+                  />
                 </div>
                 <div className="text-center sm:text-left flex-1">
                   <h2 className="text-2xl font-bold text-white mb-2">
@@ -199,6 +250,62 @@ const Profile = memo(function Profile() {
                       data-testid="input-address"
                     />
                   </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="city" className="text-white font-medium">
+                      City
+                    </Label>
+                    <Input
+                      id="city"
+                      type="text"
+                      value={formData.city}
+                      onChange={handleChange('city')}
+                      className="bg-[#0f1419] border-[#2d3748] text-white h-11 focus:border-orange-500 transition-colors"
+                      placeholder="Los Angeles"
+                      data-testid="input-city"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="state" className="text-white font-medium">
+                      State
+                    </Label>
+                    <Input
+                      id="state"
+                      type="text"
+                      value={formData.state}
+                      onChange={handleChange('state')}
+                      className="bg-[#0f1419] border-[#2d3748] text-white h-11 focus:border-orange-500 transition-colors"
+                      placeholder="CA"
+                      data-testid="input-state"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="zipCode" className="text-white font-medium">
+                      ZIP Code
+                    </Label>
+                    <Input
+                      id="zipCode"
+                      type="text"
+                      value={formData.zipCode}
+                      onChange={handleChange('zipCode')}
+                      className="bg-[#0f1419] border-[#2d3748] text-white h-11 focus:border-orange-500 transition-colors"
+                      placeholder="90210"
+                      data-testid="input-zipCode"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="county" className="text-white font-medium">
+                      County
+                    </Label>
+                    <Input
+                      id="county"
+                      type="text"
+                      value={formData.county}
+                      onChange={handleChange('county')}
+                      className="bg-[#0f1419] border-[#2d3748] text-white h-11 focus:border-orange-500 transition-colors"
+                      placeholder="Los Angeles County"
+                      data-testid="input-county"
+                    />
+                  </div>
                 </div>
                 <div className="flex items-center gap-3 mt-8 pt-6 border-t border-[#2d3748]">
                   <Button
@@ -218,7 +325,12 @@ const Profile = memo(function Profile() {
                       lastName: user?.lastName || '',
                       email: user?.email || '',
                       phone: user?.phone || '',
-                      address: user?.address || ''
+                      address: user?.address || '',
+                      city: user?.city || '',
+                      state: user?.state || '',
+                      zipCode: user?.zipCode || '',
+                      county: user?.county || '',
+                      profileImageUrl: user?.profileImageUrl || ''
                     })}
                   >
                     Reset

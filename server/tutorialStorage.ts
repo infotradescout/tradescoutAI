@@ -1,5 +1,5 @@
 import { eq, and, desc, asc } from "drizzle-orm";
-import { db } from "./db";
+import { db } from "../src/db/drizzle-mock";
 import {
   userTutorialProgress,
   tutorialDefinitions,

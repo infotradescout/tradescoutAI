@@ -261,7 +261,7 @@ export function TradeSelection({
         <div key={category}>
           <TradeCategoryHeader 
             category={category as keyof typeof TRADE_CATEGORIES} 
-            trades={trades as TradeCategory[]} 
+            trades={[...trades] as TradeCategory[]} 
           />
           <div className="flex flex-wrap gap-2 mt-2">
             {trades.map((trade) => (

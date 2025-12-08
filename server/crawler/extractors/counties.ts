@@ -1,4 +1,4 @@
-import { db } from "../../db";
+import { db } from "../../../src/db/drizzle-mock";
 
 /**
  * Extract county data for caching

@@ -15,7 +15,18 @@ export default function AdminListings() {
   const [rejectionReason, setRejectionReason] = useState("");
 
   // Fetch pending listings
-  const { data: pendingListings, isLoading } = useQuery({
+  interface PendingListing {
+    id: string;
+    title: string;
+    description?: string;
+    price: string | number;
+    city?: string | null;
+    state?: string | null;
+    createdAt: string | Date;
+    [key: string]: any;
+  }
+
+  const { data: pendingListings = [] as PendingListing[], isLoading } = useQuery<PendingListing[]>({
     queryKey: ["/api/admin/marketplace/pending"],
   });
 

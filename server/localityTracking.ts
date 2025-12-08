@@ -73,9 +73,10 @@ export class LocalityTracker {
    * Extract locality context from request
    */
   static extractLocalityFromRequest(req: Request): LocalityContext {
+    const user = (req as any)?.user;
     const locality: LocalityContext = {
-      sessionId: req.sessionID,
-      userId: req.user?.id,
+      sessionId: (req as any).sessionID,
+      userId: user?.id,
       userAgent: req.get('User-Agent')
     };
 
@@ -96,13 +97,13 @@ export class LocalityTracker {
     }
 
     // Extract from user profile/session
-    if (req.user?.profile?.state) {
-      locality.stateCode = req.user.profile.state;
-      locality.county = req.user.profile.county;
+    if (user?.profile?.state) {
+      locality.stateCode = user.profile.state;
+      locality.county = user.profile.county;
     }
 
     // IP-based geolocation (fallback)
-    const clientIP = req.ip || req.connection.remoteAddress;
+    const clientIP = req.ip || (req as any).connection?.remoteAddress;
     if (clientIP && !locality.stateCode) {
       // In production, integrate with IP geolocation service
       locality.ipLocation = this.getLocationFromIP(clientIP);
@@ -124,7 +125,7 @@ export class LocalityTracker {
     const interaction: UserInteraction = {
       id: this.generateInteractionId(),
       sessionId: req.sessionID,
-      userId: req.user?.id,
+      userId: (req as any).user?.id,
       userType: this.getUserType(req),
       interactionType,
       locality,
@@ -326,8 +327,9 @@ export class LocalityTracker {
   }
 
   private static getUserType(req: Request): 'homeowner' | 'contractor' | 'visitor' {
-    if (!req.user) return 'visitor';
-    return req.user.role?.includes('contractor') ? 'contractor' : 'homeowner';
+    const user = (req as any).user;
+    if (!user) return 'visitor';
+    return user.role?.includes('contractor') ? 'contractor' : 'homeowner';
   }
 
   private static extractDeviceInfo(req: Request) {

@@ -81,6 +81,20 @@ const AdminDashboard = memo(function AdminDashboard() {
               <h3 className="text-lg font-semibold mb-2 text-orange-400">Support Tickets</h3>
               <p className="text-gray-300">Manage customer support requests</p>
             </div>
+            <div 
+              className="bg-navy-800 p-6 rounded-lg hover:bg-navy-700 transition-colors cursor-pointer"
+              onClick={() => window.location.pathname = '/admin/community-builder/reconciliation'}
+            >
+              <h3 className="text-lg font-semibold mb-2 text-orange-400">Community Builder Reconciliation</h3>
+              <p className="text-gray-300">Review county vault balances and ledger integrity</p>
+            </div>
+            <div 
+              className="bg-navy-800 p-6 rounded-lg hover:bg-navy-700 transition-colors cursor-pointer"
+              onClick={() => window.location.pathname = '/admin/community-builder/builders'}
+            >
+              <h3 className="text-lg font-semibold mb-2 text-orange-400">Manage Builders</h3>
+              <p className="text-gray-300">View and manage Community Builder roster</p>
+            </div>
           </div>
         </section>
 

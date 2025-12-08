@@ -1,31 +1,24 @@
-import { db } from "../../db";
+import { db } from "../../../src/db/drizzle-mock";
 
 /**
  * Extract HOA information for caching
  */
 export async function extractHOA() {
   try {
-    // Query HOA/associations from your system
-    // This assumes you have a way to identify HOA-type businesses
-    const hoaBusinesses = await db.query.businesses.findMany({
-      where: (table, { like }) => like(table.businessType, "%HOA%"),
-      limit: 1000,
-    });
-
-    const safeHOA = hoaBusinesses.map((hoa: any) => ({
+    // Use homeownerAssociations table for HOA data
+    const hoaRows = await db.select().from(require("@shared/schema").homeownerAssociations).limit(1000);
+    const safeHOA = hoaRows.map((hoa: any) => ({
       id: hoa.id,
-      name: hoa.businessName,
-      businessType: hoa.businessType,
-      description: hoa.description,
+      name: hoa.name,
+      address: hoa.address,
       city: hoa.city,
       state: hoa.state,
-      county: hoa.county,
-      verified: hoa.verified,
-      contactEmail: hoa.contactEmail,
-      phone: hoa.phone,
+      countyFips: hoa.countyFips,
+      zipCode: hoa.zipCode,
+      establishedYear: hoa.establishedYear,
+      // add more fields as needed
       createdAt: hoa.createdAt,
     }));
-
     return safeHOA;
   } catch (error) {
     console.error("Error extracting HOA:", error);

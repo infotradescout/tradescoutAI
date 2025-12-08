@@ -1,5 +1,5 @@
 import { memo, useState } from 'react';
-import { Network, Shield, Zap, Target, Compass, Users2, Briefcase, TrendingUp, Copy, Check, ExternalLink, BarChart2, UserPlus, Crown } from 'lucide-react';
+import { Network, Shield, Zap, Target, Compass, Users2, Briefcase, TrendingUp, Copy, Check, ExternalLink, BarChart2, UserPlus, Crown, QrCode, Link2 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -322,7 +322,7 @@ const SocialIntegration = memo(function SocialIntegration() {
                             Generate QR Code
                           </Button>
                           <Button className="flex-1 bg-green-600 hover:bg-green-700">
-                            <Link className="h-4 w-4 mr-2" />
+                            <Link2 className="h-4 w-4 mr-2" />
                             Short Link
                           </Button>
                         </div>

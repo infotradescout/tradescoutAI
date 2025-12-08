@@ -13,23 +13,52 @@ import { Link } from 'wouter';
 import { useAuth } from '@/hooks/useAuth';
 import { formatDistanceToNow } from 'date-fns';
 
-const SimpleHome = memo(function SimpleHome() {
-  const { user } = useAuth();
+interface SimpleHomeDashboard {
+  stats: {
+    activeProjects: number;
+    savedContractors: number;
+    marketplaceListings: number;
+    realEstateListings: number;
+    totalViews: number;
+    notifications: number;
+  };
+  myProjects?: any[];
+  myListings?: any[];
+  quotes?: any[];
+  conversations?: any[];
+  recentActivity?: Array<{
+    id: string;
+    title: string;
+    createdAt: string;
+  }>;
+}
 
-  // Fetch user-specific dashboard data
-  const { data: dashboardData, isLoading } = useQuery({
-    queryKey: ['/api/dashboard', user?.id],
-    enabled: !!user?.id,
-  });
-
-  const stats = dashboardData?.stats || {
+const defaultDashboard: SimpleHomeDashboard = {
+  stats: {
     activeProjects: 0,
     savedContractors: 0,
     marketplaceListings: 0,
     realEstateListings: 0,
     totalViews: 0,
     notifications: 0
-  };
+  },
+  myProjects: [],
+  myListings: [],
+  quotes: [],
+  conversations: [],
+  recentActivity: []
+};
+
+const SimpleHome = memo(function SimpleHome() {
+  const { user } = useAuth();
+
+  // Fetch user-specific dashboard data
+  const { data: dashboardData = defaultDashboard, isLoading } = useQuery<SimpleHomeDashboard>({
+    queryKey: ['/api/dashboard', user?.id],
+    enabled: !!user?.id,
+  });
+
+  const stats = dashboardData.stats;
 
   // Determine dashboard sections based on user role
   const isContractor = user?.role === 'contractor_user' || user?.role === 'accelerator_member';

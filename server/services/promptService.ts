@@ -1,8 +1,11 @@
 import fs from "fs";
 import path from "path";
+import { fileURLToPath } from "url";
 
 let cachedPrompt: string | null = null;
 let lastLoaded: number | null = null;
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 const PROMPT_PATH = path.join(
   __dirname,

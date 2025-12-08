@@ -1,4 +1,4 @@
-import { db } from "./db";
+import { db } from "../src/db/drizzle-mock";
 import { counties, trades, contractors, contractorCounties, contractorTrades } from "@shared/schema";
 
 export async function seedDatabase() {

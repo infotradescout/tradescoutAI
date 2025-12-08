@@ -32,24 +32,19 @@ export default function DeviceManagement() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  const { data: devicesData, isLoading: devicesLoading } = useQuery({
+  const { data: devicesData = { devices: [] as TrustedDevice[] }, isLoading: devicesLoading } = useQuery<{ devices: TrustedDevice[]}>({
     queryKey: ['/api/admin/devices'],
     retry: false,
   });
 
-  const { data: pendingData, isLoading: pendingLoading } = useQuery({
+  const { data: pendingData = { pendingDevices: [] as PendingDevice[] }, isLoading: pendingLoading } = useQuery<{ pendingDevices: PendingDevice[]}>({
     queryKey: ['/api/admin/pending-devices'],
     retry: false,
   });
 
   const approveMutation = useMutation({
     mutationFn: async (deviceId: string) => {
-      const response = await apiRequest('POST', '/api/admin/approve-device', { deviceId });
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || 'Failed to approve device');
-      }
-      return response.json();
+      return apiRequest('POST', '/api/admin/approve-device', { deviceId });
     },
     onSuccess: () => {
       toast({
@@ -70,12 +65,7 @@ export default function DeviceManagement() {
 
   const revokeMutation = useMutation({
     mutationFn: async (deviceId: string) => {
-      const response = await apiRequest('POST', '/api/admin/revoke-device', { deviceId });
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || 'Failed to revoke device');
-      }
-      return response.json();
+      return apiRequest('POST', '/api/admin/revoke-device', { deviceId });
     },
     onSuccess: () => {
       toast({
