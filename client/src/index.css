@@ -32,7 +32,7 @@ html {
   overflow: hidden;
   white-space: nowrap;
   width: 0;
-  animation: typing 1.2s steps(var(--count)) forwards;
+  animation: typing 2.4s steps(var(--count)) forwards;
 }
 
 @keyframes typing {
