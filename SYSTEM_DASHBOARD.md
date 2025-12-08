@@ -2,7 +2,7 @@
 
 ```
 ╔════════════════════════════════════════════════════════════════════════════╗
-║                    TRADESCOUT AI ASSISTANT SYSTEM                         ║
+║                    TRADESCOUT AI SCOUT SYSTEM                             ║
 ║                      ✅ FULLY OPERATIONAL ✅                               ║
 ╚════════════════════════════════════════════════════════════════════════════╝
 
@@ -72,12 +72,12 @@
 │ API ENDPOINTS AVAILABLE                                                    │
 ├────────────────────────────────────────────────────────────────────────────┤
 │                                                                            │
-│  POST /api/assistant                                                      │
+│  POST /api/scout   (alias /api/assistant)                                 │
 │    Body: { message, history?, countyCode?, stateCode? }                   │
 │    Returns: { message, knowledge: { layer, sources, confidence } }       │
 │    Status: ✅ READY                                                       │
 │                                                                            │
-│  GET /api/assistant/health                                                │
+│  GET /api/scout/health                                                    │
 │    Returns: { status, geminiConfigured, timestamp }                       │
 │    Status: ✅ READY                                                       │
 │                                                                            │
@@ -92,7 +92,7 @@
 │    ✅ server/services/crawlerScheduler.ts      (cron scheduler)          │
 │    ✅ server/crawler/crawl.ts                  (master orchestrator)     │
 │    ✅ server/crawler/extractors/*              (6 extractors)            │
-│    ✅ server/routes/assistant.ts               (API routes)              │
+│    ✅ server/routes/scout.ts                   (API routes, aliases /api/assistant) |
 │    ✅ server/db.ts                             (mock DB fallback)        │
 │    ✅ server/index.ts                          (scheduler integration)   │
 │                                                                            │
@@ -154,7 +154,7 @@
 │    cat SYSTEM_STATUS.md                                                   │
 │                                                                            │
 │  Test API (from another terminal):                                        │
-│    curl -X POST http://localhost:5000/api/assistant \                    │
+│    curl -X POST http://localhost:5000/api/scout \                        │
 │      -H "Content-Type: application/json" \                               │
 │      -d '{"message":"Find contractors"}'                                  │
 │                                                                            │
@@ -174,7 +174,7 @@
 │                                                                            │
 │  3️⃣  Test the System                                                      │
 │      Run: .\test-system.ps1                                                │
-│      Or manually test: curl http://localhost:5000/api/assistant           │
+│      Or manually test: curl http://localhost:5000/api/scout               │
 │                                                                            │
 │  4️⃣  Deploy to Production                                                 │
 │      Run: npm run build                                                    │
@@ -186,7 +186,7 @@
 
                     🎉 SYSTEM STATUS: PRODUCTION READY 🎉
 
-             All 8 parts of the AI Assistant system are operational!
+             All 8 parts of the AI Scout system are operational!
                           Ready for testing and deployment.
 
 ═══════════════════════════════════════════════════════════════════════════════
@@ -222,4 +222,4 @@ Status: ✅ ACTIVE AND READY
 
 ---
 
-**Your AI Assistant + Local Caching System is ready for production!** 🚀
+**Your AI Scout + Local Caching System is ready for production!** 🚀

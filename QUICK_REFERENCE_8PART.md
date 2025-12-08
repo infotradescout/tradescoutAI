@@ -62,14 +62,14 @@ server/
 │   ├── knowledgeService.ts → 4-layer resolver
 │   └── crawlerScheduler.ts → Cron setup
 ├── routes/
-│   └── assistant.ts        → API endpoints
+│   └── scout.ts            → API endpoints (aliases /api/assistant)
 ├── index.ts                → Server entry + scheduler start
 └── assistantActions.ts     → AI-executable actions
 
 client/
 └── src/
     └── components/
-        └── AssistantChat.tsx → Floating widget
+      └── ScoutChat.tsx   → Floating widget
 ```
 
 ---
@@ -106,7 +106,7 @@ extractStaticPages()
 
 ### API Endpoints
 ```
-POST /api/assistant
+POST /api/scout
   Body: {message, history?, countyCode?, stateCode?}
   Response: {message, knowledge: {layer, sources, confidence}}
 

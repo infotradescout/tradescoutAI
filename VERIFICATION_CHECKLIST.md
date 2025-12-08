@@ -121,17 +121,17 @@ Status: **ALL ITEMS COMPLETE** ✅
 ---
 
 ### ✅ 4. Lock down admin routes with role verification
-- [x] Added `GET /api/assistant/admin/cache-stats`
+- [x] Added `GET /api/scout/admin/cache-stats` (aliases `/api/assistant/admin/cache-stats`)
   - Role requirement: admin only
   - Returns 403 for non-admins
   - Includes security check
 
-- [x] Added `GET /api/assistant/admin/system-status`
+- [x] Added `GET /api/scout/admin/system-status` (aliases `/api/assistant/admin/system-status`)
   - Role requirement: admin only
   - Returns 403 for non-admins
   - Includes security check
 
-- [x] Added `POST /api/assistant/admin/cache-clear`
+- [x] Added `POST /api/scout/admin/cache-clear` (aliases `/api/assistant/admin/cache-clear`)
   - Role requirement: admin only
   - Returns 403 for non-admins
   - Includes security check
@@ -147,7 +147,7 @@ Status: **ALL ITEMS COMPLETE** ✅
 ### ✅ 5. Load system prompt from disk
 - [x] System prompt file exists: `server/cache/manual/system_prompt.md`
 - [x] File contains comprehensive AI governance (163 lines)
-- [x] Implemented `loadSystemPrompt()` function in assistant.ts
+- [x] Implemented `loadSystemPrompt()` function in scout.ts
 - [x] Function loads from disk at runtime
 - [x] Includes fallback prompt if file missing
 - [x] Prompt injected into Gemini requests
@@ -220,7 +220,7 @@ Status: **ALL ITEMS COMPLETE** ✅
 
 ### ✅ 7. Verify no compilation errors
 - [x] assistantActions.ts - No errors
-- [x] assistant.ts (routes) - No errors
+- [x] scout.ts (routes, aliases /api/assistant) - No errors
 - [x] marketplaceService.ts - No errors
 - [x] contractorService.ts - No errors
 - [x] hoaService.ts - No errors
@@ -346,7 +346,7 @@ npm run build
 
 ### Modified Core Files (2)
 - ✅ `server/assistantActions.ts` (complete rewrite - 380 lines)
-- ✅ `server/routes/assistant.ts` (added admin routes - 280 lines)
+- ✅ `server/routes/scout.ts` (added admin routes, aliases /api/assistant - 280 lines)
 
 ### Test Files (1)
 - ✅ `server/tests/e2e-flows.test.ts` (400+ lines)
@@ -404,5 +404,5 @@ Ready for Phase 3 enhancements:
 **QUALITY: PRODUCTION READY**
 **DATE: December 4, 2024**
 
-The TradeScout AI Assistant system is now secure, scalable, and production-ready for deployment.
+The TradeScout AI Scout system is now secure, scalable, and production-ready for deployment.
 
