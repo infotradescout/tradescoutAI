@@ -54,6 +54,8 @@ const normalizeTrendingItem = (item: any, place: string): TrendingItem | null =>
 };
 
 const INTRO_PROMPT = "What can TradeScout do for my community?";
+const apiBase = (import.meta as any).env?.VITE_SCOUT_API_BASE || "/api";
+const scoutEndpoint = `${apiBase.replace(/\/$/, "")}/scout`;
 const BANNED_TERMS = ["fuck", "shit", "bitch", "asshole", "cunt", "slut", "whore"];
 
 const containsProfanity = (text: string) => {
@@ -189,7 +191,7 @@ export default function ScoutLanding() {
     setIsLoading(true);
 
     try {
-      const response = await fetch("/api/scout", {
+      const response = await fetch(scoutEndpoint, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
