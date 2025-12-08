@@ -80,8 +80,11 @@ export function antiScrapeShield(req: Request, res: Response, next: NextFunction
     return next();
   }
 
-  // Block known scraping user agents early
-  if (blockedUserAgents.some((pattern) => pattern.test(ua))) {
+  // In development, skip user agent blocking
+  const isProduction = process.env.NODE_ENV === 'production';
+  
+  // Block known scraping user agents early (only in production)
+  if (isProduction && blockedUserAgents.some((pattern) => pattern.test(ua))) {
     return res.status(403).json({ error: "Automated scraping is blocked." });
   }
 

@@ -1,0 +1,32 @@
+[
+  {
+    "question": "What can TradeScout do?",
+    "answer": "Based on your request, I can help you find verified local contractors in your area. TradeScout connects you with skilled professionals for various projects. What type of work are you looking for?",
+    "layer": 1,
+    "sources": [
+      "TradeScout Brain (data folder)"
+    ],
+    "actions": [],
+    "timestamp": "2025-12-08T16:33:51.396Z"
+  },
+  {
+    "question": "what can tradescout do for me",
+    "answer": "Based on your request, I can help you find verified local contractors in your area. TradeScout connects you with skilled professionals for various projects. What type of work are you looking for?",
+    "layer": 1,
+    "sources": [
+      "TradeScout Brain (data folder)"
+    ],
+    "actions": [],
+    "timestamp": "2025-12-08T16:34:41.147Z"
+  },
+  {
+    "question": "what can tradescout do for my community",
+    "answer": "Based on TradeScout's core doctrine, TradeScout is designed to be a community-backed trust ecosystem. For your community, this means:\n\n*   **Reconnecting Neighbors:** It directly connects people who need work done with local contractors and tradespeople, without a middleman selling access.\n*   **Building Local Trust:** It acts as a local trust protocol and a real-world operating system, where reputation—not ad spending—determines who gets opportunities.\n*   **Transparency & Protection:** It's not a platform that sells \"leads,\" charges for ranking, or profits from confusion. Instead, it aims to create a transparent, protected marketplace where local professionals and residents can connect fairly.\n\nIn essence, TradeScout empowers your community by providing a trusted, local-first system for getting work done and finding local professionals.",
+    "layer": 1,
+    "sources": [
+      "TradeScout Brain (data folder)"
+    ],
+    "actions": [],
+    "timestamp": "2025-12-08T16:35:26.014Z"
+  }
+]
