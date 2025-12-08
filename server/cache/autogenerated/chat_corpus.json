@@ -57,5 +57,45 @@
     ],
     "actions": [],
     "timestamp": "2025-12-08T17:00:42.845Z"
+  },
+  {
+    "question": "Find me a contractor near me",
+    "answer": "```json\n{\n  \"replyText\": \"To find contractors near you, I need to know your county and state. Please tell me your location (e.g., 'Harris County, Texas').\"\n}\n```",
+    "layer": 1,
+    "sources": [
+      "TradeScout Brain (data folder)"
+    ],
+    "actions": [],
+    "timestamp": "2025-12-08T17:05:28.929Z"
+  },
+  {
+    "question": "What are the benefits of the recommendation engine?",
+    "answer": "Based on your local TradeScout data, the recommendation engine (or system for trusted recommendations) offers several key benefits, primarily centered around building trust and connecting homeowners with reliable providers.\n\nHere's what communities and homeowners gain:\n*   **Trust built face-to-face:** Through community events, recommendations become visible, allowing reputation to be seen and built directly.\n*   **Access to trusted contractors:** Homeowners get access to the top recommended contractors in their county, who are visible, ranked, and vetted through real community consensus, rather than just random listings.\n*   **Visible Reputation:** The system ensures that a contractor's reputation becomes visible, helping homeowners make informed decisions.",
+    "layer": 1,
+    "sources": [
+      "TradeScout Brain (data folder)"
+    ],
+    "actions": [],
+    "timestamp": "2025-12-08T17:07:19.222Z"
+  },
+  {
+    "question": "Tell me about the recommendation engine",
+    "answer": "Hey! When it comes to how recommendations work on TradeScout, we see it as a natural community process, especially for trades that show visible proof of their workmanship. We aim to create \"public recommendation loops.\"\n\nIt's pretty straightforward: what neighbors see, they ask about. What they ask about, we capture. And what we capture is what builds trust for everyone in the community. That's our engine for recommendations!",
+    "layer": 1,
+    "sources": [
+      "TradeScout Brain (data folder)"
+    ],
+    "actions": [],
+    "timestamp": "2025-12-08T17:09:31.019Z"
+  },
+  {
+    "question": "List marketplace items",
+    "answer": "Hey there! As TradeScout, we're all about connecting our community with what they need. Here's a look at the kinds of items and services you can find in our marketplace:\n\n*   **Business Services & Vendors:** Our Business Depot offers a curated list of vendors for everything your business needs, all with exclusive TradeScout discounts!\n*   **Local Food Vendors:** Through MealScout, you can find local food vendors, daily promotions, and event presences.\n*   **Materials Delivery:** TradeDrop facilitates materials delivery with local drivers, making your projects smoother.\n*   **Local Labor & Jobs:** We empower developers and businesses to use local talent for commercial and other projects.\n*   **Project Services:** We provide guidance and connections for a wide range of services like roofing, plumbing, electrical, HVAC, decking, fencing, siding, concrete, painting, demolition, landscaping, pools, flooring, framing, and drywall.\n\nAnd remember, our TradeCoin is designed to be spent across all these services, materials, and jobs within the marketplace! We're here to help you build smarter, not harder.\n\n---\n\n**To do this, you'll need a TradeScout account!** It only takes a minute:\n\n1. Click the **\"Create Account\"** button at the top\n2. Choose your role (Homeowner, Contractor, or Community Member)\n3. Enter your email and create a password\n4. Verify your email\n5. Come back here and I'll help you with `List marketplace items`\n\nReady? Let's set you up! 🚀",
+    "layer": 1,
+    "sources": [
+      "TradeScout Brain (data folder)"
+    ],
+    "actions": [],
+    "timestamp": "2025-12-08T17:09:43.011Z"
   }
 ]
