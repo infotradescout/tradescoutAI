@@ -6,21 +6,13 @@ import { useMutation } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { useState } from "react";
-import { useForm, Controller } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
-import { useMutation } from "@tanstack/react-query";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { Link } from "wouter";
 import { ArrowLeft, UserPlus, Mail, Lock, User, MapPin } from "lucide-react";
 import UserTypeSelect from "@/components/UserTypeSelect";
-import { US_STATES, US_STATES_COUNTIES } from "@shared/us-states-counties";
+import { US_STATES, SAMPLE_COUNTIES, getCountiesForState } from "@shared/us-states-counties";
 
 const registerSchema = z.object({
   username: z.string()
@@ -64,10 +56,9 @@ export default function Register() {
   });
 
   const countiesForState = useMemo(() => {
-    if (!form.watch("state")) return [] as { name: string; fips: string; stateCode: string }[];
+    if (!form.watch("state")) return [];
     const stateCode = form.watch("state");
-    const stateData = US_STATES_COUNTIES.find((s) => s.code === stateCode);
-    return stateData?.counties || [];
+    return getCountiesForState(stateCode) || [];
   }, [form]);
 
   const registerMutation = useMutation({
