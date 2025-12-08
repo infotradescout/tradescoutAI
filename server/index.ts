@@ -275,37 +275,36 @@ app.use((req, res, next) => {
         }
       })();
     } else {
-      // Serve static files from dist/public (Vite build output)
+      // Serve static files from dist/public (Vite build output) if available
       const workspaceRoot = process.cwd();
       const publicDistPath = path.join(workspaceRoot, 'dist/public');
 
-      console.log('Production mode - serving static files from:', publicDistPath);
-      app.use(express.static(publicDistPath));
+      // Only serve frontend if dist/public exists (allows API-only deployment)
+      if (fs.existsSync(publicDistPath)) {
+        console.log('Production mode - serving static files from:', publicDistPath);
+        app.use(express.static(publicDistPath));
 
-      // Catch all handler for client-side routing
-      app.get('*', (req, res) => {
-        const indexPath = path.join(publicDistPath, 'index.html');
-        console.log('Serving index.html from:', indexPath);
+        // Catch all handler for client-side routing
+        app.get('*', (req, res) => {
+          const indexPath = path.join(publicDistPath, 'index.html');
 
-        // Check if file exists before trying to serve
-        if (fs.existsSync(indexPath)) {
-          res.sendFile(indexPath, (err) => {
-            if (err) {
-              console.error('Error serving index.html:', err);
-              res.status(500).send('Error loading application');
-            }
-          });
-        } else {
-          console.error('index.html not found at:', indexPath);
-          try {
-            const files = fs.readdirSync(publicDistPath, { withFileTypes: true }).map(d => d.name);
-            console.log('Available files in dist/public:', files);
-          } catch (dirErr) {
-            console.error('Cannot read dist/public directory:', dirErr);
+          // Check if file exists before trying to serve
+          if (fs.existsSync(indexPath)) {
+            res.sendFile(indexPath, (err) => {
+              if (err) {
+                console.error('Error serving index.html:', err);
+                res.status(500).send('Error loading application');
+              }
+            });
+          } else {
+            console.error('index.html not found at:', indexPath);
+            res.status(404).send('Application files not found');
           }
-          res.status(404).send('Application files not found');
-        }
-      });
+        });
+      } else {
+        console.log('Production mode - API only (no dist/public found)');
+        // API-only mode: no frontend serving, just API routes
+      }
     }
   });
   } catch (error) {
