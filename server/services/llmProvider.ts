@@ -20,7 +20,7 @@ export class GeminiProvider implements LLMProvider {
     return !!process.env.GEMINI_API_KEY;
   }
   async generate(prompt: string) {
-    const model = this.genAI.getGenerativeModel({ model: "gemini-1.5-flash-latest" });
+    const model = this.genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
     const result = await model.generateContent(prompt);
     return result.response.text();
   }
