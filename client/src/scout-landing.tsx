@@ -90,6 +90,7 @@ export default function ScoutLanding() {
   const [inputValue, setInputValue] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [sendPulse, setSendPulse] = useState(false);
+  const [pendingCopy, setPendingCopy] = useState<string | null>(null);
   const [autoPromptPreview, setAutoPromptPreview] = useState<string | null>(null);
   const [trendingItems, setTrendingItems] = useState<TrendingItem[]>([]);
   const [trendingStatus, setTrendingStatus] = useState<"idle" | "loading" | "ready" | "error">("idle");
@@ -101,9 +102,31 @@ export default function ScoutLanding() {
   const introInitializedRef = useRef(false);
   const bootShownRef = useRef(false);
 
+  const thinkingPhrases = useMemo(
+    () => [
+      "Scout is lining up local intel…",
+      "Pulling contractors and deals…",
+      "Scanning your county playbook…",
+      "Checking availability right now…",
+    ],
+    []
+  );
+
   useEffect(() => {
     // Always reset autorun state on load so guests auto-run every visit
     hasAutoRunRef.current = false;
+  }, []);
+
+  // Warm the backend so the first real prompt isn’t cold-start slow
+  useEffect(() => {
+    const warm = async () => {
+      try {
+        await fetch(`${apiBase}/scout/health`, { method: "HEAD", cache: "no-store" });
+      } catch (err) {
+        console.warn("Warmup ping failed", err);
+      }
+    };
+    warm();
   }, []);
 
   const addressParts = user?.address?.split(",").map((part: string) => part.trim()).filter(Boolean) || [];
@@ -200,6 +223,7 @@ export default function ScoutLanding() {
     pushMessage(userMessage);
     setInputValue(""); // Always clear input after sending
     setIsLoading(true);
+    setPendingCopy(thinkingPhrases[Math.floor(Math.random() * thinkingPhrases.length)]);
 
     try {
       const response = await fetch(scoutEndpoint, {
@@ -270,6 +294,7 @@ export default function ScoutLanding() {
       };
       pushMessage(errorMessage);
     } finally {
+      setPendingCopy(null);
       setIsLoading(false);
     }
   };
@@ -714,12 +739,12 @@ export default function ScoutLanding() {
                         </div>
                       </div>
                     ))}
-                    {isLoading && (
+                    {(isLoading || pendingCopy) && (
                       <div className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-slate-900/70 px-3 py-2 text-xs text-tsTextMuted italic shadow-sm">
                         <span className="loading-dot" />
                         <span className="loading-dot" />
                         <span className="loading-dot" />
-                        <span className="ml-1">Scout is thinking…</span>
+                        <span className="ml-1">{pendingCopy || "Scout is thinking…"}</span>
                       </div>
                     )}
                   </div>
