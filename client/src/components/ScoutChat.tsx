@@ -50,6 +50,7 @@ export function ScoutChat({ defaultOpen = false, isAuthenticated = false }: Scou
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const messagesRef = useRef<Message[]>([]);
   const autoRunTimeoutRef = useRef<number | null>(null);
+  const typingAnimationRef = useRef<number | null>(null);
   const hasAutoRunRef = useRef(false);
   const userInteractedRef = useRef(false);
   const [, navigate] = useLocation();
@@ -154,12 +155,24 @@ export function ScoutChat({ defaultOpen = false, isAuthenticated = false }: Scou
         }
       };
 
-      autoRunTimeoutRef.current = window.setTimeout(autoRunFn, 600);
+      autoRunTimeoutRef.current = window.setTimeout(() => {
+        if (userInteractedRef.current) return;
+        
+        // Mark as seen for authenticated users
+        if (isAuthenticated) {
+          localStorage.setItem('ts_seen_intro_prompt', 'true');
+        }
+        
+        animateAndSendPrompt(INTRO_PROMPT);
+      }, 500); // Start typing animation after 500ms
     }
 
     return () => {
       if (autoRunTimeoutRef.current) {
         window.clearTimeout(autoRunTimeoutRef.current);
+      }
+      if (typingAnimationRef.current) {
+        window.clearTimeout(typingAnimationRef.current);
       }
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -184,6 +197,39 @@ export function ScoutChat({ defaultOpen = false, isAuthenticated = false }: Scou
       window.clearTimeout(autoRunTimeoutRef.current);
       autoRunTimeoutRef.current = null;
     }
+    if (typingAnimationRef.current) {
+      window.clearTimeout(typingAnimationRef.current);
+      typingAnimationRef.current = null;
+    }
+  };
+
+  // Animate typing the prompt, then send it
+  const animateAndSendPrompt = async (promptText: string) => {
+    // Clear any existing timeouts
+    if (typingAnimationRef.current) {
+      window.clearTimeout(typingAnimationRef.current);
+    }
+
+    // Animate typing the prompt character by character
+    let displayedText = '';
+    const totalChars = promptText.length;
+    let charIndex = 0;
+
+    const typeCharacter = () => {
+      if (charIndex < totalChars && !userInteractedRef.current) {
+        displayedText += promptText[charIndex];
+        setInputValue(displayedText);
+        charIndex++;
+        typingAnimationRef.current = window.setTimeout(typeCharacter, 50); // 50ms per character
+      } else if (charIndex === totalChars && !userInteractedRef.current) {
+        // Finished typing, wait a moment then send
+        typingAnimationRef.current = window.setTimeout(() => {
+          handleSendMessage(promptText);
+        }, 300); // 300ms pause before sending
+      }
+    };
+
+    typeCharacter();
   };
 
   const handleSendMessage = async (prompt?: string) => {

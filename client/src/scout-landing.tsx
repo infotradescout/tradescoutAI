@@ -80,6 +80,7 @@ export default function ScoutLanding() {
   const scrollRef = useRef<HTMLDivElement>(null);
   const messagesRef = useRef<Message[]>([]);
   const autoRunTimeoutRef = useRef<number | null>(null);
+  const typingAnimationRef = useRef<number | null>(null);
   const hasAutoRunRef = useRef(false);
   const userInteractedRef = useRef(false);
 
@@ -98,6 +99,35 @@ export default function ScoutLanding() {
     });
   };
 
+  // Animate typing the prompt, then send it
+  const animateAndSendPrompt = async (promptText: string) => {
+    // Clear any existing timeouts
+    if (typingAnimationRef.current) {
+      window.clearTimeout(typingAnimationRef.current);
+    }
+
+    // Animate typing the prompt character by character
+    let displayedText = "";
+    const totalChars = promptText.length;
+    let charIndex = 0;
+
+    const typeCharacter = () => {
+      if (charIndex < totalChars && !userInteractedRef.current) {
+        displayedText += promptText[charIndex];
+        setInputValue(displayedText);
+        charIndex++;
+        typingAnimationRef.current = window.setTimeout(typeCharacter, 50); // 50ms per character
+      } else if (charIndex === totalChars && !userInteractedRef.current) {
+        // Finished typing, wait a moment then send
+        typingAnimationRef.current = window.setTimeout(() => {
+          handleSendMessage(promptText);
+        }, 300); // 300ms pause before sending
+      }
+    };
+
+    typeCharacter();
+  };
+
   const markUserInteracted = () => {
     if (!userInteractedRef.current) {
       userInteractedRef.current = true;
@@ -105,6 +135,10 @@ export default function ScoutLanding() {
     if (autoRunTimeoutRef.current) {
       window.clearTimeout(autoRunTimeoutRef.current);
       autoRunTimeoutRef.current = null;
+    }
+    if (typingAnimationRef.current) {
+      window.clearTimeout(typingAnimationRef.current);
+      typingAnimationRef.current = null;
     }
   };
 
@@ -244,18 +278,21 @@ export default function ScoutLanding() {
       pushMessage(introMessage);
 
       if (!hasSeenIntro) {
-        setInputValue(INTRO_PROMPT);
+        // Start typing animation after intro message appears
         autoRunTimeoutRef.current = window.setTimeout(() => {
           if (userInteractedRef.current || hasAutoRunRef.current) return;
           hasAutoRunRef.current = true;
-          handleSendMessage(INTRO_PROMPT);
-        }, 1200);
+          animateAndSendPrompt(INTRO_PROMPT);
+        }, 500); // Start typing animation after 500ms
       }
     }
 
     return () => {
       if (autoRunTimeoutRef.current) {
         window.clearTimeout(autoRunTimeoutRef.current);
+      }
+      if (typingAnimationRef.current) {
+        window.clearTimeout(typingAnimationRef.current);
       }
     };
   }, []);
