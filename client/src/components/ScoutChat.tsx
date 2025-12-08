@@ -9,6 +9,8 @@ interface Message {
   role: 'user' | 'assistant';
   content: string;
   timestamp: Date;
+  id?: string;
+  isThinking?: boolean;
 }
 
 interface ScoutResponse {
@@ -269,6 +271,21 @@ export function ScoutChat({ defaultOpen = false, isAuthenticated = false }: Scou
     setInputValue(''); // Always clear input after sending
     setIsLoading(true);
 
+    // Show thinking message while processing
+    const thinkingMsgId = `thinking-${Date.now()}`;
+    const thinkingMessage: Message = {
+      id: thinkingMsgId,
+      role: 'assistant',
+      content: '🧠 Thinking... analyzing your request and pulling insights from our knowledge base...',
+      timestamp: new Date(),
+      isThinking: true,
+    };
+    setMessages((prev) => {
+      const next = [...prev, thinkingMessage];
+      messagesRef.current = next;
+      return next;
+    });
+
     try {
       // Send message to backend
       const response = await fetch('/api/scout', {
@@ -287,12 +304,19 @@ export function ScoutChat({ defaultOpen = false, isAuthenticated = false }: Scou
       });
 
       if (!response.ok) {
-        throw new Error('Failed to get response from Scout');
+        const errorText = await response.text();
+        console.error('[ScoutChat] HTTP Error:', response.status, errorText);
+        throw new Error(`HTTP ${response.status}: ${errorText}`);
       }
 
       const data: ScoutResponse = await response.json();
 
-      // Add Scout response to messages
+      if (!data.message) {
+        console.error('[ScoutChat] Empty response from API', data);
+        throw new Error('Empty response from Scout API');
+      }
+
+      // Add Scout response to messages, removing thinking message
       const scoutMessage: Message = {
         role: 'assistant',
         content: data.message,
@@ -300,7 +324,9 @@ export function ScoutChat({ defaultOpen = false, isAuthenticated = false }: Scou
       };
 
       setMessages((prev) => {
-        const next = [...prev, scoutMessage];
+        // Remove thinking message and add actual response
+        const filtered = prev.filter((m) => m.id !== thinkingMsgId);
+        const next = [...filtered, scoutMessage];
         messagesRef.current = next;
         return next;
       });
@@ -333,10 +359,11 @@ export function ScoutChat({ defaultOpen = false, isAuthenticated = false }: Scou
         });
       }
     } catch (error) {
-      console.error('Error sending message:', error);
+      const errorMsg = error instanceof Error ? error.message : String(error);
+      console.error('[ScoutChat] Error sending message:', errorMsg, error);
       const errorMessage: Message = {
         role: 'assistant',
-        content: 'Sorry, Scout hit an error processing your request. Please try again.',
+        content: `Sorry, Scout hit an error processing your request: ${errorMsg}`,
         timestamp: new Date(),
       };
       setMessages((prev) => {
