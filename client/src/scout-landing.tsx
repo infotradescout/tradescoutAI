@@ -8,6 +8,8 @@ type Message = {
   role: "user" | "assistant";
   content: string;
   timestamp: Date;
+  id?: string;
+  isThinking?: boolean;
 };
 
 type ScoutResponse = {
@@ -195,6 +197,17 @@ export default function ScoutLanding() {
     setInputValue(""); // Always clear input after sending
     setIsLoading(true);
 
+    // Show thinking message while processing
+    const thinkingMsgId = `thinking-${Date.now()}`;
+    const thinkingMessage: Message = {
+      id: thinkingMsgId,
+      role: "assistant",
+      content: "🧠 Thinking... analyzing your request and pulling insights from our knowledge base...",
+      timestamp: new Date(),
+      isThinking: true,
+    };
+    pushMessage(thinkingMessage);
+
     try {
       const response = await fetch("/api/scout", {
         method: "POST",
@@ -212,10 +225,22 @@ export default function ScoutLanding() {
       });
 
       if (!response.ok) {
-        throw new Error("Failed to get response from Scout");
+        const errorText = await response.text();
+        console.error("[Scout] HTTP Error:", response.status, errorText);
+        throw new Error(`HTTP ${response.status}: ${errorText}`);
       }
 
       const data: ScoutResponse = await response.json();
+      
+      if (!data.message) {
+        console.error("[Scout] Empty response from API", data);
+        throw new Error("Empty response from Scout API");
+      }
+
+      // Remove thinking message and replace with actual response
+      const messagesWithoutThinking = messagesRef.current.filter((m) => m.id !== thinkingMsgId);
+      messagesRef.current = messagesWithoutThinking;
+      setMessages([...messagesWithoutThinking]);
 
       const scoutMessage: Message = {
         role: "assistant",
@@ -244,10 +269,11 @@ export default function ScoutLanding() {
         pushMessage(highlight);
       }
     } catch (error) {
-      console.error("Error sending message:", error);
+      const errorMsg = error instanceof Error ? error.message : String(error);
+      console.error("[Scout] Error sending message:", errorMsg, error);
       const errorMessage: Message = {
         role: "assistant",
-        content: "Sorry, I encountered an error processing your request. Please try again.",
+        content: `Sorry, I encountered an error processing your request: ${errorMsg}`,
         timestamp: new Date(),
       };
       pushMessage(errorMessage);
