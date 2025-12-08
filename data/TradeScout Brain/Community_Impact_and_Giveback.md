@@ -2,7 +2,31 @@
 
 ## Our Commitment to Community
 
-TradeScout isn't just a platform for transactions - it's a movement to strengthen local communities and invest back in the people who make them thrive.
+TradeScout isn't just a platform for contractors and homeowners - it's a movement to strengthen the entire local community ecosystem and invest back in the people who make them thrive.
+
+We serve the entire neighborhood: contractors, homeowners, vehicle dealers, realtors, HOA management companies, property managers, business owners, and community leaders. Everyone who builds, maintains, and strengthens our communities.
+
+## The Entire Community Ecosystem
+
+TradeScout is designed for everyone who makes a community work:
+
+**Contractors & Service Providers** - Find consistent work, build reputation, connect directly with customers
+
+**Homeowners** - Access vetted professionals, transparent pricing, quality service from people they trust
+
+**Real Estate Professionals** - Connect with contractors for property improvements, staged sales, buyer support
+
+**Vehicle Dealers** - Network with service providers, contractors for facility work, community connections
+
+**HOA Management** - Manage community maintenance through vetted local providers, direct funding, transparent spending
+
+**Property Managers** - Streamlined maintenance, tenant satisfaction, community reputation management
+
+**Business Owners** - Access skilled trades, facility maintenance, and peer support networks
+
+**Community Leaders** - Organize, earn, and strengthen your neighborhood through Community Builder programs
+
+Every role in this ecosystem strengthens the others. When a homeowner hires through TradeScout, contractors thrive. When realtors recommend TradeScout-vetted professionals, their business grows. When HOAs use TradeScout, communities improve.
 
 ## The Vault - Community Wealth Program
 
