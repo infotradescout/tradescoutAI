@@ -252,22 +252,63 @@ const AppLayout = memo(function AppLayout() {
   const isLlmRoute = location === '/' || location.startsWith('/?');
 
   const [showBetaNotice, setShowBetaNotice] = useState(false);
+  const headerLinks = isAuthenticated
+    ? [
+        { label: 'Dashboard', href: '/dashboard' },
+        { label: 'Marketplace', href: '/marketplace' },
+        { label: 'Community', href: '/community' },
+        { label: 'Profile', href: '/profile' },
+      ]
+    : [
+        { label: 'Find Contractors', href: '/find-contractors' },
+        { label: 'Marketplace', href: '/marketplace' },
+        { label: 'About', href: '/about' },
+      ];
 
   useEffect(() => {
-    const dismissed = typeof window !== 'undefined' ? localStorage.getItem('ts_beta_notice_dismissed') : null;
+    const dismissed = typeof window !== 'undefined' ? sessionStorage.getItem('ts_beta_notice_dismissed_session') : null;
     if (!dismissed) {
       setShowBetaNotice(true);
     }
   }, []);
 
   const dismissBetaNotice = () => {
-    localStorage.setItem('ts_beta_notice_dismissed', 'true');
+    sessionStorage.setItem('ts_beta_notice_dismissed_session', 'true');
     setShowBetaNotice(false);
   };
 
   return (
     <SimpleMobileGestures>
       <div className="min-h-screen bg-tsBg text-tsTextMain font-sans flex flex-col">
+        {!isLlmRoute && (
+          <header className="hidden md:block sticky top-0 z-40 backdrop-blur-md bg-slate-950/85 border-b border-tsBorder shadow-lg">
+            <div className="max-w-6xl mx-auto px-6 py-4 flex flex-col items-center gap-3 text-center">
+              <div className="flex items-center gap-3">
+                <div className="bg-gradient-to-br from-tsAccent to-orange-700 p-2 rounded-xl shadow-lg shadow-orange-500/40" />
+                <div className="text-left">
+                  <div className="text-xs uppercase tracking-[0.22em] text-tsAccentSoft">TRADE SCOUT</div>
+                  <div className="text-xl font-semibold text-tsTextMain leading-tight">Connection Without Compromise</div>
+                </div>
+              </div>
+              <nav className="flex flex-wrap items-center justify-center gap-5 text-sm text-tsTextMuted">
+                {headerLinks.map((item) => (
+                  <a key={item.href} href={item.href} className="hover:text-tsAccent transition">
+                    {item.label}
+                  </a>
+                ))}
+                {!isAuthenticated && (
+                  <a
+                    href="/signup"
+                    className="rounded-lg bg-gradient-to-r from-orange-500 to-orange-600 px-3 py-1.5 text-white font-semibold shadow-lg shadow-orange-500/40 hover:translate-y-[-1px] hover:shadow-orange-500/50 transition"
+                  >
+                    Get started
+                  </a>
+                )}
+              </nav>
+            </div>
+          </header>
+        )}
+
         {showBetaNotice && (
           <div className="fixed bottom-24 right-4 z-50 max-w-sm rounded-2xl border border-orange-400/50 bg-slate-950/95 shadow-2xl shadow-orange-500/20 p-4 text-sm text-gray-100">
             <div className="flex items-start gap-3">
