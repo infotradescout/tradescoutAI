@@ -54,7 +54,12 @@ const normalizeTrendingItem = (item: any, place: string): TrendingItem | null =>
 };
 
 const INTRO_PROMPT = "What can TradeScout do for my community?";
-const apiBase = (import.meta as any).env?.VITE_SCOUT_API_BASE || "/api";
+const apiBaseEnv = (import.meta as any).env?.VITE_SCOUT_API_BASE;
+const apiBase =
+  apiBaseEnv ||
+  (typeof window !== "undefined" && window.location.hostname.endsWith("thetradescout.com")
+    ? "https://www.thetradescout.com/api"
+    : "/api");
 const scoutEndpoint = `${apiBase.replace(/\/$/, "")}/scout`;
 const BANNED_TERMS = ["fuck", "shit", "bitch", "asshole", "cunt", "slut", "whore"];
 
