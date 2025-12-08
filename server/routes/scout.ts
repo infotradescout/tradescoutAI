@@ -138,7 +138,7 @@ Now write a smart, comprehensive answer about TradeScout:`;
 
 /**
  * Generate smart synthesis using knowledge + conversation context
- * FAST version for regular questions - just polishes the knowledge, doesn't rewrite
+ * Enhanced version that elaborates and explains the knowledge intelligently
  */
 async function synthesizeResponse(
   userMessage: string,
@@ -154,19 +154,29 @@ async function synthesizeResponse(
   try {
     const model = gemini.getGenerativeModel({ model: "gemini-2.5-flash" });
     
-    // FAST synthesis - just polish the knowledge into conversational format
-    // Don't rewrite, just enhance for clarity and tone
-    const synthesisPrompt = `You are Scout, the TradeScout AI. Make this knowledge conversational and helpful.
+    // Smart synthesis that elaborates on knowledge while keeping facts intact
+    const synthesisPrompt = `You are Scout, the TradeScout AI assistant. Your job is to make knowledge helpful and engaging.
 
-Knowledge (Layer ${knowledge.layer}):
+User asked: "${userMessage}"
+
+Knowledge from TradeScout (Layer ${knowledge.layer}):
 ${knowledge.answer}
 
-User asked: ${userMessage}
+TASK: Transform this knowledge into a helpful, conversational response that:
+1. Answers the user's question directly
+2. Elaborates with examples and context from the knowledge
+3. Explains WHY and HOW things work, not just WHAT
+4. Makes connections between related concepts
+5. Uses conversational, friendly tone
+6. Includes specific benefits or use cases
+7. Is organized and easy to scan (use bullets/formatting)
 
-Task: Make the knowledge above conversational and helpful. Keep all facts intact.
-Be brief, natural, friendly. Don't add new information.
-${knowledge.layer === 3 ? "Remember: This info is from the internet, NOT TradeScout data." : ""}
-${knowledge.layer === 4 ? "Be honest: You don't have reliable info." : ""}`;
+${knowledge.layer === 1 || knowledge.layer === 2 ? "This is TradeScout data - speak with confidence and authority." : ""}
+${knowledge.layer === 3 ? "This is from the internet, not local TradeScout data - be clear about that." : ""}
+${knowledge.layer === 4 ? "You don't have reliable info - be honest about it." : ""}
+
+DO NOT invent features or facts. ONLY use what's in the knowledge above.
+Make it smart and helpful, not robotic.`;
 
     const result = await model.generateContent(synthesisPrompt);
     return result.response.text();
@@ -273,7 +283,13 @@ router.post("/", async (req: Request, res: Response) => {
           message: synthesisResponse,
           actions: [],
           actionResults: [],
-          knowledgeLayer: "synthesis",
+          knowledge: {
+            layer: 1,
+            sources: ["Comprehensive Knowledge Base (All Documents)"],
+            confidence: "high"
+          },
+          llmProvider: "gemini",
+          promptVersion: loadSystemPrompt().version,
           timestamp: new Date().toISOString(),
         });
       } catch (error) {
