@@ -55,6 +55,10 @@ const DEFAULT_SUGGESTIONS = [
   "Show me top marketplace listings this week",
 ];
 
+// Cache auto-prompt to avoid regenerating on every page load
+let cachedAutoPrompt: { autoPrompt: string; suggestions: string[]; source: "static" | "gemini"; timestamp: number } | null = null;
+const AUTO_PROMPT_CACHE_TTL = 60 * 60 * 1000; // 1 hour
+
 // Cache comprehensive knowledge to avoid reloading on every request
 let cachedComprehensiveKnowledge: string | null = null;
 let lastKnowledgeCache = 0;
@@ -203,12 +207,21 @@ DO NOT invent features or facts. ONLY use what's in the knowledge above.
 }
 
 async function generateAutoPrompt(gemini: GoogleGenerativeAI | null) {
+  // Return cached version if still fresh
+  const now = Date.now();
+  if (cachedAutoPrompt && now - cachedAutoPrompt.timestamp < AUTO_PROMPT_CACHE_TTL) {
+    return cachedAutoPrompt;
+  }
+
   if (!gemini) {
-    return {
+    const result = {
       source: "static" as const,
       autoPrompt: DEFAULT_AUTO_PROMPT,
       suggestions: DEFAULT_SUGGESTIONS,
+      timestamp: now,
     };
+    cachedAutoPrompt = result;
+    return result;
   }
 
   try {
@@ -227,17 +240,22 @@ Return JSON with keys autoPrompt (string) and suggestions (string array).`;
         ? parsed.suggestions.slice(0, 6).map((s: any) => String(s))
         : DEFAULT_SUGGESTIONS;
 
-      return { source: "gemini" as const, autoPrompt, suggestions };
+      const generated = { source: "gemini" as const, autoPrompt, suggestions, timestamp: now };
+      cachedAutoPrompt = generated;
+      return generated;
     }
   } catch (error) {
     console.warn("[Scout] Auto-prompt generation failed; falling back to defaults", error);
   }
 
-  return {
+  const fallback = {
     source: "static" as const,
     autoPrompt: DEFAULT_AUTO_PROMPT,
     suggestions: DEFAULT_SUGGESTIONS,
+    timestamp: now,
   };
+  cachedAutoPrompt = fallback;
+  return fallback;
 }
 
 // Initialize LLM providers (add more as needed)
