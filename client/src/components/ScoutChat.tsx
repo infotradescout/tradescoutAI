@@ -266,7 +266,7 @@ export function ScoutChat({ defaultOpen = false, isAuthenticated = false }: Scou
       messagesRef.current = next;
       return next;
     });
-    if (!prompt) setInputValue('');
+    setInputValue(''); // Always clear input after sending
     setIsLoading(true);
 
     try {

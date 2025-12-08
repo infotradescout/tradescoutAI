@@ -192,7 +192,7 @@ export default function ScoutLanding() {
     };
 
     pushMessage(userMessage);
-    if (!prompt) setInputValue("");
+    setInputValue(""); // Always clear input after sending
     setIsLoading(true);
 
     try {
