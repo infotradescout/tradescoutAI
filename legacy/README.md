@@ -1,3 +1,6 @@
+This folder contains legacy and experimental files that are **not** part of the active TradeScoutPro application.
+
+Items here are kept temporarily for reference or potential reuse. They can be safely deleted after a grace period once you are confident nothing depends on them.
 # Legacy Files
 
 This folder contains the original pre-Vite React application from the standalone TradeScout prototype.

@@ -3343,7 +3343,7 @@ export async function registerRoutes(app: any) {
 
   // Admin panel routes (require admin access)
   const requireAdmin = (req: any, res: any, next: any) => {
-    if (!req.user || !['owner', 'ops_admin', 'head_admin'].includes(req.user.role)) {
+    if (!req.user || req.user.isAdmin !== true) {
       return res.status(403).json({ message: "Admin access required" });
     }
     next();

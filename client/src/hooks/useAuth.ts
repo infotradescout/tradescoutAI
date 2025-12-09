@@ -6,6 +6,8 @@ export interface User {
   email: string;
   firstName?: string;
   lastName?: string;
+  // Backend exposes a boolean admin flag; use this for all admin gating
+  isAdmin?: boolean;
   role?: string;
   roles?: string[];
   badges?: string[];

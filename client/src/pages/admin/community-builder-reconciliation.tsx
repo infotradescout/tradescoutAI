@@ -1,10 +1,12 @@
 import React from 'react';
+import { Navigate } from 'wouter';
 import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AlertTriangle, CheckCircle, Wallet } from 'lucide-react';
+import { useAuth } from '@/hooks/useAuth';
 
 interface ReconciliationRow {
   countyId: string;
@@ -17,6 +19,10 @@ interface ReconciliationRow {
 }
 
 export default function AdminCommunityBuilderReconciliationPage() {
+  const { user } = useAuth();
+  if (!user?.isAdmin) {
+    return <Navigate to="/unauthorized" />;
+  }
   const { data: recs = [], isLoading } = useQuery<ReconciliationRow[]>({
     queryKey: ['cbReconciliation'],
     queryFn: async () => {

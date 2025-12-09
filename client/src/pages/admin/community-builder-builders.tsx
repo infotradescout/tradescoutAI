@@ -1,4 +1,5 @@
 import React from 'react';
+import { Navigate } from 'wouter';
 import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -6,6 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AlertTriangle, CheckCircle, Ban } from 'lucide-react';
+import { useAuth } from '@/hooks/useAuth';
 
 interface BuilderRow {
   id: string;
@@ -21,6 +23,10 @@ interface BuilderRow {
 }
 
 export default function AdminCommunityBuilderManagementPage() {
+  const { user } = useAuth();
+  if (!user?.isAdmin) {
+    return <Navigate to="/unauthorized" />;
+  }
   const { data: builders = [], refetch } = useQuery<BuilderRow[]>({
     queryKey: ['cbBuilders'],
     queryFn: async () => {

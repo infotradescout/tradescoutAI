@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { Navigate } from 'wouter';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { 
   Card, 
@@ -18,6 +19,7 @@ import {
   Users
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/hooks/useAuth';
 
 interface PendingContribution {
   id: string;
@@ -34,6 +36,10 @@ interface PendingContribution {
 }
 
 export default function AdminCommunityBuilderDashboard() {
+  const { user } = useAuth();
+  if (!user?.isAdmin) {
+    return <Navigate to="/unauthorized" />;
+  }
   const { toast } = useToast();
   const [selectedContribution, setSelectedContribution] = useState<string | null>(null);
   const [approvalNotes, setApprovalNotes] = useState('');
