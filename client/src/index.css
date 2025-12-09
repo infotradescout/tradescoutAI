@@ -69,6 +69,36 @@ html {
   50% { transform: translateY(-3px); opacity: 1; }
 }
 
+/* Scout suggestion buttons - TradeScout dark blueprint style */
+.scout-suggestion {
+  background: rgba(255, 140, 0, 0.12);
+  border: 1px solid #FF8C00;
+  color: #FF8C00;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.scout-suggestion:hover {
+  background: rgba(255, 140, 0, 0.25);
+  border-color: #FFA500;
+  color: #FFA500;
+  box-shadow: 0 4px 8px rgba(255, 140, 0, 0.2);
+  transform: translateY(-1px);
+}
+
+.scout-suggestion:active {
+  background: rgba(255, 140, 0, 0.35);
+  transform: translateY(0);
+}
+
+.scout-suggestion:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none !important;
+}
+
 /* Scroll area enhancements */
 .scroll-area-viewport {
   scroll-padding-top: var(--header-height);

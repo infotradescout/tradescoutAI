@@ -9,10 +9,12 @@ type Message = {
   content: string;
   timestamp: Date;
   id?: string;
+  suggestedActions?: string[];
 };
 
 type ScoutResponse = {
   message: string;
+  suggestedActions?: string[];
   actions?: any[];
   actionResults?: any[];
   timestamp: string;
@@ -313,18 +315,10 @@ export default function ScoutLanding() {
         role: "assistant",
         content: finalContent,
         timestamp: new Date(data.timestamp),
+        suggestedActions: data.suggestedActions || [],
       };
 
       pushMessage(scoutMessage);
-
-      const followUps = suggestFollowUps(messageToSend);
-      if (followUps.length) {
-        pushMessage({
-          role: "assistant",
-          content: `Try these next:\n- ${followUps.join("\n- ")}`,
-          timestamp: new Date(),
-        });
-      }
 
       if (data.actionResults && data.actionResults.length > 0) {
         const resultsMessage: Message = {
@@ -876,6 +870,20 @@ export default function ScoutLanding() {
                         >
                           {message.role === "assistant" ? renderAssistantContent(message.content) : message.content}
                         </div>
+                        {message.role === "assistant" && message.suggestedActions && message.suggestedActions.length > 0 && (
+                          <div className="flex flex-col gap-2 mt-2 max-w-md">
+                            {message.suggestedActions.map((action, i) => (
+                              <button
+                                key={i}
+                                className="scout-suggestion text-left px-3.5 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 hover:scale-[1.02] active:scale-[0.98]"
+                                onClick={() => handleQuickPrompt(action)}
+                                disabled={isLoading}
+                              >
+                                {action}
+                              </button>
+                            ))}
+                          </div>
+                        )}
                         <div className="text-[10px] text-tsTextMuted">
                           {message.timestamp.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
                         </div>
