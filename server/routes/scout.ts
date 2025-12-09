@@ -198,29 +198,98 @@ User asked: "${userMessage}"
 Knowledge from TradeScout (Layer ${knowledge.layer}):
 ${knowledge.answer}
 
-TASK: Transform this knowledge into a helpful, conversational response that:
-1. Answers the user's question directly
-  2. Shows a brief thought process: start with "How I'm thinking" (2-4 bullets on what matters, which roles are involved, and what outcomes to focus on)
-  3. Elaborates with examples and context from the knowledge; include concrete, role-specific details (contractors, homeowners, dealers, realtors, HOA, property managers, community leaders)
-  4. Explains WHY and HOW things work, not just WHAT
-  5. Makes connections between related concepts and community impact (local dollars, trust, faster coordination)
-  6. Uses conversational, friendly tone
-  7. Includes specific benefits or use cases and 2-4 immediate next steps the user can take
-  8. Is organized and easy to scan (use bullets/formatting)
+CRITICAL: Keep response BRIEF and SCREEN-FRIENDLY
+- Maximum 300 words total (fits on mobile without scrolling)
+- Maximum 12 lines (assumes 4-5 word average per line)
+- No fluff or padding - every sentence must earn its place
+- Use short, punchy sentences
+- Avoid lengthy paragraphs (2-3 sentences max per paragraph)
+
+RESPONSE STRUCTURE (ultra-concise version):
+1. Direct answer first (1-2 sentences)
+2. Optional: Brief "How I'm thinking" (2-3 bullets ONLY if critical)
+3. Key point or example (2-3 sentences)
+4. Next steps: 1-3 concrete actions (bullet list)
+
+Example of perfect response length:
+"I can help you find verified contractors in Dallas.
+
+How I'm thinking:
+• You need trusted local service providers
+• Speed and quality matter most
+
+Here's what typically works: Most homeowners in your area find contractors through peer reviews (Scout's verified network). Average project timelines are 1-2 weeks for assessments.
+
+Next:
+• Browse our contractor database filtered by your service type
+• Check reviews and ratings
+• Message directly to discuss timelines"
 
 ${knowledge.layer === 1 || knowledge.layer === 2 ? "This is TradeScout data - speak with confidence and authority." : ""}
 ${knowledge.layer === 3 ? "This is from the internet, not local TradeScout data - be clear about that." : ""}
 ${knowledge.layer === 4 ? "You don't have reliable info - be honest about it." : ""}
 
-DO NOT invent features or facts. ONLY use what's in the knowledge above.
-  Avoid generic filler. Make it smart, specific, and helpful.`;
+DO NOT:
+- Write paragraphs longer than 3 sentences
+- Include unnecessary context or background
+- Repeat yourself
+- Use marketing-speak or hype
+- Go over 300 words under ANY circumstances
+
+Be direct. Be brief. Be helpful. Every word must count.`;
 
     const result = await model.generateContent(synthesisPrompt);
-    return result.response.text();
+    let responseText = result.response.text();
+    
+    // Post-process: Enforce hard length limit and trim excess
+    responseText = trimResponseToScreenFit(responseText);
+    
+    return responseText;
   } catch (error) {
     console.error("[Scout] Synthesis error:", error);
     return knowledge.answer; // Fall back to raw knowledge on error
   }
+}
+
+/**
+ * Trim response to ensure it fits on screen without scrolling
+ * - Max 300 words (typical mobile viewport at 18pt font)
+ * - Max 12-15 lines (assumes 4-5 words per line average)
+ * - Preserves structure and important information
+ */
+function trimResponseToScreenFit(response: string): string {
+  const maxWords = 300;
+  const maxLines = 15;
+  
+  // Split into lines
+  const lines = response.split('\n').filter(line => line.trim().length > 0);
+  
+  // If too many lines, truncate at hard line limit
+  let trimmed = lines.slice(0, maxLines).join('\n');
+  
+  // Count words and truncate if needed
+  const words = trimmed.split(/\s+/);
+  if (words.length > maxWords) {
+    // Trim to max words, try to end at sentence boundary
+    let truncated = words.slice(0, maxWords).join(' ');
+    
+    // Find last sentence-ending punctuation within trimmed text
+    const lastPeriod = truncated.lastIndexOf('.');
+    const lastQuestion = truncated.lastIndexOf('?');
+    const lastEnd = Math.max(lastPeriod, lastQuestion);
+    
+    if (lastEnd > maxWords * 0.75) {
+      // If reasonable sentence boundary exists, use it
+      truncated = truncated.substring(0, lastEnd + 1);
+    } else {
+      // Otherwise just add ellipsis
+      truncated = truncated + '...';
+    }
+    
+    return truncated;
+  }
+  
+  return trimmed;
 }
 
 async function generateAutoPrompt(gemini: GoogleGenerativeAI | null) {
