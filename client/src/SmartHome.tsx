@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import { useLocation } from 'wouter';
 import { useAuth } from './hooks/useAuth';
-import ScoutLanding from './scout-landing';
+import ScoutLanding from './scout-landing-v2-millionaire';
 
 /**
  * Smart Home Route Component
