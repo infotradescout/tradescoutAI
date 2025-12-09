@@ -28,6 +28,8 @@ import {
 import { useAuth } from "@/hooks/useAuth";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { AppShell } from "@/components/layout/AppShell";
+import { Page } from "@/components/layout/PagePrimitives";
 
 interface CommunityPost {
   id: string;
@@ -164,9 +166,8 @@ export default function Community() {
   const filteredPosts = posts || [];
 
   return (
-    <div className="min-h-screen bg-[#0f1419] pb-16 lg:pb-0">
-      <div className="max-w-4xl mx-auto px-2 sm:px-4 py-6">
-        
+    <AppShell>
+      <Page className="pb-16 lg:pb-0">
         {/* Header */}
         <div className="mb-8">
           <h1 className="text-4xl font-bold text-orange-500 mb-2">Community</h1>
@@ -490,7 +491,7 @@ export default function Community() {
           </div>
         )}
 
-      </div>
-    </div>
+      </Page>
+    </AppShell>
   );
 }

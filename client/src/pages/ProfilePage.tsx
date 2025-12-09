@@ -317,16 +317,16 @@ export default function ProfilePage() {
                 <CardContent>
                   <div className="grid grid-cols-3 gap-4 text-center">
                     <div>
-                      <div className="text-2xl font-bold text-tsAccent">0</div>
+                      <div className="text-2xl font-bold text-tsAccent">{user?.stats?.listings ?? '—'}</div>
                       <div className="text-xs text-tsTextMuted">Listings</div>
                     </div>
                     <div>
-                      <div className="text-2xl font-bold text-tsAccent">0</div>
+                      <div className="text-2xl font-bold text-tsAccent">{user?.stats?.reviews ?? '—'}</div>
                       <div className="text-xs text-tsTextMuted">Reviews</div>
                     </div>
                     <div>
                       <div className="text-2xl font-bold text-tsAccent flex items-center justify-center gap-1">
-                        0.0 <Star className="h-4 w-4 fill-current" />
+                        {user?.stats?.rating ?? '—'} <Star className="h-4 w-4 fill-current" />
                       </div>
                       <div className="text-xs text-tsTextMuted">Rating</div>
                     </div>

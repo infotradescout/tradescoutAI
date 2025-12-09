@@ -32,8 +32,6 @@ const FULL_SITE_PAUSED = false;
 // Lazy load all pages by category for better code splitting
 // Core Pages
 const FindContractors = React.lazy(() => import('./pages/find-contractors'));
-const ContractorBoard = React.lazy(() => import('./pages/contractor-board'));
-const QuoteCalculator = React.lazy(() => import('./pages/quote-calculator'));
 const DailyDeals = React.lazy(() => import('./pages/daily-deals'));
 const HelpDemo = React.lazy(() => import('./pages/help-demo'));
 const TestPage = React.lazy(() => import('./pages/test-page'));
@@ -138,6 +136,7 @@ const Terms = React.lazy(() => import('./pages/terms'));
 const Privacy = React.lazy(() => import('./pages/privacy'));
 const About = React.lazy(() => import('./pages/about'));
 const Contact = React.lazy(() => import('./pages/contact'));
+const Pricing = React.lazy(() => import('./pages/pricing'));
 const NotFound = React.lazy(() => import('./pages/not-found'));
 
 // Marketing & Promotions
@@ -257,11 +256,14 @@ const AppLayout = memo(function AppLayout() {
         { label: 'Dashboard', href: '/dashboard' },
         { label: 'Marketplace', href: '/marketplace' },
         { label: 'Community', href: '/community' },
+        { label: 'Pricing', href: '/pricing' },
+        { label: 'Contractors', href: '/find-contractors' },
         { label: 'Profile', href: '/profile' },
       ]
     : [
-        { label: 'Find Contractors', href: '/find-contractors' },
+        { label: 'Contractors', href: '/find-contractors' },
         { label: 'Marketplace', href: '/marketplace' },
+        { label: 'Pricing', href: '/pricing' },
         { label: 'About', href: '/about' },
       ];
 
@@ -368,9 +370,8 @@ const AppLayout = memo(function AppLayout() {
                   {/* Core pages */}
                   <Route path="/find-contractors/:rest*"><LazyPage Component={FindContractors} /></Route>
                   <Route path="/find-contractors"><LazyPage Component={FindContractors} /></Route>
-                  <Route path="/contractors/:rest*"><LazyPage Component={ContractorBoard} /></Route>
-                  <Route path="/contractor-board/:rest*"><LazyPage Component={ContractorBoard} /></Route>
-                  <Route path="/quote-calculator/:rest*"><LazyPage Component={QuoteCalculator} /></Route>
+                  <Route path="/contractors/:rest*"><LazyPage Component={FindContractors} /></Route>
+                  <Route path="/contractor-board/:rest*"><LazyPage Component={FindContractors} /></Route>
                   <Route path="/daily-deals/:rest*"><LazyPage Component={DailyDeals} /></Route>
                   <Route path="/help-demo/:rest*"><LazyPage Component={HelpDemo} /></Route>
                   <Route path="/test-page/:rest*"><LazyPage Component={TestPage} /></Route>
@@ -699,6 +700,7 @@ const AppLayout = memo(function AppLayout() {
                   <Route path="/apply-accelerator"><LazyPage Component={ApplyAccelerator} /></Route>
                   
                   {/* Legal pages */}
+                  <Route path="/pricing"><LazyPage Component={Pricing} /></Route>
                   <Route path="/terms"><LazyPage Component={Terms} /></Route>
                   <Route path="/privacy"><LazyPage Component={Privacy} /></Route>
                   <Route path="/about"><LazyPage Component={About} /></Route>

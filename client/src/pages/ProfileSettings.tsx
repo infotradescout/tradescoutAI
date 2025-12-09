@@ -8,6 +8,7 @@ import { Switch } from "@/components/ui/switch";
 import { toast } from "@/hooks/use-toast";
 import { COLOR_PRESETS, getPresetNames } from "@shared/colorPresets";
 import { Palette, Home, Eye, EyeOff } from "lucide-react";
+import { applyTheme, type Theme } from "@/lib/themes";
 
 interface UserPreferences {
   defaultHomePage?: string;
@@ -63,6 +64,7 @@ export default function ProfileSettings() {
 
       // Apply colors to current page
       applyColorScheme(preset);
+      applyThemeFromScheme(preset);
     } catch (error) {
       toast({
         title: "Error",
@@ -148,10 +150,36 @@ export default function ProfileSettings() {
     root.style.setProperty('--user-border', colors.border || colors.background);
   };
 
+  const applyThemeFromScheme = (preset: string) => {
+    const colors = COLOR_PRESETS[preset] || COLOR_PRESETS.default;
+    const themeFromScheme: Theme = {
+      id: `profile-${preset}`,
+      name: 'Profile Color Scheme',
+      description: 'Synced from profile settings',
+      colors: {
+        bgPrimary: colors.background,
+        bgSecondary: colors.background,
+        bgTertiary: colors.secondary || colors.background,
+        textPrimary: colors.text,
+        textSecondary: colors.text,
+        accentPrimary: colors.primary,
+        accentSecondary: colors.secondary || colors.primary,
+        border: colors.border || colors.background,
+      },
+    };
+
+    applyTheme(themeFromScheme);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('themeId', themeFromScheme.id);
+      localStorage.setItem('customColors', JSON.stringify(themeFromScheme.colors));
+    }
+  };
+
   // Apply color scheme on mount
   useEffect(() => {
     if (preferences.colorScheme?.preset) {
       applyColorScheme(preferences.colorScheme.preset);
+      applyThemeFromScheme(preferences.colorScheme.preset);
     }
   }, [preferences.colorScheme]);
 
