@@ -15,6 +15,13 @@ const sponsorLines = [
   'No paywalls and no upsells needed to use core features',
 ];
 
+const communityLines = [
+  'Community Builders run local drives and campaigns to raise funds for their counties',
+  '10% of all platform profits are allocated to the TradeScout Foundation',
+  '100% of Foundation donations are returned directly to the communities where they originated',
+  'Transparency-first reporting so neighbors can see exactly where support goes',
+];
+
 const Pricing = memo(function Pricing() {
   return (
     <div className="min-h-screen bg-navy-900 text-white">
@@ -60,6 +67,24 @@ const Pricing = memo(function Pricing() {
               ))}
             </ul>
           </div>
+        </div>
+
+        <div className="rounded-2xl border border-teal-500/40 bg-teal-600/10 p-6 shadow-xl shadow-black/30">
+          <div className="flex items-center gap-2 text-teal-200 mb-4">
+            <Shield className="h-5 w-5" />
+            <span className="font-semibold">Community Builders & Foundation</span>
+          </div>
+          <p className="text-gray-100 mb-4">
+            Community Builders aren't just organizing projects—they actively help raise money that stays local. Our Foundation model routes resources back to the neighborhoods that generated them.
+          </p>
+          <ul className="space-y-3 text-gray-100">
+            {communityLines.map((line) => (
+              <li key={line} className="flex items-start gap-3">
+                <CheckCircle className="h-5 w-5 text-teal-300 mt-0.5" />
+                <span>{line}</span>
+              </li>
+            ))}
+          </ul>
         </div>
 
         <div className="rounded-2xl border border-orange-500/40 bg-gradient-to-r from-orange-600/20 via-orange-500/10 to-orange-600/20 p-6 text-center space-y-3">

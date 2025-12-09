@@ -350,6 +350,31 @@ export default function Marketplace() {
     }).format(price);
   };
 
+  const formatPrice = (
+    price: number,
+    priceType: MarketplaceListing["priceType"] | string = "fixed"
+  ) => {
+    if (!Number.isFinite(price)) return "—";
+    const base = formatCurrency(price);
+    switch (priceType) {
+      case "negotiable":
+        return `${base} (negotiable)`;
+      case "best_offer":
+      case "obo":
+        return `${base} OBO`;
+      case "auction":
+        return `${base} (auction)`;
+      case "firm":
+        return `${base} firm`;
+      case "trade":
+        return `${base} + trade`;
+      case "quoted":
+        return "Quoted";
+      default:
+        return base;
+    }
+  };
+
   const formatLocationString = (listing: MarketplaceListing) => {
     const parts = [listing.city, listing.county, listing.state].filter(Boolean);
     return parts.join(", ");
@@ -388,7 +413,9 @@ export default function Marketplace() {
   };
 
   return (
-    <div className="min-h-screen bg-[#0f1419]">
+    <AppShell>
+      <Page className="max-w-none px-0">
+        <div className="min-h-screen bg-[#0f1419]">
       {/* Smart Value Banner */}
       <div className="bg-gradient-to-r from-orange-600 via-amber-600 to-orange-500 text-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
@@ -1295,7 +1322,9 @@ export default function Marketplace() {
           )}
         </div>
         )}
-      </Page>
-    </AppShell>
+      </div>
+    </div>
+  </Page>
+</AppShell>
   );
 }

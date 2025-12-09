@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { Activity, Send, Home } from "lucide-react";
+import { Activity, Send, Home, Menu, X } from "lucide-react";
 import { useAuth } from "./hooks/useAuth";
-import { useLocation } from "wouter";
+import { useLocation, Link } from "wouter";
 import "./index.css";
 
 type Message = {
@@ -124,6 +124,7 @@ export default function ScoutLanding() {
   const [autoPromptPreview, setAutoPromptPreview] = useState<string | null>(null);
   const [trendingItems, setTrendingItems] = useState<TrendingItem[]>([]);
   const [trendingStatus, setTrendingStatus] = useState<"idle" | "loading" | "ready" | "error">("idle");
+  const [navOpen, setNavOpen] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const messagesRef = useRef<Message[]>([]);
   const autoRunTimeoutRef = useRef<number | null>(null);
@@ -691,19 +692,65 @@ export default function ScoutLanding() {
     []
   );
 
+  const navLinks = [
+    { label: "Assistant", href: "/" },
+    { label: "Contractors", href: "/find-contractors" },
+    { label: "Marketplace", href: "/marketplace" },
+    { label: "Community", href: "/community" },
+  ];
+
   return (
-    <>
     <div className="min-h-[calc(100vh-4.5rem)] bg-[#060b1c] text-white flex items-start justify-center px-3 sm:px-4 pb-16">
-      <div className="relative w-full max-w-6xl overflow-hidden rounded-2xl border border-tsBorder bg-slate-950/85 shadow-2xl shadow-black/60 px-4 sm:px-8 py-8 sm:py-10">
-        {/* Top right account button */}
-        {!isAuthenticated && (
-          <div className="absolute top-6 right-6 z-20">
-            <a
-              href="/register"
-              className="inline-flex items-center justify-center rounded-lg bg-gradient-to-r from-orange-500 to-orange-600 px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-orange-600/30 hover:-translate-y-[1px] transition-transform duration-100"
+      <div className="relative w-full max-w-6xl overflow-hidden rounded-2xl border border-tsBorder bg-slate-950/85 shadow-2xl shadow-black/60 px-4 sm:px-8 py-6 sm:py-8">
+
+        {/* Mobile side menu */}
+        {navOpen && (
+          <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm" onClick={() => setNavOpen(false)}>
+            <div
+              className="absolute left-0 top-0 h-full w-72 max-w-[80vw] bg-slate-950 border-r border-tsBorder shadow-2xl shadow-black/50 p-4"
+              onClick={(e) => e.stopPropagation()}
             >
-              Create Free Account
-            </a>
+              <div className="flex items-center justify-between mb-6">
+
+                <div className="flex items-center gap-2">
+                  <div className="h-9 w-9 rounded-xl bg-gradient-to-br from-tsAccent to-orange-600 shadow-lg shadow-orange-500/30 flex items-center justify-center">
+                    <Home className="w-5 h-5 text-white" />
+                  </div>
+                  <div>
+                    <div className="text-xs uppercase tracking-[0.22em] text-tsAccentSoft">TradeScout</div>
+                    <div className="text-sm text-tsTextMuted">Community OS</div>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setNavOpen(false)}
+                  className="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-tsBorder text-tsTextMuted hover:text-white"
+                  aria-label="Close menu"
+                >
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
+              <div className="space-y-2">
+                {navLinks.map((link) => (
+                  <Link
+                    key={link.href}
+                    href={link.href}
+                    onClick={() => setNavOpen(false)}
+                    className="w-full text-left px-3 py-2 rounded-lg text-sm text-tsTextMain hover:bg-slate-900 hover:text-white transition block"
+                  >
+                    {link.label}
+                  </Link>
+                ))}
+                {!isAuthenticated && (
+                  <Link
+                    href="/register"
+                    onClick={() => setNavOpen(false)}
+                    className="w-full mt-4 inline-flex items-center justify-center rounded-lg bg-gradient-to-r from-orange-500 to-orange-600 px-3 py-2 text-sm font-semibold text-white shadow-orange-600/30 shadow"
+                  >
+                    Create Free Account
+                  </Link>
+                )}
+              </div>
+            </div>
           </div>
         )}
         
@@ -713,12 +760,55 @@ export default function ScoutLanding() {
           <div className="absolute bottom-[-5%] right-1/4 w-96 h-96 bg-cyan-500/12 blur-3xl" />
         </div>
 
-        <div className="relative z-10 flex flex-col items-center gap-8 text-center">
-          <div className="flex items-center gap-3 text-sm text-tsTextMuted">
-            <div className="w-16 h-16 sm:w-18 sm:h-18 rounded-2xl bg-gradient-to-br from-tsAccent to-orange-700 flex items-center justify-center shadow-2xl shadow-orange-500/40">
-              <Home className="w-8 h-8 text-white" />
+        <div className="relative z-10 space-y-10">
+          <div className="mb-6 flex items-center justify-between gap-3 flex-wrap">
+            <div className="flex items-center gap-3">
+              <button
+                className="md:hidden inline-flex h-10 w-10 items-center justify-center rounded-lg border border-tsBorder text-tsTextMuted"
+                onClick={() => setNavOpen(true)}
+                aria-label="Open menu"
+              >
+                <Menu className="h-5 w-5" />
+              </button>
+              <div className="flex items-center gap-2">
+                <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-tsAccent to-orange-700 flex items-center justify-center shadow-2xl shadow-orange-500/40">
+                  <Home className="w-5 h-5 text-white" />
+                </div>
+                <div>
+                  <div className="text-xs uppercase tracking-[0.22em] text-tsAccentSoft">TradeScout</div>
+                  <div className="text-sm text-tsTextMuted">Community Operating System</div>
+                </div>
+              </div>
+            </div>
+            <div className="flex items-center gap-3">
+              {navLinks.map((link) => (
+                <Link
+                  key={link.href}
+                  href={link.href}
+                  className="hidden md:inline-flex text-sm text-tsTextMuted hover:text-white transition"
+                >
+                  {link.label}
+                </Link>
+              ))}
+              {isAuthenticated ? (
+                <a
+                  href="/dashboard"
+                  className="inline-flex items-center justify-center rounded-lg bg-white/5 px-4 py-2 text-sm font-semibold text-white border border-white/10 hover:bg-white/10"
+                >
+                  Open Dashboard
+                </a>
+              ) : (
+                <a
+                  href="/register"
+                  className="inline-flex items-center justify-center rounded-lg bg-gradient-to-r from-orange-500 to-orange-600 px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-orange-600/30 hover:-translate-y-[1px] transition-transform duration-100"
+                >
+                  Create Free Account
+                </a>
+              )}
             </div>
           </div>
+
+          <div className="flex flex-col items-center gap-6 text-center">
 
           <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-white/10 bg-white/5 text-[11px] font-semibold tracking-[0.18em] uppercase text-tsAccentSoft shadow-lg shadow-orange-500/15">
             <span className="w-2 h-2 rounded-full bg-orange-400 animate-pulse" />
@@ -738,14 +828,14 @@ export default function ScoutLanding() {
 
           <div className="w-full max-w-4xl space-y-5">
             <div className="bg-[#0c152c]/90 border border-tsBorder rounded-2xl shadow-2xl shadow-black/40 overflow-hidden">
-              <div className="border-b border-tsBorder px-4 sm:px-5 py-4 flex items-center justify-between text-xs uppercase tracking-[0.14em] text-tsTextMuted">
-                <div className="flex items-center gap-3">
+              <div className="border-b border-tsBorder px-4 sm:px-5 py-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 text-xs uppercase tracking-[0.14em] text-tsTextMuted">
+                <div className="flex items-start sm:items-center gap-3 flex-wrap">
                   <span
                     className={`inline-flex h-2.5 w-2.5 rounded-full ${
                       isLoading ? "bg-orange-400 animate-ping" : "bg-cyan-400 animate-pulse"
                     }`}
                   />
-                  <div className="flex items-center gap-2">
+                  <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2 text-left">
                     <span>Scout Active</span>
                     <span className="text-[11px] text-tsTextMuted/80 lowercase tracking-normal">
                       {isLoading ? "running actions" : "standing by"}
@@ -755,9 +845,9 @@ export default function ScoutLanding() {
                     </span>
                   </div>
                 </div>
-                <div className="flex items-center gap-2 text-[11px]">
+                <div className="flex items-center gap-2 text-[11px] sm:justify-end">
                   <Activity className="w-4 h-4" />
-                  Live Scout thread
+                  <span className="whitespace-nowrap">Live Scout thread</span>
                 </div>
               </div>
 
@@ -978,6 +1068,6 @@ export default function ScoutLanding() {
         </div>
       </div>
     </footer>
-    </>
+    </div>
   );
 }

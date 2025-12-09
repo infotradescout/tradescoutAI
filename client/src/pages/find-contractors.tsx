@@ -1,6 +1,11 @@
-import { memo } from 'react';
-import { Search, Compass, Sparkles, Zap } from 'lucide-react';
+import { memo, useMemo, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { Search, Sparkles, Zap, MapPin, Star, ThumbsUp, Briefcase, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { StateCountySelector } from '@/components/state-county-selector';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Badge } from '@/components/ui/badge';
+import { apiRequest } from '@/lib/queryClient';
 
 const stats = [
   { label: 'Active Projects', value: '12' },
@@ -15,52 +20,178 @@ const quickActions = [
   { title: 'Submit Quote', desc: 'Send pricing on new requests' },
 ];
 
+type Contractor = {
+  id: string;
+  name?: string;
+  businessName?: string;
+  rating?: number;
+  reviewCount?: number;
+  recommendationCount?: number;
+  trades?: string[];
+  location?: string;
+  county?: string;
+  state?: string;
+  licenseNumber?: string | null;
+};
+
 const FindContractors = memo(function FindContractors() {
+  const [stateCode, setStateCode] = useState('');
+  const [countyFips, setCountyFips] = useState('');
+  const [tradeSlug, setTradeSlug] = useState('');
+
+  const { data: trades = [] } = useQuery({
+    queryKey: ['/api/trades'],
+    queryFn: async () => apiRequest('GET', '/api/trades'),
+  });
+
+  const { data: topContractors = [], isLoading: topLoading } = useQuery<Contractor[]>({
+    queryKey: ['/api/contractors/top', countyFips, tradeSlug],
+    enabled: Boolean(countyFips && tradeSlug),
+    queryFn: async () => {
+      const params = new URLSearchParams({ county: countyFips, trade: tradeSlug, limit: '5' });
+      return apiRequest('GET', `/api/contractors/top?${params.toString()}`);
+    },
+  });
+
+  const ranked = useMemo(() => {
+    return [...(topContractors || [])].sort((a, b) => {
+      const aRec = (a.recommendationCount ?? a.reviewCount ?? 0);
+      const bRec = (b.recommendationCount ?? b.reviewCount ?? 0);
+      const aScore = (a.rating ?? 0) * 100 + aRec;
+      const bScore = (b.rating ?? 0) * 100 + bRec;
+      return bScore - aScore;
+    });
+  }, [topContractors]);
+
   return (
     <div className="min-h-screen bg-navy-900 text-white">
       <div className="max-w-6xl mx-auto px-4 py-8 space-y-10">
         <header className="space-y-3">
           <div className="inline-flex items-center gap-2 rounded-full border border-orange-400/50 bg-orange-500/10 px-3 py-1.5 text-sm text-orange-200">
             <Zap className="h-4 w-4" />
-            <span>Use Scout or go manual — same full experience</span>
+            <span>Scout drives the workflow end-to-end</span>
           </div>
           <h1 className="text-4xl font-bold text-white">Find contractors and run your board</h1>
           <p className="text-gray-300 max-w-3xl">
-            Search your county, browse pros, and manage work in one place. Scout can automate the hunt, but every tool also works without the LLM.
+            Search your county, browse pros, and manage work in one place. Scout automates the hunt while you stay in control of every tool.
           </p>
         </header>
+
+        <div className="rounded-2xl border border-navy-700 bg-navy-800/80 p-6 shadow-xl shadow-black/20 space-y-4">
+          <div className="flex items-center gap-2 text-orange-300">
+            <Search className="h-5 w-5" />
+            <span className="font-semibold">Search contractors</span>
+          </div>
+
+          <StateCountySelector
+            selectedState={stateCode}
+            selectedCounty={countyFips}
+            onStateChange={setStateCode}
+            onCountyChange={setCountyFips}
+            className="mt-2"
+          />
+
+          <div className="grid md:grid-cols-3 gap-4">
+            <Select value={tradeSlug} onValueChange={setTradeSlug}>
+              <SelectTrigger className="bg-navy-700 text-white border border-navy-600">
+                <SelectValue placeholder="Select trade/occupation" />
+              </SelectTrigger>
+              <SelectContent className="max-h-72">
+                {trades.map((trade: any) => (
+                  <SelectItem key={trade.slug} value={trade.slug}>
+                    {trade.name || trade.slug}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            <Button
+              type="button"
+              disabled={!countyFips || !tradeSlug}
+              className="bg-gradient-to-r from-orange-500 to-orange-600 shadow-lg hover:from-orange-600 hover:to-orange-700 text-white px-6 py-3 text-sm rounded-xl flex items-center gap-2 font-semibold transition-all border border-orange-400/30 focus-visible:ring-2 focus-visible:ring-orange-400"
+            >
+              <Search className="h-4 w-4" />
+              <span>Fetch top contractors</span>
+            </Button>
+          </div>
+
+          <div className="flex flex-wrap gap-2 text-xs text-gray-300">
+            <Badge variant="outline" className="border-orange-400/40 text-orange-200">Helper: Pick your state + county</Badge>
+            <Badge variant="outline" className="border-blue-400/40 text-blue-200">Helper: Choose the trade (occupation)</Badge>
+            <Badge variant="outline" className="border-emerald-400/40 text-emerald-200">Helper: Ranked by rating + recommendations</Badge>
+          </div>
+        </div>
+
+        <section className="space-y-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-2xl font-semibold text-white">Top contractors in your area</h2>
+              <p className="text-sm text-gray-300">Ranked by rating and recommendations for the selected occupation.</p>
+            </div>
+            <Badge className="bg-orange-600 text-white">
+              {countyFips && tradeSlug ? `${ranked.length} results` : 'Select location + trade'}
+            </Badge>
+          </div>
+
+          {!countyFips || !tradeSlug ? (
+            <div className="rounded-xl border border-dashed border-navy-700 bg-navy-800/40 p-6 text-sm text-gray-400">
+              Choose your state, county, and occupation to see the top recommended contractors near you.
+            </div>
+          ) : topLoading ? (
+            <div className="flex items-center gap-3 text-gray-300">
+              <Loader2 className="h-4 w-4 animate-spin" />
+              Fetching ranked contractors…
+            </div>
+          ) : ranked.length === 0 ? (
+            <div className="rounded-xl border border-navy-700 bg-navy-800/60 p-6 text-sm text-gray-300">
+              No contractors found for that occupation in the selected county yet.
+            </div>
+          ) : (
+            <div className="grid gap-3">
+              {ranked.map((contractor, idx) => (
+                <div
+                  key={contractor.id}
+                  className="rounded-xl border border-navy-700 bg-navy-800/70 p-5 flex flex-col md:flex-row md:items-center md:justify-between gap-4 shadow-lg shadow-black/20"
+                >
+                  <div className="flex items-center gap-3">
+                    <Badge className="bg-orange-600 text-white text-sm px-3 py-1">#{idx + 1}</Badge>
+                    <div>
+                      <div className="text-lg font-semibold text-white">{contractor.businessName || contractor.name || 'Contractor'}</div>
+                      <div className="text-sm text-gray-400 flex items-center gap-2">
+                        <Briefcase className="h-4 w-4 text-orange-300" />
+                        {(contractor.trades && contractor.trades.join(', ')) || 'Trade not listed'}
+                      </div>
+                      <div className="text-sm text-gray-400 flex items-center gap-2">
+                        <MapPin className="h-4 w-4 text-teal-300" />
+                        {contractor.location || contractor.county || 'County selected'}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-4 text-sm text-gray-200">
+                    <div className="flex items-center gap-1">
+                      <Star className="h-4 w-4 text-yellow-400" />
+                      <span>{contractor.rating ?? 'N/A'}</span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <ThumbsUp className="h-4 w-4 text-emerald-400" />
+                      <span>{contractor.recommendationCount ?? contractor.reviewCount ?? 0} recs</span>
+                    </div>
+                    {contractor.licenseNumber && (
+                      <Badge variant="outline" className="border-emerald-500/40 text-emerald-100">Licensed</Badge>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </section>
 
         <section className="grid lg:grid-cols-3 gap-6">
           <div className="lg:col-span-2 rounded-2xl border border-navy-700 bg-navy-800/80 p-6 shadow-xl shadow-black/20">
             <div className="flex items-center gap-2 text-orange-300 mb-4">
               <Search className="h-5 w-5" />
               <span className="font-semibold">Search contractors</span>
-            </div>
-            <div className="grid md:grid-cols-3 gap-4">
-              <input
-                type="text"
-                placeholder="Enter your location"
-                className="bg-navy-700 text-white p-3 rounded border border-navy-600 focus:border-orange-500"
-              />
-              <select className="bg-navy-700 text-white p-3 rounded border border-navy-600 focus:border-orange-500">
-                <option>Select trade type</option>
-                <option>Plumbing</option>
-                <option>Electrical</option>
-                <option>HVAC</option>
-                <option>Roofing</option>
-                <option>Flooring</option>
-              </select>
-              <Button
-                type="submit"
-                className="bg-gradient-to-r from-orange-500 to-orange-600 shadow-lg hover:from-orange-600 hover:to-orange-700 text-white px-6 py-3 text-sm rounded-xl flex items-center gap-2 font-semibold transition-all border border-orange-400/30 focus-visible:ring-2 focus-visible:ring-orange-400"
-              >
-                <Search className="h-4 w-4" />
-                <span>Search</span>
-              </Button>
-            </div>
-            <div className="mt-4 text-sm text-gray-300 flex items-center gap-2">
-              <Compass className="h-4 w-4 text-teal-200" />
-              <span>Or ask Scout: "Find licensed roofers in Fulton County who start this week."</span>
             </div>
           </div>
 
@@ -119,7 +250,7 @@ const FindContractors = memo(function FindContractors() {
         <section className="rounded-2xl border border-orange-400/40 bg-orange-500/10 p-6 text-center space-y-3">
           <h3 className="text-xl font-semibold text-orange-100">Not sure where to start?</h3>
           <p className="text-gray-100 max-w-3xl mx-auto">
-            Ask Scout to draft bids, verify licenses, or queue tasks on your board. Prefer manual? Use the search, quick actions, and featured list without ever opening chat.
+            Ask Scout to draft bids, verify licenses, or queue tasks on your board. Or jump in with search, quick actions, and the featured list—no waiting on chat.
           </p>
         </section>
       </div>

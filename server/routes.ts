@@ -12,7 +12,8 @@ import { setupModerationRoutes } from "./moderation";
 import { registerSocialRoutes } from "./social-routes";
 import communityBuilderRouter from "./routes/community-builder-routes";
 import adminCommunityBuilderRouter from "./routes/admin-community-builder-routes";
-import { WebSocketManager } from "./websocket";
+// DISABLED: WebSocketManager is not instantiated, using Socket.io messaging service instead
+// import { WebSocketManager } from "./websocket";
 import { emailService } from "./services/emailService";
 import { passwordResetService } from "./services/passwordResetService";
 import { createServer } from "http";
@@ -1795,34 +1796,7 @@ export async function registerRoutes(app: any) {
         filters.sortBy = sort;
       }
 
-      let contractors;
-      try {
-        contractors = await storage.getContractors(filters);
-      } catch (dbError) {
-        console.log('Database offline, using mock contractor data');
-        contractors = [
-          {
-            id: 'contractor-1',
-            name: 'Mike Thompson',
-            businessName: 'Thompson Home Renovations',
-            trades: ['General Contractor', 'Kitchen Remodeling'],
-            rating: 4.8,
-            reviewCount: 127,
-            yearsExperience: 12,
-            location: 'Los Angeles, CA',
-            serviceRadius: 25,
-            verified: true,
-            phoneNumber: '(555) 123-4567',
-            email: 'mike@thompsonreno.com',
-            description: 'Specializing in high-end kitchen and bathroom renovations.',
-            profileImageUrl: null,
-            licenseNumber: 'C-1001234',
-            availabilityStatus: 'available',
-            responseTime: '2 hours',
-            completedJobs: 234
-          }
-        ];
-      }
+      const contractors = await storage.getContractors(filters);
       res.json(contractors);
     } catch (error: any) {
       console.error("Error fetching contractors:", error);
@@ -7309,7 +7283,8 @@ export async function registerRoutes(app: any) {
 
   const httpServer = createServer(app);
   // Initialize WebSocket manager for real-time communication
-  const wsManager = new WebSocketManager(httpServer);
+  // DISABLED: Using Socket.io messaging service instead (configured in index.ts)
+  // const wsManager = new WebSocketManager(httpServer);
 
   // Advanced marketplace transaction routes
 
@@ -7384,8 +7359,9 @@ export async function registerRoutes(app: any) {
       ]);
 
       // Send real-time notifications
-      wsManager.sendNotificationToUser(transaction.sellerId, sellerNotification);
-      wsManager.sendNotificationToUser(transaction.buyerId, buyerNotification);
+      // TODO: Use messaging service if needed
+      // wsManager.sendNotificationToUser(transaction.sellerId, sellerNotification);
+      // wsManager.sendNotificationToUser(transaction.buyerId, buyerNotification);
 
       res.json(transaction);
     } catch (error: any) {
@@ -7415,8 +7391,9 @@ export async function registerRoutes(app: any) {
       const transaction = await storage.updateMarketplaceTransaction(id, req.body);
 
       // Send real-time update
-      wsManager.sendTransactionUpdate(transaction.buyerId, transaction);
-      wsManager.sendTransactionUpdate(transaction.sellerId, transaction);
+      // TODO: Use messaging service if needed
+      // wsManager.sendTransactionUpdate(transaction.buyerId, transaction);
+      // wsManager.sendTransactionUpdate(transaction.sellerId, transaction);
 
       res.json(transaction);
     } catch (error: any) {
@@ -7445,7 +7422,8 @@ export async function registerRoutes(app: any) {
       };
 
       await storage.createNotification(notification);
-      wsManager.sendNotificationToUser(review.revieweeId, notification);
+      // TODO: Use messaging service if needed
+      // wsManager.sendNotificationToUser(review.revieweeId, notification);
 
       res.json(review);
     } catch (error: any) {
@@ -8131,9 +8109,11 @@ export async function registerRoutes(app: any) {
   registerSocialRoutes(app);
 
   // Fallback for legacy client trending endpoint
-  app.get("/api/trending", (_req, res) => {
+  const trendingHandler: ExpressHandler = (_req, res) => {
     res.json({ items: [], message: "Trending data not available yet." });
-  });
+  };
+
+  app.get("/api/trending", trendingHandler);
 
   // Set up community moderation routes
   setupModerationRoutes(app);
