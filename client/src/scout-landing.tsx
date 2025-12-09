@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Activity, Send, Home, Menu, X } from "lucide-react";
 import { useAuth } from "./hooks/useAuth";
 import { useLocation, Link } from "wouter";
+import AppDrawer from "./components/AppDrawer";
 import "./index.css";
 
 type Message = {
@@ -26,6 +27,8 @@ type TrendingItem = {
   delta?: string;
   category?: string;
 };
+
+type TrendingStatus = "idle" | "loading" | "ready" | "error" | "empty";
 
 const isTooSpecific = (text: string) => {
   const lower = text.toLowerCase();
@@ -121,12 +124,14 @@ export default function ScoutLanding() {
   const [, navigate] = useLocation();
   const [inputValue, setInputValue] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [isAutoPrompting, setIsAutoPrompting] = useState(false);
   const [sendPulse, setSendPulse] = useState(false);
   const [pendingCopy, setPendingCopy] = useState<string | null>(null);
   const [autoPromptPreview, setAutoPromptPreview] = useState<string | null>(null);
   const [trendingItems, setTrendingItems] = useState<TrendingItem[]>([]);
-  const [trendingStatus, setTrendingStatus] = useState<"idle" | "loading" | "ready" | "error">("idle");
+  const [trendingStatus, setTrendingStatus] = useState<TrendingStatus>("idle");
   const [navOpen, setNavOpen] = useState(false);
+  const [appDrawerOpen, setAppDrawerOpen] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const messagesRef = useRef<Message[]>([]);
   const autoRunTimeoutRef = useRef<number | null>(null);
@@ -149,6 +154,14 @@ export default function ScoutLanding() {
     // Always reset autorun state on load so guests auto-run every visit
     hasAutoRunRef.current = false;
   }, []);
+
+  useEffect(() => {
+    if (!isAuthenticated && messagesRef.current.length === 0) {
+      setIsAutoPrompting(true);
+    } else {
+      setIsAutoPrompting(false);
+    }
+  }, [isAuthenticated]);
 
   // Warm the backend so the first real prompt isn’t cold-start slow
   useEffect(() => {
@@ -184,6 +197,7 @@ export default function ScoutLanding() {
   const animateAndSendPrompt = async (promptText: string) => {
     if (userInteractedRef.current || hasAutoRunRef.current) return;
     hasAutoRunRef.current = true;
+    setIsAutoPrompting(true);
     setAutoPromptPreview(promptText);
     const timer = window.setTimeout(async () => {
       try {
@@ -194,6 +208,7 @@ export default function ScoutLanding() {
       } finally {
         setSendPulse(false);
         setAutoPromptPreview(null);
+        setIsAutoPrompting(false);
         autoRunTimeoutRef.current = null;
       }
     }, 2600);
@@ -204,6 +219,8 @@ export default function ScoutLanding() {
     if (!userInteractedRef.current) {
       userInteractedRef.current = true;
     }
+    setIsAutoPrompting(false);
+    setAutoPromptPreview(null);
     if (autoRunTimeoutRef.current) {
       window.clearTimeout(autoRunTimeoutRef.current);
       autoRunTimeoutRef.current = null;
@@ -408,6 +425,12 @@ export default function ScoutLanding() {
     messagesRef.current = messages;
   }, [messages]);
 
+  useEffect(() => {
+    if (messages.length > 0) {
+      setIsAutoPrompting(false);
+    }
+  }, [messages.length]);
+
   // After user sends anything, mark intro as seen so default placeholder returns on next visit
   useEffect(() => {
     // No-op: intro prompt now always runs for guests on load; no stored flag needed
@@ -427,14 +450,16 @@ export default function ScoutLanding() {
   };
 
   const getTrendingFallback = (countyKey: string): TrendingItem[] => {
-    const place = countyKey || "your area";
-    return [
-      { title: `Kitchen leak repairs in ${place}`, stat: "↑ 17%", category: "Repairs" },
-      { title: `Deck permits in ${place}`, stat: "Faster approvals", category: "Permits" },
-      { title: "Small landscaping ideas", stat: "Popular this week", category: "Outdoor" },
-      { title: "Roof inspections requested", stat: "Peak season", category: "Roofing" },
-    ];
+    return [];
   };
+
+  const trendingPromptSuggestions = [
+    "Show county intel from the admin knowledge base",
+    "Crawl TradeScout updates for my county",
+    "Surface cached marketplace deals near me",
+    "Pull recent contractor outreach scripts we used",
+    "List MealScout food truck intel we already have",
+  ];
 
   useEffect(() => {
     const countyKey = headlineCommunity || "national";
@@ -471,18 +496,25 @@ export default function ScoutLanding() {
               .slice(0, 8) as TrendingItem[]
           : [];
 
-        const finalItems = items.length ? items : getTrendingFallback(countyKey);
-        setTrendingItems(finalItems);
+        if (items.length === 0) {
+          setTrendingItems([]);
+          setTrendingStatus("empty");
+          if (typeof window !== "undefined") {
+            localStorage.setItem(cacheKey, JSON.stringify({ items: [], timestamp: Date.now() }));
+          }
+          return;
+        }
+
+        setTrendingItems(items);
         setTrendingStatus("ready");
 
         if (typeof window !== "undefined") {
-          localStorage.setItem(cacheKey, JSON.stringify({ items: finalItems, timestamp: Date.now() }));
+          localStorage.setItem(cacheKey, JSON.stringify({ items, timestamp: Date.now() }));
         }
       } catch (err) {
         console.warn("Trending fetch failed", err);
-        const fallback = getTrendingFallback(countyKey);
-        setTrendingItems(fallback);
-        setTrendingStatus(fallback.length ? "ready" : "error");
+        setTrendingItems([]);
+        setTrendingStatus("empty");
       }
     };
 
@@ -687,7 +719,7 @@ export default function ScoutLanding() {
   );
 
   const navLinks = [
-    { label: "Assistant", href: "/" },
+    { label: "SCOUT", href: "/" },
     { label: "Contractors", href: "/find-contractors" },
     { label: "Marketplace", href: "/marketplace" },
     { label: "Community", href: "/community" },
@@ -724,6 +756,15 @@ export default function ScoutLanding() {
                 </button>
               </div>
               <div className="space-y-2">
+                <button
+                  onClick={() => {
+                    setAppDrawerOpen(true);
+                    setNavOpen(false);
+                  }}
+                  className="w-full text-left px-3 py-2 rounded-lg text-sm text-orange-400 hover:bg-slate-900 hover:text-orange-300 transition block font-semibold"
+                >
+                  📱 Browse Apps
+                </button>
                 {navLinks.map((link) => (
                   <Link
                     key={link.href}
@@ -784,6 +825,12 @@ export default function ScoutLanding() {
                   {link.label}
                 </Link>
               ))}
+              <button
+                onClick={() => setAppDrawerOpen(true)}
+                className="hidden md:inline-flex items-center justify-center rounded-lg bg-white/5 px-4 py-2 text-sm font-semibold text-tsTextMuted border border-white/10 hover:bg-white/10 hover:text-white transition"
+              >
+                Apps
+              </button>
               {isAuthenticated ? (
                 <a
                   href="/dashboard"
@@ -908,6 +955,12 @@ export default function ScoutLanding() {
                     handleSendMessage();
                   }}
                 >
+                  {isAutoPrompting && (
+                    <div className="text-xs text-tsTextMuted flex items-center gap-2 px-1 -mb-1">
+                      <span className="loading-dot" />
+                      <span>Scout is auto-starting with a guided prompt…</span>
+                    </div>
+                  )}
                   <div className="flex-1">
                     <div className="relative">
                       <textarea
@@ -921,7 +974,7 @@ export default function ScoutLanding() {
                         }}
                         onKeyPress={handleKeyPress}
                         onFocus={markUserInteracted}
-                        disabled={isLoading}
+                        disabled={isLoading || isAutoPrompting}
                       />
                       {autoPromptPreview && (
                         <div className="pointer-events-none absolute inset-0 px-4 py-3 text-base text-white/90">
@@ -935,7 +988,7 @@ export default function ScoutLanding() {
                     <div className="sm:w-32 flex sm:flex-col gap-3">
                       <button
                         type="submit"
-                        disabled={!inputValue.trim() || isLoading}
+                        disabled={!inputValue.trim() || isLoading || isAutoPrompting}
                         className={`w-full h-12 rounded-xl bg-gradient-to-r from-tsAccent to-orange-600 text-white font-semibold shadow-lg shadow-orange-600/30 disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center justify-center
                           ${sendPulse && !isLoading ? "ring-2 ring-amber-300 scale-[1.01]" : ""}
                         `}
@@ -954,7 +1007,8 @@ export default function ScoutLanding() {
                   key={prompt}
                   type="button"
                   onClick={() => handleQuickPrompt(prompt)}
-                  className="px-3 py-2 rounded-full bg-slate-900/80 border border-tsBorder text-xs text-tsTextMain hover:border-tsAccent hover:text-white transition shadow-sm shadow-black/20"
+                  disabled={isLoading || isAutoPrompting}
+                  className="px-3 py-2 rounded-full bg-slate-900/80 border border-tsBorder text-xs text-tsTextMain hover:border-tsAccent hover:text-white transition shadow-sm shadow-black/20 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {prompt}
                 </button>
@@ -963,33 +1017,53 @@ export default function ScoutLanding() {
             <div className="w-full">
               <div className="flex items-center justify-between mb-2 px-1">
                 <div className="text-xs uppercase tracking-[0.16em] text-tsTextMuted">Popular in {headlineCommunity || "your county"} this month</div>
-                <div className="text-[11px] text-tsTextMuted">{trendingStatus === "loading" ? "Updating..." : "Refreshed every 24h"}</div>
+                <div className="text-[11px] text-tsTextMuted">{trendingStatus === "loading" ? "Updating..." : "Live data only"}</div>
               </div>
               <div className="overflow-x-auto pb-2">
                 <div className="flex gap-3 min-w-full">
-                  {trendingStatus === "loading" && trendingItems.length === 0
-                    ? Array.from({ length: 4 }).map((_, idx) => (
-                        <div
-                          key={idx}
-                          className="w-60 rounded-xl border border-white/5 bg-slate-900/60 p-4 animate-pulse"
-                        >
-                          <div className="h-3 w-32 bg-white/10 rounded mb-2" />
-                          <div className="h-3 w-20 bg-white/10 rounded" />
-                        </div>
-                      ))
-                    : trendingItems.map((item, idx) => (
-                        <div
-                          key={`${item.title}-${idx}`}
-                          className="w-60 rounded-xl border border-tsBorder bg-slate-900/70 p-4 shadow-lg shadow-black/20 hover:border-tsAccent transition hover:-translate-y-[1px] duration-100"
-                        >
-                          <div className="text-sm font-semibold text-white line-clamp-2">{item.title}</div>
-                          <div className="text-[11px] text-tsTextMuted mt-2 flex items-center gap-2">
-                            {item.stat && <span className="text-orange-300">{item.stat}</span>}
-                            {item.delta && <span className="text-cyan-300">{item.delta}</span>}
-                            {item.category && <span className="px-2 py-0.5 rounded-full bg-white/5 border border-white/10">{item.category}</span>}
-                          </div>
-                        </div>
-                      ))}
+                  {trendingStatus === "loading" && trendingItems.length === 0 &&
+                    Array.from({ length: 4 }).map((_, idx) => (
+                      <div
+                        key={idx}
+                        className="w-60 rounded-xl border border-white/5 bg-slate-900/60 p-4 animate-pulse"
+                      >
+                        <div className="h-3 w-32 bg-white/10 rounded mb-2" />
+                        <div className="h-3 w-20 bg-white/10 rounded" />
+                      </div>
+                    ))}
+
+                  {trendingItems.length > 0 && trendingItems.map((item, idx) => (
+                    <div
+                      key={`${item.title}-${idx}`}
+                      className="w-60 rounded-xl border border-tsBorder bg-slate-900/70 p-4 shadow-lg shadow-black/20 hover:border-tsAccent transition hover:-translate-y-[1px] duration-100"
+                    >
+                      <div className="text-sm font-semibold text-white line-clamp-2">{item.title}</div>
+                      <div className="text-[11px] text-tsTextMuted mt-2 flex items-center gap-2">
+                        {item.stat && <span className="text-orange-300">{item.stat}</span>}
+                        {item.delta && <span className="text-cyan-300">{item.delta}</span>}
+                        {item.category && <span className="px-2 py-0.5 rounded-full bg-white/5 border border-white/10">{item.category}</span>}
+                      </div>
+                    </div>
+                  ))}
+
+                  {trendingItems.length === 0 && trendingStatus !== "loading" && (
+                    <div className="flex flex-col gap-2 w-full">
+                      <div className="text-sm text-tsTextMuted px-1">No live county intel yet. Try one of these real-data queries:</div>
+                      <div className="flex gap-2 flex-wrap">
+                        {trendingPromptSuggestions.map((prompt) => (
+                          <button
+                            key={prompt}
+                            type="button"
+                            onClick={() => handleQuickPrompt(prompt)}
+                            disabled={isLoading || isAutoPrompting}
+                            className="px-3 py-2 rounded-full bg-slate-900/80 border border-tsBorder text-xs text-tsTextMain hover:border-tsAccent hover:text-white transition shadow-sm shadow-black/20 disabled:opacity-50 disabled:cursor-not-allowed"
+                          >
+                            {prompt}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
@@ -1035,7 +1109,8 @@ export default function ScoutLanding() {
                           key={next}
                           type="button"
                           onClick={() => handleQuickPrompt(next)}
-                          className="text-[11px] px-2.5 py-1.5 rounded-full bg-slate-900/80 border border-tsBorder text-tsTextMain hover:border-tsAccent hover:text-white transition"
+                          disabled={isLoading || isAutoPrompting}
+                          className="text-[11px] px-2.5 py-1.5 rounded-full bg-slate-900/80 border border-tsBorder text-tsTextMain hover:border-tsAccent hover:text-white transition disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                           {next}
                         </button>
@@ -1076,6 +1151,11 @@ export default function ScoutLanding() {
         </div>
       </div>
     </footer>
+    <AppDrawer
+      isOpen={appDrawerOpen}
+      onClose={() => setAppDrawerOpen(false)}
+      isAdmin={userRole === "admin"}
+    />
     </div>
   );
 }

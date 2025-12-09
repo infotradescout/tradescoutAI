@@ -172,7 +172,8 @@ async function synthesizeResponse(
   gemini: GoogleGenerativeAI | null,
   systemPrompt: string,
   conversationHistory: string,
-  userContext?: any
+  userContext?: any,
+  historyMessages?: { role: string; content: string }[]
 ): Promise<{ message: string; suggestedActions: string[] }> {
   const DEFAULT_ACTIONS = [
     "Find contractors in my area",
@@ -265,11 +266,11 @@ Be direct. Be brief. Be helpful. Every word must count.`;
     let rawResponse = result.response.text();
     
     // Parse JSON response with fail-safes
-    const parsed = parseStructuredResponse(rawResponse, userMessage);
-    
+    const parsed = parseStructuredResponse(rawResponse, userMessage, userContext, historyMessages);
+
     // Post-process: Enforce hard length limit on message
     parsed.message = trimResponseToScreenFit(parsed.message);
-    
+
     return parsed;
   } catch (error) {
     console.error("[Scout] Synthesis error:", error);
@@ -284,7 +285,109 @@ Be direct. Be brief. Be helpful. Every word must count.`;
  * Parse structured JSON response from LLM with fail-safes
  * Ensures valid format: { message: string, suggestedActions: string[] }
  */
-function parseStructuredResponse(rawResponse: string, userMessage: string): { message: string; suggestedActions: string[] } {
+function deriveContextualActions(
+  base: string[],
+  userMessage: string,
+  userContext?: any,
+  historyMessages?: { role: string; content: string }[]
+): string[] {
+  const defaults = [
+    "Find contractors in my area",
+    "Explore marketplace deals",
+    "Start Community Builder",
+    "Find food trucks with MealScout",
+    "Post my project"
+  ];
+
+  const now = new Date();
+  const hour = now.getHours();
+  const day = now.getDay();
+  const isWeekend = day === 0 || day === 6;
+  const lowerMessage = userMessage.toLowerCase();
+  const county = userContext?.location?.county || userContext?.location?.city || "your county";
+
+  const keywords = [
+    ...(historyMessages || []).map((h) => h.content.toLowerCase()),
+    lowerMessage
+  ].join(" \n ");
+
+  const prioritized: string[] = [];
+
+  const pushUnique = (val: string) => {
+    if (!val || prioritized.includes(val)) return;
+    prioritized.push(val);
+  };
+
+  // Time-of-day steering
+  if (hour >= 6 && hour < 12) {
+    pushUnique(`Find morning-available contractors in ${county}`);
+    pushUnique(`Price my project in ${county}`);
+  } else if (hour >= 17 && hour < 23) {
+    pushUnique("Find tonight's MealScout food truck");
+    pushUnique(`Explore evening marketplace deals in ${county}`);
+  } else {
+    pushUnique(`Check active pros in ${county}`);
+  }
+
+  if (isWeekend) {
+    pushUnique("Plan my weekend projects");
+    pushUnique("Create my weekly project list");
+  }
+
+  // Content-based steering
+  if (/roof|storm|hail|wind/.test(keywords)) {
+    pushUnique(`Find roofers in ${county}`);
+    pushUnique("Check storm reports for my area");
+  }
+
+  if (/market|sell|list|item|trailer|equipment/.test(keywords)) {
+    pushUnique("List my item now");
+    pushUnique("Search trailers and tools");
+  }
+
+  if (/food|restaurant|truck|meal/.test(keywords)) {
+    pushUnique("Show MealScout nearby");
+    pushUnique("Browse restaurants by cuisine");
+  }
+
+  // User roles
+  const roles: string[] = userContext?.userTypes || [];
+  if (roles.includes("contractor")) {
+    pushUnique("Find homeowners needing bids");
+    pushUnique("Update my contractor profile");
+  }
+  if (roles.includes("homeowner")) {
+    pushUnique(`Get bids from vetted pros in ${county}`);
+  }
+
+  const merged = [...base, ...prioritized];
+
+  const clean = merged
+    .filter(Boolean)
+    .map((a) => a.trim())
+    .filter((a) => a.length > 0)
+    .map((a) => (a.length > 48 ? `${a.slice(0, 45)}...` : a));
+
+  // Pad/clamp to exactly 3 with defaults
+  const final: string[] = [];
+  for (const a of clean) {
+    if (final.length >= 3) break;
+    if (!final.includes(a)) final.push(a);
+  }
+  let idx = 0;
+  while (final.length < 3 && idx < defaults.length) {
+    const d = defaults[idx++];
+    if (!final.includes(d)) final.push(d);
+  }
+  return final.slice(0, 3);
+}
+
+function parseStructuredResponse(
+  rawResponse: string,
+  userMessage: string,
+  userContext?: any,
+  historyMessages?: { role: string; content: string }[]
+): { message: string; suggestedActions: string[] } {
   const DEFAULT_ACTIONS = [
     "Find contractors in my area",
     "Explore marketplace deals",
@@ -316,20 +419,12 @@ function parseStructuredResponse(rawResponse: string, userMessage: string): { me
     // Sanitize suggestedActions
     let actions = parsed.suggestedActions
       .filter((a: any) => typeof a === 'string' && a.trim().length > 0)
-      .map((a: string) => a.trim().substring(0, 60)) // Truncate to 60 chars
-      .slice(0, 3); // Max 3 actions
-    
-    // Pad to exactly 3 actions if needed
-    while (actions.length < 3) {
-      const fallback = DEFAULT_ACTIONS[actions.length];
-      if (!actions.includes(fallback)) {
-        actions.push(fallback);
-      } else {
-        actions.push(`Learn more about TradeScout`);
-        break;
-      }
-    }
-    
+      .map((a: string) => a.trim())
+      .slice(0, 5); // allow temp overflow before ranking
+
+    // Enforce contextual ranking + fallback padding
+    actions = deriveContextualActions(actions, userMessage, userContext, historyMessages);
+
     return {
       message: parsed.message,
       suggestedActions: actions
@@ -606,7 +701,8 @@ router.post("/", async (req: Request, res: Response) => {
       geminiClient,
       systemPrompt,
       conversationHistory,
-      userContext
+      userContext,
+      history
     );
 
     // Check if this action requires authentication
