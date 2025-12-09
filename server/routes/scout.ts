@@ -164,6 +164,7 @@ Now write an inspiring, comprehensive answer about how TradeScout transforms thi
  * Generate smart synthesis using knowledge + conversation context
  * Enhanced version that elaborates and explains the knowledge intelligently
  * Now includes user-specific language and personalization
+ * Returns structured response with message and suggestedActions
  */
 async function synthesizeResponse(
   userMessage: string,
@@ -172,9 +173,18 @@ async function synthesizeResponse(
   systemPrompt: string,
   conversationHistory: string,
   userContext?: any
-): Promise<string> {
+): Promise<{ message: string; suggestedActions: string[] }> {
+  const DEFAULT_ACTIONS = [
+    "Find contractors in my area",
+    "Explore marketplace deals",
+    "Start Community Builder"
+  ];
+
   if (!gemini) {
-    return knowledge.answer; // Fall back to raw knowledge if no Gemini
+    return {
+      message: knowledge.answer,
+      suggestedActions: DEFAULT_ACTIONS
+    }; // Fall back to raw knowledge if no Gemini
   }
 
   try {
@@ -205,25 +215,37 @@ CRITICAL: Keep response BRIEF and SCREEN-FRIENDLY
 - Use short, punchy sentences
 - Avoid lengthy paragraphs (2-3 sentences max per paragraph)
 
+RESPONSE FORMAT - YOU MUST RETURN VALID JSON:
+{
+  "message": "your response text here",
+  "suggestedActions": [
+    "Action prompt 1",
+    "Action prompt 2",
+    "Action prompt 3"
+  ]
+}
+
 RESPONSE STRUCTURE (ultra-concise version):
 1. Direct answer first (1-2 sentences)
 2. Optional: Brief "How I'm thinking" (2-3 bullets ONLY if critical)
 3. Key point or example (2-3 sentences)
 4. Next steps: 1-3 concrete actions (bullet list)
 
-Example of perfect response length:
-"I can help you find verified contractors in Dallas.
-
-How I'm thinking:
-• You need trusted local service providers
-• Speed and quality matter most
-
-Here's what typically works: Most homeowners in your area find contractors through peer reviews (Scout's verified network). Average project timelines are 1-2 weeks for assessments.
-
-Next:
-• Browse our contractor database filtered by your service type
-• Check reviews and ratings
-• Message directly to discuss timelines"
+SUGGESTED ACTIONS RULES:
+- ALWAYS generate exactly 3 predictive user actions that advance the workflow
+- Use short, tap-friendly language (max 60 characters each)
+- Make them specific and actionable
+- Never leave suggestedActions empty
+- Base them on TradeScout capabilities:
+  * "Find contractors in [location]"
+  * "Explore [county] community"
+  * "Post my project"
+  * "List item for $[amount]"
+  * "Start Community Builder"
+  * "Search marketplace deals"
+  * "Find food trucks with MealScout"
+  * "Get pricing for [service]"
+  * "See reviews in my area"
 
 ${knowledge.layer === 1 || knowledge.layer === 2 ? "This is TradeScout data - speak with confidence and authority." : ""}
 ${knowledge.layer === 3 ? "This is from the internet, not local TradeScout data - be clear about that." : ""}
@@ -235,19 +257,92 @@ DO NOT:
 - Repeat yourself
 - Use marketing-speak or hype
 - Go over 300 words under ANY circumstances
+- Return anything other than valid JSON
 
 Be direct. Be brief. Be helpful. Every word must count.`;
 
     const result = await model.generateContent(synthesisPrompt);
-    let responseText = result.response.text();
+    let rawResponse = result.response.text();
     
-    // Post-process: Enforce hard length limit and trim excess
-    responseText = trimResponseToScreenFit(responseText);
+    // Parse JSON response with fail-safes
+    const parsed = parseStructuredResponse(rawResponse, userMessage);
     
-    return responseText;
+    // Post-process: Enforce hard length limit on message
+    parsed.message = trimResponseToScreenFit(parsed.message);
+    
+    return parsed;
   } catch (error) {
     console.error("[Scout] Synthesis error:", error);
-    return knowledge.answer; // Fall back to raw knowledge on error
+    return {
+      message: knowledge.answer,
+      suggestedActions: DEFAULT_ACTIONS
+    }; // Fall back to raw knowledge on error
+  }
+}
+
+/**
+ * Parse structured JSON response from LLM with fail-safes
+ * Ensures valid format: { message: string, suggestedActions: string[] }
+ */
+function parseStructuredResponse(rawResponse: string, userMessage: string): { message: string; suggestedActions: string[] } {
+  const DEFAULT_ACTIONS = [
+    "Find contractors in my area",
+    "Explore marketplace deals",
+    "Start Community Builder"
+  ];
+
+  try {
+    // Try to extract JSON from response (in case LLM adds markdown code blocks)
+    let jsonText = rawResponse.trim();
+    
+    // Remove markdown code blocks if present
+    if (jsonText.startsWith('```json')) {
+      jsonText = jsonText.replace(/```json\n?/, '').replace(/\n?```$/, '');
+    } else if (jsonText.startsWith('```')) {
+      jsonText = jsonText.replace(/```\n?/, '').replace(/\n?```$/, '');
+    }
+    
+    const parsed = JSON.parse(jsonText);
+    
+    // Validate structure
+    if (!parsed.message || typeof parsed.message !== 'string') {
+      throw new Error('Missing or invalid message field');
+    }
+    
+    if (!Array.isArray(parsed.suggestedActions)) {
+      throw new Error('Missing or invalid suggestedActions array');
+    }
+    
+    // Sanitize suggestedActions
+    let actions = parsed.suggestedActions
+      .filter((a: any) => typeof a === 'string' && a.trim().length > 0)
+      .map((a: string) => a.trim().substring(0, 60)) // Truncate to 60 chars
+      .slice(0, 3); // Max 3 actions
+    
+    // Pad to exactly 3 actions if needed
+    while (actions.length < 3) {
+      const fallback = DEFAULT_ACTIONS[actions.length];
+      if (!actions.includes(fallback)) {
+        actions.push(fallback);
+      } else {
+        actions.push(`Learn more about TradeScout`);
+        break;
+      }
+    }
+    
+    return {
+      message: parsed.message,
+      suggestedActions: actions
+    };
+    
+  } catch (error) {
+    console.error('[Scout] JSON parsing failed, falling back to text response:', error);
+    
+    // Fallback: treat entire response as message, generate default actions
+    return {
+      message: rawResponse,
+      suggestedActions: DEFAULT_ACTIONS
+    };
   }
 }
 
@@ -370,6 +465,7 @@ interface ScoutRequest {
 
 interface ScoutResponse {
   message: string;
+  suggestedActions?: string[];
   actions?: AssistantAction[];
   actionResults?: any[];
 }
@@ -504,7 +600,7 @@ router.post("/", async (req: Request, res: Response) => {
     // [USER-CONTEXT] Build and inject user context for personalized responses
     const userContext = await buildUserContext(userId);
     
-    const synthesizedAnswer = await synthesizeResponse(
+    const synthesized = await synthesizeResponse(
       message,
       knowledge,
       geminiClient,
@@ -534,9 +630,9 @@ router.post("/", async (req: Request, res: Response) => {
     );
 
     // If user is not authenticated and asked for an action, guide them to signup
-    let finalAnswer = synthesizedAnswer;
+    let finalMessage = synthesized.message;
     if (!userId && userAskedForAction && knowledge.layer < 4) {
-      finalAnswer = `${synthesizedAnswer}
+      finalMessage = `${synthesized.message}
 
 ---
 
@@ -551,10 +647,10 @@ router.post("/", async (req: Request, res: Response) => {
 Ready? Let's set you up! 🚀`;
     }
 
-    // The synthesized answer is our response!
-    // Just return it directly with knowledge metadata
+    // The synthesized answer is our response with suggestedActions!
     const aiResponse: ScoutResponse = {
-      message: finalAnswer,
+      message: finalMessage,
+      suggestedActions: synthesized.suggestedActions,
       actions: [],
     };
 
