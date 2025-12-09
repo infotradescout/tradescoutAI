@@ -1,5 +1,5 @@
 import { ReactNode, useState } from 'react';
-import { Menu, X, LayoutGrid, MessageCircle, Users, Home, Compass, Sparkles } from 'lucide-react';
+import { Menu, X, LayoutGrid, MessageCircle, Users, Home, Compass, Sparkles, DollarSign } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { ROUTES } from '@/lib/routes';
 
@@ -25,6 +25,7 @@ const defaultPrimary: NavItem[] = [
 ];
 
 const defaultSecondary: NavItem[] = [
+  { label: 'Pricing', href: ROUTES.PRICING, icon: <DollarSign className="h-4 w-4" /> },
   { label: 'Messages', href: ROUTES.CONVERSATIONS, icon: <MessageCircle className="h-4 w-4" /> },
   { label: 'Help', href: ROUTES.HELP, icon: <Sparkles className="h-4 w-4" /> },
 ];
@@ -60,7 +61,6 @@ export function AppShell({
           </div>
 
           <div className="hidden md:flex items-center gap-3 text-sm text-tsTextMuted">
-            <a href={ROUTES.PRICING} className="hover:text-tsAccent transition">Pricing</a>
             <a href={ROUTES.HELP} className="hover:text-tsAccent transition">Help</a>
             <a
               href={ROUTES.FIND_CONTRACTORS || ROUTES.CONTRACTORS}

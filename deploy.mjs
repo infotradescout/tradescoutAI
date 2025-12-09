@@ -18,4 +18,10 @@ try {
 await new Promise(resolve => setTimeout(resolve, 2000));
 
 console.log('🚀 Starting deployment server...');
-import('./server.mjs');
+// Use the proper production server (server/index.ts compiled to dist/index.js)
+// Do not use server.mjs as it creates a second listener and conflicts with Socket.io
+import { spawn } from 'child_process';
+const server = spawn('node', ['dist/index.js'], {
+  stdio: 'inherit',
+  env: { ...process.env, NODE_ENV: 'production' }
+});
