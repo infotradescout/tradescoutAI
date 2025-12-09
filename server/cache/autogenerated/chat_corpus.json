@@ -127,5 +127,35 @@
     ],
     "actions": [],
     "timestamp": "2025-12-08T17:22:57.134Z"
+  },
+  {
+    "question": "Find tonight's MealScout food truck",
+    "answer": "Welcome to TradeScout! MealScout helps you find local food trucks easily. Vendors are featured on the local Food Map and get daily posts in community groups. This connects them directly to hungry people nearby, like you. It ensures food trucks are discovered, turning their location into opportunity. Start exploring your local food scene today!\n\n---\n\n**To do this, you'll need a TradeScout account!** It only takes a minute:\n\n1. Click the **\"Create Account\"** button at the top\n2. Choose your role (Homeowner, Contractor, or Community Member)\n3. Enter your email and create a password\n4. Verify your email\n5. Come back here and I'll help you with `Find tonight's MealScout food truck`\n\nReady? Let's set you up! 🚀",
+    "layer": 1,
+    "sources": [
+      "TradeScout Brain (data folder)"
+    ],
+    "actions": [],
+    "timestamp": "2025-12-09T05:19:25.156Z"
+  },
+  {
+    "question": "Show county intel for Local Community",
+    "answer": "Hello! On TradeScout, 'county intel' reveals the vibrant activity in your local community. It highlights top-ranked contractors, trusted by your neighbors, for any project you need.\nBeyond finding pros, it connects you to local TradeScout events and educational opportunities. We foster a community where trust and local wealth grow together, replacing ads with genuine reputation. Explore what's happening and who's excelling in your area!",
+    "layer": 1,
+    "sources": [
+      "TradeScout Brain (data folder)"
+    ],
+    "actions": [],
+    "timestamp": "2025-12-09T05:20:06.848Z"
+  },
+  {
+    "question": "Winterize my home checklist",
+    "answer": "Welcome! While I don't have a direct 'winterize my home checklist' available, that's a fantastic question TradeScout can help with! We connect you with trusted, local pros who are experts in home maintenance and can provide tailored advice or services to prepare your home for winter. \nThink of TradeScout as your direct link to the community's best. You can ask for recommendations, get specific advice, or even post your project to find a pro. It's about getting real answers from real experts, without the sales pressure.\n\n---\n\n**To do this, you'll need a TradeScout account!** It only takes a minute:\n\n1. Click the **\"Create Account\"** button at the top\n2. Choose your role (Homeowner, Contractor, or Community Member)\n3. Enter your email and create a password\n4. Verify your email\n5. Come back here and I'll help you with `Winterize my home checklist`\n\nReady? Let's set you up! 🚀",
+    "layer": 1,
+    "sources": [
+      "TradeScout Brain (data folder)"
+    ],
+    "actions": [],
+    "timestamp": "2025-12-09T05:42:38.928Z"
   }
 ]

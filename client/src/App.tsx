@@ -10,13 +10,12 @@ import { useAuth } from './hooks/useAuth';
 
 // Only load essential components eagerly
 import SmartHome from './SmartHome';
-import ScoutLanding from './scout-landing-v2-millionaire';
+import ScoutLanding from './scout-landing';
 import SimpleMobileGestures from './components/SimpleMobileGestures';
 import SimpleSubtleHints from './components/onboarding/SimpleSubtleHints';
 import SimpleBugReportTool from './components/SimpleBugReportTool';
 import SimpleFloatingHelp from './components/ui/simple-floating-help';
 import MobileAppBar from './components/navigation/MobileAppBar';
-import { ScoutChat } from './components/ScoutChat';
 import ComingSoon from './pages/coming-soon';
 
 // Loading component for lazy-loaded pages
@@ -729,8 +728,6 @@ const AppLayout = memo(function AppLayout() {
         {/* Bug report tool - always available */}
         <SimpleBugReportTool />
 
-        {/* Scout Chat - hidden on LLM page to avoid duplication */}
-        {!isLlmRoute && <ScoutChat isAuthenticated={isAuthenticated} />}
     </SimpleMobileGestures>
   );
 });
