@@ -120,6 +120,7 @@ const suggestFollowUps = (prompt: string): string[] => {
 
 export default function ScoutLanding() {
   const { user, isAuthenticated } = useAuth();
+  const isAdmin = user?.isAdmin === true;
   const [messages, setMessages] = useState<Message[]>([]);
   const [, navigate] = useLocation();
   const [inputValue, setInputValue] = useState("");
@@ -1154,7 +1155,7 @@ export default function ScoutLanding() {
     <AppDrawer
       isOpen={appDrawerOpen}
       onClose={() => setAppDrawerOpen(false)}
-      isAdmin={userRole === "admin"}
+      isAdmin={isAdmin}
     />
     </div>
   );

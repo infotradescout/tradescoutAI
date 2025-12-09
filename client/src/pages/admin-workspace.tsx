@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Navigate } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -44,8 +45,8 @@ export default function AdminWorkspace() {
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState('verification');
 
-  // Check admin access
-  const hasAdminAccess = user && user.role && ADMIN_ROLES.includes(user.role);
+  // Check admin access using canonical isAdmin flag
+  const hasAdminAccess = !!user?.isAdmin;
 
   // Redirect if not authenticated or not admin
   useEffect(() => {
@@ -55,9 +56,6 @@ export default function AdminWorkspace() {
         description: "You don't have permission to access this area.",
         variant: "destructive",
       });
-      setTimeout(() => {
-        window.location.href = isAuthenticated ? "/" : "/api/login";
-      }, 500);
       return;
     }
   }, [isAuthenticated, authLoading, hasAdminAccess, toast]);
@@ -147,15 +145,7 @@ export default function AdminWorkspace() {
   }
 
   if (!isAuthenticated || !hasAdminAccess) {
-    return (
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <Card className="bg-red-900/20 border-red-500/50">
-          <CardContent className="p-6 text-center">
-            <p className="text-red-400">Access denied. Admin privileges required.</p>
-          </CardContent>
-        </Card>
-      </div>
-    );
+    return <Navigate to="/unauthorized" />;
   }
 
   return (

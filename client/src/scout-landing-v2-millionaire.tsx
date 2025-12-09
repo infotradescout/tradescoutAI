@@ -1,42 +1,13 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
-import { Activity, Send, Home, Menu, X } from "lucide-react";
-import { useAuth } from "./hooks/useAuth";
-import { useLocation, Link } from "wouter";
-import "./index.css";
+// STUB: Legacy "Millionaire"-only Scout landing
+// -----------------------------------------------
+// The current, canonical landing experience lives in `scout-landing.tsx`,
+// which already incorporates the Millionaire layout and desktop OS shell.
+//
+// This file remains only as a named stub so that any old imports compile,
+// but it intentionally exports nothing. If you need the full history,
+// recover it from git or see `legacy/scout-landing-v2-millionaire.tsx`.
 
-type Message = {
-  role: "user" | "assistant";
-  content: string;
-  timestamp: Date;
-  id?: string;
-  suggestedActions?: string[];
-};
-
-type ScoutResponse = {
-  message: string;
-  suggestedActions?: string[];
-  actions?: any[];
-  actionResults?: any[];
-  timestamp: string;
-};
-
-type TrendingItem = {
-  title: string;
-  stat?: string;
-  delta?: string;
-  category?: string;
-};
-
-type TrendingStatus = "idle" | "loading" | "ready" | "error" | "empty";
-
-const isTooSpecific = (text: string) => {
-  const lower = text.toLowerCase();
-  const hasUrl = lower.includes("http") || lower.includes("www.");
-  const hasEmail = lower.includes("@");
-  const hasLongNumber = /\d{5,}/.test(lower);
-  const tooLong = text.length > 140;
-  return hasUrl || hasEmail || hasLongNumber || tooLong;
-};
+export {};
 
 const normalizeTrendingItem = (item: any, place: string): TrendingItem | null => {
   const rawTitle = item?.title || item?.name || "";
