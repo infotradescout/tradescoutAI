@@ -1,8 +1,9 @@
-import { createContext, useContext, useEffect, useState } from 'react';
+import { createContext, useContext, useEffect, useMemo, useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { PRESET_THEMES, applyTheme, getThemeById, type Theme } from '@/lib/themes';
 import { apiRequest } from '@/lib/queryClient';
 import { useAuth } from '@/hooks/useAuth';
+import { getUserColorScheme } from '@shared/colorPresets';
 
 interface ThemeContextType {
   currentTheme: Theme;
@@ -17,25 +18,64 @@ const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const { user } = useAuth();
   const queryClient = useQueryClient();
-  
-  // Get saved theme from user preferences or localStorage
-  const savedThemeId = user?.themePreference || localStorage.getItem('themeId') || 'default';
-  const savedCustomColors = user?.customThemeColors ? JSON.parse(user.customThemeColors) : null;
-  
-  const [currentTheme, setCurrentTheme] = useState<Theme>(() => {
-    const baseTheme = getThemeById(savedThemeId);
-    if (savedCustomColors) {
-      return {
-        ...baseTheme,
-        id: 'custom',
-        name: 'Custom Theme',
-        colors: { ...baseTheme.colors, ...savedCustomColors }
-      };
+
+  const savedCustomColors = useMemo(() => {
+    try {
+      if (user?.customThemeColors) return JSON.parse(user.customThemeColors);
+      const local = typeof window !== 'undefined' ? localStorage.getItem('customColors') : null;
+      return local ? JSON.parse(local) : null;
+    } catch (err) {
+      console.warn('Failed to parse saved custom colors', err);
+      return null;
     }
-    return baseTheme;
-  });
-  
-  const [customColors, setCustomColors] = useState<Partial<Theme['colors']> | null>(savedCustomColors);
+  }, [user]);
+
+  const resolveTheme = useMemo(() => {
+    return () => {
+      // Priority 1: explicit profile color scheme (used on public profile + should drive in-app look)
+      const preferenceScheme = user?.preferences?.colorScheme;
+      if (preferenceScheme) {
+        const scheme = getUserColorScheme({ colorScheme: preferenceScheme });
+        const themeFromProfile: Theme = {
+          id: preferenceScheme.preset || 'profile-theme',
+          name: 'Profile Color Scheme',
+          description: 'Colors synced from profile preferences',
+          colors: {
+            bgPrimary: scheme.background,
+            bgSecondary: scheme.background,
+            bgTertiary: scheme.secondary || scheme.background,
+            textPrimary: scheme.text,
+            textSecondary: scheme.text,
+            accentPrimary: scheme.primary,
+            accentSecondary: scheme.secondary || scheme.primary,
+            border: scheme.border || scheme.background,
+          },
+        };
+        return { theme: themeFromProfile, custom: preferenceScheme.preset === 'custom' ? preferenceScheme : null, themeId: preferenceScheme.preset || 'profile-theme' };
+      }
+
+      // Priority 2: stored theme preference / local storage
+      const savedThemeId = user?.themePreference || (typeof window !== 'undefined' ? localStorage.getItem('themeId') : null) || 'default';
+      const baseTheme = getThemeById(savedThemeId);
+
+      if (savedCustomColors) {
+        const customTheme: Theme = {
+          ...baseTheme,
+          id: 'custom',
+          name: 'Custom Theme',
+          colors: { ...baseTheme.colors, ...savedCustomColors },
+        };
+        return { theme: customTheme, custom: savedCustomColors, themeId: 'custom' };
+      }
+
+      return { theme: baseTheme, custom: null, themeId: savedThemeId };
+    };
+  }, [savedCustomColors, user]);
+
+  const initialTheme = useMemo(() => resolveTheme(), [resolveTheme]);
+
+  const [currentTheme, setCurrentTheme] = useState<Theme>(initialTheme.theme);
+  const [customColors, setCustomColors] = useState<Partial<Theme['colors']> | null>(initialTheme.custom);
 
   // Save theme preference mutation
   const saveThemeMutation = useMutation({
@@ -64,6 +104,10 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     setCurrentTheme(newTheme);
     setCustomColors(null);
     applyTheme(newTheme);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('themeId', themeId);
+      localStorage.removeItem('customColors');
+    }
     saveThemeMutation.mutate({ themeId });
   };
 
@@ -80,6 +124,10 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     setCurrentTheme(customTheme);
     setCustomColors(colors);
     applyTheme(customTheme);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('themeId', 'custom');
+      localStorage.setItem('customColors', JSON.stringify(colors));
+    }
     saveThemeMutation.mutate({ 
       themeId: 'custom', 
       colors: JSON.stringify(colors) 
@@ -90,6 +138,22 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     applyTheme(currentTheme);
   }, [currentTheme]);
+
+  // Re-resolve theme when user preferences update (ensures profile color scheme drives in-app theme)
+  useEffect(() => {
+    const { theme, custom, themeId } = resolveTheme();
+    setCurrentTheme(theme);
+    setCustomColors(custom);
+    applyTheme(theme);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('themeId', themeId);
+      if (custom) {
+        localStorage.setItem('customColors', JSON.stringify(custom));
+      } else {
+        localStorage.removeItem('customColors');
+      }
+    }
+  }, [resolveTheme]);
 
   return (
     <ThemeContext.Provider

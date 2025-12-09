@@ -83,6 +83,36 @@ const censorProfanity = (text: string) => {
   return cleaned;
 };
 
+const suggestFollowUps = (prompt: string): string[] => {
+  const lower = prompt.toLowerCase();
+  const ideas: string[] = [];
+
+  const locationCue = lower.includes("county") || lower.includes("zip") || lower.includes("state");
+  const timelineCue = lower.includes("when") || lower.includes("today") || lower.includes("week") || lower.includes("schedule");
+  const pricingCue = lower.includes("price") || lower.includes("cost") || lower.includes("quote") || lower.includes("budget");
+  const contractorCue = lower.includes("contractor") || lower.includes("electrician") || lower.includes("plumber") || lower.includes("roofer") || lower.includes("pro");
+
+  if (!pricingCue) ideas.push("Give me hyperlocal pricing with citations for this");
+  if (!timelineCue) ideas.push("Find pros who can start this week and share availability");
+  if (!locationCue) ideas.push("Use my county and nearby counties for matches");
+  if (!contractorCue) ideas.push("Message the top 3 vetted contractors and share their replies here");
+
+  // Fill up to 4 suggestions with helpful defaults
+  const defaults = [
+    "Draft the outreach message for me",
+    "Create a simple project board with next steps",
+    "Show any sponsored offers that fit this job",
+    "Remind me to follow up tomorrow",
+  ];
+
+  for (const d of defaults) {
+    if (ideas.length >= 4) break;
+    if (!ideas.includes(d)) ideas.push(d);
+  }
+
+  return ideas.slice(0, 4);
+};
+
 export default function ScoutLanding() {
   const { user, isAuthenticated } = useAuth();
   const [messages, setMessages] = useState<Message[]>([]);
@@ -149,16 +179,22 @@ export default function ScoutLanding() {
 
   // Auto-run prompt with CSS typing illusion then send
   const animateAndSendPrompt = async (promptText: string) => {
-    if (userInteractedRef.current) return;
+    if (userInteractedRef.current || hasAutoRunRef.current) return;
+    hasAutoRunRef.current = true;
     setAutoPromptPreview(promptText);
-    // Wait for CSS typing (~2.4s) + 200ms buffer, then send
-    window.setTimeout(() => {
-      setInputValue(promptText);
-      setSendPulse(true);
-      handleSendMessage(promptText);
-      setSendPulse(false);
-      setAutoPromptPreview(null);
+    const timer = window.setTimeout(async () => {
+      try {
+        setInputValue(promptText);
+        setSendPulse(true);
+        await handleSendMessage(promptText);
+        userInteractedRef.current = true; // ensure autorun exits after first prompt
+      } finally {
+        setSendPulse(false);
+        setAutoPromptPreview(null);
+        autoRunTimeoutRef.current = null;
+      }
     }, 2600);
+    autoRunTimeoutRef.current = timer as any;
   };
 
   const markUserInteracted = () => {
@@ -238,6 +274,12 @@ export default function ScoutLanding() {
             role: msg.role,
             content: msg.content,
           })),
+          hyperlocalPricing: true,
+          pricingContext: {
+            priority: "county-first",
+            requireCitations: true,
+            admitUnknowns: true,
+          },
         }),
       });
 
@@ -273,6 +315,15 @@ export default function ScoutLanding() {
       };
 
       pushMessage(scoutMessage);
+
+      const followUps = suggestFollowUps(messageToSend);
+      if (followUps.length) {
+        pushMessage({
+          role: "assistant",
+          content: `Try these next:\n- ${followUps.join("\n- ")}`,
+          timestamp: new Date(),
+        });
+      }
 
       if (data.actionResults && data.actionResults.length > 0) {
         const resultsMessage: Message = {
@@ -313,7 +364,7 @@ export default function ScoutLanding() {
       const introMessage: Message = {
         role: "assistant",
         content:
-          "Welcome back! I'm Scout, your TradeScout operating system. I can:\n• Find and message verified contractors for your county\n• Spin up Community Builder and launch outreach posts\n• Search marketplace deals or list your gear fast\n• Run MealScout to surface food trucks and local offers\nAsk me anything specific (project, location, budget, timing) and I'll act immediately.",
+          "Welcome back! I'm Scout, your TradeScout operating system. I can:\n• Find and message verified contractors for your county\n• Provide hyperlocal pricing using county/state data (no guessing)\n• Spin up Community Builder and launch outreach posts\n• Search marketplace deals or list your gear fast\n• Run MealScout to surface food trucks and local offers\nAsk me anything specific (project, location, budget, timing) and I'll act immediately.",
         timestamp: new Date(),
       };
       pushMessage(introMessage);
@@ -472,6 +523,7 @@ export default function ScoutLanding() {
     "Show me today’s best tool deals",
     "Message the top 3 electricians near me",
     "Create a project for kitchen remodel",
+    "Price a full bathroom remodel in my county with citations",
     "List my pressure washer for $250",
     "Find food trucks near me tonight",
   ];
@@ -481,8 +533,8 @@ export default function ScoutLanding() {
       label: "Primary — Task Execution",
       tone: "primary" as const,
       items: [
-        { label: "Find Contractors", href: "/find-contractors", desc: "Post a job or pull vetted pros fast" },
-        { label: "Contractor Board", href: "/contractor-board", desc: "See active leads and bids" },
+        { label: "Contractors", href: "/find-contractors", desc: "Post a job or pull vetted pros fast" },
+        { label: "Contractors Board", href: "/contractor-board", desc: "See active leads and bids" },
         { label: "Marketplace", href: "/marketplace", desc: "Shop or list gear with pricing help" },
       ],
     },

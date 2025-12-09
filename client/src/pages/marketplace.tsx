@@ -71,6 +71,8 @@ import {
   Palette
 } from "lucide-react";
 import type { MarketplaceListing, MarketplaceCategory } from "@shared/schema";
+import { AppShell } from "@/components/layout/AppShell";
+import { Page } from "@/components/layout/PagePrimitives";
 
 // Comprehensive category icons mapping
 const categoryIcons = {
@@ -326,25 +328,18 @@ export default function Marketplace() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/marketplace/listings"] });
       toast({
-        title: "Saved!",
-        description: "Item saved to your collection",
+        title: "Saved",
+        description: "Listing added to your saved items.",
       });
     },
     onError: () => {
       toast({
-        title: "Error",
-        description: "Failed to save item",
+        title: "Could not save listing",
+        description: "Please try again.",
         variant: "destructive",
       });
     },
   });
-
-  const formatPrice = (price: number, priceType: string) => {
-    if (priceType === "negotiable") return "Price Negotiable";
-    if (priceType === "contact") return "Contact for Price";
-    if (priceType === "best_offer") return `${formatCurrency(price)} OBO`;
-    return formatCurrency(price);
-  };
 
   const formatCurrency = (price: number) => {
     return new Intl.NumberFormat('en-US', {
@@ -1300,7 +1295,7 @@ export default function Marketplace() {
           )}
         </div>
         )}
-      </div>
-    </div>
+      </Page>
+    </AppShell>
   );
 }

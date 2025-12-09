@@ -4,10 +4,12 @@ export const ROUTES = {
   HOME: '/',
   LOGIN: '/login',
   REGISTER: '/register',
+  FIND_CONTRACTORS: '/find-contractors',
   CONTRACTORS: '/contractors',
   MARKETPLACE: '/marketplace',
   COMMUNITY: '/community',
   HELP: '/help',
+  PRICING: '/pricing',
 
   // Protected routes (require auth)
   DASHBOARD: '/dashboard',
@@ -46,15 +48,16 @@ export const PUBLIC_ROUTES = [
   ROUTES.HOME,
   ROUTES.LOGIN,
   ROUTES.REGISTER,
+  ROUTES.FIND_CONTRACTORS,
   ROUTES.CONTRACTORS,
   ROUTES.MARKETPLACE,
   ROUTES.COMMUNITY,
   ROUTES.HELP,
+  ROUTES.PRICING,
   ROUTES.TERMS,
   ROUTES.PRIVACY,
   ROUTES.COOKIES,
   ROUTES.CONTRACTOR_BOARD,
-  '/quote-calculator'
 ];
 
 export const PROTECTED_ROUTES = [

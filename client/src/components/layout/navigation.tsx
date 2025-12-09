@@ -35,10 +35,10 @@ export default function Navigation() {
   const isHomeowner = user && user.role === 'homeowner';
 
   const navItems = [
-    { href: "/contractors", label: "Find Contractors", icon: Search, public: true, description: "Find verified local contractors" },
-    { href: "/quote-calculator", label: "Quote Calculator", icon: Calculator, public: true, description: "Get instant project estimates" },
+    { href: "/find-contractors", label: "Find Contractors", icon: Search, public: true, description: "Find verified local contractors" },
+    { href: "/pricing", label: "Pricing", icon: Calculator, public: true, description: "Plans and value guide" },
     ...(!isHomeowner ? [{ href: "/contractor-apply", label: "For Contractors", icon: Wrench, public: true, description: "Join our contractor network" }] : []),
-    { href: "/helpers", label: "Helpers", icon: Users, public: true, description: "Find skilled helpers" },
+    { href: "/contractor-board", label: "Contractor Board", icon: Users, public: true, description: "Track active leads and bids" },
     { href: "/marketplace", label: "Exchange", icon: Package, public: true, description: "Premium equipment & valuable items" },
     { href: "/leaderboard", label: "Leaderboard", icon: Trophy, public: true, description: "Top contractors by recommendations" },
     { href: "/community", label: "Community", icon: MessageCircle, public: true, description: "Connect with neighbors" },
