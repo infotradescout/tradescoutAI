@@ -173,6 +173,15 @@ export class MessagingService {
           // Determine sender type
           const senderType = conv[0].homeownerId === userId ? 'homeowner' : 'contractor';
 
+          // [USER-CONTEXT] Track interaction type for language personalization
+          // This metadata helps Scout understand user preferences and communication patterns
+          const interactionMetadata = {
+            ...metadata,
+            _interactionSignature: extractInteractionSignature(content),
+            _messageType: messageType,
+            _senderType: senderType,
+          };
+
           // Create message
           const messageId = uuidv4();
           const newMessage = await db.insert(messages).values({
@@ -182,7 +191,7 @@ export class MessagingService {
             senderType,
             content,
             messageType,
-            metadata: metadata ? JSON.stringify(metadata) : null,
+            metadata: JSON.stringify(interactionMetadata),
             createdAt: new Date(),
           } as any);
 
@@ -343,6 +352,50 @@ export class MessagingService {
   broadcastToAll(eventName: string, data: any) {
     this.io.emit(eventName, data);
   }
+}
+
+/**
+ * Extract interaction signature from message content
+ * Helps Scout understand user communication patterns and preferences
+ */
+function extractInteractionSignature(content: string): string[] {
+  const signatures: string[] = [];
+  const lower = content.toLowerCase();
+
+  // Communication style
+  if (/[!]{2,}|[?]{2,}|^\s*YES|^\s*NO|very|extremely/.test(lower)) {
+    signatures.push('emphatic');
+  }
+  if (/please|thanks|thank you|would you|could you/.test(lower)) {
+    signatures.push('formal_polite');
+  }
+  if (/hey|thanks|cool|awesome|great/.test(lower)) {
+    signatures.push('casual_friendly');
+  }
+
+  // Domain signals
+  if (/roofing|plumb|electric|hvac|contractor|build|construct|renovate|install/.test(lower)) {
+    signatures.push('construction_domain');
+  }
+  if (/price|cost|budget|afford|expensive|cheap/.test(lower)) {
+    signatures.push('pricing_focused');
+  }
+  if (/timeline|urgent|rush|asap|soon|available|schedule/.test(lower)) {
+    signatures.push('time_sensitive');
+  }
+  if (/review|quality|experience|recommend|trustworthy|verify/.test(lower)) {
+    signatures.push('quality_conscious');
+  }
+
+  // Relationship signals
+  if (/community|neighbor|local|area|county|nearby/.test(lower)) {
+    signatures.push('community_engaged');
+  }
+  if (/business|offer|service|client|customer|hire/.test(lower)) {
+    signatures.push('business_service');
+  }
+
+  return signatures.length > 0 ? signatures : ['neutral'];
 }
 
 // Helper to manage Socket.io service globally

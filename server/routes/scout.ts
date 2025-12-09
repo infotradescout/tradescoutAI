@@ -11,6 +11,11 @@ import {
   loadComprehensiveKnowledge,
 } from "../services/knowledgeService";
 import { loadSystemPrompt } from "../services/promptService";
+import {
+  buildUserContext,
+  formatUserContextForPrompt,
+  generateThinkingContext,
+} from "../services/userContextService";
 import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
@@ -158,13 +163,15 @@ Now write an inspiring, comprehensive answer about how TradeScout transforms thi
 /**
  * Generate smart synthesis using knowledge + conversation context
  * Enhanced version that elaborates and explains the knowledge intelligently
+ * Now includes user-specific language and personalization
  */
 async function synthesizeResponse(
   userMessage: string,
   knowledge: { answer: string; sources: string[]; layer: number; confidence: string },
   gemini: GoogleGenerativeAI | null,
   systemPrompt: string,
-  conversationHistory: string
+  conversationHistory: string,
+  userContext?: any
 ): Promise<string> {
   if (!gemini) {
     return knowledge.answer; // Fall back to raw knowledge if no Gemini
@@ -173,8 +180,18 @@ async function synthesizeResponse(
   try {
     const model = gemini.getGenerativeModel({ model: "gemini-2.5-flash" });
     
+    // [USER-CONTEXT INJECTION]
+    // Build user context for personalized language
+    let userContextPrompt = "";
+    if (userContext) {
+      userContextPrompt = formatUserContextForPrompt(userContext);
+      userContextPrompt += `\n${generateThinkingContext(userContext)}\n`;
+    }
+
     // Smart synthesis that elaborates on knowledge while keeping facts intact
     const synthesisPrompt = `You are Scout, the TradeScout AI assistant. Your job is to make knowledge helpful, specific, and engaging.
+
+${userContextPrompt}
 
 User asked: "${userMessage}"
 
@@ -415,12 +432,16 @@ router.post("/", async (req: Request, res: Response) => {
 
     // SMART SYNTHESIS: Use Gemini to synthesize knowledge into intelligent answer
     // Instead of passing raw knowledge to the LLM, first synthesize it smartly
+    // [USER-CONTEXT] Build and inject user context for personalized responses
+    const userContext = await buildUserContext(userId);
+    
     const synthesizedAnswer = await synthesizeResponse(
       message,
       knowledge,
       geminiClient,
       systemPrompt,
-      conversationHistory
+      conversationHistory,
+      userContext
     );
 
     // Check if this action requires authentication
@@ -468,9 +489,8 @@ Ready? Let's set you up! 🚀`;
       actions: [],
     };
 
-    // Execute any actions if mentioned in the synthesized answer
-    // (In this simple case, we don't extract actions - the synthesized answer is final)
-    const actionResults = [];
+    // The synthesis result is our response; no further action extraction needed
+    // This simplifies the response and focuses on Scout's intelligent synthesis
 
     // Apply fraud/scam safety filter
     if (aiResponse.message) {
@@ -502,7 +522,7 @@ Ready? Let's set you up! 🚀`;
     res.json({
       message: aiResponse.message,
       actions: aiResponse.actions || [],
-      actionResults,
+      actionResults: [],
       knowledge: {
         layer: knowledge.layer,
         sources: knowledge.sources,
