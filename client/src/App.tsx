@@ -10,7 +10,7 @@ import { useAuth } from './hooks/useAuth';
 
 // Only load essential components eagerly
 import SmartHome from './SmartHome';
-import ScoutLanding from './scout-landing';
+import ScoutLanding from './scout-landing-v2-millionaire';
 import SimpleMobileGestures from './components/SimpleMobileGestures';
 import SimpleSubtleHints from './components/onboarding/SimpleSubtleHints';
 import SimpleBugReportTool from './components/SimpleBugReportTool';
