@@ -1,3 +1,4 @@
+import { test } from "vitest";
 import { executeAssistantAction, type User, type AssistantAction } from "../assistantActions.js";
 
 /**
@@ -425,26 +426,29 @@ export async function runAllTests(): Promise<void> {
   console.log("║    Testing role-based access control and service integration   ║");
   console.log("╚════════════════════════════════════════════════════════════════╝");
 
-  try {
-    await testMarketplaceFlow();
-    await testContractorFlow();
-    await testHOAFlow();
-    await testGroupsFlow();
-    await testMessagingFlow();
-    await testProjectFlow();
-    await testAdminFlow();
+  await testMarketplaceFlow();
+  await testContractorFlow();
+  await testHOAFlow();
+  await testGroupsFlow();
+  await testMessagingFlow();
+  await testProjectFlow();
+  await testAdminFlow();
 
-    console.log("\n╔════════════════════════════════════════════════════════════════╗");
-    console.log("║    ✅ ALL TESTS COMPLETED                                    ║");
-    console.log("║    All flows validated with proper role checks              ║");
-    console.log("╚════════════════════════════════════════════════════════════════╝\n");
-  } catch (error) {
-    console.error("❌ TEST SUITE FAILED:", error);
-    process.exit(1);
-  }
+  console.log("\n╔════════════════════════════════════════════════════════════════╗");
+  console.log("║    ✅ ALL TESTS COMPLETED                                    ║");
+  console.log("║    All flows validated with proper role checks              ║");
+  console.log("╚════════════════════════════════════════════════════════════════╝\n");
 }
+
+// Register as a Vitest suite
+test("TradeScout end-to-end flows", async () => {
+  await runAllTests();
+});
 
 // Run tests if this is the main module
 if (import.meta.url === `file://${process.argv[1]}`) {
-  runAllTests().catch(console.error);
+  runAllTests().catch((error) => {
+    console.error("❌ TEST SUITE FAILED:", error);
+    process.exit(1);
+  });
 }

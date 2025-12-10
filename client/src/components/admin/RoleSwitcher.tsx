@@ -137,7 +137,7 @@ export default function RoleSwitcher() {
                   className={`flex items-center gap-3 p-2 rounded-lg border transition-all ${
                     isActive 
                       ? 'border-primary bg-primary/10' 
-                      : 'border-border hover:border-primary/50 cursor-pointer'
+                      : 'border hover:border-primary/50 cursor-pointer'
                   }`}
                   onClick={() => !isActive && setSelectedRole(role)}
                 >

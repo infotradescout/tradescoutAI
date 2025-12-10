@@ -5,13 +5,66 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { CommunityShell } from '@/components/layout/CommunityShell';
+import { useNotifications } from "@/hooks/useNotifications";
+import { useQuery } from "@tanstack/react-query";
+import { useAuth } from "@/hooks/useAuth";
+import { useLocationContext } from "@/hooks/useLocationContext";
+import { useParams } from "wouter";
+
+type HoaDashboard = {
+  hoaId: string;
+  hoaName: string;
+  memberCount: number;
+  activeMembers: number;
+  openVotesCount: number;
+  groupType: "hoa";
+  recentVotes: {
+    id: string;
+    title: string;
+    status: string;
+    closesAt: string | null;
+  }[];
+  balance?: number;
+  recentTransactions?: {
+    id: string;
+    type: string;
+    amount: number;
+    occurredAt: string;
+  }[];
+};
 
 const HOADashboard = memo(function HOADashboard() {
   const [activeTab, setActiveTab] = useState("overview");
+  const { unreadCount } = useNotifications();
+  const { user } = useAuth();
+  const params = useParams();
+  const hoaId = params?.hoaId as string | undefined;
+  const location = useLocationContext({
+    layer: "hoa",
+    hoaId: hoaId ?? undefined,
+  });
+
+  const { data, isLoading, isError } = useQuery<{ dashboard: HoaDashboard}>(
+    {
+      queryKey: ["/api/hoa/dashboard", location.layer, location.stateCode, location.countyFips, location.hoaId],
+      queryFn: async () => {
+        const query = hoaId ? `?hoaId=${encodeURIComponent(hoaId)}` : "";
+        const res = await fetch(`/api/hoa/dashboard${query}`);
+        if (!res.ok) {
+          throw new Error("Failed to load HOA dashboard");
+        }
+        return res.json();
+      },
+      enabled: !!user,
+    }
+  );
+
+  const dashboard = data?.dashboard;
 
   return (
-    <div className="min-h-screen gradient-bg text-white">
-      <div className="container mx-auto px-4 py-8">
+    <CommunityShell sectionLabel="HOA Dashboard" notificationsCount={unreadCount}>
+      <div className="w-full py-8">
         {/* Header */}
         <div className="mb-8">
           <div className="flex items-center gap-3 mb-4">
@@ -19,18 +72,18 @@ const HOADashboard = memo(function HOADashboard() {
             <h1 className="text-4xl font-bold text-white">HOA Management</h1>
           </div>
           <p className="text-gray-300 text-lg">
-            Oakwood Hills Community Association Dashboard
+            {dashboard ? `${dashboard.hoaName} Dashboard` : "Loading HOA dashboard..."}
           </p>
         </div>
 
         {/* Quick Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8" data-testid="hoa-dashboard-metrics">
           <Card className="bg-navy-800/50 border-navy-600 backdrop-blur-sm">
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-gray-400 text-sm">Total Units</p>
-                  <p className="text-2xl font-bold text-white">147</p>
+                  <p className="text-2xl font-bold text-white">{dashboard ? dashboard.memberCount : 0}</p>
                 </div>
                 <Home className="h-8 w-8 text-blue-400" />
               </div>
@@ -42,7 +95,7 @@ const HOADashboard = memo(function HOADashboard() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-gray-400 text-sm">Monthly Revenue</p>
-                  <p className="text-2xl font-bold text-white">$29,400</p>
+                  <p className="text-2xl font-bold text-white">{dashboard && typeof dashboard.balance === 'number' ? `$${dashboard.balance.toLocaleString()}` : '--'}</p>
                 </div>
                 <DollarSign className="h-8 w-8 text-green-400" />
               </div>
@@ -54,7 +107,7 @@ const HOADashboard = memo(function HOADashboard() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-gray-400 text-sm">Active Residents</p>
-                  <p className="text-2xl font-bold text-white">134</p>
+                  <p className="text-2xl font-bold text-white">{dashboard ? dashboard.activeMembers : 0}</p>
                 </div>
                 <Users className="h-8 w-8 text-purple-400" />
               </div>
@@ -66,7 +119,7 @@ const HOADashboard = memo(function HOADashboard() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-gray-400 text-sm">Collection Rate</p>
-                  <p className="text-2xl font-bold text-white">96%</p>
+                  <p className="text-2xl font-bold text-white">{dashboard && typeof dashboard.balance === 'number' ? '100%' : '--'}</p>
                 </div>
                 <BarChart3 className="h-8 w-8 text-orange-400" />
               </div>

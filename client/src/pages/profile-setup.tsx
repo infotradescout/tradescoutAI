@@ -116,14 +116,14 @@ export default function ProfileSetup() {
   if (!user) {
     return (
       <div className="min-h-screen bg-navy-900 flex items-center justify-center">
-        <div className="text-white">Please log in to complete your profile setup.</div>
+        <div className="ts-surface px-4 py-6 md:px-10 md:py-8 text-white">Please log in to complete your profile setup.</div>
       </div>
     );
   }
 
   return (
     <div className="min-h-screen bg-navy-900 py-8">
-      <div className="container mx-auto px-4 max-w-4xl">
+      <div className="container mx-auto px-4 max-w-4xl ts-surface px-4 py-6 md:px-10 md:py-8">
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold text-white mb-2">Complete Your Profile</h1>
           <p className="text-gray-300">Tell us about yourself to get the best TradeScout experience</p>

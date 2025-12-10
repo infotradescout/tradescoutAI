@@ -93,12 +93,13 @@ const AdminCommunityBuilderReconciliation = React.lazy(() => import('./pages/adm
 const AdminCommunityBuilderBuilders = React.lazy(() => import('./pages/admin/community-builder-builders'));
 
 // Additional Features
-const Marketplace = React.lazy(() => import('./pages/marketplace'));
+const Marketplace = React.lazy(() => import('./pages/marketplace-shell'));
 const Exchange = React.lazy(() => import('./pages/exchange'));
 const HandmadeMarketplace = React.lazy(() => import('./pages/handmade-marketplace'));
 const Leaderboard = React.lazy(() => import('./pages/leaderboard'));
 const Foundation = React.lazy(() => import('./pages/foundation'));
-const CommunityFeedOld = React.lazy(() => import('./pages/CommunityFeed'));
+// NOTE: CommunityFeedOld mock has been quarantined to client/src/playgrounds/CommunityFeedMock.tsx
+// and should not be routed. This lazy import is intentionally removed.
 const CommunityModerationDemo = React.lazy(() => import('./pages/CommunityModerationDemo'));
 const Checkout = React.lazy(() => import('./pages/checkout'));
 const PaymentSuccess = React.lazy(() => import('./pages/payment-success'));
@@ -248,7 +249,7 @@ const LegalFooter = memo(function LegalFooter() {
 const AppLayout = memo(function AppLayout() {
   const { isAuthenticated } = useAuth();
   const [location] = useLocation();
-  const isLlmRoute = location === '/' || location.startsWith('/?');
+  const isLlmRoute = location === '/' || location === '/scout' || location.startsWith('/?');
 
   const [showBetaNotice, setShowBetaNotice] = useState(false);
   const headerLinks = isAuthenticated
@@ -643,6 +644,7 @@ const AppLayout = memo(function AppLayout() {
                   
                   {/* Additional Features */}
                   <Route path="/hoa-dashboard"><LazyPage Component={HOADashboard} /></Route>
+                  <Route path="/hoa-dashboard/:hoaId"><LazyPage Component={HOADashboard} /></Route>
                   <Route path="/membership-portal"><LazyPage Component={MembershipPortal} /></Route>
                   <Route path="/training-center"><LazyPage Component={TrainingCenter} /></Route>
                   <Route path="/application-tracker"><LazyPage Component={ApplicationTracker} /></Route>
@@ -718,18 +720,17 @@ const AppLayout = memo(function AppLayout() {
           </ErrorBoundary>
         </main>
         
-        <LegalFooter />
+        {!isLlmRoute && <LegalFooter />}
       </div>
       
-        {/* Global components */}
-        <MobileAppBar />
+        {/* Global components - hide on LLM landing so layout is clean */}
+        {!isLlmRoute && <MobileAppBar />}
       
         {/* Subtle onboarding hints for new users */}
-        <SimpleSubtleHints />
+        {!isLlmRoute && <SimpleSubtleHints />}
       
         {/* Bug report tool - always available */}
-        <SimpleBugReportTool />
-
+        {!isLlmRoute && <SimpleBugReportTool />}
     </SimpleMobileGestures>
   );
 });

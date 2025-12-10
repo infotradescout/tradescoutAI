@@ -5,6 +5,7 @@ import path from "path";
 import { contractorSignupRouter } from "./routes/contractor-signup";
 import { registerRecommendationGeneratorRoutes } from "./routes/recommendation-generator";
 import { registerNotificationRoutes } from "./routes/notification-routes";
+import { registerAnalyticsRoutes } from "./routes/analytics-routes";
 import { registerCrmRoutes } from "./crm-routes";
 import { registerAICodeFixRoutes } from "./ai-code-fixes";
 import { registerUIIssuesRoutes } from "./routes/admin/ui-issues";
@@ -497,27 +498,28 @@ export async function registerRoutes(app: any) {
     });
   });
 
-  // Facebook authentication routes
-  app.get("/api/auth/facebook", passport.authenticate('facebook', { 
-    scope: ['email'] 
-  }));
+  // Facebook authentication routes (respect DISABLE_FACEBOOK_AUTH)
+  if (process.env.DISABLE_FACEBOOK_AUTH !== "true") {
+    app.get("/api/auth/facebook", passport.authenticate('facebook', {
+      scope: ['email']
+    }));
 
-  app.get("/api/auth/facebook/callback", 
-    passport.authenticate('facebook', { 
-      failureRedirect: '/login?error=facebook_auth_failed' 
-    }),
-    (req: Request, res: Response) => {
-      // Successful authentication, redirect to role selection or onboarding
-      const user = req.user as any;
-      if (user && !user.role) {
-        res.redirect('/?facebook_signup=success&needs_role=true');
-      } else if (user && !user.onboardingCompleted) {
-        res.redirect('/?facebook_signup=success&needs_onboarding=true');
-      } else {
-        res.redirect('/?facebook_signup=success');
+    app.get("/api/auth/facebook/callback",
+      passport.authenticate('facebook', {
+        failureRedirect: '/login?error=facebook_auth_failed'
+      }),
+      (req: Request, res: Response) => {
+        const user = req.user as any;
+        if (user && !user.role) {
+          res.redirect('/?facebook_signup=success&needs_role=true');
+        } else if (user && !user.onboardingCompleted) {
+          res.redirect('/?facebook_signup=success&needs_onboarding=true');
+        } else {
+          res.redirect('/?facebook_signup=success');
+        }
       }
-    }
-  );
+    );
+  }
 
   // Role-based onboarding routes
   app.post("/api/auth/update-role", isAuthenticated, async (req: Request, res: Response) => {
@@ -898,12 +900,14 @@ export async function registerRoutes(app: any) {
   app.use(checkTrustedDevice);
 
   // OAuth routes
-  app.get('/auth/facebook', passport.authenticate('facebook', { scope: ['email'] }));
-  app.get('/auth/facebook/callback', 
-    passport.authenticate('facebook', { failureRedirect: '/login' }),
-    (req: Request, res: Response) => {
-      res.redirect('/profile-setup');
-    });
+  if (process.env.DISABLE_FACEBOOK_AUTH !== "true") {
+    app.get('/auth/facebook', passport.authenticate('facebook', { scope: ['email'] }));
+    app.get('/auth/facebook/callback',
+      passport.authenticate('facebook', { failureRedirect: '/login' }),
+      (req: Request, res: Response) => {
+        res.redirect('/profile-setup');
+      });
+  }
 
   app.get('/auth/google', passport.authenticate('google', { scope: ['profile', 'email'] }));
   app.get('/auth/google/callback',
@@ -975,16 +979,17 @@ export async function registerRoutes(app: any) {
     }
   });
 
-  // Facebook authentication routes
-  app.get('/api/auth/facebook', passport.authenticate('facebook', { scope: ['email'] }));
+  // Facebook authentication routes (API v2) - respect DISABLE_FACEBOOK_AUTH
+  if (process.env.DISABLE_FACEBOOK_AUTH !== "true") {
+    app.get('/api/auth/facebook', passport.authenticate('facebook', { scope: ['email'] }));
   
-  app.get('/api/auth/facebook/callback', 
-    passport.authenticate('facebook', { failureRedirect: '/login' }),
-    (req: Request, res: Response) => {
-      // Successful authentication, redirect to dashboard
-      res.redirect('/');
-    }
-  );
+    app.get('/api/auth/facebook/callback',
+      passport.authenticate('facebook', { failureRedirect: '/login' }),
+      (req: Request, res: Response) => {
+        res.redirect('/');
+      }
+    );
+  }
 
   // Platform statistics endpoint - real-time data
   app.get('/api/stats/platform', async (req: Request, res: Response) => {
@@ -3146,6 +3151,95 @@ export async function registerRoutes(app: any) {
     } catch (error: any) {
       console.error("Error fetching conversations:", error);
       res.status(500).json({ message: "Failed to fetch conversations" });
+    }
+  });
+
+  // Message Threads API (Nextdoor-style inbox)
+  app.get("/api/messages/threads", isAuthenticated, async (req: any, res: any) => {
+    try {
+      const userId = (req.user as any)?.claims?.sub || (req.user as any)?.id;
+      if (!userId) {
+        return res.status(401).json({ message: "Authentication required" });
+      }
+
+      const limit = req.query.limit ? parseInt(req.query.limit as string) : 50;
+      const offset = req.query.offset ? parseInt(req.query.offset as string) : 0;
+
+      const threads = await storage.getThreadsForUser(userId, { limit, offset });
+      res.json({ threads });
+    } catch (error: any) {
+      console.error("Error fetching message threads:", error);
+      res.status(500).json({ message: "Failed to fetch message threads" });
+    }
+  });
+
+  app.get("/api/messages/threads/:threadId", isAuthenticated, async (req: any, res: any) => {
+    try {
+      const userId = (req.user as any)?.claims?.sub || (req.user as any)?.id;
+      if (!userId) {
+        return res.status(401).json({ message: "Authentication required" });
+      }
+
+      const conversation = await storage.getConversation(req.params.threadId);
+      if (!conversation) {
+        return res.status(404).json({ message: "Thread not found" });
+      }
+
+      if (conversation.homeownerId !== userId && conversation.contractorId !== userId) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+
+      const messages = await storage.getMessagesByConversation(req.params.threadId);
+
+      const thread = {
+        id: conversation.id,
+        subject: null as string | null,
+        lastMessageSnippet: null as string | null,
+        lastMessageAt: (conversation.lastMessageAt as any) ?? null,
+        unreadCount: 0,
+        participantCount: 2,
+      };
+
+      res.json({ thread, messages });
+    } catch (error: any) {
+      console.error("Error fetching thread messages:", error);
+      res.status(500).json({ message: "Failed to fetch thread messages" });
+    }
+  });
+
+  app.post("/api/messages/threads/:threadId/messages", isAuthenticated, async (req: any, res: any) => {
+    try {
+      const userId = (req.user as any)?.claims?.sub || (req.user as any)?.id;
+      if (!userId) {
+        return res.status(401).json({ message: "Authentication required" });
+      }
+
+      const conversation = await storage.getConversation(req.params.threadId);
+      if (!conversation) {
+        return res.status(404).json({ message: "Thread not found" });
+      }
+
+      if (conversation.homeownerId !== userId && conversation.contractorId !== userId) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+
+      const { content, messageType, metadata } = req.body;
+
+      const senderType = conversation.homeownerId === userId ? "homeowner" : "contractor";
+
+      const message = await storage.createMessage({
+        conversationId: req.params.threadId,
+        senderId: userId,
+        senderType,
+        content,
+        messageType: messageType || "text",
+        metadata,
+      });
+
+      res.json({ message });
+    } catch (error: any) {
+      console.error("Error sending thread message:", error);
+      res.status(500).json({ message: "Failed to send message" });
     }
   });
 
@@ -5361,6 +5455,18 @@ export async function registerRoutes(app: any) {
     }
   });
 
+  // Unified notifications summary endpoint
+  app.get("/api/notifications", isAuthenticated, async (req: any, res: any) => {
+    try {
+      const user = req.user as any;
+      const summary = await (storage as any).getNotificationsSummary(user?.id);
+      res.json({ summary });
+    } catch (error: any) {
+      console.error("Error in /api/notifications", error);
+      res.status(500).json({ error: "Failed to load notifications" });
+    }
+  });
+
   app.put("/api/marketplace/admin/verifications/:id", isAuthenticated, isAdmin, async (req: any, res: any) => {
     try {
       const { id } = req.params;
@@ -5572,10 +5678,20 @@ export async function registerRoutes(app: any) {
   // Community Posts
   app.get("/api/community/posts", async (req: any, res: any) => {
     try {
+      const authUserId = (req.user as any)?.id || (req.user as any)?.claims?.sub;
+      const user = authUserId ? await storage.getUser(authUserId) : null;
+
+      const hasExplicitLocationFilters =
+        Boolean(req.query.stateCode) || Boolean(req.query.countyFips);
+
       const filters: Parameters<typeof storage.getCommunityPosts>[0] = {
-        scope: req.query.scope as any,
-        stateCode: req.query.stateCode as string,
-        countyFips: req.query.countyFips as string,
+        scope: (req.query.scope as any) || (user && !hasExplicitLocationFilters ? "county" : undefined),
+        stateCode:
+          (req.query.stateCode as string) ||
+          (user && !hasExplicitLocationFilters ? (user.state as string | undefined) : undefined),
+        countyFips:
+          (req.query.countyFips as string) ||
+          (user && !hasExplicitLocationFilters ? (user.countyFips as string | undefined) : undefined),
         category: req.query.category as any,
         authorId: req.query.authorId as string,
         limit: req.query.limit ? parseInt(req.query.limit as string) : 20,
@@ -5593,6 +5709,12 @@ export async function registerRoutes(app: any) {
   app.post("/api/community/posts", isAuthenticated, async (req: any, res: any) => {
     try {
       const userId = (req.user as any)?.id || (req.user as any)?.claims?.sub;
+      const user = await storage.getUser(userId);
+
+      if (!user) {
+        return res.status(401).json({ message: "User not found" });
+      }
+
       const { title, content, category, scope, stateCode, countyFips, images } = req.body;
       const imageUrls: string[] | undefined = Array.isArray(images)
         ? images
@@ -5600,13 +5722,17 @@ export async function registerRoutes(app: any) {
           ? [String(images)]
           : undefined;
 
+      const resolvedScope = scope || "county";
+      const resolvedStateCode = stateCode || (user.state as string | undefined);
+      const resolvedCountyFips = countyFips || (user.countyFips as string | undefined);
+
       const newPost = await storage.createCommunityPost({
         title,
         content,
         category,
-        scope,
-        stateCode,
-        countyFips,
+        scope: resolvedScope,
+        stateCode: resolvedStateCode,
+        countyFips: resolvedCountyFips,
         imageUrls,
         authorId: userId,
         isPublished: true,
@@ -5685,19 +5811,64 @@ export async function registerRoutes(app: any) {
   // Community Groups
   app.get("/api/community/groups", async (req: any, res: any) => {
     try {
-      const filters = {
-        scope: req.query.scope as string,
-        stateCode: req.query.stateCode as string,
-        countyFips: req.query.countyFips as string,
+      const authUserId = (req.user as any)?.id || (req.user as any)?.claims?.sub;
+      const user = authUserId ? await storage.getUser(authUserId) : null;
+
+      const hasExplicitLocationFilters =
+        Boolean(req.query.stateCode) || Boolean(req.query.countyFips);
+
+      const filters: Parameters<typeof storage.getGroups>[0] = {
+        stateCode:
+          (req.query.stateCode as string) ||
+          (user && !hasExplicitLocationFilters ? ((user.state as string) || undefined) : undefined),
+        countyFips:
+          (req.query.countyFips as string) ||
+          (user && !hasExplicitLocationFilters ? ((user.countyFips as string) || undefined) : undefined),
         limit: req.query.limit ? parseInt(req.query.limit as string) : 20,
         offset: req.query.offset ? parseInt(req.query.offset as string) : 0,
+        search: req.query.search as string,
+        userId: authUserId,
       };
 
-      const groups = await storage.getCommunityGroups(filters);
-      res.json(groups);
+      const groups = await storage.getGroups(filters);
+      res.json({ groups });
     } catch (error: any) {
       console.error("Error fetching community groups:", error);
       res.status(500).json({ message: "Failed to fetch groups" });
+    }
+  });
+
+  app.post("/api/community/groups/:groupId/join", isAuthenticated, async (req: any, res: any) => {
+    try {
+      const userId = (req.user as any)?.id || (req.user as any)?.claims?.sub;
+      if (!userId) {
+        return res.status(401).json({ message: "Authentication required" });
+      }
+
+      const { groupId } = req.params;
+      await storage.joinGroup(userId, groupId);
+
+      res.json({ success: true });
+    } catch (error: any) {
+      console.error("Error joining community group:", error);
+      res.status(500).json({ message: "Failed to join group" });
+    }
+  });
+
+  app.post("/api/community/groups/:groupId/leave", isAuthenticated, async (req: any, res: any) => {
+    try {
+      const userId = (req.user as any)?.id || (req.user as any)?.claims?.sub;
+      if (!userId) {
+        return res.status(401).json({ message: "Authentication required" });
+      }
+
+      const { groupId } = req.params;
+      await storage.leaveGroup(userId, groupId);
+
+      res.json({ success: true });
+    } catch (error: any) {
+      console.error("Error leaving community group:", error);
+      res.status(500).json({ message: "Failed to leave group" });
     }
   });
 
@@ -8130,6 +8301,9 @@ export async function registerRoutes(app: any) {
   // Register notification routes
   registerNotificationRoutes(app);
   
+  // Register analytics routes
+  registerAnalyticsRoutes(app);
+  
   // Register recommendation generator routes
   registerRecommendationGeneratorRoutes(app);
   
@@ -8257,6 +8431,7 @@ export async function registerRoutes(app: any) {
     getHOAVotes,
     submitVote,
     requestVendorService,
+    collectHOAFee,
     searchHOAs,
     getHOAMember,
     getHOAMembers,
@@ -8275,6 +8450,102 @@ export async function registerRoutes(app: any) {
   app.get("/api/hoa/:hoaId/votes", getHOAVotes);
   app.post("/api/hoa/votes/:voteId/submit", isAuthenticated, submitVote);
   app.post("/api/hoa/vendors/:vendorId/request", isAuthenticated, requestVendorService);
+  app.post("/api/hoa/collect-fee", isAuthenticated, collectHOAFee);
+
+  // HOA Level 2 membership + dashboard endpoints
+  app.get("/api/hoa", isAuthenticated, async (req: AuthedRequest, res: Response) => {
+    try {
+      const userId = (req.user as any)?.claims?.sub || (req.user as any)?.id;
+      if (!userId) {
+        return res.status(401).json({ message: "Authentication required" });
+      }
+
+      const memberships = await storage.getHoaForUser(userId);
+      res.json({ memberships });
+    } catch (error: any) {
+      console.error("Error fetching HOA memberships:", error);
+      res.status(500).json({ message: "Failed to load HOA memberships" });
+    }
+  });
+
+  app.get("/api/hoa/dashboard", isAuthenticated, async (req: AuthedRequest, res: Response) => {
+    try {
+      const userId = (req.user as any)?.claims?.sub || (req.user as any)?.id;
+      if (!userId) {
+        return res.status(401).json({ message: "Authentication required" });
+      }
+
+      const memberships = await storage.getHoaForUser(userId);
+      if (!memberships || memberships.length === 0) {
+        return res.status(403).json({ message: "User is not a member of any HOA" });
+      }
+
+      const requestedHoaId = (req.query.hoaId as string) || memberships[0].hoaId;
+      const isMemberOfRequested = memberships.some((m) => m.hoaId === requestedHoaId);
+      if (!isMemberOfRequested) {
+        return res.status(403).json({ message: "User is not a member of this HOA" });
+      }
+
+      const dashboard = await (storage as any).getHoaDashboard(requestedHoaId);
+      if (!dashboard) {
+        return res.status(404).json({ message: "HOA dashboard not found" });
+      }
+
+      res.json({ dashboard });
+    } catch (error: any) {
+      console.error("Error fetching HOA dashboard:", error);
+      res.status(500).json({ message: "Failed to load HOA dashboard" });
+    }
+  });
+
+  app.get("/api/hoa/votes", isAuthenticated, async (req: AuthedRequest, res: Response) => {
+    try {
+      const userId = (req.user as any)?.claims?.sub || (req.user as any)?.id;
+      if (!userId) {
+        return res.status(401).json({ message: "Authentication required" });
+      }
+
+      const memberships = await storage.getHoaForUser(userId);
+      if (!memberships || memberships.length === 0) {
+        return res.status(403).json({ message: "User is not a member of any HOA" });
+      }
+
+      const requestedHoaId = (req.query.hoaId as string) || memberships[0].hoaId;
+      const isMemberOfRequested = memberships.some((m) => m.hoaId === requestedHoaId);
+      if (!isMemberOfRequested) {
+        return res.status(403).json({ message: "User is not a member of this HOA" });
+      }
+
+      const votes = await (storage as any).getHoaVotesForUser(requestedHoaId, userId);
+      res.json({ votes });
+    } catch (error: any) {
+      console.error("Error fetching HOA votes:", error);
+      res.status(500).json({ message: "Failed to load HOA votes" });
+    }
+  });
+
+  app.post("/api/hoa/votes/:id/vote", isAuthenticated, async (req: AuthedRequest, res: Response) => {
+    try {
+      const userId = (req.user as any)?.claims?.sub || (req.user as any)?.id;
+      if (!userId) {
+        return res.status(401).json({ message: "Authentication required" });
+      }
+
+      const { id } = req.params;
+      const { option } = req.body || {};
+      if (!option) {
+        return res.status(400).json({ message: "option is required" });
+      }
+
+      // Delegate membership and vote window validation to storage helper
+      await (storage as any).submitHOAVote(userId, id, option);
+
+      res.json({ success: true });
+    } catch (error: any) {
+      console.error("Error casting HOA vote:", error);
+      res.status(500).json({ message: "Failed to cast vote" });
+    }
+  });
 
   // Phase 5: Nationwide Expansion Routes
   const {

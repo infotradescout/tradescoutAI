@@ -273,7 +273,7 @@ export function InteractiveCountyMap({
                         </div>
                       </div>
 
-                      {/* Facebook Group CTA */}
+                      {/* TradeScout Community Groups CTA */}
                       <Card className="bg-gradient-to-r from-blue-600/20 to-blue-700/20 border-blue-500/30">
                         <CardContent className="p-6">
                           <div className="flex items-center gap-4">
@@ -282,7 +282,7 @@ export function InteractiveCountyMap({
                             </div>
                             <div className="flex-1">
                               <h3 className="text-lg font-semibold text-white mb-2">
-                                Join Your Local Community
+                                Join Your Local TradeScout Community
                               </h3>
                               <p className="text-blue-100 text-sm mb-4">
                                 Connect with other {variant === 'contractor' ? 'contractors' : 'homeowners'} in {county.county}, {county.state}. 
@@ -290,10 +290,10 @@ export function InteractiveCountyMap({
                               </p>
                               <Button 
                                 className="bg-blue-600 hover:bg-blue-700 text-white"
-                                onClick={() => window.open(generateFacebookGroupUrl(county.state, county.county), '_blank')}
+                                onClick={() => window.open('/community?state=' + county.state + '&county=' + county.county, '_blank')}
                               >
                                 <Facebook className="w-4 h-4 mr-2" />
-                                Find Facebook Groups
+                                Open TradeScout Community
                                 <ExternalLink className="w-4 h-4 ml-2" />
                               </Button>
                             </div>

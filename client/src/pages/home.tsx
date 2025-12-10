@@ -57,7 +57,7 @@ export default function Home() {
       pageHeight={window.innerHeight - 80}
       scrollToTop={false}
     >
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+      <div className="max-w-7xl mx-auto ts-surface px-4 sm:px-6 lg:px-8 py-12">
       <div className="mb-8">
         <h1 className="text-3xl font-bold text-white mb-2">
           Welcome back, {user?.firstName || 'User'}
@@ -110,12 +110,25 @@ export default function Home() {
                 Track TradeScout contributions flowing back into your county across marketplace fees, contractor programs, and Foundation donations.
               </p>
             </div>
-            <div className="flex items-center space-x-3 pt-4">
+            <div className="flex items-center space-x-3 pt-4 flex-wrap gap-2">
               <Button asChild className="bg-orange-500 hover:bg-orange-600">
                 <Link href="/foundation">View Foundation</Link>
               </Button>
               <Button asChild variant="outline" className="border-slate-600 text-white hover:border-orange-500">
                 <Link href="/community-builder">Community Builder</Link>
+              </Button>
+              <Button
+                asChild
+                variant="outline"
+                className="border-orange-500 text-orange-300 hover:bg-orange-500/10"
+              >
+                <a
+                  href="https://buy.stripe.com/cNi28r74reaSg392IV8N200"
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  Donate to Builder Fund
+                </a>
               </Button>
             </div>
           </CardContent>

@@ -41,7 +41,7 @@ export default function ContractorCard({
   const mockServiceAreas = ['Los Angeles', 'Orange', 'Ventura'];
 
   return (
-    <Card className="bg-navy-700 border-navy-600 hover:bg-navy-600 transition-all duration-300 card-shadow" data-testid={`contractor-card`}>
+		<Card className="ts-card" data-testid={`contractor-card`}>
       <CardContent className={`${compact ? 'p-4' : 'p-3 md:p-6'}`}>
         {/* Company Avatar */}
         <div className="flex items-start justify-between mb-4">

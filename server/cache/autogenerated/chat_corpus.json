@@ -157,5 +157,25 @@
     ],
     "actions": [],
     "timestamp": "2025-12-09T05:42:38.928Z"
+  },
+  {
+    "question": "Find roofers available this week",
+    "answer": "Welcome to TradeScout! To find reliable roofers available this week, you can easily post your project details.\nOur platform connects you with trusted local professionals, known for quality work and clear communication. Once posted, our community helps route your request to available pros who can assist. This streamlines finding vetted help. Give it a try!\n\n---\n\n**To do this, you'll need a TradeScout account!** It only takes a minute:\n\n1. Click the **\"Create Account\"** button at the top\n2. Choose your role (Homeowner, Contractor, or Community Member)\n3. Enter your email and create a password\n4. Verify your email\n5. Come back here and I'll help you with `Find roofers available this week`\n\nReady? Let's set you up! 🚀",
+    "layer": 1,
+    "sources": [
+      "TradeScout Brain (data folder)"
+    ],
+    "actions": [],
+    "timestamp": "2025-12-09T07:58:57.224Z"
+  },
+  {
+    "question": "Create a project for kitchen remodel",
+    "answer": "Welcome! I'm Scout, ready to help you create your kitchen remodel project. Think of it like building a comprehensive plan, similar to how expert landscaping completes a home. We'll break down your vision into key areas – like cabinets, plumbing, and finishes – to ensure success and boost your home's value. TradeScout guides you through defining your scope, finding skilled professionals, and managing every detail. Dive in and see how easy it is to bring your dream kitchen to life!\n\n---\n\n**To do this, you'll need a TradeScout account!** It only takes a minute:\n\n1. Click the **\"Create Account\"** button at the top\n2. Choose your role (Homeowner, Contractor, or Community Member)\n3. Enter your email and create a password\n4. Verify your email\n5. Come back here and I'll help you with `Create a project for kitchen remodel`\n\nReady? Let's set you up! 🚀",
+    "layer": 1,
+    "sources": [
+      "TradeScout Brain (data folder)"
+    ],
+    "actions": [],
+    "timestamp": "2025-12-09T07:59:44.730Z"
   }
 ]

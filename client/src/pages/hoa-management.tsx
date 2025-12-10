@@ -5,9 +5,13 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from "@/hooks/useAuth";
+import { useNotifications } from "@/hooks/useNotifications";
+import { useLocationContext } from "@/hooks/useLocationContext";
+import { useParams } from "wouter";
 import { Building, DollarSign, Users, Vote, Wrench, Calendar, TrendingUp, Phone, Mail, Star, CheckCircle, XCircle } from "lucide-react";
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
+import { CommunityShell } from "@/components/layout/CommunityShell";
 
 interface HOA {
   id: string;
@@ -66,56 +70,93 @@ interface HOAMember {
   inGoodStanding: boolean;
 }
 
+type HoaMembership = {
+  hoaId: string;
+  hoaName: string;
+  role: string;
+  status: string;
+  stateCode: string | null;
+  countyFips: string | null;
+  groupType?: string;
+};
+
 export default function HOAManagement() {
   const { user } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { unreadCount } = useNotifications();
+  const params = useParams();
+  const hoaIdFromRoute = (params as any)?.hoaId as string | undefined;
+  const location = useLocationContext({
+    layer: "hoa",
+    hoaId: hoaIdFromRoute ?? undefined,
+  });
   const [selectedVote, setSelectedVote] = useState<string | null>(null);
   const [notification, setNotification] = useState<{ type: 'success' | 'error', message: string } | null>(null);
 
-  // Mock HOA ID for demo purposes
-  const hoaId = 'hoa-1';
+  // Load HOA memberships for the current user
+  const { data: hoaMembershipData, isLoading: membershipLoading } = useQuery<{ memberships: HoaMembership[]}>(
+    {
+      queryKey: ["/api/hoa", location.stateCode, location.countyFips, location.hoaId],
+      queryFn: async () => {
+        const res = await fetch("/api/hoa");
+        if (!res.ok) {
+          throw new Error("Failed to load HOA memberships");
+        }
+        return res.json();
+      },
+      enabled: !!user,
+    }
+  );
+
+  const memberships = hoaMembershipData?.memberships ?? [];
+  const activeHoaId = memberships[0]?.hoaId;
 
   // Fetch user's HOA membership and permissions
   const { data: memberData, isLoading: memberLoading } = useQuery<HOAMember>({
-    queryKey: ['/api/hoa', hoaId, 'member'],
+    queryKey: ['/api/hoa', activeHoaId, 'member'],
     queryFn: async () => {
-      const response = await fetch(`/api/hoa/${hoaId}/member`);
+      const response = await fetch(`/api/hoa/${activeHoaId}/member`);
       if (!response.ok) {
         throw new Error('Not a member of this HOA');
       }
       return response.json();
     },
-    enabled: !!user,
+    enabled: !!user && !!activeHoaId,
     retry: false
   });
 
   const { data: hoa, isLoading: hoaLoading } = useQuery({
-    queryKey: ['/api/hoa', hoaId],
-    queryFn: () => fetch(`/api/hoa/${hoaId}`).then(res => res.json())
+    queryKey: ['/api/hoa', activeHoaId],
+    queryFn: () => fetch(`/api/hoa/${activeHoaId}`).then(res => res.json()),
+    enabled: !!activeHoaId,
   });
 
   const { data: finances, isLoading: financesLoading } = useQuery({
-    queryKey: ['/api/hoa', hoaId, 'finances'],
-    queryFn: () => fetch(`/api/hoa/${hoaId}/finances`).then(res => res.json()),
-    enabled: memberData?.canViewFinances || false
+    queryKey: ['/api/hoa', activeHoaId, 'finances'],
+    queryFn: () => fetch(`/api/hoa/${activeHoaId}/finances`).then(res => res.json()),
+    enabled: !!activeHoaId && (memberData?.canViewFinances || false)
   });
 
   const { data: vendors = [], isLoading: vendorsLoading } = useQuery({
-    queryKey: ['/api/hoa', hoaId, 'vendors'],
-    queryFn: () => fetch(`/api/hoa/${hoaId}/vendors`).then(res => res.json()),
-    initialData: []
+    queryKey: ['/api/hoa', activeHoaId, 'vendors'],
+    queryFn: () => fetch(`/api/hoa/${activeHoaId}/vendors`).then(res => res.json()),
+    initialData: [],
+    enabled: !!activeHoaId,
   });
 
   const { data: votes = [], isLoading: votesLoading } = useQuery({
-    queryKey: ['/api/hoa', hoaId, 'votes'],
-    queryFn: () => fetch(`/api/hoa/${hoaId}/votes`).then(res => res.json()),
-    initialData: []
+    queryKey: ['/api/hoa', activeHoaId, 'votes'],
+    queryFn: () => fetch(`/api/hoa/${activeHoaId}/votes`).then(res => res.json()),
+    initialData: [],
+    enabled: !!activeHoaId,
   });
 
   // Placeholder for refreshing financial data
   const refreshFinancials = () => {
-    queryClient.invalidateQueries({ queryKey: ['/api/hoa', hoaId, 'finances'] });
+    if (activeHoaId) {
+      queryClient.invalidateQueries({ queryKey: ['/api/hoa', activeHoaId, 'finances'] });
+    }
   };
 
   const submitVoteMutation = useMutation({
@@ -133,7 +174,9 @@ export default function HOAManagement() {
         title: "Vote Submitted",
         description: "Your vote has been recorded successfully.",
       });
-      queryClient.invalidateQueries({ queryKey: ['/api/hoa', hoaId, 'votes'] });
+      if (activeHoaId) {
+        queryClient.invalidateQueries({ queryKey: ['/api/hoa', activeHoaId, 'votes'] });
+      }
     },
     onError: () => {
       toast({
@@ -147,6 +190,38 @@ export default function HOAManagement() {
   const handleVote = (voteId: string, decision: 'for' | 'against') => {
     submitVoteMutation.mutate({ voteId, decision });
   };
+
+  const requestServiceMutation = useMutation({
+    mutationFn: async ({ vendorId }: { vendorId: string }) => {
+      const response = await fetch(`/api/hoa/vendors/${vendorId}/request`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          serviceType: 'general_maintenance',
+          description: 'Service request from HOA management dashboard',
+          urgency: 'normal',
+          contactPreference: 'email',
+        }),
+      });
+      if (!response.ok) {
+        throw new Error('Failed to request service');
+      }
+      return response.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: 'Service Request Sent',
+        description: 'The vendor has received your service request.',
+      });
+    },
+    onError: () => {
+      toast({
+        title: 'Request Failed',
+        description: 'Unable to request service. Please try again.',
+        variant: 'destructive',
+      });
+    },
+  });
 
   const getVoteProgress = (vote: Vote) => {
     return Math.min((vote.currentVotes / vote.requiredQuorum) * 100, 100);
@@ -207,40 +282,40 @@ export default function HOAManagement() {
     return roleNames[role] || role;
   };
 
-  if (hoaLoading || memberLoading) {
+  if (hoaLoading || memberLoading || membershipLoading) {
     return (
-      <div className="min-h-screen gradient-bg p-6">
+      <CommunityShell sectionLabel="HOA" notificationsCount={unreadCount}>
         <div className="max-w-7xl mx-auto">
-          <div className="text-center">
+          <div className="text-center py-10">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500 mx-auto"></div>
             <p className="mt-2 text-slate-400">Loading HOA information...</p>
           </div>
         </div>
-      </div>
+      </CommunityShell>
     );
   }
 
-  // Show message if user is not a member
-  if (!memberData && !memberLoading) {
+  // Show message if user has no HOA memberships
+  if (!activeHoaId && !membershipLoading) {
     return (
-      <div className="min-h-screen gradient-bg p-6">
+      <CommunityShell sectionLabel="HOA" notificationsCount={unreadCount}>
         <div className="max-w-7xl mx-auto">
-          <Card className="bg-slate-800/50 border-slate-700 text-center p-12">
+          <Card className="bg-slate-800/50 border-slate-700 text-center p-12" data-testid="hoa-not-member">
             <Building className="w-16 h-16 text-orange-400 mx-auto mb-4" />
             <h2 className="text-2xl font-bold text-white mb-2">Not an HOA Member</h2>
-            <p className="text-slate-400 mb-6">You need to be a member of this HOA to access this page.</p>
+            <p className="text-slate-400 mb-6">Youre not currently linked to an HOA in TradeScout.</p>
             <Button data-testid="button-back-home" onClick={() => window.location.href = '/'} className="bg-orange-500 hover:bg-orange-600">
               Return Home
             </Button>
           </Card>
         </div>
-      </div>
+      </CommunityShell>
     );
   }
 
   return (
-    <div className="min-h-screen gradient-bg p-6" data-testid="hoa-management-page">
-      <div className="max-w-7xl mx-auto space-y-8">
+    <CommunityShell sectionLabel="HOA" notificationsCount={unreadCount}>
+      <div className="max-w-7xl mx-auto space-y-8" data-testid="hoa-management-page">
         {/* Header */}
         <div className="text-center space-y-4">
           <div className="flex items-center justify-center space-x-3">
@@ -575,11 +650,18 @@ export default function HOAManagement() {
                         ))}
                       </div>
                     </div>
-
-                    <Button variant="outline" className="w-full" data-testid={`contact-vendor-${vendor.id}`}>
-                      <Wrench className="w-4 h-4 mr-2" />
-                      Request Service
-                    </Button>
+                    {memberData?.canManageVendors && (
+                      <Button
+                        variant="outline"
+                        className="w-full"
+                        data-testid={`contact-vendor-${vendor.id}`}
+                        disabled={requestServiceMutation.isPending}
+                        onClick={() => requestServiceMutation.mutate({ vendorId: vendor.id })}
+                      >
+                        <Wrench className="w-4 h-4 mr-2" />
+                        Request Service
+                      </Button>
+                    )}
                   </CardContent>
                 </Card>
               ))}
