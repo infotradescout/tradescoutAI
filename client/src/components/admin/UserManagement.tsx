@@ -368,7 +368,7 @@ export default function UserManagement() {
                           <div
                             key={role.value}
                             className={`flex items-center space-x-3 p-3 rounded-lg border cursor-pointer transition-all ${
-                              isSelected ? 'border-primary bg-primary/10' : 'border-border hover:border-primary/50'
+                              isSelected ? 'border-primary bg-primary/10' : 'border hover:border-primary/50'
                             }`}
                             onClick={() => handleRoleToggle(role.value)}
                           >

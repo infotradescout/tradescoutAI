@@ -9,32 +9,37 @@ import ScoutLanding from './scout-landing';
  * Falls back to ScoutLanding (LLM) if no preference is set
  */
 export default function SmartHome() {
-  const { user } = useAuth();
+  const { user, isAuthenticated } = useAuth();
   const [, setLocation] = useLocation();
 
   useEffect(() => {
     // Only redirect if user is authenticated and has a preference
-    if (user?.preferences?.defaultHomePage) {
-      const defaultPage = user.preferences.defaultHomePage;
-      
-      const routeMap: Record<string, string> = {
-        'llm': '/', // Stay on current page
-        'marketplace': '/marketplace',
-        'contractor-board': '/contractor-board',
-        'dashboard': '/dashboard',
-        'profile': '/profile',
-        'community': '/community-feed',
-      };
+    if (!isAuthenticated || !user?.preferences?.defaultHomePage) return;
 
-      const targetRoute = routeMap[defaultPage];
-      
-      // Only redirect if not already on the target route and not the LLM page
-      if (targetRoute && targetRoute !== '/' && window.location.pathname === '/') {
-        setLocation(targetRoute);
-      }
+    const defaultPage = user.preferences.defaultHomePage;
+
+    const routeMap: Record<string, string> = {
+      llm: '/', // Stay on current page (ScoutLanding)
+      marketplace: '/marketplace',
+      'contractor-board': '/contractor-board',
+      dashboard: '/dashboard',
+      profile: '/profile',
+      community: '/community-feed',
+    };
+
+    const targetRoute = routeMap[defaultPage];
+
+    // Only redirect if not already on the target route and not the LLM page
+    if (targetRoute && targetRoute !== '/' && window.location.pathname === '/') {
+      setLocation(targetRoute);
     }
-  }, [user, setLocation]);
+  }, [user, isAuthenticated, setLocation]);
 
-  // Show the ScoutLanding (LLM) by default
+  // Not logged in → always show the hybrid Scout landing
+  if (!isAuthenticated) {
+    return <ScoutLanding />;
+  }
+
+  // Logged in but no special default → also show ScoutLanding
   return <ScoutLanding />;
 }

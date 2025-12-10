@@ -3,6 +3,7 @@ import { Activity, Send, Home, Menu, X } from "lucide-react";
 import { useAuth } from "./hooks/useAuth";
 import { useLocation, Link } from "wouter";
 import AppDrawer from "./components/AppDrawer";
+import { useIsMobile } from "./hooks/useIsMobile";
 import "./index.css";
 
 type Message = {
@@ -121,6 +122,7 @@ const suggestFollowUps = (prompt: string): string[] => {
 export default function ScoutLanding() {
   const { user, isAuthenticated } = useAuth();
   const isAdmin = user?.isAdmin === true;
+  const isMobile = useIsMobile();
   const [messages, setMessages] = useState<Message[]>([]);
   const [, navigate] = useLocation();
   const [inputValue, setInputValue] = useState("");
@@ -593,6 +595,7 @@ export default function ScoutLanding() {
         { label: "About", href: "/about" },
         { label: "Contact", href: "/contact" },
         { label: "Community Promise", href: "/community" },
+        { label: "Community Builder Fund", href: "https://buy.stripe.com/cNi28r74reaSg392IV8N200" },
       ],
     },
     {
@@ -726,9 +729,12 @@ export default function ScoutLanding() {
     { label: "Community", href: "/community" },
   ];
 
+  const bootTimestamp = messages[0]?.timestamp ?? new Date();
+
   return (
-    <div className="min-h-[calc(100vh-4.5rem)] bg-[#060b1c] text-white flex items-start justify-center px-3 sm:px-4 pb-16">
-      <div className="relative w-full max-w-6xl overflow-hidden rounded-2xl border border-tsBorder bg-slate-950/85 shadow-2xl shadow-black/60 px-4 sm:px-8 py-6 sm:py-8">
+    <React.Fragment>
+	<div className="min-h-[100vh] bg-[#060b1c] text-white flex items-start justify-center px-3 sm:px-4 pb-10">
+	  <div className="relative w-full max-w-6xl pt-4 pb-10">
 
         {/* Mobile side menu */}
         {navOpen && (
@@ -796,336 +802,326 @@ export default function ScoutLanding() {
           <div className="absolute bottom-[-5%] right-1/4 w-96 h-96 bg-cyan-500/12 blur-3xl" />
         </div>
 
-        <div className="relative z-10 space-y-10">
-          <div className="mb-6 flex items-center justify-between gap-3 flex-wrap">
-            <div className="flex items-center gap-3">
-              <button
-                className="md:hidden inline-flex h-10 w-10 items-center justify-center rounded-lg border border-tsBorder text-tsTextMuted"
-                onClick={() => setNavOpen(true)}
-                aria-label="Open menu"
-              >
-                <Menu className="h-5 w-5" />
-              </button>
-              <div className="flex items-center gap-2">
-                <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-tsAccent to-orange-700 flex items-center justify-center shadow-2xl shadow-orange-500/40">
-                  <Home className="w-5 h-5 text-white" />
-                </div>
-                <div>
-                  <div className="text-xs uppercase tracking-[0.22em] text-tsAccentSoft">TradeScout</div>
-                  <div className="text-sm text-tsTextMuted">Community Operating System</div>
-                </div>
-              </div>
-            </div>
-            <div className="flex items-center gap-3">
-              {navLinks.map((link) => (
-                <Link
-                  key={link.href}
-                  href={link.href}
-                  className="hidden md:inline-flex text-sm text-tsTextMuted hover:text-white transition"
-                >
-                  {link.label}
-                </Link>
-              ))}
-              <button
-                onClick={() => setAppDrawerOpen(true)}
-                className="hidden md:inline-flex items-center justify-center rounded-lg bg-white/5 px-4 py-2 text-sm font-semibold text-tsTextMuted border border-white/10 hover:bg-white/10 hover:text-white transition"
-              >
-                Apps
-              </button>
-              {isAuthenticated ? (
-                <a
-                  href="/dashboard"
-                  className="inline-flex items-center justify-center rounded-lg bg-white/5 px-4 py-2 text-sm font-semibold text-white border border-white/10 hover:bg-white/10"
-                >
-                  Open Dashboard
-                </a>
-              ) : (
-                <a
-                  href="/register"
-                  className="inline-flex items-center justify-center rounded-lg bg-gradient-to-r from-orange-500 to-orange-600 px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-orange-600/30 hover:-translate-y-[1px] transition-transform duration-100"
-                >
-                  Create Free Account
-                </a>
-              )}
-            </div>
+        <div className="relative z-10">
+          {/* Modern hero */}
+          <div className="px-6 pt-10 pb-8 space-y-8 bg-navy-900/80 backdrop-blur-xl rounded-b-3xl shadow-lg">
+          {/* Top Nav (safe-area minimal) */}
+          <div className="flex items-center justify-between">
+            <button
+            className="p-2 rounded-lg bg-navy-800/50 shadow-inner"
+            onClick={() => setNavOpen(true)}
+            aria-label="Open menu"
+            >
+            <Menu className="w-5 h-5 text-slate-300" />
+            </button>
+            <button
+            className="p-2 rounded-lg bg-navy-800/50 shadow-inner"
+            onClick={() => navigate("/")}
+            aria-label="Go home"
+            >
+            <Home className="w-5 h-5 text-orange-500" />
+            </button>
           </div>
 
-          <div className="flex flex-col items-center gap-6 text-center">
-
-          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-white/10 bg-white/5 text-[11px] font-semibold tracking-[0.18em] uppercase text-tsAccentSoft shadow-lg shadow-orange-500/15">
-            <span className="w-2 h-2 rounded-full bg-orange-400 animate-pulse" />
-            {isAuthenticated ? `${headlineCommunity} • Your Operating System` : "Community Operating System"}
-          </div>
-
-          <div className="space-y-3 max-w-3xl px-2">
-            <h1 className="text-4xl sm:text-5xl md:text-6xl font-black leading-tight drop-shadow-[0_10px_38px_rgba(0,0,0,0.35)]">
-              Empowering <span className="text-tsAccent">{headlineCommunity}</span>
-            </h1>
-            <p className="text-base sm:text-lg text-tsTextMuted">
-              {isAuthenticated
-                ? `Tailored for ${ownerName}—run ${headlineCommunity} with trusted local intel and actions.`
-                : "Interact with neighbors, find verified local talent, and access real-time area intelligence."}
+          {/* Brand */}
+          <div className="space-y-1">
+            <p className="text-[11px] font-semibold tracking-[0.22em] text-orange-400 uppercase">
+            TRADESCOUT
+            </p>
+            <p className="text-sm text-slate-400">
+            Local operating system for your county
             </p>
           </div>
 
-          <div className="w-full max-w-4xl space-y-5">
-            <div className="bg-[#0c152c]/90 border border-tsBorder rounded-2xl shadow-2xl shadow-black/40 overflow-hidden">
-              <div className="border-b border-tsBorder px-4 sm:px-5 py-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 text-xs uppercase tracking-[0.14em] text-tsTextMuted">
-                <div className="flex items-start sm:items-center gap-3 flex-wrap">
-                  <span
-                    className={`inline-flex h-2.5 w-2.5 rounded-full ${
-                      isLoading ? "bg-orange-400 animate-ping" : "bg-cyan-400 animate-pulse"
-                    }`}
-                  />
-                  <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2 text-left">
-                    <span>Scout Active</span>
-                    <span className="text-[11px] text-tsTextMuted/80 lowercase tracking-normal">
-                      {isLoading ? "running actions" : "standing by"}
-                    </span>
-                    <span className="text-[11px] text-tsTextMuted/70 lowercase tracking-normal">
-                      find pros, deals, growth, MealScout — tell me a project.
-                    </span>
-                  </div>
-                </div>
-                <div className="flex items-center gap-2 text-[11px] sm:justify-end">
-                  <Activity className="w-4 h-4" />
-                  <span className="whitespace-nowrap">Live Scout thread</span>
-                </div>
-              </div>
+          {/* CTA */}
+          {isAuthenticated ? (
+            <button
+            className="w-full py-3.5 rounded-xl bg-orange-500 text-white font-semibold shadow-[0_4px_20px_rgba(255,140,0,0.4)] hover:bg-orange-600 transition"
+            onClick={() => navigate("/dashboard")}
+            >
+            Open Dashboard
+            </button>
+          ) : (
+            <button
+            className="w-full py-3.5 rounded-xl bg-orange-500 text-white font-semibold shadow-[0_4px_20px_rgba(255,140,0,0.4)] hover:bg-orange-600 transition"
+            onClick={() => navigate("/register")}
+            >
+            Create Free Account
+            </button>
+          )}
 
-              <div className="px-4 sm:px-5 py-5 space-y-4">
+          {/* Status */}
+          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-navy-800/60 shadow-sm">
+            <span className={`w-2 h-2 rounded-full ${isScoutActive ? "bg-orange-400" : "bg-slate-500"}`} />
+            <span className="text-[11px] tracking-wide text-slate-300 uppercase">
+            {isScoutActive ? "SCOUT ACTIVE" : "SCOUT IDLE"}
+            </span>
+          </div>
+
+          {/* Headline */}
+          <div className="space-y-2">
+            <h1 className="text-3xl font-bold text-white leading-tight">
+            Empowering <span className="text-orange-400">{headlineCommunity}</span>
+            </h1>
+            <p className="text-slate-400 max-w-xs text-sm">
+            {isAuthenticated
+              ? `${ownerName}, Scout is standing by — run projects, find pros, and pull county intel in one place.`
+              : "Standing by — find pros, deals, growth, or MealScout. Tell me a project."}
+            </p>
+          </div>
+          </div>
+
+          {/* Scout thread section */}
+          <div className="px-6 mt-10 space-y-6">
+          {/* Section Label */}
+          <div className="space-y-2">
+            <p className="text-xs tracking-wide text-slate-500 uppercase">LIVE SCOUT THREAD</p>
+            <div className="w-full h-px bg-slate-800/60" />
+          </div>
+
+          {/* Booting / state pill */}
+          <div className="rounded-2xl bg-navy-800/70 shadow-md p-4 space-y-1">
+            <p className="text-orange-400 font-medium">
+            {isLoading ? "Scout is working..." : messages.length > 0 ? "Scout is active in this thread" : "Booting Scout..."}
+            </p>
+            <p className="text-[11px] text-slate-500">
+            {bootTimestamp.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+            </p>
+          </div>
+
+          {/* Messages */}
+          <div
+            ref={scrollRef}
+            className="rounded-2xl bg-navy-800/70 shadow-md p-4 max-h-96 overflow-y-auto space-y-4"
+          >
+            {messages.length === 0 && !isLoading && !pendingCopy ? (
+            <p className="text-sm text-slate-400">
+              Ask anything — local intel, permits, pros, marketplace, or shortcuts.
+            </p>
+            ) : (
+            messages.map((message) => (
+              <div
+              key={message.id || `${message.role}-${message.timestamp.getTime()}`}
+              className="space-y-1"
+              >
+              <div className="text-[11px] uppercase tracking-[0.12em] text-tsTextMuted flex items-center gap-2">
+                <span className={`inline-flex h-1.5 w-1.5 rounded-full ${message.role === "user" ? "bg-tsAccent" : "bg-orange-400"}`} />
+                {message.role === "user" ? "You" : "Scout"}
+              </div>
+              <div
+                className={`inline-block max-w-full rounded-2xl px-4 py-3 text-sm leading-relaxed text-left ${
+                message.role === "user"
+                  ? "bg-orange-500/90 text-white"
+                  : "bg-navy-900/90 text-slate-100"
+                }`}
+              >
+                {message.role === "assistant" ? renderAssistantContent(message.content) : message.content}
+              </div>
+              {message.role === "assistant" && message.suggestedActions && message.suggestedActions.length > 0 && (
+                <div className="flex flex-wrap gap-2 mt-2">
+                {message.suggestedActions.map((action, i) => (
+                  <button
+                  key={i}
+                  className="scout-suggestion text-left px-3.5 py-2.5 rounded-full text-xs font-medium bg-navy-900/80 text-slate-100 border border-white/10 hover:border-orange-400 hover:text-white transition"
+                  onClick={() => handleQuickPrompt(action)}
+                  disabled={isLoading}
+                  >
+                  {action}
+                  </button>
+                ))}
+                </div>
+              )}
+              <div className="text-[10px] text-tsTextMuted">
+                {message.timestamp.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+              </div>
+              </div>
+            ))
+            )}
+
+            {(isLoading || pendingCopy) && (
+            <div className="inline-flex items-center gap-2 rounded-full bg-navy-900/80 px-3 py-2 text-xs text-tsTextMuted italic">
+              <span className="loading-dot" />
+              <span className="loading-dot" />
+              <span className="loading-dot" />
+              <span className="ml-1">{pendingCopy || "Scout is thinking…"}</span>
+            </div>
+            )}
+          </div>
+
+          {/* Input */}
+          <form
+            className="space-y-3"
+            onSubmit={(e) => {
+            e.preventDefault();
+            markUserInteracted();
+            handleSendMessage();
+            }}
+          >
+            {isAutoPrompting && (
+            <p className="text-xs text-tsTextMuted flex items-center gap-2">
+              <span className="loading-dot" />
+              <span>Scout is auto-starting with a guided prompt…</span>
+            </p>
+            )}
+            <div className="rounded-xl bg-navy-800/40 p-4 shadow-inner">
+            <textarea
+              className="w-full bg-transparent outline-none text-slate-300 placeholder-slate-600 resize-none text-sm"
+              rows={3}
+              placeholder="Ask anything—local intel, permits, pros, or shortcuts..."
+              value={inputValue}
+              onChange={(e) => {
+              markUserInteracted();
+              setInputValue(e.target.value);
+              }}
+              onKeyPress={handleKeyPress}
+              onFocus={markUserInteracted}
+              disabled={isLoading || isAutoPrompting}
+            />
+            </div>
+
+            {/* Send */}
+            <button
+            className="w-full py-3 rounded-xl bg-orange-500 text-white font-semibold hover:bg-orange-600 transition shadow-[0_2px_15px_rgba(255,140,0,0.3)] inline-flex items-center justify-center text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+            type="submit"
+            disabled={!inputValue.trim() || isLoading || isAutoPrompting}
+            >
+            Send <Send className="inline-block ml-1 w-4 h-4" />
+            </button>
+          </form>
+
+          {/* Quick prompts */}
+          <div className="flex flex-wrap justify-start sm:justify-center gap-2 text-xs sm:text-sm text-tsTextMuted pt-2">
+            {quickPrompts.map((prompt) => (
+            <button
+              key={prompt}
+              type="button"
+              onClick={() => handleQuickPrompt(prompt)}
+              disabled={isLoading || isAutoPrompting}
+              className="px-3 py-2 rounded-full bg-slate-900/80 border border-tsBorder text-xs text-tsTextMain hover:border-tsAccent hover:text-white transition shadow-sm shadow-black/20 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {prompt}
+            </button>
+            ))}
+          </div>
+
+          {/* Trending + quick starts (unchanged layout, aligned to grid) */}
+          <div className="w-full pt-4 space-y-6">
+            <div>
+            <div className="flex items-center justify-between mb-2 px-1">
+              <div className="text-xs uppercase tracking-[0.16em] text-tsTextMuted">Popular in {headlineCommunity || "your county"} this month</div>
+              <div className="text-[11px] text-tsTextMuted">{trendingStatus === "loading" ? "Updating..." : "Live data only"}</div>
+            </div>
+            <div className="overflow-x-auto pb-2">
+              <div className="flex gap-3 min-w-full">
+              {trendingStatus === "loading" && trendingItems.length === 0 &&
+                Array.from({ length: 4 }).map((_, idx) => (
                 <div
-                  className="rounded-xl border border-white/5 bg-[#0c1a33]/70 p-4 max-h-80 overflow-y-auto shadow-inner shadow-black/20 space-y-4"
-                  ref={scrollRef}
+                  key={idx}
+                  className="w-60 rounded-xl border border-white/5 bg-slate-900/60 p-4 animate-pulse"
                 >
-                  <div className="space-y-3">
-                    {messages.map((message) => (
-                      <div
-                        key={message.id || `${message.role}-${message.timestamp.getTime()}`}
-                        className={`space-y-1 ${message.role === "user" ? "text-right" : "text-left"}`}
-                      >
-                        <div className="text-[11px] uppercase tracking-[0.12em] text-tsTextMuted flex items-center gap-2">
-                          <span className={`inline-flex h-1.5 w-1.5 rounded-full ${message.role === "user" ? "bg-tsAccent" : "bg-orange-400"}`} />
-                          {message.role === "user" ? "You" : "Scout"}
-                        </div>
-                        <div
-                          className={`inline-block max-w-full rounded-xl border px-4 py-3 text-sm leading-relaxed shadow-md text-left
-                            ${message.role === "user"
-                              ? "bg-slate-900/80 border-tsAccent/40 text-white"
-                              : "bg-slate-900/85 border-orange-300/50 text-white shadow-orange-500/15"}
-                          `}
-                          style={message.role === "assistant" ? { borderLeftWidth: 3, borderLeftColor: "#f59e0b" } : undefined}
-                        >
-                          {message.role === "assistant" ? renderAssistantContent(message.content) : message.content}
-                        </div>
-                        {message.role === "assistant" && message.suggestedActions && message.suggestedActions.length > 0 && (
-                          <div className="flex flex-col gap-2 mt-2 max-w-md">
-                            {message.suggestedActions.map((action, i) => (
-                              <button
-                                key={i}
-                                className="scout-suggestion text-left px-3.5 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 hover:scale-[1.02] active:scale-[0.98]"
-                                onClick={() => handleQuickPrompt(action)}
-                                disabled={isLoading}
-                              >
-                                {action}
-                              </button>
-                            ))}
-                          </div>
-                        )}
-                        <div className="text-[10px] text-tsTextMuted">
-                          {message.timestamp.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
-                        </div>
-                      </div>
-                    ))}
-                    {(isLoading || pendingCopy) && (
-                      <div className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-slate-900/70 px-3 py-2 text-xs text-tsTextMuted italic shadow-sm">
-                        <span className="loading-dot" />
-                        <span className="loading-dot" />
-                        <span className="loading-dot" />
-                        <span className="ml-1">{pendingCopy || "Scout is thinking…"}</span>
-                      </div>
-                    )}
-                  </div>
+                  <div className="h-3 w-32 bg.white/10 rounded mb-2" />
+                  <div className="h-3 w-20 bg-white/10 rounded" />
                 </div>
+                ))}
 
-                <form
-                  className="flex flex-col sm:flex-row gap-3 items-stretch"
-                  onSubmit={(e) => {
-                    e.preventDefault();
-                    markUserInteracted();
-                    handleSendMessage();
-                  }}
+              {trendingItems.length > 0 && trendingItems.map((item, idx) => (
+                <div
+                key={`${item.title}-${idx}`}
+                className="w-60 rounded-xl border border-tsBorder bg-slate-900/70 p-4 shadow-lg shadow-black/20 hover:border-tsAccent transition hover:-translate-y-[1px] duration-100"
                 >
-                  {isAutoPrompting && (
-                    <div className="text-xs text-tsTextMuted flex items-center gap-2 px-1 -mb-1">
-                      <span className="loading-dot" />
-                      <span>Scout is auto-starting with a guided prompt…</span>
-                    </div>
-                  )}
-                  <div className="flex-1">
-                    <div className="relative">
-                      <textarea
-                        className={`w-full rounded-xl bg-[#0c1a33] border border-white/10 px-4 py-3 text-base text-white placeholder:text-white/55 focus:outline-none focus:ring-2 focus:ring-tsAccent/80 min-h-[90px] ${autoPromptPreview ? "placeholder:opacity-0 text-transparent caret-transparent" : ""}`}
-                        rows={3}
-                        placeholder="Ask anything—local intel, permits, pros, or shortcuts across the site."
-                        value={inputValue}
-                        onChange={(e) => {
-                          markUserInteracted();
-                          setInputValue(e.target.value);
-                        }}
-                        onKeyPress={handleKeyPress}
-                        onFocus={markUserInteracted}
-                        disabled={isLoading || isAutoPrompting}
-                      />
-                      {autoPromptPreview && (
-                        <div className="pointer-events-none absolute inset-0 px-4 py-3 text-base text-white/90">
-                          <span className="scout-type" style={{ ['--count' as any]: autoPromptPreview.length }}>
-                            {autoPromptPreview}
-                          </span>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                    <div className="sm:w-32 flex sm:flex-col gap-3">
-                      <button
-                        type="submit"
-                        disabled={!inputValue.trim() || isLoading || isAutoPrompting}
-                        className={`w-full h-12 rounded-xl bg-gradient-to-r from-tsAccent to-orange-600 text-white font-semibold shadow-lg shadow-orange-600/30 disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center justify-center
-                          ${sendPulse && !isLoading ? "ring-2 ring-amber-300 scale-[1.01]" : ""}
-                        `}
-                      >
-                        {isLoading ? "Working..." : "Send"}
-                        <Send className="w-4 h-4 ml-2" />
-                      </button>
-                    </div>
-                </form>
-              </div>
-            </div>
-
-            <div className="flex flex-wrap justify-start sm:justify-center gap-2 text-sm text-tsTextMuted">
-              {quickPrompts.map((prompt) => (
-                <button
-                  key={prompt}
-                  type="button"
-                  onClick={() => handleQuickPrompt(prompt)}
-                  disabled={isLoading || isAutoPrompting}
-                  className="px-3 py-2 rounded-full bg-slate-900/80 border border-tsBorder text-xs text-tsTextMain hover:border-tsAccent hover:text-white transition shadow-sm shadow-black/20 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {prompt}
-                </button>
+                <div className="text-sm font-semibold text-white line-clamp-2">{item.title}</div>
+                <div className="text-[11px] text-tsTextMuted mt-2 flex items-center gap-2">
+                  {item.stat && <span className="text-orange-300">{item.stat}</span>}
+                  {item.delta && <span className="text-cyan-300">{item.delta}</span>}
+                  {item.category && <span className="px-2 py-0.5 rounded-full bg-white/5 border border-white/10">{item.category}</span>}
+                </div>
+                </div>
               ))}
-            </div>
-            <div className="w-full">
-              <div className="flex items-center justify-between mb-2 px-1">
-                <div className="text-xs uppercase tracking-[0.16em] text-tsTextMuted">Popular in {headlineCommunity || "your county"} this month</div>
-                <div className="text-[11px] text-tsTextMuted">{trendingStatus === "loading" ? "Updating..." : "Live data only"}</div>
-              </div>
-              <div className="overflow-x-auto pb-2">
-                <div className="flex gap-3 min-w-full">
-                  {trendingStatus === "loading" && trendingItems.length === 0 &&
-                    Array.from({ length: 4 }).map((_, idx) => (
-                      <div
-                        key={idx}
-                        className="w-60 rounded-xl border border-white/5 bg-slate-900/60 p-4 animate-pulse"
-                      >
-                        <div className="h-3 w-32 bg-white/10 rounded mb-2" />
-                        <div className="h-3 w-20 bg-white/10 rounded" />
-                      </div>
-                    ))}
 
-                  {trendingItems.length > 0 && trendingItems.map((item, idx) => (
-                    <div
-                      key={`${item.title}-${idx}`}
-                      className="w-60 rounded-xl border border-tsBorder bg-slate-900/70 p-4 shadow-lg shadow-black/20 hover:border-tsAccent transition hover:-translate-y-[1px] duration-100"
-                    >
-                      <div className="text-sm font-semibold text-white line-clamp-2">{item.title}</div>
-                      <div className="text-[11px] text-tsTextMuted mt-2 flex items-center gap-2">
-                        {item.stat && <span className="text-orange-300">{item.stat}</span>}
-                        {item.delta && <span className="text-cyan-300">{item.delta}</span>}
-                        {item.category && <span className="px-2 py-0.5 rounded-full bg-white/5 border border-white/10">{item.category}</span>}
-                      </div>
-                    </div>
+              {trendingItems.length === 0 && trendingStatus !== "loading" && (
+                <div className="flex flex-col gap-2 w-full">
+                <div className="text-sm text-tsTextMuted px-1">No live county intel yet. Try one of these real-data queries:</div>
+                <div className="flex gap-2 flex-wrap">
+                  {trendingPromptSuggestions.map((prompt) => (
+                  <button
+                    key={prompt}
+                    type="button"
+                    onClick={() => handleQuickPrompt(prompt)}
+                    disabled={isLoading || isAutoPrompting}
+                    className="px-3 py-2 rounded-full bg-slate-900/80 border border-tsBorder text-xs text-tsTextMain hover:border-tsAccent hover:text-white transition shadow-sm shadow-black/20 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {prompt}
+                  </button>
                   ))}
-
-                  {trendingItems.length === 0 && trendingStatus !== "loading" && (
-                    <div className="flex flex-col gap-2 w-full">
-                      <div className="text-sm text-tsTextMuted px-1">No live county intel yet. Try one of these real-data queries:</div>
-                      <div className="flex gap-2 flex-wrap">
-                        {trendingPromptSuggestions.map((prompt) => (
-                          <button
-                            key={prompt}
-                            type="button"
-                            onClick={() => handleQuickPrompt(prompt)}
-                            disabled={isLoading || isAutoPrompting}
-                            className="px-3 py-2 rounded-full bg-slate-900/80 border border-tsBorder text-xs text-tsTextMain hover:border-tsAccent hover:text-white transition shadow-sm shadow-black/20 disabled:opacity-50 disabled:cursor-not-allowed"
-                          >
-                            {prompt}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  )}
                 </div>
+                </div>
+              )}
               </div>
             </div>
+            </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 w-full">
+            {!isMobile && (
+            <>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 w-full">
               {navClusters.map((cluster) => (
                 <div key={cluster.label} className="rounded-2xl border border-white/5 bg-slate-950/70 p-5 shadow-lg shadow-black/30 space-y-3">
-                  <div className="text-xs uppercase tracking-[0.18em] text-tsTextMuted">{cluster.label}</div>
-                  <div className="space-y-3">
-                    {cluster.items.map((item) => {
-                      const tone =
-                        cluster.tone === "primary"
-                          ? "border-orange-500/60 text-white hover:border-orange-400 hover:shadow-orange-500/30"
-                          : cluster.tone === "secondary"
-                            ? "border-white/10 text-tsTextMain hover:border-tsAccent"
-                            : "border-white/5 text-tsTextMuted hover:border-white/15";
-                      return (
-                        <a
-                          key={item.href}
-                          href={item.href}
-                          className={`block rounded-xl border bg-slate-900/60 px-4 py-3 transition duration-100 hover:-translate-y-[1px] hover:shadow-lg ${tone}`}
-                        >
-                          <div className="text-sm font-semibold">{item.label}</div>
-                          <div className="text-xs text-tsTextMuted leading-relaxed">{item.desc}</div>
-                        </a>
-                      );
-                    })}
-                  </div>
+                <div className="text-xs uppercase tracking-[0.18em] text-tsTextMuted">{cluster.label}</div>
+                <div className="space-y-3">
+                  {cluster.items.map((item) => {
+                  const tone =
+                    cluster.tone === "primary"
+                    ? "border-orange-500/60 text-white hover:border-orange-400 hover:shadow-orange-500/30"
+                    : cluster.tone === "secondary"
+                      ? "border-white/10 text-tsTextMain hover:border-tsAccent"
+                      : "border-white/5 text-tsTextMuted hover:border-white/15";
+                  return (
+                    <a
+                    key={item.href}
+                    href={item.href}
+                    className={`block rounded-xl border bg-slate-900/60 px-4 py-3 transition.duration-100 hover:-translate-y-[1px] hover:shadow-lg ${tone}`}
+                    >
+                    <div className="text-sm font-semibold">{item.label}</div>
+                    <div className="text-xs text-tsTextMuted leading-relaxed">{item.desc}</div>
+                    </a>
+                  );
+                  })}
+                </div>
                 </div>
               ))}
-            </div>
+              </div>
 
-            <div className="w-full bg-slate-900/70 border border-tsBorder rounded-2xl p-4 sm:p-5 shadow-xl shadow-black/30 space-y-3 text-left">
+              <div className="w-full bg-slate-900/70 border border-tsBorder rounded-2xl p-4 sm:p-5 shadow-xl shadow-black/30 space-y-3 text-left">
               <div className="text-xs uppercase tracking-[0.16em] text-tsTextMuted">Quick starts</div>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
                 {smartFirstResponses.map((card) => (
-                  <div key={card.title} className="rounded-xl border border-white/5 bg-slate-950/70 p-4 shadow-inner shadow-black/20 space-y-3">
-                    <div className="text-sm font-semibold text-white">{card.title}</div>
-                    <div className="text-xs text-tsTextMuted leading-relaxed">{card.body}</div>
-                    <div className="flex flex-wrap gap-2">
-                      {card.next.map((next) => (
-                        <button
-                          key={next}
-                          type="button"
-                          onClick={() => handleQuickPrompt(next)}
-                          disabled={isLoading || isAutoPrompting}
-                          className="text-[11px] px-2.5 py-1.5 rounded-full bg-slate-900/80 border border-tsBorder text-tsTextMain hover:border-tsAccent hover:text-white transition disabled:opacity-50 disabled:cursor-not-allowed"
-                        >
-                          {next}
-                        </button>
-                      ))}
-                    </div>
+                <div key={card.title} className="rounded-xl border border-white/5 bg-slate-950/70 p-4 shadow-inner shadow-black/20 space-y-3">
+                  <div className="text-sm font-semibold text-white">{card.title}</div>
+                  <div className="text-xs text-tsTextMuted leading-relaxed">{card.body}</div>
+                  <div className="flex flex-wrap gap-2">
+                  {card.next.map((next) => (
+                    <button
+                    key={next}
+                     type="button"
+                     onClick={() => handleQuickPrompt(next)}
+                     disabled={isLoading || isAutoPrompting}
+                     className="text-[11px] px-2.5 py-1.5 rounded-full bg-slate-900/80 border border-tsBorder text-tsTextMain hover:border-tsAccent hover:text-white transition disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                    {next}
+                    </button>
+                  ))}
                   </div>
+                </div>
                 ))}
               </div>
-            </div>
+              </div>
+            </>
+            )}
           </div>
-        </div>
+          </div>
       </div>
     </div>
 
+    {!isMobile && (
     <footer className="w-full bg-slate-950 border-t border-tsBorder/60 mt-8">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 py-8 flex flex-col gap-6">
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
@@ -1152,11 +1148,12 @@ export default function ScoutLanding() {
         </div>
       </div>
     </footer>
+    )}
     <AppDrawer
       isOpen={appDrawerOpen}
       onClose={() => setAppDrawerOpen(false)}
       isAdmin={isAdmin}
     />
-    </div>
+    </React.Fragment>
   );
 }

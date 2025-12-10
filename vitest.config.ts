@@ -1,5 +1,8 @@
+import 'dotenv/config';
 import { defineConfig } from 'vitest/config';
 import path from 'path';
+
+const r = (p: string) => path.resolve(__dirname, p);
 
 export default defineConfig({
   test: {
@@ -15,7 +18,10 @@ export default defineConfig({
   },
   resolve: {
     alias: {
-      '@': path.resolve(__dirname, './'),
+      // Keep any existing aliases you rely on
+      '@': r('./'),
+      // Critical: ensure @shared/schema resolves in Vitest the same way as in Vite/TS
+      '@shared': r('shared'),
     },
   },
 });

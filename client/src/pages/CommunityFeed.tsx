@@ -9,7 +9,9 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { ModerationButtons } from "@/components/moderation/ModerationButtons";
 import { useAuth } from "@/hooks/useAuth";
+import { useNotifications } from "@/hooks/useNotifications";
 import { useToast } from "@/hooks/use-toast";
+import { CommunityShell } from "@/components/layout/CommunityShell";
 import { 
   MessageSquare, 
   Share2, 
@@ -50,6 +52,7 @@ interface CommunityPost {
 
 export default function CommunityFeed() {
   const { isAuthenticated, user } = useAuth();
+  const { unreadCount } = useNotifications();
   const { toast } = useToast();
   const [newPostContent, setNewPostContent] = useState("");
   const [showNewPostForm, setShowNewPostForm] = useState(false);
@@ -153,8 +156,8 @@ export default function CommunityFeed() {
   });
 
   return (
-    <div className="min-h-screen bg-[#0f1419] dark:bg-gray-900">
-      <div className="max-w-4xl mx-auto px-4 py-8">
+    <CommunityShell sectionLabel="Community Feed" notificationsCount={unreadCount}>
+      <div className="max-w-4xl mx-auto ts-surface px-4 py-6 md:px-10 md:py-8">
         {/* Header */}
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-orange-500 mb-2">
@@ -362,6 +365,6 @@ export default function CommunityFeed() {
           </Card>
         )}
       </div>
-    </div>
+    </CommunityShell>
   );
 }

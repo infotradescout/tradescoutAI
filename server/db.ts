@@ -5,15 +5,21 @@ import * as schema from "@shared/schema";
 
 neonConfig.webSocketConstructor = ws;
 
-const dbUrl = process.env.DATABASE_URL;
+const isTestEnv =
+  process.env.NODE_ENV === "test" ||
+  Boolean(process.env.VITEST_WORKER_ID);
 
-if (!dbUrl) {
+const connectionString =
+  (isTestEnv ? process.env.TEST_DATABASE_URL : process.env.DATABASE_URL) ??
+  process.env.DATABASE_URL;
+
+if (!connectionString) {
   throw new Error(
-    "DATABASE_URL must be set. No mock data allowed - all operations require a real database connection."
+    "Missing DATABASE_URL/TEST_DATABASE_URL for database connection."
   );
 }
 
-const pool = new Pool({ connectionString: dbUrl });
+const pool = new Pool({ connectionString });
 const db = drizzle({ client: pool, schema });
 
 export { db, pool };

@@ -189,10 +189,6 @@ html {
 }
 
 @layer base {
-  * {
-    @apply border-border;
-  }
-
   body {
     @apply font-sans antialiased;
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
@@ -384,6 +380,57 @@ html {
     50% { box-shadow: 0 0 20px rgba(255, 107, 53, 0.6); }
   }
 
+
+@layer components {
+  /* GLOBAL BLUEPRINT CONTAINER STANDARDS */
+  .ts-surface {
+    @apply border-0 rounded-3xl bg-navy-900/60 shadow-[0_0_40px_rgba(0,0,0,0.25)] backdrop-blur-sm;
+  }
+
+  .ts-card {
+    @apply border-0 rounded-2xl bg-navy-800/70 shadow-md transition-all duration-300;
+  }
+
+  .ts-card:hover {
+    @apply shadow-lg;
+  }
+
+  .ts-tile {
+    @apply border-0 rounded-xl bg-navy-900/70 shadow-sm transition-all duration-300;
+  }
+
+  .ts-tile:hover {
+    @apply shadow-md;
+  }
+
+  .ts-section {
+    @apply border-0 rounded-3xl bg-navy-900/40 shadow-inner p-6;
+  }
+
+  .ts-panel {
+    @apply border-0 shadow-md bg-navy-900/70 backdrop-blur;
+  }
+
+  .ts-input {
+    @apply bg-navy-800 border-0 shadow-inner focus:ring-2 focus:ring-orange-500/60;
+  }
+
+  .ts-hero-header {
+    @apply px-3 sm:px-5 pt-3 sm:pt-4 pb-3 bg-gradient-to-b from-navy-900 to-navy-800 shadow-lg rounded-b-3xl border-0;
+  }
+
+  .ts-nav-button {
+    @apply inline-flex h-9 w-9 items-center justify-center rounded-xl bg-navy-800/80 text-tsTextMuted shadow-sm;
+  }
+
+  .ts-home-icon {
+    @apply p-3 rounded-xl bg-navy-700 shadow-inner shadow-black/40 flex items-center justify-center;
+  }
+
+  .shadow-orange-glow {
+    box-shadow: 0 0 18px rgba(249, 115, 22, 0.6);
+  }
+}
   .notification-bounce {
     animation: notificationBounce 0.6s ease-out;
   }

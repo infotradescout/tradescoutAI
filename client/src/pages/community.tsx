@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { useNotifications } from "@/hooks/useNotifications";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
@@ -30,6 +31,8 @@ import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { AppShell } from "@/components/layout/AppShell";
 import { Page } from "@/components/layout/PagePrimitives";
+import { CommunityShell } from "@/components/layout/CommunityShell";
+import { useLocationContext } from "@/hooks/useLocationContext";
 
 interface CommunityPost {
   id: string;
@@ -76,18 +79,32 @@ const POST_CATEGORIES = [
 
 export default function Community() {
   const { user, isAuthenticated } = useAuth();
+  const location = useLocationContext();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState("feed");
   const [searchQuery, setSearchQuery] = useState("");
   const [newPostContent, setNewPostContent] = useState("");
   const [showPostComposer, setShowPostComposer] = useState(false);
+  const { unreadCount } = useNotifications();
 
-  // Fetch community posts
+  const stateCode = location.stateCode as string | undefined;
+  const countyFips = location.countyFips as string | undefined;
+
+  // Fetch community posts scoped to the user's county
   const { data: posts, isLoading: postsLoading } = useQuery<CommunityPost[]>({
-    queryKey: ['/api/community/posts'],
+    queryKey: ['/api/community/posts', stateCode, countyFips],
+    enabled: Boolean(stateCode && countyFips),
     queryFn: async () => {
-      const response = await fetch('/api/community/posts');
+      const params = new URLSearchParams({
+        scope: 'county',
+        stateCode: stateCode!,
+        countyFips: countyFips!,
+        limit: '20',
+        offset: '0',
+      });
+
+      const response = await fetch(`/api/community/posts?${params.toString()}`);
       if (!response.ok) throw new Error('Failed to fetch posts');
       return response.json();
     },
@@ -109,8 +126,7 @@ export default function Community() {
     mutationFn: async (content: string) => {
       return apiRequest('POST', '/api/community/posts', {
         content,
-        postType: 'discussion',
-        visibility: 'public'
+        category: 'general',
       });
     },
     onSuccess: () => {
@@ -130,7 +146,7 @@ export default function Community() {
       return apiRequest('POST', `/api/community/posts/${postId}/like`);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/community/posts'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/community/posts', stateCode, countyFips] });
     },
   });
 
@@ -166,8 +182,8 @@ export default function Community() {
   const filteredPosts = posts || [];
 
   return (
-    <AppShell>
-      <Page className="pb-16 lg:pb-0">
+    <CommunityShell sectionLabel="Community" notificationsCount={0}>
+      <div className="pb-16 lg:pb-0">
         {/* Header */}
         <div className="mb-8">
           <h1 className="text-4xl font-bold text-orange-500 mb-2">Community</h1>
@@ -492,6 +508,7 @@ export default function Community() {
         )}
 
       </Page>
-    </AppShell>
+      </div>
+    </CommunityShell>
   );
 }

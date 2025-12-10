@@ -106,6 +106,19 @@ export default function CommunityBuilderDashboard() {
                   Community Builders contribute time, expertise, and resources to strengthen their communities.
                   In return, they earn recognition, rewards, and the satisfaction of making a difference.
                 </p>
+                <p className="text-sm text-gray-500">
+                  Want to support the broader Community Builder Fund directly?
+                  {' '}
+                  <a
+                    href="https://buy.stripe.com/cNi28r74reaSg392IV8N200"
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-indigo-600 font-semibold hover:underline"
+                  >
+                    Donate here
+                  </a>
+                  .
+                </p>
               </div>
               <Button 
                 size="lg"
@@ -137,6 +150,18 @@ export default function CommunityBuilderDashboard() {
               {profile.currentRank.toUpperCase()}
             </Badge>
           </div>
+          <p className="text-sm text-gray-500 mt-2">
+            Help seed projects across all counties by supporting the{' '}
+            <a
+              href="https://buy.stripe.com/cNi28r74reaSg392IV8N200"
+              target="_blank"
+              rel="noreferrer"
+              className="text-indigo-600 font-semibold hover:underline"
+            >
+              Community Builder Fund
+            </a>
+            .
+          </p>
         </div>
 
         {/* Notifications */}

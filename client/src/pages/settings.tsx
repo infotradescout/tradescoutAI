@@ -196,7 +196,7 @@ export default function Settings() {
   return (
     <div className="min-h-screen bg-[#0f1419] pb-20 lg:pb-0">
       <div className="container mx-auto px-4 py-6 lg:py-10">
-        <div className="max-w-5xl mx-auto">
+        <div className="max-w-5xl mx-auto ts-surface px-4 py-6 md:px-10 md:py-8">
           {/* Modern Header */}
           <div className="mb-8 lg:mb-12">
             <div className="flex items-center gap-4 mb-3">

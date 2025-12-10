@@ -10,21 +10,34 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { useAuth } from '@/hooks/useAuth';
+import { useNotifications } from '@/hooks/useNotifications';
 import { useToast } from '@/hooks/use-toast';
 import { apiRequest } from '@/lib/queryClient';
+import { CommunityShell } from '@/components/layout/CommunityShell';
+import { useLocationContext } from '@/hooks/useLocationContext';
 
 interface Post {
   id: string;
-  authorId: string;
   title?: string;
   content: string;
-  images?: string[];
-  postType: string;
-  countyFips?: string;
+  author: {
+    id: string;
+    name: string;
+    avatar?: string | null;
+    email?: string | null;
+    role?: string | null;
+    verified: boolean;
+  };
+  category: string;
+  location: string;
   createdAt: string;
-  likeCount: number;
-  commentCount: number;
-  shareCount: number;
+  tags: string[];
+  upvotes: number;
+  downvotes: number;
+  comments: number;
+  pinned: boolean;
+  trending: boolean;
+  imageUrls?: string[];
 }
 
 const CommunityFeed = memo(function CommunityFeed() {
@@ -32,17 +45,35 @@ const CommunityFeed = memo(function CommunityFeed() {
   const [newPostContent, setNewPostContent] = useState("");
   const [showNewPostForm, setShowNewPostForm] = useState(false);
   const { user } = useAuth();
+  const { unreadCount } = useNotifications();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const location = useLocationContext();
 
-  // Fetch posts from the API
-  const { data: postsData, isLoading: postsLoading } = useQuery({
-    queryKey: ['/api/community/posts'],
+  const stateCode = location.stateCode as string | undefined;
+  const countyFips = location.countyFips as string | undefined;
+
+  // Fetch posts from the API scoped to the user's county
+  const { data: postsData, isLoading: postsLoading } = useQuery<Post[]>({
+    queryKey: [
+      '/api/community/posts',
+      stateCode,
+      countyFips,
+    ],
+    enabled: Boolean(stateCode && countyFips),
     queryFn: async () => {
-      const response = await fetch('/api/community/posts');
+      const params = new URLSearchParams({
+        scope: 'county',
+        stateCode: stateCode!,
+        countyFips: countyFips!,
+        limit: '20',
+        offset: '0',
+      });
+
+      const response = await fetch(`/api/community/posts?${params.toString()}`);
       if (!response.ok) throw new Error('Failed to fetch posts');
       return response.json();
-    }
+    },
   });
 
   // Create post mutation
@@ -51,8 +82,7 @@ const CommunityFeed = memo(function CommunityFeed() {
       return apiRequest('POST', '/api/community/posts', {
         content: postData.content,
         title: postData.title,
-        postType: 'discussion',
-        visibility: 'public'
+        category: 'general',
       });
     },
     onSuccess: () => {
@@ -79,7 +109,7 @@ const CommunityFeed = memo(function CommunityFeed() {
       return apiRequest('POST', `/api/community/posts/${postId}/like`);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/community/posts'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/community/posts', stateCode, countyFips] });
     }
   });
 
@@ -155,8 +185,8 @@ const CommunityFeed = memo(function CommunityFeed() {
   };
 
   return (
-    <div className="min-h-screen gradient-bg text-white">
-      <div className="container mx-auto px-4 py-8">
+    <CommunityShell sectionLabel="Community Feed" notificationsCount={unreadCount}>
+      <div className="container mx-auto ts-surface px-4 py-6 md:px-10 md:py-8">
         {/* Header */}
         <div className="mb-8">
           <div className="flex items-center gap-3 mb-4">
@@ -506,7 +536,7 @@ const CommunityFeed = memo(function CommunityFeed() {
           </div>
         </div>
       </div>
-    </div>
+    </CommunityShell>
   );
 });
 

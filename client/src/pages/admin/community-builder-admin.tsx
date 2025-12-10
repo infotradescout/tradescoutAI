@@ -105,6 +105,18 @@ export default function AdminCommunityBuilderDashboard() {
         <div>
           <h1 className="text-3xl font-bold">Community Builder Admin</h1>
           <p className="text-gray-600 mt-1">Review and manage community builder contributions</p>
+          <p className="text-sm text-gray-500 mt-1">
+            Public donation page for the Community Builder Fund:{' '}
+            <a
+              href="https://buy.stripe.com/cNi28r74reaSg392IV8N200"
+              target="_blank"
+              rel="noreferrer"
+              className="text-indigo-600 font-semibold hover:underline"
+            >
+              open Stripe link
+            </a>
+            .
+          </p>
         </div>
 
         {/* Stats Overview */}

@@ -16,7 +16,7 @@ const Analytics = memo(function Analytics() {
 
   const requestSources = [
     { source: 'Direct Search', requests: 89, percentage: 36 },
-    { source: 'Facebook Groups', requests: 67, percentage: 27 },
+    { source: 'TradeScout Community Groups', requests: 67, percentage: 27 },
     { source: 'Referrals', requests: 45, percentage: 18 },
     { source: 'Daily Deals', requests: 32, percentage: 13 },
     { source: 'Other', requests: 14, percentage: 6 }

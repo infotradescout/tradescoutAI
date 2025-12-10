@@ -1,7 +1,7 @@
 import { Request, Response } from 'express';
 import { storage } from '../storage';
 
-// Middleware to check HOA permissions
+// Middleware to check HOA permissions based on capability flags
 async function checkHOAPermission(userId: string, hoaId: string, requiredPermission: 'view' | 'viewFinances' | 'editDocuments' | 'manageVendors' | 'createVotes') {
   const member = await storage.getHOAMemberByUserId(userId, hoaId);
   
@@ -21,6 +21,21 @@ async function checkHOAPermission(userId: string, hoaId: string, requiredPermiss
     default:
       return { authorized: true, member }; // Basic view permission
   }
+}
+
+// Role-based HOA guard for admin-level actions
+async function requireHoaRole(userId: string, hoaId: string, allowedRoles: string[]) {
+  const member = await storage.getHOAMemberByUserId(userId, hoaId);
+
+  if (!member) {
+    return { authorized: false, member: null };
+  }
+
+  if (!allowedRoles.includes(member.role)) {
+    return { authorized: false, member };
+  }
+
+  return { authorized: true, member };
 }
 
 
@@ -127,6 +142,42 @@ export async function requestVendorService(req: Request, res: Response) {
   }
 }
 
+// Collect HOA fees (stub implementation for workflow completion)
+export async function collectHOAFee(req: Request, res: Response) {
+  try {
+    const userId = (req.user as any)?.id || (req.user as any)?.claims?.sub;
+    if (!userId) {
+      return res.status(401).json({ message: 'Authentication required' });
+    }
+
+    const { hoaId, residentId, amount, description } = req.body || {};
+    if (!hoaId || !residentId || typeof amount !== 'number') {
+      return res.status(400).json({ message: 'hoaId, residentId and numeric amount are required' });
+    }
+
+    // Require at least basic finance-view permission to initiate fee collection
+    const { authorized } = await checkHOAPermission(userId, hoaId, 'viewFinances');
+    if (!authorized) {
+      return res.status(403).json({ message: 'Insufficient permissions to collect fees' });
+    }
+
+    // In a future iteration, this would record a payment or create
+    // a collection task tied to hoaFinancialRecords. For now, return
+    // a structured success response so the UI workflow is complete.
+    return res.status(201).json({
+      success: true,
+      message: 'Fee collection initiated (development stub)',
+      hoaId,
+      residentId,
+      amount,
+      description: description ?? 'Monthly HOA dues',
+    });
+  } catch (error) {
+    console.error('Error collecting HOA fee:', error);
+    res.status(500).json({ message: 'Failed to collect fee' });
+  }
+}
+
 // Search HOAs by location
 export async function searchHOAs(req: Request, res: Response) {
   try {
@@ -199,10 +250,9 @@ export async function addHOAMember(req: Request, res: Response) {
 
     const { hoaId } = req.params;
     const { userId: newUserId, unitNumber, role, votingRights } = req.body;
-
-    // Check if requesting user has permission (president/vice_president only)
-    const { authorized, member } = await checkHOAPermission(userId, hoaId, 'manageVendors');
-    if (!authorized || !['president', 'vice_president'].includes(member?.role)) {
+    // Check if requesting user has required HOA role
+    const { authorized } = await requireHoaRole(userId, hoaId, ['president', 'vice_president']);
+    if (!authorized) {
       return res.status(403).json({ message: 'Only presidents and vice presidents can add members' });
     }
 
@@ -230,10 +280,9 @@ export async function updateHOAMemberRole(req: Request, res: Response) {
 
     const { hoaId, memberId } = req.params;
     const { role } = req.body;
-
-    // Check if requesting user has permission (president only)
-    const { authorized, member } = await checkHOAPermission(userId, hoaId, 'manageVendors');
-    if (!authorized || member?.role !== 'president') {
+    // Check if requesting user has required HOA role
+    const { authorized } = await requireHoaRole(userId, hoaId, ['president']);
+    if (!authorized) {
       return res.status(403).json({ message: 'Only presidents can change member roles' });
     }
 

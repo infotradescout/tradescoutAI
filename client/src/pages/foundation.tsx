@@ -282,6 +282,19 @@ export default function Foundation() {
                 <Button asChild variant="outline" className="border-slate-600 text-white hover:border-orange-500">
                   <Link href="/foundation?tab=impact">View impact</Link>
                 </Button>
+                <Button
+                  asChild
+                  variant="outline"
+                  className="border-orange-500 text-orange-300 hover:bg-orange-500/10"
+                >
+                  <a
+                    href="https://buy.stripe.com/cNi28r74reaSg392IV8N200"
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    Support Builder Fund
+                  </a>
+                </Button>
               </div>
             </CardContent>
           </Card>

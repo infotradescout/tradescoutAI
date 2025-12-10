@@ -454,6 +454,17 @@ export interface IStorage {
   // Messages
   createMessage(message: InsertMessage): Promise<Message>;
   getMessagesByConversation(conversationId: string): Promise<Message[]>;
+  getThreadsForUser(
+    userId: string,
+    options: { limit: number; offset: number }
+  ): Promise<{
+    id: string;
+    subject: string | null;
+    lastMessageSnippet: string | null;
+    lastMessageAt: Date | null;
+    unreadCount: number;
+    participantCount: number;
+  }[]>;
   markMessageAsRead(messageId: string): Promise<Message>;
   
   // Quotes
@@ -493,6 +504,10 @@ export interface IStorage {
   markAllNotificationsAsRead(userId: string): Promise<void>;
   getSavedAdsForReminders(): Promise<Array<SavedAd & { user: User; ad: Advertisement }>>;
   updateSavedAdReminderStatus(savedAdId: string, reminderCount: number): Promise<void>;
+  getNotificationsSummary(userId: string): Promise<{
+    unreadThreads: number;
+    openHoaVotes: number;
+  }>;
   
   // Error Report operations
   createErrorReport(report: any): Promise<any>;
@@ -842,6 +857,14 @@ export interface IStorage {
   getDefaultCrmPipeline(): Promise<CrmPipeline | undefined>;
 
   // HOA Management operations
+  getHoaForUser(userId: string): Promise<{
+    hoaId: string;
+    hoaName: string;
+    role: string;
+    status: string;
+    stateCode: string | null;
+    countyFips: string | null;
+  }[]>;
   getHOAById(hoaId: string): Promise<any>;
   searchHOAs(filters: { countyFips?: string; zip?: string; city?: string; state?: string }): Promise<any[]>;
   getHOAFinances(hoaId: string): Promise<any>;
@@ -1472,6 +1495,71 @@ export class DatabaseStorage implements IStorage {
       .from(messages)
       .where(eq(messages.conversationId, conversationId))
       .orderBy(asc(messages.createdAt));
+  }
+
+  async getThreadsForUser(
+    userId: string,
+    options: { limit: number; offset: number }
+  ): Promise<{
+    id: string;
+    subject: string | null;
+    lastMessageSnippet: string | null;
+    lastMessageAt: Date | null;
+    unreadCount: number;
+    participantCount: number;
+  }[]> {
+    const { limit, offset } = options;
+
+    const convoRows = await db
+      .select()
+      .from(conversations)
+      .where(
+        sql`${conversations.homeownerId} = ${userId} OR ${conversations.contractorId} = ${userId}`,
+      )
+      .orderBy(desc(conversations.lastMessageAt))
+      .limit(limit)
+      .offset(offset);
+
+    if (convoRows.length === 0) {
+      return [];
+    }
+
+    const convoIds = convoRows.map((c) => c.id);
+
+    const convoMessages = await db
+      .select()
+      .from(messages)
+      .where(inArray(messages.conversationId, convoIds));
+
+    return convoRows.map((conv) => {
+      const convMsgs = convoMessages.filter((m) => m.conversationId === conv.id);
+
+      let lastMessage: Message | undefined;
+      for (const msg of convMsgs) {
+        // Prefer the chronologically latest message; if timestamps are equal,
+        // fall back to the last one in iteration order to match user expectations.
+        if (!lastMessage) {
+          lastMessage = msg;
+        } else if (msg.createdAt && lastMessage.createdAt && msg.createdAt >= lastMessage.createdAt) {
+          lastMessage = msg;
+        }
+      }
+
+      const lastMessageSnippet = lastMessage ? (lastMessage.content ?? '').slice(0, 160) : null;
+
+      const unreadCount = convMsgs.filter(
+        (m) => m.senderId !== userId && !m.readAt,
+      ).length;
+
+      return {
+        id: conv.id,
+        subject: null,
+        lastMessageSnippet,
+        lastMessageAt: (conv.lastMessageAt as any) ?? null,
+        unreadCount,
+        participantCount: 2,
+      };
+    });
   }
 
   async markMessageAsRead(messageId: string): Promise<Message> {
@@ -6577,6 +6665,14 @@ export class DatabaseStorage implements IStorage {
   }
 
   // HOA Management operations
+  getHoaForUser(userId: string): Promise<{
+    hoaId: string;
+    hoaName: string;
+    role: string;
+    status: string;
+    stateCode: string | null;
+    countyFips: string | null;
+  }[]>;
   async getHOAById(hoaId: string): Promise<any> {
     const [hoa] = await db.select().from(homeownerAssociations).where(eq(homeownerAssociations.id, hoaId));
     return hoa;
@@ -6651,6 +6747,85 @@ export class DatabaseStorage implements IStorage {
       .orderBy(desc(hoaVotes.createdAt));
   }
 
+  async getHoaVotesForUser(hoaId: string, userId: string): Promise<{
+    id: string;
+    title: string;
+    description: string | null;
+    status: string;
+    opensAt: string | null;
+    closesAt: string | null;
+    yesCount?: number;
+    noCount?: number;
+    abstainCount?: number;
+    hasVoted?: boolean;
+  }[]> {
+    const votes = await db
+      .select()
+      .from(hoaVotes)
+      .where(and(eq(hoaVotes.hoaId, hoaId), eq(hoaVotes.status, 'active')))
+      .orderBy(desc(hoaVotes.createdAt));
+
+    if (votes.length === 0) return [];
+
+    const voteIds = votes.map((v: any) => v.id);
+    const responses = await db
+      .select()
+      .from(hoaVoteResponses)
+      .where(and(inArray(hoaVoteResponses.voteId, voteIds), eq(hoaVoteResponses.userId, userId)));
+
+    return votes.map((v: any) => {
+      const userResponse = responses.find((r) => r.voteId === v.id);
+      return {
+        id: v.id,
+        title: v.title,
+        description: v.description,
+        status: v.status,
+        opensAt: v.startDate ? (v.startDate as Date).toISOString() : null,
+        closesAt: v.endDate ? (v.endDate as Date).toISOString() : null,
+        yesCount: typeof v.votesFor === 'number' ? v.votesFor : undefined,
+        noCount: typeof v.votesAgainst === 'number' ? v.votesAgainst : undefined,
+        abstainCount: typeof v.votesAbstain === 'number' ? v.votesAbstain : undefined,
+        hasVoted: Boolean(userResponse),
+      };
+    });
+  }
+
+  async getNotificationsSummary(userId: string): Promise<{
+    unreadThreads: number;
+    openHoaVotes: number;
+  }> {
+    // Messages: sum unreadCount across the user's threads
+    const threads = await this.getThreadsForUser(userId, {
+      limit: 50,
+      offset: 0,
+    });
+
+    const unreadThreads = threads.reduce(
+      (sum, t) => sum + (t.unreadCount ?? 0),
+      0,
+    );
+
+    // HOA: count active votes for any HOA the user belongs to where they
+    // haven't yet responded
+    let openHoaVotes = 0;
+
+    const memberships = await (this as any).getHoaForUser?.(userId);
+    if (Array.isArray(memberships) && memberships.length > 0) {
+      for (const membership of memberships) {
+        const hoaId = membership.hoaId as string;
+        const votes = await this.getHoaVotesForUser(hoaId, userId);
+        openHoaVotes += votes.filter(
+          (v) => v.status === 'active' && !v.hasVoted,
+        ).length;
+      }
+    }
+
+    return {
+      unreadThreads,
+      openHoaVotes,
+    };
+  }
+
   async submitHOAVote(userId: string, voteId: string, decision: string): Promise<any> {
     const [voteResponse] = await db
       .insert(hoaVoteResponses)
@@ -6673,6 +6848,149 @@ export class DatabaseStorage implements IStorage {
       .where(eq(hoaVotes.id, voteId));
 
     return voteResponse;
+  }
+
+  async getHoaForUser(userId: string): Promise<{
+    hoaId: string;
+    hoaName: string;
+    role: string;
+    status: string;
+    stateCode: string | null;
+    countyFips: string | null;
+    groupType: "hoa";
+  }[]> {
+    const memberships = await db
+      .select({
+        hoaId: hoaMembers.hoaId,
+        role: hoaMembers.role,
+        inGoodStanding: hoaMembers.inGoodStanding,
+        hoaName: homeownerAssociations.name,
+        state: homeownerAssociations.state,
+        countyFips: homeownerAssociations.countyFips,
+      })
+      .from(hoaMembers)
+      .innerJoin(homeownerAssociations, eq(hoaMembers.hoaId, homeownerAssociations.id))
+      .where(eq(hoaMembers.userId, userId));
+
+    return memberships.map((m) => ({
+      hoaId: m.hoaId,
+      hoaName: m.hoaName,
+      role: m.role,
+      status: m.inGoodStanding ? 'active' : 'not_in_good_standing',
+      stateCode: m.state ?? null,
+      countyFips: m.countyFips ?? null,
+      groupType: "hoa" as const,
+    }));
+  }
+
+  async getHoaDashboard(hoaId: string): Promise<{
+    hoaId: string;
+    hoaName: string;
+    memberCount: number;
+    activeMembers: number;
+    openVotesCount: number;
+    groupType: "hoa";
+    recentVotes: {
+      id: string;
+      title: string;
+      status: string;
+      closesAt: string | null;
+    }[];
+    balance?: number;
+    recentTransactions?: {
+      id: string;
+      type: string;
+      amount: number;
+      occurredAt: string;
+    }[];
+  } | null> {
+    const [hoa] = await db
+      .select({
+        id: homeownerAssociations.id,
+        name: homeownerAssociations.name,
+      })
+      .from(homeownerAssociations)
+      .where(eq(homeownerAssociations.id, hoaId));
+
+    if (!hoa) return null;
+
+    const [members, openVotes, finances] = await Promise.all([
+      db
+        .select({
+          id: hoaMembers.id,
+          inGoodStanding: hoaMembers.inGoodStanding,
+        })
+        .from(hoaMembers)
+        .where(eq(hoaMembers.hoaId, hoaId)),
+      db
+        .select({
+          id: hoaVotes.id,
+          title: hoaVotes.title,
+          status: hoaVotes.status,
+          endDate: hoaVotes.endDate,
+        })
+        .from(hoaVotes)
+        .where(and(eq(hoaVotes.hoaId, hoaId), eq(hoaVotes.status, 'active')))
+        .orderBy(desc(hoaVotes.createdAt))
+        .limit(5),
+      db
+        .select()
+        .from(hoaFinancialRecords)
+        .where(eq(hoaFinancialRecords.hoaId, hoaId))
+        .orderBy(desc(hoaFinancialRecords.year), desc(hoaFinancialRecords.month))
+        .limit(6),
+    ]);
+
+    const memberCount = members.length;
+    const activeMembers = members.filter((m) => m.inGoodStanding).length;
+    const openVotesCount = openVotes.length;
+
+    let balance: number | undefined;
+    const recentTransactions: { id: string; type: string; amount: number; occurredAt: string }[] = [];
+
+    if (finances.length > 0) {
+      const latest = finances[0];
+      const reserves = Number(latest.reserves || 0);
+      const outstandingFees = Number(latest.outstandingFees || 0);
+      balance = reserves - outstandingFees;
+
+      finances.forEach((rec: any) => {
+        const monthLabel = `${rec.year}-${String(rec.month).padStart(2, '0')}`;
+        if (rec.totalRevenue) {
+          recentTransactions.push({
+            id: `${rec.id}-rev`,
+            type: 'revenue',
+            amount: Number(rec.totalRevenue),
+            occurredAt: monthLabel,
+          });
+        }
+        if (rec.totalExpenses) {
+          recentTransactions.push({
+            id: `${rec.id}-exp`,
+            type: 'expense',
+            amount: Number(rec.totalExpenses),
+            occurredAt: monthLabel,
+          });
+        }
+      });
+    }
+
+    return {
+      hoaId: hoa.id,
+      hoaName: hoa.name,
+      memberCount,
+      activeMembers,
+      openVotesCount,
+      groupType: "hoa" as const,
+      recentVotes: openVotes.map((v) => ({
+        id: v.id,
+        title: v.title,
+        status: v.status,
+        closesAt: v.endDate ? (v.endDate as Date).toISOString() : null,
+      })),
+      balance,
+      recentTransactions,
+    };
   }
 
   async createVendorServiceRequest(request: { userId: string; vendorId: string; serviceType: string; description: string; urgency: string; contactPreference: string }): Promise<any> {
@@ -6809,24 +7127,108 @@ export class DatabaseStorage implements IStorage {
   }
 
   // Groups/Community operations
-  async getGroups(filters: { countyFips?: string; type?: string; search?: string; limit: number }): Promise<any[]> {
-    let query = db.select().from(communityGroups).where(eq(communityGroups.isActive, true));
-    const groupTypes = communityGroups.groupType.enumValues ?? [];
 
-    if (filters.countyFips) {
-      query = query.where(eq(communityGroups.countyFips, filters.countyFips)) as any;
+  async getGroups(filters: {
+    stateCode?: string;
+    countyFips?: string;
+    limit: number;
+    offset: number;
+    search?: string;
+    userId?: string;
+  }): Promise<{
+    id: string;
+    name: string;
+    description: string | null;
+    category: string | null;
+    stateCode: string | null;
+    countyFips: string | null;
+    memberCount: number;
+    isMember: boolean;
+    isAdmin: boolean;
+  }[]> {
+    const { stateCode, countyFips, limit, offset, search, userId } = filters;
+
+    // Base query for active groups scoped by geography when provided
+    let baseQuery = db.select().from(communityGroups).where(eq(communityGroups.isActive, true));
+
+    if (stateCode) {
+      baseQuery = baseQuery.where(eq(communityGroups.stateCode, stateCode)) as any;
     }
-    if (filters.type && groupTypes.includes(filters.type as any)) {
-      query = query.where(eq(communityGroups.groupType, filters.type as (typeof groupTypes)[number])) as any;
+
+    if (countyFips) {
+      baseQuery = baseQuery.where(eq(communityGroups.countyFips, countyFips)) as any;
     }
 
-    const results = await query.limit(filters.limit);
+    baseQuery = baseQuery.limit(limit).offset(offset);
 
-    if (filters.search) {
-      return results.filter((g: CommunityGroup) => g.name.toLowerCase().includes(filters.search!.toLowerCase()));
+    if (!userId) {
+      const groups = await baseQuery;
+
+      let filtered = groups as CommunityGroup[];
+      if (search) {
+        const needle = search.toLowerCase();
+        filtered = filtered.filter((g) => g.name.toLowerCase().includes(needle));
+      }
+
+      return filtered.map((group) => ({
+        id: group.id,
+        name: group.name,
+        description: group.description ?? null,
+        category: (group.groupType as string) ?? null,
+        stateCode: group.stateCode ?? null,
+        countyFips: group.countyFips ?? null,
+        memberCount: group.memberCount ?? 0,
+        isMember: false,
+        isAdmin: false,
+      }));
     }
 
-    return results;
+    // When a user is provided, join membership to compute isMember/isAdmin
+    const rows = await db
+      .select({ group: communityGroups, membership: groupMembers })
+      .from(communityGroups)
+      .leftJoin(
+        groupMembers,
+        and(
+          eq(groupMembers.groupId, communityGroups.id),
+          eq(groupMembers.userId, userId as string),
+        ),
+      )
+      .where(
+        and(
+          eq(communityGroups.isActive, true),
+          stateCode ? eq(communityGroups.stateCode, stateCode) : sql`true`,
+          countyFips ? eq(communityGroups.countyFips, countyFips) : sql`true`,
+        ) as any,
+      )
+      .limit(limit)
+      .offset(offset);
+
+    let mapped = rows.map(({ group, membership }) => {
+      const activeMember = membership && membership.isActive && !membership.isBanned;
+      const isAdmin =
+        !!activeMember &&
+        (membership!.role === "admin" || membership!.role === "owner" || membership!.role === "moderator");
+
+      return {
+        id: group.id,
+        name: group.name,
+        description: group.description ?? null,
+        category: (group.groupType as string) ?? null,
+        stateCode: group.stateCode ?? null,
+        countyFips: group.countyFips ?? null,
+        memberCount: group.memberCount ?? 0,
+        isMember: !!activeMember,
+        isAdmin,
+      };
+    });
+
+    if (search) {
+      const needle = search.toLowerCase();
+      mapped = mapped.filter((g) => g.name.toLowerCase().includes(needle));
+    }
+
+    return mapped;
   }
 
   async getGroupById(groupId: string): Promise<any> {
@@ -6835,13 +7237,39 @@ export class DatabaseStorage implements IStorage {
   }
 
   async joinGroup(userId: string, groupId: string): Promise<any> {
+    // Check for existing membership to make this operation idempotent
+    const [existing] = await db
+      .select()
+      .from(groupMembers)
+      .where(and(eq(groupMembers.userId, userId), eq(groupMembers.groupId, groupId)))
+      .limit(1);
+
+    if (existing && existing.isActive && !existing.isBanned) {
+      return existing;
+    }
+
+    if (existing && !existing.isActive && !existing.isBanned) {
+      const [updated] = await db
+        .update(groupMembers)
+        .set({ isActive: true, joinedAt: sql`now()` })
+        .where(eq(groupMembers.id, existing.id))
+        .returning();
+
+      await db
+        .update(communityGroups)
+        .set({ memberCount: sql`${communityGroups.memberCount} + 1` })
+        .where(eq(communityGroups.id, groupId));
+
+      return updated;
+    }
+
     const [membership] = await db
       .insert(groupMembers)
       .values({
         groupId,
         userId,
-        role: 'member',
-        isActive: true
+        role: "member",
+        isActive: true,
       })
       .returning();
 
@@ -6854,13 +7282,20 @@ export class DatabaseStorage implements IStorage {
   }
 
   async leaveGroup(userId: string, groupId: string): Promise<void> {
+    const [activeMembership] = await db
+      .select()
+      .from(groupMembers)
+      .where(and(eq(groupMembers.userId, userId), eq(groupMembers.groupId, groupId), eq(groupMembers.isActive, true)))
+      .limit(1);
+
+    if (!activeMembership) {
+      return;
+    }
+
     await db
       .update(groupMembers)
       .set({ isActive: false })
-      .where(and(
-        eq(groupMembers.userId, userId),
-        eq(groupMembers.groupId, groupId)
-      ));
+      .where(eq(groupMembers.id, activeMembership.id));
 
     await db
       .update(communityGroups)
