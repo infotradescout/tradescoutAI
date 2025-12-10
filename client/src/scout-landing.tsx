@@ -733,8 +733,7 @@ export default function ScoutLanding() {
 
   return (
     <React.Fragment>
-	<div className="min-h-[100vh] bg-[#060b1c] text-white flex items-start justify-center px-3 sm:px-4 pb-10">
-	  <div className="relative w-full max-w-6xl pt-4 pb-10">
+	  <div className="min-h-[100vh] bg-[#060b1c] text-white flex items-start justify-center px-3 sm:px-4 pb-10 relative w-full max-w-6xl pt-4 pb-10">
 
         {/* Mobile side menu */}
         {navOpen && (
@@ -792,8 +791,7 @@ export default function ScoutLanding() {
                   </Link>
                 )}
               </div>
-            </div>
-          </div>
+        </div>
         )}
         
         <div className="absolute inset-0 pointer-events-none">

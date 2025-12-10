@@ -25,6 +25,11 @@ import { useToast } from "@/hooks/use-toast";
 import { HelperProfileModal } from "@/components/HelperProfileModal";
 import type { Worker, Task, TaskCategory } from "@shared/schema";
 
+type HelperCardProps = {
+  worker: Worker;
+  onViewProfile: () => void;
+};
+
 export default function WorkerMarketplace() {
   const { user, isAuthenticated } = useAuth();
   const { toast } = useToast();
@@ -310,10 +315,11 @@ export default function WorkerMarketplace() {
         />
       )}
     </div>
+  </div>
   );
 }
 
-function HelperCard({ worker, onViewProfile }: { worker: Worker; onViewProfile: () => void }) {
+function HelperCard({ worker, onViewProfile }: HelperCardProps) {
   return (
     <Card 
       className="bg-navy-700 border-navy-600 hover:border-orange-500/50 transition-colors cursor-pointer" 
@@ -390,6 +396,13 @@ function HelperCard({ worker, onViewProfile }: { worker: Worker; onViewProfile: 
 }
 
 function TaskCard({ task }: { task: Task }) {
+  const statusClass =
+    task.status === 'open'
+      ? 'bg-green-500/20 text-green-400 border-green-500/50'
+      : task.status === 'assigned'
+        ? 'bg-blue-500/20 text-blue-400 border-blue-500/50'
+        : 'bg-[#0f1419]/20 text-gray-400 border-gray-500/50';
+
   const getPayDisplay = () => {
     if (task.payType === 'fixed') {
       return `$${task.payAmount} fixed`;
@@ -410,11 +423,7 @@ function TaskCard({ task }: { task: Task }) {
               {task.description}
             </p>
           </div>
-          <Badge className={`ml-2 ${
-            task.status === 'open' ? 'bg-green-500/20 text-green-400 border-green-500/50' :
-            task.status === 'assigned' ? 'bg-blue-500/20 text-blue-400 border-blue-500/50' :
-            'bg-[#0f1419]0/20 text-gray-400 border-gray-500/50'
-          }`}>
+          <Badge className={`ml-2 ${statusClass}`}>
             {task.status?.replace('_', ' ') || 'Unknown'}
           </Badge>
         </div>
