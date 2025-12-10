@@ -191,15 +191,23 @@ export default function HOAManagement() {
     submitVoteMutation.mutate({ voteId, decision });
   };
 
+  const [serviceTypeByVendor, setServiceTypeByVendor] = useState<Record<string, string>>({});
+  const [urgencyByVendor, setUrgencyByVendor] = useState<Record<string, string>>({});
+
   const requestServiceMutation = useMutation({
     mutationFn: async ({ vendorId }: { vendorId: string }) => {
+      const serviceType =
+        serviceTypeByVendor[vendorId] ||
+        (vendors.find((v: any) => v.id === vendorId)?.services?.[0] as string) ||
+        "general_maintenance";
+      const urgency = urgencyByVendor[vendorId] || "normal";
       const response = await fetch(`/api/hoa/vendors/${vendorId}/request`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          serviceType: 'general_maintenance',
+          serviceType,
           description: 'Service request from HOA management dashboard',
-          urgency: 'normal',
+          urgency,
           contactPreference: 'email',
         }),
       });
@@ -651,16 +659,63 @@ export default function HOAManagement() {
                       </div>
                     </div>
                     {memberData?.canManageVendors && (
-                      <Button
-                        variant="outline"
-                        className="w-full"
-                        data-testid={`contact-vendor-${vendor.id}`}
-                        disabled={requestServiceMutation.isPending}
-                        onClick={() => requestServiceMutation.mutate({ vendorId: vendor.id })}
-                      >
-                        <Wrench className="w-4 h-4 mr-2" />
-                        Request Service
-                      </Button>
+                      <div className="space-y-2">
+                        <div className="flex gap-2">
+                          <div className="flex-1">
+                            <label className="mb-1 block text-[11px] text-slate-400">
+                              Service type
+                            </label>
+                            <select
+                              className="w-full rounded-lg border border-slate-700 bg-slate-900 px-2 py-1 text-xs text-slate-100"
+                              value={serviceTypeByVendor[vendor.id] || ""}
+                              onChange={(e) =>
+                                setServiceTypeByVendor((prev) => ({
+                                  ...prev,
+                                  [vendor.id]: e.target.value,
+                                }))
+                              }
+                            >
+                              <option value="">
+                                {vendor.services?.[0] || "General maintenance"}
+                              </option>
+                              {(vendor.services || []).map((service, index) => (
+                                <option key={index} value={service}>
+                                  {service}
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+                          <div className="w-32">
+                            <label className="mb-1 block text-[11px] text-slate-400">
+                              Urgency
+                            </label>
+                            <select
+                              className="w-full rounded-lg border border-slate-700 bg-slate-900 px-2 py-1 text-xs text-slate-100"
+                              value={urgencyByVendor[vendor.id] || "normal"}
+                              onChange={(e) =>
+                                setUrgencyByVendor((prev) => ({
+                                  ...prev,
+                                  [vendor.id]: e.target.value,
+                                }))
+                              }
+                            >
+                              <option value="low">Low</option>
+                              <option value="normal">Normal</option>
+                              <option value="high">High</option>
+                            </select>
+                          </div>
+                        </div>
+                        <Button
+                          variant="outline"
+                          className="w-full"
+                          data-testid={`contact-vendor-${vendor.id}`}
+                          disabled={requestServiceMutation.isPending}
+                          onClick={() => requestServiceMutation.mutate({ vendorId: vendor.id })}
+                        >
+                          <Wrench className="w-4 h-4 mr-2" />
+                          Request Service
+                        </Button>
+                      </div>
                     )}
                   </CardContent>
                 </Card>
@@ -684,6 +739,6 @@ export default function HOAManagement() {
           </TabsContent>
         </Tabs>
       </div>
-    </div>
+    </CommunityShell>
   );
 }

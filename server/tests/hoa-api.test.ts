@@ -5,10 +5,11 @@ import {
   hoaMembers,
   hoaVotes,
   hoaVoteResponses,
+  hoaFinancialRecords,
   users,
 } from "@shared/schema";
 import { storage } from "../storage";
-import { eq, inArray } from "drizzle-orm";
+import { eq, inArray, and } from "drizzle-orm";
 
 describe("HOA API helpers", () => {
   const memberUserId = "hoa-member-user";
@@ -115,5 +116,55 @@ describe("HOA API helpers", () => {
     const updated = votes.find((v: any) => v.id === voteId);
     expect(updated).toBeDefined();
     expect(updated!.hasVoted).toBeTruthy();
+  });
+
+  it("recordHoaFeePayment updates current month's financials", async () => {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = now.getMonth() + 1;
+
+    await db
+      .delete(hoaFinancialRecords)
+      .where(
+        and(
+          eq(hoaFinancialRecords.hoaId, hoaId),
+          eq(hoaFinancialRecords.year, year),
+          eq(hoaFinancialRecords.month, month)
+        )
+      );
+
+    await (storage as any).recordHoaFeePayment(hoaId, 150);
+
+    let [record] = await db
+      .select()
+      .from(hoaFinancialRecords)
+      .where(
+        and(
+          eq(hoaFinancialRecords.hoaId, hoaId),
+          eq(hoaFinancialRecords.year, year),
+          eq(hoaFinancialRecords.month, month)
+        )
+      );
+
+    expect(record).toBeTruthy();
+    expect(Number(record.totalRevenue)).toBeCloseTo(150);
+    expect(Number(record.reserves)).toBeCloseTo(150);
+    expect(Number(record.outstandingFees)).toBe(0);
+
+    await (storage as any).recordHoaFeePayment(hoaId, 50);
+
+    [record] = await db
+      .select()
+      .from(hoaFinancialRecords)
+      .where(
+        and(
+          eq(hoaFinancialRecords.hoaId, hoaId),
+          eq(hoaFinancialRecords.year, year),
+          eq(hoaFinancialRecords.month, month)
+        )
+      );
+
+    expect(Number(record.totalRevenue)).toBeCloseTo(200);
+    expect(Number(record.reserves)).toBeCloseTo(200);
   });
 });

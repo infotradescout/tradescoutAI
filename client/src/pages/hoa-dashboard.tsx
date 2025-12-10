@@ -506,7 +506,7 @@ const HOADashboard = memo(function HOADashboard() {
           </TabsContent>
         </Tabs>
       </div>
-    </div>
+    </CommunityShell>
   );
 });
 

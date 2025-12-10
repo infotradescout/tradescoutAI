@@ -125,7 +125,7 @@ const HelperDashboard = React.lazy(() => import('./pages/helper-dashboard'));
 const InsuranceAgentDashboard = React.lazy(() => import('./pages/insurance-agent-dashboard'));
 const PropertyManagerDashboard = React.lazy(() => import('./pages/property-manager-dashboard'));
 const MortgageBrokerDashboard = React.lazy(() => import('./pages/mortgage-broker-dashboard'));
-const StaffDashboard = React.lazy(() => import('./pages/staff-dashboard'));
+// const StaffDashboard = React.lazy(() => import('./pages/staff-dashboard'));
 
 // Applications
 const RealtorApplication = React.lazy(() => import('./pages/realtor-application'));
@@ -167,6 +167,9 @@ const ApplicationTracker = React.lazy(() => import('./pages/application-tracker'
 const ResourceCenter = React.lazy(() => import('./pages/resource-center'));
 const MembershipPortal = React.lazy(() => import('./pages/membership-portal'));
 const TrainingCenter = React.lazy(() => import('./pages/training-center'));
+
+// Debug / experimental views
+const ScoutLandingLite = React.lazy(() => import('./experiments/scout-landing-lite'));
 
 // Advanced Social & Integration Features
 const SocialIntegration = React.lazy(() => import('./pages/social-integration'));
@@ -336,9 +339,14 @@ const AppLayout = memo(function AppLayout() {
         <main className="flex-1 relative w-full px-3 sm:px-4 md:px-6 py-6">
           <ErrorBoundary fallback={<PageLoader />}>
             <Switch>
-              {/* Home routes - Smart routing based on user preferences */}
-              <Route path="/" component={SmartHome} />
+              {/* Home routes - Scout landing is the primary front door */}
+              <Route path="/" component={ScoutLanding} />
               <Route path="/scout" component={ScoutLanding} />
+              <Route path="/_scout-lite">
+                <LazyPage Component={ScoutLandingLite} />
+              </Route>
+              {/* Optional: keep SmartHome available on its own path */}
+              <Route path="/smart-home" component={SmartHome} />
               {FULL_SITE_PAUSED ? (
                 <Route path="/:rest*">
                   <ComingSoon />
@@ -564,11 +572,14 @@ const AppLayout = memo(function AppLayout() {
                       <LazyPage Component={MortgageBrokerDashboard} />
                     </ProtectedRoute>
                   </Route>
+                  {/* Staff dashboard route is disabled for now while we stabilize core flows */}
+                  {/*
                   <Route path="/staff-dashboard">
                     <ProtectedRoute>
                       <LazyPage Component={StaffDashboard} />
                     </ProtectedRoute>
                   </Route>
+                  */}
                   
                   {/* Common pages */}
                   <Route path="/chat">

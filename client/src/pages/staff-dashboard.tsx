@@ -68,10 +68,10 @@ export default function StaffDashboard() {
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-400">Today's Tasks</p>
-                <p className="text-2xl font-bold text-white">8</p>
+                <p className="text-sm font-medium text-gray-400">Open Tickets</p>
+                <p className="text-2xl font-bold text-white">42</p>
               </div>
-              <CheckCircle className="h-8 w-8 text-green-500" />
+              <Headphones className="h-8 w-8 text-teal-500" />
             </div>
           </CardContent>
         </Card>
@@ -289,5 +289,6 @@ export default function StaffDashboard() {
         </div>
       </div>
     </div>
+  </div>
   );
 }

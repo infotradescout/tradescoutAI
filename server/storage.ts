@@ -6728,6 +6728,53 @@ export class DatabaseStorage implements IStorage {
     };
   }
 
+  async recordHoaFeePayment(hoaId: string, amount: number): Promise<void> {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = now.getMonth() + 1;
+
+    const [latest] = await db
+      .select()
+      .from(hoaFinancialRecords)
+      .where(and(
+        eq(hoaFinancialRecords.hoaId, hoaId),
+        eq(hoaFinancialRecords.year, year),
+        eq(hoaFinancialRecords.month, month)
+      ))
+      .orderBy(desc(hoaFinancialRecords.createdAt));
+
+    const currentRevenue = Number(latest?.totalRevenue || 0);
+    const currentOutstanding = Number(latest?.outstandingFees || 0);
+    const currentReserves = Number(latest?.reserves || 0);
+
+    const newRevenue = currentRevenue + amount;
+    const newOutstanding = Math.max(currentOutstanding - amount, 0);
+    const newReserves = currentReserves + amount;
+
+    if (latest) {
+      await db
+        .update(hoaFinancialRecords)
+        .set({
+          totalRevenue: newRevenue.toFixed(2),
+          outstandingFees: newOutstanding.toFixed(2),
+          reserves: newReserves.toFixed(2),
+          updatedAt: new Date(),
+        })
+        .where(eq(hoaFinancialRecords.id, latest.id));
+    } else {
+      await db.insert(hoaFinancialRecords).values({
+        hoaId,
+        year,
+        month,
+        totalRevenue: newRevenue.toFixed(2),
+        totalExpenses: "0.00",
+        netIncome: newRevenue.toFixed(2),
+        reserves: newReserves.toFixed(2),
+        outstandingFees: newOutstanding.toFixed(2),
+      } as any);
+    }
+  }
+
   async getHOAVendors(hoaId: string): Promise<any[]> {
     return await db
       .select()

@@ -161,12 +161,12 @@ export async function collectHOAFee(req: Request, res: Response) {
       return res.status(403).json({ message: 'Insufficient permissions to collect fees' });
     }
 
-    // In a future iteration, this would record a payment or create
-    // a collection task tied to hoaFinancialRecords. For now, return
-    // a structured success response so the UI workflow is complete.
+    // Record the payment against the current month's HOA financials
+    await (storage as any).recordHoaFeePayment(hoaId, amount);
+
     return res.status(201).json({
       success: true,
-      message: 'Fee collection initiated (development stub)',
+      message: 'Fee collection recorded',
       hoaId,
       residentId,
       amount,
