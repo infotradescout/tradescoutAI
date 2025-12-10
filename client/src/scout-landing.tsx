@@ -791,8 +791,9 @@ export default function ScoutLanding() {
                   </Link>
                 )}
               </div>
-        </div>
-        )}
+		    </div>
+		  </div>
+		)}
         
         <div className="absolute inset-0 pointer-events-none">
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_35%_30%,#0b1834,#030814_60%,#020617)] opacity-85" />
