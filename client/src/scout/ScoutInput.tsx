@@ -1,34 +1,40 @@
-import React, { FormEvent } from "react";
+import React, { useState } from "react";
 
 interface ScoutInputProps {
-  value: string;
-  onChange: (value: string) => void;
-  onSend: () => void;
   disabled?: boolean;
+  initialValue?: string;
+  onSend: (value: string) => void;
 }
 
-export function ScoutInput({ value, onChange, onSend, disabled }: ScoutInputProps) {
-  const handleSubmit = (e: FormEvent) => {
+export default function ScoutInput({
+  disabled,
+  initialValue = "",
+  onSend,
+}: ScoutInputProps) {
+  const [value, setValue] = useState(initialValue);
+
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!disabled && value.trim()) {
-      onSend();
-    }
+    const trimmed = value.trim();
+    if (!trimmed || disabled) return;
+    onSend(trimmed);
+    setValue("");
   };
 
   return (
-    <form className="space-y-3" onSubmit={handleSubmit}>
+    <form onSubmit={handleSubmit} className="space-y-3">
       <textarea
-        className="w-full bg-gray-900/40 rounded-xl p-4 outline-none text-sm text-gray-200"
-        placeholder="Ask anything — local intel, pros, marketplace, etc."
+        className="w-full bg-slate-900/60 rounded-xl p-4 outline-none text-sm text-slate-100 resize-none"
+        placeholder="Ask anything  local intel, pros, marketplace, or meal deals."
         rows={3}
         value={value}
-        onChange={(e) => onChange(e.target.value)}
+        onChange={(e) => setValue(e.target.value)}
         disabled={disabled}
       />
       <button
         type="submit"
-        disabled={!value.trim() || disabled}
-        className="w-full py-3 rounded-xl bg-orange-500 hover:bg-orange-600 font-semibold disabled:opacity-60 disabled:cursor-not-allowed"
+        disabled={disabled || !value.trim()}
+        className="w-full py-3 rounded-xl bg-orange-500 hover:bg-orange-600 font-semibold disabled:bg-slate-700 disabled:cursor-not-allowed"
       >
         Send
       </button>

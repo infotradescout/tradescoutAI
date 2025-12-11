@@ -1,85 +1,135 @@
-import { useReducer } from "react";
+import { useReducer, useCallback } from "react";
 
-export type ScoutRole = "user" | "assistant";
+export type ScoutRole = "user" | "assistant" | "system";
+
+export type ScoutStatus = "idle" | "sending" | "thinking" | "responding" | "error";
 
 export interface ScoutMessage {
   id: string;
   role: ScoutRole;
   content: string;
-  timestamp: string;
+  timestamp: string; // ISO string
   suggestedActions?: string[];
 }
 
-export type ScoutStatus = "idle" | "sending" | "thinking" | "error";
+export type ScoutActionType =
+  | "NAVIGATE"
+  | "OPEN_APP_DRAWER"
+  | "PREFILL_INPUT"
+  | "OPEN_TOOLS_DRAWER"
+  | "NOOP";
+
+export interface ScoutAction {
+  type: ScoutActionType;
+  label?: string;
+  to?: string;
+  payload?: Record<string, unknown>;
+}
 
 export interface ScoutState {
-  status: ScoutStatus;
   messages: ScoutMessage[];
+  status: ScoutStatus;
   error: string | null;
+  lastActions: ScoutAction[];
 }
 
 export type ScoutEvent =
   | { type: "USER_MESSAGE"; content: string }
-  | { type: "SERVER_RESPONSE"; message: Omit<ScoutMessage, "id"> }
-  | { type: "ERROR"; message: string }
+  | { type: "SERVER_RESPONSE"; message: ScoutMessage; actions?: ScoutAction[] }
+  | { type: "ERROR"; error: string }
   | { type: "RESET" };
 
-export function createInitialScoutState(): ScoutState {
+const initialState: ScoutState = {
+  messages: [],
+  status: "idle",
+  error: null,
+  lastActions: [],
+};
+
+function createMessage(role: ScoutRole, content: string): ScoutMessage {
   return {
-    status: "idle",
-    messages: [],
-    error: null,
+    id: `m_${Date.now()}_${Math.random().toString(36).slice(2)}`,
+    role,
+    content,
+    timestamp: new Date().toISOString(),
   };
 }
 
-export function scoutReducer(state: ScoutState, event: ScoutEvent): ScoutState {
+function reducer(state: ScoutState, event: ScoutEvent): ScoutState {
   switch (event.type) {
     case "USER_MESSAGE": {
-      const now = new Date().toISOString();
-      const userMessage: ScoutMessage = {
-        id: `u-${now}`,
-        role: "user",
-        content: event.content,
-        timestamp: now,
-      };
+      const msg = createMessage("user", event.content);
       return {
         ...state,
+        messages: [...state.messages, msg],
         status: "sending",
         error: null,
-        messages: [...state.messages, userMessage],
       };
     }
+
     case "SERVER_RESPONSE": {
-      const now = new Date().toISOString();
-      const assistantMessage: ScoutMessage = {
-        id: `a-${now}`,
-        role: "assistant",
-        content: event.message.content,
-        timestamp: event.message.timestamp || now,
-        suggestedActions: event.message.suggestedActions,
-      };
       return {
         ...state,
+        messages: [...state.messages, event.message],
         status: "idle",
         error: null,
-        messages: [...state.messages, assistantMessage],
+        lastActions: event.actions ?? [],
       };
     }
+
     case "ERROR": {
+      const errorMessage = createMessage(
+        "assistant",
+        "Scout hit an error handling that request. Please try again or adjust your prompt."
+      );
       return {
         ...state,
+        messages: [...state.messages, errorMessage],
         status: "error",
-        error: event.message,
+        error: event.error,
       };
     }
+
     case "RESET": {
-      return createInitialScoutState();
+      return { ...initialState };
     }
+
     default:
       return state;
   }
 }
 
-export function useScoutState() {
-  return useReducer(scoutReducer, undefined, createInitialScoutState);
+export function useScoutState(initialMessages?: ScoutMessage[]) {
+  const [state, dispatch] = useReducer(reducer, {
+    ...initialState,
+    messages: initialMessages ?? [],
+  });
+
+  const recordUserMessage = useCallback(
+    (content: string) => dispatch({ type: "USER_MESSAGE", content }),
+    []
+  );
+
+  const applyServerResponse = useCallback(
+    (message: ScoutMessage, actions?: ScoutAction[]) =>
+      dispatch({ type: "SERVER_RESPONSE", message, actions }),
+    []
+  );
+
+  const setError = useCallback(
+    (error: string) => dispatch({ type: "ERROR", error }),
+    []
+  );
+
+  const reset = useCallback(() => dispatch({ type: "RESET" }), []);
+
+  return {
+    state,
+    dispatch,
+    recordUserMessage,
+    applyServerResponse,
+    setError,
+    reset,
+  };
 }
+
