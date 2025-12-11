@@ -72,8 +72,8 @@ export function useAppLikeEffects() {
   }, [isMobile]);
 
   useEffect(() => {
-    // Register service worker for PWA functionality
-    if ('serviceWorker' in navigator && isMobile) {
+    // Register service worker for PWA functionality only in production
+    if (import.meta.env.PROD && 'serviceWorker' in navigator && isMobile) {
       navigator.serviceWorker.register('/sw.js')
         .then(registration => {
           console.log('SW registered: ', registration);

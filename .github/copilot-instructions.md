@@ -160,3 +160,6 @@ and expose:
   - **TradeScout = local trades & community assistant.**
   - **AI chat = Scout controller for everything in this site.**
 - When in doubt, route new features through the chat first.
+
+Never give mock data, placeholders or stubs in production code. Always use real data fetching and handling patterns.
+always fix problems, dont remove just because they are hard to fix

@@ -55,7 +55,9 @@ for (const key of requiredEnv) {
 }
 
 const app = express();
-const PORT = parseInt(process.env.PORT || '5000', 10);
+
+// Always serve on PORT (single entry for API + client); default 5000.
+const PORT = parseInt(process.env.PORT || "5000", 10);
 
 // Sentry setup (request and tracing handlers should come before other middleware)
 if (process.env.SENTRY_DSN) {

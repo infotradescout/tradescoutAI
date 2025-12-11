@@ -1,7 +1,7 @@
 import { memo } from 'react';
 import { Link, useLocation } from 'wouter';
 import { useAuth } from '@/hooks/useAuth';
-import { Home, Users, ShoppingCart, Wrench, User, LogIn } from 'lucide-react';
+import { Home, Users, ShoppingCart, Wrench, MessageCircle, LogIn } from 'lucide-react';
 
 const MobileAppBar = memo(function MobileAppBar() {
   const { isAuthenticated } = useAuth();
@@ -9,9 +9,9 @@ const MobileAppBar = memo(function MobileAppBar() {
 
   const guestNav = [
     { icon: Home, label: 'Assistant', path: '/', testId: 'mobile-nav-assistant', key: 'assistant' },
+    { icon: Users, label: 'Community', path: '/community', testId: 'mobile-nav-community', key: 'community' },
     { icon: Wrench, label: 'Contractors', path: '/contractors', testId: 'mobile-nav-contractors', key: 'contractors' },
     { icon: ShoppingCart, label: 'Marketplace', path: '/marketplace', testId: 'mobile-nav-marketplace', key: 'marketplace' },
-    { icon: Users, label: 'Community', path: '/community', testId: 'mobile-nav-community', key: 'community' },
     { icon: LogIn, label: 'Log in', path: '/login', testId: 'mobile-nav-login', key: 'login' },
   ];
 
@@ -20,7 +20,7 @@ const MobileAppBar = memo(function MobileAppBar() {
     { icon: Users, label: 'Community', path: '/community', testId: 'mobile-nav-community', key: 'community' },
     { icon: Wrench, label: 'Contractors', path: '/contractors', testId: 'mobile-nav-contractors', key: 'contractors' },
     { icon: ShoppingCart, label: 'Marketplace', path: '/marketplace', testId: 'mobile-nav-marketplace', key: 'marketplace' },
-    { icon: User, label: 'Profile', path: '/profile', testId: 'mobile-nav-profile', key: 'profile' },
+    { icon: MessageCircle, label: 'Messages', path: '/messages', testId: 'mobile-nav-messages', key: 'messages' },
   ];
 
   const navItems = isAuthenticated ? authedNav : guestNav;
