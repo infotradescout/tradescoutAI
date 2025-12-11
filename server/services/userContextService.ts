@@ -5,6 +5,8 @@
 
 import { db } from "../db";
 import { users, messages, conversations } from "@shared/schema";
+import type { User } from "@shared/schema";
+import { getUserTypeMetadata } from "@shared/userTypes";
 import { eq, desc } from "drizzle-orm";
 
 export interface UserProfile {
@@ -61,6 +63,50 @@ interface LanguageProfile {
 }
 
 /**
+ * Normalize roles for any user:
+ * - Uses multi-role array (user.roles) as the source of truth
+ * - Falls back to legacy user.role
+ * - Augments each role with metadata-driven tags so new roles "just work"
+ */
+function getNormalizedUserTypesFromUser(user: User): string[] {
+  // Raw role ids from DB
+  const arrayRoles = Array.isArray((user as any).roles)
+    ? ((user as any).roles as string[])
+    : [];
+
+  const legacyRole = user.role ? [user.role] : [];
+
+  // Unique role IDs
+  const roleIds = Array.from(new Set([...arrayRoles, ...legacyRole].filter(Boolean)));
+
+  const tags = new Set<string>();
+
+  for (const roleId of roleIds) {
+    // Always include the raw id (e.g. "contractor", "realtor", "car_dealer")
+    tags.add(roleId);
+
+    const meta = getUserTypeMetadata(roleId);
+    if (!meta) {
+      // Unknown / future role without metadata yet: at least keep its id
+      continue;
+    }
+
+    // Category tag (property, business, service, realestate, automotive, platform)
+    tags.add(meta.category);
+
+    // Default view ("homeowner" | "contractor" | "business" | "professional" | "admin")
+    tags.add(meta.defaultView);
+
+    // Feature flags become tags too (e.g. "find_contractors", "list_inventory")
+    for (const feature of meta.features) {
+      tags.add(feature);
+    }
+  }
+
+  return Array.from(tags);
+}
+
+/**
  * Build comprehensive user context from user ID and recent interactions
  * Used to personalize LLM prompts with user-specific language
  */
@@ -103,8 +149,10 @@ export async function buildUserContext(userId?: string): Promise<UserContext> {
 
     const user = userRecords[0];
 
-    // Parse user types from role field
-    const userTypes = parseUserRoles(user.role);
+    // 🔁 NEW: derive types from multi-role array + metadata
+    const userTypes = getNormalizedUserTypesFromUser(user as User);
+
+    // Preferences based on normalized types (handles future roles automatically)
     const preferences = buildUserPreferences(userTypes);
 
     // Build location context
@@ -113,22 +161,22 @@ export async function buildUserContext(userId?: string): Promise<UserContext> {
     // Fetch recent interactions (last 30 days)
     const recentInteractions = await fetchRecentInteractions(userId);
 
-    // Build language profile based on user type and location
+    // Optional: use userTypes + location + interactions to drive tone
     const languageProfile = buildLanguageProfile(userTypes, location, recentInteractions);
 
     return {
       userId,
       profile: {
-        id: userId,
-        firstName: user.firstName || undefined,
-        lastName: user.lastName || undefined,
-        role: user.role || undefined,
+        id: user.id,
+        firstName: user.firstName ?? undefined,
+        lastName: user.lastName ?? undefined,
+        role: user.role ?? undefined,
         types: userTypes,
-        city: user.city || undefined,
-        state: user.state || undefined,
-        county: user.county || undefined,
-        zipCode: user.zipCode || undefined,
-        address: user.address || undefined,
+        city: user.city ?? undefined,
+        state: user.state ?? undefined,
+        county: user.county ?? undefined,
+        zipCode: (user as any).zipCode ?? undefined,
+        address: user.address ?? undefined,
       },
       userTypes,
       location,
@@ -195,14 +243,21 @@ function parseUserRoles(roleString: string | null): string[] {
 
 /**
  * Build user preference flags from types
+ * userTypes now contains:
+ * - raw role ids ("contractor")
+ * - categories ("business", "service", "realestate", etc.)
+ * - default views ("homeowner", "contractor", "business", "professional", "admin")
+ * - feature flags ("find_contractors", "manage_inventory", etc.)
  */
 function buildUserPreferences(userTypes: string[]): UserPreferences {
+  const hasTag = (...tags: string[]) => userTypes.some((t) => tags.includes(t));
+
   return {
-    isBusiness: userTypes.some((t) => ["business", "commercial", "entrepreneur"].includes(t)),
-    isContractor: userTypes.some((t) => ["contractor", "specialist", "service_provider"].includes(t)),
-    isHomowner: userTypes.some((t) => ["property_owner", "residential"].includes(t)),
-    isCommunityBuilder: userTypes.some((t) => ["community", "builder"].includes(t)),
-    isAffiliate: userTypes.some((t) => ["affiliate", "content"].includes(t)),
+    isBusiness: hasTag("business", "commercial_property", "business_owner", "startup_founder", "franchise_owner"),
+    isContractor: hasTag("contractor", "service_provider", "specialty_tradesperson", "handyman"),
+    isHomowner: hasTag("homeowner", "renter", "landlord", "property_manager"),
+    isCommunityBuilder: hasTag("community_builder", "nonprofit_org", "hoa_member", "hoa_board"),
+    isAffiliate: hasTag("affiliate", "content_creator", "marketing_specialist", "analytics_specialist"),
   };
 }
 

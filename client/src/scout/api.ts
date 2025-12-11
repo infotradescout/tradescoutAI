@@ -1,3 +1,5 @@
+// client/src/scout/api.ts
+
 import type { ScoutMessage, ScoutAction } from "./state";
 
 const apiBaseEnv = (import.meta as any).env?.VITE_SCOUT_API_BASE as
@@ -40,6 +42,7 @@ export interface SendToScoutOptions {
   mode?: ScoutMode;
   knowledgeMode?: KnowledgeMode;
   filters?: Record<string, unknown>;
+  roles?: string[];
 }
 
 export interface ScoutBackendResponse {
@@ -53,17 +56,69 @@ export interface ScoutBackendResponse {
   timestamp?: string;
 }
 
+function inferModeFromMessageAndRoles(message: string, roles?: string[]): ScoutMode {
+  const lower = message.toLowerCase();
+  const roleSet = new Set((roles ?? []).map((r) => r.toLowerCase()));
+
+  // Message-driven
+  if (lower.includes("meal") || lower.includes("restaurant") || lower.includes("food")) {
+    return "mealscout";
+  }
+  if (lower.includes("marketplace") || lower.includes("for sale") || lower.includes("listing")) {
+    return "marketplace";
+  }
+  if (lower.includes("contractor") || lower.includes("pro") || lower.includes("trade")) {
+    return "contractors";
+  }
+
+  const rolesArray = Array.from(roleSet);
+
+  // Role-driven
+  if (
+    rolesArray.some(
+      (r) =>
+        r.startsWith("contractor") ||
+        r === "service_provider" ||
+        r === "specialty_tradesperson"
+    )
+  ) {
+    return "contractors";
+  }
+  if (rolesArray.some((r) => r.includes("car_dealer") || r.includes("auto_service"))) {
+    return "marketplace";
+  }
+  if (rolesArray.some((r) => r.includes("restaurant") || r.includes("restaurant-owner"))) {
+    return "mealscout";
+  }
+
+  return "default";
+}
+
+// Aligns with server/routes/scout.ts -> interface ScoutRequest
 export async function sendToScout(
   options: SendToScoutOptions
 ): Promise<ScoutBackendResponse> {
+  const mode: ScoutMode =
+    options.mode ?? inferModeFromMessageAndRoles(options.message, options.roles);
+
+  const countyCode =
+    options.locality?.county && options.locality?.state
+      ? `${options.locality.county}, ${options.locality.state}`
+      : options.locality?.county || undefined;
+
+  const stateCode = options.locality?.state;
+
   const payload = {
     message: options.message,
     history: options.history,
-    locality: options.locality ?? {},
-    mode: options.mode ?? "default",
+    countyCode, // server uses countyCode
+    stateCode, // server uses stateCode
+    // extra fields are allowed but ignored by current server
+    mode,
     knowledgeMode: options.knowledgeMode ?? "local-first",
     filters: options.filters ?? {},
     hyperlocalPricing: true,
+    roles: options.roles ?? [],
   };
 
   const res = await fetch(`${apiBase}/scout`, {
@@ -91,13 +146,14 @@ export interface TrendingItem {
   delta?: string;
 }
 
+// Use existing /api/social/trending route
 export async function fetchTrending(locality?: ScoutLocality) {
   const params = new URLSearchParams();
   if (locality?.county) params.set("county", locality.county);
   if (locality?.state) params.set("state", locality.state);
   if (locality?.zip) params.set("zip", locality.zip);
 
-  const res = await fetch(`${apiBase}/trending?${params.toString()}`, {
+  const res = await fetch(`${apiBase}/social/trending?${params.toString()}`, {
     cache: "no-store",
   });
 
@@ -106,14 +162,14 @@ export async function fetchTrending(locality?: ScoutLocality) {
   }
 
   const json = await res.json();
-  const rawItems: any[] = Array.isArray(json.items) ? json.items : [];
+  const rawItems: any[] = Array.isArray(json) ? json : [];
 
   const items: TrendingItem[] = rawItems
     .map((item, idx) => ({
       id: String(item.id ?? idx),
-      title: String(item.title ?? item.name ?? "").trim(),
+      title: String(item.title ?? item.name ?? item.hashtag ?? "").trim(),
       category: item.category ?? item.type ?? "Community",
-      stat: item.stat ?? item.metric,
+      stat: item.stat ?? item.count ?? item.metric,
       delta: item.delta ?? item.change,
     }))
     .filter((i) => i.title.length > 0);
@@ -128,6 +184,9 @@ export interface ContractorSearchParams {
   county?: string;
   state?: string;
   zip?: string;
+  sort?: string;
+  limit?: number;
+  offset?: number;
 }
 
 export async function searchContractors(params: ContractorSearchParams) {
@@ -136,6 +195,9 @@ export async function searchContractors(params: ContractorSearchParams) {
   if (params.county) u.searchParams.set("county", params.county);
   if (params.state) u.searchParams.set("state", params.state);
   if (params.zip) u.searchParams.set("zip", params.zip);
+  if (params.sort) u.searchParams.set("sort", params.sort);
+  if (params.limit != null) u.searchParams.set("limit", String(params.limit));
+  if (params.offset != null) u.searchParams.set("offset", String(params.offset));
 
   const res = await fetch(u.toString(), {
     credentials: "include",
@@ -145,20 +207,30 @@ export async function searchContractors(params: ContractorSearchParams) {
 }
 
 export interface MarketplaceSearchParams {
+  query?: string;
   category?: string;
   priceMin?: number;
   priceMax?: number;
-  county?: string;
-  state?: string;
+  location?: string;
+  condition?: string;
+  verifiedOnly?: boolean;
+  freeShipping?: boolean;
+  buyerProtection?: boolean;
+  sortBy?: string;
 }
 
 export async function searchMarketplace(params: MarketplaceSearchParams) {
   const u = new URL(`${apiBase}/marketplace/search`, window.location.origin);
+  if (params.query) u.searchParams.set("query", params.query);
   if (params.category) u.searchParams.set("category", params.category);
-  if (params.priceMin != null) u.searchParams.set("priceMin", String(params.priceMin));
-  if (params.priceMax != null) u.searchParams.set("priceMax", String(params.priceMax));
-  if (params.county) u.searchParams.set("county", params.county);
-  if (params.state) u.searchParams.set("state", params.state);
+  if (params.priceMin != null) u.searchParams.set("minPrice", String(params.priceMin));
+  if (params.priceMax != null) u.searchParams.set("maxPrice", String(params.priceMax));
+  if (params.location) u.searchParams.set("location", params.location);
+  if (params.condition) u.searchParams.set("condition", params.condition);
+  if (params.verifiedOnly != null) u.searchParams.set("verifiedOnly", String(params.verifiedOnly));
+  if (params.freeShipping != null) u.searchParams.set("freeShipping", String(params.freeShipping));
+  if (params.buyerProtection != null) u.searchParams.set("buyerProtection", String(params.buyerProtection));
+  if (params.sortBy) u.searchParams.set("sortBy", params.sortBy);
 
   const res = await fetch(u.toString(), { credentials: "include" });
   if (!res.ok) throw new Error(`Marketplace HTTP ${res.status}`);
@@ -176,13 +248,17 @@ export interface ScoutInsightPayload {
   error?: string;
 }
 
+// Soft logging only – route can be added later; failures never break UI
 export async function logScoutInsight(payload: ScoutInsightPayload) {
   try {
-    await fetch(`${apiBase}/admin/scout-insights`, {
+    await fetch(`${apiBase}/analytics/shell`, {
       method: "POST",
       credentials: "include",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
+      body: JSON.stringify({
+        type: "scout_query",
+        payload,
+      }),
     });
   } catch {
     // Logging failures should never break the UI

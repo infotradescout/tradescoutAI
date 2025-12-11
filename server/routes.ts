@@ -1,7 +1,4 @@
 import scoutRoute from "./routes/scout";
-
-// Admin insights logging for Scout
-import type { ExpressHandler } from "./assistantTypes";
 import { ingestKnowledgeFolder } from "./services/knowledgeIngest";
 import fs from "fs";
 import path from "path";
@@ -5694,7 +5691,9 @@ export async function registerRoutes(app: any) {
           (user && !hasExplicitLocationFilters ? (user.state as string | undefined) : undefined),
         countyFips:
           (req.query.countyFips as string) ||
-          (user && !hasExplicitLocationFilters ? (user.countyFips as string | undefined) : undefined),
+          (user && !hasExplicitLocationFilters
+            ? ((user as any).countyFips as string | undefined)
+            : undefined),
         category: req.query.category as any,
         authorId: req.query.authorId as string,
         limit: req.query.limit ? parseInt(req.query.limit as string) : 20,
@@ -5727,7 +5726,7 @@ export async function registerRoutes(app: any) {
 
       const resolvedScope = scope || "county";
       const resolvedStateCode = stateCode || (user.state as string | undefined);
-      const resolvedCountyFips = countyFips || (user.countyFips as string | undefined);
+      const resolvedCountyFips = countyFips || ((user as any).countyFips as string | undefined);
 
       const newPost = await storage.createCommunityPost({
         title,
@@ -5826,7 +5825,9 @@ export async function registerRoutes(app: any) {
           (user && !hasExplicitLocationFilters ? ((user.state as string) || undefined) : undefined),
         countyFips:
           (req.query.countyFips as string) ||
-          (user && !hasExplicitLocationFilters ? ((user.countyFips as string) || undefined) : undefined),
+          (user && !hasExplicitLocationFilters
+            ? (((user as any).countyFips as string) || undefined)
+            : undefined),
         limit: req.query.limit ? parseInt(req.query.limit as string) : 20,
         offset: req.query.offset ? parseInt(req.query.offset as string) : 0,
         search: req.query.search as string,
@@ -8332,7 +8333,8 @@ export async function registerRoutes(app: any) {
 
       // Basic validation; do not throw for missing optional fields
       if (!message || typeof success !== "boolean") {
-        return res.status(400).json({ message: "Invalid scout insights payload" });
+        res.status(400).json({ message: "Invalid scout insights payload" });
+        return;
       }
 
       // For now, log to server console; can be wired to DB/analytics later
@@ -8347,10 +8349,12 @@ export async function registerRoutes(app: any) {
         preview: String(message).slice(0, 280),
       });
 
-      return res.status(204).end();
+      res.status(204).end();
+      return;
     } catch (e) {
       console.error("Failed to record scout insight", e);
-      return res.status(500).json({ message: "Failed to record scout insight" });
+      res.status(500).json({ message: "Failed to record scout insight" });
+      return;
     }
   };
 
