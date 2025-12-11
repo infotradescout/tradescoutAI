@@ -36,7 +36,7 @@ export function NextGenNavigation({ className = "" }: NextGenNavigationProps) {
     
     // Base navigation items with role-specific priorities
     const baseItems = [
-      { href: "/find-contractors", label: "Contractors", icon: Users, priority: 10 },
+      { href: "/contractors", label: "Contractors", icon: Users, priority: 10 },
       { href: "/quote-calculator", label: "Calculator", icon: Calculator, priority: 9 },
       { href: "/daily-deals", label: "Daily Deals", icon: Percent, priority: 8 },
       // Full features available for authenticated users
@@ -65,13 +65,13 @@ export function NextGenNavigation({ className = "" }: NextGenNavigationProps) {
         if (item.href === '/admin/panel') return { ...item, priority: 20 }; // Highest priority
         if (item.href === '/admin/users') return { ...item, priority: 19 };
         if (item.href === '/dashboard') return { ...item, priority: 18 };
-        if (item.href === '/find-contractors') return { ...item, priority: 17 };
+        if (item.href === '/contractors') return { ...item, priority: 17 };
         return item;
       });
     } else if (userRole === 'contractor_user' || userRole === 'accelerator_member') {
       return baseItems.map(item => {
         if (item.href === '/dashboard') return { ...item, priority: 15 }; // Highest priority
-        if (item.href === '/find-contractors') return { ...item, priority: 14 };
+        if (item.href === '/contractors') return { ...item, priority: 14 };
         if (item.href === '/accelerator') return { ...item, priority: 13 };
         if (item.href === '/worker-marketplace') return { ...item, priority: 12 };
         if (item.href === '/quote-calculator') return { ...item, priority: 11 };
@@ -81,7 +81,7 @@ export function NextGenNavigation({ className = "" }: NextGenNavigationProps) {
       return baseItems.map(item => {
         if (item.href === '/dashboard') return { ...item, priority: 15 }; // Highest priority for helper dashboard
         if (item.href === '/worker-marketplace') return { ...item, priority: 14 }; // Second priority for job listings
-        if (item.href === '/find-contractors') return { ...item, priority: 13 }; // To find work from contractors
+        if (item.href === '/contractors') return { ...item, priority: 13 }; // To find work from contractors
         if (item.href === '/community') return { ...item, priority: 12 };
         if (item.href === '/quote-calculator') return { ...item, priority: 11 };
         return item;
@@ -90,14 +90,14 @@ export function NextGenNavigation({ className = "" }: NextGenNavigationProps) {
       return baseItems.map(item => {
         if (item.href === '/dashboard') return { ...item, priority: 15 };
         if (item.href === '/community') return { ...item, priority: 14 };
-        if (item.href === '/find-contractors') return { ...item, priority: 13 };
+        if (item.href === '/contractors') return { ...item, priority: 13 };
         if (item.href === '/foundation') return { ...item, priority: 12 };
         return item;
       });
     } else { // homeowner (default)
       return baseItems.map(item => {
         if (item.href === '/dashboard') return { ...item, priority: 15 };
-        if (item.href === '/find-contractors') return { ...item, priority: 14 };
+        if (item.href === '/contractors') return { ...item, priority: 14 };
         if (item.href === '/quote-calculator') return { ...item, priority: 13 };
         if (item.href === '/community') return { ...item, priority: 12 };
         if (item.href === '/worker-marketplace') return { ...item, priority: 11 };
@@ -116,7 +116,7 @@ export function NextGenNavigation({ className = "" }: NextGenNavigationProps) {
 
   const isActive = (path: string) => {
     if (path === "/") return location === "/";
-    if (path === "/find-contractors") return location === "/find-contractors" || location.startsWith("/contractor-board") || location.startsWith("/contractors");
+    if (path === "/contractors") return location === "/contractors" || location.startsWith("/contractor-board") || location.startsWith("/contractors");
     return location.startsWith(path);
   };
 
@@ -237,7 +237,7 @@ export function NextGenNavigation({ className = "" }: NextGenNavigationProps) {
                     } ${showTextLabel ? 'px-3 py-2 gap-2' : 'px-2.5 py-2'}`}
                     title={!showTextLabel ? item.label : undefined}
                     data-nav-item={item.label.toLowerCase().replace(/\s+/g, '-')}
-                    data-nav-contractors={item.href === '/find-contractors' ? 'true' : undefined}
+                    data-nav-contractors={item.href === '/contractors' ? 'true' : undefined}
                     data-nav-calculator={item.href === '/quote-calculator' ? 'true' : undefined}
                     data-nav-dashboard={item.href === '/dashboard' ? 'true' : undefined}
                     data-nav-growth={item.href === '/growth-pack' ? 'true' : undefined}

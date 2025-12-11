@@ -19,7 +19,7 @@ export function EnhancedNavigation({ className = "" }: EnhancedNavigationProps) 
 
   const isActive = (path: string) => {
     if (path === "/") return location === "/";
-    if (path === "/find-contractors") return location === "/find-contractors" || location.startsWith("/contractor-board") || location.startsWith("/contractors");
+    if (path === "/contractors") return location === "/contractors" || location.startsWith("/contractor-board") || location.startsWith("/contractors");
     return location.startsWith(path);
   };
 
@@ -42,8 +42,8 @@ export function EnhancedNavigation({ className = "" }: EnhancedNavigationProps) 
 
         {/* Desktop Navigation - All 7 Items in Header */}
         <nav className="hidden lg:flex items-center space-x-1 flex-1 justify-center">
-          <Link href="/find-contractors">
-            <Button variant={isActive("/find-contractors") ? "secondary" : "ghost"} size="sm" className="px-3 py-2 rounded-lg nav-button hover:bg-slate-800/60 text-sm">
+          <Link href="/contractors">
+            <Button variant={isActive("/contractors") ? "secondary" : "ghost"} size="sm" className="px-3 py-2 rounded-lg nav-button hover:bg-slate-800/60 text-sm">
               Find Contractors
             </Button>
           </Link>
@@ -137,7 +137,7 @@ export function EnhancedNavigation({ className = "" }: EnhancedNavigationProps) 
                   <h3 className="text-sm font-semibold text-gray-400 uppercase tracking-wider">
                     Navigation
                   </h3>
-                  <Link href="/find-contractors" onClick={() => setIsMobileMenuOpen(false)}>
+                  <Link href="/contractors" onClick={() => setIsMobileMenuOpen(false)}>
                     <Button variant="ghost" className="w-full justify-start text-slate-200 hover:text-white hover:bg-slate-800/60">
                       Find Contractors
                     </Button>

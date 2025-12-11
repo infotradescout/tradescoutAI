@@ -35,7 +35,7 @@ export default function Navigation() {
   const isHomeowner = user && user.role === 'homeowner';
 
   const navItems = [
-    { href: "/find-contractors", label: "Find Contractors", icon: Search, public: true, description: "Find verified local contractors" },
+    { href: "/contractors", label: "Find Contractors", icon: Search, public: true, description: "Find verified local contractors" },
     { href: "/pricing", label: "Pricing", icon: Calculator, public: true, description: "Plans and value guide" },
     ...(!isHomeowner ? [{ href: "/contractor-apply", label: "For Contractors", icon: Wrench, public: true, description: "Join our contractor network" }] : []),
     { href: "/contractor-board", label: "Contractor Board", icon: Users, public: true, description: "Track active leads and bids" },

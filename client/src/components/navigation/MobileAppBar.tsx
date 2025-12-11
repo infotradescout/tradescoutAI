@@ -9,7 +9,7 @@ const MobileAppBar = memo(function MobileAppBar() {
 
   const guestNav = [
     { icon: Home, label: 'Assistant', path: '/', testId: 'mobile-nav-assistant', key: 'assistant' },
-    { icon: Wrench, label: 'Contractors', path: '/find-contractors', testId: 'mobile-nav-contractors', key: 'contractors' },
+    { icon: Wrench, label: 'Contractors', path: '/contractors', testId: 'mobile-nav-contractors', key: 'contractors' },
     { icon: ShoppingCart, label: 'Marketplace', path: '/marketplace', testId: 'mobile-nav-marketplace', key: 'marketplace' },
     { icon: Users, label: 'Community', path: '/community', testId: 'mobile-nav-community', key: 'community' },
     { icon: LogIn, label: 'Log in', path: '/login', testId: 'mobile-nav-login', key: 'login' },
@@ -18,7 +18,7 @@ const MobileAppBar = memo(function MobileAppBar() {
   const authedNav = [
     { icon: Home, label: 'Dashboard', path: '/dashboard', testId: 'mobile-nav-home', key: 'home' },
     { icon: Users, label: 'Community', path: '/community', testId: 'mobile-nav-community', key: 'community' },
-    { icon: Wrench, label: 'Contractors', path: '/find-contractors', testId: 'mobile-nav-contractors', key: 'contractors' },
+    { icon: Wrench, label: 'Contractors', path: '/contractors', testId: 'mobile-nav-contractors', key: 'contractors' },
     { icon: ShoppingCart, label: 'Marketplace', path: '/marketplace', testId: 'mobile-nav-marketplace', key: 'marketplace' },
     { icon: User, label: 'Profile', path: '/profile', testId: 'mobile-nav-profile', key: 'profile' },
   ];

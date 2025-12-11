@@ -4,7 +4,7 @@ export const ROUTES = {
   HOME: '/',
   LOGIN: '/login',
   REGISTER: '/register',
-  FIND_CONTRACTORS: '/find-contractors',
+  FIND_CONTRACTORS: '/contractors',
   CONTRACTORS: '/contractors',
   MARKETPLACE: '/marketplace',
   COMMUNITY: '/community',

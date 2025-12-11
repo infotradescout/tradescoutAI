@@ -29,7 +29,8 @@ const FULL_SITE_PAUSED = false;
 
 // Lazy load all pages by category for better code splitting
 // Core Pages
-const FindContractors = React.lazy(() => import('./pages/find-contractors'));
+// Contractors: canonical path now points to worker marketplace
+const ContractorsPage = React.lazy(() => import('./pages/worker-marketplace'));
 const DailyDeals = React.lazy(() => import('./pages/daily-deals'));
 const HelpDemo = React.lazy(() => import('./pages/help-demo'));
 const TestPage = React.lazy(() => import('./pages/test-page'));
@@ -313,31 +314,20 @@ const AppLayout = memo(function AppLayout() {
               <Route path="/_scout-lite">
                 <LazyPage Component={ScoutLandingLite} />
               </Route>
-              {/* Optional: keep SmartHome available on its own path */}
-              <Route path="/smart-home" component={SmartHome} />
-              {FULL_SITE_PAUSED ? (
-                <Route path="/:rest*">
-                  <ComingSoon />
-                </Route>
-              ) : (
-                <>
-                  <Route path="/home">
-                    <ProtectedRoute>
-                      <LazyPage Component={RoleDashboardRouter} />
-                    </ProtectedRoute>
-                  </Route>
-                  <Route path="/dashboard">
-                    <ProtectedRoute>
-                      <LazyPage Component={RoleDashboardRouter} />
-                    </ProtectedRoute>
-                  </Route>
-                  <Route path="/dashboard-settings">
-                    <ProtectedRoute>
-                      <LazyPage Component={DashboardSettings} />
-                    </ProtectedRoute>
-                  </Route>
-                  
-                  {/* Auth routes */}
+
+              {/* Dashboard routes (auth required) */}
+              <Route path="/dashboard">
+                <ProtectedRoute>
+                  <LazyPage Component={RoleDashboardRouter} />
+                </ProtectedRoute>
+              </Route>
+              <Route path="/dashboard-settings">
+                <ProtectedRoute>
+                  <LazyPage Component={DashboardSettings} />
+                </ProtectedRoute>
+              </Route>
+
+              {/* Auth routes */}
                   <Route path="/login"><LazyPage Component={Login} /></Route>
                   <Route path="/register"><LazyPage Component={Register} /></Route>
                   <Route path="/signup"><LazyPage Component={Signup} /></Route>
@@ -346,10 +336,8 @@ const AppLayout = memo(function AppLayout() {
                   <Route path="/unauthorized"><LazyPage Component={Unauthorized} /></Route>
                   
                   {/* Core pages */}
-                  <Route path="/find-contractors/:rest*"><LazyPage Component={FindContractors} /></Route>
-                  <Route path="/find-contractors"><LazyPage Component={FindContractors} /></Route>
-                  <Route path="/contractors/:rest*"><LazyPage Component={FindContractors} /></Route>
-                  <Route path="/contractor-board/:rest*"><LazyPage Component={FindContractors} /></Route>
+                  <Route path="/contractors/:rest*"><LazyPage Component={ContractorsPage} /></Route>
+                  <Route path="/contractors"><LazyPage Component={ContractorsPage} /></Route>
                   <Route path="/daily-deals/:rest*"><LazyPage Component={DailyDeals} /></Route>
                   <Route path="/help-demo/:rest*"><LazyPage Component={HelpDemo} /></Route>
                   <Route path="/test-page/:rest*"><LazyPage Component={TestPage} /></Route>
@@ -693,23 +681,21 @@ const AppLayout = memo(function AppLayout() {
                   
                   {/* 404 - this should be last */}
                   <Route path="/:rest*"><LazyPage Component={NotFound} /></Route>
-                </>
-              )}
             </Switch>
           </ErrorBoundary>
         </main>
-        
+
         {!isLlmRoute && <LegalFooter />}
       </div>
-      
-        {/* Global components - hide on LLM landing so layout is clean */}
-        {!isLlmRoute && <MobileAppBar />}
-      
-        {/* Subtle onboarding hints for new users */}
-        {!isLlmRoute && <SimpleSubtleHints />}
-      
-        {/* Bug report tool - always available */}
-        {!isLlmRoute && <SimpleBugReportTool />}
+
+      {/* Global components */}
+      <MobileAppBar />
+
+      {/* Subtle onboarding hints for new users (hide on Scout landing) */}
+      {!isLlmRoute && <SimpleSubtleHints />}
+
+      {/* Bug report tool - always available */}
+      <SimpleBugReportTool />
     </SimpleMobileGestures>
   );
 });

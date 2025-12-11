@@ -563,7 +563,7 @@ export default function ScoutLanding() {
       label: "Primary — Task Execution",
       tone: "primary" as const,
       items: [
-        { label: "Contractors", href: "/find-contractors", desc: "Post a job or pull vetted pros fast" },
+        { label: "Contractors", href: "/contractors", desc: "Post a job or pull vetted pros fast" },
         { label: "Contractors Board", href: "/contractor-board", desc: "See active leads and bids" },
         { label: "Marketplace", href: "/marketplace", desc: "Shop or list gear with pricing help" },
       ],
@@ -724,7 +724,7 @@ export default function ScoutLanding() {
 
   const navLinks = [
     { label: "SCOUT", href: "/" },
-    { label: "Contractors", href: "/find-contractors" },
+    { label: "Contractors", href: "/contractors" },
     { label: "Marketplace", href: "/marketplace" },
     { label: "Community", href: "/community" },
   ];

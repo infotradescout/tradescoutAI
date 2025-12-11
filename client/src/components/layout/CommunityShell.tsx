@@ -6,7 +6,7 @@ import { trackShellEvent, getDeviceType } from "@/lib/analytics";
 import { NotificationsMenu } from "@/components/NotificationsMenu";
 import { Home, Users, MessageCircle, ShoppingBag } from "lucide-react";
 
-type CommunityShellProps = {
+export type CommunityShellProps = {
   sectionLabel: string;
   notificationsCount?: number;
   children: React.ReactNode;
@@ -130,42 +130,13 @@ export const CommunityShell: React.FC<CommunityShellProps> = ({
       </header>
 
       <main className="flex-1">
-        <div className="mx-auto flex w-full max-w-5xl flex-col gap-4 px-4 py-4">
+        <div className="mx-auto flex w-full max-w-5xl flex-col gap-4 px-4 py-4 pb-24">
           {children}
         </div>
       </main>
-
-      <nav
-        className="sticky bottom-0 z-40 border-t border-slate-800 bg-slate-950/95 px-2 py-1.5 backdrop-blur md:hidden"
-        aria-label="Primary"
-        data-testid="community-shell-bottom-nav"
-      >
-        <div className="mx-auto flex max-w-xl items-center justify-between gap-1">
-          {navItems.map((item) => {
-            const active = isActive(item.path);
-            const Icon = item.icon;
-
-            return (
-              <button
-                key={item.path}
-                type="button"
-                onClick={() => handleNavClick(item.path)}
-                className={cn(
-                  "flex flex-1 flex-col items-center justify-center rounded-xl px-2 py-1.5 text-[11px] font-medium transition",
-                  active
-                    ? "bg-slate-900 text-orange-400"
-                    : "text-slate-400 hover:bg-slate-900/60 hover:text-slate-100"
-                )}
-                data-testid={item.testId}
-                aria-current={active ? "page" : undefined}
-              >
-                <Icon className={cn("mb-0.5 h-5 w-5", active && "scale-105")} />
-                <span className="truncate">{item.label}</span>
-              </button>
-            );
-          })}
-        </div>
-      </nav>
     </div>
   );
 };
+
+// Alias for architectural clarity: this is the unified app shell
+export const AppShell: React.FC<CommunityShellProps> = CommunityShell;

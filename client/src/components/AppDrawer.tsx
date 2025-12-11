@@ -1,125 +1,7 @@
-import React, { useState } from 'react';
-import { X, Grid3x3, Home, Users, ShoppingBag, Building2, Utensils, Settings, BookOpen } from 'lucide-react';
+import React from 'react';
+import { X, Grid3x3 } from 'lucide-react';
 import { Link } from 'wouter';
-
-interface AppModule {
-  id: string;
-  name: string;
-  description: string;
-  icon: React.ReactNode;
-  route: string;
-  category: 'commerce' | 'community' | 'tools' | 'admin' | 'learning';
-  badge?: string;
-}
-
-const APP_MODULES: AppModule[] = [
-  // Commerce & Marketplace
-  {
-    id: 'contractors',
-    name: 'Find Contractors',
-    description: 'Search verified local contractors by trade',
-    icon: <Building2 className="w-8 h-8" />,
-    route: '/contractors',
-    category: 'commerce',
-  },
-  {
-    id: 'marketplace',
-    name: 'Marketplace',
-    description: 'Buy and sell local items and services',
-    icon: <ShoppingBag className="w-8 h-8" />,
-    route: '/marketplace',
-    category: 'commerce',
-  },
-  {
-    id: 'daily-deals',
-    name: 'Daily Deals',
-    description: 'Exclusive local deals and discounts',
-    icon: <ShoppingBag className="w-8 h-8" />,
-    route: '/daily-deals',
-    category: 'commerce',
-    badge: 'HOT',
-  },
-  {
-    id: 'mealscout',
-    name: 'MealScout',
-    description: 'Find food trucks and local eats',
-    icon: <Utensils className="w-8 h-8" />,
-    route: '/mealscout',
-    category: 'commerce',
-  },
-  
-  // Community
-  {
-    id: 'community-builder',
-    name: 'Community Builder',
-    description: 'Start and manage local initiatives',
-    icon: <Users className="w-8 h-8" />,
-    route: '/community-builder',
-    category: 'community',
-  },
-  {
-    id: 'community-feed',
-    name: 'Community Feed',
-    description: 'Local news and neighbor posts',
-    icon: <Users className="w-8 h-8" />,
-    route: '/community-feed',
-    category: 'community',
-  },
-  {
-    id: 'county-hub',
-    name: 'County Hub',
-    description: 'County-specific info and insights',
-    icon: <Home className="w-8 h-8" />,
-    route: '/county-hub',
-    category: 'community',
-  },
-  
-  // Tools
-  {
-    id: 'messages',
-    name: 'Messages',
-    description: 'Chat with contractors and buyers',
-    icon: <Users className="w-8 h-8" />,
-    route: '/messages',
-    category: 'tools',
-  },
-  {
-    id: 'quotes',
-    name: 'Quote Calculator',
-    description: 'Estimate project costs locally',
-    icon: <ShoppingBag className="w-8 h-8" />,
-    route: '/quote-calculator',
-    category: 'tools',
-  },
-  
-  // Learning & Resources
-  {
-    id: 'resource-center',
-    name: 'Resource Center',
-    description: 'Guides, tips, and best practices',
-    icon: <BookOpen className="w-8 h-8" />,
-    route: '/resource-center',
-    category: 'learning',
-  },
-  
-  // Admin (conditional - shown if authenticated as admin)
-  {
-    id: 'admin',
-    name: 'Admin Panel',
-    description: 'System administration and analytics',
-    icon: <Settings className="w-8 h-8" />,
-    route: '/admin',
-    category: 'admin',
-  },
-];
-
-const CATEGORY_LABELS = {
-  commerce: '🛍️ Marketplace',
-  community: '👥 Community',
-  tools: '⚙️ Tools',
-  admin: '🔧 Admin',
-  learning: '📚 Learning',
-};
+import { NAV_SECTIONS } from '@/config/nav';
 
 interface AppDrawerProps {
   isOpen: boolean;
@@ -127,26 +9,7 @@ interface AppDrawerProps {
   isAdmin?: boolean;
 }
 
-export default function AppDrawer({ isOpen, onClose, isAdmin = false }: AppDrawerProps) {
-  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
-
-  // Filter modules based on auth
-  const visibleModules = isAdmin
-    ? APP_MODULES
-    : APP_MODULES.filter(m => m.category !== 'admin');
-
-  const categories = Array.from(
-    new Set(visibleModules.map(m => m.category))
-  ).sort();
-
-  // Group modules by category
-  const groupedModules = categories.reduce(
-    (acc, cat) => {
-      acc[cat] = visibleModules.filter(m => m.category === cat);
-      return acc;
-    },
-    {} as Record<string, AppModule[]>
-  );
+export default function AppDrawer({ isOpen, onClose }: AppDrawerProps) {
 
   return (
     <>
@@ -168,7 +31,7 @@ export default function AppDrawer({ isOpen, onClose, isAdmin = false }: AppDrawe
         <div className="bg-gradient-to-r from-blue-600 to-purple-600 text-white p-6 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <Grid3x3 className="w-6 h-6" />
-            <h2 className="text-xl font-bold">TradeScout Apps</h2>
+            <h2 className="text-xl font-bold">TradeScout Sections</h2>
           </div>
           <button
             onClick={onClose}
@@ -179,65 +42,24 @@ export default function AppDrawer({ isOpen, onClose, isAdmin = false }: AppDrawe
         </div>
 
         {/* Scrollable Content */}
-        <div className="flex-1 overflow-y-auto">
-          {categories.map(category => (
-            <div key={category} className="border-b last:border-b-0">
-              {/* Category Header */}
-              <button
-                onClick={() =>
-                  setSelectedCategory(
-                    selectedCategory === category ? null : category
-                  )
-                }
-                className="w-full px-6 py-4 flex items-center justify-between hover:bg-gray-50 transition font-semibold text-gray-800"
-              >
-                <span>{CATEGORY_LABELS[category as keyof typeof CATEGORY_LABELS]}</span>
-                <span
-                  className={`text-gray-400 transition-transform ${
-                    selectedCategory === category ? 'rotate-180' : ''
-                  }`}
+        <div className="flex-1 overflow-y-auto p-4">
+          <h3 className="text-xs uppercase text-gray-400 tracking-wide mb-3">
+            Sections
+          </h3>
+          <div className="space-y-1">
+            {NAV_SECTIONS.map((item) => (
+              <Link key={item.href} href={item.href}>
+                <a
+                  onClick={onClose}
+                  className="block rounded-lg px-3 py-2 text-gray-800 hover:bg-gray-100 transition"
                 >
-                  ▼
-                </span>
-              </button>
-
-              {/* Modules in Category */}
-              {selectedCategory === category && (
-                <div className="bg-gray-50 border-t">
-                  {groupedModules[category].map(module => (
-                    <Link key={module.id} href={module.route}>
-                      <a className="block px-6 py-4 hover:bg-gray-100 transition border-b last:border-b-0">
-                        <div className="flex items-start gap-4">
-                          <div className="text-blue-600 flex-shrink-0 mt-1">
-                            {module.icon}
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2">
-                              <h3 className="font-semibold text-gray-900">
-                                {module.name}
-                              </h3>
-                              {module.badge && (
-                                <span className="text-xs font-bold bg-red-100 text-red-700 px-2 py-1 rounded">
-                                  {module.badge}
-                                </span>
-                              )}
-                            </div>
-                            <p className="text-sm text-gray-600 mt-1">
-                              {module.description}
-                            </p>
-                          </div>
-                          <span className="text-gray-400 flex-shrink-0">→</span>
-                        </div>
-                      </a>
-                    </Link>
-                  ))}
-                </div>
-              )}
-            </div>
-          ))}
+                  {item.label}
+                </a>
+              </Link>
+            ))}
+          </div>
         </div>
 
-        {/* Footer */}
         <div className="border-t bg-gray-50 p-4 text-center text-sm text-gray-600">
           <p>TradeScout OS • Your Local Operating System</p>
         </div>
