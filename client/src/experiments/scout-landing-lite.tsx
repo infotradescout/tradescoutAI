@@ -204,7 +204,7 @@ export default function ScoutLandingLite() {
                   <div className="text-slate-400 text-xs">If you manage an HOA, open the console.</div>
                 </Link>
                 <Link
-                  href="/find-contractors"
+                  href="/contractors"
                   className="block rounded-xl bg-slate-950/70 border border-slate-800 px-3 py-3 hover:border-orange-500/60"
                 >
                   <div className="font-semibold text-white mb-1">Find contractors</div>

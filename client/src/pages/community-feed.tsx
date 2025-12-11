@@ -278,7 +278,7 @@ const CommunityFeed = memo(function CommunityFeed() {
                   <Button
                     variant="outline"
                     className="w-full border-orange-600 text-orange-400 hover:bg-orange-600/20 justify-start"
-                    onClick={() => window.location.pathname = '/find-contractors'}
+                    onClick={() => window.location.pathname = '/contractors'}
                   >
                     <Users2 className="h-4 w-4 mr-2" />
                     Find Contractors

@@ -75,7 +75,7 @@ function getDefaultNavigationItems(userRole: string): NavigationItem[] {
       id: 'contractors',
       label: 'Find Contractors',
       icon: 'Search',
-      href: '/find-contractors',
+      href: '/contractors',
       visible: true,
     },
     {
@@ -187,7 +187,7 @@ function getDefaultNavigationItems(userRole: string): NavigationItem[] {
         id: 'contractor-network',
         label: 'For Contractors',
         icon: 'Wrench',
-        href: '/find-contractors',
+        href: '/contractors',
         visible: true,
       },
       {

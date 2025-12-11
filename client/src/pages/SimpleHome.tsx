@@ -437,7 +437,7 @@ const SimpleHome = memo(function SimpleHome() {
                         Quote Calculator
                       </Button>
                     </Link>
-                    <Link href="/find-contractors">
+                    <Link href="/contractors">
                       <Button size="sm" className="bg-orange-500 hover:bg-orange-600 text-white w-full justify-start">
                         <Wrench className="h-4 w-4 mr-2" />
                         Find Contractors

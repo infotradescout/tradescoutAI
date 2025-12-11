@@ -103,7 +103,7 @@ export function SavedContractorsWidget({ className }: WidgetProps) {
             <Star className="h-4 w-4 text-orange-500" />
             Saved Contractors
           </CardTitle>
-          <Link href="/find-contractors">
+          <Link href="/contractors">
             <Button variant="ghost" size="sm" className="text-xs h-7">View All</Button>
           </Link>
         </div>
@@ -177,7 +177,7 @@ export function MessagesPreviewWidget({ className }: WidgetProps) {
 export function QuickActionsWidget({ className }: WidgetProps) {
   const quickActions = [
     { icon: Briefcase, label: 'Post a Project', href: '/projects/new', color: 'text-blue-600' },
-    { icon: Wrench, label: 'Find Contractor', href: '/find-contractors', color: 'text-orange-600' },
+    { icon: Wrench, label: 'Find Contractor', href: '/contractors', color: 'text-orange-600' },
     { icon: MessageSquare, label: 'Messages', href: '/messages', color: 'text-green-600' },
     { icon: Calendar, label: 'Schedule', href: '/schedule', color: 'text-purple-600' },
   ];
