@@ -124,7 +124,7 @@ export function useHelpSystem() {
         id: 'groups-types',
         target: '.group-types',
         title: 'Different Group Types',
-        content: 'Explore county communities, specialty trade groups, and interest-based discussions. Find your perfect community!',
+        content: 'Explore local communities, specialty trade groups, and interest-based discussions. Find your perfect community!',
         illustration: 'blueprint',
         position: 'right'
       }

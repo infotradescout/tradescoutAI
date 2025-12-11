@@ -128,7 +128,7 @@ export function RightToolsPanel() {
             <span className="text-tsTextMain font-medium">
               {user.firstName || user.email}
             </span>
-            . Scout tunes Marketplace, Community, and matches to your roles and county.
+            . Scout tunes Marketplace, Community, and matches to your roles and local area.
           </p>
         ) : (
           <p>

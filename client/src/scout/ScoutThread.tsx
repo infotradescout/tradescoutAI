@@ -17,11 +17,11 @@ export default function ScoutThread({
 
   return (
     <div className="space-y-2">
-      <p className="text-[11px] tracking-[0.18em] text-slate-400 uppercase">
-        Live Scout Thread
+      <p className="text-[11px] font-semibold tracking-[0.18em] text-slate-400 uppercase">
+        Live Scout thread
       </p>
 
-      <div className="rounded-2xl bg-slate-900/60 p-4 max-h-96 overflow-y-auto space-y-4">
+      <div className="mt-1 rounded-2xl border border-slate-800 bg-[#020617] px-4 py-3 min-h-[140px] max-h-96 overflow-y-auto space-y-4">
         {messages.map((msg) => (
           <div key={msg.id} className="space-y-1">
             <div className="text-[10px] uppercase tracking-wider text-slate-500 flex items-center gap-2">
@@ -63,7 +63,7 @@ export default function ScoutThread({
         {isBusy && (
           <div className="text-[11px] text-slate-400 italic flex gap-2 items-center">
             <span className="h-1.5 w-1.5 rounded-full bg-orange-400 animate-pulse" />
-            <span>Scout is thinking</span>
+            <span>Scout is thinking...</span>
           </div>
         )}
 

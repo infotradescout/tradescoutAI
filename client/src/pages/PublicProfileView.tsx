@@ -5,7 +5,16 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { getUserColorScheme } from "@shared/colorPresets";
 import { USER_TYPES } from "@shared/userTypes";
-import { MapPin, Calendar, Eye, Building, Award, Star } from "lucide-react";
+import {
+  MapPin,
+  Calendar,
+  Eye,
+  Building,
+  Award,
+  Star,
+  ShoppingBag,
+  Users,
+} from "lucide-react";
 
 interface PublicProfile {
   id: string;
@@ -25,11 +34,35 @@ interface PublicProfile {
   };
 }
 
+interface SellerProductSummary {
+  id: string;
+  title: string;
+  price: string;
+  primaryImageUrl?: string;
+  city?: string;
+  stateCode?: string;
+}
+
+interface SellerRatingsSummary {
+  average: number;
+  count: number;
+}
+
+interface CommunityPostSummary {
+  id: string;
+  title: string;
+  createdAt?: string;
+  category?: string | null;
+}
+
 export default function PublicProfileView() {
   const [, params] = useRoute("/profile/:userId");
   const [profile, setProfile] = useState<PublicProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
+  const [sellerProducts, setSellerProducts] = useState<SellerProductSummary[]>([]);
+  const [sellerRatings, setSellerRatings] = useState<SellerRatingsSummary | null>(null);
+  const [communityPosts, setCommunityPosts] = useState<CommunityPostSummary[]>([]);
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -83,6 +116,87 @@ export default function PublicProfileView() {
     };
   }, [params?.userId]);
 
+  // Load additional public data tied to this user: handmade offerings, ratings, community posts
+  useEffect(() => {
+    if (!profile?.id) return;
+
+    const controller = new AbortController();
+    const { signal } = controller;
+
+    const loadExtras = async () => {
+      const userId = profile.id;
+
+      try {
+        // Handmade products (services / offerings)
+        try {
+          const res = await fetch(`/api/handmade/sellers/${userId}/products`, { signal });
+          if (res.ok) {
+            const data = await res.json();
+            if (Array.isArray(data)) {
+              const mapped: SellerProductSummary[] = data.map((p: any) => ({
+                id: String(p.id),
+                title: String(p.title ?? ""),
+                price: String(p.price ?? "0"),
+                primaryImageUrl: p.primaryImageUrl || undefined,
+                city: p.city || undefined,
+                stateCode: p.stateCode || undefined,
+              }));
+              setSellerProducts(mapped);
+            }
+          }
+        } catch (err) {
+          if (!(err instanceof DOMException && err.name === "AbortError")) {
+            console.error("Error fetching seller products for profile:", err);
+          }
+        }
+
+        // Seller ratings (recommendation count + average rating)
+        try {
+          const res = await fetch(`/api/handmade/sellers/${userId}/ratings`, { signal });
+          if (res.ok) {
+            const data = await res.json();
+            if (typeof data?.average === "number" && typeof data?.count === "number") {
+              setSellerRatings({ average: data.average, count: data.count });
+            }
+          }
+        } catch (err) {
+          if (!(err instanceof DOMException && err.name === "AbortError")) {
+            console.error("Error fetching seller ratings for profile:", err);
+          }
+        }
+
+        // Community posts authored by this user
+        try {
+          const res = await fetch(`/api/community/posts?authorId=${encodeURIComponent(userId)}&limit=3`, { signal });
+          if (res.ok) {
+            const data = await res.json();
+            if (Array.isArray(data)) {
+              const mapped: CommunityPostSummary[] = data.map((p: any) => ({
+                id: String(p.id),
+                title: String(p.title ?? ""),
+                createdAt: p.createdAt,
+                category: p.category ?? null,
+              }));
+              setCommunityPosts(mapped);
+            }
+          }
+        } catch (err) {
+          if (!(err instanceof DOMException && err.name === "AbortError")) {
+            console.error("Error fetching community posts for profile:", err);
+          }
+        }
+      } catch (error) {
+        console.error("Error loading extra profile data:", error);
+      }
+    };
+
+    loadExtras();
+
+    return () => {
+      controller.abort();
+    };
+  }, [profile?.id]);
+
   if (loading) {
     return (
       <div className="container mx-auto py-12 text-center">
@@ -114,6 +228,16 @@ export default function PublicProfileView() {
   const badges = profile.badges || [];
   const showBadges = profile.preferences?.badges?.show !== false;
   const hasCommunityBuilder = (profile.roles || []).includes('community_builder');
+
+  const profileSections = profile.preferences?.profileSections || {};
+  const showAbout = profileSections.about !== false;
+  const showRolesAndBadges = profileSections.rolesAndBadges !== false;
+  const showStats = profileSections.stats !== false;
+    const showServices = profileSections.services !== false;
+    const showMarketplaceListings = profileSections.marketplaceListings !== false;
+    const showReviews = profileSections.reviews !== false;
+    const showCommunityActivity = profileSections.communityActivity !== false;
+  const showContactCard = profileSections.contactCard !== false;
 
   return (
     <div 
@@ -171,7 +295,7 @@ export default function PublicProfileView() {
               </div>
 
               {/* User Types */}
-              {profile.roles && profile.roles.length > 0 && (
+              {showRolesAndBadges && profile.roles && profile.roles.length > 0 && (
                 <div className="flex flex-wrap gap-2 mt-4">
                   {profile.roles.map((roleId: string) => {
                     const userType = USER_TYPES[roleId];
@@ -194,7 +318,7 @@ export default function PublicProfileView() {
               )}
 
               {/* Badges */}
-              {showBadges && (badges.length > 0 || hasCommunityBuilder) && (
+              {showRolesAndBadges && showBadges && (badges.length > 0 || hasCommunityBuilder) && (
                 <div className="flex flex-wrap gap-2 mt-3">
                   {hasCommunityBuilder && (
                     <Badge
@@ -225,7 +349,7 @@ export default function PublicProfileView() {
             </div>
 
             {/* Stats */}
-            {profile.stats && (
+            {showStats && profile.stats && (
               <div className="flex gap-6">
                 {profile.stats.listings !== undefined && (
                   <div className="text-center">
@@ -271,22 +395,24 @@ export default function PublicProfileView() {
           </div>
         </div>
 
-        {/* Content sections based on user types */}
+        {/* Content sections based on user types and activity */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Building className="h-5 w-5" style={{ color: 'var(--user-primary, #f97316)' }} />
-                About
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-sm">
-                This is a TradeScout community member. Their profile serves as their professional website,
-                customized based on their roles and activity on the platform.
-              </p>
-            </CardContent>
-          </Card>
+          {showAbout && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Building className="h-5 w-5" style={{ color: 'var(--user-primary, #f97316)' }} />
+                  About
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-sm">
+                  This is a TradeScout community member. Their profile serves as their professional website,
+                  customized based on their roles and activity on the platform.
+                </p>
+              </CardContent>
+            </Card>
+          )}
 
           <Card>
             <CardHeader>
@@ -308,32 +434,151 @@ export default function PublicProfileView() {
               </div>
             </CardContent>
           </Card>
+
+          {/* Services / offerings */}
+          {showServices && sellerProducts.length > 0 && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <ShoppingBag className="h-5 w-5" style={{ color: 'var(--user-primary, #f97316)' }} />
+                  Featured offerings
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3 text-sm">
+                  {sellerProducts.slice(0, 3).map((product) => (
+                    <div key={product.id} className="flex justify-between items-center gap-3">
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium truncate">{product.title}</p>
+                        {(product.city || product.stateCode) && (
+                          <p className="text-xs opacity-70 truncate flex items-center gap-1">
+                            <MapPin className="h-3 w-3" />
+                            <span>
+                              {[product.city, product.stateCode].filter(Boolean).join(', ')}
+                            </span>
+                          </p>
+                        )}
+                      </div>
+                      <div className="ml-2 text-right">
+                        <span className="text-sm font-semibold">
+                          {new Intl.NumberFormat('en-US', {
+                            style: 'currency',
+                            currency: 'USD',
+                          }).format(parseFloat(product.price || '0'))}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Marketplace summary (handmade listings) */}
+          {showMarketplaceListings && sellerProducts.length > 0 && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <ShoppingBag className="h-5 w-5" style={{ color: 'var(--user-primary, #f97316)' }} />
+                  Marketplace listings
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-sm mb-2">
+                  This member has {sellerProducts.length} active handmade offerings listed on TradeScout.
+                </p>
+                <p className="text-xs opacity-70">
+                  Listings and availability are managed by the seller through the Handmade Marketplace.
+                </p>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Reviews / recommendations summary */}
+          {showReviews && sellerRatings && sellerRatings.count > 0 && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Star
+                    className="h-5 w-5 fill-current"
+                    style={{ color: 'var(--user-primary, #f97316)' }}
+                  />
+                  Reviews & recommendations
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="flex items-baseline gap-3 mb-2">
+                  <span
+                    className="text-3xl font-bold"
+                    style={{ color: 'var(--user-primary, #f97316)' }}
+                  >
+                    {sellerRatings.average.toFixed(1)}
+                  </span>
+                  <span className="text-sm opacity-80">
+                    based on {sellerRatings.count} public recommendations
+                  </span>
+                </div>
+                <p className="text-xs opacity-70">
+                  Ratings are calculated from verified purchases and public recommendations on TradeScout.
+                </p>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Community activity */}
+          {showCommunityActivity && communityPosts.length > 0 && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Users className="h-5 w-5" style={{ color: 'var(--user-primary, #f97316)' }} />
+                  Community activity
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-2 text-sm">
+                  {communityPosts.slice(0, 3).map((post) => (
+                    <div key={post.id} className="flex flex-col">
+                      <span className="font-medium truncate">{post.title}</span>
+                      <span className="text-xs opacity-70">
+                        {post.createdAt
+                          ? new Date(post.createdAt).toLocaleDateString()
+                          : 'Date not available'}
+                        {post.category ? ` • ${post.category}` : ''}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          )}
         </div>
 
         {/* Contact CTA */}
-        <div 
-          className="rounded-lg p-6 text-center"
-          style={{
-            backgroundColor: 'var(--user-primary, #f97316)',
-            color: 'var(--user-background, #0a0f1e)',
-          }}
-        >
-          <h3 className="text-xl font-bold mb-2">
-            Interested in connecting with {profile.firstName || 'this user'}?
-          </h3>
-          <p className="mb-4 opacity-90">
-            Send a message or inquiry through TradeScout
-          </p>
-          <Button 
-            size="lg"
+        {showContactCard && (
+          <div 
+            className="rounded-lg p-6 text-center"
             style={{
-              backgroundColor: 'var(--user-background, #0a0f1e)',
-              color: 'var(--user-text, #f1f5f9)',
+              backgroundColor: 'var(--user-primary, #f97316)',
+              color: 'var(--user-background, #0a0f1e)',
             }}
           >
-            Send Message
-          </Button>
-        </div>
+            <h3 className="text-xl font-bold mb-2">
+              Interested in connecting with {profile.firstName || 'this user'}?
+            </h3>
+            <p className="mb-4 opacity-90">
+              Send a message or inquiry through TradeScout
+            </p>
+            <Button 
+              size="lg"
+              style={{
+                backgroundColor: 'var(--user-background, #0a0f1e)',
+                color: 'var(--user-text, #f1f5f9)',
+              }}
+            >
+              Send Message
+            </Button>
+          </div>
+        )}
       </div>
     </div>
   );
