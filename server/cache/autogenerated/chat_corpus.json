@@ -177,5 +177,15 @@
     ],
     "actions": [],
     "timestamp": "2025-12-09T07:59:44.730Z"
+  },
+  {
+    "question": "Show me today’s best tool deals",
+    "answer": "Welcome to TradeScout! We don't track daily national 'best tool deals.' Our platform empowers local pros and affiliates to share specific promotions within your community. This means real value, often directly from trusted local businesses. Keeping money where it's earned is our mission. Explore your local network to find community deals.",
+    "layer": 1,
+    "sources": [
+      "TradeScout Brain (data folder)"
+    ],
+    "actions": [],
+    "timestamp": "2025-12-10T21:11:31.504Z"
   }
 ]

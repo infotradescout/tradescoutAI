@@ -5,8 +5,11 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { CommunityShell } from "@/components/layout/CommunityShell";
+import { useNotifications } from "@/hooks/useNotifications";
 
 const RealEstateMarketplace = memo(function RealEstateMarketplace() {
+  const { unreadCount } = useNotifications();
   const [searchQuery, setSearchQuery] = useState("");
   const [priceRange, setPriceRange] = useState("all");
   const [propertyType, setPropertyType] = useState("all");
@@ -120,8 +123,8 @@ const RealEstateMarketplace = memo(function RealEstateMarketplace() {
   ];
 
   return (
-    <div className="min-h-screen gradient-bg text-white">
-      <div className="container mx-auto px-4 py-8">
+    <CommunityShell sectionLabel="Real Estate" notificationsCount={unreadCount}>
+      <div className="container mx-auto px-4 py-8 pb-20">
         {/* Header */}
         <div className="mb-8">
           <div className="flex items-center gap-3 mb-4">
@@ -361,7 +364,7 @@ const RealEstateMarketplace = memo(function RealEstateMarketplace() {
           </Button>
         </div>
       </div>
-    </div>
+    </CommunityShell>
   );
 });
 

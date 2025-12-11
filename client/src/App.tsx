@@ -6,7 +6,6 @@ import { queryClient } from './lib/queryClient';
 import { ErrorBoundary } from './components/ui/error-boundary';
 import { ThemeProvider } from './contexts/ThemeContext';
 import { ProtectedRoute } from './components/ProtectedRoute';
-import { useAuth } from './hooks/useAuth';
 
 // Only load essential components eagerly
 import SmartHome from './SmartHome';
@@ -250,26 +249,10 @@ const LegalFooter = memo(function LegalFooter() {
 
 // Main app layout component
 const AppLayout = memo(function AppLayout() {
-  const { isAuthenticated } = useAuth();
   const [location] = useLocation();
   const isLlmRoute = location === '/' || location === '/scout' || location.startsWith('/?');
 
   const [showBetaNotice, setShowBetaNotice] = useState(false);
-  const headerLinks = isAuthenticated
-    ? [
-        { label: 'Dashboard', href: '/dashboard' },
-        { label: 'Marketplace', href: '/marketplace' },
-        { label: 'Community', href: '/community' },
-        { label: 'Pricing', href: '/pricing' },
-        { label: 'Contractors', href: '/find-contractors' },
-        { label: 'Profile', href: '/profile' },
-      ]
-    : [
-        { label: 'Contractors', href: '/find-contractors' },
-        { label: 'Marketplace', href: '/marketplace' },
-        { label: 'Pricing', href: '/pricing' },
-        { label: 'About', href: '/about' },
-      ];
 
   useEffect(() => {
     const dismissed = typeof window !== 'undefined' ? sessionStorage.getItem('ts_beta_notice_dismissed_session') : null;
@@ -296,21 +279,6 @@ const AppLayout = memo(function AppLayout() {
                   <div className="text-xl font-semibold text-tsTextMain leading-tight">Connection Without Compromise</div>
                 </div>
               </div>
-              <nav className="flex flex-wrap items-center justify-center gap-5 text-sm text-tsTextMuted">
-                {headerLinks.map((item) => (
-                  <a key={item.href} href={item.href} className="hover:text-tsAccent transition">
-                    {item.label}
-                  </a>
-                ))}
-                {!isAuthenticated && (
-                  <a
-                    href="/signup"
-                    className="rounded-lg bg-gradient-to-r from-orange-500 to-orange-600 px-3 py-1.5 text-white font-semibold shadow-lg shadow-orange-500/40 hover:translate-y-[-1px] hover:shadow-orange-500/50 transition"
-                  >
-                    Get started
-                  </a>
-                )}
-              </nav>
             </div>
           </header>
         )}
