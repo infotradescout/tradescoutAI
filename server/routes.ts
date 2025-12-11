@@ -1143,13 +1143,10 @@ export async function registerRoutes(app: any) {
         preferences: {
           colorScheme: user.preferences?.colorScheme,
           badges: user.preferences?.badges,
+          profileSections: user.preferences?.profileSections,
         },
-        stats: {
-          // TODO: Calculate from actual data
-          listings: 0,
-          reviews: 0,
-          rating: 0,
-        }
+        // Stats can be populated later from real aggregates; omit fake zeros
+        stats: undefined,
       };
 
       res.json(publicProfile);
@@ -1378,6 +1375,66 @@ export async function registerRoutes(app: any) {
       res.status(500).json({ message: "Failed to update profile visibility" });
     }
   });
+
+  // Update profile site sections (which blocks show on public profile)
+  app.patch(
+    "/api/users/profile-sections",
+    isAuthenticated,
+    async (req: Request, res: Response) => {
+      try {
+        const userId =
+          (req.user as any)?.id || (req.user as any)?.claims?.sub;
+        const {
+          about,
+          rolesAndBadges,
+          stats,
+          services,
+          marketplaceListings,
+          reviews,
+          communityActivity,
+          contactCard,
+        } = req.body ?? {};
+
+        const currentUser = await storage.getUser(userId);
+        if (!currentUser) {
+          return res.status(404).json({ message: "User not found" });
+        }
+
+        const currentPrefs = currentUser.preferences || {};
+        const currentProfileSections = currentPrefs.profileSections || {};
+
+        const updatedPreferences = {
+          ...currentPrefs,
+          profileSections: {
+            ...currentProfileSections,
+            ...(about !== undefined && { about }),
+            ...(rolesAndBadges !== undefined && { rolesAndBadges }),
+            ...(stats !== undefined && { stats }),
+            ...(services !== undefined && { services }),
+            ...(marketplaceListings !== undefined && { marketplaceListings }),
+            ...(reviews !== undefined && { reviews }),
+            ...(communityActivity !== undefined && { communityActivity }),
+            ...(contactCard !== undefined && { contactCard }),
+          },
+        };
+
+        const user = await storage.updateUser(userId, {
+          preferences: updatedPreferences,
+          updatedAt: new Date(),
+        });
+
+        res.json({
+          message: "Profile sections updated",
+          preferences: user.preferences,
+        });
+      } catch (error: any) {
+        console.error("Error updating profile sections:", error);
+        res.status(500).json({
+          message: "Failed to update profile sections",
+        });
+      }
+    }
+  );
 
   // Account security and management endpoints
   app.get("/api/user/trusted-devices", isAuthenticated, async (req: Request, res: Response) => {

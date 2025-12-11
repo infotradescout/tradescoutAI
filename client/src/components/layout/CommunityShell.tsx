@@ -6,6 +6,7 @@ import { trackShellEvent, getDeviceType } from "@/lib/analytics";
 import { NotificationsMenu } from "@/components/NotificationsMenu";
 import { Home, Users, MessageCircle, ShoppingBag, SlidersHorizontal, X } from "lucide-react";
 import { RightToolsPanel } from "@/components/layout/RightToolsPanel";
+import { getUserLocationLabel } from "@/lib/copyHelpers";
 
 export type CommunityShellProps = {
   sectionLabel: string;
@@ -24,9 +25,7 @@ export const CommunityShell: React.FC<CommunityShellProps> = ({
 
   const locationLabel: string = React.useMemo(() => {
     if (!user) return "Set your location";
-    if ((user as any).location) return (user as any).location as string;
-    if ((user as any).county) return String((user as any).county);
-    return "Your area";
+    return getUserLocationLabel(user as any);
   }, [user]);
 
   const avatarUrl: string | null = (user as any)?.profileImageUrl ?? null;

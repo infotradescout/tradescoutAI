@@ -321,6 +321,18 @@ export const users = pgTable("users", {
       widgetOrder?: string[]; // Order of widgets
       layout?: 'single' | 'two-column' | 'three-column'; // Dashboard layout
     };
+
+    // Profile site builder settings - which sections appear on the public profile
+    profileSections?: {
+      about?: boolean;
+      rolesAndBadges?: boolean;
+      stats?: boolean;
+      services?: boolean;
+      marketplaceListings?: boolean;
+      reviews?: boolean;
+      communityActivity?: boolean;
+      contactCard?: boolean;
+    };
   }>(),
   themePreference: varchar("theme_preference").default('default'), // Selected theme ID
   customThemeColors: text("custom_theme_colors"), // JSON string of custom colors

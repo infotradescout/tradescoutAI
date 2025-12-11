@@ -67,7 +67,7 @@ const About = memo(function About() {
     {
       icon: Users,
       title: "Community-Centered",
-      description: "Local communities are at the heart of everything we do. We organize by county to strengthen local connections."
+      description: "Local communities are at the heart of everything we do. We organize by local areas — counties, cities, and towns — to strengthen connections."
     },
     {
       icon: Shield,

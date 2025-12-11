@@ -240,75 +240,108 @@ app.use((req, res, next) => {
   // Other ports are firewalled. Default to 5000 if not specified.
   // this serves both the API and the client.
   // It is the only port that is not firewalled.
-  server.listen({
-    port: PORT,
-    host: "0.0.0.0",
-  }, () => {
-    log(`serving on port ${PORT}`);
-    
-    // Setup vite AFTER the server is listening so the port is available
-    const isProduction = process.env.NODE_ENV === "production" || app.get("env") === "production";
-    console.log(`Environment check: NODE_ENV=${process.env.NODE_ENV}, app.env=${app.get("env")}, isProduction=${isProduction}`);
-    
-    if (!isProduction) {
-      (async () => {
-        try {
-          // Set HMR environment variables to fix WebSocket connection issues
-          if (process.env.REPL_SLUG && process.env.REPL_OWNER) {
-            process.env.VITE_HMR_HOST = `${process.env.REPL_SLUG}.${process.env.REPL_OWNER}.replit.dev`;
-            process.env.VITE_HMR_PORT = '443';
-            process.env.VITE_HMR_PROTOCOL = 'wss';
-          }
-          const skipVite = process.env.SKIP_VITE === 'true';
-          console.log(`[DEV] Vite mode: ${skipVite ? 'skipped' : 'enabled'}`);
-          // Vite enabled by default in dev; set SKIP_VITE=true to disable.
-          if (skipVite) {
-            console.log('[DEV] Vite skipped - API server will run without client');
-          } else {
-            console.log('[DEV] Setting up Vite...');
-            await setupVite(app, server);
-            console.log('[DEV] Vite setup complete - ready to accept connections');
-          }
-        } catch (viteError) {
-          console.error('[DEV] Failed to setup Vite:', viteError);
-          console.error('[DEV] Stack:', (viteError as Error).stack);
-          // Don't exit - let the server continue running without Vite
-          console.log('[DEV] Server will continue running without Vite dev server');
-        }
-      })();
-    } else {
-      // Serve static files from dist/public (Vite build output) if available
-      const workspaceRoot = process.cwd();
-      const publicDistPath = path.join(workspaceRoot, 'dist/public');
 
-      // Only serve frontend if dist/public exists (allows API-only deployment)
-      if (fs.existsSync(publicDistPath)) {
-        console.log('Production mode - serving static files from:', publicDistPath);
-        app.use(express.static(publicDistPath));
+  const startHttpServer = (portToUse: number) => {
+    server.listen(
+      {
+        port: portToUse,
+        host: "0.0.0.0",
+      },
+      () => {
+        log(`serving on port ${portToUse}`);
 
-        // Catch all handler for client-side routing
-        app.get('*', (req, res) => {
-          const indexPath = path.join(publicDistPath, 'index.html');
+        // Setup vite AFTER the server is listening so the port is available
+        const isProduction =
+          process.env.NODE_ENV === "production" || app.get("env") === "production";
+        console.log(
+          `Environment check: NODE_ENV=${process.env.NODE_ENV}, app.env=${app.get(
+            "env",
+          )}, isProduction=${isProduction}`,
+        );
 
-          // Check if file exists before trying to serve
-          if (fs.existsSync(indexPath)) {
-            res.sendFile(indexPath, (err) => {
-              if (err) {
-                console.error('Error serving index.html:', err);
-                res.status(500).send('Error loading application');
+        if (!isProduction) {
+          (async () => {
+            try {
+              // Set HMR environment variables to fix WebSocket connection issues
+              if (process.env.REPL_SLUG && process.env.REPL_OWNER) {
+                process.env.VITE_HMR_HOST = `${process.env.REPL_SLUG}.${process.env.REPL_OWNER}.replit.dev`;
+                process.env.VITE_HMR_PORT = "443";
+                process.env.VITE_HMR_PROTOCOL = "wss";
+              }
+              const skipVite = process.env.SKIP_VITE === "true";
+              console.log(`[DEV] Vite mode: ${skipVite ? "skipped" : "enabled"}`);
+              // Vite enabled by default in dev; set SKIP_VITE=true to disable.
+              if (skipVite) {
+                console.log(
+                  "[DEV] Vite skipped - API server will run without client",
+                );
+              } else {
+                console.log("[DEV] Setting up Vite...");
+                await setupVite(app, server);
+                console.log(
+                  "[DEV] Vite setup complete - ready to accept connections",
+                );
+              }
+            } catch (viteError) {
+              console.error("[DEV] Failed to setup Vite:", viteError);
+              console.error("[DEV] Stack:", (viteError as Error).stack);
+              // Don't exit - let the server continue running without Vite
+              console.log(
+                "[DEV] Server will continue running without Vite dev server",
+              );
+            }
+          })();
+        } else {
+          // Serve static files from dist/public (Vite build output) if available
+          const workspaceRoot = process.cwd();
+          const publicDistPath = path.join(workspaceRoot, "dist/public");
+
+          // Only serve frontend if dist/public exists (allows API-only deployment)
+          if (fs.existsSync(publicDistPath)) {
+            console.log("Production mode - serving static files from:", publicDistPath);
+            app.use(express.static(publicDistPath));
+
+            // Catch all handler for client-side routing
+            app.get("*", (req, res) => {
+              const indexPath = path.join(publicDistPath, "index.html");
+
+              // Check if file exists before trying to serve
+              if (fs.existsSync(indexPath)) {
+                res.sendFile(indexPath, (err) => {
+                  if (err) {
+                    console.error("Error serving index.html:", err);
+                    res.status(500).send("Error loading application");
+                  }
+                });
+              } else {
+                console.error("index.html not found at:", indexPath);
+                res.status(404).send("Application files not found");
               }
             });
           } else {
-            console.error('index.html not found at:', indexPath);
-            res.status(404).send('Application files not found');
+            console.log("Production mode - API only (no dist/public found)");
+            // API-only mode: no frontend serving, just API routes
           }
-        });
-      } else {
-        console.log('Production mode - API only (no dist/public found)');
-        // API-only mode: no frontend serving, just API routes
-      }
+        }
+      },
+    );
+  };
+
+  // Handle port-in-use errors by falling back to the next port instead of crashing
+  server.on("error", (err: any) => {
+    if (err && (err as any).code === "EADDRINUSE") {
+      const fallbackPort = PORT + 1;
+      console.warn(
+        `Port ${PORT} is in use; retrying on ${fallbackPort}. Update your browser URL accordingly.`,
+      );
+      startHttpServer(fallbackPort);
+    } else {
+      console.error("Server failed to start:", err);
+      process.exit(1);
     }
   });
+
+  startHttpServer(PORT);
   } catch (error) {
     console.error('FATAL ERROR during server initialization:', error);
     console.error('Stack:', (error as Error).stack);

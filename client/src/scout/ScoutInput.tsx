@@ -24,8 +24,8 @@ export default function ScoutInput({
   return (
     <form onSubmit={handleSubmit} className="space-y-3">
       <textarea
-        className="w-full bg-slate-900/60 rounded-xl p-4 outline-none text-sm text-slate-100 resize-none"
-        placeholder="Ask anything  local intel, pros, marketplace, or meal deals."
+        className="w-full resize-none rounded-2xl border border-slate-800 bg-[#020617] px-4 py-3 text-sm text-slate-100 placeholder:text-slate-400/70 focus:outline-none focus:ring-2 focus:ring-orange-500/60 focus:border-orange-500/60 min-h-[80px]"
+        placeholder="Ask anything — local intel, pros, marketplace, or meal deals."
         rows={3}
         value={value}
         onChange={(e) => setValue(e.target.value)}
@@ -34,7 +34,7 @@ export default function ScoutInput({
       <button
         type="submit"
         disabled={disabled || !value.trim()}
-        className="w-full py-3 rounded-xl bg-orange-500 hover:bg-orange-600 font-semibold disabled:bg-slate-700 disabled:cursor-not-allowed"
+        className="w-full py-3 rounded-2xl bg-orange-500 hover:bg-orange-600 font-semibold disabled:bg-slate-700 disabled:cursor-not-allowed"
       >
         Send
       </button>

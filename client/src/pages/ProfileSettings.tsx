@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch";
 import { toast } from "@/hooks/use-toast";
 import { COLOR_PRESETS, getPresetNames } from "@shared/colorPresets";
-import { Palette, Home, Eye, EyeOff } from "lucide-react";
+import { Palette, Home, Eye, EyeOff, LayoutTemplate } from "lucide-react";
 import { applyTheme, type Theme } from "@/lib/themes";
 
 interface UserPreferences {
@@ -20,6 +20,18 @@ interface UserPreferences {
     background?: string;
     text?: string;
   };
+  profileSections?: ProfileSections;
+}
+
+type ProfileSections = {
+  about?: boolean;
+  rolesAndBadges?: boolean;
+  stats?: boolean;
+  services?: boolean;
+  marketplaceListings?: boolean;
+  reviews?: boolean;
+  communityActivity?: boolean;
+  contactCard?: boolean;
 }
 
 export default function ProfileSettings() {
@@ -29,6 +41,7 @@ export default function ProfileSettings() {
     defaultHomePage: 'llm',
     profileVisibility: 'public',
     colorScheme: { preset: 'default' },
+    profileSections: {},
   });
 
   useEffect(() => {
@@ -37,6 +50,7 @@ export default function ProfileSettings() {
         defaultHomePage: user.preferences.defaultHomePage || 'llm',
         profileVisibility: user.preferences.profileVisibility || 'public',
         colorScheme: user.preferences.colorScheme || { preset: 'default' },
+        profileSections: user.preferences.profileSections || {},
       });
     }
   }, [user]);
@@ -182,6 +196,46 @@ export default function ProfileSettings() {
       applyThemeFromScheme(preferences.colorScheme.preset);
     }
   }, [preferences.colorScheme]);
+
+  const updateProfileSection = async (section: keyof ProfileSections, enabled: boolean) => {
+    setLoading(true);
+    try {
+      const response = await fetch('/api/users/profile-sections', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ [section]: enabled }),
+      });
+
+      if (!response.ok) throw new Error('Failed to update profile sections');
+
+      const data = await response.json();
+
+      setPreferences(prev => ({
+        ...prev,
+        profileSections: {
+          ...(prev.profileSections || {}),
+          ...(data.preferences?.profileSections || {}),
+          [section]: enabled,
+        },
+      }));
+
+      await refetch();
+
+      toast({
+        title: "Profile site updated",
+        description: "Your public profile layout has been saved.",
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to update profile site sections",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <div className="container mx-auto py-8 space-y-6 max-w-4xl">
@@ -341,6 +395,132 @@ export default function ProfileSettings() {
               </p>
             </div>
           )}
+        </CardContent>
+      </Card>
+
+      {/* Profile Site Sections */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <LayoutTemplate className="h-5 w-5 text-tsAccent" />
+            Profile Site Sections
+          </CardTitle>
+          <CardDescription>
+            Choose which sections appear on your public profile site. Turning sections off hides them from visitors.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex items-center justify-between">
+            <div className="space-y-0.5">
+              <Label>About</Label>
+              <p className="text-sm text-tsTextMuted">
+                High-level overview of who you are on TradeScout.
+              </p>
+            </div>
+            <Switch
+              checked={preferences.profileSections?.about !== false}
+              onCheckedChange={(value) => updateProfileSection('about', value)}
+              disabled={loading}
+            />
+          </div>
+
+          <div className="flex items-center justify-between">
+            <div className="space-y-0.5">
+              <Label>Roles & badges</Label>
+              <p className="text-sm text-tsTextMuted">
+                Show your TradeScout roles, badges, and community builder status.
+              </p>
+            </div>
+            <Switch
+              checked={preferences.profileSections?.rolesAndBadges !== false}
+              onCheckedChange={(value) => updateProfileSection('rolesAndBadges', value)}
+              disabled={loading}
+            />
+          </div>
+
+          <div className="flex items-center justify-between">
+            <div className="space-y-0.5">
+              <Label>Stats</Label>
+              <p className="text-sm text-tsTextMuted">
+                When available, show counts for listings, reviews, and rating.
+              </p>
+            </div>
+            <Switch
+              checked={preferences.profileSections?.stats !== false}
+              onCheckedChange={(value) => updateProfileSection('stats', value)}
+              disabled={loading}
+            />
+          </div>
+
+          <div className="flex items-center justify-between">
+            <div className="space-y-0.5">
+              <Label>Services</Label>
+              <p className="text-sm text-tsTextMuted">
+                For contractors and pros, show a services overview when available.
+              </p>
+            </div>
+            <Switch
+              checked={preferences.profileSections?.services !== false}
+              onCheckedChange={(value) => updateProfileSection('services', value)}
+              disabled={loading}
+            />
+          </div>
+
+          <div className="flex items-center justify-between">
+            <div className="space-y-0.5">
+              <Label>Marketplace listings</Label>
+              <p className="text-sm text-tsTextMuted">
+                Allow TradeScout to feature your active marketplace listings here.
+              </p>
+            </div>
+            <Switch
+              checked={preferences.profileSections?.marketplaceListings !== false}
+              onCheckedChange={(value) => updateProfileSection('marketplaceListings', value)}
+              disabled={loading}
+            />
+          </div>
+
+          <div className="flex items-center justify-between">
+            <div className="space-y-0.5">
+              <Label>Reviews</Label>
+              <p className="text-sm text-tsTextMuted">
+                When reviews are enabled, show your rating and testimonials.
+              </p>
+            </div>
+            <Switch
+              checked={preferences.profileSections?.reviews !== false}
+              onCheckedChange={(value) => updateProfileSection('reviews', value)}
+              disabled={loading}
+            />
+          </div>
+
+          <div className="flex items-center justify-between">
+            <div className="space-y-0.5">
+              <Label>Community activity</Label>
+              <p className="text-sm text-tsTextMuted">
+                Highlight your participation in TradeScout communities and boards.
+              </p>
+            </div>
+            <Switch
+              checked={preferences.profileSections?.communityActivity !== false}
+              onCheckedChange={(value) => updateProfileSection('communityActivity', value)}
+              disabled={loading}
+            />
+          </div>
+
+          <div className="flex items-center justify-between">
+            <div className="space-y-0.5">
+              <Label>Contact card</Label>
+              <p className="text-sm text-tsTextMuted">
+                Show a call-to-action so visitors can reach you.
+              </p>
+            </div>
+            <Switch
+              checked={preferences.profileSections?.contactCard !== false}
+              onCheckedChange={(value) => updateProfileSection('contactCard', value)}
+              disabled={loading}
+            />
+          </div>
         </CardContent>
       </Card>
     </div>
