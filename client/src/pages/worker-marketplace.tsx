@@ -22,6 +22,8 @@ import {
 import { useAuth } from "@/hooks/useAuth";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { CommunityShell } from "@/components/layout/CommunityShell";
+import { useNotifications } from "@/hooks/useNotifications";
 import { HelperProfileModal } from "@/components/HelperProfileModal";
 import type { Worker, Task, TaskCategory } from "@shared/schema";
 
@@ -32,6 +34,7 @@ type HelperCardProps = {
 
 export default function WorkerMarketplace() {
   const { user, isAuthenticated } = useAuth();
+  const { unreadCount } = useNotifications();
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState("find-workers");
   const [searchQuery, setSearchQuery] = useState("");
@@ -106,8 +109,8 @@ export default function WorkerMarketplace() {
   }, [tasks, searchQuery]);
 
   return (
-    <div className="min-h-screen bg-navy-900 text-white">
-      <div className="max-w-7xl mx-auto ts-surface px-4 py-6 md:px-10 md:py-8">
+    <CommunityShell sectionLabel="Helpers" notificationsCount={unreadCount}>
+      <div className="max-w-7xl mx-auto ts-surface px-4 py-6 md:px-10 md:py-8 pb-20">
       {/* Header */}
       <div className="mb-8">
         <h1 className="text-4xl font-bold text-white mb-4">Helpers</h1>
@@ -315,7 +318,7 @@ export default function WorkerMarketplace() {
         />
       )}
     </div>
-  </div>
+  </CommunityShell>
   );
 }
 
