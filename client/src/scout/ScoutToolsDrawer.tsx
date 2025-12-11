@@ -1,6 +1,5 @@
 import React from "react";
 import { X } from "lucide-react";
-import { useLocation } from "wouter";
 import { RightToolsPanel } from "../components/layout/RightToolsPanel";
 
 interface ScoutToolsDrawerProps {
@@ -8,9 +7,10 @@ interface ScoutToolsDrawerProps {
   onClose: () => void;
 }
 
-export function ScoutToolsDrawer({ isOpen, onClose }: ScoutToolsDrawerProps) {
-  const [, navigate] = useLocation();
-
+export default function ScoutToolsDrawer({
+  isOpen,
+  onClose,
+}: ScoutToolsDrawerProps) {
   if (!isOpen) return null;
 
   return (
@@ -21,15 +21,16 @@ export function ScoutToolsDrawer({ isOpen, onClose }: ScoutToolsDrawerProps) {
         aria-label="Close tools menu"
         onClick={onClose}
       />
-      <div className="w-4/5 max-w-xs bg-gray-950 border-l border-gray-800 p-4 overflow-y-auto">
+      <div className="w-4/5 max-w-xs bg-slate-950 border-l border-slate-800 p-4 shadow-xl shadow-black/50 overflow-y-auto">
         <div className="flex items-center justify-between mb-3">
-          <span className="text-xs uppercase tracking-wider text-gray-500">
-            Tools & Personalization
+          <span className="text-xs uppercase tracking-[0.18em] text-slate-500">
+            Tools &amp; Personalization
           </span>
           <button
             type="button"
             onClick={onClose}
-            className="h-7 w-7 flex items-center justify-center rounded-md border border-gray-700 hover:bg-gray-800"
+            className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-slate-700 text-slate-300 hover:bg-slate-800"
+            aria-label="Close tools menu"
           >
             <X className="h-3 w-3" />
           </button>

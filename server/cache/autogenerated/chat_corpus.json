@@ -187,5 +187,15 @@
     ],
     "actions": [],
     "timestamp": "2025-12-10T21:11:31.504Z"
+  },
+  {
+    "question": "Show top projects people are planning locally",
+    "answer": "Welcome! Locally, people are frequently planning urgent home repairs. The most searched projects include plumbing emergencies, electrical fixes, and HVAC maintenance. TradeScout connects you with trusted local contractors for these critical needs. Beyond urgent work, our communities also prioritize nominated home assistance and local beautification projects, often funded by the TradeScout Vault. This ensures local funds support local initiatives.",
+    "layer": 1,
+    "sources": [
+      "TradeScout Brain (data folder)"
+    ],
+    "actions": [],
+    "timestamp": "2025-12-11T05:45:59.364Z"
   }
 ]

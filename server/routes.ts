@@ -1,4 +1,7 @@
 import scoutRoute from "./routes/scout";
+
+// Admin insights logging for Scout
+import type { ExpressHandler } from "./assistantTypes";
 import { ingestKnowledgeFolder } from "./services/knowledgeIngest";
 import fs from "fs";
 import path from "path";
@@ -8321,6 +8324,37 @@ export async function registerRoutes(app: any) {
   // Register AI Scout routes (with assistant alias for backward compatibility)
   app.use("/api/scout", scoutRoute);
   app.use("/api/assistant", scoutRoute);
+
+  // Admin insights for Scout usage
+  const scoutInsightsHandler: ExpressHandler = async (req, res) => {
+    try {
+      const { message, mode, locality, success, latencyMs, error } = req.body || {};
+
+      // Basic validation; do not throw for missing optional fields
+      if (!message || typeof success !== "boolean") {
+        return res.status(400).json({ message: "Invalid scout insights payload" });
+      }
+
+      // For now, log to server console; can be wired to DB/analytics later
+      console.info("[ScoutInsight]", {
+        when: new Date().toISOString(),
+        userId: (req.user as any)?.id || (req.user as any)?.claims?.sub,
+        mode,
+        locality,
+        success,
+        latencyMs,
+        error,
+        preview: String(message).slice(0, 280),
+      });
+
+      return res.status(204).end();
+    } catch (e) {
+      console.error("Failed to record scout insight", e);
+      return res.status(500).json({ message: "Failed to record scout insight" });
+    }
+  };
+
+  app.post("/api/admin/scout-insights", scoutInsightsHandler);
 
   // Bug report endpoint with Formspree integration
   app.post('/api/bug-report', async (req: any, res: any) => {
