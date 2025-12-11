@@ -21,7 +21,7 @@ function getDeviceType(): DeviceType {
   return window.innerWidth < 768 ? "mobile" : "desktop";
 }
 
-export function trackShellEvent(event: ShellEvent) {
+export async function trackShellEvent(event: ShellEvent) {
   if (typeof window === "undefined") return;
 
   const payload = {
@@ -29,22 +29,32 @@ export function trackShellEvent(event: ShellEvent) {
     ts: Date.now(),
   };
 
+  // Optional: completely skip shell analytics in dev to reduce noise
+  // if (import.meta.env.DEV) return;
+
   try {
-    if (navigator.sendBeacon) {
-      navigator.sendBeacon(
-        "/api/analytics/shell",
-        new Blob([JSON.stringify(payload)], { type: "application/json" }),
-      );
-    } else {
-      void fetch("/api/analytics/shell", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-        keepalive: true,
-      });
+    const res = await fetch("/api/analytics/shell", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify(payload),
+      keepalive: true,
+    });
+
+    // Not logged in – treat as a no-op, don't surface errors
+    if (res.status === 401) {
+      return;
     }
-  } catch {
-    // Fail silently; analytics must never break UX.
+
+    // Only warn on real failures, and only in production
+    if (!res.ok && import.meta.env.PROD) {
+      console.warn("Shell analytics failed", res.status);
+    }
+  } catch (err) {
+    // Never let analytics break UX; optionally log in production only
+    if (import.meta.env.PROD) {
+      console.error("Shell analytics error", err);
+    }
   }
 }
 

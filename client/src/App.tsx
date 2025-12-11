@@ -9,7 +9,7 @@ import { ProtectedRoute } from './components/ProtectedRoute';
 
 // Only load essential components eagerly
 import SmartHome from './SmartHome';
-import ScoutLanding from './scout-landing';
+import ScoutLanding from './scout';
 import SimpleMobileGestures from './components/SimpleMobileGestures';
 import SimpleSubtleHints from './components/onboarding/SimpleSubtleHints';
 import SimpleBugReportTool from './components/SimpleBugReportTool';
@@ -366,7 +366,8 @@ const AppLayout = memo(function AppLayout() {
                   <Route path="/groups"><LazyPage Component={Groups} /></Route>
                   <Route path="/group/:id"><LazyPage Component={GroupDetail} /></Route>
                   <Route path="/hoa-management"><LazyPage Component={HoaManagement} /></Route>
-                  <Route path="/community"><LazyPage Component={Community} /></Route>
+                  {/* Community tab should show the rich Nextdoor-style feed */}
+                  <Route path="/community"><LazyPage Component={CommunityFeed} /></Route>
                   <Route path="/community-feed"><LazyPage Component={CommunityFeed} /></Route>
                   <Route path="/community-moderation"><LazyPage Component={CommunityModerationDemo} /></Route>
                   

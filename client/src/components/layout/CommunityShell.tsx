@@ -4,7 +4,8 @@ import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
 import { trackShellEvent, getDeviceType } from "@/lib/analytics";
 import { NotificationsMenu } from "@/components/NotificationsMenu";
-import { Home, Users, MessageCircle, ShoppingBag } from "lucide-react";
+import { Home, Users, MessageCircle, ShoppingBag, SlidersHorizontal, X } from "lucide-react";
+import { RightToolsPanel } from "@/components/layout/RightToolsPanel";
 
 export type CommunityShellProps = {
   sectionLabel: string;
@@ -19,6 +20,7 @@ export const CommunityShell: React.FC<CommunityShellProps> = ({
 }) => {
   const [location, navigate] = useLocation();
   const { user } = useAuth() as any;
+  const [isToolsOpen, setIsToolsOpen] = React.useState(false);
 
   const locationLabel: string = React.useMemo(() => {
     if (!user) return "Set your location";
@@ -110,30 +112,57 @@ export const CommunityShell: React.FC<CommunityShellProps> = ({
         <div className="flex items-center gap-3">
           <NotificationsMenu />
 
+          {/* Mobile tools toggle (replaces avatar as primary control) */}
           <button
             type="button"
-            className="flex h-8 w-8 items-center justify-center overflow-hidden rounded-full border border-slate-700 bg-slate-900 text-xs font-semibold uppercase text-slate-100"
-            aria-label="Open profile"
-            data-testid="community-shell-avatar"
+            onClick={() => setIsToolsOpen(true)}
+            className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-slate-700 bg-slate-900 text-slate-100 hover:bg-slate-800 lg:hidden"
+            aria-label="Open tools and personalization menu"
           >
-            {avatarUrl ? (
-              <img
-                src={avatarUrl}
-                alt={(user as any)?.name || (user as any)?.email || "User avatar"}
-                className="h-full w-full object-cover"
-              />
-            ) : (
-              initials || "U"
-            )}
+            <SlidersHorizontal className="h-4 w-4" />
           </button>
         </div>
       </header>
 
       <main className="flex-1">
-        <div className="mx-auto flex w-full max-w-5xl flex-col gap-4 px-4 py-4 pb-24">
-          {children}
+        <div className="mx-auto w-full max-w-5xl px-4 py-4 pb-24">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="lg:col-span-2 flex flex-col gap-4">
+              {children}
+            </div>
+            {/* Desktop / large screens: persistent right tools panel */}
+            <div className="hidden lg:block">
+              <RightToolsPanel />
+            </div>
+          </div>
         </div>
       </main>
+
+      {/* Mobile overlay for tools panel */}
+      {isToolsOpen && (
+        <div className="fixed inset-0 z-50 flex lg:hidden">
+          <button
+            type="button"
+            className="flex-1 bg-black/50"
+            aria-label="Close tools menu"
+            onClick={() => setIsToolsOpen(false)}
+          />
+          <div className="w-4/5 max-w-xs bg-slate-950 border-l border-slate-800 p-4 shadow-xl shadow-black/50 overflow-y-auto">
+            <div className="flex items-center justify-between mb-3">
+              <span className="text-xs uppercase tracking-[0.18em] text-slate-500">Tools & Personalization</span>
+              <button
+                type="button"
+                onClick={() => setIsToolsOpen(false)}
+                className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-slate-700 text-slate-300 hover:bg-slate-800"
+                aria-label="Close tools menu"
+              >
+                <X className="h-3 w-3" />
+              </button>
+            </div>
+            <RightToolsPanel />
+          </div>
+        </div>
+      )}
     </div>
   );
 };
