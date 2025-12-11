@@ -167,6 +167,7 @@ const ApplicationTracker = React.lazy(() => import('./pages/application-tracker'
 const ResourceCenter = React.lazy(() => import('./pages/resource-center'));
 const MembershipPortal = React.lazy(() => import('./pages/membership-portal'));
 const TrainingCenter = React.lazy(() => import('./pages/training-center'));
+const RoleHubPage = React.lazy(() => import('./pages/role-hub'));
 
 // Debug / experimental views
 const ScoutLandingLite = React.lazy(() => import('./experiments/scout-landing-lite'));
@@ -313,6 +314,11 @@ const AppLayout = memo(function AppLayout() {
               <Route path="/scout" component={ScoutLanding} />
               <Route path="/_scout-lite">
                 <LazyPage Component={ScoutLandingLite} />
+              </Route>
+
+              {/* Role hubs for each user type */}
+              <Route path="/roles/:roleKey">
+                <LazyPage Component={RoleHubPage} />
               </Route>
 
               {/* Dashboard routes (auth required) */}

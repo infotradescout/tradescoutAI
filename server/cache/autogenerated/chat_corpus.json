@@ -197,5 +197,25 @@
     ],
     "actions": [],
     "timestamp": "2025-12-11T05:45:59.364Z"
+  },
+  {
+    "question": "Check MealScout demand patterns near me",
+    "answer": "Welcome! MealScout connects customers with local food vendors directly. Our platform ensures your business is seen the moment people search for food nearby. Visibility is profit. \nWhen local hunger strikes, customers check MealScout first. Your business appears on the food map, instantly connecting you with that demand. It’s all about getting found and getting fed.",
+    "layer": 1,
+    "sources": [
+      "TradeScout Brain (data folder)"
+    ],
+    "actions": [],
+    "timestamp": "2025-12-11T06:02:26.016Z"
+  },
+  {
+    "question": "Scan for under-served trades in my county",
+    "answer": "Welcome to TradeScout! While we don't directly scan for 'under-served' trades, we empower you to explore your local service landscape directly.\nTradeScout connects you with a diverse range of contractors, service providers, and helpers in your county. By browsing our marketplace, you'll gain practical insight into available local services. This helps you discover what's active and what services are readily available in your area.",
+    "layer": 1,
+    "sources": [
+      "TradeScout Brain (data folder)"
+    ],
+    "actions": [],
+    "timestamp": "2025-12-11T06:02:54.758Z"
   }
 ]

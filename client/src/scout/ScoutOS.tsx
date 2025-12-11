@@ -57,7 +57,23 @@ export default function ScoutOS() {
       ? "bg-red-500"
       : "bg-orange-400";
 
-  const handleSend = async (value: string, mode: ScoutMode = "default") => {
+  const inferModeFromRoles = (roles: string[] | undefined | null): ScoutMode => {
+    if (!roles || roles.length === 0) return "default";
+    if (roles.some((r) => r.startsWith("contractor:") || r === "contractor" || r === "pro")) {
+      return "contractors";
+    }
+    if (roles.some((r) => r.startsWith("realtor:") || r === "realtor")) {
+      return "marketplace";
+    }
+    if (roles.includes("mealscout") || roles.some((r) => r.startsWith("mealscout:"))) {
+      return "mealscout";
+    }
+    return "default";
+  };
+
+  const handleSend = async (value: string, explicitMode?: ScoutMode) => {
+    const roles = (user as any)?.roles as string[] | undefined;
+    const mode: ScoutMode = explicitMode ?? inferModeFromRoles(roles);
     const start = performance.now();
     recordUserMessage(value);
 
@@ -68,6 +84,7 @@ export default function ScoutOS() {
         locality,
         mode,
         knowledgeMode: "local-first",
+        roles,
       });
 
       const msg = {
