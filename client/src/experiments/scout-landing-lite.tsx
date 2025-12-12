@@ -140,7 +140,7 @@ export default function ScoutLandingLite() {
                   <div className="text-sm text-slate-400">
                     {isAuthenticated
                       ? "Welcome back. Describe a project, neighbor issue, or hiring need and I’ll scout options."
-                      : "Start with something like: ‘Find a roofer in my county under $20k’ or ‘Draft a post to my HOA board about parking.’"}
+                      : "Start with something like: ‘Find a roofer in my area under $20k’ or ‘Draft a post to my HOA board about parking.’"}
                   </div>
                 )}
                 {messages.map((m) => (

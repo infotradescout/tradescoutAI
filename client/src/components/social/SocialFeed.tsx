@@ -236,7 +236,7 @@ export function SocialFeed({ className }: SocialFeedProps) {
                           </SelectTrigger>
                           <SelectContent>
                             <SelectItem value="neighborhood">Neighborhood</SelectItem>
-                            <SelectItem value="county">County</SelectItem>
+                            <SelectItem value="county">Area</SelectItem>
                             <SelectItem value="state">State</SelectItem>
                             <SelectItem value="national">National</SelectItem>
                           </SelectContent>

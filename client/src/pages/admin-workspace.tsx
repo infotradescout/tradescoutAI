@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Navigate } from "wouter";
+import { useLocation } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -44,6 +44,7 @@ export default function AdminWorkspace() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState('verification');
+  const [, setLocation] = useLocation();
 
   // Check admin access using canonical isAdmin flag
   const hasAdminAccess = !!user?.isAdmin;
@@ -60,6 +61,14 @@ export default function AdminWorkspace() {
     }
   }, [isAuthenticated, authLoading, hasAdminAccess, toast]);
 
+  const unauthorized = !isAuthenticated || !hasAdminAccess;
+
+  useEffect(() => {
+    if (!authLoading && unauthorized) {
+      setLocation("/unauthorized");
+    }
+  }, [authLoading, unauthorized, setLocation]);
+
   const { data: adminStats, isLoading: statsLoading } = useQuery<AdminStats>({
     queryKey: ["/api/admin/stats"],
     enabled: !!isAuthenticated && !!hasAdminAccess,
@@ -74,7 +83,7 @@ export default function AdminWorkspace() {
       type: 'new_application',
       trade: 'Plumbing',
       licenseNumber: 'CA-987654321',
-      serviceArea: 'Los Angeles County',
+      serviceArea: 'Los Angeles',
       documents: {
         license: true,
         insurance: true,
@@ -88,7 +97,7 @@ export default function AdminWorkspace() {
       type: 're_verification',
       trade: 'Roofing',
       licenseNumber: 'CA-123456789',
-      serviceArea: 'Orange County',
+      serviceArea: 'Orange',
       documents: {
         license: true,
         insurance: 'expires_soon',
@@ -144,9 +153,7 @@ export default function AdminWorkspace() {
     );
   }
 
-  if (!isAuthenticated || !hasAdminAccess) {
-    return <Navigate to="/unauthorized" />;
-  }
+  if (unauthorized) return null;
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">

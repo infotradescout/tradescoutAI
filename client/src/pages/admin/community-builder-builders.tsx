@@ -1,5 +1,6 @@
 import React from 'react';
-import { Navigate } from 'wouter';
+import { useEffect } from 'react';
+import { useLocation } from 'wouter';
 import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -24,9 +25,13 @@ interface BuilderRow {
 
 export default function AdminCommunityBuilderManagementPage() {
   const { user } = useAuth();
-  if (!user?.isAdmin) {
-    return <Navigate to="/unauthorized" />;
-  }
+  const [, setLocation] = useLocation();
+
+  useEffect(() => {
+    if (!user?.isAdmin) setLocation('/unauthorized');
+  }, [user?.isAdmin, setLocation]);
+
+  if (!user?.isAdmin) return null;
   const { data: builders = [], refetch } = useQuery<BuilderRow[]>({
     queryKey: ['cbBuilders'],
     queryFn: async () => {
@@ -72,7 +77,7 @@ export default function AdminCommunityBuilderManagementPage() {
               <TableHeader>
                 <TableRow>
                   <TableHead>Business</TableHead>
-                  <TableHead>County</TableHead>
+                  <TableHead>Area</TableHead>
                   <TableHead>Rank</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead className="text-right">Contribs</TableHead>

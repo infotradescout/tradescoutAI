@@ -79,7 +79,7 @@ const getFeatureSteps = (feature: string): TourStep[] => {
           id: "location-filter",
           target: "[data-testid='location-filter']",
           title: "Search by Location",
-          description: "Start by selecting your state and county. This ensures you only see contractors who actually serve your area.",
+          description: "Start by selecting your state and area. This ensures you only see contractors who actually serve your area.",
           position: "bottom"
         },
         {

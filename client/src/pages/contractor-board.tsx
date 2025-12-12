@@ -111,7 +111,7 @@ const ContractorBoard = () => {
           actions={
             <div className="flex items-center gap-2">
               <Input
-                placeholder="Search by job, trade, or county"
+                placeholder="Search by job, trade, or area"
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 className="w-64 bg-slate-900 border-slate-700 text-white"

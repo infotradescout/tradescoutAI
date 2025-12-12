@@ -16,6 +16,9 @@ import {
   formatUserContextForPrompt,
   generateThinkingContext,
 } from "../services/userContextService";
+import { storage } from "../storage";
+import { resolveCountyFips, resolveRegionSlug } from "../services/regionResolver";
+import { shouldInjectSponsored } from "../services/sponsoredEligibility";
 import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
@@ -173,7 +176,8 @@ async function synthesizeResponse(
   systemPrompt: string,
   conversationHistory: string,
   userContext?: any,
-  historyMessages?: { role: string; content: string }[]
+  historyMessages?: { role: string; content: string }[],
+  recentActivityPrompt?: string
 ): Promise<{ message: string; suggestedActions: string[] }> {
   const DEFAULT_ACTIONS = [
     "Find contractors in my area",
@@ -199,10 +203,16 @@ async function synthesizeResponse(
       userContextPrompt += `\n${generateThinkingContext(userContext)}\n`;
     }
 
+    const activityContext = recentActivityPrompt
+      ? `\n${recentActivityPrompt}\n`
+      : "";
+
     // Smart synthesis that elaborates on knowledge while keeping facts intact
     const synthesisPrompt = `You are Scout, the TradeScout AI assistant. Your job is to make knowledge helpful, specific, and engaging.
 
 ${userContextPrompt}
+
+    ${activityContext}
 
 User asked: "${userMessage}"
 
@@ -556,6 +566,16 @@ interface ScoutRequest {
   history?: ChatMessage[];
   countyCode?: string;
   stateCode?: string;
+  roles?: string[];
+  recentActivity?: Array<{
+    type: string;
+    ts: string;
+    path?: string;
+    to?: string;
+    label?: string;
+    meta?: Record<string, unknown>;
+  }>;
+  shownAdIds?: string[];
 }
 
 interface ScoutResponse {
@@ -563,7 +583,38 @@ interface ScoutResponse {
   suggestedActions?: string[];
   actions?: AssistantAction[];
   actionResults?: any[];
+  sponsored?: {
+    id: string;
+    title: string;
+    content: string;
+    imageUrl?: string | null;
+    linkUrl?: string | null;
+    isAffiliate?: boolean | null;
+    targetLocation?: string | null;
+  } | null;
 }
+
+function formatRecentActivityForPrompt(recentActivity: ScoutRequest["recentActivity"]): string {
+  if (!recentActivity || recentActivity.length === 0) return "";
+
+  const normalized = recentActivity
+    .filter((e) => e && typeof e.type === "string")
+    .slice(-10)
+    .map((e) => {
+      const bits = [
+        e.type,
+        e.label ? `label=${e.label}` : null,
+        e.to ? `to=${e.to}` : null,
+        e.path ? `path=${e.path}` : null,
+      ].filter(Boolean);
+      return `- ${bits.join(" | ")}`;
+    });
+
+  if (normalized.length === 0) return "";
+  return `RECENT ACTIVITY (this session, client-reported):\n${normalized.join("\n")}`;
+}
+
+// (moved to services/regionResolver.ts)
 
 /**
  * POST /api/scout
@@ -578,6 +629,9 @@ router.post("/", async (req: Request, res: Response) => {
       history = [],
       countyCode,
       stateCode,
+      roles = [],
+      recentActivity = [],
+      shownAdIds = [],
     }: ScoutRequest = req.body;
 
     if (!message || typeof message !== "string") {
@@ -694,6 +748,8 @@ router.post("/", async (req: Request, res: Response) => {
     // Instead of passing raw knowledge to the LLM, first synthesize it smartly
     // [USER-CONTEXT] Build and inject user context for personalized responses
     const userContext = await buildUserContext(userId);
+
+    const recentActivityPrompt = formatRecentActivityForPrompt(recentActivity);
     
     const synthesized = await synthesizeResponse(
       message,
@@ -702,7 +758,8 @@ router.post("/", async (req: Request, res: Response) => {
       systemPrompt,
       conversationHistory,
       userContext,
-      history
+      history,
+      recentActivityPrompt
     );
 
     // Check if this action requires authentication
@@ -748,6 +805,7 @@ Ready? Let's set you up! 🚀`;
       message: finalMessage,
       suggestedActions: synthesized.suggestedActions,
       actions: [],
+      sponsored: null,
     };
 
     // The synthesis result is our response; no further action extraction needed
@@ -760,7 +818,85 @@ Ready? Let's set you up! 🚀`;
       if (safety.flagged) {
         // Drop actions if content looks unsafe
         aiResponse.actions = [];
+        aiResponse.sponsored = null;
       }
+    }
+
+    // Monetization injection: at most 1 sponsored item per response, session-capped by client.
+    try {
+      const excludeIds = Array.isArray(shownAdIds) ? shownAdIds.filter(Boolean) : [];
+      const allowSponsored = shouldInjectSponsored({
+        userId,
+        historyLength: Array.isArray(history) ? history.length : 0,
+        rolesLength: Array.isArray(roles) ? roles.length : 0,
+        countyCode,
+        stateCode,
+        shownAdIdsLength: excludeIds.length,
+      });
+
+      if (!aiResponse.sponsored && allowSponsored) {
+        const lowerRoles = new Set(
+          (Array.isArray(roles) ? roles : []).map((r) => String(r).toLowerCase())
+        );
+
+        const audience = lowerRoles.has("contractor") || lowerRoles.has("pro")
+          ? "contractors"
+          : lowerRoles.has("homeowner") || lowerRoles.has("resident")
+          ? "homeowners"
+          : userContext?.preferences?.isContractor
+          ? "contractors"
+          : userContext?.preferences?.isHomowner
+          ? "homeowners"
+          : "all";
+
+        const preferAffiliate =
+          /deal|discount|coupon|offer|promo|save\b/i.test(message) ||
+          (Array.isArray(recentActivity)
+            ? recentActivity.some(
+                (e) =>
+                  String((e as any)?.type || "") === "navigate" &&
+                  String((e as any)?.to || "").includes("/marketplace")
+              )
+            : false);
+
+        let countyFips: string | undefined;
+        if (stateCode) {
+          const counties = await storage.getCounties(stateCode);
+          countyFips = resolveCountyFips({ countyCode, stateCode, counties });
+        }
+
+        let regionSlug: string | undefined;
+        if (stateCode) {
+          const regions = await storage.getRegions({ stateCode, isOfficial: true, limit: 50 });
+          regionSlug = resolveRegionSlug({ stateCode, countyFips, regions });
+        }
+
+        const ad = await storage.getTargetedAd({
+          audience,
+          state: stateCode,
+          county: countyFips,
+          regionSlug,
+          placement: "site_visit",
+          excludeAdIds: excludeIds,
+          preferAffiliate,
+        });
+
+        if (ad) {
+          await storage.incrementAdImpressions(ad.id);
+          aiResponse.sponsored = {
+            id: ad.id,
+            title: ad.title,
+            content: ad.content,
+            imageUrl: ad.imageUrl,
+            linkUrl: ad.linkUrl,
+            isAffiliate: ad.isAffiliate,
+            targetLocation: ad.targetLocation,
+          };
+        }
+      }
+    } catch (monetizationError) {
+      console.error("[Scout] Monetization injection failed:", monetizationError);
+      aiResponse.sponsored = null;
     }
 
     // Persist non-sensitive Q&A back into the knowledge corpus for future retrieval
@@ -784,6 +920,7 @@ Ready? Let's set you up! 🚀`;
       message: aiResponse.message,
       actions: aiResponse.actions || [],
       actionResults: [],
+      sponsored: aiResponse.sponsored ?? null,
       knowledge: {
         layer: knowledge.layer,
         sources: knowledge.sources,

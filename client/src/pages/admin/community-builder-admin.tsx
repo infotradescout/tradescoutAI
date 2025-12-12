@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Navigate } from 'wouter';
+import React, { useEffect, useState } from 'react';
+import { useLocation } from 'wouter';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { 
   Card, 
@@ -37,9 +37,13 @@ interface PendingContribution {
 
 export default function AdminCommunityBuilderDashboard() {
   const { user } = useAuth();
-  if (!user?.isAdmin) {
-    return <Navigate to="/unauthorized" />;
-  }
+  const [, setLocation] = useLocation();
+
+  useEffect(() => {
+    if (!user?.isAdmin) setLocation('/unauthorized');
+  }, [user?.isAdmin, setLocation]);
+
+  if (!user?.isAdmin) return null;
   const { toast } = useToast();
   const [selectedContribution, setSelectedContribution] = useState<string | null>(null);
   const [approvalNotes, setApprovalNotes] = useState('');
@@ -276,7 +280,7 @@ export default function AdminCommunityBuilderDashboard() {
             </CardTitle>
           </CardHeader>
           <CardContent className="text-sm space-y-2">
-            <p>✓ Check that contribution aligns with county needs</p>
+            <p>✓ Check that contribution aligns with local needs</p>
             <p>✓ Verify estimated value is reasonable</p>
             <p>✓ Ensure builder has relevant experience/credentials</p>
             <p>✓ Look for red flags in description or builder profile</p>

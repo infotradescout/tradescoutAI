@@ -5,6 +5,7 @@ import { X } from 'lucide-react';
 import { queryClient } from './lib/queryClient';
 import { ErrorBoundary } from './components/ui/error-boundary';
 import { ThemeProvider } from './contexts/ThemeContext';
+import { SessionProvider } from './contexts/SessionContext';
 import { ProtectedRoute } from './components/ProtectedRoute';
 
 // Only load essential components eagerly
@@ -268,9 +269,14 @@ const AppLayout = memo(function AppLayout() {
     setShowBetaNotice(false);
   };
 
+  const appBackgroundClass = 'bg-[#060b1c]';
+  const mainClassName = isLlmRoute
+    ? 'flex-1 relative w-full bg-[#060b1c]'
+    : 'flex-1 relative w-full px-3 sm:px-4 md:px-6 py-6 bg-[#060b1c]';
+
   return (
     <SimpleMobileGestures>
-      <div className="min-h-screen bg-tsBg text-tsTextMain font-sans flex flex-col">
+      <div className={`min-h-screen ${appBackgroundClass} text-tsTextMain font-sans flex flex-col`}>
         {!isLlmRoute && (
           <header className="hidden md:block sticky top-0 z-40 backdrop-blur-md bg-slate-950/85 border-b border-tsBorder shadow-lg">
             <div className="w-full px-6 py-4 flex flex-col items-center gap-3 text-center">
@@ -306,7 +312,7 @@ const AppLayout = memo(function AppLayout() {
           </div>
         )}
 
-        <main className="flex-1 relative w-full px-3 sm:px-4 md:px-6 py-6">
+        <main className={mainClassName}>
           <ErrorBoundary fallback={<PageLoader />}>
             <Switch>
               {/* Home routes - Scout landing is the primary front door */}
@@ -712,10 +718,12 @@ const App = memo(function App() {
     <ErrorBoundary fallback={<PageLoader />}>
       <QueryClientProvider client={queryClient}>
         <ThemeProvider>
-          <Router>
-            <AppLayout />
-          </Router>
-          <SimpleFloatingHelp />
+          <SessionProvider>
+            <Router>
+              <AppLayout />
+            </Router>
+            <SimpleFloatingHelp />
+          </SessionProvider>
         </ThemeProvider>
       </QueryClientProvider>
     </ErrorBoundary>

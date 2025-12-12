@@ -332,7 +332,7 @@ const Promotions = memo(function Promotions() {
                       <Label htmlFor="target-area" className="text-gray-300">Target Area</Label>
                       <Select>
                         <SelectTrigger className="bg-slate-700 border-slate-600 text-white">
-                          <SelectValue placeholder="Select area" />
+                          <SelectValue placeholder="Select county" />
                         </SelectTrigger>
                         <SelectContent className="bg-slate-700 border-slate-600">
                           <SelectItem value="all">All Service Areas</SelectItem>

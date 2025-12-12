@@ -113,6 +113,12 @@ const corsOptions: cors.CorsOptions = {
     if (!origin) return callback(null, true);
     const normalized = origin.toLowerCase();
 
+    // Always allow localhost loopback origins on any port.
+    // This keeps prod-preview working even if the server falls back to a different port.
+    if (/^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(normalized)) {
+      return callback(null, true);
+    }
+
     // Always allow same-host access on the API port (common for prod localhost testing)
     const sameHostOrigins = [
       `http://localhost:${PORT}`.toLowerCase(),

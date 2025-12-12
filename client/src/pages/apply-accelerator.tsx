@@ -135,7 +135,7 @@ const ApplyAccelerator = memo(function ApplyAccelerator() {
                 <Label htmlFor="location" className="text-white">Primary Service Location *</Label>
                 <Input
                   id="location"
-                  placeholder="Los Angeles County, CA"
+                  placeholder="Los Angeles, CA"
                   className="bg-navy-700 border-navy-600 text-white"
                 />
               </div>

@@ -191,7 +191,7 @@ export default function NationwideExpansion() {
         <Tabs defaultValue="overview" className="space-y-6">
           <TabsList className="grid w-full grid-cols-5 bg-[#1a2332]/50">
             <TabsTrigger value="overview" className="data-[state=active]:bg-purple-500">Overview</TabsTrigger>
-            <TabsTrigger value="counties" className="data-[state=active]:bg-purple-500">Top Counties</TabsTrigger>
+            <TabsTrigger value="counties" className="data-[state=active]:bg-purple-500">Top Areas</TabsTrigger>
             <TabsTrigger value="expansion" className="data-[state=active]:bg-purple-500">Expansion</TabsTrigger>
             <TabsTrigger value="foundation" className="data-[state=active]:bg-purple-500">Foundation</TabsTrigger>
             <TabsTrigger value="affiliates" className="data-[state=active]:bg-purple-500">Affiliates</TabsTrigger>
@@ -209,12 +209,12 @@ export default function NationwideExpansion() {
                 <CardContent className="space-y-4">
                   <div className="space-y-2">
                     <div className="flex justify-between text-sm">
-                      <span className="text-slate-300">US County Coverage</span>
+                      <span className="text-slate-300">US Area Coverage</span>
                       <span className="text-white">{metrics?.countyActivationRate.toFixed(1)}%</span>
                     </div>
                     <Progress value={metrics?.countyActivationRate || 0} className="h-3" />
                     <p className="text-xs text-slate-400">
-                      {metrics?.activeCounties.toLocaleString()} of {metrics?.totalCounties.toLocaleString()} counties active
+                      {metrics?.activeCounties.toLocaleString()} of {metrics?.totalCounties.toLocaleString()} areas active
                     </p>
                   </div>
 

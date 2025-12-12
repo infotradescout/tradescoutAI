@@ -327,7 +327,7 @@ import {
   type InsertDealEngagement,
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, and, desc, asc, sql, inArray, like, gt, or, lt, isNull, isNotNull, ne, gte, lte } from "drizzle-orm";
+import { eq, and, desc, asc, sql, inArray, like, gt, or, lt, isNull, isNotNull, ne, gte, lte, notInArray } from "drizzle-orm";
 import bcrypt from "bcrypt";
 import { randomUUID } from "crypto";
 
@@ -490,7 +490,15 @@ export interface IStorage {
   createAdvertisement(ad: InsertAdvertisement): Promise<Advertisement>;
   updateAdvertisement(id: string, updates: Partial<Advertisement>): Promise<Advertisement>;
   deleteAdvertisement(id: string): Promise<void>;
-  getTargetedAd(criteria: { audience: string; state?: string; county?: string; }): Promise<Advertisement | null>;
+  getTargetedAd(criteria: {
+    audience: string;
+    state?: string;
+    county?: string;
+    regionSlug?: string;
+    placement?: string;
+    excludeAdIds?: string[];
+    preferAffiliate?: boolean;
+  }): Promise<Advertisement | null>;
   incrementAdImpressions(adId: string): Promise<void>;
   incrementAdClicks(adId: string): Promise<void>;
   saveAdForUser(userId: string, adId: string): Promise<SavedAd>;
@@ -1808,6 +1816,10 @@ export class DatabaseStorage implements IStorage {
     audience: string; 
     state?: string; 
     county?: string; 
+    regionSlug?: string;
+    placement?: string;
+    excludeAdIds?: string[];
+    preferAffiliate?: boolean;
   }): Promise<Advertisement | null> {
     // Build location targeting filters
     const locationFilters = ['national'];
@@ -1820,6 +1832,16 @@ export class DatabaseStorage implements IStorage {
       locationFilters.push(`county:${criteria.county}`);
     }
 
+    if (criteria.regionSlug) {
+      locationFilters.push(`region:${criteria.regionSlug}`);
+    }
+
+    const placement = criteria.placement || 'site_visit';
+    const excludeAdIds = Array.isArray(criteria.excludeAdIds)
+      ? criteria.excludeAdIds.filter(Boolean)
+      : [];
+    const preferAffiliate = Boolean(criteria.preferAffiliate);
+
     // Query for active ads matching audience and location
     const ads = await db
       .select()
@@ -1827,14 +1849,19 @@ export class DatabaseStorage implements IStorage {
       .where(
         and(
           eq(advertisements.isActive, true),
-          eq(advertisements.placement, 'site_visit'),
+          eq(advertisements.placement, placement),
           inArray(advertisements.targetLocation, locationFilters),
+          excludeAdIds.length > 0 ? notInArray(advertisements.id, excludeAdIds) : sql`1=1`,
           criteria.audience !== 'all' 
             ? eq(advertisements.targetAudience, criteria.audience)
             : sql`1=1`
         )
       )
-      .orderBy(desc(advertisements.priority), sql`RANDOM()`)
+      .orderBy(
+        desc(advertisements.priority),
+        preferAffiliate ? desc(advertisements.isAffiliate) : sql`0`,
+        sql`RANDOM()`
+      )
       .limit(1);
 
     return ads[0] || null;

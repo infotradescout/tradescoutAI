@@ -3,12 +3,12 @@ import { Button } from "@/components/ui/button";
 
 const presets = [
   "Find roofers available this week",
-  "Start the Community Builder for my county",
+  "Start the Community Builder for my area",
   "Show me today’s best tool deals",
   "Message the top 3 electricians near me",
   "Create a project for kitchen remodel",
   "List my pressure washer for $250",
-  "Find food trucks near me tonight",
+  "Find an emergency plumber tonight",
 ];
 
 export function QuickActions() {
