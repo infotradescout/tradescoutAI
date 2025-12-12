@@ -25,7 +25,7 @@ const contractorSignupSchema = z.object({
   
   // Location & Service Areas
   primaryState: z.string().min(1, "Please select your primary state"),
-  primaryCounty: z.string().min(1, "Please select your primary county"),
+  primaryCounty: z.string().min(1, "Please select your primary area"),
   serviceRadius: z.string().min(1, "Please select your service radius"),
   
   // Business Details
@@ -432,7 +432,7 @@ export default function ContractorSignup() {
                         name="primaryCounty"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel className="text-gray-300">Primary County *</FormLabel>
+                            <FormLabel className="text-gray-300">Primary county *</FormLabel>
                             <Select onValueChange={field.onChange} value={field.value} disabled={!selectedState}>
                               <FormControl>
                                 <SelectTrigger className="bg-navy-800 border-navy-600 text-white">

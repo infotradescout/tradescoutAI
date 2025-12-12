@@ -186,7 +186,7 @@ export function OnboardingFlow({ role, userInfo, onComplete, onSkip }: Onboardin
                     />
                   </div>
                   <div>
-                    <Label htmlFor="county" className="text-slate-200">County</Label>
+                    <Label htmlFor="county" className="text-slate-200">Area</Label>
                     <Input
                       id="county"
                       onChange={(e) => updateFormData({ county: e.target.value })}

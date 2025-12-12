@@ -97,8 +97,8 @@ export function ScoutChat({ defaultOpen = false, isAuthenticated = false }: Scou
       const introMessage: Message = {
         role: 'assistant',
         content: isAuthenticated
-          ? "Welcome back! I'm Scout, your TradeScout operating system. I can:\n• Find and message verified contractors for your county\n• Spin up Community Builder and launch outreach posts\n• Search marketplace deals or list your gear fast\n• Run MealScout to surface food trucks and local offers\nAsk me anything specific (project, location, budget, timing) and I'll act immediately."
-          : "Hey, I'm Scout—your TradeScout guide. I can: find local pros, search marketplace deals, launch community growth, and run MealScout. Tell me your project or pick a prompt below and I'll get it done.",
+          ? "Welcome back! I'm Scout, your TradeScout operating system. I can:\n• Find and message verified contractors for your area\n• Spin up Community Builder and launch outreach posts\n• Search marketplace deals or help you list items fast\nAsk me anything specific (project, location, budget, timing) and I'll act immediately."
+          : "Hey, I'm Scout—your TradeScout guide. I can: find local pros, search marketplace deals, and launch community growth. Tell me your project or pick a prompt below and I'll get it done.",
         timestamp: new Date(),
       };
       setMessages([introMessage]);
@@ -332,7 +332,7 @@ export function ScoutChat({ defaultOpen = false, isAuthenticated = false }: Scou
       if (isFirstUserTurn) {
         const highlight: Message = {
           role: 'assistant',
-          content: `Got it — '${messageToSend}'. Here's how I can move fast right now:\n• Contractors: I can find and message verified pros in your county.\n• Marketplace: Surface deals or list your gear with price recommendations.\n• Community Builder: Launch outreach posts and welcome messages.\n• MealScout: Pull nearby food trucks, restaurants, and offers.\nWant me to execute one of these or refine your request?` ,
+          content: `Got it — '${messageToSend}'. Here's how I can move fast right now:\n• Contractors: I can find and message verified pros in your area.\n• Marketplace: Surface deals or list your gear with price recommendations.\n• Community Builder: Launch outreach posts and welcome messages.\n• MealScout: Pull nearby food trucks, restaurants, and offers.\nWant me to execute one of these or refine your request?` ,
           timestamp: new Date(),
         };
         setMessages((prev) => {
@@ -398,12 +398,12 @@ export function ScoutChat({ defaultOpen = false, isAuthenticated = false }: Scou
 
   const quickPrompts = [
     'Find roofers available this week',
-    'Start the Community Builder for my county',
+    'Start the Community Builder for my area',
     'Show me today\'s best tool deals',
     'Message the top 3 electricians near me',
     'Create a project for kitchen remodel',
     'List my pressure washer for $250',
-    'Find food trucks near me tonight',
+    'Find an emergency plumber tonight',
   ];
 
   const navButtons = [

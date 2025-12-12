@@ -128,7 +128,7 @@ export default function Register() {
               <div className="space-y-1">
                 <p className="font-semibold text-tsTextMain text-sm">County-first identity</p>
                 <p>
-                  We tie your roles to your county so locals know exactly who they&apos;re dealing with.
+                  We tie your roles to where you live so locals know exactly who they&apos;re dealing with.
                 </p>
               </div>
             </div>
@@ -290,7 +290,7 @@ export default function Register() {
                   ))}
                 </select>
                 <p className="text-xs text-tsTextMuted mt-1">
-                  Helps us issue Founder badges for the first user type in each county.
+                  Helps us issue Founder badges for the first user type in each area.
                 </p>
                 {form.formState.errors.county && (
                   <p className="text-red-400 text-sm mt-1">{form.formState.errors.county.message}</p>
@@ -363,7 +363,7 @@ export default function Register() {
               <div className="mt-4 p-4 bg-[#0b1224] border border-tsBorder rounded-lg">
                 <p className="text-xs text-tsTextMuted">
                   <strong className="text-tsTextMain">Why join TradeScout?</strong>{" "}
-                  Your profile replaces a website: colors, roles, and county are all baked in. Scout uses this to tune
+                  Your profile replaces a website: colors, roles, and your area are all baked in. Scout uses this to tune
                   marketplace matches, community visibility, and future tools for whatever roles you pickhomeowner,
                   pro, organizer, affiliate, or any new roles we add later.
                 </p>

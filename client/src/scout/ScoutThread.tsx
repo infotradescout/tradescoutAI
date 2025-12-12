@@ -1,78 +1,159 @@
 import React from "react";
-import type { ScoutMessage, ScoutStatus } from "./state";
+import clsx from "clsx";
+import type { ScoutAction, ScoutCluster, ScoutMessage, ScoutStatus } from "./state";
 
-interface ScoutThreadProps {
+type ScoutThreadProps = {
   messages: ScoutMessage[];
   status: ScoutStatus;
+  onAction?: (action: ScoutAction) => void;
   onQuickAction?: (text: string) => void;
+};
+
+function ClusterCard({
+  cluster,
+  onAction,
+}: {
+  cluster: ScoutCluster;
+  onAction?: (action: ScoutAction) => void;
+}) {
+  const handleAction = (action: ScoutAction) => {
+    if (!onAction) return;
+    onAction(action);
+  };
+
+  return (
+    <div className="rounded-2xl border border-slate-800 bg-slate-950/70 p-3 space-y-2">
+      <div className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
+        {cluster.title}
+      </div>
+      {cluster.body && (
+        <p className="text-xs text-slate-300/90">{cluster.body}</p>
+      )}
+
+      {cluster.items && cluster.items.length > 0 && (
+        <ul className="mt-1 space-y-1.5">
+          {cluster.items.map((item) => (
+            <li
+              key={item.id}
+              className="text-[11px] text-slate-300/90 leading-snug"
+            >
+              <span className="font-medium text-slate-100">{item.label}</span>
+              {item.description && (
+                <>
+                  {" "}
+                  <span className="text-slate-400">— {item.description}</span>
+                </>
+              )}
+            </li>
+          ))}
+        </ul>
+      )}
+
+      {cluster.actions && cluster.actions.length > 0 && (
+        <div className="mt-2 flex flex-wrap gap-1.5">
+          {cluster.actions.map((action) => (
+            <button
+              key={`${cluster.id}-${action.label}`}
+              type="button"
+              onClick={() => handleAction(action)}
+              className="inline-flex items-center rounded-full border border-tsAccent/70 px-3 py-1 text-[11px] font-medium text-tsAccent hover:bg-tsAccent hover:text-black transition"
+            >
+              {action.label}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {!cluster.actions && cluster.primaryAction && (
+        <div className="mt-3">
+          <button
+            type="button"
+            onClick={() => handleAction(cluster.primaryAction!)}
+            className="inline-flex items-center justify-center rounded-xl bg-tsAccent px-3 py-2 text-xs font-semibold text-black hover:bg-orange-400"
+          >
+            {cluster.primaryAction.label}
+          </button>
+        </div>
+      )}
+    </div>
+  );
 }
 
-export default function ScoutThread({
+const ScoutThread: React.FC<ScoutThreadProps> = ({
   messages,
   status,
+  onAction,
   onQuickAction,
-}: ScoutThreadProps) {
+}) => {
   const isBusy =
     status === "sending" || status === "thinking" || status === "responding";
 
   return (
-    <div className="space-y-2">
-      <p className="text-[11px] font-semibold tracking-[0.18em] text-slate-400 uppercase">
-        Live Scout thread
-      </p>
+    <div className="space-y-3 max-h-80 overflow-y-auto pr-1">
+      {messages.map((msg) => {
+        const isUser = msg.role === "user";
 
-      <div className="mt-1 rounded-2xl border border-slate-800 bg-[#020617] px-4 py-3 min-h-[140px] max-h-96 overflow-y-auto space-y-4">
-        {messages.map((msg) => (
-          <div key={msg.id} className="space-y-1">
-            <div className="text-[10px] uppercase tracking-wider text-slate-500 flex items-center gap-2">
-              <span
-                className={`h-1.5 w-1.5 rounded-full ${
-                  msg.role === "user" ? "bg-orange-400" : "bg-cyan-300"
-                }`}
-              />
-              {msg.role === "user" ? "You" : "Scout"}
-            </div>
-
+        return (
+          <div
+            key={msg.id}
+            className={clsx("flex", {
+              "justify-end": isUser,
+              "justify-start": !isUser,
+            })}
+          >
             <div
-              className={`inline-block max-w-full rounded-2xl px-4 py-3 text-sm ${
-                msg.role === "user"
-                  ? "bg-orange-500 text-white"
-                  : "bg-slate-800 text-slate-50"
-              }`}
+              className={clsx(
+                "max-w-[90%] rounded-2xl px-3 py-2 text-xs space-y-2",
+                isUser
+                  ? "bg-slate-700 text-slate-50 rounded-br-sm"
+                  : "bg-slate-900/80 text-slate-100 rounded-bl-sm border border-slate-800"
+              )}
             >
-              {msg.content}
-            </div>
+              {msg.content && (
+                <p className="text-[13px] leading-relaxed whitespace-pre-line">
+                  {msg.content}
+                </p>
+              )}
 
-            {msg.suggestedActions && msg.suggestedActions.length > 0 && (
-              <div className="flex flex-wrap gap-2">
-                {msg.suggestedActions.map((act, idx) => (
-                  <button
-                    key={idx}
-                    type="button"
-                    onClick={() => onQuickAction && onQuickAction(act)}
-                    className="px-3 py-1.5 text-[11px] rounded-full border border-slate-700 bg-slate-900 hover:border-orange-400"
-                  >
-                    {act}
-                  </button>
+              {msg.clusters &&
+                msg.clusters.length > 0 &&
+                msg.clusters.map((cluster) => (
+                  <ClusterCard
+                    key={cluster.id}
+                    cluster={cluster}
+                    onAction={onAction}
+                  />
                 ))}
-              </div>
-            )}
-          </div>
-        ))}
 
-        {isBusy && (
-          <div className="text-[11px] text-slate-400 italic flex gap-2 items-center">
-            <span className="h-1.5 w-1.5 rounded-full bg-orange-400 animate-pulse" />
+              {msg.suggestedActions && msg.suggestedActions.length > 0 && (
+                <div className="flex flex-wrap gap-2">
+                  {msg.suggestedActions.map((act, idx) => (
+                    <button
+                      key={idx}
+                      type="button"
+                      onClick={() => onQuickAction && onQuickAction(act)}
+                      className="px-3 py-1.5 text-[11px] rounded-full border border-slate-700 bg-slate-900 hover:border-orange-400"
+                    >
+                      {act}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        );
+      })}
+
+      {isBusy && (
+        <div className="flex justify-start">
+          <div className="inline-flex items-center gap-2 rounded-full bg-slate-900/80 px-3 py-1 text-[11px] text-slate-300 border border-slate-800">
+            <span className="h-1.5 w-1.5 rounded-full bg-amber-400 animate-pulse" />
             <span>Scout is thinking...</span>
           </div>
-        )}
-
-        {!messages.length && !isBusy && (
-          <p className="text-xs text-slate-500">
-            Ask anything about local projects, pros, marketplace items, or MealScout deals.
-          </p>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   );
-}
+};
+
+export default ScoutThread;

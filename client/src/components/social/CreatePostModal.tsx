@@ -136,7 +136,7 @@ export function CreatePostModal({ open, onOpenChange }: CreatePostModalProps) {
 
   const visibilityOptions = [
     { value: "neighborhood", label: "Neighborhood", icon: MapPin, description: "Visible to your immediate neighbors" },
-    { value: "county", label: "County", icon: Users, description: "Visible to your entire county" },
+    { value: "county", label: "Area", icon: Users, description: "Visible to your entire area" },
     { value: "state", label: "State", icon: Globe, description: "Visible to your state" },
     { value: "public", label: "Public", icon: Globe, description: "Visible to everyone" },
   ];

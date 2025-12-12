@@ -1,5 +1,6 @@
 import React from 'react';
-import { Navigate } from 'wouter';
+import { useEffect } from 'react';
+import { useLocation } from 'wouter';
 import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -20,9 +21,13 @@ interface ReconciliationRow {
 
 export default function AdminCommunityBuilderReconciliationPage() {
   const { user } = useAuth();
-  if (!user?.isAdmin) {
-    return <Navigate to="/unauthorized" />;
-  }
+  const [, setLocation] = useLocation();
+
+  useEffect(() => {
+    if (!user?.isAdmin) setLocation('/unauthorized');
+  }, [user?.isAdmin, setLocation]);
+
+  if (!user?.isAdmin) return null;
   const { data: recs = [], isLoading } = useQuery<ReconciliationRow[]>({
     queryKey: ['cbReconciliation'],
     queryFn: async () => {
@@ -40,10 +45,10 @@ export default function AdminCommunityBuilderReconciliationPage() {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold">Vault Reconciliation</h1>
-            <p className="text-gray-600">Ledger vs vault balance by county.</p>
+            <p className="text-gray-600">Ledger vs vault balance by area.</p>
           </div>
           <Badge variant="secondary" className="flex items-center gap-1">
-            <Wallet className="w-4 h-4" /> {recs.length} counties
+            <Wallet className="w-4 h-4" /> {recs.length} areas
           </Badge>
         </div>
 
@@ -51,7 +56,7 @@ export default function AdminCommunityBuilderReconciliationPage() {
           <Alert className="border-amber-200 bg-amber-50">
             <AlertTriangle className="h-4 w-4" />
             <AlertTitle>Reconciliation warnings</AlertTitle>
-            <AlertDescription>{warnings.length} county(ies) need attention.</AlertDescription>
+            <AlertDescription>{warnings.length} area(s) need attention.</AlertDescription>
           </Alert>
         )}
 
@@ -67,7 +72,7 @@ export default function AdminCommunityBuilderReconciliationPage() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>County</TableHead>
+                    <TableHead>Area</TableHead>
                     <TableHead className="text-right">Vault</TableHead>
                     <TableHead className="text-right">Inflow</TableHead>
                     <TableHead className="text-right">Outflow</TableHead>

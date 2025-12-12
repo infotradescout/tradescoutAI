@@ -45,7 +45,7 @@ export function NextGenNavigation({ className = "" }: NextGenNavigationProps) {
         { href: "/boosts", label: "Boosts", icon: TrendingUp, priority: 6 },
         { href: "/groups", label: "Groups", icon: Users, priority: 5 },
         { href: "/hoa-dashboard", label: "HOA", icon: Building, priority: 4 },
-        { href: "/county-directory", label: "County Directory", icon: Users, priority: 3 },
+        { href: "/county-directory", label: "Area Directory", icon: Users, priority: 3 },
         { href: "/foundation", label: "Foundation", icon: Building, priority: 2 },
         { href: "/community", label: "Community", icon: MessageSquare, priority: 3 },
         { href: "/worker-marketplace", label: "Helpers", icon: Users, priority: 4 },

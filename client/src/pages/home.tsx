@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 import { AdDisplay, useUserLocation } from "@/components/AdDisplay";
 import { InteractiveCountyMap } from "@/components/InteractiveCountyMap";
+import { sanitizeAreaLabel } from "@/lib/copyHelpers";
 
 export default function Home() {
   const { user } = useAuth();
@@ -45,10 +46,10 @@ export default function Home() {
   });
 
   const countyLabel = vaultSnapshot?.county
-    ? `${vaultSnapshot.county.name}, ${vaultSnapshot.county.stateCode}`
+    ? `${sanitizeAreaLabel(vaultSnapshot.county.name)}, ${vaultSnapshot.county.stateCode}`
     : user?.county && user?.state
-      ? `${user.county}, ${user.state}`
-      : "Your county";
+      ? `${sanitizeAreaLabel(user.county)}, ${user.state}`
+      : "Your area";
 
   return (
     <ScrollArea 

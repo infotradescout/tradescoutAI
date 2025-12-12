@@ -5,6 +5,7 @@ export interface ScoutActionHelpers {
   openAppDrawer: () => void;
   openToolsDrawer: () => void;
   prefillInput: (value: string) => void;
+  askScout?: (prompt: string) => void;
 }
 
 export function executeScoutActions(
@@ -15,11 +16,30 @@ export function executeScoutActions(
 
   for (const action of actions) {
     switch (action.type) {
-      case "NAVIGATE":
-        if (action.to) {
-          helpers.navigate(action.to);
+      case "NAVIGATE": {
+        const destination = action.to ?? action.path;
+        if (destination) {
+          const adId = typeof action.payload?.adId === "string" ? (action.payload.adId as string) : null;
+          if (adId) {
+            void fetch("/api/ads/track-click", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ adId }),
+            }).catch(() => undefined);
+          }
+
+          if (/^https?:\/\//i.test(destination)) {
+            try {
+              window.open(destination, "_blank", "noopener,noreferrer");
+            } catch {
+              // ignore
+            }
+            break;
+          }
+          helpers.navigate(destination);
         }
         break;
+      }
 
       case "OPEN_APP_DRAWER":
         helpers.openAppDrawer();
@@ -32,6 +52,12 @@ export function executeScoutActions(
       case "PREFILL_INPUT":
         if (typeof action.payload?.text === "string") {
           helpers.prefillInput(action.payload.text as string);
+        }
+        break;
+
+      case "ASK_SCOUT":
+        if (action.prompt && helpers.askScout) {
+          helpers.askScout(action.prompt);
         }
         break;
 

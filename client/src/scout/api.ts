@@ -1,6 +1,8 @@
 // client/src/scout/api.ts
 
 import type { ScoutMessage, ScoutAction } from "./state";
+import type { RecentActivityEvent } from "../agent/activity";
+import { sanitizeAreaLabel } from "@/lib/copyHelpers";
 
 const apiBaseEnv = (import.meta as any).env?.VITE_SCOUT_API_BASE as
   | string
@@ -43,12 +45,25 @@ export interface SendToScoutOptions {
   knowledgeMode?: KnowledgeMode;
   filters?: Record<string, unknown>;
   roles?: string[];
+  recentActivity?: RecentActivityEvent[];
+  shownAdIds?: string[];
+}
+
+export interface SponsoredResult {
+  id: string;
+  title: string;
+  content: string;
+  imageUrl?: string | null;
+  linkUrl?: string | null;
+  isAffiliate?: boolean | null;
+  targetLocation?: string | null;
 }
 
 export interface ScoutBackendResponse {
   message: string;
   suggestedActions?: string[];
   actions?: ScoutAction[];
+  sponsored?: SponsoredResult | null;
   knowledge?: {
     layer?: number;
     sources?: Array<{ title: string; url?: string; type?: string }>;
@@ -103,8 +118,10 @@ export async function sendToScout(
 
   const countyCode =
     options.locality?.county && options.locality?.state
-      ? `${options.locality.county}, ${options.locality.state}`
-      : options.locality?.county || undefined;
+      ? `${sanitizeAreaLabel(options.locality.county)}, ${options.locality.state}`
+      : options.locality?.county
+      ? sanitizeAreaLabel(options.locality.county)
+      : undefined;
 
   const stateCode = options.locality?.state;
 
@@ -119,6 +136,8 @@ export async function sendToScout(
     filters: options.filters ?? {},
     hyperlocalPricing: true,
     roles: options.roles ?? [],
+    recentActivity: options.recentActivity ?? [],
+    shownAdIds: options.shownAdIds ?? [],
   };
 
   const res = await fetch(`${apiBase}/scout`, {

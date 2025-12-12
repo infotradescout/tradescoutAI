@@ -16,7 +16,7 @@ const quoteFormSchema = z.object({
   lastName: z.string().min(2, "Last name must be at least 2 characters"),
   email: z.string().email("Please enter a valid email address"),
   phone: z.string().min(10, "Please enter a valid phone number"),
-  county: z.string().min(1, "Please select your county"),
+  county: z.string().min(1, "Please select your area"),
   projectType: z.string().min(1, "Please select a project type"),
   projectDescription: z.string().optional(),
   timeline: z.string().min(1, "Please select a timeline"),
@@ -201,11 +201,11 @@ export default function QuoteForm({ onSuccess, compact = false }: QuoteFormProps
             name="county"
             render={({ field }) => (
               <FormItem>
-                <FormLabel className="text-gray-300">County</FormLabel>
+                <FormLabel className="text-gray-300">Area</FormLabel>
                 <Select onValueChange={field.onChange} defaultValue={field.value}>
                   <FormControl>
                     <SelectTrigger className="bg-navy-700 border-navy-600 text-white">
-                      <SelectValue placeholder="Select your county" />
+                      <SelectValue placeholder="Select your area" />
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent className="bg-navy-700 border-navy-600">

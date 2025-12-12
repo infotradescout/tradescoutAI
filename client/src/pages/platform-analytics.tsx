@@ -26,11 +26,11 @@ const PlatformAnalytics = memo(function PlatformAnalytics() {
   ];
 
   const topCounties = [
-    { name: "Los Angeles County, CA", users: 2847, contractors: 423, projects: 1268 },
-    { name: "Orange County, CA", users: 1934, contractors: 298, projects: 876 },
-    { name: "San Diego County, CA", users: 1678, contractors: 234, projects: 654 },
-    { name: "Cook County, IL", users: 1456, contractors: 189, projects: 543 },
-    { name: "Harris County, TX", users: 1298, contractors: 167, projects: 478 }
+    { name: "Los Angeles, CA", users: 2847, contractors: 423, projects: 1268 },
+    { name: "Orange, CA", users: 1934, contractors: 298, projects: 876 },
+    { name: "San Diego, CA", users: 1678, contractors: 234, projects: 654 },
+    { name: "Cook, IL", users: 1456, contractors: 189, projects: 543 },
+    { name: "Harris, TX", users: 1298, contractors: 167, projects: 478 }
   ];
 
   const revenueBreakdown = [
@@ -258,7 +258,7 @@ const PlatformAnalytics = memo(function PlatformAnalytics() {
               <CardHeader>
                 <CardTitle className="text-white flex items-center gap-2">
                   <MapPin className="h-5 w-5" />
-                  Top Counties by User Activity
+                  Top Areas by User Activity
                 </CardTitle>
               </CardHeader>
               <CardContent>

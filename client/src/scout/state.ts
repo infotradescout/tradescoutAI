@@ -4,12 +4,27 @@ export type ScoutRole = "user" | "assistant" | "system";
 
 export type ScoutStatus = "idle" | "sending" | "thinking" | "responding" | "error";
 
-export interface ScoutMessage {
+export type ScoutClusterKind =
+  | "projects"
+  | "pros"
+  | "marketplace"
+  | "community"
+  | "generic";
+
+export interface ScoutClusterItem {
   id: string;
-  role: ScoutRole;
-  content: string;
-  timestamp: string; // ISO string
-  suggestedActions?: string[];
+  label: string;
+  description?: string;
+}
+
+export interface ScoutCluster {
+  id: string;
+  title: string;
+  kind: ScoutClusterKind;
+  body?: string;
+  items?: ScoutClusterItem[];
+  primaryAction?: ScoutAction;
+  actions?: ScoutAction[];
 }
 
 export type ScoutActionType =
@@ -17,13 +32,25 @@ export type ScoutActionType =
   | "OPEN_APP_DRAWER"
   | "PREFILL_INPUT"
   | "OPEN_TOOLS_DRAWER"
+  | "ASK_SCOUT"
   | "NOOP";
 
 export interface ScoutAction {
   type: ScoutActionType;
   label?: string;
   to?: string;
+  path?: string;
+  prompt?: string;
   payload?: Record<string, unknown>;
+}
+
+export interface ScoutMessage {
+  id: string;
+  role: ScoutRole;
+  content: string;
+  timestamp: string; // ISO string
+  suggestedActions?: string[];
+  clusters?: ScoutCluster[];
 }
 
 export interface ScoutState {

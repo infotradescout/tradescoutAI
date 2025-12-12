@@ -217,5 +217,26 @@
     ],
     "actions": [],
     "timestamp": "2025-12-11T06:02:54.758Z"
+  },
+  {
+    "question": "Open my messages and notifications",
+    "answer": "Welcome! As a guest on TradeScout, you currently don't have personal messages or notifications to open. These features become active once you create an account and join your local community.\nYou'll then see updates like new community posts or reminders from your Trade Manager. TradeScout connects homeowners directly with trusted local contractors, fostering a high-trust, non-competitive environment.\nReady to explore what's available in your area?\n\n---\n\n**To do this, you'll need a TradeScout account!** It only takes a minute:\n\n1. Click the **\"Create Account\"** button at the top\n2. Choose your role (Homeowner, Contractor, or Community Member)\n3. Enter your email and create a password\n4. Verify your email\n5. Come back here and I'll help you with `Open my messages and notifications`\n\nReady? Let's set you up! 🚀",
+    "layer": 1,
+    "sources": [
+      "TradeScout Brain (data folder)"
+    ],
+    "actions": [],
+    "timestamp": "2025-12-11T16:00:22.156Z"
+  },
+  {
+    "question": "Open my contractor dashboard",
+    "answer": "Welcome! As a guest, you currently don't have a contractor dashboard. TradeScout provides a dedicated space for contractors. Here, you'll find business tools, a quote builder, and direct homeowner inquiries without competitive bidding. This ensures a high-trust, non-competitive experience. To access your personalized dashboard and connect with homeowners, please create your free contractor profile.",
+    "layer": 1,
+    "sources": [
+      "TradeScout Brain (data folder)",
+      "TradeScout Database (contractors)"
+    ],
+    "actions": [],
+    "timestamp": "2025-12-11T16:04:31.238Z"
   }
 ]

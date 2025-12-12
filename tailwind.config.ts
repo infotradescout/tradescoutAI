@@ -19,7 +19,7 @@ export default {
       colors: {
         tsBg: "#0a0f1e",
         tsCard: "#111827",
-        tsBorder: "#1e293b",
+        tsBorder: "#020617",
         tsAccent: "#f97316",
         tsAccentSoft: "#fb923c",
         tsTextMain: "#f1f5f9",

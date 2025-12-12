@@ -58,7 +58,7 @@ const MembershipPortal = memo(function MembershipPortal() {
         "White-label proposals",
         "Dedicated account manager",
         "Marketing consultation",
-        "Multi-county visibility",
+        "Multi-area visibility",
         "API access"
       ],
       limitations: [],

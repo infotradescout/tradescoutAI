@@ -6,6 +6,8 @@
  * and structured content patterns that help LLMs understand context and relationships.
  */
 
+import { sanitizeAreaLabel } from "@/lib/copyHelpers";
+
 interface AIOptimizedContentProps {
   children: React.ReactNode;
   contentType: 'contractor-profile' | 'service-listing' | 'quote-request' | 'review' | 'project-details';
@@ -222,7 +224,7 @@ export function ProjectContext({
         {location && (
           <>
             {location.state && <span data-field="project-state">{location.state}</span>}
-            {location.county && <span data-field="project-county">{location.county}</span>}
+            {location.county && <span data-field="project-county">{sanitizeAreaLabel(location.county)}</span>}
           </>
         )}
         {requirements.length > 0 && (

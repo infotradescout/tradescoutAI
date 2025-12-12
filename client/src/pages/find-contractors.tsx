@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Search, Sparkles, Zap, MapPin, Star, ThumbsUp, Briefcase, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { StateCountySelector } from '@/components/state-county-selector';
+import { sanitizeAreaLabel } from '@/lib/copyHelpers';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { apiRequest } from '@/lib/queryClient';
@@ -163,7 +164,7 @@ const FindContractors = memo(function FindContractors() {
                       </div>
                       <div className="text-sm text-gray-400 flex items-center gap-2">
                         <MapPin className="h-4 w-4 text-teal-300" />
-                        {contractor.location || contractor.county || 'County selected'}
+                        {sanitizeAreaLabel(contractor.location || contractor.county || 'County selected')}
                       </div>
                     </div>
                   </div>

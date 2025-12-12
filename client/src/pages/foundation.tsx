@@ -30,6 +30,7 @@ import {
 import { useAuth } from "@/hooks/useAuth";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { sanitizeAreaLabel } from "@/lib/copyHelpers";
 
 interface Cause {
   id: string;
@@ -234,9 +235,11 @@ export default function Foundation() {
             <CardContent className="p-6">
               <div className="flex items-start justify-between mb-4">
                 <div>
-                  <p className="text-sm text-gray-400">Your County Vault</p>
+                  <p className="text-sm text-gray-400">Your Community Vault</p>
                   <h3 className="text-xl font-semibold text-white">
-                    {vaultSnapshot?.county ? `${vaultSnapshot.county.name}, ${vaultSnapshot.county.stateCode}` : 'Add your county in profile'}
+                    {vaultSnapshot?.county
+                      ? `${sanitizeAreaLabel(vaultSnapshot.county.name)}, ${vaultSnapshot.county.stateCode}`
+                      : "Add your area in profile"}
                   </h3>
                 </div>
                 <Badge className="bg-green-600 text-white">Transparent</Badge>
@@ -273,7 +276,7 @@ export default function Foundation() {
                 <Badge variant="outline" className="border-orange-500 text-orange-300">Give back</Badge>
               </div>
               <p className="text-gray-300 text-sm mb-3">
-                Donations, marketplace givebacks, and contractor programs all ladder into the county vault. Every dollar is traceable.
+                Donations, marketplace givebacks, and contractor programs all ladder into your community vault. Every dollar is traceable.
               </p>
               <div className="flex items-center space-x-3">
                 <Button asChild className="bg-orange-500 hover:bg-orange-600">

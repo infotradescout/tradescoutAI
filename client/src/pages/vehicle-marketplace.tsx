@@ -43,7 +43,7 @@ const VehicleMarketplace = memo(function VehicleMarketplace() {
       make: "Toyota",
       model: "Camry Hybrid",
       mileage: "28,000",
-      location: "Orange County, CA",
+      location: "Orange, CA",
       dealer: "Toyota of Orange",
       rating: 4.9,
       features: ["Hybrid", "Lane Assist", "Apple CarPlay", "Sunroof"],

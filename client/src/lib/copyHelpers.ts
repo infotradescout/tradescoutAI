@@ -1,6 +1,15 @@
 import type { User } from "@/hooks/useAuth";
 import { getUserTypeMetadata } from "@shared/userTypes";
 
+export function sanitizeAreaLabel(input: string): string {
+  // Display-only normalization for location labels.
+  // (Do not rewrite semantics like removing "County"; some forms/pages need it.)
+  return String(input)
+    .replace(/\s{2,}/g, " ")
+    .replace(/\s+,/g, ",")
+    .trim();
+}
+
 export function getUserLocationLabel(user: User | null | undefined): string {
   if (!user) return "your area";
 
@@ -9,8 +18,9 @@ export function getUserLocationLabel(user: User | null | undefined): string {
 
   if ((user as any).location) return String((user as any).location);
 
-  if (user.county && user.state) return `${user.county}, ${user.state}`;
-  if (user.county) return String(user.county);
+  if (user.county && user.state)
+    return `${sanitizeAreaLabel(String(user.county))}, ${user.state}`;
+  if (user.county) return sanitizeAreaLabel(String(user.county));
 
   if (user.state) return String(user.state);
   return "your area";
