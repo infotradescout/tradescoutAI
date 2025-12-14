@@ -29,7 +29,7 @@ const registerSchema = z
     lastName: z.string().min(1, "Last name is required"),
     address: z.string().min(5, "Please enter your address for neighborhood verification"),
     state: z.string().min(2, "State is required"),
-    county: z.string().min(2, "County is required for founder badge eligibility"),
+    county: z.string().min(2, "County is required"),
     userTypes: z.array(z.string()).min(1, "Please select at least one user type"),
   })
   .refine((data) => data.password === data.confirmPassword, {
@@ -290,7 +290,7 @@ export default function Register() {
                   ))}
                 </select>
                 <p className="text-xs text-tsTextMuted mt-1">
-                  Helps us issue Founder badges for the first user type in each area.
+                  Used for local community matching and recommendations.
                 </p>
                 {form.formState.errors.county && (
                   <p className="text-red-400 text-sm mt-1">{form.formState.errors.county.message}</p>
