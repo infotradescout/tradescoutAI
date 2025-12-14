@@ -309,6 +309,9 @@ app.use((req, res, next) => {
 
             // Catch all handler for client-side routing
             app.get("*", (req, res) => {
+              if (req.path.startsWith("/api")) {
+                return res.status(404).json({ message: "Not found" });
+              }
               const indexPath = path.join(publicDistPath, "index.html");
 
               // Check if file exists before trying to serve
