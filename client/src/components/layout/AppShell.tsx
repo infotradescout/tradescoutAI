@@ -1,4 +1,4 @@
-import { ReactNode, useState } from 'react';
+import { ReactNode, useState, useEffect } from 'react';
 import { LayoutGrid, MessageCircle, Users, Home, Compass, Sparkles, DollarSign, SlidersHorizontal, X } from 'lucide-react';
 import { ROUTES } from '@/lib/routes';
 import { RightToolsPanel } from '@/components/layout/RightToolsPanel';
@@ -44,6 +44,11 @@ export function AppShell({
   const { isAuthenticated } = useAuth();
   const isMobile = useIsMobile();
   const [isToolsOpen, setIsToolsOpen] = useState(false);
+
+  // VERIFICATION: Log AppShell mount (should only appear once per page load)
+  useEffect(() => {
+    console.log('🔥 AppShell mounted');
+  }, []);
 
   return (
     <div className="min-h-screen bg-tsBg text-tsTextMain flex flex-col">

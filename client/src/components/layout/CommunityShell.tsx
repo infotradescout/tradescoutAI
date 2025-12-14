@@ -1,9 +1,7 @@
 import React from "react";
 import { useLocation } from "wouter";
-import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
 import { trackShellEvent, getDeviceType } from "@/lib/analytics";
-import { Home, Users, MessageCircle, ShoppingBag } from "lucide-react";
 import { getUserLocationLabel } from "@/lib/copyHelpers";
 
 export type CommunityShellProps = {
@@ -17,7 +15,7 @@ export const CommunityShell: React.FC<CommunityShellProps> = ({
   notificationsCount = 0,
   children,
 }) => {
-  const [location, navigate] = useLocation();
+  const [location] = useLocation();
   const { user } = useAuth() as any;
 
   const locationLabel: string = React.useMemo(() => {
@@ -38,40 +36,7 @@ export const CommunityShell: React.FC<CommunityShellProps> = ({
     return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
   }, [user]);
 
-  type NavItem = {
-    label: string;
-    path: string;
-    icon: React.ComponentType<{ className?: string }>;
-    testId: string;
-  };
-
-  const navItems: NavItem[] = [
-    { label: "Home", path: "/", icon: Home, testId: "nav-home" },
-    { label: "Community", path: "/community", icon: Users, testId: "nav-community" },
-    { label: "For Sale", path: "/marketplace", icon: ShoppingBag, testId: "nav-marketplace" },
-    { label: "Groups", path: "/groups", icon: Users, testId: "nav-groups" },
-    { label: "Messages", path: "/messages", icon: MessageCircle, testId: "nav-messages" },
-  ];
-
-  const isActive = (path: string): boolean => {
-    if (path === "/") {
-      return location === "/";
-    }
-    return location === path || location.startsWith(path + "/");
-  };
-
-  const handleNavClick = (path: string) => {
-    if (location === path) return;
-    trackShellEvent({
-      type: "community_shell_nav_click",
-      fromPath: location,
-      toPath: path,
-      deviceType: getDeviceType(),
-      hasUnreadNotifications: notificationsCount > 0,
-    });
-    navigate(path);
-  };
-
+  // Track shell usage for analytics only
   React.useEffect(() => {
     trackShellEvent({
       type: "community_shell_load",
@@ -83,10 +48,15 @@ export const CommunityShell: React.FC<CommunityShellProps> = ({
   }, [location, notificationsCount, user]);
 
   // ARCHITECTURAL RULE: Only AppShell renders navigation
-  // CommunityShell is CONTENT-ONLY wrapper with section label
+  // CommunityShell is CONTENT-ONLY context wrapper - NO nav, NO layout
+  // This component exists for:
+  // 1. Providing section context (label, location, analytics)
+  // 2. Consistent padding/spacing for section content
+  // 3. Passing unread count for analytics
+  
   return (
-    <div className="flex min-h-screen flex-col">
-      {/* Section label only - no duplicate header/nav */}
+    <div className="flex flex-col w-full">
+      {/* Minimal section header - visual context only, NO navigation */}
       <div className="border-b border-slate-800 bg-slate-950/50 px-4 py-2">
         <div className="flex items-center justify-between">
           <span
@@ -101,11 +71,10 @@ export const CommunityShell: React.FC<CommunityShellProps> = ({
         </div>
       </div>
 
-      <main className="flex-1">
-        <div className="mx-auto w-full max-w-5xl px-4 py-4 pb-24">
-          <div className="flex flex-col gap-4">{children}</div>
-        </div>
-      </main>
+      {/* Content area - AppShell manages layout */}
+      <div className="w-full">
+        {children}
+      </div>
     </div>
   );
 };
