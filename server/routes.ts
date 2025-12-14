@@ -708,20 +708,33 @@ export async function registerRoutes(app: any) {
 
   app.get("/api/auth/user", async (req: AuthedRequest, res: Response) => {
     try {
+      const authDiagnostics = {
+        hasCookieHeader: Boolean(req.headers.cookie),
+        cookieNames: (req.headers.cookie || "")
+          .split(";")
+          .map((c) => c.trim())
+          .filter(Boolean)
+          .map((c) => c.split("=")[0])
+          .filter(Boolean),
+        origin: req.headers.origin,
+        host: req.headers.host,
+        xForwardedProto: req.headers["x-forwarded-proto"],
+      };
+
       if (!req.isAuthenticated()) {
-        res.status(401).json({ message: "Not authenticated" });
+        res.status(401).json({ message: "Not authenticated", diagnostics: authDiagnostics });
         return;
       }
 
       const userId: string = (req.user as any)?.id || (req.user as any)?.claims?.sub || "";
       if (!userId) {
-        res.status(401).json({ message: "Not authenticated" });
+        res.status(401).json({ message: "Not authenticated", diagnostics: authDiagnostics });
         return;
       }
 
       const user = await storage.getUser(userId);
       if (!user) {
-        res.status(401).json({ message: "Not authenticated" });
+        res.status(401).json({ message: "Not authenticated", diagnostics: authDiagnostics });
         return;
       }
 
