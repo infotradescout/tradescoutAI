@@ -1,9 +1,22 @@
 import { storage } from './storage';
 import Stripe from 'stripe';
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '', {
-  apiVersion: '2024-04-10' as any,
-});
+let stripe: Stripe | null = null;
+
+function getStripe(): Stripe {
+  const stripeSecret = process.env.STRIPE_SECRET_KEY;
+  if (!stripeSecret) {
+    throw new Error('STRIPE_SECRET_KEY is missing');
+  }
+
+  if (!stripe) {
+    stripe = new Stripe(stripeSecret, {
+      apiVersion: '2024-04-10' as any,
+    });
+  }
+
+  return stripe;
+}
 
 export class CommunityBuilderPaymentService {
   /**
@@ -120,7 +133,7 @@ export class CommunityBuilderPaymentService {
     if (builder.bankAccountId && process.env.STRIPE_CONNECTED_ACCOUNT_ID) {
       try {
         // Create a transfer to the connected account
-        const transfer = await stripe.transfers.create(
+        const transfer = await getStripe().transfers.create(
           {
             amount: Math.round(parseFloat(amount) * 100), // Convert to cents
             currency: 'usd',
