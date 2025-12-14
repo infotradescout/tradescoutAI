@@ -98,6 +98,7 @@ const ALLOWED_ORIGINS = rawAllowlist
 // Always allow known production origins
 for (const origin of [
   "https://www.thetradescout.com",
+  "https://thetradescout.com",
   "https://tradescout-e557bv88z-tradescouts-projects.vercel.app",
 ]) {
   if (!ALLOWED_ORIGINS.includes(origin)) {
@@ -248,10 +249,37 @@ app.use((req, res, next) => {
 
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
     const status = err.status || err.statusCode || 500;
-    const message = err.message || "Internal Server Error";
+    const message = err?.message || "Internal Server Error";
+    const errorId = `err_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
 
-    res.status(status).json({ message });
-    throw err;
+    // Log full error server-side (do not leak internals to clients)
+    try {
+      const reqAny = _req as any;
+      console.error("[API ERROR]", {
+        errorId,
+        status,
+        message,
+        method: reqAny?.method,
+        path: reqAny?.originalUrl || reqAny?.url,
+        origin: reqAny?.headers?.origin,
+        host: reqAny?.headers?.host,
+        xForwardedProto: reqAny?.headers?.["x-forwarded-proto"],
+        stack: err?.stack,
+      });
+    } catch {
+      // ignore logging failures
+    }
+
+    // If Express has already started sending, delegate
+    if (res.headersSent) {
+      return;
+    }
+
+    // Always return a safe payload
+    res.status(status).json({
+      message: status >= 500 ? "Internal Server Error" : message,
+      errorId,
+    });
   });
 
   // ALWAYS serve the app on the port specified in the environment variable PORT
