@@ -79,6 +79,13 @@ export async function setupAuth(app: Express) {
   const facebookAppId = process.env.FACEBOOK_APP_ID;
   const facebookAppSecret = process.env.FACEBOOK_APP_SECRET;
 
+  console.log("FACEBOOK ENV CHECK", {
+    id: facebookAppId,
+    secret: !!facebookAppSecret,
+    callback: process.env.FACEBOOK_CALLBACK_URL,
+    disable: process.env.DISABLE_FACEBOOK_AUTH,
+  });
+
   if (facebookDisabled || !facebookAppId || !facebookAppSecret) {
     console.log("Facebook strategy skipped (set FACEBOOK_APP_ID/SECRET to enable; set DISABLE_FACEBOOK_AUTH=true to silence this message)");
   } else {
