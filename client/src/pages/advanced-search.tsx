@@ -308,7 +308,7 @@ const AdvancedSearch = memo(function AdvancedSearch() {
                     <SelectItem value="distance">Closest</SelectItem>
                     <SelectItem value="price-low">Price: Low to High</SelectItem>
                     <SelectItem value="price-high">Price: High to Low</SelectItem>
-                    <SelectItem value="reviews">Most Reviews</SelectItem>
+                    <SelectItem value="reviews">Most RECOMMENDATIONS</SelectItem>
                   </SelectContent>
                 </Select>
 
@@ -365,7 +365,7 @@ const AdvancedSearch = memo(function AdvancedSearch() {
                               <div className="flex items-center gap-1">
                                 <Crown className="h-4 w-4 text-yellow-400 fill-current" />
                                 <span className="text-white">{contractor.rating}</span>
-                                <span>({contractor.recommendationCount} reviews)</span>
+                                <span>({contractor.recommendationCount} RECOMMENDATIONS)</span>
                               </div>
                               
                               <div className="flex items-center gap-1">

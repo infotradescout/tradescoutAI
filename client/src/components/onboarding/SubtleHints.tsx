@@ -130,8 +130,9 @@ export function SubtleHints() {
 
   const markHintsCompleted = async () => {
     try {
-      await fetch('/api/user/preferences', {
+      await fetch('/api/users/preferences', {
         method: 'PATCH',
+        credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           completedTours: [...(user?.preferences?.completedTours || []), 'subtle-hints']

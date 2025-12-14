@@ -1,6 +1,5 @@
 import { useMemo, useState } from 'react';
 import { CheckCircle2, ClipboardList, Hammer, Loader2, MapPin, Plus, Shield, Timer, TrendingUp } from 'lucide-react';
-import { AppShell } from '@/components/layout/AppShell';
 import { Page, Section } from '@/components/layout/PagePrimitives';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -103,62 +102,60 @@ const ContractorBoard = () => {
   }, [boardItems, query]);
 
   return (
-    <AppShell>
-      <Page className="max-w-7xl">
-        <Section
-          title="Contractor board"
-          subtitle="Track jobs, bids, and field execution from one board. Scout keeps the operators, budget, and status aligned."
-          actions={
-            <div className="flex items-center gap-2">
-              <Input
-                placeholder="Search by job, trade, or area"
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                className="w-64 bg-slate-900 border-slate-700 text-white"
-              />
-              <Button className="bg-orange-600 hover:bg-orange-700 text-white">
-                <Plus className="h-4 w-4 mr-2" />
-                New job
-              </Button>
-            </div>
-          }
-        >
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <StatTile label="Active jobs" value={`${boardItems.length}`} hint="Across your lanes" icon={<Loader2 className="h-5 w-5" />} />
-            <StatTile label="In progress" value={`${boardItems.filter(i => i.status === 'In Progress').length}`} hint="Crewed and scheduled" icon={<Hammer className="h-5 w-5" />} />
-            <StatTile label="Bids out" value={`${boardItems.filter(i => i.status === 'Bidding').length}`} hint="Awaiting vendor responses" icon={<TrendingUp className="h-5 w-5" />} />
-            <StatTile label="Punchlist" value={`${boardItems.filter(i => i.status === 'Punchlist').length}`} hint="Ready for sign-off" icon={<CheckCircle2 className="h-5 w-5" />} />
+    <Page className="max-w-7xl">
+      <Section
+        title="Contractor board"
+        subtitle="Track jobs, bids, and field execution from one board. Scout keeps the operators, budget, and status aligned."
+        actions={
+          <div className="flex items-center gap-2">
+            <Input
+              placeholder="Search by job, trade, or area"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              className="w-64 bg-slate-900 border-slate-700 text-white"
+            />
+            <Button className="bg-orange-600 hover:bg-orange-700 text-white">
+              <Plus className="h-4 w-4 mr-2" />
+              New job
+            </Button>
           </div>
-        </Section>
-
-        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-          {columns.map((column) => (
-            <div key={column.key} className="space-y-3">
-              <div className={`flex items-center justify-between rounded-xl border px-4 py-3 ${column.tone} border-slate-800/70`}>
-                <div className="flex items-center gap-2 text-slate-100">
-                  {column.icon}
-                  <span className="font-semibold">{column.label}</span>
-                </div>
-                <Badge variant="outline" className="border-slate-700 text-slate-200">
-                  {filtered.filter((item) => item.status === column.key).length}
-                </Badge>
-              </div>
-
-              <div className="space-y-3">
-                {filtered.filter((item) => item.status === column.key).map((item) => (
-                  <BoardCard key={item.id} item={item} />
-                ))}
-                {filtered.filter((item) => item.status === column.key).length === 0 && (
-                  <Card className="border-dashed border-slate-800 bg-slate-950/50">
-                    <CardContent className="py-6 text-center text-sm text-slate-500">No items in this lane yet.</CardContent>
-                  </Card>
-                )}
-              </div>
-            </div>
-          ))}
+        }
+      >
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <StatTile label="Active jobs" value={`${boardItems.length}`} hint="Across your lanes" icon={<Loader2 className="h-5 w-5" />} />
+          <StatTile label="In progress" value={`${boardItems.filter(i => i.status === 'In Progress').length}`} hint="Crewed and scheduled" icon={<Hammer className="h-5 w-5" />} />
+          <StatTile label="Bids out" value={`${boardItems.filter(i => i.status === 'Bidding').length}`} hint="Awaiting vendor responses" icon={<TrendingUp className="h-5 w-5" />} />
+          <StatTile label="Punchlist" value={`${boardItems.filter(i => i.status === 'Punchlist').length}`} hint="Ready for sign-off" icon={<CheckCircle2 className="h-5 w-5" />} />
         </div>
-      </Page>
-    </AppShell>
+      </Section>
+
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        {columns.map((column) => (
+          <div key={column.key} className="space-y-3">
+            <div className={`flex items-center justify-between rounded-xl border px-4 py-3 ${column.tone} border-slate-800/70`}>
+              <div className="flex items-center gap-2 text-slate-100">
+                {column.icon}
+                <span className="font-semibold">{column.label}</span>
+              </div>
+              <Badge variant="outline" className="border-slate-700 text-slate-200">
+                {filtered.filter((item) => item.status === column.key).length}
+              </Badge>
+            </div>
+
+            <div className="space-y-3">
+              {filtered.filter((item) => item.status === column.key).map((item) => (
+                <BoardCard key={item.id} item={item} />
+              ))}
+              {filtered.filter((item) => item.status === column.key).length === 0 && (
+                <Card className="border-dashed border-slate-800 bg-slate-950/50">
+                  <CardContent className="py-6 text-center text-sm text-slate-500">No items in this lane yet.</CardContent>
+                </Card>
+              )}
+            </div>
+          </div>
+        ))}
+      </div>
+    </Page>
   );
 };
 

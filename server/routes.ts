@@ -77,7 +77,7 @@ type AuthedRequest = Request & {
 
 type ExpressHandler = (req: Request, res: Response, next: NextFunction) => void | Promise<void>;
 type AuthedHandler = (req: AuthedRequest, res: Response, next: NextFunction) => void | Promise<void>;
-import { eq, desc, and, sql, gt } from "drizzle-orm";
+import { eq, desc, and, or, sql, gt } from "drizzle-orm";
 // Removed duplicate User import
 // Stubs for undeclared globals
 const program = {};
@@ -1245,10 +1245,11 @@ export async function registerRoutes(app: any) {
     }
   });
 
-  app.put('/api/user/profile', isAuthenticated, async (req: any, res: any) => {
+  app.put('/api/user/profile', isAuthenticated, async (req: Request, res: Response) => {
+    const userId = (req.user as any)?.id || (req.user as any)?.claims?.sub;
+
     try {
-      const { firstName, lastName, phone, address, city, state, zipCode, preferences } = req.body;
-      const user = await storage.updateUser((req.user as any)?.id || (req.user as any)?.claims?.sub, {
+      const {
         firstName,
         lastName,
         phone,
@@ -1256,35 +1257,10 @@ export async function registerRoutes(app: any) {
         city,
         state,
         zipCode,
+        county,
         preferences,
-        updatedAt: new Date(),
-      });
-      res.json(sanitizeUserForResponse(user));
-    } catch (error: any) {
-      console.error("Error updating user profile:", error);
-      res.status(500).json({ message: "Failed to update user profile" });
-    }
-  });
-
-  app.post('/api/user/complete-onboarding', isAuthenticated, async (req: Request, res: Response) => {
-    try {
-      const user = await storage.updateUser((req.user as any)?.id || (req.user as any)?.claims?.sub, {
-        onboardingCompleted: true,
-        updatedAt: new Date(),
-      });
-      res.json(sanitizeUserForResponse(user));
-    } catch (error: any) {
-      console.error("Error completing onboarding:", error);
-      res.status(500).json({ message: "Failed to complete onboarding" });
-    }
-  });
-
-  // Update user roles endpoint
-  app.put('/api/user/profile', isAuthenticated, async (req: Request, res: Response) => {
-    const userId = (req.user as any)?.id || (req.user as any)?.claims?.sub;
-
-    try {
-      const { firstName, lastName, phone, address, city, state, zipCode, county, preferences, profileImageUrl } = req.body;
+        profileImageUrl,
+      } = (req.body ?? {}) as any;
 
       let normalizedProfileImageUrl = profileImageUrl;
       if (profileImageUrl) {
@@ -1309,12 +1285,159 @@ export async function registerRoutes(app: any) {
         county,
         preferences,
         profileImageUrl: normalizedProfileImageUrl,
+        updatedAt: new Date(),
       });
 
       res.json(sanitizeUserForResponse(user));
     } catch (error: any) {
-      console.error("Error fetching user profile:", error);
-      res.status(500).json({ message: "Failed to fetch user profile" });
+      console.error("Error updating user profile:", error);
+      res.status(500).json({ message: "Failed to update user profile" });
+    }
+  });
+
+  app.post('/api/user/complete-onboarding', isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const user = await storage.updateUser((req.user as any)?.id || (req.user as any)?.claims?.sub, {
+        onboardingCompleted: true,
+        updatedAt: new Date(),
+      });
+      res.json(sanitizeUserForResponse(user));
+    } catch (error: any) {
+      console.error("Error completing onboarding:", error);
+      res.status(500).json({ message: "Failed to complete onboarding" });
+    }
+  });
+
+  // User role update (self-serve) - blocks admin roles
+  app.patch('/api/user/roles', isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const userId = (req.user as any)?.id || (req.user as any)?.claims?.sub;
+      const { roles } = (req.body ?? {}) as any;
+
+      if (!Array.isArray(roles) || roles.length === 0) {
+        return res.status(400).json({ message: "Roles must be a non-empty array" });
+      }
+
+      const normalizedRoles = roles
+        .map((r: any) => String(r || '').trim())
+        .filter((r: string) => r.length > 0);
+
+      if (normalizedRoles.length === 0) {
+        return res.status(400).json({ message: "Roles must be a non-empty array" });
+      }
+
+      // Prevent privilege escalation: no admin/back-office roles here.
+      const blocked = new Set([
+        'head_admin',
+        'ops_admin',
+        'moderator',
+        'startup_founder',
+        'admin',
+        'tradescout_admin',
+      ]);
+      if (normalizedRoles.some((r: string) => blocked.has(r))) {
+        return res.status(400).json({ message: "Invalid role selection" });
+      }
+
+      // Basic allowlist: only roles that exist in the product UI.
+      const allowed = new Set([
+        'homeowner',
+        'contractor_user',
+        'realtor',
+        'car_salesman',
+        'insurance_agent',
+        'mortgage_broker',
+        'property_manager',
+        'business_owner',
+        'helper',
+        'vehicle_dealer',
+        'hoa_admin',
+      ]);
+
+      const filteredRoles = normalizedRoles.filter((r: string) => allowed.has(r));
+      if (filteredRoles.length === 0) {
+        return res.status(400).json({ message: "Invalid role selection" });
+      }
+
+      const current = await storage.getUser(userId);
+      const currentActive = (current as any)?.activeRole || (current as any)?.role;
+      const activeRole = filteredRoles.includes(currentActive) ? currentActive : filteredRoles[0];
+
+      const user = await storage.updateUser(userId, {
+        roles: filteredRoles,
+        activeRole,
+        role: activeRole,
+        updatedAt: new Date(),
+      } as any);
+
+      res.json(sanitizeUserForResponse(user));
+    } catch (error: any) {
+      console.error("Error updating user roles:", error);
+      res.status(500).json({ message: "Failed to update roles" });
+    }
+  });
+
+  // Back-compat aliases used by onboarding UI
+  app.patch('/api/auth/user/preferences', isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const userId = (req.user as any)?.id || (req.user as any)?.claims?.sub;
+      const currentUser = await storage.getUser(userId);
+      if (!currentUser) return res.status(404).json({ message: "User not found" });
+
+      const currentPrefs = (currentUser as any).preferences || {};
+      const updatedPreferences = { ...currentPrefs, ...(req.body ?? {}) };
+      const user = await storage.updateUser(userId, {
+        preferences: updatedPreferences,
+        updatedAt: new Date(),
+      });
+
+      res.json({ preferences: (user as any).preferences });
+    } catch (error: any) {
+      console.error("Error updating user preferences (alias):", error);
+      res.status(500).json({ message: "Failed to update user preferences" });
+    }
+  });
+
+  // Back-compat: mark onboarding completed (do NOT allow arbitrary updates)
+  app.patch('/api/auth/user', isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const userId = (req.user as any)?.id || (req.user as any)?.claims?.sub;
+      const { onboardingCompleted } = (req.body ?? {}) as any;
+
+      if (onboardingCompleted !== true) {
+        return res.status(400).json({ message: "Unsupported update" });
+      }
+
+      const user = await storage.updateUser(userId, {
+        onboardingCompleted: true,
+        updatedAt: new Date(),
+      });
+
+      res.json(sanitizeUserForResponse(user));
+    } catch (error: any) {
+      console.error("Error updating auth user (alias):", error);
+      res.status(500).json({ message: "Failed to update user" });
+    }
+  });
+
+  // Back-compat: legacy path used by subtle hints
+  app.patch('/api/user/preferences', isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const userId = (req.user as any)?.id || (req.user as any)?.claims?.sub;
+      const currentUser = await storage.getUser(userId);
+      if (!currentUser) return res.status(404).json({ message: "User not found" });
+
+      const currentPrefs = (currentUser as any).preferences || {};
+      const updatedPreferences = { ...currentPrefs, ...(req.body ?? {}) };
+      const user = await storage.updateUser(userId, {
+        preferences: updatedPreferences,
+        updatedAt: new Date(),
+      });
+
+      res.json({ preferences: (user as any).preferences });
+    } catch (error: any) {
+      console.error("Error updating user preferences (legacy):", error);
+      res.status(500).json({ message: "Failed to update user preferences" });
     }
   });
 
@@ -2382,6 +2505,13 @@ export async function registerRoutes(app: any) {
           : role === 'helper'
             ? 'handyman'
             : role;
+
+      // Prevent privilege escalation: admin roles are backend-only.
+      // Only allow the small set of roles that this onboarding flow is intended to set.
+      const allowedOnboardingRoles = new Set(['homeowner', 'contractor', 'realtor', 'car_dealer', 'handyman']);
+      if (!allowedOnboardingRoles.has(String(normalizedRole || '').trim())) {
+        return res.status(400).json({ message: 'Invalid role selection' });
+      }
 
       const normalizedServiceAreas: string[] = Array.isArray(serviceAreas)
         ? serviceAreas.filter(Boolean).map((area: any) => String(area).trim())
@@ -4558,11 +4688,36 @@ export async function registerRoutes(app: any) {
 
   app.get("/api/tasks", async (req: any, res: any) => {
     try {
-      // For now, return empty array - will be populated when database is set up
-      res.json([]);
+      const categoryIdRaw = typeof req.query?.category === "string" ? req.query.category : "";
+      const locationRaw = typeof req.query?.location === "string" ? req.query.location : "";
+
+      const categoryId = categoryIdRaw.trim();
+      const location = locationRaw.trim();
+
+      const filters: any[] = [];
+      if (categoryId) filters.push(eq(tasks.categoryId, categoryId));
+
+      if (location) {
+        const like = `%${location}%`;
+        filters.push(
+          or(
+            sql`${tasks.city} ILIKE ${like}`,
+            sql`${tasks.address} ILIKE ${like}`,
+            eq(tasks.zipCode, location)
+          )
+        );
+      }
+
+      const whereClause = filters.length ? (filters.length === 1 ? filters[0] : and(...filters)) : undefined;
+
+      const rows = whereClause
+        ? await db.select().from(tasks).where(whereClause).orderBy(desc(tasks.createdAt)).limit(100)
+        : await db.select().from(tasks).orderBy(desc(tasks.createdAt)).limit(100);
+
+      res.json(rows);
     } catch (error: any) {
       console.error("Error fetching tasks:", error);
-      res.status(500).json({ message: "Failed to fetch tasks" });
+      res.status(500).json({ message: error?.message || "Failed to fetch tasks" });
     }
   });
 
@@ -4587,22 +4742,93 @@ export async function registerRoutes(app: any) {
   });
 
   // Task posting endpoint
-  app.post("/api/tasks", async (req: any, res: any) => {
+  app.post("/api/tasks", isAuthenticated, async (req: any, res: any) => {
     try {
-      res.status(503).json({ message: "Task posting unavailable (database required)" });
+      const userId = req.user?.id || req.user?.claims?.sub;
+      if (!userId) return res.status(401).json({ message: "Unauthorized" });
+
+      const body = req.body || {};
+
+      const title = typeof body.title === "string" ? body.title.trim() : "";
+      const description = typeof body.description === "string" ? body.description.trim() : "";
+      const categoryId = typeof body.categoryId === "string" ? body.categoryId : undefined;
+
+      const taskType = typeof body.taskType === "string" ? body.taskType : "one_time";
+      const payType = typeof body.payType === "string" ? body.payType : "fixed";
+      const schedulingType = typeof body.schedulingType === "string" ? body.schedulingType : "asap";
+
+      const payAmountNumber = Number(body.payAmount);
+      if (!title || !description) {
+        return res.status(400).json({ message: "title and description are required" });
+      }
+      if (!Number.isFinite(payAmountNumber) || payAmountNumber <= 0) {
+        return res.status(400).json({ message: "payAmount must be a positive number" });
+      }
+
+      const posterType = req.user?.role === "contractor" ? "contractor" : "homeowner";
+      const requiredSkills = Array.isArray(body.requiredSkills)
+        ? body.requiredSkills.filter((s: any) => typeof s === "string" && s.trim()).map((s: string) => s.trim())
+        : undefined;
+
+      const created = await db
+        .insert(tasks)
+        .values({
+          posterId: String(userId),
+          posterType,
+          title,
+          description,
+          categoryId,
+          taskType,
+          payType,
+          payAmount: String(payAmountNumber),
+          schedulingType,
+          estimatedHours:
+            body.estimatedHours !== undefined && body.estimatedHours !== null && body.estimatedHours !== ""
+              ? String(Number(body.estimatedHours))
+              : undefined,
+          requiredSkills,
+          address: typeof body.address === "string" ? body.address : undefined,
+          city: typeof body.city === "string" ? body.city : undefined,
+          stateCode: typeof body.stateCode === "string" ? body.stateCode : undefined,
+          zipCode: typeof body.zipCode === "string" ? body.zipCode : undefined,
+          countyFips: typeof body.countyFips === "string" ? body.countyFips : undefined,
+          status: "open",
+        })
+        .returning();
+
+      res.status(201).json(created?.[0] ?? null);
     } catch (error: any) {
       console.error("Error creating task:", error);
-      res.status(500).json({ message: "Failed to create task" });
+      res.status(500).json({ message: error?.message || "Failed to create task" });
     }
   });
 
   // Task application endpoint
-  app.post("/api/tasks/:taskId/apply", async (req: any, res: any) => {
+  app.post("/api/tasks/:taskId/apply", isAuthenticated, async (req: any, res: any) => {
     try {
-      res.status(503).json({ message: "Task applications unavailable (database required)" });
+      const userId = req.user?.id || req.user?.claims?.sub;
+      if (!userId) return res.status(401).json({ message: "Unauthorized" });
+
+      const taskId = String(req.params.taskId || "").trim();
+      if (!taskId) return res.status(400).json({ message: "taskId is required" });
+
+      const body = req.body || {};
+      const message = typeof body.message === "string" ? body.message.trim() : undefined;
+
+      const inserted = await db
+        .insert(taskApplications)
+        .values({
+          taskId,
+          workerId: String(userId),
+          message: message || undefined,
+          status: "pending",
+        })
+        .returning();
+
+      res.status(201).json(inserted?.[0] ?? null);
     } catch (error: any) {
       console.error("Error applying to task:", error);
-      res.status(500).json({ message: "Failed to apply to task" });
+      res.status(500).json({ message: error?.message || "Failed to apply to task" });
     }
   });
 
@@ -6006,6 +6232,109 @@ export async function registerRoutes(app: any) {
 
   // Social Features API Routes
 
+  const communityExternalTrendingCache: {
+    fetchedAt: number;
+    items: Array<{ tag: string; source: "news" }>;
+  } = {
+    fetchedAt: 0,
+    items: [],
+  };
+
+  const COMMUNITY_TRENDING_CACHE_TTL_MS = 30 * 60 * 1000;
+
+  function extractRssItemTitles(xml: string): string[] {
+    const items = xml.match(/<item[\s\S]*?<\/item>/gi) ?? [];
+    const titles: string[] = [];
+
+    for (const item of items) {
+      const match = item.match(
+        /<title><!\[CDATA\[([\s\S]*?)\]\]><\/title>|<title>([\s\S]*?)<\/title>/i
+      );
+      const raw = (match?.[1] ?? match?.[2] ?? "").trim();
+      if (!raw) continue;
+      const cleaned = raw
+        .replace(/&amp;/g, "&")
+        .replace(/&quot;/g, '"')
+        .replace(/&#39;/g, "'")
+        .replace(/&lt;/g, "<")
+        .replace(/&gt;/g, ">")
+        .trim();
+      if (cleaned) titles.push(cleaned);
+    }
+
+    return titles;
+  }
+
+  function titleToHashtag(title: string): string {
+    const primary = title
+      .split(" - ")[0]
+      .split(" | ")[0]
+      .split(" — ")[0]
+      .trim();
+
+    const words = primary
+      .replace(/[^\w\s]/g, " ")
+      .replace(/\s+/g, " ")
+      .trim()
+      .split(" ")
+      .filter((w) => w.length >= 3)
+      .slice(0, 3);
+
+    const token = words
+      .map((w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
+      .join("");
+
+    return token ? `#${token}` : "#Trending";
+  }
+
+  async function fetchExternalTrendingHashtags(): Promise<Array<{ tag: string; source: "news" }>> {
+    const now = Date.now();
+    if (communityExternalTrendingCache.items.length > 0 && now - communityExternalTrendingCache.fetchedAt < COMMUNITY_TRENDING_CACHE_TTL_MS) {
+      return communityExternalTrendingCache.items;
+    }
+
+    const rssUrls = [
+      "https://news.google.com/rss/search?q=home+improvement&hl=en-US&gl=US&ceid=US:en",
+      "https://news.google.com/rss/search?q=roofing+repair&hl=en-US&gl=US&ceid=US:en",
+      "https://news.google.com/rss/search?q=plumbing+tips&hl=en-US&gl=US&ceid=US:en",
+      "https://news.google.com/rss/search?q=hvac+maintenance&hl=en-US&gl=US&ceid=US:en",
+    ];
+
+    const titles: string[] = [];
+
+    for (const url of rssUrls) {
+      try {
+        const res = await fetch(url, {
+          headers: {
+            "User-Agent": "TradeScout/1.0 (+https://thetradescout.com)",
+            "Accept": "application/rss+xml, application/xml;q=0.9, text/xml;q=0.8, */*;q=0.5",
+          },
+        });
+
+        if (!res.ok) continue;
+        const xml = await res.text();
+        titles.push(...extractRssItemTitles(xml));
+      } catch {
+        // Ignore per-source failures; we'll fall back to whatever we can fetch.
+      }
+    }
+
+    const unique = new Set<string>();
+    const items: Array<{ tag: string; source: "news" }> = [];
+
+    for (const title of titles) {
+      const tag = titleToHashtag(title);
+      if (unique.has(tag)) continue;
+      unique.add(tag);
+      items.push({ tag, source: "news" });
+      if (items.length >= 10) break;
+    }
+
+    communityExternalTrendingCache.fetchedAt = now;
+    communityExternalTrendingCache.items = items;
+    return items;
+  }
+
   // Community Posts
   app.get("/api/community/posts", async (req: any, res: any) => {
     try {
@@ -6036,6 +6365,108 @@ export async function registerRoutes(app: any) {
     } catch (error: any) {
       console.error("Error fetching community posts:", error);
       res.status(500).json({ message: "Failed to fetch posts" });
+    }
+  });
+
+  // Community Stats (real values only; no placeholders)
+  app.get("/api/community/stats", async (req: any, res: any) => {
+    try {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+
+      const thirtyDaysAgo = new Date();
+      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+      thirtyDaysAgo.setHours(0, 0, 0, 0);
+
+      const totalMembersResult = (await db.execute(
+        sql`select count(*)::int as count from users`
+      )) as any;
+      const postsTodayResult = (await db.execute(
+        sql`select count(*)::int as count from community_posts where created_at >= ${today}`
+      )) as any;
+      const countiesActiveResult = (await db.execute(
+        sql`select count(distinct county_fips)::int as count from community_posts where county_fips is not null and created_at >= ${thirtyDaysAgo}`
+      )) as any;
+      const activeTodayResult = (await db.execute(sql`
+        select count(distinct user_id)::int as count
+        from (
+          select author_id as user_id from community_posts where created_at >= ${today}
+          union
+          select user_id as user_id from post_likes where created_at >= ${today}
+          union
+          select author_id as user_id from post_comments where created_at >= ${today}
+        ) t
+      `)) as any;
+
+      const totalMembers = Number(totalMembersResult?.rows?.[0]?.count ?? 0);
+      const postsToday = Number(postsTodayResult?.rows?.[0]?.count ?? 0);
+      const countiesActive = Number(countiesActiveResult?.rows?.[0]?.count ?? 0);
+      const activeToday = Number(activeTodayResult?.rows?.[0]?.count ?? 0);
+
+      res.json({
+        totalMembers,
+        activeToday,
+        postsToday,
+        countiesActive,
+      });
+    } catch (error: any) {
+      console.error("Error fetching community stats:", error);
+      res.json({
+        totalMembers: 0,
+        activeToday: 0,
+        postsToday: 0,
+        countiesActive: 0,
+      });
+    }
+  });
+
+  // Trending Topics (DB-backed; fallback to internet news topics if none)
+  app.get("/api/community/trending", async (req: any, res: any) => {
+    try {
+      const stateCode = typeof req.query.stateCode === "string" ? req.query.stateCode : undefined;
+      const countyFips = typeof req.query.countyFips === "string" ? req.query.countyFips : undefined;
+      const limit = req.query.limit ? Math.max(1, Math.min(20, parseInt(req.query.limit as string, 10) || 10)) : 10;
+
+      const since = new Date();
+      since.setDate(since.getDate() - 7);
+
+      const rowsResult = (await db.execute(sql`
+        select tag, count(*)::int as posts
+        from (
+          select unnest(tags) as tag
+          from community_posts
+          where tags is not null
+            and is_hidden = false
+            and is_published = true
+            and created_at >= ${since}
+            ${stateCode ? sql`and state_code = ${stateCode}` : sql``}
+            ${countyFips ? sql`and county_fips = ${countyFips}` : sql``}
+        ) t
+        group by tag
+        order by posts desc
+        limit ${limit}
+      `)) as any;
+
+      const internalItems: Array<{ tag: string; posts: number; source: "community" }> =
+        Array.isArray(rowsResult?.rows)
+          ? rowsResult.rows
+              .filter((r: any) => typeof r?.tag === "string" && r.tag.trim().length > 0)
+              .map((r: any) => ({
+                tag: r.tag,
+                posts: Number(r.posts ?? 0),
+                source: "community" as const,
+              }))
+          : [];
+
+      if (internalItems.length > 0) {
+        return res.json(internalItems);
+      }
+
+      const externalItems = await fetchExternalTrendingHashtags();
+      return res.json(externalItems);
+    } catch (error: any) {
+      console.error("Error fetching community trending topics:", error);
+      res.json([]);
     }
   });
 

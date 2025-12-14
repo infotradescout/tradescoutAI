@@ -62,8 +62,7 @@ const Profile = memo(function Profile() {
     if (!file) return;
 
     try {
-      const uploadResponse = await apiRequest('POST', '/api/objects/upload');
-      const { uploadURL } = await uploadResponse.json();
+      const { uploadURL } = await apiRequest('POST', '/api/objects/upload');
 
       await fetch(uploadURL, {
         method: 'PUT',
@@ -71,7 +70,8 @@ const Profile = memo(function Profile() {
         headers: { 'Content-Type': file.type || 'application/octet-stream' },
       });
 
-      setFormData((prev) => ({ ...prev, profileImageUrl: uploadURL }));
+      const stableUrl = typeof uploadURL === 'string' ? uploadURL.split('?')[0] : '';
+      setFormData((prev) => ({ ...prev, profileImageUrl: stableUrl || uploadURL }));
       toast({ title: 'Photo updated', description: 'Your profile picture was uploaded.' });
     } catch (error) {
       console.error('Profile photo upload failed:', error);

@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeAll } from "vitest";
 import { db } from "../db";
-import { communityPosts, users } from "@shared/schema";
+import { communityPosts, users } from "../../shared/schema";
 import { storage } from "../storage";
 import { inArray } from "drizzle-orm";
 

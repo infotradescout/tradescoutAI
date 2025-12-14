@@ -2,6 +2,11 @@ import { ReactNode, useState } from 'react';
 import { LayoutGrid, MessageCircle, Users, Home, Compass, Sparkles, DollarSign, SlidersHorizontal, X } from 'lucide-react';
 import { ROUTES } from '@/lib/routes';
 import { RightToolsPanel } from '@/components/layout/RightToolsPanel';
+import { useAuth } from '@/hooks/useAuth';
+import { NotificationsMenu } from '@/components/NotificationsMenu';
+import { useIsMobile } from '@/hooks/useIsMobile';
+import { Link } from 'wouter';
+import MobileAppBar from '@/components/navigation/MobileAppBar';
 
 type NavItem = {
   label: string;
@@ -36,6 +41,8 @@ export function AppShell({
   secondary = defaultSecondary,
   footer,
 }: AppShellProps) {
+  const { isAuthenticated } = useAuth();
+  const isMobile = useIsMobile();
   const [isToolsOpen, setIsToolsOpen] = useState(false);
 
   return (
@@ -52,27 +59,31 @@ export function AppShell({
               </div>
             </div>
           </div>
-
           <div className="flex items-center gap-3">
-            {/* Mobile tools toggle for right-side menu */}
-            <button
-              type="button"
-              onClick={() => setIsToolsOpen(true)}
-              className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-slate-700 bg-slate-900 text-tsTextMain hover:bg-slate-800 md:hidden"
-              aria-label="Open tools and personalization menu"
-            >
-              <SlidersHorizontal className="h-4 w-4" />
-            </button>
+            {isAuthenticated && (
+              <>
+                <Link
+                  href="/messages"
+                  className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-slate-700 bg-slate-950/80 text-tsTextMain hover:bg-slate-900"
+                  aria-label="Open messages"
+                >
+                  <MessageCircle className="h-4 w-4" />
+                </Link>
+                <NotificationsMenu />
+              </>
+            )}
 
-            <div className="hidden md:flex items-center gap-3 text-sm text-tsTextMuted">
-              <a href={ROUTES.HELP} className="hover:text-tsAccent transition">Help</a>
-              <a
-                href={ROUTES.FIND_CONTRACTORS || ROUTES.CONTRACTORS}
-                className="rounded-lg bg-gradient-to-r from-orange-500 to-orange-600 px-4 py-2 text-white font-semibold shadow-orange-500/40 shadow hover:shadow-orange-500/60 transition"
+            {/* On desktop the right rail is already visible; only show the drawer button on mobile */}
+            {isMobile && (
+              <button
+                type="button"
+                onClick={() => setIsToolsOpen(true)}
+                className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-slate-700 bg-slate-950/80 text-tsTextMain hover:bg-slate-900"
+                aria-label="Open tools and personalization menu"
               >
-                Contractors
-              </a>
-            </div>
+                <SlidersHorizontal className="h-4 w-4" />
+              </button>
+            )}
           </div>
         </div>
       </header>
@@ -90,9 +101,9 @@ export function AppShell({
         </div>
       </div>
 
-      {/* Mobile overlay for tools panel */}
-      {isToolsOpen && (
-        <div className="fixed inset-0 z-50 flex lg:hidden">
+      {/* Mobile tools drawer (RightToolsPanel) */}
+      {isToolsOpen && isMobile && (
+        <div className="fixed inset-0 z-50 flex">
           <button
             type="button"
             className="flex-1 bg-black/50"
@@ -115,6 +126,12 @@ export function AppShell({
           </div>
         </div>
       )}
+
+      {footer}
+      
+      {/* ARCHITECTURAL RULE: Only AppShell renders navigation */}
+      {/* Mobile bottom navigation bar */}
+      <MobileAppBar />
     </div>
   );
 }

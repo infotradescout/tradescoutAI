@@ -14,7 +14,7 @@ interface SEOHelmetProps {
 
 export function SEOHelmet({
   title = "TradeScout - Find Trusted Local Contractors | Get 3 Free Quotes",
-  description = "Connect with verified local contractors. Get instant quotes, read reviews, and hire with confidence for home improvement projects.",
+  description = "Connect with verified local contractors. Get instant quotes, read RECOMMENDATIONS, and hire with confidence for home improvement projects.",
   keywords = "local contractors, home improvement, verified contractors, free quotes, trusted contractors, roofing, plumbing, electrical",
   canonical,
   ogType = "website",
@@ -115,7 +115,7 @@ export const createWebsiteStructuredData = () => ({
   "@context": "https://schema.org",
   "@type": "WebSite",
   "name": "TradeScout",
-  "description": "Connect with verified local contractors. Get instant quotes, read reviews, and hire with confidence.",
+  "description": "Connect with verified local contractors. Get instant quotes, read RECOMMENDATIONS, and hire with confidence.",
   "url": window.location.origin,
   "potentialAction": {
     "@type": "SearchAction",

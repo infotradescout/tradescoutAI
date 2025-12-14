@@ -259,7 +259,7 @@ export function ContractorSearch({ onSearch, className = "" }: ContractorSearchP
                       <Star className="h-4 w-4 text-orange-400" />
                       Min Rating
                       <ContextualTooltip
-                        content="Higher ratings mean happier customers - though sometimes the best contractors are too busy for reviews!"
+                        content="Higher ratings mean happier customers - though sometimes the best contractors are too busy for RECOMMENDATIONS!"
                         illustration="paintbrush"
                         size="sm"
                         variant="contractor"

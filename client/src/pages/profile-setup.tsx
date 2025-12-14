@@ -65,9 +65,8 @@ export default function ProfileSetup() {
 
   const setupProfileMutation = useMutation({
     mutationFn: async (data: ProfileSetupData) => {
-      const response = await apiRequest("POST", "/api/auth/setup-profile", data);
-      const json = await response.json();
-      return json;
+      // apiRequest already returns parsed JSON/text; do not treat it as a Response.
+      return apiRequest("POST", "/api/auth/setup-profile", data);
     },
     onSuccess: (result: any) => {
       toast({
@@ -150,7 +149,7 @@ export default function ProfileSetup() {
                 <ul className="space-y-2 text-sm text-gray-300">
                   <li>• Find verified local contractors</li>
                   <li>• Get free project estimates</li>
-                  <li>• Read reviews and ratings</li>
+                  <li>• Read RECOMMENDATIONS and ratings</li>
                   <li>• Compare multiple quotes</li>
                 </ul>
               </CardContent>

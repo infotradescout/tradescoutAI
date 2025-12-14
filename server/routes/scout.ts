@@ -27,6 +27,43 @@ const router = Router();
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+const SCOUT_CORS_ALLOWED_ORIGINS = new Set(
+  [
+    "https://www.thetradescout.com",
+    "https://tradescoutai.onrender.com",
+    "https://tradescout-5hn96npkf-tradescouts-projects.vercel.app",
+    "https://thetradescout.com",
+    "https://tradescout-e557bv88z-tradescouts-projects.vercel.app",
+  ].map((o) => o.toLowerCase())
+);
+
+router.use((req, res, next) => {
+  const originHeader = req.headers.origin;
+  if (typeof originHeader === "string") {
+    const normalized = originHeader.toLowerCase();
+    if (SCOUT_CORS_ALLOWED_ORIGINS.has(normalized)) {
+      res.setHeader("Access-Control-Allow-Origin", originHeader);
+      res.setHeader("Access-Control-Allow-Credentials", "true");
+    }
+  }
+
+  res.setHeader("Vary", "Origin");
+
+  if (req.method === "OPTIONS") {
+    res.setHeader(
+      "Access-Control-Allow-Methods",
+      "GET,POST,PUT,PATCH,DELETE,OPTIONS"
+    );
+    res.setHeader(
+      "Access-Control-Allow-Headers",
+      "Content-Type, Authorization, Origin, Accept"
+    );
+    return res.sendStatus(204);
+  }
+
+  next();
+});
+
 // Lightweight fraud/scam guard for generated answers
 const FRAUD_PATTERNS = [
   /gift\s*card/i,
@@ -168,6 +205,11 @@ Now write an inspiring, comprehensive answer about how TradeScout transforms thi
  * Enhanced version that elaborates and explains the knowledge intelligently
  * Now includes user-specific language and personalization
  * Returns structured response with message and suggestedActions
+ * 
+ * ENFORCES MANDATORY EXECUTION CONTRACT:
+ * - Required response schema with intent, thought_flow, decision, message, suggestedActions
+ * - Comprehensive state injection every turn
+ * - No fallback paths - schema is mandatory
  */
 async function synthesizeResponse(
   userMessage: string,
@@ -177,11 +219,19 @@ async function synthesizeResponse(
   conversationHistory: string,
   userContext?: any,
   historyMessages?: { role: string; content: string }[],
-  recentActivityPrompt?: string
-): Promise<{ message: string; suggestedActions: string[] }> {
+  recentActivityPrompt?: string,
+  requestState?: {
+    auth: boolean;
+    role: string;
+    route?: string;
+    capabilities?: string[];
+    last_intent?: string;
+    locality: { county?: string; state?: string; region?: string };
+  }
+): Promise<{ message: string; suggestedActions: string[]; intent?: string; thought_flow?: string[]; decision?: string }> {
   const DEFAULT_ACTIONS = [
     "Find contractors in my area",
-    "Explore marketplace deals",
+    "Explore Exchange deals",
     "Start Community Builder"
   ];
 
@@ -195,6 +245,20 @@ async function synthesizeResponse(
   try {
     const model = gemini.getGenerativeModel({ model: "gemini-2.5-flash" });
     
+    // [STATE INJECTION - COMPREHENSIVE]
+    let stateInjection = "";
+    if (requestState) {
+      stateInjection = `
+CURRENT STATE (injected every turn):
+- auth: ${requestState.auth ? "logged in" : "guest"}
+- role: ${requestState.role}
+- route: ${requestState.route || "unknown"}
+- capabilities: ${requestState.capabilities?.join(", ") || "basic navigation"}
+- last_intent: ${requestState.last_intent || "none"}
+- locality: ${requestState.locality.county || "unknown"}, ${requestState.locality.state || "unknown"}
+`;
+    }
+
     // [USER-CONTEXT INJECTION]
     // Build user context for personalized language
     let userContextPrompt = "";
@@ -207,28 +271,31 @@ async function synthesizeResponse(
       ? `\n${recentActivityPrompt}\n`
       : "";
 
-    // Smart synthesis that elaborates on knowledge while keeping facts intact
-    const synthesisPrompt = `You are Scout, the TradeScout AI assistant. Your job is to make knowledge helpful, specific, and engaging.
+    // Smart synthesis that ENFORCES the execution contract
+    const synthesisPrompt = `${systemPrompt}
+
+${stateInjection}
 
 ${userContextPrompt}
 
-    ${activityContext}
+${activityContext}
 
 User asked: "${userMessage}"
 
 Knowledge from TradeScout (Layer ${knowledge.layer}):
 ${knowledge.answer}
 
-CRITICAL: Keep response BRIEF and SCREEN-FRIENDLY
-- Maximum 300 words total (fits on mobile without scrolling)
-- Maximum 12 lines (assumes 4-5 word average per line)
-- No fluff or padding - every sentence must earn its place
-- Use short, punchy sentences
-- Avoid lengthy paragraphs (2-3 sentences max per paragraph)
+**YOU MUST RESPOND WITH THIS EXACT JSON SCHEMA - NO EXCEPTIONS:**
 
-RESPONSE FORMAT - YOU MUST RETURN VALID JSON:
 {
-  "message": "your response text here",
+  "intent": "string - classified user intent (e.g., find_contractor, ask_pricing, list_item, get_help)",
+  "thought_flow": [
+    "Step 1: What I'm checking/understanding",
+    "Step 2: What data I found or didn't find",
+    "Step 3: How I'm making my decision"
+  ],
+  "decision": "string - what I decided to do and why (e.g., 'Showing contractors because user is authenticated and in Harris County')",
+  "message": "string - your actual response to the user (max 300 words, 12-15 lines)",
   "suggestedActions": [
     "Action prompt 1",
     "Action prompt 2",
@@ -236,58 +303,93 @@ RESPONSE FORMAT - YOU MUST RETURN VALID JSON:
   ]
 }
 
-RESPONSE STRUCTURE (ultra-concise version):
-1. Direct answer first (1-2 sentences)
-2. Optional: Brief "How I'm thinking" (2-3 bullets ONLY if critical)
-3. Key point or example (2-3 sentences)
-4. Next steps: 1-3 concrete actions (bullet list)
+CRITICAL EXECUTION RULES:
+1. You MUST expose your reasoning in thought_flow - show your work
+2. You MUST classify user intent explicitly
+3. You MUST explain your decision before giving the message
+4. If user is not authenticated (auth: guest) and asks for action that requires login, you MUST:
+   - Set intent to "auth_required"
+   - Explain in thought_flow why auth is needed
+   - In message, tell user to create account and provide direct link to /register
+5. Keep message brief (max 300 words, 12-15 lines)
+6. Always generate exactly 3 suggestedActions
 
-SUGGESTED ACTIONS RULES:
-- ALWAYS generate exactly 3 predictive user actions that advance the workflow
-- Use short, tap-friendly language (max 60 characters each)
-- Make them specific and actionable
-- Never leave suggestedActions empty
-- Base them on TradeScout capabilities:
-  * "Find contractors in [location]"
-  * "Explore [county] community"
-  * "Post my project"
-  * "List item for $[amount]"
-  * "Start Community Builder"
-  * "Search marketplace deals"
-  * "Find food trucks with MealScout"
-  * "Get pricing for [service]"
-  * "See reviews in my area"
+AUTH-REQUIRED ACTIONS:
+- Posting tasks, items, listings
+- Applying to jobs
+- Messaging contractors
+- Joining groups/communities
+- Creating causes or campaigns
+- Any "create", "post", "apply", "message", "join" action
+
+If user requests auth-required action while guest:
+- intent: "auth_required"
+- thought_flow: ["User asked to [action]", "This requires authentication", "Will redirect to account creation"]
+- decision: "Directing user to create account at /register"
+- message: "To [do that action], you'll need a TradeScout account. [Click here to create one](/register) - it takes less than a minute!"
 
 ${knowledge.layer === 1 || knowledge.layer === 2 ? "This is TradeScout data - speak with confidence and authority." : ""}
 ${knowledge.layer === 3 ? "This is from the internet, not local TradeScout data - be clear about that." : ""}
-${knowledge.layer === 4 ? "You don't have reliable info - be honest about it." : ""}
+${knowledge.layer === 4 ? "You don't have reliable info - be honest about it in your thought_flow and decision." : ""}
 
-DO NOT:
-- Write paragraphs longer than 3 sentences
-- Include unnecessary context or background
-- Repeat yourself
-- Use marketing-speak or hype
-- Go over 300 words under ANY circumstances
-- Return anything other than valid JSON
-
-Be direct. Be brief. Be helpful. Every word must count.`;
+RESPOND WITH VALID JSON ONLY - NO MARKDOWN, NO CODE FENCES, JUST RAW JSON.`;
 
     const result = await model.generateContent(synthesisPrompt);
     let rawResponse = result.response.text();
     
-    // Parse JSON response with fail-safes
-    const parsed = parseStructuredResponse(rawResponse, userMessage, userContext, historyMessages);
-
-    // Post-process: Enforce hard length limit on message
-    parsed.message = trimResponseToScreenFit(parsed.message);
-
-    return parsed;
+    // Strip markdown code fences if present
+    rawResponse = rawResponse.replace(/```json\n?/g, "").replace(/```\n?/g, "").trim();
+    
+    // Parse JSON response with enforced schema
+    try {
+      const parsed = JSON.parse(rawResponse);
+      
+      // Validate schema
+      if (!parsed.intent || !parsed.thought_flow || !parsed.decision || !parsed.message || !parsed.suggestedActions) {
+        console.warn("[Scout] LLM response missing required schema fields, using fallback");
+        return {
+          intent: "unknown",
+          thought_flow: ["Schema validation failed", "LLM did not follow contract", "Returning knowledge answer"],
+          decision: "Falling back to raw knowledge due to schema violation",
+          message: knowledge.answer,
+          suggestedActions: DEFAULT_ACTIONS
+        };
+      }
+      
+      // Enforce length limit on message
+      parsed.message = trimResponseToScreenFit(parsed.message);
+      
+      return {
+        intent: parsed.intent,
+        thought_flow: parsed.thought_flow,
+        decision: parsed.decision,
+        message: parsed.message,
+        suggestedActions: parsed.suggestedActions || DEFAULT_ACTIONS
+      };
+    } catch (parseError) {
+      console.error("[Scout] Failed to parse LLM JSON response:", parseError);
+      console.error("[Scout] Raw response was:", rawResponse);
+      
+      // NO FALLBACK PATHS - Return structured error
+      return {
+        intent: "parse_error",
+        thought_flow: ["LLM response was not valid JSON", "This violates the execution contract", "System needs attention"],
+        decision: "Cannot process - LLM failed to follow schema",
+        message: "I encountered a system error. Please try rephrasing your question.",
+        suggestedActions: DEFAULT_ACTIONS
+      };
+    }
   } catch (error) {
     console.error("[Scout] Synthesis error:", error);
+    
+    // Even errors must follow the contract
     return {
+      intent: "system_error",
+      thought_flow: ["System error occurred during synthesis", "Error: " + (error as Error).message, "Returning safe fallback"],
+      decision: "Falling back to raw knowledge due to system error",
       message: knowledge.answer,
       suggestedActions: DEFAULT_ACTIONS
-    }; // Fall back to raw knowledge on error
+    };
   }
 }
 
@@ -592,6 +694,12 @@ interface ScoutResponse {
     isAffiliate?: boolean | null;
     targetLocation?: string | null;
   } | null;
+  metadata?: {
+    intent?: string;
+    thought_flow?: string[];
+    decision?: string;
+    redirect?: string;
+  };
 }
 
 type ScoutClientAction = {
@@ -629,6 +737,27 @@ function formatUsd(amount: number): string {
   if (!Number.isFinite(amount)) return "$0";
   const rounded = Math.round(amount * 100) / 100;
   return rounded % 1 === 0 ? `$${rounded.toFixed(0)}` : `$${rounded.toFixed(2)}`;
+}
+
+function getRegionFromState(stateCode: string): string {
+  const regions: Record<string, string> = {
+    // Northeast
+    CT: "Northeast", ME: "Northeast", MA: "Northeast", NH: "Northeast", RI: "Northeast", VT: "Northeast",
+    NJ: "Northeast", NY: "Northeast", PA: "Northeast",
+    // Southeast
+    DE: "Southeast", FL: "Southeast", GA: "Southeast", MD: "Southeast", NC: "Southeast", SC: "Southeast",
+    VA: "Southeast", WV: "Southeast", KY: "Southeast", TN: "Southeast", AL: "Southeast", MS: "Southeast",
+    AR: "Southeast", LA: "Southeast",
+    // Midwest
+    IL: "Midwest", IN: "Midwest", MI: "Midwest", OH: "Midwest", WI: "Midwest",
+    IA: "Midwest", KS: "Midwest", MN: "Midwest", MO: "Midwest", NE: "Midwest", ND: "Midwest", SD: "Midwest",
+    // Southwest
+    AZ: "Southwest", NM: "Southwest", OK: "Southwest", TX: "Southwest",
+    // West
+    CO: "West", ID: "West", MT: "West", NV: "West", UT: "West", WY: "West",
+    AK: "West", CA: "West", HI: "West", OR: "West", WA: "West"
+  };
+  return regions[stateCode] || "Unknown";
 }
 
 function formatRecentActivityForPrompt(recentActivity: ScoutRequest["recentActivity"]): string {
@@ -794,6 +923,20 @@ router.post("/", async (req: Request, res: Response) => {
 
     const recentActivityPrompt = formatRecentActivityForPrompt(recentActivity);
     
+    // [STATE INJECTION] Build comprehensive state for execution contract
+    const requestState = {
+      auth: !!userId,
+      role: userRole,
+      route: (req as any).route?.path || "unknown",
+      capabilities: roles.length > 0 ? roles : ["guest"],
+      last_intent: history.length > 0 ? "continuation" : "new_conversation",
+      locality: {
+        county: countyCode,
+        state: stateCode,
+        region: stateCode ? getRegionFromState(stateCode) : undefined
+      }
+    };
+    
     const synthesized = await synthesizeResponse(
       message,
       knowledge,
@@ -802,53 +945,54 @@ router.post("/", async (req: Request, res: Response) => {
       conversationHistory,
       userContext,
       history,
-      recentActivityPrompt
+      recentActivityPrompt,
+      requestState
     );
 
-    // Check if this action requires authentication
-    const authRequiredActions = [
-      "create",
-      "list",
-      "post",
-      "message",
-      "find",
-      "search",
-      "contact",
-      "apply",
-      "join",
-      "start",
-      "launch",
-      "apply for",
-    ];
-    
-    const userAskedForAction = authRequiredActions.some(action => 
-      message.toLowerCase().includes(action)
-    );
+    // Handle auth-required intent
+    if (synthesized.intent === "auth_required" && !userId) {
+      // Scout has determined user needs to create account
+      const aiResponse: ScoutResponse = {
+        message: synthesized.message,
+        suggestedActions: [
+          "Create account now",
+          "Learn more about TradeScout",
+          "Continue as guest"
+        ],
+        actions: [],
+        sponsored: null,
+        metadata: {
+          intent: synthesized.intent,
+          thought_flow: synthesized.thought_flow,
+          decision: synthesized.decision,
+          redirect: "/register"
+        }
+      };
 
-    // If user is not authenticated and asked for an action, guide them to signup
-    let finalMessage = synthesized.message;
-    if (!userId && userAskedForAction && knowledge.layer < 4) {
-      finalMessage = `${synthesized.message}
-
----
-
-**To do this, you'll need a TradeScout account!** It only takes a minute:
-
-1. Click the **"Create Account"** button at the top
-2. Choose your role (Homeowner, Contractor, or Community Member)
-3. Enter your email and create a password
-4. Verify your email
-5. Come back here and I'll help you with \`${message}\`
-
-Ready? Let's set you up! 🚀`;
+      return res.json({
+        ...aiResponse,
+        knowledge: {
+          layer: knowledge.layer,
+          sources: knowledge.sources,
+          confidence: knowledge.confidence,
+        },
+        llmProvider: "gemini",
+        promptVersion,
+        timestamp: new Date().toISOString(),
+      });
     }
 
     // The synthesized answer is our response with suggestedActions!
     const aiResponse: ScoutResponse = {
-      message: finalMessage,
+      message: synthesized.message,
       suggestedActions: synthesized.suggestedActions,
       actions: [],
       sponsored: null,
+      metadata: {
+        intent: synthesized.intent,
+        thought_flow: synthesized.thought_flow,
+        decision: synthesized.decision
+      }
     };
 
     // Community Vault MVP actions (explicit chips; no auto-execution on client)

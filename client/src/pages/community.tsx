@@ -29,7 +29,6 @@ import {
 import { useAuth } from "@/hooks/useAuth";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { AppShell } from "@/components/layout/AppShell";
 import { Page } from "@/components/layout/PagePrimitives";
 import { CommunityShell } from "@/components/layout/CommunityShell";
 import { useLocationContext } from "@/hooks/useLocationContext";

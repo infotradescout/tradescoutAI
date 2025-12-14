@@ -197,7 +197,7 @@ export function RatingWidget({ rating, recommendationCount }: { rating: number; 
     <DashboardWidget
       title="Customer Rating"
       value={`${rating.toFixed(1)} ⭐`}
-      subtitle={`From ${recommendationCount} reviews`}
+      subtitle={`From ${recommendationCount} RECOMMENDATIONS`}
       icon={<Star className="h-5 w-5 text-orange-400" />}
       status={rating >= 4.5 ? 'success' : rating >= 4.0 ? 'warning' : 'danger'}
       tooltipContent="Your reputation score - like your Better Business Bureau rating but for the digital age"

@@ -370,7 +370,7 @@ export default function PublicProfileView() {
                     >
                       {profile.stats.reviews}
                     </div>
-                    <div className="text-sm opacity-70">Reviews</div>
+                    <div className="text-sm opacity-70">RECOMMENDATIONS</div>
                   </div>
                 )}
                 {profile.stats.rating !== undefined && (
@@ -494,7 +494,7 @@ export default function PublicProfileView() {
             </Card>
           )}
 
-          {/* Reviews / recommendations summary */}
+          {/* RECOMMENDATIONS summary */}
           {showReviews && sellerRatings && sellerRatings.count > 0 && (
             <Card>
               <CardHeader>
@@ -503,7 +503,7 @@ export default function PublicProfileView() {
                     className="h-5 w-5 fill-current"
                     style={{ color: 'var(--user-primary, #f97316)' }}
                   />
-                  Reviews & recommendations
+                  RECOMMENDATIONS
                 </CardTitle>
               </CardHeader>
               <CardContent>

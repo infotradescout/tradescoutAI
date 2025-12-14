@@ -131,7 +131,7 @@ const ALL_NAVIGATION: NavItem[] = [
       { label: 'Promotions', href: '/contractor-promos', icon: Megaphone, roles: ['contractor_user'] },
       { label: 'Growth Pack', href: '/growth-pack', icon: TrendingUp, roles: ['contractor_user'] },
       { label: 'Performance Analytics', href: '/contractor/analytics', icon: ChartBar, roles: ['contractor_user'] },
-      { label: 'Reviews & Ratings', href: '/contractor/reviews', icon: Star, roles: ['contractor_user'] },
+      { label: 'RECOMMENDATIONS & Ratings', href: '/contractor/reviews', icon: Star, roles: ['contractor_user'] },
       { label: 'Apply as Contractor', href: '/contractor-apply', icon: UserPlus },
     ],
   },
@@ -216,7 +216,7 @@ const ALL_NAVIGATION: NavItem[] = [
       { label: 'Business Dashboard', href: '/business-owner-dashboard', icon: LayoutDashboard, roles: ['business_owner'] },
       { label: 'Business Listing', href: '/business-listing', icon: Building2 },
       { label: 'Business Analytics', href: '/business/analytics', icon: ChartBar, roles: ['business_owner'] },
-      { label: 'Customer Reviews', href: '/business/reviews', icon: Star, roles: ['business_owner'] },
+      { label: 'Customer RECOMMENDATIONS', href: '/business/reviews', icon: Star, roles: ['business_owner'] },
     ],
   },
 

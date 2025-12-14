@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { USER_TYPES } from "@shared/userTypes";
+import { getUserColorScheme } from "@shared/colorPresets";
 import { 
   MapPin, Calendar, Building, Award, Star, Settings, 
   Eye, Share2, Edit, ExternalLink, Globe, Copy, Check
@@ -36,6 +37,17 @@ export default function ProfilePage() {
   const showBadges = user.preferences?.badges?.show !== false;
   const hasCommunityBuilder = (user.roles || []).includes('community_builder');
 
+  const colorScheme = getUserColorScheme(user.preferences);
+  const profileThemeVars = {
+    // Scope these to the profile page so we don't globally override the app.
+    ['--user-primary' as any]: colorScheme.primary,
+    ['--user-secondary' as any]: colorScheme.secondary,
+    ['--user-background' as any]: colorScheme.background,
+    ['--user-text' as any]: colorScheme.text,
+    ['--user-accent' as any]: colorScheme.accent || colorScheme.primary,
+    ['--user-border' as any]: colorScheme.border || colorScheme.background,
+  } as React.CSSProperties;
+
   const profileUrl = `${window.location.origin}/profile/${user.id}`;
   const isPublic = user.preferences?.profileVisibility === 'public';
 
@@ -46,19 +58,36 @@ export default function ProfilePage() {
   };
 
   return (
-    <div className="min-h-screen bg-tsBg">
+    <div
+      className="min-h-screen transition-colors duration-300"
+      style={{
+        ...profileThemeVars,
+        backgroundColor: 'var(--user-background)',
+        color: 'var(--user-text)',
+      }}
+    >
       <div className="container mx-auto py-8 space-y-6 max-w-6xl">
         {/* Profile Header */}
-        <div className="bg-tsCard rounded-lg p-8 shadow-lg border border-tsBorder">
+        <div
+          className="rounded-lg p-8 shadow-lg border"
+          style={{
+            backgroundColor: 'color-mix(in srgb, var(--user-background) 92%, #111827 8%)',
+            borderColor: 'var(--user-border)',
+          }}
+        >
           <div className="flex flex-col md:flex-row gap-6 items-start md:items-center">
             {user.profileImageUrl ? (
               <img
                 src={user.profileImageUrl}
                 alt={displayName}
-                className="w-32 h-32 rounded-full object-cover border-4 border-tsAccent"
+                className="w-32 h-32 rounded-full object-cover border-4"
+                style={{ borderColor: 'var(--user-primary)' }}
               />
             ) : (
-              <div className="w-32 h-32 rounded-full bg-tsAccent flex items-center justify-center text-5xl font-bold text-white">
+              <div
+                className="w-32 h-32 rounded-full flex items-center justify-center text-5xl font-bold text-white"
+                style={{ backgroundColor: 'var(--user-primary)' }}
+              >
                 {displayName.charAt(0).toUpperCase()}
               </div>
             )}
@@ -99,7 +128,8 @@ export default function ProfilePage() {
                 <Button
                   onClick={() => setLocation('/profile-settings')}
                   variant="outline"
-                  className="border-tsAccent text-tsAccent hover:bg-tsAccent hover:text-white"
+                  className="border hover:text-white"
+                  style={{ borderColor: 'var(--user-primary)', color: 'var(--user-primary)' }}
                 >
                   <Settings className="h-4 w-4 mr-2" />
                   Edit Profile
@@ -146,11 +176,17 @@ export default function ProfilePage() {
 
               {/* Share Profile */}
               {isPublic && (
-                <div className="bg-tsBg border border-tsBorder rounded-lg p-4">
+                <div
+                  className="border rounded-lg p-4"
+                  style={{
+                    backgroundColor: 'color-mix(in srgb, var(--user-background) 90%, #0a0f1e 10%)',
+                    borderColor: 'var(--user-border)',
+                  }}
+                >
                   <div className="flex items-center justify-between gap-4">
                     <div className="flex-1 min-w-0">
                       <p className="text-xs text-tsTextMuted mb-1">Your Public Profile URL</p>
-                      <code className="text-sm text-tsAccent truncate block">
+                      <code className="text-sm truncate block" style={{ color: 'var(--user-primary)' }}>
                         {profileUrl}
                       </code>
                     </div>
@@ -159,7 +195,8 @@ export default function ProfilePage() {
                         size="sm"
                         variant="outline"
                         onClick={copyProfileUrl}
-                        className="border-tsAccent text-tsAccent hover:bg-tsAccent hover:text-white"
+                        className="border hover:text-white"
+                        style={{ borderColor: 'var(--user-primary)', color: 'var(--user-primary)' }}
                       >
                         {copied ? (
                           <>
@@ -176,7 +213,8 @@ export default function ProfilePage() {
                       <Button
                         size="sm"
                         onClick={() => window.open(profileUrl, '_blank')}
-                        className="bg-tsAccent text-white hover:bg-tsAccent/90"
+                        className="text-white"
+                        style={{ backgroundColor: 'var(--user-primary)' }}
                       >
                         <ExternalLink className="h-4 w-4 mr-1" />
                         View
@@ -195,7 +233,7 @@ export default function ProfilePage() {
             <TabsTrigger value="overview">Overview</TabsTrigger>
             <TabsTrigger value="activity">Activity</TabsTrigger>
             <TabsTrigger value="listings">Listings</TabsTrigger>
-            <TabsTrigger value="reviews">Reviews</TabsTrigger>
+            <TabsTrigger value="reviews">RECOMMENDATIONS</TabsTrigger>
           </TabsList>
 
           <TabsContent value="overview" className="space-y-6">
@@ -262,7 +300,7 @@ export default function ProfilePage() {
                     </li>
                     <li className="flex items-start gap-2">
                       <Check className="h-4 w-4 text-green-400 mt-0.5 flex-shrink-0" />
-                      <span>Activity and reviews build your reputation</span>
+                      <span>Activity and RECOMMENDATIONS build your reputation</span>
                     </li>
                   </ul>
                 </CardContent>
@@ -322,7 +360,7 @@ export default function ProfilePage() {
                     </div>
                     <div>
                       <div className="text-2xl font-bold text-tsAccent">{user?.stats?.reviews ?? '—'}</div>
-                      <div className="text-xs text-tsTextMuted">Reviews</div>
+                      <div className="text-xs text-tsTextMuted">RECOMMENDATIONS</div>
                     </div>
                     <div>
                       <div className="text-2xl font-bold text-tsAccent flex items-center justify-center gap-1">
@@ -371,14 +409,14 @@ export default function ProfilePage() {
           <TabsContent value="reviews">
             <Card className="bg-tsCard border-tsBorder">
               <CardHeader>
-                <CardTitle className="text-tsTextMain">Reviews</CardTitle>
+                <CardTitle className="text-tsTextMain">RECOMMENDATIONS</CardTitle>
                 <CardDescription className="text-tsTextMuted">
-                  Reviews from other community members
+                  RECOMMENDATIONS from other community members
                 </CardDescription>
               </CardHeader>
               <CardContent>
                 <p className="text-sm text-tsTextMuted text-center py-8">
-                  No reviews yet. Complete transactions to receive reviews!
+                  No RECOMMENDATIONS yet. Complete transactions to receive RECOMMENDATIONS!
                 </p>
               </CardContent>
             </Card>

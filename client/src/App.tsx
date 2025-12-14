@@ -1,14 +1,14 @@
 import React, { memo, Suspense, useEffect, useState } from 'react';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { Link, Router, Route, Switch, useLocation } from 'wouter';
-import { X } from 'lucide-react';
+import { MessageCircle, SlidersHorizontal, X } from 'lucide-react';
 import { queryClient } from './lib/queryClient';
 import { ErrorBoundary } from './components/ui/error-boundary';
 import { ThemeProvider } from './contexts/ThemeContext';
 import { SessionProvider } from './contexts/SessionContext';
 import { ProtectedRoute } from './components/ProtectedRoute';
-import { useAuth, useLogout } from './hooks/useAuth';
-import { Button } from './components/ui/button';
+import { useAuth } from './hooks/useAuth';
+import { AppShell } from './components/layout/AppShell';
 
 // Only load essential components eagerly
 import SmartHome from './SmartHome';
@@ -17,7 +17,6 @@ import SimpleMobileGestures from './components/SimpleMobileGestures';
 import SimpleSubtleHints from './components/onboarding/SimpleSubtleHints';
 import SimpleBugReportTool from './components/SimpleBugReportTool';
 import SimpleFloatingHelp from './components/ui/simple-floating-help';
-import MobileAppBar from './components/navigation/MobileAppBar';
 import ComingSoon from './pages/coming-soon';
 
 // Loading component for lazy-loaded pages
@@ -27,13 +26,24 @@ const PageLoader = memo(function PageLoader() {
   return <PageLoadingSpinner message="Loading TradeScout..." />;
 });
 
+const RedirectTo = memo(function RedirectTo({ to }: { to: string }) {
+  const [location, navigate] = useLocation();
+
+  useEffect(() => {
+    if (location !== to) navigate(to);
+  }, [location, navigate, to]);
+
+  return null;
+});
+
 // Toggle to gate unfinished full-site features behind a Coming Soon screen
 const FULL_SITE_PAUSED = false;
 
 // Lazy load all pages by category for better code splitting
 // Core Pages
-// Contractors: canonical path now points to worker marketplace
-const ContractorsPage = React.lazy(() => import('./pages/worker-marketplace'));
+// Contractors: canonical path is the licensed/verified contractor search
+const FindContractors = React.lazy(() => import('./pages/find-contractors'));
+const ContractorProfile = React.lazy(() => import('./pages/contractor-profile'));
 const DailyDeals = React.lazy(() => import('./pages/daily-deals'));
 const HelpDemo = React.lazy(() => import('./pages/help-demo'));
 const TestPage = React.lazy(() => import('./pages/test-page'));
@@ -48,6 +58,7 @@ const Signup = React.lazy(() => import('./pages/signup'));
 
 // Contractor Features
 const ContractorApply = React.lazy(() => import('./pages/contractor-apply'));
+const ContractorBoard = React.lazy(() => import('./pages/contractor-board'));
 const BusinessListing = React.lazy(() => import('./pages/business-listing'));
 const BusinessOwnerDashboard = React.lazy(() => import('./pages/business-owner-dashboard'));
 const Accelerator = React.lazy(() => import('./pages/accelerator'));
@@ -97,7 +108,6 @@ const AdminCommunityBuilderReconciliation = React.lazy(() => import('./pages/adm
 const AdminCommunityBuilderBuilders = React.lazy(() => import('./pages/admin/community-builder-builders'));
 
 // Additional Features
-const Marketplace = React.lazy(() => import('./pages/marketplace-shell'));
 const Exchange = React.lazy(() => import('./pages/exchange'));
 const HandmadeMarketplace = React.lazy(() => import('./pages/handmade-marketplace'));
 const Leaderboard = React.lazy(() => import('./pages/leaderboard'));
@@ -121,6 +131,7 @@ const Invite = React.lazy(() => import('./pages/invite'));
 const CustomDashboard = React.lazy(() => import('./pages/Dashboard'));
 const DashboardSettings = React.lazy(() => import('./pages/DashboardSettings'));
 const RoleDashboardRouter = React.lazy(() => import('./components/RoleDashboardRouter'));
+const DashboardJobs = React.lazy(() => import('./pages/dashboard-jobs'));
 
 // Role-specific Dashboards (heavy components)
 const ContractorDashboard = React.lazy(() => import('./pages/contractor-dashboard-simple'));
@@ -260,11 +271,11 @@ const LegalFooter = memo(function LegalFooter() {
 
 // Main app layout component
 const AppLayout = memo(function AppLayout() {
-  const [location] = useLocation();
-  const isLlmRoute = location === '/' || location === '/scout' || location.startsWith('/?');
+  const [location, setLocation] = useLocation();
+  // Scout is the immersive /llm surface. The full site runs under '/'.
+  const isLlmRoute = location === '/scout' || location.startsWith('/scout') || location === '/_scout-lite';
 
-  const { isAuthenticated } = useAuth();
-  const logout = useLogout();
+  const { isAuthenticated, isLoading } = useAuth();
 
   const [showBetaNotice, setShowBetaNotice] = useState(false);
 
@@ -274,6 +285,13 @@ const AppLayout = memo(function AppLayout() {
       setShowBetaNotice(true);
     }
   }, []);
+
+  // Back-compat: older Scout links were encoded as '/?prompt=...'
+  useEffect(() => {
+    if (location.startsWith('/?')) {
+      setLocation(`/scout${location.substring(1)}`);
+    }
+  }, [location, setLocation]);
 
   const dismissBetaNotice = () => {
     sessionStorage.setItem('ts_beta_notice_dismissed_session', 'true');
@@ -285,41 +303,25 @@ const AppLayout = memo(function AppLayout() {
     ? 'flex-1 relative w-full bg-[#060b1c]'
     : 'flex-1 relative w-full px-3 sm:px-4 md:px-6 py-6 bg-[#060b1c]';
 
+  const ContractorsBoardLegacy = memo(function ContractorsBoardLegacy() {
+    const [, setLocationInner] = useLocation();
+
+    useEffect(() => {
+      if (isLoading) return;
+      if (isAuthenticated) {
+        setLocationInner('/dashboard/jobs');
+      }
+    }, [isAuthenticated, isLoading, setLocationInner]);
+
+    if (isLoading) return null;
+    if (isAuthenticated) return null;
+
+    return <LazyPage Component={FindContractors} />;
+  });
+
   return (
     <SimpleMobileGestures>
       <div className={`min-h-screen ${appBackgroundClass} text-tsTextMain font-sans flex flex-col`}>
-        {!isLlmRoute && isAuthenticated && (
-          <div className="fixed top-4 right-4 z-50 flex items-center gap-2">
-            <Link href="/profile">
-              <Button size="sm" variant="secondary" className="bg-black/30 border border-tsBorder hover:bg-black/40">
-                Account
-              </Button>
-            </Link>
-            <Button
-              size="sm"
-              variant="outline"
-              className="border-tsBorder bg-transparent hover:bg-white/5"
-              onClick={() => void logout()}
-            >
-              Logout
-            </Button>
-          </div>
-        )}
-
-        {!isLlmRoute && (
-          <header className="hidden md:block sticky top-0 z-40 backdrop-blur-md bg-slate-950/85 border-b border-tsBorder shadow-lg">
-            <div className="w-full px-6 py-4 flex flex-col items-center gap-3 text-center">
-              <div className="flex items-center gap-3">
-                <div className="bg-gradient-to-br from-tsAccent to-orange-700 p-2 rounded-xl shadow-lg shadow-orange-500/40" />
-                <div className="text-left">
-                  <div className="text-xs uppercase tracking-[0.22em] text-tsAccentSoft">TRADE SCOUT</div>
-                  <div className="text-xl font-semibold text-tsTextMain leading-tight">Connection Without Compromise</div>
-                </div>
-              </div>
-            </div>
-          </header>
-        )}
-
         {showBetaNotice && (
           <div className="fixed bottom-24 right-4 z-50 max-w-sm rounded-2xl border border-orange-400/50 bg-slate-950/95 shadow-2xl shadow-orange-500/20 p-4 text-sm text-gray-100">
             <div className="flex items-start gap-3">
@@ -343,13 +345,19 @@ const AppLayout = memo(function AppLayout() {
 
         <main className={mainClassName}>
           <ErrorBoundary fallback={<PageLoader />}>
-            <Switch>
-              {/* Home routes - Scout landing is the primary front door */}
-              <Route path="/" component={ScoutLanding} />
-              <Route path="/scout" component={ScoutLanding} />
-              <Route path="/_scout-lite">
-                <LazyPage Component={ScoutLandingLite} />
-              </Route>
+            {isLlmRoute ? (
+              <Switch>
+                <Route path="/scout" component={ScoutLanding} />
+                <Route path="/_scout-lite">
+                  <LazyPage Component={ScoutLandingLite} />
+                </Route>
+                <Route path="/:rest*"><LazyPage Component={NotFound} /></Route>
+              </Switch>
+            ) : (
+              <AppShell footer={<LegalFooter />}>
+                <Switch>
+                  {/* Home routes */}
+                  <Route path="/" component={SmartHome} />
 
               {/* Role hubs for each user type */}
               <Route path="/roles/:roleKey">
@@ -360,6 +368,11 @@ const AppLayout = memo(function AppLayout() {
               <Route path="/dashboard">
                 <ProtectedRoute>
                   <LazyPage Component={RoleDashboardRouter} />
+                </ProtectedRoute>
+              </Route>
+              <Route path="/dashboard/jobs">
+                <ProtectedRoute>
+                  <LazyPage Component={DashboardJobs} />
                 </ProtectedRoute>
               </Route>
               <Route path="/dashboard-settings">
@@ -377,8 +390,15 @@ const AppLayout = memo(function AppLayout() {
                   <Route path="/unauthorized"><LazyPage Component={Unauthorized} /></Route>
                   
                   {/* Core pages */}
-                  <Route path="/contractors/:rest*"><LazyPage Component={ContractorsPage} /></Route>
-                  <Route path="/contractors"><LazyPage Component={ContractorsPage} /></Route>
+                  {/* Contractors: licensed/verified contractor search + profiles */}
+                  <Route path="/contractors/apply"><LazyPage Component={ContractorApply} /></Route>
+                  {/* Legacy alias: older pages link to /contractors/board for contractor search */}
+                  <Route path="/contractors/board"><ContractorsBoardLegacy /></Route>
+                  <Route path="/contractors/:slug"><LazyPage Component={ContractorProfile} /></Route>
+                  <Route path="/contractors"><LazyPage Component={FindContractors} /></Route>
+
+                  {/* Helpers + Tasks: separate from contractors, but together */}
+                  <Route path="/helpers"><LazyPage Component={WorkerMarketplace} /></Route>
                   <Route path="/daily-deals/:rest*"><LazyPage Component={DailyDeals} /></Route>
                   <Route path="/help-demo/:rest*"><LazyPage Component={HelpDemo} /></Route>
                   <Route path="/test-page/:rest*"><LazyPage Component={TestPage} /></Route>
@@ -402,6 +422,7 @@ const AppLayout = memo(function AppLayout() {
                   </Route>
                   
                   {/* Business routes */}
+                  <Route path="/contractor-board"><LazyPage Component={ContractorBoard} /></Route>
                   <Route path="/contractor-apply"><LazyPage Component={ContractorApply} /></Route>
                   <Route path="/business-listing"><LazyPage Component={BusinessListing} /></Route>
                   <Route path="/business-owner-dashboard"><LazyPage Component={BusinessOwnerDashboard} /></Route>
@@ -409,7 +430,8 @@ const AppLayout = memo(function AppLayout() {
                   
                   {/* Marketplace routes */}
                   <Route path="/worker-marketplace"><LazyPage Component={WorkerMarketplace} /></Route>
-                  <Route path="/marketplace"><LazyPage Component={Marketplace} /></Route>
+                  <Route path="/marketplace"><RedirectTo to="/exchange" /></Route>
+                  <Route path="/exchange/list"><RedirectTo to="/exchange" /></Route>
                   <Route path="/vehicle-marketplace"><LazyPage Component={VehicleMarketplace} /></Route>
                   <Route path="/real-estate-marketplace"><LazyPage Component={RealEstateMarketplace} /></Route>
                   <Route path="/handmade-marketplace"><LazyPage Component={HandmadeMarketplace} /></Route>
@@ -739,25 +761,24 @@ const AppLayout = memo(function AppLayout() {
                   
                   {/* 404 - this should be last */}
                   <Route path="/:rest*"><LazyPage Component={NotFound} /></Route>
-            </Switch>
+                </Switch>
+              </AppShell>
+            )}
           </ErrorBoundary>
         </main>
-
-        {!isLlmRoute && <LegalFooter />}
       </div>
 
-      {/* Global components */}
-      <MobileAppBar />
+      {/* Global components - CONTENT ONLY, NO NAV (AppShell owns all navigation) */}
 
       {/* Subtle onboarding hints for new users (hide on Scout landing) */}
       {!isLlmRoute && <SimpleSubtleHints />}
 
       {/* Bug report tool - always available */}
       <SimpleBugReportTool />
+
     </SimpleMobileGestures>
   );
 });
-
 const App = memo(function App() {
   return (
     <ErrorBoundary fallback={<PageLoader />}>

@@ -72,7 +72,7 @@ const About = memo(function About() {
     {
       icon: Shield,
       title: "Trust & Transparency",
-      description: "Open feedback systems, verified reviews, and transparent pricing help build trust between contractors and homeowners."
+      description: "Open feedback systems, verified RECOMMENDATIONS, and transparent pricing help build trust between contractors and homeowners."
     },
     {
       icon: Heart,

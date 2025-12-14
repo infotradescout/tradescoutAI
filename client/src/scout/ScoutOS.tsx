@@ -1,6 +1,6 @@
-import React, { useEffect, useMemo, useState, useCallback } from "react";
+import React, { useEffect, useMemo, useState, useCallback, useRef } from "react";
 import { SlidersHorizontal, MessageCircle, Bell } from "lucide-react";
-import { useLocation } from "wouter";
+import { Link, useLocation } from "wouter";
 import { useAuth } from "../hooks/useAuth";
 import { useIsMobile } from "../hooks/useIsMobile";
 import AppDrawer from "../components/AppDrawer";
@@ -32,8 +32,6 @@ import {
 
 const INTRO_DEMO_TEXT = "What can TradeScout do for my community?";
 
-let hasSeededScoutWelcome = false;
-
 const BANNED_TERMS = ["fuck", "shit", "bitch", "asshole", "cunt", "slut", "whore"];
 
 function containsProfanity(text: string) {
@@ -55,6 +53,8 @@ export default function ScoutOS() {
   const [location, navigate] = useLocation();
   const isMobile = useIsMobile();
 
+  const initialized = useRef(false);
+
   const [appDrawerOpen, setAppDrawerOpen] = useState(false);
   const [toolsOpen, setToolsOpen] = useState(false);
   const [prefillKey, setPrefillKey] = useState(0);
@@ -62,9 +62,11 @@ export default function ScoutOS() {
 
   const { state, recordUserMessage, applyServerResponse, setError } = useScoutState();
 
-  // Seed a welcome message (replaces legacy ScoutChat intro + quick prompts).
+  // One-time init guard (keeps animations / welcome seed from re-running).
   useEffect(() => {
-    if (hasSeededScoutWelcome) return;
+    if (initialized.current) return;
+    initialized.current = true;
+
     if (state.messages.length > 0) return;
 
     const quickPrompts = [
@@ -81,14 +83,13 @@ export default function ScoutOS() {
       id: `a_${Date.now()}_${Math.random().toString(36).slice(2)}`,
       role: "assistant",
       content:
-        "Hey — I’m Scout. I can find local pros, surface marketplace deals, and help launch community growth. Ask anything, or tap a prompt below.",
+        "Hey — I’m Scout. I can find local pros, surface Exchange deals, and help launch community growth. Ask anything, or tap a prompt below.",
       timestamp: new Date().toISOString(),
       suggestedActions: quickPrompts,
     };
 
     applyServerResponse(welcome, []);
-    hasSeededScoutWelcome = true;
-  }, [applyServerResponse, state.messages.length]);
+  }, []);
 
   const unreadMessages =
     (user as any)?.unreadMessages ??
@@ -120,6 +121,11 @@ export default function ScoutOS() {
     state.status === "thinking" ||
     state.status === "responding";
 
+  const hasUserMessages = useMemo(
+    () => state.messages.some((m) => m.role === "user"),
+    [state.messages]
+  );
+
   const statusLabel = isBusy ? "SCOUT THINKING" : "SCOUT IDLE";
   const statusDotClass = isBusy ? "bg-amber-400" : "bg-emerald-400";
   const statusTextClass = isBusy ? "text-amber-300/90" : "text-tsAccentSoft";
@@ -131,9 +137,6 @@ export default function ScoutOS() {
     }
     if (roles.some((r) => r.startsWith("realtor:") || r === "realtor")) {
       return "marketplace";
-    }
-    if (roles.includes("mealscout") || roles.some((r) => r.startsWith("mealscout:"))) {
-      return "mealscout";
     }
     return "default";
   };
@@ -157,16 +160,9 @@ export default function ScoutOS() {
         break;
       case "marketplace":
         base.push(
-          "Show marketplace listings that match this need near me",
+          "Show Exchange listings that match this need near me",
           "Draft a listing I can post based on this",
           "Alert me if new local deals match this search"
-        );
-        break;
-      case "mealscout":
-        base.push(
-          "Find nearby food trucks and restaurants that fit this",
-          "Plan a simple meal lineup for this week",
-          "Show current MealScout offers close to me"
         );
         break;
       default:
@@ -314,12 +310,12 @@ export default function ScoutOS() {
             },
             {
               id: "first-nav-marketplace",
-              title: "Explore marketplace",
+              title: "Explore Exchange",
               kind: "generic",
               primaryAction: {
                 type: "NAVIGATE",
                 label: "Open",
-                to: ROUTES.MARKETPLACE,
+                to: "/exchange",
               },
             }
           );
@@ -458,9 +454,8 @@ export default function ScoutOS() {
     () => [
       { label: "Dashboard", to: "/dashboard" },
       { label: "Contractors", to: ROUTES.CONTRACTORS },
-      { label: "Marketplace", to: ROUTES.MARKETPLACE },
+      { label: "Exchange", to: "/exchange" },
       { label: "Community", to: ROUTES.COMMUNITY },
-      { label: "MealScout", to: "/mealscout" },
     ],
     []
   );
@@ -493,13 +488,12 @@ export default function ScoutOS() {
             {/* Right: tools + context actions in a single row */}
             <div className="flex items-center gap-2 shrink-0">
               {!isAuthenticated && (
-                <button
-                  type="button"
-                  onClick={() => navigate("/register")}
-                  className="inline-flex items-center justify-center rounded-xl bg-tsAccent px-3 py-2 text-xs font-semibold text-black hover:bg-orange-400"
+                <Link
+                  href="/login"
+                  className="cta inline-flex items-center justify-center rounded-xl bg-tsAccent px-3 py-2 text-xs font-semibold text-black hover:bg-orange-400"
                 >
-                  Create account
-                </button>
+                  Create your free account
+                </Link>
               )}
 
               {/* When logged out: Create account chip to the left of tools */}
@@ -581,7 +575,7 @@ export default function ScoutOS() {
 
         {/* Thread + input in a single chat container */}
         <div className="mt-3 rounded-2xl border border-slate-800 bg-[#020617] px-4 py-4 space-y-4">
-          {state.messages.length === 0 && (
+          {!hasUserMessages && (
             <div className="flex flex-wrap gap-2">
               {[
                 "Find top-rated contractors in my county",
@@ -622,7 +616,7 @@ export default function ScoutOS() {
             }}
             prefillKey="scout-main"
             initialValue=""
-            enableAutoDemo={!isAuthenticated && state.messages.length === 0}
+            enableAutoDemo={!isAuthenticated && !hasUserMessages}
             autoDemoText={INTRO_DEMO_TEXT}
           />
 

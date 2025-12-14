@@ -329,7 +329,7 @@ const RealEstateMarketplace = memo(function RealEstateMarketplace() {
                       <Star className="h-3 w-3 text-yellow-400 fill-current" />
                       <span className="text-yellow-400 text-xs">{property.agent.rating}</span>
                     </div>
-                    <p className="text-gray-400 text-xs">{property.agent.reviews} reviews</p>
+                    <p className="text-gray-400 text-xs">{property.agent.reviews} RECOMMENDATIONS</p>
                   </div>
                 </div>
 

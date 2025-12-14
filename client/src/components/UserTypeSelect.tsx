@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Check } from 'lucide-react';
-import { USER_TYPES, USER_TYPE_CATEGORIES, getUserTypesByCategory } from '@shared/userTypes';
+import { ACCOUNT_CREATION_USER_TYPES, USER_TYPES, USER_TYPE_CATEGORIES, getUserTypesByCategory } from '@shared/userTypes';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -20,8 +20,12 @@ export function UserTypeSelect({
   className 
 }: UserTypeSelectProps) {
   const [expandedCategory, setExpandedCategory] = useState<string | null>('property');
+  const selectableTypeIds = new Set(ACCOUNT_CREATION_USER_TYPES);
 
   const toggleType = (typeId: string) => {
+    // Admin and other backend-only roles are not user-selectable.
+    if (!selectableTypeIds.has(typeId)) return;
+
     if (selectedTypes.includes(typeId)) {
       onChange(selectedTypes.filter(id => id !== typeId));
     } else {
@@ -53,7 +57,7 @@ export function UserTypeSelect({
 
       <div className="space-y-3">
         {categories.map(([categoryKey, category]) => {
-          const typesInCategory = getUserTypesByCategory(categoryKey);
+          const typesInCategory = getUserTypesByCategory(categoryKey).filter((t) => selectableTypeIds.has(t.id));
           const isExpanded = expandedCategory === categoryKey;
           const selectedInCategory = typesInCategory.filter(t => 
             selectedTypes.includes(t.id)
@@ -156,15 +160,19 @@ export function UserTypeSelect({
           <div className="flex flex-wrap gap-2">
             {selectedTypes.map(typeId => {
               const metadata = USER_TYPES[typeId];
+              const isSelectable = selectableTypeIds.has(typeId);
               return metadata ? (
                 <Badge
                   key={typeId}
                   variant="secondary"
-                  className="px-3 py-1.5 cursor-pointer hover:bg-destructive/20"
-                  onClick={() => toggleType(typeId)}
+                  className={cn(
+                    'px-3 py-1.5',
+                    isSelectable ? 'cursor-pointer hover:bg-destructive/20' : 'opacity-80 cursor-default'
+                  )}
+                  onClick={isSelectable ? () => toggleType(typeId) : undefined}
                 >
                   {metadata.label}
-                  <span className="ml-2">×</span>
+                  {isSelectable && <span className="ml-2">×</span>}
                 </Badge>
               ) : null;
             })}
