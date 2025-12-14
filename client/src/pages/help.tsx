@@ -79,7 +79,7 @@ export default function Help() {
   const [selectedCategory, setSelectedCategory] = useState("all");
 
   // Role-specific help configurations
-  const roleConfigs: Partial<Record<UserRole, RoleConfig>> = {
+  const roleConfigs: Record<string, RoleConfig> = {
     homeowner: {
       name: "Homeowner",
       color: "bg-blue-600",
@@ -196,7 +196,7 @@ export default function Help() {
       ]
     },
 
-    contractor_user: {
+    contractor: {
       name: "Contractor",
       color: "bg-orange-600",
       icon: Hammer,
@@ -312,11 +312,11 @@ export default function Help() {
       ]
     },
 
-    helper: {
-      name: "Helper",
+    handyman: {
+      name: "Handyman",
       color: "bg-green-600",
       icon: HeartHandshake,
-      description: "Find work opportunities, build your reputation, and grow your helper business",
+      description: "Find work opportunities, build your reputation, and grow your handyman business",
       quickActions: [
         {
           title: "Find Tasks",
@@ -428,11 +428,11 @@ export default function Help() {
       ]
     },
 
-    accelerator_member: {
-      name: "Accelerator Member",
+    community_builder: {
+      name: "Community Builder",
       color: "bg-purple-600",
       icon: Crown,
-      description: "Premium features, priority leads, and advanced business growth tools",
+      description: "Program tools, priority support, and growth resources",
       quickActions: [
         {
           title: "Priority Leads",
@@ -602,8 +602,8 @@ export default function Help() {
       ]
     },
 
-    car_salesman: {
-      name: "Car Salesman",
+    car_dealer: {
+      name: "Car Dealer",
       color: "bg-blue-600",
       icon: Car,
       description: "Client relationship management and automotive industry networking",

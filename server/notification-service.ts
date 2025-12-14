@@ -157,7 +157,7 @@ export class NotificationService {
       // Create new preferences
       const [created] = await db
         .insert(notificationPreferences)
-        .values([{ userId, ...preferences }])
+        .values({ userId, ...preferences } as any)
         .returning();
       return created;
     }
@@ -183,7 +183,7 @@ export class NotificationService {
 
     const [created] = await db
       .insert(notificationPreferences)
-      .values([preferencesData])
+      .values(preferencesData as any)
       .returning();
     
     return created;

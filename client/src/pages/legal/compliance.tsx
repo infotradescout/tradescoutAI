@@ -318,7 +318,7 @@ export default function CompliancePage() {
                 </a>
               </Button>
               <Button variant="outline" className="justify-start" asChild>
-                <a href="/legal/terms-of-service">
+                <a href="/terms">
                   <FileText className="h-4 w-4 mr-2" />
                   Terms of Service
                 </a>

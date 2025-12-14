@@ -1,4 +1,8 @@
 import type { ScoutAction } from "./state";
+import {
+  createCommunityVaultDonationCheckoutSession,
+  createPlatformSupportCheckoutSession,
+} from "../agent/tools/communityPayments";
 
 export interface ScoutActionHelpers {
   navigate: (to: string) => void;
@@ -60,6 +64,68 @@ export function executeScoutActions(
           helpers.askScout(action.prompt);
         }
         break;
+
+      case "START_COMMUNITY_VAULT_DONATION": {
+        const profileId =
+          typeof action.payload?.profileId === "string" ? (action.payload.profileId as string) : null;
+        const amount =
+          typeof action.payload?.amount === "number"
+            ? (action.payload.amount as number)
+            : typeof action.payload?.amount === "string"
+            ? Number(action.payload.amount)
+            : NaN;
+        const causeId = typeof action.payload?.causeId === "string" ? (action.payload.causeId as string) : undefined;
+
+        if (!profileId || !Number.isFinite(amount) || amount <= 0) break;
+
+        void (async () => {
+          const origin = window.location.origin;
+          const { url } = await createCommunityVaultDonationCheckoutSession({
+            profileId,
+            amount,
+            causeId,
+            successUrl: `${origin}/profile/${profileId}/community?checkout=success`,
+            cancelUrl: `${origin}/profile/${profileId}/community?checkout=cancel`,
+          });
+          window.location.href = url;
+        })();
+
+        break;
+      }
+
+      case "START_PLATFORM_SUPPORT": {
+        const amount =
+          typeof action.payload?.amount === "number"
+            ? (action.payload.amount as number)
+            : typeof action.payload?.amount === "string"
+            ? Number(action.payload.amount)
+            : NaN;
+        const mode =
+          action.payload?.mode === "subscription" || action.payload?.mode === "one_time"
+            ? (action.payload.mode as "subscription" | "one_time")
+            : "one_time";
+        const originatingProfileId =
+          typeof action.payload?.originatingProfileId === "string"
+            ? (action.payload.originatingProfileId as string)
+            : undefined;
+
+        if (!Number.isFinite(amount) || amount <= 0) break;
+
+        void (async () => {
+          const origin = window.location.origin;
+          const profileSuffix = originatingProfileId ? `/profile/${originatingProfileId}/community` : "/";
+          const { url } = await createPlatformSupportCheckoutSession({
+            amount,
+            mode,
+            originatingProfileId,
+            successUrl: `${origin}${profileSuffix}?checkout=success`,
+            cancelUrl: `${origin}${profileSuffix}?checkout=cancel`,
+          });
+          window.location.href = url;
+        })();
+
+        break;
+      }
 
       case "NOOP":
       default:

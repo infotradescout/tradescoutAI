@@ -1,5 +1,8 @@
 import {
   users,
+  businesses,
+  businessCounties,
+  profiles,
   contractors,
   recommendations,
   leads,
@@ -86,6 +89,11 @@ import {
   donationMatching,
   countyVaults,
   vaultLedgerEntries,
+  communityVaults,
+  communityVaultLedgerEntries,
+  communityCauses,
+  communityCauseVotes,
+  platformSupportLedgerEntries,
   // Affiliate accounts
   affiliateAccounts,
   affiliateReferrals,
@@ -115,6 +123,12 @@ import {
   type User,
   type InsertUser,
   type UpsertUser,
+  type Business,
+  type InsertBusiness,
+  type BusinessCounty,
+  type InsertBusinessCounty,
+  type Profile,
+  type InsertProfile,
   type Contractor,
   type InsertContractor,
   type Recommendation,
@@ -268,6 +282,16 @@ import {
   type InsertCountyVault,
   type VaultLedgerEntry,
   type InsertVaultLedgerEntry,
+  type CommunityVault,
+  type InsertCommunityVault,
+  type CommunityVaultLedgerEntry,
+  type InsertCommunityVaultLedgerEntry,
+  type CommunityCause,
+  type InsertCommunityCause,
+  type CommunityCauseVote,
+  type InsertCommunityCauseVote,
+  type PlatformSupportLedgerEntry,
+  type InsertPlatformSupportLedgerEntry,
   type DonationMatching,
   type InsertDonationMatching,
   type AffiliateAccount,
@@ -327,7 +351,8 @@ import {
   type InsertDealEngagement,
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, and, desc, asc, sql, inArray, like, gt, or, lt, isNull, isNotNull, ne, gte, lte, notInArray } from "drizzle-orm";
+import { eq, and, desc, asc, sql, inArray, like, gt, or, lt, isNull, isNotNull, ne, gte, lte, notInArray, type SQL } from "drizzle-orm";
+import { getTableColumns } from "drizzle-orm/utils";
 import bcrypt from "bcrypt";
 import { randomUUID } from "crypto";
 
@@ -364,6 +389,27 @@ type AffiliateCommission = {
 
 type InsertAffiliateCommission = Omit<AffiliateCommission, 'id' | 'createdAt'> & { id?: string; createdAt?: Date };
 
+type PublicProfileRecord = {
+  id: string;
+  slug: string;
+  displayName: string;
+  headline: string | null;
+  roleContext: string;
+  contentBlocks: any;
+  ctaConfig: any;
+  seoMeta: any;
+  businessId: string | null;
+};
+
+type PublicBusinessRecord = {
+  id: string;
+  name: string;
+  categories: string[];
+  serviceAreas: string[];
+  contactEmail?: string;
+  contactPhone?: string;
+};
+
 export interface IStorage {
   // User operations
   getUser(id: string): Promise<User | undefined>;
@@ -397,6 +443,25 @@ export interface IStorage {
   getContractorById(id: string): Promise<Contractor | undefined>;
   createContractor(contractor: InsertContractor): Promise<Contractor>;
   updateContractor(id: string, updates: Partial<InsertContractor>): Promise<Contractor>;
+
+  // Business operations (first-class public profiles)
+  listBusinessesByOwner(ownerUserId: string): Promise<Business[]>;
+  getBusinessByIdForOwner(ownerUserId: string, businessId: string): Promise<Business | undefined>;
+  getBusinessBySlugPublic(slug: string): Promise<Business | undefined>;
+  getBusinessPublicById(businessId: string): Promise<PublicBusinessRecord | undefined>;
+  createBusinessForOwner(ownerUserId: string, data: Omit<InsertBusiness, 'id' | 'ownerUserId' | 'createdAt' | 'updatedAt'> & { countyIds?: string[] }): Promise<Business>;
+  updateBusinessForOwner(ownerUserId: string, businessId: string, updates: Partial<Omit<InsertBusiness, 'id' | 'ownerUserId' | 'createdAt' | 'updatedAt'>> & { countyIds?: string[] }): Promise<Business>;
+  softDeleteBusinessForOwner(ownerUserId: string, businessId: string): Promise<Business>;
+  setUserActiveBusiness(userId: string, businessId: string | null): Promise<User>;
+  getBusinessCountyIds(businessId: string): Promise<string[]>;
+
+  // Profile operations (public website pages)
+  listProfilesByOwner(ownerUserId: string): Promise<Profile[]>;
+  getProfileByIdForOwner(ownerUserId: string, profileId: string): Promise<Profile | undefined>;
+  getProfileBySlugPublic(slug: string): Promise<PublicProfileRecord | undefined>;
+  createProfileForOwner(ownerUserId: string, data: Omit<InsertProfile, 'id' | 'ownerUserId' | 'createdAt' | 'updatedAt'>): Promise<Profile>;
+  updateProfileForOwner(ownerUserId: string, profileId: string, updates: Partial<Omit<InsertProfile, 'id' | 'ownerUserId' | 'createdAt' | 'updatedAt'>>): Promise<Profile>;
+  setUserActiveProfile(userId: string, profileId: string | null): Promise<User>;
   
   // County operations
   getCounties(stateCode?: string): Promise<County[]>;
@@ -920,13 +985,454 @@ export interface IStorage {
   }>;
   recordVaultLedgerEntry(data: { countyId: string; amount: number; sourceType: string; sourceId?: string; memo?: string }): Promise<{ vault: CountyVault; entry: VaultLedgerEntry }>;
   getVaultLedgerEntries(vaultId: string, limit?: number): Promise<VaultLedgerEntry[]>;
+
+  // Community Profile Vault (MVP)
+  getCommunityVaultSnapshot(params: { profileId: string; limit?: number }): Promise<{
+    profile: { id: string; slug: string; displayName: string; roleContext: string } | null;
+    vault: CommunityVault | null;
+    ledger: CommunityVaultLedgerEntry[];
+  }>;
+  recordCommunityVaultLedgerEntry(data: {
+    profileId: string;
+    amount: number;
+    sourceType: string;
+    sourceId?: string;
+    externalKey?: string;
+    memo?: string;
+    causeId?: string;
+  }): Promise<{ vault: CommunityVault; entry: CommunityVaultLedgerEntry }>;
+  getCommunityVaultLedgerEntries(vaultId: string, limit?: number): Promise<CommunityVaultLedgerEntry[]>;
+
+  // Causes + voting intent (MVP)
+  listCommunityCausesByProfile(profileId: string): Promise<Array<CommunityCause & { voteCount: number }>>;
+  createCommunityCauseForOwner(ownerUserId: string, data: { profileId: string; title: string; description?: string | null }): Promise<CommunityCause>;
+  voteForCommunityCause(userId: string, causeId: string): Promise<{ vote: CommunityCauseVote; voteCount: number }>;
+
+  // Platform Support ledger (MVP)
+  insertPlatformSupportLedgerEntry(data: InsertPlatformSupportLedgerEntry): Promise<PlatformSupportLedgerEntry>;
+  getPlatformSupportLedgerEntries(params: { originatingProfileId?: string; limit?: number }): Promise<PlatformSupportLedgerEntry[]>;
 }
 
 export class DatabaseStorage implements IStorage {
+  private slugify(input: string): string {
+    return String(input)
+      .toLowerCase()
+      .trim()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/(^-|-$)/g, "")
+      .slice(0, 80);
+  }
+
+  private async generateUniqueBusinessSlug(base: string): Promise<string> {
+    const baseSlug = this.slugify(base);
+    if (!baseSlug) return randomUUID();
+
+    const existing = await db
+      .select({ slug: businesses.slug })
+      .from(businesses)
+      .where(like(businesses.slug, `${baseSlug}%`));
+
+    const existingSet = new Set(existing.map((r) => r.slug));
+    if (!existingSet.has(baseSlug)) return baseSlug;
+
+    for (let i = 2; i <= 200; i++) {
+      const candidate = `${baseSlug}-${i}`;
+      if (!existingSet.has(candidate)) return candidate;
+    }
+    return `${baseSlug}-${randomUUID().slice(0, 8)}`;
+  }
+
+  private async generateUniqueProfileSlug(base: string): Promise<string> {
+    const baseSlug = this.slugify(base);
+    if (!baseSlug) return randomUUID();
+
+    const existing = await db
+      .select({ slug: profiles.slug })
+      .from(profiles)
+      .where(like(profiles.slug, `${baseSlug}%`));
+
+    const existingSet = new Set(existing.map((r) => r.slug));
+    if (!existingSet.has(baseSlug)) return baseSlug;
+
+    for (let i = 2; i <= 200; i++) {
+      const candidate = `${baseSlug}-${i}`;
+      if (!existingSet.has(candidate)) return candidate;
+    }
+    return `${baseSlug}-${randomUUID().slice(0, 8)}`;
+  }
+
+  async listBusinessesByOwner(ownerUserId: string): Promise<Business[]> {
+    return db
+      .select()
+      .from(businesses)
+      .where(eq(businesses.ownerUserId, ownerUserId))
+      .orderBy(desc(businesses.updatedAt));
+  }
+
+  async getBusinessByIdForOwner(ownerUserId: string, businessId: string): Promise<Business | undefined> {
+    const rows = await db
+      .select()
+      .from(businesses)
+      .where(and(eq(businesses.id, businessId), eq(businesses.ownerUserId, ownerUserId)))
+      .limit(1);
+    return rows[0];
+  }
+
+  async getBusinessBySlugPublic(slug: string): Promise<Business | undefined> {
+    const rows = await db
+      .select()
+      .from(businesses)
+      .where(and(eq(businesses.slug, slug), ne(businesses.status, 'suspended' as any)))
+      .limit(1);
+    return rows[0];
+  }
+
+  async getBusinessPublicById(businessId: string): Promise<PublicBusinessRecord | undefined> {
+    const businessRows = await db
+      .select({
+        id: businesses.id,
+        name: businesses.name,
+        profileData: businesses.profileData,
+      })
+      .from(businesses)
+      .where(and(eq(businesses.id, businessId), ne(businesses.status, 'suspended' as any)))
+      .limit(1);
+
+    const business = businessRows[0];
+    if (!business) return undefined;
+
+    const countyRows = await db
+      .select({ countyId: businessCounties.countyId })
+      .from(businessCounties)
+      .where(eq(businessCounties.businessId, businessId));
+
+    const categories = business.profileData?.category ? [business.profileData.category] : [];
+    const contactEmail = business.profileData?.email || undefined;
+    const contactPhone = business.profileData?.phone || undefined;
+
+    return {
+      id: business.id,
+      name: business.name,
+      categories,
+      serviceAreas: countyRows.map((r) => r.countyId),
+      ...(contactEmail ? { contactEmail } : {}),
+      ...(contactPhone ? { contactPhone } : {}),
+    };
+  }
+
+  async getBusinessCountyIds(businessId: string): Promise<string[]> {
+    const rows = await db
+      .select({ countyId: businessCounties.countyId })
+      .from(businessCounties)
+      .where(eq(businessCounties.businessId, businessId));
+    return rows.map((r) => r.countyId);
+  }
+
+  private async replaceBusinessCounties(businessId: string, countyIds: string[]): Promise<void> {
+    const normalized = Array.from(
+      new Set((countyIds || []).filter(Boolean).map((c) => String(c).trim()))
+    );
+
+    await db.delete(businessCounties).where(eq(businessCounties.businessId, businessId));
+
+    if (normalized.length === 0) return;
+    await db.insert(businessCounties).values(
+      normalized.map((countyId) => ({
+        businessId,
+        countyId,
+      }))
+    );
+  }
+
+  async createBusinessForOwner(
+    ownerUserId: string,
+    data: Omit<InsertBusiness, 'id' | 'ownerUserId' | 'createdAt' | 'updatedAt'> & { countyIds?: string[] }
+  ): Promise<Business> {
+    const slug = await this.generateUniqueBusinessSlug(data.slug || data.name);
+    const countyIds = data.countyIds || [];
+
+    const created = await db.transaction(async (tx) => {
+      const inserted = await tx
+        .insert(businesses)
+        .values({
+          ...data,
+          ownerUserId,
+          slug,
+        } as any)
+        .returning();
+
+      const business = inserted[0];
+      if (!business) throw new Error('Failed to create business');
+
+      if (countyIds.length > 0) {
+        await tx.delete(businessCounties).where(eq(businessCounties.businessId, business.id));
+        await tx.insert(businessCounties).values(
+          Array.from(new Set(countyIds.filter(Boolean).map((c) => String(c).trim()))).map((countyId) => ({
+            businessId: business.id,
+            countyId,
+          }))
+        );
+      }
+
+      return business as Business;
+    });
+
+    return created;
+  }
+
+  async updateBusinessForOwner(
+    ownerUserId: string,
+    businessId: string,
+    updates: Partial<Omit<InsertBusiness, 'id' | 'ownerUserId' | 'createdAt' | 'updatedAt'>> & { countyIds?: string[] }
+  ): Promise<Business> {
+    const existing = await this.getBusinessByIdForOwner(ownerUserId, businessId);
+    if (!existing) throw new Error('Business not found');
+
+    const countyIds = updates.countyIds;
+    const { countyIds: _ignored, ...businessUpdates } = updates as any;
+
+    const nextSlug = businessUpdates.slug
+      ? await this.generateUniqueBusinessSlug(businessUpdates.slug)
+      : undefined;
+
+    const updated = await db.transaction(async (tx) => {
+      const rows = await tx
+        .update(businesses)
+        .set({
+          ...businessUpdates,
+          ...(nextSlug ? { slug: nextSlug } : {}),
+          updatedAt: new Date(),
+        })
+        .where(and(eq(businesses.id, businessId), eq(businesses.ownerUserId, ownerUserId)))
+        .returning();
+
+      const business = rows[0];
+      if (!business) throw new Error('Business not found');
+
+      if (Array.isArray(countyIds)) {
+        await tx.delete(businessCounties).where(eq(businessCounties.businessId, businessId));
+        const normalized = Array.from(
+          new Set(countyIds.filter(Boolean).map((c) => String(c).trim()))
+        );
+        if (normalized.length > 0) {
+          await tx.insert(businessCounties).values(
+            normalized.map((countyId) => ({
+              businessId,
+              countyId,
+            }))
+          );
+        }
+      }
+
+      return business as Business;
+    });
+
+    return updated;
+  }
+
+  async softDeleteBusinessForOwner(ownerUserId: string, businessId: string): Promise<Business> {
+    const existing = await this.getBusinessByIdForOwner(ownerUserId, businessId);
+    if (!existing) throw new Error('Business not found');
+
+    const rows = await db
+      .update(businesses)
+      .set({ status: 'suspended' as any, updatedAt: new Date() })
+      .where(and(eq(businesses.id, businessId), eq(businesses.ownerUserId, ownerUserId)))
+      .returning();
+
+    const business = rows[0];
+    if (!business) throw new Error('Business not found');
+    return business;
+  }
+
+  async setUserActiveBusiness(userId: string, businessId: string | null): Promise<User> {
+    const rows = await db
+      .update(users)
+      .set({ activeBusinessId: businessId, updatedAt: new Date() } as any)
+      .where(eq(users.id, userId))
+      .returning();
+    const user = rows[0];
+    if (!user) throw new Error('User not found');
+    return user;
+  }
+
+  async listProfilesByOwner(ownerUserId: string): Promise<Profile[]> {
+    return db
+      .select()
+      .from(profiles)
+      .where(eq(profiles.ownerUserId, ownerUserId))
+      .orderBy(desc(profiles.updatedAt));
+  }
+
+  async getProfileByIdForOwner(ownerUserId: string, profileId: string): Promise<Profile | undefined> {
+    const rows = await db
+      .select()
+      .from(profiles)
+      .where(and(eq(profiles.id, profileId), eq(profiles.ownerUserId, ownerUserId)))
+      .limit(1);
+    return rows[0];
+  }
+
+  async getProfileBySlugPublic(slug: string): Promise<PublicProfileRecord | undefined> {
+    const rows = await db
+      .select({
+        id: profiles.id,
+        slug: profiles.slug,
+        displayName: profiles.displayName,
+        headline: profiles.headline,
+        roleContext: profiles.roleContext,
+        contentBlocks: profiles.contentBlocks,
+        ctaConfig: profiles.ctaConfig,
+        seoMeta: profiles.seoMeta,
+        businessId: profiles.businessId,
+      })
+      .from(profiles)
+      .innerJoin(users, eq(profiles.ownerUserId, users.id))
+      .where(
+        and(
+          eq(profiles.slug, slug),
+          eq(profiles.status, 'published' as any),
+          sql`COALESCE((${users.preferences} ->> 'profileVisibility'), 'private') = 'public'`
+        )
+      )
+      .limit(1);
+    return rows[0];
+  }
+
+  async createProfileForOwner(
+    ownerUserId: string,
+    data: Omit<InsertProfile, 'id' | 'ownerUserId' | 'createdAt' | 'updatedAt'>
+  ): Promise<Profile> {
+    const slug = await this.generateUniqueProfileSlug(data.slug || data.displayName);
+    const inserted = await db
+      .insert(profiles)
+      .values({
+        ...data,
+        ownerUserId,
+        slug,
+      } as any)
+      .returning();
+    const profile = inserted[0];
+    if (!profile) throw new Error('Failed to create profile');
+    return profile as Profile;
+  }
+
+  async updateProfileForOwner(
+    ownerUserId: string,
+    profileId: string,
+    updates: Partial<Omit<InsertProfile, 'id' | 'ownerUserId' | 'createdAt' | 'updatedAt'>>
+  ): Promise<Profile> {
+    const existing = await this.getProfileByIdForOwner(ownerUserId, profileId);
+    if (!existing) throw new Error('Profile not found');
+
+    const nextSlug = updates.slug ? await this.generateUniqueProfileSlug(updates.slug) : undefined;
+
+    const rows = await db
+      .update(profiles)
+      .set({
+        ...updates,
+        ...(nextSlug ? { slug: nextSlug } : {}),
+        updatedAt: new Date(),
+      } as any)
+      .where(and(eq(profiles.id, profileId), eq(profiles.ownerUserId, ownerUserId)))
+      .returning();
+
+    const profile = rows[0];
+    if (!profile) throw new Error('Profile not found');
+    return profile as Profile;
+  }
+
+  async setUserActiveProfile(userId: string, profileId: string | null): Promise<User> {
+    const rows = await db
+      .update(users)
+      .set({ activeProfileId: profileId, updatedAt: new Date() } as any)
+      .where(eq(users.id, userId))
+      .returning();
+    const user = rows[0];
+    if (!user) throw new Error('User not found');
+    return user;
+  }
   private normalizeDecimal(value: any): number {
     if (value === null || value === undefined) return 0;
     const numeric = typeof value === "string" ? parseFloat(value) : Number(value);
     return Number.isFinite(numeric) ? numeric : 0;
+  }
+
+  private normalizeDecimalString(value: any): string {
+    return this.normalizeDecimal(value).toFixed(2);
+  }
+
+  private coerceStringArray(value: any): string[] | null | undefined {
+    if (value === null || value === undefined) return value;
+    if (Array.isArray(value)) {
+      return value.filter((v): v is string => typeof v === 'string');
+    }
+    return undefined;
+  }
+
+  private coerceContractorMilestones(value: any):
+    | {
+        description: string;
+        amount: number;
+        dueDate?: string;
+        completed?: boolean;
+        completedAt?: string;
+      }[]
+    | null
+    | undefined {
+    if (value === null || value === undefined) return value;
+    if (!Array.isArray(value)) return undefined;
+    return value
+      .filter((m) => m && typeof m === 'object')
+      .map((m) => ({
+        description: String((m as any).description ?? ''),
+        amount: Number((m as any).amount ?? 0),
+        dueDate: (m as any).dueDate != null ? String((m as any).dueDate) : undefined,
+        completed: (m as any).completed != null ? Boolean((m as any).completed) : undefined,
+        completedAt: (m as any).completedAt != null ? String((m as any).completedAt) : undefined,
+      }));
+  }
+
+  private coerceRecommendationGoalMilestones(value: any):
+    | {
+        target: number;
+        achievedAt?: string;
+        reward?: string;
+      }[]
+    | null
+    | undefined {
+    if (value === null || value === undefined) return value;
+    if (!Array.isArray(value)) return undefined;
+    return value
+      .filter((m) => m && typeof m === 'object')
+      .map((m) => ({
+        target: Number((m as any).target ?? 0),
+        achievedAt: (m as any).achievedAt != null ? String((m as any).achievedAt) : undefined,
+        reward: (m as any).reward != null ? String((m as any).reward) : undefined,
+      }));
+  }
+
+  private coerceRecommendationCampaignTargets(value: any):
+    | {
+        projectType?: string;
+        projectValue?: number;
+        completionDate?: string;
+        email?: string;
+        phone?: string;
+      }[]
+    | null
+    | undefined {
+    if (value === null || value === undefined) return value;
+    if (!Array.isArray(value)) return undefined;
+    return value
+      .filter((t) => t && typeof t === 'object')
+      .map((t) => ({
+        projectType: (t as any).projectType != null ? String((t as any).projectType) : undefined,
+        projectValue: (t as any).projectValue != null ? Number((t as any).projectValue) : undefined,
+        completionDate: (t as any).completionDate != null ? String((t as any).completionDate) : undefined,
+        email: (t as any).email != null ? String((t as any).email) : undefined,
+        phone: (t as any).phone != null ? String((t as any).phone) : undefined,
+      }));
   }
 
   // User operations
@@ -1216,13 +1722,19 @@ export class DatabaseStorage implements IStorage {
       .from(counties)
       .leftJoin(states, eq(counties.stateCode, states.code));
 
+    const normalize = (rows: Array<any>) =>
+      rows.map((row) => ({
+        ...row,
+        state: row?.state?.code ? row.state : undefined,
+      }));
+
     if (stateCode) {
-      return await query
-        .where(eq(counties.stateCode, stateCode))
-        .orderBy(asc(counties.name));
+      const rows = await query.where(eq(counties.stateCode, stateCode)).orderBy(asc(counties.name));
+      return normalize(rows);
     }
-    
-    return await query.orderBy(asc(counties.name));
+
+    const rows = await query.orderBy(asc(counties.name));
+    return normalize(rows);
   }
 
   async getCountyByFips(fips: string): Promise<County | undefined> {
@@ -1943,9 +2455,13 @@ export class DatabaseStorage implements IStorage {
 
   // Notification system operations
   async createNotification(notification: InsertNotification): Promise<Notification> {
+    const normalizedNotification: InsertNotification = {
+      ...notification,
+      deliveryMethods: this.coerceStringArray((notification as any).deliveryMethods) as any,
+    };
     const [newNotification] = await db
       .insert(notifications)
-      .values(notification)
+      .values(normalizedNotification as any)
       .returning();
     return newNotification;
   }
@@ -2368,7 +2884,25 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createMarketplaceCategory(categoryData: InsertMarketplaceCategory): Promise<MarketplaceCategory> {
-    const [category] = await db.insert(marketplaceCategories).values(categoryData).returning();
+    const vr = (categoryData as any).verificationRequirements;
+    const normalizedCategoryData: InsertMarketplaceCategory = {
+      ...categoryData,
+      verificationRequirements: vr
+        ? {
+            identityVerification: vr.identityVerification != null ? Boolean(vr.identityVerification) : undefined,
+            businessLicense: vr.businessLicense != null ? Boolean(vr.businessLicense) : undefined,
+            foodHandlersPermit: vr.foodHandlersPermit != null ? Boolean(vr.foodHandlersPermit) : undefined,
+            kitchenInspection: vr.kitchenInspection != null ? Boolean(vr.kitchenInspection) : undefined,
+            insuranceCertificate: vr.insuranceCertificate != null ? Boolean(vr.insuranceCertificate) : undefined,
+            requiredDocuments: this.coerceStringArray(vr.requiredDocuments),
+          }
+        : vr,
+    };
+
+    const [category] = await db
+      .insert(marketplaceCategories)
+      .values(normalizedCategoryData as any)
+      .returning();
     return category;
   }
 
@@ -2407,12 +2941,8 @@ export class DatabaseStorage implements IStorage {
       ? (filters.status as (typeof statusValues)[number])
       : (statusValues.includes('active' as any) ? ('active' as (typeof statusValues)[number]) : undefined);
     
-    let query = db
-      .select()
-      .from(marketplaceListings);
-
     // Apply filters
-    const conditions: Array<any> = [];
+    const conditions: SQL[] = [];
 
     if (statusFilter) {
       conditions.push(eq(marketplaceListings.status, statusFilter));
@@ -2440,44 +2970,44 @@ export class DatabaseStorage implements IStorage {
       conditions.push(sql`${marketplaceListings.price} <= ${filters.priceMax}`);
     }
     if (filters.searchQuery) {
-      conditions.push(
-        or(
-          like(marketplaceListings.title, `%${filters.searchQuery}%`),
-          like(marketplaceListings.description, `%${filters.searchQuery}%`),
-          like(marketplaceListings.brand, `%${filters.searchQuery}%`),
-          like(marketplaceListings.model, `%${filters.searchQuery}%`)
-        )
+      const searchCondition = or(
+        like(marketplaceListings.title, `%${filters.searchQuery}%`),
+        like(marketplaceListings.description, `%${filters.searchQuery}%`),
+        like(marketplaceListings.brand, `%${filters.searchQuery}%`),
+        like(marketplaceListings.model, `%${filters.searchQuery}%`)
       );
+
+      if (searchCondition) {
+        conditions.push(searchCondition);
+      }
     }
 
-    query = query.where(and(...conditions));
+    const whereClause: SQL = and(...conditions) ?? sql`true`;
 
-    // Apply sorting
-    switch (filters.sortBy) {
-      case 'price_asc':
-        query = query.orderBy(asc(marketplaceListings.price));
-        break;
-      case 'price_desc':
-        query = query.orderBy(desc(marketplaceListings.price));
-        break;
-      case 'date_asc':
-        query = query.orderBy(asc(marketplaceListings.createdAt));
-        break;
-      case 'date_desc':
-      default:
-        query = query.orderBy(desc(marketplaceListings.createdAt));
-        break;
-    }
+    const orderByClause = (() => {
+      switch (filters.sortBy) {
+        case 'price_asc':
+          return asc(marketplaceListings.price);
+        case 'price_desc':
+          return desc(marketplaceListings.price);
+        case 'date_asc':
+          return asc(marketplaceListings.createdAt);
+        case 'date_desc':
+        default:
+          return desc(marketplaceListings.createdAt);
+      }
+    })();
 
-    // Apply pagination
-    if (filters.offset) {
-      query = query.offset(filters.offset);
-    }
-    if (filters.limit) {
-      query = query.limit(filters.limit);
-    }
+    const limit = filters.limit ?? 20;
+    const offset = filters.offset ?? 0;
 
-    return await query;
+    return await db
+      .select()
+      .from(marketplaceListings)
+      .where(whereClause)
+      .orderBy(orderByClause)
+      .limit(limit)
+      .offset(offset);
   }
 
   async getMarketplaceListing(id: string): Promise<MarketplaceListing | undefined> {
@@ -2499,10 +3029,14 @@ export class DatabaseStorage implements IStorage {
   async createMarketplaceListing(listingData: InsertMarketplaceListing): Promise<MarketplaceListing> {
     // Generate slug from title
     const slug = await this.generateListingSlug(listingData.title);
+
+    const tags = Array.isArray((listingData as any).tags)
+      ? (listingData as any).tags.filter((t: unknown): t is string => typeof t === 'string')
+      : (listingData as any).tags;
     
     const [listing] = await db
       .insert(marketplaceListings)
-      .values({ ...listingData, slug })
+      .values({ ...(listingData as any), slug, tags })
       .returning();
     return listing;
   }
@@ -2657,43 +3191,7 @@ export class DatabaseStorage implements IStorage {
   async getUserFavorites(userId: string): Promise<MarketplaceListing[]> {
     return await db
       .select({
-        id: marketplaceListings.id,
-        sellerId: marketplaceListings.sellerId,
-        categoryId: marketplaceListings.categoryId,
-        title: marketplaceListings.title,
-        description: marketplaceListings.description,
-        price: marketplaceListings.price,
-        priceType: marketplaceListings.priceType,
-        originalPrice: marketplaceListings.originalPrice,
-        county: marketplaceListings.county,
-        state: marketplaceListings.state,
-        city: marketplaceListings.city,
-        zipCode: marketplaceListings.zipCode,
-        isLocalPickupOnly: marketplaceListings.isLocalPickupOnly,
-        willShip: marketplaceListings.willShip,
-        shippingCost: marketplaceListings.shippingCost,
-        condition: marketplaceListings.condition,
-        brand: marketplaceListings.brand,
-        model: marketplaceListings.model,
-        year: marketplaceListings.year,
-        mileage: marketplaceListings.mileage,
-        hours: marketplaceListings.hours,
-        specifications: marketplaceListings.specifications,
-        images: marketplaceListings.images,
-        primaryImageIndex: marketplaceListings.primaryImageIndex,
-        videoUrl: marketplaceListings.videoUrl,
-        status: marketplaceListings.status,
-        isPromoted: marketplaceListings.isPromoted,
-        promotedUntil: marketplaceListings.promotedUntil,
-        viewCount: marketplaceListings.viewCount,
-        favoriteCount: marketplaceListings.favoriteCount,
-        contactCount: marketplaceListings.contactCount,
-        slug: marketplaceListings.slug,
-        metaDescription: marketplaceListings.metaDescription,
-        tags: marketplaceListings.tags,
-        expiresAt: marketplaceListings.expiresAt,
-        createdAt: marketplaceListings.createdAt,
-        updatedAt: marketplaceListings.updatedAt,
+        ...getTableColumns(marketplaceListings),
       })
       .from(marketplaceFavorites)
       .innerJoin(marketplaceListings, eq(marketplaceFavorites.listingId, marketplaceListings.id))
@@ -2758,20 +3256,28 @@ export class DatabaseStorage implements IStorage {
     const buyerStatuses = buyerVerifications.status.enumValues ?? [];
     
     if (filters.type === 'all' || filters.type === 'vendor') {
-      let vendorQuery = db.select().from(vendorVerifications);
-      if (filters.status !== 'all' && filters.status && vendorStatuses.includes(filters.status as any)) {
-        vendorQuery = vendorQuery.where(eq(vendorVerifications.status, filters.status as (typeof vendorStatuses)[number]));
-      }
-      const vendorResults = await vendorQuery.orderBy(desc(vendorVerifications.createdAt));
+      const vendorWhere: SQL = (filters.status !== 'all' && filters.status && vendorStatuses.includes(filters.status as any))
+        ? eq(vendorVerifications.status, filters.status as (typeof vendorStatuses)[number])
+        : sql`true`;
+
+      const vendorResults = await db
+        .select()
+        .from(vendorVerifications)
+        .where(vendorWhere)
+        .orderBy(desc(vendorVerifications.createdAt));
       results.push(...vendorResults);
     }
     
     if (filters.type === 'all' || filters.type === 'buyer') {
-      let buyerQuery = db.select().from(buyerVerifications);
-      if (filters.status !== 'all' && filters.status && buyerStatuses.includes(filters.status as any)) {
-        buyerQuery = buyerQuery.where(eq(buyerVerifications.status, filters.status as (typeof buyerStatuses)[number]));
-      }
-      const buyerResults = await buyerQuery.orderBy(desc(buyerVerifications.createdAt));
+      const buyerWhere: SQL = (filters.status !== 'all' && filters.status && buyerStatuses.includes(filters.status as any))
+        ? eq(buyerVerifications.status, filters.status as (typeof buyerStatuses)[number])
+        : sql`true`;
+
+      const buyerResults = await db
+        .select()
+        .from(buyerVerifications)
+        .where(buyerWhere)
+        .orderBy(desc(buyerVerifications.createdAt));
       results.push(...buyerResults);
     }
     
@@ -2988,7 +3494,8 @@ export class DatabaseStorage implements IStorage {
         avatar: user?.profileImageUrl,
         email: user?.email,
         role: user?.role,
-        verified: user?.addressVerified || false
+        verified: user?.addressVerified || false,
+        isPrivateProfile: (user as any)?.isPrivateProfile ?? false,
       },
       tags: post.tags ?? [],
       location: post.countyFips ?? '',
@@ -3013,8 +3520,7 @@ export class DatabaseStorage implements IStorage {
     const [existingLike] = await db
       .select()
       .from(postLikes)
-      .where(eq(postLikes.userId, userId))
-      .where(eq(postLikes.postId, postId));
+      .where(and(eq(postLikes.userId, userId), eq(postLikes.postId, postId)));
 
     if (existingLike) {
       // Remove like
@@ -3035,7 +3541,7 @@ export class DatabaseStorage implements IStorage {
         .from(communityPosts)
         .where(eq(communityPosts.id, postId));
       
-      return { liked: false, likeCount: post.likeCount };
+      return { liked: false, likeCount: post?.likeCount ?? 0 };
     } else {
       // Add like
       await db.insert(postLikes).values({ userId, postId });
@@ -3053,14 +3559,14 @@ export class DatabaseStorage implements IStorage {
         .from(communityPosts)
         .where(eq(communityPosts.id, postId));
       
-      return { liked: true, likeCount: post.likeCount };
+      return { liked: true, likeCount: post?.likeCount ?? 0 };
     }
   }
 
   async createPostComment(comment: InsertPostComment): Promise<PostComment> {
     const [newComment] = await db
       .insert(postComments)
-      .values(comment)
+      .values(comment as any)
       .returning();
     
     // Update comment count on the post
@@ -3091,23 +3597,29 @@ export class DatabaseStorage implements IStorage {
     offset?: number;
   }): Promise<CommunityGroup[]> {
     const scopeValues = communityGroups.scope.enumValues ?? [];
-    let query = db.select().from(communityGroups);
-    
+
+    const conditions: SQL[] = [eq(communityGroups.isActive, true)];
+
     if (filters?.scope && scopeValues.includes(filters.scope as any)) {
-      query = query.where(eq(communityGroups.scope, filters.scope as (typeof scopeValues)[number]));
+      conditions.push(eq(communityGroups.scope, filters.scope as (typeof scopeValues)[number]));
     }
     if (filters?.stateCode) {
-      query = query.where(eq(communityGroups.stateCode, filters.stateCode));
+      conditions.push(eq(communityGroups.stateCode, filters.stateCode));
     }
     if (filters?.countyFips) {
-      query = query.where(eq(communityGroups.countyFips, filters.countyFips));
+      conditions.push(eq(communityGroups.countyFips, filters.countyFips));
     }
 
-    return await query
-      .where(eq(communityGroups.isActive, true))
+    const limit = filters?.limit ?? 20;
+    const offset = filters?.offset ?? 0;
+
+    return await db
+      .select()
+      .from(communityGroups)
+      .where(and(...conditions))
       .orderBy(desc(communityGroups.memberCount), desc(communityGroups.createdAt))
-      .limit(filters?.limit || 20)
-      .offset(filters?.offset || 0);
+      .limit(limit)
+      .offset(offset);
   }
 
   async getRegions(filters?: {
@@ -3116,19 +3628,26 @@ export class DatabaseStorage implements IStorage {
     limit?: number;
     offset?: number;
   }): Promise<Region[]> {
-    let query = db.select().from(regions);
-    
+    const conditions: SQL[] = [];
+
     if (filters?.stateCode) {
-      query = query.where(sql`${filters.stateCode} = ANY(${regions.statesCovered})`);
+      conditions.push(sql`${filters.stateCode} = ANY(${regions.statesCovered})`);
     }
     if (filters?.isOfficial !== undefined) {
-      query = query.where(eq(regions.isOfficial, filters.isOfficial));
+      conditions.push(eq(regions.isOfficial, filters.isOfficial));
     }
 
-    return await query
+    const whereClause: SQL = and(...conditions) ?? sql`true`;
+    const limit = filters?.limit ?? 50;
+    const offset = filters?.offset ?? 0;
+
+    return await db
+      .select()
+      .from(regions)
+      .where(whereClause)
       .orderBy(desc(regions.isOfficial), asc(regions.name))
-      .limit(filters?.limit || 50)
-      .offset(filters?.offset || 0);
+      .limit(limit)
+      .offset(offset);
   }
 
   // Handmade Marketplace Methods
@@ -3469,7 +3988,7 @@ export class DatabaseStorage implements IStorage {
       .update(sellerProfiles)
       .set({
         averageRating: ratings.average.toString(),
-        totalRecommendations: ratings.count,
+        totalReviews: ratings.count,
         updatedAt: new Date(),
       })
       .where(eq(sellerProfiles.userId, sellerId));
@@ -3490,19 +4009,21 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getContractorApplications(filters?: { status?: string; limit?: number }) {
-    let query = db.select().from(contractorApplications);
-    
+    const conditions: SQL[] = [];
+
     if (filters?.status) {
-      query = query.where(eq(contractorApplications.status, filters.status));
+      conditions.push(eq(contractorApplications.status, filters.status));
     }
-    
-    query = query.orderBy(desc(contractorApplications.submittedAt));
-    
-    if (filters?.limit) {
-      query = query.limit(filters.limit);
-    }
-    
-    return await query;
+
+    const whereClause: SQL = and(...conditions) ?? sql`true`;
+    const limit = filters?.limit ?? 50;
+
+    return await db
+      .select()
+      .from(contractorApplications)
+      .where(whereClause)
+      .orderBy(desc(contractorApplications.submittedAt))
+      .limit(limit);
   }
 
   async getContractorApplication(id: string) {
@@ -3582,25 +4103,24 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getContractorRecommendations(contractorId: string, options?: { limit?: number; type?: 'positive' | 'negative' | 'all' }) {
-    let query = db.select().from(recommendations).where(
-      and(
-        eq(recommendations.contractorId, contractorId),
-        eq(recommendations.isPublic, true),
-        eq(recommendations.moderationStatus, 'approved')
-      )
-    );
+    const conditions: SQL[] = [
+      eq(recommendations.contractorId, contractorId),
+      eq(recommendations.isPublic, true),
+      eq(recommendations.moderationStatus, 'approved'),
+    ];
 
     if (options?.type && options.type !== 'all') {
-      query = query.where(eq(recommendations.recommendationType, options.type));
+      conditions.push(eq(recommendations.recommendationType, options.type));
     }
 
-    query = query.orderBy(desc(recommendations.createdAt));
+    const limit = options?.limit ?? 50;
 
-    if (options?.limit) {
-      query = query.limit(options.limit);
-    }
-
-    return await query;
+    return await db
+      .select()
+      .from(recommendations)
+      .where(and(...conditions))
+      .orderBy(desc(recommendations.createdAt))
+      .limit(limit);
   }
 
   async updateContractorRecommendationStats(contractorId: string) {
@@ -3665,36 +4185,37 @@ export class DatabaseStorage implements IStorage {
     limit?: number;
     offset?: number;
   }): Promise<ModerationReport[]> {
-    let query = db.select().from(moderationReports);
+    const conditions: SQL[] = [];
     const statusValues = moderationReports.status.enumValues ?? [];
     const contentTypeValues = moderationReports.contentType.enumValues ?? [];
     
     if (filters?.status && statusValues.includes(filters.status as any)) {
-      query = query.where(eq(moderationReports.status, filters.status as (typeof statusValues)[number]));
+      conditions.push(eq(moderationReports.status, filters.status as (typeof statusValues)[number]));
     }
     if (filters?.contentType && contentTypeValues.includes(filters.contentType as any)) {
-      query = query.where(eq(moderationReports.contentType, filters.contentType as (typeof contentTypeValues)[number]));
+      conditions.push(eq(moderationReports.contentType, filters.contentType as (typeof contentTypeValues)[number]));
     }
     if (filters?.county) {
-      query = query.where(eq(moderationReports.contentCounty, filters.county));
+      conditions.push(eq(moderationReports.contentCounty, filters.county));
     }
     if (filters?.state) {
-      query = query.where(eq(moderationReports.contentState, filters.state));
+      conditions.push(eq(moderationReports.contentState, filters.state));
     }
     if (filters?.reporterId) {
-      query = query.where(eq(moderationReports.reporterId, filters.reporterId));
+      conditions.push(eq(moderationReports.reporterId, filters.reporterId));
     }
-    
-    query = query.orderBy(desc(moderationReports.createdAt));
-    
-    if (filters?.limit) {
-      query = query.limit(filters.limit);
-    }
-    if (filters?.offset) {
-      query = query.offset(filters.offset);
-    }
-    
-    return await query;
+
+    const whereClause: SQL = and(...conditions) ?? sql`true`;
+    const limit = filters?.limit ?? 50;
+    const offset = filters?.offset ?? 0;
+
+    return await db
+      .select()
+      .from(moderationReports)
+      .where(whereClause)
+      .orderBy(desc(moderationReports.createdAt))
+      .limit(limit)
+      .offset(offset);
   }
 
   async updateModerationReport(id: string, updates: Partial<ModerationReport>): Promise<ModerationReport> {
@@ -3895,36 +4416,37 @@ export class DatabaseStorage implements IStorage {
 
   // Settings
   async getModerationSettings(county?: string, state?: string): Promise<ModerationSettings | undefined> {
-    let query = db.select().from(moderationSettings);
-    
+    let whereClause: SQL = sql`true`;
+
     if (county && state) {
-      query = query.where(
+      whereClause =
         and(
           eq(moderationSettings.county, county),
           eq(moderationSettings.state, state),
           eq(moderationSettings.isActive, true)
-        )
-      );
+        ) ?? sql`true`;
     } else if (state) {
-      query = query.where(
+      whereClause =
         and(
           eq(moderationSettings.state, state),
           eq(moderationSettings.isStatewide, true),
           eq(moderationSettings.isActive, true)
-        )
-      );
+        ) ?? sql`true`;
     } else {
-      // Return default settings
-      query = query.where(
+      whereClause =
         and(
           isNull(moderationSettings.county),
           isNull(moderationSettings.state),
           eq(moderationSettings.isActive, true)
-        )
-      );
+        ) ?? sql`true`;
     }
-    
-    const [settings] = await query;
+
+    const [settings] = await db
+      .select()
+      .from(moderationSettings)
+      .where(whereClause)
+      .limit(1);
+
     return settings;
   }
 
@@ -4343,7 +4865,7 @@ export class DatabaseStorage implements IStorage {
           and(
             eq(contractorLeaderboardStats.month, month),
             eq(contractorLeaderboardStats.year, year),
-            gt(contractorLeaderboardStats.monthlyTotalRecommendations, monthlyStats.monthlyTotalRecommendations)
+            gt(contractorLeaderboardStats.monthlyTotalRecommendations, monthlyStats.monthlyTotalRecommendations ?? 0)
           )
         );
       monthlyRank = rankResult?.rank || 1;
@@ -4356,7 +4878,7 @@ export class DatabaseStorage implements IStorage {
         .select({ rank: sql<number>`COUNT(*) + 1` })
         .from(contractorLeaderboardStats)
         .where(
-          gt(contractorLeaderboardStats.lifetimeTotalRecommendations, lifetimeStats.lifetimeTotalRecommendations)
+          gt(contractorLeaderboardStats.lifetimeTotalRecommendations, lifetimeStats.lifetimeTotalRecommendations ?? 0)
         );
       lifetimeRank = rankResult?.rank || 1;
     }
@@ -4577,13 +5099,7 @@ export class DatabaseStorage implements IStorage {
   async getTopReferrers(limit: number): Promise<(ReferralStats & { user: User })[]> {
     const result = await db
       .select({
-        userId: referralStats.userId,
-        totalInvitationsSent: referralStats.totalInvitationsSent,
-        totalInvitationsAccepted: referralStats.totalInvitationsAccepted,
-        contractorsReferred: referralStats.contractorsReferred,
-        homeownersReferred: referralStats.homeownersReferred,
-        createdAt: referralStats.createdAt,
-        updatedAt: referralStats.updatedAt,
+        ...getTableColumns(referralStats),
         user: {
           id: users.id,
           email: users.email,
@@ -4601,23 +5117,21 @@ export class DatabaseStorage implements IStorage {
       .limit(limit);
 
     return result.map((row: any) => ({
-      userId: row.userId,
-      totalInvitationsSent: row.totalInvitationsSent,
-      totalInvitationsAccepted: row.totalInvitationsAccepted,
-      contractorsReferred: row.contractorsReferred,
-      homeownersReferred: row.homeownersReferred,
-      createdAt: row.createdAt,
-      updatedAt: row.updatedAt,
-      user: row.user as User
+      ...(row as ReferralStats),
+      user: row.user as User,
     }));
   }
 
   // Professional Profile Methods
 
   async createRealtorProfile(profile: InsertRealtorProfile): Promise<RealtorProfile> {
+    const normalizedProfile: InsertRealtorProfile = {
+      ...profile,
+      specializations: this.coerceStringArray((profile as any).specializations) as any,
+    };
     const [newProfile] = await db
       .insert(realtorProfiles)
-      .values(profile)
+      .values(normalizedProfile as any)
       .returning();
     return newProfile;
   }
@@ -4648,9 +5162,14 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createCarSalesmanProfile(profile: InsertCarSalesmanProfile): Promise<CarSalesmanProfile> {
+    const normalizedProfile: InsertCarSalesmanProfile = {
+      ...profile,
+      specializations: this.coerceStringArray((profile as any).specializations) as any,
+      brandsSpecialty: this.coerceStringArray((profile as any).brandsSpecialty) as any,
+    };
     const [newProfile] = await db
       .insert(carSalesmanProfiles)
-      .values(profile)
+      .values(normalizedProfile as any)
       .returning();
     return newProfile;
   }
@@ -4680,7 +5199,7 @@ export class DatabaseStorage implements IStorage {
     return updated;
   }
 
-  async updateUserRole(userId: string, role: 'realtor' | 'car_salesman'): Promise<void> {
+  async updateUserRole(userId: string, role: 'realtor' | 'car_dealer'): Promise<void> {
     await db
       .update(users)
       .set({ role, updatedAt: new Date() })
@@ -5031,7 +5550,7 @@ export class DatabaseStorage implements IStorage {
   async updateTransactionDispute(id: string, updates: Partial<TransactionDispute>): Promise<TransactionDispute> {
     const [dispute] = await db
       .update(transactionDisputes)
-      .set({ ...updates, updatedAt: new Date() })
+      .set(updates as any)
       .where(eq(transactionDisputes.id, id))
       .returning();
     return dispute;
@@ -5080,13 +5599,16 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getUserRealTimeNotifications(userId: string, unreadOnly?: boolean): Promise<RealTimeNotification[]> {
-    let query = db.select().from(realTimeNotifications).where(eq(realTimeNotifications.userId, userId));
-    
+    const conditions: SQL[] = [eq(realTimeNotifications.userId, userId)];
     if (unreadOnly) {
-      query = query.where(eq(realTimeNotifications.isRead, false));
+      conditions.push(eq(realTimeNotifications.isRead, false));
     }
-    
-    return await query.orderBy(desc(realTimeNotifications.createdAt));
+
+    return await db
+      .select()
+      .from(realTimeNotifications)
+      .where(and(...conditions) ?? sql`true`)
+      .orderBy(desc(realTimeNotifications.createdAt));
   }
 
   async markRealTimeNotificationAsRead(id: string): Promise<RealTimeNotification> {
@@ -5141,15 +5663,16 @@ export class DatabaseStorage implements IStorage {
 
   // Platform analytics operations
   async updatePlatformAnalytics(date: Date, updates: Partial<InsertPlatformAnalytics>): Promise<PlatformAnalytics> {
+    const { date: _ignored, ...restUpdates } = (updates ?? {}) as any;
     const [analytics] = await db
       .insert(platformAnalytics)
-      .values({ 
-        date: date.toISOString().split('T')[0], // Convert to YYYY-MM-DD
-        ...updates 
+      .values({
+        ...restUpdates,
+        date,
       })
       .onConflictDoUpdate({
         target: platformAnalytics.date,
-        set: updates
+        set: restUpdates
       })
       .returning();
     return analytics;
@@ -5193,9 +5716,13 @@ export class DatabaseStorage implements IStorage {
 
   // Payment system operations
   async createPaymentConfiguration(config: InsertPaymentConfiguration): Promise<PaymentConfiguration> {
+    const normalizedConfig: InsertPaymentConfiguration = {
+      ...config,
+      offPlatformPaymentMethods: this.coerceStringArray((config as any).offPlatformPaymentMethods) as any,
+    };
     const [newConfig] = await db
       .insert(paymentConfigurations)
-      .values(config)
+      .values(normalizedConfig as any)
       .returning();
     return newConfig;
   }
@@ -5220,9 +5747,13 @@ export class DatabaseStorage implements IStorage {
   }
 
   async updatePaymentConfiguration(id: string, updates: Partial<InsertPaymentConfiguration>): Promise<PaymentConfiguration> {
+    const normalizedUpdates: Partial<InsertPaymentConfiguration> = {
+      ...updates,
+      offPlatformPaymentMethods: this.coerceStringArray((updates as any).offPlatformPaymentMethods) as any,
+    };
     const [config] = await db
       .update(paymentConfigurations)
-      .set({ ...updates, updatedAt: new Date() })
+      .set({ ...normalizedUpdates, updatedAt: new Date() } as any)
       .where(eq(paymentConfigurations.id, id))
       .returning();
     return config;
@@ -5230,9 +5761,14 @@ export class DatabaseStorage implements IStorage {
 
   // Contractor payment operations
   async createContractorPayment(payment: InsertContractorPayment): Promise<ContractorPayment> {
+    const normalizedPayment: InsertContractorPayment = {
+      ...payment,
+      milestones: this.coerceContractorMilestones((payment as any).milestones) as any,
+      workPhotos: this.coerceStringArray((payment as any).workPhotos) as any,
+    };
     const [newPayment] = await db
       .insert(contractorPayments)
-      .values(payment)
+      .values(normalizedPayment as any)
       .returning();
     return newPayment;
   }
@@ -5282,13 +5818,17 @@ export class DatabaseStorage implements IStorage {
     stripePaymentIntentId?: string;
     status?: string;
   }): Promise<MarketplaceTransaction> {
+    const setValues: any = {
+      ...updates,
+      paymentMethod: updates.paymentMethod as any,
+      status: updates.status as any,
+      updatedAt: new Date(),
+      ...(updates.status === 'completed' ? { completedAt: new Date() } : {}),
+    };
+
     const [transaction] = await db
       .update(marketplaceTransactions)
-      .set({ 
-        ...updates, 
-        updatedAt: new Date(),
-        ...(updates.status === 'completed' ? { completedAt: new Date() } : {})
-      })
+      .set(setValues)
       .where(eq(marketplaceTransactions.id, id))
       .returning();
     return transaction;
@@ -5360,41 +5900,59 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getUserDonations(userId: string, filters?: { status?: string; type?: string }): Promise<any> {
-    let query = db
+    const conditions: SQL[] = [eq(foundationDonations.userId, userId)];
+    if (filters?.status) conditions.push(eq(foundationDonations.status, filters.status as any));
+    if (filters?.type) conditions.push(eq(foundationDonations.type, filters.type as any));
+
+    const rows = await db
       .select({
-        id: foundationDonations.id,
+        donationId: foundationDonations.id,
         amount: foundationDonations.amount,
-        type: foundationDonations.type,
-        status: foundationDonations.status,
+        donationType: foundationDonations.type,
+        donationStatus: foundationDonations.status,
         isRoundupDonation: foundationDonations.isRoundupDonation,
         originalAmount: foundationDonations.originalAmount,
         isAnonymous: foundationDonations.isAnonymous,
         donorMessage: foundationDonations.donorMessage,
         createdAt: foundationDonations.createdAt,
         completedAt: foundationDonations.completedAt,
-        cause: {
-          id: foundationCauses.id,
-          name: foundationCauses.name,
-          category: foundationCauses.category,
-          county: {
-            name: counties.name,
-            state: counties.stateCode,
-          }
-        }
+        causeId: foundationCauses.id,
+        causeName: foundationCauses.name,
+        causeCategory: foundationCauses.category,
+        countyName: counties.name,
+        countyStateCode: counties.stateCode,
       })
       .from(foundationDonations)
       .leftJoin(foundationCauses, eq(foundationDonations.causeId, foundationCauses.id))
       .leftJoin(counties, eq(foundationCauses.countyId, counties.id))
-      .where(eq(foundationDonations.userId, userId));
+      .where(and(...conditions) ?? sql`true`)
+      .orderBy(desc(foundationDonations.createdAt));
 
-    if (filters?.status) {
-      query = query.where(eq(foundationDonations.status, filters.status as any));
-    }
-    if (filters?.type) {
-      query = query.where(eq(foundationDonations.type, filters.type as any));
-    }
-
-    return await query.orderBy(desc(foundationDonations.createdAt));
+    return rows.map((row: any) => ({
+      id: row.donationId,
+      amount: row.amount,
+      type: row.donationType,
+      status: row.donationStatus,
+      isRoundupDonation: row.isRoundupDonation,
+      originalAmount: row.originalAmount,
+      isAnonymous: row.isAnonymous,
+      donorMessage: row.donorMessage,
+      createdAt: row.createdAt,
+      completedAt: row.completedAt,
+      cause: row.causeId
+        ? {
+            id: row.causeId,
+            name: row.causeName,
+            category: row.causeCategory,
+            county: row.countyName
+              ? {
+                  name: row.countyName,
+                  state: row.countyStateCode,
+                }
+              : null,
+          }
+        : null,
+    }));
   }
 
   // Update cause raised amount after successful donation
@@ -5508,7 +6066,7 @@ export class DatabaseStorage implements IStorage {
           category: cause.category,
           county: county ? {
             name: county.name,
-            state: county.state,
+            state: county.stateCode,
           } : null
         } : null
       });
@@ -5519,16 +6077,14 @@ export class DatabaseStorage implements IStorage {
 
   // Foundation impact reports
   async getFoundationImpactReports(causeId?: string): Promise<any> {
-    let baseQuery = db
+    const conditions: SQL[] = [isNotNull(foundationImpactReports.publishedAt)];
+    if (causeId) conditions.push(eq(foundationImpactReports.causeId, causeId));
+
+    const reports = await db
       .select()
       .from(foundationImpactReports)
-      .where(isNotNull(foundationImpactReports.publishedAt));
-
-    if (causeId) {
-      baseQuery = baseQuery.where(eq(foundationImpactReports.causeId, causeId));
-    }
-
-    const reports = await baseQuery.orderBy(desc(foundationImpactReports.publishedAt));
+      .where(and(...conditions) ?? sql`true`)
+      .orderBy(desc(foundationImpactReports.publishedAt));
 
     // Fetch related data separately to avoid complex join issues
     const results = [];
@@ -5560,7 +6116,7 @@ export class DatabaseStorage implements IStorage {
           category: cause.category,
           county: county ? {
             name: county.name,
-            state: county.state,
+            state: county.stateCode,
           } : null
         } : null
       });
@@ -5586,6 +6142,23 @@ export class DatabaseStorage implements IStorage {
     return created;
   }
 
+  // -------------------- Community Profile Vault (MVP) --------------------
+  private async getOrCreateCommunityVaultForProfile(profileId: string): Promise<CommunityVault> {
+    const [existing] = await db
+      .select()
+      .from(communityVaults)
+      .where(eq(communityVaults.profileId, profileId));
+
+    if (existing) return existing as any;
+
+    const [created] = await db
+      .insert(communityVaults)
+      .values({ profileId } as any)
+      .returning();
+
+    return created as any;
+  }
+
   async recordVaultLedgerEntry(data: {
     countyId: string;
     amount: number;
@@ -5595,6 +6168,7 @@ export class DatabaseStorage implements IStorage {
   }): Promise<{ vault: CountyVault; entry: VaultLedgerEntry }> {
     const vault = await this.getOrCreateVaultForCounty(data.countyId);
     const numericAmount = this.normalizeDecimal(data.amount);
+    const amountForDb = this.normalizeDecimalString(data.amount);
 
     const [entry] = await db
       .insert(vaultLedgerEntries)
@@ -5602,7 +6176,7 @@ export class DatabaseStorage implements IStorage {
         vaultId: vault.id,
         sourceType: data.sourceType as any,
         sourceId: data.sourceId,
-        amount: numericAmount,
+        amount: amountForDb,
         memo: data.memo,
       })
       .returning();
@@ -5634,6 +6208,199 @@ export class DatabaseStorage implements IStorage {
       .from(vaultLedgerEntries)
       .where(eq(vaultLedgerEntries.vaultId, vaultId))
       .orderBy(desc(vaultLedgerEntries.createdAt))
+      .limit(limit);
+  }
+
+  async getCommunityVaultSnapshot(params: { profileId: string; limit?: number }): Promise<{
+    profile: { id: string; slug: string; displayName: string; roleContext: string } | null;
+    vault: CommunityVault | null;
+    ledger: CommunityVaultLedgerEntry[];
+  }> {
+    const limit = params.limit ?? 50;
+
+    const [profile] = await db
+      .select({
+        id: profiles.id,
+        slug: profiles.slug,
+        displayName: profiles.displayName,
+        roleContext: profiles.roleContext,
+      })
+      .from(profiles)
+      .where(eq(profiles.id, params.profileId))
+      .limit(1);
+
+    if (!profile) {
+      return { profile: null, vault: null, ledger: [] };
+    }
+
+    const vault = await this.getOrCreateCommunityVaultForProfile(params.profileId);
+    const ledger = await this.getCommunityVaultLedgerEntries(vault.id, limit);
+
+    return { profile: profile as any, vault: vault as any, ledger: ledger as any };
+  }
+
+  async getCommunityVaultLedgerEntries(vaultId: string, limit: number = 50): Promise<CommunityVaultLedgerEntry[]> {
+    return await db
+      .select()
+      .from(communityVaultLedgerEntries)
+      .where(eq(communityVaultLedgerEntries.vaultId, vaultId))
+      .orderBy(desc(communityVaultLedgerEntries.createdAt))
+      .limit(limit);
+  }
+
+  async recordCommunityVaultLedgerEntry(data: {
+    profileId: string;
+    amount: number;
+    sourceType: string;
+    sourceId?: string;
+    externalKey?: string;
+    memo?: string;
+    causeId?: string;
+  }): Promise<{ vault: CommunityVault; entry: CommunityVaultLedgerEntry }> {
+    const vault = await this.getOrCreateCommunityVaultForProfile(data.profileId);
+    const numericAmount = this.normalizeDecimal(data.amount);
+    const amountForDb = this.normalizeDecimalString(data.amount);
+
+    const [entry] = await db
+      .insert(communityVaultLedgerEntries)
+      .values({
+        vaultId: vault.id,
+        externalKey: data.externalKey ?? null,
+        sourceType: data.sourceType as any,
+        sourceId: data.sourceId ?? null,
+        amount: amountForDb,
+        memo: data.memo ?? null,
+        causeId: data.causeId ?? null,
+      } as any)
+      .returning();
+
+    const [updatedVault] = await db
+      .update(communityVaults)
+      .set({
+        currentBalance: sql`${communityVaults.currentBalance} + ${numericAmount}`,
+        lifetimeInflow:
+          numericAmount > 0
+            ? sql`${communityVaults.lifetimeInflow} + ${numericAmount}`
+            : communityVaults.lifetimeInflow,
+        lifetimeOutflow:
+          numericAmount < 0
+            ? sql`${communityVaults.lifetimeOutflow} + ${Math.abs(numericAmount)}`
+            : communityVaults.lifetimeOutflow,
+        lastContributionAt: numericAmount > 0 ? new Date() : communityVaults.lastContributionAt,
+        lastUpdated: new Date(),
+        updatedAt: new Date(),
+      } as any)
+      .where(eq(communityVaults.id, vault.id))
+      .returning();
+
+    return { vault: (updatedVault as any) || (vault as any), entry: entry as any };
+  }
+
+  // -------------------- Causes + Voting Intent (MVP) --------------------
+
+  async listCommunityCausesByProfile(profileId: string): Promise<Array<CommunityCause & { voteCount: number }>> {
+    const causes = await db
+      .select()
+      .from(communityCauses)
+      .where(eq(communityCauses.profileId, profileId))
+      .orderBy(desc(communityCauses.createdAt));
+
+    if (!causes.length) return [];
+
+    const counts = await db
+      .select({
+        causeId: communityCauseVotes.causeId,
+        count: sql<number>`count(*)::int`,
+      })
+      .from(communityCauseVotes)
+      .where(inArray(communityCauseVotes.causeId, causes.map((c) => c.id)))
+      .groupBy(communityCauseVotes.causeId);
+
+    const byId = new Map(counts.map((r) => [r.causeId, Number(r.count ?? 0)]));
+    return causes.map((c) => ({ ...(c as any), voteCount: byId.get(c.id) ?? 0 }));
+  }
+
+  async createCommunityCauseForOwner(
+    ownerUserId: string,
+    data: { profileId: string; title: string; description?: string | null }
+  ): Promise<CommunityCause> {
+    const profile = await this.getProfileByIdForOwner(ownerUserId, data.profileId);
+    if (!profile) throw new Error('Profile not found or not owned by user');
+
+    const [created] = await db
+      .insert(communityCauses)
+      .values({
+        profileId: data.profileId,
+        title: data.title,
+        description: data.description ?? null,
+        status: 'open' as any,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      } as any)
+      .returning();
+
+    return created as any;
+  }
+
+  async voteForCommunityCause(userId: string, causeId: string): Promise<{ vote: CommunityCauseVote; voteCount: number }> {
+    const [cause] = await db
+      .select({ id: communityCauses.id })
+      .from(communityCauses)
+      .where(eq(communityCauses.id, causeId))
+      .limit(1);
+    if (!cause) throw new Error('Cause not found');
+
+    let vote: CommunityCauseVote | undefined;
+    try {
+      const [created] = await db
+        .insert(communityCauseVotes)
+        .values({
+          causeId,
+          userId,
+          createdAt: new Date(),
+        } as any)
+        .returning();
+      vote = created as any;
+    } catch {
+      const [existing] = await db
+        .select()
+        .from(communityCauseVotes)
+        .where(and(eq(communityCauseVotes.causeId, causeId), eq(communityCauseVotes.userId, userId)))
+        .limit(1);
+      vote = existing as any;
+    }
+
+    const [countRow] = await db
+      .select({ count: sql<number>`count(*)::int` })
+      .from(communityCauseVotes)
+      .where(eq(communityCauseVotes.causeId, causeId));
+
+    return { vote: vote as any, voteCount: Number(countRow?.count ?? 0) };
+  }
+
+  // -------------------- Platform Support Ledger (MVP) --------------------
+
+  async insertPlatformSupportLedgerEntry(data: InsertPlatformSupportLedgerEntry): Promise<PlatformSupportLedgerEntry> {
+    const [created] = await db.insert(platformSupportLedgerEntries).values(data as any).returning();
+    return created as any;
+  }
+
+  async getPlatformSupportLedgerEntries(params: { originatingProfileId?: string; limit?: number }): Promise<PlatformSupportLedgerEntry[]> {
+    const limit = params.limit ?? 100;
+
+    if (params.originatingProfileId) {
+      return await db
+        .select()
+        .from(platformSupportLedgerEntries)
+        .where(eq(platformSupportLedgerEntries.originatingProfileId, params.originatingProfileId))
+        .orderBy(desc(platformSupportLedgerEntries.createdAt))
+        .limit(limit);
+    }
+
+    return await db
+      .select()
+      .from(platformSupportLedgerEntries)
+      .orderBy(desc(platformSupportLedgerEntries.createdAt))
       .limit(limit);
   }
 
@@ -5934,9 +6701,9 @@ export class DatabaseStorage implements IStorage {
     assignedTo?: string; 
     search?: string 
   }): Promise<Array<CrmContact & { assignedTo?: User }>> {
-    let query = db
+    const baseQuery = db
       .select({
-        ...crmContacts,
+        ...getTableColumns(crmContacts),
         assignedTo: {
           id: users.id,
           firstName: users.firstName,
@@ -5969,11 +6736,8 @@ export class DatabaseStorage implements IStorage {
       );
     }
 
-    if (conditions.length > 0) {
-      query = query.where(and(...conditions));
-    }
-
-    const results = await query.orderBy(desc(crmContacts.createdAt));
+    const whereExpr: SQL | undefined = conditions.length > 0 ? and(...conditions) : undefined;
+    const results = await baseQuery.where(whereExpr).orderBy(desc(crmContacts.createdAt));
     return results as Array<CrmContact & { assignedTo?: User }>;
   }
 
@@ -6005,9 +6769,9 @@ export class DatabaseStorage implements IStorage {
     assignedTo?: string; 
     contactId?: string 
   }): Promise<Array<CrmDeal & { contact?: CrmContact; assignedTo?: User }>> {
-    let query = db
+    const baseQuery = db
       .select({
-        ...crmDeals,
+        ...getTableColumns(crmDeals),
         contact: {
           id: crmContacts.id,
           firstName: crmContacts.firstName,
@@ -6040,11 +6804,8 @@ export class DatabaseStorage implements IStorage {
       conditions.push(eq(crmDeals.contactId, filters.contactId));
     }
 
-    if (conditions.length > 0) {
-      query = query.where(and(...conditions));
-    }
-
-    const results = await query.orderBy(desc(crmDeals.createdAt));
+    const whereExpr: SQL | undefined = conditions.length > 0 ? and(...conditions) : undefined;
+    const results = await baseQuery.where(whereExpr).orderBy(desc(crmDeals.createdAt));
     return results as Array<CrmDeal & { contact?: CrmContact; assignedTo?: User }>;
   }
 
@@ -6074,7 +6835,7 @@ export class DatabaseStorage implements IStorage {
   async getCrmActivitiesByContact(contactId: string): Promise<Array<CrmActivity & { createdBy?: User }>> {
     const results = await db
       .select({
-        ...crmActivities,
+        ...getTableColumns(crmActivities),
         createdBy: {
           id: users.id,
           firstName: users.firstName,
@@ -6093,7 +6854,7 @@ export class DatabaseStorage implements IStorage {
   async getCrmActivitiesByDeal(dealId: string): Promise<Array<CrmActivity & { createdBy?: User }>> {
     const results = await db
       .select({
-        ...crmActivities,
+        ...getTableColumns(crmActivities),
         createdBy: {
           id: users.id,
           firstName: users.firstName,
@@ -6114,9 +6875,9 @@ export class DatabaseStorage implements IStorage {
     contactId?: string; 
     dealId?: string 
   }): Promise<Array<CrmActivity & { contact?: CrmContact; deal?: CrmDeal; createdBy?: User }>> {
-    let query = db
+    const baseQuery = db
       .select({
-        ...crmActivities,
+        ...getTableColumns(crmActivities),
         contact: {
           id: crmContacts.id,
           firstName: crmContacts.firstName,
@@ -6156,11 +6917,8 @@ export class DatabaseStorage implements IStorage {
       conditions.push(eq(crmActivities.dealId, filters.dealId));
     }
 
-    if (conditions.length > 0) {
-      query = query.where(and(...conditions));
-    }
-
-    const results = await query.orderBy(desc(crmActivities.createdAt));
+    const whereExpr: SQL | undefined = conditions.length > 0 ? and(...conditions) : undefined;
+    const results = await baseQuery.where(whereExpr).orderBy(desc(crmActivities.createdAt));
     return results as Array<CrmActivity & { contact?: CrmContact; deal?: CrmDeal; createdBy?: User }>;
   }
 
@@ -6188,9 +6946,9 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getAllCrmEmailTemplates(category?: string): Promise<Array<CrmEmailTemplate & { createdBy?: User }>> {
-    let query = db
+    const baseQuery = db
       .select({
-        ...crmEmailTemplates,
+        ...getTableColumns(crmEmailTemplates),
         createdBy: {
           id: users.id,
           firstName: users.firstName,
@@ -6201,13 +6959,10 @@ export class DatabaseStorage implements IStorage {
       .from(crmEmailTemplates)
       .leftJoin(users, eq(crmEmailTemplates.createdByUserId, users.id));
 
-    if (category) {
-      query = query.where(eq(crmEmailTemplates.category, category));
-    }
+    const conditions: SQL[] = [eq(crmEmailTemplates.isActive, true)];
+    if (category) conditions.push(eq(crmEmailTemplates.category, category));
 
-    const results = await query
-      .where(eq(crmEmailTemplates.isActive, true))
-      .orderBy(crmEmailTemplates.name);
+    const results = await baseQuery.where(and(...conditions)).orderBy(crmEmailTemplates.name);
 
     return results as Array<CrmEmailTemplate & { createdBy?: User }>;
   }
@@ -6238,7 +6993,7 @@ export class DatabaseStorage implements IStorage {
   async getAllCrmPipelines(): Promise<Array<CrmPipeline & { createdBy?: User }>> {
     const results = await db
       .select({
-        ...crmPipelines,
+        ...getTableColumns(crmPipelines),
         createdBy: {
           id: users.id,
           firstName: users.firstName,
@@ -6271,9 +7026,7 @@ export class DatabaseStorage implements IStorage {
     dealType?: string;
     activeOnly?: boolean;
   }): Promise<DailyDeal[]> {
-    let query = db.select().from(dailyDeals);
-    
-    const conditions = [];
+    const conditions: SQL[] = [];
     
     if (filters?.countyFips) {
       conditions.push(eq(dailyDeals.countyFips, filters.countyFips));
@@ -6292,11 +7045,10 @@ export class DatabaseStorage implements IStorage {
       conditions.push(gte(dailyDeals.endDate, new Date()));
     }
     
-    if (conditions.length > 0) {
-      query = query.where(and(...conditions));
-    }
-    
-    const results = await query
+    const results = await db
+      .select()
+      .from(dailyDeals)
+      .where(and(...conditions) ?? sql`true`)
       .orderBy(desc(dailyDeals.featured), desc(dailyDeals.priority), desc(dailyDeals.createdAt))
       .limit(filters?.limit || 50);
     
@@ -6419,7 +7171,15 @@ export class DatabaseStorage implements IStorage {
   
   // Insights
   async createRecommendationInsight(insight: InsertRecommendationInsight): Promise<RecommendationInsight> {
-    const [newInsight] = await db.insert(recommendationInsights).values(insight).returning();
+    const normalizedInsight: InsertRecommendationInsight = {
+      ...insight,
+      topStrengths: this.coerceStringArray((insight as any).topStrengths) as any,
+      improvementAreas: this.coerceStringArray((insight as any).improvementAreas) as any,
+    };
+    const [newInsight] = await db
+      .insert(recommendationInsights)
+      .values(normalizedInsight as any)
+      .returning();
     return newInsight;
   }
 
@@ -6571,7 +7331,14 @@ export class DatabaseStorage implements IStorage {
 
   // Goals
   async createRecommendationGoal(goal: InsertRecommendationGoal): Promise<RecommendationGoal> {
-    const [newGoal] = await db.insert(recommendationGoals).values(goal).returning();
+    const normalizedGoal: InsertRecommendationGoal = {
+      ...goal,
+      milestones: this.coerceRecommendationGoalMilestones((goal as any).milestones) as any,
+    };
+    const [newGoal] = await db
+      .insert(recommendationGoals)
+      .values(normalizedGoal as any)
+      .returning();
     return newGoal;
   }
 
@@ -6614,7 +7381,14 @@ export class DatabaseStorage implements IStorage {
 
   // Campaigns
   async createRecommendationCampaign(campaign: InsertRecommendationCampaign): Promise<RecommendationCampaign> {
-    const [newCampaign] = await db.insert(recommendationCampaigns).values(campaign).returning();
+    const normalizedCampaign: InsertRecommendationCampaign = {
+      ...campaign,
+      targetCustomers: this.coerceRecommendationCampaignTargets((campaign as any).targetCustomers) as any,
+    };
+    const [newCampaign] = await db
+      .insert(recommendationCampaigns)
+      .values(normalizedCampaign as any)
+      .returning();
     return newCampaign;
   }
 
@@ -6692,36 +7466,19 @@ export class DatabaseStorage implements IStorage {
   }
 
   // HOA Management operations
-  getHoaForUser(userId: string): Promise<{
-    hoaId: string;
-    hoaName: string;
-    role: string;
-    status: string;
-    stateCode: string | null;
-    countyFips: string | null;
-  }[]>;
   async getHOAById(hoaId: string): Promise<any> {
     const [hoa] = await db.select().from(homeownerAssociations).where(eq(homeownerAssociations.id, hoaId));
     return hoa;
   }
 
   async searchHOAs(filters: { countyFips?: string; zip?: string; city?: string; state?: string }): Promise<any[]> {
-    let query = db.select().from(homeownerAssociations).where(eq(homeownerAssociations.isActive, true));
-    
-    if (filters.countyFips) {
-      query = query.where(eq(homeownerAssociations.countyFips, filters.countyFips)) as any;
-    }
-    if (filters.state) {
-      query = query.where(eq(homeownerAssociations.state, filters.state)) as any;
-    }
-    if (filters.city) {
-      query = query.where(eq(homeownerAssociations.city, filters.city)) as any;
-    }
-    if (filters.zip) {
-      query = query.where(eq(homeownerAssociations.zipCode, filters.zip)) as any;
-    }
-    
-    return await query;
+    const conditions: SQL[] = [eq(homeownerAssociations.isActive, true)];
+    if (filters.countyFips) conditions.push(eq(homeownerAssociations.countyFips, filters.countyFips));
+    if (filters.state) conditions.push(eq(homeownerAssociations.state, filters.state));
+    if (filters.city) conditions.push(eq(homeownerAssociations.city, filters.city));
+    if (filters.zip) conditions.push(eq(homeownerAssociations.zipCode, filters.zip));
+
+    return await db.select().from(homeownerAssociations).where(and(...conditions));
   }
 
   async getHOAFinances(hoaId: string): Promise<any> {
@@ -7059,7 +7816,7 @@ export class DatabaseStorage implements IStorage {
       recentVotes: openVotes.map((v) => ({
         id: v.id,
         title: v.title,
-        status: v.status,
+        status: v.status ?? 'open',
         closesAt: v.endDate ? (v.endDate as Date).toISOString() : null,
       })),
       balance,
@@ -7223,17 +7980,16 @@ export class DatabaseStorage implements IStorage {
     const { stateCode, countyFips, limit, offset, search, userId } = filters;
 
     // Base query for active groups scoped by geography when provided
-    let baseQuery = db.select().from(communityGroups).where(eq(communityGroups.isActive, true));
+    const baseConditions: SQL[] = [eq(communityGroups.isActive, true)];
+    if (stateCode) baseConditions.push(eq(communityGroups.stateCode, stateCode));
+    if (countyFips) baseConditions.push(eq(communityGroups.countyFips, countyFips));
 
-    if (stateCode) {
-      baseQuery = baseQuery.where(eq(communityGroups.stateCode, stateCode)) as any;
-    }
-
-    if (countyFips) {
-      baseQuery = baseQuery.where(eq(communityGroups.countyFips, countyFips)) as any;
-    }
-
-    baseQuery = baseQuery.limit(limit).offset(offset);
+    const baseQuery = db
+      .select()
+      .from(communityGroups)
+      .where(and(...baseConditions) ?? sql`true`)
+      .limit(limit)
+      .offset(offset);
 
     if (!userId) {
       const groups = await baseQuery;
@@ -7378,22 +8134,25 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getGroupPosts(groupId: string): Promise<any[]> {
+    const groupTag = `group:${groupId}`;
     return await db
       .select()
       .from(communityPosts)
-      .where(eq(communityPosts.isPublished, true))
+      .where(and(eq(communityPosts.isPublished, true), sql`${communityPosts.tags} @> ARRAY[${groupTag}]::text[]`) ?? sql`true`)
       .orderBy(desc(communityPosts.createdAt))
       .limit(50);
   }
 
   async createGroupPost(post: { groupId: string; authorId: string; content: string; images?: string[] }): Promise<any> {
+    const groupTag = `group:${post.groupId}`;
     const [newPost] = await db
       .insert(communityPosts)
       .values({
         authorId: post.authorId,
         content: post.content,
-        images: post.images || [],
-        postType: 'general'
+        imageUrls: this.coerceStringArray(post.images) ?? [],
+        category: 'general',
+        tags: [groupTag],
       })
       .returning();
 
@@ -7424,8 +8183,12 @@ export class DatabaseStorage implements IStorage {
       .values({
         promoId: data.boostId,
         userId: data.userId,
-        interactionType: 'purchase',
-        metadata: { paymentMethodId: data.paymentMethodId }
+        interactionType: 'click',
+        metadata: {
+          source: 'direct',
+          campaign: 'boost_purchase',
+          medium: data.paymentMethodId ? 'payment_method' : undefined,
+        }
       })
       .returning();
 
@@ -7701,7 +8464,7 @@ export class DatabaseStorage implements IStorage {
     const [updated] = await db
       .update(builderContributions)
       .set({
-        status,
+        status: status as any,
         ...updates,
         updatedAt: new Date(),
       })
@@ -7740,22 +8503,23 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getCountyContributions(countyId: string, status?: string): Promise<BuilderContribution[]> {
-    let query = db
+    const conditions: SQL[] = [eq(builderContributions.countyId, countyId)];
+    if (status) conditions.push(eq(builderContributions.status, status as any));
+
+    return db
       .select()
       .from(builderContributions)
-      .where(eq(builderContributions.countyId, countyId));
-
-    if (status) {
-      query = query.where(eq(builderContributions.status, status));
-    }
-
-    return query.orderBy(desc(builderContributions.createdAt));
+      .where(and(...conditions))
+      .orderBy(desc(builderContributions.createdAt));
   }
 
   async createAuditLog(auditData: Partial<BuilderAuditLog>): Promise<BuilderAuditLog> {
+    if (!auditData.action || !auditData.contributionId || !auditData.auditorId) {
+      throw new Error('Invalid audit log payload');
+    }
     const [log] = await db
       .insert(builderAuditLogs)
-      .values(auditData)
+      .values(auditData as any)
       .returning();
     return log;
   }
@@ -7787,7 +8551,7 @@ export class DatabaseStorage implements IStorage {
     return payout || null;
   }
 
-  async updatePayoutStatus(
+  async updateBuilderPayoutStatus(
     payoutId: string,
     status: string,
     updates?: Partial<BuilderPayout>
@@ -7820,9 +8584,11 @@ export class DatabaseStorage implements IStorage {
       .where(eq(builderLeaderboard.builderId, builderId));
 
     if (existing.length === 0) {
+      const builder = await this.getBuilderById(builderId);
+      if (!builder?.countyId) throw new Error('Builder countyId is required');
       const [entry] = await db
         .insert(builderLeaderboard)
-        .values({ ...metrics, builderId })
+        .values({ ...metrics, builderId, countyId: builder.countyId } as any)
         .returning();
       return entry;
     }
@@ -7882,19 +8648,17 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getBuilderNotifications(builderId: string, unreadOnly?: boolean): Promise<BuilderNotification[]> {
-    let query = db
+    const conditions: SQL[] = [eq(builderNotifications.builderId, builderId)];
+    if (unreadOnly) conditions.push(eq(builderNotifications.isRead, false));
+
+    return db
       .select()
       .from(builderNotifications)
-      .where(eq(builderNotifications.builderId, builderId));
-
-    if (unreadOnly) {
-      query = query.where(eq(builderNotifications.isRead, false));
-    }
-
-    return query.orderBy(desc(builderNotifications.createdAt));
+      .where(and(...conditions))
+      .orderBy(desc(builderNotifications.createdAt));
   }
 
-  async markNotificationAsRead(notificationId: string): Promise<BuilderNotification> {
+  async markBuilderNotificationAsRead(notificationId: string): Promise<BuilderNotification> {
     const [updated] = await db
       .update(builderNotifications)
       .set({

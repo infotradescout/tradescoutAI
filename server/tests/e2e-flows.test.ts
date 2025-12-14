@@ -6,6 +6,9 @@ import { executeAssistantAction, type User, type AssistantAction } from "../assi
  * Tests role-based access control, service integration, and data handling
  */
 
+const hasTestDb = Boolean(process.env.TEST_DATABASE_URL);
+const testDb = hasTestDb ? test : test.skip;
+
 // Mock test users with different roles
 const testUsers = {
   admin: {
@@ -441,7 +444,7 @@ export async function runAllTests(): Promise<void> {
 }
 
 // Register as a Vitest suite
-test("TradeScout end-to-end flows", async () => {
+testDb("TradeScout end-to-end flows", async () => {
   await runAllTests();
 });
 

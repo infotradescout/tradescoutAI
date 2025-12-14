@@ -5,10 +5,10 @@ import { useNotifications } from '@/hooks/useNotifications';
 import { MessagesPanel } from '@/components/messages/MessagesPanel';
 
 export default function MessagesPage() {
-  const { user, loading } = useAuth();
+  const { user, isLoading } = useAuth();
   const { unreadCount } = useNotifications();
 
-  if (loading) {
+  if (isLoading) {
     return (
       <CommunityShell sectionLabel="Messages" notificationsCount={unreadCount}>
         <div className="flex h-[60vh] items-center justify-center">

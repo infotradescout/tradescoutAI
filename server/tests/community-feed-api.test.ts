@@ -6,7 +6,10 @@ import { inArray } from "drizzle-orm";
 
 // Simple API-level test for community post scoping logic
 
-describe("community feed scoping", () => {
+const hasTestDb = Boolean(process.env.TEST_DATABASE_URL);
+const describeDb = hasTestDb ? describe : describe.skip;
+
+describeDb("community feed scoping", () => {
   const countyAFips = "00101";
   const countyBFips = "00202";
   const stateCode = "TX";

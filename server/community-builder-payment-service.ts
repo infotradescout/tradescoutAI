@@ -138,13 +138,13 @@ export class CommunityBuilderPaymentService {
         );
 
         // Update payout with Stripe details
-        await storage.updatePayoutStatus(payout.id, 'processing', {
+        await storage.updateBuilderPayoutStatus(payout.id, 'processing', {
           externalPaymentId: transfer.id,
           transactionId: transfer.id,
         } as any);
       } catch (error) {
         console.error('Stripe payout failed:', error);
-        await storage.updatePayoutStatus(payout.id, 'failed', {
+        await storage.updateBuilderPayoutStatus(payout.id, 'failed', {
           failureReason: `Stripe error: ${error instanceof Error ? error.message : 'Unknown error'}`,
         } as any);
         throw error;
@@ -170,7 +170,7 @@ export class CommunityBuilderPaymentService {
     if (details?.failureReason) updates.failureReason = details.failureReason;
     if (status === 'completed') updates.processedAt = new Date();
 
-    return storage.updatePayoutStatus(payoutId, status, updates);
+    return storage.updateBuilderPayoutStatus(payoutId, status, updates);
   }
 
   /**

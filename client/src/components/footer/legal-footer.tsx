@@ -31,7 +31,7 @@ export function LegalFooter() {
                 </Link>
               </li>
               <li>
-                <Link href="/legal/terms-of-service" className="hover:text-white transition-colors">
+                <Link href="/terms" className="hover:text-white transition-colors">
                   Terms of Service
                 </Link>
               </li>

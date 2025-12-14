@@ -8,7 +8,10 @@ import {
 import { storage } from "../storage";
 import { and, eq, inArray } from "drizzle-orm";
 
-describe("marketplace storage helpers", () => {
+const hasTestDb = Boolean(process.env.TEST_DATABASE_URL);
+const describeDb = hasTestDb ? describe : describe.skip;
+
+describeDb("marketplace storage helpers", () => {
   const stateCode = "TX";
   const countyX = "Test County X";
   const countyY = "Test County Y";

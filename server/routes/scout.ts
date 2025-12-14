@@ -581,7 +581,7 @@ interface ScoutRequest {
 interface ScoutResponse {
   message: string;
   suggestedActions?: string[];
-  actions?: AssistantAction[];
+  actions?: ScoutClientAction[];
   actionResults?: any[];
   sponsored?: {
     id: string;
@@ -592,6 +592,43 @@ interface ScoutResponse {
     isAffiliate?: boolean | null;
     targetLocation?: string | null;
   } | null;
+}
+
+type ScoutClientAction = {
+  type: string;
+  label?: string;
+  to?: string;
+  path?: string;
+  prompt?: string;
+  payload?: Record<string, unknown>;
+};
+
+function extractProfileIdFromText(text: string): string | null {
+  const match = text.match(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i);
+  return match ? match[0] : null;
+}
+
+function extractDollarAmount(text: string): number | null {
+  // Prefer explicit currency markers to avoid picking up years or counts.
+  const dollar = text.match(/\$\s*(\d+(?:\.\d{1,2})?)/);
+  if (dollar?.[1]) {
+    const n = Number(dollar[1]);
+    return Number.isFinite(n) ? n : null;
+  }
+
+  const words = text.match(/(\d+(?:\.\d{1,2})?)\s*(?:usd|dollars?)/i);
+  if (words?.[1]) {
+    const n = Number(words[1]);
+    return Number.isFinite(n) ? n : null;
+  }
+
+  return null;
+}
+
+function formatUsd(amount: number): string {
+  if (!Number.isFinite(amount)) return "$0";
+  const rounded = Math.round(amount * 100) / 100;
+  return rounded % 1 === 0 ? `$${rounded.toFixed(0)}` : `$${rounded.toFixed(2)}`;
 }
 
 function formatRecentActivityForPrompt(recentActivity: ScoutRequest["recentActivity"]): string {
@@ -679,6 +716,12 @@ router.post("/", async (req: Request, res: Response) => {
           county: userCounty,
           state: userState,
         }
+      : undefined;
+
+    // Pull user's active profile to enable community-vault actions from chat.
+    const userRecord = userId ? await storage.getUser(userId) : undefined;
+    const activeProfileId = (userRecord as any)?.activeProfileId
+      ? String((userRecord as any).activeProfileId)
       : undefined;
 
 
@@ -807,6 +850,69 @@ Ready? Let's set you up! 🚀`;
       actions: [],
       sponsored: null,
     };
+
+    // Community Vault MVP actions (explicit chips; no auto-execution on client)
+    try {
+      const lower = message.toLowerCase();
+      const isCommunityVaultTopic =
+        lower.includes("community vault") ||
+        (lower.includes("vault") && lower.includes("community")) ||
+        lower.includes("platform support") ||
+        (lower.includes("support") && lower.includes("platform")) ||
+        lower.includes("cause") ||
+        lower.includes("causes");
+
+      if (isCommunityVaultTopic) {
+        const profileId = activeProfileId ?? extractProfileIdFromText(message) ?? undefined;
+
+        if (profileId) {
+          const amountFromText = extractDollarAmount(message);
+          const donationAmount = amountFromText ?? 25;
+          const supportAmount = amountFromText ?? 10;
+
+          aiResponse.actions = [
+            {
+              type: "NAVIGATE",
+              label: "Open Community Vault",
+              to: `/profile/${profileId}/community`,
+            },
+            {
+              type: "START_COMMUNITY_VAULT_DONATION",
+              label: `Donate ${formatUsd(donationAmount)} to vault`,
+              payload: { profileId, amount: donationAmount },
+            },
+            {
+              type: "START_PLATFORM_SUPPORT",
+              label: `Support platform ${formatUsd(supportAmount)} (one-time split)`,
+              payload: {
+                amount: supportAmount,
+                mode: "one_time",
+                originatingProfileId: profileId,
+              },
+            },
+            {
+              type: "START_PLATFORM_SUPPORT",
+              label: `Support platform ${formatUsd(supportAmount)} (monthly split)`,
+              payload: {
+                amount: supportAmount,
+                mode: "subscription",
+                originatingProfileId: profileId,
+              },
+            },
+          ];
+        } else if (userId) {
+          aiResponse.actions = [
+            {
+              type: "NAVIGATE",
+              label: "Set up my profile",
+              to: "/profile-setup",
+            },
+          ];
+        }
+      }
+    } catch (actionError) {
+      console.error("[Scout] failed to build community vault actions", actionError);
+    }
 
     // The synthesis result is our response; no further action extraction needed
     // This simplifies the response and focuses on Scout's intelligent synthesis

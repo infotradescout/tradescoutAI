@@ -263,7 +263,7 @@ export function RegisterForm({ onSuccess, onSwitchToLogin }: RegisterFormProps) 
           type="button"
           variant="outline"
           className="w-full mb-4"
-          onClick={() => window.location.href = '/auth/facebook'}
+          onClick={() => window.location.href = '/api/auth/facebook'}
           data-testid="button-facebook-signup"
         >
           <SiFacebook className="mr-2 h-4 w-4 text-blue-600" />

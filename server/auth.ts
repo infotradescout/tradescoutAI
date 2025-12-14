@@ -35,6 +35,7 @@ export function getSession() {
     cookie: {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
       maxAge: sessionTtl,
     },
   });
@@ -86,7 +87,7 @@ export async function setupAuth(app: Express) {
       passport.use('facebook', new FacebookStrategy({
         clientID: facebookAppId,
         clientSecret: facebookAppSecret,
-        callbackURL: "/api/auth/facebook/callback",
+        callbackURL: process.env.FACEBOOK_CALLBACK_URL || "/api/auth/facebook/callback",
         profileFields: ['id', 'displayName', 'photos', 'email', 'first_name', 'last_name']
       },
     async (accessToken, refreshToken, profile, done) => {

@@ -66,9 +66,10 @@ export default function ProfileSetup() {
   const setupProfileMutation = useMutation({
     mutationFn: async (data: ProfileSetupData) => {
       const response = await apiRequest("POST", "/api/auth/setup-profile", data);
-      return response;
+      const json = await response.json();
+      return json;
     },
-    onSuccess: () => {
+    onSuccess: (result: any) => {
       toast({
         title: "Profile Setup Complete!",
         description: selectedRole === 'contractor_user' 
@@ -82,18 +83,19 @@ export default function ProfileSetup() {
           : "Welcome to TradeScout! You can now find and connect with contractors.",
       });
       queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
-      // Redirect to appropriate dashboard
-      if (selectedRole === 'contractor_user') {
-        setLocation('/contractor-dashboard');
-      } else if (selectedRole === 'realtor') {
-        setLocation('/realtor-dashboard');
-      } else if (selectedRole === 'vehicle_dealer') {
-        setLocation('/dealer-dashboard');
-      } else if (selectedRole === 'helper') {
-        setLocation('/helper-dashboard');
-      } else {
-        setLocation('/homeowner-dashboard');
+      // Redirect to Profile Editor (website surface)
+      const profileSlug = result?.createdProfileSlug;
+      if (profileSlug) {
+        setLocation(`/p/${profileSlug}/edit`);
+        return;
       }
+
+      // Fallbacks if API didn't return a slug
+      if (selectedRole === 'contractor_user') setLocation('/contractor-dashboard');
+      else if (selectedRole === 'realtor') setLocation('/realtor-dashboard');
+      else if (selectedRole === 'vehicle_dealer') setLocation('/dealer-dashboard');
+      else if (selectedRole === 'helper') setLocation('/helper-dashboard');
+      else setLocation('/homeowner-dashboard');
     },
     onError: (error: any) => {
       toast({

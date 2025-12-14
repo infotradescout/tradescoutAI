@@ -13,7 +13,10 @@ import {
 import { storage } from "../storage";
 import { eq, inArray } from "drizzle-orm";
 
-describe("notifications summary helpers", () => {
+const hasTestDb = Boolean(process.env.TEST_DATABASE_URL);
+const describeDb = hasTestDb ? describe : describe.skip;
+
+describeDb("notifications summary helpers", () => {
   const userId = "notif-user-1";
   const contractorUserId = "notif-contractor-user";
   let contractorId: string;
