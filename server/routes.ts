@@ -231,6 +231,60 @@ export async function registerRoutes(app: any) {
     legacyHeaders: false,
   });
 
+  const parseOptionalIsoDate = (value?: string): Date | undefined => {
+    if (!value) return undefined;
+    const d = new Date(value);
+    return Number.isNaN(d.getTime()) ? undefined : d;
+  };
+
+  const getBetaWindow = () => {
+    // ISO timestamps recommended, e.g. 2025-12-01T00:00:00Z
+    const start = parseOptionalIsoDate(process.env.BETA_START_AT || process.env.BETA_START_DATE);
+    const end = parseOptionalIsoDate(process.env.BETA_END_AT || process.env.BETA_END_DATE);
+    return { start, end };
+  };
+
+  const isWithinBetaPeriod = (date: Date): boolean => {
+    const { start, end } = getBetaWindow();
+    if (!start) return false;
+    const t = date.getTime();
+    if (t < start.getTime()) return false;
+    if (end && t > end.getTime()) return false;
+    return true;
+  };
+
+  const isFounderBadgeLabel = (label: string) => /^Founder\b/i.test(label);
+
+  const formatFounderRoleLabel = (role: string) =>
+    role.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+
+  const computeBadgesForUser = (user: any): string[] => {
+    const list = Array.isArray(user?.badges) ? (user.badges.filter((b: any) => typeof b === 'string') as string[]) : [];
+    const created = user?.createdAt ? new Date(user.createdAt as any) : undefined;
+    const inBeta = created && !Number.isNaN(created.getTime()) ? isWithinBetaPeriod(created) : false;
+
+    if (!inBeta) {
+      return list.filter((b) => !isFounderBadgeLabel(b));
+    }
+
+    const rolesRaw = Array.isArray(user?.roles) && user.roles.length > 0 ? user.roles : user?.role ? [user.role] : [];
+    const roles = rolesRaw.filter((r: any) => typeof r === 'string') as string[];
+    const merged = new Set(list);
+    for (const role of roles) {
+      merged.add(`Founder (${formatFounderRoleLabel(role)})`);
+    }
+    return Array.from(merged);
+  };
+
+  const sanitizeUserForResponse = (user: any) => {
+    if (!user) return user;
+    return {
+      ...user,
+      badges: computeBadgesForUser(user),
+      password: undefined,
+    };
+  };
+
   // Authentication routes
   const handleLocalLogin = (req: Request, res: Response, next: NextFunction) => {
     passport.authenticate('local', (err: any, user: any, info: any) => {
@@ -244,7 +298,7 @@ export async function registerRoutes(app: any) {
         if (loginErr) {
           return next(loginErr);
         }
-        return res.json({ user: req.user, message: "Login successful" });
+        return res.json({ user: sanitizeUserForResponse(req.user), message: "Login successful" });
       });
     })(req, res, next);
   };
@@ -333,16 +387,11 @@ export async function registerRoutes(app: any) {
         if (roleBadge) badges.add(roleBadge);
       }
 
-      // Founder badge: first of each type in a county
-      if (county) {
+      // Founder badge: users who joined during the beta period
+      // (configured via BETA_START_AT/BETA_END_AT environment variables)
+      if (isWithinBetaPeriod(new Date())) {
         for (const role of userTypes) {
-          const countResult: any = await db.execute(
-            sql`SELECT COUNT(*)::int as count FROM users WHERE county = ${county} AND ${role} = ANY(roles)`
-          );
-          const count = Number(countResult?.rows?.[0]?.count ?? countResult?.[0]?.count ?? 0);
-          if (count === 0) {
-            badges.add(`Founder (${formatRoleLabel(role)})`);
-          }
+          badges.add(`Founder (${formatRoleLabel(role)})`);
         }
       }
 
@@ -398,7 +447,7 @@ export async function registerRoutes(app: any) {
         if (err) {
           return res.status(500).json({ message: 'Registration successful but login failed' });
         }
-        res.json({ user, message: 'Registration successful' });
+        res.json({ user: sanitizeUserForResponse(user), message: 'Registration successful' });
       });
     } catch (error: any) {
       console.error('Registration error:', error);
@@ -683,7 +732,7 @@ export async function registerRoutes(app: any) {
         const profiles = await storage.listProfilesByOwner(userId);
         if (profiles.length === 1) {
           const updated = await storage.setUserActiveProfile(userId, profiles[0].id);
-          res.json({ ...updated, password: undefined });
+          res.json(sanitizeUserForResponse(updated));
           return;
         }
       }
@@ -695,12 +744,12 @@ export async function registerRoutes(app: any) {
         const businesses = await storage.listBusinessesByOwner(userId);
         if (businesses.length === 1) {
           const updated = await storage.setUserActiveBusiness(userId, businesses[0].id);
-          res.json({ ...updated, password: undefined });
+          res.json(sanitizeUserForResponse(updated));
           return;
         }
       }
 
-      res.json({ ...user, password: undefined });
+      res.json(sanitizeUserForResponse(user));
     } catch (error: any) {
       console.error("Error fetching auth user:", error);
       res.status(500).json({ message: "Failed to fetch user" });
@@ -748,7 +797,7 @@ export async function registerRoutes(app: any) {
           return res.status(500).json({ message: "Master admin created but login failed" });
         }
         res.json({ 
-          user: masterAdmin, 
+          user: sanitizeUserForResponse(masterAdmin), 
           message: "Master admin setup complete - device registered for secure access",
           deviceRegistered: true
         });
@@ -1122,10 +1171,10 @@ export async function registerRoutes(app: any) {
           isImpersonating: true,
           originalRole: (req.session as any).originalUser.role
         };
-        return res.json({ ...modifiedUser, password: undefined });
+        return res.json(sanitizeUserForResponse(modifiedUser));
       }
 
-      res.json({ ...user, password: undefined });
+      res.json(sanitizeUserForResponse(user));
     } catch (error: any) {
       console.error("Error fetching authenticated user:", error);
       res.status(500).json({ message: "Failed to fetch user" });
@@ -1136,7 +1185,7 @@ export async function registerRoutes(app: any) {
   app.get('/api/user/profile', isAuthenticated, async (req: Request, res: Response) => {
     try {
       const user = await storage.getUser((req.user as any)?.id || (req.user as any)?.claims?.sub);
-      res.json({ ...user, password: undefined });
+      res.json(sanitizeUserForResponse(user));
     } catch (error: any) {
       console.error("Error fetching user profile:", error);
       res.status(500).json({ message: "Failed to fetch user profile" });
@@ -1157,7 +1206,7 @@ export async function registerRoutes(app: any) {
         preferences,
         updatedAt: new Date(),
       });
-      res.json({ ...user, password: undefined });
+      res.json(sanitizeUserForResponse(user));
     } catch (error: any) {
       console.error("Error updating user profile:", error);
       res.status(500).json({ message: "Failed to update user profile" });
@@ -1170,7 +1219,7 @@ export async function registerRoutes(app: any) {
         onboardingCompleted: true,
         updatedAt: new Date(),
       });
-      res.json({ ...user, password: undefined });
+      res.json(sanitizeUserForResponse(user));
     } catch (error: any) {
       console.error("Error completing onboarding:", error);
       res.status(500).json({ message: "Failed to complete onboarding" });
@@ -1209,7 +1258,7 @@ export async function registerRoutes(app: any) {
         profileImageUrl: normalizedProfileImageUrl,
       });
 
-      res.json({ ...user, password: undefined });
+      res.json(sanitizeUserForResponse(user));
     } catch (error: any) {
       console.error("Error fetching user profile:", error);
       res.status(500).json({ message: "Failed to fetch user profile" });
@@ -1241,7 +1290,7 @@ export async function registerRoutes(app: any) {
         city: user.city,
         state: user.state,
         roles: user.roles || [user.role],
-        badges: user.badges || [],
+        badges: computeBadgesForUser(user),
         createdAt: user.createdAt,
         preferences: {
           colorScheme: user.preferences?.colorScheme,
@@ -1273,7 +1322,7 @@ export async function registerRoutes(app: any) {
         updatedAt: new Date(),
       });
       
-      res.json({ ...user, password: undefined });
+      res.json(sanitizeUserForResponse(user));
     } catch (error: any) {
       console.error("Error updating theme:", error);
       res.status(500).json({ message: "Failed to update theme" });
@@ -1672,8 +1721,12 @@ export async function registerRoutes(app: any) {
     try {
       const user = await storage.getUser((req.user as any)?.id || (req.user as any)?.claims?.sub);
 
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
       // Include contractor-specific data if user is a contractor
-      let profileData: Record<string, any> = { ...user, password: undefined };
+      let profileData: Record<string, any> = sanitizeUserForResponse(user);
 
       if (user && user.role === 'contractor') {
         const contractor = await storage.getContractorByUserId(user.id);
@@ -1748,7 +1801,7 @@ export async function registerRoutes(app: any) {
         }
       }
 
-      res.json({ ...user, password: undefined });
+      res.json(sanitizeUserForResponse(user));
     } catch (error: any) {
       console.error("Error updating user profile:", error);
       res.status(500).json({ message: "Failed to update user profile" });
