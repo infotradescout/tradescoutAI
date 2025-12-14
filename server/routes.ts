@@ -998,9 +998,11 @@ export async function registerRoutes(app: any) {
   // OAuth strategies are configured in auth.ts
 
   const hasGoogleOAuth = Boolean(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET);
+  const facebookAppId = process.env.FACEBOOK_APP_ID || process.env.FACEBOOK_CLIENT_ID;
+  const facebookAppSecret = process.env.FACEBOOK_APP_SECRET || process.env.FACEBOOK_CLIENT_SECRET;
   const hasFacebookOAuth =
     process.env.DISABLE_FACEBOOK_AUTH !== "true" &&
-    Boolean(process.env.FACEBOOK_APP_ID && process.env.FACEBOOK_APP_SECRET);
+    Boolean(facebookAppId && facebookAppSecret);
 
   if (hasGoogleOAuth) {
     passport.use(
