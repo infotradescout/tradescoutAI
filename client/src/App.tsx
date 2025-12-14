@@ -1,12 +1,14 @@
 import React, { memo, Suspense, useEffect, useState } from 'react';
 import { QueryClientProvider } from '@tanstack/react-query';
-import { Router, Route, Switch, useLocation } from 'wouter';
+import { Link, Router, Route, Switch, useLocation } from 'wouter';
 import { X } from 'lucide-react';
 import { queryClient } from './lib/queryClient';
 import { ErrorBoundary } from './components/ui/error-boundary';
 import { ThemeProvider } from './contexts/ThemeContext';
 import { SessionProvider } from './contexts/SessionContext';
 import { ProtectedRoute } from './components/ProtectedRoute';
+import { useAuth, useLogout } from './hooks/useAuth';
+import { Button } from './components/ui/button';
 
 // Only load essential components eagerly
 import SmartHome from './SmartHome';
@@ -261,6 +263,12 @@ const AppLayout = memo(function AppLayout() {
   const [location] = useLocation();
   const isLlmRoute = location === '/' || location === '/scout' || location.startsWith('/?');
 
+  const { isAuthenticated } = useAuth();
+  const logout = useLogout();
+
+  const googleAuthEnabled = import.meta.env.VITE_DISABLE_GOOGLE_AUTH !== 'true';
+  const facebookAuthEnabled = import.meta.env.VITE_DISABLE_FACEBOOK_AUTH !== 'true';
+
   const [showBetaNotice, setShowBetaNotice] = useState(false);
 
   useEffect(() => {
@@ -283,6 +291,60 @@ const AppLayout = memo(function AppLayout() {
   return (
     <SimpleMobileGestures>
       <div className={`min-h-screen ${appBackgroundClass} text-tsTextMain font-sans flex flex-col`}>
+        <div className="fixed top-4 right-4 z-50 flex items-center gap-2">
+          {isAuthenticated ? (
+            <>
+              <Link href="/profile">
+                <Button size="sm" variant="secondary" className="bg-black/30 border border-tsBorder hover:bg-black/40">
+                  Account
+                </Button>
+              </Link>
+              <Button
+                size="sm"
+                variant="outline"
+                className="border-tsBorder bg-transparent hover:bg-white/5"
+                onClick={() => void logout()}
+              >
+                Logout
+              </Button>
+            </>
+          ) : (
+            <>
+              <Link href="/login">
+                <Button size="sm" variant="secondary" className="bg-black/30 border border-tsBorder hover:bg-black/40">
+                  Sign in
+                </Button>
+              </Link>
+
+              {googleAuthEnabled && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="border-tsBorder bg-transparent hover:bg-white/5"
+                  onClick={() => {
+                    window.location.href = '/api/auth/google';
+                  }}
+                >
+                  Continue with Google
+                </Button>
+              )}
+
+              {facebookAuthEnabled && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="border-tsBorder bg-transparent hover:bg-white/5"
+                  onClick={() => {
+                    window.location.href = '/api/auth/facebook';
+                  }}
+                >
+                  Continue with Facebook
+                </Button>
+              )}
+            </>
+          )}
+        </div>
+
         {!isLlmRoute && (
           <header className="hidden md:block sticky top-0 z-40 backdrop-blur-md bg-slate-950/85 border-b border-tsBorder shadow-lg">
             <div className="w-full px-6 py-4 flex flex-col items-center gap-3 text-center">

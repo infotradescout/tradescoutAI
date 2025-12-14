@@ -40,6 +40,11 @@ export function executeScoutActions(
             }
             break;
           }
+
+          if (destination.startsWith("/api/auth/")) {
+            window.location.href = destination;
+            break;
+          }
           helpers.navigate(destination);
         }
         break;

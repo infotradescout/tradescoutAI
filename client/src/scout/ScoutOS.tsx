@@ -49,7 +49,7 @@ function censorProfanity(text: string) {
 }
 
 export default function ScoutOS() {
-  const { user, isAuthenticated } = useAuth();
+  const { user, isAuthenticated, isLoading } = useAuth();
   const [location, navigate] = useLocation();
   const isMobile = useIsMobile();
 
@@ -63,6 +63,10 @@ export default function ScoutOS() {
   // Seed a welcome message (replaces legacy ScoutChat intro + quick prompts).
   useEffect(() => {
     if (state.messages.length > 0) return;
+    if (isLoading) return;
+
+    const googleAuthEnabled = import.meta.env.VITE_DISABLE_GOOGLE_AUTH !== "true";
+    const facebookAuthEnabled = import.meta.env.VITE_DISABLE_FACEBOOK_AUTH !== "true";
 
     const quickPrompts = [
       "Find roofers available this week",
@@ -74,7 +78,27 @@ export default function ScoutOS() {
       "Find an emergency plumber tonight",
     ];
 
+    const authClusterActions: ScoutAction[] = [];
+    if (googleAuthEnabled) {
+      authClusterActions.push({ type: "NAVIGATE", label: "Continue with Google", to: "/api/auth/google" });
+    }
+    if (facebookAuthEnabled) {
+      authClusterActions.push({ type: "NAVIGATE", label: "Continue with Facebook", to: "/api/auth/facebook" });
+    }
+    authClusterActions.push({ type: "NAVIGATE", label: "Sign up with email", to: "/register" });
+
     const welcomeClusters: ScoutCluster[] = [
+      ...(!isAuthenticated
+        ? ([
+            {
+              id: "scoutos-auth",
+              title: "Create your free account",
+              kind: "generic",
+              body: "Pick your sign-up method to unlock your dashboard and saved work.",
+              actions: authClusterActions,
+            },
+          ] as ScoutCluster[])
+        : []),
       {
         id: "scoutos-quick-links",
         title: "Quick links",
@@ -103,8 +127,7 @@ export default function ScoutOS() {
     };
 
     applyServerResponse(welcome, []);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [applyServerResponse, isAuthenticated, isLoading, state.messages.length]);
 
   const unreadMessages =
     (user as any)?.unreadMessages ??

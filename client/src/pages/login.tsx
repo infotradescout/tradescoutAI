@@ -9,7 +9,7 @@ export default function Login() {
 
   useEffect(() => {
     if (isAuthenticated) {
-      window.location.href = "/";
+      window.location.href = "/profile-setup";
     }
   }, [isAuthenticated]);
 
