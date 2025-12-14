@@ -790,26 +790,27 @@ const App = memo(function App() {
         <ThemeProvider>
           <SessionProvider>
             <Router>
+              <Switch>
+                {/* ================= AUTH (NO LAYOUT) ================= */}
+                <Route path="/login"><LazyPage Component={Login} /></Route>
+                <Route path="/register"><LazyPage Component={Register} /></Route>
+
+                {/* ================= APP (LAYOUT OWNER, INCLUDING SCOUT) ================= */}
+                <Route>
+                  <AppShell>
                     <Switch>
-                      {/* ================= SCOUT (NO LAYOUT) ================= */}
+                      {/* Scout as primary home, with nav chrome around it */}
                       <Route path="/" component={ScoutOS} />
                       <Route path="/scout" component={ScoutOS} />
 
-                      {/* ================= AUTH (NO LAYOUT) ================= */}
-                      <Route path="/login"><LazyPage Component={Login} /></Route>
-                      <Route path="/register"><LazyPage Component={Register} /></Route>
-
-                      {/* ================= APP (SINGLE LAYOUT OWNER) ================= */}
-                      <Route>
-                        <AppShell>
-                          <Switch>
-                            <Route path="/dashboard"><LazyPage Component={RoleDashboardRouter} /></Route>
-                            <Route path="/community"><LazyPage Component={Community} /></Route>
-                            <Route path="/exchange"><LazyPage Component={Exchange} /></Route>
-                          </Switch>
-                        </AppShell>
-                      </Route>
+                      {/* Core app sections */}
+                      <Route path="/dashboard"><LazyPage Component={RoleDashboardRouter} /></Route>
+                      <Route path="/community"><LazyPage Component={Community} /></Route>
+                      <Route path="/exchange"><LazyPage Component={Exchange} /></Route>
                     </Switch>
+                  </AppShell>
+                </Route>
+              </Switch>
             </Router>
             <SimpleFloatingHelp />
           </SessionProvider>
