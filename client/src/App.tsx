@@ -273,8 +273,9 @@ const LegalFooter = memo(function LegalFooter() {
 // Main app layout component
 const AppLayout = memo(function AppLayout() {
   const [location, setLocation] = useLocation();
-  // Scout is the immersive /llm surface. The full site runs under '/'.
-  const isLlmRoute = location === '/scout' || location.startsWith('/scout') || location === '/_scout-lite';
+  // Lite / experimental Scout surfaces can still run outside AppShell,
+  // but the main Scout experience lives at /scout inside the app frame.
+  const isLiteScoutRoute = location === '/_scout-lite';
 
   const { isAuthenticated, isLoading } = useAuth();
 
@@ -300,7 +301,7 @@ const AppLayout = memo(function AppLayout() {
   };
 
   const appBackgroundClass = 'bg-[#060b1c]';
-  const mainClassName = isLlmRoute
+  const mainClassName = isLiteScoutRoute
     ? 'flex-1 relative w-full bg-[#060b1c]'
     : 'flex-1 relative w-full px-3 sm:px-4 md:px-6 py-6 bg-[#060b1c]';
 
@@ -346,17 +347,18 @@ const AppLayout = memo(function AppLayout() {
 
         <main className={mainClassName}>
           <ErrorBoundary fallback={<PageLoader />}>
-            {isLlmRoute ? (
+            {isLiteScoutRoute ? (
               <Switch>
-                <Route path="/scout" component={ScoutLanding} />
                 <Route path="/_scout-lite">
                   <LazyPage Component={ScoutLandingLite} />
                 </Route>
-                <Route path="/:rest*"><LazyPage Component={NotFound} /></Route>
+                <Route path=":rest*"><LazyPage Component={NotFound} /></Route>
               </Switch>
             ) : (
               <AppShell footer={<LegalFooter />}>
                 <Switch>
+                  {/* Scout OS: primary AI controller surface */}
+                  <Route path="/scout" component={ScoutOS} />
                   {/* Home routes */}
                   <Route path="/" component={SmartHome} />
 

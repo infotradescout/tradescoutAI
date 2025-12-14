@@ -98,6 +98,8 @@ export default function ScoutOS() {
     state.status === "thinking" ||
     state.status === "responding";
 
+  const hasMessages = state.messages.length > 0;
+
   const hasUserMessages = useMemo(
     () => state.messages.some((m) => m.role === "user"),
     [state.messages]
@@ -388,6 +390,20 @@ export default function ScoutOS() {
       userRoles,
     ]
   );
+
+  // One-time autorun prompt for first-time guests: fire a single
+  // "What can TradeScout do for my community?" question so the
+  // conversation starts automatically, with the standard
+  // "Scout is thinking..." indicator while it loads.
+  useEffect(() => {
+    if (initialized.current) return;
+    if (isAuthenticated) return;
+    if (hasMessages) return;
+
+    initialized.current = true;
+    setHasGuestInteracted(true);
+    void handleSend(INTRO_DEMO_TEXT);
+  }, [handleSend, hasMessages, isAuthenticated]);
 
   const handleClusterAction = useCallback(
     (action: ScoutAction) => {
