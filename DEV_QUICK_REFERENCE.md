@@ -134,12 +134,45 @@ Result: NO restart required, NO downtime
 ## 🧪 Testing Guide
 
 ```bash
-# Run all tests
-npm run test:run -- server/tests/knowledgeHierarchy.test.ts
+# Run the full test suite
+npm run test:run
+
+# (Optional) Hot reload E2E harness
 node server/tests/e2e-hot-reload.js
 
 # Expected result: ALL PASSING ✅
 ```
+
+### Database-backed tests
+
+Some suites exercise real storage/DB behavior and will be skipped unless `TEST_DATABASE_URL` is set.
+
+- To run DB-backed tests, point `TEST_DATABASE_URL` at a dedicated test database that has the current schema applied.
+- Safety: in `NODE_ENV=test`, the app will not fall back to `DATABASE_URL`.
+
+PowerShell example:
+
+```powershell
+$env:TEST_DATABASE_URL = "postgresql://USER:PASSWORD@HOST:PORT/DBNAME"
+
+# Apply schema to the test DB (drizzle-kit reads DATABASE_URL)
+$env:DATABASE_URL = $env:TEST_DATABASE_URL
+npm run db:push
+
+# Run tests
+npm run test:run
+```
+
+Docker Compose shortcut (includes a dedicated `db_test` on `localhost:5433`):
+
+```powershell
+docker compose up -d db_test
+
+# Uses TEST_DATABASE_URL to push schema + run DB-backed suites
+npm run test:run:db
+```
+
+If you see `docker : The term 'docker' is not recognized`, install Docker Desktop for Windows (and ensure the `docker` CLI is on PATH), then reopen your terminal.
 
 ---
 

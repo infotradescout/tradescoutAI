@@ -155,7 +155,7 @@ export class TutorialStorageService {
     id: string,
     data: Partial<InsertTutorialDefinition>
   ): Promise<TutorialDefinition> {
-    const updateData = { ...data, updatedAt: new Date() };
+    const updateData: any = { ...data, updatedAt: new Date() };
     if (data.steps) {
       updateData.steps = data.steps as any; // Type assertion for steps array
     }

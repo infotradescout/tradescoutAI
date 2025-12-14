@@ -246,7 +246,7 @@ router.post('/payouts/:payoutId/process', requireCBAdmin, async (req: Request, r
     const { payoutId } = req.params;
     const { transactionId, externalPaymentId } = req.body;
 
-    const payout = await storage.updatePayoutStatus(payoutId, 'completed', {
+    const payout = await storage.updateBuilderPayoutStatus(payoutId, 'completed', {
       transactionId,
       externalPaymentId,
       approvedBy: adminUserId,
@@ -282,7 +282,7 @@ router.post('/payouts/:payoutId/fail', requireCBAdmin, async (req: Request, res:
     const { payoutId } = req.params;
     const { failureReason } = req.body;
 
-    const payout = await storage.updatePayoutStatus(payoutId, 'failed', {
+    const payout = await storage.updateBuilderPayoutStatus(payoutId, 'failed', {
       failureReason,
     } as any);
 

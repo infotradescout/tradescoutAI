@@ -9,17 +9,38 @@ const isTestEnv =
   process.env.NODE_ENV === "test" ||
   Boolean(process.env.VITEST_WORKER_ID);
 
-const connectionString =
-  (isTestEnv ? process.env.TEST_DATABASE_URL : process.env.DATABASE_URL) ??
-  process.env.DATABASE_URL;
+const connectionString = isTestEnv
+  ? process.env.TEST_DATABASE_URL
+  : process.env.DATABASE_URL;
+
+type DbType = ReturnType<typeof drizzle<typeof schema>>;
+
+let pool: Pool;
+let db: DbType;
 
 if (!connectionString) {
-  throw new Error(
-    "Missing DATABASE_URL/TEST_DATABASE_URL for database connection."
+  // In test mode, we intentionally do NOT fall back to DATABASE_URL.
+  // This avoids mutating a dev/prod database when running vitest locally.
+  const error = new Error(
+    isTestEnv
+      ? "Missing TEST_DATABASE_URL for test database connection."
+      : "Missing DATABASE_URL for database connection."
   );
-}
 
-const pool = new Pool({ connectionString });
-const db = drizzle({ client: pool, schema });
+  const disabled = new Proxy(
+    {},
+    {
+      get() {
+        throw error;
+      },
+    }
+  );
+
+  pool = disabled as unknown as Pool;
+  db = disabled as unknown as DbType;
+} else {
+  pool = new Pool({ connectionString });
+  db = drizzle({ client: pool, schema });
+}
 
 export { db, pool };

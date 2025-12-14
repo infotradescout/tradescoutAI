@@ -32,6 +32,22 @@ import {
 
 const INTRO_DEMO_TEXT = "What can TradeScout do for my community?";
 
+const BANNED_TERMS = ["fuck", "shit", "bitch", "asshole", "cunt", "slut", "whore"];
+
+function containsProfanity(text: string) {
+  const lower = text.toLowerCase();
+  return BANNED_TERMS.some((term) => lower.includes(term));
+}
+
+function censorProfanity(text: string) {
+  let cleaned = text;
+  for (const term of BANNED_TERMS) {
+    const re = new RegExp(term, "gi");
+    cleaned = cleaned.replace(re, `${term[0]}***`);
+  }
+  return cleaned;
+}
+
 export default function ScoutOS() {
   const { user, isAuthenticated } = useAuth();
   const [location, navigate] = useLocation();
@@ -43,6 +59,52 @@ export default function ScoutOS() {
   const { sessionRole } = useSession();
 
   const { state, recordUserMessage, applyServerResponse, setError } = useScoutState();
+
+  // Seed a welcome message (replaces legacy ScoutChat intro + quick prompts).
+  useEffect(() => {
+    if (state.messages.length > 0) return;
+
+    const quickPrompts = [
+      "Find roofers available this week",
+      "Start the Community Builder for my area",
+      "Show me today's best tool deals",
+      "Message the top 3 electricians near me",
+      "Create a project for kitchen remodel",
+      "List my pressure washer for $250",
+      "Find an emergency plumber tonight",
+    ];
+
+    const welcomeClusters: ScoutCluster[] = [
+      {
+        id: "scoutos-quick-links",
+        title: "Quick links",
+        kind: "generic",
+        body: "Jump straight into a section.",
+        actions: [
+          { type: "NAVIGATE", label: "Open Dashboard", to: "/dashboard" },
+          { type: "NAVIGATE", label: "Browse Contractors", to: ROUTES.CONTRACTORS },
+          { type: "NAVIGATE", label: "Marketplace", to: ROUTES.MARKETPLACE },
+          { type: "NAVIGATE", label: "Community", to: ROUTES.COMMUNITY },
+          { type: "NAVIGATE", label: "MealScout", to: "/mealscout" },
+          { type: "NAVIGATE", label: "Help Center", to: ROUTES.HELP },
+        ],
+      },
+    ];
+
+    const welcome: ScoutMessage = {
+      id: `a_${Date.now()}_${Math.random().toString(36).slice(2)}`,
+      role: "assistant",
+      content: isAuthenticated
+        ? "Welcome back — I’m Scout. Tell me your project, location, budget, and timing and I’ll route you to the right pages and next steps."
+        : "Hey — I’m Scout. I can find local pros, surface marketplace deals, and help launch community growth. Ask anything, or tap a prompt below.",
+      timestamp: new Date().toISOString(),
+      suggestedActions: quickPrompts,
+      clusters: welcomeClusters,
+    };
+
+    applyServerResponse(welcome, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const unreadMessages =
     (user as any)?.unreadMessages ??
@@ -153,6 +215,28 @@ export default function ScoutOS() {
   };
   const handleSend = useCallback(
     async (value: string, explicitMode?: ScoutMode) => {
+      if (containsProfanity(value)) {
+        const blocked: ScoutMessage = {
+          id: `a_${Date.now()}_${Math.random().toString(36).slice(2)}`,
+          role: "assistant",
+          content: "That prompt isn’t allowed. Please keep it respectful.",
+          timestamp: new Date().toISOString(),
+        };
+
+        // Keep a censored draft in the input so the user can quickly edit.
+        try {
+          window.localStorage.setItem(
+            "scout:prefill:scout-main",
+            censorProfanity(value)
+          );
+        } catch {
+          // ignore
+        }
+        setPrefillKey((k) => k + 1);
+        applyServerResponse(blocked, []);
+        return;
+      }
+
       const isFirstAnswer = !hasSeenFirstAnswer();
       const rolesForRequest =
         (userRoles && userRoles.length > 0
@@ -275,6 +359,20 @@ export default function ScoutOS() {
           }
         }
 
+        // Attach server-returned actions as explicit user-clickable chips.
+        if (res.actions && res.actions.length > 0) {
+          clusters.push({
+            id: `server-actions-${Date.now()}`,
+            title: "Next actions",
+            kind: "generic",
+            body: "Tap to open a page or start a flow.",
+            actions: res.actions.map((a) => ({
+              ...a,
+              label: a.label || (typeof a.type === "string" ? a.type.replace(/_/g, " ") : "Action"),
+            })),
+          });
+        }
+
         const msg: ScoutMessage = {
           id: `a_${Date.now()}_${Math.random().toString(36).slice(2)}`,
           role: "assistant",
@@ -290,23 +388,7 @@ export default function ScoutOS() {
           markFirstAnswerSeen();
         }
 
-        executeScoutActions(res.actions, {
-          navigate: (to) => navigate(to),
-          openAppDrawer: () => setAppDrawerOpen(true),
-          openToolsDrawer: () => setToolsOpen(true),
-          prefillInput: (text) => {
-            try {
-              window.localStorage.setItem("scout:prefill:scout-main", text);
-            } catch {
-              // ignore storage errors
-            }
-            // bump key so ScoutInput remounts and reads the new draft
-            setPrefillKey((k) => k + 1);
-          },
-          askScout: (prompt) => {
-            void handleSend(prompt);
-          },
-        });
+        // NOTE: do not auto-execute server actions; show them as chips instead.
 
         const latencyMs = performance.now() - start;
         logScoutInsight({
@@ -338,6 +420,7 @@ export default function ScoutOS() {
       navigate,
       recordUserMessage,
       sessionRole,
+      setPrefillKey,
       setError,
       state.messages,
       userRoles,

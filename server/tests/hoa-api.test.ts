@@ -11,7 +11,10 @@ import {
 import { storage } from "../storage";
 import { eq, inArray, and } from "drizzle-orm";
 
-describe("HOA API helpers", () => {
+const hasTestDb = Boolean(process.env.TEST_DATABASE_URL);
+const describeDb = hasTestDb ? describe : describe.skip;
+
+describeDb("HOA API helpers", () => {
   const memberUserId = "hoa-member-user";
   const nonMemberUserId = "hoa-non-member-user";
   let hoaId: string;

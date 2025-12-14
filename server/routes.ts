@@ -3,6 +3,8 @@ import { ingestKnowledgeFolder } from "./services/knowledgeIngest";
 import fs from "fs";
 import path from "path";
 import { contractorSignupRouter } from "./routes/contractor-signup";
+import { businessesRouter } from "./routes/businesses";
+import { profilesRouter } from "./routes/profiles";
 import { registerRecommendationGeneratorRoutes } from "./routes/recommendation-generator";
 import { registerNotificationRoutes } from "./routes/notification-routes";
 import { registerAnalyticsRoutes } from "./routes/analytics-routes";
@@ -13,6 +15,9 @@ import { setupModerationRoutes } from "./moderation";
 import { registerSocialRoutes } from "./social-routes";
 import communityBuilderRouter from "./routes/community-builder-routes";
 import adminCommunityBuilderRouter from "./routes/admin-community-builder-routes";
+import communityVaultRouter from "./routes/community-vault-routes";
+import communityCausesRouter from "./routes/community-causes-routes";
+import platformSupportRouter from "./routes/platform-support-routes";
 // DISABLED: WebSocketManager is not instantiated, using Socket.io messaging service instead
 // import { WebSocketManager } from "./websocket";
 import { emailService } from "./services/emailService";
@@ -58,6 +63,7 @@ import { tutorialStorage } from "./tutorialStorage";
 import { DataManagementService } from "./data-management";
 import { StoryGenerationService } from "./story-generation-service";
 import { communityBuilderPaymentService } from "./community-builder-payment-service";
+import { platformSupportPaymentService } from "./platform-support-payment-service";
 import { antiScrapeShield } from "./middleware/antiScrape";
 // Shared HTTP types for all route handlers
 type AuthedRequest = Request & {
@@ -498,28 +504,8 @@ export async function registerRoutes(app: any) {
     });
   });
 
-  // Facebook authentication routes (respect DISABLE_FACEBOOK_AUTH)
-  if (process.env.DISABLE_FACEBOOK_AUTH !== "true") {
-    app.get("/api/auth/facebook", passport.authenticate('facebook', {
-      scope: ['email']
-    }));
-
-    app.get("/api/auth/facebook/callback",
-      passport.authenticate('facebook', {
-        failureRedirect: '/login?error=facebook_auth_failed'
-      }),
-      (req: Request, res: Response) => {
-        const user = req.user as any;
-        if (user && !user.role) {
-          res.redirect('/?facebook_signup=success&needs_role=true');
-        } else if (user && !user.onboardingCompleted) {
-          res.redirect('/?facebook_signup=success&needs_onboarding=true');
-        } else {
-          res.redirect('/?facebook_signup=success');
-        }
-      }
-    );
-  }
+  // NOTE: OAuth routes are registered later (after setupAuth) so we can safely guard
+  // registration based on whether the strategies are configured.
 
   // Role-based onboarding routes
   app.post("/api/auth/update-role", isAuthenticated, async (req: Request, res: Response) => {
@@ -602,11 +588,53 @@ export async function registerRoutes(app: any) {
     }
   });
 
-  app.get("/api/auth/user", (req: AuthedRequest, res: Response) => {
-    if (req.isAuthenticated()) {
-      res.json(req.user);
-    } else {
-      res.status(401).json({ message: "Not authenticated" });
+  app.get("/api/auth/user", async (req: AuthedRequest, res: Response) => {
+    try {
+      if (!req.isAuthenticated()) {
+        res.status(401).json({ message: "Not authenticated" });
+        return;
+      }
+
+      const userId: string = (req.user as any)?.id || (req.user as any)?.claims?.sub || "";
+      if (!userId) {
+        res.status(401).json({ message: "Not authenticated" });
+        return;
+      }
+
+      const user = await storage.getUser(userId);
+      if (!user) {
+        res.status(401).json({ message: "Not authenticated" });
+        return;
+      }
+
+      // Active profile resolution (session spine):
+      // - If activeProfileId exists, keep it.
+      // - Else if user owns exactly 1 profile, auto-set it.
+      if (!user.activeProfileId) {
+        const profiles = await storage.listProfilesByOwner(userId);
+        if (profiles.length === 1) {
+          const updated = await storage.setUserActiveProfile(userId, profiles[0].id);
+          res.json({ ...updated, password: undefined });
+          return;
+        }
+      }
+
+      // Active business resolution:
+      // - If activeBusinessId exists, keep it.
+      // - Else if user owns exactly 1 business, auto-set it.
+      if (!user.activeBusinessId) {
+        const businesses = await storage.listBusinessesByOwner(userId);
+        if (businesses.length === 1) {
+          const updated = await storage.setUserActiveBusiness(userId, businesses[0].id);
+          res.json({ ...updated, password: undefined });
+          return;
+        }
+      }
+
+      res.json({ ...user, password: undefined });
+    } catch (error: any) {
+      console.error("Error fetching auth user:", error);
+      res.status(500).json({ message: "Failed to fetch user" });
     }
   });
 
@@ -851,13 +879,18 @@ export async function registerRoutes(app: any) {
 
   // OAuth strategies are configured in auth.ts
 
-  if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
+  const hasGoogleOAuth = Boolean(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET);
+  const hasFacebookOAuth =
+    process.env.DISABLE_FACEBOOK_AUTH !== "true" &&
+    Boolean(process.env.FACEBOOK_APP_ID && process.env.FACEBOOK_APP_SECRET);
+
+  if (hasGoogleOAuth) {
     passport.use(
       new GoogleStrategy(
         {
           clientID: process.env.GOOGLE_CLIENT_ID!,
           clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
-          callbackURL: "/auth/google/callback",
+          callbackURL: process.env.GOOGLE_CALLBACK_URL || "/api/auth/google/callback",
         },
         async (
           accessToken: string,
@@ -899,22 +932,33 @@ export async function registerRoutes(app: any) {
   // Device auth middleware - check for trusted devices
   app.use(checkTrustedDevice);
 
-  // OAuth routes
-  if (process.env.DISABLE_FACEBOOK_AUTH !== "true") {
-    app.get('/auth/facebook', passport.authenticate('facebook', { scope: ['email'] }));
-    app.get('/auth/facebook/callback',
+  // OAuth routes (canonical): only register when the strategy is configured.
+  // This prevents runtime crashes like: "Unknown authentication strategy 'google'".
+  app.get('/api/auth/providers', (req: Request, res: Response) => {
+    res.json({ google: hasGoogleOAuth, facebook: hasFacebookOAuth });
+  });
+
+  if (hasFacebookOAuth) {
+    app.get('/api/auth/facebook', passport.authenticate('facebook', { scope: ['email'] }));
+    app.get(
+      '/api/auth/facebook/callback',
       passport.authenticate('facebook', { failureRedirect: '/login' }),
       (req: Request, res: Response) => {
         res.redirect('/profile-setup');
-      });
+      }
+    );
   }
 
-  app.get('/auth/google', passport.authenticate('google', { scope: ['profile', 'email'] }));
-  app.get('/auth/google/callback',
-    passport.authenticate('google', { failureRedirect: '/login' }),
-    (req: Request, res: Response) => {
-      res.redirect('/profile-setup');
-    });
+  if (hasGoogleOAuth) {
+    app.get('/api/auth/google', passport.authenticate('google', { scope: ['profile', 'email'] }));
+    app.get(
+      '/api/auth/google/callback',
+      passport.authenticate('google', { failureRedirect: '/login' }),
+      (req: Request, res: Response) => {
+        res.redirect('/profile-setup');
+      }
+    );
+  }
 
   // Admin role impersonation routes
   app.post('/api/admin/impersonate', isAuthenticated, requireRole(['head_admin', 'ops_admin']), async (req: Request, res: Response) => {
@@ -979,17 +1023,7 @@ export async function registerRoutes(app: any) {
     }
   });
 
-  // Facebook authentication routes (API v2) - respect DISABLE_FACEBOOK_AUTH
-  if (process.env.DISABLE_FACEBOOK_AUTH !== "true") {
-    app.get('/api/auth/facebook', passport.authenticate('facebook', { scope: ['email'] }));
-  
-    app.get('/api/auth/facebook/callback',
-      passport.authenticate('facebook', { failureRedirect: '/login' }),
-      (req: Request, res: Response) => {
-        res.redirect('/');
-      }
-    );
-  }
+  // NOTE: Facebook OAuth routes are registered above (canonical /api/auth/*).
 
   // Platform statistics endpoint - real-time data
   app.get('/api/stats/platform', async (req: Request, res: Response) => {
@@ -2164,7 +2198,15 @@ export async function registerRoutes(app: any) {
       const userId = (req.user as any)?.id || (req.user as any)?.claims?.sub;
       const { role, phone, address, city, state, zipCode, companyName, businessDescription, licenseNumber, yearsInBusiness, serviceAreas, isGeneralContractor, isResidentialContractor, acceptsSubcontractWork } = req.body;
 
-      const normalizedRole = role === 'contractor_user' ? 'contractor' : role;
+      const existingUser = await storage.getUser(userId);
+
+      const normalizedRole = role === 'contractor_user'
+        ? 'contractor'
+        : role === 'vehicle_dealer'
+          ? 'car_dealer'
+          : role === 'helper'
+            ? 'handyman'
+            : role;
 
       const normalizedServiceAreas: string[] = Array.isArray(serviceAreas)
         ? serviceAreas.filter(Boolean).map((area: any) => String(area).trim())
@@ -2181,25 +2223,82 @@ export async function registerRoutes(app: any) {
         state,
         zipCode,
         onboardingCompleted: true,
+        preferences: {
+          ...(existingUser as any)?.preferences,
+          profileVisibility: (existingUser as any)?.preferences?.profileVisibility || 'public',
+        },
       });
 
-      // If contractor, create contractor profile
-      if (normalizedRole === 'contractor' && companyName) {
-        await storage.createContractor({
-          userId,
-          companyName,
-          slug: companyName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, ''),
-          about: businessDescription,
-          licenseNumber,
-          yearsInBusiness: yearsInBusiness || 0,
-          phone,
-          isGeneralContractor: isGeneralContractor || false,
-          isResidentialContractor: isResidentialContractor || false,
-          acceptsSubcontractWork: acceptsSubcontractWork || false,
+      const fullName = [updatedUser.firstName, updatedUser.lastName].filter(Boolean).join(' ').trim();
+      const defaultDisplayName = fullName || String(companyName || '').trim() || 'TradeScout Profile';
+
+      const businessCapableRoles = new Set(['contractor', 'realtor', 'car_dealer', 'handyman']);
+      let createdBusiness: any = null;
+
+      if (businessCapableRoles.has(normalizedRole)) {
+        if (normalizedRole === 'contractor' && (!companyName || String(companyName).trim().length < 2)) {
+          return res.status(400).json({ message: "Business name is required for contractor profiles" });
+        }
+
+        const businessName = String(companyName || defaultDisplayName).trim();
+
+        createdBusiness = await storage.createBusinessForOwner(userId, {
+          name: businessName,
+          slug: businessName,
+          type: (normalizedRole === 'contractor' ? 'contractor' : 'other') as any,
+          roleContext: normalizedRole as any,
+          profileData: {
+            description: businessDescription,
+            phone,
+            email: updatedUser.email,
+          } as any,
+          status: 'active' as any,
+          countyIds: [],
         });
+
+        await storage.setUserActiveBusiness(userId, createdBusiness.id);
+
+        if (normalizedRole === 'contractor') {
+          await storage.createContractor({
+            userId,
+            businessId: createdBusiness.id,
+            companyName: String(companyName).trim(),
+            slug: String(companyName).trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, ''),
+            about: businessDescription,
+            licenseNumber,
+            yearsInBusiness: yearsInBusiness || 0,
+            phone,
+            isGeneralContractor: isGeneralContractor || false,
+            isResidentialContractor: isResidentialContractor || false,
+            acceptsSubcontractWork: acceptsSubcontractWork || false,
+          } as any);
+        }
       }
 
-      res.json(updatedUser);
+      const createdProfile = await storage.createProfileForOwner(userId, {
+        ownerUserId: userId as any,
+        businessId: createdBusiness?.id || undefined,
+        roleContext: normalizedRole as any,
+        slug: String(companyName || defaultDisplayName).trim(),
+        displayName: String(companyName || defaultDisplayName).trim(),
+        headline: null,
+        contentBlocks: [],
+        ctaConfig: {},
+        seoMeta: {},
+        status: ('published' as any),
+      } as any);
+
+      const updatedWithActive = await storage.setUserActiveProfile(userId, createdProfile.id);
+
+      res.json({
+        ...updatedWithActive,
+        password: undefined,
+        activeProfileId: createdProfile.id,
+        createdProfileId: createdProfile.id,
+        createdProfileSlug: createdProfile.slug,
+        createdBusinessId: createdBusiness?.id || null,
+        createdBusinessSlug: createdBusiness?.slug || null,
+      });
     } catch (error: any) {
       console.error("Error setting up profile:", error);
       res.status(500).json({ message: "Failed to setup profile" });
@@ -6774,8 +6873,8 @@ export async function registerRoutes(app: any) {
       const validatedData = insertCarSalesmanProfileSchema.parse(req.body);
       const carSalesmanProfile = await storage.createCarSalesmanProfile(validatedData);
 
-      // Update user role to car_salesman
-      await storage.updateUserRole(userId, 'car_salesman');
+      // Update user role to car_dealer
+      await storage.updateUserRole(userId, 'car_dealer');
 
       await storage.logEvent('car_salesman_application_submitted', {
         profileId: carSalesmanProfile.id,
@@ -8367,6 +8466,12 @@ export async function registerRoutes(app: any) {
   
   // Register recommendation generator routes
   registerRecommendationGeneratorRoutes(app);
+
+  // Register business profile routes
+  app.use(businessesRouter);
+
+  // Register Profile website routes
+  app.use(profilesRouter);
   
   // Register contractor signup routes
   app.use(contractorSignupRouter);
@@ -8374,6 +8479,11 @@ export async function registerRoutes(app: any) {
   // Register Community Builder routes
   app.use("/api/community-builder", communityBuilderRouter);
   app.use("/api/admin/community-builder", adminCommunityBuilderRouter);
+
+  // Register Community Vault MVP routes (profile-scoped)
+  app.use("/api/community-vault", communityVaultRouter);
+  app.use("/api/community-causes", communityCausesRouter);
+  app.use("/api/platform-support", platformSupportRouter);
 
   // Register prompt admin routes (super admin only)
   const promptAdminRouter = (await import("./routes/promptAdmin")).default;
@@ -9158,7 +9268,20 @@ export async function registerRoutes(app: any) {
       try {
         switch (event.type) {
           case "checkout.session.completed":
-            await communityBuilderPaymentService.handleCheckoutSessionCompleted(event.data.object as any);
+            {
+              const session = event.data.object as any;
+              const metaType = session?.metadata?.type;
+
+              // Route MVP payment intents by explicit metadata type.
+              if (metaType === "community_vault_donation" || metaType === "platform_support") {
+                await platformSupportPaymentService.handleStripeEvent(event);
+              } else {
+                await communityBuilderPaymentService.handleCheckoutSessionCompleted(session);
+              }
+            }
+            break;
+          case "invoice.paid":
+            await platformSupportPaymentService.handleStripeEvent(event);
             break;
           case "transfer.created":
           case "transfer.updated":

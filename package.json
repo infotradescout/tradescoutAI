@@ -11,6 +11,8 @@
     "test": "cross-env NODE_ENV=test vitest",
     "test:run": "cross-env NODE_ENV=test vitest run",
     "db:push": "drizzle-kit push",
+    "db:push:test": "node scripts/withTestDb.mjs drizzle-kit push",
+    "test:run:db": "npm run db:push:test && npm run test:run",
     "seed:test-user": "cross-env NODE_ENV=development tsx -r dotenv/config scripts/seed-test-user.ts"
   },
   "dependencies": {

@@ -159,7 +159,7 @@ export function LoginForm({ onSuccess, onSwitchToRegister }: LoginFormProps) {
             type="button"
             variant="outline"
             className="w-full"
-            onClick={() => (window.location.href = '/auth/facebook')}
+            onClick={() => (window.location.href = '/api/auth/facebook')}
             data-testid="button-facebook-login"
           >
             <SiFacebook className="mr-2 h-4 w-4 text-blue-600" />

@@ -33,6 +33,8 @@ export type ScoutActionType =
   | "PREFILL_INPUT"
   | "OPEN_TOOLS_DRAWER"
   | "ASK_SCOUT"
+  | "START_COMMUNITY_VAULT_DONATION"
+  | "START_PLATFORM_SUPPORT"
   | "NOOP";
 
 export interface ScoutAction {

@@ -5,12 +5,13 @@ import { storage } from '../storage';
 // Get groups based on user location and interests
 export async function getGroups(req: Request, res: Response) {
   try {
-    const { county, type, search, limit = '20' } = req.query;
+    const { county, state, search, limit = '20', offset = '0' } = req.query;
     const groups = await storage.getGroups({
+      stateCode: state as string,
       countyFips: county as string,
-      type: type as string,
       search: search as string,
-      limit: parseInt(limit as string)
+      limit: parseInt(limit as string),
+      offset: parseInt(offset as string)
     });
     res.json(groups);
   } catch (error) {

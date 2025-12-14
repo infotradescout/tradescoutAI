@@ -397,7 +397,7 @@ router.get('/notifications', requireAuth, async (req: Request, res: Response) =>
 router.post('/notifications/:notificationId/read', requireAuth, async (req: Request, res: Response) => {
   try {
     const { notificationId } = req.params;
-    const updated = await storage.markNotificationAsRead(notificationId);
+    const updated = await storage.markBuilderNotificationAsRead(notificationId);
     res.json(updated);
   } catch (error) {
     console.error('Error marking notification as read:', error);

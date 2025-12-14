@@ -113,7 +113,7 @@ export async function populatePageContent() {
     ]).onConflictDoNothing();
 
     // Add task categories
-    await db.insert(taskCategories).values([
+    const categoriesToInsert = [
       {
         id: 'general-labor',
         name: 'General Labor',
@@ -125,7 +125,7 @@ export async function populatePageContent() {
       {
         id: 'cleaning',
         name: 'Cleaning & Maintenance',
-        slug: 'cleaning-maintenance', 
+        slug: 'cleaning-maintenance',
         description: 'Cleaning, organizing, and basic maintenance',
         parentId: null,
         sortOrder: 2
@@ -146,7 +146,11 @@ export async function populatePageContent() {
         parentId: null,
         sortOrder: 4
       }
-    ]).onConflictDoNothing();
+    ];
+
+    for (const category of categoriesToInsert) {
+      await db.insert(taskCategories).values(category).onConflictDoNothing();
+    }
 
     // Add sample workers
     await db.insert(workers).values([
@@ -184,8 +188,8 @@ export async function populatePageContent() {
       }
     ]).onConflictDoNothing();
 
-    // Add sample tasks  
-    await db.insert(tasks).values([
+    // Add sample tasks
+    const tasksToInsert = [
       {
         id: '1',
         posterId: userId,
@@ -209,7 +213,7 @@ export async function populatePageContent() {
       {
         id: '2',
         posterId: userId,
-        posterType: 'homeowner', 
+        posterType: 'homeowner',
         title: 'Lawn Mowing and Edging',
         description: 'Weekly lawn maintenance needed for medium-sized front and back yard. Own equipment preferred.',
         categoryId: 'landscaping',
@@ -226,7 +230,11 @@ export async function populatePageContent() {
         requiresBackgroundCheck: false,
         status: 'open'
       }
-    ]).onConflictDoNothing();
+    ];
+
+    for (const task of tasksToInsert) {
+      await db.insert(tasks).values(task as any).onConflictDoNothing();
+    }
 
     // Advertisements already exist (11 ads in database), skipping population
     

@@ -1,8 +1,6 @@
 import { WebSocketServer, WebSocket } from 'ws';
 import { Server } from 'http';
 import { storage } from './storage';
-import { db } from '../src/db/drizzle-mock';
-import { messages } from '@shared/schema';
 
 interface WebSocketClient {
   ws: WebSocket;
@@ -251,18 +249,22 @@ export const handleChatMessage = async (ws: WebSocket, data: any) => {
 
   // Store message in database
   try {
-    if ((db as any).query?.messages?.insert) {
-      await db.insert(messages).values({
-        conversationId,
-        senderId,
-        content: message,
-        createdAt: new Date(),
-        read: false,
-      });
-      console.log(`Message stored in database for conversation ${conversationId}`);
-    } else {
-      console.log(`Mock mode: Message from ${senderId} in conversation ${conversationId}: ${message}`);
+    const conversation = await storage.getConversation(conversationId);
+    if (!conversation) {
+      throw new Error(`Conversation not found: ${conversationId}`);
     }
+
+    const senderType = conversation.homeownerId === senderId ? 'homeowner' : 'contractor';
+    await storage.createMessage({
+      conversationId,
+      senderId,
+      senderType,
+      content: message,
+      messageType: 'text',
+      readAt: null,
+    } as any);
+
+    console.log(`Message stored in database for conversation ${conversationId}`);
   } catch (error) {
     console.error('Error storing message:', error);
   }

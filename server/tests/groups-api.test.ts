@@ -4,7 +4,10 @@ import { communityGroups, groupMembers, users } from "@shared/schema";
 import { storage } from "../storage";
 import { inArray, eq } from "drizzle-orm";
 
-describe("community groups scoping and membership", () => {
+const hasTestDb = Boolean(process.env.TEST_DATABASE_URL);
+const describeDb = hasTestDb ? describe : describe.skip;
+
+describeDb("community groups scoping and membership", () => {
   const countyAFips = "03101";
   const countyBFips = "03202";
   const stateCode = "TX";

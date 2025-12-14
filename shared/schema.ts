@@ -260,6 +260,26 @@ export const verificationStatusEnum = pgEnum('verification_status', [
   'suspended'
 ]);
 
+// Business entity enums
+export const businessTypeEnum = pgEnum('business_type', [
+  'contractor',
+  'community',
+  'vendor',
+  'other'
+]);
+
+export const businessStatusEnum = pgEnum('business_status', [
+  'draft',
+  'active',
+  'suspended'
+]);
+
+// Profile website layer enums
+export const profileStatusEnum = pgEnum('profile_status', [
+  'draft',
+  'published'
+]);
+
 // Users table
 export const users = pgTable("users", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -277,6 +297,8 @@ export const users = pgTable("users", {
   role: userRoleEnum("role").default('homeowner'), // Primary role for backward compatibility
   roles: text("roles").array().default([]), // Multi-role support - array of role strings
   activeRole: varchar("active_role").default('homeowner'), // Currently active role for dashboard switching
+  activeBusinessId: varchar("active_business_id"), // Currently active business profile for the active role
+  activeProfileId: varchar("active_profile_id"), // Currently active Profile (public website) for the active role
   provider: varchar("provider").default('local'), // 'local', 'facebook', 'google'
   providerId: varchar("provider_id"), // social login ID
   facebookId: varchar("facebook_id"), // Add facebookId field
@@ -339,6 +361,33 @@ export const users = pgTable("users", {
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
+
+// Businesses (first-class public profiles, decoupled from the user)
+export const businesses = pgTable("businesses", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  name: varchar("name").notNull(),
+  slug: varchar("slug").notNull().unique(),
+  type: businessTypeEnum("type").notNull().default('other'),
+  ownerUserId: varchar("owner_user_id").notNull().references(() => users.id, { onDelete: 'cascade' }),
+  roleContext: userRoleEnum("role_context").notNull(),
+  profileData: jsonb("profile_data").$type<{
+    tagline?: string;
+    description?: string;
+    category?: string;
+    services?: string[];
+    website?: string;
+    phone?: string;
+    email?: string;
+    contactPreference?: 'call' | 'email' | 'message';
+  }>().default(sql`'{}'::jsonb`),
+  status: businessStatusEnum("status").notNull().default('draft'),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => [
+  index("business_owner_idx").on(table.ownerUserId),
+  index("business_role_ctx_idx").on(table.roleContext),
+  index("business_status_idx").on(table.status),
+]);
 
 // Trusted devices table for master admin persistent sessions
 export const trustedDevices = pgTable("trusted_devices", {
@@ -475,6 +524,38 @@ export const realtorProfiles = pgTable("realtor_profiles", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
+// Profiles (public-facing website pages; may link to a Business)
+export const profiles = pgTable("profiles", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  ownerUserId: varchar("owner_user_id").notNull().references(() => users.id, { onDelete: 'cascade' }),
+  businessId: varchar("business_id").references(() => businesses.id, { onDelete: 'set null' }),
+  roleContext: userRoleEnum("role_context").notNull(),
+  slug: varchar("slug").notNull().unique(),
+  displayName: varchar("display_name").notNull(),
+  headline: varchar("headline"),
+  contentBlocks: jsonb("content_blocks").$type<Array<{
+    type: 'hero' | 'about' | 'services' | 'gallery' | 'faq' | 'reviews' | 'cta' | 'custom';
+    data: Record<string, any>;
+  }>>().default(sql`'[]'::jsonb`),
+  ctaConfig: jsonb("cta_config").$type<{
+    primary?: { label: string; kind: 'call' | 'email' | 'message' | 'link'; value: string };
+    secondary?: { label: string; kind: 'call' | 'email' | 'message' | 'link'; value: string };
+  }>().default(sql`'{}'::jsonb`),
+  seoMeta: jsonb("seo_meta").$type<{
+    title?: string;
+    description?: string;
+    imageUrl?: string;
+  }>().default(sql`'{}'::jsonb`),
+  status: profileStatusEnum("status").notNull().default('draft'),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => [
+  index("profile_owner_idx").on(table.ownerUserId),
+  index("profile_business_idx").on(table.businessId),
+  index("profile_role_ctx_idx").on(table.roleContext),
+  index("profile_status_idx").on(table.status),
+]);
+
 // Car salesman profiles
 export const carSalesmanProfiles = pgTable("car_salesman_profiles", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -525,6 +606,18 @@ export const counties = pgTable("counties", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
+// Business service areas (many-to-many with counties)
+export const businessCounties = pgTable("business_counties", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  businessId: varchar("business_id").notNull().references(() => businesses.id, { onDelete: 'cascade' }),
+  countyId: varchar("county_id").notNull().references(() => counties.id),
+  createdAt: timestamp("created_at").defaultNow(),
+}, (table) => [
+  uniqueIndex("business_county_unique").on(table.businessId, table.countyId),
+  index("business_counties_business_idx").on(table.businessId),
+  index("business_counties_county_idx").on(table.countyId),
+]);
+
 // Trade categories (hierarchical)
 export const trades = pgTable("trades", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -539,6 +632,7 @@ export const trades = pgTable("trades", {
 export const contractors = pgTable("contractors", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   userId: varchar("user_id"),
+  businessId: varchar("business_id"),
   companyName: varchar("company_name").notNull(),
   slug: varchar("slug").notNull().unique(),
   phone: varchar("phone"),
@@ -568,6 +662,14 @@ export const contractors = pgTable("contractors", {
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
+
+export type InsertBusiness = typeof businesses.$inferInsert;
+export type Business = typeof businesses.$inferSelect;
+export type InsertBusinessCounty = typeof businessCounties.$inferInsert;
+export type BusinessCounty = typeof businessCounties.$inferSelect;
+
+export type InsertProfile = typeof profiles.$inferInsert;
+export type Profile = typeof profiles.$inferSelect;
 
 // Contractor-Trade relationships (many-to-many)
 export const contractorTrades = pgTable("contractor_trades", {
@@ -3957,6 +4059,114 @@ export const vaultLedgerEntries = pgTable("vault_ledger_entries", {
   index("vault_ledger_created_idx").on(table.createdAt),
 ]);
 
+// ==================== COMMUNITY PROFILE VAULT (MVP) ====================
+
+export const communityVaultSourceEnum = pgEnum('community_vault_source_type', [
+  'platform_support_share',
+  'direct_donation',
+  'manual_adjustment',
+  'other'
+]);
+
+// Community vaults (aggregate balances per community Profile)
+export const communityVaults = pgTable("community_vaults", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  profileId: varchar("profile_id").notNull().references(() => profiles.id, { onDelete: 'cascade' }),
+  currentBalance: decimal("current_balance", { precision: 14, scale: 2 }).notNull().default('0'),
+  lifetimeInflow: decimal("lifetime_inflow", { precision: 14, scale: 2 }).notNull().default('0'),
+  lifetimeOutflow: decimal("lifetime_outflow", { precision: 14, scale: 2 }).notNull().default('0'),
+  lastContributionAt: timestamp("last_contribution_at"),
+  lastUpdated: timestamp("last_updated").defaultNow(),
+  metadata: jsonb("metadata"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => [
+  uniqueIndex("community_vaults_profile_uidx").on(table.profileId),
+  index("community_vaults_profile_idx").on(table.profileId),
+]);
+
+// Immutable ledger of community vault movements
+export const communityVaultLedgerEntries = pgTable("community_vault_ledger_entries", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  vaultId: varchar("vault_id").notNull().references(() => communityVaults.id, { onDelete: 'cascade' }),
+  externalKey: varchar("external_key").unique(),
+  sourceType: communityVaultSourceEnum("source_type").notNull(),
+  sourceId: varchar("source_id"), // e.g. stripe invoice id, checkout session id
+  amount: decimal("amount", { precision: 14, scale: 2 }).notNull(), // positive for inflow, negative for outflow
+  memo: text("memo"),
+  causeId: varchar("cause_id"), // optional tag for cause intent (no payouts)
+  createdAt: timestamp("created_at").defaultNow(),
+}, (table) => [
+  index("community_vault_ledger_vault_idx").on(table.vaultId),
+  index("community_vault_ledger_created_idx").on(table.createdAt),
+]);
+
+// ==================== COMMUNITY CAUSES + VOTING INTENT (MVP) ====================
+
+export const communityCauseStatusEnum = pgEnum('community_cause_status', [
+  'open',
+  'closed'
+]);
+
+export const communityCauses = pgTable('community_causes', {
+  id: varchar('id').primaryKey().default(sql`gen_random_uuid()`),
+  profileId: varchar('profile_id').notNull().references(() => profiles.id, { onDelete: 'cascade' }),
+  title: varchar('title').notNull(),
+  description: text('description'),
+  status: communityCauseStatusEnum('status').notNull().default('open'),
+  createdAt: timestamp('created_at').defaultNow(),
+  updatedAt: timestamp('updated_at').defaultNow(),
+}, (table) => [
+  index('community_causes_profile_idx').on(table.profileId),
+  index('community_causes_status_idx').on(table.status),
+]);
+
+export const communityCauseVotes = pgTable('community_cause_votes', {
+  id: varchar('id').primaryKey().default(sql`gen_random_uuid()`),
+  causeId: varchar('cause_id').notNull().references(() => communityCauses.id, { onDelete: 'cascade' }),
+  userId: varchar('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  createdAt: timestamp('created_at').defaultNow(),
+}, (table) => [
+  uniqueIndex('community_cause_votes_unique').on(table.causeId, table.userId),
+  index('community_cause_votes_cause_idx').on(table.causeId),
+  index('community_cause_votes_user_idx').on(table.userId),
+]);
+
+// ==================== PLATFORM SUPPORT LEDGER (MVP) ====================
+
+export const platformSupportAllocationEnum = pgEnum('platform_support_allocation', [
+  'platform',
+  'community'
+]);
+
+export const platformSupportModeEnum = pgEnum('platform_support_mode', [
+  'one_time',
+  'subscription'
+]);
+
+// Ledger of platform support payments.
+// For community-context support, each payment creates TWO rows: one for platform and one for community.
+export const platformSupportLedgerEntries = pgTable('platform_support_ledger_entries', {
+  id: varchar('id').primaryKey().default(sql`gen_random_uuid()`),
+  externalKey: varchar('external_key').notNull().unique(),
+  allocation: platformSupportAllocationEnum('allocation').notNull(),
+  originatingProfileId: varchar('originating_profile_id').references(() => profiles.id, { onDelete: 'set null' }),
+  mode: platformSupportModeEnum('mode').notNull(),
+  amount: decimal('amount', { precision: 14, scale: 2 }).notNull(),
+  currency: varchar('currency').notNull().default('USD'),
+  stripeCheckoutSessionId: varchar('stripe_checkout_session_id'),
+  stripeInvoiceId: varchar('stripe_invoice_id'),
+  stripeSubscriptionId: varchar('stripe_subscription_id'),
+  stripePaymentIntentId: varchar('stripe_payment_intent_id'),
+  stripeChargeId: varchar('stripe_charge_id'),
+  memo: text('memo'),
+  createdAt: timestamp('created_at').defaultNow(),
+}, (table) => [
+  index('platform_support_origin_profile_idx').on(table.originatingProfileId),
+  index('platform_support_stripe_invoice_idx').on(table.stripeInvoiceId),
+  index('platform_support_created_idx').on(table.createdAt),
+]);
+
 export const crmPriorityEnum = pgEnum('crm_priority', [
   'low',
   'medium',
@@ -5156,6 +5366,22 @@ export type InsertCountyVault = typeof countyVaults.$inferInsert;
 
 export type VaultLedgerEntry = typeof vaultLedgerEntries.$inferSelect;
 export type InsertVaultLedgerEntry = typeof vaultLedgerEntries.$inferInsert;
+
+// Community Profile Vault (MVP) types
+export type CommunityVault = typeof communityVaults.$inferSelect;
+export type InsertCommunityVault = typeof communityVaults.$inferInsert;
+
+export type CommunityVaultLedgerEntry = typeof communityVaultLedgerEntries.$inferSelect;
+export type InsertCommunityVaultLedgerEntry = typeof communityVaultLedgerEntries.$inferInsert;
+
+export type CommunityCause = typeof communityCauses.$inferSelect;
+export type InsertCommunityCause = typeof communityCauses.$inferInsert;
+
+export type CommunityCauseVote = typeof communityCauseVotes.$inferSelect;
+export type InsertCommunityCauseVote = typeof communityCauseVotes.$inferInsert;
+
+export type PlatformSupportLedgerEntry = typeof platformSupportLedgerEntries.$inferSelect;
+export type InsertPlatformSupportLedgerEntry = typeof platformSupportLedgerEntries.$inferInsert;
 
 // Foundation system Zod schemas
 export const insertFoundationCauseSchema = createInsertSchema(foundationCauses).omit({

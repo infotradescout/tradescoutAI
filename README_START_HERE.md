@@ -122,6 +122,44 @@ Should return JSON with `"status": "healthy"`
 
 ---
 
+## 🧪 Run Tests (Local)
+
+```powershell
+# Typecheck
+npm run check
+
+# Unit/E2E harness tests
+npm run test:run
+```
+
+### Database-backed tests
+
+Some API/storage test suites require a real test database and will be skipped unless `TEST_DATABASE_URL` is set.
+
+- Safety: in `NODE_ENV=test`, the server will not fall back to `DATABASE_URL`.
+- To enable DB-backed tests, point `TEST_DATABASE_URL` at a dedicated test DB and apply the current schema.
+
+```powershell
+$env:TEST_DATABASE_URL = "postgresql://USER:PASSWORD@HOST:PORT/DBNAME"
+
+# drizzle-kit reads DATABASE_URL, so point it at the test DB for schema push
+$env:DATABASE_URL = $env:TEST_DATABASE_URL
+npm run db:push
+
+npm run test:run
+```
+
+If you’re using Docker Compose, there’s a dedicated test DB service available at `localhost:5433`:
+
+```powershell
+docker compose up -d db_test
+npm run test:run:db
+```
+
+If `docker` isn’t found on Windows, install Docker Desktop and reopen PowerShell.
+
+---
+
 ## ⚙️ Setup Checklist
 
 Before deployment, make sure you have:

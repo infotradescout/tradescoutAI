@@ -89,6 +89,7 @@ const Community = React.lazy(() => import('./pages/community'));
 const CommunityBuilderDashboard = React.lazy(() => import('./pages/community-builder/dashboard'));
 const CommunityBuilderProfileSetup = React.lazy(() => import('./pages/community-builder/profile-setup'));
 const CommunityBuilderContributionSuccess = React.lazy(() => import('./pages/community-builder/contribution-success'));
+const ProfileCommunity = React.lazy(() => import('./pages/community-builder/profile-community'));
 const CountyTransparency = React.lazy(() => import('./pages/county/transparency'));
 const AdminCommunityBuilderReconciliation = React.lazy(() => import('./pages/admin/community-builder-reconciliation'));
 const AdminCommunityBuilderBuilders = React.lazy(() => import('./pages/admin/community-builder-builders'));
@@ -109,6 +110,10 @@ const Notifications = React.lazy(() => import('./pages/notifications'));
 const Settings = React.lazy(() => import('./pages/settings'));
 const ProfileSettings = React.lazy(() => import('./pages/ProfileSettings'));
 const PublicProfileView = React.lazy(() => import('./pages/PublicProfileView'));
+const BusinessProfileView = React.lazy(() => import('./pages/BusinessProfileView'));
+const BusinessProfileEditor = React.lazy(() => import('./pages/BusinessProfileEditor'));
+const ProfileSiteView = React.lazy(() => import('./pages/ProfileSiteView'));
+const ProfileSiteEditor = React.lazy(() => import('./pages/ProfileSiteEditor'));
 const Help = React.lazy(() => import('./pages/help'));
 const Invite = React.lazy(() => import('./pages/invite'));
 const CustomDashboard = React.lazy(() => import('./pages/Dashboard'));
@@ -359,6 +364,18 @@ const AppLayout = memo(function AppLayout() {
                     </ProtectedRoute>
                   </Route>
                   <Route path="/profile/:userId"><LazyPage Component={PublicProfileView} /></Route>
+                  <Route path="/p/:slug"><LazyPage Component={ProfileSiteView} /></Route>
+                  <Route path="/p/:slug/edit">
+                    <ProtectedRoute>
+                      <LazyPage Component={ProfileSiteEditor} />
+                    </ProtectedRoute>
+                  </Route>
+                  <Route path="/business/:slug"><LazyPage Component={BusinessProfileView} /></Route>
+                  <Route path="/business/:slug/edit">
+                    <ProtectedRoute>
+                      <LazyPage Component={BusinessProfileEditor} />
+                    </ProtectedRoute>
+                  </Route>
                   
                   {/* Business routes */}
                   <Route path="/contractor-apply"><LazyPage Component={ContractorApply} /></Route>
@@ -384,6 +401,9 @@ const AppLayout = memo(function AppLayout() {
                   <Route path="/community-moderation"><LazyPage Component={CommunityModerationDemo} /></Route>
                   
                   {/* Community Builder routes */}
+                  <Route path="/profile/:profileId/community">
+                    <LazyPage Component={ProfileCommunity} />
+                  </Route>
                   <Route path="/community-builder/dashboard">
                     <ProtectedRoute>
                       <LazyPage Component={CommunityBuilderDashboard} />

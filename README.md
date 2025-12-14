@@ -1,20 +1,27 @@
-<div align="center">
-<img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
-</div>
+# TradeScoutPro
 
-# Run and deploy your AI Studio app
+Start here: [README_START_HERE.md](README_START_HERE.md)
 
-This contains everything you need to run your app locally.
+## Local Development
 
-View your app in AI Studio: https://ai.studio/apps/drive/18a0I0_rXEXlG2dfNlG5nk9_MlQIbj_2Q
+**Prerequisites:** Node.js + a Postgres database
 
-## Run Locally
+```powershell
+# Install dependencies
+npm install
 
-**Prerequisites:**  Node.js
+# Create local env
+Copy-Item .env.example .env
 
+# Start dev server
+npm run dev
+```
 
-1. Install dependencies:
-   `npm install`
-2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
-3. Run the app:
-   `npm run dev`
+## Tests
+
+```powershell
+npm run check
+npm run test:run
+```
+
+Database-backed suites require `TEST_DATABASE_URL` and will be skipped otherwise (see [DEV_QUICK_REFERENCE.md](DEV_QUICK_REFERENCE.md)).

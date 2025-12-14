@@ -4,7 +4,10 @@ import { conversations, messages, users, contractors } from "@shared/schema";
 import { storage } from "../storage";
 import { inArray, eq } from "drizzle-orm";
 
-describe("messages API helpers", () => {
+const hasTestDb = Boolean(process.env.TEST_DATABASE_URL);
+const describeDb = hasTestDb ? describe : describe.skip;
+
+describeDb("messages API helpers", () => {
   const userAId = "msg-user-a";
   const contractorUserId = "msg-contractor-user";
   let contractorId: string;
