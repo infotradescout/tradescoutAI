@@ -9,8 +9,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Basic API endpoints for the simple frontend
   app.get('/api/auth/user', (req, res) => {
-    // Return null for now - no authentication
-    res.json(null);
+    // Fail-soft auth shape for guest-first UX
+    res.status(200).json({ authenticated: false });
   });
 
   app.get('/api/contractors', (req, res) => {

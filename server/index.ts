@@ -9,6 +9,7 @@ import { notificationService } from "./notification-service";
 import { startCrawlerScheduler } from "./services/crawlerScheduler";
 import { initializeMessagingService } from "./messaging-service";
 import { storage } from "./storage";
+import { ensureProfilesTable } from "./ensureDb";
 import path from "path";
 import fs from "fs";
 import { fileURLToPath } from "url";
@@ -98,6 +99,7 @@ const ALLOWED_ORIGINS = rawAllowlist
 // Always allow known production origins
 for (const origin of [
   "https://www.thetradescout.com",
+  "https://tradescoutai.onrender.com",
   "https://thetradescout.com",
   "https://tradescout-e557bv88z-tradescouts-projects.vercel.app",
 ]) {
@@ -196,6 +198,8 @@ app.use((req, res, next) => {
 
 (async () => {
   try {
+  await ensureProfilesTable();
+
   const ensureMasterAdmin = async () => {
     const email = process.env.MASTER_ADMIN_EMAIL;
     const password = process.env.MASTER_ADMIN_PASSWORD;

@@ -2,24 +2,37 @@ import { useQuery } from "@tanstack/react-query";
 import { useCallback } from "react";
 
 export interface User {
+  [key: string]: any;
   id: string;
   email: string;
   firstName?: string;
   lastName?: string;
   // Backend exposes a boolean admin flag; use this for all admin gating
   isAdmin?: boolean;
-  role?: string;
-  roles?: string[];
+  role?: any;
+  activeRole?: any;
+  roles?: any[];
   badges?: string[];
   preferences?: any;
   profileImageUrl?: string;
+  avatar?: string;
+  username?: string;
   emailVerified?: boolean;
   addressVerified?: boolean;
+  onboardingCompleted?: boolean;
+  verificationStatus?: string;
+  customThemeColors?: string;
+  themePreference?: string;
+  stats?: any;
   phone?: string;
   address?: string;
   city?: string;
   state?: string;
   zipCode?: string;
+  // Some parts of the UI still reference legacy location field names
+  zip?: string;
+  latitude?: number;
+  longitude?: number;
   county?: string;
   isImpersonating?: boolean;
   originalRole?: string;
@@ -45,9 +58,6 @@ export function useAuth() {
       clearTimeout(timeoutId);
 
       if (!response.ok) {
-        if (response.status === 401) {
-          return null; // User not authenticated
-        }
         let errorPayload: any = null;
         try {
           errorPayload = await response.json();
@@ -59,7 +69,20 @@ export function useAuth() {
         }
         throw new Error(`Auth request failed: ${response.status}`);
       }
-      return response.json();
+
+      const payload: any = await response.json().catch(() => null);
+
+      // Fail-soft shape (preferred): { authenticated: boolean, user?: User }
+      if (payload && typeof payload === 'object' && 'authenticated' in payload) {
+        if (payload.authenticated === true && payload.user) {
+          return payload.user as User;
+        }
+        return null;
+      }
+
+      // Legacy shape: user object or null
+      if (!payload) return null;
+      return payload as User;
     } catch (error) {
       if (error instanceof Error) {
         if (error.name === 'AbortError') {

@@ -44,6 +44,10 @@ export default function Register() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
+  const beginOAuth = (provider: "google" | "facebook") => {
+    window.location.assign(`/api/auth/${provider}`);
+  };
+
   const form = useForm<RegisterFormData>({
     resolver: zodResolver(registerSchema),
     defaultValues: {
@@ -158,6 +162,29 @@ export default function Register() {
           </CardHeader>
 
           <CardContent>
+            <div className="bg-[#0b1224] border border-tsBorder rounded-xl p-4 mb-5">
+              <div className="text-sm text-slate-300">Continue with</div>
+              <div className="mt-3 grid grid-cols-1 gap-2">
+                <button
+                  type="button"
+                  className="w-full rounded-xl border border-slate-700 bg-slate-900 px-4 py-2 text-sm hover:bg-slate-800"
+                  onClick={() => beginOAuth("google")}
+                >
+                  Google
+                </button>
+                <button
+                  type="button"
+                  className="w-full rounded-xl border border-slate-700 bg-slate-900 px-4 py-2 text-sm hover:bg-slate-800"
+                  onClick={() => beginOAuth("facebook")}
+                >
+                  Facebook
+                </button>
+              </div>
+              <div className="mt-3 text-xs text-tsTextMuted">
+                Or create an account with email below.
+              </div>
+            </div>
+
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-5" method="post">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>

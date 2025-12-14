@@ -722,19 +722,19 @@ export async function registerRoutes(app: any) {
       };
 
       if (!req.isAuthenticated()) {
-        res.status(401).json({ message: "Not authenticated", diagnostics: authDiagnostics });
+        res.status(200).json({ authenticated: false, diagnostics: authDiagnostics });
         return;
       }
 
       const userId: string = (req.user as any)?.id || (req.user as any)?.claims?.sub || "";
       if (!userId) {
-        res.status(401).json({ message: "Not authenticated", diagnostics: authDiagnostics });
+        res.status(200).json({ authenticated: false, diagnostics: authDiagnostics });
         return;
       }
 
       const user = await storage.getUser(userId);
       if (!user) {
-        res.status(401).json({ message: "Not authenticated", diagnostics: authDiagnostics });
+        res.status(200).json({ authenticated: false, diagnostics: authDiagnostics });
         return;
       }
 
@@ -758,7 +758,7 @@ export async function registerRoutes(app: any) {
         const profiles = await storage.listProfilesByOwner(userId);
         if (profiles.length === 1) {
           const updated = await storage.setUserActiveProfile(userId, profiles[0].id);
-          res.json(sanitizeUserForResponse(applyImpersonation(updated)));
+          res.json({ authenticated: true, user: sanitizeUserForResponse(applyImpersonation(updated)) });
           return;
         }
       }
@@ -770,15 +770,16 @@ export async function registerRoutes(app: any) {
         const businesses = await storage.listBusinessesByOwner(userId);
         if (businesses.length === 1) {
           const updated = await storage.setUserActiveBusiness(userId, businesses[0].id);
-          res.json(sanitizeUserForResponse(applyImpersonation(updated)));
+          res.json({ authenticated: true, user: sanitizeUserForResponse(applyImpersonation(updated)) });
           return;
         }
       }
 
-      res.json(sanitizeUserForResponse(applyImpersonation(user)));
+      res.json({ authenticated: true, user: sanitizeUserForResponse(applyImpersonation(user)) });
     } catch (error: any) {
       console.error("Error fetching auth user:", error);
-      res.status(500).json({ message: "Failed to fetch user" });
+      // Fail-soft: auth must never block the app shell.
+      res.status(200).json({ authenticated: false });
     }
   });
 
@@ -1116,6 +1117,16 @@ export async function registerRoutes(app: any) {
     app.get('/api/auth/facebook', passport.authenticate('facebook', { scope: ['email'] }));
     app.get(
       '/api/auth/facebook/callback',
+      (req: Request, res: Response, next: any) => {
+        try {
+          if (typeof (req as any).isAuthenticated === 'function' && (req as any).isAuthenticated() && (req as any).user) {
+            return res.redirect('/profile-setup');
+          }
+        } catch {
+          // ignore
+        }
+        return next();
+      },
       passport.authenticate('facebook', { failureRedirect: '/login' }),
       (req: Request, res: Response) => {
         res.redirect('/profile-setup');
@@ -1127,6 +1138,16 @@ export async function registerRoutes(app: any) {
     app.get('/api/auth/google', passport.authenticate('google', { scope: ['profile', 'email'] }));
     app.get(
       '/api/auth/google/callback',
+      (req: Request, res: Response, next: any) => {
+        try {
+          if (typeof (req as any).isAuthenticated === 'function' && (req as any).isAuthenticated() && (req as any).user) {
+            return res.redirect('/profile-setup');
+          }
+        } catch {
+          // ignore
+        }
+        return next();
+      },
       passport.authenticate('google', { failureRedirect: '/login' }),
       (req: Request, res: Response) => {
         res.redirect('/profile-setup');
