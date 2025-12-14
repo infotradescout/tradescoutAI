@@ -799,8 +799,8 @@ const App = memo(function App() {
                 <Route>
                   <AppShell>
                     <Switch>
-                      {/* Scout as primary home, with nav chrome around it */}
-                      <Route path="/" component={ScoutOS} />
+                      {/* Smart home/new user flow on root, Scout direct on /scout */}
+                      <Route path="/" component={SmartHome} />
                       <Route path="/scout" component={ScoutOS} />
 
                       {/* Core app sections */}
