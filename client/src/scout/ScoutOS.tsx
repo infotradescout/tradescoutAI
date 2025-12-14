@@ -58,6 +58,7 @@ export default function ScoutOS() {
   const [appDrawerOpen, setAppDrawerOpen] = useState(false);
   const [toolsOpen, setToolsOpen] = useState(false);
   const [prefillKey, setPrefillKey] = useState(0);
+  const [hasGuestInteracted, setHasGuestInteracted] = useState(false);
   const { sessionRole } = useSession();
 
   const { state, recordUserMessage, applyServerResponse, setError } = useScoutState();
@@ -102,8 +103,10 @@ export default function ScoutOS() {
     [state.messages]
   );
 
-  // First-time guest state: controls entire top half of Scout
-  const isFirstGuestVisit = !isAuthenticated && state.messages.length === 0;
+  // First-time guest state: controls entire top half of Scout.
+  // We treat this as "guest has not actively interacted yet" so that
+  // auto-demo typing does NOT collapse the calm intro.
+  const isFirstGuestVisit = !isAuthenticated && !hasGuestInteracted;
 
   const statusLabel = isBusy ? "SCOUT THINKING" : "SCOUT IDLE";
   const statusDotClass = isBusy ? "bg-amber-400" : "bg-emerald-400";
@@ -465,6 +468,7 @@ export default function ScoutOS() {
                 placeholder="What can I help you with in your county?"
                 onSend={(v) => handleSend(v)}
                 onUserTyping={() => {
+                  setHasGuestInteracted(true);
                   recordActivity({
                     type: "ask_scout",
                     ts: new Date().toISOString(),
@@ -583,7 +587,10 @@ export default function ScoutOS() {
               <button
                 key={l.to}
                 type="button"
-                onClick={() => navigate(l.to)}
+                onClick={() => {
+                  setHasGuestInteracted(true);
+                  navigate(l.to);
+                }}
                 className="px-3 py-1.5 text-[11px] rounded-full border border-slate-700 bg-slate-900 hover:border-orange-400"
               >
                 {l.label}
@@ -604,7 +611,10 @@ export default function ScoutOS() {
                 <button
                   key={prompt}
                   type="button"
-                  onClick={() => handleSend(prompt)}
+                  onClick={() => {
+                    setHasGuestInteracted(true);
+                    handleSend(prompt);
+                  }}
                   className="px-3 py-1.5 text-[11px] rounded-full border border-slate-700 bg-slate-900 hover:border-orange-400"
                 >
                   {prompt}
@@ -626,6 +636,7 @@ export default function ScoutOS() {
             placeholder="What can I help you with in your county?"
             onSend={(v) => handleSend(v)}
             onUserTyping={() => {
+              setHasGuestInteracted(true);
               recordActivity({
                 type: "ask_scout",
                 ts: new Date().toISOString(),
@@ -658,7 +669,10 @@ export default function ScoutOS() {
             <ScoutTrending
               locality={locality}
               recentPrompts={state.messages.filter((m) => m.role === "user").map((m) => m.content)}
-              onPromptClick={(p) => handleSend(p)}
+              onPromptClick={(p) => {
+                setHasGuestInteracted(true);
+                handleSend(p);
+              }}
             />
           </>
         )}
