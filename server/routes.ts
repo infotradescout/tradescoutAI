@@ -725,6 +725,19 @@ export async function registerRoutes(app: any) {
         return;
       }
 
+      const applyImpersonation = (baseUser: any) => {
+        const sessionAny = req.session as any;
+        if (sessionAny?.isImpersonating && sessionAny?.impersonatingRole) {
+          return {
+            ...baseUser,
+            role: sessionAny.impersonatingRole,
+            isImpersonating: true,
+            originalRole: sessionAny.originalUser?.role,
+          };
+        }
+        return baseUser;
+      };
+
       // Active profile resolution (session spine):
       // - If activeProfileId exists, keep it.
       // - Else if user owns exactly 1 profile, auto-set it.
@@ -732,7 +745,7 @@ export async function registerRoutes(app: any) {
         const profiles = await storage.listProfilesByOwner(userId);
         if (profiles.length === 1) {
           const updated = await storage.setUserActiveProfile(userId, profiles[0].id);
-          res.json(sanitizeUserForResponse(updated));
+          res.json(sanitizeUserForResponse(applyImpersonation(updated)));
           return;
         }
       }
@@ -744,12 +757,12 @@ export async function registerRoutes(app: any) {
         const businesses = await storage.listBusinessesByOwner(userId);
         if (businesses.length === 1) {
           const updated = await storage.setUserActiveBusiness(userId, businesses[0].id);
-          res.json(sanitizeUserForResponse(updated));
+          res.json(sanitizeUserForResponse(applyImpersonation(updated)));
           return;
         }
       }
 
-      res.json(sanitizeUserForResponse(user));
+      res.json(sanitizeUserForResponse(applyImpersonation(user)));
     } catch (error: any) {
       console.error("Error fetching auth user:", error);
       res.status(500).json({ message: "Failed to fetch user" });
@@ -1042,8 +1055,7 @@ export async function registerRoutes(app: any) {
     );
   }
 
-  // Auth middleware
-  await setupAuth(app);
+  // Auth middleware already initialized at the top of registerRoutes
 
   // Locality tracking middleware - track all interactions with geographic context
   app.use(localityTrackingMiddleware());
@@ -1186,31 +1198,7 @@ export async function registerRoutes(app: any) {
   });
 
   // Auth user endpoint - critical for useAuth hook
-  app.get('/api/auth/user', async (req: Request, res: Response) => {
-    if (!req.user) {
-      return res.status(401).json({ message: "Not authenticated" });
-    }
-
-    try {
-      const user = await storage.getUser((req.user as any)?.id || (req.user as any)?.claims?.sub);
-
-      // If impersonating, modify the user object to reflect the impersonated role
-      if ((req.session as any).isImpersonating && (req.session as any).impersonatingRole) {
-        const modifiedUser = {
-          ...user,
-          role: (req.session as any).impersonatingRole,
-          isImpersonating: true,
-          originalRole: (req.session as any).originalUser.role
-        };
-        return res.json(sanitizeUserForResponse(modifiedUser));
-      }
-
-      res.json(sanitizeUserForResponse(user));
-    } catch (error: any) {
-      console.error("Error fetching authenticated user:", error);
-      res.status(500).json({ message: "Failed to fetch user" });
-    }
-  });
+  // NOTE: /api/auth/user is defined earlier (canonical) with req.isAuthenticated() checks.
 
   // User profile routes
   app.get('/api/user/profile', isAuthenticated, async (req: Request, res: Response) => {
