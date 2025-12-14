@@ -48,6 +48,15 @@ export function useAuth() {
         if (response.status === 401) {
           return null; // User not authenticated
         }
+        let errorPayload: any = null;
+        try {
+          errorPayload = await response.json();
+        } catch {
+          // ignore
+        }
+        if (errorPayload) {
+          console.error('Auth request failed payload:', errorPayload);
+        }
         throw new Error(`Auth request failed: ${response.status}`);
       }
       return response.json();
