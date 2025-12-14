@@ -102,6 +102,9 @@ export default function ScoutOS() {
     [state.messages]
   );
 
+  // First-time guest state: controls entire top half of Scout
+  const isFirstGuestVisit = !isAuthenticated && state.messages.length === 0;
+
   const statusLabel = isBusy ? "SCOUT THINKING" : "SCOUT IDLE";
   const statusDotClass = isBusy ? "bg-amber-400" : "bg-emerald-400";
   const statusTextClass = isBusy ? "text-amber-300/90" : "text-tsAccentSoft";
@@ -439,8 +442,48 @@ export default function ScoutOS() {
   return (
     <div className="min-h-screen bg-[#060b1c] text-white flex flex-col items-center">
       <div className="w-full max-w-xl px-4 pt-10 pb-4 space-y-6">
-        {/* Header + hero */}
-        <header className="space-y-4">
+        {isFirstGuestVisit ? (
+          // FIRST GUEST INTRO: Clean, intentional, single-purpose
+          <div className="space-y-6">
+            <header className="text-center space-y-3">
+              <p className="text-[10px] tracking-[0.25em] text-orange-300 uppercase">
+                TradeScout
+              </p>
+              <h1 className="text-2xl md:text-3xl font-semibold tracking-[0.12em] text-white uppercase">
+                <span className="text-orange-400">Your local AI assistant</span>
+              </h1>
+              <p className="text-sm text-slate-300/90 max-w-md mx-auto">
+                Ask about contractors, community updates, home projects — anything local.
+              </p>
+            </header>
+
+            {/* Single input with auto-typing demo */}
+            <div className="rounded-2xl border border-slate-800 bg-[#020617] px-4 py-4">
+              <ScoutInput
+                key={prefillKey}
+                disabled={isBusy}
+                placeholder="What can I help you with in your county?"
+                onSend={(v) => handleSend(v)}
+                onUserTyping={() => {
+                  recordActivity({
+                    type: "ask_scout",
+                    ts: new Date().toISOString(),
+                    path: location,
+                    label: "typed",
+                  });
+                }}
+                prefillKey="scout-main"
+                initialValue=""
+                enableAutoDemo={true}
+                autoDemoText={INTRO_DEMO_TEXT}
+              />
+            </div>
+          </div>
+        ) : (
+          // FULL CONVERSATION: All features visible after first message
+          <>
+            {/* Header + hero */}
+            <header className="space-y-4">
           <div className="flex items-start justify-between gap-4">
             {/* Left: brand, headline */}
             <div className="flex-1 min-w-0 text-left">
@@ -611,12 +654,14 @@ export default function ScoutOS() {
           )}
         </div>
 
-        {/* Trending */}
-        <ScoutTrending
-          locality={locality}
-          recentPrompts={state.messages.filter((m) => m.role === "user").map((m) => m.content)}
-          onPromptClick={(p) => handleSend(p)}
-        />
+            {/* Trending */}
+            <ScoutTrending
+              locality={locality}
+              recentPrompts={state.messages.filter((m) => m.role === "user").map((m) => m.content)}
+              onPromptClick={(p) => handleSend(p)}
+            />
+          </>
+        )}
       </div>
 
       {/* Tools & App drawer */}
