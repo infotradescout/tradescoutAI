@@ -9,6 +9,7 @@ import { SessionProvider } from './contexts/SessionContext';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { useAuth } from './hooks/useAuth';
 import { AppShell } from './components/layout/AppShell';
+import ScoutOS from './scout';
 
 // Only load essential components eagerly
 import SmartHome from './SmartHome';
