@@ -9,12 +9,17 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import { Eye, EyeOff } from "lucide-react";
 import { SiFacebook } from "react-icons/si";
 
 const registerSchema = z.object({
   email: z.string().email("Please enter a valid email address"),
+  phone: z
+    .string()
+    .min(1, "Phone number is required")
+    .refine((value) => value.replace(/\D/g, "").length >= 10, "Please enter a valid phone number"),
   password: z.string().min(8, "Password must be at least 8 characters")
     .regex(/[A-Z]/, "Password must contain at least one uppercase letter")
     .regex(/[a-z]/, "Password must contain at least one lowercase letter")
@@ -22,9 +27,10 @@ const registerSchema = z.object({
   confirmPassword: z.string(),
   firstName: z.string().min(1, "First name is required"),
   lastName: z.string().min(1, "Last name is required"),
-  role: z.enum(["homeowner", "contractor_user", "realtor", "car_salesman"], {
+  role: z.enum(["homeowner", "contractor", "realtor", "car_dealer"], {
     required_error: "Please select your account type",
   }),
+  acceptTerms: z.boolean().refine((val) => val === true, "You must accept the Terms of Service"),
 }).refine((data) => data.password === data.confirmPassword, {
   message: "Passwords don't match",
   path: ["confirmPassword"],
@@ -47,10 +53,12 @@ export function RegisterForm({ onSuccess, onSwitchToLogin }: RegisterFormProps) 
     resolver: zodResolver(registerSchema),
     defaultValues: {
       email: "",
+      phone: "",
       password: "",
       confirmPassword: "",
       firstName: "",
       lastName: "",
+      acceptTerms: false,
     },
   });
 
@@ -106,7 +114,7 @@ export function RegisterForm({ onSuccess, onSwitchToLogin }: RegisterFormProps) 
                   <FormItem>
                     <FormLabel>First Name</FormLabel>
                     <FormControl>
-                      <Input placeholder="John" {...field} />
+                        <Input placeholder="John" required {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -120,7 +128,7 @@ export function RegisterForm({ onSuccess, onSwitchToLogin }: RegisterFormProps) 
                   <FormItem>
                     <FormLabel>Last Name</FormLabel>
                     <FormControl>
-                      <Input placeholder="Doe" {...field} />
+                        <Input placeholder="Doe" required {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -138,7 +146,27 @@ export function RegisterForm({ onSuccess, onSwitchToLogin }: RegisterFormProps) 
                     <Input 
                       type="email" 
                       placeholder="your.email@example.com" 
+                      required
                       {...field} 
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="phone"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Phone Number</FormLabel>
+                  <FormControl>
+                    <Input
+                      type="tel"
+                      placeholder="(555) 555-5555"
+                      required
+                      {...field}
                     />
                   </FormControl>
                   <FormMessage />
@@ -160,9 +188,9 @@ export function RegisterForm({ onSuccess, onSwitchToLogin }: RegisterFormProps) 
                     </FormControl>
                     <SelectContent>
                       <SelectItem value="homeowner">Homeowner</SelectItem>
-                      <SelectItem value="contractor_user">Contractor</SelectItem>
+                      <SelectItem value="contractor">Contractor</SelectItem>
                       <SelectItem value="realtor">Realtor</SelectItem>
-                      <SelectItem value="car_salesman">Car Salesman</SelectItem>
+                      <SelectItem value="car_dealer">Car Dealer</SelectItem>
                     </SelectContent>
                   </Select>
                   <FormMessage />
@@ -181,6 +209,7 @@ export function RegisterForm({ onSuccess, onSwitchToLogin }: RegisterFormProps) 
                       <Input
                         type={showPassword ? "text" : "password"}
                         placeholder="Create a strong password"
+                        required
                         {...field}
                       />
                       <Button
@@ -214,6 +243,7 @@ export function RegisterForm({ onSuccess, onSwitchToLogin }: RegisterFormProps) 
                       <Input
                         type={showConfirmPassword ? "text" : "password"}
                         placeholder="Confirm your password"
+                        required
                         {...field}
                       />
                       <Button
@@ -232,6 +262,27 @@ export function RegisterForm({ onSuccess, onSwitchToLogin }: RegisterFormProps) 
                     </div>
                   </FormControl>
                   <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="acceptTerms"
+              render={({ field }) => (
+                <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                  <FormControl>
+                    <Checkbox checked={field.value} onCheckedChange={field.onChange} />
+                  </FormControl>
+                  <div className="space-y-1 leading-none">
+                    <FormLabel>
+                      I agree to the{" "}
+                      <a href="/terms" className="underline" target="_blank" rel="noreferrer">
+                        Terms of Service
+                      </a>
+                    </FormLabel>
+                    <FormMessage />
+                  </div>
                 </FormItem>
               )}
             />

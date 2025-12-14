@@ -90,6 +90,7 @@ export function LoginForm({ onSuccess, onSwitchToRegister }: LoginFormProps) {
                     <Input 
                       type="email" 
                       placeholder="your.email@example.com" 
+                      required
                       {...field} 
                     />
                   </FormControl>
@@ -109,6 +110,7 @@ export function LoginForm({ onSuccess, onSwitchToRegister }: LoginFormProps) {
                       <Input
                         type={showPassword ? "text" : "password"}
                         placeholder="Enter your password"
+                        required
                         {...field}
                       />
                       <Button

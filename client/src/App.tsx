@@ -140,6 +140,7 @@ const CarSalesmanApplication = React.lazy(() => import('./pages/car-salesman-app
 // Legal & Info
 const Terms = React.lazy(() => import('./pages/terms'));
 const Privacy = React.lazy(() => import('./pages/privacy'));
+const PrivacyRequest = React.lazy(() => import('./pages/privacy-request'));
 const About = React.lazy(() => import('./pages/about'));
 const Contact = React.lazy(() => import('./pages/contact'));
 const Pricing = React.lazy(() => import('./pages/pricing'));
@@ -706,6 +707,7 @@ const AppLayout = memo(function AppLayout() {
                   <Route path="/pricing"><LazyPage Component={Pricing} /></Route>
                   <Route path="/terms"><LazyPage Component={Terms} /></Route>
                   <Route path="/privacy"><LazyPage Component={Privacy} /></Route>
+                  <Route path="/privacy-request"><LazyPage Component={PrivacyRequest} /></Route>
                   <Route path="/about"><LazyPage Component={About} /></Route>
                   <Route path="/contact"><LazyPage Component={Contact} /></Route>
                   
