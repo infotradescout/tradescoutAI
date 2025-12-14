@@ -780,6 +780,9 @@ const AppLayout = memo(function AppLayout() {
   );
 });
 const App = memo(function App() {
+  // VERIFICATION: Ensure this is the REAL TradeScout App being loaded
+  console.log('✅ REAL TRADE SCOUT APP LOADED - client/src/App.tsx');
+  
   return (
     <ErrorBoundary fallback={<PageLoader />}>
       <QueryClientProvider client={queryClient}>
