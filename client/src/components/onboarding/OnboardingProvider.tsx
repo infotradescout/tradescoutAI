@@ -54,6 +54,7 @@ export function OnboardingProvider({ children }: OnboardingProviderProps) {
     try {
       await fetch('/api/auth/user/preferences', {
         method: 'PATCH',
+        credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           completedTours: newCompletedTours
@@ -64,6 +65,7 @@ export function OnboardingProvider({ children }: OnboardingProviderProps) {
       if (tourKey.startsWith('new-user-tour') && user && !user.onboardingCompleted) {
         await fetch('/api/auth/user', {
           method: 'PATCH',
+          credentials: 'include',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             onboardingCompleted: true

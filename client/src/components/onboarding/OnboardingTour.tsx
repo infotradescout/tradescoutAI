@@ -118,6 +118,7 @@ export function OnboardingTour({
     try {
       await fetch('/api/auth/user/preferences', {
         method: 'PATCH',
+        credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           completedTours: [...(user?.preferences?.completedTours || []), tourKey]

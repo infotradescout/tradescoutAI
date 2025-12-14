@@ -55,6 +55,8 @@ for (const key of requiredEnv) {
 }
 
 const app = express();
+// REQUIRED for secure cookies behind Render/Vercel proxies
+app.set("trust proxy", 1);
 
 // Always serve on PORT (single entry for API + client); default 5000.
 const PORT = parseInt(process.env.PORT || "5000", 10);
@@ -92,6 +94,16 @@ const ALLOWED_ORIGINS = rawAllowlist
   .split(",")
   .map((o) => o.trim().toLowerCase())
   .filter((o) => o.length > 0);
+
+// Always allow known production origins
+for (const origin of [
+  "https://www.thetradescout.com",
+  "https://tradescout-e557bv88z-tradescouts-projects.vercel.app",
+]) {
+  if (!ALLOWED_ORIGINS.includes(origin)) {
+    ALLOWED_ORIGINS.push(origin);
+  }
+}
 
 // Always allow localhost dev ports (client + API) in dev
 if (process.env.NODE_ENV !== "production") {

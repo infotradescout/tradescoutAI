@@ -13,30 +13,33 @@ import type { UserRole } from "@shared/roles";
 
 // Configure session
 export function getSession() {
-  const sessionTtl = 7 * 24 * 60 * 60 * 1000; // 1 week
+  const sessionTtlMs = 7 * 24 * 60 * 60 * 1000; // 7 days
+  const sessionTtlSeconds = 7 * 24 * 60 * 60;
   const pgStore = connectPg(session);
   const sessionStore = new pgStore({
     pool: pool,
     createTableIfMissing: true,
-    ttl: sessionTtl,
+    ttl: sessionTtlSeconds,
     tableName: "sessions",
   });
 
-  const sessionSecret = process.env.SESSION_SECRET || "dev-session-secret";
-  if (!process.env.SESSION_SECRET) {
-    console.warn("SESSION_SECRET not set; using a development default. Set SESSION_SECRET for production.");
+  const sessionSecret = process.env.SESSION_SECRET;
+  if (!sessionSecret) {
+    throw new Error("SESSION_SECRET is missing");
   }
 
   return session({
+    name: "tradescout.sid",
     secret: sessionSecret,
     store: sessionStore,
     resave: false,
     saveUninitialized: false,
+    proxy: true,
     cookie: {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      maxAge: sessionTtl,
+      secure: true,
+      sameSite: "none",
+      maxAge: sessionTtlMs,
     },
   });
 }

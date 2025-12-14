@@ -59,6 +59,7 @@ export function AuthFlow({ onComplete, initialType }: AuthFlowProps) {
     mutationFn: async (role: string) => {
       const response = await fetch('/api/auth/update-role', {
         method: 'POST',
+        credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ role }),
       });
@@ -96,6 +97,7 @@ export function AuthFlow({ onComplete, initialType }: AuthFlowProps) {
     mutationFn: async (data: any) => {
       const response = await fetch('/api/auth/complete-onboarding', {
         method: 'POST',
+        credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data),
       });
@@ -137,6 +139,7 @@ export function AuthFlow({ onComplete, initialType }: AuthFlowProps) {
     mutationFn: async (role: string) => {
       const response = await fetch('/api/auth/skip-onboarding', {
         method: 'POST',
+        credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ role }),
       });
