@@ -789,7 +789,24 @@ const App = memo(function App() {
         <ThemeProvider>
           <SessionProvider>
             <Router>
-              <AppLayout />
+                    <Switch>
+                      {/* ================= SCOUT (NO LAYOUT) ================= */}
+                      <Route path="/" component={ScoutOS} />
+                      <Route path="/scout" component={ScoutOS} />
+
+                      {/* ================= AUTH (NO LAYOUT) ================= */}
+                      <Route path="/login" component={Login} />
+                      <Route path="/register" component={Register} />
+
+                      {/* ================= APP (SINGLE LAYOUT OWNER) ================= */}
+                      <AppShell>
+                        <Switch>
+                          <Route path="/dashboard" component={Dashboard} />
+                          <Route path="/community" component={Community} />
+                          <Route path="/exchange" component={Exchange} />
+                        </Switch>
+                      </AppShell>
+                    </Switch>
             </Router>
             <SimpleFloatingHelp />
           </SessionProvider>
