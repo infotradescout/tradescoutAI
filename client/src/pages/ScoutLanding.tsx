@@ -1,7 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useLocation } from "wouter";
 import { useAuth } from "@/hooks/useAuth";
-import ScoutOS from "@/scout";
 
 function useTypewriter(lines: string[], speedMs = 22, linePauseMs = 450) {
   const [lineIdx, setLineIdx] = useState(0);
@@ -47,8 +46,7 @@ export default function ScoutLanding() {
   const [, setLocation] = useLocation();
   const { user, isLoading } = useAuth();
 
-  // If they're logged in, keep Scout as controller (your requirement).
-  // You can later change this to respect a user-chosen homepage.
+  // If they're logged in, keep Scout as controller.
   useEffect(() => {
     if (!isLoading && user) setLocation("/scout");
   }, [isLoading, user, setLocation]);
@@ -63,6 +61,14 @@ export default function ScoutLanding() {
   );
 
   const { rendered, done } = useTypewriter(introLines, 18, 500);
+
+  // For guests: after the intro finishes, hand off fully to ScoutOS
+  // by navigating to /scout instead of stacking ScoutOS under the hero.
+  useEffect(() => {
+    if (!isLoading && !user && done) {
+      setLocation("/scout");
+    }
+  }, [done, isLoading, user, setLocation]);
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100">
@@ -100,8 +106,6 @@ export default function ScoutLanding() {
         </div>
       </div>
 
-      {/* The real Scout (single instance) */}
-      <ScoutOS />
     </div>
   );
 }
