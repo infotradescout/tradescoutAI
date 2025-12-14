@@ -63,33 +63,9 @@ export default function ScoutOS() {
   const { state, recordUserMessage, applyServerResponse, setError } = useScoutState();
 
   // One-time init guard (keeps animations / welcome seed from re-running).
-  useEffect(() => {
-    if (initialized.current) return;
-    initialized.current = true;
-
-    if (state.messages.length > 0) return;
-
-    const quickPrompts = [
-      "Find roofers available this week",
-      "Start the Community Builder for my area",
-      "Show me today's best tool deals",
-      "Message the top 3 electricians near me",
-      "Create a project for kitchen remodel",
-      "List my pressure washer for $250",
-      "Find an emergency plumber tonight",
-    ];
-
-    const welcome: ScoutMessage = {
-      id: `a_${Date.now()}_${Math.random().toString(36).slice(2)}`,
-      role: "assistant",
-      content:
-        "Hey — I’m Scout. I can find local pros, surface Exchange deals, and help launch community growth. Ask anything, or tap a prompt below.",
-      timestamp: new Date().toISOString(),
-      suggestedActions: quickPrompts,
-    };
-
-    applyServerResponse(welcome, []);
-  }, []);
+  // Removed client-side injected welcome message to avoid collision
+  // with auto-typing demo. Scout should not speak until the user (or
+  // auto demo) sends the first message.
 
   const unreadMessages =
     (user as any)?.unreadMessages ??
