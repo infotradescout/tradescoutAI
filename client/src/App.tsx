@@ -12,7 +12,7 @@ import { AppShell } from './components/layout/AppShell';
 
 // Only load essential components eagerly
 import SmartHome from './SmartHome';
-import ScoutLanding from './scout';
+import ScoutLanding from './pages/ScoutLanding';
 import SimpleMobileGestures from './components/SimpleMobileGestures';
 import SimpleSubtleHints from './components/onboarding/SimpleSubtleHints';
 import SimpleBugReportTool from './components/SimpleBugReportTool';
