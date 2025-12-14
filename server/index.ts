@@ -100,6 +100,7 @@ const ALLOWED_ORIGINS = rawAllowlist
 for (const origin of [
   "https://www.thetradescout.com",
   "https://tradescoutai.onrender.com",
+  "https://tradescout-5hn96npkf-tradescouts-projects.vercel.app",
   "https://thetradescout.com",
   "https://tradescout-e557bv88z-tradescouts-projects.vercel.app",
 ]) {

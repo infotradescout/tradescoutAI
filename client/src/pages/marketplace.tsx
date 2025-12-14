@@ -71,7 +71,6 @@ import {
   Palette
 } from "lucide-react";
 import type { MarketplaceListing, MarketplaceCategory } from "@shared/schema";
-import { AppShell } from "@/components/layout/AppShell";
 import { Page } from "@/components/layout/PagePrimitives";
 
 // Comprehensive category icons mapping
@@ -413,9 +412,8 @@ export default function Marketplace() {
   };
 
   return (
-    <AppShell>
-      <Page className="max-w-none px-0">
-        <div className="min-h-screen bg-[#0f1419]">
+    <Page className="max-w-none px-0">
+      <div className="min-h-screen bg-[#0f1419]">
       {/* Smart Value Banner */}
       <div className="bg-gradient-to-r from-orange-600 via-amber-600 to-orange-500 text-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
@@ -1247,10 +1245,7 @@ export default function Marketplace() {
                         </div>
                       </div>
                       {/* Contact Seller Button */}
-                      <div 
-                        className="mt-3 pt-3 border-t"
-                        onClick={(e) => e.stopPropagation()}
-                      >
+                      <div className="mt-4" onClick={(e) => e.stopPropagation()}>
                         <QuickContactButton
                           listing={listing}
                           sellerId={listing.sellerId}
@@ -1301,7 +1296,7 @@ export default function Marketplace() {
                               </Badge>
                             </div>
                             {/* Contact Seller Button */}
-                            <div 
+                            <div
                               className="mt-3"
                               onClick={(e) => e.stopPropagation()}
                             >
@@ -1325,6 +1320,5 @@ export default function Marketplace() {
       </div>
     </div>
   </Page>
-</AppShell>
   );
 }

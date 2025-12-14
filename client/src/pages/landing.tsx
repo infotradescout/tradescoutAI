@@ -40,7 +40,7 @@ export default function Landing() {
   const faqData = [
     {
       question: "How do I find contractors in my area?",
-      answer: "Simply select your state and area on TradeScout, then browse verified contractors near you. You can filter by service type, read reviews, and get instant quotes."
+      answer: "Simply select your state and area on TradeScout, then browse verified contractors near you. You can filter by service type, read RECOMMENDATIONS, and get instant quotes."
     },
     {
       question: "Are all contractors on TradeScout verified?",
@@ -82,7 +82,7 @@ export default function Landing() {
       <div className="min-h-screen gradient-bg w-full max-w-full overflow-x-hidden">
       <SEOHelmet 
         title="TradeScout - Find Trusted Local Contractors | Get 3 Free Quotes"
-        description="Connect with verified local contractors. Get 3 free quotes, read reviews, and hire with confidence. Local pros for roofing, plumbing, electrical, and more."
+        description="Connect with verified local contractors. Get 3 free quotes, read RECOMMENDATIONS, and hire with confidence. Local pros for roofing, plumbing, electrical, and more."
         keywords="local contractors, home improvement, verified contractors, free quotes, trusted contractors, roofing contractors, plumbing contractors, electrical contractors, kitchen remodeling, bathroom renovation"
         structuredData={structuredData}
       />

@@ -6,7 +6,7 @@ import ScoutLanding from './scout';
 /**
  * Smart Home Route Component
  * Redirects users to their preferred default home page
- * Falls back to ScoutLanding (LLM) if no preference is set
+ * Falls back to ScoutLanding (Scout) if no preference is set
  */
 export default function SmartHome() {
   const { user, isAuthenticated } = useAuth();
@@ -19,7 +19,7 @@ export default function SmartHome() {
     const defaultPage = user.preferences.defaultHomePage;
 
     const routeMap: Record<string, string> = {
-      llm: '/', // Stay on current page (ScoutLanding)
+      llm: '/scout',
       marketplace: '/marketplace',
       'contractor-board': '/contractor-board',
       dashboard: '/dashboard',
@@ -29,8 +29,8 @@ export default function SmartHome() {
 
     const targetRoute = routeMap[defaultPage];
 
-    // Only redirect if not already on the target route and not the LLM page
-    if (targetRoute && targetRoute !== '/' && window.location.pathname === '/') {
+    // Only redirect if we are on '/' and a target is specified.
+    if (targetRoute && window.location.pathname === '/' && targetRoute !== window.location.pathname) {
       setLocation(targetRoute);
     }
   }, [user, isAuthenticated, setLocation]);

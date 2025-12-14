@@ -494,7 +494,7 @@ export default function ContractorApply() {
                 </div>
                 <div>
                   <h4 className="text-white font-semibold">Build Your Reputation</h4>
-                  <p className="text-gray-300 text-sm">Customer reviews and ratings system</p>
+                  <p className="text-gray-300 text-sm">Customer RECOMMENDATIONS and ratings system</p>
                 </div>
               </div>
             </CardContent>

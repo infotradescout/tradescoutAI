@@ -223,7 +223,7 @@ export function HelperProfileModal({ helper, isOpen, onClose }: HelperProfileMod
                 : 'text-gray-400 hover:text-white'
             }`}
           >
-            Reviews
+            RECOMMENDATIONS
           </button>
         </div>
 
@@ -457,11 +457,11 @@ export function HelperProfileModal({ helper, isOpen, onClose }: HelperProfileMod
 
           {activeTab === 'reviews' && (
             <div>
-              <h3 className="text-lg font-semibold text-white mb-4">Reviews & Ratings</h3>
+              <h3 className="text-lg font-semibold text-white mb-4">RECOMMENDATIONS & Ratings</h3>
               <div className="text-center py-8">
                 <Star className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                <p className="text-gray-400">Reviews will be loaded here</p>
-                <p className="text-gray-500 text-sm">This feature connects to the worker reviews system</p>
+                <p className="text-gray-400">RECOMMENDATIONS will be loaded here</p>
+                <p className="text-gray-500 text-sm">This feature connects to the worker RECOMMENDATIONS system</p>
               </div>
             </div>
           )}

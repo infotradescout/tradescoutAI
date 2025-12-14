@@ -41,6 +41,19 @@ interface Post {
   imageUrls?: string[];
 }
 
+type CommunityStats = {
+  totalMembers: number;
+  activeToday: number;
+  postsToday: number;
+  countiesActive: number;
+};
+
+type TrendingTopic = {
+  tag: string;
+  posts?: number;
+  source?: 'community' | 'news';
+};
+
 const CommunityFeed = memo(function CommunityFeed() {
   const [activeTab, setActiveTab] = useState("forYou");
   const [newPostContent, setNewPostContent] = useState("");
@@ -127,20 +140,37 @@ const CommunityFeed = memo(function CommunityFeed() {
   // Use real posts from API, with sample posts as fallback
   const posts = postsData || [];
 
-  const trendingTopics = [
-    { tag: "#SpringRenovations", posts: 234 },
-    { tag: "#KitchenRemodel", posts: 156 },
-    { tag: "#LandscapingTips", posts: 89 },
-    { tag: "#HomeImprovement", posts: 412 },
-    { tag: "#BathroomDesign", posts: 67 }
-  ];
+  const { data: communityStatsData } = useQuery<CommunityStats>({
+    queryKey: ['/api/community/stats'],
+    queryFn: async () => {
+      const response = await fetch('/api/community/stats');
+      if (!response.ok) throw new Error('Failed to fetch community stats');
+      return response.json();
+    },
+  });
 
-  const communityStats = {
-    totalMembers: 87420,
-    activeToday: 3245,
-    postsToday: 156,
-    countiesActive: 2847
+  const { data: trendingTopicsData } = useQuery<TrendingTopic[]>({
+    queryKey: ['/api/community/trending', stateCode, countyFips],
+    queryFn: async () => {
+      const params = new URLSearchParams();
+      if (stateCode) params.set('stateCode', stateCode);
+      if (countyFips) params.set('countyFips', countyFips);
+      params.set('limit', '10');
+
+      const response = await fetch(`/api/community/trending?${params.toString()}`);
+      if (!response.ok) throw new Error('Failed to fetch trending topics');
+      return response.json();
+    },
+  });
+
+  const communityStats: CommunityStats = communityStatsData ?? {
+    totalMembers: 0,
+    activeToday: 0,
+    postsToday: 0,
+    countiesActive: 0,
   };
+
+  const trendingTopics: TrendingTopic[] = Array.isArray(trendingTopicsData) ? trendingTopicsData : [];
 
   const getPostTypeIcon = (type: string) => {
     switch (type) {
@@ -519,7 +549,9 @@ const CommunityFeed = memo(function CommunityFeed() {
                       <span className="text-orange-400 hover:text-orange-300 cursor-pointer">
                         {topic.tag}
                       </span>
-                      <span className="text-gray-400 text-sm">{topic.posts}</span>
+                      <span className="text-gray-400 text-sm">
+                        {topic.source === 'news' ? 'News' : (typeof topic.posts === 'number' ? topic.posts : 0)}
+                      </span>
                     </div>
                   )) : null}
                 </div>

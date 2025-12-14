@@ -264,7 +264,7 @@ export function ContextualHelp({ topic, compact = false }: ContextualHelpProps) 
                       <span className="text-purple-400 text-sm">⭐</span>
                     </div>
                     <p className="text-sm text-gray-300">
-                      Ask satisfied customers for reviews - 90% of homeowners read reviews before hiring.
+                      Ask satisfied customers for RECOMMENDATIONS - 90% of homeowners read RECOMMENDATIONS before hiring.
                     </p>
                   </div>
                 </CardContent>

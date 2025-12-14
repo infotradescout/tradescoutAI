@@ -442,7 +442,7 @@ export default function ProfileSettings() {
             <div className="space-y-0.5">
               <Label>Stats</Label>
               <p className="text-sm text-tsTextMuted">
-                When available, show counts for listings, reviews, and rating.
+                When available, show counts for listings, RECOMMENDATIONS, and rating.
               </p>
             </div>
             <Switch
@@ -482,9 +482,9 @@ export default function ProfileSettings() {
 
           <div className="flex items-center justify-between">
             <div className="space-y-0.5">
-              <Label>Reviews</Label>
+              <Label>RECOMMENDATIONS</Label>
               <p className="text-sm text-tsTextMuted">
-                When reviews are enabled, show your rating and testimonials.
+                When RECOMMENDATIONS are enabled, show your rating and testimonials.
               </p>
             </div>
             <Switch

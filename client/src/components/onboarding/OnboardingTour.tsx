@@ -116,7 +116,7 @@ export function OnboardingTour({
     
     // Mark tour as completed for user
     try {
-      await fetch('/api/auth/user/preferences', {
+      await fetch('/api/users/preferences', {
         method: 'PATCH',
         credentials: 'include',
         headers: { 'Content-Type': 'application/json' },

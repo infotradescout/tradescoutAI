@@ -566,6 +566,25 @@ export function registerSocialRoutes(app: Express) {
   // Get trending topics/hashtags
   app.get("/api/social/trending", async (req, res) => {
     try {
+      const originHeader = req.headers.origin;
+      if (typeof originHeader === "string") {
+        const allowedOrigins = new Set(
+          [
+            "https://www.thetradescout.com",
+            "https://tradescoutai.onrender.com",
+            "https://tradescout-5hn96npkf-tradescouts-projects.vercel.app",
+            "https://thetradescout.com",
+            "https://tradescout-e557bv88z-tradescouts-projects.vercel.app",
+          ].map((o) => o.toLowerCase())
+        );
+
+        if (allowedOrigins.has(originHeader.toLowerCase())) {
+          res.setHeader("Access-Control-Allow-Origin", originHeader);
+          res.setHeader("Access-Control-Allow-Credentials", "true");
+        }
+        res.setHeader("Vary", "Origin");
+      }
+
       // Return empty array since social posts table doesn't exist yet
       res.json([]);
     } catch (error) {

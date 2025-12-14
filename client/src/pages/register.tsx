@@ -143,7 +143,7 @@ export default function Register() {
             <ul className="list-disc list-inside space-y-1">
               <li>Choose your colors and profile layout.</li>
               <li>
-                Toggle which sections appear on your public profile (About, services, reviews, and more).
+                Toggle which sections appear on your public profile (About, services, RECOMMENDATIONS, and more).
               </li>
               <li>Connect Marketplace, Community, and any future roles under one profile URL.</li>
             </ul>

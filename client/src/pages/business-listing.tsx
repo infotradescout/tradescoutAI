@@ -127,8 +127,7 @@ export default function BusinessListing() {
   const createListingMutation = useMutation({
     mutationFn: async (data: BusinessListingForm) => {
       // First get the Sell Your Business category ID
-      const categoriesResponse = await apiRequest("GET", "/api/marketplace/categories");
-      const categories = await categoriesResponse.json();
+      const categories = await apiRequest("GET", "/api/marketplace/categories");
       const businessCategory = categories.find((cat: any) => cat.name === "Sell Your Business");
       
       if (!businessCategory) {

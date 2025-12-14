@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from 'react';
+import { useLocation } from 'wouter';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -75,8 +76,33 @@ interface RoleConfig {
 
 export default function Help() {
   const { user } = useAuth();
+  const [, navigate] = useLocation();
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("all");
+
+  const sendToScout = (prompt: string) => {
+    try {
+      window.localStorage.setItem("scout:prefill:scout-main", prompt);
+    } catch {
+      // ignore
+    }
+    navigate("/scout");
+  };
+
+  const handleQuickAction = (action: { title: string; description: string; action: string }) => {
+    const target = action.action?.trim();
+    if (target && target.startsWith("/")) {
+      navigate(target);
+      return;
+    }
+
+    // Default: chat-first controller.
+    sendToScout(`I need help with: ${action.title}. ${action.description}`);
+  };
+
+  const handleArticleClick = (article: HelpArticle) => {
+    sendToScout(`Help me with: ${article.title}. ${article.description}`);
+  };
 
   // Role-specific help configurations
   const roleConfigs: Record<string, RoleConfig> = {
@@ -286,14 +312,14 @@ export default function Help() {
           ]
         },
         {
-          title: "Reputation & Reviews",
+          title: "Reputation & RECOMMENDATIONS",
           icon: Star,
           articles: [
             {
               id: "reputation-management",
               title: "Building Your Online Reputation",
-              description: "Get positive reviews and handle feedback professionally",
-              category: "Reputation & Reviews",
+              description: "Get positive RECOMMENDATIONS and handle feedback professionally",
+              category: "Reputation & RECOMMENDATIONS",
               icon: Star,
               priority: "high",
               readTime: "8 min"
@@ -302,7 +328,7 @@ export default function Help() {
               id: "customer-communication",
               title: "Effective Customer Communication",
               description: "Build trust and exceed customer expectations",
-              category: "Reputation & Reviews",
+              category: "Reputation & RECOMMENDATIONS",
               icon: MessageCircle,
               priority: "medium",
               readTime: "6 min"
@@ -408,7 +434,7 @@ export default function Help() {
             {
               id: "quality-work",
               title: "Delivering Quality Work",
-              description: "Exceed client expectations and earn great reviews",
+              description: "Exceed client expectations and earn great RECOMMENDATIONS",
               category: "Building Reputation",
               icon: Star,
               priority: "high",
@@ -1185,8 +1211,17 @@ export default function Help() {
 
         {/* Quick Actions */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
-          {roleConfig.quickActions.map((action: { icon: React.ElementType; title: string; description: string }, index: number) => (
-            <Card key={index} className="bg-navy-800/50 border-navy-600 hover:bg-navy-700/50 transition-colors cursor-pointer">
+          {roleConfig.quickActions.map((action, index) => (
+            <Card
+              key={index}
+              className="bg-navy-800/50 border-navy-600 hover:bg-navy-700/50 transition-colors cursor-pointer"
+              onClick={() => handleQuickAction(action)}
+              role="button"
+              tabIndex={0}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") handleQuickAction(action);
+              }}
+            >
               <CardContent className="p-4 text-center">
                 <action.icon className="w-8 h-8 text-orange-500 mx-auto mb-2" />
                 <h3 className="text-white font-medium">{action.title}</h3>
@@ -1237,7 +1272,16 @@ export default function Help() {
           <TabsContent value="articles">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {filteredArticles.map((article, index) => (
-                <Card key={index} className="bg-navy-800/50 border-navy-600 hover:bg-navy-700/50 transition-colors cursor-pointer">
+                <Card
+                  key={index}
+                  className="bg-navy-800/50 border-navy-600 hover:bg-navy-700/50 transition-colors cursor-pointer"
+                  onClick={() => handleArticleClick(article)}
+                  role="button"
+                  tabIndex={0}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") handleArticleClick(article);
+                  }}
+                >
                   <CardContent className="p-6">
                     <div className="flex items-start space-x-3 mb-4">
                       <article.icon className="h-6 w-6 text-orange-500 mt-1" />

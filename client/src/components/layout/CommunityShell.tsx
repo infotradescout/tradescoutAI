@@ -3,9 +3,7 @@ import { useLocation } from "wouter";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
 import { trackShellEvent, getDeviceType } from "@/lib/analytics";
-import { NotificationsMenu } from "@/components/NotificationsMenu";
-import { Home, Users, MessageCircle, ShoppingBag, SlidersHorizontal, X } from "lucide-react";
-import { RightToolsPanel } from "@/components/layout/RightToolsPanel";
+import { Home, Users, MessageCircle, ShoppingBag } from "lucide-react";
 import { getUserLocationLabel } from "@/lib/copyHelpers";
 
 export type CommunityShellProps = {
@@ -21,7 +19,6 @@ export const CommunityShell: React.FC<CommunityShellProps> = ({
 }) => {
   const [location, navigate] = useLocation();
   const { user } = useAuth() as any;
-  const [isToolsOpen, setIsToolsOpen] = React.useState(false);
 
   const locationLabel: string = React.useMemo(() => {
     if (!user) return "Set your location";
@@ -85,86 +82,30 @@ export const CommunityShell: React.FC<CommunityShellProps> = ({
     });
   }, [location, notificationsCount, user]);
 
+  // ARCHITECTURAL RULE: Only AppShell renders navigation
+  // CommunityShell is CONTENT-ONLY wrapper with section label
   return (
-    <div className="flex min-h-screen flex-col bg-slate-950 text-slate-100">
-      <header
-        className="sticky top-0 z-40 flex h-14 items-center justify-between border-b border-slate-800 bg-slate-950/90 px-4 backdrop-blur"
-        data-testid="community-shell-header"
-      >
-        <div className="flex flex-col">
-          <button
-            type="button"
-            onClick={() => navigate("/profile")}
-            className="text-xs uppercase tracking-[0.16em] text-slate-400 text-left hover:text-slate-200"
-            data-testid="community-shell-header-location"
-          >
-            {locationLabel}
-          </button>
+    <div className="flex min-h-screen flex-col">
+      {/* Section label only - no duplicate header/nav */}
+      <div className="border-b border-slate-800 bg-slate-950/50 px-4 py-2">
+        <div className="flex items-center justify-between">
           <span
-            className="text-sm font-semibold text-slate-50"
-            data-testid="community-shell-header-section"
+            className="text-sm font-semibold text-slate-300"
+            data-testid="community-shell-section-label"
           >
             {sectionLabel}
           </span>
+          {locationLabel && (
+            <span className="text-xs text-slate-500">{locationLabel}</span>
+          )}
         </div>
-
-        <div className="flex items-center gap-3">
-          <NotificationsMenu />
-
-          {/* Mobile tools toggle (replaces avatar as primary control) */}
-          <button
-            type="button"
-            onClick={() => setIsToolsOpen(true)}
-            className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-slate-700 bg-slate-900 text-slate-100 hover:bg-slate-800 lg:hidden"
-            aria-label="Open tools and personalization menu"
-          >
-            <SlidersHorizontal className="h-4 w-4" />
-          </button>
-        </div>
-      </header>
+      </div>
 
       <main className="flex-1">
         <div className="mx-auto w-full max-w-5xl px-4 py-4 pb-24">
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <div className="lg:col-span-2 flex flex-col gap-4">
-              {children}
-            </div>
-            {/* Desktop / large screens: persistent right tools panel */}
-            <div className="hidden lg:block">
-              <RightToolsPanel />
-            </div>
-          </div>
+          <div className="flex flex-col gap-4">{children}</div>
         </div>
       </main>
-
-      {/* Mobile overlay for tools panel */}
-      {isToolsOpen && (
-        <div className="fixed inset-0 z-50 flex lg:hidden">
-          <button
-            type="button"
-            className="flex-1 bg-black/50"
-            aria-label="Close tools menu"
-            onClick={() => setIsToolsOpen(false)}
-          />
-          <div className="w-4/5 max-w-xs bg-slate-950 border-l border-slate-800 p-4 shadow-xl shadow-black/50 overflow-y-auto">
-            <div className="flex items-center justify-between mb-3">
-              <span className="text-xs uppercase tracking-[0.18em] text-slate-500">Tools & Personalization</span>
-              <button
-                type="button"
-                onClick={() => setIsToolsOpen(false)}
-                className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-slate-700 text-slate-300 hover:bg-slate-800"
-                aria-label="Close tools menu"
-              >
-                <X className="h-3 w-3" />
-              </button>
-            </div>
-            <RightToolsPanel />
-          </div>
-        </div>
-      )}
     </div>
   );
 };
-
-// Alias for architectural clarity: this is the unified app shell
-export const AppShell: React.FC<CommunityShellProps> = CommunityShell;

@@ -72,7 +72,7 @@ export default function PrivacyPolicy() {
               
               <h3 className="text-xl font-medium mb-3">We Share Information In These Situations:</h3>
               <ul className="list-disc pl-6 mb-6">
-                <li><strong>With Other Users:</strong> Your public profile, listings, and reviews are visible to other platform users</li>
+                <li><strong>With Other Users:</strong> Your public profile, listings, and RECOMMENDATIONS are visible to other platform users</li>
                 <li><strong>Service Providers:</strong> Third-party vendors who perform services on our behalf (payment processing, shipping, analytics)</li>
                 <li><strong>Legal Requirements:</strong> When required by law or to respond to legal process</li>
                 <li><strong>Business Transfers:</strong> In connection with any merger, sale, or transfer of company assets</li>

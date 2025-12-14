@@ -94,7 +94,7 @@ export default function TermsOfService() {
                 <li>Listing illegal, stolen, or counterfeit items</li>
                 <li>Misrepresenting item condition, authenticity, or ownership</li>
                 <li>Circumventing platform fees or payment systems</li>
-                <li>Creating false or misleading reviews</li>
+                <li>Creating false or misleading RECOMMENDATIONS</li>
                 <li>Harassment, discrimination, or abusive behavior</li>
                 <li>Spamming or unauthorized marketing</li>
                 <li>Attempting to defraud other users</li>

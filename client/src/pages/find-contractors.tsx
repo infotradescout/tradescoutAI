@@ -8,13 +8,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge';
 import { apiRequest } from '@/lib/queryClient';
 
-const stats = [
-  { label: 'Active Projects', value: '12' },
-  { label: 'Avg. Rating', value: '4.8' },
-  { label: 'Completed Jobs', value: '156' },
-  { label: 'Monthly Revenue', value: '$45K' },
-];
-
 const quickActions = [
   { title: 'View Connections', desc: 'Check new project opportunities' },
   { title: 'Update Profile', desc: 'Keep your pro card current' },
@@ -35,7 +28,11 @@ type Contractor = {
   licenseNumber?: string | null;
 };
 
-const FindContractors = memo(function FindContractors() {
+type FindContractorsProps = {
+  title?: string;
+};
+
+const FindContractors = memo(function FindContractors({ title = 'Find Local Contractors' }: FindContractorsProps) {
   const [stateCode, setStateCode] = useState('');
   const [countyFips, setCountyFips] = useState('');
   const [tradeSlug, setTradeSlug] = useState('');
@@ -45,7 +42,12 @@ const FindContractors = memo(function FindContractors() {
     queryFn: async () => apiRequest('GET', '/api/trades'),
   });
 
-  const { data: topContractors = [], isLoading: topLoading } = useQuery<Contractor[]>({
+  const {
+    data: topContractors = [],
+    isLoading: topLoading,
+    isFetching: topFetching,
+    refetch: refetchTopContractors,
+  } = useQuery<Contractor[]>({
     queryKey: ['/api/contractors/top', countyFips, tradeSlug],
     enabled: Boolean(countyFips && tradeSlug),
     queryFn: async () => {
@@ -64,17 +66,37 @@ const FindContractors = memo(function FindContractors() {
     });
   }, [topContractors]);
 
+  const snapshot = useMemo(() => {
+    const rated = ranked.filter((c) => typeof c.rating === 'number');
+    const avgRating =
+      rated.length > 0
+        ? rated.reduce((sum, c) => sum + (c.rating ?? 0), 0) / rated.length
+        : null;
+    const totalRecs = ranked.reduce(
+      (sum, c) => sum + (c.recommendationCount ?? c.reviewCount ?? 0),
+      0
+    );
+    const topRating = rated.reduce((max, c) => Math.max(max, c.rating ?? 0), 0);
+    return {
+      results: ranked.length,
+      avgRating,
+      totalRecs,
+      topRating: rated.length > 0 ? topRating : null,
+    };
+  }, [ranked]);
+
+  const featured = useMemo(() => ranked.slice(0, 3), [ranked]);
+
   return (
-    <div className="min-h-screen bg-navy-900 text-white">
-      <div className="max-w-6xl mx-auto ts-surface px-4 py-6 md:px-10 md:py-8 space-y-10">
+    <div className="max-w-6xl mx-auto ts-surface px-4 py-6 md:px-10 md:py-8 space-y-10">
           <header className="space-y-3">
             <div className="inline-flex items-center gap-2 rounded-full bg-orange-500/10 px-3 py-1.5 text-sm text-orange-200">
             <Zap className="h-4 w-4" />
             <span>Scout drives the workflow end-to-end</span>
           </div>
-          <h1 className="text-4xl font-bold text-white">Find contractors and run your board</h1>
+          <h1 className="text-4xl font-bold text-white">{title}</h1>
           <p className="text-gray-300 max-w-3xl">
-            Search your county, browse pros, and manage work in one place. Scout automates the hunt while you stay in control of every tool.
+            Pick your location and trade to see the most recommended pros in your area.
           </p>
     </header>
 
@@ -109,17 +131,24 @@ const FindContractors = memo(function FindContractors() {
             <Button
               type="button"
               disabled={!countyFips || !tradeSlug}
+              onClick={() => refetchTopContractors()}
               className="bg-gradient-to-r from-orange-500 to-orange-600 shadow-lg hover:from-orange-600 hover:to-orange-700 text-white px-6 py-3 text-sm rounded-xl flex items-center gap-2 font-semibold transition-all border border-orange-400/30 focus-visible:ring-2 focus-visible:ring-orange-400"
             >
-              <Search className="h-4 w-4" />
-              <span>Fetch top contractors</span>
+              {topFetching ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
+              <span>{topFetching ? 'Fetching…' : 'Fetch top contractors'}</span>
             </Button>
           </div>
+        </div>
 
+        <div className="ts-tile p-5 space-y-3">
+          <div className="flex items-center gap-2 text-xs uppercase tracking-wide text-gray-300">
+            <Sparkles className="h-4 w-4 text-orange-300" />
+            <span>Helper</span>
+          </div>
           <div className="flex flex-wrap gap-2 text-xs text-gray-300">
-            <Badge variant="outline" className="border-orange-400/40 text-orange-200">Helper: Pick your state + county</Badge>
-            <Badge variant="outline" className="border-blue-400/40 text-blue-200">Helper: Choose the trade (occupation)</Badge>
-            <Badge variant="outline" className="border-emerald-400/40 text-emerald-200">Helper: Ranked by rating + recommendations</Badge>
+            <Badge variant="outline" className="border-orange-400/40 text-orange-200">Pick your state + county</Badge>
+            <Badge variant="outline" className="border-blue-400/40 text-blue-200">Choose the trade (occupation)</Badge>
+            <Badge variant="outline" className="border-emerald-400/40 text-emerald-200">Ranked by rating + recommendations</Badge>
           </div>
         </div>
 
@@ -189,25 +218,52 @@ const FindContractors = memo(function FindContractors() {
             </section>
 
             <section className="grid lg:grid-cols-3 gap-6">
-              <div className="lg:col-span-2 ts-section">
-            <div className="flex items-center gap-2 text-orange-300 mb-4">
-              <Search className="h-5 w-5" />
-              <span className="font-semibold">Search contractors</span>
-            </div>
-            </div>
-
-            <div className="ts-section space-y-4">
-            <div className="flex items-center gap-2 text-teal-200">
-              <Sparkles className="h-5 w-5" />
-              <span className="font-semibold">Board at a glance</span>
-            </div>
-                <div className="grid grid-cols-2 gap-3">
-                  {stats.map((item) => (
-                    <div key={item.label} className="ts-tile p-4">
-                  <div className="text-xs uppercase tracking-wide text-gray-400">{item.label}</div>
-                  <div className="text-2xl font-semibold text-orange-200">{item.value}</div>
+              <div className="lg:col-span-2 ts-section space-y-3">
+                <div className="flex items-center gap-2 text-teal-200">
+                  <Sparkles className="h-5 w-5" />
+                  <span className="font-semibold">Search snapshot</span>
                 </div>
-                  ))}
+                <p className="text-sm text-gray-300">
+                  {countyFips && tradeSlug
+                    ? 'Summary for your current location + trade selection.'
+                    : 'Select a location and trade to see summary stats.'}
+                </p>
+              </div>
+
+              <div className="ts-section space-y-4">
+                <div className="flex items-center gap-2 text-orange-300">
+                  <Star className="h-5 w-5" />
+                  <span className="font-semibold">At a glance</span>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="ts-tile p-4">
+                    <div className="text-xs uppercase tracking-wide text-gray-400">Results</div>
+                    <div className="text-2xl font-semibold text-orange-200">
+                      {countyFips && tradeSlug ? snapshot.results : '—'}
+                    </div>
+                  </div>
+                  <div className="ts-tile p-4">
+                    <div className="text-xs uppercase tracking-wide text-gray-400">Avg. Rating</div>
+                    <div className="text-2xl font-semibold text-orange-200">
+                      {countyFips && tradeSlug && snapshot.avgRating !== null
+                        ? snapshot.avgRating.toFixed(1)
+                        : '—'}
+                    </div>
+                  </div>
+                  <div className="ts-tile p-4">
+                    <div className="text-xs uppercase tracking-wide text-gray-400">Total Recs</div>
+                    <div className="text-2xl font-semibold text-orange-200">
+                      {countyFips && tradeSlug ? snapshot.totalRecs : '—'}
+                    </div>
+                  </div>
+                  <div className="ts-tile p-4">
+                    <div className="text-xs uppercase tracking-wide text-gray-400">Top Rating</div>
+                    <div className="text-2xl font-semibold text-orange-200">
+                      {countyFips && tradeSlug && snapshot.topRating !== null
+                        ? snapshot.topRating.toFixed(1)
+                        : '—'}
+                    </div>
+                  </div>
                 </div>
               </div>
             </section>
@@ -232,20 +288,40 @@ const FindContractors = memo(function FindContractors() {
             <h2 className="text-2xl font-semibold">Featured contractors</h2>
             <span className="text-sm text-gray-400">Verified and community-backed</span>
           </div>
-            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {[1, 2, 3].map((i) => (
-                <div key={i} className="ts-card p-5">
-                <h3 className="text-xl font-semibold mb-2 text-orange-300">Professional Contractor {i}</h3>
-                <p className="text-gray-300 mb-4">Verified contractor with 10+ years experience</p>
-                <div className="flex justify-between items-center text-sm">
-                  <span className="text-yellow-400">★★★★★ 4.9</span>
-                  <button className="bg-orange-500 hover:bg-orange-600 text-white px-3 py-2 rounded-lg transition-colors">
-                    View profile
-                  </button>
-                </div>
+            {!countyFips || !tradeSlug ? (
+              <div className="ts-tile p-6 text-sm text-gray-400">
+                Select a location and trade to see featured contractors.
               </div>
-              ))}
-            </div>
+            ) : featured.length === 0 ? (
+              <div className="ts-tile p-6 text-sm text-gray-300">
+                No featured contractors available for this selection yet.
+              </div>
+            ) : (
+              <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {featured.map((contractor) => (
+                  <div key={contractor.id} className="ts-card p-5">
+                    <h3 className="text-xl font-semibold mb-2 text-orange-300">
+                      {contractor.businessName || contractor.name || 'Contractor'}
+                    </h3>
+                    <p className="text-gray-300 mb-4">
+                      {(contractor.trades && contractor.trades.join(', ')) || 'Trade not listed'}
+                    </p>
+                    <div className="flex justify-between items-center text-sm">
+                      <span className="text-yellow-400">
+                        {typeof contractor.rating === 'number' ? contractor.rating.toFixed(1) : 'N/A'}
+                        {' '}★
+                      </span>
+                      <a
+                        className="bg-orange-500 hover:bg-orange-600 text-white px-3 py-2 rounded-lg transition-colors"
+                        href={`/contractors/${encodeURIComponent(contractor.id)}`}
+                      >
+                        View profile
+                      </a>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </section>
 
           <section className="ts-card bg-orange-500/10 shadow-[0_0_30px_rgba(255,140,0,0.2)] p-6 text-center space-y-3">
@@ -254,7 +330,6 @@ const FindContractors = memo(function FindContractors() {
             Ask Scout to draft bids, verify licenses, or queue tasks on your board. Or jump in with search, quick actions, and the featured list—no waiting on chat.
           </p>
         </section>
-      </div>
     </div>
   );
 });

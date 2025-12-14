@@ -1,6 +1,6 @@
 
-import React, { useState } from 'react';
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -36,6 +36,7 @@ import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useTheme } from "@/contexts/ThemeContext";
 import { PRESET_THEMES } from "@/lib/themes";
+import DragDropNavigationPreferences from "@/components/navigation/DragDropNavigationPreferences";
 
 // Theme Selector Component
 function ThemeSelector() {
@@ -127,12 +128,85 @@ export default function Settings() {
   const { user } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const defaultTab = useMemo(() => {
+    if (typeof window === 'undefined') return 'profile';
+    const tab = new URLSearchParams(window.location.search).get('tab');
+    return tab || 'profile';
+  }, []);
+
+  const [profileForm, setProfileForm] = useState({
+    firstName: user?.firstName || '',
+    lastName: user?.lastName || '',
+    profileImageUrl: user?.profileImageUrl || '',
+    bio: (user as any)?.preferences?.bio || '',
+  });
+
+  useEffect(() => {
+    setProfileForm({
+      firstName: user?.firstName || '',
+      lastName: user?.lastName || '',
+      profileImageUrl: user?.profileImageUrl || '',
+      bio: (user as any)?.preferences?.bio || '',
+    });
+  }, [user?.firstName, user?.lastName, (user as any)?.profileImageUrl, (user as any)?.preferences?.bio]);
   
-  const [notifications, setNotifications] = useState({
-    email: true,
-    sms: false,
-    push: true,
-    marketing: false
+  const [notifications, setNotifications] = useState(() => {
+    const saved = (user as any)?.preferences?.notificationPrefs;
+    return {
+      email: saved?.email ?? true,
+      sms: saved?.sms ?? false,
+      push: saved?.push ?? true,
+      marketing: saved?.marketing ?? false,
+    };
+  });
+
+  useEffect(() => {
+    const saved = (user as any)?.preferences?.notificationPrefs;
+    if (!saved) return;
+    setNotifications({
+      email: saved?.email ?? true,
+      sms: saved?.sms ?? false,
+      push: saved?.push ?? true,
+      marketing: saved?.marketing ?? false,
+    });
+  }, [(user as any)?.preferences?.notificationPrefs]);
+
+  const [privacy, setPrivacy] = useState(() => {
+    const prefs = (user as any)?.preferences || {};
+    return {
+      profileVisibility: (prefs.profileVisibility as 'public' | 'private') || 'public',
+      showInSearch: prefs.showInSearch !== false,
+      contactPolicy: (prefs.contactPolicy as string) || 'verified',
+      twoFactorEnabled: Boolean(prefs.twoFactorEnabled),
+    };
+  });
+
+  useEffect(() => {
+    const prefs = (user as any)?.preferences || {};
+    setPrivacy({
+      profileVisibility: (prefs.profileVisibility as 'public' | 'private') || 'public',
+      showInSearch: prefs.showInSearch !== false,
+      contactPolicy: (prefs.contactPolicy as string) || 'verified',
+      twoFactorEnabled: Boolean(prefs.twoFactorEnabled),
+    });
+  }, [(user as any)?.preferences]);
+
+  const [passwordForm, setPasswordForm] = useState({
+    currentPassword: '',
+    newPassword: '',
+    confirmNewPassword: '',
+  });
+
+  const { data: navigationPrefs } = useQuery<{
+    customOrder?: string[];
+    hiddenFromSwipe?: string[];
+    enableSwipeNavigation?: boolean;
+  }>({
+    queryKey: ['/api/user/navigation-preferences'],
+    enabled: Boolean(user),
+    retry: false,
   });
 
   // Get user's current roles
@@ -193,6 +267,110 @@ export default function Settings() {
     updateRolesMutation.mutate(selectedRoles);
   };
 
+  const updateProfileMutation = useMutation({
+    mutationFn: async () => {
+      const existingPrefs = ((user as any)?.preferences || {}) as Record<string, any>;
+      const mergedPreferences = {
+        ...existingPrefs,
+        bio: profileForm.bio,
+      };
+      return apiRequest('PUT', '/api/user/profile', {
+        firstName: profileForm.firstName,
+        lastName: profileForm.lastName,
+        profileImageUrl: profileForm.profileImageUrl,
+        preferences: mergedPreferences,
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/auth/user'] });
+      toast({
+        title: 'Saved',
+        description: 'Your profile settings were updated.',
+      });
+    },
+    onError: (err: any) => {
+      toast({
+        title: 'Error',
+        description: err?.message || 'Failed to update profile.',
+        variant: 'destructive',
+      });
+    },
+  });
+
+  const updateNotificationsMutation = useMutation({
+    mutationFn: async () => {
+      return apiRequest('PATCH', '/api/users/preferences', {
+        notificationPrefs: notifications,
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/auth/user'] });
+      toast({ title: 'Saved', description: 'Notification preferences updated.' });
+    },
+    onError: (err: any) => {
+      toast({ title: 'Error', description: err?.message || 'Failed to save notifications.', variant: 'destructive' });
+    },
+  });
+
+  const updatePrivacyMutation = useMutation({
+    mutationFn: async (nextPrivacy: typeof privacy) => {
+      // profileVisibility has a dedicated endpoint (also updates prefs internally)
+      await apiRequest('PATCH', '/api/users/profile-visibility', { profileVisibility: nextPrivacy.profileVisibility });
+      return apiRequest('PATCH', '/api/users/preferences', {
+        showInSearch: nextPrivacy.showInSearch,
+        contactPolicy: nextPrivacy.contactPolicy,
+        twoFactorEnabled: nextPrivacy.twoFactorEnabled,
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/auth/user'] });
+      toast({ title: 'Saved', description: 'Privacy preferences updated.' });
+    },
+    onError: (err: any) => {
+      toast({ title: 'Error', description: err?.message || 'Failed to save privacy preferences.', variant: 'destructive' });
+    },
+  });
+
+  const changePasswordMutation = useMutation({
+    mutationFn: async () => {
+      return apiRequest('PUT', '/api/auth/change-password', {
+        currentPassword: passwordForm.currentPassword,
+        newPassword: passwordForm.newPassword,
+      });
+    },
+    onSuccess: () => {
+      setPasswordForm({ currentPassword: '', newPassword: '', confirmNewPassword: '' });
+      toast({ title: 'Password updated', description: 'Your password has been changed.' });
+    },
+    onError: (err: any) => {
+      toast({ title: 'Error', description: err?.message || 'Failed to change password.', variant: 'destructive' });
+    },
+  });
+
+  const handleUploadClick = () => fileInputRef.current?.click();
+
+  const handlePhotoSelected = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    try {
+      const { uploadURL } = await apiRequest('POST', '/api/objects/upload');
+      await fetch(uploadURL, {
+        method: 'PUT',
+        body: file,
+        headers: { 'Content-Type': file.type || 'application/octet-stream' },
+      });
+
+      const stableUrl = typeof uploadURL === 'string' ? uploadURL.split('?')[0] : '';
+      setProfileForm((prev) => ({ ...prev, profileImageUrl: stableUrl || uploadURL }));
+      toast({ title: 'Photo uploaded', description: 'Click Save Changes to apply it.' });
+    } catch (error: any) {
+      toast({ title: 'Upload failed', description: error?.message || 'Could not upload photo.', variant: 'destructive' });
+    } finally {
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  };
+
   return (
     <div className="min-h-screen bg-[#0f1419] pb-20 lg:pb-0">
       <div className="container mx-auto px-4 py-6 lg:py-10">
@@ -212,13 +390,16 @@ export default function Settings() {
             </div>
           </div>
 
-          <Tabs defaultValue="profile" className="space-y-6">
-            <TabsList className="w-full bg-[#1a2332] border border-[#2d3748] p-1.5 rounded-xl shadow-lg overflow-x-auto flex lg:grid lg:grid-cols-6">
+          <Tabs defaultValue={defaultTab} className="space-y-6">
+            <TabsList className="w-full bg-[#1a2332] border border-[#2d3748] p-1.5 rounded-xl shadow-lg overflow-x-auto flex lg:grid lg:grid-cols-7">
               <TabsTrigger value="profile" className="data-[state=active]:bg-orange-500 data-[state=active]:text-white transition-all rounded-lg">
                 Profile
               </TabsTrigger>
               <TabsTrigger value="roles" className="data-[state=active]:bg-orange-500 data-[state=active]:text-white transition-all rounded-lg">
                 Roles
+              </TabsTrigger>
+              <TabsTrigger value="navigation" className="data-[state=active]:bg-orange-500 data-[state=active]:text-white transition-all rounded-lg">
+                Navigation
               </TabsTrigger>
               <TabsTrigger value="appearance" className="data-[state=active]:bg-orange-500 data-[state=active]:text-white transition-all rounded-lg">
                 Appearance
@@ -252,14 +433,30 @@ export default function Settings() {
                   {/* Profile Photo Section */}
                   <div className="flex items-center gap-6 pb-6 border-b border-[#2d3748]">
                     <div className="h-20 w-20 bg-gradient-to-br from-orange-500 to-orange-600 rounded-full flex items-center justify-center text-white text-2xl font-bold shadow-lg">
-                      {user?.firstName?.[0]}{user?.lastName?.[0]}
+                      {profileForm.profileImageUrl ? (
+                        <img src={profileForm.profileImageUrl} alt="Profile" className="h-20 w-20 rounded-full object-cover" />
+                      ) : (
+                        <>{user?.firstName?.[0]}{user?.lastName?.[0]}</>
+                      )}
                     </div>
                     <div className="flex-1">
                       <h3 className="text-white font-medium mb-1">Profile Photo</h3>
                       <p className="text-sm text-slate-400 mb-3">Update your profile picture</p>
-                      <Button size="sm" variant="outline" className="border-orange-500 text-orange-500 hover:bg-orange-500 hover:text-white">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="border-orange-500 text-orange-500 hover:bg-orange-500 hover:text-white"
+                        onClick={handleUploadClick}
+                      >
                         Upload Photo
                       </Button>
+                      <input
+                        ref={fileInputRef}
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={handlePhotoSelected}
+                      />
                     </div>
                   </div>
 
@@ -269,7 +466,8 @@ export default function Settings() {
                       <Label htmlFor="firstName" className="text-white font-medium">First Name</Label>
                       <Input 
                         id="firstName" 
-                        defaultValue={user?.firstName || ""}
+                        value={profileForm.firstName}
+                        onChange={(e) => setProfileForm((prev) => ({ ...prev, firstName: e.target.value }))}
                         className="bg-[#0f1419] border-[#2d3748] text-white h-11 focus:border-orange-500 transition-colors"
                         placeholder="Enter first name"
                       />
@@ -278,7 +476,8 @@ export default function Settings() {
                       <Label htmlFor="lastName" className="text-white font-medium">Last Name</Label>
                       <Input 
                         id="lastName" 
-                        defaultValue={user?.lastName || ""}
+                        value={profileForm.lastName}
+                        onChange={(e) => setProfileForm((prev) => ({ ...prev, lastName: e.target.value }))}
                         className="bg-[#0f1419] border-[#2d3748] text-white h-11 focus:border-orange-500 transition-colors"
                         placeholder="Enter last name"
                       />
@@ -295,6 +494,7 @@ export default function Settings() {
                       id="email" 
                       type="email"
                       defaultValue={user?.email || ""}
+                      disabled
                       className="bg-[#0f1419] border-[#2d3748] text-white h-11 focus:border-orange-500 transition-colors"
                       placeholder="email@example.com"
                     />
@@ -307,6 +507,8 @@ export default function Settings() {
                     <Textarea 
                       id="bio"
                       placeholder="Tell us about yourself..."
+                      value={profileForm.bio}
+                      onChange={(e) => setProfileForm((prev) => ({ ...prev, bio: e.target.value }))}
                       className="bg-[#0f1419] border-[#2d3748] text-white min-h-[120px] focus:border-orange-500 transition-colors resize-none"
                       rows={5}
                     />
@@ -315,8 +517,12 @@ export default function Settings() {
 
                   {/* Action Buttons */}
                   <div className="flex items-center gap-3 pt-4 border-t border-[#2d3748]">
-                    <Button className="bg-orange-500 hover:bg-orange-600 text-white px-6 shadow-lg">
-                      Save Changes
+                    <Button
+                      className="bg-orange-500 hover:bg-orange-600 text-white px-6 shadow-lg"
+                      onClick={() => updateProfileMutation.mutate()}
+                      disabled={updateProfileMutation.isPending}
+                    >
+                      {updateProfileMutation.isPending ? 'Saving…' : 'Save Changes'}
                     </Button>
                     <Button variant="outline" className="border-[#2d3748] text-slate-300 hover:bg-[#0f1419]">
                       Cancel
@@ -324,6 +530,35 @@ export default function Settings() {
                   </div>
                 </CardContent>
               </Card>
+            </TabsContent>
+
+            {/* Navigation Settings */}
+            <TabsContent value="navigation">
+              <div className="space-y-6">
+                <Card className="bg-[#1a2332] border-[#2d3748] shadow-xl">
+                  <CardHeader className="border-b border-[#2d3748] pb-6">
+                    <div className="flex items-center gap-3">
+                      <div className="h-10 w-10 bg-orange-500/20 rounded-lg flex items-center justify-center">
+                        <Smartphone className="w-5 h-5 text-orange-500" />
+                      </div>
+                      <div>
+                        <CardTitle className="text-xl text-white">Navigation Preferences</CardTitle>
+                        <p className="text-sm text-slate-400 mt-1">Customize the order and visibility of your mobile navigation.</p>
+                      </div>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="pt-6">
+                    <DragDropNavigationPreferences
+                      preferences={{
+                        customOrder: navigationPrefs?.customOrder || [],
+                        hiddenFromSwipe: navigationPrefs?.hiddenFromSwipe || [],
+                        enableSwipeNavigation: navigationPrefs?.enableSwipeNavigation ?? true,
+                      }}
+                      userRole={(user as any)?.role || ''}
+                    />
+                  </CardContent>
+                </Card>
+              </div>
             </TabsContent>
 
             {/* Roles Management */}
@@ -497,6 +732,16 @@ export default function Settings() {
                       </div>
                     );
                   })}
+
+                  <div className="flex justify-end pt-4 border-t border-[#2d3748]">
+                    <Button
+                      onClick={() => updateNotificationsMutation.mutate()}
+                      disabled={updateNotificationsMutation.isPending}
+                      className="bg-orange-500 hover:bg-orange-600 text-white px-8 shadow-lg"
+                    >
+                      {updateNotificationsMutation.isPending ? 'Saving…' : 'Save Notifications'}
+                    </Button>
+                  </div>
                 </CardContent>
               </Card>
             </TabsContent>
@@ -528,7 +773,10 @@ export default function Settings() {
                         <p className="text-slate-400 text-sm">Make your profile visible to other users</p>
                       </div>
                     </div>
-                    <Switch defaultChecked />
+                    <Switch
+                      checked={privacy.profileVisibility === 'public'}
+                      onCheckedChange={(checked) => setPrivacy((prev) => ({ ...prev, profileVisibility: checked ? 'public' : 'private' }))}
+                    />
                   </div>
                   
                   <div className="flex items-center justify-between p-4 bg-[#0f1419] rounded-xl border border-[#2d3748]">
@@ -541,7 +789,10 @@ export default function Settings() {
                         <p className="text-slate-400 text-sm">Allow others to find you through search</p>
                       </div>
                     </div>
-                    <Switch defaultChecked />
+                    <Switch
+                      checked={privacy.showInSearch}
+                      onCheckedChange={(checked) => setPrivacy((prev) => ({ ...prev, showInSearch: checked }))}
+                    />
                   </div>
 
                   <div className="space-y-3 p-4 bg-[#0f1419] rounded-xl border border-[#2d3748]">
@@ -554,7 +805,10 @@ export default function Settings() {
                         <p className="text-slate-400 text-sm">Choose who can send you messages</p>
                       </div>
                     </div>
-                    <Select defaultValue="verified">
+                    <Select
+                      value={privacy.contactPolicy}
+                      onValueChange={(value) => setPrivacy((prev) => ({ ...prev, contactPolicy: value }))}
+                    >
                       <SelectTrigger className="bg-[#1a2332] border-[#2d3748] text-white h-11">
                         <SelectValue />
                       </SelectTrigger>
@@ -565,6 +819,16 @@ export default function Settings() {
                         <SelectItem value="none">No one</SelectItem>
                       </SelectContent>
                     </Select>
+                  </div>
+
+                  <div className="flex justify-end pt-2">
+                    <Button
+                      onClick={() => updatePrivacyMutation.mutate(privacy)}
+                      disabled={updatePrivacyMutation.isPending}
+                      className="bg-orange-500 hover:bg-orange-600 text-white px-8 shadow-lg"
+                    >
+                      {updatePrivacyMutation.isPending ? 'Saving…' : 'Save Privacy'}
+                    </Button>
                   </div>
                 </CardContent>
               </Card>
@@ -603,6 +867,8 @@ export default function Settings() {
                         <Input 
                           type="password" 
                           placeholder="Enter current password"
+                          value={passwordForm.currentPassword}
+                          onChange={(e) => setPasswordForm((prev) => ({ ...prev, currentPassword: e.target.value }))}
                           className="bg-[#1a2332] border-[#2d3748] text-white h-11 focus:border-orange-500 transition-colors"
                         />
                       </div>
@@ -611,6 +877,8 @@ export default function Settings() {
                         <Input 
                           type="password" 
                           placeholder="Enter new password"
+                          value={passwordForm.newPassword}
+                          onChange={(e) => setPasswordForm((prev) => ({ ...prev, newPassword: e.target.value }))}
                           className="bg-[#1a2332] border-[#2d3748] text-white h-11 focus:border-orange-500 transition-colors"
                         />
                       </div>
@@ -619,11 +887,28 @@ export default function Settings() {
                         <Input 
                           type="password" 
                           placeholder="Confirm new password"
+                          value={passwordForm.confirmNewPassword}
+                          onChange={(e) => setPasswordForm((prev) => ({ ...prev, confirmNewPassword: e.target.value }))}
                           className="bg-[#1a2332] border-[#2d3748] text-white h-11 focus:border-orange-500 transition-colors"
                         />
                       </div>
-                      <Button className="bg-orange-500 hover:bg-orange-600 text-white w-full mt-2 shadow-lg">
-                        Update Password
+                      <Button
+                        className="bg-orange-500 hover:bg-orange-600 text-white w-full mt-2 shadow-lg"
+                        disabled={
+                          changePasswordMutation.isPending ||
+                          !passwordForm.currentPassword ||
+                          !passwordForm.newPassword ||
+                          passwordForm.newPassword !== passwordForm.confirmNewPassword
+                        }
+                        onClick={() => {
+                          if (passwordForm.newPassword !== passwordForm.confirmNewPassword) {
+                            toast({ title: 'Error', description: 'New passwords do not match.', variant: 'destructive' });
+                            return;
+                          }
+                          changePasswordMutation.mutate();
+                        }}
+                      >
+                        {changePasswordMutation.isPending ? 'Updating…' : 'Update Password'}
                       </Button>
                     </div>
                   </div>
@@ -638,8 +923,16 @@ export default function Settings() {
                         <p className="text-slate-400 text-sm">Add an extra layer of security to your account</p>
                       </div>
                     </div>
-                    <Button variant="outline" className="border-orange-500 text-orange-500 hover:bg-orange-500 hover:text-white px-6">
-                      Enable 2FA
+                    <Button
+                      variant="outline"
+                      className="border-orange-500 text-orange-500 hover:bg-orange-500 hover:text-white px-6"
+                      onClick={() => {
+                        const nextPrivacy = { ...privacy, twoFactorEnabled: !privacy.twoFactorEnabled };
+                        setPrivacy(nextPrivacy);
+                        updatePrivacyMutation.mutate(nextPrivacy);
+                      }}
+                    >
+                      {privacy.twoFactorEnabled ? 'Disable 2FA' : 'Enable 2FA'}
                     </Button>
                   </div>
                 </CardContent>

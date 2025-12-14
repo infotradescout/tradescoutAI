@@ -1,6 +1,7 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useLocation } from "wouter";
+import { apiRequest } from "@/lib/queryClient";
 
 interface OnboardingContextType {
   currentTour: string | null;
@@ -52,25 +53,13 @@ export function OnboardingProvider({ children }: OnboardingProviderProps) {
 
     // Save to backend
     try {
-      await fetch('/api/auth/user/preferences', {
-        method: 'PATCH',
-        credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          completedTours: newCompletedTours
-        })
+      await apiRequest('PATCH', '/api/users/preferences', {
+        completedTours: newCompletedTours,
       });
 
       // Mark onboarding as completed if this was a new user tour
       if (tourKey.startsWith('new-user-tour') && user && !user.onboardingCompleted) {
-        await fetch('/api/auth/user', {
-          method: 'PATCH',
-          credentials: 'include',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            onboardingCompleted: true
-          })
-        });
+        await apiRequest('POST', '/api/user/complete-onboarding', {});
       }
     } catch (error) {
       console.error('Failed to save tour completion:', error);

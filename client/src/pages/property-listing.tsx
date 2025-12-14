@@ -116,8 +116,7 @@ export default function PropertyListing() {
   const createListingMutation = useMutation({
     mutationFn: async (data: PropertyListingForm) => {
       // First get the Real Estate category ID
-      const categoriesResponse = await apiRequest("GET", "/api/marketplace/categories");
-      const categories = await categoriesResponse.json();
+       const categories = await apiRequest("GET", "/api/marketplace/categories");
       const realEstateCategory = categories.find((cat: any) => cat.name === "Real Estate");
       
       if (!realEstateCategory) {

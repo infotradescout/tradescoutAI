@@ -1,11 +1,14 @@
 import { useState, useMemo } from "react";
-import { useQuery, useMutation } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { 
   Search, 
   MapPin, 
@@ -36,6 +39,7 @@ export default function WorkerMarketplace() {
   const { user, isAuthenticated } = useAuth();
   const { unreadCount } = useNotifications();
   const { toast } = useToast();
+  const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState("find-workers");
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("");
@@ -43,6 +47,20 @@ export default function WorkerMarketplace() {
   const [sortBy, setSortBy] = useState("rating");
   const [selectedHelper, setSelectedHelper] = useState<Worker | null>(null);
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
+
+  const [isPostTaskOpen, setIsPostTaskOpen] = useState(false);
+  const [taskTitle, setTaskTitle] = useState("");
+  const [taskDescription, setTaskDescription] = useState("");
+  const [taskCategoryId, setTaskCategoryId] = useState<string>("");
+  const [taskPayType, setTaskPayType] = useState<"fixed" | "hourly" | "per_task">("fixed");
+  const [taskPayAmount, setTaskPayAmount] = useState<string>("");
+  const [taskTaskType, setTaskTaskType] = useState<"one_time" | "recurring" | "project_based">("one_time");
+  const [taskSchedulingType, setTaskSchedulingType] = useState<"asap" | "scheduled" | "flexible">("asap");
+  const [taskCity, setTaskCity] = useState<string>("");
+  const [taskStateCode, setTaskStateCode] = useState<string>("");
+
+  const [applyTask, setApplyTask] = useState<Task | null>(null);
+  const [applyMessage, setApplyMessage] = useState("");
 
   // Fetch workers
   const { data: workers, isLoading: workersLoading } = useQuery<Worker[]>({
@@ -78,6 +96,64 @@ export default function WorkerMarketplace() {
   // Fetch task categories
   const { data: categories } = useQuery<TaskCategory[]>({
     queryKey: ['/api/task-categories'],
+  });
+
+  const createTaskMutation = useMutation({
+    mutationFn: async () => {
+      const payAmount = Number(taskPayAmount);
+      if (!taskTitle.trim()) throw new Error("Title is required");
+      if (!taskDescription.trim()) throw new Error("Description is required");
+      if (!Number.isFinite(payAmount) || payAmount <= 0) throw new Error("Pay amount must be a positive number");
+
+      return apiRequest("POST", "/api/tasks", {
+        title: taskTitle.trim(),
+        description: taskDescription.trim(),
+        categoryId: taskCategoryId || undefined,
+        payType: taskPayType,
+        payAmount,
+        taskType: taskTaskType,
+        schedulingType: taskSchedulingType,
+        city: taskCity.trim() || undefined,
+        stateCode: taskStateCode.trim() || undefined,
+      });
+    },
+    onSuccess: () => {
+      toast({ title: "Task posted", description: "Your task is now visible to helpers." });
+      setIsPostTaskOpen(false);
+      setTaskTitle("");
+      setTaskDescription("");
+      setTaskCategoryId("");
+      setTaskPayAmount("");
+      setTaskCity("");
+      setTaskStateCode("");
+      setActiveTab("find-tasks");
+      queryClient.invalidateQueries({ queryKey: ['/api/tasks'] });
+    },
+    onError: (err: any) => {
+      toast({
+        title: "Couldn't post task",
+        description: err?.message || "Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const applyToTaskMutation = useMutation({
+    mutationFn: async ({ taskId, message }: { taskId: string; message?: string }) => {
+      return apiRequest("POST", `/api/tasks/${taskId}/apply`, { message });
+    },
+    onSuccess: () => {
+      toast({ title: "Application sent", description: "The task poster will be notified." });
+      setApplyTask(null);
+      setApplyMessage("");
+    },
+    onError: (err: any) => {
+      toast({
+        title: "Couldn't apply",
+        description: err?.message || "Please try again.",
+        variant: "destructive",
+      });
+    },
   });
 
   // Filter workers based on search
@@ -243,7 +319,14 @@ export default function WorkerMarketplace() {
           ) : (
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               {filteredTasks.map((task) => (
-                <TaskCard key={task.id} task={task} />
+                <TaskCard
+                  key={task.id}
+                  task={task}
+                  onApply={() => {
+                    setApplyTask(task);
+                    setApplyMessage("");
+                  }}
+                />
               ))}
               {filteredTasks.length === 0 && (
                 <div className="col-span-full">
@@ -274,9 +357,12 @@ export default function WorkerMarketplace() {
                 }
               </p>
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                <Button className="bg-orange-500 hover:bg-orange-600">
+                <Button
+                  className="bg-orange-500 hover:bg-orange-600"
+                  onClick={() => setIsPostTaskOpen(true)}
+                >
                   <Plus className="h-4 w-4 mr-2" />
-                  {activeTab === "find-workers" ? "Post a Task" : "Apply for Task"}
+                  Post a Task
                 </Button>
                 <Button variant="outline" className="border-gray-300 text-gray-300 hover:bg-gray-300 hover:text-navy-800">
                   {activeTab === "find-workers" ? "Join as Helper" : "Create Helper Profile"}
@@ -288,6 +374,203 @@ export default function WorkerMarketplace() {
       )}
 
       {/* Helper Profile Modal */}
+      <Dialog open={isPostTaskOpen} onOpenChange={setIsPostTaskOpen}>
+        <DialogContent className="bg-navy-800 border-navy-600 text-white">
+          <DialogHeader>
+            <DialogTitle>Post a task</DialogTitle>
+          </DialogHeader>
+
+          <div className="grid gap-4">
+            <div className="grid gap-2">
+              <Label>Title</Label>
+              <Input
+                value={taskTitle}
+                onChange={(e) => setTaskTitle(e.target.value)}
+                className="bg-navy-700 border-navy-600 text-white"
+                placeholder="e.g., Help moving a couch"
+              />
+            </div>
+
+            <div className="grid gap-2">
+              <Label>Description</Label>
+              <Textarea
+                value={taskDescription}
+                onChange={(e) => setTaskDescription(e.target.value)}
+                className="bg-navy-700 border-navy-600 text-white"
+                placeholder="What needs to be done, when, and any requirements"
+              />
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid gap-2">
+                <Label>Category</Label>
+                <Select value={taskCategoryId || "none"} onValueChange={(v) => setTaskCategoryId(v === "none" ? "" : v)}>
+                  <SelectTrigger className="bg-navy-700 border-navy-600 text-white">
+                    <SelectValue placeholder="Select a category" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-navy-700 border-navy-600">
+                    <SelectItem value="none">No category</SelectItem>
+                    {categories?.map((c) => (
+                      <SelectItem key={c.id} value={c.id}>
+                        {c.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="grid gap-2">
+                <Label>Task type</Label>
+                <Select value={taskTaskType} onValueChange={(v) => setTaskTaskType(v as any)}>
+                  <SelectTrigger className="bg-navy-700 border-navy-600 text-white">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent className="bg-navy-700 border-navy-600">
+                    <SelectItem value="one_time">One-time</SelectItem>
+                    <SelectItem value="recurring">Recurring</SelectItem>
+                    <SelectItem value="project_based">Project-based</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid gap-2">
+                <Label>Pay type</Label>
+                <Select value={taskPayType} onValueChange={(v) => setTaskPayType(v as any)}>
+                  <SelectTrigger className="bg-navy-700 border-navy-600 text-white">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent className="bg-navy-700 border-navy-600">
+                    <SelectItem value="fixed">Fixed</SelectItem>
+                    <SelectItem value="hourly">Hourly</SelectItem>
+                    <SelectItem value="per_task">Per task</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="grid gap-2">
+                <Label>Pay amount</Label>
+                <Input
+                  value={taskPayAmount}
+                  onChange={(e) => setTaskPayAmount(e.target.value)}
+                  className="bg-navy-700 border-navy-600 text-white"
+                  placeholder="e.g., 150"
+                  inputMode="decimal"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid gap-2">
+                <Label>Scheduling</Label>
+                <Select value={taskSchedulingType} onValueChange={(v) => setTaskSchedulingType(v as any)}>
+                  <SelectTrigger className="bg-navy-700 border-navy-600 text-white">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent className="bg-navy-700 border-navy-600">
+                    <SelectItem value="asap">ASAP</SelectItem>
+                    <SelectItem value="scheduled">Scheduled</SelectItem>
+                    <SelectItem value="flexible">Flexible</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="grid gap-2">
+                <Label>City (optional)</Label>
+                <Input
+                  value={taskCity}
+                  onChange={(e) => setTaskCity(e.target.value)}
+                  className="bg-navy-700 border-navy-600 text-white"
+                  placeholder="e.g., Austin"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid gap-2">
+                <Label>State (optional)</Label>
+                <Input
+                  value={taskStateCode}
+                  onChange={(e) => setTaskStateCode(e.target.value)}
+                  className="bg-navy-700 border-navy-600 text-white"
+                  placeholder="e.g., TX"
+                  maxLength={2}
+                />
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-2">
+              <Button
+                variant="outline"
+                className="border-gray-300 text-gray-300 hover:bg-gray-300 hover:text-navy-800"
+                onClick={() => setIsPostTaskOpen(false)}
+                disabled={createTaskMutation.isPending}
+              >
+                Cancel
+              </Button>
+              <Button
+                className="bg-orange-500 hover:bg-orange-600"
+                onClick={() => createTaskMutation.mutate()}
+                disabled={createTaskMutation.isPending}
+              >
+                {createTaskMutation.isPending ? "Posting…" : "Post task"}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={Boolean(applyTask)} onOpenChange={(open) => !open && setApplyTask(null)}>
+        <DialogContent className="bg-navy-800 border-navy-600 text-white">
+          <DialogHeader>
+            <DialogTitle>Apply to task</DialogTitle>
+          </DialogHeader>
+
+          {applyTask && (
+            <div className="grid gap-4">
+              <div className="text-sm text-gray-300">
+                <div className="font-semibold text-white">{applyTask.title}</div>
+                <div className="mt-1">{applyTask.description}</div>
+              </div>
+
+              <div className="grid gap-2">
+                <Label>Message (optional)</Label>
+                <Textarea
+                  value={applyMessage}
+                  onChange={(e) => setApplyMessage(e.target.value)}
+                  className="bg-navy-700 border-navy-600 text-white"
+                  placeholder="Tell them why you're a good fit"
+                />
+              </div>
+
+              <div className="flex justify-end gap-2">
+                <Button
+                  variant="outline"
+                  className="border-gray-300 text-gray-300 hover:bg-gray-300 hover:text-navy-800"
+                  onClick={() => setApplyTask(null)}
+                  disabled={applyToTaskMutation.isPending}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  className="bg-orange-500 hover:bg-orange-600"
+                  onClick={() =>
+                    applyToTaskMutation.mutate({
+                      taskId: applyTask.id,
+                      message: applyMessage.trim() || undefined,
+                    })
+                  }
+                  disabled={applyToTaskMutation.isPending}
+                >
+                  {applyToTaskMutation.isPending ? "Sending…" : "Send application"}
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
       {selectedHelper && (
         <HelperProfileModal
           helper={{
@@ -398,7 +681,7 @@ function HelperCard({ worker, onViewProfile }: HelperCardProps) {
   );
 }
 
-function TaskCard({ task }: { task: Task }) {
+function TaskCard({ task, onApply }: { task: Task; onApply: () => void }) {
   const statusClass =
     task.status === 'open'
       ? 'bg-green-500/20 text-green-400 border-green-500/50'
@@ -467,7 +750,12 @@ function TaskCard({ task }: { task: Task }) {
           <span className="text-xs text-gray-400">
             Posted {task.createdAt ? new Date(task.createdAt).toLocaleDateString() : 'Unknown'}
           </span>
-          <Button size="sm" className="bg-orange-500 hover:bg-orange-600" disabled={task.status !== 'open'}>
+          <Button
+            size="sm"
+            className="bg-orange-500 hover:bg-orange-600"
+            disabled={task.status !== 'open'}
+            onClick={onApply}
+          >
             {task.status === 'open' ? 'Apply Now' : 'Not Available'}
           </Button>
         </div>

@@ -50,7 +50,7 @@ const AdministrativeDashboard = memo(function AdministrativeDashboard() {
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-gray-400 text-sm">Pending Reviews</p>
+                  <p className="text-gray-400 text-sm">Pending Approvals</p>
                   <p className="text-2xl font-bold text-yellow-400">234</p>
                 </div>
                 <Clock className="h-8 w-8 text-yellow-400" />

@@ -107,7 +107,7 @@ export default function Accelerator() {
                 </div>
                 <div className="flex items-center text-purple-200">
                   <Zap className="h-4 w-4 text-green-400 mr-3" />
-                  <span>Quarterly business reviews</span>
+                  <span>Quarterly business check-ins</span>
                 </div>
                 <div className="flex items-center text-purple-200">
                   <Zap className="h-4 w-4 text-green-400 mr-3" />

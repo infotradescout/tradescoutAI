@@ -205,7 +205,7 @@ const SocialIntegration = memo(function SocialIntegration() {
                   <div className="space-y-6">
                     {[
                       { label: 'New project completions', description: 'Share when you mark a project as completed', enabled: true },
-                      { label: 'Customer reviews', description: 'Share positive customer reviews (4+ stars)', enabled: true },
+                      { label: 'Customer RECOMMENDATIONS', description: 'Share positive customer RECOMMENDATIONS (4+ stars)', enabled: true },
                       { label: 'Service promotions', description: 'Share your daily deal promotions', enabled: false },
                       { label: 'Community posts', description: 'Share your community forum posts', enabled: false },
                       { label: 'Achievement badges', description: 'Share when you earn new badges or certifications', enabled: true },

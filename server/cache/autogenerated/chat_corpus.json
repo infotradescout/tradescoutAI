@@ -238,5 +238,45 @@
     ],
     "actions": [],
     "timestamp": "2025-12-11T16:04:31.238Z"
+  },
+  {
+    "question": "Find top-rated contractors in my county",
+    "answer": "Welcome! Yes, TradeScout helps you find top-rated contractors in your county.\nOur platform prioritizes pros based on real local recommendations and our unique 'Trust Loop' system. This ensures you connect with verified, trusted contractors known for quality work in your community.\nWe make finding reliable help simple and transparent. Explore the difference community-driven trust makes.\n\n---\n\n**To do this, you'll need a TradeScout account!** It only takes a minute:\n\n1. Click the **\"Create Account\"** button at the top\n2. Choose your role (Homeowner, Contractor, or Community Member)\n3. Enter your email and create a password\n4. Verify your email\n5. Come back here and I'll help you with `Find top-rated contractors in my county`\n\nReady? Let's set you up! 🚀",
+    "layer": 1,
+    "sources": [
+      "TradeScout Brain (data folder)"
+    ],
+    "actions": [],
+    "timestamp": "2025-12-14T15:44:04.058Z"
+  },
+  {
+    "question": "Route me to the best page in TradeScout for this",
+    "answer": "Welcome to TradeScout! You're looking to both list an item and find local contractors. For your pressure washer, head to the **Marketplace**. To find top-rated professionals, explore our **Home Services marketplace**.\nTradeScout connects you with verified pros. Reputation and genuine recommendations replace marketing spend here, ensuring quality and trust in your community.",
+    "layer": 1,
+    "sources": [
+      "TradeScout Brain (data folder)"
+    ],
+    "actions": [],
+    "timestamp": "2025-12-14T15:49:22.037Z"
+  },
+  {
+    "question": "building codes for a deck in panama city florida",
+    "answer": "Hey there! While TradeScout focuses on the *general* principles and *why* codes matter for safety, local building codes for a deck in Panama City, Florida, are handled by the city's building department. We teach common standards and safety, but local details vary widely.\nFor exact requirements and permits in Panama City, always check directly with their local building office. This ensures your deck project meets all specific regulations and stays safe. TradeScout helps you understand the *purpose* behind common codes, so you can speak confidently with contractors and the city.",
+    "layer": 1,
+    "sources": [
+      "TradeScout Brain (data folder)"
+    ],
+    "actions": [],
+    "timestamp": "2025-12-14T15:54:54.687Z"
+  },
+  {
+    "question": "Show me today's best tool deals",
+    "answer": "You're looking for tool deals. On TradeScout, the best value comes from local connections. Our community events showcase tools and connect you with affiliates sharing local finds. That's where quality tools change hands and deals are made, right in your neighborhood.",
+    "layer": 1,
+    "sources": [
+      "TradeScout Brain (data folder)"
+    ],
+    "actions": [],
+    "timestamp": "2025-12-14T16:26:47.233Z"
   }
 ]

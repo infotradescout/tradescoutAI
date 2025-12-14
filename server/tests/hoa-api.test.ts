@@ -7,7 +7,7 @@ import {
   hoaVoteResponses,
   hoaFinancialRecords,
   users,
-} from "@shared/schema";
+} from "../../shared/schema";
 import { storage } from "../storage";
 import { eq, inArray, and } from "drizzle-orm";
 

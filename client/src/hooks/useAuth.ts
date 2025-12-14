@@ -57,17 +57,15 @@ export function useAuth() {
 
       clearTimeout(timeoutId);
 
+      // 401 is not an error: it means guest / not signed in.
+      if (response.status === 401) {
+        return null;
+      }
+
       if (!response.ok) {
-        let errorPayload: any = null;
-        try {
-          errorPayload = await response.json();
-        } catch {
-          // ignore
-        }
-        if (errorPayload) {
-          console.error('Auth request failed payload:', errorPayload);
-        }
-        throw new Error(`Auth request failed: ${response.status}`);
+        // Fail-soft: auth should never block the UI.
+        console.warn(`Auth request returned ${response.status}; treating as guest`);
+        return null;
       }
 
       const payload: any = await response.json().catch(() => null);
@@ -94,7 +92,7 @@ export function useAuth() {
           return null;
         }
       }
-      console.error('Auth request error:', error);
+      console.warn('Auth request error; treating as guest');
       return null;
     }
   }, []);

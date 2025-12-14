@@ -340,7 +340,7 @@ export function InteractiveCountyMap({
                                             ))}
                                           </div>
                                           <span className="text-gray-400 text-sm">
-                                            ({contractor.recommendationCount} reviews)
+                                            ({contractor.recommendationCount} RECOMMENDATIONS)
                                           </span>
                                         </div>
                                       </div>

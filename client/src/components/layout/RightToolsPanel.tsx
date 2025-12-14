@@ -9,9 +9,17 @@ import {
   Home,
   Car,
   Soup,
+  Compass,
+  ShoppingBag,
+  Users,
+  Calculator,
+  Heart,
+  ArrowLeftRight,
+  Sparkles,
+  LogOut,
 } from "lucide-react";
 import { ROUTES } from "@/lib/routes";
-import { useAuth } from "@/hooks/useAuth";
+import { useAuth, useLogout } from "@/hooks/useAuth";
 import { useLocation } from "wouter";
 import { buildRoleNavFromRoles } from "@/lib/roleNav";
 
@@ -25,10 +33,18 @@ const iconMap: Record<string, React.ElementType> = {
   Home,
   Car,
   Soup,
+  Compass,
+  ShoppingBag,
+  Users,
+  Calculator,
+  Heart,
+  ArrowLeftRight,
+  Sparkles,
 };
 
 export function RightToolsPanel() {
   const { user, isAuthenticated } = useAuth();
+  const logout = useLogout();
   const [, navigate] = useLocation();
 
   const rawRoles: string[] = Array.isArray((user as any)?.roles)
@@ -60,6 +76,25 @@ export function RightToolsPanel() {
 
   return (
     <div className="space-y-4">
+      {/* Primary navigation (moved from top bars) */}
+      <div className="rounded-2xl border border-tsBorder bg-slate-950/80 p-4 shadow-lg shadow-black/30">
+        <div className="mb-3 text-xs uppercase tracking-[0.18em] text-tsAccentSoft">
+          Navigation
+        </div>
+
+        <div className="space-y-2 text-sm">
+          <NavItem to={ROUTES.HOME} icon={Home} label="Home" />
+          <NavItem to={ROUTES.FIND_CONTRACTORS || ROUTES.CONTRACTORS} icon={Compass} label="Find contractors" />
+          <NavItem to="/helpers" icon={Users} label="Helpers + tasks" />
+          <NavItem to={ROUTES.COMMUNITY} icon={Users} label="Community" />
+          <NavItem to="/exchange" icon={ArrowLeftRight} label="Exchange" />
+          <NavItem to={ROUTES.PRICING} icon={Calculator} label="Pricing" />
+          <NavItem to={ROUTES.HELP} icon={Sparkles} label="Help" />
+          <NavItem to="/foundation" icon={Heart} label="Foundation" />
+          <NavItem to="/contractor-board" icon={Wrench} label="For contractors" />
+        </div>
+      </div>
+
       {/* Personalized tools menu (always available) */}
       <div className="rounded-2xl border border-tsBorder bg-slate-950/80 p-4 shadow-lg shadow-black/30">
         <div className="flex items-center justify-between mb-3">
@@ -75,20 +110,26 @@ export function RightToolsPanel() {
             label="Dashboard"
           />
           <NavItem
-            to={ROUTES.CONVERSATIONS}
+            to="/messages"
             icon={MessageCircle}
             label="Messages"
           />
-          <NavItem
-            to={ROUTES.PROFILE || "/profile"}
-            icon={User}
-            label="Profile & identity"
-          />
+          <NavItem to={ROUTES.PROFILE || "/profile"} icon={User} label="Account" />
           <NavItem
             to={ROUTES.SETTINGS || "/settings"}
             icon={SlidersHorizontal}
             label="Personalization & settings"
           />
+          {isAuthenticated && (
+            <button
+              type="button"
+              onClick={() => void logout()}
+              className="w-full flex items-center gap-2 px-2 py-2 rounded-lg hover:bg-slate-900 text-red-200 hover:text-red-100 transition text-left"
+            >
+              {React.createElement(LogOut, { className: "h-4 w-4 text-red-300" })}
+              <span>Logout</span>
+            </button>
+          )}
         </div>
       </div>
 
@@ -128,7 +169,7 @@ export function RightToolsPanel() {
             <span className="text-tsTextMain font-medium">
               {user.firstName || user.email}
             </span>
-            . Scout tunes Marketplace, Community, and matches to your roles and local area.
+            . Scout tunes Exchange, Community, and matches to your roles and local area.
           </p>
         ) : (
           <p>
