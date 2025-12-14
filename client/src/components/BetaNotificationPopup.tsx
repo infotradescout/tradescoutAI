@@ -86,7 +86,14 @@ export function BetaNotificationPopup() {
                     Community Feedback
                   </p>
                   <p className="text-xs text-gray-600 dark:text-gray-400">
-                    Your input is valuable! Use the "Feedback" link to share your thoughts.
+                    Your input is valuable! If you hit an error, please take a screenshot and email it with a brief note to{" "}
+                    <a
+                      href="mailto:info.tradescout@gmail.com"
+                      className="underline underline-offset-2"
+                    >
+                      info.tradescout@gmail.com
+                    </a>
+                    .
                   </p>
                 </div>
               </div>

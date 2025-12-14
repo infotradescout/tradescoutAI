@@ -253,6 +253,159 @@ export async function registerRoutes(app: any) {
   app.post("/auth/login", loginLimiter, handleLocalLogin);
   app.post("/api/auth/login", loginLimiter, handleLocalLogin);
 
+  const handleRegister = async (req: Request, res: Response) => {
+    try {
+      const body = (req.body || {}) as any;
+      const email = typeof body.email === 'string' ? body.email.trim() : '';
+      const password = typeof body.password === 'string' ? body.password : '';
+      const firstName = typeof body.firstName === 'string' ? body.firstName.trim() : '';
+      const lastName = typeof body.lastName === 'string' ? body.lastName.trim() : '';
+      const address = typeof body.address === 'string' ? body.address.trim() : undefined;
+      const state = typeof body.state === 'string' ? body.state.trim() : undefined;
+      const county = typeof body.county === 'string' ? body.county.trim() : undefined;
+      const phone = typeof body.phone === 'string' ? body.phone.trim() : '';
+      const verificationStatus = body.verificationStatus;
+
+      const acceptTerms =
+        body.acceptTerms === true ||
+        body.agreeToTerms === true ||
+        body.termsAccepted === true ||
+        body.acceptedTerms === true;
+
+      const normalizeRole = (value: string) => {
+        const role = value.trim();
+        if (role === 'contractor_user') return 'contractor';
+        if (role === 'vehicle_dealer') return 'car_dealer';
+        if (role === 'car_salesman') return 'car_dealer';
+        return role;
+      };
+
+      const userTypesRaw = Array.isArray(body.userTypes) ? body.userTypes : undefined;
+      const roleRaw = typeof body.role === 'string' ? body.role : undefined;
+      const userTypesInput =
+        userTypesRaw && userTypesRaw.length > 0
+          ? userTypesRaw
+          : roleRaw
+            ? [roleRaw]
+            : [];
+
+      const userTypes = userTypesInput
+        .filter((t: any) => typeof t === 'string')
+        .map((t: string) => normalizeRole(t));
+
+      if (!email) return res.status(400).json({ message: 'Email is required' });
+      if (!password) return res.status(400).json({ message: 'Password is required' });
+      if (password.length < 8) return res.status(400).json({ message: 'Password must be at least 8 characters' });
+      if (!firstName) return res.status(400).json({ message: 'First name is required' });
+      if (!lastName) return res.status(400).json({ message: 'Last name is required' });
+      if (!phone) return res.status(400).json({ message: 'Phone number is required' });
+
+      const phoneDigits = phone.replace(/\D/g, '');
+      if (phoneDigits.length < 10) {
+        return res.status(400).json({ message: 'Please enter a valid phone number' });
+      }
+
+      if (!acceptTerms) {
+        return res.status(400).json({ message: 'You must accept the Terms of Service' });
+      }
+
+      // Check if user already exists
+      const existingUser = await storage.getUserByEmail(email);
+      if (existingUser) {
+        return res.status(400).json({ message: 'User already exists' });
+      }
+
+      // Validate user types
+      if (!userTypes || userTypes.length === 0) {
+        return res.status(400).json({ message: 'Please select at least one account type' });
+      }
+
+      // Hash password
+      const hashedPassword = await hashPassword(password);
+
+      // Badge helpers
+      const formatRoleLabel = (role: string) => role.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+      const badges = new Set<string>();
+
+      // Role badges for each selected user type
+      for (const role of userTypes) {
+        const roleBadge = getUserTypeBadgeLabel(role);
+        if (roleBadge) badges.add(roleBadge);
+      }
+
+      // Founder badge: first of each type in a county
+      if (county) {
+        for (const role of userTypes) {
+          const countResult: any = await db.execute(
+            sql`SELECT COUNT(*)::int as count FROM users WHERE county = ${county} AND ${role} = ANY(roles)`
+          );
+          const count = Number(countResult?.rows?.[0]?.count ?? countResult?.[0]?.count ?? 0);
+          if (count === 0) {
+            badges.add(`Founder (${formatRoleLabel(role)})`);
+          }
+        }
+      }
+
+      // Verified badge: if verificationStatus is approved
+      const allowedStatuses = ['pending', 'under_review', 'approved', 'rejected', 'expired', 'suspended'];
+      const status = allowedStatuses.includes(verificationStatus) ? verificationStatus : 'pending';
+      if (status === 'approved') {
+        userTypes.forEach((role: string) => badges.add(`Verified ${formatRoleLabel(role)}`));
+      }
+
+      // Determine primary role from user types (use first selected for backward compatibility)
+      const primaryRole = userTypes[0] || 'homeowner';
+
+      const preferences = {
+        ...(body.preferences || {}),
+        badges: {
+          show: body?.preferences?.badges?.show ?? true,
+        },
+      };
+
+      // Create user with multi-role support
+      const user = await storage.createUser({
+        email,
+        password: hashedPassword,
+        firstName,
+        lastName,
+        phone,
+        address,
+        state,
+        county,
+        role: primaryRole as any, // Primary role for backward compatibility
+        roles: userTypes, // Store all selected user types
+        activeRole: primaryRole, // Default active role
+        emailVerified: false,
+        addressVerified: false,
+        verificationStatus: status,
+        badges: Array.from(badges),
+        preferences,
+      });
+
+      // Persist ToS acceptance timestamp
+      try {
+        await dataManagementService.getUserPrivacySettings(user.id);
+        await dataManagementService.updateUserPrivacySettings(user.id, {
+          termsOfServiceAccepted: new Date(),
+        });
+      } catch (e) {
+        console.error('Failed to persist ToS acceptance:', e);
+      }
+
+      // Auto-login after registration
+      req.login(user, (err) => {
+        if (err) {
+          return res.status(500).json({ message: 'Registration successful but login failed' });
+        }
+        res.json({ user, message: 'Registration successful' });
+      });
+    } catch (error: any) {
+      console.error('Registration error:', error);
+      res.status(500).json({ message: 'Registration failed' });
+    }
+  };
+
   // ---------------------------------------------------------------------------
   // Affiliate API
   // ---------------------------------------------------------------------------
@@ -407,93 +560,9 @@ export async function registerRoutes(app: any) {
     }
   });
 
-  app.post("/auth/register", async (req: Request, res: Response) => {
-    try {
-      const { email, password, firstName, lastName, address, state, county, userTypes = [], verificationStatus } = req.body;
-
-      // Check if user already exists
-      const existingUser = await storage.getUserByEmail(email);
-      if (existingUser) {
-        return res.status(400).json({ message: "User already exists" });
-      }
-
-      // Validate user types
-      if (!userTypes || userTypes.length === 0) {
-        return res.status(400).json({ message: "Please select at least one user type" });
-      }
-
-      // Hash password
-      const hashedPassword = await hashPassword(password);
-
-      // Badge helpers
-      const formatRoleLabel = (role: string) => role.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
-      const badges = new Set<string>();
-
-      // Role badges for each selected user type
-      for (const role of userTypes) {
-        const roleBadge = getUserTypeBadgeLabel(role);
-        if (roleBadge) badges.add(roleBadge);
-      }
-
-      // Founder badge: first of each type in a county
-      if (county) {
-        for (const role of userTypes) {
-          const countResult: any = await db.execute(sql`SELECT COUNT(*)::int as count FROM users WHERE county = ${county} AND ${role} = ANY(roles)`);
-          const count = Number(countResult?.rows?.[0]?.count ?? countResult?.[0]?.count ?? 0);
-          if (count === 0) {
-            badges.add(`Founder (${formatRoleLabel(role)})`);
-          }
-        }
-      }
-
-      // Verified badge: if verificationStatus is approved
-      const allowedStatuses = ['pending', 'under_review', 'approved', 'rejected', 'expired', 'suspended'];
-      const status = allowedStatuses.includes(verificationStatus) ? verificationStatus : 'pending';
-      if (status === 'approved') {
-        userTypes.forEach((role: string) => badges.add(`Verified ${formatRoleLabel(role)}`));
-      }
-
-      // Determine primary role from user types (use first selected for backward compatibility)
-      const primaryRole = userTypes[0] || 'homeowner';
-
-      const preferences = {
-        ...(req.body.preferences || {}),
-        badges: {
-          show: req.body?.preferences?.badges?.show ?? true,
-        },
-      };
-
-      // Create user with multi-role support
-      const user = await storage.createUser({
-        email,
-        password: hashedPassword,
-        firstName,
-        lastName,
-        address,
-        state,
-        county,
-        role: primaryRole as any, // Primary role for backward compatibility
-        roles: userTypes, // Store all selected user types
-        activeRole: primaryRole, // Default active role
-        emailVerified: false,
-        addressVerified: false,
-        verificationStatus: status,
-        badges: Array.from(badges),
-        preferences,
-      });
-
-      // Auto-login after registration
-      req.login(user, (err) => {
-        if (err) {
-          return res.status(500).json({ message: "Registration successful but login failed" });
-        }
-        res.json({ user, message: "Registration successful" });
-      });
-    } catch (error: any) {
-      console.error("Registration error:", error);
-      res.status(500).json({ message: "Registration failed" });
-    }
-  });
+  // Backward compatibility: allow both /auth/register and /api/auth/register
+  app.post("/auth/register", handleRegister);
+  app.post("/api/auth/register", handleRegister);
 
   app.post("/auth/logout", (req: Request, res: Response) => {
     req.logout((err) => {
@@ -8304,6 +8373,44 @@ export async function registerRoutes(app: any) {
     } catch (error: any) {
       console.error("Error creating account deletion request:", error);
       res.status(500).json({ message: "Failed to create account deletion request" });
+    }
+  });
+
+  app.get("/api/user/data-export", isAuthenticated, async (req: any, res: any) => {
+    try {
+      const user = req.user as any;
+      const userId = user?.id || user?.claims?.sub;
+
+      if (!userId) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+
+      const request = await dataManagementService.createDataRequest({
+        userId,
+        requestType: 'data_export',
+        requestedBy: userId,
+      });
+
+      await dataManagementService.logDataAccess({
+        userId,
+        accessorId: userId,
+        accessorRole: user?.role || 'user',
+        actionType: 'export',
+        resourceType: 'profile',
+        ipAddress: req.ip,
+        userAgent: req.get('User-Agent'),
+        metadata: { requestId: request.id }
+      });
+
+      const exportData = await dataManagementService.exportUserData(userId);
+      const zipBuffer = await dataManagementService.createDataExportFile(exportData);
+
+      res.setHeader('Content-Type', 'application/zip');
+      res.setHeader('Content-Disposition', `attachment; filename="tradescout-data-export-${userId}.zip"`);
+      res.send(zipBuffer);
+    } catch (error: any) {
+      console.error("Error exporting user data:", error);
+      res.status(500).json({ message: "Failed to export user data" });
     }
   });
 

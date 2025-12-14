@@ -42,6 +42,7 @@ const RoleDashboardRouter = memo(function RoleDashboardRouter() {
   const getDashboardComponent = () => {
     switch (currentRole) {
       // Contractor roles
+      case 'contractor':
       case 'contractor_user':
       case 'service_provider':
       case 'accelerator_member':
@@ -54,6 +55,7 @@ const RoleDashboardRouter = memo(function RoleDashboardRouter() {
       case 'car_salesman':
         return CarSalesmanDashboard;
       
+      case 'car_dealer':
       case 'vehicle_dealer':
         return DealerDashboard;
       
