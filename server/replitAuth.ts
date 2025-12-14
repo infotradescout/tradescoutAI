@@ -24,23 +24,27 @@ const getOidcConfig = memoize(
 );
 
 export function getSession() {
-  const sessionTtl = 7 * 24 * 60 * 60 * 1000; // 1 week
+  const sessionTtlMs = 7 * 24 * 60 * 60 * 1000; // 7 days
+  const sessionTtlSeconds = 7 * 24 * 60 * 60;
   const pgStore = connectPg(session);
   const sessionStore = new pgStore({
     pool: pool,
     createTableIfMissing: true,
-    ttl: sessionTtl,
+    ttl: sessionTtlSeconds,
     tableName: "sessions",
   });
   return session({
+    name: "tradescout.sid",
     secret: process.env.SESSION_SECRET!,
     store: sessionStore,
     resave: false,
     saveUninitialized: false,
+    proxy: true,
     cookie: {
       httpOnly: true,
       secure: true,
-      maxAge: sessionTtl,
+      sameSite: "none",
+      maxAge: sessionTtlMs,
     },
   });
 }
