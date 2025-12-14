@@ -53,6 +53,42 @@ export default function ScoutOS() {
   const [location, navigate] = useLocation();
   const isMobile = useIsMobile();
 
+  type AuthProviders = { google: boolean; facebook: boolean };
+  const [authProviders, setAuthProviders] = useState<AuthProviders>({ google: false, facebook: false });
+  const [authProvidersLoaded, setAuthProvidersLoaded] = useState(false);
+
+  useEffect(() => {
+    let mounted = true;
+    const controller = new AbortController();
+    const timeoutId = window.setTimeout(() => controller.abort(), 2500);
+
+    void (async () => {
+      try {
+        const res = await fetch('/api/auth/providers', {
+          credentials: 'include',
+          headers: { Accept: 'application/json' },
+          signal: controller.signal,
+        });
+        if (!res.ok) throw new Error('Failed to load auth providers');
+        const json = (await res.json()) as Partial<AuthProviders>;
+        if (!mounted) return;
+        setAuthProviders({ google: Boolean(json.google), facebook: Boolean(json.facebook) });
+      } catch {
+        if (!mounted) return;
+        setAuthProviders({ google: false, facebook: false });
+      } finally {
+        window.clearTimeout(timeoutId);
+        if (mounted) setAuthProvidersLoaded(true);
+      }
+    })();
+
+    return () => {
+      mounted = false;
+      window.clearTimeout(timeoutId);
+      controller.abort();
+    };
+  }, []);
+
   const [appDrawerOpen, setAppDrawerOpen] = useState(false);
   const [toolsOpen, setToolsOpen] = useState(false);
   const [prefillKey, setPrefillKey] = useState(0);
@@ -64,9 +100,10 @@ export default function ScoutOS() {
   useEffect(() => {
     if (state.messages.length > 0) return;
     if (isLoading) return;
+    if (!authProvidersLoaded) return;
 
-    const googleAuthEnabled = import.meta.env.VITE_DISABLE_GOOGLE_AUTH !== "true";
-    const facebookAuthEnabled = import.meta.env.VITE_DISABLE_FACEBOOK_AUTH !== "true";
+    const googleAuthEnabled = authProviders.google && import.meta.env.VITE_DISABLE_GOOGLE_AUTH !== "true";
+    const facebookAuthEnabled = authProviders.facebook && import.meta.env.VITE_DISABLE_FACEBOOK_AUTH !== "true";
 
     const quickPrompts = [
       "Find roofers available this week",
@@ -127,7 +164,7 @@ export default function ScoutOS() {
     };
 
     applyServerResponse(welcome, []);
-  }, [applyServerResponse, isAuthenticated, isLoading, state.messages.length]);
+  }, [applyServerResponse, authProviders.facebook, authProviders.google, authProvidersLoaded, isAuthenticated, isLoading, state.messages.length]);
 
   const unreadMessages =
     (user as any)?.unreadMessages ??
