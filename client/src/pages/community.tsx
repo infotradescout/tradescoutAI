@@ -151,6 +151,14 @@ export default function Community() {
   });
 
   const handleCreatePost = () => {
+    if (!isAuthenticated) {
+      toast({
+        title: "Sign in required",
+        description: "You can browse the community without an account. Sign in to post.",
+        variant: "destructive",
+      });
+      return;
+    }
     if (!newPostContent.trim()) return;
     createPostMutation.mutate(newPostContent);
   };
@@ -247,7 +255,17 @@ export default function Community() {
                   
                   {!showPostComposer ? (
                     <button
-                      onClick={() => setShowPostComposer(true)}
+                      onClick={() => {
+                        if (!isAuthenticated) {
+                          toast({
+                            title: "Sign in required",
+                            description: "You can browse without an account. Sign in when you want to post.",
+                            variant: "destructive",
+                          });
+                          return;
+                        }
+                        setShowPostComposer(true);
+                      }}
                       className="flex-1 text-left px-5 py-3.5 bg-[#0f1419] hover:bg-[#0a0f14] border border-[#2d3748] hover:border-orange-500/50 rounded-full text-slate-300 transition-all shadow-inner"
                       data-testid="button-open-composer"
                     >

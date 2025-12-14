@@ -15,6 +15,7 @@ interface UIIssue {
 class AIMonitoringService {
   private issues: UIIssue[] = [];
   private isMonitoring = false;
+  private isInitializedOnce = false;
   private observers: MutationObserver[] = [];
   private performanceObserver?: PerformanceObserver;
   private errorListener?: (event: ErrorEvent) => void;
@@ -23,8 +24,10 @@ class AIMonitoringService {
   private lastMemoryReport: number = 0; // Added to track last memory report time
 
   initializeMonitoring() {
+    if (this.isInitializedOnce) return;
     if (this.isMonitoring) return;
 
+    this.isInitializedOnce = true;
     this.isMonitoring = true;
     this.setupErrorHandling();
     this.setupPerformanceMonitoring();

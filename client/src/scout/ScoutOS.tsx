@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState, useCallback } from "react";
-import { SlidersHorizontal, MessageCircle, Bell, UserPlus } from "lucide-react";
+import { SlidersHorizontal, MessageCircle, Bell } from "lucide-react";
 import { useLocation } from "wouter";
 import { useAuth } from "../hooks/useAuth";
 import { useIsMobile } from "../hooks/useIsMobile";
@@ -32,6 +32,8 @@ import {
 
 const INTRO_DEMO_TEXT = "What can TradeScout do for my community?";
 
+let hasSeededScoutWelcome = false;
+
 const BANNED_TERMS = ["fuck", "shit", "bitch", "asshole", "cunt", "slut", "whore"];
 
 function containsProfanity(text: string) {
@@ -49,45 +51,9 @@ function censorProfanity(text: string) {
 }
 
 export default function ScoutOS() {
-  const { user, isAuthenticated, isLoading } = useAuth();
+  const { user, isAuthenticated } = useAuth();
   const [location, navigate] = useLocation();
   const isMobile = useIsMobile();
-
-  type AuthProviders = { google: boolean; facebook: boolean };
-  const [authProviders, setAuthProviders] = useState<AuthProviders>({ google: false, facebook: false });
-  const [authProvidersLoaded, setAuthProvidersLoaded] = useState(false);
-
-  useEffect(() => {
-    let mounted = true;
-    const controller = new AbortController();
-    const timeoutId = window.setTimeout(() => controller.abort(), 2500);
-
-    void (async () => {
-      try {
-        const res = await fetch('/api/auth/providers', {
-          credentials: 'include',
-          headers: { Accept: 'application/json' },
-          signal: controller.signal,
-        });
-        if (!res.ok) throw new Error('Failed to load auth providers');
-        const json = (await res.json()) as Partial<AuthProviders>;
-        if (!mounted) return;
-        setAuthProviders({ google: Boolean(json.google), facebook: Boolean(json.facebook) });
-      } catch {
-        if (!mounted) return;
-        setAuthProviders({ google: false, facebook: false });
-      } finally {
-        window.clearTimeout(timeoutId);
-        if (mounted) setAuthProvidersLoaded(true);
-      }
-    })();
-
-    return () => {
-      mounted = false;
-      window.clearTimeout(timeoutId);
-      controller.abort();
-    };
-  }, []);
 
   const [appDrawerOpen, setAppDrawerOpen] = useState(false);
   const [toolsOpen, setToolsOpen] = useState(false);
@@ -98,12 +64,8 @@ export default function ScoutOS() {
 
   // Seed a welcome message (replaces legacy ScoutChat intro + quick prompts).
   useEffect(() => {
+    if (hasSeededScoutWelcome) return;
     if (state.messages.length > 0) return;
-    if (isLoading) return;
-    if (!authProvidersLoaded) return;
-
-    const googleAuthEnabled = authProviders.google && import.meta.env.VITE_DISABLE_GOOGLE_AUTH !== "true";
-    const facebookAuthEnabled = authProviders.facebook && import.meta.env.VITE_DISABLE_FACEBOOK_AUTH !== "true";
 
     const quickPrompts = [
       "Find roofers available this week",
@@ -115,56 +77,18 @@ export default function ScoutOS() {
       "Find an emergency plumber tonight",
     ];
 
-    const authClusterActions: ScoutAction[] = [];
-    if (googleAuthEnabled) {
-      authClusterActions.push({ type: "NAVIGATE", label: "Continue with Google", to: "/api/auth/google" });
-    }
-    if (facebookAuthEnabled) {
-      authClusterActions.push({ type: "NAVIGATE", label: "Continue with Facebook", to: "/api/auth/facebook" });
-    }
-    authClusterActions.push({ type: "NAVIGATE", label: "Sign up with email", to: "/register" });
-
-    const welcomeClusters: ScoutCluster[] = [
-      ...(!isAuthenticated
-        ? ([
-            {
-              id: "scoutos-auth",
-              title: "Create your free account",
-              kind: "generic",
-              body: "Pick your sign-up method to unlock your dashboard and saved work.",
-              actions: authClusterActions,
-            },
-          ] as ScoutCluster[])
-        : []),
-      {
-        id: "scoutos-quick-links",
-        title: "Quick links",
-        kind: "generic",
-        body: "Jump straight into a section.",
-        actions: [
-          { type: "NAVIGATE", label: "Open Dashboard", to: "/dashboard" },
-          { type: "NAVIGATE", label: "Browse Contractors", to: ROUTES.CONTRACTORS },
-          { type: "NAVIGATE", label: "Marketplace", to: ROUTES.MARKETPLACE },
-          { type: "NAVIGATE", label: "Community", to: ROUTES.COMMUNITY },
-          { type: "NAVIGATE", label: "MealScout", to: "/mealscout" },
-          { type: "NAVIGATE", label: "Help Center", to: ROUTES.HELP },
-        ],
-      },
-    ];
-
     const welcome: ScoutMessage = {
       id: `a_${Date.now()}_${Math.random().toString(36).slice(2)}`,
       role: "assistant",
-      content: isAuthenticated
-        ? "Welcome back — I’m Scout. Tell me your project, location, budget, and timing and I’ll route you to the right pages and next steps."
-        : "Hey — I’m Scout. I can find local pros, surface marketplace deals, and help launch community growth. Ask anything, or tap a prompt below.",
+      content:
+        "Hey — I’m Scout. I can find local pros, surface marketplace deals, and help launch community growth. Ask anything, or tap a prompt below.",
       timestamp: new Date().toISOString(),
       suggestedActions: quickPrompts,
-      clusters: welcomeClusters,
     };
 
     applyServerResponse(welcome, []);
-  }, [applyServerResponse, authProviders.facebook, authProviders.google, authProvidersLoaded, isAuthenticated, isLoading, state.messages.length]);
+    hasSeededScoutWelcome = true;
+  }, [applyServerResponse, state.messages.length]);
 
   const unreadMessages =
     (user as any)?.unreadMessages ??
@@ -530,6 +454,17 @@ export default function ScoutOS() {
   const heroLocationLabel = getUserLocationLabel(user as any);
   const heroAudienceLabel = getUserAudienceLabel(user as any);
 
+  const quickLinks: Array<{ label: string; to: string }> = useMemo(
+    () => [
+      { label: "Dashboard", to: "/dashboard" },
+      { label: "Contractors", to: ROUTES.CONTRACTORS },
+      { label: "Marketplace", to: ROUTES.MARKETPLACE },
+      { label: "Community", to: ROUTES.COMMUNITY },
+      { label: "MealScout", to: "/mealscout" },
+    ],
+    []
+  );
+
   return (
     <div className="min-h-screen bg-[#060b1c] text-white flex flex-col items-center">
       <div className="w-full max-w-xl px-4 pt-10 pb-4 space-y-6">
@@ -547,22 +482,27 @@ export default function ScoutOS() {
                 <span className="text-orange-400">Empowering your community</span>
               </h1>
 
+              {!isAuthenticated && (
+                <p className="mt-2 text-xs text-slate-300/90">
+                  You can explore without an account. Sign in when you want to save or participate.
+                </p>
+              )}
+
               {/* Browse apps link removed per updated hero spec */}
             </div>
             {/* Right: tools + context actions in a single row */}
             <div className="flex items-center gap-2 shrink-0">
-              {/* When logged out: Create account chip to the left of tools */}
               {!isAuthenticated && (
                 <button
                   type="button"
-                  onClick={() => navigate(ROUTES.REGISTER || "/register")}
-                  className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-orange-500 text-black shadow-lg shadow-orange-500/30 hover:bg-orange-400"
-                  aria-label="Create account"
+                  onClick={() => navigate("/register")}
+                  className="inline-flex items-center justify-center rounded-xl bg-tsAccent px-3 py-2 text-xs font-semibold text-black hover:bg-orange-400"
                 >
-                  <UserPlus className="h-4 w-4" />
+                  Create account
                 </button>
               )}
 
+              {/* When logged out: Create account chip to the left of tools */}
               {/* When logged in: Messages + Notifications */}
               {isAuthenticated && (
                 <>
@@ -624,10 +564,42 @@ export default function ScoutOS() {
               </span>
             </div>
           </div>
+
+          <div className="flex flex-wrap gap-2">
+            {quickLinks.map((l) => (
+              <button
+                key={l.to}
+                type="button"
+                onClick={() => navigate(l.to)}
+                className="px-3 py-1.5 text-[11px] rounded-full border border-slate-700 bg-slate-900 hover:border-orange-400"
+              >
+                {l.label}
+              </button>
+            ))}
+          </div>
         </header>
 
         {/* Thread + input in a single chat container */}
-        <div className="mt-3 rounded-2xl border border-slate-800 bg-[#020617] px-4 py-4 space-y-4 min-h-[220px] max-h-[420px]">
+        <div className="mt-3 rounded-2xl border border-slate-800 bg-[#020617] px-4 py-4 space-y-4">
+          {state.messages.length === 0 && (
+            <div className="flex flex-wrap gap-2">
+              {[
+                "Find top-rated contractors in my county",
+                "What's happening in my community this week?",
+                "Help me estimate a home repair project",
+              ].map((prompt) => (
+                <button
+                  key={prompt}
+                  type="button"
+                  onClick={() => handleSend(prompt)}
+                  className="px-3 py-1.5 text-[11px] rounded-full border border-slate-700 bg-slate-900 hover:border-orange-400"
+                >
+                  {prompt}
+                </button>
+              ))}
+            </div>
+          )}
+
           <ScoutThread
             messages={state.messages}
             status={state.status}
@@ -638,7 +610,7 @@ export default function ScoutOS() {
           <ScoutInput
             key={prefillKey}
             disabled={isBusy}
-            placeholder="Ask anything — local intel, pros, marketplace, or meal deals."
+            placeholder="What can I help you with in your county?"
             onSend={(v) => handleSend(v)}
             onUserTyping={() => {
               recordActivity({
@@ -653,6 +625,20 @@ export default function ScoutOS() {
             enableAutoDemo={!isAuthenticated && state.messages.length === 0}
             autoDemoText={INTRO_DEMO_TEXT}
           />
+
+          {!isAuthenticated && (
+            <div className="text-xs text-slate-300/90">
+              You can explore freely.{' '}
+              <button
+                type="button"
+                className="text-tsAccent hover:text-orange-400 font-medium"
+                onClick={() => navigate("/login")}
+              >
+                Sign in
+              </button>{' '}
+              to save, post, or message.
+            </div>
+          )}
         </div>
 
         {/* Trending */}

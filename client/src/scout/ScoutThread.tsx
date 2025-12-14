@@ -89,7 +89,7 @@ const ScoutThread: React.FC<ScoutThreadProps> = ({
     status === "sending" || status === "thinking" || status === "responding";
 
   return (
-    <div className="space-y-3 max-h-80 overflow-y-auto pr-1">
+    <div className="space-y-3 pr-1">
       {messages.map((msg) => {
         const isUser = msg.role === "user";
 

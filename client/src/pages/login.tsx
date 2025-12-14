@@ -13,13 +13,9 @@ export default function Login() {
     }
   }, [isAuthenticated]);
 
-  if (isLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-[#0a0f1e] text-tsTextMain">
-        <div className="animate-spin w-8 h-8 border-4 border-tsAccent border-t-transparent rounded-full" />
-      </div>
-    );
-  }
+  const beginOAuth = (provider: "google" | "facebook") => {
+    window.location.assign(`/api/auth/${provider}`);
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-[#0a0f1e] via-[#0f172a] to-[#0a0f1e] text-tsTextMain flex items-center justify-center px-4 py-10">
@@ -32,6 +28,28 @@ export default function Login() {
           <p className="text-sm text-tsTextMuted">Sign in to access your dashboard, marketplace, and community tools.</p>
         </CardHeader>
         <CardContent>
+          <div className="bg-[#0b1224] border border-tsBorder rounded-xl p-4">
+            <div className="text-sm text-slate-300">Continue with</div>
+            <div className="mt-3 grid grid-cols-1 gap-2">
+              <button
+                type="button"
+                className="w-full rounded-xl border border-slate-700 bg-slate-900 px-4 py-2 text-sm hover:bg-slate-800"
+                onClick={() => beginOAuth("google")}
+                disabled={isLoading}
+              >
+                Google
+              </button>
+              <button
+                type="button"
+                className="w-full rounded-xl border border-slate-700 bg-slate-900 px-4 py-2 text-sm hover:bg-slate-800"
+                onClick={() => beginOAuth("facebook")}
+                disabled={isLoading}
+              >
+                Facebook
+              </button>
+            </div>
+            {isLoading && <div className="mt-2 text-xs text-slate-400">Checking session…</div>}
+          </div>
           <div className="bg-[#0b1224] border border-tsBorder rounded-xl p-4">
             <EmailPasswordAuth />
           </div>

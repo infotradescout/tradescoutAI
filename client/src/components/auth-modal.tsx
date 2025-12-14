@@ -1,4 +1,3 @@
-import { useState } from "react";
 import {
   Dialog,
   DialogContent,
@@ -6,7 +5,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { AuthButtons } from "./auth-buttons";
 import { X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -51,16 +49,40 @@ export function AuthModal({
           </div>
         </DialogHeader>
         <div className="mt-4">
-          <AuthButtons 
-            title=""
-            description=""
-            showGuestOption={showGuestOption}
-            onGuestContinue={() => {
-              onGuestContinue?.();
-              onClose();
-            }}
-            className="bg-transparent border-0 shadow-none"
-          />
+          <div className="grid grid-cols-1 gap-2">
+            <Button
+              type="button"
+              className="w-full"
+              onClick={() => {
+                window.location.href = "/login";
+              }}
+            >
+              Sign in
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              className="w-full"
+              onClick={() => {
+                window.location.href = "/register";
+              }}
+            >
+              Create account
+            </Button>
+            {showGuestOption && (
+              <Button
+                type="button"
+                variant="ghost"
+                className="w-full"
+                onClick={() => {
+                  onGuestContinue?.();
+                  onClose();
+                }}
+              >
+                Continue as guest
+              </Button>
+            )}
+          </div>
         </div>
       </DialogContent>
     </Dialog>

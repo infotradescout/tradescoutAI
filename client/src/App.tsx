@@ -266,45 +266,6 @@ const AppLayout = memo(function AppLayout() {
   const { isAuthenticated } = useAuth();
   const logout = useLogout();
 
-  type AuthProviders = { google: boolean; facebook: boolean };
-  const [authProviders, setAuthProviders] = useState<AuthProviders>({ google: false, facebook: false });
-  const [authProvidersLoaded, setAuthProvidersLoaded] = useState(false);
-
-  useEffect(() => {
-    let mounted = true;
-    const controller = new AbortController();
-    const timeoutId = window.setTimeout(() => controller.abort(), 2500);
-
-    void (async () => {
-      try {
-        const res = await fetch('/api/auth/providers', {
-          credentials: 'include',
-          headers: { Accept: 'application/json' },
-          signal: controller.signal,
-        });
-        if (!res.ok) throw new Error('Failed to load auth providers');
-        const json = (await res.json()) as Partial<AuthProviders>;
-        if (!mounted) return;
-        setAuthProviders({ google: Boolean(json.google), facebook: Boolean(json.facebook) });
-      } catch {
-        if (!mounted) return;
-        setAuthProviders({ google: false, facebook: false });
-      } finally {
-        window.clearTimeout(timeoutId);
-        if (mounted) setAuthProvidersLoaded(true);
-      }
-    })();
-
-    return () => {
-      mounted = false;
-      window.clearTimeout(timeoutId);
-      controller.abort();
-    };
-  }, []);
-
-  const googleAuthEnabled = authProvidersLoaded && authProviders.google && import.meta.env.VITE_DISABLE_GOOGLE_AUTH !== 'true';
-  const facebookAuthEnabled = authProvidersLoaded && authProviders.facebook && import.meta.env.VITE_DISABLE_FACEBOOK_AUTH !== 'true';
-
   const [showBetaNotice, setShowBetaNotice] = useState(false);
 
   useEffect(() => {
@@ -327,59 +288,23 @@ const AppLayout = memo(function AppLayout() {
   return (
     <SimpleMobileGestures>
       <div className={`min-h-screen ${appBackgroundClass} text-tsTextMain font-sans flex flex-col`}>
-        <div className="fixed top-4 right-4 z-50 flex items-center gap-2">
-          {isAuthenticated ? (
-            <>
-              <Link href="/profile">
-                <Button size="sm" variant="secondary" className="bg-black/30 border border-tsBorder hover:bg-black/40">
-                  Account
-                </Button>
-              </Link>
-              <Button
-                size="sm"
-                variant="outline"
-                className="border-tsBorder bg-transparent hover:bg-white/5"
-                onClick={() => void logout()}
-              >
-                Logout
+        {!isLlmRoute && isAuthenticated && (
+          <div className="fixed top-4 right-4 z-50 flex items-center gap-2">
+            <Link href="/profile">
+              <Button size="sm" variant="secondary" className="bg-black/30 border border-tsBorder hover:bg-black/40">
+                Account
               </Button>
-            </>
-          ) : (
-            <>
-              <Link href="/login">
-                <Button size="sm" variant="secondary" className="bg-black/30 border border-tsBorder hover:bg-black/40">
-                  Sign in
-                </Button>
-              </Link>
-
-              {googleAuthEnabled && (
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="border-tsBorder bg-transparent hover:bg-white/5"
-                  onClick={() => {
-                    window.location.href = '/api/auth/google';
-                  }}
-                >
-                  Continue with Google
-                </Button>
-              )}
-
-              {facebookAuthEnabled && (
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="border-tsBorder bg-transparent hover:bg-white/5"
-                  onClick={() => {
-                    window.location.href = '/api/auth/facebook';
-                  }}
-                >
-                  Continue with Facebook
-                </Button>
-              )}
-            </>
-          )}
-        </div>
+            </Link>
+            <Button
+              size="sm"
+              variant="outline"
+              className="border-tsBorder bg-transparent hover:bg-white/5"
+              onClick={() => void logout()}
+            >
+              Logout
+            </Button>
+          </div>
+        )}
 
         {!isLlmRoute && (
           <header className="hidden md:block sticky top-0 z-40 backdrop-blur-md bg-slate-950/85 border-b border-tsBorder shadow-lg">
