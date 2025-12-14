@@ -76,8 +76,8 @@ export async function setupAuth(app: Express) {
 
   // Facebook strategy for social authentication
   const facebookDisabled = process.env.DISABLE_FACEBOOK_AUTH === "true";
-  const facebookAppId = process.env.FACEBOOK_APP_ID;
-  const facebookAppSecret = process.env.FACEBOOK_APP_SECRET;
+  const facebookAppId = process.env.FACEBOOK_APP_ID || process.env.FACEBOOK_CLIENT_ID;
+  const facebookAppSecret = process.env.FACEBOOK_APP_SECRET || process.env.FACEBOOK_CLIENT_SECRET;
 
   console.log("FACEBOOK ENV CHECK", {
     id: facebookAppId,
@@ -87,7 +87,9 @@ export async function setupAuth(app: Express) {
   });
 
   if (facebookDisabled || !facebookAppId || !facebookAppSecret) {
-    console.log("Facebook strategy skipped (set FACEBOOK_APP_ID/SECRET to enable; set DISABLE_FACEBOOK_AUTH=true to silence this message)");
+    console.log(
+      "Facebook strategy skipped (set FACEBOOK_APP_ID/SECRET or FACEBOOK_CLIENT_ID/CLIENT_SECRET to enable; set DISABLE_FACEBOOK_AUTH=true to silence this message)"
+    );
   } else {
     console.log('Registering Facebook strategy with App ID:', facebookAppId.substring(0, 4) + '...');
     try {
