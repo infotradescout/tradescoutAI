@@ -266,8 +266,44 @@ const AppLayout = memo(function AppLayout() {
   const { isAuthenticated } = useAuth();
   const logout = useLogout();
 
-  const googleAuthEnabled = import.meta.env.VITE_DISABLE_GOOGLE_AUTH !== 'true';
-  const facebookAuthEnabled = import.meta.env.VITE_DISABLE_FACEBOOK_AUTH !== 'true';
+  type AuthProviders = { google: boolean; facebook: boolean };
+  const [authProviders, setAuthProviders] = useState<AuthProviders>({ google: false, facebook: false });
+  const [authProvidersLoaded, setAuthProvidersLoaded] = useState(false);
+
+  useEffect(() => {
+    let mounted = true;
+    const controller = new AbortController();
+    const timeoutId = window.setTimeout(() => controller.abort(), 2500);
+
+    void (async () => {
+      try {
+        const res = await fetch('/api/auth/providers', {
+          credentials: 'include',
+          headers: { Accept: 'application/json' },
+          signal: controller.signal,
+        });
+        if (!res.ok) throw new Error('Failed to load auth providers');
+        const json = (await res.json()) as Partial<AuthProviders>;
+        if (!mounted) return;
+        setAuthProviders({ google: Boolean(json.google), facebook: Boolean(json.facebook) });
+      } catch {
+        if (!mounted) return;
+        setAuthProviders({ google: false, facebook: false });
+      } finally {
+        window.clearTimeout(timeoutId);
+        if (mounted) setAuthProvidersLoaded(true);
+      }
+    })();
+
+    return () => {
+      mounted = false;
+      window.clearTimeout(timeoutId);
+      controller.abort();
+    };
+  }, []);
+
+  const googleAuthEnabled = authProvidersLoaded && authProviders.google && import.meta.env.VITE_DISABLE_GOOGLE_AUTH !== 'true';
+  const facebookAuthEnabled = authProvidersLoaded && authProviders.facebook && import.meta.env.VITE_DISABLE_FACEBOOK_AUTH !== 'true';
 
   const [showBetaNotice, setShowBetaNotice] = useState(false);
 
