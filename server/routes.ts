@@ -998,11 +998,10 @@ export async function registerRoutes(app: any) {
   // OAuth strategies are configured in auth.ts
 
   const hasGoogleOAuth = Boolean(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET);
+  const facebookDisabled = process.env.DISABLE_FACEBOOK_AUTH === "true";
   const facebookAppId = process.env.FACEBOOK_APP_ID || process.env.FACEBOOK_CLIENT_ID;
   const facebookAppSecret = process.env.FACEBOOK_APP_SECRET || process.env.FACEBOOK_CLIENT_SECRET;
-  const hasFacebookOAuth =
-    process.env.DISABLE_FACEBOOK_AUTH !== "true" &&
-    Boolean(facebookAppId && facebookAppSecret);
+  const hasFacebookOAuth = !facebookDisabled && Boolean(facebookAppId && facebookAppSecret);
 
   if (hasGoogleOAuth) {
     passport.use(
@@ -1055,7 +1054,37 @@ export async function registerRoutes(app: any) {
   // OAuth routes (canonical): only register when the strategy is configured.
   // This prevents runtime crashes like: "Unknown authentication strategy 'google'".
   app.get('/api/auth/providers', (req: Request, res: Response) => {
-    res.json({ google: hasGoogleOAuth, facebook: hasFacebookOAuth });
+    res.setHeader('Cache-Control', 'no-store');
+
+    const facebookIdSource = process.env.FACEBOOK_APP_ID
+      ? 'FACEBOOK_APP_ID'
+      : process.env.FACEBOOK_CLIENT_ID
+        ? 'FACEBOOK_CLIENT_ID'
+        : null;
+    const facebookSecretSource = process.env.FACEBOOK_APP_SECRET
+      ? 'FACEBOOK_APP_SECRET'
+      : process.env.FACEBOOK_CLIENT_SECRET
+        ? 'FACEBOOK_CLIENT_SECRET'
+        : null;
+
+    res.json({
+      google: hasGoogleOAuth,
+      facebook: hasFacebookOAuth,
+      diagnostics: {
+        facebook: {
+          disabledByEnv: facebookDisabled,
+          hasId: Boolean(facebookAppId),
+          hasSecret: Boolean(facebookAppSecret),
+          idSource: facebookIdSource,
+          secretSource: facebookSecretSource,
+        },
+        google: {
+          hasId: Boolean(process.env.GOOGLE_CLIENT_ID),
+          hasSecret: Boolean(process.env.GOOGLE_CLIENT_SECRET),
+          hasCallback: Boolean(process.env.GOOGLE_CALLBACK_URL),
+        },
+      },
+    });
   });
 
   if (hasFacebookOAuth) {
