@@ -796,17 +796,19 @@ const App = memo(function App() {
                       <Route path="/scout" component={ScoutOS} />
 
                       {/* ================= AUTH (NO LAYOUT) ================= */}
-                      <Route path="/login" component={Login} />
-                      <Route path="/register" component={Register} />
+                      <Route path="/login"><LazyPage Component={Login} /></Route>
+                      <Route path="/register"><LazyPage Component={Register} /></Route>
 
                       {/* ================= APP (SINGLE LAYOUT OWNER) ================= */}
-                      <AppShell>
-                        <Switch>
-                          <Route path="/dashboard" component={Dashboard} />
-                          <Route path="/community" component={Community} />
-                          <Route path="/exchange" component={Exchange} />
-                        </Switch>
-                      </AppShell>
+                      <Route>
+                        <AppShell>
+                          <Switch>
+                            <Route path="/dashboard"><LazyPage Component={RoleDashboardRouter} /></Route>
+                            <Route path="/community"><LazyPage Component={Community} /></Route>
+                            <Route path="/exchange"><LazyPage Component={Exchange} /></Route>
+                          </Switch>
+                        </AppShell>
+                      </Route>
                     </Switch>
             </Router>
             <SimpleFloatingHelp />
