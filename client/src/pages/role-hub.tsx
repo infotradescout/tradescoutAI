@@ -13,11 +13,12 @@ export default function RoleHubPage() {
       <div className="min-h-screen bg-slate-950 text-tsTextMain flex items-center justify-center">
         <div className="text-center space-y-4">
           <p className="text-lg">Role not found.</p>
-          <Link href="/">
-            <a className="inline-flex items-center gap-2 text-tsAccent hover:text-tsAccentSoft">
-              <ArrowLeft className="h-4 w-4" />
-              Back to Scout
-            </a>
+          <Link
+            href="/"
+            className="inline-flex items-center gap-2 text-tsAccent hover:text-tsAccentSoft"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            <span>Back to Scout</span>
           </Link>
         </div>
       </div>
@@ -46,11 +47,12 @@ export default function RoleHubPage() {
               </h1>
             </div>
           </div>
-          <Link href="/">
-            <a className="inline-flex items-center gap-2 text-xs md:text-sm text-tsTextMuted hover:text-tsAccentSoft">
-              <ArrowLeft className="h-4 w-4" />
-              Back to Scout
-            </a>
+          <Link
+            href="/"
+            className="inline-flex items-center gap-2 text-xs md:text-sm text-tsTextMuted hover:text-tsAccentSoft"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            <span>Back to Scout</span>
           </Link>
         </header>
 
@@ -122,15 +124,17 @@ export default function RoleHubPage() {
                 provider, or community builder.
               </p>
               <div className="space-y-2 text-xs md:text-sm">
-                <Link href="/">
-                  <a className="block w-full text-center px-3 py-2 rounded-xl bg-tsAccent text.black font-medium hover:bg-tsAccentSoft transition">
-                    Ask Scout about this role
-                  </a>
+                <Link
+                  href="/"
+                  className="block w-full text-center px-3 py-2 rounded-xl bg-tsAccent text.black font-medium hover:bg-tsAccentSoft transition"
+                >
+                  Ask Scout about this role
                 </Link>
-                <Link href="/profile">
-                  <a className="block w-full text-center px-3 py-2 rounded-xl border border-tsBorder text-tsTextMuted hover:text-white hover:bg-slate-900 transition">
-                    Update my roles
-                  </a>
+                <Link
+                  href="/profile"
+                  className="block w-full text-center px-3 py-2 rounded-xl border border-tsBorder text-tsTextMuted hover:text-white hover:bg-slate-900 transition"
+                >
+                  Update my roles
                 </Link>
               </div>
             </div>

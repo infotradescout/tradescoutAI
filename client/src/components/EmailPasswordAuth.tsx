@@ -42,7 +42,7 @@ export function EmailPasswordAuth() {
         }!`,
       });
 
-      window.location.href = "/profile-setup";
+      window.location.href = "/dashboard";
     } catch (error) {
       console.error("Authentication error:", error);
       toast({
