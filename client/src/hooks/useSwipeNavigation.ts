@@ -105,7 +105,6 @@ export function useSwipeNavigation({
 const PAGE_ORDER = [
   '/dashboard',
   '/contractors/board',
-  '/calculator',
   '/contractors',
   '/foundation',
   '/community',
@@ -120,7 +119,6 @@ const PAGE_ORDER = [
 const GUEST_PAGE_ORDER = [
   '/',
   '/contractors/board',
-  '/calculator',
   '/contractors',
   '/foundation',
   '/community',
@@ -137,7 +135,6 @@ function getPageDisplayName(path: string): string {
     '/': 'Home',
     '/contractors': 'For Contractors',
     '/contractors/board': 'Contractors',
-    '/calculator': 'Quote Calculator',
     '/dashboard': 'Dashboard',
     '/foundation': 'Foundation',
     '/community': 'Community',
