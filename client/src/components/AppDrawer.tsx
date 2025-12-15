@@ -48,13 +48,13 @@ export default function AppDrawer({ isOpen, onClose }: AppDrawerProps) {
           </h3>
           <div className="space-y-1">
             {NAV_SECTIONS.map((item) => (
-              <Link key={item.href} href={item.href}>
-                <a
-                  onClick={onClose}
-                  className="block rounded-lg px-3 py-2 text-gray-800 hover:bg-gray-100 transition"
-                >
-                  {item.label}
-                </a>
+              <Link
+                key={item.href}
+                href={item.href}
+                onClick={onClose}
+                className="block rounded-lg px-3 py-2 text-gray-800 hover:bg-gray-100 transition"
+              >
+                {item.label}
               </Link>
             ))}
           </div>

@@ -20,24 +20,24 @@ const MobileAppBar: React.FC<MobileAppBarProps> = ({ items }) => {
               location === item.href || location.startsWith(item.href + "/");
 
             return (
-              <Link key={item.href} href={item.href}>
-                <a
-                  className={`flex flex-col items-center justify-center px-3 ${
-                    active ? "text-orange-400" : "text-slate-400"
-                  } text-[0.7rem]`}
-                >
-                  {item.icon && (
-                    <span className="mb-0.5 inline-flex h-4 w-4 items-center justify-center">
-                      {item.icon}
-                    </span>
-                  )}
-                  <span className="whitespace-nowrap">{item.label}</span>
-                  {item.badge && (
-                    <span className="mt-0.5 text-[0.6rem] rounded-full px-1.5 py-0.5 bg-orange-500/10 border border-orange-500/40">
-                      {item.badge}
-                    </span>
-                  )}
-                </a>
+              <Link
+                key={item.href}
+                href={item.href}
+                className={`flex flex-col items-center justify-center px-3 ${
+                  active ? "text-orange-400" : "text-slate-400"
+                } text-[0.7rem]`}
+              >
+                {item.icon && (
+                  <span className="mb-0.5 inline-flex h-4 w-4 items-center justify-center">
+                    {item.icon}
+                  </span>
+                )}
+                <span className="whitespace-nowrap">{item.label}</span>
+                {item.badge && (
+                  <span className="mt-0.5 text-[0.6rem] rounded-full px-1.5 py-0.5 bg-orange-500/10 border border-orange-500/40">
+                    {item.badge}
+                  </span>
+                )}
               </Link>
             );
           })}

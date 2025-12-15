@@ -122,7 +122,7 @@ const VehicleMarketplace = memo(function VehicleMarketplace() {
                 </div>
                 <div className="text-sm font-medium text-white">Dashboard</div>
               </a>
-              <a href="/car-sales/new-listing" className="bg-navy-700/50 hover:bg-navy-700 rounded-lg p-4 transition-all duration-300 group text-center">
+              <a href="/car-sales-new-listing" className="bg-navy-700/50 hover:bg-navy-700 rounded-lg p-4 transition-all duration-300 group text-center">
                 <div className="w-10 h-10 bg-orange-500 rounded-lg flex items-center justify-center mx-auto mb-2 group-hover:scale-110 transition-transform">
                   <svg className="h-5 w-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -130,13 +130,13 @@ const VehicleMarketplace = memo(function VehicleMarketplace() {
                 </div>
                 <div className="text-sm font-medium text-white">New Listing</div>
               </a>
-              <a href="/car-sales/customers" className="bg-navy-700/50 hover:bg-navy-700 rounded-lg p-4 transition-all duration-300 group text-center">
+              <a href="/car-sales-customers" className="bg-navy-700/50 hover:bg-navy-700 rounded-lg p-4 transition-all duration-300 group text-center">
                 <div className="w-10 h-10 bg-orange-500 rounded-lg flex items-center justify-center mx-auto mb-2 group-hover:scale-110 transition-transform">
                   <Users className="h-5 w-5 text-white" />
                 </div>
                 <div className="text-sm font-medium text-white">Customers</div>
               </a>
-              <a href="/car-sales/financing" className="bg-navy-700/50 hover:bg-navy-700 rounded-lg p-4 transition-all duration-300 group text-center">
+              <a href="/car-sales-financing" className="bg-navy-700/50 hover:bg-navy-700 rounded-lg p-4 transition-all duration-300 group text-center">
                 <div className="w-10 h-10 bg-orange-500 rounded-lg flex items-center justify-center mx-auto mb-2 group-hover:scale-110 transition-transform">
                   <svg className="h-5 w-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" />

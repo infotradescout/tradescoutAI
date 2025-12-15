@@ -53,7 +53,7 @@ export default function ScoutToolsDrawer({
             </a>
           </Link>
           
-          <Link href="/location">
+          <Link href="/community">
             <a
               onClick={onClose}
               className="flex items-center gap-3 p-3 rounded-lg border border-slate-800 hover:bg-slate-800/50 text-slate-300 hover:text-slate-100 transition-colors"
