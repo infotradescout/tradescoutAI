@@ -1,14 +1,24 @@
-import { ReactNode, useState, useEffect } from 'react';
-import { LayoutGrid, MessageCircle, Users, Home, Compass, Sparkles, DollarSign, SlidersHorizontal, X } from 'lucide-react';
-import { ROUTES } from '@/lib/routes';
-import { RightToolsPanel } from '@/components/layout/RightToolsPanel';
-import { useAuth } from '@/hooks/useAuth';
-import { NotificationsMenu } from '@/components/NotificationsMenu';
-import { useIsMobile } from '@/hooks/useIsMobile';
-import { Link } from 'wouter';
-import MobileAppBar from '@/components/navigation/MobileAppBar';
+import React, { ReactNode, useEffect, useState } from "react";
+import { Link } from "wouter";
+import {
+  LayoutGrid,
+  MessageCircle,
+  Bell,
+  Users,
+  Home,
+  ShoppingBag,
+  Calculator,
+  Trophy,
+  Heart,
+} from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
+import { useIsMobile } from "@/hooks/useIsMobile";
+import { ROUTES } from "@/lib/routes";
+import { NotificationsMenu } from "@/components/NotificationsMenu";
+import { RightToolsPanel } from "@/components/layout/RightToolsPanel";
+import MobileAppBar from "@/components/navigation/MobileAppBar";
 
-type NavItem = {
+export type NavItem = {
   label: string;
   href: string;
   icon?: ReactNode;
@@ -17,126 +27,192 @@ type NavItem = {
 
 type AppShellProps = {
   children: ReactNode;
-  primary?: NavItem[];
-  secondary?: NavItem[];
   footer?: ReactNode;
 };
 
-const defaultPrimary: NavItem[] = [
-  { label: 'Home', href: '/', icon: <Home className="h-4 w-4" /> },
-  { label: 'Contractors', href: ROUTES.FIND_CONTRACTORS || ROUTES.CONTRACTORS, icon: <Compass className="h-4 w-4" /> },
-  { label: 'Marketplace', href: ROUTES.MARKETPLACE, icon: <LayoutGrid className="h-4 w-4" /> },
-  { label: 'Community', href: ROUTES.COMMUNITY, icon: <Users className="h-4 w-4" /> },
+// SITE FEATURES ONLY – this is the scrollable bottom bar
+const featureNav: NavItem[] = [
+  {
+    label: "Scout",
+    href: "/scout",
+    icon: <LayoutGrid className="h-4 w-4" />,
+  },
+  {
+    label: "Community",
+    href: ROUTES.COMMUNITY ?? "/community",
+    icon: <Users className="h-4 w-4" />,
+  },
+  {
+    label: "Contractors",
+    href: ROUTES.CONTRACTORS ?? "/contractor-board",
+    icon: <Home className="h-4 w-4" />,
+  },
+  {
+    label: "Helpers",
+    href: ROUTES.CONVERSATIONS ?? "/helpers",
+    icon: <MessageCircle className="h-4 w-4" />,
+  },
+  {
+    label: "Marketplace",
+    href: ROUTES.MARKETPLACE ?? "/exchange",
+    icon: <ShoppingBag className="h-4 w-4" />,
+  },
+  {
+    label: "Calculator",
+    href: "/calculator",
+    icon: <Calculator className="h-4 w-4" />,
+  },
+  {
+    label: "Leaderboard",
+    href: "/leaderboard",
+    icon: <Trophy className="h-4 w-4" />,
+  },
+  {
+    label: "Foundation",
+    href: "/foundation",
+    icon: <Heart className="h-4 w-4" />,
+  },
 ];
 
-const defaultSecondary: NavItem[] = [
-  { label: 'Pricing', href: ROUTES.PRICING, icon: <DollarSign className="h-4 w-4" /> },
-  { label: 'Messages', href: ROUTES.CONVERSATIONS, icon: <MessageCircle className="h-4 w-4" /> },
-  { label: 'Help', href: ROUTES.HELP, icon: <Sparkles className="h-4 w-4" /> },
-];
-
-export function AppShell({
-  children,
-  primary = defaultPrimary,
-  secondary = defaultSecondary,
-  footer,
-}: AppShellProps) {
+export function AppShell({ children, footer }: AppShellProps) {
   const { isAuthenticated } = useAuth();
   const isMobile = useIsMobile();
   const [isToolsOpen, setIsToolsOpen] = useState(false);
 
-  // VERIFICATION: Log AppShell mount (should only appear once per page load)
   useEffect(() => {
-    console.log('🔥 AppShell mounted');
+    console.log("AppShell mounted");
   }, []);
 
   return (
-    <div className="min-h-screen bg-tsBg text-tsTextMain flex flex-col">
-      {/* Top bar */}
-      <header className="sticky top-0 z-50 bg-slate-950/90 backdrop-blur-md border-b border-tsBorder">
-        <div className="flex items-center justify-between px-4 py-3">
-          <div className="flex items-center gap-3">
-            <div className="flex items-center gap-2">
-              <div className="h-9 w-9 rounded-xl bg-gradient-to-br from-tsAccent to-orange-600 shadow-lg shadow-orange-500/30" />
-              <div>
-                <div className="text-xs uppercase tracking-[0.22em] text-tsAccentSoft">TradeScout</div>
-                <div className="text-sm text-tsTextMuted">Connection without compromise</div>
-              </div>
+    <div className="min-h-screen bg-slate-950 text-slate-50 flex flex-col">
+      {/* TOP APP NAV HEADER */}
+      <header className="flex items-center justify-between border-b border-slate-800 px-4 py-3">
+        {/* Brand */}
+        <Link href="/">
+          <a className="flex items-center gap-3">
+            <div className="h-8 w-8 rounded-2xl bg-orange-500 shadow-md shadow-orange-500/40" />
+            <div className="flex flex-col leading-tight">
+              <span className="text-[0.65rem] uppercase tracking-[0.35em] text-slate-400">
+                TRADESCOUT
+              </span>
+              <span className="text-xs text-slate-400">
+                Connection without compromise
+              </span>
             </div>
-          </div>
-          <div className="flex items-center gap-3">
-            {isAuthenticated && (
-              <>
-                <Link
-                  href="/messages"
-                  className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-slate-700 bg-slate-950/80 text-tsTextMain hover:bg-slate-900"
-                  aria-label="Open messages"
-                >
-                  <MessageCircle className="h-4 w-4" />
-                </Link>
-                <NotificationsMenu />
-              </>
-            )}
+          </a>
+        </Link>
 
-            {/* On desktop the right rail is already visible; only show the drawer button on mobile */}
-            {isMobile && (
+        {/* Right side: auth CTA + icons */}
+        <div className="flex items-center gap-2">
+          {!isAuthenticated && (
+            <>
               <button
                 type="button"
-                onClick={() => setIsToolsOpen(true)}
-                className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-slate-700 bg-slate-950/80 text-tsTextMain hover:bg-slate-900"
-                aria-label="Open tools and personalization menu"
+                onClick={() => (window.location.href = "/auth/signup")}
+                className="hidden sm:inline-flex items-center justify-center rounded-full border border-orange-500/70 bg-orange-500 px-3 py-1 text-[0.7rem] font-semibold text-slate-950 shadow-sm shadow-orange-500/40"
               >
-                <SlidersHorizontal className="h-4 w-4" />
+                Create account
               </button>
-            )}
-          </div>
+              <button
+                type="button"
+                onClick={() => (window.location.href = "/auth/login")}
+                className="text-[0.7rem] text-slate-400 hover:text-slate-100"
+              >
+                Log in
+              </button>
+            </>
+          )}
+
+          {/* Messages quick icon */}
+          <button
+            type="button"
+            onClick={() => (window.location.href = "/helpers")}
+            className="inline-flex h-8 w-8 items-center justify-center rounded-xl border border-slate-800 bg-slate-950/80 text-slate-300 hover:bg-slate-900"
+            aria-label="Messages and helpers"
+          >
+            <MessageCircle className="h-4 w-4" />
+          </button>
+
+          {/* Notifications */}
+          {isAuthenticated ? (
+            <NotificationsMenu />
+          ) : (
+            <button
+              type="button"
+              onClick={() => (window.location.href = "/notifications")}
+              className="inline-flex h-8 w-8 items-center justify-center rounded-xl border border-slate-800 bg-slate-950/80 text-slate-300 hover:bg-slate-900"
+              aria-label="Notifications"
+            >
+              <Bell className="h-4 w-4" />
+            </button>
+          )}
+
+          {/* Tools / profile panel (user-specific stuff) */}
+          {isAuthenticated && (
+            <button
+              type="button"
+              onClick={() => setIsToolsOpen(true)}
+              className="inline-flex h-8 w-8 items-center justify-center rounded-xl border border-slate-800 bg-slate-950/80 text-slate-200 hover:bg-slate-900"
+              aria-label="Open profile & tools panel"
+            >
+              <LayoutGrid className="h-4 w-4" />
+            </button>
+          )}
         </div>
       </header>
 
-      {/* Main content with right-side tools/personalization menu */}
-      <div className="flex-1 w-full bg-tsBg px-3 sm:px-4 md:px-6 py-6">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-2 min-w-0">
-            {children}
-          </div>
-          {/* Desktop / large screens: persistent right tools panel */}
-          <div className="hidden lg:block">
+      {/* MAIN CONTENT + DESKTOP RIGHT PANEL */}
+      <div className="flex flex-1 min-h-0">
+        <main className="flex-1 min-w-0">{children}</main>
+
+        {/* USER-SPECIFIC PAGES LIVE HERE (desktop) */}
+        {isAuthenticated && !isMobile && (
+          <aside className="hidden lg:block w-80 border-l border-slate-800 bg-slate-950/90">
             <RightToolsPanel />
-          </div>
-        </div>
+          </aside>
+        )}
       </div>
 
-      {/* Mobile tools drawer (RightToolsPanel) */}
-      {isToolsOpen && isMobile && (
-        <div className="fixed inset-0 z-50 flex">
+      {/* Optional footer */}
+      {footer && (
+        <footer className="border-t border-slate-900 px-4 py-2 text-xs text-slate-500">
+          {footer}
+        </footer>
+      )}
+
+      {/* BOTTOM BAR: SCROLLABLE SITE FEATURE NAV */}
+      <MobileAppBar items={featureNav} />
+
+      {/* MOBILE TOOLS DRAWER = PROFILE / DASHBOARD / SETTINGS, etc. */}
+      {isAuthenticated && isMobile && isToolsOpen && (
+        <div className="fixed inset-0 z-40 flex">
           <button
             type="button"
-            className="flex-1 bg-black/50"
             aria-label="Close tools menu"
+            className="flex-1 bg-black/40"
             onClick={() => setIsToolsOpen(false)}
           />
-          <div className="w-4/5 max-w-xs bg-slate-950 border-l border-slate-800 p-4 shadow-xl shadow-black/50 overflow-y-auto">
-            <div className="flex items-center justify-between mb-3">
-              <span className="text-xs uppercase tracking-[0.18em] text-slate-500">Tools & Personalization</span>
+          <div className="w-72 max-w-full bg-slate-950 border-l border-slate-800 flex flex-col">
+            <div className="flex items-center justify-between px-4 py-3 border-b border-slate-800">
+              <span className="text-[0.7rem] uppercase tracking-[0.2em] text-slate-500">
+                Tools &amp; profile
+              </span>
               <button
                 type="button"
                 onClick={() => setIsToolsOpen(false)}
                 className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-slate-700 text-slate-300 hover:bg-slate-800"
-                aria-label="Close tools menu"
               >
-                <X className="h-3 w-3" />
+                ✕
               </button>
             </div>
-            <RightToolsPanel />
+            <div className="flex-1 overflow-y-auto">
+              <RightToolsPanel />
+            </div>
           </div>
         </div>
       )}
-
-      {footer}
-      
-      {/* ARCHITECTURAL RULE: Only AppShell renders navigation */}
-      {/* Mobile bottom navigation bar */}
-      <MobileAppBar />
     </div>
   );
 }
+
+export default AppShell;

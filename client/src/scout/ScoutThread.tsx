@@ -111,7 +111,9 @@ const ScoutThread: React.FC<ScoutThreadProps> = ({
             >
               {msg.content && (
                 <p className="text-[13px] leading-relaxed whitespace-pre-line">
-                  {msg.content}
+                  {msg.content.includes("I encountered an error creating a comprehensive overview")
+                    ? "Scout is having trouble connecting to its brain right now. Please try again in a moment."
+                    : msg.content}
                 </p>
               )}
 
