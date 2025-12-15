@@ -186,7 +186,7 @@ const SimpleHome = memo(function SimpleHome() {
                       <Wrench className="h-5 w-5 text-orange-500" />
                       My Active Projects
                     </CardTitle>
-                    <Link href="/contractor/projects">
+                    <Link href="/project-tracker">
                       <Button variant="ghost" size="sm">View All</Button>
                     </Link>
                   </CardHeader>
@@ -207,7 +207,7 @@ const SimpleHome = memo(function SimpleHome() {
                       <div className="text-center py-8">
                         <Wrench className="h-12 w-12 text-slate-300 dark:text-slate-600 mx-auto mb-3" />
                         <p className="text-slate-300 mb-4">No active projects yet</p>
-                        <Link href="/contractor/leads">
+                        <Link href="/contractor-leads">
                           <Button size="sm" className="bg-orange-600 hover:bg-orange-700">
                             Browse Project Requests
                           </Button>
@@ -227,7 +227,7 @@ const SimpleHome = memo(function SimpleHome() {
                     <Building className="h-5 w-5 text-orange-500" />
                     My Property Listings
                   </CardTitle>
-                  <Link href="/exchange/real-estate/my-listings">
+                  <Link href="/real-estate-marketplace">
                     <Button variant="ghost" size="sm">View All</Button>
                   </Link>
                 </CardHeader>
@@ -248,7 +248,7 @@ const SimpleHome = memo(function SimpleHome() {
                     <div className="text-center py-8">
                       <Building className="h-12 w-12 text-slate-300 dark:text-slate-600 mx-auto mb-3" />
                       <p className="text-slate-300 mb-4">No property listings yet</p>
-                      <Link href="/exchange/real-estate/create">
+                      <Link href="/real-estate-marketplace">
                         <Button size="sm" className="bg-orange-600 hover:bg-orange-700">
                           Create Listing
                         </Button>
@@ -374,7 +374,7 @@ const SimpleHome = memo(function SimpleHome() {
                   <ShoppingCart className="h-5 w-5 text-orange-500" />
                   My Marketplace Listings
                 </CardTitle>
-                <Link href="/marketplace/create">
+                <Link href="/exchange">
                   <Button variant="ghost" size="sm">Create Listing</Button>
                 </Link>
               </CardHeader>
@@ -384,7 +384,7 @@ const SimpleHome = memo(function SimpleHome() {
                     <p className="text-sm text-slate-200">
                       You have {stats.marketplaceListings} active listing{stats.marketplaceListings !== 1 ? 's' : ''}
                     </p>
-                    <Link href="/marketplace/my-listings">
+                    <Link href="/exchange">
                       <Button size="sm" variant="outline" className="w-full">
                         Manage Listings
                       </Button>
@@ -394,7 +394,7 @@ const SimpleHome = memo(function SimpleHome() {
                   <div className="text-center py-8">
                     <Package className="h-12 w-12 text-slate-300 dark:text-slate-600 mx-auto mb-3" />
                     <p className="text-slate-300 mb-4">No marketplace listings</p>
-                    <Link href="/marketplace/create">
+                    <Link href="/exchange">
                       <Button size="sm" className="bg-orange-500 hover:bg-orange-600 text-white">
                         Create Your First Listing
                       </Button>
@@ -416,7 +416,7 @@ const SimpleHome = memo(function SimpleHome() {
               <CardContent className="space-y-2">
                 {isContractor ? (
                   <>
-                    <Link href="/contractor/leads">
+                    <Link href="/contractor-leads">
                       <Button size="sm" className="bg-orange-500 hover:bg-orange-600 text-white w-full justify-start">
                         <TrendingUp className="h-4 w-4 mr-2" />
                         Find New Projects

@@ -150,7 +150,7 @@ const RealEstateMarketplace = memo(function RealEstateMarketplace() {
                 </div>
                 <div className="text-sm font-medium text-white">Dashboard</div>
               </a>
-              <a href="/realtor/clients" className="bg-navy-700/50 hover:bg-navy-700 rounded-lg p-4 transition-all duration-300 group text-center">
+              <a href="/realtor-clients" className="bg-navy-700/50 hover:bg-navy-700 rounded-lg p-4 transition-all duration-300 group text-center">
                 <div className="w-10 h-10 bg-orange-500 rounded-lg flex items-center justify-center mx-auto mb-2 group-hover:scale-110 transition-transform">
                   <svg className="h-5 w-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
@@ -158,7 +158,7 @@ const RealEstateMarketplace = memo(function RealEstateMarketplace() {
                 </div>
                 <div className="text-sm font-medium text-white">Clients</div>
               </a>
-              <a href="/realtor/market-analysis" className="bg-navy-700/50 hover:bg-navy-700 rounded-lg p-4 transition-all duration-300 group text-center">
+              <a href="/realtor-market-analysis" className="bg-navy-700/50 hover:bg-navy-700 rounded-lg p-4 transition-all duration-300 group text-center">
                 <div className="w-10 h-10 bg-orange-500 rounded-lg flex items-center justify-center mx-auto mb-2 group-hover:scale-110 transition-transform">
                   <svg className="h-5 w-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 00-2 2h2a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
@@ -166,7 +166,7 @@ const RealEstateMarketplace = memo(function RealEstateMarketplace() {
                 </div>
                 <div className="text-sm font-medium text-white">Market Analysis</div>
               </a>
-              <a href="/realtor/connections" className="bg-navy-700/50 hover:bg-navy-700 rounded-lg p-4 transition-all duration-300 group text-center">
+              <a href="/realtor-connections" className="bg-navy-700/50 hover:bg-navy-700 rounded-lg p-4 transition-all duration-300 group text-center">
                 <div className="w-10 h-10 bg-orange-500 rounded-lg flex items-center justify-center mx-auto mb-2 group-hover:scale-110 transition-transform">
                   <svg className="h-5 w-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />

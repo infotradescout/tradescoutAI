@@ -285,13 +285,13 @@ export default function HandmadeMarketplace() {
 
       {/* Quick Actions */}
       <div className="mb-8 flex gap-4 justify-center">
-        <Link href="/handmade/sell">
+        <Link href="/handmade-marketplace">
           <Button className="bg-blue-600 hover:bg-blue-700">
             Start Selling
           </Button>
         </Link>
         {isAuthenticated && (
-          <Link href="/handmade/favorites">
+          <Link href="/handmade-marketplace">
             <Button variant="outline">
               <Heart className="w-4 h-4 mr-2" />
               My Favorites

@@ -187,7 +187,7 @@ export function RevenueWidget({ amount, monthlyChange }: { amount: number; month
       tooltipContent="Track your earnings like monitoring job profitability - keep an eye on trends to grow your business"
       tooltipIllustration="ruler"
       actionLabel="View Reports"
-      actionHref="/dashboard/financials"
+      actionHref="/analytics"
     />
   );
 }
@@ -219,7 +219,7 @@ export function MessagesWidget({ unreadCount }: { unreadCount: number }) {
       tooltipContent="Stay on top of customer communication - quick responses win more jobs than low prices"
       tooltipIllustration="hammer"
       actionLabel="View Messages"
-      actionHref="/dashboard/messages"
+      actionHref="/messages"
     />
   );
 }
@@ -235,7 +235,7 @@ export function ScheduleWidget({ upcomingJobs }: { upcomingJobs: number }) {
       tooltipContent="Your work schedule - like your project calendar but smarter about timing and resources"
       tooltipIllustration="drill"
       actionLabel="View Schedule"
-      actionHref="/dashboard/schedule"
+      actionHref="/project-tracker"
     >
       {upcomingJobs === 0 && (
         <Badge variant="outline" className="text-orange-300 border-orange-500/30">

@@ -41,11 +41,14 @@ export function useMessaging(userId: string) {
   useEffect(() => {
     if (!userId) return;
 
-    const socketUrl = process.env.NODE_ENV === 'production'
-      ? `${window.location.origin}`
-      : `http://localhost:${process.env.VITE_SERVER_PORT || 5000}`;
+    // In Vite, env vars are exposed via import.meta.env
+    const devPort = (import.meta.env.VITE_SERVER_PORT as string) || "5000";
 
-    const newSocket = io(socketUrl, {
+    const socketUrl = import.meta.env.PROD
+      ? window.location.origin
+      : `http://localhost:${devPort}`;
+
+    const newSocket: Socket = io(socketUrl, {
       auth: {
         userId,
       },

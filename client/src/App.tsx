@@ -119,6 +119,9 @@ const CommunityModerationDemo = React.lazy(() => import('./pages/CommunityModera
 const Checkout = React.lazy(() => import('./pages/checkout'));
 const PaymentSuccess = React.lazy(() => import('./pages/payment-success'));
 const PaymentHistory = React.lazy(() => import('./pages/payment-history'));
+const QuoteCalculator = React.lazy(() => import('./pages/quote-calculator'));
+const RequestQuote = React.lazy(() => import('./pages/request-quote'));
+const SavedContractors = React.lazy(() => import('./pages/saved-contractors'));
 const Notifications = React.lazy(() => import('./pages/notifications'));
 const Settings = React.lazy(() => import('./pages/settings'));
 const ProfileSettings = React.lazy(() => import('./pages/ProfileSettings'));
@@ -133,6 +136,7 @@ const CustomDashboard = React.lazy(() => import('./pages/Dashboard'));
 const DashboardSettings = React.lazy(() => import('./pages/DashboardSettings'));
 const RoleDashboardRouter = React.lazy(() => import('./components/RoleDashboardRouter'));
 const DashboardJobs = React.lazy(() => import('./pages/dashboard-jobs'));
+const RecommendationGeneratorPage = React.lazy(() => import('./pages/contractor/recommendation-generator'));
 
 // Role-specific Dashboards (heavy components)
 const ContractorDashboard = React.lazy(() => import('./pages/contractor-dashboard-simple'));
@@ -276,6 +280,7 @@ const AppLayout = memo(function AppLayout() {
   // Lite / experimental Scout surfaces can still run outside AppShell,
   // but the main Scout experience lives at /scout inside the app frame.
   const isLiteScoutRoute = location === '/_scout-lite';
+  const isLlmRoute = location.startsWith('/scout');
 
   const { isAuthenticated, isLoading } = useAuth();
 
@@ -635,6 +640,11 @@ const AppLayout = memo(function AppLayout() {
                       <LazyPage Component={SavedAds} />
                     </ProtectedRoute>
                   </Route>
+                  <Route path="/saved-contractors">
+                    <ProtectedRoute>
+                      <LazyPage Component={SavedContractors} />
+                    </ProtectedRoute>
+                  </Route>
                   <Route path="/affiliate"><LazyPage Component={Affiliate} /></Route>
                   <Route path="/notifications">
                     <ProtectedRoute>
@@ -682,6 +692,13 @@ const AppLayout = memo(function AppLayout() {
                   <Route path="/ad-creator"><LazyPage Component={AdCreator} /></Route>
                   <Route path="/promotions"><LazyPage Component={Promotions} /></Route>
                   <Route path="/growth-pack"><LazyPage Component={GrowthPack} /></Route>
+                  <Route path="/quote-calculator"><LazyPage Component={QuoteCalculator} /></Route>
+                  <Route path="/quote"><RedirectTo to="/quote-calculator" /></Route>
+                  <Route path="/recommendations">
+                    <ProtectedRoute>
+                      <LazyPage Component={RecommendationGeneratorPage} />
+                    </ProtectedRoute>
+                  </Route>
                   
                   {/* Community & Geographic */}
                   <Route path="/county-directory"><LazyPage Component={CountyDirectory} /></Route>
@@ -699,6 +716,7 @@ const AppLayout = memo(function AppLayout() {
                   <Route path="/application-tracker"><LazyPage Component={ApplicationTracker} /></Route>
                   <Route path="/administrative-dashboard"><LazyPage Component={AdministrativeDashboard} /></Route>
                   <Route path="/advanced-search"><LazyPage Component={AdvancedSearch} /></Route>
+                  <Route path="/search"><LazyPage Component={AdvancedSearch} /></Route>
                   
                   {/* Applications */}
                   <Route path="/realtor-application"><LazyPage Component={RealtorApplication} /></Route>
@@ -750,6 +768,7 @@ const AppLayout = memo(function AppLayout() {
                   {/* Interactive Pages */}
                   <Route path="/schedule-consultation"><LazyPage Component={ScheduleConsultation} /></Route>
                   <Route path="/apply-accelerator"><LazyPage Component={ApplyAccelerator} /></Route>
+                  <Route path="/request-quote"><LazyPage Component={RequestQuote} /></Route>
                   
                   {/* Legal pages */}
                   <Route path="/pricing"><LazyPage Component={Pricing} /></Route>
@@ -785,34 +804,14 @@ const AppLayout = memo(function AppLayout() {
 const App = memo(function App() {
   // VERIFICATION: Ensure this is the REAL TradeScout App being loaded
   console.log('✅ REAL TRADE SCOUT APP LOADED - client/src/App.tsx');
-  
+
   return (
     <ErrorBoundary fallback={<PageLoader />}>
       <QueryClientProvider client={queryClient}>
         <ThemeProvider>
           <SessionProvider>
             <Router>
-              <Switch>
-                {/* ================= AUTH (NO LAYOUT) ================= */}
-                <Route path="/login"><LazyPage Component={Login} /></Route>
-                <Route path="/register"><LazyPage Component={Register} /></Route>
-
-                {/* ================= APP (LAYOUT OWNER, INCLUDING SCOUT) ================= */}
-                <Route>
-                  <AppShell>
-                    <Switch>
-                      {/* Smart home/new user flow on root, Scout direct on /scout */}
-                      <Route path="/" component={SmartHome} />
-                      <Route path="/scout" component={ScoutOS} />
-
-                      {/* Core app sections */}
-                      <Route path="/dashboard"><LazyPage Component={RoleDashboardRouter} /></Route>
-                      <Route path="/community"><LazyPage Component={Community} /></Route>
-                      <Route path="/exchange"><LazyPage Component={Exchange} /></Route>
-                    </Switch>
-                  </AppShell>
-                </Route>
-              </Switch>
+              <AppLayout />
             </Router>
             <SimpleFloatingHelp />
           </SessionProvider>
