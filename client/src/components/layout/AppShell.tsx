@@ -7,7 +7,6 @@ import {
   Users,
   Home,
   ShoppingBag,
-  Calculator,
   Trophy,
   Heart,
 } from "lucide-react";
@@ -58,11 +57,6 @@ const featureNav: NavItem[] = [
     icon: <ShoppingBag className="h-4 w-4" />,
   },
   {
-    label: "Calculator",
-    href: "/calculator",
-    icon: <Calculator className="h-4 w-4" />,
-  },
-  {
     label: "Leaderboard",
     href: "/leaderboard",
     icon: <Trophy className="h-4 w-4" />,
@@ -84,12 +78,12 @@ export function AppShell({ children, footer }: AppShellProps) {
   }, []);
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-50 flex flex-col">
+    <div className="h-screen bg-slate-950 text-slate-50 flex flex-col overflow-hidden">
       {/* TOP APP NAV HEADER */}
       <header className="flex items-center justify-between border-b border-slate-800 px-4 py-3">
         {/* Brand */}
         <Link href="/">
-          <a className="flex items-center gap-3">
+          <div className="flex items-center gap-3 cursor-pointer">
             <div className="h-8 w-8 rounded-2xl bg-orange-500 shadow-md shadow-orange-500/40" />
             <div className="flex flex-col leading-tight">
               <span className="text-[0.65rem] uppercase tracking-[0.35em] text-slate-400">
@@ -99,7 +93,7 @@ export function AppShell({ children, footer }: AppShellProps) {
                 Connection without compromise
               </span>
             </div>
-          </a>
+          </div>
         </Link>
 
         {/* Right side: auth CTA + icons */}
@@ -148,26 +142,26 @@ export function AppShell({ children, footer }: AppShellProps) {
           )}
 
           {/* Tools / profile panel (user-specific stuff) */}
-          {isAuthenticated && (
-            <button
-              type="button"
-              onClick={() => setIsToolsOpen(true)}
-              className="inline-flex h-8 w-8 items-center justify-center rounded-xl border border-slate-800 bg-slate-950/80 text-slate-200 hover:bg-slate-900"
-              aria-label="Open profile & tools panel"
-            >
-              <LayoutGrid className="h-4 w-4" />
-            </button>
-          )}
+          <button
+            type="button"
+            onClick={() => setIsToolsOpen(true)}
+            className="inline-flex h-8 w-8 items-center justify-center rounded-xl border border-slate-800 bg-slate-950/80 text-slate-200 hover:bg-slate-900"
+            aria-label="Open profile & tools panel"
+          >
+            <LayoutGrid className="h-4 w-4" />
+          </button>
         </div>
       </header>
 
       {/* MAIN CONTENT + DESKTOP RIGHT PANEL */}
-      <div className="flex flex-1 min-h-0">
-        <main className="flex-1 min-w-0">{children}</main>
+      <div className="flex flex-1 min-h-0 overflow-hidden">
+        <main className="flex-1 min-w-0 pb-2 lg:pb-0 overflow-y-auto">
+          {children}
+        </main>
 
         {/* USER-SPECIFIC PAGES LIVE HERE (desktop) */}
-        {isAuthenticated && !isMobile && (
-          <aside className="hidden lg:block w-80 border-l border-slate-800 bg-slate-950/90">
+        {!isMobile && (
+          <aside className="hidden lg:block w-80 border-l border-slate-800 bg-slate-950/90 overflow-y-auto">
             <RightToolsPanel />
           </aside>
         )}
@@ -184,7 +178,7 @@ export function AppShell({ children, footer }: AppShellProps) {
       <MobileAppBar items={featureNav} />
 
       {/* MOBILE TOOLS DRAWER = PROFILE / DASHBOARD / SETTINGS, etc. */}
-      {isAuthenticated && isMobile && isToolsOpen && (
+      {isMobile && isToolsOpen && (
         <div className="fixed inset-0 z-40 flex">
           <button
             type="button"

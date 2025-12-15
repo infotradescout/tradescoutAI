@@ -12,7 +12,7 @@ const MobileAppBar: React.FC<MobileAppBarProps> = ({ items }) => {
   if (!items.length) return null;
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 h-14 border-t border-slate-800 bg-slate-950/95 backdrop-blur z-30 lg:hidden">
+    <nav className="h-14 border-t border-slate-800 bg-slate-950/95 backdrop-blur lg:hidden">
       <div className="w-full h-full overflow-x-auto">
         <div className="flex min-w-max h-full px-2 gap-2">
           {items.map((item) => {

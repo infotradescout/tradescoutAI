@@ -19,7 +19,7 @@ type NavLinkProps = {
 
 const NavLink: React.FC<NavLinkProps> = ({ href, icon, label, description }) => (
   <Link href={href}>
-    <a className="flex flex-col gap-1 rounded-xl border border-slate-800/60 bg-slate-950/60 px-3 py-2 hover:bg-slate-900">
+    <div className="flex flex-col gap-1 rounded-xl border border-slate-800/60 bg-slate-950/60 px-3 py-2 hover:bg-slate-900 cursor-pointer">
       <div className="flex items-center gap-2">
         <span className="inline-flex h-7 w-7 items-center justify-center rounded-lg bg-slate-900 border border-slate-700 text-slate-200">
           {icon}
@@ -29,7 +29,7 @@ const NavLink: React.FC<NavLinkProps> = ({ href, icon, label, description }) => 
       {description && (
         <p className="text-[0.7rem] text-slate-400 leading-snug">{description}</p>
       )}
-    </a>
+    </div>
   </Link>
 );
 

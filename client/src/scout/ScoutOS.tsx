@@ -110,6 +110,25 @@ export default function ScoutOS() {
   // auto-demo typing does NOT collapse the calm intro.
   const isFirstGuestVisit = isGuest && !hasGuestInteracted && !hasMessages;
 
+  const inferModeFromRoles = (roles: string[] | undefined | null): ScoutMode => {
+    if (!roles || roles.length === 0) return "default";
+    if (roles.some((r) => r.startsWith("contractor:") || r === "contractor" || r === "pro")) {
+      return "contractors";
+    }
+    if (roles.some((r) => r.startsWith("realtor:") || r === "realtor")) {
+      return "marketplace";
+    }
+    return "default";
+  };
+
+  const recentPrompts = useMemo(
+    () =>
+      state.messages
+        .filter((m) => m.role === "user" && !!m.content)
+        .map((m) => m.content as string),
+    [state.messages]
+  );
+
   const buildSmartSuggestions = (
     mode: ScoutMode,
     userMessage: string,
@@ -477,153 +496,97 @@ export default function ScoutOS() {
         ) : (
           // FULL CONVERSATION: All features visible after first message
           <>
-            {/* Header + hero */}
-            <header className="space-y-4">
-          <div className="flex items-center justify-between mb-3">
-            <div className="flex flex-col">
-              <span className="text-[0.7rem] uppercase tracking-[0.25em] text-slate-400">
+            {/* Header + hero (copy only; all navigation lives in AppShell) */}
+            <header className="space-y-3">
+              <p className="text-[10px] tracking-[0.25em] text-orange-300 uppercase">
                 TRADESCOUT
-              </span>
-              <span className="text-[0.7rem] text-slate-500">Local operating system</span>
-            </div>
-          </div>
-
-          <div className="space-y-2">
-            <h1 className="text-[clamp(0.9rem,4vw,1.4rem)] sm:text-2xl md:text-3xl font-semibold tracking-[0.12em] text-white uppercase">
-              <span className="text-orange-400">Empowering your community</span>
-            </h1>
-
-            {!isAuthenticated && (
-              <p className="text-xs text-slate-300/90">
-                You can explore without an account. Sign in when you want to save or participate.
               </p>
-            )}
-          </div>
+              <p className="text-xs text-slate-400">Local operating system</p>
 
-          <div className="mt-4 flex items-center justify-start">
-            <div className="inline-flex items-center gap-2 rounded-full border border-slate-800 bg-black/40 px-3 py-1">
-              <span className={`h-1.5 w-1.5 rounded-full ${statusDotClass}`} />
-              <span className={`text-[10px] font-semibold tracking-[0.18em] uppercase ${statusTextClass}`}>
-                {statusLabel}
-              </span>
+              <h1 className="mt-3 text-[clamp(1rem,4vw,1.5rem)] tracking-[0.12em] text-white uppercase">
+                <span className="text-orange-400">Empowering your community</span>
+              </h1>
+
+              {!isAuthenticated && (
+                <p className="mt-2 text-xs text-slate-300/90 max-w-md">
+                  You can explore without an account. Sign in when you want to save, post, or message.
+                </p>
+              )}
+            </header>
+
+            {/* Thread + input in a single chat container */}
+            <div className="mt-3 rounded-2xl border border-slate-800 bg-[#020617] px-4 py-4 space-y-4">
+              {!hasUserMessages && (
+                <div className="flex flex-wrap gap-2">
+                  {[
+                    "Find top-rated contractors in my county",
+                    "What's happening in my community this week?",
+                    "Help me estimate a home repair project",
+                  ].map((prompt) => (
+                    <button
+                      key={prompt}
+                      type="button"
+                      onClick={() => {
+                        setHasGuestInteracted(true);
+                        handleSend(prompt);
+                      }}
+                      className="px-3 py-1.5 text-[11px] rounded-full border border-slate-700 bg-slate-900 hover:border-orange-400"
+                    >
+                      {prompt}
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              <ScoutThread
+                messages={state.messages}
+                status={state.status}
+                onAction={handleClusterAction}
+                onQuickAction={(text) => handleSend(text)}
+              />
+
+              <ScoutInput
+                key={prefillKey}
+                disabled={isBusy}
+                placeholder="Ask about contractors, projects, or your community"
+                onSend={(value) => handleSend(value)}
+                onUserTyping={() => {
+                  setHasGuestInteracted(true);
+                  recordActivity({
+                    type: "ask_scout",
+                    ts: new Date().toISOString(),
+                    path: location,
+                    label: "typing",
+                  });
+                }}
+                prefillKey="scout-main"
+                initialValue=""
+                enableAutoDemo={!isAuthenticated && !hasUserMessages}
+                autoDemoText={INTRO_DEMO_TEXT}
+              />
+
+              {!isAuthenticated && (
+                <div className="text-xs text-slate-300/90">
+                  You can explore freely.{' '}
+                  <button
+                    type="button"
+                    className="text-tsAccent hover:text-orange-400 font-medium"
+                    onClick={() => navigate("/login")}
+                  >
+                    Sign in
+                  </button>{' '}
+                  to save, post, or message.
+                </div>
+              )}
             </div>
-          </div>
-
-          <div className="mt-4 flex flex-wrap gap-2">
-            <button
-              type="button"
-              onClick={() => {
-                setHasGuestInteracted(true);
-                handleSend(
-                  "Give me a simple overview of what TradeScout can do for my community as a homeowner."
-                );
-              }}
-              className="px-3 py-1.5 text-[11px] rounded-full border border-slate-700 bg-slate-900 hover:border-orange-400"
-            >
-              Overview: what TradeScout can do
-            </button>
-
-            <button
-              type="button"
-              onClick={() => {
-                setHasGuestInteracted(true);
-                handleSend(
-                  "Help me find the right contractors in my county for a project."
-                );
-              }}
-              className="px-3 py-1.5 text-[11px] rounded-full border border-slate-700 bg-slate-900 hover:border-orange-400"
-            >
-              Find contractors in my county
-            </button>
-
-            <button
-              type="button"
-              onClick={() => {
-                setHasGuestInteracted(true);
-                handleSend(
-                  "Show me community ideas, updates, or projects trending in my county."
-                );
-              }}
-              className="px-3 py-1.5 text-[11px] rounded-full border border-slate-700 bg-slate-900 hover:border-orange-400"
-            >
-              Community ideas & updates
-            </button>
-          </div>
-        </header>
-
-        {/* Thread + input in a single chat container */}
-        <div className="mt-3 rounded-2xl border border-slate-800 bg-[#020617] px-4 py-4 space-y-4">
-          {!hasUserMessages && (
-            <div className="flex flex-wrap gap-2">
-              {[
-                "Find top-rated contractors in my county",
-                "What's happening in my community this week?",
-                "Help me estimate a home repair project",
-              ].map((prompt) => (
-                <button
-                  key={prompt}
-                  type="button"
-                  onClick={() => {
-                    setHasGuestInteracted(true);
-                    handleSend(prompt);
-                  }}
-                  className="px-3 py-1.5 text-[11px] rounded-full border border-slate-700 bg-slate-900 hover:border-orange-400"
-                >
-                  {prompt}
-                </button>
-              ))}
-            </div>
-          )}
-
-          <ScoutThread
-            messages={state.messages}
-            status={state.status}
-            onAction={handleClusterAction}
-            onQuickAction={(text) => handleSend(text)}
-          />
-
-          <ScoutInput
-            key={prefillKey}
-            disabled={isBusy}
-            placeholder="Ask about contractors, projects, or your community"
-            onSend={(v) => handleSend(v)}
-            onUserTyping={() => {
-              setHasGuestInteracted(true);
-              recordActivity({
-                type: "ask_scout",
-                ts: new Date().toISOString(),
-                path: location,
-                label: "typed",
-              });
-            }}
-            prefillKey="scout-main"
-            initialValue=""
-            enableAutoDemo={!isAuthenticated && !hasUserMessages}
-            autoDemoText={INTRO_DEMO_TEXT}
-          />
-
-          {!isAuthenticated && (
-            <div className="text-xs text-slate-300/90">
-              You can explore freely.{' '}
-              <button
-                type="button"
-                className="text-tsAccent hover:text-orange-400 font-medium"
-                onClick={() => navigate("/login")}
-              >
-                Sign in
-              </button>{' '}
-              to save, post, or message.
-            </div>
-          )}
-        </div>
 
             {/* Trending */}
             <ScoutTrending
               locality={locality}
-              recentPrompts={state.messages.filter((m) => m.role === "user").map((m) => m.content)}
-              onPromptClick={(p) => {
+              recentPrompts={recentPrompts}
+              onPromptClick={(prompt) => {
                 setHasGuestInteracted(true);
-                handleSend(p);
+                handleSend(prompt);
               }}
             />
           </>

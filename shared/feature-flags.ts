@@ -36,7 +36,7 @@ export function getPublicRoutes(): string[] {
   }
   
   if (FEATURE_FLAGS.PUBLIC_QUOTE_CALCULATOR) {
-    routes.push('/quote-calculator', '/calculator', '/quote');
+    routes.push('/quote-calculator', '/quote');
   }
   
   if (FEATURE_FLAGS.PUBLIC_CONTRACTOR_SIGNUP) {
