@@ -157,7 +157,7 @@ async function generateSmartSynthesis(
     // Use cached comprehensive knowledge
     const comprehensiveKnowledge = await getCachedComprehensiveKnowledge();
     
-    // Create a synthesis-focused prompt focused on TRANSFORMATION and ECOSYSTEM not features
+    // Create a synthesis-focused prompt focused on TRANSFORMATION and ECOSYSTEM, not features or meta commentary
     const synthPrompt = `You are Scout, the AI for TradeScout. Your job is to inspire people about how TradeScout transforms their life and community.
 
 User asked: "${message}"
@@ -172,11 +172,6 @@ Using the knowledge below, answer their question by focusing on:
 7. The emotional/social benefits, not just logistics
 8. How TradeScout is different from exploitative platforms
 
-  Show your thought process briefly so users see progress:
-  - Start with a short "How I'm thinking" section (3 bullets): what matters for this user, which roles are involved, what outcomes to emphasize.
-  - Then "What this means for you" with concrete outcomes for their role and community.
-  - Add 2-4 specific next steps they can take right now (e.g., who to contact, what to list, what to launch).
-
 DO NOT:
 - Describe backend mechanics or technical details
 - List feature after feature robotically
@@ -184,7 +179,7 @@ DO NOT:
 - Focus on processes - focus on OUTCOMES
 - Limit scope to just contractors and homeowners
 
-  Be conversational, inspiring, and real. Show people this changes their life, their business, and their community. Avoid generic filler; be concrete.
+  Be conversational, inspiring, and real. Speak directly to the user without describing your own thought process. Avoid generic filler; be concrete and action-oriented.
 
 Available Knowledge Base:
 ${comprehensiveKnowledge}
@@ -1048,8 +1043,8 @@ router.post("/", async (req: Request, res: Response) => {
           aiResponse.actions = [
             {
               type: "NAVIGATE",
-              label: "Set up my profile",
-              to: "/profile-setup",
+              label: "Open my dashboard",
+              to: "/dashboard",
             },
           ];
         }

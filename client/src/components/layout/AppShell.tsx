@@ -47,8 +47,8 @@ const featureNav: NavItem[] = [
     icon: <Home className="h-4 w-4" />,
   },
   {
-    label: "Helpers",
-    href: ROUTES.CONVERSATIONS ?? "/helpers",
+    label: "Messages",
+    href: "/messages",
     icon: <MessageCircle className="h-4 w-4" />,
   },
   {
@@ -80,37 +80,35 @@ export function AppShell({ children, footer }: AppShellProps) {
   return (
     <div className="h-screen bg-slate-950 text-slate-50 flex flex-col overflow-hidden">
       {/* TOP APP NAV HEADER */}
-      <header className="flex items-center justify-between border-b border-slate-800 px-4 py-3">
+      <header className="flex items-center justify-between border-b border-slate-800 px-3 sm:px-4 py-3">
         {/* Brand */}
-        <Link href="/">
-          <div className="flex items-center gap-3 cursor-pointer">
-            <div className="h-8 w-8 rounded-2xl bg-orange-500 shadow-md shadow-orange-500/40" />
-            <div className="flex flex-col leading-tight">
-              <span className="text-[0.65rem] uppercase tracking-[0.35em] text-slate-400">
-                TRADESCOUT
-              </span>
-              <span className="text-xs text-slate-400">
-                Connection without compromise
-              </span>
-            </div>
+        <Link href="/" className="flex items-center gap-3 cursor-pointer">
+          <div className="h-8 w-8 rounded-2xl bg-orange-500 shadow-md shadow-orange-500/40" />
+          <div className="flex flex-col leading-tight">
+            <span className="text-[0.65rem] uppercase tracking-[0.35em] text-slate-400">
+              TRADESCOUT
+            </span>
+            <span className="text-xs text-slate-400">
+              Connection without compromise
+            </span>
           </div>
         </Link>
 
         {/* Right side: auth CTA + icons */}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 shrink-0">
           {!isAuthenticated && (
             <>
               <button
                 type="button"
                 onClick={() => (window.location.href = "/auth/signup")}
-                className="hidden sm:inline-flex items-center justify-center rounded-full border border-orange-500/70 bg-orange-500 px-3 py-1 text-[0.7rem] font-semibold text-slate-950 shadow-sm shadow-orange-500/40"
+                className="inline-flex items-center justify-center rounded-full border border-orange-500/70 bg-orange-500 px-3 py-1 text-[0.7rem] font-semibold text-slate-950 shadow-sm shadow-orange-500/40"
               >
                 Create account
               </button>
               <button
                 type="button"
                 onClick={() => (window.location.href = "/auth/login")}
-                className="text-[0.7rem] text-slate-400 hover:text-slate-100"
+                className="inline-flex items-center justify-center rounded-full border border-slate-700 bg-slate-950/60 px-3 py-1 text-[0.7rem] font-medium text-slate-200 hover:border-orange-400 hover:text-white"
               >
                 Log in
               </button>
@@ -120,7 +118,7 @@ export function AppShell({ children, footer }: AppShellProps) {
           {/* Messages quick icon */}
           <button
             type="button"
-            onClick={() => (window.location.href = "/helpers")}
+            onClick={() => (window.location.href = "/messages")}
             className="inline-flex h-8 w-8 items-center justify-center rounded-xl border border-slate-800 bg-slate-950/80 text-slate-300 hover:bg-slate-900"
             aria-label="Messages and helpers"
           >

@@ -1120,7 +1120,7 @@ export async function registerRoutes(app: any) {
       (req: Request, res: Response, next: any) => {
         try {
           if (typeof (req as any).isAuthenticated === 'function' && (req as any).isAuthenticated() && (req as any).user) {
-            return res.redirect('/profile-setup');
+            return res.redirect('/dashboard');
           }
         } catch {
           // ignore
@@ -1129,7 +1129,7 @@ export async function registerRoutes(app: any) {
       },
       passport.authenticate('facebook', { failureRedirect: '/login' }),
       (req: Request, res: Response) => {
-        res.redirect('/profile-setup');
+        res.redirect('/dashboard');
       }
     );
   }
@@ -1141,7 +1141,7 @@ export async function registerRoutes(app: any) {
       (req: Request, res: Response, next: any) => {
         try {
           if (typeof (req as any).isAuthenticated === 'function' && (req as any).isAuthenticated() && (req as any).user) {
-            return res.redirect('/profile-setup');
+            return res.redirect('/dashboard');
           }
         } catch {
           // ignore
@@ -1150,7 +1150,7 @@ export async function registerRoutes(app: any) {
       },
       passport.authenticate('google', { failureRedirect: '/login' }),
       (req: Request, res: Response) => {
-        res.redirect('/profile-setup');
+        res.redirect('/dashboard');
       }
     );
   }
