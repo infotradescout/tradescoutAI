@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState, useCallback, useRef } from "react";
-import { SlidersHorizontal, MessageCircle, Bell } from "lucide-react";
-import { Link, useLocation } from "wouter";
+import { useLocation } from "wouter";
+// Note: navigation is handled via AppShell top/bottom nav; ScoutOS focuses on chat.
 import { useAuth } from "../hooks/useAuth";
 import { useIsMobile } from "../hooks/useIsMobile";
 import AppDrawer from "../components/AppDrawer";
@@ -108,27 +108,12 @@ export default function ScoutOS() {
   // First-time guest state: controls entire top half of Scout.
   // We treat this as "guest has not actively interacted yet" so that
   // auto-demo typing does NOT collapse the calm intro.
-  const isFirstGuestVisit = !isAuthenticated && !hasGuestInteracted;
-
-  const statusLabel = isBusy ? "SCOUT THINKING" : "SCOUT IDLE";
-  const statusDotClass = isBusy ? "bg-amber-400" : "bg-emerald-400";
-  const statusTextClass = isBusy ? "text-amber-300/90" : "text-tsAccentSoft";
-
-  const inferModeFromRoles = (roles: string[] | undefined | null): ScoutMode => {
-    if (!roles || roles.length === 0) return "default";
-    if (roles.some((r) => r.startsWith("contractor:") || r === "contractor" || r === "pro")) {
-      return "contractors";
-    }
-    if (roles.some((r) => r.startsWith("realtor:") || r === "realtor")) {
-      return "marketplace";
-    }
-    return "default";
-  };
+  const isFirstGuestVisit = isGuest && !hasGuestInteracted && !hasMessages;
 
   const buildSmartSuggestions = (
     mode: ScoutMode,
     userMessage: string,
-    serverSuggestions?: string[] | null
+    serverSuggestions?: string[]
   ): string[] => {
     const base: string[] = [];
     const trimmed = userMessage.trim();
@@ -448,16 +433,6 @@ export default function ScoutOS() {
   const heroLocationLabel = getUserLocationLabel(user as any);
   const heroAudienceLabel = getUserAudienceLabel(user as any);
 
-  const quickLinks: Array<{ label: string; to: string }> = useMemo(
-    () => [
-      { label: "Dashboard", to: "/dashboard" },
-      { label: "Contractors", to: ROUTES.CONTRACTORS },
-      { label: "Exchange", to: "/exchange" },
-      { label: "Community", to: ROUTES.COMMUNITY },
-    ],
-    []
-  );
-
   return (
     <div className="min-h-screen bg-[#060b1c] text-white flex flex-col items-center">
       <div className="w-full max-w-xl px-4 pt-10 pb-4 space-y-6">
@@ -481,7 +456,7 @@ export default function ScoutOS() {
               <ScoutInput
                 key={prefillKey}
                 disabled={isBusy}
-                placeholder="What can I help you with in your county?"
+                placeholder="Ask about contractors, projects, or your community"
                 onSend={(v) => handleSend(v)}
                 onUserTyping={() => {
                   setHasGuestInteracted(true);
@@ -504,89 +479,25 @@ export default function ScoutOS() {
           <>
             {/* Header + hero */}
             <header className="space-y-4">
-          <div className="flex items-start justify-between gap-4">
-            {/* Left: brand, headline */}
-            <div className="flex-1 min-w-0 text-left">
-              <p className="text-[10px] tracking-[0.25em] text-orange-300 uppercase">
-                TradeScout
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex flex-col">
+              <span className="text-[0.7rem] uppercase tracking-[0.25em] text-slate-400">
+                TRADESCOUT
+              </span>
+              <span className="text-[0.7rem] text-slate-500">Local operating system</span>
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <h1 className="text-[clamp(0.9rem,4vw,1.4rem)] sm:text-2xl md:text-3xl font-semibold tracking-[0.12em] text-white uppercase">
+              <span className="text-orange-400">Empowering your community</span>
+            </h1>
+
+            {!isAuthenticated && (
+              <p className="text-xs text-slate-300/90">
+                You can explore without an account. Sign in when you want to save or participate.
               </p>
-              <p className="text-xs text-slate-400">Local operating system</p>
-
-              <h1 className="mt-3 text-[clamp(0.9rem,4vw,1.4rem)] sm:text-2xl md:text-3xl font-semibold tracking-[0.12em] text-white uppercase text-center whitespace-nowrap">
-                <span className="text-orange-400">Empowering your community</span>
-              </h1>
-
-              {!isAuthenticated && (
-                <p className="mt-2 text-xs text-slate-300/90">
-                  You can explore without an account. Sign in when you want to save or participate.
-                </p>
-              )}
-
-              {/* Browse apps link removed per updated hero spec */}
-            </div>
-            {/* Right: tools + context actions in a single row */}
-            <div className="flex items-center gap-2 shrink-0">
-              {!isAuthenticated && (
-                <Link
-                  href="/login"
-                  className="cta inline-flex items-center justify-center rounded-xl bg-tsAccent px-3 py-2 text-xs font-semibold text-black hover:bg-orange-400"
-                >
-                  Create your free account
-                </Link>
-              )}
-
-              {/* When logged out: Create account chip to the left of tools */}
-              {/* When logged in: Messages + Notifications */}
-              {isAuthenticated && (
-                <>
-                  <button
-                    type="button"
-                    onClick={() => navigate(ROUTES.CONVERSATIONS || "/messages")}
-                    className="relative inline-flex items-center gap-2 rounded-xl bg-slate-900/80 px-3 py-1 text-xs font-medium text-tsTextMain border border-tsBorder hover:bg-slate-800"
-                  >
-                    <MessageCircle className="h-3.5 w-3.5 text-tsAccent" />
-                    <span className="hidden sm:inline">Messages</span>
-
-                    {unreadMessages > 0 && (
-                      <span className="absolute -top-1 -right-1 inline-flex min-w-[16px] items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white">
-                        {unreadMessages > 99 ? "99+" : unreadMessages}
-                      </span>
-                    )}
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() =>
-                      navigate(
-                        (((ROUTES as any)?.NOTIFICATIONS as string | undefined) ??
-                          "/notifications")
-                      )
-                    }
-                    className="relative inline-flex h-8 w-8 items-center justify-center rounded-xl border border-tsBorder bg-slate-950/80 hover:bg-slate-900"
-                    aria-label="Notifications"
-                  >
-                    <Bell className="h-3.5 w-3.5 text-tsAccent" />
-
-                    {unreadNotifications > 0 && (
-                      <span className="absolute -top-1 -right-1 inline-flex h-3.5 min-w-[14px] items-center justify-center rounded-full bg-red-500 px-0.5 text-[9px] font-bold text-white">
-                        {unreadNotifications > 9 ? "9+" : unreadNotifications}
-                      </span>
-                    )}
-                  </button>
-                </>
-              )}
-
-              {/* Tools icon – stays on the far right */}
-              <button
-                type="button"
-                onClick={() => setToolsOpen(true)}
-                className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-slate-700 bg-slate-900 hover:bg-slate-800"
-                aria-label="Open tools & personalization"
-              >
-                <SlidersHorizontal className="h-4 w-4" />
-                <span className="sr-only">Tools</span>
-              </button>
-            </div>
+            )}
           </div>
 
           <div className="mt-4 flex items-center justify-start">
@@ -598,20 +509,45 @@ export default function ScoutOS() {
             </div>
           </div>
 
-          <div className="flex flex-wrap gap-2">
-            {quickLinks.map((l) => (
-              <button
-                key={l.to}
-                type="button"
-                onClick={() => {
-                  setHasGuestInteracted(true);
-                  navigate(l.to);
-                }}
-                className="px-3 py-1.5 text-[11px] rounded-full border border-slate-700 bg-slate-900 hover:border-orange-400"
-              >
-                {l.label}
-              </button>
-            ))}
+          <div className="mt-4 flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={() => {
+                setHasGuestInteracted(true);
+                handleSend(
+                  "Give me a simple overview of what TradeScout can do for my community as a homeowner."
+                );
+              }}
+              className="px-3 py-1.5 text-[11px] rounded-full border border-slate-700 bg-slate-900 hover:border-orange-400"
+            >
+              Overview: what TradeScout can do
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                setHasGuestInteracted(true);
+                handleSend(
+                  "Help me find the right contractors in my county for a project."
+                );
+              }}
+              className="px-3 py-1.5 text-[11px] rounded-full border border-slate-700 bg-slate-900 hover:border-orange-400"
+            >
+              Find contractors in my county
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                setHasGuestInteracted(true);
+                handleSend(
+                  "Show me community ideas, updates, or projects trending in my county."
+                );
+              }}
+              className="px-3 py-1.5 text-[11px] rounded-full border border-slate-700 bg-slate-900 hover:border-orange-400"
+            >
+              Community ideas & updates
+            </button>
           </div>
         </header>
 
@@ -649,7 +585,7 @@ export default function ScoutOS() {
           <ScoutInput
             key={prefillKey}
             disabled={isBusy}
-            placeholder="What can I help you with in your county?"
+            placeholder="Ask about contractors, projects, or your community"
             onSend={(v) => handleSend(v)}
             onUserTyping={() => {
               setHasGuestInteracted(true);

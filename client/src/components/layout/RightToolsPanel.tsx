@@ -1,182 +1,131 @@
 import React from "react";
+import { Link } from "wouter";
 import {
-  MessageCircle,
   User,
-  Layout,
-  SlidersHorizontal,
   Settings,
-  Wrench,
-  Home,
-  Car,
-  Soup,
-  Compass,
-  ShoppingBag,
-  Users,
-  Calculator,
-  Heart,
-  ArrowLeftRight,
-  Sparkles,
-  LogOut,
+  Bell,
+  LayoutDashboard,
+  MessageCircle,
+  Bookmark,
 } from "lucide-react";
-import { ROUTES } from "@/lib/routes";
-import { useAuth, useLogout } from "@/hooks/useAuth";
-import { useLocation } from "wouter";
-import { buildRoleNavFromRoles } from "@/lib/roleNav";
+import { useAuth } from "@/hooks/useAuth";
 
-const iconMap: Record<string, React.ElementType> = {
-  Layout,
-  MessageCircle,
-  User,
-  SlidersHorizontal,
-  Settings,
-  Wrench,
-  Home,
-  Car,
-  Soup,
-  Compass,
-  ShoppingBag,
-  Users,
-  Calculator,
-  Heart,
-  ArrowLeftRight,
-  Sparkles,
+type NavLinkProps = {
+  href: string;
+  icon: React.ReactNode;
+  label: string;
+  description?: string;
 };
 
+const NavLink: React.FC<NavLinkProps> = ({ href, icon, label, description }) => (
+  <Link href={href}>
+    <a className="flex flex-col gap-1 rounded-xl border border-slate-800/60 bg-slate-950/60 px-3 py-2 hover:bg-slate-900">
+      <div className="flex items-center gap-2">
+        <span className="inline-flex h-7 w-7 items-center justify-center rounded-lg bg-slate-900 border border-slate-700 text-slate-200">
+          {icon}
+        </span>
+        <span className="text-sm font-medium text-slate-50">{label}</span>
+      </div>
+      {description && (
+        <p className="text-[0.7rem] text-slate-400 leading-snug">{description}</p>
+      )}
+    </a>
+  </Link>
+);
+
 export function RightToolsPanel() {
-  const { user, isAuthenticated } = useAuth();
-  const logout = useLogout();
-  const [, navigate] = useLocation();
+  const { user } = useAuth();
 
-  const rawRoles: string[] = Array.isArray((user as any)?.roles)
-    ? ((user as any).roles as string[])
-    : user?.role
-    ? [user.role]
-    : [];
+  const displayName =
+    (user as any)?.firstName ||
+    (user as any)?.name ||
+    "Guest";
 
-  const roleNavItems = buildRoleNavFromRoles(rawRoles);
-
-  const NavItem = ({
-    to,
-    icon,
-    label,
-  }: {
-    to: string;
-    icon: React.ElementType;
-    label: string;
-  }) => (
-    <button
-      type="button"
-      onClick={() => navigate(to)}
-      className="w-full flex items-center gap-2 px-2 py-2 rounded-lg hover:bg-slate-900 text-tsTextMain hover:text-white transition text-left"
-    >
-      {React.createElement(icon, { className: "h-4 w-4 text-tsAccent" })}
-      <span>{label}</span>
-    </button>
-  );
+  const locationLabel =
+    (user as any)?.county && (user as any)?.state
+      ? `${(user as any).county}, ${(user as any).state}`
+      : undefined;
 
   return (
-    <div className="space-y-4">
-      {/* Primary navigation (moved from top bars) */}
-      <div className="rounded-2xl border border-tsBorder bg-slate-950/80 p-4 shadow-lg shadow-black/30">
-        <div className="mb-3 text-xs uppercase tracking-[0.18em] text-tsAccentSoft">
-          Navigation
+    <div className="h-full flex flex-col bg-slate-950 text-slate-50">
+      {/* Header */}
+      <div className="px-4 py-3 border-b border-slate-800">
+        <div className="text-[0.65rem] uppercase tracking-[0.3em] text-slate-500">
+          Your space
         </div>
-
-        <div className="space-y-2 text-sm">
-          <NavItem to={ROUTES.HOME} icon={Home} label="Home" />
-          <NavItem to={ROUTES.FIND_CONTRACTORS || ROUTES.CONTRACTORS} icon={Compass} label="Find contractors" />
-          <NavItem to="/helpers" icon={Users} label="Helpers + tasks" />
-          <NavItem to={ROUTES.COMMUNITY} icon={Users} label="Community" />
-          <NavItem to="/exchange" icon={ArrowLeftRight} label="Exchange" />
-          <NavItem to={ROUTES.PRICING} icon={Calculator} label="Pricing" />
-          <NavItem to={ROUTES.HELP} icon={Sparkles} label="Help" />
-          <NavItem to="/foundation" icon={Heart} label="Foundation" />
-          <NavItem to="/contractor-board" icon={Wrench} label="For contractors" />
+        <div className="mt-1 text-sm font-semibold text-slate-50">
+          {displayName}
         </div>
-      </div>
-
-      {/* Personalized tools menu (always available) */}
-      <div className="rounded-2xl border border-tsBorder bg-slate-950/80 p-4 shadow-lg shadow-black/30">
-        <div className="flex items-center justify-between mb-3">
-          <div className="text-xs uppercase tracking-[0.18em] text-tsAccentSoft">
-            Your tools
+        {locationLabel && (
+          <div className="text-[0.7rem] text-slate-400 mt-0.5">
+            {locationLabel}
           </div>
-        </div>
-
-        <div className="space-y-2 text-sm">
-          <NavItem
-            to={ROUTES.DASHBOARD || "/dashboard"}
-            icon={Layout}
-            label="Dashboard"
-          />
-          <NavItem
-            to="/messages"
-            icon={MessageCircle}
-            label="Messages"
-          />
-          <NavItem to={ROUTES.PROFILE || "/profile"} icon={User} label="Account" />
-          <NavItem
-            to={ROUTES.SETTINGS || "/settings"}
-            icon={SlidersHorizontal}
-            label="Personalization & settings"
-          />
-          {isAuthenticated && (
-            <button
-              type="button"
-              onClick={() => void logout()}
-              className="w-full flex items-center gap-2 px-2 py-2 rounded-lg hover:bg-slate-900 text-red-200 hover:text-red-100 transition text-left"
-            >
-              {React.createElement(LogOut, { className: "h-4 w-4 text-red-300" })}
-              <span>Logout</span>
-            </button>
-          )}
-        </div>
-      </div>
-
-      {/* Role hubs for every selected role */}
-      {roleNavItems.length > 0 && (
-        <div className="rounded-2xl border border-tsBorder bg-slate-950/80 p-4 shadow-lg shadow-black/30">
-          <div className="mb-3 text-xs uppercase tracking-[0.18em] text-tsAccentSoft">
-            Role hubs
-          </div>
-          <div className="space-y-2 text-sm">
-            {roleNavItems.map((item) => {
-              const Icon = iconMap[item.icon] || Layout;
-              return (
-                <NavItem
-                  key={item.roleKey}
-                  to={item.to}
-                  icon={Icon}
-                  label={item.label}
-                />
-              );
-            })}
-          </div>
-        </div>
-      )}
-
-      {/* Small personalization summary */}
-      <div className="rounded-2xl border border-tsBorder bg-slate-950/80 p-4 text-xs text-tsTextMuted/90">
-        <div className="flex items-center gap-2 mb-2">
-          <Settings className="h-3 w-3 text-tsAccent" />
-          <span className="uppercase tracking-[0.18em] text-tsAccentSoft">
-            Profile signal
-          </span>
-        </div>
-        {isAuthenticated && user ? (
-          <p>
-            Signed in as{" "}
-            <span className="text-tsTextMain font-medium">
-              {user.firstName || user.email}
-            </span>
-            . Scout tunes Exchange, Community, and matches to your roles and local area.
-          </p>
-        ) : (
-          <p>
-            You're browsing as a guest. Sign in to unlock personalized dashboards, saved searches, and local matches.
-          </p>
         )}
+      </div>
+
+      {/* Sections */}
+      <div className="flex-1 overflow-y-auto px-3 py-3 space-y-4">
+        {/* Profile & account */}
+        <section>
+          <div className="text-[0.7rem] uppercase tracking-[0.2em] text-slate-500 mb-2">
+            Profile
+          </div>
+          <div className="space-y-2">
+            <NavLink
+              href="/profile"
+              icon={<User className="h-3.5 w-3.5" />}
+              label="View profile"
+              description="How homeowners and contractors see you."
+            />
+            <NavLink
+              href="/settings"
+              icon={<Settings className="h-3.5 w-3.5" />}
+              label="Account settings"
+              description="Login, preferences, and privacy."
+            />
+            <NavLink
+              href="/notifications"
+              icon={<Bell className="h-3.5 w-3.5" />}
+              label="Notifications"
+              description="Control alerts from Scout and jobs."
+            />
+          </div>
+        </section>
+
+        {/* Workspaces (user-specific) */}
+        <section>
+          <div className="text-[0.7rem] uppercase tracking-[0.2em] text-slate-500 mb-2">
+            Workspaces
+          </div>
+          <div className="space-y-2">
+            <NavLink
+              href="/dashboard"
+              icon={<LayoutDashboard className="h-3.5 w-3.5" />}
+              label="Dashboard"
+              description="Your personal hub and live metrics."
+            />
+            <NavLink
+              href="/messages"
+              icon={<MessageCircle className="h-3.5 w-3.5" />}
+              label="Messages & quotes"
+              description="Conversations, quotes, follow-ups."
+            />
+            <NavLink
+              href="/saved"
+              icon={<Bookmark className="h-3.5 w-3.5" />}
+              label="Saved items"
+              description="Saved projects, listings, and ideas."
+            />
+          </div>
+        </section>
+      </div>
+
+      {/* Footer */}
+      <div className="border-t border-slate-800 px-4 py-2 text-[0.7rem] text-slate-500">
+        Signed in as {displayName}
       </div>
     </div>
   );
 }
+
+export default RightToolsPanel;
