@@ -101,7 +101,6 @@ const Community = React.lazy(() => import('./pages/community'));
 
 // Community Builder
 const CommunityBuilderDashboard = React.lazy(() => import('./pages/community-builder/dashboard'));
-const CommunityBuilderProfileSetup = React.lazy(() => import('./pages/community-builder/profile-setup'));
 const CommunityBuilderContributionSuccess = React.lazy(() => import('./pages/community-builder/contribution-success'));
 const ProfileCommunity = React.lazy(() => import('./pages/community-builder/profile-community'));
 const CountyTransparency = React.lazy(() => import('./pages/county/transparency'));
@@ -463,11 +462,7 @@ const AppLayout = memo(function AppLayout() {
                       <LazyPage Component={CommunityBuilderDashboard} />
                     </ProtectedRoute>
                   </Route>
-                  <Route path="/community-builder/profile-setup">
-                    <ProtectedRoute>
-                      <LazyPage Component={CommunityBuilderProfileSetup} />
-                    </ProtectedRoute>
-                  </Route>
+                  {/* Community builder profile setup route temporarily disabled until page is restored */}
                   <Route path="/community-builder/contributions/:id/success">
                     <ProtectedRoute>
                       <LazyPage Component={CommunityBuilderContributionSuccess} />
