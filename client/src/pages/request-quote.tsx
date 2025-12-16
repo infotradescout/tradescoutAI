@@ -27,7 +27,27 @@ const RequestQuote = memo(function RequestQuote() {
 
   const submitQuoteMutation = useMutation({
     mutationFn: async (data: typeof formData) => {
-      return apiRequest('POST', '/api/quotes/request', data);
+      // Map the friendly form fields into the lead schema used by /api/leads
+      const payload = {
+        projectType: data.projectType || 'general',
+        description: data.description,
+        // For now, keep routing simple and let ops evolve:
+        routingType: 'top3',
+        // Use best-effort locality from the user's stored profile/address
+        countyId: (user as any)?.countyId || (user as any)?.county || 'unknown',
+        tradeId: data.projectType || 'general',
+        estimatedValue: null,
+        urgency: data.timeline || 'planning',
+        contactPreference: data.contactMethod || 'email',
+        // Allow backend to attach UTM / calculator / locality data later
+        calculatorData: {
+          budgetRange: data.budget || null,
+          timeline: data.timeline || null,
+          rawLocation: data.location || null,
+        },
+      };
+
+      return apiRequest('POST', '/api/leads', payload);
     },
     onSuccess: () => {
       setSubmitted(true);

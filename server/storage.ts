@@ -458,6 +458,8 @@ export interface IStorage {
   // Profile operations (public website pages)
   listProfilesByOwner(ownerUserId: string): Promise<Profile[]>;
   getProfileByIdForOwner(ownerUserId: string, profileId: string): Promise<Profile | undefined>;
+  /** Return the owner user id for a given profile id, or null if missing. */
+  getProfileOwnerUserId(profileId: string): Promise<string | null>;
   getProfileBySlugPublic(slug: string): Promise<PublicProfileRecord | undefined>;
   createProfileForOwner(ownerUserId: string, data: Omit<InsertProfile, 'id' | 'ownerUserId' | 'createdAt' | 'updatedAt'>): Promise<Profile>;
   updateProfileForOwner(ownerUserId: string, profileId: string, updates: Partial<Omit<InsertProfile, 'id' | 'ownerUserId' | 'createdAt' | 'updatedAt'>>): Promise<Profile>;
@@ -1352,6 +1354,15 @@ export class DatabaseStorage implements IStorage {
     if (!user) throw new Error('User not found');
     return user;
   }
+
+  async getProfileOwnerUserId(profileId: string): Promise<string | null> {
+    const [row] = await db
+      .select({ ownerUserId: profiles.ownerUserId })
+      .from(profiles)
+      .where(eq(profiles.id, profileId));
+    return row?.ownerUserId ?? null;
+  }
+
   private normalizeDecimal(value: any): number {
     if (value === null || value === undefined) return 0;
     const numeric = typeof value === "string" ? parseFloat(value) : Number(value);

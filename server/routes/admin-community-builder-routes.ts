@@ -139,7 +139,7 @@ router.post('/contributions/:contributionId/verify', requireCBAdmin, async (req:
       notes,
     });
 
-    // Update builder profile stats
+    // Update Community Builder stats
     const builder = await storage.getBuilderById(contribution.builderId);
     if (builder) {
       const stats = await storage.calculateBuilderStats(builder.id);

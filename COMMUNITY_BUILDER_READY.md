@@ -235,7 +235,7 @@ The Community Builder revenue-sharing system is **architecturally complete** and
 - [ ] Security headers (recommended)
 
 ### Features
-- [x] Builder profile management
+- [x] Community Builder settings & earnings management
 - [x] Contribution lifecycle (propose → approve → verify → payout)
 - [x] Stripe checkout with metadata
 - [x] Stripe Connect onboarding

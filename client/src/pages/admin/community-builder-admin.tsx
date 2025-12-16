@@ -283,7 +283,7 @@ export default function AdminCommunityBuilderDashboard() {
             <p>✓ Check that contribution aligns with local needs</p>
             <p>✓ Verify estimated value is reasonable</p>
             <p>✓ Ensure builder has relevant experience/credentials</p>
-            <p>✓ Look for red flags in description or builder profile</p>
+            <p>✓ Look for red flags in description or builder history</p>
             <p>✓ Add notes to help builder if additional info needed</p>
           </CardContent>
         </Card>

@@ -23,9 +23,13 @@ export function getSession() {
     tableName: "sessions",
   });
 
-  const sessionSecret = process.env.SESSION_SECRET;
+  let sessionSecret = process.env.SESSION_SECRET;
   if (!sessionSecret) {
-    throw new Error("SESSION_SECRET is missing");
+    if (process.env.NODE_ENV === "production") {
+      throw new Error("SESSION_SECRET is missing");
+    }
+    console.warn("[Auth] SESSION_SECRET missing in dev; using insecure fallback. DO NOT USE THIS CONFIGURATION IN PRODUCTION.");
+    sessionSecret = "dev-insecure-session-secret";
   }
 
   return session({

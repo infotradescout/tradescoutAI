@@ -27,7 +27,7 @@ A complete, enterprise-grade Community Builder system that enables county reside
 
 ### 2. BACKEND LOGIC (30+ Methods)
 **Storage Layer** (`server/storage.ts`)
-- Builder profile CRUD operations
+- Community Builder settings CRUD operations
 - Contribution lifecycle management (proposed → verified)
 - Audit logging (immutable)
 - Payout creation and status tracking
@@ -45,12 +45,12 @@ A complete, enterprise-grade Community Builder system that enables county reside
 ### 3. API ENDPOINTS (25 Total)
 
 **Builder Routes (12 endpoints)**
-- Profile management (get, create, update)
+- Community Builder settings management (get, create, update)
 - Contribution CRUD (propose, edit, view)
 - Evidence/documentation upload
 - Notifications and payouts
 - County leaderboard access
-- Public builder profiles
+- Public Community Builder info
 
 **Admin Routes (13 endpoints)**
 - Contribution approval workflow
@@ -200,7 +200,7 @@ Builder submits → Admin approves → Builder executes (+ evidence)
 ## 📋 Quick Start for QA
 
 ### Test Account Setup
-1. Create test builder profile
+1. Create test Community Builder settings
 2. Propose sample contribution (all 7 types)
 3. Switch to admin, approve
 4. Add evidence, verify

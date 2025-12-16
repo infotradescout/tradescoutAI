@@ -440,10 +440,6 @@ async function startHOAVoteAction(user: User | undefined, params?: Record<string
     return { success: false, error: "Authentication required" };
   }
 
-  if (user.role !== "hoa_admin" && user.role !== "admin") {
-    return { success: false, error: "Only HOA admins can start votes" };
-  }
-
   return await hoaService.startHOAVote(
     params?.hoaId,
     user.id,

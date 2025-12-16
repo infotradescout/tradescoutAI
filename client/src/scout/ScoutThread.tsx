@@ -45,9 +45,9 @@ function ClusterCard({
       {cluster.items && cluster.items.length > 0 && (
         <ul className="mt-2 space-y-1 text-[12px] text-slate-300">
           {cluster.items.map((item) => (
-            <li key={item} className="flex gap-2">
+            <li key={item.id} className="flex gap-2">
               <span className="mt-[3px] h-1 w-1 rounded-full bg-slate-500" />
-              <span>{item}</span>
+              <span>{item.label}</span>
             </li>
           ))}
         </ul>
@@ -85,7 +85,7 @@ function ClusterCard({
 
 const ScoutThread: React.FC<ScoutThreadProps> = ({
   messages,
-  status: _status, // kept for future use, but we don't show a separate typing bar anymore
+  status,
   onAction,
   onQuickAction,
 }) => {
@@ -148,6 +148,17 @@ const ScoutThread: React.FC<ScoutThreadProps> = ({
           </div>
         );
       })}
+
+      {status !== "idle" && status !== "error" && (
+        <div className="flex justify-start">
+          <div className="mt-1 inline-flex items-center rounded-2xl bg-slate-900/80 px-3 py-1 text-[11px] text-slate-300 border border-slate-700/60">
+            <span className="mr-1 h-1.5 w-1.5 rounded-full bg-orange-400 animate-pulse" />
+            {status === "sending"
+              ? "Sending to Scout..."
+              : "Scout is thinking about the best local answer..."}
+          </div>
+        </div>
+      )}
     </div>
   );
 };

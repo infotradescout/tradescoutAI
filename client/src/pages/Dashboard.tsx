@@ -22,7 +22,10 @@ import {
   NotificationsWidget,
   CommunityFeedWidget,
   AffiliateStatsWidget,
+  CommunityBuilderImpactWidget,
 } from '@/components/dashboard/DashboardWidgets';
+import { LocalImpactCard } from '@/components/dashboard/LocalImpactCard';
+import { HoaLeadershipBadge } from '@/components/dashboard/HoaLeadershipBadge';
 
 interface Post {
   id: string;
@@ -126,6 +129,7 @@ const Dashboard = memo(function Dashboard() {
     'notifications': NotificationsWidget,
     'community-feed': CommunityFeedWidget,
     'affiliate-stats': AffiliateStatsWidget,
+    'community-builder-impact': CommunityBuilderImpactWidget,
   };
 
   if (preferencesLoading) {
@@ -157,11 +161,17 @@ const Dashboard = memo(function Dashboard() {
           </Link>
         </div>
 
-        {/* Dashboard Grid */}
-        <div className="grid lg:grid-cols-3 gap-4">
-          {/* Main Column */}
-          <div className="lg:col-span-2 space-y-4">
-            {/* Community Feed Widget - Always at the top */}
+        {/* Local Impact (always visible) */}
+        <LocalImpactCard className="mb-6" />
+
+        {/* HOA Leadership / Membership (if applicable) */}
+        <HoaLeadershipBadge className="mb-6 bg-[#0f1419] dark:bg-slate-800 border-0 shadow-sm" />
+
+        {/* Snapshot Grid + Live Activity Feed */}
+        <div className="space-y-6">
+          {/* Live Activity Feed */}
+          <div className="space-y-4">
+            {/* New Post Composer */}
             <Card className="bg-[#0f1419] dark:bg-slate-800 border-0 shadow-sm">
               <CardContent className="p-4">
                 <div className="flex items-center gap-3 mb-4">
@@ -293,28 +303,29 @@ const Dashboard = memo(function Dashboard() {
               ))
             )}
           </div>
+          {/* Snapshot Grid (role-aware via preferences) */}
+          <div>
+            <div className="grid lg:grid-cols-3 gap-4">
+              {Array.isArray(enabledWidgets) && enabledWidgets.map((widgetId: string) => {
+                const WidgetComponent = widgetComponents[widgetId];
+                return WidgetComponent ? <WidgetComponent key={widgetId} /> : null;
+              })}
 
-          {/* Sidebar Widgets */}
-          <div className="lg:col-span-1 space-y-4">
-            {Array.isArray(enabledWidgets) && enabledWidgets.map((widgetId: string) => {
-              const WidgetComponent = widgetComponents[widgetId];
-              return WidgetComponent ? <WidgetComponent key={widgetId} /> : null;
-            })}
-            
-            {(!Array.isArray(enabledWidgets) || enabledWidgets.length === 0) && (
-              <Card className="bg-[#0f1419] dark:bg-slate-800 border-0 shadow-sm">
-                <CardContent className="p-6 text-center">
-                  <p className="text-sm text-slate-600 dark:text-slate-400 mb-4">
-                    No widgets enabled. Customize your dashboard to add widgets.
-                  </p>
-                  <Link href="/dashboard-settings">
-                    <Button size="sm" className="bg-orange-600 hover:bg-orange-700">
-                      Add Widgets
-                    </Button>
-                  </Link>
-                </CardContent>
-              </Card>
-            )}
+              {(!Array.isArray(enabledWidgets) || enabledWidgets.length === 0) && (
+                <Card className="bg-[#0f1419] dark:bg-slate-800 border-0 shadow-sm lg:col-span-3">
+                  <CardContent className="p-6 text-center">
+                    <p className="text-sm text-slate-600 dark:text-slate-400 mb-4">
+                      No widgets enabled. Customize your snapshot grid to add cards.
+                    </p>
+                    <Link href="/dashboard-settings">
+                      <Button size="sm" className="bg-orange-600 hover:bg-orange-700">
+                        Add Snapshot Cards
+                      </Button>
+                    </Link>
+                  </CardContent>
+                </Card>
+              )}
+            </div>
           </div>
         </div>
       </div>

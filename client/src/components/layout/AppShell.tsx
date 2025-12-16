@@ -9,8 +9,9 @@ import {
   ShoppingBag,
   Trophy,
   Heart,
+  LogOut,
 } from "lucide-react";
-import { useAuth } from "@/hooks/useAuth";
+import { useAuth, useLogout } from "@/hooks/useAuth";
 import { useIsMobile } from "@/hooks/useIsMobile";
 import { ROUTES } from "@/lib/routes";
 import { NotificationsMenu } from "@/components/NotificationsMenu";
@@ -70,6 +71,7 @@ const featureNav: NavItem[] = [
 
 export function AppShell({ children, footer }: AppShellProps) {
   const { isAuthenticated } = useAuth();
+  const logout = useLogout();
   const isMobile = useIsMobile();
   const [isToolsOpen, setIsToolsOpen] = useState(false);
 
@@ -136,6 +138,18 @@ export function AppShell({ children, footer }: AppShellProps) {
               aria-label="Notifications"
             >
               <Bell className="h-4 w-4" />
+            </button>
+          )}
+
+          {/* Logout for authenticated users */}
+          {isAuthenticated && (
+            <button
+              type="button"
+              onClick={logout}
+              className="inline-flex items-center justify-center rounded-xl border border-red-500/60 bg-slate-950/80 px-3 py-1 text-[0.7rem] font-semibold text-red-400 hover:bg-red-600/10 hover:text-red-300"
+            >
+              <LogOut className="h-3.5 w-3.5 mr-1" />
+              Sign out
             </button>
           )}
 

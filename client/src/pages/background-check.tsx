@@ -215,7 +215,7 @@ const BackgroundCheck = memo(function BackgroundCheck() {
                 <Label htmlFor="ssn" className="text-gray-300">Social Security Number</Label>
                 <Input 
                   id="ssn"
-                  placeholder="XXX-XX-XXXX"
+                  placeholder="123-45-6789"
                   className="bg-slate-700 border-slate-600 text-white"
                 />
               </div>

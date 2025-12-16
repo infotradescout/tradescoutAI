@@ -141,7 +141,7 @@ export default function ProfilePage() {
                   {hasCommunityBuilder && (
                     <Badge className="bg-emerald-500 text-white px-3 py-1">
                       <Award className="h-3 w-3 mr-1" />
-                      Community Builder
+                      Community Builder badge
                     </Badge>
                   )}
                   {badges.map((badge: string) => (

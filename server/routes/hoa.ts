@@ -3,6 +3,14 @@ import { storage } from '../storage';
 
 // Middleware to check HOA permissions based on capability flags
 async function checkHOAPermission(userId: string, hoaId: string, requiredPermission: 'view' | 'viewFinances' | 'editDocuments' | 'manageVendors' | 'createVotes') {
+  const user = await storage.getUser(userId);
+
+  // Super/head admin can see everything for debugging and support
+  const platformRole = (user as any)?.role;
+  if (platformRole === 'super_admin' || platformRole === 'head_admin') {
+    return { authorized: true, member: null };
+  }
+
   const member = await storage.getHOAMemberByUserId(userId, hoaId);
   
   if (!member) {
@@ -25,6 +33,14 @@ async function checkHOAPermission(userId: string, hoaId: string, requiredPermiss
 
 // Role-based HOA guard for admin-level actions
 async function requireHoaRole(userId: string, hoaId: string, allowedRoles: string[]) {
+  const user = await storage.getUser(userId);
+
+  // Super/head admin can always perform HOA role operations when needed
+  const platformRole = (user as any)?.role;
+  if (platformRole === 'super_admin' || platformRole === 'head_admin') {
+    return { authorized: true, member: null };
+  }
+
   const member = await storage.getHOAMemberByUserId(userId, hoaId);
 
   if (!member) {

@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 
 const presets = [
   "Find roofers available this week",
-  "Start the Community Builder for my area",
+  "Activate my Community Builder badge to vote on local causes",
   "Show me today’s best tool deals",
   "Message the top 3 electricians near me",
   "Create a project for kitchen remodel",

@@ -270,17 +270,17 @@ export default function Foundation() {
             <CardContent className="p-6">
               <div className="flex items-start justify-between mb-4">
                 <div>
-                  <p className="text-sm text-gray-400">Community Builders</p>
-                  <h3 className="text-xl font-semibold text-white">Fuel the vault</h3>
+                  <p className="text-sm text-gray-400">Community Builder badge</p>
+                  <h3 className="text-xl font-semibold text-white">Decide where the vault goes</h3>
                 </div>
                 <Badge variant="outline" className="border-orange-500 text-orange-300">Give back</Badge>
               </div>
               <p className="text-gray-300 text-sm mb-3">
-                Donations, marketplace givebacks, and contractor programs all ladder into your community vault. Every dollar is traceable.
+                Donations, marketplace givebacks, and contractor programs all ladder into your community vault. With the Community Builder badge, you can send and vote on which local causes get funded.
               </p>
               <div className="flex items-center space-x-3">
                 <Button asChild className="bg-orange-500 hover:bg-orange-600">
-                  <Link href="/community-builder">Join as Community Builder</Link>
+                  <Link href="/community-builder">Activate Community Builder badge</Link>
                 </Button>
                 <Button asChild variant="outline" className="border-slate-600 text-white hover:border-orange-500">
                   <Link href="/foundation?tab=impact">View impact</Link>

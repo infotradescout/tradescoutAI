@@ -50,8 +50,12 @@ process.on('SIGTERM', () => {
 const requiredEnv = ["DATABASE_URL", "SESSION_SECRET"];
 for (const key of requiredEnv) {
   if (!process.env[key]) {
-    console.error(`Missing required env: ${key}`);
-    process.exit(1);
+    if (process.env.NODE_ENV === "production") {
+      console.error(`Missing required env: ${key}`);
+      process.exit(1);
+    } else {
+      console.warn(`[DEV] Missing env ${key} – server will start but related features may fail. Do NOT rely on this in production.`);
+    }
   }
 }
 
@@ -199,7 +203,16 @@ app.use((req, res, next) => {
 
 (async () => {
   try {
-  await ensureProfilesTable();
+  try {
+    await ensureProfilesTable();
+  } catch (err) {
+    if (process.env.NODE_ENV === "production") {
+      console.error("FATAL: ensureProfilesTable failed in production:", err);
+      throw err;
+    } else {
+      console.warn("[DEV] ensureProfilesTable failed; continuing without profiles table:", (err as Error)?.message);
+    }
+  }
 
   const ensureMasterAdmin = async () => {
     const email = process.env.MASTER_ADMIN_EMAIL;
@@ -217,8 +230,16 @@ app.use((req, res, next) => {
     const firstName = process.env.MASTER_ADMIN_FIRST_NAME || 'Super';
     const lastName = process.env.MASTER_ADMIN_LAST_NAME || 'Admin';
 
-    await storage.createMasterAdmin(email, password, firstName, lastName);
-    console.log(`[Bootstrap] Created head_admin account for ${email}`);
+    try {
+      await storage.createMasterAdmin(email, password, firstName, lastName);
+      console.log(`[Bootstrap] Created head_admin account for ${email}`);
+    } catch (err) {
+      if (process.env.NODE_ENV === "production") {
+        console.error("FATAL: Failed to create master admin in production:", err);
+        throw err;
+      }
+      console.warn("[DEV] Failed to create master admin; continuing without bootstrap head_admin:", (err as Error)?.message);
+    }
   };
 
   await ensureMasterAdmin();

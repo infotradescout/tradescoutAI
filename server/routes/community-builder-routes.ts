@@ -8,11 +8,11 @@ const stripe = process.env.STRIPE_SECRET_KEY
   ? new Stripe(process.env.STRIPE_SECRET_KEY, { apiVersion: '2025-07-30.basil' })
   : null;
 
-// ==================== BUILDER PROFILE ROUTES ====================
+// ==================== COMMUNITY BUILDER ROUTES ====================
 
 /**
  * GET /api/community-builder/profile
- * Get current user's builder profile
+ * Get current user's Community Builder settings
  */
 router.get('/profile', requireAuth, async (req: Request, res: Response) => {
   try {
@@ -20,7 +20,7 @@ router.get('/profile', requireAuth, async (req: Request, res: Response) => {
     const profile = await storage.getBuilderProfile(userId);
     
     if (!profile) {
-      return res.status(404).json({ error: 'Builder profile not found' });
+      return res.status(404).json({ error: 'Community Builder settings not found' });
     }
 
     // Calculate live stats
@@ -31,14 +31,14 @@ router.get('/profile', requireAuth, async (req: Request, res: Response) => {
       stats,
     });
   } catch (error) {
-    console.error('Error fetching builder profile:', error);
-    res.status(500).json({ error: 'Failed to fetch profile' });
+    console.error('Error fetching Community Builder settings:', error);
+    res.status(500).json({ error: 'Failed to fetch Community Builder settings' });
   }
 });
 
 /**
  * POST /api/community-builder/profile
- * Create or update builder profile
+ * Create or update Community Builder settings
  */
 router.post('/profile', requireAuth, async (req: Request, res: Response) => {
   try {
@@ -60,7 +60,7 @@ router.post('/profile', requireAuth, async (req: Request, res: Response) => {
     const existingProfile = await storage.getBuilderProfile(userId);
     
     if (existingProfile) {
-      // Update existing profile
+      // Update existing Community Builder settings
       const updated = await storage.updateBuilderProfile(existingProfile.id, {
         businessName,
         description,
@@ -71,7 +71,7 @@ router.post('/profile', requireAuth, async (req: Request, res: Response) => {
       return res.json(updated);
     }
 
-    // Create new profile
+    // Create new Community Builder record
     const profile = await storage.createBuilderProfile(userId, user.county || '', {
       businessName,
       description,
@@ -85,21 +85,21 @@ router.post('/profile', requireAuth, async (req: Request, res: Response) => {
       profile.id,
       'profile_created',
       'Welcome to Community Builder!',
-      'Your profile is live. Start proposing contributions to your county vault.',
+      'Your Community Builder badge is active. Start proposing contributions to your county vault.',
       undefined,
       '/community-builder/dashboard'
     );
 
     res.json(profile);
   } catch (error) {
-    console.error('Error creating builder profile:', error);
-    res.status(500).json({ error: 'Failed to create profile' });
+    console.error('Error saving Community Builder settings:', error);
+    res.status(500).json({ error: 'Failed to save Community Builder settings' });
   }
 });
 
 /**
  * GET /api/community-builder/profile/:builderId
- * Get a specific builder's public profile
+ * Get a specific builder's public Community Builder info
  */
 router.get('/profile/:builderId', async (req: Request, res: Response) => {
   try {
@@ -118,8 +118,8 @@ router.get('/profile/:builderId', async (req: Request, res: Response) => {
       stats,
     });
   } catch (error) {
-    console.error('Error fetching builder profile:', error);
-    res.status(500).json({ error: 'Failed to fetch profile' });
+    console.error('Error fetching builder info:', error);
+    res.status(500).json({ error: 'Failed to fetch builder info' });
   }
 });
 
