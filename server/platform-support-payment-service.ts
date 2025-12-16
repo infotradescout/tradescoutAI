@@ -1,5 +1,6 @@
 import Stripe from 'stripe';
 import { storage } from './storage';
+import { grantCommunityBuilderBadge } from './communityBuilderBadgeService';
 
 const stripe = process.env.STRIPE_SECRET_KEY
   ? new Stripe(process.env.STRIPE_SECRET_KEY, { apiVersion: '2025-07-30.basil' })
@@ -66,7 +67,7 @@ export class PlatformSupportPaymentService {
     const externalKey = `stripe:checkout_session:${session.id}:community_vault_donation`;
 
     try {
-      await storage.recordCommunityVaultLedgerEntry({
+      const result = await storage.recordCommunityVaultLedgerEntry({
         profileId,
         amount: amountValue,
         sourceType: 'direct_donation',
@@ -75,6 +76,12 @@ export class PlatformSupportPaymentService {
         memo: 'Stripe community vault donation',
         causeId: metadata.causeId || undefined,
       });
+
+      // Award Community Builder badge to the owner of this profile when money flows into their vault.
+      const ownerUserId = await storage.getProfileOwnerUserId(profileId);
+      if (ownerUserId) {
+        await grantCommunityBuilderBadge(ownerUserId, 'community_vault_donation');
+      }
     } catch (error: any) {
       // Idempotency: unique externalKey
       if (String(error?.message || '').toLowerCase().includes('duplicate') || String(error?.code) === '23505') {
@@ -139,6 +146,12 @@ export class PlatformSupportPaymentService {
         externalKey: `stripe:checkout_session:${session.id}:community_vault_credit`,
         memo: 'Platform Support split credit',
       });
+
+      // The originating profile owner effectively drove a paid platform support action.
+      const ownerUserId = await storage.getProfileOwnerUserId(originatingProfileId);
+      if (ownerUserId) {
+        await grantCommunityBuilderBadge(ownerUserId, 'builder_fund');
+      }
     }
   }
 
@@ -211,6 +224,11 @@ export class PlatformSupportPaymentService {
         externalKey: `stripe:invoice:${invoice.id}:community_vault_credit`,
         memo: 'Platform Support monthly split credit',
       });
+
+      const ownerUserId = await storage.getProfileOwnerUserId(originatingProfileId);
+      if (ownerUserId) {
+        await grantCommunityBuilderBadge(ownerUserId, 'builder_fund');
+      }
     }
   }
 

@@ -1,5 +1,6 @@
 import Stripe from 'stripe';
 import { storage } from './storage';
+import { grantCommunityBuilderBadge } from './communityBuilderBadgeService';
 import { 
   type ContractorPayment, 
   type MarketplaceTransaction,
@@ -91,6 +92,13 @@ export class PaymentService {
         description: `Commission from ${paymentType} payment`,
         createdAt: new Date(),
       });
+
+      // Award the Community Builder badge to the affiliate who drove this paid conversion.
+      try {
+        await grantCommunityBuilderBadge(affiliateProgram.affiliateId, 'affiliate_conversion');
+      } catch (err) {
+        console.error('Error granting Community Builder badge for affiliate conversion:', err);
+      }
 
       return commission;
     } catch (error) {

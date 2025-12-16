@@ -428,7 +428,7 @@ export default function ProfileSettings() {
             <div className="space-y-0.5">
               <Label>Roles & badges</Label>
               <p className="text-sm text-tsTextMuted">
-                Show your TradeScout roles, badges, and community builder status.
+                Show your TradeScout roles, badges, and Community Builder badge status.
               </p>
             </div>
             <Switch

@@ -6159,13 +6159,13 @@ export const contributionStatusEnum = pgEnum('contribution_status', [
   'cancelled',          // Withdrawn or rejected
 ]);
 
-// Community Builder Profiles
+// Community Builder records
 export const communityBuilderProfiles = pgTable("community_builder_profiles", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   userId: varchar("user_id").notNull().unique().references(() => users.id, { onDelete: 'cascade' }),
   countyId: varchar("county_id").notNull().references(() => counties.id),
   
-  // Profile Details
+  // Builder details
   businessName: varchar("business_name"),
   description: text("description"),
   profileImageUrl: varchar("profile_image_url"),

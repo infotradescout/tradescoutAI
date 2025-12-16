@@ -157,7 +157,7 @@ export default function ScoutOS() {
         base.push(
           "Summarize this into a simple next-step plan",
           "Route me to the best page in TradeScout for this",
-          "Turn this into a saved note or project I can revisit"
+          "Turn this into a trackable project on my board"
         );
         break;
     }
@@ -178,9 +178,9 @@ export default function ScoutOS() {
     if (!merged.length && short) {
       merged.push(`Remember this for later and suggest my next move on: ${short}`);
     }
-
     return merged.slice(0, 3);
   };
+
   const handleSend = useCallback(
     async (value: string, explicitMode?: ScoutMode) => {
       if (containsProfanity(value)) {
@@ -542,7 +542,13 @@ export default function ScoutOS() {
                 messages={state.messages}
                 status={state.status}
                 onAction={handleClusterAction}
-                onQuickAction={(text) => handleSend(text)}
+                onQuickAction={(text) => {
+                  if (text === "Turn this into a trackable project on my board") {
+                    navigate("/request-quote");
+                    return;
+                  }
+                  handleSend(text);
+                }}
               />
 
               <ScoutInput

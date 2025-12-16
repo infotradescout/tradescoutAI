@@ -462,7 +462,7 @@ const AppLayout = memo(function AppLayout() {
                       <LazyPage Component={CommunityBuilderDashboard} />
                     </ProtectedRoute>
                   </Route>
-                  {/* Community builder profile setup route temporarily disabled until page is restored */}
+                  {/* Community Builder setup route temporarily disabled until page is restored */}
                   <Route path="/community-builder/contributions/:id/success">
                     <ProtectedRoute>
                       <LazyPage Component={CommunityBuilderContributionSuccess} />

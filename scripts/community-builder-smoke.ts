@@ -12,7 +12,7 @@ Required auth:
 - ADMIN_COOKIE: session cookie for an admin user (for approval/verification)
 
 What it verifies:
-1) Builder profile can be created/updated
+1) Community Builder settings can be created/updated
 2) Contribution can be proposed
 3) Admin can see pending contributions
 4) Admin can approve + verify the contribution
@@ -67,11 +67,11 @@ interface ContributionResponse {
 async function main() {
   const suffix = Date.now();
 
-  console.log(`1) Upsert builder profile...`);
+  console.log(`1) Upsert Community Builder settings...`);
   const profile = await request("POST", "/api/community-builder/profile", {
     businessName: `Smoke Builder ${suffix}`,
     countyId: "demo-county", // replace with a real county id
-    description: "Smoke test builder profile",
+    description: "Smoke test Community Builder settings",
     payoutEmail: "smoke@example.com",
   }, BUILDER_COOKIE);
   console.log(`   ✔ profile id: ${(profile as { id?: string }).id ?? "unknown"}`);

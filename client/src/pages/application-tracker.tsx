@@ -70,7 +70,7 @@ const ApplicationTracker = memo(function ApplicationTracker() {
     },
     {
       id: "APP-2024-004",
-      type: "HOA Admin Access",
+      type: "HOA Leadership Access",
       applicant: "Oakwood Hills Association",
       email: "admin@oakwoodhills.org",
       submittedDate: "2024-03-12",

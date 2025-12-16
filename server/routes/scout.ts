@@ -550,13 +550,13 @@ function parseStructuredResponse(
 
 /**
  * Trim response to ensure it fits on screen without scrolling
- * - Max 300 words (typical mobile viewport at 18pt font)
- * - Max 12-15 lines (assumes 4-5 words per line average)
+ * - Max ~150 words (tighter mobile-friendly cap)
+ * - Max 8-10 lines (keeps answers scannable)
  * - Preserves structure and important information
  */
 function trimResponseToScreenFit(response: string): string {
-  const maxWords = 300;
-  const maxLines = 15;
+  const maxWords = 150;
+  const maxLines = 10;
   
   // Split into lines
   const lines = response.split('\n').filter(line => line.trim().length > 0);

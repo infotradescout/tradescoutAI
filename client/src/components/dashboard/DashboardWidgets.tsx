@@ -3,11 +3,13 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { 
-  Activity, MessageSquare, Heart, Star, Briefcase, 
-  TrendingUp, Users2, Calendar, Bell, Wrench, Link as LinkIcon
+  Activity, MessageSquare, Star, Briefcase, 
+  TrendingUp, Users2, Calendar, Bell, Wrench, Link as LinkIcon, Award
 } from 'lucide-react';
 import { Link } from 'wouter';
 import { formatDistanceToNow } from 'date-fns';
+import { useQuery } from '@tanstack/react-query';
+import { useAuth } from '@/hooks/useAuth';
 
 interface WidgetProps {
   className?: string;
@@ -47,10 +49,23 @@ export function ActivityStatsWidget({ className }: WidgetProps) {
 }
 
 export function RecentProjectsWidget({ className }: WidgetProps) {
-  const projects = [
-    { id: 1, title: 'Kitchen Remodel', status: 'in_progress', contractor: 'Elite Renovations' },
-    { id: 2, title: 'Bathroom Upgrade', status: 'planning', contractor: 'Not assigned' },
-  ];
+  const { user } = useAuth();
+
+  const { data, isLoading } = useQuery<{
+    myProjects?: Array<{
+      id: string;
+      title: string;
+      status?: string;
+      value?: string | number | null;
+      createdAt?: string | Date | null;
+      contractorName?: string | null;
+    }>;
+  }>({
+    queryKey: ["/api/dashboard", user?.id],
+    enabled: !!user?.id,
+  });
+
+  const projects = data?.myProjects ?? [];
 
   return (
     <Card className={`bg-white dark:bg-slate-800 border-0 shadow-sm ${className}`}>
@@ -60,13 +75,17 @@ export function RecentProjectsWidget({ className }: WidgetProps) {
             <Briefcase className="h-4 w-4 text-orange-500" />
             My Projects
           </CardTitle>
-          <Link href="/projects">
+          <Link href="/project-tracker">
             <Button variant="ghost" size="sm" className="text-xs h-7">View All</Button>
           </Link>
         </div>
       </CardHeader>
       <CardContent className="space-y-3">
-        {projects.length === 0 ? (
+        {isLoading ? (
+          <div className="text-center py-6 text-sm text-slate-500 dark:text-slate-400">
+            Loading projects...
+          </div>
+        ) : projects.length === 0 ? (
           <div className="text-center py-6 text-sm text-slate-500 dark:text-slate-400">
             No active projects yet
           </div>
@@ -75,10 +94,22 @@ export function RecentProjectsWidget({ className }: WidgetProps) {
             <div key={project.id} className="flex items-start gap-3 p-3 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors">
               <div className="flex-1">
                 <h4 className="font-medium text-sm text-slate-900 dark:text-white">{project.title}</h4>
-                <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">{project.contractor}</p>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                  {project.contractorName
+                    ? project.contractorName
+                    : project.createdAt
+                    ? `Created ${formatDistanceToNow(new Date(project.createdAt), { addSuffix: true })}`
+                    : ""}
+                </p>
               </div>
-              <Badge className={project.status === 'in_progress' ? 'bg-green-100 text-green-700' : 'bg-blue-100 text-blue-700'}>
-                {project.status === 'in_progress' ? 'Active' : 'Planning'}
+              <Badge
+                className={
+                  project.status && ["new", "contacted", "qualified", "matched"].includes(project.status)
+                    ? "bg-green-100 text-green-700"
+                    : "bg-blue-100 text-blue-700"
+                }
+              >
+                {project.status ? project.status.charAt(0).toUpperCase() + project.status.slice(1) : "Active"}
               </Badge>
             </div>
           ))
@@ -176,10 +207,9 @@ export function MessagesPreviewWidget({ className }: WidgetProps) {
 
 export function QuickActionsWidget({ className }: WidgetProps) {
   const quickActions = [
-    { icon: Briefcase, label: 'Post a Project', href: '/projects/new', color: 'text-blue-600' },
+    { icon: Briefcase, label: 'Post a Project', href: '/request-quote', color: 'text-blue-600' },
     { icon: Wrench, label: 'Find Contractor', href: '/contractors', color: 'text-orange-600' },
     { icon: MessageSquare, label: 'Messages', href: '/messages', color: 'text-green-600' },
-    { icon: Calendar, label: 'Schedule', href: '/schedule', color: 'text-purple-600' },
   ];
 
   return (
@@ -301,6 +331,130 @@ export function AffiliateStatsWidget({ className }: WidgetProps) {
   );
 }
 
+export function CommunityBuilderImpactWidget({ className }: WidgetProps) {
+  const { user } = useAuth();
+
+  const hasCommunityBuilderRole = Array.isArray(user?.roles)
+    ? user!.roles.includes('community_builder')
+    : false;
+
+  const {
+    data: profile,
+    isLoading,
+    isError,
+  } = useQuery({
+    queryKey: ['/api/community-builder/profile', 'impact'],
+    enabled: !!user,
+    queryFn: async () => {
+      const res = await fetch('/api/community-builder/profile');
+      if (res.status === 404 || res.status === 403) {
+        return null;
+      }
+      if (!res.ok) throw new Error('Failed to fetch Community Builder stats');
+      return res.json();
+    },
+  });
+
+  const stats = (profile as any)?.stats as
+    | { totalContributions: number; totalValue: string; totalHours: string; completedCount: number }
+    | undefined;
+
+  const hasImpact = !!stats && stats.totalContributions > 0;
+
+  return (
+    <Card className={`bg-white dark:bg-slate-800 border-0 shadow-sm ${className}`}>
+      <CardHeader className="pb-3 flex flex-row items-center justify-between gap-2">
+        <CardTitle className="text-base flex items-center gap-2">
+          <Award className="h-4 w-4 text-emerald-500" />
+          Community Builder Impact
+        </CardTitle>
+        {hasCommunityBuilderRole && (
+          <Badge variant="outline" className="border-emerald-500 text-emerald-600 dark:text-emerald-300 text-xs">
+            Badge active
+          </Badge>
+        )}
+      </CardHeader>
+      <CardContent className="space-y-3 text-sm">
+        {isLoading && (
+          <p className="text-slate-500 dark:text-slate-400">Loading your impact</p>
+        )}
+
+        {!isLoading && profile === null && !hasCommunityBuilderRole && (
+          <>
+            <p className="text-slate-600 dark:text-slate-400">
+              Earn the Community Builder badge to send and vote on which local causes get funded from your community vault.
+            </p>
+            <Link href="/community-builder">
+              <Button size="sm" className="mt-2 bg-orange-600 hover:bg-orange-700 text-white w-full">
+                Activate Community Builder badge
+              </Button>
+            </Link>
+          </>
+        )}
+
+        {!isLoading && (profile !== null || hasCommunityBuilderRole) && !hasImpact && !isError && (
+          <>
+            <p className="text-slate-600 dark:text-slate-400">
+              Your Community Builder badge is ready. Propose a contribution or support a local cause to start building your impact history.
+            </p>
+            <div className="flex gap-2">
+              <Link href="/community-builder/dashboard">
+                <Button variant="outline" size="sm" className="flex-1">
+                  Open Community Builder dashboard
+                </Button>
+              </Link>
+              <Link href="/foundation">
+                <Button variant="outline" size="sm" className="flex-1">
+                  View community vault
+                </Button>
+              </Link>
+            </div>
+          </>
+        )}
+
+        {!isLoading && hasImpact && stats && (
+          <>
+            <p className="text-slate-600 dark:text-slate-400">
+              Thanks to your Community Builder badge, you've helped unlock funding and hours for local causes.
+            </p>
+            <div className="grid grid-cols-3 gap-3 mt-2">
+              <div className="text-center p-2 rounded-lg bg-slate-50 dark:bg-slate-700/50">
+                <div className="text-xs text-slate-500 dark:text-slate-400 mb-1">Verified contributions</div>
+                <div className="text-lg font-semibold text-slate-900 dark:text-white">
+                  {stats.completedCount}
+                </div>
+              </div>
+              <div className="text-center p-2 rounded-lg bg-slate-50 dark:bg-slate-700/50">
+                <div className="text-xs text-slate-500 dark:text-slate-400 mb-1">Funded value</div>
+                <div className="text-lg font-semibold text-emerald-600 dark:text-emerald-300">
+                  ${stats.totalValue}
+                </div>
+              </div>
+              <div className="text-center p-2 rounded-lg bg-slate-50 dark:bg-slate-700/50">
+                <div className="text-xs text-slate-500 dark:text-slate-400 mb-1">Hours donated</div>
+                <div className="text-lg font-semibold text-slate-900 dark:text-white">
+                  {stats.totalHours}
+                </div>
+              </div>
+            </div>
+            <Link href="/community-builder/dashboard">
+              <Button variant="outline" size="sm" className="mt-3 w-full">
+                See full Community Builder history
+              </Button>
+            </Link>
+          </>
+        )}
+
+        {isError && !isLoading && (
+          <p className="text-xs text-red-500">
+            We couldn't load your Community Builder impact right now. Try refreshing, or visit the Community Builder dashboard.
+          </p>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
 // Widget registry for easy configuration
 export const AVAILABLE_WIDGETS = [
   { id: 'activity-stats', name: 'Activity Stats', component: ActivityStatsWidget, defaultEnabled: true },
@@ -311,4 +465,5 @@ export const AVAILABLE_WIDGETS = [
   { id: 'notifications', name: 'Notifications', component: NotificationsWidget, defaultEnabled: false },
   { id: 'community-feed', name: 'Community Feed', component: CommunityFeedWidget, defaultEnabled: false },
   { id: 'affiliate-stats', name: 'Affiliate Earnings', component: AffiliateStatsWidget, defaultEnabled: false },
+  { id: 'community-builder-impact', name: 'Community Builder Impact', component: CommunityBuilderImpactWidget, defaultEnabled: true },
 ] as const;

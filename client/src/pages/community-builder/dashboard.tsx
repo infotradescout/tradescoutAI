@@ -44,7 +44,7 @@ export default function CommunityBuilderDashboard() {
   const [, navigate] = useLocation();
   const { toast } = useToast();
 
-  // Fetch builder profile
+  // Fetch Community Builder settings for this user
   const { data: profile, isLoading: profileLoading } = useQuery<BuilderProfile>({
     queryKey: ['builderProfile'],
     queryFn: async () => {
@@ -97,14 +97,14 @@ export default function CommunityBuilderDashboard() {
             <CardHeader className="text-center">
               <CardTitle className="text-2xl">Start Your Community Builder Journey</CardTitle>
               <CardDescription>
-                Join your county's community of builders and make a real impact
+                Claim your Community Builder badge and help decide what causes your county vault funds.
               </CardDescription>
             </CardHeader>
             <CardContent className="text-center space-y-6">
               <div className="space-y-2">
                 <p className="text-gray-600">
                   Community Builders contribute time, expertise, and resources to strengthen their communities.
-                  In return, they earn recognition, rewards, and the satisfaction of making a difference.
+                  Your badge sets you apart and lets you send and vote on which causes get funded from the community vault.
                 </p>
                 <p className="text-sm text-gray-500">
                   Want to support the broader Community Builder Fund directly?
@@ -125,7 +125,7 @@ export default function CommunityBuilderDashboard() {
                 onClick={() => navigate('/community-builder/setup')}
                 className="bg-indigo-600 hover:bg-indigo-700"
               >
-                Create Your Builder Profile
+                Activate Your Community Builder Badge
               </Button>
             </CardContent>
           </Card>

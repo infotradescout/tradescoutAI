@@ -1,5 +1,6 @@
 import { db } from "../../src/db/drizzle-mock";
 import { eq } from "drizzle-orm";
+import { storage } from "../storage";
 
 /**
  * HOA Service - Handles all HOA-related database operations
@@ -198,13 +199,25 @@ export async function getHOAMembers(hoaId: number) {
  */
 async function validateHOAAdmin(userId: number, hoaId: number): Promise<boolean> {
   try {
-    // For the current test harness, role-based checks are already
-    // enforced at the assistant layer (hoa_admin/admin roles). This
-    // helper simply acknowledges those checks and allows vote
-    // creation to proceed so the HOA flow completes successfully.
-    void userId;
-    void hoaId;
-    return true;
+    const user = await storage.getUser(String(userId));
+
+    if (!user) {
+      return false;
+    }
+
+    // Platform failsafe: super/head admin can always act for debugging
+    const platformRole = (user as any).role;
+    if (platformRole === "super_admin" || platformRole === "head_admin") {
+      return true;
+    }
+
+    // HOA-scoped check: require an HOA membership with voting permission
+    const member = await storage.getHOAMemberByUserId(String(userId), String(hoaId));
+    if (!member) {
+      return false;
+    }
+
+    return !!member.canCreateVotes;
   } catch (error) {
     console.error("Failed to validate HOA admin:", error);
     return false;

@@ -61,7 +61,7 @@ Proposed and completed contributions/projects.
 
 **Fields:**
 - `id` (PK): UUID
-- `builderId` (FK): Reference to builder profile
+- `builderId` (FK): Reference to Community Builder record
 - `countyId` (FK): Reference to counties
 - `title`: Project/contribution title
 - `description`: Detailed description
@@ -118,7 +118,7 @@ Payment records to builders.
 
 **Fields:**
 - `id` (PK): UUID
-- `builderId` (FK): Reference to builder profile
+- `builderId` (FK): Reference to Community Builder record
 - `countyId` (FK): Reference to counties
 - `amount`: Decimal (14,2)
 - `currency`: VARCHAR (default 'USD')
@@ -180,7 +180,7 @@ Activity notifications for builders.
 
 **Fields:**
 - `id` (PK): UUID
-- `builderId` (FK): Reference to builder profile
+- `builderId` (FK): Reference to Community Builder record
 - `type`: VARCHAR (contribution_approved, contribution_verified, payout_processed, rank_updated, etc.)
 - `title`: Notification title
 - `message`: Notification message
@@ -196,11 +196,11 @@ Activity notifications for builders.
 
 ### Builder Endpoints (Authenticated)
 
-#### Profile Management
+#### Community Builder Settings
 ```
-GET    /api/community-builder/profile              → Get authenticated builder's profile
-POST   /api/community-builder/profile              → Create/update builder profile
-GET    /api/community-builder/profile/:builderId   → Get public builder profile
+GET    /api/community-builder/profile               Get authenticated builder's Community Builder settings
+POST   /api/community-builder/profile               Create or update Community Builder settings
+GET    /api/community-builder/profile/:builderId    Get public Community Builder info
 ```
 
 #### Contributions
@@ -263,7 +263,7 @@ GET    /api/admin/community-builder/county/:countyId/stats       → Get county 
 **File:** `client/src/pages/community-builder/dashboard.tsx`
 
 Dashboard showing:
-- Builder profile status & rank
+- Community Builder badge status & rank
 - Live statistics (total value, hours, contributions)
 - Unread notifications
 - Recent contributions list
@@ -298,13 +298,13 @@ Contribution details showing:
 #### 4. `/community-builder/profile`
 **File:** `client/src/pages/community-builder/profile.tsx` (to be created)
 
-Builder profile showing:
-- Profile information
+Community Builder overview showing:
+- Public-facing builder information
 - Statistics and achievements
 - Rank progression
 - Rating and reviews
 - Completed projects
-- Edit profile controls
+- Edit Community Builder settings controls
 
 ### Admin Pages
 
@@ -327,7 +327,7 @@ Admin dashboard for:
 New methods added to `DatabaseStorage` class:
 
 ```typescript
-// Builder Profile Management
+// Community Builder management
 createBuilderProfile(userId, countyId, data)
 getBuilderProfile(userId)
 getBuilderById(builderId)
@@ -488,7 +488,7 @@ Contributions recorded in county vault create a transparent fund that:
 ## 📊 Testing Checklist
 
 ### Unit Tests Needed
-- [ ] Builder profile CRUD operations
+- [ ] Community Builder settings CRUD operations
 - [ ] Contribution status transitions
 - [ ] Rank calculation logic
 - [ ] Payout amount calculations
@@ -504,7 +504,7 @@ Contributions recorded in county vault create a transparent fund that:
 - [ ] Builder suspension/restoration
 
 ### Manual Testing Checklist
-- [ ] Create builder profile
+- [ ] Create Community Builder settings
 - [ ] Propose contribution (all types)
 - [ ] Edit contribution (pre-approval)
 - [ ] Admin approve/reject

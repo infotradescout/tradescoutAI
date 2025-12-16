@@ -47,7 +47,7 @@ CREATE TABLE IF NOT EXISTS "vault_ledger_entries" (
 CREATE INDEX IF NOT EXISTS "vault_ledger_vault_idx" ON "vault_ledger_entries" ("vault_id");
 CREATE INDEX IF NOT EXISTS "vault_ledger_created_idx" ON "vault_ledger_entries" ("created_at");
 
--- Community Builder profiles
+-- Community Builder records
 CREATE TABLE IF NOT EXISTS "community_builder_profiles" (
     "id" varchar PRIMARY KEY DEFAULT gen_random_uuid(),
     "user_id" varchar NOT NULL UNIQUE REFERENCES "users"("id") ON DELETE CASCADE,

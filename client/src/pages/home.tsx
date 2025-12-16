@@ -116,7 +116,7 @@ export default function Home() {
                 <Link href="/foundation">View Foundation</Link>
               </Button>
               <Button asChild variant="outline" className="border-slate-600 text-white hover:border-orange-500">
-                <Link href="/community-builder">Community Builder</Link>
+                <Link href="/community-builder">Community Builder badge</Link>
               </Button>
               <Button
                 asChild

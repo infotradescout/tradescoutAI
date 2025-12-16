@@ -329,7 +329,7 @@ export default function PublicProfileView() {
                       }}
                     >
                       <Award className="h-3 w-3 mr-1" />
-                      Community Builder
+                      Community Builder badge
                     </Badge>
                   )}
                   {badges.map((badge: string) => (

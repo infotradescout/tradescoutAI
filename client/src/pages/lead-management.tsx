@@ -1,4 +1,5 @@
 import { memo, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -7,88 +8,38 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Users, Phone, Mail, MapPin, Calendar, Clock, Filter, Search, TrendingUp, Wrench, DollarSign } from 'lucide-react';
 import { getStatusColorClass } from '@/lib/colors';
+import { useAuth } from '@/hooks/useAuth';
+import { formatDistanceToNow } from 'date-fns';
+
+interface DashboardProject {
+  id: string;
+  title: string;
+  status?: string;
+  value?: string | number | null;
+  createdAt?: string | Date | null;
+}
+
+interface DashboardResponse {
+  stats: {
+    activeProjects: number;
+  };
+  myProjects?: DashboardProject[];
+}
 
 const ProjectTracker = memo(function ProjectTracker() {
-  const [selectedProject, setSelectedProject] = useState(null);
+  const { user } = useAuth();
+  const [selectedProject, setSelectedProject] = useState<DashboardProject | null>(null);
   const [filterStatus, setFilterStatus] = useState('all');
 
-  const projects = [
-    {
-      id: 1,
-      name: "Sarah Johnson",
-      email: "sarah.johnson@email.com",
-      phone: "(555) 123-4567",
-      location: "Beverly Hills, CA",
-      service: "Kitchen Renovation",
-      budget: "$15,000-$25,000",
-      status: "new",
-      priority: "high",
-      source: "Facebook",
-      dateAdded: "2024-03-20",
-      lastContact: "Never",
-      notes: "Interested in complete kitchen remodel. Mentioned timeline of 2 months."
-    },
-    {
-      id: 2,
-      name: "Mike Chen",
-      email: "mike.chen@email.com",
-      phone: "(555) 234-5678",
-      location: "Santa Monica, CA",
-      service: "Bathroom Remodel",
-      budget: "$8,000-$12,000",
-      status: "contacted",
-      priority: "medium",
-      source: "Website",
-      dateAdded: "2024-03-18",
-      lastContact: "2024-03-19",
-      notes: "Responded to initial quote. Scheduled for site visit next week."
-    },
-    {
-      id: 3,
-      name: "Emily Davis",
-      email: "emily.davis@email.com",
-      phone: "(555) 345-6789",
-      location: "Pasadena, CA",
-      service: "Deck Installation",
-      budget: "$5,000-$8,000",
-      status: "quoted",
-      priority: "medium",
-      source: "Referral",
-      dateAdded: "2024-03-15",
-      lastContact: "2024-03-17",
-      notes: "Quote sent. Waiting for response. Very interested in composite decking."
-    },
-    {
-      id: 4,
-      name: "David Wilson",
-      email: "david.wilson@email.com",
-      phone: "(555) 456-7890",
-      location: "Malibu, CA",
-      service: "Pool Installation",
-      budget: "$35,000-$50,000",
-      status: "proposal",
-      priority: "high",
-      source: "Google",
-      dateAdded: "2024-03-10",
-      lastContact: "2024-03-18",
-      notes: "Detailed proposal submitted. High-value project. Very qualified buyer."
-    },
-    {
-      id: 5,
-      name: "Lisa Brown",
-      email: "lisa.brown@email.com",
-      phone: "(555) 567-8901",
-      location: "Manhattan Beach, CA",
-      service: "Home Addition",
-      budget: "$25,000-$40,000",
-      status: "won",
-      priority: "high",
-      source: "Daily Deals",
-      dateAdded: "2024-03-05",
-      lastContact: "2024-03-19",
-      notes: "Project won! Contract signed. Start date scheduled for April 1st."
-    }
-  ];
+  const { data, isLoading } = useQuery<DashboardResponse>({
+    queryKey: ['/api/dashboard', user?.id],
+    enabled: !!user?.id,
+  });
+
+  const projects: (DashboardProject & { status: string })[] = (data?.myProjects ?? []).map((p) => ({
+    ...p,
+    status: p.status || 'new',
+  }));
 
   const getStatusColor = (status: string) => {
     return getStatusColorClass(status);
@@ -107,61 +58,82 @@ const ProjectTracker = memo(function ProjectTracker() {
     ? projects 
     : projects.filter(project => project.status === filterStatus);
 
-  const projectStats = {
-    total: projects.length,
-    new: projects.filter(p => p.status === 'new').length,
-    contacted: projects.filter(p => p.status === 'contacted').length,
-    quoted: projects.filter(p => p.status === 'quoted').length,
-    won: projects.filter(p => p.status === 'won').length
-  };
+          <CardContent>
+            {isLoading ? (
+              <div className="py-6 text-center text-sm text-gray-400">Loading projects...</div>
+            ) : projects.length === 0 ? (
+              <div className="py-6 text-center text-sm text-gray-400">No projects yet</div>
+            ) : (
+              <>
+                <div className="space-y-3">
+                  {filteredProjects.map((project) => (
+                    <Card
+                      key={project.id}
+                      className="bg-slate-900/50 border-slate-700 hover:border-orange-500/50 transition-colors cursor-pointer"
+                      onClick={() => setSelectedProject(project)}
+                    >
+                      <CardContent className="p-4">
+                        <div className="flex items-center justify-between">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-3 mb-2">
+                              <h3 className="text-lg font-semibold text-white">{project.title}</h3>
+                              <Badge className={`${getStatusColor(project.status)} text-white border-0`}>
+                                {project.status}
+                              </Badge>
+                            </div>
 
-  return (
-    <div className="min-h-screen gradient-bg pt-24 pb-16 px-4">
-      <div className="container mx-auto max-w-7xl">
-        {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-4xl font-bold text-white mb-2">Project Tracker</h1>
-          <p className="text-gray-400">Manage and track your project opportunities</p>
-        </div>
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-sm text-gray-400">
+                              <div className="flex items-center gap-2">
+                                <Wrench className="w-4 h-4" />
+                                <span>{project.value ? `$${project.value}` : 'No estimate yet'}</span>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <MapPin className="w-4 h-4" />
+                                <span>Your area</span>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <Calendar className="w-4 h-4" />
+                                <span>
+                                  {project.createdAt
+                                    ? `Added ${formatDistanceToNow(new Date(project.createdAt), { addSuffix: true })}`
+                                    : 'Created recently'}
+                                </span>
+                              </div>
+                            </div>
+                          </div>
 
-        {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-8">
-          <Card className="bg-slate-800/50 border-slate-700">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm text-gray-400">Total Projects</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold text-white">{projectStats.total}</div>
-            </CardContent>
-          </Card>
+                          <div className="flex items-center gap-2 ml-4">
+                            <Button variant="outline" size="sm" className="border-slate-700 hover:bg-slate-700">
+                              <Phone className="w-4 h-4 mr-2" />
+                              Call
+                            </Button>
+                            <Button variant="outline" size="sm" className="border-slate-700 hover:bg-slate-700">
+                              <Mail className="w-4 h-4 mr-2" />
+                              Message
+                            </Button>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
 
-          <Card className="bg-slate-800/50 border-slate-700">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm text-gray-400">New Requests</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold text-blue-400">{projectStats.new}</div>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-slate-800/50 border-slate-700">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm text-gray-400">In Progress</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold text-yellow-400">{projectStats.contacted}</div>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-slate-800/50 border-slate-700">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm text-gray-400">Quoted</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold text-purple-400">{projectStats.quoted}</div>
-            </CardContent>
-          </Card>
-
+                {selectedProject && (
+                  <div className="mt-6 border-t border-slate-700 pt-4">
+                    <h2 className="text-lg font-semibold text-white mb-2">Project details</h2>
+                    <p className="text-sm text-gray-300 mb-1">{selectedProject.title}</p>
+                    <p className="text-xs text-gray-400">
+                      Status: {selectedProject.status} •
+                      {" "}
+                      {selectedProject.createdAt
+                        ? `Added ${formatDistanceToNow(new Date(selectedProject.createdAt), { addSuffix: true })}`
+                        : "Created recently"}
+                    </p>
+                  </div>
+                )}
+              </>
+            )}
+          </CardContent>
           <Card className="bg-slate-800/50 border-slate-700">
             <CardHeader className="pb-3">
               <CardTitle className="text-sm text-gray-400">Projects Won</CardTitle>
@@ -209,59 +181,60 @@ const ProjectTracker = memo(function ProjectTracker() {
           </CardHeader>
 
           <CardContent>
-            <div className="space-y-3">
-              {filteredProjects.map((project) => (
-                <Card key={project.id} className="bg-slate-900/50 border-slate-700 hover:border-orange-500/50 transition-colors cursor-pointer">
-                  <CardContent className="p-4">
-                    <div className="flex items-center justify-between">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-3 mb-2">
-                          <h3 className="text-lg font-semibold text-white">{project.name}</h3>
-                          <Badge className={`${getStatusColor(project.status)} text-white border-0`}>
-                            {project.status}
-                          </Badge>
-                          <Badge variant="outline" className={`${getPriorityColor(project.priority)} border`}>
-                            {project.priority}
-                          </Badge>
-                        </div>
-                        
-                        <div className="grid grid-cols-1 md:grid-cols-4 gap-3 text-sm text-gray-400">
-                          <div className="flex items-center gap-2">
-                            <Wrench className="w-4 h-4" />
-                            <span>{project.service}</span>
+            {isLoading ? (
+              <div className="py-6 text-center text-sm text-gray-400">Loading projects...</div>
+            ) : projects.length === 0 ? (
+              <div className="py-6 text-center text-sm text-gray-400">No projects yet</div>
+            ) : (
+              <div className="space-y-3">
+                {filteredProjects.map((project) => (
+                  <Card key={project.id} className="bg-slate-900/50 border-slate-700 hover:border-orange-500/50 transition-colors cursor-pointer">
+                    <CardContent className="p-4">
+                      <div className="flex items-center justify-between">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-3 mb-2">
+                            <h3 className="text-lg font-semibold text-white">{project.title}</h3>
+                            <Badge className={`${getStatusColor(project.status)} text-white border-0`}>
+                              {project.status}
+                            </Badge>
                           </div>
-                          <div className="flex items-center gap-2">
-                            <MapPin className="w-4 h-4" />
-                            <span>{project.location}</span>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <DollarSign className="w-4 h-4" />
-                            <span>{project.budget}</span>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <Calendar className="w-4 h-4" />
-                            <span>Added {project.dateAdded}</span>
+
+                          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-sm text-gray-400">
+                            <div className="flex items-center gap-2">
+                              <Wrench className="w-4 h-4" />
+                              <span>{project.value ? `$${project.value}` : 'No estimate yet'}</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <MapPin className="w-4 h-4" />
+                              <span>Your area</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <Calendar className="w-4 h-4" />
+                              <span>
+                                {project.createdAt
+                                  ? `Added ${formatDistanceToNow(new Date(project.createdAt), { addSuffix: true })}`
+                                  : 'Created recently'}
+                              </span>
+                            </div>
                           </div>
                         </div>
 
-                        <p className="text-sm text-gray-500 mt-2">{project.notes}</p>
+                        <div className="flex items-center gap-2 ml-4">
+                          <Button variant="outline" size="sm" className="border-slate-700 hover:bg-slate-700">
+                            <Phone className="w-4 h-4 mr-2" />
+                            Call
+                          </Button>
+                          <Button variant="outline" size="sm" className="border-slate-700 hover:bg-slate-700">
+                            <Mail className="w-4 h-4 mr-2" />
+                            Message
+                          </Button>
+                        </div>
                       </div>
-
-                      <div className="flex items-center gap-2 ml-4">
-                        <Button variant="outline" size="sm" className="border-slate-700 hover:bg-slate-700">
-                          <Phone className="w-4 h-4 mr-2" />
-                          Call
-                        </Button>
-                        <Button variant="outline" size="sm" className="border-slate-700 hover:bg-slate-700">
-                          <Mail className="w-4 h-4 mr-2" />
-                          Email
-                        </Button>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>

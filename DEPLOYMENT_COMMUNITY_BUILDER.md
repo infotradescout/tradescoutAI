@@ -77,7 +77,7 @@ tsx scripts/community-builder-smoke.ts
 ```
 
 What it checks:
-1) Builder profile create/update
+1) Community Builder settings create/update
 2) Contribution proposal
 3) Admin pending queue
 4) Admin approve + verify
@@ -86,7 +86,7 @@ What it checks:
 Success criterion: script prints `SMOKE TEST PASSED` and exits 0.
 
 ## 6) Manual Spot Checks
-- `GET /api/community-builder/profile` (builder cookie) returns profile
+- `GET /api/community-builder/profile` (builder cookie) returns Community Builder settings
 - `GET /api/admin/community-builder/contributions/pending` (admin cookie) shows items
 - `GET /api/community-builder/notifications` returns list
 - `GET /api/community-builder/payouts` returns payouts (can be empty)

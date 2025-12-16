@@ -455,10 +455,10 @@ export default function Help() {
     },
 
     community_builder: {
-      name: "Community Builder",
+      name: "Community Builder badge",
       color: "bg-purple-600",
       icon: Crown,
-      description: "Program tools, priority support, and growth resources",
+      description: "Earned badge that lets you send and vote on community vault causes, with priority tools and support",
       quickActions: [
         {
           title: "Priority Leads",

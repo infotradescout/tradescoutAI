@@ -16,6 +16,7 @@ const sponsorLines = [
 ];
 
 const communityLines = [
+  'Community Builder badge holders help decide which local causes the community vault funds',
   'Community Builders run local drives and campaigns to raise funds for their counties',
   '10% of all platform profits are allocated to the TradeScout Foundation',
   '100% of Foundation donations are returned directly to the communities where they originated',
@@ -75,7 +76,7 @@ const Pricing = memo(function Pricing() {
             <span className="font-semibold">Community Builders & Foundation</span>
           </div>
           <p className="text-gray-100 mb-4">
-            Community Builders aren't just organizing projects—they actively help raise money that stays local. Our Foundation model routes resources back to the neighborhoods that generated them.
+            Community Builders aren't just organizing projects—they earn a badge that lets them send and vote on causes funded from the community vault. Our Foundation model routes resources back to the neighborhoods that generated them.
           </p>
           <ul className="space-y-3 text-gray-100">
             {communityLines.map((line) => (
