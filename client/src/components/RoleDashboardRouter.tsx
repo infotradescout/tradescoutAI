@@ -1,7 +1,8 @@
-import { memo, lazy, Suspense } from 'react';
+import { memo, lazy, Suspense, useEffect, useState } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { useLocation } from 'wouter';
 import { Loader2 } from 'lucide-react';
+import { trackShellEvent } from '@/lib/analytics';
 
 // Import all role-specific dashboards
 const SimpleHome = lazy(() => import('@/pages/SimpleHome'));
@@ -21,6 +22,43 @@ const HelperDashboard = lazy(() => import('@/pages/helper-dashboard'));
 const RoleDashboardRouter = memo(function RoleDashboardRouter() {
   const { user, isLoading } = useAuth();
   const [, setLocation] = useLocation();
+
+  const [showFirstSessionBanner, setShowFirstSessionBanner] = useState(false);
+
+  // First-session dashboard banner (non-blocking, session-scoped)
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    if (!user) return;
+
+    const countKey = 'ts_dashboard_session_count';
+    const dismissedKey = 'ts_dashboard_first_banner_dismissed';
+
+    if (sessionStorage.getItem(dismissedKey) === '1') {
+      return;
+    }
+
+    const raw = sessionStorage.getItem(countKey);
+    const previous = raw ? parseInt(raw, 10) || 0 : 0;
+    const next = previous + 1;
+    sessionStorage.setItem(countKey, String(next));
+
+    if (next === 1) {
+      setShowFirstSessionBanner(true);
+
+      const roles: string[] = Array.isArray((user as any)?.roles)
+        ? (user as any).roles
+        : (user as any)?.role
+        ? [(user as any).role]
+        : [];
+
+      trackShellEvent({
+        type: 'dashboard_banner_shown',
+        sessionCount: next,
+        userTypes: roles,
+        route: '/dashboard',
+      });
+    }
+  }, [user]);
 
   if (isLoading) {
     return (
@@ -109,7 +147,51 @@ const RoleDashboardRouter = memo(function RoleDashboardRouter() {
   const DashboardComponent = getDashboardComponent();
 
   return (
-    <Suspense
+    <>
+      {showFirstSessionBanner && (
+        <div className="fixed bottom-20 right-4 z-40 max-w-sm rounded-2xl border border-orange-400/60 bg-slate-950/95 px-4 py-3 text-xs text-slate-100 shadow-lg shadow-orange-500/20">
+          <div className="flex items-start gap-2">
+            <div className="mt-0.5 h-1.5 w-1.5 rounded-full bg-orange-400 shadow-[0_0_0_3px_rgba(249,115,22,0.35)]" />
+            <div className="space-y-0.5">
+              <p className="font-semibold text-orange-200">Your profile is flexible</p>
+              <p className="text-slate-200">
+                You can add roles, sections, and layout anytime in Profile Settings.
+              </p>
+            </div>
+            <button
+              type="button"
+              aria-label="Dismiss profile tip"
+              onClick={() => {
+                setShowFirstSessionBanner(false);
+                if (typeof window !== 'undefined') {
+                  sessionStorage.setItem('ts_dashboard_first_banner_dismissed', '1');
+                }
+
+                const roles: string[] = Array.isArray((user as any)?.roles)
+                  ? (user as any).roles
+                  : (user as any)?.role
+                  ? [(user as any).role]
+                  : [];
+
+                trackShellEvent({
+                  type: 'dashboard_banner_dismissed',
+                  sessionCount:
+                    typeof window !== 'undefined'
+                      ? parseInt(sessionStorage.getItem('ts_dashboard_session_count') || '1', 10) || 1
+                      : 1,
+                  userTypes: roles,
+                  route: '/dashboard',
+                });
+              }}
+              className="ml-2 text-slate-400 hover:text-white"
+            >
+              ×
+            </button>
+          </div>
+        </div>
+      )}
+
+      <Suspense
       fallback={
         <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-900">
           <Loader2 className="w-8 h-8 animate-spin text-orange-600" />
@@ -118,6 +200,7 @@ const RoleDashboardRouter = memo(function RoleDashboardRouter() {
     >
       <DashboardComponent />
     </Suspense>
+    </>
   );
 });
 
