@@ -108,7 +108,7 @@ export function RecommendationForm({ contractorId, contractorName, onSuccess }: 
             <p className="text-gray-300 mb-4">
               Help other homeowners by sharing your experience with {contractorName}
             </p>
-            <Link href="/api/login">
+            <Link href="/login">
               <Button className="bg-orange-500 hover:bg-orange-600" data-testid="button-login-to-recommend">
                 Sign In to Leave Recommendation
               </Button>

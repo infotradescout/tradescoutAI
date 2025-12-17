@@ -1,6 +1,11 @@
 import React from "react";
 import clsx from "clsx";
-import type { ScoutAction, ScoutCluster, ScoutMessage, ScoutStatus } from "./state";
+import type {
+  ScoutAction,
+  ScoutCluster,
+  ScoutMessage,
+  ScoutStatus,
+} from "./state";
 
 type ScoutThreadProps = {
   messages: ScoutMessage[];
@@ -89,8 +94,21 @@ const ScoutThread: React.FC<ScoutThreadProps> = ({
   onAction,
   onQuickAction,
 }) => {
+  let statusLabel: string | null = null;
+  if (status === "resolving_context") {
+    statusLabel = "Checking your account and location...";
+  } else if (status === "checking_documents") {
+    statusLabel = "Reviewing your projects and documents...";
+  } else if (status === "executing_action") {
+    statusLabel = "Starting that action...";
+  } else if (status === "ready") {
+    statusLabel = "Preparing your answer...";
+  }
+
+  const showProgress = status !== "idle" && status !== "error";
+
   return (
-    <div className="space-y-3 pr-1">
+    <div className="space-y-3 pr-1 max-h-[380px] overflow-y-auto">
       {messages.map((msg) => {
         const isUser = msg.role === "user";
 
@@ -104,21 +122,15 @@ const ScoutThread: React.FC<ScoutThreadProps> = ({
           >
             <div
               className={clsx(
-                "max-w-[90%] rounded-2xl px-3 py-2 text-[13px] leading-relaxed",
+                "max-w-[80%] rounded-2xl px-3 py-2 text-[13px]",
                 isUser
-                  ? "bg-orange-500 text-black rounded-br-sm"
-                  : "bg-slate-900 text-slate-50 rounded-bl-sm"
+                  ? "bg-orange-500 text-black"
+                  : "bg-slate-900 text-slate-100 border border-slate-700/60"
               )}
             >
-              {msg.content && (
-                <p className="whitespace-pre-line">
-                  {msg.content.includes(
-                    "I encountered an error creating a comprehensive overview"
-                  )
-                    ? "Scout is having trouble connecting to its brain right now. Please try again in a moment."
-                    : msg.content}
-                </p>
-              )}
+              <p className="whitespace-pre-line leading-relaxed">
+                {msg.content}
+              </p>
 
               {msg.clusters &&
                 msg.clusters.length > 0 &&
@@ -149,13 +161,11 @@ const ScoutThread: React.FC<ScoutThreadProps> = ({
         );
       })}
 
-      {status !== "idle" && status !== "error" && (
+      {showProgress && (
         <div className="flex justify-start">
           <div className="mt-1 inline-flex items-center rounded-2xl bg-slate-900/80 px-3 py-1 text-[11px] text-slate-300 border border-slate-700/60">
             <span className="mr-1 h-1.5 w-1.5 rounded-full bg-orange-400 animate-pulse" />
-            {status === "sending"
-              ? "Sending to Scout..."
-              : "Scout is thinking about the best local answer..."}
+            {statusLabel ?? "Scout is thinking about the best local answer..."}
           </div>
         </div>
       )}

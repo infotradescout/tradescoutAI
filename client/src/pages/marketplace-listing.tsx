@@ -103,7 +103,7 @@ export default function MarketplaceListing() {
           variant: "destructive",
         });
         setTimeout(() => {
-          window.location.href = "/api/login";
+          window.location.href = "/login";
         }, 500);
         return;
       }
@@ -128,7 +128,7 @@ export default function MarketplaceListing() {
             <h2 className="text-xl font-semibold mb-2">Login Required</h2>
             <p className="text-gray-600 mb-4">You need to be logged in to create marketplace listings.</p>
             <Button asChild className="bg-orange-600 hover:bg-orange-700">
-              <Link href="/api/login">Log In</Link>
+              <Link href="/login">Log In</Link>
             </Button>
           </CardContent>
         </Card>

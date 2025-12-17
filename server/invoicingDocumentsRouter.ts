@@ -356,12 +356,21 @@ export function createInvoicingDocumentsRouter(pool: Pool) {
 				"UPDATE documents SET status = $2 WHERE id = $1 RETURNING *",
 				[id, nextStatus],
 			);
-			res.json({ document: updated.rows[0] });
+			const updatedDoc = updated.rows[0];
+			console.info("[DOC_TRANSITION]", {
+				docId: updatedDoc.id,
+				from: doc.status,
+				to: updatedDoc.status,
+				userId: req.user.id,
+				type: updatedDoc.type,
+				action: "send",
+			});
+			res.json({ document: updatedDoc });
 		}),
 	);
 
 	// Approve an estimate and auto-create a contract draft
-	r.post(
+		r.post(
 		"/api/documents/:id/approve",
 		isAuthenticated,
 		wrap(async (req: AuthedRequest, res: Response) => {
@@ -402,6 +411,15 @@ export function createInvoicingDocumentsRouter(pool: Pool) {
 				"UPDATE documents SET status='approved' WHERE id = $1 RETURNING *",
 				[id],
 			);
+			const approved = updated.rows[0];
+			console.info("[DOC_TRANSITION]", {
+				docId: approved.id,
+				from: doc.status,
+				to: approved.status,
+				userId: req.user.id,
+				type: approved.type,
+				action: "approve_estimate",
+			});
 
 			const payload = doc.payload || {};
 			const contractPayload = {
@@ -417,12 +435,21 @@ export function createInvoicingDocumentsRouter(pool: Pool) {
 				[doc.job_id, JSON.stringify(contractPayload), JSON.stringify({}), doc.created_by],
 			);
 
-			res.json({ estimate: updated.rows[0], contract: contract.rows[0] });
+			const contractDoc = contract.rows[0];
+			console.info("[DOC_TRANSITION]", {
+				docId: contractDoc.id,
+				from: null,
+				to: contractDoc.status,
+				userId: req.user.id,
+				type: contractDoc.type,
+				action: "create_contract_from_estimate",
+			});
+			res.json({ estimate: approved, contract: contractDoc });
 		}),
 	);
 
 	// Sign a contract
-	r.post(
+		r.post(
 		"/api/documents/:id/sign",
 		isAuthenticated,
 		express.json(),
@@ -472,6 +499,18 @@ export function createInvoicingDocumentsRouter(pool: Pool) {
 				throw err;
 			}
 
+			// Prevent duplicate signing by the same role; surface a clear 409.
+			const existingSig = await pool.query(
+				"SELECT 1 FROM document_signatures WHERE document_id = $1 AND role = $2 LIMIT 1",
+				[id, role],
+			);
+			if (existingSig.rows.length) {
+				const err = new Error("ROLE_ALREADY_SIGNED");
+				// @ts-expect-error attach status
+				err.status = 409;
+				throw err;
+			}
+
 			const ip = ipFromReq(req);
 
 			await pool.query(
@@ -507,13 +546,24 @@ export function createInvoicingDocumentsRouter(pool: Pool) {
 				"UPDATE documents SET status=$2, signed_at=CASE WHEN $2='signed' THEN now() ELSE signed_at END WHERE id=$1 RETURNING *",
 				[id, nextStatus],
 			);
+			const updatedDoc = updated.rows[0];
+			console.info("[DOC_TRANSITION]", {
+				docId: updatedDoc.id,
+				from: doc.status,
+				to: updatedDoc.status,
+				userId: req.user.id,
+				type: updatedDoc.type,
+				action: "sign_contract",
+				role,
+				fullySigned,
+			});
 
-			res.json({ document: updated.rows[0], fullySigned });
+			res.json({ document: updatedDoc, fullySigned });
 		}),
 	);
 
 	// Create an invoice for a job (requires signed contract)
-	r.post(
+		r.post(
 		"/api/jobs/:jobId/invoice",
 		isAuthenticated,
 		express.json(),
@@ -545,7 +595,16 @@ export function createInvoicingDocumentsRouter(pool: Pool) {
 				 RETURNING *`,
 				[jobId, JSON.stringify(payload), JSON.stringify({}), req.user.id],
 			);
-			res.status(201).json({ document: created.rows[0] });
+			const invoice = created.rows[0];
+			console.info("[DOC_TRANSITION]", {
+				docId: invoice.id,
+				from: null,
+				to: invoice.status,
+				userId: req.user.id,
+				type: invoice.type,
+				action: "create_invoice",
+			});
+			res.status(201).json({ document: invoice });
 		}),
 	);
 
@@ -585,15 +644,116 @@ export function createInvoicingDocumentsRouter(pool: Pool) {
 
 			const receiptPayload = {
 				derivedFromInvoiceId: inv.id,
-				totals: inv.payload?.total ?? null,
+				amount: inv.payload?.total ?? null,
+				currency: inv.payload?.currency ?? "USD",
 			};
 			const created = await pool.query(
 				`INSERT INTO documents (job_id, type, status, version, payload, permissions, created_by)
-				 VALUES ($1,'RECEIPT','issued',1,$2::jsonb,$3::jsonb,$4)
-				 RETURNING *`,
+					 VALUES ($1,'RECEIPT','issued',1,$2::jsonb,$3::jsonb,$4)
+					 RETURNING *`,
 				[jobId, JSON.stringify(receiptPayload), JSON.stringify({}), req.user.id],
 			);
-			res.status(201).json({ document: created.rows[0] });
+			const receipt = created.rows[0];
+			console.info("[DOC_TRANSITION]", {
+				docId: receipt.id,
+				from: null,
+				to: receipt.status,
+				userId: req.user.id,
+				type: receipt.type,
+				action: "issue_receipt",
+				invoiceId: inv.id,
+			});
+			res.status(201).json({ document: receipt });
+		}),
+	);
+
+	// Mark an invoice as paid (manual or external payment) and auto-issue a receipt.
+	// Supports both job-linked and standalone (job_id NULL) invoices.
+	r.post(
+		"/api/documents/:id/mark-paid",
+		isAuthenticated,
+		express.json(),
+		wrap(async (req: AuthedRequest, res: Response) => {
+			requireAuth(req);
+			const { id } = req.params;
+			const { method, reference, receivedAt } = req.body || {};
+
+			const docRes = await pool.query("SELECT * FROM documents WHERE id = $1", [id]);
+			if (!docRes.rows.length) {
+				const err = new Error("DOC_NOT_FOUND");
+				// @ts-expect-error attach status
+				err.status = 404;
+				throw err;
+			}
+			const invoiceDoc = docRes.rows[0];
+
+			if (invoiceDoc.type !== "INVOICE") {
+				const err = new Error("NOT_AN_INVOICE");
+				// @ts-expect-error attach status
+				err.status = 400;
+				throw err;
+			}
+
+			if (invoiceDoc.status !== "sent" && invoiceDoc.status !== "approved") {
+				const err = new Error("INVOICE_NOT_READY_FOR_PAYMENT");
+				// @ts-expect-error attach status
+				err.status = 409;
+				throw err;
+			}
+
+			const payment = {
+				method: typeof method === "string" ? method : "other",
+				reference: typeof reference === "string" ? reference : undefined,
+				receivedAt: typeof receivedAt === "string" ? receivedAt : new Date().toISOString(),
+				recordedBy: req.user.id,
+			};
+
+			const existingPayload = invoiceDoc.payload || {};
+			const nextPayload = {
+				...existingPayload,
+				payment,
+			};
+
+			const updated = await pool.query(
+				"UPDATE documents SET status='paid', payload=$2::jsonb WHERE id=$1 RETURNING *",
+				[id, JSON.stringify(nextPayload)],
+			);
+			const paidInvoice = updated.rows[0];
+			console.info("[DOC_TRANSITION]", {
+				docId: paidInvoice.id,
+				from: invoiceDoc.status,
+				to: paidInvoice.status,
+				userId: req.user.id,
+				type: paidInvoice.type,
+				action: "mark_invoice_paid",
+				paymentMethod: payment.method,
+			});
+
+			const receiptPayload = {
+				derivedFromInvoiceId: paidInvoice.id,
+				amount: paidInvoice.payload?.total ?? null,
+				currency: paidInvoice.payload?.currency ?? "USD",
+				payment,
+			};
+
+			const created = await pool.query(
+				`INSERT INTO documents (job_id, type, status, version, payload, permissions, created_by)
+					 VALUES ($1,'RECEIPT','issued',1,$2::jsonb,$3::jsonb,$4)
+					 RETURNING *`,
+				[paidInvoice.job_id ?? null, JSON.stringify(receiptPayload), JSON.stringify({}), req.user.id],
+			);
+			const receipt = created.rows[0];
+			console.info("[DOC_TRANSITION]", {
+				docId: receipt.id,
+				from: null,
+				to: receipt.status,
+				userId: req.user.id,
+				type: receipt.type,
+				action: "auto_issue_receipt_on_paid",
+				invoiceId: paidInvoice.id,
+			});
+
+			res.status(200).json({ document: paidInvoice, receipt });
 		}),
 	);
 

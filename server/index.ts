@@ -72,48 +72,20 @@ const PORT = parseInt(process.env.PORT || "5000", 10);
 if (process.env.SENTRY_DSN) {
   Sentry.init({
     dsn: process.env.SENTRY_DSN,
-    environment: process.env.NODE_ENV,
-    tracesSampleRate: Number(process.env.SENTRY_TRACES_SAMPLE_RATE ?? 0.1),
+    tracesSampleRate: 1.0,
   });
-
   app.use(Sentry.Handlers.requestHandler());
   app.use(Sentry.Handlers.tracingHandler());
 }
 
-// Stripe webhooks need the raw body; route-specific raw parser lives here before global JSON parser.
-app.use("/api/payments/stripe/webhook", express.raw({ type: "application/json" }));
-
-const jsonMiddleware = express.json();
-const urlencodedMiddleware = express.urlencoded({ extended: false });
-
-// Skip JSON parsing for the Stripe webhook path to preserve the raw body for signature verification.
-app.use((req, res, next) => {
-  if (req.originalUrl === "/api/payments/stripe/webhook") return next();
-  jsonMiddleware(req, res, (err) => {
-    if (err) return next(err);
-    urlencodedMiddleware(req, res, next);
-  });
-});
-
-// Deterministic CORS configuration
-const rawAllowlist = process.env.CORS_ALLOWED_ORIGINS || "";
-const ALLOWED_ORIGINS = rawAllowlist
-  .split(",")
-  .map((o) => o.trim().toLowerCase())
-  .filter((o) => o.length > 0);
-
-// Always allow known production origins
-for (const origin of [
+// Core allowed origins for production surfaces
+const ALLOWED_ORIGINS: string[] = [
   "https://www.thetradescout.com",
+  "https://thetradescout.com",
   "https://tradescoutai.onrender.com",
   "https://tradescout-5hn96npkf-tradescouts-projects.vercel.app",
-  "https://thetradescout.com",
   "https://tradescout-e557bv88z-tradescouts-projects.vercel.app",
-]) {
-  if (!ALLOWED_ORIGINS.includes(origin)) {
-    ALLOWED_ORIGINS.push(origin);
-  }
-}
+].map((o) => o.toLowerCase());
 
 // Always allow localhost dev ports (client + API) in dev
 if (process.env.NODE_ENV !== "production") {

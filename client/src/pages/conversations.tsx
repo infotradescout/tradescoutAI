@@ -133,7 +133,7 @@ export default function Conversations() {
             <p className="text-gray-600 dark:text-gray-400 mb-4">
               Connect with buyers and sellers to discuss your marketplace items
             </p>
-            <Link href="/api/login">
+            <Link href="/login">
               <Button>Sign In</Button>
             </Link>
           </CardContent>

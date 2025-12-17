@@ -21,7 +21,7 @@ export function executeScoutActions(
   for (const action of actions) {
     switch (action.type) {
       case "NAVIGATE": {
-        const destination = action.to ?? action.path;
+        let destination = action.to ?? action.path;
         if (destination) {
           const adId = typeof action.payload?.adId === "string" ? (action.payload.adId as string) : null;
           if (adId) {
@@ -44,6 +44,12 @@ export function executeScoutActions(
           if (destination.startsWith("/api/auth/")) {
             window.location.href = destination;
             break;
+          }
+
+          // If a jobId payload is present, prefer the Project Tracker deep-link
+          const jobId = typeof action.payload?.jobId === "string" ? (action.payload.jobId as string) : null;
+          if (jobId && (destination === "/lead-management" || destination === "/project-tracker")) {
+            destination = `/lead-management?jobId=${encodeURIComponent(jobId)}`;
           }
           helpers.navigate(destination);
         }

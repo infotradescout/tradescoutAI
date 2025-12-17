@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useLocation } from "wouter";
 import { useAuth } from "@/hooks/useAuth";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
@@ -36,6 +37,7 @@ type ProfileSections = {
 
 export default function ProfileSettings() {
   const { user, refetch } = useAuth();
+  const [location, navigate] = useLocation();
   const [loading, setLoading] = useState(false);
   const [preferences, setPreferences] = useState<UserPreferences>({
     defaultHomePage: 'llm',
@@ -54,6 +56,9 @@ export default function ProfileSettings() {
       });
     }
   }, [user]);
+
+  // Lightweight onboarding hint when redirected after social sign-up
+  const isOnboarding = location.includes("onboarding=1");
 
   const updateColorScheme = async (preset: string) => {
     setLoading(true);
@@ -244,6 +249,11 @@ export default function ProfileSettings() {
         <p className="text-tsTextMuted">
           Customize your TradeScout experience. Your profile is your website.
         </p>
+        {isOnboarding && (
+          <p className="mt-2 text-sm text-tsTextMuted">
+            You just created your account with Google or Facebook. You can finish this now or skip and come back later from Settings → Profile.
+          </p>
+        )}
       </div>
 
       {/* Color Scheme */}

@@ -236,6 +236,7 @@ router.get("/api/p/:slug", async (req, res) => {
         contentBlocks: profile.contentBlocks,
         ctaConfig: profile.ctaConfig,
         seoMeta: profile.seoMeta,
+        profileSections: profile.profileSections || null,
       },
       business: business || null,
     });

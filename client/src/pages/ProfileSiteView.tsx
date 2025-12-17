@@ -3,6 +3,18 @@ import { useRoute, Link } from "wouter";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Mail, Phone, MessageCircle } from "lucide-react";
+
+type ProfileSections = {
+  about?: boolean;
+  rolesAndBadges?: boolean;
+  stats?: boolean;
+  services?: boolean;
+  marketplaceListings?: boolean;
+  reviews?: boolean;
+  communityActivity?: boolean;
+  contactCard?: boolean;
+};
 
 type PublicProfile = {
   id: string;
@@ -13,6 +25,7 @@ type PublicProfile = {
   contentBlocks: any;
   ctaConfig: any;
   seoMeta: any;
+  profileSections?: ProfileSections | null;
 };
 
 type PublicBusinessSubset = {
@@ -90,6 +103,8 @@ export default function ProfileSiteView() {
   }
 
   const { profile, business } = data;
+  const profileSections = profile.profileSections || {};
+  const showContactCard = profileSections.contactCard !== false;
 
   return (
     <div className="min-h-screen bg-navy-900 py-8">
@@ -99,8 +114,12 @@ export default function ProfileSiteView() {
             <div className="flex items-start justify-between gap-4">
               <div className="space-y-1">
                 <CardTitle className="text-white text-3xl">{profile.displayName}</CardTitle>
-                {profile.headline ? <p className="text-gray-300">{profile.headline}</p> : null}
-                <p className="text-gray-400 text-xs uppercase tracking-[0.18em]">{profile.roleContext}</p>
+                {profile.headline && profileSections.about !== false ? (
+                  <p className="text-gray-300">{profile.headline}</p>
+                ) : null}
+                {profileSections.about !== false ? (
+                  <p className="text-gray-400 text-xs uppercase tracking-[0.18em]">{profile.roleContext}</p>
+                ) : null}
               </div>
               <Badge variant="secondary">Website Profile</Badge>
             </div>
@@ -120,21 +139,47 @@ export default function ProfileSiteView() {
                     <span className="text-gray-400">Service areas:</span>{" "}
                     {business.serviceAreas.length ? `${business.serviceAreas.length} area(s)` : "None"}
                   </div>
-                  {business.contactEmail ? (
-                    <div><span className="text-gray-400">Email:</span> {business.contactEmail}</div>
-                  ) : null}
-                  {business.contactPhone ? (
-                    <div><span className="text-gray-400">Phone:</span> {business.contactPhone}</div>
-                  ) : null}
                 </div>
               </section>
             ) : null}
 
-            <div className="pt-2 flex items-center gap-3">
-              <Link href="/">
-                <Button variant="outline" className="border-navy-500 text-gray-200">Ask Scout</Button>
-              </Link>
-            </div>
+            {showContactCard && (
+              <section className="space-y-3 pt-2 border-t border-navy-700">
+                <h2 className="text-white font-semibold">Contact</h2>
+                <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                  <div className="space-y-2 text-sm text-gray-300">
+                    {business?.contactEmail && (
+                      <div className="flex items-center gap-2">
+                        <Mail className="h-4 w-4 text-orange-400" />
+                        <span>{business.contactEmail}</span>
+                      </div>
+                    )}
+                    {business?.contactPhone && (
+                      <div className="flex items-center gap-2">
+                        <Phone className="h-4 w-4 text-orange-400" />
+                        <span>{business.contactPhone}</span>
+                      </div>
+                    )}
+                    {!business?.contactEmail && !business?.contactPhone && (
+                      <p className="text-gray-400">
+                        This profile is set up to be contacted through TradeScout.
+                      </p>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <Link href="/">
+                      <Button
+                        variant="outline"
+                        className="border-navy-500 text-gray-200 flex items-center gap-2"
+                      >
+                        <MessageCircle className="h-4 w-4" />
+                        <span>Ask Scout about this profile</span>
+                      </Button>
+                    </Link>
+                  </div>
+                </div>
+              </section>
+            )}
           </CardContent>
         </Card>
       </div>

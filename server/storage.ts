@@ -399,6 +399,7 @@ type PublicProfileRecord = {
   ctaConfig: any;
   seoMeta: any;
   businessId: string | null;
+  profileSections: any | null;
 };
 
 type PublicBusinessRecord = {
@@ -1287,6 +1288,7 @@ export class DatabaseStorage implements IStorage {
         ctaConfig: profiles.ctaConfig,
         seoMeta: profiles.seoMeta,
         businessId: profiles.businessId,
+        profileSections: sql`(${users.preferences} -> 'profileSections')`,
       })
       .from(profiles)
       .innerJoin(users, eq(profiles.ownerUserId, users.id))

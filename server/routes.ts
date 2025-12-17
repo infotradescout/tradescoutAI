@@ -1050,6 +1050,8 @@ export async function registerRoutes(app: any) {
             const email = profile.emails?.[0]?.value || "";
             let user = await storage.getUserByEmail(email);
 
+            const isNewUser = !user;
+
             if (!user) {
               user = await storage.createUser({
                 email,
@@ -1062,7 +1064,11 @@ export async function registerRoutes(app: any) {
               user = await storage.updateUser(user?.id, { googleId: profile.id });
             }
 
-            done(null, user);
+            if (user) {
+              (user as any)._wasNewSocialUser = isNewUser;
+            }
+
+            done(null, user as any);
           } catch (error) {
             done(error as Error);
           }
@@ -1122,7 +1128,9 @@ export async function registerRoutes(app: any) {
       (req: Request, res: Response, next: any) => {
         try {
           if (typeof (req as any).isAuthenticated === 'function' && (req as any).isAuthenticated() && (req as any).user) {
-            return res.redirect('/dashboard');
+            const wasNew = (req.user as any)?._wasNewSocialUser;
+            const redirectTo = wasNew ? '/profile-settings?onboarding=1' : '/dashboard';
+            return res.redirect(redirectTo);
           }
         } catch {
           // ignore
@@ -1131,7 +1139,9 @@ export async function registerRoutes(app: any) {
       },
       passport.authenticate('facebook', { failureRedirect: '/login' }),
       (req: Request, res: Response) => {
-        res.redirect('/dashboard');
+        const wasNew = (req.user as any)?._wasNewSocialUser;
+        const redirectTo = wasNew ? '/profile-settings?onboarding=1' : '/dashboard';
+        res.redirect(redirectTo);
       }
     );
   }
@@ -1143,7 +1153,9 @@ export async function registerRoutes(app: any) {
       (req: Request, res: Response, next: any) => {
         try {
           if (typeof (req as any).isAuthenticated === 'function' && (req as any).isAuthenticated() && (req as any).user) {
-            return res.redirect('/dashboard');
+            const wasNew = (req.user as any)?._wasNewSocialUser;
+            const redirectTo = wasNew ? '/profile-settings?onboarding=1' : '/dashboard';
+            return res.redirect(redirectTo);
           }
         } catch {
           // ignore
@@ -1152,7 +1164,9 @@ export async function registerRoutes(app: any) {
       },
       passport.authenticate('google', { failureRedirect: '/login' }),
       (req: Request, res: Response) => {
-        res.redirect('/dashboard');
+        const wasNew = (req.user as any)?._wasNewSocialUser;
+        const redirectTo = wasNew ? '/profile-settings?onboarding=1' : '/dashboard';
+        res.redirect(redirectTo);
       }
     );
   }
