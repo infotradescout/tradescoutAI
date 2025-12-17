@@ -4,6 +4,8 @@ import cors from "cors";
 import * as Sentry from "@sentry/node";
 import "@sentry/tracing";
 import { registerRoutes } from "./routes";
+import { createInvoicingDocumentsRouter } from "./invoicingDocumentsRouter";
+import { pool } from "./db";
 import { setupVite, serveStatic, log } from "./vite";
 import { notificationService } from "./notification-service";
 import { startCrawlerScheduler } from "./services/crawlerScheduler";
@@ -247,6 +249,9 @@ app.use((req, res, next) => {
   // If 'routes' is not implicitly available, it needs to be imported.
   // For this example, assuming 'routes' is handled within 'registerRoutes' or imported elsewhere.
   const server = await registerRoutes(app);
+
+  // Attach job documents + invoicing/contract APIs after auth/session are configured
+  app.use(createInvoicingDocumentsRouter(pool));
 
   // Initialize WebSocket messaging service
   initializeMessagingService(server);
