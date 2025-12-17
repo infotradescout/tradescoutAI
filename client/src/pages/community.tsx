@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -14,24 +14,22 @@ import {
   MapPin, 
   MessageSquare, 
   ThumbsUp, 
-  Share2,
   Plus,
-  TrendingUp,
   Users,
   Calendar,
   Image as ImageIcon,
   Video,
   Smile,
-  MoreHorizontal,
-  Heart,
-  Send
+  Heart
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { Page } from "@/components/layout/PagePrimitives";
 import { CommunityShell } from "@/components/layout/CommunityShell";
 import { useLocationContext } from "@/hooks/useLocationContext";
+import { CommunityPostCard } from "@/components/community/CommunityPostCard";
+import { CommunityComposerInline } from "@/components/community/CommunityComposerInline";
+import { CommunityEmptyState } from "@/components/community/CommunityEmptyState";
 
 interface CommunityPost {
   id: string;
@@ -56,18 +54,6 @@ interface CommunityPost {
   trending: boolean;
 }
 
-interface CommunityEvent {
-  id: string;
-  title: string;
-  description: string;
-  location: string;
-  date: string;
-  time: string;
-  organizer: string;
-  attendees: number;
-  category: string;
-}
-
 const POST_CATEGORIES = [
   { id: 'general', name: 'General', icon: MessageSquare },
   { id: 'recommendations', name: 'Recommendations', icon: ThumbsUp },
@@ -81,7 +67,7 @@ export default function Community() {
   const location = useLocationContext();
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const [activeTab, setActiveTab] = useState("feed");
+  const [activeTab, setActiveTab] = useState("for-you");
   const [searchQuery, setSearchQuery] = useState("");
   const [newPostContent, setNewPostContent] = useState("");
   const [showPostComposer, setShowPostComposer] = useState(false);
@@ -107,17 +93,6 @@ export default function Community() {
       if (!response.ok) throw new Error('Failed to fetch posts');
       return response.json();
     },
-  });
-
-  // Fetch community events
-  const { data: events, isLoading: eventsLoading } = useQuery<CommunityEvent[]>({
-    queryKey: ['/api/community/events'],
-    queryFn: async () => {
-      const response = await fetch('/api/community/events');
-      if (!response.ok) throw new Error('Failed to fetch events');
-      return response.json();
-    },
-    enabled: activeTab === "events",
   });
 
   // Create post mutation
@@ -186,7 +161,63 @@ export default function Community() {
     return date.toLocaleDateString();
   };
 
-  const filteredPosts = posts || [];
+  const visiblePosts = useMemo(() => {
+    if (!posts) return [] as CommunityPost[];
+
+    const byNewest = (a: CommunityPost, b: CommunityPost) => {
+      const aTime = new Date(a.createdAt).getTime();
+      const bTime = new Date(b.createdAt).getTime();
+      return bTime - aTime;
+    };
+
+    const normalizeCategory = (category: string | undefined) =>
+      (category || "").toLowerCase();
+
+    if (activeTab === "projects") {
+      return [...posts]
+        .filter((post) => {
+          const c = normalizeCategory(post.category);
+          return c === "projects" || c === "project";
+        })
+        .sort(byNewest);
+    }
+
+    if (activeTab === "questions") {
+      return [...posts]
+        .filter((post) => {
+          const c = normalizeCategory(post.category);
+          return c === "question" || c === "questions";
+        })
+        .sort(byNewest);
+    }
+
+    if (activeTab === "pros") {
+      return [...posts]
+        .filter((post) => {
+          const role = (post.author?.role || "").toLowerCase();
+          const isContractor = role === "contractor";
+          const isVerified = Boolean(post.author?.verified);
+          return isContractor || isVerified;
+        })
+        .sort(byNewest);
+    }
+
+    // For You: pinned first, then trending, then newest
+    const pinned = posts
+      .filter((post) => post.pinned)
+      .sort(byNewest)
+      .slice(0, 2);
+
+    const trending = posts
+      .filter((post) => !post.pinned && post.trending)
+      .sort(byNewest);
+
+    const regular = posts
+      .filter((post) => !post.pinned && !post.trending)
+      .sort(byNewest);
+
+    return [...pinned, ...trending, ...regular];
+  }, [posts, activeTab]);
 
   return (
     <CommunityShell sectionLabel="Community" notificationsCount={0}>
@@ -201,125 +232,79 @@ export default function Community() {
         <div className="mb-6">
           <div className="flex gap-2 bg-[#1a2332] rounded-xl p-1.5 shadow-lg border border-[#2d3748]">
             <button
-              onClick={() => setActiveTab("feed")}
-              className={`flex-1 px-6 py-3 rounded-lg text-sm font-semibold transition-all ${
-                activeTab === "feed"
-                  ? "bg-orange-500 text-white shadow-lg shadow-orange-500/50"
-                  : "text-slate-300 hover:bg-[#0f1419] hover:text-white"
+              onClick={() => setActiveTab("for-you")}
+              className={`flex-1 px-6 py-3 rounded-lg text-sm font-semibold transition-all border-b-2 ${
+                activeTab === "for-you"
+                  ? "bg-orange-500 text-white shadow-lg shadow-orange-500/50 border-orange-400"
+                  : "text-slate-300 hover:bg-[#0f1419] hover:text-white border-transparent"
               }`}
-              data-testid="tab-feed"
+              data-testid="tab-for-you"
             >
-              Feed
+              For You
             </button>
             <button
-              onClick={() => setActiveTab("events")}
-              className={`flex-1 px-6 py-3 rounded-lg text-sm font-semibold transition-all ${
-                activeTab === "events"
-                  ? "bg-orange-500 text-white shadow-lg shadow-orange-500/50"
-                  : "text-slate-300 hover:bg-[#0f1419] hover:text-white"
+              onClick={() => setActiveTab("projects")}
+              className={`flex-1 px-6 py-3 rounded-lg text-sm font-semibold transition-all border-b-2 ${
+                activeTab === "projects"
+                  ? "bg-orange-500 text-white shadow-lg shadow-orange-500/50 border-orange-400"
+                  : "text-slate-300 hover:bg-[#0f1419] hover:text-white border-transparent"
               }`}
-              data-testid="tab-events"
+              data-testid="tab-projects"
             >
-              Events
+              Projects
             </button>
             <button
-              onClick={() => setActiveTab("trending")}
-              className={`flex-1 px-6 py-3 rounded-lg text-sm font-semibold transition-all ${
-                activeTab === "trending"
-                  ? "bg-orange-500 text-white shadow-lg shadow-orange-500/50"
-                  : "text-slate-300 hover:bg-[#0f1419] hover:text-white"
+              onClick={() => setActiveTab("questions")}
+              className={`flex-1 px-6 py-3 rounded-lg text-sm font-semibold transition-all border-b-2 ${
+                activeTab === "questions"
+                  ? "bg-orange-500 text-white shadow-lg shadow-orange-500/50 border-orange-400"
+                  : "text-slate-300 hover:bg-[#0f1419] hover:text-white border-transparent"
               }`}
-              data-testid="tab-trending"
+              data-testid="tab-questions"
             >
-              <TrendingUp className="w-4 h-4 inline mr-1.5" />
-              Trending
+              Questions
+            </button>
+            <button
+              onClick={() => setActiveTab("pros")}
+              className={`flex-1 px-6 py-3 rounded-lg text-sm font-semibold transition-all border-b-2 ${
+                activeTab === "pros"
+                  ? "bg-orange-500 text-white shadow-lg shadow-orange-500/50 border-orange-400"
+                  : "text-slate-300 hover:bg-[#0f1419] hover:text-white border-transparent"
+              }`}
+              data-testid="tab-pros"
+            >
+              Pros
             </button>
           </div>
         </div>
 
-        {/* Feed Tab */}
-        {activeTab === "feed" && (
+        {/* Feed Tab (all intent-based filters share this surface) */}
+        <div className="space-y-4">
           <div className="space-y-4">
-            
+
             {/* Post Composer */}
             <Card className="bg-[#1a2332] shadow-xl border-2 border-[#2d3748] hover:border-orange-500/30 transition-all">
               <CardContent className="p-5">
-                <div className="flex gap-4">
-                  <Avatar className="h-12 w-12 ring-2 ring-orange-500/50">
-                    <AvatarImage src={user?.profileImageUrl} />
-                    <AvatarFallback className="bg-gradient-to-br from-orange-500 to-orange-600 text-white text-lg font-semibold">
-                      {user?.firstName?.[0] || user?.email?.[0] || 'U'}
-                    </AvatarFallback>
-                  </Avatar>
-                  
-                  {!showPostComposer ? (
-                    <button
-                      onClick={() => {
-                        if (!isAuthenticated) {
-                          toast({
-                            title: "Sign in required",
-                            description: "You can browse without an account. Sign in when you want to post.",
-                            variant: "destructive",
-                          });
-                          return;
-                        }
-                        setShowPostComposer(true);
-                      }}
-                      className="flex-1 text-left px-5 py-3.5 bg-[#0f1419] hover:bg-[#0a0f14] border border-[#2d3748] hover:border-orange-500/50 rounded-full text-slate-300 transition-all shadow-inner"
-                      data-testid="button-open-composer"
-                    >
-                      What's on your mind?
-                    </button>
-                  ) : (
-                    <div className="flex-1 space-y-3">
-                      <Textarea
-                        placeholder="What's on your mind?"
-                        value={newPostContent}
-                        onChange={(e) => setNewPostContent(e.target.value)}
-                        className="min-h-[120px] resize-none border-0 focus-visible:ring-0 px-0 text-white text-lg bg-transparent"
-                        data-testid="textarea-new-post"
-                      />
-                      <Separator />
-                      <div className="flex items-center justify-between">
-                        <div className="flex gap-2">
-                          <Button variant="ghost" size="sm" className="text-slate-600 dark:text-slate-400">
-                            <ImageIcon className="w-4 h-4 mr-2" />
-                            Photo
-                          </Button>
-                          <Button variant="ghost" size="sm" className="text-slate-600 dark:text-slate-400">
-                            <Video className="w-4 h-4 mr-2" />
-                            Video
-                          </Button>
-                          <Button variant="ghost" size="sm" className="text-slate-600 dark:text-slate-400">
-                            <Smile className="w-4 h-4 mr-2" />
-                            Feeling
-                          </Button>
-                        </div>
-                        <div className="flex gap-2">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => {
-                              setShowPostComposer(false);
-                              setNewPostContent('');
-                            }}
-                            data-testid="button-cancel-post"
-                          >
-                            Cancel
-                          </Button>
-                          <Button
-                            onClick={handleCreatePost}
-                            disabled={!newPostContent.trim() || createPostMutation.isPending}
-                            className="bg-orange-500 hover:bg-orange-600 text-white"
-                            data-testid="button-submit-post"
-                          >
-                            {createPostMutation.isPending ? 'Posting...' : 'Post'}
-                          </Button>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                </div>
+                <CommunityComposerInline
+                  isAuthenticated={isAuthenticated}
+                  userInitial={user?.firstName?.[0] || user?.email?.[0]}
+                  userAvatarUrl={user?.profileImageUrl}
+                  value={newPostContent}
+                  onChange={setNewPostContent}
+                  onSubmit={handleCreatePost}
+                  onOpenRequest={() => {
+                    if (!isAuthenticated) {
+                      toast({
+                        title: "Sign in required",
+                        description: "You can browse the community without an account. Sign in to post.",
+                        variant: "destructive",
+                      });
+                      return;
+                    }
+                    setShowPostComposer(true);
+                  }}
+                  isSubmitting={createPostMutation.isPending}
+                />
               </CardContent>
             </Card>
 
@@ -350,179 +335,43 @@ export default function Community() {
                 <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-orange-500 border-r-transparent"></div>
                 <p className="mt-2 text-slate-600 dark:text-slate-400">Loading posts...</p>
               </div>
-            ) : filteredPosts.length === 0 ? (
-              <Card className="bg-[#1a2332] shadow-xl border-2 border-[#2d3748]">
-                <CardContent className="py-20 text-center">
-                  <MessageSquare className="w-20 h-20 mx-auto text-orange-500/30 mb-6" />
-                  <h3 className="text-2xl font-bold text-white mb-3">
-                    No posts yet
-                  </h3>
-                  <p className="text-slate-300 text-base mb-6">
-                    Be the first to share something with your community!
-                  </p>
-                  <Button
-                    onClick={() => setShowPostComposer(true)}
-                    className="bg-orange-500 hover:bg-orange-600 text-white shadow-lg shadow-orange-500/50 px-8 py-6 text-lg"
-                    data-testid="button-create-first-post"
-                  >
-                    <Plus className="w-5 h-5 mr-2" />
-                    Create Post
-                  </Button>
-                </CardContent>
-              </Card>
+            ) : visiblePosts.length === 0 ? (
+              <CommunityEmptyState
+                onCreateFirstPost={() => setShowPostComposer(true)}
+              />
             ) : (
               <div className="space-y-5">
-                {filteredPosts.map((post) => (
-                  <Card key={post.id} className="bg-[#1a2332] shadow-xl hover:shadow-2xl transition-all border-2 border-[#2d3748] hover:border-orange-500/30">
-                    <CardContent className="p-6">
-                      {/* Post Header */}
-                      <div className="flex items-start justify-between mb-4">
-                        <div className="flex gap-3">
-                          <Avatar className="h-12 w-12 ring-2 ring-orange-500/30">
-                            <AvatarImage src={post.author?.avatar} />
-                            <AvatarFallback className="bg-gradient-to-br from-orange-500 to-orange-600 text-white font-semibold">
-                              {post.author?.name?.[0] || 'U'}
-                            </AvatarFallback>
-                          </Avatar>
-                          <div>
-                            <div className="flex items-center gap-2">
-                              <span className="font-bold text-white text-base">
-                                {post.author?.name || 'Anonymous'}
-                              </span>
-                              {post.author?.verified && (
-                                <Badge className="bg-blue-500 text-white text-xs px-2 py-0.5 shadow-sm">
-                                  ✓ Verified
-                                </Badge>
-                              )}
-                            </div>
-                            <div className="flex items-center gap-2 text-sm text-slate-400">
-                              <span>{formatTimeAgo(post.createdAt)}</span>
-                              {post.location && (
-                                <>
-                                  <span>•</span>
-                                  <MapPin className="w-3.5 h-3.5" />
-                                  <span>{post.location}</span>
-                                </>
-                              )}
-                            </div>
-                          </div>
-                        </div>
-                        <Button variant="ghost" size="sm" className="h-9 w-9 p-0 text-slate-400 hover:text-white hover:bg-[#0f1419]">
-                          <MoreHorizontal className="w-5 h-5" />
-                        </Button>
-                      </div>
-
-                      {/* Post Content */}
-                      <div className="mb-4">
-                        {post.title && (
-                          <h3 className="font-bold text-orange-400 text-lg mb-3">
-                            {post.title}
-                          </h3>
-                        )}
-                        <p className="text-slate-200 text-base leading-relaxed whitespace-pre-wrap">
-                          {post.content}
-                        </p>
-                        {post.tags && post.tags.length > 0 && (
-                          <div className="flex flex-wrap gap-2 mt-4">
-                            {post.tags.map((tag, idx) => (
-                              <Badge
-                                key={idx}
-                                variant="secondary"
-                                className="text-xs bg-orange-500/10 border border-orange-500/30 text-orange-400 px-3 py-1"
-                              >
-                                #{tag}
-                              </Badge>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-
-                      <Separator className="mb-3 bg-[#2d3748]" />
-
-                      {/* Post Stats */}
-                      <div className="flex items-center justify-between text-sm text-slate-300 mb-3 font-medium">
-                        <span>{post.upvotes || 0} likes</span>
-                        <span>{post.comments || 0} comments</span>
-                      </div>
-
-                      <Separator className="mb-3 bg-[#2d3748]" />
-
-                      {/* Action Buttons */}
-                      <div className="flex items-center gap-2">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleLike(post.id)}
-                          className="flex-1 hover:bg-orange-500/10 hover:text-orange-400 text-slate-300 font-semibold py-2.5"
-                          data-testid={`button-like-${post.id}`}
-                        >
-                          <Heart className="w-5 h-5 mr-2" />
-                          Like
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="flex-1 hover:bg-orange-500/10 hover:text-orange-400 text-slate-300 font-semibold py-2.5"
-                          data-testid={`button-comment-${post.id}`}
-                        >
-                          <MessageSquare className="w-5 h-5 mr-2" />
-                          Comment
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="flex-1 hover:bg-orange-500/10 hover:text-orange-400 text-slate-300 font-semibold py-2.5"
-                          data-testid={`button-share-${post.id}`}
-                        >
-                          <Share2 className="w-5 h-5 mr-2" />
-                          Share
-                        </Button>
-                      </div>
-                    </CardContent>
-                  </Card>
+                {visiblePosts.map((post) => (
+                  <CommunityPostCard
+                    key={post.id}
+                    post={{
+                      id: post.id,
+                      title: post.title,
+                      content: post.content,
+                      author: {
+                        id: post.author?.id,
+                        name: post.author?.name,
+                        avatar: post.author?.avatar,
+                        role: post.author?.role,
+                        verified: post.author?.verified,
+                      },
+                      category: post.category,
+                      pinned: post.pinned,
+                      trending: post.trending,
+                      location: post.location,
+                      createdAt: post.createdAt,
+                      upvotes: post.upvotes,
+                      comments: post.comments,
+                      tags: post.tags,
+                    }}
+                    onLike={handleLike}
+                    formatTimeAgo={formatTimeAgo}
+                  />
                 ))}
               </div>
             )}
           </div>
-        )}
-
-        {/* Events Tab */}
-        {activeTab === "events" && (
-          <div className="space-y-4">
-            <Card className="bg-[#1a2332] shadow-xl border-2 border-[#2d3748]">
-              <CardContent className="py-20 text-center">
-                <Calendar className="w-20 h-20 mx-auto text-orange-500/30 mb-6" />
-                <h3 className="text-2xl font-bold text-white mb-3">
-                  No upcoming events
-                </h3>
-                <p className="text-slate-300 text-base mb-6">
-                  Check back soon for community events in your area
-                </p>
-                <Button className="bg-orange-500 hover:bg-orange-600 text-white shadow-lg shadow-orange-500/50 px-8 py-6 text-lg">
-                  <Plus className="w-5 h-5 mr-2" />
-                  Create Event
-                </Button>
-              </CardContent>
-            </Card>
-          </div>
-        )}
-
-        {/* Trending Tab */}
-        {activeTab === "trending" && (
-          <div className="space-y-4">
-            <Card className="bg-[#1a2332] shadow-xl border-2 border-[#2d3748]">
-              <CardContent className="py-20 text-center">
-                <TrendingUp className="w-20 h-20 mx-auto text-orange-500/30 mb-6" />
-                <h3 className="text-2xl font-bold text-white mb-3">
-                  Nothing trending yet
-                </h3>
-                <p className="text-slate-300 text-base">
-                  Popular posts will appear here
-                </p>
-              </CardContent>
-            </Card>
-          </div>
-        )}
+        </div>
 
       </div>
     </CommunityShell>

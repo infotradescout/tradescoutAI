@@ -81,19 +81,19 @@ export function RightToolsPanel() {
           <div className="space-y-2">
             <NavLink
               href="/profile"
-              icon={<User className="h-3.5 w-3.5" />}
+              icon={<User className="h-3.5 w-3.5 text-orange-400" />}
               label="View profile"
               description="How homeowners and contractors see you."
             />
             <NavLink
               href="/settings"
-              icon={<Settings className="h-3.5 w-3.5" />}
+              icon={<Settings className="h-3.5 w-3.5 text-orange-400" />}
               label="Account settings"
               description="Login, preferences, and privacy."
             />
             <NavLink
               href="/notifications"
-              icon={<Bell className="h-3.5 w-3.5" />}
+              icon={<Bell className="h-3.5 w-3.5 text-orange-400" />}
               label="Notifications"
               description="Control alerts from Scout and jobs."
             />
@@ -108,19 +108,19 @@ export function RightToolsPanel() {
           <div className="space-y-2">
             <NavLink
               href="/dashboard"
-              icon={<LayoutDashboard className="h-3.5 w-3.5" />}
+              icon={<LayoutDashboard className="h-3.5 w-3.5 text-orange-400" />}
               label="Dashboard"
               description="Your personal hub and live metrics."
             />
             <NavLink
               href="/messages"
-              icon={<MessageCircle className="h-3.5 w-3.5" />}
+              icon={<MessageCircle className="h-3.5 w-3.5 text-orange-400" />}
               label="Messages & quotes"
               description="Conversations, quotes, follow-ups."
             />
             <NavLink
               href="/saved"
-              icon={<Bookmark className="h-3.5 w-3.5" />}
+              icon={<Bookmark className="h-3.5 w-3.5 text-orange-400" />}
               label="Saved items"
               description="Saved projects, listings, and ideas."
             />

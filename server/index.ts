@@ -85,6 +85,7 @@ const ALLOWED_ORIGINS: string[] = [
   "https://tradescoutai.onrender.com",
   "https://tradescout-5hn96npkf-tradescouts-projects.vercel.app",
   "https://tradescout-e557bv88z-tradescouts-projects.vercel.app",
+  "https://tradescout-26v2mm5ir-tradescouts-projects.vercel.app",
 ].map((o) => o.toLowerCase());
 
 // Always allow localhost dev ports (client + API) in dev
