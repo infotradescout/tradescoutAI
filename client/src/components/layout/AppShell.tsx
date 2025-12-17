@@ -35,37 +35,37 @@ const featureNav: NavItem[] = [
   {
     label: "Scout",
     href: "/scout",
-    icon: <LayoutGrid className="h-4 w-4" />,
+    icon: <LayoutGrid className="h-4 w-4 text-orange-400" />,
   },
   {
     label: "Community",
     href: ROUTES.COMMUNITY ?? "/community",
-    icon: <Users className="h-4 w-4" />,
+    icon: <Users className="h-4 w-4 text-orange-400" />,
   },
   {
     label: "Contractors",
     href: ROUTES.CONTRACTORS ?? "/contractor-board",
-    icon: <Home className="h-4 w-4" />,
+    icon: <Home className="h-4 w-4 text-orange-400" />,
   },
   {
     label: "Messages",
     href: "/messages",
-    icon: <MessageCircle className="h-4 w-4" />,
+    icon: <MessageCircle className="h-4 w-4 text-orange-400" />,
   },
   {
     label: "Marketplace",
     href: ROUTES.MARKETPLACE ?? "/exchange",
-    icon: <ShoppingBag className="h-4 w-4" />,
+    icon: <ShoppingBag className="h-4 w-4 text-orange-400" />,
   },
   {
     label: "Leaderboard",
     href: "/leaderboard",
-    icon: <Trophy className="h-4 w-4" />,
+    icon: <Trophy className="h-4 w-4 text-orange-400" />,
   },
   {
     label: "Foundation",
     href: "/foundation",
-    icon: <Heart className="h-4 w-4" />,
+    icon: <Heart className="h-4 w-4 text-orange-400" />,
   },
 ];
 
@@ -124,7 +124,7 @@ export function AppShell({ children, footer }: AppShellProps) {
             className="inline-flex h-8 w-8 items-center justify-center rounded-xl border border-slate-800 bg-slate-950/80 text-slate-300 hover:bg-slate-900"
             aria-label="Messages and helpers"
           >
-            <MessageCircle className="h-4 w-4" />
+            <MessageCircle className="h-4 w-4 text-orange-400" />
           </button>
 
           {/* Notifications */}
@@ -137,7 +137,7 @@ export function AppShell({ children, footer }: AppShellProps) {
               className="inline-flex h-8 w-8 items-center justify-center rounded-xl border border-slate-800 bg-slate-950/80 text-slate-300 hover:bg-slate-900"
               aria-label="Notifications"
             >
-              <Bell className="h-4 w-4" />
+              <Bell className="h-4 w-4 text-orange-400" />
             </button>
           )}
 
@@ -160,7 +160,7 @@ export function AppShell({ children, footer }: AppShellProps) {
             className="inline-flex h-8 w-8 items-center justify-center rounded-xl border border-slate-800 bg-slate-950/80 text-slate-200 hover:bg-slate-900"
             aria-label="Open profile & tools panel"
           >
-            <LayoutGrid className="h-4 w-4" />
+            <LayoutGrid className="h-4 w-4 text-orange-400" />
           </button>
         </div>
       </header>
