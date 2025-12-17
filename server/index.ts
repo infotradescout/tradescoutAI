@@ -145,6 +145,9 @@ app.use(cors(corsOptions));
 // Preflight handler
 app.options("*", cors(corsOptions));
 
+// Core body parsing – MUST come before any API routes
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
 app.use((req, res, next) => {
   const start = Date.now();
