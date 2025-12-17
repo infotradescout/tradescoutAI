@@ -1172,21 +1172,24 @@ function resolveDealRoomContextFromDocs(
 router.post("/", async (req: Request, res: Response) => {
   recordQuery();
   try {
+    const rawBody = (req.body ?? {}) as Partial<ScoutRequest>;
+    const message = rawBody.message;
+
+    if (typeof message !== "string" || !message.trim()) {
+      return res.status(400).json({
+        error: "Invalid Scout request",
+        details: "Missing or invalid 'message' in request body",
+      });
+    }
+
     const {
-      message,
       history = [],
       countyCode,
       stateCode,
       roles = [],
       recentActivity = [],
       shownAdIds = [],
-    }: ScoutRequest = req.body;
-
-    if (!message || typeof message !== "string") {
-      return res.status(400).json({
-        error: "Message is required and must be a string",
-      });
-    }
+    } = rawBody as ScoutRequest;
 
     // SPECIAL HANDLING: Detect intro/overview questions and use comprehensive synthesis
     if (isIntroQuestion(message)) {
