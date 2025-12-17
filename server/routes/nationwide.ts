@@ -162,7 +162,11 @@ export async function requestCountyActivation(req: Request, res: Response) {
       return res.status(401).json({ message: 'Authentication required' });
     }
 
-    const { countyFips, contactInfo, marketData, businessCase } = req.body;
+    const { countyFips, contactInfo, marketData, businessCase } = (req.body ?? {}) as any;
+
+    if (!countyFips || typeof countyFips !== 'string') {
+      return res.status(400).json({ message: 'countyFips is required' });
+    }
 
     let request;
     try {

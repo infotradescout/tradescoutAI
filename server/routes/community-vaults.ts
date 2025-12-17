@@ -82,7 +82,7 @@ router.get('/vaults', requireAuth, async (req: Request, res: Response) => {
 router.post('/vaults/:vaultId/deposit', requireAuth, async (req: Request, res: Response) => {
   try {
     const { vaultId } = req.params;
-    const { sourceType, amount, sourceId, memo } = req.body;
+    const { sourceType, amount, sourceId, memo } = (req.body ?? {}) as any;
     const userId = (req as any).user.id;
 
     // Verify user is admin
@@ -169,7 +169,7 @@ router.get('/statistics', async (req: Request, res: Response) => {
 router.post('/vaults/:vaultId/distribute', requireAuth, async (req: Request, res: Response) => {
   try {
     const { vaultId } = req.params;
-    const { amount, reason } = req.body;
+    const { amount, reason } = (req.body ?? {}) as any;
     const userId = (req as any).user.id;
 
     // Verify user is admin

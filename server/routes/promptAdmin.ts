@@ -65,7 +65,7 @@ router.get("/", requireSuperAdmin, (req: Request, res: Response) => {
  */
 router.post("/", requireSuperAdmin, (req: Request, res: Response) => {
   try {
-    const { content } = req.body;
+    const { content } = (req.body ?? {}) as any;
     const user = (req as any).user as AuthenticatedUser;
 
     if (typeof content !== "string" || !content.trim()) {

@@ -322,7 +322,7 @@ export function registerNotificationRoutes(app: Express) {
         return res.status(401).json({ message: "Unauthorized" });
       }
 
-      const { milestone, description, metadata } = req.body;
+      const { milestone, description, metadata } = (req.body ?? {}) as any;
 
       if (!milestone || !description) {
         return res.status(400).json({ 
