@@ -296,7 +296,7 @@ router.post('/contributions/:contributionId/evidence', requireAuth, async (req: 
   try {
     const userId = (req.user as any).id;
     const { contributionId } = req.params;
-    const { type, url, description } = req.body;
+    const { type, url, description } = (req.body ?? {}) as any;
 
     const contribution = await storage.getContribution(contributionId);
     if (!contribution) {

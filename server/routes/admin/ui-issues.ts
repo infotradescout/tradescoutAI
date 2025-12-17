@@ -99,7 +99,7 @@ export function registerUIIssuesRoutes(app: Express) {
         return res.status(401).json({ message: "Unauthorized" });
       }
 
-      const { issues } = req.body;
+      const { issues } = (req.body ?? {}) as any;
       
       if (!Array.isArray(issues)) {
         return res.status(400).json({ message: "Issues must be an array" });
@@ -174,7 +174,7 @@ export function registerUIIssuesRoutes(app: Express) {
       }
 
       const { issueId } = req.params;
-      const { status } = req.body;
+      const { status } = (req.body ?? {}) as any;
 
       const issue = uiIssuesStore.issues.find(issue => issue.id === issueId);
       

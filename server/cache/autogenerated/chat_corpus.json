@@ -288,5 +288,15 @@
     ],
     "actions": [],
     "timestamp": "2025-12-15T01:11:16.025Z"
+  },
+  {
+    "question": "test",
+    "answer": "Welcome to TradeScout! This platform is designed to connect homeowners with local, verified contractors and offer a marketplace for projects and services, all completely free. As a guest, you can explore many features, and we're committed to reinvesting profits back into local communities.",
+    "layer": 1,
+    "sources": [
+      "TradeScout Brain (data folder)"
+    ],
+    "actions": [],
+    "timestamp": "2025-12-17T05:11:46.685Z"
   }
 ]

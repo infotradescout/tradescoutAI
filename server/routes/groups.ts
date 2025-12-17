@@ -75,7 +75,7 @@ export async function createGroupPost(req: Request, res: Response) {
     }
 
     const { groupId } = req.params;
-    const { content, images } = req.body;
+    const { content, images } = (req.body ?? {}) as any;
     
     const post = await storage.createGroupPost({
       groupId,
@@ -115,7 +115,7 @@ export async function createGroup(req: Request, res: Response) {
       return res.status(401).json({ message: 'Authentication required' });
     }
 
-    const { name, description, type, countyFips, isPublic, tags, rules } = req.body;
+    const { name, description, type, countyFips, isPublic, tags, rules } = (req.body ?? {}) as any;
 
     let group;
     try {

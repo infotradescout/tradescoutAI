@@ -417,7 +417,7 @@ export function registerCrmRoutes(app: Express) {
   // Send email endpoint (will integrate with SendGrid)
   app.post("/api/crm/send-email", isAuthenticated, async (req: Request, res: Response) => {
     try {
-      const { templateId, contactId, customSubject, customBody, variables } = req.body;
+      const { templateId, contactId, customSubject, customBody, variables } = (req.body ?? {}) as any;
       
       // Get contact information
       const contact = await storage.getCrmContact(contactId);
@@ -501,7 +501,7 @@ export function registerCrmRoutes(app: Express) {
   // Internal direct message endpoint
   app.post("/api/crm/internal-message", isAuthenticated, async (req: Request, res: Response) => {
     try {
-      const { recipients, subject, message, contactId, dealId } = req.body;
+      const { recipients, subject, message, contactId, dealId } = (req.body ?? {}) as any;
       
       if (!recipients || !Array.isArray(recipients) || recipients.length === 0) {
         return res.status(400).json({ message: "Recipients are required" });

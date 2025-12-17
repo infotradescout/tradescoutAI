@@ -216,8 +216,12 @@ export function registerSocialRoutes(app: Express) {
   app.post("/api/social/posts/:postId/reactions", isAuthenticated, async (req: any, res) => {
     try {
       const { postId } = req.params;
-      const { reactionType } = req.body;
+      const { reactionType } = (req.body ?? {}) as any;
       const userId = req.user.id;
+
+      if (typeof reactionType !== "string" || !reactionType.trim()) {
+        return res.status(400).json({ message: "Invalid reaction type" });
+      }
       
       // Check if user already reacted
       const [existingReaction] = await db
@@ -353,7 +357,11 @@ export function registerSocialRoutes(app: Express) {
     try {
       const { postId } = req.params;
       const userId = req.user.id;
-      const { content, parentCommentId } = req.body;
+      const { content, parentCommentId } = (req.body ?? {}) as any;
+
+      if (typeof content !== "string" || !content.trim()) {
+        return res.status(400).json({ message: "Comment content is required" });
+      }
       
       const [comment] = await db
         .insert(postComments)
@@ -377,7 +385,7 @@ export function registerSocialRoutes(app: Express) {
     try {
       const { postId } = req.params;
       const userId = req.user.id;
-      const { shareMessage, privacyLevel } = req.body;
+      const { shareMessage, privacyLevel } = (req.body ?? {}) as any;
       
       // Check if post exists
       const [post] = await db
@@ -421,7 +429,11 @@ export function registerSocialRoutes(app: Express) {
   app.patch("/api/social/posts/:postId/pin", isAuthenticated, requirePermission('canModerateContent'), async (req: any, res) => {
     try {
       const { postId } = req.params;
-      const { isPinned } = req.body;
+      const { isPinned } = (req.body ?? {}) as any;
+
+      if (typeof isPinned !== "boolean") {
+        return res.status(400).json({ message: "isPinned must be a boolean" });
+      }
       
       await db
         .update(socialPosts)
@@ -480,8 +492,12 @@ export function registerSocialRoutes(app: Express) {
   app.post("/api/social/comments/:commentId/reactions", isAuthenticated, async (req: any, res) => {
     try {
       const { commentId } = req.params;
-      const { reactionType } = req.body;
+      const { reactionType } = (req.body ?? {}) as any;
       const userId = req.user.id;
+
+      if (typeof reactionType !== "string" || !reactionType.trim()) {
+        return res.status(400).json({ message: "Invalid reaction type" });
+      }
       
       // Check if user already reacted
       const [existingReaction] = await db

@@ -456,7 +456,7 @@ export function createInvoicingDocumentsRouter(pool: Pool) {
 		wrap(async (req: AuthedRequest, res: Response) => {
 			requireAuth(req);
 			const { id } = req.params;
-			const { role, signatureType, name, drawingData } = req.body ?? {};
+			const { role, signatureType, name, drawingData } = (req.body ?? {}) as any;
 			assertRole(role);
 			if (signatureType !== "typed" && signatureType !== "drawn") {
 				const err = new Error("INVALID_SIGNATURE_TYPE");
@@ -669,14 +669,14 @@ export function createInvoicingDocumentsRouter(pool: Pool) {
 
 	// Mark an invoice as paid (manual or external payment) and auto-issue a receipt.
 	// Supports both job-linked and standalone (job_id NULL) invoices.
-	r.post(
+		r.post(
 		"/api/documents/:id/mark-paid",
 		isAuthenticated,
 		express.json(),
 		wrap(async (req: AuthedRequest, res: Response) => {
 			requireAuth(req);
 			const { id } = req.params;
-			const { method, reference, receivedAt } = req.body || {};
+			const { method, reference, receivedAt } = (req.body ?? {}) as any;
 
 			const docRes = await pool.query("SELECT * FROM documents WHERE id = $1", [id]);
 			if (!docRes.rows.length) {

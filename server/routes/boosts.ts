@@ -22,7 +22,7 @@ export async function purchaseBoost(req: Request, res: Response) {
       return res.status(401).json({ message: 'Authentication required' });
     }
 
-    const { boostId, paymentMethodId } = req.body;
+    const { boostId, paymentMethodId } = (req.body ?? {}) as any;
     const boost = await storage.purchaseBoost({
       userId,
       boostId,

@@ -10,7 +10,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { Eye, EyeOff } from "lucide-react";
-import { SiFacebook } from "react-icons/si";
+import { SiFacebook, SiGoogle } from "react-icons/si";
 
 const loginSchema = z.object({
   email: z.string().email("Please enter a valid email address"),
@@ -155,19 +155,33 @@ export function LoginForm({ onSuccess, onSwitchToRegister }: LoginFormProps) {
           </div>
         </div>
 
-        {/* Facebook Login Button (hidden when DISABLE_FACEBOOK_AUTH=true) */}
-        {import.meta.env.VITE_DISABLE_FACEBOOK_AUTH !== 'true' && (
+        {/* Google Login Button */}
+        <div className="space-y-3">
           <Button
             type="button"
             variant="outline"
             className="w-full"
-            onClick={() => (window.location.href = '/api/auth/facebook')}
-            data-testid="button-facebook-login"
+            onClick={() => (window.location.href = '/api/auth/google')}
+            data-testid="button-google-login"
           >
-            <SiFacebook className="mr-2 h-4 w-4 text-blue-600" />
-            Continue with Facebook
+            <SiGoogle className="mr-2 h-4 w-4 text-red-500" />
+            Continue with Google
           </Button>
-        )}
+
+          {/* Facebook Login Button (hidden when DISABLE_FACEBOOK_AUTH=true) */}
+          {import.meta.env.VITE_DISABLE_FACEBOOK_AUTH !== 'true' && (
+            <Button
+              type="button"
+              variant="outline"
+              className="w-full"
+              onClick={() => (window.location.href = '/api/auth/facebook')}
+              data-testid="button-facebook-login"
+            >
+              <SiFacebook className="mr-2 h-4 w-4 text-blue-600" />
+              Continue with Facebook
+            </Button>
+          )}
+        </div>
 
         {onSwitchToRegister && (
           <div className="mt-4 text-center">

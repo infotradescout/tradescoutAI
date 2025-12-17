@@ -8,7 +8,7 @@ export function setupModerationRoutes(app: Express) {
   // Vote on content (upvote, downvote, flag, hide)
   app.post("/api/moderation/vote", isAuthenticated, async (req: any, res) => {
     try {
-      const { targetType, targetId, voteType, reason } = req.body;
+      const { targetType, targetId, voteType, reason } = (req.body ?? {}) as any;
       const voterId = req.user.id;
 
       if (!targetType || !targetId || !voteType) {
@@ -143,7 +143,7 @@ export function setupModerationRoutes(app: Express) {
   // Bulk get moderation scores for multiple content items
   app.post("/api/moderation/bulk-scores", async (req, res) => {
     try {
-      const { items } = req.body;
+      const { items } = (req.body ?? {}) as any;
       
       if (!Array.isArray(items)) {
         return res.status(400).json({ error: "Items must be an array" });

@@ -56,7 +56,7 @@ router.get('/causes/:id', async (req: Request, res: Response) => {
 // POST create new cause (admin/verified nonprofit only)
 router.post('/causes', requireAuth, async (req: Request, res: Response) => {
   try {
-    const { name, description, category, countyId, targetAmount, imageUrl, websiteUrl, contactEmail, taxId } = req.body;
+    const { name, description, category, countyId, targetAmount, imageUrl, websiteUrl, contactEmail, taxId } = (req.body ?? {}) as any;
     const userId = (req as any).user.id;
 
     // Validate required fields
@@ -99,7 +99,7 @@ router.post('/causes', requireAuth, async (req: Request, res: Response) => {
 router.put('/causes/:id', requireAuth, async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    const { name, description, category, targetAmount, imageUrl, websiteUrl, contactEmail, isActive } = req.body;
+    const { name, description, category, targetAmount, imageUrl, websiteUrl, contactEmail, isActive } = (req.body ?? {}) as any;
     const userId = (req as any).user.id;
 
     // Check if user is admin
@@ -143,7 +143,7 @@ router.put('/causes/:id', requireAuth, async (req: Request, res: Response) => {
 // POST create donation
 router.post('/donations', requireAuth, async (req: Request, res: Response) => {
   try {
-    const { causeId, amount, type = 'one_time', isAnonymous = false, donorMessage } = req.body;
+    const { causeId, amount, type = 'one_time', isAnonymous = false, donorMessage } = (req.body ?? {}) as any;
     const userId = (req as any).user.id;
 
     if (!causeId || !amount || amount <= 0) {
@@ -212,7 +212,7 @@ router.get('/causes/:causeId/donations', async (req: Request, res: Response) => 
 router.put('/donations/:id/status', requireAuth, async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    const { status, stripeChargeId } = req.body;
+    const { status, stripeChargeId } = (req.body ?? {}) as any;
     const userId = (req as any).user.id;
 
     // Verify user owns this donation
@@ -264,7 +264,7 @@ router.get('/causes/:causeId/impact-reports', async (req: Request, res: Response
 // POST create impact report (admin only)
 router.post('/impact-reports', requireAuth, async (req: Request, res: Response) => {
   try {
-    const { causeId, reportingPeriod, totalBeneficiaries, impactMetrics, storytelling, mediaUrls, adminCosts, programCosts } = req.body;
+    const { causeId, reportingPeriod, totalBeneficiaries, impactMetrics, storytelling, mediaUrls, adminCosts, programCosts } = (req.body ?? {}) as any;
     const userId = (req as any).user.id;
 
     // Check if user is admin

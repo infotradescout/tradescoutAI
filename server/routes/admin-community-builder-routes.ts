@@ -37,7 +37,7 @@ router.post('/contributions/:contributionId/approve', requireCBAdmin, async (req
   try {
     const adminUserId = (req.user as any).id;
     const { contributionId } = req.params;
-    const { notes } = req.body;
+      const { notes } = (req.body ?? {}) as any;
 
     const contribution = await storage.approveContribution(contributionId, adminUserId);
 
@@ -77,7 +77,7 @@ router.post('/contributions/:contributionId/reject', requireCBAdmin, async (req:
   try {
     const adminUserId = (req.user as any).id;
     const { contributionId } = req.params;
-    const { reason } = req.body;
+      const { reason } = (req.body ?? {}) as any;
 
     const contribution = await storage.updateContributionStatus(contributionId, 'cancelled', {
       disputeReason: reason,
@@ -119,7 +119,7 @@ router.post('/contributions/:contributionId/verify', requireCBAdmin, async (req:
   try {
     const adminUserId = (req.user as any).id;
     const { contributionId } = req.params;
-    const { actualValue, actualHours, notes } = req.body;
+      const { actualValue, actualHours, notes } = (req.body ?? {}) as any;
 
     const contribution = await storage.verifyContribution(
       contributionId,
@@ -203,7 +203,7 @@ router.get('/payouts/pending', requireCBAdmin, async (req: Request, res: Respons
 router.post('/payouts', requireCBAdmin, async (req: Request, res: Response) => {
   try {
     const adminUserId = (req.user as any).id;
-    const { builderId, amount, payoutType, relatedContributionIds } = req.body;
+      const { builderId, amount, payoutType, relatedContributionIds } = (req.body ?? {}) as any;
 
     const builder = await storage.getBuilderById(builderId);
     if (!builder) {
@@ -244,7 +244,7 @@ router.post('/payouts/:payoutId/process', requireCBAdmin, async (req: Request, r
   try {
     const adminUserId = (req.user as any).id;
     const { payoutId } = req.params;
-    const { transactionId, externalPaymentId } = req.body;
+      const { transactionId, externalPaymentId } = (req.body ?? {}) as any;
 
     const payout = await storage.updateBuilderPayoutStatus(payoutId, 'completed', {
       transactionId,
@@ -280,7 +280,7 @@ router.post('/payouts/:payoutId/process', requireCBAdmin, async (req: Request, r
 router.post('/payouts/:payoutId/fail', requireCBAdmin, async (req: Request, res: Response) => {
   try {
     const { payoutId } = req.params;
-    const { failureReason } = req.body;
+      const { failureReason } = (req.body ?? {}) as any;
 
     const payout = await storage.updateBuilderPayoutStatus(payoutId, 'failed', {
       failureReason,
@@ -348,7 +348,7 @@ router.get('/builders', requireCBAdmin, async (req: Request, res: Response) => {
 router.post('/builders/:builderId/suspend', requireCBAdmin, async (req: Request, res: Response) => {
   try {
     const { builderId } = req.params;
-    const { reason } = req.body;
+      const { reason } = (req.body ?? {}) as any;
 
     const builder = await storage.updateBuilderProfile(builderId, {
       status: 'suspended',

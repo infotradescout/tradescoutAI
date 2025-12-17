@@ -246,7 +246,7 @@ export function registerAICodeFixRoutes(app: Express) {
         return res.status(403).json({ message: "Admin access required" });
       }
 
-      const { issueDescription, location } = req.body;
+      const { issueDescription, location } = (req.body ?? {}) as any;
       
       const fix = await aiCodeFixingService.analyzeAndFixIssue(issueDescription, location);
       

@@ -630,7 +630,7 @@ export async function registerRoutes(app: any) {
   // Role-based onboarding routes
   app.post("/api/auth/update-role", isAuthenticated, async (req: Request, res: Response) => {
     try {
-      const { role } = req.body;
+      const { role } = (req.body ?? {}) as any;
       const user = req.user as any;
       const userId: string = (user as any)?.claims?.sub || (user as any)?.id || "";
       
@@ -653,7 +653,7 @@ export async function registerRoutes(app: any) {
 
   app.post("/api/auth/complete-onboarding", isAuthenticated, async (req: Request, res: Response) => {
     try {
-      const { firstName, lastName, phone, address, city, state, zipCode, county, businessName, licenseNumber, specialties, yearsExperience, role } = req.body;
+      const { firstName, lastName, phone, address, city, state, zipCode, county, businessName, licenseNumber, specialties, yearsExperience, role } = (req.body ?? {}) as any;
       const user = req.user as any;
       const userId: string = user.id || user.claims?.sub || "";
       
@@ -690,7 +690,7 @@ export async function registerRoutes(app: any) {
 
   app.post("/api/auth/skip-onboarding", isAuthenticated, async (req: Request, res: Response) => {
     try {
-      const { role } = req.body;
+      const { role } = (req.body ?? {}) as any;
       const user = req.user as any;
       const userId: string = user.id || user.claims?.sub || "";
       
@@ -799,7 +799,7 @@ export async function registerRoutes(app: any) {
   // Master admin setup route (only works if no head_admin exists)
   app.post("/api/auth/setup-master", async (req: AuthedRequest, res: Response) => {
     try {
-      const { email, password, firstName, lastName } = req.body;
+      const { email, password, firstName, lastName } = (req.body ?? {}) as any;
 
       // Check if any head_admin already exists
       const existingHeadAdmin = await storage.getUserByRole('head_admin');
@@ -941,9 +941,10 @@ export async function registerRoutes(app: any) {
     try {
       const user = req.user as any;
       const userId: string = user.id || user.claims?.sub || "";
-      const { deviceId } = req.body;
+      const { deviceId } = (req.body ?? {}) as any;
       const { DeviceAuthService } = await import('./deviceAuth');
       if (!userId) return res.status(400).json({ message: "User ID missing" });
+      if (!deviceId) return res.status(400).json({ message: "Device ID missing" });
       const success = await DeviceAuthService.approveDevice(deviceId, userId);
       
       if (success) {
@@ -961,9 +962,10 @@ export async function registerRoutes(app: any) {
     try {
       const user = req.user as any;
       const userId: string = user.id || user.claims?.sub || "";
-      const { deviceId } = req.body;
+      const { deviceId } = (req.body ?? {}) as any;
       const { DeviceAuthService } = await import('./deviceAuth');
       if (!userId) return res.status(400).json({ message: "User ID missing" });
+      if (!deviceId) return res.status(400).json({ message: "Device ID missing" });
       const success = await DeviceAuthService.revokeDevice(deviceId, userId);
       
       if (success) {
@@ -980,7 +982,7 @@ export async function registerRoutes(app: any) {
   // Admin-only route to create new admin accounts
   app.post("/api/admin/create-account", isAuthenticated, requireRole(['head_admin', 'ops_admin']), async (req: Request, res: Response) => {
     try {
-      const { email, password, firstName, lastName, role, address } = req.body;
+      const { email, password, firstName, lastName, role, address } = (req.body ?? {}) as any;
 
       // Validate role assignment permissions
       const currentUser = req.user as any;
@@ -1147,7 +1149,14 @@ export async function registerRoutes(app: any) {
   }
 
   if (hasGoogleOAuth) {
-    app.get('/api/auth/google', passport.authenticate('google', { scope: ['profile', 'email'] }));
+    // Google OAuth entrypoint: request standard OpenID scopes
+    app.get(
+      '/api/auth/google',
+      passport.authenticate('google', {
+        scope: ['openid', 'email', 'profile'],
+        prompt: 'select_account',
+      })
+    );
     app.get(
       '/api/auth/google/callback',
       (req: Request, res: Response, next: any) => {
@@ -1162,7 +1171,10 @@ export async function registerRoutes(app: any) {
         }
         return next();
       },
-      passport.authenticate('google', { failureRedirect: '/login' }),
+      passport.authenticate('google', {
+        failureRedirect: '/login',
+        session: true,
+      }),
       (req: Request, res: Response) => {
         const wasNew = (req.user as any)?._wasNewSocialUser;
         const redirectTo = wasNew ? '/profile-settings?onboarding=1' : '/dashboard';
@@ -1174,7 +1186,7 @@ export async function registerRoutes(app: any) {
   // Admin role impersonation routes
   app.post('/api/admin/impersonate', isAuthenticated, requireRole(['head_admin', 'ops_admin']), async (req: Request, res: Response) => {
     try {
-      const { role } = req.body;
+      const { role } = (req.body ?? {}) as any;
 
       // Validate the target role
       const validRoles = ['homeowner', 'contractor', 'startup_founder', 'moderator', 'ops_admin'];
@@ -1503,7 +1515,7 @@ export async function registerRoutes(app: any) {
   // Update user theme preferences endpoint
   app.patch('/api/user/theme', isAuthenticated, async (req: Request, res: Response) => {
     try {
-      const { themePreference, customThemeColors } = req.body;
+      const { themePreference, customThemeColors } = (req.body ?? {}) as any;
       
       const userId = (req.user as any)?.id || (req.user as any)?.claims?.sub;
       
@@ -1524,7 +1536,7 @@ export async function registerRoutes(app: any) {
   // Navigation preferences endpoints
   app.put('/api/user/navigation-preferences', isAuthenticated, async (req: Request, res: Response) => {
     try {
-      const { customOrder, hiddenFromSwipe, enableSwipeNavigation } = req.body;
+      const { customOrder, hiddenFromSwipe, enableSwipeNavigation } = (req.body ?? {}) as any;
 
       // Get current user to preserve other preferences
       const currentUser = await storage.getUser((req.user as any)?.id || (req.user as any)?.claims?.sub);
@@ -1618,7 +1630,7 @@ export async function registerRoutes(app: any) {
   app.patch('/api/users/color-scheme', isAuthenticated, async (req: Request, res: Response) => {
     try {
       const userId = (req.user as any)?.id || (req.user as any)?.claims?.sub;
-      const { preset, primary, secondary, background, text } = req.body;
+      const { preset, primary, secondary, background, text } = (req.body ?? {}) as any;
 
       if (!preset && (!primary || !secondary || !background || !text)) {
         return res.status(400).json({ message: "Either preset or all custom colors required" });
@@ -1657,7 +1669,7 @@ export async function registerRoutes(app: any) {
   app.patch('/api/users/default-home', isAuthenticated, async (req: Request, res: Response) => {
     try {
       const userId = (req.user as any)?.id || (req.user as any)?.claims?.sub;
-      const { defaultHomePage } = req.body;
+      const { defaultHomePage } = (req.body ?? {}) as any;
 
       const validPages = ['llm', 'marketplace', 'contractor-board', 'dashboard', 'profile', 'community'];
       if (!validPages.includes(defaultHomePage)) {
@@ -1691,7 +1703,7 @@ export async function registerRoutes(app: any) {
   app.patch('/api/users/profile-visibility', isAuthenticated, async (req: Request, res: Response) => {
     try {
       const userId = (req.user as any)?.id || (req.user as any)?.claims?.sub;
-      const { profileVisibility } = req.body;
+      const { profileVisibility } = (req.body ?? {}) as any;
 
       if (!['public', 'private'].includes(profileVisibility)) {
         return res.status(400).json({ message: "Invalid visibility option" });
@@ -1857,7 +1869,7 @@ export async function registerRoutes(app: any) {
   app.put("/api/user/privacy-settings", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const userId = (req.user as any)?.id || (req.user as any)?.claims?.sub;
-      const { profileVisibility, searchEngineIndexing } = req.body;
+      const { profileVisibility, searchEngineIndexing } = (req.body ?? {}) as any;
 
       // Get current user preferences
       const currentUser = await storage.getUser(userId);
@@ -2106,7 +2118,8 @@ export async function registerRoutes(app: any) {
 
   app.put('/api/auth/change-password', isAuthenticated, async (req: any, res: any) => {
     try {
-      const { currentPassword, newPassword } = req.body;
+      const body = (req.body ?? {}) as any;
+      const { currentPassword, newPassword } = body;
       const user = await storage.getUser((req.user as any)?.id || (req.user as any)?.claims?.sub);
 
       if (!user) {
@@ -2116,6 +2129,14 @@ export async function registerRoutes(app: any) {
       // Check if user has a password (social login users might not)
       if (!user.password) {
         return res.status(400).json({ message: "Account uses social login. Cannot change password." });
+      }
+
+      if (typeof currentPassword !== 'string' || typeof newPassword !== 'string') {
+        return res.status(400).json({ message: "Current and new password are required" });
+      }
+
+      if (newPassword.length < 8) {
+        return res.status(400).json({ message: "New password must be at least 8 characters" });
       }
 
       // Verify current password using bcrypt
@@ -2401,7 +2422,11 @@ export async function registerRoutes(app: any) {
   // Track ad impressions
   app.post("/api/ads/track-impression", async (req: any, res: any) => {
     try {
-      const { adId } = req.body;
+      const { adId } = (req.body ?? {}) as any;
+
+      if (!adId) {
+        return res.status(400).json({ message: "adId is required" });
+      }
 
       // Track ad view with locality context
       // await LocalityTracker.trackAdInteraction(req, adId, 'view');
@@ -2417,7 +2442,11 @@ export async function registerRoutes(app: any) {
   // Track ad clicks
   app.post("/api/ads/track-click", async (req: any, res: any) => {
     try {
-      const { adId } = req.body;
+      const { adId } = (req.body ?? {}) as any;
+
+      if (!adId) {
+        return res.status(400).json({ message: "adId is required" });
+      }
 
       // Track ad click with locality context
       // await LocalityTracker.trackAdInteraction(req, adId, 'click');
@@ -2433,11 +2462,15 @@ export async function registerRoutes(app: any) {
   // Save ad for later (authenticated users only)
   app.post("/api/ads/save", isAuthenticated, async (req: any, res: any) => {
     try {
-      const { adId } = req.body;
+      const { adId } = (req.body ?? {}) as any;
       const userId = (req.user as any)?.claims?.sub;
 
       if (!userId) {
         return res.status(401).json({ message: "User ID not found" });
+      }
+
+      if (!adId) {
+        return res.status(400).json({ message: "adId is required" });
       }
 
       const savedAd = await storage.saveAdForUser(userId, adId);
@@ -2510,7 +2543,7 @@ export async function registerRoutes(app: any) {
   app.post('/api/auth/setup-profile', isAuthenticated, async (req: any, res: any) => {
     try {
       const userId = (req.user as any)?.id || (req.user as any)?.claims?.sub;
-      const { role, phone, address, city, state, zipCode, companyName, businessDescription, licenseNumber, yearsInBusiness, serviceAreas, isGeneralContractor, isResidentialContractor, acceptsSubcontractWork } = req.body;
+      const { role, phone, address, city, state, zipCode, companyName, businessDescription, licenseNumber, yearsInBusiness, serviceAreas, isGeneralContractor, isResidentialContractor, acceptsSubcontractWork } = (req.body ?? {}) as any;
 
       const existingUser = await storage.getUser(userId);
 
@@ -2705,7 +2738,7 @@ export async function registerRoutes(app: any) {
       const adminUserId = (req.user as any)?.id || (req.user as any)?.claims?.sub;
       const adminUser = await storage.getUser(adminUserId);
       const { userId } = req.params;
-      const { role } = req.body;
+      const { role } = (req.body ?? {}) as any;
 
       if (!adminUser || !['head_admin', 'moderator', 'ops_admin'].includes(adminUser.role || '')) {
         return res.status(403).json({ message: "Admin access required" });
@@ -2774,7 +2807,7 @@ export async function registerRoutes(app: any) {
   // Quote calculator endpoint (public access)
   app.post("/api/calculator", async (req: any, res: any) => {
     try {
-      const { projectType, squareFootage, stateCode, countyFips, urgency } = req.body;
+      const { projectType, squareFootage, stateCode, countyFips, urgency } = (req.body ?? {}) as any;
 
       // Track calculator usage with locality context
       // LocalityTracker call removed
@@ -3055,7 +3088,7 @@ export async function registerRoutes(app: any) {
 
   app.post("/api/admin/pricing-analytics/update-calculator", isAuthenticated, requireRole(['head_admin', 'ops_admin']), async (req: any, res: any) => {
     try {
-      const { threshold = 10 } = req.body;
+      const { threshold = 10 } = (req.body ?? {}) as any;
       const { pricingAnalyticsService } = await import('./pricing-analytics');
 
       const result = await pricingAnalyticsService.updateCalculatorPricing(threshold);
@@ -3173,7 +3206,7 @@ export async function registerRoutes(app: any) {
   // Event tracking endpoint
   app.post("/api/events", async (req: any, res: any) => {
     try {
-      const { eventType, data } = req.body;
+      const { eventType, data } = (req.body ?? {}) as any;
 
       await storage.logEvent(eventType, {
         ...data,
@@ -3319,7 +3352,7 @@ export async function registerRoutes(app: any) {
         customerName,
         customerEmail,
         customerPhone
-      } = req.body;
+      } = (req.body ?? {}) as any;
 
       // Validate required fields
       if (!customerName || !customerEmail || !comment || !recommendationType) {
@@ -3422,7 +3455,7 @@ export async function registerRoutes(app: any) {
   app.patch("/api/admin/recommendations/:id/moderate", isAuthenticated, requireRole(['head_admin', 'ops_admin', 'moderator']), async (req: any, res: any) => {
     try {
       const { id } = req.params;
-      const { action, reason } = req.body; // action: 'approve' or 'reject'
+      const { action, reason } = (req.body ?? {}) as any; // action: 'approve' or 'reject'
       const moderatorId = (req.user as any)?.id;
 
       if (!['approve', 'reject'].includes(action)) {
@@ -3521,7 +3554,7 @@ export async function registerRoutes(app: any) {
         return res.status(403).json({ message: "Contractor verification required to join Accelerator program" });
       }
 
-      const { planType } = req.body;
+      const { planType } = (req.body ?? {}) as any;
 
       // Track accelerator enrollment with locality context
       // LocalityTracker call removed
@@ -3604,7 +3637,7 @@ export async function registerRoutes(app: any) {
   app.post("/api/conversations", isAuthenticated, async (req: any, res: any) => {
     try {
       const userId = (req.user as any)?.claims?.sub || (req.user as any)?.id;
-      const { contractorId, leadId } = req.body;
+      const { contractorId, leadId } = (req.body ?? {}) as any;
 
       const conversation = await storage.createConversation({
         homeownerId: userId,
@@ -3700,7 +3733,7 @@ export async function registerRoutes(app: any) {
         return res.status(403).json({ message: "Access denied" });
       }
 
-      const { content, messageType, metadata } = req.body;
+      const { content, messageType, metadata } = (req.body ?? {}) as any;
 
       const senderType = conversation.homeownerId === userId ? "homeowner" : "contractor";
 
@@ -3741,7 +3774,7 @@ export async function registerRoutes(app: any) {
 
   app.post("/api/conversations/:id/rate", isAuthenticated, async (req: any, res: any) => {
     try {
-      const { rating, feedback } = req.body;
+      const { rating, feedback } = (req.body ?? {}) as any;
       const userId = (req.user as any)?.claims?.sub || (req.user as any)?.id;
 
       const conversation = await storage.getConversation(req.params.id);

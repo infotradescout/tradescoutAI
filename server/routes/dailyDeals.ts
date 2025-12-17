@@ -171,7 +171,7 @@ export async function createDailyDeal(req: Request, res: Response) {
 // Track deal engagement (views, clicks, saves)
 export async function trackDealEngagement(req: Request, res: Response) {
   try {
-    const { dealId, engagementType, affiliateCode } = req.body;
+    const { dealId, engagementType, affiliateCode } = (req.body ?? {}) as any;
     const userId = (req.user as any)?.id || (req.user as any)?.claims?.sub;
     
     let engagement;

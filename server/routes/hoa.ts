@@ -122,7 +122,7 @@ export async function submitVote(req: Request, res: Response) {
     }
 
     const { voteId } = req.params;
-    const { decision } = req.body;
+    const { decision } = (req.body ?? {}) as any;
     const voteResult = await storage.submitHOAVote(userId, voteId, decision);
     res.status(201).json(voteResult);
   } catch (error) {
@@ -140,7 +140,7 @@ export async function requestVendorService(req: Request, res: Response) {
     }
 
     const { vendorId } = req.params;
-    const { serviceType, description, urgency, contactPreference } = req.body;
+    const { serviceType, description, urgency, contactPreference } = (req.body ?? {}) as any;
     
     const serviceRequest = await storage.createVendorServiceRequest({
       userId,
@@ -166,7 +166,7 @@ export async function collectHOAFee(req: Request, res: Response) {
       return res.status(401).json({ message: 'Authentication required' });
     }
 
-    const { hoaId, residentId, amount, description } = req.body || {};
+    const { hoaId, residentId, amount, description } = (req.body ?? {}) as any;
     if (!hoaId || !residentId || typeof amount !== 'number') {
       return res.status(400).json({ message: 'hoaId, residentId and numeric amount are required' });
     }
@@ -265,7 +265,7 @@ export async function addHOAMember(req: Request, res: Response) {
     }
 
     const { hoaId } = req.params;
-    const { userId: newUserId, unitNumber, role, votingRights } = req.body;
+    const { userId: newUserId, unitNumber, role, votingRights } = (req.body ?? {}) as any;
     // Check if requesting user has required HOA role
     const { authorized } = await requireHoaRole(userId, hoaId, ['president', 'vice_president']);
     if (!authorized) {
@@ -295,7 +295,7 @@ export async function updateHOAMemberRole(req: Request, res: Response) {
     }
 
     const { hoaId, memberId } = req.params;
-    const { role } = req.body;
+    const { role } = (req.body ?? {}) as any;
     // Check if requesting user has required HOA role
     const { authorized } = await requireHoaRole(userId, hoaId, ['president']);
     if (!authorized) {
