@@ -98,7 +98,7 @@ export default function Navigation() {
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => window.location.href = "/api/logout"}
+                  onClick={() => window.location.href = "/"}
                   className="border-gray-600 text-gray-300 hover:bg-navy-700"
                 >
                   Sign Out
@@ -113,7 +113,7 @@ export default function Navigation() {
                 </Link>
                 <Button
                   size="sm"
-                  onClick={() => window.location.href = "/api/login"}
+                  onClick={() => window.location.href = "/login"}
                   className="bg-orange-500 hover:bg-orange-600 text-white"
                 >
                   Sign In
@@ -178,7 +178,7 @@ export default function Navigation() {
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => window.location.href = "/api/logout"}
+                  onClick={() => window.location.href = "/"}
                   className="w-full mt-2 border-gray-600 text-gray-300 hover:bg-navy-600"
                 >
                   Sign Out
@@ -200,7 +200,7 @@ export default function Navigation() {
                   size="sm"
                   onClick={() => {
                     setIsOpen(false);
-                    window.location.href = "/api/login";
+                    window.location.href = "/login";
                   }}
                   className="w-full bg-orange-500 hover:bg-orange-600 text-white"
                 >

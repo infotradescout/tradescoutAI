@@ -52,7 +52,6 @@ const Profile = React.lazy(() => import('./pages/ProfilePage'));
 
 // Authentication & User Management
 const Login = React.lazy(() => import('./pages/login'));
-const ProfileSetup = React.lazy(() => import('./pages/profile-setup'));
 const AddressVerification = React.lazy(() => import('./pages/address-verification'));
 const Register = React.lazy(() => import('./pages/register'));
 const Signup = React.lazy(() => import('./pages/signup'));
@@ -388,13 +387,17 @@ const AppLayout = memo(function AppLayout() {
                 </ProtectedRoute>
               </Route>
 
-              {/* Auth routes */}
+                {/* Auth routes */}
                   <Route path="/login"><LazyPage Component={Login} /></Route>
                   <Route path="/register"><LazyPage Component={Register} /></Route>
                   <Route path="/signup"><LazyPage Component={Signup} /></Route>
-                  <Route path="/profile-setup"><LazyPage Component={ProfileSetup} /></Route>
                   <Route path="/address-verification"><LazyPage Component={AddressVerification} /></Route>
                   <Route path="/unauthorized"><LazyPage Component={Unauthorized} /></Route>
+
+                  {/* Legacy guard: hard-redirect any old profile setup links into the dashboard */}
+                  <Route path="/profile-setup">
+                    <RedirectTo to="/dashboard" />
+                  </Route>
                   
                   {/* Core pages */}
                   {/* Contractors: licensed/verified contractor search + profiles */}

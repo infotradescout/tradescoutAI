@@ -2,7 +2,17 @@ import { useReducer, useCallback } from "react";
 
 export type ScoutRole = "user" | "assistant" | "system";
 
-export type ScoutStatus = "idle" | "sending" | "thinking" | "responding" | "error";
+// High-level state machine for Scout's visible behavior
+// IDLE -> RESOLVING_CONTEXT -> CHECKING_DOCUMENTS -> READY -> EXECUTING_ACTION
+// We never render "thinking text" – the UI shows short, fixed progress pings
+// based on this status instead.
+export type ScoutStatus =
+  | "idle"
+  | "resolving_context"
+  | "checking_documents"
+  | "ready"
+  | "executing_action"
+  | "error";
 
 export type ScoutClusterKind =
   | "projects"
@@ -66,7 +76,8 @@ export type ScoutEvent =
   | { type: "USER_MESSAGE"; content: string }
   | { type: "SERVER_RESPONSE"; message: ScoutMessage; actions?: ScoutAction[] }
   | { type: "ERROR"; error: string }
-  | { type: "RESET" };
+  | { type: "RESET" }
+  | { type: "SET_STATUS"; status: ScoutStatus };
 
 const initialState: ScoutState = {
   messages: [],
@@ -91,7 +102,7 @@ function reducer(state: ScoutState, event: ScoutEvent): ScoutState {
       return {
         ...state,
         messages: [...state.messages, msg],
-        status: "sending",
+        status: "resolving_context",
         error: null,
       };
     }
@@ -116,6 +127,15 @@ function reducer(state: ScoutState, event: ScoutEvent): ScoutState {
         messages: [...state.messages, errorMessage],
         status: "error",
         error: event.error,
+      };
+    }
+
+    case "SET_STATUS": {
+      // Allow transitions only between known states; reducer is a pass-through
+      // to keep status changes centralized.
+      return {
+        ...state,
+        status: event.status,
       };
     }
 
@@ -150,6 +170,11 @@ export function useScoutState(initialMessages?: ScoutMessage[]) {
     []
   );
 
+	const setStatus = useCallback(
+		(status: ScoutStatus) => dispatch({ type: "SET_STATUS", status }),
+		[]
+	);
+
   const reset = useCallback(() => dispatch({ type: "RESET" }), []);
 
   return {
@@ -158,6 +183,7 @@ export function useScoutState(initialMessages?: ScoutMessage[]) {
     recordUserMessage,
     applyServerResponse,
     setError,
+    setStatus,
     reset,
   };
 }

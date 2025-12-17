@@ -61,7 +61,7 @@ export default function ScoutOS() {
   const [hasGuestInteracted, setHasGuestInteracted] = useState(false);
   const { sessionRole } = useSession();
 
-  const { state, recordUserMessage, applyServerResponse, setError } = useScoutState();
+  const { state, recordUserMessage, applyServerResponse, setError, setStatus } = useScoutState();
 
   // One-time init guard (keeps animations / welcome seed from re-running).
   // Removed client-side injected welcome message to avoid collision
@@ -94,9 +94,9 @@ export default function ScoutOS() {
   const isGuest = !isAuthenticated;
 
   const isBusy =
-    state.status === "sending" ||
-    state.status === "thinking" ||
-    state.status === "responding";
+    state.status === "resolving_context" ||
+    state.status === "checking_documents" ||
+    state.status === "executing_action";
 
   const hasMessages = state.messages.length > 0;
 
@@ -218,7 +218,11 @@ export default function ScoutOS() {
       const mode: ScoutMode = explicitMode ?? inferModeFromRoles(rolesForRequest);
 
       const start = performance.now();
+      // User message is recorded into the thread; we immediately move into
+      // a short RESOLVING_CONTEXT state so the UI can show progress without
+      // exposing any internal reasoning text.
       recordUserMessage(value);
+      setStatus("resolving_context");
       recordActivity({
         type: "ask_scout",
         ts: new Date().toISOString(),
@@ -227,6 +231,9 @@ export default function ScoutOS() {
       });
 
       try {
+        // Once we start building the server payload and hitting /api/scout,
+        // switch to CHECKING_DOCUMENTS to drive the loader animation.
+        setStatus("checking_documents");
         const recentActivity = getRecentActivity();
         const shownAdIds = getSeenAdIds();
 
@@ -377,6 +384,8 @@ export default function ScoutOS() {
           latencyMs,
           error: err.message || "Unknown error",
         });
+      } finally {
+        setStatus("idle");
       }
     },
     [
@@ -418,12 +427,21 @@ export default function ScoutOS() {
           path: location,
           to: action.to ?? action.path,
           label: action.label,
+          meta:
+            typeof action.payload?.jobId === "string"
+              ? { jobId: action.payload.jobId as string }
+              : undefined,
         });
       }
 
       if (action.type === "NOOP") {
         return;
       }
+
+      // While executing a tool or navigation action, briefly move into
+      // EXECUTING_ACTION so the loader reflects real work instead of
+      // fake "typing".
+      setStatus("executing_action");
 
       executeScoutActions([action], {
         navigate: (to) => navigate(to),
@@ -437,10 +455,11 @@ export default function ScoutOS() {
           }
           setPrefillKey((k) => k + 1);
         },
-        askScout: (prompt) => {
-          void handleSend(prompt);
-        },
+          askScout: (prompt) => {
+            void handleSend(prompt);
+          },
       });
+      setStatus("idle");
     },
     [
       location,

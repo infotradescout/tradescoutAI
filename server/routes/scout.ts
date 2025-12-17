@@ -19,6 +19,9 @@ import {
 import { storage } from "../storage";
 import { resolveCountyFips, resolveRegionSlug } from "../services/regionResolver";
 import { shouldInjectSponsored } from "../services/sponsoredEligibility";
+import { db, pool } from "../db";
+import { leads } from "../../shared/schema";
+import { desc, eq } from "drizzle-orm";
 import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
@@ -74,6 +77,35 @@ const FRAUD_PATTERNS = [
   /routing\s*number|account\s*number/i,
   /ssn|social\s*security/i,
 ];
+
+type DealRoomStage =
+  | "EMPTY"
+  | "MATERIALS"
+  | "ESTIMATE"
+  | "CONTRACT"
+  | "INVOICE"
+  | "RECEIPT";
+
+type AllowedAction =
+  | "OPEN_DEAL_ROOM"
+  | "START_MATERIAL_LIST"
+  | "SEND_MATERIAL_LIST"
+  | "SEND_ESTIMATE"
+  | "APPROVE_ESTIMATE"
+  | "SEND_CONTRACT"
+  | "SIGN_CONTRACT"
+  | "GENERATE_INVOICE"
+  | "SEND_INVOICE"
+  | "MARK_INVOICE_PAID"
+  | "ISSUE_RECEIPT";
+
+interface ResolvedContext {
+  stage: DealRoomStage;
+  blockingReason: string | null;
+  allowedActions: AllowedAction[];
+  confidence: "low" | "medium" | "high";
+  requiresLLM: boolean;
+}
 
 function sanitizeSuspiciousContent(text: string): { flagged: boolean; message: string } {
   const flagged = FRAUD_PATTERNS.some((pattern) => pattern.test(text));
@@ -181,6 +213,11 @@ DO NOT:
 
   Be conversational, inspiring, and real. Speak directly to the user without describing your own thought process. Avoid generic filler; be concrete and action-oriented.
 
+  HARD CONSTRAINTS FOR OUTPUT:
+  - The answer must comfortably fit on a small mobile screen without feeling long.
+  - Prefer short paragraphs and avoid rambling.
+  - Use lists only when they stay compact and help scanning.
+
 Available Knowledge Base:
 ${comprehensiveKnowledge}
 
@@ -188,7 +225,8 @@ Now write an inspiring, comprehensive answer about how TradeScout transforms thi
 
     const model = gemini.getGenerativeModel({ model: "gemini-2.5-flash" });
     const result = await model.generateContent(synthPrompt);
-    return result.response.text();
+    const text = result.response.text();
+    return trimResponseToScreenFit(text);
   } catch (error) {
     console.error("[Scout] Synthesis error:", error);
     return "I encountered an error creating a comprehensive overview. Please try again.";
@@ -222,7 +260,8 @@ async function synthesizeResponse(
     capabilities?: string[];
     last_intent?: string;
     locality: { county?: string; state?: string; region?: string };
-  }
+  },
+  resolvedContext?: ResolvedContext | null
 ): Promise<{ message: string; suggestedActions: string[]; intent?: string; thought_flow?: string[]; decision?: string }> {
   const DEFAULT_ACTIONS = [
     "Find contractors in my area",
@@ -254,6 +293,14 @@ CURRENT STATE (injected every turn):
 `;
     }
 
+    let resolvedContextInjection = "";
+    if (resolvedContext) {
+      resolvedContextInjection = `
+RESOLVED PROJECT CONTEXT (deterministic, no raw documents):
+${JSON.stringify(resolvedContext, null, 2)}
+`;
+    }
+
     // [USER-CONTEXT INJECTION]
     // Build user context for personalized language
     let userContextPrompt = "";
@@ -269,11 +316,13 @@ CURRENT STATE (injected every turn):
     // Smart synthesis that ENFORCES the execution contract
     const synthesisPrompt = `${systemPrompt}
 
-${stateInjection}
+  ${stateInjection}
 
-${userContextPrompt}
+  ${resolvedContextInjection}
 
-${activityContext}
+  ${userContextPrompt}
+
+  ${activityContext}
 
 User asked: "${userMessage}"
 
@@ -290,7 +339,7 @@ ${knowledge.answer}
     "Step 3: How I'm making my decision"
   ],
   "decision": "string - what I decided to do and why (e.g., 'Showing contractors because user is authenticated and in Harris County')",
-  "message": "string - your actual response to the user (max 300 words, 12-15 lines)",
+  "message": "string - your actual response to the user (max 3 sentences; no bullet lists unless user explicitly asked for a list)",
   "suggestedActions": [
     "Action prompt 1",
     "Action prompt 2",
@@ -306,8 +355,9 @@ CRITICAL EXECUTION RULES:
    - Set intent to "auth_required"
    - Explain in thought_flow why auth is needed
    - In message, tell user to create account and provide direct link to /register
-5. Keep message brief (max 300 words, 12-15 lines)
-6. Always generate exactly 3 suggestedActions
+5. Keep message brief (max 3 sentences; no bullet or numbered lists unless the user explicitly asked you to list things)
+6. Focus the message on: what's blocking, what's next, and at most one clear yes/no question about taking a next step.
+7. Always generate exactly 3 suggestedActions
 
 AUTH-REQUIRED ACTIONS:
 - Posting tasks, items, listings
@@ -555,38 +605,55 @@ function parseStructuredResponse(
  * - Preserves structure and important information
  */
 function trimResponseToScreenFit(response: string): string {
-  const maxWords = 150;
-  const maxLines = 10;
-  
-  // Split into lines
-  const lines = response.split('\n').filter(line => line.trim().length > 0);
-  
-  // If too many lines, truncate at hard line limit
-  let trimmed = lines.slice(0, maxLines).join('\n');
-  
-  // Count words and truncate if needed
-  const words = trimmed.split(/\s+/);
-  if (words.length > maxWords) {
-    // Trim to max words, try to end at sentence boundary
-    let truncated = words.slice(0, maxWords).join(' ');
-    
-    // Find last sentence-ending punctuation within trimmed text
-    const lastPeriod = truncated.lastIndexOf('.');
-    const lastQuestion = truncated.lastIndexOf('?');
-    const lastEnd = Math.max(lastPeriod, lastQuestion);
-    
-    if (lastEnd > maxWords * 0.75) {
-      // If reasonable sentence boundary exists, use it
-      truncated = truncated.substring(0, lastEnd + 1);
-    } else {
-      // Otherwise just add ellipsis
-      truncated = truncated + '...';
+  // Approximate a "no scroll" viewport using conservative text caps.
+  // This keeps answers readable while allowing more than 3 sentences
+  // when needed, and defers deeper detail to actions.
+  const MAX_CHARS = 600; // ~4–5 short paragraphs
+  const MAX_LINES = 8;   // tighter than the visual 10-line cap
+
+  if (!response) return "";
+
+  // Normalize whitespace and split into paragraphs
+  const normalized = response.replace(/\r\n/g, "\n").replace(/\s+$/gm, "").trim();
+  const paragraphs = normalized.split(/\n{2,}/).map((p) => p.trim()).filter(Boolean);
+
+  let result = "";
+  let charCount = 0;
+  let lineCount = 0;
+
+  for (const para of paragraphs) {
+    if (!para) continue;
+
+    const next = (result ? "\n\n" : "") + para;
+    const nextCharCount = charCount + next.length;
+    const paraLines = Math.max(1, Math.ceil(para.length / 80));
+    const nextLineCount = lineCount + paraLines + (result ? 1 : 0); // account for blank line between
+
+    if (nextCharCount > MAX_CHARS || nextLineCount > MAX_LINES) {
+      break;
     }
-    
-    return truncated;
+
+    result += next;
+    charCount = nextCharCount;
+    lineCount = nextLineCount;
   }
-  
-  return trimmed;
+
+  if (!result) {
+    // Fallback: take a hard slice if everything is oversized
+    const slice = normalized.slice(0, MAX_CHARS);
+    return slice.endsWith(".") || slice.endsWith("!") || slice.endsWith("?")
+      ? slice
+      : slice + "...";
+  }
+
+  // If we dropped paragraphs, add a soft cue at the end
+  if (result.length < normalized.length) {
+    console.log("[Scout] viewport trim applied", { chars: charCount, lines: lineCount });
+    result +=
+      "\n\nI've summarized this to keep it readable. Use the actions below to go deeper where you need.";
+  }
+
+  return result;
 }
 
 async function generateAutoPrompt(gemini: GoogleGenerativeAI | null) {
@@ -694,6 +761,7 @@ interface ScoutResponse {
     thought_flow?: string[];
     decision?: string;
     redirect?: string;
+    resolvedContext?: ResolvedContext | null;
   };
 }
 
@@ -705,6 +773,101 @@ type ScoutClientAction = {
   prompt?: string;
   payload?: Record<string, unknown>;
 };
+
+type DeterministicIntent =
+  | "send_invoice"
+  | "mark_invoice_paid"
+  | "send_contract"
+  | "sign_contract"
+  | "open_deal_room";
+
+function deriveDeterministicIntent(message: string): DeterministicIntent | null {
+  const lower = message.toLowerCase();
+  if (/mark (it )?paid|record payment|mark invoice paid|payment received/.test(lower)) {
+    return "mark_invoice_paid";
+  }
+  if (/send (the )?invoice|invoice.*send/.test(lower)) {
+    return "send_invoice";
+  }
+  if (/send (the )?contract|contract.*send/.test(lower)) {
+    return "send_contract";
+  }
+  if (/(sign|e-sign|esign|esig).*(contract)|contract.*sign/.test(lower)) {
+    return "sign_contract";
+  }
+  if (/open (the )?(deal\s*room|project\s*tracker|job\s*room)/.test(lower)) {
+    return "open_deal_room";
+  }
+  return null;
+}
+
+function allowsAction(ctx: ResolvedContext | null, action: AllowedAction): boolean {
+  if (!ctx) return false;
+  return ctx.allowedActions.includes(action);
+}
+
+function inferJobIdFromActivity(recentActivity: ScoutRequest["recentActivity"]): string | null {
+  if (!recentActivity || !recentActivity.length) return null;
+
+  for (let i = recentActivity.length - 1; i >= 0; i -= 1) {
+    const evt = recentActivity[i];
+    if (!evt) continue;
+
+    const metaJobId = (evt.meta as any)?.jobId;
+    if (typeof metaJobId === "string" && metaJobId.trim()) {
+      return metaJobId.trim();
+    }
+
+    const target = evt.to || evt.path;
+    if (typeof target === "string" && target.includes("jobId=")) {
+      try {
+        const url = new URL(target, "https://dummy.local");
+        const jobId = url.searchParams.get("jobId");
+        if (jobId && jobId.trim()) return jobId.trim();
+      } catch {
+        // ignore malformed URLs
+      }
+    }
+  }
+
+  return null;
+}
+
+async function getPrimaryProjectIdForUser(userId: string, userRole: string | undefined): Promise<string | null> {
+  try {
+    if (!userId) return null;
+
+    if (userRole === "contractor") {
+      const contractor = await storage.getContractorByUserId(userId);
+      if (!contractor) return null;
+
+      const rows = await db
+        .select({ id: leads.id })
+        .from(leads)
+        .where(eq(leads.contractorId, contractor.id))
+        .orderBy(desc(leads.createdAt))
+        .limit(1);
+
+      return rows[0]?.id ? String(rows[0].id) : null;
+    }
+
+    if (userRole === "homeowner") {
+      const rows = await db
+        .select({ id: leads.id })
+        .from(leads)
+        .where(eq(leads.userId, userId))
+        .orderBy(desc(leads.createdAt))
+        .limit(1);
+
+      return rows[0]?.id ? String(rows[0].id) : null;
+    }
+
+    return null;
+  } catch (err) {
+    console.error("[Scout] Failed to resolve primary project id", err);
+    return null;
+  }
+}
 
 function extractProfileIdFromText(text: string): string | null {
   const match = text.match(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i);
@@ -773,6 +936,229 @@ function formatRecentActivityForPrompt(recentActivity: ScoutRequest["recentActiv
 
   if (normalized.length === 0) return "";
   return `RECENT ACTIVITY (this session, client-reported):\n${normalized.join("\n")}`;
+}
+
+function buildDealRoomGuidanceFromDocs(
+  docs: Array<{ type?: string; status?: string }>,
+  userRole: string
+): string | null {
+  if (!Array.isArray(docs) || docs.length === 0) {
+    if (userRole === "contractor") {
+      return "No project documents exist yet for this job. Next step: open the Project Tracker deal room and start a material list draft.";
+    }
+    if (userRole === "homeowner") {
+      return "Your contractor hasn’t started any project documents yet. Next step: ask them to start a material list or estimate from the deal room.";
+    }
+    return "There are no project documents yet. Next step: use the Project Tracker deal room to start a material list or estimate.";
+  }
+
+  const latestByType: Record<string, { type?: string; status?: string } | undefined> = {};
+  for (const d of docs) {
+    if (!d || !d.type) continue;
+    latestByType[d.type] = d;
+  }
+
+  const material = latestByType["MATERIAL_LIST"];
+  const estimate = latestByType["ESTIMATE"];
+  const contract = latestByType["CONTRACT"];
+  const invoice = latestByType["INVOICE"];
+  const receipt = latestByType["RECEIPT"];
+
+  if (receipt) {
+    return "This project already has a receipt on record. The document lifecycle is complete; you can still open the deal room to review everything.";
+  }
+
+  if (invoice) {
+    switch (invoice.status) {
+      case "draft":
+        return "There is an invoice draft for this project that hasn’t been sent yet. Next step: open the deal room and send the invoice to the homeowner.";
+      case "sent":
+        return "An invoice has been sent for this project but is not marked paid yet. Next step: once payment is received, mark the invoice paid in the deal room so you can issue a receipt.";
+      case "paid":
+        return "The invoice for this project is marked paid, but there is no receipt yet. Next step: open the deal room and issue a receipt for this job.";
+      default:
+        break;
+    }
+  }
+
+  if (contract) {
+    switch (contract.status) {
+      case "draft":
+        if (userRole === "contractor") {
+          return "There is a contract draft that hasn’t been sent yet. Next step: open the deal room and send the contract for signature.";
+        }
+        return "A contract draft exists for this project but hasn’t been sent yet. Your contractor needs to send it from the deal room before anyone can sign.";
+      case "sent":
+      case "partially_signed":
+        if (userRole === "homeowner") {
+          return "There is a contract waiting on signatures. Next step: open the deal room and sign the contract if you’re ready to move forward.";
+        }
+        if (userRole === "contractor") {
+          return "The contract is out for signatures and not fully signed yet. Next step: ensure both sides sign the contract from the deal room.";
+        }
+        return "This project has a contract that isn’t fully signed yet. Next step: finish signatures in the deal room before generating an invoice.";
+      case "signed":
+        if (!invoice) {
+          if (userRole === "contractor") {
+            return "The contract for this project is fully signed, but there’s no invoice yet. Next step: open the deal room and generate an invoice from the contract.";
+          }
+          return "The contract for this project is fully signed. Next step: your contractor can generate an invoice from the deal room.";
+        }
+        break;
+      default:
+        break;
+    }
+  }
+
+  if (estimate) {
+    switch (estimate.status) {
+      case "draft":
+        if (userRole === "contractor") {
+          return "There is an estimate draft for this project that hasn’t been sent yet. Next step: open the deal room and send the estimate to the homeowner.";
+        }
+        return "Your contractor has an estimate in draft form that hasn’t been sent yet. Next step: ask them to send the estimate from the deal room so you can review it.";
+      case "sent":
+        if (userRole === "homeowner") {
+          return "An estimate has been sent for this project. Next step: open the deal room and approve the estimate if it looks right.";
+        }
+        if (userRole === "contractor") {
+          return "An estimate has been sent and is waiting on homeowner approval. Next step: wait for the homeowner to approve from the deal room or follow up with them.";
+        }
+        return "An estimate has been sent for this project and is waiting on approval. Next step: finalize approval in the deal room so a contract can be created.";
+      case "approved":
+        if (!contract) {
+          return "The estimate for this project is approved. Next step: create and send a contract from the deal room so both sides can sign.";
+        }
+        break;
+      default:
+        break;
+    }
+  }
+
+  if (material) {
+    switch (material.status) {
+      case "draft":
+        if (userRole === "contractor") {
+          return "There is a material list draft for this project. Next step: open the deal room and send the material list so the homeowner can review it.";
+        }
+        return "Your contractor has started a material list but hasn’t sent it yet. Next step: they should send it from the deal room so you can confirm selections.";
+      case "pending_homeowner":
+        if (userRole === "homeowner") {
+          return "A material list has been sent and is waiting on your review. Next step: open the deal room to review and finalize the material list.";
+        }
+        return "A material list has been sent to the homeowner and is pending their review. Next step: wait for the homeowner to confirm items in the deal room.";
+      default:
+        break;
+    }
+  }
+
+  return null;
+}
+
+function resolveDealRoomContextFromDocs(
+  docs: Array<{ type?: string; status?: string }>,
+  userRole: string
+): ResolvedContext {
+  if (!Array.isArray(docs) || docs.length === 0) {
+    const blocking = buildDealRoomGuidanceFromDocs(docs, userRole);
+    const allowed: AllowedAction[] = [];
+    if (userRole === "contractor") {
+      allowed.push("OPEN_DEAL_ROOM", "START_MATERIAL_LIST");
+    } else {
+      allowed.push("OPEN_DEAL_ROOM");
+    }
+    return {
+      stage: "EMPTY",
+      blockingReason: blocking,
+      allowedActions: allowed,
+      confidence: "medium",
+      requiresLLM: true,
+    };
+  }
+
+  const latestByType: Record<string, { type?: string; status?: string } | undefined> = {};
+  for (const d of docs) {
+    if (!d || !d.type) continue;
+    latestByType[d.type] = d;
+  }
+
+  const material = latestByType["MATERIAL_LIST"];
+  const estimate = latestByType["ESTIMATE"];
+  const contract = latestByType["CONTRACT"];
+  const invoice = latestByType["INVOICE"];
+  const receipt = latestByType["RECEIPT"];
+
+  let stage: DealRoomStage = "EMPTY";
+  const allowedActions: AllowedAction[] = ["OPEN_DEAL_ROOM"];
+
+  if (receipt) {
+    stage = "RECEIPT";
+  } else if (invoice) {
+    stage = "INVOICE";
+  } else if (contract) {
+    stage = "CONTRACT";
+  } else if (estimate) {
+    stage = "ESTIMATE";
+  } else if (material) {
+    stage = "MATERIALS";
+  }
+
+  // Allowed actions mirror the frontend deal room state machine at a high level.
+  if (!material && userRole === "contractor") {
+    allowedActions.push("START_MATERIAL_LIST");
+  }
+
+  if (material && material.status === "draft" && userRole === "contractor") {
+    allowedActions.push("SEND_MATERIAL_LIST");
+  }
+
+  if (estimate) {
+    if (estimate.status === "draft" && userRole === "contractor") {
+      allowedActions.push("SEND_ESTIMATE");
+    }
+    if (estimate.status === "sent" && userRole === "homeowner") {
+      allowedActions.push("APPROVE_ESTIMATE");
+    }
+  }
+
+  if (contract) {
+    if (contract.status === "draft" && userRole === "contractor") {
+      allowedActions.push("SEND_CONTRACT");
+    }
+    if (
+      (contract.status === "sent" || contract.status === "partially_signed") &&
+      (userRole === "homeowner" || userRole === "contractor")
+    ) {
+      allowedActions.push("SIGN_CONTRACT");
+    }
+    if (!invoice && contract.status === "signed" && userRole === "contractor") {
+      allowedActions.push("GENERATE_INVOICE");
+    }
+  }
+
+  if (invoice) {
+    if (invoice.status === "draft" && userRole === "contractor") {
+      allowedActions.push("SEND_INVOICE");
+    }
+    if (
+      (invoice.status === "sent" || invoice.status === "approved") &&
+      userRole === "contractor"
+    ) {
+      allowedActions.push("MARK_INVOICE_PAID");
+    }
+    if (invoice.status === "paid" && !receipt && userRole === "contractor") {
+      allowedActions.push("ISSUE_RECEIPT");
+    }
+  }
+
+  const blockingReason = buildDealRoomGuidanceFromDocs(docs, userRole);
+  return {
+    stage,
+    blockingReason: blockingReason || null,
+    allowedActions,
+    confidence: "high",
+    requiresLLM: true,
+  };
 }
 
 // (moved to services/regionResolver.ts)
@@ -911,7 +1297,28 @@ router.post("/", async (req: Request, res: Response) => {
       }
     }
 
-    // SMART SYNTHESIS: Use Gemini to synthesize knowledge into intelligent answer
+    // Infer current job/project id from recent activity or dashboard-style data
+    const inferredJobIdFromActivity = inferJobIdFromActivity(recentActivity);
+    const primaryProjectId = userId
+      ? await getPrimaryProjectIdForUser(userId, userRole)
+      : null;
+    const currentJobId = inferredJobIdFromActivity || primaryProjectId || null;
+
+    let resolvedContext: ResolvedContext | null = null;
+    if (currentJobId) {
+      try {
+        const { rows } = await pool.query(
+          "SELECT type, status FROM documents WHERE job_id = $1 ORDER BY created_at ASC, version ASC",
+          [currentJobId]
+        );
+        resolvedContext = resolveDealRoomContextFromDocs(rows, userRole);
+      } catch (err) {
+        console.error("[Scout] Failed to resolve deal room context", err);
+        resolvedContext = null;
+      }
+    }
+
+    // SMART SYNTHESIS / DETERMINISTIC ROUTING
     // Instead of passing raw knowledge to the LLM, first synthesize it smartly
     // [USER-CONTEXT] Build and inject user context for personalized responses
     const userContext = await buildUserContext(userId);
@@ -931,7 +1338,92 @@ router.post("/", async (req: Request, res: Response) => {
         region: stateCode ? getRegionFromState(stateCode) : undefined
       }
     };
-    
+
+    // Deterministic early-exit: if user intent maps cleanly to an allowed
+    // action for the current job, return a short, action-first response and
+    // skip the LLM altogether.
+    const deterministicIntent = deriveDeterministicIntent(message);
+    if (deterministicIntent && resolvedContext && currentJobId) {
+      let canHandle = false;
+      let actionLabel = "";
+      let actionExplanation = "";
+      let allowedKey: AllowedAction | null = null;
+      switch (deterministicIntent) {
+        case "send_invoice":
+          allowedKey = "SEND_INVOICE";
+          actionLabel = "Open deal room";
+          actionExplanation =
+            "You can send the invoice for this project now. I'll open your deal room so you can review and send it.";
+          break;
+        case "mark_invoice_paid":
+          allowedKey = "MARK_INVOICE_PAID";
+          actionLabel = "Open deal room";
+          actionExplanation =
+            "You can record payment on this invoice from the deal room. I'll open it so you can mark it paid.";
+          break;
+        case "send_contract":
+          allowedKey = "SEND_CONTRACT";
+          actionLabel = "Open deal room";
+          actionExplanation =
+            "The contract is ready to send for signature. I'll open your deal room so you can send it.";
+          break;
+        case "sign_contract":
+          allowedKey = "SIGN_CONTRACT";
+          actionLabel = "Open deal room";
+          actionExplanation =
+            "This contract is waiting on signatures. I'll open your deal room so you can sign it.";
+          break;
+        case "open_deal_room":
+          allowedKey = "OPEN_DEAL_ROOM";
+          actionLabel = "Open deal room";
+          actionExplanation =
+            "I'll open your project deal room so you can handle this.";
+          break;
+      }
+
+      if (allowedKey && allowsAction(resolvedContext, allowedKey)) {
+        canHandle = true;
+      }
+
+      if (canHandle) {
+        const aiResponse: ScoutResponse = {
+          message: trimResponseToScreenFit(actionExplanation),
+          suggestedActions: [
+            "Explain what’s blocking this project",
+            "Show other ways TradeScout can help",
+            "Ask another question",
+          ],
+          actions: [
+            {
+              type: "NAVIGATE",
+              label: actionLabel,
+              path: `/lead-management?jobId=${currentJobId}`,
+              payload: { jobId: currentJobId, intent: deterministicIntent },
+            },
+          ],
+          sponsored: null,
+          metadata: {
+            intent: deterministicIntent,
+            decision:
+              "Handled via deterministic route based on project documents and allowed actions.",
+            resolvedContext: { ...resolvedContext, requiresLLM: false },
+          },
+        };
+
+        return res.json({
+          ...aiResponse,
+          knowledge: {
+            layer: knowledge.layer,
+            sources: knowledge.sources,
+            confidence: knowledge.confidence,
+          },
+          llmProvider: "deterministic",
+          promptVersion,
+          timestamp: new Date().toISOString(),
+        });
+      }
+    }
+
     const synthesized = await synthesizeResponse(
       message,
       knowledge,
@@ -941,7 +1433,8 @@ router.post("/", async (req: Request, res: Response) => {
       userContext,
       history,
       recentActivityPrompt,
-      requestState
+      requestState,
+      resolvedContext
     );
 
     // Handle auth-required intent
@@ -960,7 +1453,8 @@ router.post("/", async (req: Request, res: Response) => {
           intent: synthesized.intent,
           thought_flow: synthesized.thought_flow,
           decision: synthesized.decision,
-          redirect: "/register"
+          redirect: "/register",
+          resolvedContext,
         }
       };
 
@@ -986,7 +1480,9 @@ router.post("/", async (req: Request, res: Response) => {
       metadata: {
         intent: synthesized.intent,
         thought_flow: synthesized.thought_flow,
-        decision: synthesized.decision
+        decision: synthesized.decision,
+        currentJobId: currentJobId || undefined,
+        resolvedContext,
       }
     };
 
@@ -1047,6 +1543,64 @@ router.post("/", async (req: Request, res: Response) => {
               to: "/dashboard",
             },
           ];
+        }
+      }
+
+      // Project tracker / deal room actions
+      // If the user is authenticated and asking about projects/jobs/contracts/invoices,
+      // expose an explicit navigation chip into the Project Tracker / deal room surface.
+      if (userId) {
+        const wantsProjects =
+          lower.includes("project") ||
+          lower.includes("projects") ||
+          lower.includes("job") ||
+          lower.includes("jobs") ||
+          lower.includes("estimate") ||
+          lower.includes("contract") ||
+          lower.includes("invoice") ||
+          lower.includes("receipt") ||
+          lower.includes("deal room") ||
+          (typeof synthesized.intent === "string" && /project|job/i.test(synthesized.intent));
+
+        if (wantsProjects) {
+          const actions = Array.isArray(aiResponse.actions) ? aiResponse.actions.slice() : [];
+          const alreadyHasTracker = actions.some(
+            (a) => a.type === "NAVIGATE" && (a.to === "/lead-management" || a.to === "/project-tracker")
+          );
+
+          if (!alreadyHasTracker) {
+            const baseAction: ScoutClientAction = {
+              type: "NAVIGATE",
+              label: "Open Project Tracker",
+              to: "/lead-management",
+            };
+
+            if (currentJobId) {
+              baseAction.payload = { ...(baseAction.payload || {}), jobId: currentJobId };
+            }
+
+            actions.push(baseAction);
+            aiResponse.actions = actions;
+          }
+
+          if (currentJobId) {
+            try {
+              const { rows } = await pool.query(
+                "SELECT type, status FROM documents WHERE job_id = $1 ORDER BY created_at ASC, version ASC",
+                [currentJobId]
+              );
+
+              const guidance = buildDealRoomGuidanceFromDocs(rows, userRole);
+              if (guidance) {
+                const guidancePrefix = `For this project's deal room:\n${guidance}`;
+                aiResponse.message = trimResponseToScreenFit(
+                  `${guidancePrefix}\n\n${aiResponse.message}`
+                );
+              }
+            } catch (guidanceError) {
+              console.error("[Scout] Failed to compute deal room guidance", guidanceError);
+            }
+          }
         }
       }
     } catch (actionError) {

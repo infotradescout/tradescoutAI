@@ -176,7 +176,7 @@ export default function Navigation() {
                     </Button>
                   </Link>
 
-                  <a href="/api/logout">
+                  <a href="/auth/logout" onClick={(e) => { e.preventDefault(); fetch('/auth/logout', { method: 'POST', credentials: 'include' }).then(() => window.location.href = '/'); }}>
                     <Button 
                       variant="outline" 
                       size="sm"
@@ -189,7 +189,7 @@ export default function Navigation() {
                 </div>
               </div>
             ) : (
-              <a href="/api/login">
+              <a href="/login">
                 <Button className="bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white px-6 py-2 rounded-lg font-medium shadow-lg hover:shadow-orange-500/25 transition-all duration-300">
                   <User className="h-4 w-4 mr-2" />
                   Sign In
@@ -282,7 +282,7 @@ export default function Navigation() {
                           <span>Profile</span>
                         </div>
                       </Link>
-                      <a href="/api/logout">
+                      <a href="/auth/logout" onClick={(e) => { e.preventDefault(); fetch('/auth/logout', { method: 'POST', credentials: 'include' }).then(() => window.location.href = '/'); }}>
                         <div className="flex items-center gap-3 px-4 py-3 rounded-lg text-red-400 hover:text-white hover:bg-red-500/20 transition-all duration-200">
                           <LogOut className="w-5 h-5" />
                           <span>Sign Out</span>
@@ -461,7 +461,7 @@ export default function Navigation() {
                           </Button>
                         </Link>
 
-                        <a href="/api/logout">
+                        <a href="/auth/logout" onClick={(e) => { e.preventDefault(); fetch('/auth/logout', { method: 'POST', credentials: 'include' }).then(() => window.location.href = '/'); }}>
                           <Button 
                             variant="outline" 
                             className="w-full justify-start border-red-500 text-red-400 hover:bg-red-500 hover:text-white"
@@ -472,7 +472,7 @@ export default function Navigation() {
                         </a>
                       </div>
                     ) : (
-                      <a href="/api/login" onClick={closeMobileMenu}>
+                      <a href="/login" onClick={closeMobileMenu}>
                         <Button className="w-full bg-orange-500 hover:bg-orange-600 text-white glow-effect">
                           Sign In
                         </Button>
