@@ -25,6 +25,26 @@ export type ShellEvent =
       // Generic catch-all (used by /api/scout logScoutInsight)
       type: "scout_query";
       payload: unknown;
+    }
+  | {
+      type: "identity_session";
+      isAuthenticated: boolean;
+      entryRoute: "login" | "register" | "oauth" | "other";
+      userTypesCount: number;
+      userTypes: string[];
+      hasCompletedProfileBasics: boolean;
+    }
+  | {
+      type: "dashboard_banner_shown";
+      sessionCount: number;
+      userTypes: string[];
+      route: string;
+    }
+  | {
+      type: "dashboard_banner_dismissed";
+      sessionCount: number;
+      userTypes: string[];
+      route: string;
     };
 
 export function getDeviceType(): DeviceType {

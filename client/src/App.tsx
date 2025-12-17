@@ -3,6 +3,7 @@ import { QueryClientProvider } from '@tanstack/react-query';
 import { Link, Router, Route, Switch, useLocation } from 'wouter';
 import { MessageCircle, SlidersHorizontal, X } from 'lucide-react';
 import { queryClient } from './lib/queryClient';
+import { trackShellEvent } from './lib/analytics';
 import { ErrorBoundary } from './components/ui/error-boundary';
 import { ThemeProvider } from './contexts/ThemeContext';
 import { SessionProvider } from './contexts/SessionContext';
@@ -280,7 +281,7 @@ const AppLayout = memo(function AppLayout() {
   const isLiteScoutRoute = location === '/_scout-lite';
   const isLlmRoute = location.startsWith('/scout');
 
-  const { isAuthenticated, isLoading } = useAuth();
+  const { user, isAuthenticated, isLoading } = useAuth();
 
   const [showBetaNotice, setShowBetaNotice] = useState(false);
 
@@ -290,6 +291,54 @@ const AppLayout = memo(function AppLayout() {
       setShowBetaNotice(true);
     }
   }, []);
+
+  // Identity funnel telemetry: emit once per browser session
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    if (isLoading) return;
+
+    const flagKey = 'ts_identity_session_logged';
+    if (sessionStorage.getItem(flagKey) === '1') return;
+
+    const currentPath = location || window.location.pathname + window.location.search;
+
+    let entryRoute: 'login' | 'register' | 'oauth' | 'other' = 'other';
+    if (currentPath.startsWith('/login')) {
+      entryRoute = 'login';
+    } else if (currentPath.startsWith('/register') || currentPath.startsWith('/signup')) {
+      entryRoute = 'register';
+    } else if (
+      currentPath.startsWith('/profile-settings') &&
+      window.location.search.includes('onboarding=1')
+    ) {
+      entryRoute = 'oauth';
+    }
+
+    const roles: string[] = (() => {
+      if (!user) return [];
+      const anyUser = user as any;
+      if (Array.isArray(anyUser.roles) && anyUser.roles.length > 0) {
+        return anyUser.roles as string[];
+      }
+      if (typeof anyUser.role === 'string' && anyUser.role.length > 0) {
+        return [anyUser.role as string];
+      }
+      return [];
+    })();
+
+    const hasCompletedProfileBasics = !!(user && (user as any).onboardingCompleted);
+
+    trackShellEvent({
+      type: 'identity_session',
+      isAuthenticated: !!user,
+      entryRoute,
+      userTypesCount: roles.length,
+      userTypes: roles,
+      hasCompletedProfileBasics,
+    });
+
+    sessionStorage.setItem(flagKey, '1');
+  }, [location, isLoading, user, isAuthenticated]);
 
   // Back-compat: older Scout links were encoded as '/?prompt=...'
   useEffect(() => {
