@@ -615,14 +615,25 @@ export async function registerRoutes(app: any) {
   app.post("/auth/register", handleRegister);
   app.post("/api/auth/register", handleRegister);
 
-  app.post("/auth/logout", (req: Request, res: Response) => {
+  const performLogout = (req: Request, res: Response) => {
     req.logout((err) => {
       if (err) {
-        return res.status(500).json({ message: "Logout failed" });
+        return res.status(500).json({ message: "Logout failed", details: String(err) });
       }
-      res.json({ message: "Logout successful" });
+      // Clear common session cookies; safe no-ops if they don't exist.
+      res.clearCookie("connect.sid");
+      res.clearCookie("sid");
+      res.status(200).json({ message: "Logout successful" });
     });
-  });
+  };
+
+  // Canonical logout endpoint
+  app.post("/auth/logout", (req: Request, res: Response) => performLogout(req, res));
+
+  // Compatibility aliases: support GET + /api namespace to survive proxies and legacy clients
+  app.get("/auth/logout", (req: Request, res: Response) => performLogout(req, res));
+  app.post("/api/auth/logout", (req: Request, res: Response) => performLogout(req, res));
+  app.get("/api/auth/logout", (req: Request, res: Response) => performLogout(req, res));
 
   // NOTE: OAuth routes are registered later (after setupAuth) so we can safely guard
   // registration based on whether the strategies are configured.

@@ -124,18 +124,36 @@ export function useAuth() {
   };
 }
 
+export async function logoutUser(): Promise<void> {
+  const doRequest = async (method: "POST" | "GET") => {
+    const response = await fetch("/auth/logout", {
+      method,
+      credentials: "include",
+      headers: method === "POST" ? { "Content-Type": "application/json" } : undefined,
+    });
+    return response;
+  };
+
+  try {
+    let response = await doRequest("POST");
+
+    if (response.status === 405) {
+      response = await doRequest("GET");
+    }
+
+    if (!response.ok) {
+      throw new Error(`Logout failed (${response.status})`);
+    }
+  } catch (error) {
+    console.error("Logout failed:", error);
+  } finally {
+    // Fail-soft: always send the user home and clear SPA state
+    window.location.href = "/";
+  }
+}
+
 export function useLogout() {
   return async () => {
-    const response = await fetch('/auth/logout', {
-      method: 'POST',
-      credentials: 'include',
-    });
-    
-    if (response.ok) {
-      // Reload the page to clear all application state
-      window.location.reload();
-    } else {
-      throw new Error('Logout failed');
-    }
+    await logoutUser();
   };
 }

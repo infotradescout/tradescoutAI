@@ -10,7 +10,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { RoleBadge } from "@/components/ui/RoleBadge";
-import { useAuth } from "@/hooks/useAuth";
+import { useAuth, logoutUser } from "@/hooks/useAuth";
 import { getRolePermissions, getRoleDisplayName } from "@shared/roles";
 import type { UserRole } from "@shared/roles";
 import { 
@@ -289,18 +289,7 @@ export function UserMenu() {
   const userRole = user.role as UserRole;
 
   const handleLogout = async () => {
-    try {
-      const response = await fetch('/auth/logout', {
-        method: 'POST',
-        credentials: 'include',
-      });
-      
-      if (response.ok) {
-        window.location.reload();
-      }
-    } catch (error) {
-      console.error('Logout failed:', error);
-    }
+    await logoutUser();
   };
 
   return (

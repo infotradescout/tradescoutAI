@@ -176,7 +176,14 @@ export default function Navigation() {
                     </Button>
                   </Link>
 
-                  <a href="/auth/logout" onClick={(e) => { e.preventDefault(); fetch('/auth/logout', { method: 'POST', credentials: 'include' }).then(() => window.location.href = '/'); }}>
+                  <a
+                    href="/auth/logout"
+                    onClick={async (e) => {
+                      e.preventDefault();
+                      const { logoutUser } = await import("@/hooks/useAuth");
+                      await logoutUser();
+                    }}
+                  >
                     <Button 
                       variant="outline" 
                       size="sm"
@@ -282,7 +289,14 @@ export default function Navigation() {
                           <span>Profile</span>
                         </div>
                       </Link>
-                      <a href="/auth/logout" onClick={(e) => { e.preventDefault(); fetch('/auth/logout', { method: 'POST', credentials: 'include' }).then(() => window.location.href = '/'); }}>
+                      <a
+                        href="/auth/logout"
+                        onClick={async (e) => {
+                          e.preventDefault();
+                          const { logoutUser } = await import("@/hooks/useAuth");
+                          await logoutUser();
+                        }}
+                      >
                         <div className="flex items-center gap-3 px-4 py-3 rounded-lg text-red-400 hover:text-white hover:bg-red-500/20 transition-all duration-200">
                           <LogOut className="w-5 h-5" />
                           <span>Sign Out</span>
@@ -461,7 +475,14 @@ export default function Navigation() {
                           </Button>
                         </Link>
 
-                        <a href="/auth/logout" onClick={(e) => { e.preventDefault(); fetch('/auth/logout', { method: 'POST', credentials: 'include' }).then(() => window.location.href = '/'); }}>
+                        <a
+                          href="/auth/logout"
+                          onClick={async (e) => {
+                            e.preventDefault();
+                            const { logoutUser } = await import("@/hooks/useAuth");
+                            await logoutUser();
+                          }}
+                        >
                           <Button 
                             variant="outline" 
                             className="w-full justify-start border-red-500 text-red-400 hover:bg-red-500 hover:text-white"
