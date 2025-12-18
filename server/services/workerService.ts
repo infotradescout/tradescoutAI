@@ -68,13 +68,10 @@ export async function searchWorkers(options: {
       conditions.push(ilike(workers.skills as any, `%${firstSkill}%`));
     }
 
-    if (typeof county === "string" && county.trim()) {
-      conditions.push(ilike(workers.city as any, `%${county.trim()}%`));
-    }
-
-    if (typeof state === "string" && state.trim()) {
-      conditions.push(ilike(workers.stateCode as any, `%${state.trim()}%`));
-    }
+    // Location-based filtering will be wired up once worker records
+    // carry structured location fields that match the schema. For now,
+    // we ignore county/state filters to avoid querying non-existent
+    // columns.
 
     if (verified !== undefined) {
       conditions.push(eq(workers.isBackgroundChecked, verified));

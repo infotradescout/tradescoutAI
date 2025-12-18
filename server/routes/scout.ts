@@ -763,6 +763,7 @@ interface ScoutResponse {
     decision?: string;
     redirect?: string;
     resolvedContext?: ResolvedContext | null;
+    currentJobId?: string;
   };
 }
 

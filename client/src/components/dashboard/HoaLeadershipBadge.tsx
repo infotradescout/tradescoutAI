@@ -67,7 +67,7 @@ export function HoaLeadershipBadge({ className }: HoaLeadershipBadgeProps) {
             <Link href={primary.hoaId ? `/hoa-dashboard/${primary.hoaId}` : '/hoa-dashboard'}>
               <Button
                 variant="outline"
-                size="xs"
+		        size="sm"
                 className="h-7 px-2 text-[0.65rem] border-slate-600 text-slate-200 hover:border-orange-500 hover:text-white"
               >
                 <LayoutDashboard className="h-3 w-3 mr-1" />
