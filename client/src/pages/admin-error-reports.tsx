@@ -19,11 +19,11 @@ export default function AdminErrorReports() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  const { data: reports = [], isLoading } = useQuery<ErrorReport[]>({
+  const { data: reports = [], isLoading } = useQuery({
     queryKey: ["/api/admin/error-reports"],
     queryFn: async () => {
-      const res = await apiRequest<ErrorReport[]>("GET", "/api/admin/error-reports");
-      return res ?? [];
+      const res = await apiRequest("GET", "/api/admin/error-reports");
+      return (res ?? []) as ErrorReport[];
     },
   });
 

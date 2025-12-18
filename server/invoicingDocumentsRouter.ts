@@ -92,7 +92,7 @@ function validateHomeownerMaterialListPatch(patch: any) {
 function renderPdfFromDocument(docRow: any, signatures: any[]) {
 	const pdf = new PDFDocument({ margin: 50 });
 	const chunks: Buffer[] = [];
-	pdf.on("data", (c) => chunks.push(c as Buffer));
+	pdf.on("data", (c: Buffer) => chunks.push(c));
 	const done = new Promise<Buffer>((resolve) => pdf.on("end", () => resolve(Buffer.concat(chunks))));
 
 	const title = `${docRow.type} — v${docRow.version}`;
@@ -173,7 +173,7 @@ export function createInvoicingDocumentsRouter(pool: Pool) {
 	const r = express.Router();
 
 	// Small wrapper to funnel async errors into the global error handler
-	const wrap = (fn: (req: Request, res: Response) => Promise<void>) =>
+	const wrap = (fn: (req: Request, res: Response) => Promise<unknown>) =>
 		async (req: Request, res: Response, next: (err?: any) => void) => {
 			try {
 				await fn(req, res);

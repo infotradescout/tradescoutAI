@@ -16,6 +16,19 @@ import { isAuthenticated, requirePermission } from "./auth";
 import { z } from "zod";
 import type { User } from "@shared/schema";
 
+const ALLOWED_REACTIONS = [
+  "like",
+  "love",
+  "laugh",
+  "wow",
+  "sad",
+  "angry",
+  "helpful",
+  "thanks",
+] as const;
+
+type ReactionType = (typeof ALLOWED_REACTIONS)[number];
+
 export function registerSocialRoutes(app: Express) {
   
   // Get social feed with filters
@@ -222,6 +235,12 @@ export function registerSocialRoutes(app: Express) {
       if (typeof reactionType !== "string" || !reactionType.trim()) {
         return res.status(400).json({ message: "Invalid reaction type" });
       }
+
+      if (!ALLOWED_REACTIONS.includes(reactionType as ReactionType)) {
+        return res.status(400).json({ message: "Unsupported reaction type" });
+      }
+
+      const typedReactionType = reactionType as ReactionType;
       
       // Check if user already reacted
       const [existingReaction] = await db
@@ -239,7 +258,7 @@ export function registerSocialRoutes(app: Express) {
         // Update existing reaction
         await db
           .update(postReactions)
-          .set({ reactionType })
+          .set({ reactionType: typedReactionType })
           .where(eq(postReactions.id, existingReaction.id));
       } else {
         // Create new reaction
@@ -248,7 +267,7 @@ export function registerSocialRoutes(app: Express) {
           .values({
             postId,
             userId,
-            reactionType,
+            reactionType: typedReactionType,
           });
       }
       
@@ -498,6 +517,12 @@ export function registerSocialRoutes(app: Express) {
       if (typeof reactionType !== "string" || !reactionType.trim()) {
         return res.status(400).json({ message: "Invalid reaction type" });
       }
+
+      if (!ALLOWED_REACTIONS.includes(reactionType as ReactionType)) {
+        return res.status(400).json({ message: "Unsupported reaction type" });
+      }
+
+      const typedReactionType = reactionType as ReactionType;
       
       // Check if user already reacted
       const [existingReaction] = await db
@@ -515,7 +540,7 @@ export function registerSocialRoutes(app: Express) {
         // Update existing reaction
         await db
           .update(commentReactions)
-          .set({ reactionType })
+          .set({ reactionType: typedReactionType })
           .where(eq(commentReactions.id, existingReaction.id));
       } else {
         // Create new reaction
@@ -524,7 +549,7 @@ export function registerSocialRoutes(app: Express) {
           .values({
             commentId,
             userId,
-            reactionType,
+            reactionType: typedReactionType,
           });
       }
       
