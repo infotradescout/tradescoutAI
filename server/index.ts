@@ -294,7 +294,11 @@ app.use((req, res, next) => {
   // this serves both the API and the client.
   // It is the only port that is not firewalled.
 
+  // Track the last port we attempted so we can increment it if needed.
+  let currentPort = PORT;
+
   const startHttpServer = (portToUse: number) => {
+    currentPort = portToUse;
     server.listen(
       {
         port: portToUse,
@@ -386,9 +390,9 @@ app.use((req, res, next) => {
   // Handle port-in-use errors by falling back to the next port instead of crashing
   server.on("error", (err: any) => {
     if (err && (err as any).code === "EADDRINUSE") {
-      const fallbackPort = PORT + 1;
+      const fallbackPort = currentPort + 1;
       console.warn(
-        `Port ${PORT} is in use; retrying on ${fallbackPort}. Update your browser URL accordingly.`,
+        `Port ${currentPort} is in use; retrying on ${fallbackPort}. Update your browser URL accordingly.`,
       );
       startHttpServer(fallbackPort);
     } else {
