@@ -37,32 +37,12 @@ const getFeatureSteps = (feature: string): TourStep[] => {
     case 'quote-calculator':
       return [
         {
-          id: "calculator-intro",
-          target: "[data-testid='quote-calculator-form']",
-          title: "Get Instant Estimates",
-          description: "Get ballpark pricing for your project in seconds. Our calculator uses real local pricing data to give you accurate estimates.",
-          position: "top"
-        },
-        {
-          id: "select-project",
-          target: "[data-testid='project-type-select']",
-          title: "Choose Your Project",
-          description: "Select the type of work you need done. Each category has specialized pricing based on local market rates.",
-          position: "bottom"
-        },
-        {
-          id: "location-matters",
-          target: "[data-testid='location-input']",
-          title: "Location Affects Pricing",
-          description: "Pricing varies by location due to labor costs, permits, and material availability. Enter your area for accurate estimates.",
-          position: "bottom"
-        },
-        {
-          id: "get-contractors",
-          target: "[data-testid='find-contractors-button']",
-          title: "Connect with Contractors",
-          description: "After getting your estimate, you can immediately connect with qualified contractors in your area.",
-          position: "top"
+          id: "scout-estimates-intro",
+          target: "[data-nav-item='scout']",
+          title: "Ask Scout for Estimates",
+          description: "Use Scout to get ballpark pricing for your project in seconds, based on local context and your project details.",
+          position: "bottom",
+          condition: () => !!document.querySelector("[data-nav-item='scout']")
         }
       ];
 

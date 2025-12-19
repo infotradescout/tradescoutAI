@@ -45,7 +45,7 @@ export function OnboardingDemo() {
             className="w-full justify-start"
           >
             <Calculator className="h-4 w-4 mr-2" />
-            Quote Calculator Tour
+            Scout Estimates Tour
           </OnboardingTrigger>
         </div>
 

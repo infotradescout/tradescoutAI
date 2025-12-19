@@ -79,24 +79,24 @@ const helpTopics: HelpTopic[] = [
   },
   {
     id: 'quote-calculator',
-    title: 'Using the Quote Calculator',
-    description: 'Price your projects accurately - no more guessing or losing money.',
+    title: 'Using Scout for Estimates',
+    description: 'Let Scout help you price projects accurately - no more guessing or losing money.',
     category: 'features',
     illustration: 'ruler',
     content: {
-      overview: 'Our calculator knows material costs better than your local supplier\'s catalog.',
+      overview: 'Scout combines your project details with local pricing context to help you quote with confidence.',
       steps: [
-        'Select your project type and scope',
-        'Input accurate measurements - measure twice, quote once',
-        'Review material and labor calculations',
-        'Add your markup and send to customer'
+        'Tell Scout what you\'re planning (project type and scope)',
+        'Answer Scout\'s follow-up questions about size, materials, and timing',
+        'Review the suggested ranges and trade-offs',
+        'Use Scout\'s guidance to send a professional quote to the customer'
       ],
       tips: [
         'Include buffer time for unexpected issues',
-        'Factor in permit costs for larger projects',
-        'Don\'t forget to account for cleanup and disposal'
+        'Factor in permit and inspection costs for larger projects',
+        'Don\'t forget to account for cleanup, disposal, and travel time'
       ],
-      wittyNote: 'Our calculator is more reliable than your buddy who says "that\'ll take about 2 hours" for everything.'
+      wittyNote: 'Scout is more reliable than your buddy who says "that\'ll take about 2 hours" for everything.'
     }
   },
   {

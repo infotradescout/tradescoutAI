@@ -42,6 +42,7 @@ export interface SendToScoutOptions {
   message: string;
   locality?: ScoutLocality;
   mode?: ScoutMode;
+  intent?: string;
   knowledgeMode?: KnowledgeMode;
   filters?: Record<string, unknown>;
   roles?: string[];
@@ -132,6 +133,7 @@ export async function sendToScout(
     stateCode, // server uses stateCode
     // extra fields are allowed but ignored by current server
     mode,
+    intent: options.intent,
     knowledgeMode: options.knowledgeMode ?? "local-first",
     filters: options.filters ?? {},
     hyperlocalPricing: true,

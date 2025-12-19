@@ -731,6 +731,7 @@ interface ScoutRequest {
   history?: ChatMessage[];
   countyCode?: string;
   stateCode?: string;
+  intent?: string;
   roles?: string[];
   recentActivity?: Array<{
     type: string;
@@ -1187,6 +1188,7 @@ router.post("/", async (req: Request, res: Response) => {
       history = [],
       countyCode,
       stateCode,
+      intent,
       roles = [],
       recentActivity = [],
       shownAdIds = [],
@@ -1341,7 +1343,8 @@ router.post("/", async (req: Request, res: Response) => {
         county: countyCode,
         state: stateCode,
         region: stateCode ? getRegionFromState(stateCode) : undefined
-      }
+      },
+      entry_intent: intent || undefined,
     };
 
     // Deterministic early-exit: if user intent maps cleanly to an allowed

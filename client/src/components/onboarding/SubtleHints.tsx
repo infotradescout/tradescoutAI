@@ -74,12 +74,12 @@ export function SubtleHints() {
           delay: 8
         },
         {
-          id: 'quote-calculator',
-          title: "Get Instant Quotes",
-          description: "Calculate project costs before contacting contractors",
+          id: 'scout-estimates',
+          title: "Ask Scout for Estimates",
+          description: "Get a ballpark cost before contacting contractors",
           icon: <Calculator className="w-5 h-5 text-green-500" />,
-          action: "Try Calculator",
-          actionUrl: "/calculator",
+          action: "Ask Scout",
+          actionUrl: "/scout?intent=estimate",
           delay: 14
         },
         {

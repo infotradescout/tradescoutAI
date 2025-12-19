@@ -105,6 +105,21 @@ export default function ScoutOS() {
     [state.messages]
   );
 
+  // Parse URL search params to detect explicit intent (e.g. /scout?intent=estimate)
+  const urlIntent = useMemo(() => {
+    try {
+      if (!location.startsWith("/scout")) return undefined;
+      const searchIndex = location.indexOf("?");
+      if (searchIndex === -1) return undefined;
+      const search = location.substring(searchIndex);
+      const params = new URLSearchParams(search);
+      const raw = params.get("intent") || undefined;
+      return raw ? raw.toLowerCase() : undefined;
+    } catch {
+      return undefined;
+    }
+  }, [location]);
+
   // First-time guest state: controls entire top half of Scout.
   // We treat this as "guest has not actively interacted yet" so that
   // auto-demo typing does NOT collapse the calm intro.
@@ -242,6 +257,7 @@ export default function ScoutOS() {
           message: value,
           locality,
           mode,
+          intent: urlIntent,
           knowledgeMode: "local-first",
           roles: rolesForRequest,
           recentActivity,

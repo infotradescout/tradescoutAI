@@ -12,6 +12,18 @@ import {
 } from "lucide-react";
 import { useLocation } from "wouter";
 
+function getDefaultHomePageLabel(value?: string) {
+  if (!value || value === 'llm') return 'Scout';
+  const map: Record<string, string> = {
+    dashboard: 'My Dashboard',
+    marketplace: 'Marketplace',
+    'contractor-board': 'Contractor Board',
+    profile: 'My Profile',
+    community: 'Community',
+  };
+  return map[value] || 'Scout';
+}
+
 export default function ProfilePage() {
   const { user } = useAuth();
   const [, setLocation] = useLocation();
@@ -307,21 +319,21 @@ export default function ProfilePage() {
               </Card>
 
               {/* Preferences */}
-              <Card className="bg-tsCard border-tsBorder">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2 text-tsTextMain">
-                    <Settings className="h-5 w-5 text-tsAccent" />
-                    Preferences
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="text-tsTextMain">
-                  <div className="space-y-3 text-sm">
-                    <div className="flex justify-between items-center">
-                      <span className="text-tsTextMuted">Default Home Page</span>
-                      <span className="font-medium capitalize">
-                        {user.preferences?.defaultHomePage || 'llm'}
-                      </span>
-                    </div>
+            <Card className="bg-tsCard border-tsBorder">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-tsTextMain">
+                  <Settings className="h-5 w-5 text-tsAccent" />
+                  Preferences
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="text-tsTextMain">
+                <div className="space-y-3 text-sm">
+                  <div className="flex justify-between items-center">
+                    <span className="text-tsTextMuted">Default Home Page</span>
+                    <span className="font-medium">
+                      {getDefaultHomePageLabel(user.preferences?.defaultHomePage)}
+                    </span>
+                  </div>
                     <div className="flex justify-between items-center">
                       <span className="text-tsTextMuted">Profile Visibility</span>
                       <span className="font-medium capitalize">

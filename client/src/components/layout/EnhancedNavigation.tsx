@@ -48,10 +48,10 @@ export function EnhancedNavigation({ className = "" }: EnhancedNavigationProps) 
             </Button>
           </Link>
           
-          <Link href="/quote-calculator">
-            <Button variant={isActive("/quote-calculator") ? "secondary" : "ghost"} size="sm" className="px-3 py-2 rounded-lg nav-button hover:bg-slate-800/60 text-sm">
-              Calculator
-            </Button>
+          <Link href="/scout">
+          <Button variant={isActive("/scout") ? "secondary" : "ghost"} size="sm" className="px-3 py-2 rounded-lg nav-button hover:bg-slate-800/60 text-sm">
+            Scout
+          </Button>
           </Link>
           
           <Link href="/contractor-board">
@@ -142,10 +142,10 @@ export function EnhancedNavigation({ className = "" }: EnhancedNavigationProps) 
                       Find Contractors
                     </Button>
                   </Link>
-                  <Link href="/quote-calculator" onClick={() => setIsMobileMenuOpen(false)}>
-                    <Button variant="ghost" className="w-full justify-start text-slate-200 hover:text-white hover:bg-slate-800/60">
-                      Calculator
-                    </Button>
+                  <Link href="/scout" onClick={() => setIsMobileMenuOpen(false)}>
+                  <Button variant="ghost" className="w-full justify-start text-slate-200 hover:text-white hover:bg-slate-800/60">
+                    Scout
+                  </Button>
                   </Link>
                   <Link href="/contractor-board" onClick={() => setIsMobileMenuOpen(false)}>
                     <Button variant="ghost" className="w-full justify-start text-slate-200 hover:text-white hover:bg-slate-800/60">

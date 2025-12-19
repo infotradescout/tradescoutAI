@@ -66,8 +66,8 @@ const HOMEOWNER_TIPS: HomeownerTip[] = [
     urgency: 'medium',
     icon: CloudRain,
     gradient: 'from-green-500/10 to-green-600/10',
-    actionText: 'Get Quotes',
-    actionUrl: '/quote-calculator'
+    actionText: 'Ask Scout for Estimate',
+    actionUrl: '/scout?intent=estimate'
   },
   {
     id: 'roof-inspection',

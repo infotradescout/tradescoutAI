@@ -41,12 +41,12 @@ const contractorBoardSteps: TourStep[] = [
     condition: () => !!document.querySelector("[data-testid='recommendation-count']")
   },
   {
-    id: "quote-calculator",
-    target: "[data-testid='link-quote-calculator']",
-    title: "Quote Calculator",
-    description: "Homeowners can get instant estimates for their projects. This drives qualified connections to contractors in their area.",
+    id: "scout-estimates",
+    target: "[data-nav-item='scout']",
+    title: "Scout Estimates",
+    description: "Homeowners can ask Scout for instant ballpark estimates. Great estimates drive qualified, ready-to-buy leads to your business.",
     position: "bottom",
-    condition: () => !!document.querySelector("[data-testid='link-quote-calculator']")
+    condition: () => !!document.querySelector("[data-nav-item='scout']")
   },
   {
     id: "sorting",

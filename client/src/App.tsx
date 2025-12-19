@@ -118,7 +118,6 @@ const CommunityModerationDemo = React.lazy(() => import('./pages/CommunityModera
 const Checkout = React.lazy(() => import('./pages/checkout'));
 const PaymentSuccess = React.lazy(() => import('./pages/payment-success'));
 const PaymentHistory = React.lazy(() => import('./pages/payment-history'));
-const QuoteCalculator = React.lazy(() => import('./pages/quote-calculator'));
 const RequestQuote = React.lazy(() => import('./pages/request-quote'));
 const SavedContractors = React.lazy(() => import('./pages/saved-contractors'));
 const Notifications = React.lazy(() => import('./pages/notifications'));
@@ -747,8 +746,8 @@ const AppLayout = memo(function AppLayout() {
                   <Route path="/ad-creator"><LazyPage Component={AdCreator} /></Route>
                   <Route path="/promotions"><LazyPage Component={Promotions} /></Route>
                   <Route path="/growth-pack"><LazyPage Component={GrowthPack} /></Route>
-                  <Route path="/quote-calculator"><LazyPage Component={QuoteCalculator} /></Route>
-                  <Route path="/quote"><RedirectTo to="/quote-calculator" /></Route>
+                  <Route path="/quote-calculator"><RedirectTo to="/scout?intent=estimate" /></Route>
+                  <Route path="/quote"><RedirectTo to="/scout?intent=estimate" /></Route>
                   <Route path="/recommendations">
                     <ProtectedRoute>
                       <LazyPage Component={RecommendationGeneratorPage} />

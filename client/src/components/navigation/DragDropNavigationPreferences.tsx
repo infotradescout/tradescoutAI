@@ -79,10 +79,10 @@ function getDefaultNavigationItems(userRole: string): NavigationItem[] {
       visible: true,
     },
     {
-      id: 'quote-calculator',
-      label: 'Quote Calculator',
+      id: 'scout',
+      label: 'Scout',
       icon: 'Calculator',
-      href: '/quote-calculator',
+      href: '/scout',
       visible: true,
     },
     {

@@ -78,6 +78,21 @@ if (process.env.SENTRY_DSN) {
   app.use(Sentry.Handlers.tracingHandler());
 }
 
+// Force canonical host: redirect raw Render hostname to primary domain
+app.use((req, res, next) => {
+  const host = req.headers.host?.toLowerCase() || "";
+
+  // If someone hits the Render URL directly, send them to www.thetradescout.com
+  if (host.includes("tradescoutai.onrender.com")) {
+    const targetHost = "www.thetradescout.com";
+    const protocol = (req.headers["x-forwarded-proto"] as string) || "https";
+    const redirectUrl = `${protocol}://${targetHost}${req.originalUrl || ""}`;
+    return res.redirect(301, redirectUrl);
+  }
+
+  next();
+});
+
 // Core allowed origins for production surfaces
 const ALLOWED_ORIGINS: string[] = [
   "https://www.thetradescout.com",
@@ -85,6 +100,7 @@ const ALLOWED_ORIGINS: string[] = [
   "https://tradescoutai.onrender.com",
   "https://tradescout-5hn96npkf-tradescouts-projects.vercel.app",
   "https://tradescout-e557bv88z-tradescouts-projects.vercel.app",
+  "https://tradescout-bami61j89-tradescouts-projects.vercel.app",
   "https://tradescout-26v2mm5ir-tradescouts-projects.vercel.app",
 ].map((o) => o.toLowerCase());
 
