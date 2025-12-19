@@ -88,6 +88,20 @@ const ALLOWED_ORIGINS: string[] = [
   "https://tradescout-26v2mm5ir-tradescouts-projects.vercel.app",
 ].map((o) => o.toLowerCase());
 
+// Optionally extend/override CORS allowlist from env
+const rawAllowlist = process.env.CORS_ALLOWED_ORIGINS || "";
+const allowAllCors = rawAllowlist === "*";
+
+if (rawAllowlist && rawAllowlist !== "*") {
+  for (const origin of rawAllowlist.split(",")) {
+    const normalized = origin.trim().toLowerCase();
+    if (!normalized) continue;
+    if (!ALLOWED_ORIGINS.includes(normalized)) {
+      ALLOWED_ORIGINS.push(normalized);
+    }
+  }
+}
+
 // Always allow localhost dev ports (client + API) in dev
 if (process.env.NODE_ENV !== "production") {
   const devOrigins = [
@@ -107,6 +121,11 @@ const corsOptions: cors.CorsOptions = {
     // No origin (curl/server-side) → allow
     if (!origin) return callback(null, true);
     const normalized = origin.toLowerCase();
+
+    // Temp escape hatch: allow all origins when explicitly configured
+    if (allowAllCors) {
+      return callback(null, true);
+    }
 
     // Always allow localhost loopback origins on any port.
     // This keeps prod-preview working even if the server falls back to a different port.
