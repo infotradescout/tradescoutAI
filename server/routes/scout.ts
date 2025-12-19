@@ -279,6 +279,10 @@ async function synthesizeResponse(
 
   try {
     const model = gemini.getGenerativeModel({ model: "gemini-2.5-flash" });
+    const tradeTopic = detectTradeTopic(userMessage);
+    const tradeHintBlock = `
+TRADE TOPIC HINT: ${tradeTopic ? tradeTopic.toUpperCase() : "NONE"}
+`;
     
     // [STATE INJECTION - COMPREHENSIVE]
     let stateInjection = "";
@@ -325,6 +329,8 @@ ${JSON.stringify(resolvedContext, null, 2)}
 
   ${activityContext}
 
+  ${tradeHintBlock}
+
 User asked: "${userMessage}"
 
 Knowledge from TradeScout (Layer ${knowledge.layer}):
@@ -359,6 +365,14 @@ CRITICAL EXECUTION RULES:
 5. Keep message brief (max 3 sentences; no bullet or numbered lists unless the user explicitly asked you to list things)
 6. Focus the message on: what's blocking, what's next, and at most one clear yes/no question about taking a next step.
 7. Always generate exactly 3 suggestedActions
+
+HOME & TRADE PROJECT ENRICHMENT (IMPORTANT):
+TRADE TOPIC HINT is a pre-detected signal that this is a trade or home-repair question. If TRADE TOPIC HINT is not "NONE", you MUST treat it as a trade/home-repair problem and apply these rules.
+- If the user is asking about a home repair, improvement, or trade-specific problem (plumbing, electrical, HVAC, roofing, foundation, framing, concrete, etc.) and you are recommending contractors or next steps, your message MUST also:
+  - Briefly include a realistic price RANGE for the job in the user's locality when possible (for example, "$350–$700 in most cases in your area"). Do not promise exact quotes.
+  - Briefly mention the main MATERIALS or components likely involved (for example, "PVC drain line, P-trap, shutoff valves, and basic drywall/patch materials").
+  - Briefly call out 1–3 relevant building code or permit TOPICS by name or section reference only (for example, "plumbing venting and trap arm slope", "GFCI protection near sinks", "permit may be required if you move drain lines"), and ALWAYS remind the user that final requirements come from their local building department and licensed professionals.
+- Keep this enrichment inside the same 2–3 sentence limit by writing dense, information-rich sentences instead of lists.
 
 AUTH-REQUIRED ACTIONS:
 - Posting tasks, items, listings
@@ -655,6 +669,40 @@ function trimResponseToScreenFit(response: string): string {
   }
 
   return result;
+}
+
+function detectTradeTopic(message: string): string | null {
+  const lower = message.toLowerCase();
+
+  if (/(leak|clog|backup|sewer|drain|cleanout|p-trap|ptrap|trap arm|vent stack|sump pump|water heater|tankless|supply line|shutoff valve)/.test(lower)) {
+    return "plumbing";
+  }
+
+  if (/(panel upgrade|service panel|breaker panel|subpanel|gfci|g.f.c.i|afci|arc-fault|receptacle|outlet|dedicated circuit|240v|240 v|220v|220 v|load calculation|lighting circuit)/.test(lower)) {
+    return "electrical";
+  }
+
+  if (/(furnace|air handler|condenser|heat pump|mini split|hvac|ac not working|no cooling|no heat|refrigerant|freon)/.test(lower)) {
+    return "hvac";
+  }
+
+  if (/(shingle|roof deck|underlayment|flashing|ridge vent|soffit vent|drip edge|hail damage|wind damage|roof leak)/.test(lower)) {
+    return "roofing";
+  }
+
+  if (/(foundation crack|settling|heaving|pier and beam|slab foundation|mudjacking|helical pier|concrete leveling|spalling)/.test(lower)) {
+    return "foundation";
+  }
+
+  if (/(concrete patio|driveway pour|slab pour|rebar grid|control joints|expansion joint|stamped concrete)/.test(lower)) {
+    return "concrete";
+  }
+
+  if (/(framing|load-bearing wall|header beam|lintel|rim joist|floor joist|wall stud|sister joist)/.test(lower)) {
+    return "framing";
+  }
+
+  return null;
 }
 
 async function generateAutoPrompt(gemini: GoogleGenerativeAI | null) {
@@ -1706,20 +1754,25 @@ router.post("/", async (req: Request, res: Response) => {
       aiResponse.sponsored = null;
     }
 
-    // Persist non-sensitive Q&A back into the knowledge corpus for future retrieval
-    try {
-      appendChatKnowledge({
-        question: message,
-        answer: aiResponse.message,
-        userId,
-        countyCode,
-        stateCode,
-        layer: knowledge.layer,
-        sources: knowledge.sources,
-        actions: aiResponse.actions?.map((a) => a.type),
-      });
-    } catch (persistError) {
-      console.error("Failed to append chat knowledge:", persistError);
+    // Persist non-sensitive Q&A back into the knowledge corpus for future retrieval.
+    // To keep the brain focused on genuinely "new" information, only cache
+    // conversations where we had to reach out beyond TradeScout's own data
+    // (internet layer = 3).
+    if (knowledge.layer === 3) {
+      try {
+        appendChatKnowledge({
+          question: message,
+          answer: aiResponse.message,
+          userId,
+          countyCode,
+          stateCode,
+          layer: knowledge.layer,
+          sources: knowledge.sources,
+          actions: aiResponse.actions?.map((a) => a.type),
+        });
+      } catch (persistError) {
+        console.error("Failed to append chat knowledge:", persistError);
+      }
     }
 
     // Return the response with knowledge layer information and prompt version

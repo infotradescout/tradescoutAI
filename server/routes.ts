@@ -8935,6 +8935,95 @@ export async function registerRoutes(app: any) {
     }
   });
 
+  // Public: browse active foundation causes
+  app.get('/api/foundation/causes', async (req: any, res: any) => {
+    try {
+      const { category, state, sort } = req.query as {
+        category?: string;
+        state?: string;
+        sort?: string;
+      };
+
+      let whereClause: any = eq(foundationCauses.isActive, true);
+
+      if (category && category !== 'all') {
+        whereClause = and(whereClause, eq(foundationCauses.category, category));
+      }
+
+      if (state && state !== 'all') {
+        whereClause = and(whereClause, eq(counties.stateCode, state));
+      }
+
+      let orderByExpr: any = desc(foundationCauses.createdAt);
+      if (sort === 'trending') {
+        orderByExpr = desc(foundationCauses.raisedAmount);
+      } else if (sort === 'newest') {
+        orderByExpr = desc(foundationCauses.createdAt);
+      }
+
+      const rows = await db
+        .select({
+          id: foundationCauses.id,
+          name: foundationCauses.name,
+          description: foundationCauses.description,
+          category: foundationCauses.category,
+          targetAmount: foundationCauses.targetAmount,
+          raisedAmount: foundationCauses.raisedAmount,
+          verifiedNonprofit: foundationCauses.verifiedNonprofit,
+          imageUrl: foundationCauses.imageUrl,
+          countyName: counties.name,
+          countyStateCode: counties.stateCode,
+        })
+        .from(foundationCauses)
+        .leftJoin(counties, eq(foundationCauses.countyId, counties.id))
+        .where(whereClause)
+        .orderBy(orderByExpr);
+
+      const causes = rows.map((row) => ({
+        id: row.id,
+        title: row.name,
+        description: row.description,
+        category: row.category,
+        location:
+          row.countyName && row.countyStateCode
+            ? `${row.countyName}, ${row.countyStateCode}`
+            : 'Nationwide',
+        county: row.countyName,
+        state: row.countyStateCode,
+        targetAmount: Number(row.targetAmount ?? 0),
+        currentAmount: Number(row.raisedAmount ?? 0),
+        donorCount: 0,
+        organizationName: row.name,
+        organizationVerified: Boolean(row.verifiedNonprofit),
+        imageUrl: row.imageUrl ?? undefined,
+        urgency: 'medium',
+        featured: false,
+      }));
+
+      res.json(causes);
+    } catch (error: any) {
+      console.error('Error fetching foundation causes:', error);
+      res.status(500).json({ message: 'Failed to fetch causes' });
+    }
+  });
+
+  // Foundation aggregate impact stats for Foundation page
+  app.get('/api/foundation/impact', async (req: any, res: any) => {
+    try {
+      const stats = await storage.getFoundationStats();
+
+      res.json({
+        totalRaised: Number(stats?.totalRaised ?? 0),
+        totalDonors: Number(stats?.totalDonors ?? 0),
+        activeCauses: Number(stats?.activeCauses ?? 0),
+        countiesSupported: Number(stats?.countiesSupported ?? 0),
+      });
+    } catch (error: any) {
+      console.error('Error fetching foundation impact stats:', error);
+      res.status(500).json({ message: 'Failed to fetch foundation impact' });
+    }
+  });
+
   // ==================== LOCAL IMPACT SUMMARY ====================
 
   // Aggregated "Local Impact" snapshot for the authenticated user and their primary county
