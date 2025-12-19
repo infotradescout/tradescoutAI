@@ -1069,9 +1069,11 @@ export async function registerRoutes(app: any) {
           profile: GoogleProfile,
           done: VerifyCallback
         ) => {
+          // Always derive a non-empty email string for DB constraints
           let email = "";
           try {
-            email = profile.emails?.[0]?.value || "";
+            email = profile.emails?.[0]?.value || `${profile.id}@google.local`;
+
             let user = await storage.getUserByEmail(email);
 
             const isNewUser = !user;
@@ -1079,13 +1081,27 @@ export async function registerRoutes(app: any) {
             if (!user) {
               user = await storage.createUser({
                 email,
-                firstName: profile.name?.givenName || "",
+                firstName: profile.name?.givenName || profile.displayName || "",
                 lastName: profile.name?.familyName || "",
                 googleId: profile.id,
+                provider: "google",
+                providerId: profile.id,
                 role: "homeowner",
               });
-            } else if (!user.googleId) {
-              user = await storage.updateUser(user?.id, { googleId: profile.id });
+            } else {
+              const updates: Partial<import("@shared/schema").User> = {};
+              if (!user.googleId) {
+                (updates as any).googleId = profile.id;
+              }
+              if (!user.provider) {
+                (updates as any).provider = "google";
+              }
+              if (!user.providerId) {
+                (updates as any).providerId = profile.id;
+              }
+              if (Object.keys(updates).length > 0) {
+                user = await storage.updateUser(user.id, updates);
+              }
             }
 
             if (user) {
@@ -1098,6 +1114,7 @@ export async function registerRoutes(app: any) {
               message: (error as any)?.message,
               email,
               profileId: profile.id,
+              stack: (error as any)?.stack,
             });
             done(error as Error);
           }
