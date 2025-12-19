@@ -98,12 +98,21 @@ export async function setupAuth(app: Express) {
       "Facebook strategy skipped (set FACEBOOK_APP_ID/SECRET or FACEBOOK_CLIENT_ID/CLIENT_SECRET to enable; set DISABLE_FACEBOOK_AUTH=true to silence this message)"
     );
   } else {
+    const facebookCallbackURL = process.env.FACEBOOK_CALLBACK_URL;
+
+    if (!facebookCallbackURL) {
+      throw new Error(
+        "FACEBOOK_CALLBACK_URL is not set. This must be configured in the environment for Facebook OAuth to work."
+      );
+    }
+
+    console.log("[AUTH] Using Facebook callback URL:", facebookCallbackURL);
     console.log('Registering Facebook strategy with App ID:', facebookAppId.substring(0, 4) + '...');
     try {
       passport.use('facebook', new FacebookStrategy({
         clientID: facebookAppId,
         clientSecret: facebookAppSecret,
-        callbackURL: process.env.FACEBOOK_CALLBACK_URL || "/api/auth/facebook/callback",
+        callbackURL: facebookCallbackURL,
         profileFields: ['id', 'displayName', 'photos', 'email', 'first_name', 'last_name']
       },
     async (accessToken, refreshToken, profile, done) => {
