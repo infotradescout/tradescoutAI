@@ -440,6 +440,14 @@ const AppLayout = memo(function AppLayout() {
                   <Route path="/login"><LazyPage Component={Login} /></Route>
                   <Route path="/register"><LazyPage Component={Register} /></Route>
                   <Route path="/signup"><LazyPage Component={Signup} /></Route>
+
+                  {/* Legacy auth URLs: redirect old /auth/* paths to current routes */}
+                  <Route path="/auth/login">
+                    <RedirectTo to="/login" />
+                  </Route>
+                  <Route path="/auth/signup">
+                    <RedirectTo to="/register" />
+                  </Route>
                   <Route path="/address-verification"><LazyPage Component={AddressVerification} /></Route>
                   <Route path="/unauthorized"><LazyPage Component={Unauthorized} /></Route>
 
