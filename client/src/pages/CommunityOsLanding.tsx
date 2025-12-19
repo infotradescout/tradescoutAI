@@ -28,7 +28,7 @@ export default function CommunityOsLanding() {
 
   const locationLabel = getUserLocationLabel(user as any);
   const audienceLabel = getUserAudienceLabel(user as any);
-  const headlineCommunity = isAuthenticated && locationLabel ? locationLabel : 'Local community';
+  const headlineCommunity = isAuthenticated && locationLabel ? locationLabel : 'YOUR COMMUNITY';
 
   const handleSubmit = async () => {
     if (!question.trim()) return;
@@ -84,7 +84,8 @@ export default function CommunityOsLanding() {
 
           <div className="flex flex-col gap-2 text-left">
             <h1 className="text-4xl sm:text-5xl font-black leading-tight drop-shadow-[0_8px_30px_rgba(0,0,0,0.35)]">
-              Empowering <span className="text-tsAccent">{headlineCommunity}</span>
+              <span className="text-white">EMPOWERING </span>
+              <span className="text-tsAccent">{headlineCommunity}</span>
             </h1>
             <p className="text-base sm:text-lg text-tsTextMuted max-w-3xl">
               Interact with neighbors, find verified local talent, and access real-time area intelligence.

@@ -175,6 +175,18 @@ async function searchLocalKnowledgeBase(message: string): Promise<CacheResult> {
   return { source: "none", data: null, layer: 0 };
 }
 
+function isCodeOrPermitQuery(lower: string): boolean {
+  return /\b(code|building code|permit|permitting|inspection|inspector|zoning|setback|occupancy|egress|fire\s*safety|smoke\s*alarm|carbon\s*monoxide|electrical|panel|breaker|gfci|afci|receptacle|outlet|subpanel|service\s*entrance|plumbing|drain|sewer|cleanout|trap|vent|slope|foundation|slab|footing|framing|joist|beam|header|stair|handrail|guardrail|deck)\b/.test(
+    lower
+  );
+}
+
+function isTaxQuery(lower: string): boolean {
+  return /\b(tax|property\s*tax|assessment|assessed\s*value|mill\s*rate|valuation|homestead|escrow|tax\s*lien|delinquent\s*tax|tax\s*sale|foreclosure)\b/.test(
+    lower
+  );
+}
+
 /**
  * Write/update a manual knowledge JSON file
  */
@@ -237,9 +249,12 @@ export function appendChatKnowledge(entry: {
     );
     if (exists) return;
 
+    // Store a compact version of the answer to keep the corpus small.
+    const compactAnswer = typeof entry.answer === "string" ? entry.answer.slice(0, 800) : String(entry.answer).slice(0, 800);
+
     corpus.push({
       question: entry.question,
-      answer: entry.answer,
+      answer: compactAnswer,
       layer: entry.layer,
       sources: entry.sources,
       actions: entry.actions,
@@ -248,9 +263,87 @@ export function appendChatKnowledge(entry: {
       timestamp: new Date().toISOString(),
     });
 
+    // Keep the corpus bounded to avoid unbounded growth on disk.
+    const MAX_ENTRIES = 500;
+    if (corpus.length > MAX_ENTRIES) {
+      corpus = corpus.slice(corpus.length - MAX_ENTRIES);
+    }
+
     fs.writeFileSync(CHAT_CORPUS_FILE, JSON.stringify(corpus, null, 2), "utf-8");
   } catch (error) {
     console.error("Error appending chat knowledge:", error);
+  }
+}
+
+function searchChatCorpus(
+  message: string,
+  countyCode?: string,
+  stateCode?: string
+): CacheResult {
+  try {
+    if (!fs.existsSync(CHAT_CORPUS_FILE)) {
+      return { source: "none", data: null, layer: 0 };
+    }
+
+    const raw = fs.readFileSync(CHAT_CORPUS_FILE, "utf-8");
+    const corpus = JSON.parse(raw);
+    if (!Array.isArray(corpus) || corpus.length === 0) {
+      return { source: "none", data: null, layer: 0 };
+    }
+
+    const lowerMessage = message.toLowerCase();
+    const terms = lowerMessage
+      .split(/\s+/)
+      .map((t) => t.replace(/[^a-z0-9]/gi, "").trim())
+      .filter((t) => t.length >= 4);
+
+    if (!terms.length) {
+      return { source: "none", data: null, layer: 0 };
+    }
+
+    let best: any = null;
+    let bestScore = 0;
+
+    for (const item of corpus) {
+      const q = typeof item.question === "string" ? item.question.toLowerCase() : "";
+      const a = typeof item.answer === "string" ? item.answer.toLowerCase() : "";
+
+      let score = 0;
+      for (const term of terms) {
+        if (!term) continue;
+        if (q.includes(term) || a.includes(term)) {
+          score += 1;
+        }
+      }
+
+      if (!score) continue;
+
+      if (countyCode && item.countyCode && item.countyCode.toLowerCase() === countyCode.toLowerCase()) {
+        score += 2;
+      } else if (stateCode && item.stateCode && item.stateCode.toLowerCase() === stateCode.toLowerCase()) {
+        score += 1;
+      }
+
+      if (score > bestScore) {
+        bestScore = score;
+        best = item;
+      }
+    }
+
+    // Require at least a small overlap to avoid irrelevant matches
+    if (!best || bestScore < 2) {
+      return { source: "none", data: null, layer: 0 };
+    }
+
+    return {
+      source: "auto",
+      data: best,
+      layer: 3,
+      itemCount: 1,
+    };
+  } catch (error) {
+    console.error("Chat corpus search error:", error);
+    return { source: "none", data: null, layer: 0 };
   }
 }
 
@@ -456,16 +549,49 @@ async function queryWebsite(
  */
 async function searchInternet(
   gemini: GoogleGenerativeAI | null,
-  message: string
+  message: string,
+  countyCode?: string,
+  stateCode?: string
 ): Promise<CacheResult> {
   try {
     if (!gemini) return { source: "none", data: null, layer: 0 };
 
     // Use stable model name; "-latest" can 404 on some API versions
     const model = gemini.getGenerativeModel({ model: "gemini-2.5-flash" });
-    const result = await model.generateContent(
-      `Search the web and provide accurate information about: ${message}`
-    );
+    const lower = message.toLowerCase();
+
+    const codeOrPermit = isCodeOrPermitQuery(lower);
+    const taxQuery = isTaxQuery(lower);
+
+    const localityHint = [countyCode, stateCode]
+      .filter(Boolean)
+      .join(", ");
+
+    const webPrompt = codeOrPermit || taxQuery
+      ? `You are helping with a local home or property question.
+
+User question: ${message}
+User locality (if provided, may be approximate): ${localityHint || "unknown"}.
+
+Task:
+- Search the web and summarize the most relevant, up-to-date information from OFFICIAL or authoritative sources.
+- If this involves building codes, permits, inspections, zoning, or safety rules:
+  - Focus on which code books or authorities apply (for example, "International Residential Code (IRC)", state code names, or local municipal code names).
+  - Mention SECTION NAMES or numbers only as references (e.g., "IRC R305 Ceiling Height"), do NOT quote long passages from the code itself.
+  - Emphasize that final authority is the local building department and licensed professionals.
+- If this involves taxes (property tax, assessments, homestead, etc.):
+  - Focus on how the tax is generally calculated, what offices administer it, and common exemptions or credits.
+  - Prefer official county or state tax authority information.
+
+Keep the answer compact (under ~8 sentences) and written as plain text notes that can be embedded into a larger AI response.`
+      : `Search the web and provide accurate, concise information about the following question.
+
+User question: ${message}
+User locality (if provided, may be approximate): ${localityHint || "unknown"}.
+
+Prefer official or authoritative sources when possible. Keep the answer compact (under ~8 sentences).`;
+
+    const result = await model.generateContent(webPrompt);
 
     if (result.response.text()) {
       return {
@@ -567,9 +693,24 @@ export async function resolveKnowledge(
     };
   }
 
+  // LAYER 3A: Thin retrieval over chat corpus for repeat code/tax questions
+  const lower = message.toLowerCase();
+  if (isCodeOrPermitQuery(lower) || isTaxQuery(lower)) {
+    const chatResult = searchChatCorpus(message, countyCode, stateCode);
+    if (chatResult.source === "auto" && chatResult.data?.answer) {
+      sources.push("Chat Corpus (similar prior question)");
+      return {
+        answer: String(chatResult.data.answer),
+        sources,
+        layer: 3,
+        confidence: "medium",
+      };
+    }
+  }
+
   // LAYER 3: Internet Search (Only when local data doesn't exist)
   // Use real web sources - DO NOT invent local businesses, prices, or county rules
-  const internetResult = await searchInternet(gemini, message);
+  const internetResult = await searchInternet(gemini, message, countyCode, stateCode);
   if (internetResult.source === "internet" && internetResult.data?.content) {
     sources.push("Internet Search (Not Local TradeScout Data)");
     return {

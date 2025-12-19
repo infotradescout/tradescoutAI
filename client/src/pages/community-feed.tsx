@@ -227,7 +227,7 @@ const CommunityFeed = memo(function CommunityFeed() {
                 <Users2 className="h-5 w-5 text-slate-950" />
               </div>
               <div>
-                <h1 className="text-2xl md:text-3xl font-semibold text-white tracking-tight">TradeScout Community</h1>
+                <h1 className="text-2xl md:text-3xl font-semibold text-white tracking-tight">CommunityOS</h1>
                 <p className="text-xs md:text-sm text-slate-400">A live feed for recommendations, projects, and trusted local pros.</p>
               </div>
             </div>

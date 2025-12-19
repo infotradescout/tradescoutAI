@@ -486,6 +486,8 @@ export default function ScoutOS() {
 
   const heroLocationLabel = getUserLocationLabel(user as any);
   const heroAudienceLabel = getUserAudienceLabel(user as any);
+  const heroHeadlineTarget =
+    isAuthenticated && heroLocationLabel ? heroLocationLabel : "YOUR COMMUNITY";
 
   return (
     <div className="min-h-screen bg-[#060b1c] text-white flex flex-col items-center">
@@ -495,13 +497,14 @@ export default function ScoutOS() {
           <div className="space-y-6">
             <header className="text-center space-y-3">
               <p className="text-[10px] tracking-[0.25em] text-orange-300 uppercase">
-                TradeScout
+                COMMUNITYOS  b7 SCOUT
               </p>
-              <h1 className="text-2xl md:text-3xl font-semibold tracking-[0.12em] text-white uppercase">
-                <span className="text-orange-400">Your local AI assistant</span>
+              <h1 className="text-2xl md:text-3xl font-black tracking-[0.12em] text-white uppercase">
+                <span className="text-white">EMPOWERING </span>
+                <span className="text-orange-400">{heroHeadlineTarget}</span>
               </h1>
               <p className="text-sm text-slate-300/90 max-w-md mx-auto">
-                Ask about contractors, community updates, home projects — anything local.
+                Your local AI assistant for contractors, community updates, and home projects.
               </p>
             </header>
 
@@ -534,12 +537,15 @@ export default function ScoutOS() {
             {/* Header + hero (copy only; all navigation lives in AppShell) */}
             <header className="space-y-3">
               <p className="text-[10px] tracking-[0.25em] text-orange-300 uppercase">
-                TRADESCOUT
+                COMMUNITYOS  b7 SCOUT
               </p>
-              <p className="text-xs text-slate-400">Local operating system</p>
+              <p className="text-xs text-slate-400">
+                Your local operating system for contractors, projects, and community.
+              </p>
 
               <h1 className="mt-3 text-[clamp(1rem,4vw,1.5rem)] tracking-[0.12em] text-white uppercase">
-                <span className="text-orange-400">Empowering your community</span>
+                <span className="text-white">EMPOWERING </span>
+                <span className="text-orange-400">{heroHeadlineTarget}</span>
               </h1>
 
               {!isAuthenticated && (

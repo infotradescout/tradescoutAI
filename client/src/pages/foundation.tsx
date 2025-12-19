@@ -61,6 +61,13 @@ interface Donation {
   createdAt: string;
 }
 
+interface FoundationImpactStats {
+  totalRaised: number;
+  totalDonors: number;
+  activeCauses: number;
+  countiesSupported: number;
+}
+
 const CAUSE_CATEGORIES = [
   { id: 'education', name: 'Education', icon: School, description: 'Schools, scholarships, and educational programs' },
   { id: 'healthcare', name: 'Healthcare', icon: Hospital, description: 'Medical care, health programs, and wellness initiatives' },
@@ -120,7 +127,7 @@ export default function Foundation() {
       if (!res.ok) throw new Error('Failed to load vault');
       return res.json();
     },
-    enabled: isAuthenticated,
+    enabled: isAuthenticated && Boolean(user?.county && user?.state),
     staleTime: 5 * 60 * 1000,
   });
 
@@ -223,7 +230,7 @@ export default function Foundation() {
   };
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div className="max-w-6xl mx-auto ts-surface px-4 py-6 sm:px-6 lg:px-8 space-y-8">
       <div className="mb-8">
         <h1 className="text-3xl font-bold text-white mb-2">TradeScout Foundation</h1>
         <p className="text-gray-300">Supporting communities across America through local charitable giving</p>
@@ -278,17 +285,21 @@ export default function Foundation() {
               <p className="text-gray-300 text-sm mb-3">
                 Donations, marketplace givebacks, and contractor programs all ladder into your community vault. With the Community Builder badge, you can send and vote on which local causes get funded.
               </p>
-              <div className="flex items-center space-x-3">
-                <Button asChild className="bg-orange-500 hover:bg-orange-600">
+              <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+                <Button asChild className="bg-orange-500 hover:bg-orange-600 w-full sm:w-auto">
                   <Link href="/community-builder">Activate Community Builder badge</Link>
                 </Button>
-                <Button asChild variant="outline" className="border-slate-600 text-white hover:border-orange-500">
+                <Button
+                  asChild
+                  variant="outline"
+                  className="border-slate-600 text-white hover:border-orange-500 w-full sm:w-auto"
+                >
                   <Link href="/foundation?tab=impact">View impact</Link>
                 </Button>
                 <Button
                   asChild
                   variant="outline"
-                  className="border-orange-500 text-orange-300 hover:bg-orange-500/10"
+                  className="border-orange-500 text-orange-300 hover:bg-orange-500/10 w-full sm:w-auto"
                 >
                   <a
                     href="https://buy.stripe.com/cNi28r74reaSg392IV8N200"
@@ -305,7 +316,7 @@ export default function Foundation() {
       )}
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-4 mb-6 bg-slate-800 border-slate-700">
+        <TabsList className="grid w-full grid-cols-2 md:grid-cols-4 mb-6 bg-slate-800 border-slate-700">
           <TabsTrigger value="causes" className="text-slate-300 data-[state=active]:text-white data-[state=active]:bg-slate-700">
             Local Causes
           </TabsTrigger>
@@ -471,32 +482,40 @@ export default function Foundation() {
         </TabsContent>
 
         <TabsContent value="impact" className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6 mb-8">
             <Card className="bg-slate-800 border-slate-700">
               <CardContent className="p-6 text-center">
                 <DollarSign className="h-8 w-8 text-green-500 mx-auto mb-2" />
-                <div className="text-2xl font-bold text-white">$2.4M</div>
+                <div className="text-2xl font-bold text-white">
+                  {impactStats ? formatCurrency(impactStats.totalRaised) : '0'}
+                </div>
                 <div className="text-sm text-gray-400">Total Raised</div>
               </CardContent>
             </Card>
             <Card className="bg-slate-800 border-slate-700">
               <CardContent className="p-6 text-center">
                 <Users className="h-8 w-8 text-blue-500 mx-auto mb-2" />
-                <div className="text-2xl font-bold text-white">15,847</div>
+                <div className="text-2xl font-bold text-white">
+                  {impactStats ? impactStats.totalDonors.toLocaleString() : '0'}
+                </div>
                 <div className="text-sm text-gray-400">Active Donors</div>
               </CardContent>
             </Card>
             <Card className="bg-slate-800 border-slate-700">
               <CardContent className="p-6 text-center">
                 <Target className="h-8 w-8 text-orange-500 mx-auto mb-2" />
-                <div className="text-2xl font-bold text-white">3,112</div>
+                <div className="text-2xl font-bold text-white">
+                  {impactStats ? impactStats.countiesSupported.toLocaleString() : '0'}
+                </div>
                 <div className="text-sm text-gray-400">Counties Served</div>
               </CardContent>
             </Card>
             <Card className="bg-slate-800 border-slate-700">
               <CardContent className="p-6 text-center">
                 <Award className="h-8 w-8 text-purple-500 mx-auto mb-2" />
-                <div className="text-2xl font-bold text-white">892</div>
+                <div className="text-2xl font-bold text-white">
+                  {impactStats ? impactStats.activeCauses.toLocaleString() : '0'}
+                </div>
                 <div className="text-sm text-gray-400">Causes Funded</div>
               </CardContent>
             </Card>
@@ -510,16 +529,12 @@ export default function Foundation() {
               <div className="space-y-4">
                 {CAUSE_CATEGORIES.slice(0, 6).map((category) => {
                   const IconComponent = category.icon;
-                  const percentage = Math.floor(Math.random() * 40) + 10;
                   return (
-                    <div key={category.id} className="flex items-center justify-between">
-                      <div className="flex items-center">
-                        <IconComponent className="h-5 w-5 text-orange-500 mr-3" />
-                        <span className="text-white">{category.name}</span>
-                      </div>
-                      <div className="flex items-center space-x-4">
-                        <Progress value={percentage} className="w-24 h-2" />
-                        <span className="text-sm text-gray-400 w-12">{percentage}%</span>
+                    <div key={category.id} className="flex items-start gap-3">
+                      <IconComponent className="h-5 w-5 text-orange-500 mt-1" />
+                      <div>
+                        <div className="text-white font-medium">{category.name}</div>
+                        <p className="text-sm text-gray-400">{category.description}</p>
                       </div>
                     </div>
                   );
