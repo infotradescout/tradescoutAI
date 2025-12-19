@@ -81,7 +81,8 @@ export default function Register() {
         title: "Account created successfully",
         description: "Welcome to TradeScout! Next, set up your profile and colors.",
       });
-      window.location.href = "/dashboard";
+      // New accounts should land on profile setup, same as first-time social logins
+      window.location.href = "/profile-settings?onboarding=1";
     },
     onError: (error: any) => {
       toast({
