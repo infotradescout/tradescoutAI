@@ -1069,8 +1069,9 @@ export async function registerRoutes(app: any) {
           profile: GoogleProfile,
           done: VerifyCallback
         ) => {
+          let email = "";
           try {
-            const email = profile.emails?.[0]?.value || "";
+            email = profile.emails?.[0]?.value || "";
             let user = await storage.getUserByEmail(email);
 
             const isNewUser = !user;
@@ -1093,6 +1094,11 @@ export async function registerRoutes(app: any) {
 
             done(null, user as any);
           } catch (error) {
+            console.error("[AUTH] Google login error", {
+              message: (error as any)?.message,
+              email,
+              profileId: profile.id,
+            });
             done(error as Error);
           }
         }
