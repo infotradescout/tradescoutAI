@@ -8,100 +8,26 @@ interface IconProps {
 
 const sizeClasses = {
   xs: 'w-4 h-4',
-  sm: 'w-6 h-6', 
+  sm: 'w-6 h-6',
   md: 'w-8 h-8',
   lg: 'w-10 h-10',
   xl: 'w-12 h-12',
-  '2xl': 'w-16 h-16'
+  '2xl': 'w-16 h-16',
 };
 
-// Enhanced TradeScout Logo with Professional Design
-export function TradeScoutLogo({ className = "", size = 'md', variant = 'standard' }: IconProps) {
+// Central logo asset path – update /logo.png to change the brand mark
+const BRAND_LOGO_URL = '/logo.png';
+
+export function TradeScoutLogo({ className = "", size = 'md' }: IconProps) {
   const sizeClass = sizeClasses[size];
-  
-  const gradients = variant === 'gradient' ? (
-    <defs>
-      <linearGradient id="logoGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-        <stop offset="0%" stopColor="#FF6B35" />
-        <stop offset="50%" stopColor="#F97316" />
-        <stop offset="100%" stopColor="#EA580C" />
-      </linearGradient>
-      <linearGradient id="accentGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-        <stop offset="0%" stopColor="#FBB040" />
-        <stop offset="100%" stopColor="#FF8C00" />
-      </linearGradient>
-    </defs>
-  ) : null;
-
-  if (variant === 'minimal') {
-    return (
-      <svg viewBox="0 0 100 100" className={`${sizeClass} ${className}`}>
-        <circle cx="50" cy="50" r="45" fill="none" stroke="currentColor" strokeWidth="3"/>
-        <path d="M30 40 Q25 40 25 45 L25 55 Q25 60 30 60 L35 60 L45 70 L55 60 L60 60 Q65 60 65 55 L65 45 Q65 40 60 40 Z" fill="currentColor"/>
-        <rect x="45" y="65" width="10" height="15" fill="currentColor" rx="2"/>
-      </svg>
-    );
-  }
-
-  if (variant === 'outline') {
-    return (
-      <svg viewBox="0 0 100 100" className={`${sizeClass} ${className}`}>
-        <circle cx="50" cy="50" r="45" fill="none" stroke="currentColor" strokeWidth="2"/>
-        <path d="M30 40 Q25 40 25 45 L25 55 Q25 60 30 60 L35 60 L45 70 L55 60 L60 60 Q65 60 65 55 L65 45 Q65 40 60 40 Z" 
-              fill="none" stroke="currentColor" strokeWidth="2"/>
-        <rect x="45" y="65" width="10" height="15" fill="none" stroke="currentColor" strokeWidth="2" rx="2"/>
-      </svg>
-    );
-  }
 
   return (
-    <svg viewBox="0 0 100 100" className={`${sizeClass} ${className}`}>
-      {gradients}
-      
-      {/* Background Circle with Shadow Effect */}
-      <circle cx="52" cy="52" r="45" fill="rgba(0,0,0,0.1)" opacity="0.3"/>
-      <circle cx="50" cy="50" r="45" 
-              fill={variant === 'gradient' ? 'url(#logoGradient)' : 'currentColor'} 
-              opacity="0.15" 
-              stroke={variant === 'gradient' ? 'url(#logoGradient)' : 'currentColor'} 
-              strokeWidth="2"/>
-      
-      {/* Professional Hammer Design */}
-      <g transform="translate(50,50)">
-        {/* Hammer Head - Enhanced 3D Effect */}
-        <rect x="-20" y="-10" width="25" height="12" 
-              fill={variant === 'gradient' ? 'url(#logoGradient)' : 'currentColor'} 
-              rx="3"/>
-        <rect x="-20" y="-8" width="25" height="3" 
-              fill={variant === 'gradient' ? 'url(#accentGradient)' : 'rgba(255,255,255,0.3)'} 
-              rx="1"/>
-        
-        {/* Hammer Handle with Grip Detail */}
-        <rect x="2" y="-4" width="30" height="8" 
-              fill={variant === 'gradient' ? 'url(#logoGradient)' : 'currentColor'} 
-              rx="4"/>
-        
-        {/* Handle Grip Texture */}
-        <rect x="8" y="-2" width="2" height="4" fill="rgba(255,255,255,0.2)" rx="1"/>
-        <rect x="12" y="-2" width="2" height="4" fill="rgba(255,255,255,0.2)" rx="1"/>
-        <rect x="16" y="-2" width="2" height="4" fill="rgba(255,255,255,0.2)" rx="1"/>
-        <rect x="20" y="-2" width="2" height="4" fill="rgba(255,255,255,0.2)" rx="1"/>
-        
-        {/* Hammer Claw */}
-        <path d="M-18 -10 Q-22 -15 -25 -10 Q-22 -5 -18 -2" 
-              fill={variant === 'gradient' ? 'url(#logoGradient)' : 'currentColor'}/>
-        
-        {/* Handle End Cap */}
-        <circle cx="32" cy="0" r="4" 
-                fill={variant === 'gradient' ? 'url(#accentGradient)' : 'currentColor'}/>
-        
-        {/* Professional Highlights */}
-        <rect x="-18" y="-8" width="20" height="1" 
-              fill="rgba(255,255,255,0.4)" rx="0.5"/>
-        <rect x="4" y="-2" width="26" height="1" 
-              fill="rgba(255,255,255,0.3)" rx="0.5"/>
-      </g>
-    </svg>
+    <img
+      src={BRAND_LOGO_URL}
+      alt="TradeScout logo"
+      className={`${sizeClass} ${className} object-contain`}
+      loading="lazy"
+    />
   );
 }
 

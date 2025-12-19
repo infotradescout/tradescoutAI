@@ -9,10 +9,10 @@ interface PageHeadProps {
 }
 
 export function PageHead({ 
-  title = "TradeScout - Find Trusted Local Contractors", 
-  description = "Connect with verified local contractors. Get instant quotes, read RECOMMENDATIONS, and hire with confidence for home improvement projects.",
-  keywords = "contractors, home improvement, quotes, local contractors, verified contractors",
-  ogImage = "/og-image.jpg",
+  title = "TradeScout – Scout for Contractors and Communities", 
+  description = "Scout, your AI project assistant, helps you find verified local contractors, compare options, and manage projects with confidence.",
+  keywords = "scout, ai assistant, contractors, home improvement, quotes, local contractors, verified contractors",
+  ogImage = "/icon-512.png",
   canonicalUrl
 }: PageHeadProps) {
   useEffect(() => {

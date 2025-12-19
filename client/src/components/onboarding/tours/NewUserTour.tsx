@@ -65,9 +65,9 @@ const getNewUserSteps = (userRole: string): TourStep[] => {
       },
       {
         id: "get-quotes",
-        target: "[data-testid='nav-quote-calculator']",
-        title: "Get Instant Quotes",
-        description: "Get estimated pricing for your project before contacting contractors. This helps you budget effectively.",
+        target: "[data-nav-item='scout']",
+        title: "Ask Scout for Estimates",
+        description: "Use Scout to get a quick ballpark for your project before you start contacting contractors.",
         position: "bottom"
       },
       {

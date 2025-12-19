@@ -13,12 +13,12 @@ interface SEOHelmetProps {
 }
 
 export function SEOHelmet({
-  title = "TradeScout - Find Trusted Local Contractors | Get 3 Free Quotes",
-  description = "Connect with verified local contractors. Get instant quotes, read RECOMMENDATIONS, and hire with confidence for home improvement projects.",
-  keywords = "local contractors, home improvement, verified contractors, free quotes, trusted contractors, roofing, plumbing, electrical",
+  title = "TradeScout – Scout for Contractors and Communities",
+  description = "Scout, your AI project assistant, helps you find verified local contractors, compare options, and run your projects with confidence.",
+  keywords = "scout, ai assistant, local contractors, home improvement, verified contractors, free quotes, trusted contractors, roofing, plumbing, electrical",
   canonical,
   ogType = "website",
-  ogImage = "/og-image.jpg",
+  ogImage = "/icon-512.png",
   structuredData,
   noIndex = false,
 }: SEOHelmetProps) {
@@ -115,7 +115,7 @@ export const createWebsiteStructuredData = () => ({
   "@context": "https://schema.org",
   "@type": "WebSite",
   "name": "TradeScout",
-  "description": "Connect with verified local contractors. Get instant quotes, read RECOMMENDATIONS, and hire with confidence.",
+  "description": "Scout, the AI assistant inside TradeScout, connects you with verified local contractors and helps you manage home projects.",
   "url": window.location.origin,
   "potentialAction": {
     "@type": "SearchAction",
@@ -136,7 +136,7 @@ export const createOrganizationStructuredData = () => ({
   "description": "Leading contractor marketplace connecting homeowners with verified local contractors",
   "url": window.location.origin,
   "logo": `${window.location.origin}/logo.png`,
-  "image": `${window.location.origin}/og-image.jpg`,
+  "image": `${window.location.origin}/icon-512.png`,
   "address": {
     "@type": "PostalAddress",
     "addressCountry": "US"

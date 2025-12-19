@@ -25,10 +25,10 @@ const getCTAConfig = (location: string) => {
     };
   }
 
-  if (location.includes('/calculator') || location.includes('/quote')) {
+  if (location.includes('/scout') && location.includes('intent=estimate')) {
     return {
-      type: 'quote-calculator',
-      text: 'Get 3 Free Estimates',
+      type: 'scout-estimate',
+      text: 'Ask Scout for Estimates',
       icon: Calculator,
       color: 'bg-orange-500 hover:bg-orange-600'
     };
