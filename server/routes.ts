@@ -1046,12 +1046,22 @@ export async function registerRoutes(app: any) {
   const hasFacebookOAuth = !facebookDisabled && Boolean(facebookAppId && facebookAppSecret);
 
   if (hasGoogleOAuth) {
+    const googleCallbackURL = process.env.GOOGLE_CALLBACK_URL;
+
+    if (!googleCallbackURL) {
+      throw new Error(
+        "GOOGLE_CALLBACK_URL is not set. This must be configured in the environment for Google OAuth to work."
+      );
+    }
+
+    console.log("[AUTH] Using Google callback URL:", googleCallbackURL);
+
     passport.use(
       new GoogleStrategy(
         {
           clientID: process.env.GOOGLE_CLIENT_ID!,
           clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
-          callbackURL: process.env.GOOGLE_CALLBACK_URL || "/api/auth/google/callback",
+          callbackURL: googleCallbackURL,
         },
         async (
           accessToken: string,
