@@ -102,14 +102,14 @@ export function AppShell({ children, footer }: AppShellProps) {
             <>
               <button
                 type="button"
-                onClick={() => (window.location.href = "/auth/signup")}
+                onClick={() => (window.location.href = "/register")}
                 className="inline-flex items-center justify-center rounded-full border border-orange-500/70 bg-orange-500 px-3 py-1 text-[0.7rem] font-semibold text-slate-950 shadow-sm shadow-orange-500/40"
               >
                 Create account
               </button>
               <button
                 type="button"
-                onClick={() => (window.location.href = "/auth/login")}
+                onClick={() => (window.location.href = "/login")}
                 className="inline-flex items-center justify-center rounded-full border border-slate-700 bg-slate-950/60 px-3 py-1 text-[0.7rem] font-medium text-slate-200 hover:border-orange-400 hover:text-white"
               >
                 Log in
