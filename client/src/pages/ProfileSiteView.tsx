@@ -105,6 +105,9 @@ export default function ProfileSiteView() {
   const { profile, business } = data;
   const profileSections = profile.profileSections || {};
   const showContactCard = profileSections.contactCard !== false;
+  const displayName = business?.name && business.name.trim().length > 0
+    ? business.name
+    : profile.displayName;
 
   return (
     <div className="min-h-screen bg-navy-900 py-8">
@@ -113,7 +116,7 @@ export default function ProfileSiteView() {
           <CardHeader className="space-y-2">
             <div className="flex items-start justify-between gap-4">
               <div className="space-y-1">
-                <CardTitle className="text-white text-3xl">{profile.displayName}</CardTitle>
+                <CardTitle className="text-white text-3xl">{displayName}</CardTitle>
                 {profile.headline && profileSections.about !== false ? (
                   <p className="text-gray-300">{profile.headline}</p>
                 ) : null}

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -11,6 +11,7 @@ import {
   Eye, Share2, Edit, ExternalLink, Globe, Copy, Check
 } from "lucide-react";
 import { useLocation } from "wouter";
+import { apiRequest } from "@/lib/queryClient";
 
 function getDefaultHomePageLabel(value?: string) {
   if (!value || value === 'llm') return 'Scout';
@@ -24,10 +25,56 @@ function getDefaultHomePageLabel(value?: string) {
   return map[value] || 'Scout';
 }
 
+type OwnedProfile = {
+  id: string;
+  slug: string;
+  status?: "draft" | "published";
+};
+
 export default function ProfilePage() {
   const { user } = useAuth();
   const [, setLocation] = useLocation();
   const [copied, setCopied] = useState(false);
+  const [profileSlug, setProfileSlug] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const load = async () => {
+      if (!user?.id) return;
+
+      try {
+        const res = await apiRequest("GET", "/api/profiles");
+        const list = (await res.json()) as OwnedProfile[];
+
+        if (!Array.isArray(list) || list.length === 0) return;
+
+        const activeProfileId = (user as any).activeProfileId as string | undefined;
+
+        let active = activeProfileId
+          ? list.find((p) => p.id === activeProfileId)
+          : undefined;
+
+        if (!active) {
+          active = list.find((p) => (p as any).status === "published") || list[0];
+        }
+
+        if (!active?.slug) return;
+
+        if (!cancelled) {
+          setProfileSlug(active.slug);
+        }
+      } catch (error) {
+        console.error("Error loading profile site slug for share URL:", error);
+      }
+    };
+
+    load();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [user]);
 
   if (!user) {
     return (
@@ -60,7 +107,9 @@ export default function ProfilePage() {
     ['--user-border' as any]: colorScheme.border || colorScheme.background,
   } as React.CSSProperties;
 
-  const profileUrl = `${window.location.origin}/profile/${user.id}`;
+  const profileUrl = profileSlug
+    ? `${window.location.origin}/p/${profileSlug}`
+    : `${window.location.origin}/profile/${user.id}`;
   const isPublic = user.preferences?.profileVisibility === 'public';
 
   const copyProfileUrl = () => {

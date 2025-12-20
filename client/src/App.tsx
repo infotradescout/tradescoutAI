@@ -363,7 +363,7 @@ const AppLayout = memo(function AppLayout() {
               <div className="space-y-1">
                 <p className="text-orange-200 font-semibold">TradeScout is in active beta</p>
                 <p className="text-gray-300 leading-relaxed">
-                  You may encounter rough edges, non-working features, or intermittent errors. Thanks for exploring—please share issues so we can polish fast.
+                  You may encounter rough edges, non-working features, or intermittent errors. Add TradeScout to your home screen from your browser so it lives like an app, and please share issues so we can polish fast.
                 </p>
               </div>
               <button

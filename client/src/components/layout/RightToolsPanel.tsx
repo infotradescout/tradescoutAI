@@ -105,6 +105,23 @@ export function RightToolsPanel({ footer }: RightToolsPanelProps) {
               label="Notifications"
               description="Control alerts from Scout and jobs."
             />
+            {isAuthenticated && (
+              <button
+                type="button"
+                onClick={logout}
+                className="w-full flex flex-col gap-1 rounded-xl border border-red-500/70 bg-slate-950/80 px-3 py-2 text-left hover:bg-red-600/10"
+              >
+                <div className="flex items-center gap-2">
+                  <span className="inline-flex h-7 w-7 items-center justify-center rounded-lg bg-slate-900 border border-red-500/60 text-red-300">
+                    <LogOut className="h-3.5 w-3.5" />
+                  </span>
+                  <span className="text-sm font-medium text-red-300">Sign out</span>
+                </div>
+                <p className="text-[11px] text-slate-400 leading-snug">
+                  Exit this TradeScout session on this device.
+                </p>
+              </button>
+            )}
           </div>
         </section>
 
@@ -152,16 +169,6 @@ export function RightToolsPanel({ footer }: RightToolsPanelProps) {
       <div className="border-t border-slate-800 px-4 py-3 text-[0.7rem] text-slate-500 space-y-2">
         <div className="flex items-center justify-between gap-2">
           <div className="truncate">Signed in as {displayName}</div>
-          {isAuthenticated && (
-            <button
-              type="button"
-              onClick={logout}
-              className="inline-flex items-center justify-center rounded-lg border border-red-500/60 bg-slate-950/80 px-2 py-1 text-[0.7rem] font-semibold text-red-400 hover:bg-red-600/10 hover:text-red-300"
-            >
-              <LogOut className="h-3 w-3 mr-1" />
-              Sign out
-            </button>
-          )}
         </div>
         {footer && <div className="text-slate-400">{footer}</div>}
       </div>
