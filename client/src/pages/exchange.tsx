@@ -255,6 +255,44 @@ export default function Exchange() {
     return colors[condition as keyof typeof colors] || 'bg-[#0f1419]0';
   };
 
+  const shareLink = async (url: string, title: string, text?: string) => {
+    try {
+      const fullUrl = typeof window !== 'undefined' ? `${window.location.origin}${url}` : url;
+      const shareText = (text || '').toString().slice(0, 200);
+
+      if (navigator.share) {
+        try {
+          await navigator.share({ title, text: shareText, url: fullUrl });
+          return;
+        } catch (err: any) {
+          if (err && (err.name === 'AbortError' || err.name === 'NotAllowedError')) {
+            return;
+          }
+        }
+      }
+
+      if (navigator.clipboard && typeof navigator.clipboard.writeText === 'function') {
+        await navigator.clipboard.writeText(fullUrl);
+        toast({
+          title: 'Link copied',
+          description: 'Share link copied to your clipboard.',
+        });
+      } else {
+        toast({
+          title: 'Unable to share automatically',
+          description: 'Copy the link from your browser address bar to share.',
+          variant: 'destructive',
+        });
+      }
+    } catch {
+      toast({
+        title: 'Unable to share',
+        description: 'Something went wrong while preparing the share link.',
+        variant: 'destructive',
+      });
+    }
+  };
+
   // Allow Scout to prefill the sell form via
   // /exchange?tab=sell&title=...&description=...&price=...&loc=...
   useEffect(() => {
@@ -444,10 +482,26 @@ export default function Exchange() {
                             </div>
                           </div>
                         </div>
-                        <Button size="sm" className="bg-orange-500 hover:bg-orange-600">
-                          <MessageSquare className="h-3 w-3 mr-1" />
-                          Contact
-                        </Button>
+                        <div className="flex items-center gap-2">
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="text-gray-300 hover:text-white"
+                            onClick={() =>
+                              shareLink(
+                                `/exchange?item=${encodeURIComponent(item.id)}`,
+                                item.title || 'Exchange listing',
+                                item.description,
+                              )
+                            }
+                          >
+                            <Share2 className="h-3 w-3" />
+                          </Button>
+                          <Button size="sm" className="bg-orange-500 hover:bg-orange-600">
+                            <MessageSquare className="h-3 w-3 mr-1" />
+                            Contact
+                          </Button>
+                        </div>
                       </div>
                     </CardContent>
                   </Card>
@@ -602,7 +656,18 @@ export default function Exchange() {
                           {promo.viewCount} views • {promo.leadCount} leads
                         </div>
                         <div className="flex space-x-2">
-                          <Button size="sm" variant="ghost" className="text-gray-400 hover:text-white">
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="text-gray-400 hover:text-white"
+                            onClick={() =>
+                              shareLink(
+                                `/exchange?tab=sales&promo=${encodeURIComponent(promo.slug || promo.id)}`,
+                                promo.title,
+                                promo.description,
+                              )
+                            }
+                          >
                             <Share2 className="h-4 w-4" />
                           </Button>
                           <Button size="sm" className="bg-orange-500 hover:bg-orange-600">
@@ -713,7 +778,18 @@ export default function Exchange() {
                           {promotion.viewCount} views • {promotion.redemptionCount} used
                         </div>
                         <div className="flex space-x-2">
-                          <Button size="sm" variant="ghost" className="text-gray-400 hover:text-white">
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="text-gray-400 hover:text-white"
+                            onClick={() =>
+                              shareLink(
+                                `/exchange?tab=sales&companyPromo=${encodeURIComponent(promotion.slug || promotion.id)}`,
+                                promotion.title,
+                                promotion.description,
+                              )
+                            }
+                          >
                             <Share2 className="h-4 w-4" />
                           </Button>
                           <Button size="sm" className="bg-blue-500 hover:bg-blue-600">
