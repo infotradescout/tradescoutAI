@@ -57,7 +57,7 @@ export const CommunityShell: React.FC<CommunityShellProps> = ({
   return (
     <div className="flex flex-col w-full">
       {/* Minimal section header - visual context only, NO navigation */}
-      <div className="border-b border-slate-800 bg-slate-950/50 px-4 py-2">
+      <div className="border-b border-slate-800 bg-slate-950 px-3 md:px-4 py-2">
         <div className="flex items-center justify-between">
           <span
             className="text-sm font-semibold text-slate-300"
@@ -72,7 +72,7 @@ export const CommunityShell: React.FC<CommunityShellProps> = ({
       </div>
 
       {/* Content area - keep community views within viewport on mobile */}
-      <div className="w-full max-w-full overflow-x-hidden">
+      <div className="w-full max-w-full overflow-x-hidden bg-slate-950">
         {children}
       </div>
     </div>

@@ -15,8 +15,9 @@ const sizeClasses = {
   '2xl': 'w-16 h-16',
 };
 
-// Central logo asset path – drop your primary site logo into
-// client/public as this filename to update the brand mark
+// Central logo asset path – stored under client/public so it is served
+// as a public static asset by Vite and the production server.
+// Canonical logo file: client/public/tradescout-logo.png
 const BRAND_LOGO_URL = '/tradescout-logo.png';
 
 export function TradeScoutLogo({ className = "", size = 'md' }: IconProps) {

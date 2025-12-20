@@ -12,9 +12,9 @@ const MobileAppBar: React.FC<MobileAppBarProps> = ({ items }) => {
   if (!items.length) return null;
 
   return (
-  <nav className="border-t border-slate-800 bg-slate-950/95 backdrop-blur py-2 pb-[calc(env(safe-area-inset-bottom)+0.25rem)]">
-    <div className="w-full min-h-[72px] overflow-x-auto md:overflow-x-hidden">
-    <div className="flex h-full items-stretch px-2 gap-2 min-w-max md:min-w-0 md:w-full md:justify-between">
+  <nav className="border-t border-slate-800 bg-slate-950/95 backdrop-blur py-1.5 pb-[calc(env(safe-area-inset-bottom)+0.35rem)]">
+    <div className="w-full min-h-[68px] overflow-x-auto md:overflow-x-hidden">
+    <div className="flex h-full items-stretch px-1.5 gap-1.5 min-w-max md:min-w-0 md:w-full md:justify-between">
           {items.map((item) => {
             const active =
               location === item.href || location.startsWith(item.href + "/");
@@ -28,7 +28,7 @@ const MobileAppBar: React.FC<MobileAppBarProps> = ({ items }) => {
                 } text-[0.75rem]`}
               >
                 {item.icon && (
-                <span className="mb-0.5 inline-flex h-5 w-5 items-center justify-center">
+                <span className="mb-0.5 inline-flex h-6 w-6 items-center justify-center">
                     {item.icon}
                   </span>
                 )}
