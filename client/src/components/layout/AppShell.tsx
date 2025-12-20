@@ -109,7 +109,7 @@ export function AppShell({ children, footer }: AppShellProps) {
         >
           <TradeScoutLogo
             size="sm"
-            className="drop-shadow-[0_0_12px_rgba(249,115,22,0.5)]"
+            className=""
           />
           <div className="flex flex-col leading-tight">
             <span className="text-[0.65rem] uppercase tracking-[0.35em] text-slate-400">

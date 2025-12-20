@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
+import { apiRequest } from "@/lib/queryClient";
 
 interface State {
   code: string;
@@ -38,12 +39,15 @@ export function StateCountySelector({
   // Fetch all states
   const { data: states = [], isLoading: statesLoading } = useQuery<State[]>({
     queryKey: ['/api/states'],
+    queryFn: async () => apiRequest('GET', '/api/states'),
   });
 
   // Fetch counties for selected state
   const { data: counties = [], isLoading: countiesLoading } = useQuery<County[]>({
     queryKey: ['/api/counties', currentState],
     enabled: !!currentState,
+    queryFn: async () =>
+      apiRequest('GET', `/api/counties?state=${encodeURIComponent(currentState)}`),
   });
 
   // Get subdivision type for selected state
