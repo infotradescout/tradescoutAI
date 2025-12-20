@@ -20,7 +20,7 @@ import { ROUTES } from "@/lib/routes";
 import { NotificationsMenu } from "@/components/NotificationsMenu";
 import { RightToolsPanel } from "@/components/layout/RightToolsPanel";
 import MobileAppBar from "@/components/navigation/MobileAppBar";
-import { TradeScoutIcon } from "@/components/TradeScoutIcons";
+import { TradeScoutLogo } from "@/components/TradeScoutIcons";
 
 export type NavItem = {
   label: string;
@@ -109,10 +109,9 @@ export function AppShell({ children, footer }: AppShellProps) {
             handedness === "left" ? "justify-end" : ""
           }`}
         >
-          <TradeScoutIcon
+          <TradeScoutLogo
             size="sm"
-            variant="gradient"
-            className="text-orange-500 drop-shadow-[0_0_12px_rgba(249,115,22,0.5)]"
+            className="drop-shadow-[0_0_12px_rgba(249,115,22,0.5)]"
           />
           <div className="flex flex-col leading-tight">
             <span className="text-[0.65rem] uppercase tracking-[0.35em] text-slate-400">
