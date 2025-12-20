@@ -19,6 +19,7 @@ import {
 import { storage } from "../storage";
 import { resolveCountyFips, resolveRegionSlug } from "../services/regionResolver";
 import { shouldInjectSponsored } from "../services/sponsoredEligibility";
+import { COMMUNITY_TONE } from "../../shared/communityLanguage";
 import { db, pool } from "../db";
 import { leads } from "../../shared/schema";
 import { desc, eq } from "drizzle-orm";
@@ -103,6 +104,120 @@ interface ResolvedContext {
   allowedActions: AllowedAction[];
   confidence: "low" | "medium" | "high";
   requiresLLM: boolean;
+}
+
+// buildCommunityPrefill turns a raw Scout question into a
+// neighbor-voiced starter line for the community composer.
+// It:
+// - MAY strip helper/LLM phrasing ("can you help", "could you")
+//   and restate the user's own intent in plain local language.
+// - MAY nudge toward questions about experiences ("who have you
+//   had good experiences with?"), not outcomes or guarantees.
+// - MUST NOT fabricate consensus, neighbor opinions, or stories.
+// - MUST NOT promise results, claim that something is normal, or
+//   speak on behalf of "the community" beyond the user’s intent.
+// In short: it rephrases what the user already wants to ask, so it
+// sounds like a real neighbor, without inventing any new facts.
+function buildCommunityPrefill(
+  original: string,
+  countyCode?: string,
+  stateCode?: string
+): string {
+  const lower = original.toLowerCase().trim();
+
+  const areaPhrase = countyCode || stateCode ? "in the county" : "around here";
+
+  const tradeKeywords: Array<{ match: string; label: string }> = [
+    { match: "electrician", label: "electrician" },
+    { match: "plumber", label: "plumber" },
+    { match: "plumbing", label: "plumber" },
+    { match: "roofer", label: "roofer" },
+    { match: "roofing", label: "roofer" },
+    { match: "hvac", label: "HVAC pro" },
+    { match: "painter", label: "painter" },
+    { match: "landscap", label: "landscaper" },
+    { match: "handyman", label: "handyman" },
+    { match: "contractor", label: "contractor" },
+  ];
+
+  const trade = tradeKeywords.find((t) => lower.includes(t.match))?.label;
+
+  if (trade) {
+    return `Looking for a trustworthy ${trade} ${areaPhrase} — who have you had good experiences with?`;
+  }
+
+  if (
+    lower.includes("hoa") ||
+    lower.includes("association") ||
+    lower.includes("board meeting") ||
+    lower.includes("bylaws") ||
+    lower.includes("dues")
+  ) {
+    return "Has anyone dealt with this in our neighborhood recently?";
+  }
+
+  if (
+    lower.includes("buy") ||
+    lower.includes("sell") ||
+    lower.includes("selling") ||
+    lower.includes("marketplace") ||
+    lower.includes("listing")
+  ) {
+    return "Has anyone bought or sold something like this locally?";
+  }
+
+  if (
+    lower.includes("vote") ||
+    lower.includes("voting") ||
+    lower.includes("policy") ||
+    lower.includes("rules") ||
+    lower.includes("governance") ||
+    lower.includes("how does this work")
+  ) {
+    return "Can someone explain how this usually works around here?";
+  }
+
+  if (lower.startsWith("has anyone")) {
+    const cleaned = original
+      .replace(/^has anyone\s*/i, "")
+      .replace(/\?+$/g, "")
+      .trim();
+    if (cleaned) {
+      return `Has anyone dealt with ${cleaned} recently?`;
+    }
+  }
+
+  if (lower.startsWith("what's going on with") || lower.startsWith("whats going on with")) {
+    const cleaned = original
+      .replace(/^(what's|whats)\s+going\s+on\s+with\s*/i, "")
+      .replace(/\?+$/g, "")
+      .trim();
+    if (cleaned) {
+      return `What's going on with ${cleaned} ${areaPhrase}?`;
+    }
+  }
+
+  if (lower.includes("normal in my area") || lower.includes("normal around here")) {
+    const cleaned = original.replace(/is\s+this\s+/i, "").replace(/\?+$/g, "").trim();
+    if (cleaned) {
+      return `${cleaned} — is this normal ${areaPhrase}?`;
+    }
+  }
+
+  const stripped = original
+    .replace(/^(can|could|would)\s+you\s+(please\s+)?/i, "")
+    .replace(/^please\s+/i, "")
+    .replace(/^i\s*(am|'m)\s*(just\s*)?(looking|trying)\s*for\s+/i, "")
+    .trim()
+    .replace(/\s+/g, " ");
+
+  const topic = stripped.replace(/\?+$/g, "").trim();
+
+  if (topic && topic.length <= 140) {
+    return `${topic} — any recommendations ${areaPhrase}?`;
+  }
+
+  return "Looking for trustworthy local help — who do you recommend?";
 }
 
 function sanitizeSuspiciousContent(text: string): { flagged: boolean; message: string } {
@@ -1416,6 +1531,9 @@ router.post("/", async (req: Request, res: Response) => {
     // Use Gemini as primary, fallback to others if needed for Layer 3 (internet search)
     const knowledge = await resolveKnowledge(knowledgeRequest, geminiClient);
 
+    const communityPostCount = knowledge.meta?.communityPosts?.count ?? 0;
+    const contractorCount = knowledge.meta?.contractors?.count ?? 0;
+
     // Load system prompt (with version)
     const { content: systemPrompt, version: promptVersion } = loadSystemPrompt();
 
@@ -1657,9 +1775,80 @@ router.post("/", async (req: Request, res: Response) => {
       }
     };
 
-    // Community Vault MVP actions (explicit chips; no auto-execution on client)
+    // Community Vault and navigation helpers (explicit chips; no auto-execution on client)
     try {
       const lower = message.toLowerCase();
+      let actions: ScoutClientAction[] = Array.isArray(aiResponse.actions)
+        ? aiResponse.actions.slice()
+        : [];
+
+      const mentionsCommunityQuestion =
+        /who\s*(?:'s| is)\s*a?\s*good\s+contractor/.test(lower) ||
+        lower.startsWith("has anyone dealt with") ||
+        lower.includes("has anyone dealt with") ||
+        lower.startsWith("what's going on with") ||
+        lower.startsWith("whats going on with") ||
+        lower.includes("what's going on with") ||
+        lower.includes("whats going on with") ||
+        lower.includes("is this normal in my area") ||
+        (lower.includes("neighbors") &&
+          (lower.includes("recommend") || lower.includes("used") || lower.includes("worked with")));
+
+      if (userId && mentionsCommunityQuestion) {
+        try {
+          let communityLine = "";
+          if (communityPostCount > 0) {
+            communityLine =
+              "I’m seeing a few recent posts from neighbors in your county about this.";
+          } else if (communityPostCount === 0) {
+            communityLine =
+              "I don’t see anyone discussing this yet in your area.";
+          }
+
+          const prefill = buildCommunityPrefill(message, countyCode, stateCode);
+          const safePrefill = encodeURIComponent(prefill);
+
+          const bridgeLines = [
+            "I can give you general guidance — but the strongest answers come from people in your area.",
+            communityLine,
+            "Want to read them directly or add your own question in your county feed?",
+          ]
+            .filter(Boolean)
+            .join("\n\n");
+
+          aiResponse.message = trimResponseToScreenFit(
+            `${aiResponse.message}\n\n${bridgeLines}`
+          );
+
+          const alreadyHasCommunityNav = actions.some(
+            (a) => a.type === "NAVIGATE" && typeof a.to === "string" && a.to.startsWith("/community")
+          );
+
+          if (!alreadyHasCommunityNav) {
+            actions.push(
+              {
+                type: "NAVIGATE",
+                label: "View community discussion",
+                to: "/community?tab=for-you",
+              },
+              {
+                type: "NAVIGATE",
+                label: "Ask neighbors in your county feed",
+                to: `/community?compose=1&prefill=${safePrefill}`,
+              }
+            );
+          }
+        } catch (communityError) {
+          console.error("[Scout] community suggestion logic failed", communityError);
+        }
+      }
+
+      if (contractorCount > 0) {
+        aiResponse.message = trimResponseToScreenFit(
+          `${aiResponse.message}\n\nThese recommendations come from people in your community — they’re ${COMMUNITY_TONE.accountability} reviews.`,
+        );
+      }
+
       const isCommunityVaultTopic =
         lower.includes("community vault") ||
         (lower.includes("vault") && lower.includes("community")) ||
@@ -1676,7 +1865,7 @@ router.post("/", async (req: Request, res: Response) => {
           const donationAmount = amountFromText ?? 25;
           const supportAmount = amountFromText ?? 10;
 
-          aiResponse.actions = [
+          actions.push(
             {
               type: "NAVIGATE",
               label: "Open Community Vault",
@@ -1689,7 +1878,7 @@ router.post("/", async (req: Request, res: Response) => {
             },
             {
               type: "START_PLATFORM_SUPPORT",
-              label: `Support platform ${formatUsd(supportAmount)} (one-time split)`,
+              label: `Support platform ${formatUsd(supportAmount)} (one-time split)` ,
               payload: {
                 amount: supportAmount,
                 mode: "one_time",
@@ -1698,22 +1887,46 @@ router.post("/", async (req: Request, res: Response) => {
             },
             {
               type: "START_PLATFORM_SUPPORT",
-              label: `Support platform ${formatUsd(supportAmount)} (monthly split)`,
+              label: `Support platform ${formatUsd(supportAmount)} (monthly split)` ,
               payload: {
                 amount: supportAmount,
                 mode: "subscription",
                 originatingProfileId: profileId,
               },
-            },
-          ];
+            }
+          );
         } else if (userId) {
-          aiResponse.actions = [
-            {
+          actions.push({
+            type: "NAVIGATE",
+            label: "Open my dashboard",
+            to: "/dashboard",
+          });
+        }
+      }
+
+      // Connections / friends navigation: surface the dedicated connections view
+      if (userId) {
+        const mentionsConnections =
+          lower.includes("connection") ||
+          lower.includes("connections") ||
+          lower.includes("friend") ||
+          lower.includes("friends") ||
+          lower.includes("follow") ||
+          lower.includes("followers") ||
+          lower.includes("following");
+
+        if (mentionsConnections) {
+          const alreadyHasConnectionsNav = actions.some(
+            (a) => a.type === "NAVIGATE" && a.to === "/connections"
+          );
+
+          if (!alreadyHasConnectionsNav) {
+            actions.push({
               type: "NAVIGATE",
-              label: "Open my dashboard",
-              to: "/dashboard",
-            },
-          ];
+              label: "View my connections",
+              to: "/connections",
+            });
+          }
         }
       }
 
@@ -1734,7 +1947,6 @@ router.post("/", async (req: Request, res: Response) => {
           (typeof synthesized.intent === "string" && /project|job/i.test(synthesized.intent));
 
         if (wantsProjects) {
-          const actions = Array.isArray(aiResponse.actions) ? aiResponse.actions.slice() : [];
           const alreadyHasTracker = actions.some(
             (a) => a.type === "NAVIGATE" && (a.to === "/lead-management" || a.to === "/project-tracker")
           );
@@ -1751,7 +1963,6 @@ router.post("/", async (req: Request, res: Response) => {
             }
 
             actions.push(baseAction);
-            aiResponse.actions = actions;
           }
 
           if (currentJobId) {
@@ -1774,6 +1985,8 @@ router.post("/", async (req: Request, res: Response) => {
           }
         }
       }
+
+      aiResponse.actions = actions;
     } catch (actionError) {
       console.error("[Scout] failed to build community vault actions", actionError);
     }

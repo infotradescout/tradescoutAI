@@ -4,6 +4,7 @@ import { fileURLToPath } from "url";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import mammoth from "mammoth";
 import { db } from "../../src/db/drizzle-mock";
+import { storage } from "../storage";
 
 // ES module equivalent of __dirname
 const __filename = fileURLToPath(import.meta.url);
@@ -36,6 +37,10 @@ interface KnowledgeResponse {
   sources: string[];
   layer: 1 | 2 | 3 | 4;
   confidence: "high" | "medium" | "low";
+  meta?: {
+    communityPosts?: { count: number };
+    contractors?: { count: number };
+  };
 }
 
 /**
@@ -423,34 +428,78 @@ function readAutoCache(category: string): CacheResult {
 async function queryWebsite(
   message: string,
   userId?: string,
-  countyCode?: string
+  countyCode?: string,
+  stateCode?: string
 ): Promise<CacheResult> {
   try {
     const messageLower = message.toLowerCase();
     let result: any = null;
 
-    // Detect category from message
+    // Detect category from message and fetch from live database when cache is thin.
+    // Keep queries conservative and scoped to user's county/state when available.
+
+    // Community posts / feed (neighbors talking, recommendations, etc.)
     if (
+      messageLower.includes("post") ||
+      messageLower.includes("posts") ||
+      messageLower.includes("feed") ||
+      messageLower.includes("neighbors") ||
+      messageLower.includes("neighbours") ||
+      messageLower.includes("recommendation") ||
+      messageLower.includes("recommendations")
+    ) {
+      const filters: Parameters<typeof storage.getCommunityPosts>[0] = {
+        limit: 10,
+      };
+
+      if (countyCode) {
+        filters.scope = "county" as any;
+        filters.countyFips = countyCode;
+      } else if (stateCode) {
+        filters.scope = "state" as any;
+        filters.stateCode = stateCode;
+      }
+
+      const posts = await storage.getCommunityPosts(filters);
+
+      result = {
+        category: "community_posts",
+        items: posts.map((p: any) => ({
+          id: p.id,
+          title: p.title,
+          content: p.content,
+          category: p.category,
+          tags: p.tags,
+          createdAt: p.createdAt,
+          location: p.location,
+          authorName: p.author?.name,
+          authorRole: p.author?.role,
+          likeCount: p.upvotes,
+          commentCount: p.comments,
+        })),
+      };
+    } else if (
       messageLower.includes("contractor") ||
       messageLower.includes("roofer") ||
       messageLower.includes("plumber") ||
       messageLower.includes("electrician") ||
       messageLower.includes("hvac")
     ) {
+      // Contractors: prefer cache, but fall back to a thin live query if needed.
       const contractors = await db.query.contractors.findMany({
-        where: countyCode ? ((c: any) => c.countyCode.equals(countyCode)) : undefined,
+        // For now, keep this unfiltered; location scoping is handled in higher layers.
         limit: 10,
       });
       result = {
         category: "contractors",
         items: contractors.map((c: any) => ({
           id: c.id,
-          name: c.name,
-          trades: c.trades,
-          verified: c.verified,
-          rating: c.rating,
-          countyCode: c.countyCode,
-          stateCode: c.stateCode,
+          companyName: c.companyName,
+          yearsInBusiness: c.yearsInBusiness,
+          verifiedLicensed: c.verifiedLicensed,
+          verifiedInsured: c.verifiedInsured,
+          recommendationScore: c.recommendationScore,
+          totalRecommendations: c.totalRecommendations,
         })),
       };
     } else if (
@@ -461,7 +510,6 @@ async function queryWebsite(
       messageLower.includes("marketplace")
     ) {
       const listings = await db.query.marketplaceListings.findMany({
-        where: countyCode ? ((m: any) => m.countyCode.equals(countyCode)) : undefined,
         limit: 10,
       });
       result = {
@@ -471,8 +519,8 @@ async function queryWebsite(
           title: m.title,
           price: m.price,
           description: m.description,
-          countyCode: m.countyCode,
-          stateCode: m.stateCode,
+          county: m.county,
+          state: m.state,
           createdAt: m.createdAt,
         })),
       };
@@ -482,7 +530,6 @@ async function queryWebsite(
       messageLower.includes("club")
     ) {
       const groups = await db.query.communityGroups.findMany({
-        where: countyCode ? ((g: any) => g.countyCode.equals(countyCode)) : undefined,
         limit: 10,
       });
       result = {
@@ -491,14 +538,13 @@ async function queryWebsite(
           id: g.id,
           name: g.name,
           description: g.description,
-          members: g.members,
-          countyCode: g.countyCode,
+          memberCount: g.memberCount,
+          countyFips: g.countyFips,
           stateCode: g.stateCode,
         })),
       };
     } else if (messageLower.includes("hoa")) {
       const hoaData = await db.query.homeownerAssociations.findMany({
-        where: countyCode ? ((h: any) => h.countyCode.equals(countyCode)) : undefined,
         limit: 10,
       });
       result = {
@@ -508,18 +554,18 @@ async function queryWebsite(
           name: h.name,
           budget: h.budget,
           rulesPublic: h.rulesPublic,
-          countyCode: h.countyCode,
+          countyFips: h.countyFips,
           stateCode: h.stateCode,
         })),
       };
     } else if (messageLower.includes("county") || messageLower.includes("area")) {
       const counties = await db.query.counties.findMany({
-        where: countyCode ? ((c: any) => c.countyCode.equals(countyCode)) : undefined,
+        limit: 25,
       });
       result = {
         category: "counties",
         items: counties.map((c: any) => ({
-          countyCode: c.countyCode,
+          countyFips: c.countyFips,
           stateCode: c.stateCode,
           name: c.name,
           population: c.population,
@@ -622,6 +668,7 @@ export async function resolveKnowledge(
   const aggregatedContent: string[] = [];
   let highestLayer = 4;
   let hasManualOverride = false;
+  const meta: KnowledgeResponse["meta"] = {};
 
   // LAYER 1: Manual Admin Overrides (Highest Authority)
   // If admin has set a rule, local guide, or override → use it exactly and STOP
@@ -670,14 +717,28 @@ export async function resolveKnowledge(
   if (cacheResult.source !== "none" && cacheResult.data && Array.isArray(cacheResult.data) && cacheResult.data.length > 0) {
     sources.push(`TradeScout Cache (${category})`);
     aggregatedContent.push(`CACHED DATA (${category}):\n${JSON.stringify(cacheResult.data, null, 2)}`);
+    if (category === "contractors" && typeof cacheResult.itemCount === "number") {
+      meta.contractors = { count: cacheResult.itemCount };
+    }
     highestLayer = Math.min(highestLayer, 2);
   }
 
   // Try live database query
-  const dbResult = await queryWebsite(message, userId, countyCode);
+  const dbResult = await queryWebsite(message, userId, countyCode, stateCode);
   if (dbResult.source === "database" && dbResult.data?.items?.length > 0) {
     sources.push(`TradeScout Database (${dbResult.data.category})`);
     aggregatedContent.push(`DATABASE (${dbResult.data.category}):\n${JSON.stringify(dbResult.data.items, null, 2)}`);
+    const count = typeof dbResult.itemCount === "number"
+      ? dbResult.itemCount
+      : Array.isArray(dbResult.data.items)
+      ? dbResult.data.items.length
+      : 0;
+    if (dbResult.data.category === "community_posts") {
+      meta.communityPosts = { count };
+    }
+    if (dbResult.data.category === "contractors") {
+      meta.contractors = { count };
+    }
     highestLayer = Math.min(highestLayer, 2);
   }
 
@@ -690,6 +751,7 @@ export async function resolveKnowledge(
       sources,
       layer: highestLayer as 1 | 2 | 3 | 4,
       confidence: highestLayer === 1 ? "high" : "high",
+      meta,
     };
   }
 
@@ -737,6 +799,15 @@ export async function resolveKnowledge(
 function detectCategory(message: string): string {
   const lower = message.toLowerCase();
   
+  // Public / marketplace profiles (profile pages, pro cards, seller pages)
+  if (
+    lower.includes("public profile") ||
+    (lower.includes("profile") && (lower.includes("page") || lower.includes("site") || lower.includes("url") || lower.includes("link"))) ||
+    lower.includes("pro card")
+  ) {
+    return "profiles_public";
+  }
+
   if (lower.includes("contractor") || lower.includes("roofer") || 
       lower.includes("plumber") || lower.includes("electrician") || 
       lower.includes("hvac") || lower.includes("handyman")) {

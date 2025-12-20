@@ -48,6 +48,7 @@ import {
   insertCarSalesmanProfileSchema,
   insertGeneratedStorySchema,
   counties,
+  userFollows,
 } from "../shared/schema";
 import { getUserTypeBadgeLabel } from "../shared/userTypes";
 import type { AffiliateAccount, AffiliateReferral, AffiliatePayout } from "../shared/schema";
@@ -1542,6 +1543,59 @@ export async function registerRoutes(app: any) {
         return res.status(404).json({ message: "Profile not found" });
       }
 
+      // Optionally enrich with connection stats when viewer is authenticated
+      let connectionSummary: { followers: number; following: number; mutual: number } | undefined;
+      let viewerConnection:
+        | { isFollowing: boolean; isFollowedBy: boolean; isMutual: boolean }
+        | undefined;
+
+      try {
+        const viewerId = (req as AuthedRequest)?.user?.id || (req as AuthedRequest)?.user?.claims?.sub;
+        if (viewerId && typeof viewerId === "string") {
+          // Get follower/following sets for this public profile
+          const followersRows = await db
+            .select({ followerId: userFollows.followerId })
+            .from(userFollows)
+            .where(eq(userFollows.followingId, user.id));
+
+          const followingRows = await db
+            .select({ followingId: userFollows.followingId })
+            .from(userFollows)
+            .where(eq(userFollows.followerId, user.id));
+
+          const followerIds = new Set(
+            followersRows.map((row: any) => row.followerId).filter(Boolean)
+          );
+          const followingIds = new Set(
+            followingRows.map((row: any) => row.followingId).filter(Boolean)
+          );
+
+          let mutualCount = 0;
+          followerIds.forEach((id) => {
+            if (followingIds.has(id)) {
+              mutualCount += 1;
+            }
+          });
+
+          connectionSummary = {
+            followers: followerIds.size,
+            following: followingIds.size,
+            mutual: mutualCount,
+          };
+
+          const isFollowing = followerIds.has(viewerId); // viewer follows profile owner
+          const isFollowedBy = followingIds.has(viewerId); // profile owner follows viewer
+
+          viewerConnection = {
+            isFollowing,
+            isFollowedBy,
+            isMutual: isFollowing && isFollowedBy,
+          };
+        }
+      } catch (err) {
+        console.error("Error enriching public profile with connections:", err);
+      }
+
       // Return safe public profile data
       const publicProfile = {
         id: user.id,
@@ -1560,6 +1614,8 @@ export async function registerRoutes(app: any) {
         },
         // Stats can be populated later from real aggregates; omit fake zeros
         stats: undefined,
+        connections: connectionSummary,
+        viewerConnection,
       };
 
       res.json(publicProfile);

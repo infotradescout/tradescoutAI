@@ -3,6 +3,7 @@ import {
   createCommunityVaultDonationCheckoutSession,
   createPlatformSupportCheckoutSession,
 } from "../agent/tools/communityPayments";
+import { followUser, unfollowUser } from "../agent/tools/connections";
 
 export interface ScoutActionHelpers {
   navigate: (to: string) => void;
@@ -75,6 +76,45 @@ export function executeScoutActions(
           helpers.askScout(action.prompt);
         }
         break;
+
+      case "FOLLOW_USER": {
+        const targetId =
+          typeof action.payload?.userId === "string"
+            ? (action.payload.userId as string)
+            : null;
+        if (!targetId) break;
+
+        void (async () => {
+          try {
+            await followUser(targetId);
+            // After follow, take the user to their connections view so they see the change.
+            helpers.navigate("/connections");
+          } catch (err) {
+            console.error("Failed to follow user from Scout action", err);
+          }
+        })();
+
+        break;
+      }
+
+      case "UNFOLLOW_USER": {
+        const targetId =
+          typeof action.payload?.userId === "string"
+            ? (action.payload.userId as string)
+            : null;
+        if (!targetId) break;
+
+        void (async () => {
+          try {
+            await unfollowUser(targetId);
+            helpers.navigate("/connections");
+          } catch (err) {
+            console.error("Failed to unfollow user from Scout action", err);
+          }
+        })();
+
+        break;
+      }
 
       case "START_COMMUNITY_VAULT_DONATION": {
         const profileId =

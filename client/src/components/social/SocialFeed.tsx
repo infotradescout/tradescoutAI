@@ -36,6 +36,7 @@ export function SocialFeed({ className }: SocialFeedProps) {
   const [location, setLocation] = useState('neighborhood');
   const [sortBy, setSortBy] = useState('recent');
   const [searchQuery, setSearchQuery] = useState('');
+  const [scope, setScope] = useState<'all' | 'connections'>('all');
 
   // Fetch social feed
   const {
@@ -44,12 +45,13 @@ export function SocialFeed({ className }: SocialFeedProps) {
     error,
     refetch
   } = useQuery({
-    queryKey: ['/api/social/feed', { postType, location, sortBy, search: searchQuery }],
+    queryKey: ['/api/social/feed', { postType, location, sortBy, search: searchQuery, scope }],
     queryFn: () => apiRequest('GET', '/api/social/feed', { 
       postType, 
       location, 
       sortBy, 
-      search: searchQuery 
+      search: searchQuery,
+      scope,
     }),
     enabled: isAuthenticated,
   });
@@ -250,6 +252,16 @@ export function SocialFeed({ className }: SocialFeedProps) {
                             <SelectItem value="recent">Recent</SelectItem>
                             <SelectItem value="popular">Popular</SelectItem>
                             <SelectItem value="trending">Trending</SelectItem>
+                          </SelectContent>
+                        </Select>
+
+                        <Select value={scope} onValueChange={(v) => setScope(v as 'all' | 'connections')}>
+                          <SelectTrigger className="w-[140px]">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="all">Everyone</SelectItem>
+                            <SelectItem value="connections">My connections</SelectItem>
                           </SelectContent>
                         </Select>
                       </div>

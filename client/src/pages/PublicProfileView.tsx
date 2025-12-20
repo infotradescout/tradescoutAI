@@ -32,6 +32,16 @@ interface PublicProfile {
     reviews?: number;
     rating?: number;
   };
+  connections?: {
+    followers: number;
+    following: number;
+    mutual: number;
+  };
+  viewerConnection?: {
+    isFollowing: boolean;
+    isFollowedBy: boolean;
+    isMutual: boolean;
+  };
 }
 
 interface SellerProductSummary {
@@ -229,6 +239,10 @@ export default function PublicProfileView() {
   const showBadges = profile.preferences?.badges?.show !== false;
   const hasCommunityBuilder = (profile.roles || []).includes('community_builder');
 
+  const bio = typeof profile.preferences?.bio === "string"
+    ? profile.preferences.bio.trim()
+    : "";
+
   const profileSections = profile.preferences?.profileSections || {};
   const showAbout = profileSections.about !== false;
   const showRolesAndBadges = profileSections.rolesAndBadges !== false;
@@ -238,6 +252,69 @@ export default function PublicProfileView() {
     const showReviews = profileSections.reviews !== false;
     const showCommunityActivity = profileSections.communityActivity !== false;
   const showContactCard = profileSections.contactCard !== false;
+
+  const [isUpdatingConnection, setIsUpdatingConnection] = useState(false);
+
+  const handleToggleConnection = async () => {
+    if (isUpdatingConnection || !profile?.id) return;
+
+    // If viewerConnection is undefined we optimistically try to follow
+    const isCurrentlyFollowing = profile.viewerConnection?.isFollowing ?? false;
+
+    try {
+      setIsUpdatingConnection(true);
+      const method = isCurrentlyFollowing ? "DELETE" : "POST";
+      const response = await fetch(`/api/social/connections/${profile.id}/follow`, {
+        method,
+        credentials: "include",
+        headers: {
+          "Accept": "application/json",
+          "Content-Type": "application/json",
+        },
+      });
+
+      if (!response.ok) {
+        console.error("Failed to update connection status");
+        return;
+      }
+
+      const data = await response.json();
+
+      setProfile((prev) => {
+        if (!prev) return prev;
+
+        const viewerConnection = data.viewerConnection ?? {
+          isFollowing: !isCurrentlyFollowing,
+          isFollowedBy: prev.viewerConnection?.isFollowedBy ?? false,
+          isMutual:
+            (!isCurrentlyFollowing && prev.viewerConnection?.isFollowedBy) ??
+            false,
+        };
+
+        // Adjust follower count for this public profile when viewer follows/unfollows
+        let followers = prev.connections?.followers ?? 0;
+        if (!isCurrentlyFollowing) {
+          followers += 1;
+        } else if (followers > 0) {
+          followers -= 1;
+        }
+
+        return {
+          ...prev,
+          connections: {
+            followers,
+            following: prev.connections?.following ?? 0,
+            mutual: prev.connections?.mutual ?? 0,
+          },
+          viewerConnection,
+        };
+      });
+    } catch (err) {
+      console.error("Error toggling connection:", err);
+    } finally {
+      setIsUpdatingConnection(false);
+    }
+  };
 
   return (
     <div 
@@ -347,51 +424,77 @@ export default function PublicProfileView() {
                 </div>
               )}
             </div>
+            <div className="flex flex-col items-end gap-4">
+              {/* Connection button */}
+              <Button
+                variant={profile.viewerConnection?.isFollowing ? "outline" : "default"}
+                onClick={handleToggleConnection}
+                disabled={isUpdatingConnection}
+                className="min-w-[140px]"
+              >
+                {isUpdatingConnection
+                  ? "Updating..."
+                  : profile.viewerConnection?.isFollowing
+                  ? "Connected"
+                  : "Connect"}
+              </Button>
 
-            {/* Stats */}
-            {showStats && profile.stats && (
-              <div className="flex gap-6">
-                {profile.stats.listings !== undefined && (
-                  <div className="text-center">
-                    <div 
-                      className="text-2xl font-bold"
-                      style={{ color: 'var(--user-primary, #f97316)' }}
-                    >
-                      {profile.stats.listings}
-                    </div>
-                    <div className="text-sm opacity-70">Listings</div>
-                  </div>
-                )}
-                {profile.stats.reviews !== undefined && (
-                  <div className="text-center">
-                    <div 
-                      className="text-2xl font-bold"
-                      style={{ color: 'var(--user-primary, #f97316)' }}
-                    >
-                      {profile.stats.reviews}
-                    </div>
-                    <div className="text-sm opacity-70">RECOMMENDATIONS</div>
-                  </div>
-                )}
-                {profile.stats.rating !== undefined && (
-                  <div className="text-center">
-                    <div className="flex items-center gap-1">
-                      <span 
+              {/* Stats */}
+              {showStats && profile.stats && (
+                <div className="flex gap-6">
+                  {profile.stats.listings !== undefined && (
+                    <div className="text-center">
+                      <div
                         className="text-2xl font-bold"
-                        style={{ color: 'var(--user-primary, #f97316)' }}
+                        style={{ color: "var(--user-primary, #f97316)" }}
                       >
-                        {profile.stats.rating.toFixed(1)}
-                      </span>
-                      <Star 
-                        className="h-5 w-5 fill-current"
-                        style={{ color: 'var(--user-primary, #f97316)' }}
-                      />
+                        {profile.stats.listings}
+                      </div>
+                      <div className="text-sm opacity-70">Listings</div>
                     </div>
-                    <div className="text-sm opacity-70">Rating</div>
-                  </div>
-                )}
-              </div>
-            )}
+                  )}
+                  {profile.stats.reviews !== undefined && (
+                    <div className="text-center">
+                      <div
+                        className="text-2xl font-bold"
+                        style={{ color: "var(--user-primary, #f97316)" }}
+                      >
+                        {profile.stats.reviews}
+                      </div>
+                      <div className="text-sm opacity-70">RECOMMENDATIONS</div>
+                    </div>
+                  )}
+                  {profile.stats.rating !== undefined && (
+                    <div className="text-center">
+                      <div className="flex items-center gap-1">
+                        <span
+                          className="text-2xl font-bold"
+                          style={{ color: "var(--user-primary, #f97316)" }}
+                        >
+                          {profile.stats.rating.toFixed(1)}
+                        </span>
+                        <Star
+                          className="h-5 w-5 fill-current"
+                          style={{ color: "var(--user-primary, #f97316)" }}
+                        />
+                      </div>
+                      <div className="text-sm opacity-70">Rating</div>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Connection counts */}
+              {profile.connections && (
+                <div className="flex gap-4 text-xs opacity-80 mt-1">
+                  <span>{profile.connections.followers} followers</span>
+                  <span>{profile.connections.following} following</span>
+                  {profile.connections.mutual > 0 && (
+                    <span>{profile.connections.mutual} mutual</span>
+                  )}
+                </div>
+              )}
+            </div>
           </div>
         </div>
 
@@ -406,10 +509,16 @@ export default function PublicProfileView() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="text-sm">
-                  This is a TradeScout community member. Their profile serves as their professional website,
-                  customized based on their roles and activity on the platform.
-                </p>
+                {bio ? (
+                  <p className="text-sm whitespace-pre-wrap">
+                    {bio}
+                  </p>
+                ) : (
+                  <p className="text-sm">
+                    This is a TradeScout community member. Their profile serves as their professional website,
+                    customized based on their roles and activity on the platform.
+                  </p>
+                )}
               </CardContent>
             </Card>
           )}
