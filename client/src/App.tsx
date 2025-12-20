@@ -10,6 +10,7 @@ import { SessionProvider } from './contexts/SessionContext';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { useAuth } from './hooks/useAuth';
 import { AppShell } from './components/layout/AppShell';
+import { LegalFooter as SiteLegalFooter } from '@/components/footer/legal-footer';
 import ScoutOS from './scout';
 
 // Only load essential components eagerly
@@ -252,27 +253,6 @@ const LazyPage = memo(function LazyPage({
   );
 });
 
-// Legal footer component
-const LegalFooter = memo(function LegalFooter() {
-  return (
-    <footer className="bg-navy-900 border-t border-navy-700 mt-auto">
-      <div className="container mx-auto px-4 py-6">
-        <div className="flex flex-col md:flex-row justify-between items-center text-sm text-gray-400">
-          <div className="flex flex-wrap gap-4 mb-4 md:mb-0">
-            <a href="/terms" className="hover:text-orange-400 transition-colors">Terms</a>
-            <a href="/privacy" className="hover:text-orange-400 transition-colors">Privacy</a>
-            <a href="/cookies" className="hover:text-orange-400 transition-colors">Cookies</a>
-            <a href="/compliance" className="hover:text-orange-400 transition-colors">Compliance</a>
-          </div>
-          <div>
-            � 2025 TradeScout. All rights reserved.
-          </div>
-        </div>
-      </div>
-    </footer>
-  );
-});
-
 // Main app layout component
 const AppLayout = memo(function AppLayout() {
   const [location, setLocation] = useLocation();
@@ -407,7 +387,7 @@ const AppLayout = memo(function AppLayout() {
                 <Route path=":rest*"><LazyPage Component={NotFound} /></Route>
               </Switch>
             ) : (
-              <AppShell footer={<LegalFooter />}>
+              <AppShell footer={<SiteLegalFooter />}>
                 <Switch>
                   {/* Scout OS: primary AI controller surface and landing page */}
                   <Route path="/" component={ScoutOS} />

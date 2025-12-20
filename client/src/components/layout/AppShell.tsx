@@ -1,7 +1,6 @@
 import React, { ReactNode, useEffect, useState } from "react";
 import { Link } from "wouter";
 import {
-  LayoutGrid,
   MessageCircle,
   Bell,
   Users,
@@ -9,11 +8,11 @@ import {
   ShoppingBag,
   Trophy,
   Heart,
-  LogOut,
   Share2,
   Compass,
+  Menu,
 } from "lucide-react";
-import { useAuth, useLogout } from "@/hooks/useAuth";
+import { useAuth } from "@/hooks/useAuth";
 import { useHandedness } from "@/hooks/useHandedness";
 import { useIsMobile } from "@/hooks/useIsMobile";
 import { ROUTES } from "@/lib/routes";
@@ -85,7 +84,6 @@ const featureNav: NavItem[] = [
 
 export function AppShell({ children, footer }: AppShellProps) {
   const { isAuthenticated } = useAuth();
-  const logout = useLogout();
   const isMobile = useIsMobile();
   const [isToolsOpen, setIsToolsOpen] = useState(false);
   const handedness = useHandedness();
@@ -168,18 +166,6 @@ export function AppShell({ children, footer }: AppShellProps) {
             </button>
           )}
 
-          {/* Logout for authenticated users */}
-          {isAuthenticated && (
-            <button
-              type="button"
-              onClick={logout}
-              className="inline-flex items-center justify-center rounded-xl border border-red-500/60 bg-slate-950/80 px-3 py-1 text-[0.7rem] font-semibold text-red-400 hover:bg-red-600/10 hover:text-red-300"
-            >
-              <LogOut className="h-3.5 w-3.5 mr-1" />
-              Sign out
-            </button>
-          )}
-
           {/* Tools / profile panel (user-specific stuff) */}
           <button
             type="button"
@@ -187,7 +173,7 @@ export function AppShell({ children, footer }: AppShellProps) {
             className="inline-flex h-8 w-8 items-center justify-center rounded-xl border border-slate-800 bg-slate-950/80 text-slate-200 hover:bg-slate-900"
             aria-label="Open profile & tools panel"
           >
-            <LayoutGrid className="h-4 w-4 text-orange-400" />
+            <Menu className="h-4 w-4 text-orange-400" />
           </button>
         </div>
       </header>
@@ -210,6 +196,10 @@ export function AppShell({ children, footer }: AppShellProps) {
 
       {/* BOTTOM BAR: SCROLLABLE SITE FEATURE NAV (mobile + desktop) */}
       <MobileAppBar items={featureNav} />
+
+        {/* Desktop-only legal footer sits below the bottom nav so the
+          site still feels app-like while keeping legal links visible. */}
+        {!isMobile && footer}
 
       {/* MOBILE TOOLS DRAWER = PROFILE / DASHBOARD / SETTINGS, etc. */}
       {isMobile && isToolsOpen && (
@@ -234,7 +224,7 @@ export function AppShell({ children, footer }: AppShellProps) {
               </button>
             </div>
             <div className="flex-1 overflow-y-auto">
-              <RightToolsPanel footer={footer} />
+              <RightToolsPanel />
             </div>
           </div>
         </div>
