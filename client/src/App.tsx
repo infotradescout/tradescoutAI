@@ -231,6 +231,7 @@ const CarSalesFollowUp = React.lazy(() => import('./pages/car-sales-follow-up'))
 const RealtorClients = React.lazy(() => import('./pages/realtor-clients'));
 const RealtorMarketAnalysis = React.lazy(() => import('./pages/realtor-market-analysis'));
 const RealtorConnections = React.lazy(() => import('./pages/realtor-connections'));
+const ConnectionsPage = React.lazy(() => import('./pages/connections'));
 const RealtorCalculator = React.lazy(() => import('./pages/realtor-calculator'));
 const RealtorCMA = React.lazy(() => import('./pages/realtor-cma'));
 const RealtorAppointments = React.lazy(() => import('./pages/realtor-appointments'));
@@ -793,6 +794,7 @@ const AppLayout = memo(function AppLayout() {
                   <Route path="/realtor-clients"><LazyPage Component={RealtorClients} /></Route>
                   <Route path="/realtor-market-analysis"><LazyPage Component={RealtorMarketAnalysis} /></Route>
                   <Route path="/realtor-connections"><LazyPage Component={RealtorConnections} /></Route>
+                  <Route path="/connections"><LazyPage Component={ConnectionsPage} /></Route>
                   <Route path="/realtor-calculator"><LazyPage Component={RealtorCalculator} /></Route>
                   <Route path="/realtor-cma"><LazyPage Component={RealtorCMA} /></Route>
                   <Route path="/realtor-appointments"><LazyPage Component={RealtorAppointments} /></Route>

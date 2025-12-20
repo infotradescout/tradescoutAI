@@ -128,6 +128,24 @@ export function useHelpSystem() {
         illustration: 'blueprint',
         position: 'right'
       }
+    ],
+    'connections': [
+      {
+        id: 'connections-intro',
+        target: '.connections-header',
+        title: 'Connections & Scout',
+        content: 'This page shows people you follow and who follow you. Scout can also open this view and help you decide who to connect with next.',
+        illustration: 'users',
+        position: 'bottom'
+      },
+      {
+        id: 'connections-suggested',
+        target: '.connections-suggested',
+        title: 'Suggested connections',
+        content: 'We highlight people who follow you that you arent following back yet so you can build mutual connections quickly.',
+        illustration: 'sparkles',
+        position: 'right'
+      }
     ]
   };
 

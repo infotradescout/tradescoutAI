@@ -12,6 +12,7 @@ import {
   neighborhoods,
   users
 } from "@shared/schema";
+import { storage } from "./storage";
 import { isAuthenticated, requirePermission } from "./auth";
 import { z } from "zod";
 import type { User } from "@shared/schema";
@@ -41,8 +42,9 @@ export function registerSocialRoutes(app: Express) {
         sortBy = 'recent',
         search = '',
         page = 1,
-        limit = 10
-      } = req.query;
+        limit = 10,
+        scope = 'all', // all | connections (future scopes can be added)
+      } = req.query as any;
       
       const offset = (parseInt(page) - 1) * parseInt(limit);
       
@@ -62,6 +64,23 @@ export function registerSocialRoutes(app: Express) {
           whereConditions.push(eq(socialPosts.county, user[0].county));
         }
       }
+
+      // Scope filter: when viewing "connections" only show posts from people the user follows
+      if (scope === 'connections') {
+        const followingRows = await db
+          .select({ followingId: userFollows.followingId })
+          .from(userFollows)
+          .where(eq(userFollows.followerId, userId));
+
+        const followingIds = followingRows.map((row: any) => row.followingId).filter(Boolean);
+
+        if (followingIds.length === 0) {
+          // User has no connections yet; return empty feed quickly
+          return res.json([]);
+        }
+
+        whereConditions.push(inArray(socialPosts.authorId, followingIds));
+      }
       
       // Search filter
       if (search) {
@@ -73,7 +92,7 @@ export function registerSocialRoutes(app: Express) {
         );
       }
       
-      // Base query
+      // Base query (note: currently not executed – feed remains stubbed)
       let query = db
         .select({
           post: socialPosts,
@@ -684,6 +703,271 @@ export function registerSocialRoutes(app: Express) {
         activeMembers: 0,
         newMembers: 0,
       });
+    }
+  });
+
+  // Follow another user (connections)
+  app.post("/api/social/connections/:targetUserId/follow", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id as string;
+      const { targetUserId } = req.params as { targetUserId: string };
+
+      if (!targetUserId || typeof targetUserId !== "string") {
+        return res.status(400).json({ message: "Target user ID is required" });
+      }
+
+      if (targetUserId === userId) {
+        return res.status(400).json({ message: "You cannot follow yourself" });
+      }
+
+      // Ensure target user exists
+      const [target] = await db
+        .select({ id: users.id })
+        .from(users)
+        .where(eq(users.id, targetUserId))
+        .limit(1);
+
+      if (!target) {
+        return res.status(404).json({ message: "Target user not found" });
+      }
+
+      // Check existing follow relationship
+      const [existing] = await db
+        .select()
+        .from(userFollows)
+        .where(
+          and(
+            eq(userFollows.followerId, userId),
+            eq(userFollows.followingId, targetUserId)
+          )
+        )
+        .limit(1);
+
+      if (existing) {
+        // Already following – return current status
+        const [reverse] = await db
+          .select()
+          .from(userFollows)
+          .where(
+            and(
+              eq(userFollows.followerId, targetUserId),
+              eq(userFollows.followingId, userId)
+            )
+          )
+          .limit(1);
+
+        return res.json({
+          success: true,
+          alreadyFollowing: true,
+          connection: existing,
+          viewerConnection: {
+            isFollowing: true,
+            isFollowedBy: !!reverse,
+            isMutual: !!reverse,
+          },
+        });
+      }
+
+      const [follow] = await db
+        .insert(userFollows)
+        .values({
+          followerId: userId,
+          followingId: targetUserId,
+        })
+        .returning();
+
+      const [reverse] = await db
+        .select()
+        .from(userFollows)
+        .where(
+          and(
+            eq(userFollows.followerId, targetUserId),
+            eq(userFollows.followingId, userId)
+          )
+        )
+        .limit(1);
+
+      // Create a basic in-app notification for the target user about the new follower.
+      try {
+        const [followerUser] = await db
+          .select({ firstName: users.firstName, lastName: users.lastName })
+          .from(users)
+          .where(eq(users.id, userId))
+          .limit(1);
+
+        const followerName = [
+          followerUser?.firstName ?? "",
+          followerUser?.lastName ?? "",
+        ]
+          .join(" ")
+          .trim() || "Someone";
+
+        await storage.createNotification({
+          userId: targetUserId,
+          type: "social_follow" as any,
+          title: "New follower",
+          message: `${followerName} just followed you on TradeScout.`,
+          actionUrl: "/connections",
+        } as any);
+      } catch (notifyErr) {
+        console.error("[Social] Failed to create follow notification", notifyErr);
+      }
+
+      res.json({
+        success: true,
+        connection: follow,
+        viewerConnection: {
+          isFollowing: true,
+          isFollowedBy: !!reverse,
+          isMutual: !!reverse,
+        },
+      });
+    } catch (error) {
+      console.error("Error following user:", error);
+      res.status(500).json({ message: "Failed to follow user" });
+    }
+  });
+
+  // Unfollow a user
+  app.delete("/api/social/connections/:targetUserId/follow", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id as string;
+      const { targetUserId } = req.params as { targetUserId: string };
+
+      if (!targetUserId || typeof targetUserId !== "string") {
+        return res.status(400).json({ message: "Target user ID is required" });
+      }
+
+      await db
+        .delete(userFollows)
+        .where(
+          and(
+            eq(userFollows.followerId, userId),
+            eq(userFollows.followingId, targetUserId)
+          )
+        );
+
+      // Check if target still follows viewer (for UI state)
+      const [reverse] = await db
+        .select()
+        .from(userFollows)
+        .where(
+          and(
+            eq(userFollows.followerId, targetUserId),
+            eq(userFollows.followingId, userId)
+          )
+        )
+        .limit(1);
+
+      res.json({
+        success: true,
+        viewerConnection: {
+          isFollowing: false,
+          isFollowedBy: !!reverse,
+          isMutual: false,
+        },
+      });
+    } catch (error) {
+      console.error("Error unfollowing user:", error);
+      res.status(500).json({ message: "Failed to unfollow user" });
+    }
+  });
+
+  // Get connection summary for the authenticated user
+  app.get("/api/social/connections/summary", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id as string;
+
+      const followersRows = await db
+        .select({ followerId: userFollows.followerId })
+        .from(userFollows)
+        .where(eq(userFollows.followingId, userId));
+
+      const followingRows = await db
+        .select({ followingId: userFollows.followingId })
+        .from(userFollows)
+        .where(eq(userFollows.followerId, userId));
+
+      const followerIds = new Set(
+        followersRows.map((row: any) => row.followerId).filter(Boolean)
+      );
+      const followingIds = new Set(
+        followingRows.map((row: any) => row.followingId).filter(Boolean)
+      );
+
+      let mutualCount = 0;
+      followerIds.forEach((id) => {
+        if (followingIds.has(id)) {
+          mutualCount += 1;
+        }
+      });
+
+      res.json({
+        followers: followerIds.size,
+        following: followingIds.size,
+        mutual: mutualCount,
+      });
+    } catch (error) {
+      console.error("Error fetching connections summary:", error);
+      res.status(500).json({ message: "Failed to fetch connections summary" });
+    }
+  });
+
+  // List users the authenticated user is following
+  app.get("/api/social/connections/following", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id as string;
+
+      const rows = await db
+        .select({
+          id: users.id,
+          firstName: users.firstName,
+          lastName: users.lastName,
+          profileImageUrl: users.profileImageUrl,
+          city: users.city,
+          state: users.state,
+          roles: users.roles,
+          role: users.role,
+          followedAt: userFollows.createdAt,
+        })
+        .from(userFollows)
+        .innerJoin(users, eq(userFollows.followingId, users.id))
+        .where(eq(userFollows.followerId, userId))
+        .orderBy(desc(userFollows.createdAt));
+
+      res.json(rows);
+    } catch (error) {
+      console.error("Error fetching following list:", error);
+      res.status(500).json({ message: "Failed to fetch following list" });
+    }
+  });
+
+  // List users who follow the authenticated user
+  app.get("/api/social/connections/followers", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id as string;
+
+      const rows = await db
+        .select({
+          id: users.id,
+          firstName: users.firstName,
+          lastName: users.lastName,
+          profileImageUrl: users.profileImageUrl,
+          city: users.city,
+          state: users.state,
+          roles: users.roles,
+          role: users.role,
+          followedAt: userFollows.createdAt,
+        })
+        .from(userFollows)
+        .innerJoin(users, eq(userFollows.followerId, users.id))
+        .where(eq(userFollows.followingId, userId))
+        .orderBy(desc(userFollows.createdAt));
+
+      res.json(rows);
+    } catch (error) {
+      console.error("Error fetching followers list:", error);
+      res.status(500).json({ message: "Failed to fetch followers list" });
     }
   });
 }

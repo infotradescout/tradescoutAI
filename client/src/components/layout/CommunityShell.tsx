@@ -71,8 +71,8 @@ export const CommunityShell: React.FC<CommunityShellProps> = ({
         </div>
       </div>
 
-      {/* Content area - AppShell manages layout */}
-      <div className="w-full">
+      {/* Content area - keep community views within viewport on mobile */}
+      <div className="w-full max-w-full overflow-x-hidden">
         {children}
       </div>
     </div>

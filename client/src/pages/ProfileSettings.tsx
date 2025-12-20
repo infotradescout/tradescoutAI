@@ -4,10 +4,11 @@ import { useAuth } from "@/hooks/useAuth";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "@/hooks/use-toast";
-import { COLOR_PRESETS, getPresetNames } from "@shared/colorPresets";
+import { COLOR_PRESETS, getPresetNames, type ColorScheme } from "@shared/colorPresets";
 import { Palette, Home, Eye, EyeOff, LayoutTemplate } from "lucide-react";
 import { applyTheme, type Theme } from "@/lib/themes";
 
@@ -46,6 +47,15 @@ export default function ProfileSettings() {
     profileSections: {},
   });
 
+  const [customColors, setCustomColors] = useState<{ primary: string; secondary: string; background: string; text: string }>(
+    {
+      primary: COLOR_PRESETS.default.primary,
+      secondary: COLOR_PRESETS.default.secondary,
+      background: COLOR_PRESETS.default.background,
+      text: COLOR_PRESETS.default.text,
+    }
+  );
+
   useEffect(() => {
     if (user?.preferences) {
       setPreferences({
@@ -54,6 +64,16 @@ export default function ProfileSettings() {
         colorScheme: user.preferences.colorScheme || { preset: 'default' },
         profileSections: user.preferences.profileSections || {},
       });
+
+      const scheme = user.preferences.colorScheme;
+      if (scheme && scheme.preset === 'custom') {
+        setCustomColors({
+          primary: scheme.primary || COLOR_PRESETS.default.primary,
+          secondary: scheme.secondary || COLOR_PRESETS.default.secondary,
+          background: scheme.background || COLOR_PRESETS.default.background,
+          text: scheme.text || COLOR_PRESETS.default.text,
+        });
+      }
     }
   }, [user]);
 
@@ -84,6 +104,54 @@ export default function ProfileSettings() {
       // Apply colors to current page
       applyColorScheme(preset);
       applyThemeFromScheme(preset);
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to update color scheme",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const saveCustomColors = async () => {
+    setLoading(true);
+    try {
+      const response = await fetch('/api/users/color-scheme', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          preset: 'custom',
+          primary: customColors.primary,
+          secondary: customColors.secondary,
+          background: customColors.background,
+          text: customColors.text,
+        }),
+      });
+
+      if (!response.ok) throw new Error('Failed to update color scheme');
+
+      const data = await response.json();
+      setPreferences(prev => ({ ...prev, colorScheme: data.colorScheme }));
+      await refetch();
+      
+      toast({
+        title: "Color scheme updated",
+        description: "Your profile colors have been saved.",
+      });
+
+      if (data.colorScheme?.primary && data.colorScheme?.secondary && data.colorScheme?.background && data.colorScheme?.text) {
+        applyCustomColors({
+          primary: data.colorScheme.primary,
+          secondary: data.colorScheme.secondary,
+          background: data.colorScheme.background,
+          text: data.colorScheme.text,
+          accent: data.colorScheme.accent,
+          border: data.colorScheme.border,
+        });
+      }
     } catch (error) {
       toast({
         title: "Error",
@@ -157,8 +225,7 @@ export default function ProfileSettings() {
     }
   };
 
-  const applyColorScheme = (preset: string) => {
-    const colors = COLOR_PRESETS[preset] || COLOR_PRESETS.default;
+  const applyColorValues = (colors: ColorScheme) => {
     const root = document.documentElement;
     
     root.style.setProperty('--user-primary', colors.primary);
@@ -167,6 +234,36 @@ export default function ProfileSettings() {
     root.style.setProperty('--user-text', colors.text);
     root.style.setProperty('--user-accent', colors.accent || colors.primary);
     root.style.setProperty('--user-border', colors.border || colors.background);
+  };
+
+  const applyColorScheme = (preset: string) => {
+    const colors = COLOR_PRESETS[preset] || COLOR_PRESETS.default;
+    applyColorValues(colors);
+  };
+
+  const applyCustomColors = (colors: ColorScheme) => {
+    applyColorValues(colors);
+    const themeFromScheme: Theme = {
+      id: 'profile-custom',
+      name: 'Profile Color Scheme',
+      description: 'Synced from profile settings',
+      colors: {
+        bgPrimary: colors.background,
+        bgSecondary: colors.background,
+        bgTertiary: colors.secondary || colors.background,
+        textPrimary: colors.text,
+        textSecondary: colors.text,
+        accentPrimary: colors.primary,
+        accentSecondary: colors.secondary || colors.primary,
+        border: colors.border || colors.background,
+      },
+    };
+
+    applyTheme(themeFromScheme);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('themeId', themeFromScheme.id);
+      localStorage.setItem('customColors', JSON.stringify(themeFromScheme.colors));
+    }
   };
 
   const applyThemeFromScheme = (preset: string) => {
@@ -196,9 +293,21 @@ export default function ProfileSettings() {
 
   // Apply color scheme on mount
   useEffect(() => {
-    if (preferences.colorScheme?.preset) {
-      applyColorScheme(preferences.colorScheme.preset);
-      applyThemeFromScheme(preferences.colorScheme.preset);
+    const scheme = preferences.colorScheme;
+    if (!scheme) return;
+
+    if (scheme.preset === 'custom' && scheme.primary && scheme.secondary && scheme.background && scheme.text) {
+      applyCustomColors({
+        primary: scheme.primary,
+        secondary: scheme.secondary,
+        background: scheme.background,
+        text: scheme.text,
+        accent: scheme.accent,
+        border: scheme.border,
+      });
+    } else if (scheme.preset) {
+      applyColorScheme(scheme.preset);
+      applyThemeFromScheme(scheme.preset);
     }
   }, [preferences.colorScheme]);
 
@@ -242,6 +351,37 @@ export default function ProfileSettings() {
     }
   };
 
+  const currentPreset = preferences.colorScheme?.preset || 'default';
+  const previewColors: ColorScheme = currentPreset === 'custom'
+    ? {
+        primary: preferences.colorScheme?.primary || COLOR_PRESETS.default.primary,
+        secondary: preferences.colorScheme?.secondary || COLOR_PRESETS.default.secondary,
+        background: preferences.colorScheme?.background || COLOR_PRESETS.default.background,
+        text: preferences.colorScheme?.text || COLOR_PRESETS.default.text,
+        accent: preferences.colorScheme?.accent || preferences.colorScheme?.primary || COLOR_PRESETS.default.primary,
+        border: preferences.colorScheme?.border || preferences.colorScheme?.background || COLOR_PRESETS.default.background,
+      }
+    : (COLOR_PRESETS[currentPreset] || COLOR_PRESETS.default);
+
+  const handlePresetChange = (preset: string) => {
+    if (preset === 'custom') {
+      setPreferences(prev => ({
+        ...prev,
+        colorScheme: {
+          ...(prev.colorScheme || {}),
+          preset: 'custom',
+          primary: customColors.primary,
+          secondary: customColors.secondary,
+          background: customColors.background,
+          text: customColors.text,
+        },
+      }));
+      return;
+    }
+
+    updateColorScheme(preset);
+  };
+
   return (
     <div className="container mx-auto py-8 space-y-6 max-w-4xl">
       <div>
@@ -272,7 +412,7 @@ export default function ProfileSettings() {
             <Label>Select Preset</Label>
             <Select
               value={preferences.colorScheme?.preset || 'default'}
-              onValueChange={updateColorScheme}
+              onValueChange={handlePresetChange}
               disabled={loading}
             >
               <SelectTrigger>
@@ -290,44 +430,132 @@ export default function ProfileSettings() {
                     </div>
                   </SelectItem>
                 ))}
+                <SelectItem value="custom">
+                  <div className="flex items-center gap-2">
+                    <div
+                      className="w-4 h-4 rounded border"
+                      style={{ backgroundColor: customColors.primary }}
+                    />
+                    <span>Custom</span>
+                  </div>
+                </SelectItem>
               </SelectContent>
             </Select>
           </div>
 
           {/* Color Preview */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-            {preferences.colorScheme?.preset && COLOR_PRESETS[preferences.colorScheme.preset] && (
+            {previewColors && (
               <>
                 <div className="space-y-1">
                   <div
                     className="h-12 rounded-md border"
-                    style={{ backgroundColor: COLOR_PRESETS[preferences.colorScheme.preset].primary }}
+                    style={{ backgroundColor: previewColors.primary }}
                   />
                   <p className="text-xs text-tsTextMuted text-center">Primary</p>
                 </div>
                 <div className="space-y-1">
                   <div
                     className="h-12 rounded-md border"
-                    style={{ backgroundColor: COLOR_PRESETS[preferences.colorScheme.preset].secondary }}
+                    style={{ backgroundColor: previewColors.secondary }}
                   />
                   <p className="text-xs text-tsTextMuted text-center">Secondary</p>
                 </div>
                 <div className="space-y-1">
                   <div
                     className="h-12 rounded-md border"
-                    style={{ backgroundColor: COLOR_PRESETS[preferences.colorScheme.preset].background }}
+                    style={{ backgroundColor: previewColors.background }}
                   />
                   <p className="text-xs text-tsTextMuted text-center">Background</p>
                 </div>
                 <div className="space-y-1">
                   <div
                     className="h-12 rounded-md border"
-                    style={{ backgroundColor: COLOR_PRESETS[preferences.colorScheme.preset].text }}
+                    style={{ backgroundColor: previewColors.text }}
                   />
                   <p className="text-xs text-tsTextMuted text-center">Text</p>
                 </div>
               </>
             )}
+          </div>
+
+          {/* Custom color pickers */}
+          <div className="mt-6 space-y-3">
+            <Label>Custom Colors</Label>
+            <p className="text-xs text-tsTextMuted">
+              Pick your own colors for this profile. Select “Custom” above to use them in your theme and public profile.
+            </p>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-1">
+                <Label className="text-xs">Primary</Label>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="color"
+                    value={customColors.primary}
+                    onChange={(e) => setCustomColors(prev => ({ ...prev, primary: e.target.value }))}
+                    className="w-10 h-10 rounded border border-tsBorder bg-transparent p-0"
+                  />
+                  <Input
+                    value={customColors.primary}
+                    onChange={(e) => setCustomColors(prev => ({ ...prev, primary: e.target.value }))}
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-1">
+                <Label className="text-xs">Secondary</Label>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="color"
+                    value={customColors.secondary}
+                    onChange={(e) => setCustomColors(prev => ({ ...prev, secondary: e.target.value }))}
+                    className="w-10 h-10 rounded border border-tsBorder bg-transparent p-0"
+                  />
+                  <Input
+                    value={customColors.secondary}
+                    onChange={(e) => setCustomColors(prev => ({ ...prev, secondary: e.target.value }))}
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-1">
+                <Label className="text-xs">Background</Label>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="color"
+                    value={customColors.background}
+                    onChange={(e) => setCustomColors(prev => ({ ...prev, background: e.target.value }))}
+                    className="w-10 h-10 rounded border border-tsBorder bg-transparent p-0"
+                  />
+                  <Input
+                    value={customColors.background}
+                    onChange={(e) => setCustomColors(prev => ({ ...prev, background: e.target.value }))}
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-1">
+                <Label className="text-xs">Text</Label>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="color"
+                    value={customColors.text}
+                    onChange={(e) => setCustomColors(prev => ({ ...prev, text: e.target.value }))}
+                    className="w-10 h-10 rounded border border-tsBorder bg-transparent p-0"
+                  />
+                  <Input
+                    value={customColors.text}
+                    onChange={(e) => setCustomColors(prev => ({ ...prev, text: e.target.value }))}
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="flex justify-end pt-2">
+              <Button onClick={saveCustomColors} disabled={loading}>
+                {loading ? 'Saving…' : 'Save Custom Colors'}
+              </Button>
+            </div>
           </div>
         </CardContent>
       </Card>
