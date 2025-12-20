@@ -149,7 +149,7 @@ export default function Register() {
               <div className="space-y-1">
                 <p className="font-semibold text-tsTextMain text-sm">County-first identity</p>
                 <p>
-                  We tie your roles to where you live so locals know exactly who they&apos;re dealing with.
+                  We tie your roles to where you live so locals know exactly who they’re dealing with.
                 </p>
               </div>
             </div>

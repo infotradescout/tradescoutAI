@@ -791,8 +791,15 @@ export default function ScoutOS() {
 
   const heroLocationLabel = getUserLocationLabel(user as any);
   const heroAudienceLabel = getUserAudienceLabel(user as any);
-  const heroHeadlineTarget =
-    isAuthenticated && heroLocationLabel ? heroLocationLabel : "YOUR COMMUNITY";
+  const heroHeadlineTarget = (() => {
+    if (isAuthenticated && heroLocationLabel) {
+      return heroLocationLabel;
+    }
+    if (heroLocationLabel && heroLocationLabel.toLowerCase() !== "your area") {
+      return heroLocationLabel;
+    }
+    return "your area";
+  })();
 
   return (
     <div className="min-h-screen bg-[#060b1c] text-white flex flex-col items-center">
@@ -897,9 +904,13 @@ export default function ScoutOS() {
               {!hasUserMessages && (
                 <div className="flex flex-wrap gap-2 justify-center text-center">
                   {(autoPromptSuggestions.length
-                    ? [autoPromptSuggestions[0]]
+                    ? autoPromptSuggestions.slice(0, 3)
                     : [
-                        "Ask about your community",
+                        `Find trusted local pros in ${heroLocationLabel || "your area"}`,
+                        heroAudienceLabel
+                          ? `Show opportunities for ${heroAudienceLabel} in ${heroLocationLabel || "my area"}`
+                          : "Show me what's happening in my community",
+                        "Draft a post I can share with my neighbors",
                       ]
                   ).map((prompt) => (
                     <button
@@ -907,6 +918,14 @@ export default function ScoutOS() {
                       type="button"
                       onClick={() => {
                         setHasGuestInteracted(true);
+                        try {
+                          if (typeof window !== "undefined") {
+                            window.localStorage.removeItem("scout:prefill:scout-main");
+                          }
+                        } catch {
+                          // ignore storage errors
+                        }
+                        setPrefillKey((k) => k + 1);
                         handleSend(prompt);
                       }}
                       className="px-3 py-1.5 text-[11px] rounded-full border border-slate-700 bg-slate-900 hover:border-orange-400 max-w-full"

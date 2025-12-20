@@ -12,8 +12,8 @@ const MobileAppBar: React.FC<MobileAppBarProps> = ({ items }) => {
   if (!items.length) return null;
 
   return (
-  <nav className="border-t border-slate-800 bg-slate-950/95 backdrop-blur pb-[env(safe-area-inset-bottom)]">
-    <div className="w-full min-h-[64px] overflow-x-auto md:overflow-x-hidden">
+  <nav className="border-t border-slate-800 bg-slate-950/95 backdrop-blur py-2 pb-[calc(env(safe-area-inset-bottom)+0.25rem)]">
+    <div className="w-full min-h-[72px] overflow-x-auto md:overflow-x-hidden">
     <div className="flex h-full items-stretch px-2 gap-2 min-w-max md:min-w-0 md:w-full md:justify-between">
           {items.map((item) => {
             const active =
@@ -23,7 +23,7 @@ const MobileAppBar: React.FC<MobileAppBarProps> = ({ items }) => {
               <Link
                 key={item.href}
                 href={item.href}
-                className={`flex flex-col items-center justify-center px-3 py-1.5 md:flex-1 ${
+                className={`flex flex-col items-center justify-center px-3 py-2 md:flex-1 ${
                 active ? "text-orange-400" : "text-slate-400"
                 } text-[0.75rem]`}
               >
