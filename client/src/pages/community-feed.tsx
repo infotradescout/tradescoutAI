@@ -419,10 +419,10 @@ const CommunityFeed = memo(function CommunityFeed() {
       sectionLabel="CommunityOS · A live feed for recommendations, projects, and trusted local pros."
       notificationsCount={unreadCount}
     >
-      <div className="mx-auto w-full max-w-5xl px-0 py-4 md:px-2 md:py-4">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 md:gap-8 px-0 md:px-0">
+      <div className="mx-auto w-full max-w-5xl px-3 py-3 md:px-4 md:py-4">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-8">
           {/* Main Feed */}
-          <div className="lg:col-span-2 space-y-4 md:space-y-6">
+          <div className="lg:col-span-2 space-y-3 md:space-y-6">
             <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
               <TabsList className="inline-flex w-full justify-between rounded-full bg-slate-900/80 border border-slate-800 backdrop-blur mb-4 md:mb-5 px-1 py-1">
                 <TabsTrigger value="forYou" className="flex-1 rounded-full data-[state=active]:bg-orange-500 data-[state=active]:text-slate-950 data-[state=inactive]:text-slate-300 text-xs md:text-sm">For you</TabsTrigger>
@@ -431,8 +431,8 @@ const CommunityFeed = memo(function CommunityFeed() {
                 <TabsTrigger value="trending" className="flex-1 rounded-full data-[state=active]:bg-orange-500 data-[state=active]:text-slate-950 data-[state=inactive]:text-slate-300 text-xs md:text-sm">Trending</TabsTrigger>
               </TabsList>
               {/* Inline composer always visible at top of feed */}
-              <Card className="bg-slate-950/80 border border-slate-800 shadow-sm mb-4 md:mb-5 md:sticky md:top-16">
-                <CardContent className="p-4 md:p-6">
+              <Card className="bg-slate-950/80 border border-slate-800 shadow-sm mb-3 md:mb-5 md:sticky md:top-16">
+                <CardContent className="p-3 md:p-5">
                   <div className="flex gap-4">
                     <Avatar className="w-10 h-10 md:w-11 md:h-11">
                       <AvatarImage src={user?.avatar as string | undefined} />
@@ -502,7 +502,7 @@ const CommunityFeed = memo(function CommunityFeed() {
               </Card>
 
               <TabsContent value="forYou" className="mt-0">
-                <div className="space-y-4 md:space-y-5">
+                <div className="space-y-3 md:space-y-5">
                   {postsLoading ? (
                     <div className="text-center py-12">
                       <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500"></div>
@@ -524,7 +524,7 @@ const CommunityFeed = memo(function CommunityFeed() {
                             }`}
                             data-testid={`card-post-${post.id}`}
                           >
-                            <CardContent className="p-4 md:p-5">
+                            <CardContent className="p-3 md:p-5">
                               {/* Post Header */}
                               <div className="flex justify-between items-start mb-4">
                                 <div className="flex gap-3">
