@@ -4,7 +4,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useMutation } from "@tanstack/react-query";
 import { Link } from "wouter";
-import { ArrowLeft, UserPlus, Mail, Lock, User, MapPin } from "lucide-react";
+import { ArrowLeft, UserPlus, Mail, Lock, User, MapPin, Phone } from "lucide-react";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -23,6 +23,10 @@ const registerSchema = z
       .max(30, "Username must be less than 30 characters")
       .regex(/^[a-zA-Z0-9_]+$/, "Username can only contain letters, numbers, and underscores"),
     email: z.string().email("Please enter a valid email address"),
+    phone: z
+      .string()
+      .min(1, "Phone number is required")
+      .refine((value) => value.replace(/\D/g, "").length >= 10, "Please enter a valid phone number"),
     password: z.string().min(8, "Password must be at least 8 characters long"),
     confirmPassword: z.string(),
     firstName: z.string().min(1, "First name is required"),
@@ -31,6 +35,7 @@ const registerSchema = z
     state: z.string().min(2, "State is required"),
     county: z.string().min(2, "County is required"),
     userTypes: z.array(z.string()).min(1, "Please select at least one user type"),
+    acceptTerms: z.boolean().refine((val) => val === true, "You must accept the Terms of Service"),
   })
   .refine((data) => data.password === data.confirmPassword, {
     message: "Passwords don't match",
@@ -53,6 +58,7 @@ export default function Register() {
     defaultValues: {
       username: "",
       email: "",
+      phone: "",
       password: "",
       confirmPassword: "",
       firstName: "",
@@ -61,6 +67,7 @@ export default function Register() {
       state: "",
       county: "",
       userTypes: [],
+      acceptTerms: false,
     },
   });
 
@@ -73,7 +80,7 @@ export default function Register() {
 
   const registerMutation = useMutation({
     mutationFn: async (data: Omit<RegisterFormData, "confirmPassword">) => {
-      const response = await apiRequest("POST", "/auth/register", data);
+      const response = await apiRequest("POST", "/api/auth/register", data);
       return response;
     },
     onSuccess: () => {
@@ -256,6 +263,23 @@ export default function Register() {
                 </div>
               </div>
 
+              <div>
+                <Label htmlFor="phone" className="flex items-center gap-2">
+                  <Phone className="h-4 w-4" />
+                  Phone number
+                </Label>
+                <Input
+                  id="phone"
+                  type="tel"
+                  {...form.register("phone")}
+                  className="mt-1"
+                  placeholder="(555) 555-5555"
+                />
+                {form.formState.errors.phone && (
+                  <p className="text-red-400 text-sm mt-1">{form.formState.errors.phone.message}</p>
+                )}
+              </div>
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <Label htmlFor="address" className="flex items-center gap-2">
@@ -336,6 +360,23 @@ export default function Register() {
                 {form.formState.errors.userTypes && (
                   <p className="text-red-400 text-sm mt-2">{form.formState.errors.userTypes.message}</p>
                 )}
+              </div>
+
+              <div className="flex items-start gap-3 text-sm">
+                <input
+                  id="acceptTerms"
+                  type="checkbox"
+                  className="mt-1 h-4 w-4 rounded border-tsBorder bg-tsBg text-tsAccent focus:ring-tsAccent"
+                  {...form.register("acceptTerms")}
+                />
+                <Label htmlFor="acceptTerms" className="text-xs text-tsTextMuted leading-relaxed">
+                  I agree to the
+                  {" "}
+                  <a href="/terms" className="underline" target="_blank" rel="noreferrer">
+                    Terms of Service
+                  </a>
+                  .
+                </Label>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
