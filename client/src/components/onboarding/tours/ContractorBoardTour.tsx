@@ -6,7 +6,7 @@ const contractorBoardSteps: TourStep[] = [
     id: "welcome",
     target: "h1",
     title: "Welcome to TradeScout!",
-    description: "This is your contractor board where homeowners find and recommend trusted contractors. Let's take a quick tour to show you around.",
+    description: "This is your contractor board where homeowners find and recommend trusted pros. Let's take a quick tour so you know how to show up well here.",
     position: "bottom"
   },
   {
