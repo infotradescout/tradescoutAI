@@ -138,25 +138,28 @@ html {
   background-color: #0a0f1e;
   color: #e2e8f0;
   /* Trade Scout Brand Colors - Dark Navy Theme */
-  --bg-primary: #0a0f1e;
-  --bg-secondary: #111827;
-  --bg-tertiary: #1e293b;
-  --bg-quaternary: #334155;
+  /* These base tokens are now driven by the active theme
+     (set via ThemeContext/applyTheme), with sensible defaults
+     so the site still looks correct before JS loads. */
+  --bg-primary: var(--theme-bg-primary, #0a0f1e);
+  --bg-secondary: var(--theme-bg-secondary, #111827);
+  --bg-tertiary: var(--theme-bg-tertiary, #1e293b);
+  --bg-quaternary: var(--theme-bg-tertiary, #334155);
 
-  --text-primary: #f1f5f9;
-  --text-secondary: #cbd5e1;
+  --text-primary: var(--theme-text-primary, #f1f5f9);
+  --text-secondary: var(--theme-text-secondary, #cbd5e1);
   --text-muted: #94a3b8;
 
-  --orange-primary: hsl(25, 85%, 54%);
-  --orange-secondary: hsl(19, 80%, 47%);
-  --orange-tertiary: hsl(27, 85%, 60%);
+  --orange-primary: var(--theme-accent-primary, hsl(25, 85%, 54%));
+  --orange-secondary: var(--theme-accent-secondary, hsl(19, 80%, 47%));
+  --orange-tertiary: var(--theme-accent-secondary, hsl(27, 85%, 60%));
 
   --success: hsl(142, 71%, 45%);
   --warning: hsl(38, 92%, 50%);
   --error: hsl(0, 84%, 60%);
 
-  --border-primary: #1e293b;
-  --border-secondary: #334155;
+  --border-primary: var(--theme-border, #1e293b);
+  --border-secondary: var(--theme-border, #334155);
 
   --shadow-card: 0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -1px rgba(0, 0, 0, 0.2);
   --shadow-glow: 0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -1px rgba(0, 0, 0, 0.2);
