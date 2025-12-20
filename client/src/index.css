@@ -232,7 +232,10 @@ html {
   }
 
   html, body {
-    overflow-x: auto; /* Allow horizontal scroll if needed */
+    /* Prevent subtle horizontal overflow on mobile Safari while
+       allowing inner elements (like the bottom nav) to handle
+       their own horizontal scrolling. */
+    overflow-x: hidden;
     width: 100%;
   }
 
