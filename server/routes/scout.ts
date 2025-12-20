@@ -34,10 +34,7 @@ const SCOUT_CORS_ALLOWED_ORIGINS = new Set(
   [
     "https://www.thetradescout.com",
     "https://tradescoutai.onrender.com",
-    "https://tradescout-5hn96npkf-tradescouts-projects.vercel.app",
     "https://thetradescout.com",
-    "https://tradescout-e557bv88z-tradescouts-projects.vercel.app",
-    "https://tradescout-26v2mm5ir-tradescouts-projects.vercel.app",
   ].map((o) => o.toLowerCase())
 );
 
