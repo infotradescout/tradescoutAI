@@ -180,7 +180,7 @@ export function AppShell({ children, footer }: AppShellProps) {
 
       {/* MAIN CONTENT + DESKTOP RIGHT PANEL */}
       <div className="flex flex-1 min-h-0 overflow-hidden">
-        <main className="flex-1 min-w-0 pb-2 lg:pb-0 overflow-y-auto">
+        <main className="flex-1 min-w-0 pb-24 lg:pb-0 overflow-y-auto">
           {children}
         </main>
 

@@ -53,6 +53,7 @@ import {
 import { getUserTypeBadgeLabel } from "../shared/userTypes";
 import type { AffiliateAccount, AffiliateReferral, AffiliatePayout } from "../shared/schema";
 import { storage } from "./storage";
+import { seedCountiesForState } from "./countySeeder";
 import { setupAuth, isAuthenticated, isAdmin, hashPassword, requireRole, isContractor } from "./auth";
 import { localityTrackingMiddleware } from "./localityTracking";
 import passport from "passport";
@@ -2499,28 +2500,47 @@ export async function registerRoutes(app: any) {
     try {
       const { state } = req.query;
 
-      // Prefer the database-backed counties. If a state has not been
-      // imported into the counties table yet, fall back to the
-      // complete static dataset so users always see counties/parishes.
-      const stateCode = (state as string | undefined) || undefined;
-      const counties = await storage.getCounties(stateCode);
+      const stateCode = ((state as string | undefined) || "").toUpperCase() || undefined;
 
+      // First, try the database-backed counties.
+      let counties = await storage.getCounties(stateCode);
+
+      // If nothing is in the DB for this state, try static fallback and
+      // then, if still empty, seed from the official Census dataset.
       if (stateCode && (!Array.isArray(counties) || counties.length === 0)) {
         try {
           const { getCountiesForState } = await import("@shared/us-counties-complete");
           const fallback = getCountiesForState(stateCode) || [];
 
           if (fallback.length > 0) {
-            const normalized = fallback.map((c: any) => ({
-              id: c.fips,
-              name: c.name,
-              fips: c.fips,
-              stateCode: c.stateCode,
-            }));
-            return res.json(normalized);
+            // Seed the DB from the static dataset so subsequent calls
+            // use the normal storage path.
+            for (const c of fallback) {
+              try {
+                await storage.upsertCounty({
+                  name: c.name,
+                  fips: c.fips,
+                  stateCode: c.stateCode,
+                });
+              } catch (err) {
+                console.error("Failed to upsert static fallback county", c, err);
+              }
+            }
+
+            counties = await storage.getCounties(stateCode);
           }
         } catch (fallbackError) {
-          console.error("Error loading fallback counties for state", stateCode, fallbackError);
+          console.error("Error loading static fallback counties for state", stateCode, fallbackError);
+        }
+
+        // If we still have no counties after the static fallback, seed
+        // from the U.S. Census national_county.txt file.
+        if (!Array.isArray(counties) || counties.length === 0) {
+          try {
+            counties = await seedCountiesForState(stateCode);
+          } catch (seedError) {
+            console.error("Error seeding counties for state", stateCode, seedError);
+          }
         }
       }
 

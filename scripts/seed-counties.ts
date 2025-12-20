@@ -1,7 +1,7 @@
-import { US_STATES_COUNTIES } from '../shared/states-counties.js';
+import { US_STATES_COUNTIES } from '../shared/states-counties.ts';
 import { drizzle } from 'drizzle-orm/neon-http';
 import { neon } from '@neondatabase/serverless';
-import { counties } from '../shared/schema.js';
+import { counties } from '../shared/schema.ts';
 
 const sql = neon(process.env.DATABASE_URL!);
 const db = drizzle(sql);
@@ -21,7 +21,9 @@ async function seedCounties() {
       allCounties.push({
         fips: county.fipsCode,
         name: county.name,
-        stateCode: county.state,
+        // Always use the two-letter state code from the parent
+        // state entry so it matches the states.code column.
+        stateCode: state.code,
       });
     }
   }
