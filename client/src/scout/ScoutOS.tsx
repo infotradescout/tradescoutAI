@@ -237,11 +237,21 @@ export default function ScoutOS() {
     // Very first OS orientation: suggestions should help them explore the platform,
     // not feel like generic chat actions.
     if (opts?.isFirstAnswer) {
-      base.push(
-        "Show me everything TradeScout can do for my situation",
-        "Help me set up TradeScout for where I live",
-        "Suggest 3 high-impact ways to use TradeScout this week"
-      );
+      if (opts.isGuest) {
+        // First-time guests should see clear, allowed actions that don't
+        // require an existing account.
+        base.push(
+          "Create Account",
+          "Find a Contractor",
+          "Leaderboard"
+        );
+      } else {
+        base.push(
+          "Show me everything TradeScout can do for my situation",
+          "Help me set up TradeScout for where I live",
+          "Suggest 3 high-impact ways to use TradeScout this week"
+        );
+      }
     } else {
       // Light trade/topic/community-aware nudging
       const isPlumbing = /leak|clog|drain|sewer|sump pump|water heater|plumbing/.test(lower);
