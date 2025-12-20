@@ -31,8 +31,31 @@ import {
 } from "../agent/activity";
 
 const INTRO_DEMO_TEXT = "What can TradeScout do for my community?";
+const INTRO_DEMO_STORAGE_KEY = "ts_intro_demo_v3";
 
 const BANNED_TERMS = ["fuck", "shit", "bitch", "asshole", "cunt", "slut", "whore"];
+
+const WEAK_SUGGESTION_PREFIXES = [/^ask\b/i, /^explain\b/i, /^tell me more\b/i];
+
+function isWeakSuggestionLabel(label: string) {
+  const trimmed = label.trim();
+  return WEAK_SUGGESTION_PREFIXES.some((re) => re.test(trimmed));
+}
+
+function sanitizeSuggestionLabel(label: string) {
+  let out = label.trim();
+  if (!out) return "";
+
+  // Avoid internal jargon that new users won't understand
+  out = out.replace(/dashboards?/gi, "views");
+
+  // Keep chips readable on mobile
+  if (out.length > 80) {
+    out = `${out.slice(0, 77)}…`;
+  }
+
+  return out;
+}
 
 function containsProfanity(text: string) {
   const lower = text.toLowerCase();
@@ -53,12 +76,21 @@ export default function ScoutOS() {
   const [location, navigate] = useLocation();
   const isMobile = useIsMobile();
 
-  const initialized = useRef(false);
-
   const [appDrawerOpen, setAppDrawerOpen] = useState(false);
   const [toolsOpen, setToolsOpen] = useState(false);
   const [prefillKey, setPrefillKey] = useState(0);
   const [hasGuestInteracted, setHasGuestInteracted] = useState(false);
+  const [firstIntroAppendix, setFirstIntroAppendix] = useState<string>("");
+  const [autoPromptSuggestions, setAutoPromptSuggestions] = useState<string[]>([]);
+  const [introDemoState, setIntroDemoState] = useState<
+    "idle" | "typing" | "armingSend" | "sending" | "done"
+  >("idle");
+  const [introDemoText, setIntroDemoText] = useState<string>("");
+  const introTimersRef = useRef<{
+    typeTimer: number | null;
+    startTimer: number | null;
+  }>({ typeTimer: null, startTimer: null });
+  const hasPlayedIntroDemoRef = useRef(false);
   const { sessionRole } = useSession();
 
   const { state, recordUserMessage, applyServerResponse, setError, setStatus } = useScoutState();
@@ -125,6 +157,53 @@ export default function ScoutOS() {
   // auto-demo typing does NOT collapse the calm intro.
   const isFirstGuestVisit = isGuest && !hasGuestInteracted && !hasMessages;
 
+  // Load public config (first intro appendix text) once
+  useEffect(() => {
+    let cancelled = false;
+
+    fetch("/api/public/config", { credentials: "include" })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => {
+        if (cancelled || !data) return;
+        const v = typeof data.firstIntroAppendix === "string" ? data.firstIntroAppendix : "";
+        setFirstIntroAppendix(v);
+      })
+      .catch(() => {
+        // If config fails, we simply don't append anything.
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  // Load auto-prompt suggestions for initial quick-tap chips
+  useEffect(() => {
+    let cancelled = false;
+
+    fetch("/api/scout/auto-prompt", { credentials: "include" })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => {
+        if (cancelled || !data) return;
+        const raw = Array.isArray(data.suggestions) ? data.suggestions : [];
+        const cleaned = raw
+          .map((s: unknown) =>
+            typeof s === "string" ? sanitizeSuggestionLabel(s) : ""
+          )
+          .filter((s: string) => s.length > 0 && !isWeakSuggestionLabel(s));
+        if (cleaned.length > 0) {
+          setAutoPromptSuggestions(cleaned.slice(0, 6));
+        }
+      })
+      .catch(() => {
+        // If auto-prompt suggestions fail, we fall back to static chips.
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   const inferModeFromRoles = (roles: string[] | undefined | null): ScoutMode => {
     if (!roles || roles.length === 0) return "default";
     if (roles.some((r) => r.startsWith("contractor:") || r === "contractor" || r === "pro")) {
@@ -147,37 +226,74 @@ export default function ScoutOS() {
   const buildSmartSuggestions = (
     mode: ScoutMode,
     userMessage: string,
-    serverSuggestions?: string[]
+    serverSuggestions?: string[],
+    opts?: { isFirstAnswer?: boolean; isGuest?: boolean }
   ): string[] => {
     const base: string[] = [];
     const trimmed = userMessage.trim();
     const short = trimmed.length > 80 ? `${trimmed.slice(0, 77)}…` : trimmed;
+    const lower = trimmed.toLowerCase();
 
-    switch (mode) {
-      case "contractors":
-        base.push(
-          "Find vetted local contractors for this and queue intros",
-          "Draft a message I can send to the top matches",
-          "Turn this into a trackable project on my board"
-        );
-        break;
-      case "marketplace":
-        base.push(
-          "Show Exchange listings that match this need near me",
-          "Draft a listing I can post based on this",
-          "Alert me if new local deals match this search"
-        );
-        break;
-      default:
-        base.push(
-          "Summarize this into a simple next-step plan",
-          "Route me to the best page in TradeScout for this",
-          "Turn this into a trackable project on my board"
-        );
-        break;
+    // Very first OS orientation: suggestions should help them explore the platform,
+    // not feel like generic chat actions.
+    if (opts?.isFirstAnswer) {
+      base.push(
+        "Show me everything TradeScout can do for my situation",
+        "Help me set up TradeScout for where I live",
+        "Suggest 3 high-impact ways to use TradeScout this week"
+      );
+    } else {
+      // Light trade/topic-aware nudging
+      const isPlumbing = /leak|clog|drain|sewer|sump pump|water heater|plumbing/.test(lower);
+      const isElectrical = /panel|breaker|gfci|afci|outlet|receptacle|electrical/.test(lower);
+      const isRoofing = /roof|shingle|hail|storm damage|leak/.test(lower);
+      const isTaxOrPermit = /permit|inspection|code|zoning|setback|property tax|assessment/.test(lower);
+
+      switch (mode) {
+        case "contractors":
+          if (isPlumbing || isElectrical || isRoofing) {
+            base.push(
+              "Find vetted pros for this exact job in my county",
+              "Turn this into a project I can track and compare bids on",
+              "Explain price range, materials, and code topics for this"
+            );
+          } else {
+            base.push(
+              "Find vetted local contractors for this and queue intros",
+              "Draft a message I can send to the top matches",
+              "Turn this into a trackable project on my board"
+            );
+          }
+          break;
+        case "marketplace":
+          base.push(
+            "Show Exchange listings that match this need near me",
+            "Draft a listing I can post based on this",
+            "Alert me if new local deals match this search"
+          );
+          break;
+        default:
+          if (isTaxOrPermit) {
+            base.push(
+              "Help me understand local permits or code rules for this",
+              "Find vetted pros who already know these rules in my county",
+              "Summarize my options and next steps for this situation"
+            );
+          } else {
+            base.push(
+              "Summarize this into a simple next-step plan",
+              "Route me to the best place in TradeScout for this",
+              "Turn this into a trackable project on my board"
+            );
+          }
+          break;
+      }
     }
 
-    const server = (serverSuggestions ?? []).filter(Boolean);
+    const server = (serverSuggestions ?? [])
+      .filter(Boolean)
+      .map((s) => sanitizeSuggestionLabel(String(s)))
+      .filter((s) => s && !isWeakSuggestionLabel(s));
     const merged: string[] = [];
 
     for (const s of server) {
@@ -185,7 +301,9 @@ export default function ScoutOS() {
       if (merged.length === 3) return merged;
     }
 
-    for (const s of base) {
+    for (const raw of base) {
+      const s = sanitizeSuggestionLabel(raw);
+      if (!s || isWeakSuggestionLabel(s)) continue;
       if (!merged.includes(s)) merged.push(s);
       if (merged.length === 3) return merged;
     }
@@ -197,7 +315,11 @@ export default function ScoutOS() {
   };
 
   const handleSend = useCallback(
-    async (value: string, explicitMode?: ScoutMode) => {
+    async (
+      value: string,
+      explicitMode?: ScoutMode,
+      opts?: { isScriptedIntro?: boolean }
+    ) => {
       if (containsProfanity(value)) {
         const blocked: ScoutMessage = {
           id: `a_${Date.now()}_${Math.random().toString(36).slice(2)}`,
@@ -264,10 +386,18 @@ export default function ScoutOS() {
           shownAdIds,
         });
 
+        const isFirstAnswer = !hasSeenFirstAnswer();
+        const isScriptedIntro =
+          !isAuthenticated &&
+          isFirstAnswer &&
+          !!opts?.isScriptedIntro &&
+          firstIntroAppendix.trim().length > 0;
+
         const smartSuggestions = buildSmartSuggestions(
           mode,
           value,
-          res.suggestedActions
+          res.suggestedActions,
+          { isFirstAnswer, isGuest }
         );
 
         const clusters: ScoutCluster[] = [];
@@ -364,10 +494,14 @@ export default function ScoutOS() {
           });
         }
 
+        const mergedMessage = isScriptedIntro
+          ? `${res.message}\n\n${firstIntroAppendix.trim()}`
+          : res.message;
+
         const msg: ScoutMessage = {
           id: `a_${Date.now()}_${Math.random().toString(36).slice(2)}`,
           role: "assistant",
-          content: res.message,
+          content: mergedMessage,
           timestamp: res.timestamp || new Date().toISOString(),
           suggestedActions: smartSuggestions,
           clusters: clusters.length ? clusters : undefined,
@@ -407,6 +541,8 @@ export default function ScoutOS() {
     [
       applyServerResponse,
       buildSmartSuggestions,
+      firstIntroAppendix,
+      isAuthenticated,
       isGuest,
       locality,
       location,
@@ -420,19 +556,124 @@ export default function ScoutOS() {
     ]
   );
 
-  // One-time autorun prompt for first-time guests: fire a single
-  // "What can TradeScout do for my community?" question so the
-  // conversation starts automatically, with the standard
-  // "Scout is thinking..." indicator while it loads.
+  // Intro demo: scripted first message (type -> pulse send -> real send)
   useEffect(() => {
-    if (initialized.current) return;
+    // Load persisted flag once
+    if (!hasPlayedIntroDemoRef.current) {
+      try {
+        hasPlayedIntroDemoRef.current =
+          typeof window !== "undefined" &&
+          window.localStorage.getItem(INTRO_DEMO_STORAGE_KEY) === "1";
+      } catch {
+        hasPlayedIntroDemoRef.current = false;
+      }
+    }
+
+    // Only run for unauthenticated users on an empty thread, and only once per browser
     if (isAuthenticated) return;
     if (hasMessages) return;
+    if (hasPlayedIntroDemoRef.current) return;
+    if (introDemoState !== "idle") return;
 
-    initialized.current = true;
-    setHasGuestInteracted(true);
-    void handleSend(INTRO_DEMO_TEXT);
-  }, [handleSend, hasMessages, isAuthenticated]);
+    let cancelled = false;
+
+    const clearTimers = () => {
+      if (introTimersRef.current.startTimer !== null) {
+        window.clearTimeout(introTimersRef.current.startTimer);
+        introTimersRef.current.startTimer = null;
+      }
+      if (introTimersRef.current.typeTimer !== null) {
+        window.clearTimeout(introTimersRef.current.typeTimer);
+        introTimersRef.current.typeTimer = null;
+      }
+    };
+
+    const startTyping = (full: string) => {
+      if (cancelled) return;
+      setIntroDemoState("typing");
+      setIntroDemoText("");
+      let idx = 0;
+
+      const step = () => {
+        if (cancelled) return;
+        idx += 1;
+        setIntroDemoText(full.slice(0, idx));
+        if (idx < full.length) {
+          introTimersRef.current.typeTimer = window.setTimeout(step, 45) as unknown as number;
+        } else {
+          // Finished typing: pulse send briefly, then send for real
+          setIntroDemoState("armingSend");
+          introTimersRef.current.typeTimer = window.setTimeout(() => {
+            if (cancelled) return;
+            setIntroDemoState("sending");
+            setHasGuestInteracted(true);
+            void handleSend(full, undefined, { isScriptedIntro: true });
+            try {
+              window.localStorage.setItem(INTRO_DEMO_STORAGE_KEY, "1");
+            } catch {
+              // ignore
+            }
+            hasPlayedIntroDemoRef.current = true;
+            setIntroDemoState("done");
+          }, 600) as unknown as number;
+        }
+      };
+
+      introTimersRef.current.typeTimer = window.setTimeout(step, 300) as unknown as number;
+    };
+
+    const loadAutoPromptAndStart = async () => {
+      let full = INTRO_DEMO_TEXT;
+      try {
+        const res = await fetch("/api/scout/auto-prompt", { credentials: "include" });
+        if (!cancelled && res.ok) {
+          const data = await res.json();
+          const candidate =
+            data && typeof data.autoPrompt === "string" ? data.autoPrompt.trim() : "";
+          if (candidate.length > 0) {
+            full = candidate;
+          }
+        }
+      } catch {
+        // If auto-prompt fails, fall back to the default intro text.
+      }
+
+      if (cancelled) return;
+
+      introTimersRef.current.startTimer = window.setTimeout(
+        () => startTyping(full),
+        500
+      ) as unknown as number;
+    };
+
+    void loadAutoPromptAndStart();
+
+    return () => {
+      cancelled = true;
+      clearTimers();
+    };
+  }, [handleSend, hasMessages, isAuthenticated, introDemoState]);
+
+  const abortIntroDemo = () => {
+    if (introDemoState === "done" || introDemoState === "idle") return;
+    try {
+      if (typeof window !== "undefined") {
+        window.localStorage.setItem(INTRO_DEMO_STORAGE_KEY, "1");
+      }
+    } catch {
+      // ignore
+    }
+    hasPlayedIntroDemoRef.current = true;
+    if (introTimersRef.current.startTimer !== null) {
+      window.clearTimeout(introTimersRef.current.startTimer);
+      introTimersRef.current.startTimer = null;
+    }
+    if (introTimersRef.current.typeTimer !== null) {
+      window.clearTimeout(introTimersRef.current.typeTimer);
+      introTimersRef.current.typeTimer = null;
+    }
+    setIntroDemoState("done");
+  };
 
   const handleClusterAction = useCallback(
     (action: ScoutAction) => {
@@ -508,27 +749,47 @@ export default function ScoutOS() {
               </p>
             </header>
 
-            {/* Single input with auto-typing demo */}
-            <div className="rounded-2xl border border-slate-800 bg-[#020617] px-4 py-4">
-              <ScoutInput
-                key={prefillKey}
+            {/* Scripted intro demo composer (types, pulses send, then sends) */}
+            <div className="rounded-2xl border border-slate-800 bg-[#020617] px-4 py-4 space-y-2">
+              <textarea
+                value={introDemoText}
+                onChange={(e) => {
+                  abortIntroDemo();
+                  if (!hasGuestInteracted && e.target.value.trim().length > 0) {
+                    setHasGuestInteracted(true);
+                    recordActivity({
+                      type: "ask_scout",
+                      ts: new Date().toISOString(),
+                      path: location,
+                      label: "typed",
+                    });
+                  }
+                  setIntroDemoText(e.target.value);
+                }}
                 disabled={isBusy}
                 placeholder="Ask about contractors, projects, or your community"
-                onSend={(v) => handleSend(v)}
-                onUserTyping={() => {
-                  setHasGuestInteracted(true);
-                  recordActivity({
-                    type: "ask_scout",
-                    ts: new Date().toISOString(),
-                    path: location,
-                    label: "typed",
-                  });
-                }}
-                prefillKey="scout-main"
-                initialValue=""
-                enableAutoDemo={true}
-                autoDemoText={INTRO_DEMO_TEXT}
+                rows={3}
+                className="w-full resize-none rounded-2xl border border-slate-800 bg-[#020617] px-4 py-3 text-sm text-slate-100 placeholder:text-slate-400/70 focus:outline-none focus:ring-2 focus:ring-orange-500/60 min-h-[80px]"
               />
+              <button
+                type="button"
+                onClick={() => {
+                  abortIntroDemo();
+                  const trimmed = introDemoText.trim();
+                  if (!trimmed) return;
+                  setHasGuestInteracted(true);
+                  void handleSend(trimmed);
+                }}
+                disabled={isBusy || !introDemoText.trim()}
+                className={`inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-slate-700 px-4 py-3 text-sm font-semibold text-slate-100 hover:bg-slate-600 disabled:cursor-not-allowed disabled:opacity-60 ${
+                  introDemoState === "armingSend" ? "animate-pulse" : ""
+                }`}
+              >
+                <span className="inline-flex h-4 w-4 items-center justify-center rounded-full bg-slate-800/80 text-[10px] font-bold text-orange-300">
+                  ↗
+                </span>
+                <span>{isBusy ? "Sending..." : "Send"}</span>
+              </button>
             </div>
           </div>
         ) : (
@@ -559,11 +820,14 @@ export default function ScoutOS() {
             <div className="mt-3 rounded-2xl border border-slate-800 bg-[#020617] px-4 py-4 space-y-4">
               {!hasUserMessages && (
                 <div className="flex flex-wrap gap-2">
-                  {[
-                    "Find top-rated contractors in my county",
-                    "What's happening in my community this week?",
-                    "Help me estimate a home repair project",
-                  ].map((prompt) => (
+                  {(autoPromptSuggestions.length
+                    ? autoPromptSuggestions.slice(0, 3)
+                    : [
+                        "Find top-rated contractors in my county",
+                        "What's happening in my community this week?",
+                        "Help me estimate a home repair project",
+                      ]
+                  ).map((prompt) => (
                     <button
                       key={prompt}
                       type="button"
@@ -608,8 +872,6 @@ export default function ScoutOS() {
                 }}
                 prefillKey="scout-main"
                 initialValue=""
-                enableAutoDemo={!isAuthenticated && !hasUserMessages}
-                autoDemoText={INTRO_DEMO_TEXT}
               />
 
               {!isAuthenticated && (

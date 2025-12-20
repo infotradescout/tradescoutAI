@@ -128,7 +128,7 @@ const DEFAULT_SUGGESTIONS = [
   "Find roofers available this week",
   "List my pressure washer for $250",
   "Start the Community Builder for my county",
-  "Find food trucks near me with MealScout",
+  "Support a local cause through the Foundation",
   "Draft a welcome post for neighbors",
   "Show me top marketplace listings this week",
 ];
@@ -190,44 +190,59 @@ async function generateSmartSynthesis(
     // Use cached comprehensive knowledge
     const comprehensiveKnowledge = await getCachedComprehensiveKnowledge();
     
-    // Create a synthesis-focused prompt focused on TRANSFORMATION and ECOSYSTEM, not features or meta commentary
-    const synthPrompt = `You are Scout, the AI for TradeScout. Your job is to inspire people about how TradeScout transforms their life and community.
+     // Create a synthesis-focused prompt focused on TRANSFORMATION, ROLES, and OS MENTAL MODEL
+     const synthPrompt = `You are Scout, the AI for TradeScout. Your job is to give people a mind-opening orientation to TradeScout as their COMMUNITY OPERATING SYSTEM b7 not just "an app".
 
-User asked: "${message}"
+  User asked: "${message}"
 
-Using the knowledge below, answer their question by focusing on:
-1. TradeScout serves the ENTIRE COMMUNITY ECOSYSTEM - not just contractors and homeowners
-2. We're here for vehicle dealers, realtors, HOA management, property managers, business owners, community leaders - everyone who strengthens communities
-3. HOW TradeScout changes their specific role - whether they're a contractor, homeowner, realtor, dealer, HOA board, or community leader
-4. The IMPACT on their community - local money staying local, supporting neighbors, interconnected growth where each role strengthens the others
-5. Community initiatives like trade school scholarships, community builders, giveback programs
-6. Real transformation stories and outcomes from different community roles
-7. The emotional/social benefits, not just logistics
-8. How TradeScout is different from exploitative platforms
+  Using the knowledge below, you MUST clearly explain:
+  1. THE OS MENTAL MODEL
+    - TradeScout is the operating system for a local community, where Scout (you) is the controller.
+    - The chat is the front door: people can start almost anything by talking to Scout.
+    - Pages like contractors, marketplace, groups, HOA, dashboards, and Community Builder are "tools" Scout can open and coordinate, not random separate sites.
 
-DO NOT:
-- Describe backend mechanics or technical details
-- List feature after feature robotically
-- Say "we have a recommendation engine" - explain what that MEANS for them
-- Focus on processes - focus on OUTCOMES
-- Limit scope to just contractors and homeowners
+  2. WHO IT IS FOR (ROLES ECOSYSTEM)
+    - Homeowners, renters, contractors, helpers, realtors, dealers, HOA boards, property managers, small business owners, community leaders, and local organizers.
+    - Make it obvious that EACH role fits into one shared ecosystem instead of everyone using separate platforms.
 
-  Be conversational, inspiring, and real. Speak directly to the user without describing your own thought process. Avoid generic filler; be concrete and action-oriented.
+  3. WHAT IT DOES FOR THEM (OUTCOMES)
+    - For a homeowner: finding vetted pros, tracking projects, seeing local updates, keeping money local.
+    - For a contractor: winning better jobs, telling their story, managing leads, building trust in their county.
+    - For realtors/dealers/property managers/HOA: seeing the same local graph, coordinating vendors, communicating with their people.
+    - Make this feel like a connected system, not a list of tabs.
 
-  HARD CONSTRAINTS FOR OUTPUT:
-  - The answer must comfortably fit on a small mobile screen without feeling long.
-  - Prefer short paragraphs and avoid rambling.
-  - Use lists only when they stay compact and help scanning.
+  4. MONEY FLOWS AND COMMUNITY IMPACT (HIGH LEVEL ONLY)
+    - Local money stays in the community through things like community vaults, Community Builder, and county-focused initiatives.
+    - Mention that when people use TradeScout, part of the value can flow back into local causes, trade school scholarships, or county projects (without going deep into mechanics).
 
-Available Knowledge Base:
-${comprehensiveKnowledge}
+  5. HOW SCOUT HELPS RIGHT NOW
+    - Explain that Scout can:
+      * Understand what they are trying to do.
+      * Route them to the right part of the OS (contractors, marketplace, groups, dashboards, etc.).
+      * Help them plan, estimate, and keep track of projects or ideas over time.
 
-Now write an inspiring, comprehensive answer about how TradeScout transforms this person's life and community:`;
+  DO NOT:
+  - Describe backend mechanics or technical details (no databases, no Stripe, no LLMS).
+  - Dump a long bullet list of micro-features.
+  - Talk about yourself as a model; stay in character as Scout.
+  - Use marketing buzzwords without concrete meaning.
+
+  TONE & SHAPE:
+  - Be conversational, confident, and grounded in the real world.
+  - Use short paragraphs and occasional very short lists only when they make scanning easier.
+  - This is their FIRST ORIENTATION to the OS, so it can be longer than a normal reply (several tight paragraphs), but it must NOT feel like a 10-page essay.
+  - Always anchor the explanation in what this means for THEM and THEIR COMMUNITY, not abstract concepts.
+
+  Available Knowledge Base:
+  ${comprehensiveKnowledge}
+
+  Now write an inspiring but concrete orientation that helps this person immediately understand what TradeScout is, who it serves, and how Scout will run the operating system for their community:`;
 
     const model = gemini.getGenerativeModel({ model: "gemini-2.5-flash" });
     const result = await model.generateContent(synthPrompt);
     const text = result.response.text();
-    return trimResponseToScreenFit(text);
+    // Allow a richer, orientation-style answer for intro questions
+    return trimResponseToScreenFit(text, { mode: "intro" });
   } catch (error) {
     console.error("[Scout] Synthesis error:", error);
     return "I encountered an error creating a comprehensive overview. Please try again.";
@@ -365,6 +380,20 @@ CRITICAL EXECUTION RULES:
 5. Keep message brief (max 3 sentences; no bullet or numbered lists unless the user explicitly asked you to list things)
 6. Focus the message on: what's blocking, what's next, and at most one clear yes/no question about taking a next step.
 7. Always generate exactly 3 suggestedActions
+8. suggestedActions are your THREE BEST GUESSES for what the user most likely wants to do next based on:
+  - Their latest message
+  - The conversation history
+  - CURRENT STATE, RESOLVED PROJECT CONTEXT, and TRADE TOPIC HINT
+9. Each suggestedAction MUST be a concrete, user-facing next step in the TradeScout OS, such as:
+  - "Find vetted [trade] pros for this job in [county]"
+  - "Turn this into a trackable project on my board"
+  - "Show me local groups, feeds, or dashboards that matter for this"
+  - "Help me compare DIY vs hire-out options for this"
+10. NEVER use vague or meta actions like "Ask another question" or "Explain more". Every action should clearly move the user forward in a real-world flow.
+11. Align suggestedActions with the user's auth state and capabilities:
+  - Guests: prefer exploration, learning, and light planning actions that don't require posting/applying/messaging.
+  - Logged-in users: you MAY include actions that create or update things (tasks, listings, projects, groups, applications) when consistent with intent.
+12. Order suggestedActions from most recommended to least recommended next step.
 
 HOME & TRADE PROJECT ENRICHMENT (IMPORTANT):
 TRADE TOPIC HINT is a pre-detected signal that this is a trade or home-repair question. If TRADE TOPIC HINT is not "NONE", you MUST treat it as a trade/home-repair problem and apply these rules.
@@ -418,13 +447,39 @@ RESPOND WITH VALID JSON ONLY - NO MARKDOWN, NO CODE FENCES, JUST RAW JSON.`;
       
       // Enforce length limit on message
       parsed.message = trimResponseToScreenFit(parsed.message);
+
+      // Normalize and clamp suggested actions: always return 3 concrete, unique options
+      let actions: string[] = Array.isArray(parsed.suggestedActions)
+        ? parsed.suggestedActions
+            .filter((a: unknown) => typeof a === "string" && a.trim().length > 0)
+            .map((a: string) => a.trim())
+        : [];
+
+      // Hard cap length per action to keep chips readable
+      actions = actions.map((a) => (a.length > 80 ? `${a.slice(0, 77)}...` : a));
+
+      const unique: string[] = [];
+      for (const a of actions) {
+        if (unique.length >= 3) break;
+        if (a && !unique.includes(a)) {
+          unique.push(a);
+        }
+      }
+
+      let idx = 0;
+      while (unique.length < 3 && idx < DEFAULT_ACTIONS.length) {
+        const fallback = DEFAULT_ACTIONS[idx++];
+        if (!unique.includes(fallback)) unique.push(fallback);
+      }
+
+      const finalActions = unique.slice(0, 3);
       
       return {
         intent: parsed.intent,
         thought_flow: parsed.thought_flow,
         decision: parsed.decision,
         message: parsed.message,
-        suggestedActions: parsed.suggestedActions || DEFAULT_ACTIONS
+        suggestedActions: finalActions
       };
     } catch (parseError) {
       console.error("[Scout] Failed to parse LLM JSON response:", parseError);
@@ -464,11 +519,11 @@ function deriveContextualActions(
   historyMessages?: { role: string; content: string }[]
 ): string[] {
   const defaults = [
-    "Find contractors in my area",
-    "Explore marketplace deals",
-    "Start Community Builder",
-    "Find food trucks with MealScout",
-    "Post my project"
+    "Find vetted local contractors for this",
+    "Explore Exchange listings that match this need",
+    "Start the Community Builder for my county",
+    "Support a local cause through the Foundation",
+    "Turn this into a trackable project on my board"
   ];
 
   const now = new Date();
@@ -492,13 +547,13 @@ function deriveContextualActions(
 
   // Time-of-day steering
   if (hour >= 6 && hour < 12) {
-    pushUnique(`Find morning-available contractors in ${county}`);
-    pushUnique(`Price my project in ${county}`);
+    pushUnique(`Find vetted pros available this morning in ${county}`);
+    pushUnique(`Plan and price my next project in ${county}`);
   } else if (hour >= 17 && hour < 23) {
-    pushUnique("Find tonight's MealScout food truck");
-    pushUnique(`Explore evening marketplace deals in ${county}`);
+    pushUnique(`Find pros or projects I can move forward on tonight in ${county}`);
+    pushUnique(`Explore evening Exchange deals in ${county}`);
   } else {
-    pushUnique(`Check active pros in ${county}`);
+    pushUnique(`Check active pros and projects in ${county}`);
   }
 
   if (isWeekend) {
@@ -508,25 +563,20 @@ function deriveContextualActions(
 
   // Content-based steering
   if (/roof|storm|hail|wind/.test(keywords)) {
-    pushUnique(`Find roofers in ${county}`);
-    pushUnique("Check storm reports for my area");
+    pushUnique(`Find roofers who handle storm damage in ${county}`);
+    pushUnique("Turn this into a storm-repair project I can track");
   }
 
   if (/market|sell|list|item|trailer|equipment/.test(keywords)) {
-    pushUnique("List my item now");
-    pushUnique("Search trailers and tools");
-  }
-
-  if (/food|restaurant|truck|meal/.test(keywords)) {
-    pushUnique("Show MealScout nearby");
-    pushUnique("Browse restaurants by cuisine");
+    pushUnique("Draft an Exchange listing based on this");
+    pushUnique("Search local trailers, tools, and equipment");
   }
 
   // User roles
   const roles: string[] = userContext?.userTypes || [];
   if (roles.includes("contractor")) {
-    pushUnique("Find homeowners needing bids");
-    pushUnique("Update my contractor profile");
+    pushUnique("Find homeowners in my county who need bids");
+    pushUnique("Tune up my contractor profile so Scout can send better leads");
   }
   if (roles.includes("homeowner")) {
     pushUnique(`Get bids from vetted pros in ${county}`);
@@ -614,17 +664,21 @@ function parseStructuredResponse(
 }
 
 /**
- * Trim response to ensure it fits on screen without scrolling
- * - Max ~150 words (tighter mobile-friendly cap)
- * - Max 8-10 lines (keeps answers scannable)
- * - Preserves structure and important information
+ * Trim response to ensure it fits on screen without scrolling.
+ * For general answers we keep things tight; for the first OS orientation
+ * (intro questions) we allow a bit more depth while still staying mobile-friendly.
  */
-function trimResponseToScreenFit(response: string): string {
+function trimResponseToScreenFit(
+  response: string,
+  opts?: { mode?: "default" | "intro" }
+): string {
+  const mode = opts?.mode ?? "default";
+
   // Approximate a "no scroll" viewport using conservative text caps.
-  // This keeps answers readable while allowing more than 3 sentences
-  // when needed, and defers deeper detail to actions.
-  const MAX_CHARS = 600; // ~4–5 short paragraphs
-  const MAX_LINES = 8;   // tighter than the visual 10-line cap
+  // Intro mode is allowed more headroom so Scout can fully orient new users
+  // without turning into a long wall of text.
+  const MAX_CHARS = mode === "intro" ? 1100 : 600;
+  const MAX_LINES = mode === "intro" ? 12 : 8;
 
   if (!response) return "";
 
@@ -725,7 +779,17 @@ async function generateAutoPrompt(gemini: GoogleGenerativeAI | null) {
 
   try {
     const model = gemini.getGenerativeModel({ model: "gemini-2.5-flash" });
-    const prompt = `Create a single concise starter prompt a user should ask an AI concierge for a local contractor/marketplace app. Also return 6 short suggestions.
+    const prompt = `You are designing the very first question a brand new person should ask Scout, the AI inside TradeScout b7 a community operating system, not just an app.
+
+Create a SINGLE best starter prompt that will cause Scout to give a rich orientation to TradeScout as their community OS b7 what it is, who it serves, and how it can run their local projects and community flows.
+
+Guidelines for autoPrompt:
+- It should sound natural for a normal person who has never heard of TradeScout.
+- It should invite Scout to explain the OS and how it can help THEM and THEIR COMMUNITY, not just list features.
+- Keep it concise (under 140 characters) and in the form of a question.
+
+Also return 6 short suggestion prompts that help them explore high-impact things Scout can do for them (finding pros, starting projects, connecting community, etc.).
+
 Return JSON with keys autoPrompt (string) and suggestions (string array).`;
     const result = await model.generateContent(prompt);
     const text = result.response.text();
