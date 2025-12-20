@@ -7,6 +7,8 @@ import {
   LayoutDashboard,
   MessageCircle,
   Bookmark,
+  ClipboardList,
+  Building,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 
@@ -115,6 +117,18 @@ export function RightToolsPanel({ footer }: RightToolsPanelProps) {
               icon={<LayoutDashboard className="h-3.5 w-3.5 text-orange-400" />}
               label="Dashboard"
               description="Your personal hub and live metrics."
+            />
+            <NavLink
+              href="/lead-management"
+              icon={<ClipboardList className="h-3.5 w-3.5 text-orange-400" />}
+              label="Projects"
+              description="Leads, jobs, and active projects."
+            />
+            <NavLink
+              href="/hoa-management"
+              icon={<Building className="h-3.5 w-3.5 text-orange-400" />}
+              label="HOA & neighborhood"
+              description="Join or manage your neighborhood HOA."
             />
             <NavLink
               href="/messages"

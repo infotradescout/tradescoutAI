@@ -3,6 +3,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Button } from "@/components/ui/button";
+import { useToast } from "@/hooks/use-toast";
 import {
   MapPin,
   MessageSquare,
@@ -95,8 +96,50 @@ function getCategoryMeta(category?: string) {
 }
 
 export function CommunityPostCard({ post, onLike, formatTimeAgo }: CommunityPostCardProps) {
+  const { toast } = useToast();
+
   const handleLikeClick = () => {
     if (onLike) onLike(post.id);
+  };
+
+  const handleShareClick = async () => {
+    try {
+      const origin = typeof window !== 'undefined' ? window.location.origin : '';
+      const url = `${origin}/community?post=${encodeURIComponent(post.id)}`;
+      const title = post.title || 'TradeScout community post';
+      const text = (post.content || '').toString().slice(0, 200);
+
+      if (navigator.share) {
+        try {
+          await navigator.share({ title, text, url });
+          return;
+        } catch (err: any) {
+          if (err && (err.name === 'AbortError' || err.name === 'NotAllowedError')) {
+            return;
+          }
+        }
+      }
+
+      if (navigator.clipboard && typeof navigator.clipboard.writeText === 'function') {
+        await navigator.clipboard.writeText(url);
+        toast({
+          title: 'Link copied',
+          description: 'Post link copied to your clipboard.',
+        });
+      } else {
+        toast({
+          title: 'Unable to share automatically',
+          description: 'Copy the link from your browser address bar to share.',
+          variant: 'destructive',
+        });
+      }
+    } catch {
+      toast({
+        title: 'Unable to share',
+        description: 'Something went wrong while preparing the share link.',
+        variant: 'destructive',
+      });
+    }
   };
 
   const categoryMeta = getCategoryMeta(post.category);
@@ -210,7 +253,10 @@ export function CommunityPostCard({ post, onLike, formatTimeAgo }: CommunityPost
             <MessageSquare className="w-4 h-4" />
             <span>Comment</span>
           </button>
-          <button className="inline-flex items-center gap-1.5 hover:text-orange-400 transition-colors">
+          <button
+            className="inline-flex items-center gap-1.5 hover:text-orange-400 transition-colors"
+            onClick={handleShareClick}
+          >
             <Share2 className="w-4 h-4" />
             <span>Share</span>
           </button>

@@ -373,6 +373,47 @@ const CommunityFeed = memo(function CommunityFeed() {
     }
   };
 
+  const handleSharePost = async (post: any) => {
+    try {
+      const origin = typeof window !== 'undefined' ? window.location.origin : '';
+      const url = `${origin}/community?post=${encodeURIComponent(post.id)}`;
+      const title = post.title || 'TradeScout community post';
+      const text = (post.content || '').toString().slice(0, 200);
+
+      if (navigator.share) {
+        try {
+          await navigator.share({ title, text, url });
+          return;
+        } catch (err: any) {
+          if (err && (err.name === 'AbortError' || err.name === 'NotAllowedError')) {
+            return;
+          }
+          // fall through to clipboard on other errors
+        }
+      }
+
+      if (navigator.clipboard && typeof navigator.clipboard.writeText === 'function') {
+        await navigator.clipboard.writeText(url);
+        toast({
+          title: 'Link copied',
+          description: 'Post link copied to your clipboard.',
+        });
+      } else {
+        toast({
+          title: 'Unable to share automatically',
+          description: 'Copy the link from your browser address bar to share.',
+          variant: 'destructive',
+        });
+      }
+    } catch {
+      toast({
+        title: 'Unable to share',
+        description: 'Something went wrong while preparing the share link.',
+        variant: 'destructive',
+      });
+    }
+  };
+
   return (
     <CommunityShell
       sectionLabel="CommunityOS · A live feed for recommendations, projects, and trusted local pros."
@@ -537,7 +578,7 @@ const CommunityFeed = memo(function CommunityFeed() {
                                         <Flag className="h-4 w-4 mr-2" />
                                         Report
                                       </DropdownMenuItem>
-                                      <DropdownMenuItem>
+                                      <DropdownMenuItem onClick={() => handleSharePost(post)}>
                                         <Share className="h-4 w-4 mr-2" />
                                         Share
                                       </DropdownMenuItem>
@@ -607,10 +648,11 @@ const CommunityFeed = memo(function CommunityFeed() {
                                     variant="ghost"
                                     size="sm"
                                     className="text-gray-400 hover:text-green-400"
+                                    onClick={() => handleSharePost(post)}
                                     data-testid={`button-share-${post.id}`}
                                   >
                                     <Share className="h-4 w-4 mr-1" />
-                                    <span className="mr-1">Send</span>
+                                    <span className="mr-1">Share</span>
                                     {post.shareCount || post.shares || 0}
                                   </Button>
                                 </div>

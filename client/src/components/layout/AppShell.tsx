@@ -203,15 +203,8 @@ export function AppShell({ children, footer }: AppShellProps) {
         )}
       </div>
 
-      {/* BOTTOM BAR: SCROLLABLE SITE FEATURE NAV */}
+      {/* BOTTOM BAR: SCROLLABLE SITE FEATURE NAV (mobile + desktop) */}
       <MobileAppBar items={featureNav} />
-
-      {/* Optional footer (below bottom nav on desktop) */}
-      {footer && (
-        <footer className="hidden md:block border-t border-slate-900 px-4 py-2 text-xs text-slate-500">
-          {footer}
-        </footer>
-      )}
 
       {/* MOBILE TOOLS DRAWER = PROFILE / DASHBOARD / SETTINGS, etc. */}
       {isMobile && isToolsOpen && (

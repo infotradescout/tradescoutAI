@@ -596,11 +596,24 @@ export default function ScoutOS() {
       }
     }
 
-    // Only run for unauthenticated users on an empty thread, and only once per browser
-    if (isAuthenticated) return;
+    // Only run on an empty thread, and only once per browser.
+    // If a Help Center intent is queued, let that drive the first
+    // interaction instead of the scripted demo to avoid double prompts.
     if (hasMessages) return;
+    if (hasSeenFirstAnswer()) return;
     if (hasPlayedIntroDemoRef.current) return;
     if (introDemoState !== "idle") return;
+
+    try {
+      if (typeof window !== "undefined") {
+        const queuedHelpIntent = window.localStorage.getItem("scout:help-intent");
+        if (queuedHelpIntent) {
+          return;
+        }
+      }
+    } catch {
+      // ignore storage errors and fall back to normal intro behavior
+    }
 
     let cancelled = false;
 
