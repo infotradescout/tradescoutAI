@@ -622,31 +622,27 @@ export default function ScoutOS() {
       introTimersRef.current.typeTimer = window.setTimeout(step, 300) as unknown as number;
     };
 
-    const loadAutoPromptAndStart = async () => {
-      let full = INTRO_DEMO_TEXT;
-      try {
-        const res = await fetch("/api/scout/auto-prompt", { credentials: "include" });
-        if (!cancelled && res.ok) {
-          const data = await res.json();
-          const candidate =
-            data && typeof data.autoPrompt === "string" ? data.autoPrompt.trim() : "";
-          if (candidate.length > 0) {
-            full = candidate;
-          }
+    let fullPrompt = INTRO_DEMO_TEXT;
+
+    // Fire off auto-prompt fetch without blocking the animation.
+    fetch("/api/scout/auto-prompt", { credentials: "include" })
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (cancelled || !data) return;
+        const candidate =
+          typeof data.autoPrompt === "string" ? data.autoPrompt.trim() : "";
+        if (candidate.length > 0) {
+          fullPrompt = candidate;
         }
-      } catch {
-        // If auto-prompt fails, fall back to the default intro text.
-      }
+      })
+      .catch(() => {
+        // If auto-prompt fails, we keep the default intro text.
+      });
 
-      if (cancelled) return;
-
-      introTimersRef.current.startTimer = window.setTimeout(
-        () => startTyping(full),
-        500
-      ) as unknown as number;
-    };
-
-    void loadAutoPromptAndStart();
+    introTimersRef.current.startTimer = window.setTimeout(
+      () => startTyping(fullPrompt),
+      500
+    ) as unknown as number;
 
     return () => {
       cancelled = true;
@@ -732,7 +728,11 @@ export default function ScoutOS() {
 
   return (
     <div className="min-h-screen bg-[#060b1c] text-white flex flex-col items-center">
-      <div className="w-full max-w-xl px-4 pt-10 pb-4 space-y-6">
+      <div
+        className={`w-full max-w-xl px-4 ${
+          isMobile ? "pt-6 pb-3" : "pt-10 pb-4"
+        } space-y-6`}
+      >
         {isFirstGuestVisit ? (
           // FIRST GUEST INTRO: Clean, intentional, single-purpose
           <div className="space-y-6">
@@ -750,7 +750,11 @@ export default function ScoutOS() {
             </header>
 
             {/* Scripted intro demo composer (types, pulses send, then sends) */}
-            <div className="rounded-2xl border border-slate-800 bg-[#020617] px-4 py-4 space-y-2">
+            <div
+              className={`rounded-2xl border border-slate-800 bg-[#020617] ${
+                isMobile ? "px-3 py-3" : "px-4 py-4"
+              } space-y-2`}
+            >
               <textarea
                 value={introDemoText}
                 onChange={(e) => {
@@ -817,7 +821,11 @@ export default function ScoutOS() {
             </header>
 
             {/* Thread + input in a single chat container */}
-            <div className="mt-3 rounded-2xl border border-slate-800 bg-[#020617] px-4 py-4 space-y-4">
+            <div
+              className={`mt-3 rounded-2xl border border-slate-800 bg-[#020617] ${
+                isMobile ? "px-3 py-3 space-y-3" : "px-4 py-4 space-y-4"
+              }`}
+            >
               {!hasUserMessages && (
                 <div className="flex flex-wrap gap-2">
                   {(autoPromptSuggestions.length
