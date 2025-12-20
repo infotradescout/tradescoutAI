@@ -745,7 +745,7 @@ export default function ScoutOS() {
           <div className="space-y-6">
             <header className="text-center space-y-3">
               <p className="text-[10px] tracking-[0.25em] text-orange-300 uppercase">
-                COMMUNITYOS  b7 SCOUT
+                COMMUNITY OS  b7 SCOUT
               </p>
               <h1 className="text-2xl md:text-3xl font-black tracking-[0.12em] text-white uppercase">
                 <span className="text-white">EMPOWERING </span>
@@ -809,7 +809,7 @@ export default function ScoutOS() {
             {/* Header + hero (copy only; all navigation lives in AppShell) */}
             <header className="space-y-3">
               <p className="text-[10px] tracking-[0.25em] text-orange-300 uppercase">
-                COMMUNITYOS  b7 SCOUT
+                COMMUNITY OS  b7 SCOUT
               </p>
               <p className="text-xs text-slate-400">
                 Your local operating system for contractors, projects, and community.
