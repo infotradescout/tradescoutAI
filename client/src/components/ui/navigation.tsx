@@ -27,14 +27,14 @@ export default function Navigation() {
   const publicNavItems = [
     { href: "/", label: "Home", icon: Home },
     { href: "/scout", label: "Scout", icon: Calculator },
-    { href: "/contractors/board", label: "Find Contractors", icon: Users },
+    { href: "/contractors", label: "Find Contractors", icon: Users },
     { href: "/growth-pack", label: "Growth Pack", icon: Gift },
   ];
 
   const authNavItems = [
     { href: "/", label: "Dashboard", icon: Home },
     { href: "/scout", label: "Scout", icon: Calculator },
-    { href: "/contractors/board", label: "Contractors", icon: Users },
+    { href: "/contractors", label: "Contractors", icon: Users },
     ...(isContractor ? [
       { href: "/contractor-dashboard", label: "My Dashboard", icon: Building },
       { href: "/contractors/accelerator", label: "Accelerator", icon: Crown },

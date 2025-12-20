@@ -44,9 +44,9 @@ export default function ContractorProfile() {
         <Card className="bg-red-900/20 border-red-500/50">
           <CardContent className="p-6 text-center">
             <p className="text-red-400">Contractor not found or failed to load.</p>
-            <Link href="/contractors/board">
+            <Link href="/contractors">
               <Button className="mt-4 bg-orange-500 hover:bg-orange-600">
-                Back to Contractor Board
+                Back to Find Contractors
               </Button>
             </Link>
           </CardContent>
@@ -61,7 +61,7 @@ export default function ContractorProfile() {
   // SEO data generation
   const breadcrumbItems = [
     { name: 'Home', url: '/' },
-    { name: 'Find Contractors', url: '/contractors/board' },
+    { name: 'Find Contractors', url: '/contractors' },
     { name: contractor.companyName, url: `/contractors/${slug}` }
   ];
 

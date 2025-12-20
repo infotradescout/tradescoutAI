@@ -111,7 +111,6 @@ const ALL_NAVIGATION: NavItem[] = [
     icon: Hammer,
     children: [
       { label: 'Find Contractors', href: '/contractors', icon: Search },
-      { label: 'Contractor Board', href: '/contractor-board', icon: LayoutDashboard },
       { label: 'Scout Estimates', href: '/scout?intent=estimate', icon: Calculator },
       { label: 'Top Contractors', href: '/contractors/top', icon: Award },
     ],

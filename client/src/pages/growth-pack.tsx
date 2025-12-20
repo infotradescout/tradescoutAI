@@ -27,7 +27,7 @@ export default function GrowthPack() {
           The Growth Pack is designed specifically for contractors. As a homeowner, you can:
         </p>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-2xl mx-auto">
-          <Link href="/contractors/board">
+          <Link href="/contractors">
             <Button className="w-full bg-orange-500 hover:bg-orange-600">
               Find Contractors
             </Button>

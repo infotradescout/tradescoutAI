@@ -78,6 +78,15 @@ export default function Register() {
     return getCountiesForState(stateCode) || [];
   }, [stateCode]);
 
+  const selectedState = useMemo(
+    () => US_STATES.find((s) => s.code === stateCode),
+    [stateCode]
+  );
+
+  const subdivisionType = selectedState?.subdivisionType || "county";
+  const subdivisionLabel =
+    subdivisionType.charAt(0).toUpperCase() + subdivisionType.slice(1);
+
   const registerMutation = useMutation({
     mutationFn: async (data: Omit<RegisterFormData, "confirmPassword">) => {
       const response = await apiRequest("POST", "/api/auth/register", data);
@@ -326,7 +335,7 @@ export default function Register() {
               <div>
                 <Label htmlFor="county" className="flex items-center gap-2">
                   <MapPin className="h-4 w-4" />
-                  County / Parish / Borough
+                  {subdivisionLabel}
                 </Label>
                 <select
                   id="county"
@@ -334,7 +343,11 @@ export default function Register() {
                   className="mt-1 w-full rounded-md border border-tsBorder bg-tsBg px-3 py-2 text-sm text-tsTextMain"
                   disabled={!stateCode || countiesForState.length === 0}
                 >
-                  <option value="">{stateCode ? "Select county" : "Select a state first"}</option>
+                  <option value="">
+                    {stateCode
+                      ? `Select ${subdivisionLabel.toLowerCase()}`
+                      : "Select a state first"}
+                  </option>
                   {countiesForState.map((c) => (
                     <option key={c.fips} value={c.name}>
                       {c.name}

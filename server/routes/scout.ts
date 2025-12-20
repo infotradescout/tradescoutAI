@@ -538,6 +538,13 @@ function deriveContextualActions(
     "Turn this into a trackable project on my board"
   ];
 
+  // Filter out generic, non-contextual meta prompts that the model
+  // tends to repeat and that don't move the user into a concrete flow.
+  const bannedMetaPhrases = [
+    "Summarize this into a simple next-step plan",
+    "Route me to the best place in TradeScout for this",
+  ].map((s) => s.toLowerCase());
+
   const now = new Date();
   const hour = now.getHours();
   const day = now.getDay();
@@ -600,12 +607,16 @@ function deriveContextualActions(
     pushUnique(`Get bids from vetted pros in ${county}`);
   }
 
-  const merged = [...base, ...prioritized];
+  // Let contextual suggestions take precedence over raw LLM output.
+  // We append the model's suggestions AFTER our contextual list so
+  // that time/role/locality-aware options are ranked first.
+  const merged = [...prioritized, ...base];
 
   const clean = merged
     .filter(Boolean)
     .map((a) => a.trim())
     .filter((a) => a.length > 0)
+    .filter((a) => !bannedMetaPhrases.includes(a.toLowerCase()))
     .map((a) => (a.length > 48 ? `${a.slice(0, 45)}...` : a));
 
   // Pad/clamp to exactly 3 with defaults

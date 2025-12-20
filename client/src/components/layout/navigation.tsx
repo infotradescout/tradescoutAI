@@ -38,7 +38,6 @@ export default function Navigation() {
     { href: "/contractors", label: "Find Contractors", icon: Search, public: true, description: "Find verified local contractors" },
     { href: "/pricing", label: "Pricing", icon: Calculator, public: true, description: "Plans and value guide" },
     ...(!isHomeowner ? [{ href: "/contractor-apply", label: "For Contractors", icon: Wrench, public: true, description: "Join our contractor network" }] : []),
-    { href: "/contractor-board", label: "Contractor Board", icon: Users, public: true, description: "Track active leads and bids" },
     { href: "/marketplace", label: "Exchange", icon: Package, public: true, description: "Premium equipment & valuable items" },
     { href: "/leaderboard", label: "Leaderboard", icon: Trophy, public: true, description: "Top contractors by recommendations" },
     { href: "/community", label: "Community", icon: MessageCircle, public: true, description: "Connect with neighbors" },
@@ -312,12 +311,12 @@ export default function Navigation() {
           {/* Mobile Navigation Buttons */}
           <div className="md:hidden flex items-center space-x-1">
             {/* Find Contractors - Always visible */}
-            <Link href="/contractors/board">
+            <Link href="/contractors">
               <Button 
                 variant="ghost" 
                 size="sm"
                 className={`text-[11px] px-2 py-1 rounded-md ${
-                  location === '/contractors/board' 
+                  location === '/contractors' 
                     ? 'text-orange-500 bg-orange-500/15' 
                     : 'text-gray-300 hover:text-white'
                 }`}
@@ -327,14 +326,14 @@ export default function Navigation() {
               </Button>
             </Link>
 
-            {/* For Contractors - Only show if not a homeowner */}
+            {/* For Contractors - marketing entry point for non-homeowners */}
             {!isHomeowner && (
-              <Link href="/contractors">
+              <Link href="/contractor-apply">
                 <Button 
                   variant="ghost" 
                   size="sm"
                   className={`text-[11px] px-2 py-1 rounded-md ${
-                    location === '/contractors' 
+                    location === '/contractor-apply' 
                       ? 'text-orange-500 bg-orange-500/15' 
                       : 'text-gray-300 hover:text-white'
                   }`}
