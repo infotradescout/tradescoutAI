@@ -11,6 +11,7 @@ import {
   Heart,
   LogOut,
   Share2,
+  Compass,
 } from "lucide-react";
 import { useAuth, useLogout } from "@/hooks/useAuth";
 import { useHandedness } from "@/hooks/useHandedness";
@@ -19,6 +20,7 @@ import { ROUTES } from "@/lib/routes";
 import { NotificationsMenu } from "@/components/NotificationsMenu";
 import { RightToolsPanel } from "@/components/layout/RightToolsPanel";
 import MobileAppBar from "@/components/navigation/MobileAppBar";
+import { TradeScoutIcon } from "@/components/TradeScoutIcons";
 
 export type NavItem = {
   label: string;
@@ -37,7 +39,7 @@ const featureNav: NavItem[] = [
   {
     label: "Scout",
     href: "/scout",
-    icon: <LayoutGrid className="h-4 w-4 text-orange-400" />,
+    icon: <Compass className="h-4 w-4 text-orange-400" />,
   },
   {
     label: "Community",
@@ -107,7 +109,11 @@ export function AppShell({ children, footer }: AppShellProps) {
             handedness === "left" ? "justify-end" : ""
           }`}
         >
-          <div className="h-8 w-8 rounded-2xl bg-orange-500 shadow-md shadow-orange-500/40" />
+          <TradeScoutIcon
+            size="sm"
+            variant="gradient"
+            className="text-orange-500 drop-shadow-[0_0_12px_rgba(249,115,22,0.5)]"
+          />
           <div className="flex flex-col leading-tight">
             <span className="text-[0.65rem] uppercase tracking-[0.35em] text-slate-400">
               TRADESCOUT

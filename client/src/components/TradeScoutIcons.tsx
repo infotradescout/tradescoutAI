@@ -15,8 +15,9 @@ const sizeClasses = {
   '2xl': 'w-16 h-16',
 };
 
-// Central logo asset path – update /logo.png to change the brand mark
-const BRAND_LOGO_URL = '/logo.png';
+// Central logo asset path – drop your primary site logo into
+// client/public as this filename to update the brand mark
+const BRAND_LOGO_URL = '/tradescout-logo.png';
 
 export function TradeScoutLogo({ className = "", size = 'md' }: IconProps) {
   const sizeClass = sizeClasses[size];
