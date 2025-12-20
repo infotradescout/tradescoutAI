@@ -298,6 +298,10 @@ async function synthesizeResponse(
     const tradeHintBlock = `
 TRADE TOPIC HINT: ${tradeTopic ? tradeTopic.toUpperCase() : "NONE"}
 `;
+    const communityTopic = detectCommunityTopic(userMessage);
+    const communityHintBlock = `
+COMMUNITY TOPIC HINT: ${communityTopic ? communityTopic.toUpperCase() : "NONE"}
+`;
     
     // [STATE INJECTION - COMPREHENSIVE]
     let stateInjection = "";
@@ -345,6 +349,7 @@ ${JSON.stringify(resolvedContext, null, 2)}
   ${activityContext}
 
   ${tradeHintBlock}
+  ${communityHintBlock}
 
 User asked: "${userMessage}"
 
@@ -402,6 +407,16 @@ TRADE TOPIC HINT is a pre-detected signal that this is a trade or home-repair qu
   - Briefly mention the main MATERIALS or components likely involved (for example, "PVC drain line, P-trap, shutoff valves, and basic drywall/patch materials").
   - Briefly call out 1–3 relevant building code or permit TOPICS by name or section reference only (for example, "plumbing venting and trap arm slope", "GFCI protection near sinks", "permit may be required if you move drain lines"), and ALWAYS remind the user that final requirements come from their local building department and licensed professionals.
 - Keep this enrichment inside the same 2–3 sentence limit by writing dense, information-rich sentences instead of lists.
+
+COMMUNITY & GROUPS ENRICHMENT (IMPORTANT):
+COMMUNITY TOPIC HINT is a pre-detected signal that this is a question about local community, neighbors, groups, HOAs, boards, or events.
+- If COMMUNITY TOPIC HINT is not "NONE", you MUST base your answer on what TradeScout can do FIRST:
+  - Community feed and local updates
+  - Local groups, HOAs, boards, and building/association views
+  - Community Builder, causes, and local initiatives
+- Prefer routing the user into TradeScout surfaces and flows instead of giving generic internet advice.
+- You MAY mention "other sites or apps you already use" in generic terms, but DO NOT name or promote specific external platforms unless the user explicitly asks you about them by name.
+- If local data is thin, be honest about that, but still show how Scout and TradeScout can help organize or amplify what they want to do with their community.
 
 AUTH-REQUIRED ACTIONS:
 - Posting tasks, items, listings
@@ -570,6 +585,12 @@ function deriveContextualActions(
   if (/market|sell|list|item|trailer|equipment/.test(keywords)) {
     pushUnique("Draft an Exchange listing based on this");
     pushUnique("Search local trailers, tools, and equipment");
+  }
+
+  if (/community|neighbors?|neighbours?|group|groups|club|hoa|association|board meeting|meet people|connect with my local community/.test(keywords)) {
+    pushUnique("Open my community feed in TradeScout");
+    pushUnique(`Show local groups, HOAs, and boards in ${county}`);
+    pushUnique("Draft a welcome or intro post I can share locally");
   }
 
   // User roles
@@ -754,6 +775,28 @@ function detectTradeTopic(message: string): string | null {
 
   if (/(framing|load-bearing wall|header beam|lintel|rim joist|floor joist|wall stud|sister joist)/.test(lower)) {
     return "framing";
+  }
+
+  return null;
+}
+
+function detectCommunityTopic(message: string): string | null {
+  const lower = message.toLowerCase();
+
+  if (/(connect|meet|talk|message|chat|get to know).*(neighbors?|neighbours?|people|community)/.test(lower)) {
+    return "community_connect";
+  }
+
+  if (/(community|neighbors?|neighbours?|local people|my area|my town).*(group|groups|club|clubs|meetup|events?)/.test(lower)) {
+    return "community_groups";
+  }
+
+  if (/(hoa|homeowners' association|condo board|board meeting|association meeting)/.test(lower)) {
+    return "hoa";
+  }
+
+  if (/(volunteer|serve|help out|give back).*(community|neighborhood|county)/.test(lower)) {
+    return "community_serve";
   }
 
   return null;
