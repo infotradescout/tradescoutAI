@@ -2499,8 +2499,31 @@ export async function registerRoutes(app: any) {
     try {
       const { state } = req.query;
 
-      // Use the database storage method instead of imports
-      const counties = await storage.getCounties(state as string);
+      // Prefer the database-backed counties. If a state has not been
+      // imported into the counties table yet, fall back to the
+      // complete static dataset so users always see counties/parishes.
+      const stateCode = (state as string | undefined) || undefined;
+      const counties = await storage.getCounties(stateCode);
+
+      if (stateCode && (!Array.isArray(counties) || counties.length === 0)) {
+        try {
+          const { getCountiesForState } = await import("@shared/us-counties-complete");
+          const fallback = getCountiesForState(stateCode) || [];
+
+          if (fallback.length > 0) {
+            const normalized = fallback.map((c: any) => ({
+              id: c.fips,
+              name: c.name,
+              fips: c.fips,
+              stateCode: c.stateCode,
+            }));
+            return res.json(normalized);
+          }
+        } catch (fallbackError) {
+          console.error("Error loading fallback counties for state", stateCode, fallbackError);
+        }
+      }
+
       res.json(counties);
     } catch (error: any) {
       console.error("Error fetching counties:", error);

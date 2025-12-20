@@ -224,7 +224,7 @@ export function AppShell({ children, footer }: AppShellProps) {
               </button>
             </div>
             <div className="flex-1 overflow-y-auto">
-              <RightToolsPanel />
+              <RightToolsPanel onNavigate={() => setIsToolsOpen(false)} />
             </div>
           </div>
         </div>

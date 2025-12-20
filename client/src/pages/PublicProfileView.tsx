@@ -1,9 +1,11 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRoute } from "wouter";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { getUserColorScheme } from "@shared/colorPresets";
+import { applyTheme, type Theme } from "@/lib/themes";
+import { useTheme } from "@/contexts/ThemeContext";
 import { USER_TYPES } from "@shared/userTypes";
 import {
   MapPin,
@@ -73,6 +75,14 @@ export default function PublicProfileView() {
   const [sellerProducts, setSellerProducts] = useState<SellerProductSummary[]>([]);
   const [sellerRatings, setSellerRatings] = useState<SellerRatingsSummary | null>(null);
   const [communityPosts, setCommunityPosts] = useState<CommunityPostSummary[]>([]);
+  const { currentTheme } = useTheme();
+  const viewerThemeRef = useRef<Theme | null>(currentTheme);
+
+  // Keep the viewer's theme up to date so we can restore it
+  // after temporarily applying a creator's profile colors.
+  useEffect(() => {
+    viewerThemeRef.current = currentTheme;
+  }, [currentTheme]);
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -93,17 +103,36 @@ export default function PublicProfileView() {
         const data = await response.json();
         setProfile(data);
 
-        // Apply user's custom color scheme to the page
+        // Apply the profile owner's color scheme as the active theme
+        // so visitors see their branding on this page.
         if (data.preferences?.colorScheme) {
           const colorScheme = getUserColorScheme(data.preferences);
+
+          const themeFromProfile: Theme = {
+            id: "profile-public",
+            name: "Profile Color Scheme",
+            description: "Public profile colors",
+            colors: {
+              bgPrimary: colorScheme.background,
+              bgSecondary: colorScheme.background,
+              bgTertiary: colorScheme.secondary || colorScheme.background,
+              textPrimary: colorScheme.text,
+              textSecondary: colorScheme.text,
+              accentPrimary: colorScheme.primary,
+              accentSecondary: colorScheme.secondary || colorScheme.primary,
+              border: colorScheme.border || colorScheme.background,
+            },
+          };
+
+          applyTheme(themeFromProfile);
+
           const root = document.documentElement;
-          
-          root.style.setProperty('--user-primary', colorScheme.primary);
-          root.style.setProperty('--user-secondary', colorScheme.secondary);
-          root.style.setProperty('--user-background', colorScheme.background);
-          root.style.setProperty('--user-text', colorScheme.text);
-          root.style.setProperty('--user-accent', colorScheme.accent || colorScheme.primary);
-          root.style.setProperty('--user-border', colorScheme.border || colorScheme.background);
+          root.style.setProperty("--user-primary", colorScheme.primary);
+          root.style.setProperty("--user-secondary", colorScheme.secondary);
+          root.style.setProperty("--user-background", colorScheme.background);
+          root.style.setProperty("--user-text", colorScheme.text);
+          root.style.setProperty("--user-accent", colorScheme.accent || colorScheme.primary);
+          root.style.setProperty("--user-border", colorScheme.border || colorScheme.background);
         }
       } catch (error) {
         console.error('Error fetching profile:', error);
@@ -114,15 +143,19 @@ export default function PublicProfileView() {
 
     fetchProfile();
 
-    // Reset colors when component unmounts
+    // Reset colors and restore the viewer's theme when component unmounts
     return () => {
       const root = document.documentElement;
-      root.style.removeProperty('--user-primary');
-      root.style.removeProperty('--user-secondary');
-      root.style.removeProperty('--user-background');
-      root.style.removeProperty('--user-text');
-      root.style.removeProperty('--user-accent');
-      root.style.removeProperty('--user-border');
+      root.style.removeProperty("--user-primary");
+      root.style.removeProperty("--user-secondary");
+      root.style.removeProperty("--user-background");
+      root.style.removeProperty("--user-text");
+      root.style.removeProperty("--user-accent");
+      root.style.removeProperty("--user-border");
+
+      if (viewerThemeRef.current) {
+        applyTheme(viewerThemeRef.current);
+      }
     };
   }, [params?.userId]);
 

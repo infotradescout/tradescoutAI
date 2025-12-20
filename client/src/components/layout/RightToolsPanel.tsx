@@ -18,6 +18,7 @@ type NavLinkProps = {
   icon: React.ReactNode;
   label: string;
   description?: string;
+  onClick?: () => void;
 };
 
 const NavLink: React.FC<NavLinkProps> = ({
@@ -25,9 +26,11 @@ const NavLink: React.FC<NavLinkProps> = ({
   icon,
   label,
   description,
+  onClick,
 }) => (
   <Link
     href={href}
+    onClick={onClick}
     className="flex flex-col gap-1 rounded-xl border border-slate-800/60 bg-slate-950/60 px-3 py-2 hover:bg-slate-900"
   >
     <div className="flex items-center gap-2">
@@ -46,9 +49,10 @@ const NavLink: React.FC<NavLinkProps> = ({
 
 type RightToolsPanelProps = {
   footer?: ReactNode;
+  onNavigate?: () => void;
 };
 
-export function RightToolsPanel({ footer }: RightToolsPanelProps) {
+export function RightToolsPanel({ footer, onNavigate }: RightToolsPanelProps) {
   const { user, isAuthenticated } = useAuth();
   const logout = useLogout();
 
@@ -92,23 +96,29 @@ export function RightToolsPanel({ footer }: RightToolsPanelProps) {
               icon={<User className="h-3.5 w-3.5 text-orange-400" />}
               label="View profile"
               description="How homeowners and contractors see you."
+              onClick={onNavigate}
             />
             <NavLink
               href="/settings"
               icon={<Settings className="h-3.5 w-3.5 text-orange-400" />}
               label="Account settings"
               description="Login, preferences, and privacy."
+              onClick={onNavigate}
             />
             <NavLink
               href="/notifications"
               icon={<Bell className="h-3.5 w-3.5 text-orange-400" />}
               label="Notifications"
               description="Control alerts from Scout and jobs."
+              onClick={onNavigate}
             />
             {isAuthenticated && (
               <button
                 type="button"
-                onClick={logout}
+                onClick={() => {
+                  logout();
+                  onNavigate?.();
+                }}
                 className="w-full flex flex-col gap-1 rounded-xl border border-red-500/70 bg-slate-950/80 px-3 py-2 text-left hover:bg-red-600/10"
               >
                 <div className="flex items-center gap-2">
@@ -136,30 +146,42 @@ export function RightToolsPanel({ footer }: RightToolsPanelProps) {
               icon={<LayoutDashboard className="h-3.5 w-3.5 text-orange-400" />}
               label="Dashboard"
               description="Your personal hub and live metrics."
+              onClick={onNavigate}
             />
             <NavLink
               href="/lead-management"
               icon={<ClipboardList className="h-3.5 w-3.5 text-orange-400" />}
               label="Projects"
               description="Leads, jobs, and active projects."
+              onClick={onNavigate}
+            />
+            <NavLink
+              href="/lead-management"
+              icon={<ClipboardList className="h-3.5 w-3.5 text-orange-400" />}
+              label="Deal room"
+              description="Conversations, offers, and deal terms."
+              onClick={onNavigate}
             />
             <NavLink
               href="/hoa-management"
               icon={<Building className="h-3.5 w-3.5 text-orange-400" />}
               label="HOA & neighborhood"
               description="Join or manage your neighborhood HOA."
+              onClick={onNavigate}
             />
             <NavLink
               href="/messages"
               icon={<MessageCircle className="h-3.5 w-3.5 text-orange-400" />}
               label="Messages & quotes"
               description="Conversations, quotes, follow-ups."
+              onClick={onNavigate}
             />
             <NavLink
               href="/saved"
               icon={<Bookmark className="h-3.5 w-3.5 text-orange-400" />}
               label="Saved items"
               description="Saved projects, listings, and ideas."
+              onClick={onNavigate}
             />
           </div>
         </section>
