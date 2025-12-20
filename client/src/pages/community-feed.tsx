@@ -419,7 +419,7 @@ const CommunityFeed = memo(function CommunityFeed() {
       sectionLabel="CommunityOS · A live feed for recommendations, projects, and trusted local pros."
       notificationsCount={unreadCount}
     >
-      <div className="mx-auto w-full max-w-5xl px-3 py-3 md:px-4 md:py-4">
+      <div className="mx-auto w-full max-w-5xl px-0 py-3 md:px-4 md:py-4">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-8">
           {/* Main Feed */}
           <div className="lg:col-span-2 space-y-3 md:space-y-6">

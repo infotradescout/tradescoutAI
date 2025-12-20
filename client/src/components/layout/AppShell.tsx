@@ -38,47 +38,47 @@ const featureNav: NavItem[] = [
   {
     label: "Scout",
     href: "/scout",
-    icon: <Compass className="h-4 w-4 text-orange-400" />,
+    icon: <Compass className="h-5 w-5 text-orange-400" />,
   },
   {
     label: "Community",
     href: ROUTES.COMMUNITY ?? "/community",
-    icon: <Users className="h-4 w-4 text-orange-400" />,
+    icon: <Users className="h-5 w-5 text-orange-400" />,
   },
   {
     label: "Contractors",
     href: ROUTES.CONTRACTORS ?? "/contractors",
-    icon: <Home className="h-4 w-4 text-orange-400" />,
+    icon: <Home className="h-5 w-5 text-orange-400" />,
   },
   {
     label: "Messages",
     href: "/messages",
-    icon: <MessageCircle className="h-4 w-4 text-orange-400" />,
+    icon: <MessageCircle className="h-5 w-5 text-orange-400" />,
   },
   {
     label: "Marketplace",
     href: ROUTES.MARKETPLACE ?? "/exchange",
-    icon: <ShoppingBag className="h-4 w-4 text-orange-400" />,
+    icon: <ShoppingBag className="h-5 w-5 text-orange-400" />,
   },
   {
     label: "Help",
     href: ROUTES.HELP ?? "/help",
-    icon: <MessageCircle className="h-4 w-4 text-orange-400" />,
+    icon: <MessageCircle className="h-5 w-5 text-orange-400" />,
   },
   {
     label: "Leaderboard",
     href: "/leaderboard",
-    icon: <Trophy className="h-4 w-4 text-orange-400" />,
+    icon: <Trophy className="h-5 w-5 text-orange-400" />,
   },
   {
     label: "Foundation",
     href: "/foundation",
-    icon: <Heart className="h-4 w-4 text-orange-400" />,
+    icon: <Heart className="h-5 w-5 text-orange-400" />,
   },
   {
     label: "Share",
     href: "/affiliate",
-    icon: <Share2 className="h-4 w-4 text-orange-400" />,
+    icon: <Share2 className="h-5 w-5 text-orange-400" />,
   },
 ];
 
