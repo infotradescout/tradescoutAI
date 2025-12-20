@@ -5,7 +5,7 @@ const contractorDashboardSteps: TourStep[] = [
     id: "welcome",
     target: "h1",
     title: "Welcome to TradeScout!",
-    description: "Click the help button for guided tours and tips.",
+    description: "This is your control panel. Use the help button anytime for guided tours and tips.",
     position: "bottom"
   },
   {

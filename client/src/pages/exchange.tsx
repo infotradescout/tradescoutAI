@@ -286,7 +286,7 @@ export default function Exchange() {
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <div className="mb-8">
         <h1 className="text-3xl font-bold text-white mb-2">Exchange</h1>
-        <p className="text-gray-300">Premium equipment and valuable items marketplace</p>
+        <p className="text-gray-300">Local exchange for properties, vehicles, businesses, equipment, and other big-ticket deals</p>
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
@@ -315,7 +315,7 @@ export default function Exchange() {
                 <div className="relative">
                   <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
                   <Input
-                    placeholder="Search items..."
+                    placeholder="Search local properties, vehicles, equipment, and more..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     className="pl-10 bg-slate-700 border-slate-600 text-white"
@@ -469,7 +469,7 @@ export default function Exchange() {
                 <div className="relative">
                   <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
                   <Input
-                    placeholder="Search deals and promotions..."
+                    placeholder="Search contractor promos and deals..."
                     value={salesSearchQuery}
                     onChange={(e) => setSalesSearchQuery(e.target.value)}
                     className="pl-10 bg-slate-700 border-slate-600 text-white"
@@ -769,7 +769,7 @@ export default function Exchange() {
           <Card className="bg-[#1a2332] border-slate-700">
             <CardHeader>
               <CardTitle className="text-white">List Your Item</CardTitle>
-              <p className="text-gray-400">Create a premium listing for your valuable item</p>
+              <p className="text-gray-400">Create a clear, trustworthy listing for other TradeScout members</p>
             </CardHeader>
             <CardContent className="space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -778,7 +778,7 @@ export default function Exchange() {
                     <Label htmlFor="title" className="text-white">Item Title</Label>
                     <Input
                       id="title"
-                      placeholder="Enter item title"
+                      placeholder="Example: 16ft enclosed trailer with ramp"
                       className="bg-slate-700 border-slate-600 text-white"
                       value={sellTitle}
                       onChange={(e) => setSellTitle(e.target.value)}
@@ -806,7 +806,7 @@ export default function Exchange() {
                     <Input
                       id="price"
                       type="number"
-                      placeholder="Enter price"
+                      placeholder="Asking price (USD)"
                       className="bg-slate-700 border-slate-600 text-white"
                       value={sellPrice}
                       onChange={(e) => setSellPrice(e.target.value)}
@@ -834,7 +834,7 @@ export default function Exchange() {
                     <Label htmlFor="description" className="text-white">Description</Label>
                     <Textarea 
                       id="description" 
-                      placeholder="Describe your item in detail..." 
+                      placeholder="Describe condition, age, and what's included..." 
                       className="bg-slate-700 border-slate-600 text-white min-h-32"
                       value={sellDescription}
                       onChange={(e) => setSellDescription(e.target.value)}
@@ -845,7 +845,7 @@ export default function Exchange() {
                     <Label htmlFor="location" className="text-white">Location</Label>
                     <Input
                       id="location"
-                      placeholder="City, State"
+                      placeholder="Where can buyers pick it up? (City, State)"
                       className="bg-slate-700 border-slate-600 text-white"
                       value={sellLocation}
                       onChange={(e) => setSellLocation(e.target.value)}
@@ -856,8 +856,8 @@ export default function Exchange() {
                     <Label className="text-white">Images</Label>
                     <div className="border-2 border-dashed border-slate-600 rounded-lg p-8 text-center">
                       <Plus className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                      <p className="text-gray-400">Click to upload images</p>
-                      <p className="text-sm text-gray-500">Up to 8 high-quality images</p>
+                      <p className="text-gray-400">Drop in clear, well-lit photos</p>
+                      <p className="text-sm text-gray-500">Add up to 8 photos that show real condition</p>
                     </div>
                   </div>
                 </div>
