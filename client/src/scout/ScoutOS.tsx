@@ -781,13 +781,22 @@ export default function ScoutOS() {
         return;
       }
 
+      // Clear any stored prefill so the input is blank when the
+      // help-center intent is auto-sent.
+      try {
+        window.localStorage.removeItem("scout:prefill:scout-main");
+      } catch {
+        // ignore
+      }
+      setPrefillKey((k) => k + 1);
+
       window.localStorage.removeItem("scout:help-intent");
       setHasGuestInteracted(true);
       void handleSend(parsed.prompt);
     } catch {
       // ignore storage/JSON errors
     }
-  }, [location, state.messages, handleSend]);
+  }, [location, state.messages, handleSend, setPrefillKey]);
 
   const heroLocationLabel = getUserLocationLabel(user as any);
   const heroAudienceLabel = getUserAudienceLabel(user as any);
@@ -804,22 +813,22 @@ export default function ScoutOS() {
   return (
     <div className="min-h-screen bg-[#060b1c] text-white flex flex-col items-center">
       <div
-        className={`w-full max-w-xl px-4 ${
-          isMobile ? "pt-6 pb-3" : "pt-10 pb-4"
-        } space-y-6`}
+        className={`w-full ${
+          isMobile ? "px-0 pt-3 pb-2" : "max-w-xl px-4 pt-6 pb-3"
+        } space-y-4`}
       >
         {isFirstGuestVisit ? (
           // FIRST GUEST INTRO: Clean, intentional, single-purpose
           <div className="space-y-6">
-            <header className="text-center space-y-3">
+            <header className="text-center space-y-2">
               <p className="text-[10px] tracking-[0.25em] text-orange-300 uppercase">
-                COMMUNITY OS  b7 SCOUT
+                COMMUNITY OS
               </p>
-              <h1 className="text-2xl md:text-3xl font-black tracking-[0.12em] text-white uppercase">
+              <h1 className="text-xl md:text-2xl font-black tracking-[0.12em] text-white uppercase">
                 <span className="text-white">EMPOWERING </span>
                 <span className="text-orange-400">{heroHeadlineTarget}</span>
               </h1>
-              <p className="text-sm text-slate-300/90 max-w-md mx-auto">
+              <p className="text-xs text-slate-300/90 max-w-md mx-auto">
                 Your local AI assistant for contractors, community updates, and home projects.
               </p>
             </header>
@@ -875,21 +884,21 @@ export default function ScoutOS() {
           // FULL CONVERSATION: All features visible after first message
           <>
             {/* Header + hero (copy only; all navigation lives in AppShell) */}
-            <header className="space-y-3">
+            <header className="space-y-2">
               <p className="text-[10px] tracking-[0.25em] text-orange-300 uppercase">
-                COMMUNITY OS  b7 SCOUT
+                COMMUNITY OS
               </p>
-              <p className="text-xs text-slate-400">
+              <p className="text-[11px] text-slate-400">
                 Your local operating system for contractors, projects, and community.
               </p>
 
-              <h1 className="mt-3 text-[clamp(1rem,4vw,1.5rem)] tracking-[0.12em] text-white uppercase">
+              <h1 className="mt-1 text-[clamp(0.95rem,3.5vw,1.35rem)] tracking-[0.12em] text-white uppercase">
                 <span className="text-white">EMPOWERING </span>
                 <span className="text-orange-400">{heroHeadlineTarget}</span>
               </h1>
 
               {!isAuthenticated && (
-                <p className="mt-2 text-xs text-slate-300/90 max-w-md">
+                <p className="mt-1 text-[11px] text-slate-300/90 max-w-md">
                   You can explore without an account. Sign in when you want to save, post, or message.
                 </p>
               )}

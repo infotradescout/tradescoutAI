@@ -1190,30 +1190,30 @@ export default function Help() {
 
   return (
     <div className="min-h-screen gradient-bg">
-      <div className="container mx-auto px-4 py-8">
+      <div className="w-full max-w-5xl mx-auto px-3 md:px-4 py-5 md:py-8">
         {/* Header */}
-        <div className="text-center mb-8">
-          <h1 className="text-4xl font-bold text-white mb-4">Help Center</h1>
-          <p className="text-xl text-gray-300 max-w-2xl mx-auto">
+        <div className="text-center mb-5 md:mb-8">
+          <h1 className="text-2xl md:text-4xl font-bold text-white mb-2 md:mb-4">Help Center</h1>
+          <p className="text-base md:text-xl text-gray-300 max-w-2xl mx-auto">
             Get answers to your questions and learn how to make the most of TradeScout
           </p>
         </div>
 
         {/* Role-Specific Header */}
-        <div className="mb-8">
+        <div className="mb-5 md:mb-8">
           <Card className={`${roleConfig.color} border-navy-600`}>
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-4">
-                  <div className="bg-[#0f1419]/20 rounded-lg p-3">
-                    <roleConfig.icon className="h-8 w-8 text-white" />
+            <CardContent className="p-4 md:p-6">
+              <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 md:gap-4">
+                <div className="flex items-center space-x-3 md:space-x-4">
+                  <div className="bg-[#0f1419]/20 rounded-lg p-2 md:p-3">
+                    <roleConfig.icon className="h-7 w-7 md:h-8 md:w-8 text-white" />
                   </div>
                   <div>
-                    <h2 className="text-2xl font-bold text-white">{roleConfig.name} Help Center</h2>
-                    <p className="text-white/80">{roleConfig.description}</p>
+                    <h2 className="text-lg md:text-2xl font-bold text-white">{roleConfig.name} Help Center</h2>
+                    <p className="text-sm md:text-base text-white/80">{roleConfig.description}</p>
                   </div>
                 </div>
-                <Badge className="bg-[#0f1419]/20 text-white border-white/30">
+                <Badge className="self-start md:self-auto bg-[#0f1419]/20 text-white border-white/30 text-xs md:text-sm">
                   {filteredArticles.length} articles
                 </Badge>
               </div>
@@ -1222,7 +1222,7 @@ export default function Help() {
         </div>
 
         {/* Quick Actions */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 md:gap-4 mb-6 md:mb-8">
           {roleConfig.quickActions.map((action, index) => (
             <Card
               key={index}
@@ -1234,10 +1234,10 @@ export default function Help() {
                 if (e.key === "Enter" || e.key === " ") handleQuickAction(action);
               }}
             >
-              <CardContent className="p-4 text-center">
-                <action.icon className="w-8 h-8 text-orange-500 mx-auto mb-2" />
-                <h3 className="text-white font-medium">{action.title}</h3>
-                <p className="text-gray-400 text-sm">{action.description}</p>
+              <CardContent className="p-4 text-left">
+                <action.icon className="w-7 h-7 text-orange-500 mb-2" />
+                <h3 className="text-white font-medium text-sm md:text-base mb-1">{action.title}</h3>
+                <p className="text-gray-400 text-xs md:text-sm">{action.description}</p>
               </CardContent>
             </Card>
           ))}
