@@ -721,7 +721,7 @@ export default function Landing() {
                   Join thousands of homeowners who have found trusted contractors through TradeScout.
                 </p>
                 <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                  <Link href="/contractors/board">
+                  <Link href="/contractors">
                     <Button 
                       className="bg-navy-600 hover:bg-navy-500 text-white px-8 py-3 rounded-lg font-semibold border border-navy-500"
                     >

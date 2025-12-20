@@ -116,7 +116,7 @@ export default function Help() {
           title: "Find Contractors",
           description: "Search for verified contractors near you",
           icon: Search,
-          action: "/contractors/board"
+          action: "/contractors"
         },
         {
           title: "Get Quote",

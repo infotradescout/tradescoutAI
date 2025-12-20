@@ -10,12 +10,14 @@ import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
+import { US_STATES } from "@shared/us-states-counties";
 
 const quoteFormSchema = z.object({
   firstName: z.string().min(2, "First name must be at least 2 characters"),
   lastName: z.string().min(2, "Last name must be at least 2 characters"),
   email: z.string().email("Please enter a valid email address"),
   phone: z.string().min(10, "Please enter a valid phone number"),
+  state: z.string().min(1, "Please select your state"),
   county: z.string().min(1, "Please select your area"),
   projectType: z.string().min(1, "Please select a project type"),
   projectDescription: z.string().optional(),
@@ -41,6 +43,7 @@ export default function QuoteForm({ onSuccess, compact = false }: QuoteFormProps
       lastName: "",
       email: "",
       phone: "",
+      state: "",
       county: "",
       projectType: "",
       projectDescription: "",
@@ -49,13 +52,17 @@ export default function QuoteForm({ onSuccess, compact = false }: QuoteFormProps
     },
   });
 
-  // Fetch counties for dropdown
+  const selectedState = form.watch("state");
+
+  // Fetch counties for selected state using API
   const { data: counties = [] } = useQuery({
-    queryKey: ["/api/counties"],
+    queryKey: ["/api/counties", selectedState],
     queryFn: async () => {
-      const response = await apiRequest("GET", "/api/counties?state=CA");
+      if (!selectedState) return [];
+      const response = await apiRequest("GET", `/api/counties?state=${selectedState}`);
       return response;
     },
+    enabled: !!selectedState,
   });
 
   // Fetch trades for project types
@@ -198,14 +205,57 @@ export default function QuoteForm({ onSuccess, compact = false }: QuoteFormProps
         <div className={compact ? "grid grid-cols-1 gap-4" : "grid grid-cols-1 md:grid-cols-2 gap-4"}>
           <FormField
             control={form.control}
+            name="state"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel className="text-gray-300">State / Territory</FormLabel>
+                <Select
+                  onValueChange={(value) => {
+                    field.onChange(value);
+                    form.setValue("county", "");
+                  }}
+                  value={field.value}
+                >
+                  <FormControl>
+                    <SelectTrigger className="bg-navy-700 border-navy-600 text-white">
+                      <SelectValue placeholder="Select state or territory" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent className="bg-navy-700 border-navy-600">
+                    {US_STATES.map((state) => (
+                      <SelectItem
+                        key={state.code}
+                        value={state.code}
+                        className="text-white hover:bg-navy-600"
+                      >
+                        {state.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
             name="county"
             render={({ field }) => (
               <FormItem>
-                <FormLabel className="text-gray-300">Area</FormLabel>
-                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                <FormLabel className="text-gray-300">County / Parish / Borough</FormLabel>
+                <Select
+                  onValueChange={field.onChange}
+                  value={field.value}
+                  disabled={!selectedState}
+                >
                   <FormControl>
                     <SelectTrigger className="bg-navy-700 border-navy-600 text-white">
-                      <SelectValue placeholder="Select your area" />
+                      <SelectValue
+                        placeholder={
+                          selectedState ? "Select your area" : "Select state first"
+                        }
+                      />
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent className="bg-navy-700 border-navy-600">

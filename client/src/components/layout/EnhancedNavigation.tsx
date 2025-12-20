@@ -19,7 +19,7 @@ export function EnhancedNavigation({ className = "" }: EnhancedNavigationProps) 
 
   const isActive = (path: string) => {
     if (path === "/") return location === "/";
-    if (path === "/contractors") return location === "/contractors" || location.startsWith("/contractor-board") || location.startsWith("/contractors");
+    if (path === "/contractors") return location === "/contractors" || location.startsWith("/contractors");
     return location.startsWith(path);
   };
 
@@ -54,7 +54,7 @@ export function EnhancedNavigation({ className = "" }: EnhancedNavigationProps) 
           </Button>
           </Link>
           
-          <Link href="/contractor-board">
+          <Link href="/contractor-apply">
             <Button variant={isActive("/contractor-board") ? "secondary" : "ghost"} size="sm" className="px-3 py-2 rounded-lg nav-button hover:bg-slate-800/60 text-sm">
               For Contractors
             </Button>
@@ -147,7 +147,7 @@ export function EnhancedNavigation({ className = "" }: EnhancedNavigationProps) 
                     Scout
                   </Button>
                   </Link>
-                  <Link href="/contractor-board" onClick={() => setIsMobileMenuOpen(false)}>
+                  <Link href="/contractor-apply" onClick={() => setIsMobileMenuOpen(false)}>
                     <Button variant="ghost" className="w-full justify-start text-slate-200 hover:text-white hover:bg-slate-800/60">
                       For Contractors
                     </Button>

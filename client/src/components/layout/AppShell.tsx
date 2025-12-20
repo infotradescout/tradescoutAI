@@ -44,7 +44,7 @@ const featureNav: NavItem[] = [
   },
   {
     label: "Contractors",
-    href: ROUTES.CONTRACTORS ?? "/contractor-board",
+    href: ROUTES.CONTRACTORS ?? "/contractors",
     icon: <Home className="h-4 w-4 text-orange-400" />,
   },
   {

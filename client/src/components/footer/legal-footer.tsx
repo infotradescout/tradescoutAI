@@ -5,7 +5,7 @@ export function LegalFooter() {
   const currentYear = new Date().getFullYear();
   
   return (
-    <footer className="bg-gray-900 text-gray-300 py-12 mt-auto">
+    <footer className="bg-gray-900 text-gray-300 py-6 md:py-8 mt-auto">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
           
@@ -53,7 +53,7 @@ export function LegalFooter() {
             <h4 className="text-md font-medium text-white mb-4">Platform</h4>
             <ul className="space-y-2 text-sm">
               <li>
-                <Link href="/contractor-board" className="hover:text-white transition-colors">
+                <Link href="/contractors" className="hover:text-white transition-colors">
                   Find Contractors
                 </Link>
               </li>
@@ -99,7 +99,7 @@ export function LegalFooter() {
           </div>
         </div>
 
-        <Separator className="my-8 bg-gray-700" />
+        <Separator className="my-4 bg-gray-700" />
 
         <div className="flex flex-col md:flex-row justify-between items-center text-sm">
           <div className="mb-4 md:mb-0">
@@ -120,7 +120,7 @@ export function LegalFooter() {
         </div>
 
         {/* Compliance Statement */}
-        <div className="mt-6 pt-6 border-t border-gray-700">
+        <div className="mt-4 pt-4 border-t border-gray-700">
           <p className="text-xs text-gray-400 text-center">
             TradeScout operates in compliance with federal, state, and local regulations including the INFORM Consumers Act, 
             state marketplace facilitator tax laws, CCPA/GDPR privacy requirements, and ADA accessibility standards. 
