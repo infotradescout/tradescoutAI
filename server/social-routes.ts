@@ -613,9 +613,7 @@ export function registerSocialRoutes(app: Express) {
           [
             "https://www.thetradescout.com",
             "https://tradescoutai.onrender.com",
-            "https://tradescout-5hn96npkf-tradescouts-projects.vercel.app",
-            "https://tradescout-e557bv88z-tradescouts-projects.vercel.app",
-            "https://tradescout-bami61j89-tradescouts-projects.vercel.app",
+            
             "https://thetradescout.com",
           ].map((o) => o.toLowerCase())
         );
