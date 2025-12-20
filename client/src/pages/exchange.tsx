@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -40,6 +40,7 @@ import {
 import { useAuth } from "@/hooks/useAuth";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { useLocation } from "wouter";
 
 interface ExchangeItem {
   id: string;
@@ -159,6 +160,14 @@ export default function Exchange() {
   const [dealType, setDealType] = useState("");
   const [salesSortBy, setSalesSortBy] = useState("newest");
 
+  const [route] = useLocation();
+
+  // Sell tab draft state (prefill from Scout)
+  const [sellTitle, setSellTitle] = useState("");
+  const [sellPrice, setSellPrice] = useState("");
+  const [sellDescription, setSellDescription] = useState("");
+  const [sellLocation, setSellLocation] = useState("");
+
   // Fetch exchange items
   const { data: items, isLoading } = useQuery<ExchangeItem[]>({
     queryKey: ['/api/exchange/items', selectedCategory, locationFilter, sortBy, priceRange, conditionFilter],
@@ -245,6 +254,33 @@ export default function Exchange() {
     };
     return colors[condition as keyof typeof colors] || 'bg-[#0f1419]0';
   };
+
+  // Allow Scout to prefill the sell form via
+  // /exchange?tab=sell&title=...&description=...&price=...&loc=...
+  useEffect(() => {
+    if (!route) return;
+
+    const queryIndex = route.indexOf("?");
+    if (queryIndex === -1) return;
+
+    const search = route.slice(queryIndex + 1);
+    const params = new URLSearchParams(search);
+
+    const tab = params.get("tab");
+    const title = params.get("title");
+    const description = params.get("description");
+    const price = params.get("price");
+    const loc = params.get("loc");
+
+    if (tab === "sell") {
+      setActiveTab("sell");
+    }
+
+    if (title) setSellTitle(title);
+    if (description) setSellDescription(description);
+    if (price) setSellPrice(price);
+    if (loc) setSellLocation(loc);
+  }, [route]);
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -740,7 +776,13 @@ export default function Exchange() {
                 <div className="space-y-4">
                   <div>
                     <Label htmlFor="title" className="text-white">Item Title</Label>
-                    <Input id="title" placeholder="Enter item title" className="bg-slate-700 border-slate-600 text-white" />
+                    <Input
+                      id="title"
+                      placeholder="Enter item title"
+                      className="bg-slate-700 border-slate-600 text-white"
+                      value={sellTitle}
+                      onChange={(e) => setSellTitle(e.target.value)}
+                    />
                   </div>
                   
                   <div>
@@ -761,7 +803,14 @@ export default function Exchange() {
 
                   <div>
                     <Label htmlFor="price" className="text-white">Price</Label>
-                    <Input id="price" type="number" placeholder="Enter price" className="bg-slate-700 border-slate-600 text-white" />
+                    <Input
+                      id="price"
+                      type="number"
+                      placeholder="Enter price"
+                      className="bg-slate-700 border-slate-600 text-white"
+                      value={sellPrice}
+                      onChange={(e) => setSellPrice(e.target.value)}
+                    />
                   </div>
 
                   <div>
@@ -787,12 +836,20 @@ export default function Exchange() {
                       id="description" 
                       placeholder="Describe your item in detail..." 
                       className="bg-slate-700 border-slate-600 text-white min-h-32"
+                      value={sellDescription}
+                      onChange={(e) => setSellDescription(e.target.value)}
                     />
                   </div>
 
                   <div>
                     <Label htmlFor="location" className="text-white">Location</Label>
-                    <Input id="location" placeholder="City, State" className="bg-slate-700 border-slate-600 text-white" />
+                    <Input
+                      id="location"
+                      placeholder="City, State"
+                      className="bg-slate-700 border-slate-600 text-white"
+                      value={sellLocation}
+                      onChange={(e) => setSellLocation(e.target.value)}
+                    />
                   </div>
 
                   <div>

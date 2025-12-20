@@ -10,8 +10,10 @@ import {
   Trophy,
   Heart,
   LogOut,
+  Share2,
 } from "lucide-react";
 import { useAuth, useLogout } from "@/hooks/useAuth";
+import { useHandedness } from "@/hooks/useHandedness";
 import { useIsMobile } from "@/hooks/useIsMobile";
 import { ROUTES } from "@/lib/routes";
 import { NotificationsMenu } from "@/components/NotificationsMenu";
@@ -58,6 +60,11 @@ const featureNav: NavItem[] = [
     icon: <ShoppingBag className="h-4 w-4 text-orange-400" />,
   },
   {
+    label: "Help",
+    href: ROUTES.HELP ?? "/help",
+    icon: <MessageCircle className="h-4 w-4 text-orange-400" />,
+  },
+  {
     label: "Leaderboard",
     href: "/leaderboard",
     icon: <Trophy className="h-4 w-4 text-orange-400" />,
@@ -67,6 +74,11 @@ const featureNav: NavItem[] = [
     href: "/foundation",
     icon: <Heart className="h-4 w-4 text-orange-400" />,
   },
+  {
+    label: "Share",
+    href: "/affiliate",
+    icon: <Share2 className="h-4 w-4 text-orange-400" />,
+  },
 ];
 
 export function AppShell({ children, footer }: AppShellProps) {
@@ -74,6 +86,7 @@ export function AppShell({ children, footer }: AppShellProps) {
   const logout = useLogout();
   const isMobile = useIsMobile();
   const [isToolsOpen, setIsToolsOpen] = useState(false);
+  const handedness = useHandedness();
 
   useEffect(() => {
     console.log("AppShell mounted");
@@ -82,9 +95,18 @@ export function AppShell({ children, footer }: AppShellProps) {
   return (
     <div className="h-screen bg-slate-950 text-slate-50 flex flex-col overflow-hidden">
       {/* TOP APP NAV HEADER */}
-      <header className="flex items-center justify-between border-b border-slate-800 px-3 sm:px-4 py-3">
+      <header
+        className={`flex items-center border-b border-slate-800 px-3 sm:px-4 py-3 ${
+          handedness === "left" ? "flex-row-reverse justify-between" : "justify-between"
+        }`}
+      >
         {/* Brand */}
-        <Link href="/" className="flex items-center gap-3 cursor-pointer">
+        <Link
+          href="/"
+          className={`flex items-center gap-3 cursor-pointer ${
+            handedness === "left" ? "justify-end" : ""
+          }`}
+        >
           <div className="h-8 w-8 rounded-2xl bg-orange-500 shadow-md shadow-orange-500/40" />
           <div className="flex flex-col leading-tight">
             <span className="text-[0.65rem] uppercase tracking-[0.35em] text-slate-400">
@@ -174,20 +196,22 @@ export function AppShell({ children, footer }: AppShellProps) {
         {/* USER-SPECIFIC PAGES LIVE HERE (desktop) */}
         {!isMobile && (
           <aside className="hidden lg:block w-80 border-l border-slate-800 bg-slate-950/90 overflow-y-auto">
+            {/* On desktop, keep the global footer only at the bottom of the shell;
+               the tools panel shows account tools without duplicating legal copy. */}
             <RightToolsPanel />
           </aside>
         )}
       </div>
 
-      {/* Optional footer */}
+      {/* BOTTOM BAR: SCROLLABLE SITE FEATURE NAV */}
+      <MobileAppBar items={featureNav} />
+
+      {/* Optional footer (below bottom nav on desktop) */}
       {footer && (
-        <footer className="border-t border-slate-900 px-4 py-2 text-xs text-slate-500">
+        <footer className="hidden md:block border-t border-slate-900 px-4 py-2 text-xs text-slate-500">
           {footer}
         </footer>
       )}
-
-      {/* BOTTOM BAR: SCROLLABLE SITE FEATURE NAV */}
-      <MobileAppBar items={featureNav} />
 
       {/* MOBILE TOOLS DRAWER = PROFILE / DASHBOARD / SETTINGS, etc. */}
       {isMobile && isToolsOpen && (
@@ -212,7 +236,7 @@ export function AppShell({ children, footer }: AppShellProps) {
               </button>
             </div>
             <div className="flex-1 overflow-y-auto">
-              <RightToolsPanel />
+              <RightToolsPanel footer={footer} />
             </div>
           </div>
         </div>

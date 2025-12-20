@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Copy, Share2, TrendingUp, Users, DollarSign, Calendar, Check, ExternalLink, Zap } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { format } from "date-fns";
+import { useAuth } from "@/hooks/useAuth";
 
 interface AffiliateProgram {
   id: string;
@@ -64,6 +65,7 @@ interface Payout {
 
 export default function AffiliatePage() {
   const [copySuccess, setCopySuccess] = useState<string | null>(null);
+  const { isAuthenticated } = useAuth();
 
   // Get affiliate dashboard data - automatically created for all users
   const { data: dashboardData, isLoading } = useQuery<{
@@ -75,6 +77,27 @@ export default function AffiliatePage() {
   }>({
     queryKey: ["/api/affiliate/dashboard"],
     retry: false,
+    queryFn: async () => {
+      try {
+        return await apiRequest<{
+          program: AffiliateProgram;
+          stats: AffiliateStats;
+          referrals: Referral[];
+          commissions: Commission[];
+          payouts: Payout[];
+        }>("GET", "/api/affiliate/dashboard");
+      } catch (error: any) {
+        const message = (error?.message as string | undefined) ?? "";
+        if (
+          message.includes("401") ||
+          message.toLowerCase().includes("unauthorized") ||
+          message.toLowerCase().includes("not authenticated")
+        ) {
+          return null;
+        }
+        throw error;
+      }
+    },
   });
 
   // Update settings mutation
@@ -123,11 +146,34 @@ export default function AffiliatePage() {
     );
   }
 
-  const program = dashboardData?.program;
-  const stats = dashboardData?.stats;
-  const referrals = dashboardData?.referrals || [];
-  const commissions = dashboardData?.commissions || [];
-  const payouts = dashboardData?.payouts || [];
+  if (!isAuthenticated || !dashboardData) {
+    return (
+      <div className="min-h-screen gradient-bg pt-24 pb-16 px-4">
+        <div className="container mx-auto max-w-4xl">
+          <div className="rounded-2xl border border-slate-800 bg-gradient-to-br from-slate-900 via-slate-950 to-slate-900 px-6 py-7 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="space-y-2 max-w-xl">
+              <h1 className="text-2xl sm:text-3xl font-bold text-white">Share TradeScout, fund your community.</h1>
+              <p className="text-sm sm:text-base text-gray-300">
+                Create an account or sign in to see your affiliate dashboard, get your personal link, and route a slice of
+                marketplace activity back into the county vaults you care about.
+              </p>
+            </div>
+            <div className="mt-3 sm:mt-0 flex flex-col items-start sm:items-end gap-2 text-sm text-gray-300">
+              <span className="text-xs text-slate-400">
+                Use the Create account or Log in buttons in the header to get started.
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  const program = dashboardData.program;
+  const stats = dashboardData.stats;
+  const referrals = dashboardData.referrals || [];
+  const commissions = dashboardData.commissions || [];
+  const payouts = dashboardData.payouts || [];
 
   // Generate referral link (even if program not set up yet)
   const baseUrl = window.location.origin;

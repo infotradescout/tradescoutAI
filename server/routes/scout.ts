@@ -220,6 +220,195 @@ function buildCommunityPrefill(
   return "Looking for trustworthy local help — who do you recommend?";
 }
 
+function isWelcomeIntroRequest(message: string): boolean {
+  const lower = message.toLowerCase();
+
+  if (!lower) return false;
+
+  if (/(welcome|intro|introduction)\s+(post|message)/.test(lower)) return true;
+  if (/draft\s+(a\s+)?welcome/.test(lower)) return true;
+  if (/help\s+me\s+write\s+(a\s+)?welcome/.test(lower)) return true;
+  if (lower.includes("community welcome")) return true;
+
+  return false;
+}
+
+function buildWelcomeIntroDraft(
+  originalMessage: string,
+  userRecord?: any,
+  countyCode?: string,
+  stateCode?: string
+): string {
+  const lower = originalMessage.toLowerCase();
+
+  const firstName =
+    typeof userRecord?.firstName === "string" && userRecord.firstName.trim().length > 0
+      ? userRecord.firstName.trim()
+      : "";
+
+  const city =
+    typeof userRecord?.city === "string" && userRecord.city.trim().length > 0
+      ? userRecord.city.trim()
+      : undefined;
+  const county =
+    typeof userRecord?.county === "string" && userRecord.county.trim().length > 0
+      ? userRecord.county.trim()
+      : countyCode;
+  const state =
+    typeof userRecord?.state === "string" && userRecord.state.trim().length > 0
+      ? userRecord.state.trim()
+      : stateCode;
+
+  const locationParts: string[] = [];
+  if (city) locationParts.push(city);
+  if (county && !locationParts.includes(county)) locationParts.push(county);
+  if (state) locationParts.push(state);
+
+  const locationLabel =
+    locationParts.length > 0 ? ` here in ${locationParts.join(", ")}` : "";
+
+  const rolesRaw =
+    Array.isArray(userRecord?.roles) && userRecord.roles.length > 0
+      ? userRecord.roles
+      : userRecord?.role
+      ? [userRecord.role]
+      : [];
+
+  const baseRole =
+    rolesRaw.find((r: unknown) => typeof r === "string" && r.trim().length > 0) ?? "";
+
+  let rolePhrase = "";
+  if (typeof baseRole === "string" && baseRole) {
+    const normalized = baseRole.replace(/_/g, " ");
+    const pretty = normalized.replace(/\b\w/g, (c) => c.toUpperCase());
+    const lowerRole = normalized.toLowerCase();
+
+    if (lowerRole === "homeowner") {
+      rolePhrase = "a homeowner";
+    } else if (lowerRole === "contractor") {
+      rolePhrase = "a local contractor";
+    } else if (lowerRole === "business owner") {
+      rolePhrase = "a local business owner";
+    } else {
+      rolePhrase = pretty;
+    }
+  }
+
+  let introLine = "Hi neighbors" + locationLabel + "!";
+  if (firstName && rolePhrase) {
+    introLine = `Hi neighbors${locationLabel}, I'm ${firstName}, ${rolePhrase}.`;
+  } else if (firstName) {
+    introLine = `Hi neighbors${locationLabel}, I'm ${firstName}.`;
+  }
+
+  let focusLine: string;
+  if (/(hoa|homeowners' association|condo board|board meeting)/.test(lower)) {
+    focusLine =
+      "I'm here to stay on top of HOA updates and help make our neighborhood easier to run together.";
+  } else if (/(group|club|meetup|neighbors|community)/.test(lower)) {
+    focusLine =
+      "I'm looking to connect with neighbors, local groups, and people who care about improving our area.";
+  } else {
+    focusLine =
+      "I'm excited to get more connected with our local community, share good recommendations, and support projects that help our neighborhood.";
+  }
+
+  const closingLine =
+    "If you have favorite local pros, groups, or causes I should know about, I'd really appreciate your tips and introductions.";
+
+  return `${introLine} ${focusLine} ${closingLine}`;
+}
+
+function isExchangeListingRequest(message: string): boolean {
+  const lower = message.toLowerCase();
+  if (!lower) return false;
+
+  if (lower.includes("exchange listing")) return true;
+  if (/draft\s+(an?\s+)?listing\b/.test(lower)) return true;
+  if (/draft\s+(an?\s+)?exchange\s+listing\b/.test(lower)) return true;
+  if (/turn\s+this\s+into\s+(an?\s+)?(exchange\s+)?listing/.test(lower)) return true;
+  if (/create\s+(an?\s+)?(exchange\s+)?listing/.test(lower)) return true;
+  if (/list\s+(this|it|my)\s+.*for\s+sale/.test(lower)) return true;
+  if (/post\s+this\s+for\s+sale/.test(lower)) return true;
+  if (lower.startsWith("write a listing") || lower.startsWith("write an exchange listing")) return true;
+
+  return false;
+}
+
+function buildExchangeListingDraft(
+  originalMessage: string,
+  userRecord?: any,
+  countyCode?: string,
+  stateCode?: string
+): { title: string; description: string; price?: number; locationLabel?: string } {
+  const amount = extractDollarAmount(originalMessage) ?? undefined;
+
+  let itemPhrase = "item";
+  const myMatch = originalMessage.match(/my\s+([^.,\n]{3,60})/i);
+  if (myMatch?.[1]) {
+    itemPhrase = myMatch[1].trim();
+  } else {
+    const forSaleMatch = originalMessage.match(/for\s+sale[:\-]?\s*([^.,\n]{3,60})/i);
+    if (forSaleMatch?.[1]) {
+      itemPhrase = forSaleMatch[1].trim();
+    }
+  }
+
+  itemPhrase = itemPhrase.replace(/\s+/g, " ");
+  if (!itemPhrase || itemPhrase.length < 3) {
+    itemPhrase = "equipment";
+  }
+
+  const city =
+    typeof userRecord?.city === "string" && userRecord.city.trim().length > 0
+      ? userRecord.city.trim()
+      : undefined;
+  const county =
+    typeof userRecord?.county === "string" && userRecord.county.trim().length > 0
+      ? userRecord.county.trim()
+      : countyCode;
+  const state =
+    typeof userRecord?.state === "string" && userRecord.state.trim().length > 0
+      ? userRecord.state.trim()
+      : stateCode;
+
+  const locParts: string[] = [];
+  if (city) locParts.push(city);
+  if (county && !locParts.includes(county)) locParts.push(county);
+  if (state) locParts.push(state);
+
+  const locationLabel = locParts.length > 0 ? locParts.join(", ") : undefined;
+
+  const baseTitle = itemPhrase.replace(/^[a-z]/, (c) => c.toUpperCase());
+  const titlePieces: string[] = [baseTitle];
+  if (amount && amount > 0) {
+    titlePieces.push(`- ${formatUsd(amount)}`);
+  }
+  if (locationLabel) {
+    titlePieces.push(`(${locationLabel})`);
+  }
+
+  const title = titlePieces.join(" ");
+
+  const priceLine = amount && amount > 0
+    ? `Asking around ${formatUsd(amount)} (open to reasonable offers).`
+    : "Set a fair asking price here (you can adjust based on interest).";
+
+  const locationLine = locationLabel
+    ? `Located in ${locationLabel}.`
+    : "Include your city or county so buyers know where they'll be meeting you.";
+
+  const description = [
+    `Selling my ${itemPhrase}.`,
+    locationLine,
+    "Add clear details about age, brand, size/specs, and exactly what’s included so serious buyers know what they’re getting.",
+    "Be upfront about wear, issues, or repairs — honest listings attract better buyers.",
+    priceLine,
+  ].join(" ");
+
+  return { title, description, price: amount, locationLabel };
+}
+
 function sanitizeSuspiciousContent(text: string): { flagged: boolean; message: string } {
   const flagged = FRAUD_PATTERNS.some((pattern) => pattern.test(text));
   const scrubbed = text.replace(/https?:\/\/\S+/g, "[link removed]");
@@ -1519,6 +1708,8 @@ router.post("/", async (req: Request, res: Response) => {
       ? String((userRecord as any).activeProfileId)
       : undefined;
 
+    const wantsWelcomeDraft = isWelcomeIntroRequest(message);
+    const wantsExchangeListingDraft = isExchangeListingRequest(message);
 
     // LAYER RESOLUTION: Use knowledge service 4-layer system
     const knowledgeRequest = {
@@ -1726,6 +1917,59 @@ router.post("/", async (req: Request, res: Response) => {
       resolvedContext
     );
 
+    // If the user is asking for a community welcome/intro post,
+    // override the core message with a concrete draft they can post
+    // and steer suggested actions toward refining or using that draft.
+    if (wantsWelcomeDraft) {
+      const draft = buildWelcomeIntroDraft(message, userRecord, countyCode, stateCode);
+
+      const header =
+        "Here's a starter you can share as a community welcome. Edit any part so it sounds like you:";
+
+      synthesized.message = trimResponseToScreenFit(
+        `${header}\n\n${draft}`
+      );
+
+      synthesized.suggestedActions = [
+        "Make this welcome post shorter and more casual",
+        "Tailor this welcome post for a specific group or HOA",
+        "Draft a follow-up post asking for local recommendations",
+      ];
+    } else if (wantsExchangeListingDraft) {
+      const listingDraft = buildExchangeListingDraft(
+        message,
+        userRecord,
+        countyCode,
+        stateCode
+      );
+
+      const lines: string[] = [];
+      lines.push(
+        "Here's a tight Exchange listing you can post. Edit details so it matches your exact item:"
+      );
+      lines.push("");
+      lines.push(`Title: ${listingDraft.title}`);
+      lines.push("");
+      lines.push("Description:");
+      lines.push(listingDraft.description);
+      if (listingDraft.price && listingDraft.price > 0) {
+        lines.push("");
+        lines.push(`Price: ${formatUsd(listingDraft.price)} (you can adjust this).`);
+      }
+      if (listingDraft.locationLabel) {
+        lines.push("");
+        lines.push(`Location: ${listingDraft.locationLabel}`);
+      }
+
+      synthesized.message = trimResponseToScreenFit(lines.join("\n"));
+
+      synthesized.suggestedActions = [
+        "Make this listing shorter and punchier",
+        "Help me improve this listing description to attract serious buyers",
+        "Suggest a fair price range based on what I'm selling",
+      ];
+    }
+
     // Handle auth-required intent
     if (synthesized.intent === "auth_required" && !userId) {
       // Scout has determined user needs to create account
@@ -1840,6 +2084,85 @@ router.post("/", async (req: Request, res: Response) => {
           }
         } catch (communityError) {
           console.error("[Scout] community suggestion logic failed", communityError);
+        }
+      }
+
+      // Dedicated navigation for welcome/intro posts: open the
+      // community composer with this draft prefilled so the user
+      // can share it in a couple of taps.
+      if (userId && wantsWelcomeDraft) {
+        try {
+          const draft = buildWelcomeIntroDraft(message, userRecord, countyCode, stateCode);
+          const safeDraft = encodeURIComponent(draft);
+
+          const alreadyHasWelcomeNav = actions.some(
+            (a) =>
+              a.type === "NAVIGATE" &&
+              typeof a.to === "string" &&
+              a.to.startsWith("/community") &&
+              a.to.includes("compose=1")
+          );
+
+          if (!alreadyHasWelcomeNav) {
+            actions.push({
+              type: "NAVIGATE",
+              label: "Post this welcome in my community feed",
+              to: `/community?compose=1&prefill=${safeDraft}`,
+            });
+          }
+        } catch (welcomeError) {
+          console.error("[Scout] welcome draft navigation failed", welcomeError);
+        }
+      }
+
+      // Dedicated navigation for Exchange listings: open the Exchange
+      // surface on the Sell tab with this listing prefilled.
+      if (userId && wantsExchangeListingDraft) {
+        try {
+          const listingDraft = buildExchangeListingDraft(
+            message,
+            userRecord,
+            countyCode,
+            stateCode
+          );
+
+          const params: string[] = ["tab=sell"];
+          if (listingDraft.title) {
+            params.push(`title=${encodeURIComponent(listingDraft.title)}`);
+          }
+          if (listingDraft.description) {
+            params.push(
+              `description=${encodeURIComponent(listingDraft.description)}`
+            );
+          }
+          if (listingDraft.price && listingDraft.price > 0) {
+            params.push(
+              `price=${encodeURIComponent(String(listingDraft.price))}`
+            );
+          }
+          if (listingDraft.locationLabel) {
+            params.push(`loc=${encodeURIComponent(listingDraft.locationLabel)}`);
+          }
+
+          const qs = params.length ? `?${params.join("&")}` : "";
+          const to = `/exchange${qs}`;
+
+          const alreadyHasExchangeNav = actions.some(
+            (a) =>
+              a.type === "NAVIGATE" &&
+              typeof a.to === "string" &&
+              a.to.startsWith("/exchange")
+          );
+
+          if (!alreadyHasExchangeNav) {
+            actions.push({
+              type: "NAVIGATE",
+              label: "Open this listing in Exchange",
+              to,
+            });
+          }
+        } catch (listingNavError) {
+          console.error("[Scout] Exchange listing navigation failed", listingNavError);
         }
       }
 

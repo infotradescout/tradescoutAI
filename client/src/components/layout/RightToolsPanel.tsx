@@ -1,4 +1,4 @@
-import React from "react";
+import React, { ReactNode } from "react";
 import { Link } from "wouter";
 import {
   User,
@@ -41,7 +41,11 @@ const NavLink: React.FC<NavLinkProps> = ({
   </Link>
 );
 
-export function RightToolsPanel() {
+type RightToolsPanelProps = {
+  footer?: ReactNode;
+};
+
+export function RightToolsPanel({ footer }: RightToolsPanelProps) {
   const { user } = useAuth();
 
   const displayName =
@@ -128,9 +132,10 @@ export function RightToolsPanel() {
         </section>
       </div>
 
-      {/* Footer */}
-      <div className="border-t border-slate-800 px-4 py-2 text-[0.7rem] text-slate-500">
-        Signed in as {displayName}
+      {/* Footer / bottom tab content */}
+      <div className="border-t border-slate-800 px-4 py-2 text-[0.7rem] text-slate-500 space-y-1">
+        <div>Signed in as {displayName}</div>
+        {footer && <div className="text-slate-400">{footer}</div>}
       </div>
     </div>
   );

@@ -78,15 +78,20 @@ const CommunityFeed = memo(function CommunityFeed() {
       stateCode,
       countyFips,
     ],
-    enabled: Boolean(stateCode && countyFips),
     queryFn: async () => {
       const params = new URLSearchParams({
-        scope: 'county',
-        stateCode: stateCode!,
-        countyFips: countyFips!,
         limit: '20',
         offset: '0',
       });
+
+      // When we know the user’s county/state from location context,
+      // explicitly scope to that county. Otherwise, let the server
+      // infer the best scope from the authenticated user.
+      if (stateCode && countyFips) {
+        params.set('scope', 'county');
+        params.set('stateCode', stateCode);
+        params.set('countyFips', countyFips);
+      }
 
       const response = await fetch(`/api/community/posts?${params.toString()}`);
       if (!response.ok) throw new Error('Failed to fetch posts');
@@ -369,23 +374,11 @@ const CommunityFeed = memo(function CommunityFeed() {
   };
 
   return (
-    <CommunityShell sectionLabel="CommunityOS" notificationsCount={unreadCount}>
-      <div className="mx-auto w-full max-w-5xl px-0 py-4 md:px-2 md:py-6">
-        {/* Header */}
-        <div className="mb-4 md:mb-6 px-4 md:px-0">
-          <div className="flex items-center justify-between mb-2">
-            <div className="flex items-center gap-3">
-              <div className="h-9 w-9 rounded-xl bg-gradient-to-br from-orange-500 to-amber-400 flex items-center justify-center shadow-lg shadow-orange-500/30">
-                <Users2 className="h-5 w-5 text-slate-950" />
-              </div>
-              <div>
-                <h1 className="text-2xl md:text-3xl font-semibold text-white tracking-tight">CommunityOS</h1>
-                <p className="text-xs md:text-sm text-slate-400">A live feed for recommendations, projects, and trusted local pros.</p>
-              </div>
-            </div>
-          </div>
-        </div>
-
+    <CommunityShell
+      sectionLabel="CommunityOS · A live feed for recommendations, projects, and trusted local pros."
+      notificationsCount={unreadCount}
+    >
+      <div className="mx-auto w-full max-w-5xl px-0 py-4 md:px-2 md:py-4">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 md:gap-8 px-0 md:px-0">
           {/* Main Feed */}
           <div className="lg:col-span-2 space-y-4 md:space-y-6">
@@ -409,7 +402,7 @@ const CommunityFeed = memo(function CommunityFeed() {
                     <div className="flex-1 space-y-3">
                       <Textarea
                         ref={composerRef}
-                        placeholder="Whats happening in your community today? Ask a question or share a project..."
+                        placeholder="What's happening in your community today? Ask a question or share a project..."
                         value={newPostContent}
                         onChange={(e) => setNewPostContent(e.target.value)}
                         className="bg-navy-700 border-navy-600 text-white"
@@ -510,17 +503,9 @@ const CommunityFeed = memo(function CommunityFeed() {
                                       <h3 className="text-white font-semibold">
                                         {isSystemPost ? 'Scout' : post.author?.name || user?.username || 'Community Member'}
                                       </h3>
-                                      {post.author?.verified && !isSystemPost && (
-                                        <Badge className="bg-blue-600 hover:bg-blue-700 text-xs">
-                                          Verified
-                                        </Badge>
-                                      )}
-                                      <Badge variant="outline" className="text-xs">
-                                        {isSystemPost ? 'System update' : post.author?.role || post.postType || 'Member'}
-                                      </Badge>
                                     </div>
 
-                                    <div className="flex items-center gap-2 text-xs md:text-sm text-slate-400">
+                                    <div className="flex items-center gap-2 text-xs md:text-sm text-slate-400 mt-1">
                                       <span>{post.timestamp || new Date(post.createdAt).toLocaleDateString()}</span>
                                       {locationLabel && (
                                         <>

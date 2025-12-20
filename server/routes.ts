@@ -262,6 +262,15 @@ export async function registerRoutes(app: any) {
 
   const isWithinBetaPeriod = (date: Date): boolean => {
     const { start, end } = getBetaWindow();
+
+    // If no beta window is configured, treat the entire runtime as beta.
+    // This ensures everyone using the product during the live beta
+    // automatically receives Founder badges until the window is
+    // explicitly narrowed via env configuration.
+    if (!start && !end) {
+      return true;
+    }
+
     if (!start) return false;
     const t = date.getTime();
     if (t < start.getTime()) return false;
@@ -6582,7 +6591,7 @@ export async function registerRoutes(app: any) {
     }
   });
 
-  // Trending Topics (DB-backed; fallback to internet news topics if none)
+  // Trending Topics (DB-backed; community-only)
   app.get("/api/community/trending", async (req: any, res: any) => {
     try {
       const stateCode = typeof req.query.stateCode === "string" ? req.query.stateCode : undefined;
@@ -6624,13 +6633,51 @@ export async function registerRoutes(app: any) {
         return res.json(internalItems);
       }
 
-      const externalItems = await fetchExternalTrendingHashtags();
-      return res.json(externalItems);
+      // If there are no recent, tagged community posts, return an
+      // empty list rather than generic external topics. Trending
+      // should reflect what’s actually happening in the community.
+      return res.json([]);
     } catch (error: any) {
       console.error("Error fetching community trending topics:", error);
       res.json([]);
     }
   });
+
+  function deriveCommunityTagsFromContent(
+    title: string | undefined,
+    content: string,
+    category?: string
+  ): string[] {
+    const tags = new Set<string>();
+    const text = `${title || ""} ${content}`.toLowerCase();
+
+    // Hashtag-style tags: #hoa, #roofing, etc.
+    const hashMatches = text.match(/#([a-z0-9_\-]{2,32})/gi);
+    if (hashMatches) {
+      for (const raw of hashMatches) {
+        const cleaned = raw.replace(/^#/, "").trim();
+        if (cleaned) tags.add(cleaned);
+      }
+    }
+
+    // Simple keyword-based tags derived from the content body.
+    if (/hoa|homeowners'\s+association|board meeting/.test(text)) tags.add("hoa");
+    if (/roof|roofing|shingle|soffit|gutter/.test(text)) tags.add("roofing");
+    if (/plumb|leak|pipe|drain/.test(text)) tags.add("plumbing");
+    if (/electric|breaker|panel|outlet|switch/.test(text)) tags.add("electrical");
+    if (/hvac|furnace|ac|air\s+conditioner|heat\s+pump/.test(text)) tags.add("hvac");
+    if (/contractor|builder|remodel/.test(text)) tags.add("contractors");
+    if (/marketplace|exchange|for sale|listing/.test(text)) tags.add("marketplace");
+    if (/event|meetup|meeting|gathering/.test(text)) tags.add("events");
+    if (/recommendation|recommendations|who do you recommend|who would you recommend/.test(text)) tags.add("recommendations");
+
+    if (category && typeof category === "string") {
+      const cat = category.toLowerCase();
+      if (cat && !["general"].includes(cat)) tags.add(cat);
+    }
+
+    return Array.from(tags).slice(0, 8);
+  }
 
   app.post("/api/community/posts", isAuthenticated, async (req: any, res: any) => {
     try {
@@ -6652,6 +6699,8 @@ export async function registerRoutes(app: any) {
       const resolvedStateCode = stateCode || (user.state as string | undefined);
       const resolvedCountyFips = countyFips || ((user as any).countyFips as string | undefined);
 
+      const tags = deriveCommunityTagsFromContent(title, content, category);
+
       const newPost = await storage.createCommunityPost({
         title,
         content,
@@ -6664,7 +6713,8 @@ export async function registerRoutes(app: any) {
         isPublished: true,
         isHidden: false,
         likeCount: 0,
-        commentCount: 0
+        commentCount: 0,
+        tags: tags.length ? tags : undefined,
       });
 
       res.status(201).json(newPost);

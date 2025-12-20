@@ -10,11 +10,13 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { MessageSquare, DollarSign, Calendar, MapPin, CheckCircle2 } from "lucide-react";
+import { useHandedness } from "@/hooks/useHandedness";
 
 const RequestQuote = memo(function RequestQuote() {
   const { user } = useAuth();
   const { toast } = useToast();
   const [submitted, setSubmitted] = useState(false);
+  const handedness = useHandedness();
 
   const [formData, setFormData] = useState({
     projectType: '',
@@ -177,17 +179,21 @@ const RequestQuote = memo(function RequestQuote() {
                       placeholder="Describe your project in detail..."
                       required
                       rows={5}
-                    />
-                    <p className="text-xs text-slate-400">
-                      Include details about the scope, materials, and any specific requirements
-                    </p>
-                  </div>
+                    </div>
 
-                  <div className="grid md:grid-cols-2 gap-6">
-                    <div className="space-y-2">
-                      <Label htmlFor="budget" className="text-white font-medium flex items-center gap-2">
-                        <DollarSign className="h-4 w-4 text-orange-500" />
-                        Estimated Budget
+                    <div
+                      className={`flex mt-6 pt-4 border-t border-[#2d3748] ${
+                        handedness === "left" ? "justify-start" : "justify-end"
+                      }`}
+                    >
+                      <Button
+                        type="submit"
+                        disabled={submitQuoteMutation.isPending}
+                        className="bg-orange-500 hover:bg-orange-600 text-white px-8 shadow-lg"
+                      >
+                        {submitQuoteMutation.isPending ? "Submitting..." : "Submit Request"}
+                      </Button>
+                    </div>
                       </Label>
                       <Select
                         value={formData.budget}

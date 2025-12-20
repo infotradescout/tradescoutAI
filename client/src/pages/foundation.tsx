@@ -31,6 +31,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { sanitizeAreaLabel } from "@/lib/copyHelpers";
+import { US_STATES_COUNTIES } from "@shared/states-counties";
 
 interface Cause {
   id: string;
@@ -86,10 +87,12 @@ export default function Foundation() {
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState("causes");
   const [selectedCategory, setSelectedCategory] = useState("");
-  const [selectedState, setSelectedState] = useState("");
+  const [selectedState, setSelectedState] = useState(() => user?.state ?? "");
   const [sortBy, setSortBy] = useState("trending");
   const [donationAmount, setDonationAmount] = useState("");
   const [selectedCause, setSelectedCause] = useState<Cause | null>(null);
+
+  const stateOptions = US_STATES_COUNTIES.map((s) => ({ code: s.code, name: s.name }));
 
   // Fetch causes
   const { data: causes, isLoading: causesLoading } = useQuery<Cause[]>({
@@ -231,9 +234,41 @@ export default function Foundation() {
 
   return (
     <div className="max-w-6xl mx-auto ts-surface px-4 py-6 sm:px-6 lg:px-8 space-y-8">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-white mb-2">TradeScout Foundation</h1>
-        <p className="text-gray-300">Supporting communities across America through local charitable giving</p>
+      <div className="mb-6">
+        <div className="relative overflow-hidden rounded-2xl border border-slate-800 bg-gradient-to-br from-slate-900 via-slate-950 to-slate-900 px-5 py-6 sm:px-7 sm:py-7">
+          <div className="absolute inset-0 pointer-events-none opacity-40">
+            <div className="absolute -top-16 -right-8 h-40 w-40 rounded-full bg-orange-500/20 blur-3xl" />
+            <div className="absolute -bottom-20 left-0 h-48 w-48 rounded-full bg-emerald-500/10 blur-3xl" />
+          </div>
+          <div className="relative z-10 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="space-y-2 max-w-xl">
+              <div className="inline-flex items-center gap-2 rounded-full border border-orange-500/40 bg-black/30 px-3 py-1 text-[11px] font-semibold tracking-[0.18em] uppercase text-orange-300">
+                <Heart className="h-3.5 w-3.5" />
+                <span>TradeScout Foundation</span>
+              </div>
+              <h1 className="text-2xl sm:text-3xl font-bold text-white">
+                Route marketplace givebacks into real local causes.
+              </h1>
+              <p className="text-sm sm:text-base text-gray-300">
+                Every contractor promotion, roundup, and community vault contribution rolls up into county-level funds
+                that support verified projects across all 50 states.
+              </p>
+            </div>
+            <div className="mt-3 sm:mt-0 flex flex-col items-start sm:items-end gap-2 text-sm text-gray-300">
+              <div className="inline-flex items-center gap-2 rounded-xl bg-black/30 px-3 py-2 border border-slate-700/80">
+                <MapPin className="h-4 w-4 text-orange-400" />
+                <span>
+                  {user?.county && user?.state
+                    ? `${sanitizeAreaLabel(user.county)}, ${user.state}`
+                    : "Browse causes nationwide or filter by state"}
+                </span>
+              </div>
+              <span className="text-xs text-slate-400">
+                Powered by county vaults and Community Builder votes.
+              </span>
+            </div>
+          </div>
+        </div>
       </div>
 
       {isAuthenticated && (
@@ -350,16 +385,17 @@ export default function Foundation() {
                   </SelectContent>
                 </Select>
 
-                <Select value={selectedState} onValueChange={setSelectedState}>
+                <Select value={selectedState || "all"} onValueChange={setSelectedState}>
                   <SelectTrigger className="bg-slate-700 border-slate-600 text-white">
                     <SelectValue placeholder="State" />
                   </SelectTrigger>
                   <SelectContent className="bg-slate-800 border-slate-700">
                     <SelectItem value="all">All States</SelectItem>
-                    <SelectItem value="TX">Texas</SelectItem>
-                    <SelectItem value="CA">California</SelectItem>
-                    <SelectItem value="NY">New York</SelectItem>
-                    <SelectItem value="FL">Florida</SelectItem>
+                    {stateOptions.map((state) => (
+                      <SelectItem key={state.code} value={state.code}>
+                        {state.name}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
 

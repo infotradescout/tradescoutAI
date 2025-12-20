@@ -83,6 +83,14 @@ export default function Help() {
   const sendToScout = (prompt: string) => {
     try {
       window.localStorage.setItem("scout:prefill:scout-main", prompt);
+      window.localStorage.setItem(
+        "scout:help-intent",
+        JSON.stringify({
+          prompt,
+          source: "help-center",
+          ts: new Date().toISOString(),
+        })
+      );
     } catch {
       // ignore
     }
@@ -97,11 +105,15 @@ export default function Help() {
     }
 
     // Default: chat-first controller.
-    sendToScout(`I need help with: ${action.title}. ${action.description}`);
+    sendToScout(
+      `Help Center quick action: "${action.title}". Walk me through this step-by-step using TradeScout, and suggest any views or tools I should open. Context: ${action.description}`
+    );
   };
 
   const handleArticleClick = (article: HelpArticle) => {
-    sendToScout(`Help me with: ${article.title}. ${article.description}`);
+    sendToScout(
+      `Help Center article: "${article.title}" (category: ${article.category}). Walk me through this topic step-by-step inside TradeScout, and suggest the best pages or tools for me to use. Summary: ${article.description}`
+    );
   };
 
   // Role-specific help configurations
@@ -1391,7 +1403,15 @@ export default function Help() {
                       <span>Average response: 2 minutes</span>
                     </div>
                   </div>
-                  <Button className="w-full bg-orange-500 hover:bg-orange-600">
+                  <Button
+                    type="button"
+                    className="w-full bg-orange-500 hover:bg-orange-600"
+                    onClick={() =>
+                      sendToScout(
+                        "I clicked 'Start Live Chat' in the Help Center. Please act as live support and walk me through whatever I need help with step-by-step."
+                      )
+                    }
+                  >
                     Start Live Chat
                   </Button>
                 </CardContent>
