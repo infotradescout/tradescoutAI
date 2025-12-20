@@ -47,6 +47,7 @@ import {
   insertRealtorProfileSchema,
   insertCarSalesmanProfileSchema,
   insertGeneratedStorySchema,
+  counties,
 } from "../shared/schema";
 import { getUserTypeBadgeLabel } from "../shared/userTypes";
 import type { AffiliateAccount, AffiliateReferral, AffiliatePayout } from "../shared/schema";

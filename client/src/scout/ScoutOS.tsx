@@ -243,11 +243,12 @@ export default function ScoutOS() {
         "Suggest 3 high-impact ways to use TradeScout this week"
       );
     } else {
-      // Light trade/topic-aware nudging
+      // Light trade/topic/community-aware nudging
       const isPlumbing = /leak|clog|drain|sewer|sump pump|water heater|plumbing/.test(lower);
       const isElectrical = /panel|breaker|gfci|afci|outlet|receptacle|electrical/.test(lower);
       const isRoofing = /roof|shingle|hail|storm damage|leak/.test(lower);
       const isTaxOrPermit = /permit|inspection|code|zoning|setback|property tax|assessment/.test(lower);
+      const isCommunity = /community|neighbors?|neighbours?|hoa|association|group|groups|club|meet people|connect with my local community/.test(lower);
 
       switch (mode) {
         case "contractors":
@@ -278,6 +279,12 @@ export default function ScoutOS() {
               "Help me understand local permits or code rules for this",
               "Find vetted pros who already know these rules in my county",
               "Summarize my options and next steps for this situation"
+            );
+          } else if (isCommunity) {
+            base.push(
+              "Open my community feed in TradeScout",
+              "Show local groups, HOAs, and boards I can join or follow",
+              "Draft a welcome or intro post I can share with my community"
             );
           } else {
             base.push(
