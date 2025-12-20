@@ -72,7 +72,7 @@ export function NotificationsMenu({ className }: NotificationsMenuProps) {
 
           {isError && (
             <div className="rounded-xl bg-red-950/40 px-2 py-2 text-[11px] text-red-300">
-              Couldn&apos;t load notifications.
+              Couldn’t load notifications.
             </div>
           )}
 
@@ -119,7 +119,7 @@ export function NotificationsMenu({ className }: NotificationsMenuProps) {
               className="mt-2 rounded-xl bg-slate-900/70 px-2 py-2 text-[11px] text-slate-400"
               data-testid="notifications-empty-state"
             >
-              You&apos;re all caught up.
+              You’re all caught up.
             </div>
           )}
         </div>
