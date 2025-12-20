@@ -9,8 +9,9 @@ import {
   Bookmark,
   ClipboardList,
   Building,
+  LogOut,
 } from "lucide-react";
-import { useAuth } from "@/hooks/useAuth";
+import { useAuth, useLogout } from "@/hooks/useAuth";
 
 type NavLinkProps = {
   href: string;
@@ -48,7 +49,8 @@ type RightToolsPanelProps = {
 };
 
 export function RightToolsPanel({ footer }: RightToolsPanelProps) {
-  const { user } = useAuth();
+  const { user, isAuthenticated } = useAuth();
+  const logout = useLogout();
 
   const displayName =
     (user as any)?.firstName ||
@@ -147,8 +149,20 @@ export function RightToolsPanel({ footer }: RightToolsPanelProps) {
       </div>
 
       {/* Footer / bottom tab content */}
-      <div className="border-t border-slate-800 px-4 py-2 text-[0.7rem] text-slate-500 space-y-1">
-        <div>Signed in as {displayName}</div>
+      <div className="border-t border-slate-800 px-4 py-3 text-[0.7rem] text-slate-500 space-y-2">
+        <div className="flex items-center justify-between gap-2">
+          <div className="truncate">Signed in as {displayName}</div>
+          {isAuthenticated && (
+            <button
+              type="button"
+              onClick={logout}
+              className="inline-flex items-center justify-center rounded-lg border border-red-500/60 bg-slate-950/80 px-2 py-1 text-[0.7rem] font-semibold text-red-400 hover:bg-red-600/10 hover:text-red-300"
+            >
+              <LogOut className="h-3 w-3 mr-1" />
+              Sign out
+            </button>
+          )}
+        </div>
         {footer && <div className="text-slate-400">{footer}</div>}
       </div>
     </div>
