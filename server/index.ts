@@ -62,7 +62,7 @@ for (const key of requiredEnv) {
 }
 
 const app = express();
-// REQUIRED for secure cookies behind Render/Vercel proxies
+// REQUIRED for secure cookies behind hosting proxies
 app.set("trust proxy", 1);
 
 // Always serve on PORT (single entry for API + client); default 5000.
