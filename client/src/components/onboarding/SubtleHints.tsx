@@ -96,17 +96,20 @@ export function SubtleHints() {
   useEffect(() => {
     if (user && user.role && !user.preferences?.completedTours?.includes('subtle-hints')) {
       const hints = getHintsForRole(user.role);
-      
-      const timers: NodeJS.Timeout[] = [];
-      
+
+      const timers: number[] = [];
+      const finalTimer = window.setTimeout(() => {
+        markHintsCompleted();
+      }, 25000); // After 25 seconds
+
       hints.forEach((hint) => {
-        const timer = setTimeout(() => {
+        const timer = window.setTimeout(() => {
           if (!shownHints.has(hint.id)) {
             setActiveHint(hint);
             setShownHints(prev => new Set([...Array.from(prev), hint.id]));
-            
+
             // Auto-hide after 6 seconds
-            setTimeout(() => {
+            window.setTimeout(() => {
               setActiveHint(current => current?.id === hint.id ? null : current);
             }, 6000);
           }
@@ -116,15 +119,9 @@ export function SubtleHints() {
       });
 
       return () => {
-        timers.forEach(timer => clearTimeout(timer));
+        timers.forEach(timer => window.clearTimeout(timer));
+        window.clearTimeout(finalTimer);
       };
-
-      // Mark hints as completed after all have been shown
-      const finalTimer = setTimeout(() => {
-        markHintsCompleted();
-      }, 25000); // After 25 seconds
-
-      return () => clearTimeout(finalTimer);
     }
   }, [user]);
 

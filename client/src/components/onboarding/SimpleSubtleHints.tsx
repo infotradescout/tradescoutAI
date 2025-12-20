@@ -1,7 +1,8 @@
 import { memo } from 'react';
+import { SubtleHints } from './SubtleHints';
 
 const SimpleSubtleHints = memo(function SimpleSubtleHints() {
-  return null; // Disabled for deployment
+  return <SubtleHints />;
 });
 
 export default SimpleSubtleHints;

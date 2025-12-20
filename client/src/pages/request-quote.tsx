@@ -179,62 +179,52 @@ const RequestQuote = memo(function RequestQuote() {
                       placeholder="Describe your project in detail..."
                       required
                       rows={5}
-                    </div>
+                    />
+                  </div>
 
-                    <div
-                      className={`flex mt-6 pt-4 border-t border-[#2d3748] ${
-                        handedness === "left" ? "justify-start" : "justify-end"
-                      }`}
+                  <div className="space-y-2">
+                    <Label htmlFor="budget" className="text-white font-medium">
+                      Budget Range
+                    </Label>
+                    <Select
+                      value={formData.budget}
+                      onValueChange={(value) => setFormData(prev => ({ ...prev, budget: value }))}
                     >
-                      <Button
-                        type="submit"
-                        disabled={submitQuoteMutation.isPending}
-                        className="bg-orange-500 hover:bg-orange-600 text-white px-8 shadow-lg"
-                      >
-                        {submitQuoteMutation.isPending ? "Submitting..." : "Submit Request"}
-                      </Button>
-                    </div>
-                      </Label>
-                      <Select
-                        value={formData.budget}
-                        onValueChange={(value) => setFormData(prev => ({ ...prev, budget: value }))}
-                      >
-                        <SelectTrigger className="bg-[#0f1419] border-[#2d3748] text-white h-11">
-                          <SelectValue placeholder="Select budget range" />
-                        </SelectTrigger>
-                        <SelectContent className="bg-[#1a2332] border-[#2d3748]">
-                          <SelectItem value="under-1k">Under $1,000</SelectItem>
-                          <SelectItem value="1k-5k">$1,000 - $5,000</SelectItem>
-                          <SelectItem value="5k-10k">$5,000 - $10,000</SelectItem>
-                          <SelectItem value="10k-25k">$10,000 - $25,000</SelectItem>
-                          <SelectItem value="25k-50k">$25,000 - $50,000</SelectItem>
-                          <SelectItem value="over-50k">Over $50,000</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
+                      <SelectTrigger className="bg-[#0f1419] border-[#2d3748] text-white h-11">
+                        <SelectValue placeholder="Select budget range" />
+                      </SelectTrigger>
+                      <SelectContent className="bg-[#1a2332] border-[#2d3748]">
+                        <SelectItem value="under-1k">Under $1,000</SelectItem>
+                        <SelectItem value="1k-5k">$1,000 - $5,000</SelectItem>
+                        <SelectItem value="5k-10k">$5,000 - $10,000</SelectItem>
+                        <SelectItem value="10k-25k">$10,000 - $25,000</SelectItem>
+                        <SelectItem value="25k-50k">$25,000 - $50,000</SelectItem>
+                        <SelectItem value="over-50k">Over $50,000</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
 
-                    <div className="space-y-2">
-                      <Label htmlFor="timeline" className="text-white font-medium flex items-center gap-2">
-                        <Calendar className="h-4 w-4 text-orange-500" />
-                        Timeline
-                      </Label>
-                      <Select
-                        value={formData.timeline}
-                        onValueChange={(value) => setFormData(prev => ({ ...prev, timeline: value }))}
-                      >
-                        <SelectTrigger className="bg-[#0f1419] border-[#2d3748] text-white h-11">
-                          <SelectValue placeholder="When do you need this done?" />
-                        </SelectTrigger>
-                        <SelectContent className="bg-[#1a2332] border-[#2d3748]">
-                          <SelectItem value="asap">As soon as possible</SelectItem>
-                          <SelectItem value="1-2-weeks">Within 1-2 weeks</SelectItem>
-                          <SelectItem value="1-month">Within 1 month</SelectItem>
-                          <SelectItem value="1-3-months">1-3 months</SelectItem>
-                          <SelectItem value="3-6-months">3-6 months</SelectItem>
-                          <SelectItem value="flexible">Flexible</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="timeline" className="text-white font-medium flex items-center gap-2">
+                      <Calendar className="h-4 w-4 text-orange-500" />
+                      Timeline
+                    </Label>
+                    <Select
+                      value={formData.timeline}
+                      onValueChange={(value) => setFormData(prev => ({ ...prev, timeline: value }))}
+                    >
+                      <SelectTrigger className="bg-[#0f1419] border-[#2d3748] text-white h-11">
+                        <SelectValue placeholder="When do you need this done?" />
+                      </SelectTrigger>
+                      <SelectContent className="bg-[#1a2332] border-[#2d3748]">
+                        <SelectItem value="asap">As soon as possible</SelectItem>
+                        <SelectItem value="1-2-weeks">Within 1-2 weeks</SelectItem>
+                        <SelectItem value="1-month">Within 1 month</SelectItem>
+                        <SelectItem value="1-3-months">1-3 months</SelectItem>
+                        <SelectItem value="3-6-months">3-6 months</SelectItem>
+                        <SelectItem value="flexible">Flexible</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
 
                   <div className="space-y-2">
