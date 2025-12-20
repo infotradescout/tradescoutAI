@@ -217,6 +217,14 @@ export async function registerRoutes(app: any) {
   // Anti-scraping guard: blocks obvious bots and throttles bursts
   app.use(antiScrapeShield);
 
+  // Public config for client (safe, read-only)
+  app.get("/api/public/config", (req: any, res: any) => {
+    res.setHeader("Cache-Control", "no-store");
+    res.status(200).json({
+      firstIntroAppendix: process.env.TS_FIRST_INTRO_APPENDIX || "",
+    });
+  });
+
   const loginLimiter = rateLimit({
     windowMs: 15 * 60 * 1000, // 15 minutes
     max: 5,

@@ -408,10 +408,11 @@ const AppLayout = memo(function AppLayout() {
             ) : (
               <AppShell footer={<LegalFooter />}>
                 <Switch>
-                  {/* Scout OS: primary AI controller surface */}
+                  {/* Scout OS: primary AI controller surface and landing page */}
+                  <Route path="/" component={ScoutOS} />
                   <Route path="/scout" component={ScoutOS} />
                   {/* Home routes */}
-                  <Route path="/" component={SmartHome} />
+                  <Route path="/home" component={SmartHome} />
 
               {/* Role hubs for each user type */}
               <Route path="/roles/:roleKey">
