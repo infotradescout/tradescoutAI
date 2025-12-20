@@ -167,14 +167,15 @@ export interface TrendingItem {
   delta?: string;
 }
 
-// Use existing /api/social/trending route
+// Use community-backed trending topics derived from real posts
 export async function fetchTrending(locality?: ScoutLocality) {
   const params = new URLSearchParams();
-  if (locality?.county) params.set("county", locality.county);
-  if (locality?.state) params.set("state", locality.state);
-  if (locality?.zip) params.set("zip", locality.zip);
+  if (locality?.state) params.set("stateCode", locality.state);
+  // We don't have county FIPS here; state-level trending is still
+  // grounded in real community posts.
+  params.set("limit", "12");
 
-  const res = await fetch(`${apiBase}/social/trending?${params.toString()}`, {
+  const res = await fetch(`${apiBase}/community/trending?${params.toString()}` , {
     cache: "no-store",
   });
 
@@ -186,14 +187,18 @@ export async function fetchTrending(locality?: ScoutLocality) {
   const rawItems: any[] = Array.isArray(json) ? json : [];
 
   const items: TrendingItem[] = rawItems
-    .map((item, idx) => ({
-      id: String(item.id ?? idx),
-      title: String(item.title ?? item.name ?? item.hashtag ?? "").trim(),
-      category: item.category ?? item.type ?? "Community",
-      stat: item.stat ?? item.count ?? item.metric,
-      delta: item.delta ?? item.change,
-    }))
-    .filter((i) => i.title.length > 0);
+    .map((item, idx) => {
+      const tag = String(item.tag ?? item.hashtag ?? item.title ?? "").trim();
+      const posts = typeof item.posts === "number" ? item.posts : Number(item.posts ?? 0);
+      return {
+        id: tag || String(idx),
+        title: tag ? `#${tag}` : "Community topic",
+        category: "Community",
+        stat: posts > 0 ? `${posts} post${posts === 1 ? "" : "s"}` : undefined,
+        delta: undefined,
+      } as TrendingItem;
+    })
+    .filter((i) => i.title.trim().length > 0);
 
   return items;
 }

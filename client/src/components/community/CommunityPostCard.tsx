@@ -135,27 +135,25 @@ export function CommunityPostCard({ post, onLike, formatTimeAgo }: CommunityPost
                   {post.author?.name || "Anonymous"}
                 </span>
                 {post.author?.role && (
-                  <Badge className="bg-orange-500/10 border border-orange-500/40 text-orange-300 text-[11px] px-2 py-0.5">
+                  <span className="text-[0.7rem] uppercase tracking-[0.16em] text-slate-400">
                     {post.author.role}
-                  </Badge>
+                  </span>
                 )}
               </div>
-              <div className="flex items-center gap-2 mb-2">
-                <Badge
-                  className={`flex items-center gap-1 text-[11px] font-medium px-2 py-0.5 rounded-full border ${categoryMeta.className}`}
+              <div className="flex flex-wrap items-center gap-2 text-xs sm:text-[0.8rem] text-slate-400">
+                <span
+                  className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 ${categoryMeta.className}`}
                 >
                   {categoryMeta.icon}
-                  <span>{categoryMeta.label}</span>
-                </Badge>
-              </div>
-              <div className="flex items-center gap-2 text-xs sm:text-sm text-slate-400">
-                <span>{formatTimeAgo(post.createdAt)}</span>
+                  <span className="font-medium">{categoryMeta.label}</span>
+                </span>
+                <span>• {formatTimeAgo(post.createdAt)}</span>
                 {post.location && (
-                  <>
+                  <span className="inline-flex items-center gap-1">
                     <span>•</span>
                     <MapPin className="w-3.5 h-3.5" />
                     <span>{post.location}</span>
-                  </>
+                  </span>
                 )}
               </div>
             </div>

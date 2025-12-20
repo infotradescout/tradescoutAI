@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
 import { Image as ImageIcon, Video, Smile } from "lucide-react";
+import { useHandedness } from "@/hooks/useHandedness";
 
 export interface CommunityComposerInlineProps {
   isAuthenticated: boolean;
@@ -25,6 +26,7 @@ export function CommunityComposerInline({
   onOpenRequest,
   isSubmitting,
 }: CommunityComposerInlineProps) {
+  const handedness = useHandedness();
   const handlePrimaryClick = () => {
     if (!value.trim() && onOpenRequest) {
       onOpenRequest();
@@ -70,7 +72,11 @@ export function CommunityComposerInline({
               Feeling
             </Button>
           </div>
-          <div className="flex gap-1.5 sm:gap-2">
+          <div
+            className={`flex gap-1.5 sm:gap-2 ${
+              handedness === "left" ? "justify-start" : "justify-end"
+            } w-full sm:w-auto`}
+          >
             <Button
               variant="outline"
               size="sm"

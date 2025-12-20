@@ -36,6 +36,8 @@ import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import DragDropNavigationPreferences from "@/components/navigation/DragDropNavigationPreferences";
 
+type HandednessPreference = "right" | "left";
+
 // Role configurations
 const ROLE_CONFIG = {
   homeowner: { label: "Homeowner", icon: Home, desc: "Manage your home and projects", color: "blue" },
@@ -124,6 +126,21 @@ export default function Settings() {
     currentPassword: '',
     newPassword: '',
     confirmNewPassword: '',
+  });
+
+  const [handedness, setHandedness] = useState<HandednessPreference>(() => {
+    if (typeof window === "undefined") return "right";
+    try {
+      const stored = window.localStorage.getItem("ts:handedness");
+      if (stored === "left" || stored === "right") return stored;
+    } catch {
+      // ignore storage errors
+    }
+    const prefs = (user as any)?.preferences || {};
+    if (prefs.handedness === "left" || prefs.handedness === "right") {
+      return prefs.handedness;
+    }
+    return "right";
   });
 
   const { data: navigationPrefs } = useQuery<{
@@ -255,6 +272,29 @@ export default function Settings() {
     },
     onError: (err: any) => {
       toast({ title: 'Error', description: err?.message || 'Failed to save privacy preferences.', variant: 'destructive' });
+    },
+  });
+
+  const updateHandednessMutation = useMutation({
+    mutationFn: async (nextHandedness: HandednessPreference) => {
+      const existingPrefs = ((user as any)?.preferences || {}) as Record<string, any>;
+      const mergedPreferences = {
+        ...existingPrefs,
+        handedness: nextHandedness,
+      };
+      return apiRequest('PATCH', '/api/users/preferences', mergedPreferences);
+    },
+    onSuccess: (_data, variables) => {
+      try {
+        window.localStorage.setItem("ts:handedness", variables);
+      } catch {
+        // ignore storage errors
+      }
+      queryClient.invalidateQueries({ queryKey: ['/api/auth/user'] });
+      toast({ title: 'Saved', description: 'Handedness preference updated.' });
+    },
+    onError: (err: any) => {
+      toast({ title: 'Error', description: err?.message || 'Failed to save handedness preference.', variant: 'destructive' });
     },
   });
 
@@ -593,34 +633,96 @@ export default function Settings() {
               </Card>
             </TabsContent>
 
-            {/* Appearance Settings */}
+            {/* Appearance & Layout Settings */}
             <TabsContent value="appearance">
-              <Card className="bg-[#1a2332] border-[#2d3748] shadow-xl">
-                <CardHeader className="border-b border-[#2d3748] pb-6">
-                  <div className="flex items-center gap-3">
-                    <div className="h-10 w-10 bg-orange-500/20 rounded-lg flex items-center justify-center">
-                      <Palette className="w-5 h-5 text-orange-500" />
+              <div className="space-y-6">
+                <Card className="bg-[#1a2332] border-[#2d3748] shadow-xl">
+                  <CardHeader className="border-b border-[#2d3748] pb-6">
+                    <div className="flex items-center gap-3">
+                      <div className="h-10 w-10 bg-orange-500/20 rounded-lg flex items-center justify-center">
+                        <Palette className="w-5 h-5 text-orange-500" />
+                      </div>
+                      <div>
+                        <CardTitle className="text-xl text-white">Profile Colors & Theme</CardTitle>
+                        <p className="text-sm text-slate-400 mt-1">
+                          Profile colors are managed from your Profile Settings so your in-app theme and public profile stay in sync.
+                        </p>
+                      </div>
                     </div>
-                    <div>
-                      <CardTitle className="text-xl text-white">Profile Colors & Theme</CardTitle>
-                      <p className="text-sm text-slate-400 mt-1">
-                        Profile colors are managed from your Profile Settings so your in-app theme and public profile stay in sync.
+                  </CardHeader>
+                  <CardContent className="space-y-4 pt-6">
+                    <p className="text-slate-300 text-sm">
+                      Your color scheme is now driven by your profile color settings. Updating your profile colors will update how TradeScout looks to you and how your public profile appears to others.
+                    </p>
+                    <Button
+                      className="bg-orange-500 hover:bg-orange-600 text-white px-6 shadow-lg"
+                      asChild
+                    >
+                      <a href="/profile-settings">Open Profile Settings</a>
+                    </Button>
+                  </CardContent>
+                </Card>
+
+                <Card className="bg-[#1a2332] border-[#2d3748] shadow-xl">
+                  <CardHeader className="border-b border-[#2d3748] pb-4">
+                    <div className="flex items-center gap-3">
+                      <div className="h-10 w-10 bg-orange-500/20 rounded-lg flex items-center justify-center">
+                        <Smartphone className="w-5 h-5 text-orange-500" />
+                      </div>
+                      <div>
+                        <CardTitle className="text-xl text-white">Handedness & One-Handed Layout</CardTitle>
+                        <p className="text-sm text-slate-400 mt-1">
+                          Choose how top controls and key buttons are aligned so they are easier to reach with one hand.
+                        </p>
+                      </div>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="space-y-4 pt-4">
+                    <div className="space-y-2">
+                      <Label className="text-sm text-slate-300">Handedness</Label>
+                      <p className="text-xs text-slate-400">
+                        Right-handed keeps primary controls on the right. Left-handed moves them to the left side of the screen.
                       </p>
                     </div>
-                  </div>
-                </CardHeader>
-                <CardContent className="space-y-4 pt-6">
-                  <p className="text-slate-300 text-sm">
-                    Your color scheme is now driven by your profile color settings. Updating your profile colors will update how TradeScout looks to you and how your public profile appears to others.
-                  </p>
-                  <Button
-                    className="bg-orange-500 hover:bg-orange-600 text-white px-6 shadow-lg"
-                    asChild
-                  >
-                    <a href="/profile-settings">Open Profile Settings</a>
-                  </Button>
-                </CardContent>
-              </Card>
+                    <div className="flex flex-col sm:flex-row gap-3">
+                      <Button
+                        type="button"
+                        variant={handedness === "right" ? "default" : "outline"}
+                        className={
+                          handedness === "right"
+                            ? "bg-orange-500 hover:bg-orange-600 text-white flex-1"
+                            : "border-[#2d3748] text-slate-200 hover:border-orange-500/70 flex-1"
+                        }
+                        onClick={() => setHandedness("right")}
+                      >
+                        Right-handed layout
+                      </Button>
+                      <Button
+                        type="button"
+                        variant={handedness === "left" ? "default" : "outline"}
+                        className={
+                          handedness === "left"
+                            ? "bg-orange-500 hover:bg-orange-600 text-white flex-1"
+                            : "border-[#2d3748] text-slate-200 hover:border-orange-500/70 flex-1"
+                        }
+                        onClick={() => setHandedness("left")}
+                      >
+                        Left-handed layout
+                      </Button>
+                    </div>
+                    <div className="flex justify-end pt-2 border-t border-[#2d3748] mt-2">
+                      <Button
+                        type="button"
+                        className="bg-orange-500 hover:bg-orange-600 text-white px-6 shadow-lg"
+                        disabled={updateHandednessMutation.isPending}
+                        onClick={() => updateHandednessMutation.mutate(handedness)}
+                      >
+                        {updateHandednessMutation.isPending ? "Saving…" : "Save Handedness"}
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
             </TabsContent>
 
             {/* Notification Settings */}

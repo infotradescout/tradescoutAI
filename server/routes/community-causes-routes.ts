@@ -27,6 +27,12 @@ router.post('/', isAuthenticated, async (req: any, res: Response) => {
     const userId = (req.user as any)?.id || (req.user as any)?.claims?.sub;
     if (!userId) return res.status(401).json({ error: 'Not authenticated' });
 
+    const user = await storage.getUser(userId);
+    const roles = Array.isArray(user?.roles) ? (user!.roles as string[]) : [];
+    if (!roles.includes('community_builder')) {
+      return res.status(403).json({ error: 'Community Builder badge required to create causes' });
+    }
+
     const parsed = createCauseSchema.parse(req.body);
 
     const created = await storage.createCommunityCauseForOwner(userId, {
@@ -49,6 +55,12 @@ router.post('/:causeId/vote', isAuthenticated, async (req: any, res: Response) =
   try {
     const userId = (req.user as any)?.id || (req.user as any)?.claims?.sub;
     if (!userId) return res.status(401).json({ error: 'Not authenticated' });
+
+    const user = await storage.getUser(userId);
+    const roles = Array.isArray(user?.roles) ? (user!.roles as string[]) : [];
+    if (!roles.includes('community_builder')) {
+      return res.status(403).json({ error: 'Community Builder badge required to vote on causes' });
+    }
 
     const causeId = String(req.params.causeId);
     const result = await storage.voteForCommunityCause(userId, causeId);

@@ -12,9 +12,9 @@ const MobileAppBar: React.FC<MobileAppBarProps> = ({ items }) => {
   if (!items.length) return null;
 
   return (
-    <nav className="h-14 border-t border-slate-800 bg-slate-950/95 backdrop-blur lg:hidden">
-      <div className="w-full h-full overflow-x-auto">
-        <div className="flex min-w-max h-full px-2 gap-2">
+  <nav className="border-t border-slate-800 bg-slate-950/95 backdrop-blur pb-[env(safe-area-inset-bottom)]">
+    <div className="w-full min-h-[64px] overflow-x-auto md:overflow-x-hidden">
+    <div className="flex h-full items-stretch px-2 gap-2 min-w-max md:min-w-0 md:w-full md:justify-between">
           {items.map((item) => {
             const active =
               location === item.href || location.startsWith(item.href + "/");
@@ -23,12 +23,12 @@ const MobileAppBar: React.FC<MobileAppBarProps> = ({ items }) => {
               <Link
                 key={item.href}
                 href={item.href}
-                className={`flex flex-col items-center justify-center px-3 ${
-                  active ? "text-orange-400" : "text-slate-400"
-                } text-[0.7rem]`}
+                className={`flex flex-col items-center justify-center px-3 py-1.5 md:flex-1 ${
+                active ? "text-orange-400" : "text-slate-400"
+                } text-[0.75rem]`}
               >
                 {item.icon && (
-                  <span className="mb-0.5 inline-flex h-4 w-4 items-center justify-center">
+                <span className="mb-0.5 inline-flex h-5 w-5 items-center justify-center">
                     {item.icon}
                   </span>
                 )}

@@ -515,10 +515,20 @@ export default function ScoutOS() {
           ? `${res.message}\n\n${firstIntroAppendix.trim()}`
           : res.message;
 
+        // Keep Scout's very first answer tight so it never feels
+        // like a wall of text or gets visually "cut off" behind
+        // navigation. This is a hard character cap, tuned for the
+        // current layout.
+        const MAX_FIRST_MESSAGE_CHARS = 600;
+        const finalContent =
+          isFirstAnswer && typeof mergedMessage === "string" && mergedMessage.length > MAX_FIRST_MESSAGE_CHARS
+            ? `${mergedMessage.slice(0, MAX_FIRST_MESSAGE_CHARS).trimEnd()}…`
+            : mergedMessage;
+
         const msg: ScoutMessage = {
           id: `a_${Date.now()}_${Math.random().toString(36).slice(2)}`,
           role: "assistant",
-          content: mergedMessage,
+          content: finalContent,
           timestamp: res.timestamp || new Date().toISOString(),
           suggestedActions: smartSuggestions,
           clusters: clusters.length ? clusters : undefined,
@@ -725,9 +735,9 @@ export default function ScoutOS() {
           }
           setPrefillKey((k) => k + 1);
         },
-          askScout: (prompt) => {
-            void handleSend(prompt);
-          },
+        askScout: (prompt) => {
+          void handleSend(prompt);
+        },
       });
       setStatus("idle");
     },
@@ -737,6 +747,34 @@ export default function ScoutOS() {
       handleSend,
     ]
   );
+
+  // Auto-consume Help Center intents: when arriving from Help, send the
+  // stored prompt into Scout immediately so the user sees a guided flow
+  // instead of a blank chat box.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (!location.startsWith("/scout")) return;
+
+    const hasUserMsgs = state.messages.some((m) => m.role === "user");
+    if (hasUserMsgs) return;
+
+    try {
+      const raw = window.localStorage.getItem("scout:help-intent");
+      if (!raw) return;
+
+      const parsed = JSON.parse(raw) as { prompt?: string } | null;
+      if (!parsed || typeof parsed.prompt !== "string" || !parsed.prompt.trim()) {
+        window.localStorage.removeItem("scout:help-intent");
+        return;
+      }
+
+      window.localStorage.removeItem("scout:help-intent");
+      setHasGuestInteracted(true);
+      void handleSend(parsed.prompt);
+    } catch {
+      // ignore storage/JSON errors
+    }
+  }, [location, state.messages, handleSend]);
 
   const heroLocationLabel = getUserLocationLabel(user as any);
   const heroAudienceLabel = getUserAudienceLabel(user as any);
@@ -844,13 +882,11 @@ export default function ScoutOS() {
               }`}
             >
               {!hasUserMessages && (
-                <div className="flex flex-wrap gap-2">
+                <div className="flex flex-wrap gap-2 justify-center text-center">
                   {(autoPromptSuggestions.length
-                    ? autoPromptSuggestions.slice(0, 3)
+                    ? [autoPromptSuggestions[0]]
                     : [
-                        "Find top-rated contractors in my county",
-                        "What's happening in my community this week?",
-                        "Help me estimate a home repair project",
+                        "Ask about your community",
                       ]
                   ).map((prompt) => (
                     <button
@@ -860,7 +896,7 @@ export default function ScoutOS() {
                         setHasGuestInteracted(true);
                         handleSend(prompt);
                       }}
-                      className="px-3 py-1.5 text-[11px] rounded-full border border-slate-700 bg-slate-900 hover:border-orange-400"
+                      className="px-3 py-1.5 text-[11px] rounded-full border border-slate-700 bg-slate-900 hover:border-orange-400 max-w-full"
                     >
                       {prompt}
                     </button>
@@ -873,11 +909,101 @@ export default function ScoutOS() {
                 status={state.status}
                 onAction={handleClusterAction}
                 onQuickAction={(text) => {
-                  if (text === "Turn this into a trackable project on my board") {
+                  const trimmed = text.trim();
+
+                  // Mark that the user has interacted so we don't keep showing
+                  // first-visit-only affordances.
+                  setHasGuestInteracted(true);
+
+                  // Certain smart suggestions should behave as direct actions
+                  // instead of just re-asking Scout with the same text.
+                  if (trimmed === "Turn this into a trackable project on my board") {
+                    recordActivity({
+                      type: "navigate",
+                      ts: new Date().toISOString(),
+                      path: location,
+                      to: "/request-quote",
+                      label: trimmed,
+                    });
                     navigate("/request-quote");
                     return;
                   }
-                  handleSend(text);
+
+                  if (trimmed === "Open my community feed in TradeScout") {
+                    recordActivity({
+                      type: "navigate",
+                      ts: new Date().toISOString(),
+                      path: location,
+                      to: ROUTES.COMMUNITY,
+                      label: trimmed,
+                    });
+                    navigate(ROUTES.COMMUNITY);
+                    return;
+                  }
+
+                  if (trimmed === "Show Exchange listings that match this need near me") {
+                    recordActivity({
+                      type: "navigate",
+                      ts: new Date().toISOString(),
+                      path: location,
+                      to: "/exchange",
+                      label: trimmed,
+                    });
+                    navigate("/exchange");
+                    return;
+                  }
+
+                  if (trimmed === "Find a Contractor") {
+                    recordActivity({
+                      type: "navigate",
+                      ts: new Date().toISOString(),
+                      path: location,
+                      to: ROUTES.CONTRACTORS,
+                      label: trimmed,
+                    });
+                    navigate(ROUTES.CONTRACTORS);
+                    return;
+                  }
+
+                  if (trimmed === "Create Account") {
+                    recordActivity({
+                      type: "navigate",
+                      ts: new Date().toISOString(),
+                      path: location,
+                      to: ROUTES.REGISTER,
+                      label: trimmed,
+                    });
+                    navigate(ROUTES.REGISTER);
+                    return;
+                  }
+
+                  if (trimmed === "Leaderboard") {
+                    recordActivity({
+                      type: "navigate",
+                      ts: new Date().toISOString(),
+                      path: location,
+                      to: "/leaderboard",
+                      label: trimmed,
+                    });
+                    navigate("/leaderboard");
+                    return;
+                  }
+
+                  if (trimmed === "Show local groups, HOAs, and boards I can join or follow") {
+                    recordActivity({
+                      type: "navigate",
+                      ts: new Date().toISOString(),
+                      path: location,
+                      to: "/hoa-management",
+                      label: trimmed,
+                    });
+                    navigate("/hoa-management");
+                    return;
+                  }
+
+                  // Fallback: treat as a normal prompt to Scout so it can
+                  // reason about next steps.
+                  handleSend(trimmed);
                 }}
               />
 
