@@ -2013,53 +2013,53 @@ export const US_STATES_COUNTIES: State[] = [
     ]
   },
   {
-    "code": "Georgia",
+    "code": "GA",
     "name": "Georgia",
     "counties": [
       {
         "fipsCode": "13001",
         "name": "Appling County",
-        "state": "Georgia"
+        "state": "GA"
       },
       {
         "fipsCode": "13003",
         "name": "Atkinson County",
-        "state": "Georgia"
+        "state": "GA"
       },
       {
         "fipsCode": "13005",
         "name": "Bacon County",
-        "state": "Georgia"
+        "state": "GA"
       },
       {
         "fipsCode": "13007",
         "name": "Baker County",
-        "state": "Georgia"
+        "state": "GA"
       },
       {
         "fipsCode": "13009",
         "name": "Baldwin County",
-        "state": "Georgia"
+        "state": "GA"
       },
       {
         "fipsCode": "13011",
         "name": "Banks County",
-        "state": "Georgia"
+        "state": "GA"
       },
       {
         "fipsCode": "13013",
         "name": "Barrow County",
-        "state": "Georgia"
+        "state": "GA"
       },
       {
         "fipsCode": "13015",
         "name": "Bartow County",
-        "state": "Georgia"
+        "state": "GA"
       },
       {
         "fipsCode": "13017",
         "name": "Ben Hill County",
-        "state": "Georgia"
+        "state": "GA"
       },
       {
         "fipsCode": "13019",
