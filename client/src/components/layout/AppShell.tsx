@@ -11,6 +11,8 @@ import {
   Share2,
   Compass,
   Menu,
+  Wrench,
+  ClipboardList,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useHandedness } from "@/hooks/useHandedness";
@@ -39,6 +41,16 @@ const featureNav: NavItem[] = [
     label: "Scout",
     href: "/scout",
     icon: <Compass className="h-5 w-5 text-orange-400" />,
+  },
+  {
+    label: "Tasks",
+    href: "/tasks",
+    icon: <ClipboardList className="h-5 w-5 text-orange-400" />,
+  },
+  {
+    label: "Helpers",
+    href: "/worker-marketplace",
+    icon: <Wrench className="h-5 w-5 text-orange-400" />,
   },
   {
     label: "Community",

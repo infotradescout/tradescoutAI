@@ -18,6 +18,8 @@ const RequestQuote = memo(function RequestQuote() {
   const [submitted, setSubmitted] = useState(false);
   const handedness = useHandedness();
 
+  const [sendToCount, setSendToCount] = useState<string>('3');
+
   const [formData, setFormData] = useState({
     projectType: '',
     description: '',
@@ -35,6 +37,7 @@ const RequestQuote = memo(function RequestQuote() {
         description: data.description,
         // For now, keep routing simple and let ops evolve:
         routingType: 'top3',
+        maxAssignees: Number(sendToCount) || 3,
         // Use best-effort locality from the user's stored profile/address
         countyId: (user as any)?.countyId || (user as any)?.county || 'unknown',
         tradeId: data.projectType || 'general',
@@ -260,6 +263,29 @@ const RequestQuote = memo(function RequestQuote() {
                         <SelectItem value="text">Text Message</SelectItem>
                       </SelectContent>
                     </Select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label className="text-white font-medium">
+                      How many pros should receive this?
+                    </Label>
+                    <Select
+                      value={sendToCount}
+                      onValueChange={setSendToCount}
+                    >
+                      <SelectTrigger className="bg-[#0f1419] border-[#2d3748] text-white h-11">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent className="bg-[#1a2332] border-[#2d3748]">
+                        <SelectItem value="1">Top 1 best-matched</SelectItem>
+                        <SelectItem value="3">Top 3 best-matched</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <p className="text-xs text-slate-400">
+                      We rank pros by verification, experience, and completeness, then send your request to the
+                      top 1 or 3 matches in your area. If you don't hand-pick specific providers, we'll still route
+                      your request automatically to the best-matched pros for you.
+                    </p>
                   </div>
                 </div>
 

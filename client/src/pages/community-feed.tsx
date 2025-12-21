@@ -43,6 +43,157 @@ interface Post {
   imageUrls?: string[];
 }
 
+interface CommunityComment {
+  id: string;
+  content: string;
+  author?: {
+    id: string;
+    name?: string | null;
+    avatar?: string | null;
+  };
+  createdAt: string;
+}
+
+function CommunityComments({ postId }: { postId: string }) {
+  const { user, isAuthenticated } = useAuth();
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const [content, setContent] = useState("");
+
+  const { data: comments = [], isLoading } = useQuery<CommunityComment[]>({
+    queryKey: ["/api/community/posts", postId, "comments"],
+    queryFn: async () => {
+      const res = await fetch(`/api/community/posts/${postId}/comments`, {
+        credentials: "include",
+        headers: { Accept: "application/json" },
+      });
+      if (!res.ok) {
+        throw new Error(`Failed to load comments (${res.status})`);
+      }
+      return (await res.json()) as CommunityComment[];
+    },
+  });
+
+  const createComment = useMutation({
+    mutationFn: async () => {
+      const trimmed = content.trim();
+      if (!trimmed) {
+        throw new Error("Comment cannot be empty.");
+      }
+      const res = await fetch(`/api/community/posts/${postId}/comments`, {
+        method: "POST",
+        credentials: "include",
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json",
+        },
+        body: JSON.stringify({ content: trimmed }),
+      });
+      if (!res.ok) {
+        const text = await res.text().catch(() => "");
+        throw new Error(text || `Failed to post comment (${res.status})`);
+      }
+      return res.json();
+    },
+    onSuccess: () => {
+      setContent("");
+      queryClient.invalidateQueries({ queryKey: ["/api/community/posts", postId, "comments"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/community/posts"] });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Could not post comment",
+        description: error?.message || "Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!isAuthenticated) {
+      toast({
+        title: "Sign In Required",
+        description: "Please sign in to comment on community posts.",
+        variant: "destructive",
+      });
+      return;
+    }
+    createComment.mutate();
+  };
+
+  return (
+    <div className="mt-3 space-y-3">
+      <form onSubmit={handleSubmit} className="space-y-2">
+        <div className="flex items-start gap-2">
+          <Avatar className="w-8 h-8">
+            <AvatarImage src={user?.avatar as string | undefined} />
+            <AvatarFallback>
+              {(user?.username || user?.email || "U").substring(0, 2).toUpperCase()}
+            </AvatarFallback>
+          </Avatar>
+          <div className="flex-1 flex flex-col gap-2">
+            <Textarea
+              placeholder="Add a comment to this post..."
+              value={content}
+              onChange={(e) => setContent(e.target.value)}
+              rows={2}
+              className="bg-slate-900/70 border-slate-700 text-xs md:text-sm"
+            />
+            <div className="flex justify-end">
+              <Button
+                type="submit"
+                size="sm"
+                className="h-7 px-3 text-xs"
+                disabled={createComment.isPending}
+              >
+                {createComment.isPending ? (
+                  <>
+                    <Send className="h-3 w-3 mr-1 animate-pulse" />
+                    Posting
+                  </>
+                ) : (
+                  <>
+                    <Send className="h-3 w-3 mr-1" />
+                    Post Comment
+                  </>
+                )}
+              </Button>
+            </div>
+          </div>
+        </div>
+      </form>
+
+      <div className="space-y-2">
+        {isLoading ? (
+          <p className="text-[11px] text-slate-500">Loading comments...</p>
+        ) : comments.length === 0 ? (
+          <p className="text-[11px] text-slate-500">No comments yet. Be the first to reply.</p>
+        ) : (
+          comments.map((comment) => (
+            <div key={comment.id} className="flex items-start gap-2 text-xs md:text-sm">
+              <Avatar className="w-7 h-7">
+                <AvatarImage src={comment.author?.avatar || undefined} />
+                <AvatarFallback>
+                  {(comment.author?.name || "U").substring(0, 2).toUpperCase()}
+                </AvatarFallback>
+              </Avatar>
+              <div className="flex-1 rounded-xl bg-slate-900/80 border border-slate-800 px-3 py-2">
+                <p className="font-medium text-slate-100 mb-0.5 text-[11px] md:text-xs">
+                  {comment.author?.name || "Neighbor"}
+                </p>
+                <p className="text-slate-200 text-[11px] md:text-xs whitespace-pre-line">
+                  {comment.content}
+                </p>
+              </div>
+            </div>
+          ))
+        )}
+      </div>
+    </div>
+  );
+}
+
 type CommunityStats = {
   totalMembers: number;
   activeToday: number;
@@ -60,9 +211,10 @@ const CommunityFeed = memo(function CommunityFeed() {
   const [activeTab, setActiveTab] = useState("forYou");
   const [newPostContent, setNewPostContent] = useState("");
   const [showSidebar, setShowSidebar] = useState(false);
+  const [openCommentsForPostId, setOpenCommentsForPostId] = useState<string | null>(null);
   const composerRef = useRef<HTMLTextAreaElement | null>(null);
   const [route, navigate] = useLocation();
-  const { user } = useAuth();
+  const { user, isAuthenticated } = useAuth();
   const { unreadCount } = useNotifications();
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -419,7 +571,7 @@ const CommunityFeed = memo(function CommunityFeed() {
       sectionLabel="CommunityOS · A live feed for recommendations, projects, and trusted local pros."
       notificationsCount={unreadCount}
     >
-      <div className="mx-auto w-full max-w-5xl px-0 py-3 md:px-4 md:py-4">
+      <div className="mx-auto w-full max-w-5xl px-3 py-3 md:px-4 md:py-4 overflow-x-hidden">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-8">
           {/* Main Feed */}
           <div className="lg:col-span-2 space-y-3 md:space-y-6">
@@ -471,8 +623,8 @@ const CommunityFeed = memo(function CommunityFeed() {
                         </div>
                       )}
 
-                      <div className="flex justify-between items-center pt-1">
-                        <div className="flex gap-2">
+                      <div className="flex flex-col gap-2 sm:flex-row sm:justify-between sm:items-center pt-1">
+                        <div className="flex flex-wrap gap-2">
                           <Button size="sm" variant="outline" className="border-navy-600 text-gray-400 hover:bg-navy-600/50">
                             <Image className="h-4 w-4 mr-1" />
                             Photo
@@ -488,7 +640,7 @@ const CommunityFeed = memo(function CommunityFeed() {
                         </div>
 
                         <Button
-                          className="bg-orange-500 hover:bg-orange-600 shadow-md shadow-orange-500/25"
+                          className="bg-orange-500 hover:bg-orange-600 shadow-md shadow-orange-500/25 w-full sm:w-auto"
                           onClick={handleCreatePost}
                           disabled={!newPostContent.trim() || createPostMutation.isPending}
                           data-testid="button-submit-post"
@@ -638,6 +790,19 @@ const CommunityFeed = memo(function CommunityFeed() {
                                     size="sm"
                                     className="text-gray-400 hover:text-blue-400"
                                     data-testid={`button-comment-${post.id}`}
+                                    onClick={() => {
+                                      if (!isAuthenticated) {
+                                        toast({
+                                          title: 'Sign In Required',
+                                          description: 'Please sign in to discuss community posts.',
+                                          variant: 'destructive',
+                                        });
+                                        return;
+                                      }
+                                      setOpenCommentsForPostId((current) =>
+                                        current === post.id ? null : post.id,
+                                      );
+                                    }}
                                   >
                                     <MessageSquare className="h-4 w-4 mr-1" />
                                     <span className="mr-1">Discuss</span>
@@ -704,10 +869,27 @@ const CommunityFeed = memo(function CommunityFeed() {
                                 <button
                                   type="button"
                                   className="flex-1 rounded-full border border-slate-800 bg-slate-900/60 px-3 py-2 text-left text-xs md:text-sm text-slate-400 hover:border-slate-700 hover:bg-slate-900/80"
+                                  onClick={() => {
+                                    if (!isAuthenticated) {
+                                      toast({
+                                        title: 'Sign In Required',
+                                        description: 'Please sign in to comment on community posts.',
+                                        variant: 'destructive',
+                                      });
+                                      return;
+                                    }
+                                    setOpenCommentsForPostId((current) =>
+                                      current === post.id ? null : post.id,
+                                    );
+                                  }}
                                 >
                                   Add a comment...
                                 </button>
                               </div>
+
+                              {openCommentsForPostId === post.id && (
+                                <CommunityComments postId={post.id} />
+                              )}
                             </CardContent>
                           </Card>
                         );

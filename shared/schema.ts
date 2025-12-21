@@ -355,6 +355,10 @@ export const users = pgTable("users", {
       communityActivity?: boolean;
       contactCard?: boolean;
     };
+
+    // Natural-language services description that Scout and routing can use
+    // to better match this user with the right jobs and connections.
+    servicesDescription?: string;
   }>(),
   themePreference: varchar("theme_preference").default('default'), // Selected theme ID
   customThemeColors: text("custom_theme_colors"), // JSON string of custom colors
@@ -425,6 +429,8 @@ export const affiliateAccounts = pgTable("affiliate_accounts", {
   referralCode: varchar("referral_code"),
   customDomain: varchar("custom_domain"),
   couponCode: varchar("coupon_code"),
+  // Optional override for default 5% commission on platform fees
+  commissionRate: decimal("commission_rate", { precision: 5, scale: 4 }), // e.g. 0.0500 = 5%
   createdAt: timestamp("created_at").defaultNow(),
 }, (table) => [
   index("idx_affiliate_accounts_affiliate").on(table.affiliateId),
@@ -4167,6 +4173,129 @@ export const platformSupportLedgerEntries = pgTable('platform_support_ledger_ent
   index('platform_support_created_idx').on(table.createdAt),
 ]);
 
+// TradeDeals: off-site partner offers that pay TradeScout recurring affiliate revenue
+export const tradeDeals = pgTable('trade_deals', {
+  id: varchar('id').primaryKey().default(sql`gen_random_uuid()`),
+  slug: varchar('slug', { length: 120 }).unique(),
+  name: varchar('name', { length: 255 }).notNull(),
+  partnerName: varchar('partner_name', { length: 255 }).notNull(),
+  description: text('description'),
+  landingUrl: varchar('landing_url', { length: 1024 }).notNull(),
+  defaultCommissionRate: decimal('default_commission_rate', { precision: 5, scale: 4 }),
+  isRecurring: boolean('is_recurring').default(true),
+  isActive: boolean('is_active').default(true),
+  category: varchar('category', { length: 100 }),
+  createdBy: varchar('created_by').references(() => users.id),
+  createdAt: timestamp('created_at').defaultNow(),
+  updatedAt: timestamp('updated_at').defaultNow(),
+}, (table) => [
+  index('trade_deals_slug_idx').on(table.slug),
+  index('trade_deals_active_idx').on(table.isActive),
+]);
+
+// When a user (optionally via an affiliate account) lands on a TradeDeal offer link
+export const tradeDealClicks = pgTable('trade_deal_clicks', {
+  id: varchar('id').primaryKey().default(sql`gen_random_uuid()`),
+  tradeDealId: varchar('trade_deal_id').notNull().references(() => tradeDeals.id),
+  userId: varchar('user_id').references(() => users.id),
+  affiliateAccountId: varchar('affiliate_account_id').references(() => affiliateAccounts.id),
+  source: varchar('source', { length: 100 }),
+  landingPath: varchar('landing_path', { length: 1024 }),
+  externalTrackingId: varchar('external_tracking_id', { length: 255 }),
+  createdAt: timestamp('created_at').defaultNow(),
+}, (table) => [
+  index('trade_deal_clicks_deal_idx').on(table.tradeDealId),
+  index('trade_deal_clicks_user_idx').on(table.userId),
+  index('trade_deal_clicks_affiliate_idx').on(table.affiliateAccountId),
+]);
+
+// Earnings that TradeScout attributes to specific users/affiliates from TradeDeals
+export const tradeDealEarnings = pgTable('trade_deal_earnings', {
+  id: varchar('id').primaryKey().default(sql`gen_random_uuid()`),
+  tradeDealId: varchar('trade_deal_id').notNull().references(() => tradeDeals.id),
+  // Either an affiliate account or a direct user can receive the earning
+  affiliateAccountId: varchar('affiliate_account_id').references(() => affiliateAccounts.id),
+  userId: varchar('user_id').references(() => users.id),
+  amount: decimal('amount', { precision: 14, scale: 2 }).notNull(),
+  currency: varchar('currency', { length: 10 }).notNull().default('USD'),
+  periodLabel: varchar('period_label', { length: 32 }),
+  sourceType: varchar('source_type', { length: 50 }).default('partner_report'),
+  externalReference: varchar('external_reference', { length: 255 }),
+  notes: text('notes'),
+  createdAt: timestamp('created_at').defaultNow(),
+}, (table) => [
+  index('trade_deal_earnings_deal_idx').on(table.tradeDealId),
+  index('trade_deal_earnings_affiliate_idx').on(table.affiliateAccountId),
+  index('trade_deal_earnings_user_idx').on(table.userId),
+  index('trade_deal_earnings_period_idx').on(table.periodLabel),
+]);
+
+// Points system for non-monetary rewards (future TradeCoin dividends)
+export const userPointsTypeEnum = pgEnum('user_points_type', [
+  'site_interaction',
+  'affiliate_signup',
+  'social_impact',
+  'trade_deal_referral',
+  'admin_adjustment',
+]);
+
+export const userPointsLedger = pgTable('user_points_ledger', {
+  id: varchar('id').primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar('user_id').notNull().references(() => users.id),
+  points: integer('points').notNull(),
+  type: userPointsTypeEnum('type').notNull(),
+  reason: varchar('reason', { length: 255 }),
+  sourceId: varchar('source_id', { length: 255 }),
+  metadata: jsonb('metadata'),
+  createdAt: timestamp('created_at').defaultNow(),
+}, (table) => [
+  index('user_points_user_idx').on(table.userId),
+  index('user_points_type_idx').on(table.type),
+]);
+
+// User wallet accounts for spendable on-platform balance (funded by affiliate earnings etc.)
+export const walletAccounts = pgTable('wallet_accounts', {
+  id: varchar('id').primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar('user_id').notNull().references(() => users.id),
+  currentBalance: decimal('current_balance', { precision: 14, scale: 2 }).notNull().default('0'),
+  status: varchar('status', { length: 32 }).default('active'),
+  createdAt: timestamp('created_at').defaultNow(),
+  updatedAt: timestamp('updated_at').defaultNow(),
+}, (table) => [
+  index('wallet_accounts_user_idx').on(table.userId),
+  uniqueIndex('wallet_accounts_user_unique').on(table.userId),
+]);
+
+export const walletTransactionTypeEnum = pgEnum('wallet_tx_type', [
+  'affiliate_commission',
+  'marketplace_purchase',
+  'marketplace_sale',
+  'p2p_send',
+  'p2p_receive',
+  'admin_adjustment',
+  'withdrawal',
+  'deposit',
+]);
+
+export const walletTransactions = pgTable('wallet_transactions', {
+  id: varchar('id').primaryKey().default(sql`gen_random_uuid()`),
+  walletAccountId: varchar('wallet_account_id').notNull().references(() => walletAccounts.id),
+  userId: varchar('user_id').notNull().references(() => users.id),
+  counterpartyUserId: varchar('counterparty_user_id').references(() => users.id),
+  transactionType: walletTransactionTypeEnum('transaction_type').notNull(),
+  direction: varchar('direction', { length: 10 }).notNull(), // 'credit' or 'debit'
+  amount: decimal('amount', { precision: 14, scale: 2 }).notNull(),
+  referenceType: varchar('reference_type', { length: 50 }),
+  referenceId: varchar('reference_id', { length: 255 }),
+  memo: text('memo'),
+  createdAt: timestamp('created_at').defaultNow(),
+}, (table) => [
+  index('wallet_tx_wallet_idx').on(table.walletAccountId),
+  index('wallet_tx_user_idx').on(table.userId),
+  index('wallet_tx_counterparty_idx').on(table.counterpartyUserId),
+  index('wallet_tx_type_idx').on(table.transactionType),
+]);
+
 export const crmPriorityEnum = pgEnum('crm_priority', [
   'low',
   'medium',
@@ -4769,7 +4898,7 @@ export const marketplaceTransactions = pgTable("marketplace_transactions", {
   
   // Payment method and processing
   paymentMethod: varchar("payment_method", { 
-    enum: ['on_platform_stripe', 'off_platform_direct', 'off_platform_cash', 'off_platform_check', 'off_platform_venmo', 'off_platform_other'] 
+    enum: ['on_platform_stripe', 'on_platform_wallet', 'off_platform_direct', 'off_platform_cash', 'off_platform_check', 'off_platform_venmo', 'off_platform_other'] 
   }).notNull(),
   isOffPlatform: boolean("is_off_platform").default(false),
   offPlatformMethod: varchar("off_platform_method"), // "Venmo", "Cash", "Check", etc.
@@ -5418,6 +5547,24 @@ export type InsertCommunityCauseVote = typeof communityCauseVotes.$inferInsert;
 
 export type PlatformSupportLedgerEntry = typeof platformSupportLedgerEntries.$inferSelect;
 export type InsertPlatformSupportLedgerEntry = typeof platformSupportLedgerEntries.$inferInsert;
+
+export type TradeDeal = typeof tradeDeals.$inferSelect;
+export type InsertTradeDeal = typeof tradeDeals.$inferInsert;
+
+export type TradeDealClick = typeof tradeDealClicks.$inferSelect;
+export type InsertTradeDealClick = typeof tradeDealClicks.$inferInsert;
+
+export type TradeDealEarning = typeof tradeDealEarnings.$inferSelect;
+export type InsertTradeDealEarning = typeof tradeDealEarnings.$inferInsert;
+
+export type UserPointsLedgerEntry = typeof userPointsLedger.$inferSelect;
+export type InsertUserPointsLedgerEntry = typeof userPointsLedger.$inferInsert;
+
+export type WalletAccount = typeof walletAccounts.$inferSelect;
+export type InsertWalletAccount = typeof walletAccounts.$inferInsert;
+
+export type WalletTransaction = typeof walletTransactions.$inferSelect;
+export type InsertWalletTransaction = typeof walletTransactions.$inferInsert;
 
 // Foundation system Zod schemas
 export const insertFoundationCauseSchema = createInsertSchema(foundationCauses).omit({

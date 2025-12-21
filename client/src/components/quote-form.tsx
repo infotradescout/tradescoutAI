@@ -76,7 +76,34 @@ export default function QuoteForm({ onSuccess, compact = false }: QuoteFormProps
 
   const submitQuoteMutation = useMutation({
     mutationFn: async (data: QuoteFormData) => {
-      return apiRequest("POST", "/api/leads", data);
+      const payload: any = {
+        // Lead routing + matching
+        routingType: "top3",
+        projectType: data.projectType || "general",
+        description: data.projectDescription || "",
+        countyId: data.county,
+        tradeId: data.projectType || "general",
+        estimatedValue: null,
+        urgency: data.timeline,
+        contactPreference: "email",
+        maxAssignees: 3,
+        // Preserve rich context for future calculators/ops
+        calculatorData: {
+          budgetRange: data.budget || null,
+          state: data.state,
+          county: data.county,
+          projectType: data.projectType,
+          timeline: data.timeline,
+          contact: {
+            firstName: data.firstName,
+            lastName: data.lastName,
+            email: data.email,
+            phone: data.phone,
+          },
+        },
+      };
+
+      return apiRequest("POST", "/api/leads", payload);
     },
     onSuccess: () => {
       setIsSubmitted(true);

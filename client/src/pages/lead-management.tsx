@@ -111,7 +111,7 @@ const ProjectTracker = memo(function ProjectTracker() {
 			<div className="grid grid-cols-1 md:grid-cols-3 gap-4">
 				<Card className="bg-slate-800/50 border-slate-700">
 					<CardHeader className="pb-3">
-						<CardTitle className="text-sm text-gray-400">Active projects</CardTitle>
+						<CardTitle className="text-sm text-gray-400">Active Projects</CardTitle>
 						<CardDescription>Projects that are still moving</CardDescription>
 					</CardHeader>
 					<CardContent>
@@ -121,7 +121,7 @@ const ProjectTracker = memo(function ProjectTracker() {
 
 				<Card className="bg-slate-800/50 border-slate-700">
 					<CardHeader className="pb-3">
-						<CardTitle className="text-sm text-gray-400">Projects won</CardTitle>
+						<CardTitle className="text-sm text-gray-400">Projects Won</CardTitle>
 						<CardDescription>Jobs where you were chosen</CardDescription>
 					</CardHeader>
 					<CardContent>
@@ -131,7 +131,7 @@ const ProjectTracker = memo(function ProjectTracker() {
 
 				<Card className="bg-slate-800/50 border-slate-700">
 					<CardHeader className="pb-3">
-						<CardTitle className="text-sm text-gray-400">Total projects</CardTitle>
+						<CardTitle className="text-sm text-gray-400">Total Projects</CardTitle>
 						<CardDescription>Lifetime project requests</CardDescription>
 					</CardHeader>
 					<CardContent>

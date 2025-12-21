@@ -18,6 +18,7 @@ import adminCommunityBuilderRouter from "./routes/admin-community-builder-routes
 import communityVaultRouter from "./routes/community-vault-routes";
 import communityCausesRouter from "./routes/community-causes-routes";
 import platformSupportRouter from "./routes/platform-support-routes";
+import { ROLE_PERMISSIONS, type UserRole as SharedUserRole } from "../shared/roles";
 // DISABLED: WebSocketManager is not instantiated, using Socket.io messaging service instead
 // import { WebSocketManager } from "./websocket";
 import { getMessagingService } from "./messaging-service";
@@ -54,7 +55,7 @@ import { getUserTypeBadgeLabel } from "../shared/userTypes";
 import type { AffiliateAccount, AffiliateReferral, AffiliatePayout } from "../shared/schema";
 import { storage } from "./storage";
 import { seedCountiesForState } from "./countySeeder";
-import { setupAuth, isAuthenticated, isAdmin, hashPassword, requireRole, isContractor } from "./auth";
+import { setupAuth, isAuthenticated, isAdmin, hashPassword, requireRole, isContractor, isCommunityModerator } from "./auth";
 import { localityTrackingMiddleware } from "./localityTracking";
 import passport from "passport";
 import { Strategy as GoogleStrategy, Profile as GoogleProfile } from "passport-google-oauth20";
@@ -133,7 +134,7 @@ interface ScoredContractor extends Contractor {
 async function routeLeadToTopContractors(lead: any, leadData: any) {
   try {
     const { countyId, tradeId } = lead;
-    const { county, trade, city, state, zipCode } = leadData;
+    const { county, trade, city, state, zipCode, maxAssignees } = leadData;
     // Fetch active contractors that match the lead's geography and trade
     const contractors: Contractor[] = await storage.getContractors({
       countyId,
@@ -143,25 +144,104 @@ async function routeLeadToTopContractors(lead: any, leadData: any) {
     });
     // ...rest of the function remains unchanged...
 
+    // Extract simple keywords from the lead description to improve matching
+    const leadDescription: string =
+      typeof (leadData as any)?.description === 'string'
+        ? (leadData as any).description
+        : (typeof (lead as any)?.description === 'string' ? (lead as any).description : '');
+
+    const leadKeywords = new Set(
+      leadDescription
+        .toLowerCase()
+        .split(/[^a-z0-9]+/)
+        .filter((w: string) => w.length >= 3)
+    );
+
+    // Load profile preferences (including servicesDescription) for all contractor owners
+    const contractorUserIds = contractors
+      .map((c: any) => c.userId)
+      .filter((id: any): id is string => typeof id === 'string' && id.length > 0);
+
+    const contractorUsers = await storage.getUsersByIds(contractorUserIds);
+    const userById = new Map<string, any>();
+    for (const u of contractorUsers) {
+      userById.set(u.id, u);
+    }
+
     // Enhanced matching logic: Score contractors based on available fields
+    const maxRecipients = typeof maxAssignees === 'number' && maxAssignees > 0
+      ? Math.min(maxAssignees, 25)
+      : 3;
+
     const scoredContractors = contractors
       .filter((contractor: Contractor) => !!contractor.isActive) // Only active contractors
       .map((contractor: Contractor): ScoredContractor => {
         let score = 0;
-        // Business experience score (60% weight) - more years = higher score
+        // Business experience score (base weight) - more years = higher score
         const yearsExp = contractor.yearsInBusiness || 1;
-        score += Math.min(60, yearsExp * 3); // Cap at 60 points for 20+ years
-        // Profile completeness score (40% weight) - more complete = better
+        score += Math.min(50, yearsExp * 2.5); // Cap at 50 points
+
+        // Profile completeness score - more complete = better
         let completeness = 0;
         if (contractor.licenseNumber) completeness += 10;
         if (contractor.website) completeness += 10;
         if (contractor.phone) completeness += 10; 
-        if (contractor.description) completeness += 10;
-        score += completeness;
+        const owner = contractor.userId ? userById.get(contractor.userId) : undefined;
+        const profileServices: string =
+          typeof owner?.preferences?.servicesDescription === 'string'
+            ? owner.preferences.servicesDescription
+            : '';
+
+        const aboutText =
+          (contractor as any).about ||
+          (contractor as any).description ||
+          (typeof profileServices === 'string' ? profileServices : '') ||
+          '';
+        if (aboutText) completeness += 10;
+
+        // Content match score: boost contractors whose "about" text
+        // contains overlapping keywords with the lead description.
+        let keywordScore = 0;
+        if (leadKeywords.size && aboutText) {
+          const aboutTokens = Array.from(
+            new Set(
+              aboutText
+                .toLowerCase()
+                .split(/[^a-z0-9]+/)
+                .filter((w: string) => w.length >= 3)
+            )
+          );
+
+          let matches = 0;
+          for (const token of aboutTokens) {
+            if (leadKeywords.has(token)) {
+              matches += 1;
+            }
+          }
+
+          // Cap content-match contribution so experience still dominates
+          keywordScore = Math.min(20, matches * 4);
+        }
+
+        // Recommendation signal: net score and volume
+        let recScore = 0;
+        const pos = Number((contractor as any).positiveRecommendations || 0);
+        const neg = Number((contractor as any).negativeRecommendations || 0);
+        const total = Number((contractor as any).totalRecommendations || 0);
+
+        const net = pos - neg;
+        if (net > 0) {
+          recScore += Math.min(20, net * 2); // reward strong net positive
+        }
+        if (total > 0) {
+          recScore += Math.min(10, Math.log10(total + 1) * 5); // small bump for volume
+        }
+
+        score += completeness + keywordScore + recScore;
         return { ...contractor, matchScore: score };
       })
       .sort((a: any, b: any) => b.matchScore - a.matchScore) // Sort by match score
-      .slice(0, 3); // Take top 3
+      .slice(0, maxRecipients); // Take top N (default 3)
 
     if (!scoredContractors || scoredContractors.length === 0) {
       console.warn(`No qualified contractors found for lead ${lead.id} in county ${county} for trade ${trade}.`);
@@ -302,9 +382,30 @@ export async function registerRoutes(app: any) {
 
   const sanitizeUserForResponse = (user: any) => {
     if (!user) return user;
+
+    const rolesRaw = Array.isArray(user?.roles) && user.roles.length > 0 ? user.roles : user?.role ? [user.role] : [];
+    const roles = rolesRaw.filter((r: any) => typeof r === "string") as SharedUserRole[];
+    const primaryRole: SharedUserRole | undefined = roles[0];
+
+    const basePermissions = primaryRole ? ROLE_PERMISSIONS[primaryRole] : undefined;
+
+    const computedIsAdmin =
+      user.isAdmin === true ||
+      Boolean(
+        basePermissions?.canAccessAdminPanel ||
+        basePermissions?.canAccessSuperAdmin ||
+        (primaryRole && ["moderator", "ops_admin", "super_admin", "head_admin"].includes(primaryRole))
+      );
+
+    const computedIsSuperAdmin =
+      user.isSuperAdmin === true ||
+      Boolean(primaryRole && ["super_admin", "head_admin"].includes(primaryRole));
+
     return {
       ...user,
       badges: computeBadgesForUser(user),
+      isAdmin: computedIsAdmin,
+      isSuperAdmin: computedIsSuperAdmin,
       password: undefined,
     };
   };
@@ -563,29 +664,77 @@ export async function registerRoutes(app: any) {
   // ---------------------------------------------------------------------------
   app.get("/api/admin/affiliates", isAuthenticated, isAdmin, async (req: AuthedRequest, res: Response) => {
     try {
-      const accounts = [] as AffiliateAccount[];
-      res.json(
-        await Promise.all(
-          accounts.map(async (a: AffiliateAccount) => {
-            const user = ([] as any[]).find((u: any) => u.id === a.affiliateId);
-            return {
-              id: a.id,
-              affiliateId: a.affiliateId,
-              email: user?.email,
-              name: `${user?.firstName || ""} ${user?.lastName || ""}`.trim() || undefined,
-              status: a.status,
-              lifetimeEarned: String(a.lifetimeEarned ?? "0"),
-              available: String(a.available ?? "0"),
-              pending: String(a.pending ?? "0"),
-              referralCode: a.referralCode,
-              createdAt: (a.createdAt as Date)?.toISOString?.() || new Date().toISOString(),
-            };
-          })
-        )
-      );
+      const rows = await db
+        .select({
+          id: affiliateAccounts.id,
+          affiliateId: affiliateAccounts.affiliateId,
+          status: affiliateAccounts.status,
+          lifetimeEarned: affiliateAccounts.lifetimeEarned,
+          available: affiliateAccounts.available,
+          pending: affiliateAccounts.pending,
+          referralCode: affiliateAccounts.referralCode,
+          commissionRate: affiliateAccounts.commissionRate,
+          createdAt: affiliateAccounts.createdAt,
+          email: users.email,
+          firstName: users.firstName,
+          lastName: users.lastName,
+        })
+        .from(affiliateAccounts)
+        .leftJoin(users, eq(affiliateAccounts.affiliateId, users.id))
+        .orderBy(desc(affiliateAccounts.createdAt));
+
+      const payload = rows.map((row) => ({
+        id: row.id,
+        affiliateId: row.affiliateId,
+        email: row.email ?? undefined,
+        name: `${row.firstName || ""} ${row.lastName || ""}`.trim() || undefined,
+        status: row.status ?? undefined,
+        lifetimeEarned: String(row.lifetimeEarned ?? "0"),
+        available: String(row.available ?? "0"),
+        pending: String(row.pending ?? "0"),
+        referralCode: row.referralCode ?? undefined,
+        commissionRate: row.commissionRate != null ? String(row.commissionRate) : undefined,
+        createdAt: (row.createdAt as Date | null)?.toISOString?.() || new Date().toISOString(),
+      }));
+
+      res.json(payload);
     } catch (error: any) {
       console.error("Error listing affiliates:", error);
       res.status(500).json({ message: "Failed to load affiliates" });
+    }
+  });
+
+  app.put("/api/admin/affiliates/:id/commission-rate", isAuthenticated, isAdmin, async (req: AuthedRequest, res: Response) => {
+    try {
+      const { id } = req.params;
+      const { commissionRate } = req.body || {};
+
+      if (commissionRate === undefined || commissionRate === null || commissionRate === "") {
+        return res.status(400).json({ message: "commissionRate is required" });
+      }
+
+      const numeric = Number(commissionRate);
+      if (!Number.isFinite(numeric) || numeric <= 0 || numeric >= 1) {
+        return res.status(400).json({ message: "commissionRate must be a decimal between 0 and 1 (e.g. 0.05 for 5%)" });
+      }
+
+      const [updated] = await db
+        .update(affiliateAccounts)
+        .set({ commissionRate: numeric.toString() })
+        .where(eq(affiliateAccounts.id, id))
+        .returning();
+
+      if (!updated) {
+        return res.status(404).json({ message: "Affiliate program not found" });
+      }
+
+      res.json({
+        id: updated.id,
+        commissionRate: updated.commissionRate,
+      });
+    } catch (error: any) {
+      console.error("Error updating affiliate commission rate:", error);
+      res.status(500).json({ message: "Failed to update commission rate" });
     }
   });
 
@@ -1619,6 +1768,7 @@ export async function registerRoutes(app: any) {
           colorScheme: user.preferences?.colorScheme,
           badges: user.preferences?.badges,
           profileSections: user.preferences?.profileSections,
+          servicesDescription: user.preferences?.servicesDescription,
         },
         // Stats can be populated later from real aggregates; omit fake zeros
         stats: undefined,
@@ -3409,6 +3559,100 @@ export async function registerRoutes(app: any) {
     }
   });
 
+  // Daily money movement summary for super admins
+  app.get("/api/admin/money-movements/daily", isAuthenticated, async (req: any, res: any) => {
+    try {
+      const roleFromClaims = req.user?.claims?.role;
+      const rawRoles = Array.isArray((req.user as any)?.roles) ? (req.user as any).roles : [];
+      const roles: string[] = [roleFromClaims, ...(rawRoles || [])].filter((r): r is string => typeof r === 'string');
+
+      const isSuperAdminLike = roles.some((r) =>
+        ["head_admin", "super_admin", "ops_admin", "analytics_read"].includes(r)
+      );
+      if (!isSuperAdminLike) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+
+      const now = new Date();
+      const startOfDay = new Date(now);
+      startOfDay.setHours(0, 0, 0, 0);
+      const endOfDay = new Date(now);
+      endOfDay.setHours(23, 59, 59, 999);
+
+      const [{ totalWalletCredits, totalWalletDebits }, { totalStripeVolume, totalOffPlatformVolume }] =
+        await Promise.all([
+          (async () => {
+            const rows = await db
+              .select({
+                direction: walletTransactions.direction,
+                amount: walletTransactions.amount,
+              })
+              .from(walletTransactions)
+              .where(
+                and(
+                  gte(walletTransactions.createdAt, startOfDay),
+                  lte(walletTransactions.createdAt, endOfDay)
+                )
+              );
+
+            let credits = 0;
+            let debits = 0;
+            for (const row of rows) {
+              const amt = Number((row as any).amount || 0);
+              if (!Number.isFinite(amt)) continue;
+              if ((row as any).direction === 'credit') credits += amt;
+              else if ((row as any).direction === 'debit') debits += amt;
+            }
+
+            return { totalWalletCredits: credits, totalWalletDebits: debits };
+          })(),
+          (async () => {
+            const rows = await db
+              .select({
+                method: marketplaceTransactions.paymentMethod,
+                amount: marketplaceTransactions.totalAmount,
+              })
+              .from(marketplaceTransactions)
+              .where(
+                and(
+                  gte(marketplaceTransactions.createdAt, startOfDay),
+                  lte(marketplaceTransactions.createdAt, endOfDay),
+                  eq(marketplaceTransactions.status, 'completed')
+                )
+              );
+
+            let stripe = 0;
+            let offPlatform = 0;
+            for (const row of rows) {
+              const amt = Number((row as any).amount || 0);
+              if (!Number.isFinite(amt) || amt <= 0) continue;
+              const method = (row as any).method;
+              if (method === 'on_platform_stripe') stripe += amt;
+              else if (method === 'off_platform_direct') offPlatform += amt;
+            }
+
+            return { totalStripeVolume: stripe, totalOffPlatformVolume: offPlatform };
+          })(),
+        ]);
+
+      res.json({
+        date: startOfDay.toISOString().slice(0, 10),
+        wallet: {
+          totalCredits: totalWalletCredits,
+          totalDebits: totalWalletDebits,
+          netChange: totalWalletCredits - totalWalletDebits,
+        },
+        marketplace: {
+          totalStripeVolume,
+          totalOffPlatformVolume,
+        },
+      });
+    } catch (error: any) {
+      console.error("Error fetching daily money movement summary:", error);
+      res.status(500).json({ message: "Failed to fetch money movement summary" });
+    }
+  });
+
   // Contractor application submission
   app.post("/api/contractors/apply", isAuthenticated, async (req: any, res: any) => {
     try {
@@ -4702,196 +4946,25 @@ export async function registerRoutes(app: any) {
   // Worker marketplace endpoints
   app.get("/api/workers", async (req: any, res: any) => {
     try {
-      // Sample workers with resume data for demonstration
-      const sampleWorkers = [
-        {
-          id: "1",
-          userId: "user1",
-          firstName: "Maria",
-          lastName: "Rodriguez",
-          phone: "(555) 123-4567",
-          email: "maria.rodriguez@email.com",
-          profileImageUrl: null,
-          bio: "Experienced construction helper with 5+ years in residential and commercial projects. Skilled in carpentry, painting, and general labor. Reliable and detail-oriented.",
-          skills: ["carpentry", "painting", "drywall", "electrical-basic", "plumbing-basic"],
-          hourlyRate: "25.00",
-          availableHours: {
-            monday: { start: "08:00", end: "17:00" },
-            tuesday: { start: "08:00", end: "17:00" },
-            wednesday: { start: "08:00", end: "17:00" },
-            thursday: { start: "08:00", end: "17:00" },
-            friday: { start: "08:00", end: "17:00" }
-          },
-          transportationMethod: "Own vehicle",
-          maxTravelDistance: 25,
-          isIdVerified: true,
-          isBackgroundChecked: true,
-          verificationStatus: "approved",
-          totalJobsCompleted: 47,
-          averageRating: "4.8",
-          totalEarnings: "15750.00",
-          workExperience: [
-            {
-              jobTitle: "Kitchen Cabinet Installation",
-              company: "Johnson Family",
-              startDate: "2024-01-15",
-              endDate: "2024-01-22",
-              // description: "Installed custom kitchen cabinets, including hardware mounting and adjustment. Completed on time with excellent customer feedback.",
-              isCurrentJob: false,
-              fromPlatform: true,
-              taskId: "task-123"
-            },
-            {
-              jobTitle: "Bathroom Renovation Assistant",
-              company: "Smith Contractors",
-              startDate: "2023-08-01",
-              endDate: "2024-12-31",
-              // description: "Assist lead contractor with bathroom renovations, tile installation, and fixture mounting. Regular employment position.",
-              isCurrentJob: true,
-              fromPlatform: true,
-              taskId: "task-456"
-            },
-            {
-              jobTitle: "Construction Helper",
-              company: "ABC Construction Co.",
-              startDate: "2019-03-01",
-              endDate: "2023-07-15",
-              // description: "General construction labor including framing, concrete work, and site cleanup. Promoted to crew lead after 2 years.",
-              isCurrentJob: false,
-              fromPlatform: false
-            }
-          ],
-          education: [
-            {
-              degree: "Certificate in Construction Technology",
-              school: "City Community College",
-              graduationYear: 2019,
-              fieldOfStudy: "Construction and Building Trades"
-            }
-          ],
-          certifications: [
-            {
-              name: "OSHA 10-Hour Construction Safety",
-              issuer: "OSHA",
-              issueDate: "2023-01-15",
-              expirationDate: "2026-01-15",
-              credentialId: "OSHA-123456"
-            },
-            {
-              name: "First Aid/CPR Certified",
-              issuer: "American Red Cross",
-              issueDate: "2023-06-01",
-              expirationDate: "2025-06-01"
-            }
-          ],
-          portfolioItems: [
-            {
-              title: "Custom Kitchen Cabinet Installation",
-              // description: "Complete kitchen cabinet installation including crown molding and under-cabinet lighting preparation.",
-              completionDate: "2024-01-22",
-              skills: ["carpentry", "measurements", "hardware-installation"],
-              fromPlatform: true,
-              taskId: "task-123"
-            },
-            {
-              title: "Deck Repair and Staining",
-              // description: "Repaired loose boards, replaced damaged sections, and applied weatherproof stain to 400 sq ft deck.",
-              completionDate: "2023-11-15",
-              skills: ["carpentry", "wood-treatment", "painting"],
-              fromPlatform: true,
-              taskId: "task-789"
-            }
-          ],
-          isActive: true,
-          isAvailable: true,
-          city: "Los Angeles",
-          createdAt: "2023-01-01T00:00:00Z",
-          updatedAt: "2024-01-22T00:00:00Z"
-        },
-        {
-          id: "2",
-          userId: "user2", 
-          firstName: "James",
-          lastName: "Thompson",
-          phone: "(555) 987-6543",
-          email: "james.thompson@email.com",
-          profileImageUrl: null,
-          bio: "Professional handyman specializing in electrical work and home repairs. Licensed electrician's assistant with 3+ years experience.",
-          skills: ["electrical", "wiring", "outlets", "lighting", "troubleshooting"],
-          hourlyRate: "30.00",
-          availableHours: {
-            monday: { start: "09:00", end: "18:00" },
-            tuesday: { start: "09:00", end: "18:00" },
-            wednesday: { start: "09:00", end: "18:00" },
-            thursday: { start: "09:00", end: "18:00" },
-            friday: { start: "09:00", end: "18:00" },
-            saturday: { start: "10:00", end: "15:00" }
-          },
-          transportationMethod: "Own truck",
-          maxTravelDistance: 40,
-          isIdVerified: true,
-          isBackgroundChecked: true,
-          verificationStatus: "approved",
-          totalJobsCompleted: 23,
-          averageRating: "4.9",
-          totalEarnings: "8950.00",
-          workExperience: [
-            {
-              jobTitle: "Ceiling Fan Installation",
-              company: "Davis Household",
-              startDate: "2024-01-10",
-              endDate: "2024-01-10",
-              // description: "Installed 3 ceiling fans with remote controls, including electrical wiring and wall switch installation.",
-              isCurrentJob: false,
-              fromPlatform: true,
-              taskId: "task-321"
-            },
-            {
-              jobTitle: "Electrical Assistant",
-              company: "Martinez Electric LLC",
-              startDate: "2021-06-01",
-              endDate: "2023-12-31",
-              // description: "Assisted master electrician with residential and commercial electrical installations. Learned advanced wiring techniques.",
-              isCurrentJob: false,
-              fromPlatform: false
-            }
-          ],
-          education: [
-            {
-              degree: "Electrical Technology Diploma",
-              school: "Technical Trade Institute",
-              graduationYear: 2021,
-              fieldOfStudy: "Electrical Systems"
-            }
-          ],
-          certifications: [
-            {
-              name: "Electrical Helper License",
-              issuer: "State Licensing Board",
-              issueDate: "2021-05-15",
-              expirationDate: "2025-05-15",
-              credentialId: "EH-789123"
-            }
-          ],
-          portfolioItems: [
-            {
-              title: "Home Office Electrical Upgrade",
-              // description: "Upgraded electrical panel and installed dedicated circuits for home office equipment.",
-              completionDate: "2023-09-30",
-              skills: ["electrical", "panel-work", "circuit-installation"],
-              fromPlatform: true,
-              taskId: "task-654"
-            }
-          ],
-          isActive: true,
-          isAvailable: true,
-          city: "Orange County",
-          createdAt: "2023-03-15T00:00:00Z",
-          updatedAt: "2024-01-10T00:00:00Z"
-        }
-      ];
+      const limitRaw = typeof req.query?.limit === "string" ? req.query.limit : "";
+      const limit = Number(limitRaw);
 
-      res.json(sampleWorkers);
+      let query = db.select().from(workers).where(eq(workers.isActive, true));
+
+      if (Number.isFinite(limit) && limit > 0) {
+        query = (query as any).limit(Math.min(limit, 100));
+      }
+
+      const rows = await query;
+
+      const normalized = rows.map((w: any) => ({
+        ...w,
+        hourlyRate: w.hourlyRate != null ? String(w.hourlyRate) : null,
+        totalEarnings: w.totalEarnings != null ? String(w.totalEarnings) : "0",
+        averageRating: w.averageRating != null ? Number(w.averageRating) : null,
+      }));
+
+      res.json(normalized);
     } catch (error: any) {
       console.error("Error fetching workers:", error);
       res.status(500).json({ message: "Failed to fetch workers" });
@@ -6880,6 +6953,85 @@ export async function registerRoutes(app: any) {
     }
   });
 
+  // Community Post Admin Actions
+  app.patch("/api/community/posts/:id/pin", isAuthenticated, isCommunityModerator, async (req: any, res: any) => {
+    try {
+      const { id } = req.params;
+      const { isPinned } = (req.body ?? {}) as any;
+
+      if (typeof isPinned !== "boolean") {
+        return res.status(400).json({ message: "isPinned must be a boolean" });
+      }
+
+      await db
+        .update(communityPosts)
+        .set({
+          isPinned,
+          updatedAt: new Date(),
+          moderatedBy: (req.user as any)?.id || (req.user as any)?.claims?.sub,
+          moderatedAt: new Date(),
+        })
+        .where(eq(communityPosts.id, id));
+
+      res.json({ success: true });
+    } catch (error: any) {
+      console.error("Error updating community post pin state:", error);
+      res.status(500).json({ message: "Failed to update pin state" });
+    }
+  });
+
+  app.patch("/api/community/posts/:id/hide", isAuthenticated, isCommunityModerator, async (req: any, res: any) => {
+    try {
+      const { id } = req.params;
+      const { isHidden, moderatorNotes } = (req.body ?? {}) as any;
+
+      if (typeof isHidden !== "boolean") {
+        return res.status(400).json({ message: "isHidden must be a boolean" });
+      }
+
+      await db
+        .update(communityPosts)
+        .set({
+          isHidden,
+          moderatorNotes: typeof moderatorNotes === "string" ? moderatorNotes : null,
+          moderatedBy: (req.user as any)?.id || (req.user as any)?.claims?.sub,
+          moderatedAt: new Date(),
+          updatedAt: new Date(),
+        })
+        .where(eq(communityPosts.id, id));
+
+      res.json({ success: true });
+    } catch (error: any) {
+      console.error("Error updating community post visibility:", error);
+      res.status(500).json({ message: "Failed to update visibility" });
+    }
+  });
+
+  app.delete("/api/community/posts/:id", isAuthenticated, isCommunityModerator, async (req: any, res: any) => {
+    try {
+      const { id } = req.params;
+
+      const [post] = await db
+        .select()
+        .from(communityPosts)
+        .where(eq(communityPosts.id, id))
+        .limit(1);
+
+      if (!post) {
+        return res.status(404).json({ message: "Post not found" });
+      }
+
+      await db
+        .delete(communityPosts)
+        .where(eq(communityPosts.id, id));
+
+      res.json({ success: true });
+    } catch (error: any) {
+      console.error("Error deleting community post:", error);
+      res.status(500).json({ message: "Failed to delete post" });
+    }
+  });
+
   // Community Groups
   app.get("/api/community/groups", async (req: any, res: any) => {
     try {
@@ -8863,6 +9015,237 @@ export async function registerRoutes(app: any) {
     }
   });
 
+  // Wallet balance for current user
+  app.get("/api/wallet/balance", isAuthenticated, async (req: any, res: any) => {
+    try {
+      const userId = req.user?.claims?.sub || req.user?.id;
+      if (!userId) {
+        return res.status(401).json({ message: "User not authenticated" });
+      }
+
+      const balance = await storage.getWalletBalance(userId);
+      res.json({ balance });
+    } catch (error: any) {
+      console.error("Error fetching wallet balance:", error);
+      res.status(500).json({ message: "Failed to fetch wallet balance" });
+    }
+  });
+
+  // Wallet transactions for current user
+  app.get("/api/wallet/transactions", isAuthenticated, async (req: any, res: any) => {
+    try {
+      const userId = req.user?.claims?.sub || req.user?.id;
+      if (!userId) {
+        return res.status(401).json({ message: "User not authenticated" });
+      }
+
+      const limitParam = req.query.limit;
+      const limit = typeof limitParam === "string" ? Number(limitParam) : 50;
+      const safeLimit = !Number.isFinite(limit) || limit <= 0 || limit > 200 ? 50 : limit;
+
+      const transactions = await storage.getWalletTransactionsForUser(userId, safeLimit);
+      res.json({ transactions });
+    } catch (error: any) {
+      console.error("Error fetching wallet transactions:", error);
+      res.status(500).json({ message: "Failed to fetch wallet transactions" });
+    }
+  });
+
+  // Wallet tax statement (yearly/quarterly) for current user
+  app.get("/api/wallet/tax-statement", isAuthenticated, async (req: any, res: any) => {
+    try {
+      const userId = req.user?.claims?.sub || req.user?.id;
+      if (!userId) {
+        return res.status(401).json({ message: "User not authenticated" });
+      }
+
+      const periodType = (req.query.periodType as string) || "year"; // "year" | "quarter"
+      const yearParam = req.query.year as string | undefined;
+      const quarterParam = req.query.quarter as string | undefined;
+      const format = (req.query.format as string) || "json"; // "json" | "csv"
+
+      const now = new Date();
+      const year = yearParam ? Number(yearParam) : now.getFullYear();
+      if (!Number.isFinite(year) || year < 2000 || year > 2100) {
+        return res.status(400).json({ message: "Invalid year" });
+      }
+
+      let start: Date;
+      let end: Date;
+      let quarter: number | undefined;
+
+      if (periodType === "quarter") {
+        quarter = quarterParam ? Number(quarterParam) : undefined;
+        if (!quarter || !Number.isFinite(quarter) || quarter < 1 || quarter > 4) {
+          return res.status(400).json({ message: "quarter must be 1-4 when periodType=quarter" });
+        }
+
+        const startMonth = (quarter - 1) * 3; // 0-based month index
+        start = new Date(year, startMonth, 1, 0, 0, 0, 0);
+        end = new Date(year, startMonth + 3, 0, 23, 59, 59, 999);
+      } else {
+        start = new Date(year, 0, 1, 0, 0, 0, 0);
+        end = new Date(year, 11, 31, 23, 59, 59, 999);
+      }
+
+      const rows = await db
+        .select()
+        .from(walletTransactions)
+        .where(
+          and(
+            eq(walletTransactions.userId, userId),
+            gte(walletTransactions.createdAt, start),
+            lte(walletTransactions.createdAt, end)
+          )
+        )
+        .orderBy(asc(walletTransactions.createdAt));
+
+      let totalCredits = 0;
+      let totalDebits = 0;
+      let taxableIncomeTotal = 0;
+      const totalsByType: Record<string, { credits: number; debits: number }> = {};
+
+      // Obvious income-like wallet credits that should generally be considered for tax purposes.
+      // This is intentionally conservative; users and their tax pros can override this using the CSV.
+      const taxableIncomeTypes = new Set<string>(["affiliate_commission", "marketplace_sale"]);
+
+      for (const row of rows as any[]) {
+        const amt = Number(row.amount || 0);
+        if (!Number.isFinite(amt)) continue;
+        const type = (row.transactionType || "unknown").toString();
+        const dir = row.direction === "debit" ? "debit" : "credit";
+
+        if (!totalsByType[type]) {
+          totalsByType[type] = { credits: 0, debits: 0 };
+        }
+
+        if (dir === "credit") {
+          totalCredits += amt;
+          totalsByType[type].credits += amt;
+
+          if (taxableIncomeTypes.has(type)) {
+            taxableIncomeTotal += amt;
+          }
+        } else {
+          totalDebits += amt;
+          totalsByType[type].debits += amt;
+        }
+      }
+
+      const netChange = totalCredits - totalDebits;
+
+      const summary = {
+        userId,
+        period: {
+          type: periodType === "quarter" ? "quarter" : "year",
+          year,
+          quarter: periodType === "quarter" ? quarter : undefined,
+          startDate: start.toISOString(),
+          endDate: end.toISOString(),
+        },
+        totals: {
+          totalCredits,
+          totalDebits,
+          netChange,
+          taxableIncomeTotal,
+        },
+        totalsByType: Object.entries(totalsByType).map(([transactionType, v]) => ({
+          transactionType,
+          totalCredits: v.credits,
+          totalDebits: v.debits,
+          netChange: v.credits - v.debits,
+        })),
+        transactions: rows,
+      };
+
+      if (format === "csv") {
+        const header = [
+          "transaction_id",
+          "created_at",
+          "direction",
+          "amount",
+          "transaction_type",
+          "reference_type",
+          "reference_id",
+          "counterparty_user_id",
+          "memo",
+        ];
+
+        const csvLines = [header.join(",")];
+        for (const row of rows as any[]) {
+          const line = [
+            row.id,
+            row.createdAt?.toISOString?.() || new Date(row.createdAt).toISOString(),
+            row.direction,
+            row.amount,
+            row.transactionType,
+            row.referenceType || "",
+            row.referenceId || "",
+            row.counterpartyUserId || "",
+            (row.memo || "").toString().replace(/"/g, '""'),
+          ];
+          csvLines.push(line.map((v) => `"${String(v ?? "").replace(/"/g, '""')}"`).join(","));
+        }
+
+        res.setHeader("Content-Type", "text/csv");
+        res.setHeader(
+          "Content-Disposition",
+          `attachment; filename="wallet-tax-statement-${userId}-${year}${
+            periodType === "quarter" && typeof quarter === "number" ? `-Q${quarter}` : ""
+          }.csv"`
+        );
+        return res.send(csvLines.join("\n"));
+      }
+
+      res.json(summary);
+    } catch (error: any) {
+      console.error("Error generating wallet tax statement:", error);
+      res.status(500).json({ message: "Failed to generate wallet tax statement" });
+    }
+  });
+
+  // Peer-to-peer wallet transfer
+  app.post("/api/wallet/transfer", isAuthenticated, async (req: any, res: any) => {
+    try {
+      const fromUserId = req.user?.claims?.sub || req.user?.id;
+      const { toUserId, amount, memo } = req.body || {};
+
+      if (!fromUserId) {
+        return res.status(401).json({ message: "User not authenticated" });
+      }
+      if (!toUserId || !amount) {
+        return res.status(400).json({ message: "toUserId and amount are required" });
+      }
+
+      const numericAmount = Number(amount);
+      if (!Number.isFinite(numericAmount) || numericAmount <= 0) {
+        return res.status(400).json({ message: "amount must be a positive number" });
+      }
+
+      // Debit sender and credit recipient
+      await storage.debitWallet(fromUserId, numericAmount, {
+        type: 'p2p_send',
+        referenceType: 'wallet_transfer',
+        referenceId: toUserId,
+        memo,
+        counterpartyUserId: toUserId,
+      });
+
+      await storage.creditWallet(toUserId, numericAmount, {
+        type: 'p2p_receive',
+        referenceType: 'wallet_transfer',
+        referenceId: fromUserId,
+        memo,
+        counterpartyUserId: fromUserId,
+      });
+
+      res.json({ success: true });
+    } catch (error: any) {
+      console.error("Error performing wallet transfer:", error);
+      res.status(500).json({ message: "Failed to transfer funds" });
+    }
+  });
+
   // Create contractor payment intent
   app.post("/api/payments/contractor/create-intent", isAuthenticated, async (req: any, res: any) => {
     try {
@@ -8916,6 +9299,80 @@ export async function registerRoutes(app: any) {
     } catch (error: any) {
       console.error("Error creating marketplace payment intent:", error);
       res.status(500).json({ message: "Failed to create payment intent" });
+    }
+  });
+
+  // Pay marketplace transaction using on-platform wallet balance
+  app.post("/api/payments/marketplace/pay-with-wallet", isAuthenticated, async (req: any, res: any) => {
+    try {
+      const userId = req.user?.claims?.sub || req.user?.id;
+      const { transactionId } = req.body || {};
+
+      if (!userId) {
+        return res.status(401).json({ message: "User not authenticated" });
+      }
+      if (!transactionId) {
+        return res.status(400).json({ message: "Transaction ID required" });
+      }
+
+      const transaction = await storage.getMarketplaceTransaction(transactionId);
+      if (!transaction) {
+        return res.status(404).json({ message: "Transaction not found" });
+      }
+
+      if (transaction.buyerId !== userId) {
+        return res.status(403).json({ message: "Only the buyer can pay for this transaction" });
+      }
+
+      if (transaction.status !== 'pending') {
+        return res.status(400).json({ message: "Transaction is not pending payment" });
+      }
+
+      const totalAmount = Number(transaction.totalAmount as any);
+      const sellerAmount = Number(transaction.sellerAmount as any);
+
+      if (!Number.isFinite(totalAmount) || totalAmount <= 0) {
+        return res.status(400).json({ message: "Invalid transaction amount" });
+      }
+
+      if (!Number.isFinite(sellerAmount) || sellerAmount <= 0) {
+        return res.status(400).json({ message: "Invalid seller amount" });
+      }
+
+      const balanceStr = await storage.getWalletBalance(userId);
+      const balance = Number(balanceStr);
+      if (!Number.isFinite(balance) || balance < totalAmount) {
+        return res.status(400).json({ message: "Insufficient wallet balance" });
+      }
+
+      // Debit buyer wallet for full transaction total
+      await storage.debitWallet(userId, totalAmount, {
+        type: 'marketplace_purchase',
+        referenceType: 'marketplace_transaction',
+        referenceId: transaction.id,
+        memo: `Marketplace purchase for listing ${transaction.listingId}`,
+        counterpartyUserId: transaction.sellerId,
+      });
+
+      // Credit seller wallet for sellerAmount (platform keeps the fee portion)
+      await storage.creditWallet(transaction.sellerId, sellerAmount, {
+        type: 'marketplace_sale',
+        referenceType: 'marketplace_transaction',
+        referenceId: transaction.id,
+        memo: `Marketplace sale for listing ${transaction.listingId}`,
+        counterpartyUserId: userId,
+      });
+
+      const updated = await storage.updateMarketplaceTransactionPayment(transaction.id, {
+        paymentMethod: 'on_platform_wallet',
+        isOffPlatform: false,
+        status: 'completed',
+      });
+
+      res.json(updated);
+    } catch (error: any) {
+      console.error("Error paying marketplace transaction with wallet:", error);
+      res.status(500).json({ message: "Failed to pay with wallet" });
     }
   });
 

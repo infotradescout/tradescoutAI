@@ -1,10 +1,12 @@
 import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { useAuth } from "@/hooks/useAuth";
+import { useTheme } from "@/contexts/ThemeContext";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "@/hooks/use-toast";
@@ -23,6 +25,7 @@ interface UserPreferences {
     text?: string;
   };
   profileSections?: ProfileSections;
+  servicesDescription?: string;
 }
 
 type ProfileSections = {
@@ -38,6 +41,7 @@ type ProfileSections = {
 
 export default function ProfileSettings() {
   const { user, refetch } = useAuth();
+  const { updateCustomColors } = useTheme();
   const [location, navigate] = useLocation();
   const [loading, setLoading] = useState(false);
   const [preferences, setPreferences] = useState<UserPreferences>({
@@ -45,6 +49,7 @@ export default function ProfileSettings() {
     profileVisibility: 'public',
     colorScheme: { preset: 'default' },
     profileSections: {},
+    servicesDescription: '',
   });
 
   const [customColors, setCustomColors] = useState<{ primary: string; secondary: string; background: string; text: string }>(
@@ -63,6 +68,7 @@ export default function ProfileSettings() {
         profileVisibility: user.preferences.profileVisibility || 'public',
         colorScheme: user.preferences.colorScheme || { preset: 'default' },
         profileSections: user.preferences.profileSections || {},
+        servicesDescription: user.preferences.servicesDescription || '',
       });
 
       const scheme = user.preferences.colorScheme;
@@ -225,6 +231,42 @@ export default function ProfileSettings() {
     }
   };
 
+  const saveServicesDescription = async () => {
+    setLoading(true);
+    try {
+      const response = await fetch('/api/users/preferences', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          servicesDescription: preferences.servicesDescription || '',
+        }),
+      });
+
+      if (!response.ok) throw new Error('Failed to update services description');
+
+      const data = await response.json();
+      setPreferences(prev => ({
+        ...prev,
+        servicesDescription: data.preferences?.servicesDescription || '',
+      }));
+      await refetch();
+
+      toast({
+        title: "Services updated",
+        description: "Scout and routing will now use your service description when making matches.",
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to update services description",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const applyColorValues = (colors: ColorScheme) => {
     const root = document.documentElement;
     
@@ -260,6 +302,9 @@ export default function ProfileSettings() {
     };
 
     applyTheme(themeFromScheme);
+    // Keep global theme context in sync so the rest of the app
+    // immediately reflects these custom colors.
+    updateCustomColors(themeFromScheme.colors);
     if (typeof window !== 'undefined') {
       localStorage.setItem('themeId', themeFromScheme.id);
       localStorage.setItem('customColors', JSON.stringify(themeFromScheme.colors));
@@ -641,6 +686,39 @@ export default function ProfileSettings() {
               </p>
             </div>
           )}
+        </CardContent>
+      </Card>
+
+      {/* Services description used by Scout & routing */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <LayoutTemplate className="h-5 w-5 text-tsAccent" />
+            Services You Offer
+          </CardTitle>
+          <CardDescription>
+            Describe, in your own words, the services you perform. Scout and the auto-routing system use this
+            (along with your roles, locality, and recommendations) to send you the right requests and avoid
+            calls for work you don&apos;t offer.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <Textarea
+            value={preferences.servicesDescription || ''}
+            onChange={(e) =>
+              setPreferences((prev) => ({
+                ...prev,
+                servicesDescription: e.target.value,
+              }))
+            }
+            rows={5}
+            placeholder="Example: I specialize in small residential plumbing repairs, water heater replacements, and leak detection for single-family homes and small multi-unit buildings. I do not offer new construction rough-in work."
+          />
+          <div className="flex justify-end">
+            <Button onClick={saveServicesDescription} disabled={loading}>
+              Save services
+            </Button>
+          </div>
         </CardContent>
       </Card>
 

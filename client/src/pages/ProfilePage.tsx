@@ -8,7 +8,7 @@ import { USER_TYPES } from "@shared/userTypes";
 import { getUserColorScheme } from "@shared/colorPresets";
 import { 
   MapPin, Calendar, Building, Award, Star, Settings, 
-  Eye, Share2, Edit, ExternalLink, Globe, Copy, Check
+  Eye, Share2, Edit, ExternalLink, Globe, Copy, Check, Shield
 } from "lucide-react";
 import { useLocation } from "wouter";
 import { apiRequest } from "@/lib/queryClient";
@@ -30,6 +30,48 @@ type OwnedProfile = {
   slug: string;
   status?: "draft" | "published";
 };
+
+const COMMUNITY_BUILDER_BADGE_LABEL = "Community Builder Badge";
+
+function renderUserBadge(badge: string) {
+  const lower = badge.toLowerCase();
+
+  let backgroundClass = "bg-slate-700";
+  let textClass = "text-white";
+  let Icon: React.ComponentType<any> = Award;
+  let labelText = badge;
+
+  if (badge.startsWith("Founder")) {
+    backgroundClass = "bg-emerald-500";
+    Icon = Award;
+  } else if (lower.includes("community builder")) {
+    backgroundClass = "bg-orange-500";
+    Icon = Award;
+    labelText = "Community Builder";
+  } else if (lower.includes("affiliate")) {
+    backgroundClass = "bg-purple-600";
+    Icon = Share2;
+  } else if (lower.includes("hoa")) {
+    backgroundClass = "bg-sky-600";
+    Icon = Building;
+  } else if (lower.includes("admin") || lower.includes("moderator")) {
+    backgroundClass = "bg-rose-600";
+    Icon = Shield;
+  } else {
+    backgroundClass = "bg-tsAccent";
+    Icon = Star;
+  }
+
+  return (
+    <Badge
+      key={badge}
+      className={`${backgroundClass} ${textClass} px-3 py-1 flex items-center gap-1`}
+    >
+      <Icon className="h-3 w-3" />
+      <span>{labelText}</span>
+    </Badge>
+  );
+}
 
 export default function ProfilePage() {
   const { user } = useAuth();
@@ -93,6 +135,7 @@ export default function ProfilePage() {
     : user.city || user.state || 'Location not set';
 
   const badges = user.badges || [];
+  const distinctBadges = badges.filter((b: string) => b !== COMMUNITY_BUILDER_BADGE_LABEL);
   const showBadges = user.preferences?.badges?.show !== false;
   const hasCommunityBuilder = (user.roles || []).includes('community_builder');
 
@@ -156,7 +199,7 @@ export default function ProfilePage() {
             <div className="flex-1">
               <div className="flex items-start justify-between mb-4">
                 <div>
-                  <h1 className="text-4xl font-bold text-tsTextMain mb-2">{displayName}</h1>
+                  <h1 className="text-4xl font-bold text-tsTextMain mb-2 break-words">{displayName}</h1>
                   <div className="flex flex-wrap gap-3 text-sm text-tsTextMuted">
                     {location && (
                       <div className="flex items-center gap-1">
@@ -199,17 +242,8 @@ export default function ProfilePage() {
 
               {showBadges && (badges.length > 0 || hasCommunityBuilder) && (
                 <div className="flex flex-wrap gap-2 mt-2">
-                  {hasCommunityBuilder && (
-                    <Badge className="bg-emerald-500 text-white px-3 py-1">
-                      <Award className="h-3 w-3 mr-1" />
-                      Community Builder badge
-                    </Badge>
-                  )}
-                  {badges.map((badge: string) => (
-                    <Badge key={badge} className="bg-tsAccent text-white px-3 py-1">
-                      {badge}
-                    </Badge>
-                  ))}
+                  {hasCommunityBuilder && renderUserBadge(COMMUNITY_BUILDER_BADGE_LABEL)}
+                  {distinctBadges.map((badge: string) => renderUserBadge(badge))}
                 </div>
               )}
 

@@ -41,6 +41,7 @@ const CheckoutForm = ({
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
   const [clientSecret, setClientSecret] = useState("");
+  const [isWalletLoading, setIsWalletLoading] = useState(false);
   
   // Get payment methods
   const { data: paymentMethods } = useQuery<any[]>({
@@ -54,6 +55,12 @@ const CheckoutForm = ({
       amount,
       paymentType: paymentType === 'contractor' ? 'contractor_service' : 'marketplace_transaction'
     }).then(res => res.json())
+  });
+
+  // Wallet balance (for marketplace payments)
+  const { data: walletData } = useQuery<{ balance: string }>({
+    queryKey: ["/api/wallet/balance"],
+    enabled: paymentType === 'marketplace',
   });
 
   useEffect(() => {
@@ -140,6 +147,31 @@ const CheckoutForm = ({
     setIsLoading(false);
   };
 
+  const handleWalletPay = async () => {
+    if (paymentType !== 'marketplace') return;
+
+    setIsWalletLoading(true);
+    try {
+      await apiRequest("POST", "/api/payments/marketplace/pay-with-wallet", {
+        transactionId: paymentId,
+      });
+
+      toast({
+        title: "Payment Successful",
+        description: "Your TradeScout balance was used for this purchase.",
+      });
+      onSuccess?.();
+    } catch (error: any) {
+      toast({
+        title: "Wallet Payment Failed",
+        description: error?.message || "Unable to pay with wallet balance.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsWalletLoading(false);
+    }
+  };
+
   if (!isOffPlatform && !clientSecret && stripePromise) {
     return (
       <div className="h-screen flex items-center justify-center">
@@ -198,6 +230,29 @@ const CheckoutForm = ({
               </div>
             )}
           </div>
+
+          {/* TradeScout balance option (marketplace only) */}
+          {paymentType === 'marketplace' && walletData && !isOffPlatform && (
+            <div className="bg-slate-900/70 border border-slate-700 p-4 rounded-lg flex items-center justify-between">
+              <div>
+                <div className="text-sm font-medium flex items-center gap-2">
+                  <DollarSign className="w-4 h-4 text-emerald-400" />
+                  TradeScout Balance
+                </div>
+                <p className="text-xs text-slate-400 mt-1">
+                  Available: ${parseFloat(walletData.balance || '0').toFixed(2)}
+                </p>
+              </div>
+              <Button
+                size="sm"
+                disabled={isWalletLoading || parseFloat(walletData.balance || '0') < amount}
+                className="bg-emerald-600 hover:bg-emerald-700 text-xs"
+                onClick={handleWalletPay}
+              >
+                {isWalletLoading ? 'Processing…' : 'Pay with Balance'}
+              </Button>
+            </div>
+          )}
 
           {/* Payment Method Selection */}
           {paymentMethods && (

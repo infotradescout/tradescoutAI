@@ -16,6 +16,8 @@ import {
   Star,
   ShoppingBag,
   Users,
+  Share2,
+  Shield,
 } from "lucide-react";
 
 interface PublicProfile {
@@ -65,6 +67,48 @@ interface CommunityPostSummary {
   title: string;
   createdAt?: string;
   category?: string | null;
+}
+
+const COMMUNITY_BUILDER_BADGE_LABEL = "Community Builder Badge";
+
+function renderUserBadge(badge: string) {
+  const lower = badge.toLowerCase();
+
+  let backgroundClass = "bg-slate-700";
+  let textClass = "text-white";
+  let Icon: React.ComponentType<any> = Award;
+  let labelText = badge;
+
+  if (badge.startsWith("Founder")) {
+    backgroundClass = "bg-emerald-500";
+    Icon = Award;
+  } else if (lower.includes("community builder")) {
+    backgroundClass = "bg-orange-500";
+    Icon = Award;
+    labelText = "Community Builder";
+  } else if (lower.includes("affiliate")) {
+    backgroundClass = "bg-purple-600";
+    Icon = Share2;
+  } else if (lower.includes("hoa")) {
+    backgroundClass = "bg-sky-600";
+    Icon = Building;
+  } else if (lower.includes("admin") || lower.includes("moderator")) {
+    backgroundClass = "bg-rose-600";
+    Icon = Shield;
+  } else {
+    backgroundClass = "bg-tsAccent";
+    Icon = Star;
+  }
+
+  return (
+    <Badge
+      key={badge}
+      className={`${backgroundClass} ${textClass} px-3 py-1 flex items-center gap-1`}
+    >
+      <Icon className="h-3 w-3" />
+      <span>{labelText}</span>
+    </Badge>
+  );
 }
 
 export default function PublicProfileView() {
@@ -269,6 +313,7 @@ export default function PublicProfileView() {
     : profile.city || profile.state || 'Location not set';
 
   const badges = profile.badges || [];
+  const distinctBadges = badges.filter((b: string) => b !== COMMUNITY_BUILDER_BADGE_LABEL);
   const showBadges = profile.preferences?.badges?.show !== false;
   const hasCommunityBuilder = (profile.roles || []).includes('community_builder');
 
@@ -276,14 +321,19 @@ export default function PublicProfileView() {
     ? profile.preferences.bio.trim()
     : "";
 
+  const servicesDescription =
+    typeof profile.preferences?.servicesDescription === "string"
+      ? profile.preferences.servicesDescription.trim()
+      : "";
+
   const profileSections = profile.preferences?.profileSections || {};
   const showAbout = profileSections.about !== false;
   const showRolesAndBadges = profileSections.rolesAndBadges !== false;
   const showStats = profileSections.stats !== false;
-    const showServices = profileSections.services !== false;
-    const showMarketplaceListings = profileSections.marketplaceListings !== false;
-    const showReviews = profileSections.reviews !== false;
-    const showCommunityActivity = profileSections.communityActivity !== false;
+  const showServices = profileSections.services !== false;
+  const showMarketplaceListings = profileSections.marketplaceListings !== false;
+  const showReviews = profileSections.reviews !== false;
+  const showCommunityActivity = profileSections.communityActivity !== false;
   const showContactCard = profileSections.contactCard !== false;
 
   const [isUpdatingConnection, setIsUpdatingConnection] = useState(false);
@@ -388,7 +438,7 @@ export default function PublicProfileView() {
             )}
 
             <div className="flex-1">
-              <h1 className="text-4xl font-bold mb-2">{displayName}</h1>
+              <h1 className="text-4xl font-bold mb-2 break-words">{displayName}</h1>
               <div className="flex flex-wrap gap-3 text-sm opacity-80">
                 {location && (
                   <div className="flex items-center gap-1">
@@ -430,30 +480,8 @@ export default function PublicProfileView() {
               {/* Badges */}
               {showRolesAndBadges && showBadges && (badges.length > 0 || hasCommunityBuilder) && (
                 <div className="flex flex-wrap gap-2 mt-3">
-                  {hasCommunityBuilder && (
-                    <Badge
-                      className="px-3 py-1"
-                      style={{
-                        backgroundColor: '#10b981',
-                        color: 'var(--user-background, #0a0f1e)',
-                      }}
-                    >
-                      <Award className="h-3 w-3 mr-1" />
-                      Community Builder badge
-                    </Badge>
-                  )}
-                  {badges.map((badge: string) => (
-                    <Badge
-                      key={badge}
-                      className="px-3 py-1"
-                      style={{
-                        backgroundColor: 'var(--user-primary, #f97316)',
-                        color: 'var(--user-background, #0a0f1e)',
-                      }}
-                    >
-                      {badge}
-                    </Badge>
-                  ))}
+                  {hasCommunityBuilder && renderUserBadge(COMMUNITY_BUILDER_BADGE_LABEL)}
+                  {distinctBadges.map((badge: string) => renderUserBadge(badge))}
                 </div>
               )}
             </div>
@@ -578,39 +606,52 @@ export default function PublicProfileView() {
           </Card>
 
           {/* Services / offerings */}
-          {showServices && sellerProducts.length > 0 && (
+          {showServices && (servicesDescription || sellerProducts.length > 0) && (
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <ShoppingBag className="h-5 w-5" style={{ color: 'var(--user-primary, #f97316)' }} />
-                  Featured offerings
+                  Services & offerings
                 </CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="space-y-3 text-sm">
-                  {sellerProducts.slice(0, 3).map((product) => (
-                    <div key={product.id} className="flex justify-between items-center gap-3">
-                      <div className="flex-1 min-w-0">
-                        <p className="font-medium truncate">{product.title}</p>
-                        {(product.city || product.stateCode) && (
-                          <p className="text-xs opacity-70 truncate flex items-center gap-1">
-                            <MapPin className="h-3 w-3" />
-                            <span>
-                              {[product.city, product.stateCode].filter(Boolean).join(', ')}
+                  {servicesDescription && (
+                    <p className="whitespace-pre-wrap">{servicesDescription}</p>
+                  )}
+
+                  {sellerProducts.length > 0 && (
+                    <>
+                      {servicesDescription && (
+                        <p className="text-xs opacity-70 mt-2">
+                          Examples from this member&apos;s marketplace listings:
+                        </p>
+                      )}
+                      {sellerProducts.slice(0, 3).map((product) => (
+                        <div key={product.id} className="flex justify-between items-center gap-3">
+                          <div className="flex-1 min-w-0">
+                            <p className="font-medium truncate">{product.title}</p>
+                            {(product.city || product.stateCode) && (
+                              <p className="text-xs opacity-70 truncate flex items-center gap-1">
+                                <MapPin className="h-3 w-3" />
+                                <span>
+                                  {[product.city, product.stateCode].filter(Boolean).join(', ')}
+                                </span>
+                              </p>
+                            )}
+                          </div>
+                          <div className="ml-2 text-right">
+                            <span className="text-sm font-semibold">
+                              {new Intl.NumberFormat('en-US', {
+                                style: 'currency',
+                                currency: 'USD',
+                              }).format(parseFloat(product.price || '0'))}
                             </span>
-                          </p>
-                        )}
-                      </div>
-                      <div className="ml-2 text-right">
-                        <span className="text-sm font-semibold">
-                          {new Intl.NumberFormat('en-US', {
-                            style: 'currency',
-                            currency: 'USD',
-                          }).format(parseFloat(product.price || '0'))}
-                        </span>
-                      </div>
-                    </div>
-                  ))}
+                          </div>
+                        </div>
+                      ))}
+                    </>
+                  )}
                 </div>
               </CardContent>
             </Card>

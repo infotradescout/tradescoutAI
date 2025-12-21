@@ -6,19 +6,20 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { 
-  Trophy, 
-  Star, 
-  TrendingUp, 
-  Award,
-  Crown,
-  Medal,
-  MapPin,
-  Calendar,
-  Users,
-  Target,
-  CheckCircle
+import {
+	Trophy,
+	Star,
+	TrendingUp,
+	Award,
+	Crown,
+	Medal,
+	MapPin,
+	Calendar,
+	Users,
+	Target,
+	CheckCircle,
 } from "lucide-react";
+import { useLocationContext } from "@/hooks/useLocationContext";
 
 interface ContractorRanking {
   id: string;
@@ -37,8 +38,12 @@ interface ContractorRanking {
 }
 
 export default function Leaderboard() {
+  const location = useLocationContext();
+  const defaultState = (location.stateCode as string | undefined) || "";
+  const countyName = (location as any)?.county as string | undefined;
+
   const [activeTab, setActiveTab] = useState("monthly");
-  const [selectedState, setSelectedState] = useState("");
+  const [selectedState, setSelectedState] = useState(defaultState);
   const [selectedTrade, setSelectedTrade] = useState("");
 
   // Fetch monthly rankings
@@ -47,6 +52,11 @@ export default function Leaderboard() {
     queryFn: async () => {
       const params = new URLSearchParams();
       if (selectedState) params.append('state', selectedState);
+      // By default, scope to the user's county when the
+      // leaderboard is showing their home state.
+      if (countyName && (selectedState === defaultState || !selectedState)) {
+        params.append('county', countyName);
+      }
       if (selectedTrade) params.append('trade', selectedTrade);
       
       const response = await fetch(`/api/leaderboard/monthly?${params.toString()}`);
@@ -62,6 +72,9 @@ export default function Leaderboard() {
     queryFn: async () => {
       const params = new URLSearchParams();
       if (selectedState) params.append('state', selectedState);
+      if (countyName && (selectedState === defaultState || !selectedState)) {
+        params.append('county', countyName);
+      }
       if (selectedTrade) params.append('trade', selectedTrade);
       
       const response = await fetch(`/api/leaderboard/lifetime?${params.toString()}`);
@@ -224,6 +237,12 @@ export default function Leaderboard() {
       <div className="mb-8">
         <h1 className="text-3xl font-bold text-white mb-2">Contractor Leaderboard</h1>
         <p className="text-gray-300">Top contractors by customer recommendations</p>
+        {countyName && (
+          <div className="mt-2 inline-flex items-center rounded-full bg-slate-800/80 px-3 py-1 text-xs font-medium text-slate-200 border border-slate-700">
+            <span className="mr-1 h-1.5 w-1.5 rounded-full bg-orange-400" />
+            Scoped to {countyName}
+          </div>
+        )}
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">

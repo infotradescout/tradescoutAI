@@ -4,7 +4,7 @@ import { Link, useLocation } from 'wouter';
 import { useAuth } from '@/hooks/useAuth';
 import { 
   Home, Search, MessageCircle, User, Menu, 
-  Wrench, Layout, Bell, Heart, Calculator, Package, Settings
+  Wrench, Layout, Bell, Heart, Calculator, Package, Settings, ClipboardList
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
@@ -14,6 +14,8 @@ import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 const mobileNavItems = [
   { href: '/', icon: Home, label: 'Home', guest: true },
   { href: '/contractors/board', icon: Search, label: 'Find', guest: true },
+  { href: '/helpers', icon: Wrench, label: 'Helpers', guest: true },
+   { href: '/tasks', icon: ClipboardList, label: 'Tasks', guest: true },
   { href: '/conversations', icon: MessageCircle, label: 'Messages', auth: true },
   { href: '/profile', icon: User, label: 'Profile', auth: true },
 ];

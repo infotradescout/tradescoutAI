@@ -1,13 +1,25 @@
 import { memo, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { BarChart3, Users2, TrendingUp, DollarSign, MapPin, Calendar, Clock, Award, Target, Zap } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
+import { apiRequest } from '@/lib/queryClient';
 
 const PlatformAnalytics = memo(function PlatformAnalytics() {
   const [timeRange, setTimeRange] = useState("30d");
   const [activeTab, setActiveTab] = useState("overview");
+
+  const { data: moneyMovements } = useQuery<{
+    date: string;
+    wallet: { totalCredits: number; totalDebits: number; netChange: number };
+    marketplace: { totalStripeVolume: number; totalOffPlatformVolume: number };
+  }>({
+    queryKey: ["/api/admin/money-movements/daily"],
+    queryFn: () => apiRequest("GET", "/api/admin/money-movements/daily"),
+    staleTime: 60 * 1000,
+  });
 
   const overviewStats = [
     { label: "Total Users", value: "12,847", change: "+8.2%", trend: "up", icon: Users2, color: "text-blue-400" },
@@ -81,6 +93,7 @@ const PlatformAnalytics = memo(function PlatformAnalytics() {
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
           <TabsList className="bg-navy-800 border-navy-600">
             <TabsTrigger value="overview" className="data-[state=active]:bg-orange-600">Overview</TabsTrigger>
+            <TabsTrigger value="money" className="data-[state=active]:bg-orange-600">Money Movements</TabsTrigger>
             <TabsTrigger value="users" className="data-[state=active]:bg-orange-600">Users</TabsTrigger>
             <TabsTrigger value="revenue" className="data-[state=active]:bg-orange-600">Revenue</TabsTrigger>
             <TabsTrigger value="geography" className="data-[state=active]:bg-orange-600">Geography</TabsTrigger>
@@ -134,6 +147,70 @@ const PlatformAnalytics = memo(function PlatformAnalytics() {
                     </div>
                   ))}
                 </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="money" className="space-y-6">
+            <Card className="bg-navy-800/50 border-navy-600 backdrop-blur-sm">
+              <CardHeader>
+                <CardTitle className="text-white flex items-center gap-2">
+                  <DollarSign className="h-5 w-5" />
+                  Daily Money Movements
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {moneyMovements ? (
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div className="space-y-2">
+                      <p className="text-sm text-gray-300">Wallet Flows (today)</p>
+                      <p className="text-xs text-gray-400">Credits, debits, and net change across all user wallets.</p>
+                      <div className="mt-2 space-y-1 text-sm">
+                        <div className="flex justify-between text-emerald-300">
+                          <span>Total Credits</span>
+                          <span>${moneyMovements.wallet.totalCredits.toFixed(2)}</span>
+                        </div>
+                        <div className="flex justify-between text-orange-300">
+                          <span>Total Debits</span>
+                          <span>${moneyMovements.wallet.totalDebits.toFixed(2)}</span>
+                        </div>
+                        <div className="flex justify-between text-gray-100 font-semibold border-t border-navy-600 pt-1 mt-1">
+                          <span>Net Change</span>
+                          <span>${moneyMovements.wallet.netChange.toFixed(2)}</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <p className="text-sm text-gray-300">Marketplace Volume (today)</p>
+                      <p className="text-xs text-gray-400">Completed transactions by payment rail.</p>
+                      <div className="mt-2 space-y-1 text-sm">
+                        <div className="flex justify-between text-blue-300">
+                          <span>Stripe (on-platform)</span>
+                          <span>${moneyMovements.marketplace.totalStripeVolume.toFixed(2)}</span>
+                        </div>
+                        <div className="flex justify-between text-yellow-300">
+                          <span>Off-platform / direct</span>
+                          <span>${moneyMovements.marketplace.totalOffPlatformVolume.toFixed(2)}</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="space-y-2 text-sm text-gray-300">
+                      <p className="font-semibold">How to read this</p>
+                      <p className="text-gray-400 text-xs">
+                        Wallet credits should line up with affiliate commissions, admin adjustments, and incoming payments.
+                        Debits should align with marketplace purchases, P2P sends, and any withdrawals. Stripe vs off-platform
+                        totals give a quick sense of how much volume is staying fully on-rails.
+                      </p>
+                      <p className="text-gray-400 text-xs mt-2">
+                        Date: <span className="font-mono">{moneyMovements.date}</span>
+                      </p>
+                    </div>
+                  </div>
+                ) : (
+                  <p className="text-sm text-gray-400">No money movement data available for today yet.</p>
+                )}
               </CardContent>
             </Card>
           </TabsContent>

@@ -3,6 +3,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Button } from "@/components/ui/button";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { useToast } from "@/hooks/use-toast";
 import {
   MapPin,
@@ -14,8 +15,14 @@ import {
   ThumbsUp,
   Hammer,
   Info,
+  Pin,
+  EyeOff,
+  Trash2,
+  MessagesSquare,
 } from "lucide-react";
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
+import { useAuth } from "@/hooks/useAuth";
+import { apiRequest, queryClient } from "@/lib/queryClient";
 
 export interface CommunityPostCardAuthor {
   id?: string;
@@ -99,6 +106,21 @@ function getCategoryMeta(category?: string) {
 
 export function CommunityPostCard({ post, onLike, formatTimeAgo }: CommunityPostCardProps) {
   const { toast } = useToast();
+  const { user, isAuthenticated } = useAuth();
+  const [, navigate] = useLocation();
+  const isAuthor = !!user && !!post.author?.id && post.author.id === user.id;
+  const role = (user as any)?.role as string | undefined;
+  const canModerate = !!user && (
+    (user as any)?.isAdmin === true ||
+    (role ? [
+      "community_moderator",
+      "community_leader",
+      "moderator",
+      "ops_admin",
+      "super_admin",
+      "head_admin",
+    ].includes(role) : false)
+  );
 
   const handleLikeClick = () => {
     if (onLike) onLike(post.id);
@@ -147,6 +169,82 @@ export function CommunityPostCard({ post, onLike, formatTimeAgo }: CommunityPost
   const categoryMeta = getCategoryMeta(post.category);
   const isPinned = post.pinned === true;
   const isTrending = !isPinned && post.trending === true;
+  const canOpenMessages = isAuthenticated && !!post.author?.id && !isAuthor;
+
+  const invalidateCommunityQueries = () => {
+    queryClient.invalidateQueries({ queryKey: ["/api/community/posts"] });
+  };
+
+  const handleOpenMessages = () => {
+    if (!isAuthenticated) {
+      toast({
+        title: "Sign In Required",
+        description: "Please sign in to message community members.",
+        variant: "destructive",
+      });
+      return;
+    }
+    navigate("/messages");
+  };
+
+  const handleTogglePin = async () => {
+    if (!canModerate) return;
+    try {
+      await apiRequest("PATCH", `/api/community/posts/${post.id}/pin`, { isPinned: !isPinned });
+      invalidateCommunityQueries();
+      toast({
+        title: isPinned ? "Post unpinned" : "Post pinned",
+        description: isPinned
+          ? "The post will now follow normal sort order."
+          : "The post is now highlighted for your community.",
+      });
+    } catch (error: any) {
+      toast({
+        title: "Unable to update pin state",
+        description: error?.message || "Something went wrong while updating the post.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleHidePost = async () => {
+    if (!canModerate) return;
+    try {
+      await apiRequest("PATCH", `/api/community/posts/${post.id}/hide`, { isHidden: true });
+      invalidateCommunityQueries();
+      toast({
+        title: "Post hidden",
+        description: "This post is now hidden from the main community feed.",
+      });
+    } catch (error: any) {
+      toast({
+        title: "Unable to hide post",
+        description: error?.message || "Something went wrong while hiding the post.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleDeletePost = async () => {
+    if (!canModerate) return;
+    const confirmed = window.confirm("Remove this post and its comments from the community?");
+    if (!confirmed) return;
+
+    try {
+      await apiRequest("DELETE", `/api/community/posts/${post.id}`);
+      invalidateCommunityQueries();
+      toast({
+        title: "Post removed",
+        description: "The post has been removed from the community.",
+      });
+    } catch (error: any) {
+      toast({
+        title: "Unable to remove post",
+        description: error?.message || "Something went wrong while removing the post.",
+        variant: "destructive",
+      });
+    }
+  };
 
   return (
     <Card className="bg-[#0f1624] border border-[#1f2937] shadow-sm rounded-xl hover:border-orange-500/30 transition-all">
@@ -247,12 +345,42 @@ export function CommunityPostCard({ post, onLike, formatTimeAgo }: CommunityPost
               </>
             )}
           </div>
-          <button
-            type="button"
-            className="inline-flex h-8 w-8 items-center justify-center rounded-full text-slate-400 hover:text-white hover:bg-[#0f1419] transition-colors"
-          >
-            <MoreHorizontal className="w-4 h-4" />
-          </button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button
+                type="button"
+                className="inline-flex h-8 w-8 items-center justify-center rounded-full text-slate-400 hover:text-white hover:bg-[#0f1419] transition-colors"
+              >
+                <MoreHorizontal className="w-4 h-4" />
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="min-w-[190px] text-xs">
+              {canOpenMessages && (
+                <DropdownMenuItem onClick={handleOpenMessages}>
+                  <MessagesSquare className="w-3.5 h-3.5 mr-2" />
+                  Open Messages with this neighbor
+                </DropdownMenuItem>
+              )}
+              {canOpenMessages && <DropdownMenuSeparator />}
+              {canModerate && (
+                <>
+                  <DropdownMenuItem onClick={handleTogglePin}>
+                    <Pin className="w-3.5 h-3.5 mr-2" />
+                    {isPinned ? "Unpin post" : "Pin post"}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={handleHidePost}>
+                    <EyeOff className="w-3.5 h-3.5 mr-2" />
+                    Hide from community feed
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={handleDeletePost} className="text-red-400 focus:text-red-500">
+                    <Trash2 className="w-3.5 h-3.5 mr-2" />
+                    Remove post
+                  </DropdownMenuItem>
+                </>
+              )}
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
 
         <div className={categoryMeta.accentClassName}>
