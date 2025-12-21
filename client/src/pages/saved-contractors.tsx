@@ -117,7 +117,7 @@ const SavedContractorsPage = () => {
                     size="sm"
                     className="text-xs text-slate-300 hover:text-red-400 hover:bg-red-950/40"
                     onClick={() => unsaveMutation.mutate(c.id)}
-                    disabled={unsaveMutation.isLoading}
+                    disabled={unsaveMutation.isPending}
                   >
                     <Trash2 className="w-3 h-3 mr-1" />
                     Remove

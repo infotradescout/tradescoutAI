@@ -94,7 +94,7 @@ export function registerSocialRoutes(app: Express) {
       }
       
       // Base query
-      let query = db
+      let query: any = db
         .select({
           post: socialPosts,
           author: {

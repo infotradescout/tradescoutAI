@@ -117,7 +117,7 @@ export default function Foundation() {
   });
 
   // Fetch impact stats
-  const { data: impactStats } = useQuery({
+  const { data: impactStats } = useQuery<FoundationImpactStats | null>({
     queryKey: ['/api/foundation/impact'],
     enabled: activeTab === "impact",
   });
@@ -523,7 +523,7 @@ export default function Foundation() {
               <CardContent className="p-6 text-center">
                 <DollarSign className="h-8 w-8 text-green-500 mx-auto mb-2" />
                 <div className="text-2xl font-bold text-white">
-                  {impactStats ? formatCurrency(impactStats.totalRaised) : '0'}
+                  {impactStats ? formatCurrency(impactStats.totalRaised) : '0'}
                 </div>
                 <div className="text-sm text-gray-400">Total Raised</div>
               </CardContent>
@@ -532,7 +532,7 @@ export default function Foundation() {
               <CardContent className="p-6 text-center">
                 <Users className="h-8 w-8 text-blue-500 mx-auto mb-2" />
                 <div className="text-2xl font-bold text-white">
-                  {impactStats ? impactStats.totalDonors.toLocaleString() : '0'}
+                  {impactStats ? impactStats.totalDonors.toLocaleString() : '0'}
                 </div>
                 <div className="text-sm text-gray-400">Active Donors</div>
               </CardContent>
@@ -541,7 +541,7 @@ export default function Foundation() {
               <CardContent className="p-6 text-center">
                 <Target className="h-8 w-8 text-orange-500 mx-auto mb-2" />
                 <div className="text-2xl font-bold text-white">
-                  {impactStats ? impactStats.countiesSupported.toLocaleString() : '0'}
+                  {impactStats ? impactStats.countiesSupported.toLocaleString() : '0'}
                 </div>
                 <div className="text-sm text-gray-400">Counties Served</div>
               </CardContent>
@@ -550,7 +550,7 @@ export default function Foundation() {
               <CardContent className="p-6 text-center">
                 <Award className="h-8 w-8 text-purple-500 mx-auto mb-2" />
                 <div className="text-2xl font-bold text-white">
-                  {impactStats ? impactStats.activeCauses.toLocaleString() : '0'}
+                  {impactStats ? impactStats.activeCauses.toLocaleString() : '0'}
                 </div>
                 <div className="text-sm text-gray-400">Causes Funded</div>
               </CardContent>

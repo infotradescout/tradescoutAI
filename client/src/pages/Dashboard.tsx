@@ -142,24 +142,30 @@ const Dashboard = memo(function Dashboard() {
 
   const posts = postsData || [];
 
-  const defaultEnabledWidgets = AVAILABLE_WIDGETS
+  type DashboardWidgetId = (typeof AVAILABLE_WIDGETS)[number]["id"];
+
+  const defaultEnabledWidgets: DashboardWidgetId[] = AVAILABLE_WIDGETS
     .filter((w) => w.defaultEnabled)
     .map((w) => w.id);
 
   const dashboardPrefs = (preferences && (preferences as any).dashboard) || {};
 
-  const enabledWidgets: string[] = Array.isArray(dashboardPrefs.enabledWidgets)
-    ? dashboardPrefs.enabledWidgets
+  const enabledWidgets: DashboardWidgetId[] = Array.isArray(dashboardPrefs.enabledWidgets)
+    ? (dashboardPrefs.enabledWidgets.filter((id: string): id is DashboardWidgetId =>
+        AVAILABLE_WIDGETS.some((w) => w.id === id)
+      ) as DashboardWidgetId[])
     : defaultEnabledWidgets;
 
-  const defaultWidgetOrder = AVAILABLE_WIDGETS.map((w) => w.id);
+  const defaultWidgetOrder: DashboardWidgetId[] = AVAILABLE_WIDGETS.map((w) => w.id);
 
-  let widgetOrder: string[] = Array.isArray(dashboardPrefs.widgetOrder) && dashboardPrefs.widgetOrder.length
-    ? dashboardPrefs.widgetOrder
+  let widgetOrder: DashboardWidgetId[] = Array.isArray(dashboardPrefs.widgetOrder) && dashboardPrefs.widgetOrder.length
+    ? (dashboardPrefs.widgetOrder.filter((id: string): id is DashboardWidgetId =>
+        AVAILABLE_WIDGETS.some((w) => w.id === id)
+      ) as DashboardWidgetId[])
     : defaultWidgetOrder;
 
   // Ensure the widget order stays in sync with AVAILABLE_WIDGETS
-  const availableIdSet = new Set(defaultWidgetOrder);
+  const availableIdSet = new Set<DashboardWidgetId>(defaultWidgetOrder);
   widgetOrder = widgetOrder.filter((id) => availableIdSet.has(id));
   defaultWidgetOrder.forEach((id) => {
     if (!widgetOrder.includes(id)) {

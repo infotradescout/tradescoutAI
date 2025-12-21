@@ -141,16 +141,16 @@ export class PlatformSupportPaymentService {
       const ownerUserId = await storage.getProfileOwnerUserId(originatingProfileId);
       if (ownerUserId) {
         try {
-          const user = await storage.getUserById(ownerUserId);
+          const [user] = await storage.getUsersByIds([ownerUserId]);
           if (user?.county && user.state) {
             const countySnapshot = await storage.getCountyVaultSnapshot({
               countyName: user.county,
               stateCode: user.state,
             });
 
-            if (countySnapshot?.countyId) {
+            if (countySnapshot?.county && countySnapshot.county.id) {
               await storage.recordVaultLedgerEntry({
-                countyId: countySnapshot.countyId,
+                countyId: countySnapshot.county.id,
                 amount: communityShare,
                 sourceType: 'platform_support_share',
                 sourceId: session.id,
@@ -232,17 +232,16 @@ export class PlatformSupportPaymentService {
       const ownerUserId = await storage.getProfileOwnerUserId(originatingProfileId);
       if (ownerUserId) {
         try {
-          const user = await storage.getUserById(ownerUserId);
+          const [user] = await storage.getUsersByIds([ownerUserId]);
           if (user?.county && user.state) {
             const countySnapshot = await storage.getCountyVaultSnapshot({
-              countyId: undefined,
               countyName: user.county,
               stateCode: user.state,
             });
 
-            if (countySnapshot?.countyId) {
+            if (countySnapshot?.county && countySnapshot.county.id) {
               await storage.recordVaultLedgerEntry({
-                countyId: countySnapshot.countyId,
+                countyId: countySnapshot.county.id,
                 amount: communityShare,
                 sourceType: 'platform_support_share',
                 sourceId: invoice.id,
