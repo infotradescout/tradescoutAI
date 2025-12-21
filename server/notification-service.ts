@@ -7,6 +7,7 @@ import {
   notificationDeliveryLog,
   notificationJobs,
   users,
+  pushSubscriptions,
   type Notification,
   type InsertNotification,
   type NotificationPreferences,
@@ -19,16 +20,27 @@ import {
 } from "@shared/schema";
 import { eq, and, or, sql, desc, asc, isNull } from "drizzle-orm";
 import { MailService } from '@sendgrid/mail';
+import webPush from 'web-push';
 
 // Notification Service Class
 export class NotificationService {
   private mailService?: MailService;
+  private webPushConfigured = false;
 
   constructor() {
     // Initialize SendGrid if API key is available
     if (process.env.SENDGRID_API_KEY) {
       this.mailService = new MailService();
       this.mailService.setApiKey(process.env.SENDGRID_API_KEY);
+    }
+
+    if (process.env.VAPID_PUBLIC_KEY && process.env.VAPID_PRIVATE_KEY && process.env.VAPID_SUBJECT) {
+      webPush.setVapidDetails(
+        process.env.VAPID_SUBJECT,
+        process.env.VAPID_PUBLIC_KEY,
+        process.env.VAPID_PRIVATE_KEY,
+      );
+      this.webPushConfigured = true;
     }
   }
 
@@ -380,6 +392,11 @@ export class NotificationService {
             // In-app notifications are already stored in the database
             await this.logDelivery(notificationId, user.id, 'in_app', 'delivered');
             break;
+          case 'push':
+            if (preferences?.enablePushNotifications && this.webPushConfigured) {
+              await this.sendPushNotification(notification, user.id);
+            }
+            break;
         }
       } catch (error) {
         console.error(`Failed to send ${method} notification:`, error);
@@ -418,6 +435,47 @@ export class NotificationService {
     // For now, just log that SMS would be sent
     console.log(`SMS notification would be sent to ${user.phone}: ${notification.message}`);
     await this.logDelivery(notification.id, user.id, 'sms', 'sent', user.phone || undefined);
+  }
+
+  private async sendPushNotification(notification: Notification, userId: string): Promise<void> {
+    if (!this.webPushConfigured) return;
+
+    const subs = await db
+      .select()
+      .from(pushSubscriptions)
+      .where(eq(pushSubscriptions.userId, userId));
+
+    if (!subs.length) return;
+
+    const payload = JSON.stringify({
+      title: notification.title,
+      body: notification.message,
+      url: notification.actionUrl || undefined,
+    });
+
+    await Promise.all(subs.map(async (sub) => {
+      try {
+        await webPush.sendNotification({
+          endpoint: sub.endpoint,
+          keys: sub.keys as any,
+        }, payload);
+        await this.logDelivery(notification.id, userId, 'push', 'sent', sub.endpoint);
+      } catch (err: any) {
+        console.error('Failed to send web push notification', err);
+        await this.logDelivery(notification.id, userId, 'push', 'failed', sub.endpoint);
+
+        const statusCode = err?.statusCode ?? err?.statusCode?.value;
+        if (statusCode === 404 || statusCode === 410) {
+          try {
+            await db
+              .delete(pushSubscriptions)
+              .where(eq(pushSubscriptions.id, sub.id));
+          } catch (cleanupErr) {
+            console.error('Failed to cleanup dead push subscription', cleanupErr);
+          }
+        }
+      }
+    }));
   }
 
   private generateEmailHTML(notification: Notification, user: User): string {

@@ -201,6 +201,25 @@ export default function AdminPanel() {
     },
   });
 
+  const testPushMutation = useMutation({
+    mutationFn: async () => {
+      return apiRequest("POST", "/api/admin/test-push-notification", {});
+    },
+    onSuccess: () => {
+      toast({
+        title: "Test notification sent",
+        description: "Check your in-app notifications and push-enabled device.",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
   const handleEdit = (item: any) => {
     setEditingItem(item);
     setIsDialogOpen(true);
@@ -258,6 +277,10 @@ export default function AdminPanel() {
             <TabsTrigger value="monitoring" className="flex items-center gap-2">
               <Bell className="w-4 h-4" />
               AI Monitoring
+            </TabsTrigger>
+            <TabsTrigger value="notification-ops" className="flex items-center gap-2">
+              <AlertTriangle className="w-4 h-4" />
+              Notification Ops
             </TabsTrigger>
             <TabsTrigger value="error-reports" className="flex items-center gap-2">
               <Bug className="w-4 h-4" />
@@ -561,11 +584,106 @@ export default function AdminPanel() {
             <UIMonitoringDashboard />
           </TabsContent>
 
+          <TabsContent value="notification-ops" className="space-y-4">
+            <Card className="bg-navy-700 border-navy-600">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-white">
+                  <Bell className="h-5 w-5 text-orange-500" />
+                  Notification & Push Ops Runbook
+                </CardTitle>
+                <CardDescription className="text-gray-300">
+                  How to verify in-app and push notifications end-to-end, plus a one-click heartbeat.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4 text-sm text-slate-100">
+                <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                  <p className="text-slate-200">
+                    Start here any time you need to confirm that contractor lead, system, or campaign notifications are
+                    flowing correctly to users.
+                  </p>
+                  <Button
+                    className="bg-orange-600 hover:bg-orange-700 whitespace-nowrap"
+                    onClick={() => testPushMutation.mutate()}
+                    disabled={testPushMutation.isPending}
+                  >
+                    {testPushMutation.isPending ? "Sending test..." : "Send test notification to me"}
+                  </Button>
+                </div>
+
+                <Separator className="bg-slate-800" />
+
+                <div className="space-y-2">
+                  <h3 className="font-semibold text-white flex items-center gap-2 text-sm">
+                    <CheckCircle className="w-4 h-4 text-green-400" />
+                    Daily quick check (2–3 minutes)
+                  </h3>
+                  <ul className="list-disc list-inside space-y-1 text-slate-200">
+                    <li>Use the button above to send yourself a test notification (in-app + push).</li>
+                    <li>Confirm it appears in the header bell dropdown and the full Notifications page.</li>
+                    <li>If you have push enabled on this device, confirm a browser/device banner also appears.</li>
+                    <li>If anything fails, move to the triage checklist below.</li>
+                  </ul>
+                </div>
+
+                <div className="space-y-2">
+                  <h3 className="font-semibold text-white flex items-center gap-2 text-sm">
+                    <Database className="w-4 h-4 text-sky-400" />
+                    Lead-driven push (contractor example)
+                  </h3>
+                  <ul className="list-disc list-inside space-y-1 text-slate-200">
+                    <li>Create or route a new project that assigns at least one contractor.</li>
+                    <li>For that contractor account, make sure push is enabled in Settings &gt; Notifications.</li>
+                    <li>Verify a new notification of type "New project request" appears (in-app + push, if enabled).</li>
+                    <li>Click through the notification and confirm it lands on the correct dashboard view.</li>
+                  </ul>
+                </div>
+
+                <div className="space-y-2">
+                  <h3 className="font-semibold text-white flex items-center gap-2 text-sm">
+                    <Shield className="w-4 h-4 text-emerald-400" />
+                    Triage checklist when something looks off
+                  </h3>
+                  <ul className="list-disc list-inside space-y-1 text-slate-200">
+                    <li>First, run the test button above and confirm the request succeeds (no error toast).</li>
+                    <li>If in-app shows up but push does not, re-check browser permission and device subscription in user Settings.</li>
+                    <li>If neither in-app nor push appears, confirm notification preferences for the user and type are not disabled.</li>
+                    <li>Review server logs for notification creation/send errors and invalid push subscriptions being pruned.</li>
+                  </ul>
+                </div>
+
+                <div className="space-y-2">
+                  <h3 className="font-semibold text-white flex items-center gap-2 text-sm">
+                    <Globe className="w-4 h-4 text-indigo-400" />
+                    Environment notes
+                  </h3>
+                  <ul className="list-disc list-inside space-y-1 text-slate-200">
+                    <li>
+                      Push requires a secure origin (https or localhost). In non-secure environments, in-app notifications will
+                      still work but push will be unavailable.
+                    </li>
+                    <li>
+                      If VAPID keys are missing or misconfigured, the system automatically falls back to in-app only; fix env
+                      vars before re-testing push.
+                    </li>
+                  </ul>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
           <TabsContent value="error-reports" className="space-y-4">
             <div className="flex justify-between items-center">
               <h2 className="text-xl font-semibold">User Error Reports</h2>
+              <Button
+                variant="outline"
+                size="sm"
+                className="border-navy-600 text-slate-200 hover:bg-[#0f1419]"
+                onClick={() => setLocation("/admin/error-reports")}
+              >
+                View full error report console
+              </Button>
             </div>
-            
+
             <Card className="bg-navy-700 border-navy-600">
               <CardHeader>
                 <CardTitle>Recent Error Reports</CardTitle>
@@ -580,30 +698,13 @@ export default function AdminPanel() {
                       <TableHead>Error Type</TableHead>
                       <TableHead>Description</TableHead>
                       <TableHead>Status</TableHead>
-                      <TableHead>Actions</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {/* Sample data - replace with actual error reports from API */}
                     <TableRow className="border-navy-600">
-                      <TableCell className="text-navy-200">
-                        {new Date().toLocaleDateString()}
-                      </TableCell>
-                      <TableCell className="text-navy-200">user@example.com</TableCell>
-                      <TableCell>
-                        <Badge variant="destructive">API Error</Badge>
-                      </TableCell>
-                      <TableCell className="text-navy-200">Failed to load contractor data</TableCell>
-                      <TableCell>
-                        <Badge variant="outline">Pending</Badge>
-                      </TableCell>
-                      <TableCell>
-                        <Button variant="outline" size="sm">View Details</Button>
-                      </TableCell>
-                    </TableRow>
-                    <TableRow className="border-navy-600">
-                      <TableCell colSpan={6} className="text-center text-navy-400 py-8">
-                        No error reports to display. Error reporting system is ready for submissions.
+                      <TableCell colSpan={5} className="text-center text-navy-400 py-8">
+                        Recent error report summary is available in the dedicated Error Reports console.
+                        Use the button above to drill into full details, screenshots, and triage tools.
                       </TableCell>
                     </TableRow>
                   </TableBody>
@@ -851,7 +952,11 @@ function LLMAdminPanel() {
             </div>
           </div>
           <div className="flex gap-2">
-            <Button variant="secondary" onClick={() => userInfoMutation.mutate()} disabled={userInfoMutation.isPending}>
+            <Button
+              variant="secondary"
+              onClick={() => userInfoMutation.mutate()}
+              disabled={userInfoMutation.isPending || (!infoInput.email && !infoInput.userId)}
+            >
               {userInfoMutation.isPending ? "Loading..." : "Lookup User"}
             </Button>
           </div>

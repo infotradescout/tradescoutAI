@@ -61,6 +61,16 @@ export default function ProfileSettings() {
     }
   );
 
+  const sanitizeColorForInput = (value: string | undefined | null) => {
+    if (!value || typeof value !== 'string') return '#000000';
+    // If we get an 8-digit hex (e.g. #rrggbbaa), trim to 6-digit which <input type="color"> expects.
+    if (/^#[0-9A-Fa-f]{8}$/.test(value)) {
+      return value.slice(0, 7);
+    }
+    // If it's already a 6-digit hex, use as-is; otherwise fall back to black.
+    return /^#[0-9A-Fa-f]{6}$/.test(value) ? value : '#000000';
+  };
+
   useEffect(() => {
     if (user?.preferences) {
       setPreferences({
@@ -536,7 +546,7 @@ export default function ProfileSettings() {
                 <div className="flex items-center gap-2">
                   <input
                     type="color"
-                    value={customColors.primary}
+                    value={sanitizeColorForInput(customColors.primary)}
                     onChange={(e) => setCustomColors(prev => ({ ...prev, primary: e.target.value }))}
                     className="w-10 h-10 rounded border border-tsBorder bg-transparent p-0"
                   />
@@ -552,7 +562,7 @@ export default function ProfileSettings() {
                 <div className="flex items-center gap-2">
                   <input
                     type="color"
-                    value={customColors.secondary}
+                    value={sanitizeColorForInput(customColors.secondary)}
                     onChange={(e) => setCustomColors(prev => ({ ...prev, secondary: e.target.value }))}
                     className="w-10 h-10 rounded border border-tsBorder bg-transparent p-0"
                   />
@@ -568,7 +578,7 @@ export default function ProfileSettings() {
                 <div className="flex items-center gap-2">
                   <input
                     type="color"
-                    value={customColors.background}
+                    value={sanitizeColorForInput(customColors.background)}
                     onChange={(e) => setCustomColors(prev => ({ ...prev, background: e.target.value }))}
                     className="w-10 h-10 rounded border border-tsBorder bg-transparent p-0"
                   />
@@ -584,7 +594,7 @@ export default function ProfileSettings() {
                 <div className="flex items-center gap-2">
                   <input
                     type="color"
-                    value={customColors.text}
+                    value={sanitizeColorForInput(customColors.text)}
                     onChange={(e) => setCustomColors(prev => ({ ...prev, text: e.target.value }))}
                     className="w-10 h-10 rounded border border-tsBorder bg-transparent p-0"
                   />

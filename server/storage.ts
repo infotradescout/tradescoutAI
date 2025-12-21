@@ -599,6 +599,7 @@ export interface IStorage {
   createErrorReport(report: any): Promise<any>;
   updateErrorReport(id: string, updates: any): Promise<any>;
   getErrorReports(): Promise<any>;
+  deleteErrorReport(id: string): Promise<void>;
   
   // Heatmap operations
   getLocalityHeatmapData(days: number): Promise<Array<{
@@ -2673,6 +2674,10 @@ export class DatabaseStorage implements IStorage {
 
   async getErrorReports(): Promise<any> {
     return await db.select().from(errorReports).orderBy(desc(errorReports.createdAt));
+  }
+
+  async deleteErrorReport(id: string): Promise<void> {
+    await db.delete(errorReports).where(eq(errorReports.id, id));
   }
 
   // Heatmap operations
