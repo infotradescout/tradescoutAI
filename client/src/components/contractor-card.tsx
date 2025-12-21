@@ -16,8 +16,12 @@ import {
 } from "lucide-react";
 import type { Contractor } from "@shared/schema";
 
+type ContractorCardContractor = Contractor & {
+  serviceAreas?: string[];
+};
+
 interface ContractorCardProps {
-  contractor: Contractor;
+  contractor: ContractorCardContractor;
   showCallToAction?: boolean;
   compact?: boolean;
 }
@@ -35,10 +39,7 @@ export default function ContractorCard({
     .slice(0, 2)
     .toUpperCase() || 'CC';
 
-  // Mock data for demonstration - in production this would come from the API
-  const mockRating = 4.8;
-  const mockRecommendationCount = 42;
-  const mockServiceAreas = ['Los Angeles', 'Orange', 'Ventura'];
+  const serviceAreas = contractor.serviceAreas || [];
 
   return (
 		<Card className="ts-card" data-testid={`contractor-card`}>
@@ -78,37 +79,41 @@ export default function ContractorCard({
           </h3>
         </Link>
 
-        {/* Trade Badges */}
+        {/* Trade Badges (derived from contractor flags) */}
         <div className="flex flex-wrap gap-2 mb-3">
-          {/* Mock trades - in production this would come from contractor relationships */}
-          <Badge variant="outline" className="bg-navy-600 text-orange-400 border-orange-400/30 text-xs">
-            Roofing
-          </Badge>
-          <Badge variant="outline" className="bg-navy-600 text-orange-400 border-orange-400/30 text-xs">
-            Siding
-          </Badge>
+          {contractor.isGeneralContractor && (
+            <Badge variant="outline" className="bg-navy-600 text-orange-400 border-orange-400/30 text-xs">
+              General contractor
+            </Badge>
+          )}
+          {contractor.isResidentialContractor && (
+            <Badge variant="outline" className="bg-navy-600 text-orange-400 border-orange-400/30 text-xs">
+              Residential
+            </Badge>
+          )}
         </div>
 
         {/* Service Areas */}
         <p className={`text-gray-300 mb-4 flex items-center ${compact ? 'text-xs' : 'text-sm'}`}>
           <MapPin className={`text-orange-500 mr-1 ${compact ? 'h-3 w-3' : 'h-4 w-4'}`} />
-          {mockServiceAreas.slice(0, 2).join(', ')}
-          {mockServiceAreas.length > 2 && ` +${mockServiceAreas.length - 2} more`}
+          {serviceAreas.length > 0
+            ? `${serviceAreas.slice(0, 2).join(', ')}${serviceAreas.length > 2 ? ` +${serviceAreas.length - 2} more` : ''}`
+            : 'Service area not specified'}
         </p>
 
         {/* Business Info */}
         <div className={`flex items-center justify-between text-gray-300 mb-4 ${compact ? 'text-xs' : 'text-sm'}`}>
           <span className="flex items-center">
             <Calendar className={`text-orange-500 mr-1 ${compact ? 'h-3 w-3' : 'h-4 w-4'}`} />
-            {contractor.yearsInBusiness || 15} years
+            {contractor.yearsInBusiness ? `${contractor.yearsInBusiness} years` : 'Years in business n/a'}
           </span>
           <span className="flex items-center">
             <Clock className={`text-orange-500 mr-1 ${compact ? 'h-3 w-3' : 'h-4 w-4'}`} />
-            {contractor.responseTimeSla || 2} hrs response
+            {contractor.responseTimeSla ? `${contractor.responseTimeSla} hrs response` : 'Response time n/a'}
           </span>
           <span className="flex items-center">
             <ThumbsUp className={`text-orange-500 mr-1 ${compact ? 'h-3 w-3' : 'h-4 w-4'}`} />
-            {mockRecommendationCount} recommendations
+            {(contractor.totalRecommendations || 0)} recommendations
           </span>
         </div>
 

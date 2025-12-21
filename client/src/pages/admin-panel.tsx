@@ -31,6 +31,7 @@ import {
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { UserHeatmap } from "@/components/UserHeatmap";
+import { FinanceLedgerPanel } from "@/components/admin/FinanceLedgerPanel";
 import { Plus, Edit, Trash2, Gift, Settings, Megaphone, Users, Bell, Map, CheckCircle, Bug, Image, BarChart3, DollarSign, Wrench, MapPin, Clock, Bot, Shield, AlertTriangle, Eye, Database, Lock, Crown, Globe, Upload, KeyRound, Info } from "lucide-react";
 import { useLocation } from "wouter";
 import { Separator } from "@/components/ui/separator";
@@ -47,6 +48,8 @@ type SiteSetting = {
   createdAt: string;
   updatedAt: string;
 };
+
+type BroadcastSegment = "all" | "homeowners" | "contractors" | "pros" | "admins";
 
 type PrizeConfiguration = {
   id: string;
@@ -99,6 +102,15 @@ export default function AdminPanel() {
   const [selectedTab, setSelectedTab] = useState("heatmap");
   const [editingItem, setEditingItem] = useState<any>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [broadcastSegment, setBroadcastSegment] = useState<BroadcastSegment>("all");
+  const [broadcastTitle, setBroadcastTitle] = useState("");
+  const [broadcastMessage, setBroadcastMessage] = useState("");
+  const [broadcastEmail, setBroadcastEmail] = useState(false);
+  const [broadcastPush, setBroadcastPush] = useState(false);
+  const [broadcastCampaignType, setBroadcastCampaignType] = useState("");
+  const [broadcastTags, setBroadcastTags] = useState("");
+  const [broadcastTargetState, setBroadcastTargetState] = useState("");
+  const [broadcastMarketingOnly, setBroadcastMarketingOnly] = useState(false);
 
   // Check admin access
   const isSuperAdmin = ['owner', 'ops_admin', 'admin', 'super_admin', 'head_admin'].includes(user?.role || '');
@@ -220,6 +232,61 @@ export default function AdminPanel() {
     },
   });
 
+  const broadcastMutation = useMutation({
+    mutationFn: async () => {
+      const methods = ["in_app"] as string[];
+      if (broadcastEmail) methods.push("email");
+      if (broadcastPush) methods.push("push");
+
+      const tags = broadcastTags
+        .split(",")
+        .map((t) => t.trim())
+        .filter((t) => t.length > 0);
+
+      const targetFilters: any = {};
+      if (broadcastTargetState.trim()) {
+        targetFilters.stateCodes = [broadcastTargetState.trim().toUpperCase()];
+      }
+      if (broadcastMarketingOnly) {
+        targetFilters.onlyWithMarketingEmails = true;
+      }
+
+      return apiRequest("POST", "/api/admin/notifications/broadcast", {
+        segment: broadcastSegment,
+        title: broadcastTitle,
+        message: broadcastMessage,
+        deliveryMethods: methods,
+        campaignType: broadcastCampaignType.trim() || undefined,
+        tags,
+        targetFilters,
+      });
+    },
+    onSuccess: (data: any) => {
+      setBroadcastTitle("");
+      setBroadcastMessage("");
+      setBroadcastEmail(false);
+      setBroadcastPush(false);
+      setBroadcastCampaignType("");
+      setBroadcastTags("");
+      setBroadcastTargetState("");
+      setBroadcastMarketingOnly(false);
+      toast({
+        title: "Broadcast sent",
+        description:
+          typeof data?.targetCount === "number"
+            ? `Delivered to ${data.targetCount} users in segment ${data.segment || broadcastSegment}.`
+            : "Announcement broadcast has been queued.",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Broadcast failed",
+        description: error?.message || "Unable to send announcement.",
+        variant: "destructive",
+      });
+    },
+  });
+
   const handleEdit = (item: any) => {
     setEditingItem(item);
     setIsDialogOpen(true);
@@ -293,6 +360,10 @@ export default function AdminPanel() {
             <TabsTrigger value="pricing" className="flex items-center gap-2">
               <DollarSign className="w-4 h-4" />
               Pricing Analytics
+            </TabsTrigger>
+            <TabsTrigger value="finance" className="flex items-center gap-2">
+              <DollarSign className="w-4 h-4" />
+              Finance
             </TabsTrigger>
             <TabsTrigger value="llm-admin" className="flex items-center gap-2">
               <Upload className="w-4 h-4" />
@@ -669,6 +740,181 @@ export default function AdminPanel() {
                 </div>
               </CardContent>
             </Card>
+
+            <Card className="bg-navy-700 border-navy-600">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-white">
+                  <Megaphone className="h-5 w-5 text-orange-500" />
+                  Broadcast / Announcement
+                </CardTitle>
+                <CardDescription className="text-gray-300">
+                  Send a short announcement to a targeted segment (homeowners, contractors, pros, or admins).
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4 text-sm text-slate-100">
+                <div className="grid gap-4 md:grid-cols-3">
+                  <div className="space-y-2">
+                    <Label htmlFor="broadcast-segment">Segment</Label>
+                    <Select
+                      value={broadcastSegment}
+                      onValueChange={(value) => setBroadcastSegment(value as BroadcastSegment)}
+                    >
+                      <SelectTrigger id="broadcast-segment" className="bg-slate-900 border-slate-700">
+                        <SelectValue placeholder="Select segment" />
+                      </SelectTrigger>
+                      <SelectContent className="bg-slate-900 border-slate-700">
+                        <SelectItem value="all">All users (non-filtered)</SelectItem>
+                        <SelectItem value="homeowners">Homeowners & residents</SelectItem>
+                        <SelectItem value="contractors">Contractors & trades</SelectItem>
+                        <SelectItem value="pros">All professionals (pros)</SelectItem>
+                        <SelectItem value="admins">Platform admins only</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <p className="text-xs text-slate-400">
+                      Choose who should receive this announcement.
+                    </p>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>Delivery</Label>
+                    <div className="flex flex-col gap-2">
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="space-y-0.5">
+                          <p className="text-xs font-medium text-slate-100">In-app notification</p>
+                          <p className="text-[11px] text-slate-400">Always on for broadcasts</p>
+                        </div>
+                        <Badge variant="outline" className="text-[11px] border-emerald-500 text-emerald-300">
+                          Required
+                        </Badge>
+                      </div>
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="space-y-0.5">
+                          <p className="text-xs font-medium text-slate-100">Email (where allowed)</p>
+                          <p className="text-[11px] text-slate-400">Respects user notification preferences</p>
+                        </div>
+                        <Switch
+                          checked={broadcastEmail}
+                          onCheckedChange={setBroadcastEmail}
+                          aria-label="Toggle email delivery"
+                        />
+                      </div>
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="space-y-0.5">
+                          <p className="text-xs font-medium text-slate-100">Push (where configured)</p>
+                          <p className="text-[11px] text-slate-400">Requires valid push subscription</p>
+                        </div>
+                        <Switch
+                          checked={broadcastPush}
+                          onCheckedChange={setBroadcastPush}
+                          aria-label="Toggle push delivery"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>Guardrails</Label>
+                    <ul className="list-disc list-inside text-xs text-slate-300 space-y-1">
+                      <li>Keep messages short and actionable.</li>
+                      <li>Avoid PII; link users to dashboards or tools.</li>
+                      <li>Use "admins" segment for internal alerts.</li>
+                    </ul>
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="broadcast-title">Title</Label>
+                  <Input
+                    id="broadcast-title"
+                    placeholder="Example: Scheduled maintenance tonight at 9pm"
+                    value={broadcastTitle}
+                    onChange={(e) => setBroadcastTitle(e.target.value)}
+                    className="bg-slate-900 border-slate-700"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="broadcast-message">Message</Label>
+                  <Textarea
+                    id="broadcast-message"
+                    rows={4}
+                    placeholder="Write a concise announcement, including what is changing and where users should go."
+                    value={broadcastMessage}
+                    onChange={(e) => setBroadcastMessage(e.target.value)}
+                    className="bg-slate-900 border-slate-700"
+                  />
+                  <p className="text-xs text-slate-400">
+                    This text is sent as the body of the notification and may also be used for email or push content.
+                  </p>
+                </div>
+
+                <div className="grid gap-4 md:grid-cols-3">
+                  <div className="space-y-2">
+                    <Label htmlFor="broadcast-campaign">Campaign type (optional)</Label>
+                    <Input
+                      id="broadcast-campaign"
+                      placeholder="Example: trade_deal, marketplace_promo"
+                      value={broadcastCampaignType}
+                      onChange={(e) => setBroadcastCampaignType(e.target.value)}
+                      className="bg-slate-900 border-slate-700"
+                    />
+                    <p className="text-xs text-slate-400">
+                      Used for grouping and analytics (e.g. trade_deal, marketplace_promo).
+                    </p>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="broadcast-tags">Tags (optional)</Label>
+                    <Input
+                      id="broadcast-tags"
+                      placeholder="roofing, hvac, marketplace"
+                      value={broadcastTags}
+                      onChange={(e) => setBroadcastTags(e.target.value)}
+                      className="bg-slate-900 border-slate-700"
+                    />
+                    <p className="text-xs text-slate-400">
+                      Comma-separated tags that describe the promotion or category.
+                    </p>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Targeting (optional)</Label>
+                    <div className="space-y-2">
+                      <Input
+                        placeholder="State code (e.g. TX)"
+                        value={broadcastTargetState}
+                        onChange={(e) => setBroadcastTargetState(e.target.value)}
+                        className="bg-slate-900 border-slate-700"
+                      />
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="space-y-0.5">
+                          <p className="text-xs font-medium text-slate-100">Marketing opt-in only</p>
+                          <p className="text-[11px] text-slate-400">
+                            Respect users who allowed marketing emails in their preferences.
+                          </p>
+                        </div>
+                        <Switch
+                          checked={broadcastMarketingOnly}
+                          onCheckedChange={setBroadcastMarketingOnly}
+                          aria-label="Limit to marketing opt-in users"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between gap-4 pt-2">
+                  <p className="text-xs text-slate-400">
+                    Scout can also trigger this broadcast as a tool call from chat; this panel is the manual override.
+                  </p>
+                  <Button
+                    className="bg-orange-600 hover:bg-orange-700 whitespace-nowrap"
+                    disabled={broadcastMutation.isPending || !broadcastTitle.trim() || !broadcastMessage.trim()}
+                    onClick={() => broadcastMutation.mutate()}
+                  >
+                    {broadcastMutation.isPending ? "Sending broadcast..." : "Send broadcast"}
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
           </TabsContent>
 
           <TabsContent value="error-reports" className="space-y-4">
@@ -787,6 +1033,18 @@ export default function AdminPanel() {
                 </Card>
               </div>
             </div>
+          </TabsContent>
+
+          <TabsContent value="finance" className="space-y-4">
+            <div className="flex justify-between items-center">
+              <h2 className="text-xl font-semibold">Finance / Invoicing Ledger</h2>
+              <p className="text-xs text-slate-400 max-w-md">
+                High-level view of all wallet movements across TradeScout. Use this as a starting point for
+                reconciling partner payouts, marketplace sales, and affiliate commissions.
+              </p>
+            </div>
+
+            <FinanceLedgerPanel />
           </TabsContent>
         </Tabs>
 

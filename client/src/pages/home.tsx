@@ -108,7 +108,7 @@ export default function Home() {
               <p className="text-sm text-gray-300 mb-1">Transparency</p>
               <h2 className="text-xl font-semibold text-white mb-2">See where dollars go</h2>
               <p className="text-gray-400 text-sm">
-                Track TradeScout contributions flowing back into your county across marketplace fees, contractor programs, and Foundation donations.
+                Track TradeScout contributions flowing back into your county across Exchange fees, contractor programs, and Foundation donations.
               </p>
             </div>
             <div className="flex items-center space-x-3 pt-4 flex-wrap gap-2">

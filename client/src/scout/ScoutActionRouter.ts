@@ -4,6 +4,7 @@ import {
   createPlatformSupportCheckoutSession,
 } from "../agent/tools/communityPayments";
 import { followUser, unfollowUser } from "../agent/tools/connections";
+import { sendAdminBroadcast } from "../agent/tools/adminBroadcast";
 
 export interface ScoutActionHelpers {
   navigate: (to: string) => void;
@@ -173,6 +174,79 @@ export function executeScoutActions(
             cancelUrl: `${origin}${profileSuffix}?checkout=cancel`,
           });
           window.location.href = url;
+        })();
+
+        break;
+      }
+
+      case "SEND_ADMIN_BROADCAST": {
+        const payload = action.payload ?? {};
+
+        const segmentValue =
+          typeof payload.segment === "string" &&
+          ["all", "homeowners", "contractors", "pros", "admins"].includes(payload.segment)
+            ? (payload.segment as "all" | "homeowners" | "contractors" | "pros" | "admins")
+            : "all";
+
+        const title = typeof payload.title === "string" ? payload.title : "";
+        const message = typeof payload.message === "string" ? payload.message : "";
+        if (!title.trim() || !message.trim()) break;
+
+        const rawMethods = Array.isArray((payload as any).deliveryMethods)
+          ? ((payload as any).deliveryMethods as unknown[])
+          : [];
+        const deliveryMethods = rawMethods
+          .map((m) => (typeof m === "string" ? m : ""))
+          .filter((m) => m === "in_app" || m === "email" || m === "push" || m === "sms");
+
+        const campaignType =
+          typeof (payload as any).campaignType === "string" && (payload as any).campaignType.trim()
+            ? ((payload as any).campaignType as string)
+            : undefined;
+
+        const rawTags = Array.isArray((payload as any).tags) ? ((payload as any).tags as unknown[]) : [];
+        const tags = rawTags
+          .map((t) => (typeof t === "string" ? t.trim() : ""))
+          .filter((t) => t.length > 0);
+
+        const targetFilters: any = {};
+
+        const rawStateCodes = Array.isArray((payload as any).stateCodes)
+          ? ((payload as any).stateCodes as unknown[])
+          : Array.isArray((payload as any).targetStates)
+          ? ((payload as any).targetStates as unknown[])
+          : Array.isArray((payload as any).targetFilters?.stateCodes)
+          ? ((payload as any).targetFilters.stateCodes as unknown[])
+          : [];
+
+        const stateCodes = rawStateCodes
+          .map((v) => (typeof v === "string" ? v.trim().toUpperCase() : ""))
+          .filter((v) => v.length > 0);
+        if (stateCodes.length > 0) {
+          targetFilters.stateCodes = stateCodes;
+        }
+
+        const onlyWithMarketingEmails =
+          (payload as any).onlyWithMarketingEmails === true ||
+          (payload as any).targetFilters?.onlyWithMarketingEmails === true;
+        if (onlyWithMarketingEmails) {
+          targetFilters.onlyWithMarketingEmails = true;
+        }
+
+        void (async () => {
+          try {
+            await sendAdminBroadcast({
+              segment: segmentValue,
+              title: title.trim(),
+              message: message.trim(),
+              deliveryMethods: (deliveryMethods.length > 0 ? deliveryMethods : undefined) as any,
+              campaignType,
+              tags,
+              targetFilters: Object.keys(targetFilters).length > 0 ? targetFilters : undefined,
+            });
+          } catch (err) {
+            console.error("Failed to send admin broadcast from Scout action", err);
+          }
         })();
 
         break;

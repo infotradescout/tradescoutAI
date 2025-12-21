@@ -5,7 +5,13 @@ import { CheckCircle, Clock, AlertCircle, Trophy } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface ProgressFeedbackProps {
+  /**
+   * 1-based index of the current step (e.g. 1..totalSteps)
+   */
   currentStep: number;
+  /**
+   * Total number of steps in the flow
+   */
   totalSteps: number;
   stepLabels: string[];
   className?: string;
@@ -20,18 +26,28 @@ export function ProgressFeedback({
   showRewards = true 
 }: ProgressFeedbackProps) {
   const [animatedProgress, setAnimatedProgress] = useState(0);
+  // Normalize to a zero-based index internally so the step list and
+  // header stay in sync even if callers pass out-of-range values.
+  const safeTotal = Math.max(totalSteps || 0, 0);
+  const currentIndex = safeTotal > 0
+    ? Math.min(Math.max(currentStep - 1, 0), safeTotal - 1)
+    : 0;
   
   useEffect(() => {
     const timer = setTimeout(() => {
-      setAnimatedProgress((currentStep / totalSteps) * 100);
+      if (safeTotal <= 0) {
+        setAnimatedProgress(0);
+        return;
+      }
+      setAnimatedProgress(((currentIndex + 1) / safeTotal) * 100);
     }, 100);
     return () => clearTimeout(timer);
-  }, [currentStep, totalSteps]);
+  }, [currentIndex, safeTotal]);
 
   const getStepIcon = (stepIndex: number) => {
-    if (stepIndex < currentStep) {
+    if (stepIndex < currentIndex) {
       return <CheckCircle className="h-4 w-4 text-green-500" />;
-    } else if (stepIndex === currentStep) {
+    } else if (stepIndex === currentIndex) {
       return <Clock className="h-4 w-4 text-orange-500 pulse-glow" />;
     } else {
       return <AlertCircle className="h-4 w-4 text-gray-500" />;
@@ -45,7 +61,10 @@ export function ProgressFeedback({
           {/* Progress Header */}
           <div className="flex items-center justify-between">
             <h3 className="text-lg font-semibold text-white">
-              Progress: Step {currentStep} of {totalSteps}
+              {safeTotal > 0
+                ? `Progress: Step ${currentIndex + 1} of ${safeTotal}`
+                : "Progress"
+              }
             </h3>
             {showRewards && currentStep === totalSteps && (
               <div className="flex items-center text-yellow-500 notification-bounce">
@@ -73,16 +92,16 @@ export function ProgressFeedback({
                 key={index}
                 className={cn(
                   "flex items-center space-x-3 p-2 rounded-lg transition-all",
-                  index === currentStep ? "bg-orange-500/10 border border-orange-500/30" : "",
-                  index < currentStep ? "opacity-75" : ""
+                  index === currentIndex ? "bg-orange-500/10 border border-orange-500/30" : "",
+                  index < currentIndex ? "opacity-75" : ""
                 )}
               >
                 {getStepIcon(index)}
                 <span 
                   className={cn(
                     "text-sm",
-                    index < currentStep ? "text-green-400 line-through" : 
-                    index === currentStep ? "text-white font-medium" : 
+                    index < currentIndex ? "text-green-400 line-through" : 
+                    index === currentIndex ? "text-white font-medium" : 
                     "text-gray-500"
                   )}
                 >
@@ -93,11 +112,11 @@ export function ProgressFeedback({
           </div>
 
           {/* Motivational Message */}
-          {currentStep < totalSteps && (
+          {safeTotal > 0 && currentIndex + 1 < safeTotal && (
             <div className="bg-orange-500/10 border border-orange-500/30 rounded-lg p-3">
               <p className="text-sm text-orange-200">
-                {currentStep === 0 ? "Let's get started! Complete each step to find the perfect contractor." :
-                 currentStep < totalSteps / 2 ? "Great progress! You're making excellent choices." :
+                {currentIndex === 0 ? "Let's get started! Complete each step to find the perfect contractor." :
+                 currentIndex + 1 < safeTotal / 2 ? "Great progress! You're making excellent choices." :
                  "Almost there! Just a few more steps to connect with contractors."}
               </p>
             </div>

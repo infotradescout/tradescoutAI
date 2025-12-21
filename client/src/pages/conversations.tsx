@@ -190,12 +190,12 @@ export default function Conversations() {
                         No conversations yet
                       </h3>
                       <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
-                        Start browsing the marketplace to connect with other members
+                        Start browsing the Exchange to connect with other members
                       </p>
-                      <Link href="/marketplace">
+                      <Link href="/exchange">
                         <Button size="sm">
                           <Package className="h-4 w-4 mr-2" />
-                          Browse Marketplace
+                          Browse Exchange
                         </Button>
                       </Link>
                     </div>

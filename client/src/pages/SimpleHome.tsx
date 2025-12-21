@@ -367,12 +367,12 @@ const SimpleHome = memo(function SimpleHome() {
               </Card>
             )}
 
-            {/* Marketplace Listings (for anyone selling) */}
+            {/* Exchange Listings (for anyone selling) */}
             <Card className="bg-[#1a2332] border-[#2d3748]">
               <CardHeader className="flex flex-row items-center justify-between">
                 <CardTitle className="text-lg text-orange-500 flex items-center gap-2">
                   <ShoppingCart className="h-5 w-5 text-orange-500" />
-                  My Marketplace Listings
+                  My Exchange Listings
                 </CardTitle>
                 <Link href="/exchange">
                   <Button variant="ghost" size="sm">Create Listing</Button>
@@ -393,7 +393,7 @@ const SimpleHome = memo(function SimpleHome() {
                 ) : (
                   <div className="text-center py-8">
                     <Package className="h-12 w-12 text-slate-300 dark:text-slate-600 mx-auto mb-3" />
-                    <p className="text-slate-300 mb-4">No marketplace listings</p>
+                    <p className="text-slate-300 mb-4">No Exchange listings</p>
                     <Link href="/exchange">
                       <Button size="sm" className="bg-orange-500 hover:bg-orange-600 text-white">
                         Create Your First Listing
@@ -451,10 +451,10 @@ const SimpleHome = memo(function SimpleHome() {
                     </Link>
                   </>
                 )}
-                <Link href="/marketplace">
+                <Link href="/exchange">
                   <Button size="sm" className="bg-orange-500 hover:bg-orange-600 text-white w-full justify-start">
                     <ShoppingCart className="h-4 w-4 mr-2" />
-                    Browse Marketplace
+                    Browse Exchange
                   </Button>
                 </Link>
                 <Link href="/community">

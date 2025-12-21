@@ -689,7 +689,7 @@ function HelperCard({ worker, onViewProfile }: HelperCardProps) {
   );
 }
 
-function TaskCard({ task, onApply }: { task: Task; onApply: () => void }) {
+export function TaskCard({ task, onApply }: { task: Task; onApply: () => void }) {
   const statusClass =
     task.status === 'open'
       ? 'bg-green-500/20 text-green-400 border-green-500/50'

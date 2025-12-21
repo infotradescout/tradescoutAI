@@ -47,6 +47,7 @@ export type ScoutActionType =
   | "UNFOLLOW_USER"
   | "START_COMMUNITY_VAULT_DONATION"
   | "START_PLATFORM_SUPPORT"
+  | "SEND_ADMIN_BROADCAST"
   | "NOOP";
 
 export interface ScoutAction {

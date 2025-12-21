@@ -120,11 +120,18 @@ export function RecentProjectsWidget({ className }: WidgetProps) {
 }
 
 export function SavedContractorsWidget({ className }: WidgetProps) {
-  const savedContractors = [
-    { id: 1, name: "Mike's Plumbing", rating: 4.9, specialty: 'Plumbing' },
-    { id: 2, name: "Elite Electrical", rating: 4.8, specialty: 'Electrical' },
-    { id: 3, name: "Pro Landscaping", rating: 4.7, specialty: 'Landscaping' },
-  ];
+  const { user } = useAuth();
+
+  const { data, isLoading } = useQuery<{
+    stats?: {
+      savedContractors?: number;
+    };
+  }>({
+    queryKey: ["/api/dashboard", user?.id],
+    enabled: !!user?.id,
+  });
+
+  const savedCount = data?.stats?.savedContractors ?? 0;
 
   return (
     <Card className={`bg-white dark:bg-slate-800 border-0 shadow-sm ${className}`}>
@@ -134,32 +141,55 @@ export function SavedContractorsWidget({ className }: WidgetProps) {
             <Star className="h-4 w-4 text-orange-500" />
             Saved Contractors
           </CardTitle>
-          <Link href="/contractors">
-            <Button variant="ghost" size="sm" className="text-xs h-7">View All</Button>
+          <Link href="/saved-contractors">
+            <Button variant="ghost" size="sm" className="text-xs h-7">View Saved</Button>
           </Link>
         </div>
       </CardHeader>
       <CardContent className="space-y-2">
-        {savedContractors.map((contractor) => (
-          <div key={contractor.id} className="flex items-center gap-3 p-2 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors">
-            <Avatar className="h-10 w-10">
-              <AvatarFallback className="bg-orange-500 text-white text-xs">
-                {contractor.name.charAt(0)}
-              </AvatarFallback>
-            </Avatar>
-            <div className="flex-1">
-              <h4 className="font-medium text-sm text-slate-900 dark:text-white">{contractor.name}</h4>
-              <div className="flex items-center gap-2 mt-0.5">
-                <div className="flex items-center gap-1">
-                  <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
-                  <span className="text-xs text-slate-600 dark:text-slate-400">{contractor.rating}</span>
-                </div>
-                <span className="text-xs text-slate-500">•</span>
-                <span className="text-xs text-slate-500 dark:text-slate-400">{contractor.specialty}</span>
+        {isLoading ? (
+          <div className="text-center py-6 text-sm text-slate-500 dark:text-slate-400">
+            Loading saved contractors...
+          </div>
+        ) : savedCount > 0 ? (
+          <div className="space-y-3">
+            <div className="flex items-center gap-3 p-3 rounded-lg bg-slate-50 dark:bg-slate-700/50">
+              <Avatar className="h-10 w-10">
+                <AvatarFallback className="bg-orange-500 text-white text-xs">
+                  <Star className="h-4 w-4" />
+                </AvatarFallback>
+              </Avatar>
+              <div className="flex-1">
+                <h4 className="font-medium text-sm text-slate-900 dark:text-white">Saved pros</h4>
+                <p className="text-xs text-slate-600 dark:text-slate-400">
+                  You have <span className="font-semibold">{savedCount}</span> saved contractor
+                  {savedCount === 1 ? "" : "s"}. Open your saved list to compare and contact them.
+                </p>
               </div>
             </div>
+            <div className="flex items-center justify-between">
+              <Link href="/saved-contractors">
+                <Button variant="outline" size="sm" className="h-8 text-xs">
+                  View saved pros
+                </Button>
+              </Link>
+              <Link href="/contractors">
+                <Button variant="ghost" size="sm" className="h-8 text-xs">
+                  Find more contractors
+                </Button>
+              </Link>
+            </div>
           </div>
-        ))}
+        ) : (
+          <div className="text-center py-6 text-sm text-slate-500 dark:text-slate-400">
+            <p className="mb-3">You haven't saved any contractors yet.</p>
+            <Link href="/contractors">
+              <Button size="sm" className="h-8 text-xs bg-orange-600 hover:bg-orange-700 text-white">
+                Browse contractors
+              </Button>
+            </Link>
+          </div>
+        )}
       </CardContent>
     </Card>
   );

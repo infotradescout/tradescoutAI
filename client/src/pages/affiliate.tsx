@@ -155,7 +155,7 @@ export default function AffiliatePage() {
               <h1 className="text-2xl sm:text-3xl font-bold text-white">Share TradeScout, fund your community.</h1>
               <p className="text-sm sm:text-base text-gray-300">
                 Create an account or sign in to see your affiliate dashboard, get your personal link, and route a slice of
-                marketplace activity back into the county vaults you care about.
+                Exchange activity back into the county vaults you care about.
               </p>
             </div>
             <div className="mt-3 sm:mt-0 flex flex-col items-start sm:items-end gap-2 text-sm text-gray-300">
@@ -289,16 +289,16 @@ export default function AffiliatePage() {
                 How It Works
               </h4>
               <p className="text-gray-300 mb-4">
-                Share any page from TradeScout - the homepage, a marketplace listing, a contractor profile, or a county page. 
+                Share any page from TradeScout - the homepage, an Exchange listing, a contractor profile, or a county page. 
                 Your unique tracking code is automatically attached to every URL you share.
               </p>
               <div className="bg-slate-900/50 p-4 rounded border border-slate-700">
                 <p className="text-gray-400 text-sm mb-2">Examples of links you can share:</p>
                 <ul className="text-gray-300 text-sm space-y-1 font-mono">
-                  <li>→ tradescout.com <span className="text-orange-400">?ref=your_code</span></li>
-                  <li>→ tradescout.com/marketplace <span className="text-orange-400">?ref=your_code</span></li>
-                  <li>→ tradescout.com/county/cook-il <span className="text-orange-400">?ref=your_code</span></li>
-                  <li>→ tradescout.com/contractors <span className="text-orange-400">?ref=your_code</span></li>
+                  <li> tradescout.com <span className="text-orange-400">?ref=your_code</span></li>
+                  <li> tradescout.com/exchange <span className="text-orange-400">?ref=your_code</span></li>
+                  <li> tradescout.com/county/cook-il <span className="text-orange-400">?ref=your_code</span></li>
+                  <li> tradescout.com/contractors <span className="text-orange-400">?ref=your_code</span></li>
                 </ul>
                 <p className="text-emerald-400 text-xs mt-3">✓ Tracking code automatically added when you share any link</p>
               </div>
@@ -307,7 +307,7 @@ export default function AffiliatePage() {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="bg-slate-800/50 p-4 rounded-lg">
                 <h4 className="text-white font-semibold mb-2">5% To You</h4>
-                <p className="text-sm text-gray-400">Direct affiliate earnings from marketplace activity and platform revenue</p>
+                <p className="text-sm text-gray-400">Direct affiliate earnings from Exchange activity and platform revenue</p>
               </div>
               <div className="bg-slate-800/50 p-4 rounded-lg">
                 <h4 className="text-white font-semibold mb-2">5% To Community Vaults</h4>
@@ -376,7 +376,7 @@ export default function AffiliatePage() {
                     </li>
                     <li className="flex items-start gap-2">
                       <Check className="w-5 h-5 text-emerald-400 flex-shrink-0 mt-0.5" />
-                      <span><strong>Marketplace Revenue:</strong> Every marketplace promotion and transaction generates 5% commission for you and 10% for community impact</span>
+                      <span><strong>Exchange Revenue:</strong> Every Exchange promotion and transaction generates 5% commission for you and 10% for community impact</span>
                     </li>
                     <li className="flex items-start gap-2">
                       <Check className="w-5 h-5 text-emerald-400 flex-shrink-0 mt-0.5" />

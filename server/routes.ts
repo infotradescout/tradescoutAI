@@ -603,35 +603,46 @@ export async function registerRoutes(app: any) {
       const user = req.user as any;
       const userId = (user as any)?.claims?.sub || (user as any)?.id || "";
 
-      // Ensure an affiliate program exists for this user
-      let account = await storage.getAffiliateProgram(userId);
-      if (!account) {
-        account = await storage.createAffiliateProgram({ userId });
+      if (!userId) {
+        return res.status(401).json({ message: "User not authenticated" });
       }
 
-      const [referrals, payouts] = await Promise.all([
-        storage.getReferralsByAffiliate(account.id),
-        storage.getPayoutsForAffiliate(account.id),
+      // Ensure an affiliate program exists for this user
+      let program = await storage.getAffiliateProgram(userId);
+      if (!program) {
+        program = await storage.createAffiliateProgram({ userId });
+      }
+
+      const [stats, referrals, commissions, payouts] = await Promise.all([
+        storage.getAffiliateStats(program.id),
+        storage.getReferralsByAffiliate(program.id),
+        storage.getCommissionsForAffiliate(program.id),
+        storage.getPayoutsForAffiliate(program.id),
       ]);
 
-      let stats: Awaited<ReturnType<typeof storage.getAffiliateStats>> | undefined;
-      try {
-        stats = await storage.getAffiliateStats(account.id);
-      } catch (err) {
-        console.error("Failed to compute affiliate stats", err);
-      }
+      const baseUrl = process.env.PUBLIC_WEB_URL || process.env.APP_URL || "https://www.thetradescout.com";
+      const referralCode = (program as any).referralCode || "YOUR_CODE";
 
-      const totalPaid = payouts.reduce((sum, p) => sum + Number(p.payoutAmount || 0), 0);
-      const enrichedAccount: AffiliateAccount = {
-        ...account,
-        lastPayoutAmount: payouts[0]?.payoutAmount ?? account.lastPayoutAmount,
-        lastPayoutAt: payouts[0]?.createdAt ?? account.lastPayoutAt,
-        lifetimeEarned: account.lifetimeEarned ?? totalPaid.toString(),
-        available: account.available ?? '0',
-        pending: account.pending ?? '0',
+      const programPayload = {
+        id: program.id,
+        affiliateCode: referralCode,
+        referralLink: `${baseUrl}/?ref=${encodeURIComponent(referralCode)}`,
+        commissionRate: (program as any).commissionRate != null ? String((program as any).commissionRate) : "0.05",
+        status: (program as any).status ?? "active",
+        totalCommissionEarned: stats.totalCommissionEarned,
+        totalCommissionPaid: stats.totalCommissionPaid,
+        createdAt: ((program as any).createdAt as Date | null)?.toISOString?.() || new Date().toISOString(),
+        payoutMethod: undefined,
+        payoutDetails: undefined,
       };
 
-      res.json({ account: enrichedAccount, referrals, payouts, stats });
+      res.json({
+        program: programPayload,
+        stats,
+        referrals: referrals.slice(0, 10),
+        commissions: commissions.slice(0, 10),
+        payouts: payouts.slice(0, 5),
+      });
     } catch (error: any) {
       console.error("Error loading affiliate dashboard:", error);
       res.status(500).json({ message: "Failed to load affiliate dashboard" });
@@ -2898,6 +2909,170 @@ export async function registerRoutes(app: any) {
     } catch (error: any) {
       console.error("Error sending test push notification:", error);
       res.status(500).json({ message: "Failed to send test push notification" });
+    }
+  });
+
+  // Admin endpoint to broadcast an announcement to a user segment
+  app.post("/api/admin/notifications/broadcast", isAuthenticated, isAdmin, async (req: any, res: any) => {
+    try {
+      const actorId = (req.user as any)?.id || (req.user as any)?.claims?.sub;
+      const { segment, title, message, deliveryMethods, campaignType, tags, targetFilters } = req.body || {};
+
+      if (!title || typeof title !== "string" || !title.trim()) {
+        return res.status(400).json({ message: "title is required" });
+      }
+      if (!message || typeof message !== "string" || !message.trim()) {
+        return res.status(400).json({ message: "message is required" });
+      }
+
+      const allowedSegments = ["all", "homeowners", "contractors", "pros", "admins"] as const;
+      const effectiveSegment = (segment && typeof segment === "string" && allowedSegments.includes(segment))
+        ? segment as (typeof allowedSegments)[number]
+        : "all";
+
+      const allowedMethods = ["in_app", "email", "push", "sms"];
+      const requestedMethods = Array.isArray(deliveryMethods)
+        ? (deliveryMethods as string[]).filter((m) => allowedMethods.includes(m))
+        : [];
+      const finalMethods = requestedMethods.length > 0 ? requestedMethods : ["in_app"];
+
+      const effectiveCampaignType = typeof campaignType === "string" && campaignType.trim()
+        ? campaignType.trim()
+        : undefined;
+
+      const effectiveTags = Array.isArray(tags)
+        ? (tags as any[])
+            .map((t) => (typeof t === "string" ? t.trim() : ""))
+            .filter((t) => t.length > 0)
+            .slice(0, 25)
+        : [];
+
+      const rawFilters: any = targetFilters && typeof targetFilters === "object" ? targetFilters : {};
+
+      const stateCodes: string[] = Array.isArray(rawFilters.stateCodes) && rawFilters.stateCodes.length > 0
+        ? (rawFilters.stateCodes as any[])
+            .map((v) => (typeof v === "string" ? v.trim().toUpperCase() : ""))
+            .filter((v) => v.length > 0)
+            .slice(0, 16)
+        : [];
+
+      const countyNames: string[] = Array.isArray(rawFilters.countyNames) && rawFilters.countyNames.length > 0
+        ? (rawFilters.countyNames as any[])
+            .map((v) => (typeof v === "string" ? v.trim() : ""))
+            .filter((v) => v.length > 0)
+            .slice(0, 32)
+        : [];
+
+      const onlyWithMarketingEmails: boolean = rawFilters.onlyWithMarketingEmails === true;
+
+      // Determine target roles for the selected segment
+      let roleFilter: string[] | null = null;
+      if (effectiveSegment === "homeowners") {
+        roleFilter = [
+          'homeowner',
+          'renter',
+          'landlord',
+          'property_manager',
+          'hoa_member',
+        ];
+      } else if (effectiveSegment === "contractors") {
+        roleFilter = [
+          'contractor',
+          'handyman',
+          'service_provider',
+          'specialty_tradesperson',
+          'designer',
+          'inspector',
+        ];
+      } else if (effectiveSegment === "pros") {
+        roleFilter = [
+          'contractor',
+          'handyman',
+          'service_provider',
+          'specialty_tradesperson',
+          'designer',
+          'inspector',
+          'realtor',
+          'mortgage_broker',
+          'insurance_agent',
+          'title_company',
+          'car_dealer',
+          'auto_service',
+        ];
+      } else if (effectiveSegment === "admins") {
+        roleFilter = [
+          'admin',
+          'moderator',
+          'ops_admin',
+          'super_admin',
+          'head_admin',
+        ];
+      }
+
+      // Fetch target users
+      let targetsQuery = db
+        .select({ id: users.id })
+        .from(users);
+
+      const conditions: any[] = [];
+      if (roleFilter && roleFilter.length > 0) {
+        conditions.push(sql`${users.role} = ANY(${roleFilter})`);
+      }
+      if (stateCodes.length > 0) {
+        conditions.push(sql`${users.state} = ANY(${stateCodes})`);
+      }
+      if (countyNames.length > 0) {
+        conditions.push(sql`${users.county} = ANY(${countyNames})`);
+      }
+      if (onlyWithMarketingEmails) {
+        conditions.push(sql`${users.preferences}->>'marketingEmails' = 'true'`);
+      }
+
+      if (conditions.length > 0) {
+        targetsQuery = targetsQuery.where(and(...conditions));
+      }
+
+      const targets = await targetsQuery;
+
+      if (!targets || targets.length === 0) {
+        return res.json({ success: true, segment: effectiveSegment, targetCount: 0, notifications: [] });
+      }
+
+      const notifications: any[] = [];
+      for (const target of targets) {
+        const created = await notificationService.createNotification({
+          userId: target.id,
+          type: 'system_update',
+          title: title.trim(),
+          message: message.trim(),
+          deliveryMethods: finalMethods,
+          iconName: 'megaphone',
+          iconColor: 'orange',
+          metadata: {
+            segment: effectiveSegment,
+            createdBy: actorId,
+            kind: 'admin_broadcast',
+            campaignType: effectiveCampaignType,
+            tags: effectiveTags,
+            targetFilters: {
+              stateCodes,
+              countyNames,
+              onlyWithMarketingEmails,
+            },
+          } as any,
+        });
+        notifications.push({ id: created.id, userId: target.id });
+      }
+
+      res.json({
+        success: true,
+        segment: effectiveSegment,
+        targetCount: targets.length,
+        notifications,
+      });
+    } catch (error: any) {
+      console.error("Error sending broadcast notification:", error);
+      res.status(500).json({ message: "Failed to send broadcast notification" });
     }
   });
 
@@ -8316,10 +8491,10 @@ export async function registerRoutes(app: any) {
 
   // ==================== AFFILIATE SYSTEM ROUTES ====================
 
-  // Create or get affiliate program for user
+  // Create or get affiliate program for user (explicit join endpoint)
   app.post("/api/affiliate/join", isAuthenticated, async (req: any, res: any) => {
     try {
-      const userId = req.user?.claims?.sub;
+      const userId = req.user?.claims?.sub || req.user?.id;
       if (!userId) {
         return res.status(401).json({ message: "User not authenticated" });
       }
@@ -8337,46 +8512,13 @@ export async function registerRoutes(app: any) {
       const program = await storage.createAffiliateProgram({
         userId,
         referralCode,
-        status: 'active'
-      });
+        status: 'active',
+      } as any);
 
       res.status(201).json(program);
     } catch (error: any) {
       console.error("Error joining affiliate program:", error);
       res.status(500).json({ message: "Failed to join affiliate program" });
-    }
-  });
-
-  // Get affiliate dashboard data
-  app.get("/api/affiliate/dashboard", isAuthenticated, async (req: any, res: any) => {
-    try {
-      const userId = req.user?.claims?.sub;
-      if (!userId) {
-        return res.status(401).json({ message: "User not authenticated" });
-      }
-
-      const program = await storage.getAffiliateProgram(userId);
-      if (!program) {
-        return res.status(404).json({ message: "Affiliate program not found" });
-      }
-
-      const [stats, referrals, commissions, payouts] = await Promise.all([
-        storage.getAffiliateStats(program.id),
-        storage.getReferralsByAffiliate(program.id),
-        storage.getCommissionsForAffiliate(program.id),
-        storage.getPayoutsForAffiliate(program.id)
-      ]);
-
-      res.json({
-        // program, // Removed undefined reference
-        stats,
-        referrals: referrals.slice(0, 10), // Last 10 referrals
-        commissions: commissions.slice(0, 10), // Last 10 commissions
-        payouts: payouts.slice(0, 5) // Last 5 payouts
-      });
-    } catch (error: any) {
-      console.error("Error fetching affiliate dashboard:", error);
-      res.status(500).json({ message: "Failed to fetch affiliate dashboard" });
     }
   });
 
@@ -9221,6 +9363,91 @@ export async function registerRoutes(app: any) {
     } catch (error: any) {
       console.error("Error fetching wallet transactions:", error);
       res.status(500).json({ message: "Failed to fetch wallet transactions" });
+    }
+  });
+
+  // Super-admin finance ledger: aggregate wallet transactions across all users
+  app.get("/api/admin/finance/ledger", isAuthenticated, isAdmin, async (req: any, res: any) => {
+    try {
+      const limitParam = req.query.limit;
+      const limit = typeof limitParam === "string" ? Number(limitParam) : 200;
+      const safeLimit = !Number.isFinite(limit) || limit <= 0 || limit > 1000 ? 200 : limit;
+
+      const fromParam = typeof req.query.from === "string" ? req.query.from : undefined;
+      const toParam = typeof req.query.to === "string" ? req.query.to : undefined;
+      const directionParam = typeof req.query.direction === "string" ? req.query.direction : undefined;
+      const typeParam = typeof req.query.transactionType === "string" ? req.query.transactionType : undefined;
+
+      const fromDate = fromParam ? new Date(fromParam) : undefined;
+      const toDate = toParam ? new Date(toParam) : undefined;
+      const hasFrom = !!fromDate && !Number.isNaN(fromDate.getTime());
+      const hasTo = !!toDate && !Number.isNaN(toDate.getTime());
+
+      const normalizedDirection =
+        directionParam === "credit" || directionParam === "debit" ? directionParam : undefined;
+      const normalizedType = typeParam && typeParam.trim().length > 0 ? typeParam.trim() : undefined;
+
+      let query = db.select().from(walletTransactions);
+      const conditions: any[] = [];
+
+      if (hasFrom) {
+        conditions.push(gte(walletTransactions.createdAt, fromDate!));
+      }
+      if (hasTo) {
+        conditions.push(lte(walletTransactions.createdAt, toDate!));
+      }
+      if (normalizedDirection) {
+        conditions.push(eq(walletTransactions.direction, normalizedDirection as any));
+      }
+      if (normalizedType) {
+        conditions.push(eq(walletTransactions.transactionType, normalizedType as any));
+      }
+
+      if (conditions.length > 0) {
+        query = query.where(and(...conditions));
+      }
+
+      const rows = await query.orderBy(desc(walletTransactions.createdAt)).limit(safeLimit);
+
+      const transactions = (rows as any[]).map((row) => ({
+        id: String(row.id ?? ""),
+        userId: String(row.userId ?? ""),
+        counterpartyUserId: row.counterpartyUserId ? String(row.counterpartyUserId) : null,
+        direction: row.direction === "debit" ? "debit" : "credit",
+        amount: Number(row.amount ?? 0),
+        transactionType: String(row.transactionType ?? "unknown"),
+        referenceType: row.referenceType ? String(row.referenceType) : null,
+        referenceId: row.referenceId ? String(row.referenceId) : null,
+        memo: row.memo ? String(row.memo) : null,
+        createdAt: row.createdAt ? new Date(row.createdAt as any).toISOString() : null,
+      }));
+
+      let balanceDelta = 0;
+      let totalCredits = 0;
+      let totalDebits = 0;
+      for (const tx of transactions) {
+        if (!Number.isFinite(tx.amount)) continue;
+        if (tx.direction === "credit") {
+          totalCredits += tx.amount;
+          balanceDelta += tx.amount;
+        } else {
+          totalDebits += tx.amount;
+          balanceDelta -= tx.amount;
+        }
+      }
+
+      res.json({
+        transactions,
+        summary: {
+          count: transactions.length,
+          totalCredits,
+          totalDebits,
+          balanceDelta,
+        },
+      });
+    } catch (error: any) {
+      console.error("Error fetching admin finance ledger:", error);
+      res.status(500).json({ message: "Failed to fetch finance ledger" });
     }
   });
 
@@ -10421,9 +10648,9 @@ export async function registerRoutes(app: any) {
   // Deal engagement tracking
   app.post("/api/deal-engagements", trackDealEngagement);
 
-  // Affiliate system endpoints
+  // Affiliate system endpoints (daily deals performance)
   app.get("/api/user/affiliate", isAuthenticated, getUserAffiliate);
-  app.get("/api/affiliate/dashboard", isAuthenticated, getAffiliateDashboard);
+  app.get("/api/affiliate/performance", isAuthenticated, getAffiliateDashboard as any);
 
   // Phase 2: Boost System Routes for Realtors & Dealers
   const {
@@ -10889,6 +11116,100 @@ export async function registerRoutes(app: any) {
     } catch (error: any) {
       console.error("Error fetching dashboard data:", error);
       res.status(500).json({ message: "Failed to fetch dashboard data" });
+    }
+  });
+
+  // Saved contractors list for the current user
+  app.get("/api/saved-contractors", isAuthenticated, async (req: any, res: any) => {
+    try {
+      const userId = (req.user as any)?.id || req.user?.claims?.sub;
+      if (!userId) {
+        return res.status(401).json({ message: "User not authenticated" });
+      }
+
+      const savedContractorsTable = (db as any).query?.savedContractors?.table;
+      if (!savedContractorsTable) {
+        return res.json([]);
+      }
+
+      const rows = await db
+        .select()
+        .from(savedContractorsTable)
+        .where(eq((savedContractorsTable as any).userId, userId));
+
+      if (!rows.length) {
+        return res.json([]);
+      }
+
+      const contractorIds = Array.from(
+        new Set(
+          rows
+            .map((r: any) => r.contractorId || r.contractor_id || r.proId || r.pro_id)
+            .filter(Boolean)
+        )
+      );
+
+      if (!contractorIds.length) {
+        return res.json([]);
+      }
+
+      const contractorRecords = await db
+        .select()
+        .from(contractors)
+        .where(inArray(contractors.id, contractorIds as string[]));
+
+      const payload = contractorRecords.map((c: any) => ({
+        id: c.id,
+        name: c.displayName || c.businessName || c.legalName || "Unknown Contractor",
+        avatarUrl: c.logoUrl || c.avatarUrl || null,
+        category: c.primaryTrade || c.trade || null,
+        location: c.city && c.state ? `${c.city}, ${c.state}` : c.city || c.state || null,
+        verified: Boolean(c.isVerified || c.verified || false),
+      }));
+
+      res.json(payload);
+    } catch (error: any) {
+      console.error("Error fetching saved contractors:", error);
+      res.status(500).json({ message: "Failed to fetch saved contractors" });
+    }
+  });
+
+  // Remove a contractor from the current user's saved list
+  app.delete("/api/saved-contractors/:contractorId", isAuthenticated, async (req: any, res: any) => {
+    try {
+      const userId = (req.user as any)?.id || req.user?.claims?.sub;
+      const { contractorId } = req.params;
+
+      if (!userId) {
+        return res.status(401).json({ message: "User not authenticated" });
+      }
+      if (!contractorId) {
+        return res.status(400).json({ message: "contractorId is required" });
+      }
+
+      const savedContractorsTable = (db as any).query?.savedContractors?.table;
+      if (!savedContractorsTable) {
+        return res.status(404).json({ message: "Saved contractors table not available" });
+      }
+
+      await db
+        .delete(savedContractorsTable)
+        .where(
+          and(
+            eq((savedContractorsTable as any).userId, userId),
+            or(
+              eq((savedContractorsTable as any).contractorId, contractorId as any),
+              eq((savedContractorsTable as any).contractor_id, contractorId as any),
+              eq((savedContractorsTable as any).proId, contractorId as any),
+              eq((savedContractorsTable as any).pro_id, contractorId as any)
+            )
+          )
+        );
+
+      res.status(204).send();
+    } catch (error: any) {
+      console.error("Error removing saved contractor:", error);
+      res.status(500).json({ message: "Failed to remove saved contractor" });
     }
   });
 

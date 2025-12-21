@@ -211,10 +211,32 @@ export default function ScoutOS() {
 
   const inferModeFromRoles = (roles: string[] | undefined | null): ScoutMode => {
     if (!roles || roles.length === 0) return "default";
-    if (roles.some((r) => r.startsWith("contractor:") || r === "contractor" || r === "pro")) {
+
+    const normalized = roles.map((r) => r.toLowerCase());
+
+    // Super-admins and operators get an admin-focused Scout persona.
+    if (
+      normalized.some((r) =>
+        [
+          "admin",
+          "ops_admin",
+          "super_admin",
+          "head_admin",
+          "owner",
+        ].includes(r)
+      )
+    ) {
+      return "admin";
+    }
+
+    if (
+      normalized.some(
+        (r) => r.startsWith("contractor:") || r === "contractor" || r === "pro"
+      )
+    ) {
       return "contractors";
     }
-    if (roles.some((r) => r.startsWith("realtor:") || r === "realtor")) {
+    if (normalized.some((r) => r.startsWith("realtor:") || r === "realtor")) {
       return "marketplace";
     }
     return "default";
@@ -280,6 +302,13 @@ export default function ScoutOS() {
               "Turn this into a trackable project on my board"
             );
           }
+          break;
+        case "admin":
+          base.push(
+            "Open my Admin Panel and monitoring tools",
+            "Show recent Finance / Invoicing ledger activity",
+            "Help me send a targeted broadcast announcement from Notification Ops"
+          );
           break;
         case "marketplace":
           base.push(

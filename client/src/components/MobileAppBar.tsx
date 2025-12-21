@@ -22,7 +22,7 @@ const mobileNavItems = [
 
 const quickActions = [
   { href: '/scout?intent=estimate', icon: Calculator, label: 'Estimate', guest: true },
-  { href: '/marketplace', icon: Package, label: 'Exchange', guest: true },
+  { href: '/exchange', icon: Package, label: 'EXCHANGE', guest: true },
   { href: '/contractors/board', icon: Wrench, label: 'Join Network', guest: true },
   { href: '/foundation', icon: Heart, label: 'Foundation', guest: true },
 ];

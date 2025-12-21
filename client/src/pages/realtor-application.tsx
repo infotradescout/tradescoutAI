@@ -176,9 +176,9 @@ export default function RealtorApplication() {
         {/* Header */}
         <div className="flex items-center gap-4 mb-8">
           <Button variant="ghost" asChild>
-            <Link href="/marketplace" className="flex items-center gap-2">
+            <Link href="/exchange" className="flex items-center gap-2">
               <ArrowLeft className="h-4 w-4" />
-              Back to Marketplace
+              Back to Exchange
             </Link>
           </Button>
         </div>

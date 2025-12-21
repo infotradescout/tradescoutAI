@@ -3,16 +3,16 @@ import { Separator } from "@/components/ui/separator";
 
 export function LegalFooter() {
   const currentYear = new Date().getFullYear();
-  
+
   return (
-    <footer className="hidden md:block bg-gray-900 text-gray-300 py-3 md:py-4 mt-auto">
+    <footer className="hidden md:block bg-gray-900 text-gray-300 py-2 md:py-3 mt-auto">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
           
           {/* Company Info */}
           <div className="col-span-1 md:col-span-1">
-            <h3 className="text-lg font-semibold text-white mb-4">TradeScout</h3>
-            <p className="text-sm mb-4">
+            <h3 className="text-lg font-semibold text-white mb-2">TradeScout</h3>
+            <p className="text-sm mb-2">
               Connecting residents, pros, organizations, and neighbors through verified local networks and valuable exchanges.
             </p>
             <div className="text-sm">
@@ -23,7 +23,7 @@ export function LegalFooter() {
 
           {/* Legal Links */}
           <div className="col-span-1">
-            <h4 className="text-md font-medium text-white mb-4">Legal</h4>
+            <h4 className="text-md font-medium text-white mb-2">Legal</h4>
             <ul className="space-y-2 text-sm">
               <li>
                 <Link href="/legal/privacy-policy" className="hover:text-white transition-colors">
@@ -50,7 +50,7 @@ export function LegalFooter() {
 
           {/* Platform */}
           <div className="col-span-1">
-            <h4 className="text-md font-medium text-white mb-4">Platform</h4>
+            <h4 className="text-md font-medium text-white mb-2">Platform</h4>
             <ul className="space-y-2 text-sm">
               <li>
                 <Link href="/contractors" className="hover:text-white transition-colors">
@@ -77,7 +77,7 @@ export function LegalFooter() {
 
           {/* Compliance */}
           <div className="col-span-1">
-            <h4 className="text-md font-medium text-white mb-4">Compliance</h4>
+            <h4 className="text-md font-medium text-white mb-2">Compliance</h4>
             <ul className="space-y-2 text-sm">
               <li className="flex items-center">
                 <span className="w-2 h-2 bg-green-500 rounded-full mr-2"></span>
@@ -99,10 +99,10 @@ export function LegalFooter() {
           </div>
         </div>
 
-        <Separator className="my-2 bg-gray-700" />
+        <Separator className="my-1 bg-gray-700" />
 
-        <div className="flex flex-col md:flex-row justify-between items-center text-sm">
-          <div className="mb-4 md:mb-0">
+        <div className="flex flex-col md:flex-row justify-between items-center text-xs md:text-sm">
+          <div className="mb-2 md:mb-0">
             <p>&copy; {currentYear} TradeScout. All rights reserved.</p>
           </div>
           
@@ -120,7 +120,7 @@ export function LegalFooter() {
         </div>
 
         {/* Compliance Statement */}
-        <div className="mt-2 pt-2 border-t border-gray-700">
+        <div className="mt-1 pt-1 border-t border-gray-700">
           <p className="text-xs text-gray-400 text-center">
             TradeScout operates in compliance with federal, state, and local regulations including the INFORM Consumers Act, 
             state marketplace facilitator tax laws, CCPA/GDPR privacy requirements, and ADA accessibility standards. 

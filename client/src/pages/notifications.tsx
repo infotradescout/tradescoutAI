@@ -102,7 +102,7 @@ export default function Notifications() {
           <div>
             <h1 className="text-3xl font-bold mb-2">Notifications</h1>
             <p className="text-muted-foreground">
-              Stay updated on your marketplace activity and conversations
+              Stay updated on your Exchange activity and conversations
             </p>
           </div>
           
@@ -260,8 +260,8 @@ export default function Notifications() {
                       : "You'll see your notifications here when you have activity."
                     }
                   </p>
-                  <Link href="/marketplace">
-                    <Button>Browse Marketplace</Button>
+                  <Link href="/exchange">
+                    <Button>Browse Exchange</Button>
                   </Link>
                 </div>
               )}
@@ -312,7 +312,7 @@ export default function Notifications() {
                   <div>
                     <h4 className="font-medium">Transaction Updates</h4>
                     <p className="text-sm text-muted-foreground">
-                      Stay informed about your marketplace transactions
+                      Stay informed about your Exchange transactions
                     </p>
                   </div>
                   <Badge variant="secondary">Always On</Badge>

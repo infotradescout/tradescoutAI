@@ -142,9 +142,9 @@ export default function MarketplaceListing() {
         {/* Header */}
         <div className="flex items-center gap-4 mb-8">
           <Button variant="ghost" asChild>
-            <Link href="/marketplace" className="flex items-center gap-2">
+            <Link href="/exchange" className="flex items-center gap-2">
               <ArrowLeft className="h-4 w-4" />
-              Back to Marketplace
+              Back to Exchange
             </Link>
           </Button>
         </div>
@@ -152,7 +152,7 @@ export default function MarketplaceListing() {
         <div className="mb-8">
           <h1 className="text-3xl font-bold mb-2 flex items-center gap-2">
             <Package className="h-8 w-8 text-orange-500" />
-            Create Marketplace Listing
+            Create Exchange Listing
           </h1>
           <p className="text-gray-400">
             List your quality items for the TradeScout community to discover
@@ -164,7 +164,7 @@ export default function MarketplaceListing() {
           <Info className="h-4 w-4 text-blue-400" />
           <AlertDescription className="text-blue-100">
             <strong>Approval Process:</strong> All listings require admin approval before going live. 
-            This ensures quality standards and helps maintain our trusted marketplace environment. 
+            This ensures quality standards and helps maintain our trusted Exchange environment. 
             You'll be notified once your listing is reviewed.
           </AlertDescription>
         </Alert>
