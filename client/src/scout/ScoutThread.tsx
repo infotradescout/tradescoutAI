@@ -95,33 +95,70 @@ const ScoutThread: React.FC<ScoutThreadProps> = ({
   onQuickAction,
 }) => {
   const [progress, setProgress] = React.useState(0);
+  const phaseStartRef = React.useRef<number | null>(null);
 
+  // Reset progress whenever Scout is fully idle or in an error state.
   React.useEffect(() => {
     if (status === "idle" || status === "error") {
+      phaseStartRef.current = null;
       setProgress(0);
       return;
     }
 
-    // Start animating the progress bar whenever Scout is thinking.
-    // While resolving/checking, ease toward ~85%; during executing_action toward ~95%;
-    // when status flips to "ready", allow it to hit 100%.
+    // Record the start time for this phase so we can map elapsed
+    // time -> progress within that phase.
+    phaseStartRef.current = performance.now();
+  }, [status]);
+
+  React.useEffect(() => {
+    if (status === "idle" || status === "error") {
+      return;
+    }
+
     const interval = window.setInterval(() => {
+      if (phaseStartRef.current == null) return;
+
+      const now = performance.now();
+      const elapsed = now - phaseStartRef.current;
+
+      // Each ScoutStatus maps to a real phase of work in ScoutOS
+      // and on the server. We treat progress as a function of time
+      // spent in that phase, capped so it never falsely reaches 100%
+      // before the phase actually changes. Phase ranges are tuned so
+      // context-checking feels quick, document review does the heavy
+      // lifting, and READY eases out smoothly.
+      type PhaseConfig = { base: number; max: number; durationMs: number };
+      const phaseConfig: Record<string, PhaseConfig> = {
+        // Quick snap into motion while Scout reads account + locality
+        resolving_context: { base: 0.06, max: 0.24, durationMs: 550 },
+        // Heavier work: knowledge + documents. Slightly slower crawl so
+        // users attribute wait time to real reading.
+        checking_documents: { base: 0.24, max: 0.86, durationMs: 4200 },
+        // When Scout is running tools or navigation actions, stay below
+        // 100% but show confident forward motion.
+        executing_action: { base: 0.55, max: 0.97, durationMs: 1900 },
+        // Final synthesis on the client: short, smooth ease-out into 100%.
+        ready: { base: 0.86, max: 1.0, durationMs: 750 },
+      };
+
+      const cfg: PhaseConfig =
+        phaseConfig[status] ?? { base: 0.05, max: 0.8, durationMs: 2000 };
+
+      const phaseSpan = Math.max(cfg.max - cfg.base, 0.01);
+      let t = Math.min(1, elapsed / cfg.durationMs);
+
+      // READY should feel like a smooth glide to 100%, not a linear
+      // crawl. Use a simple ease-out curve for that phase only.
+      if (status === "ready") {
+        t = 1 - (1 - t) * (1 - t);
+      }
+
+      const value = cfg.base + t * phaseSpan;
+
       setProgress((prev) => {
-        let target = 85;
-        if (status === "executing_action") target = 95;
-        if (status === "ready") target = 100;
-
-        if (prev === 0) {
-          // Give a quick visual start so it never feels stuck at 0%.
-          return 8;
-        }
-
-        if (prev >= target) {
-          return prev;
-        }
-
-        const next = prev + 4;
-        return next > target ? target : next;
+        // Never move backwards; only advance toward the current phase max.
+        const next = Math.max(prev, value);
+        return Math.min(next, 1);
       });
     }, 140);
 
@@ -141,6 +178,13 @@ const ScoutThread: React.FC<ScoutThreadProps> = ({
   }
 
   const showProgress = status !== "idle" && status !== "error";
+
+  const statusToneClass =
+    status === "checking_documents"
+      ? "text-slate-200 border-slate-600/60"
+      : status === "ready"
+      ? "text-slate-100 border-orange-400/60"
+      : "text-slate-300 border-slate-700/60";
 
   return (
     <div className="space-y-3 pr-1 max-h-[380px] overflow-y-auto">
@@ -201,12 +245,19 @@ const ScoutThread: React.FC<ScoutThreadProps> = ({
           <div className="h-1.5 w-full rounded-full bg-slate-800 overflow-hidden">
             <div
               className="h-full rounded-full bg-gradient-to-r from-orange-400 via-orange-300 to-amber-300 transition-[width] duration-150 ease-out"
-              style={{ width: `${Math.max(5, Math.min(progress, 100))}%` }}
+              style={{
+                width: `${Math.max(5, Math.min(Math.round(progress * 100), 100))}%`,
+              }}
             />
           </div>
 
           <div className="flex justify-start">
-            <div className="mt-1 inline-flex items-center rounded-2xl bg-slate-900/80 px-3 py-1 text-[11px] text-slate-300 border border-slate-700/60">
+            <div
+              className={clsx(
+                "mt-1 inline-flex items-center rounded-2xl bg-slate-900/80 px-3 py-1 text-[11px]",
+                statusToneClass
+              )}
+            >
               <span className="mr-1 h-1.5 w-1.5 rounded-full bg-orange-400 animate-pulse" />
               {statusLabel ?? "Scout is thinking about the best local answer..."}
             </div>

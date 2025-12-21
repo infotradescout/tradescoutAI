@@ -8,7 +8,7 @@ import {
   pushSubscriptions,
 } from "@shared/schema";
 import { z } from "zod";
-import { db } from "../src/db/drizzle-mock";
+import { db } from "../db";
 import { eq } from "drizzle-orm";
 
 export function registerNotificationRoutes(app: Express) {
