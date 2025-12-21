@@ -20,27 +20,33 @@ export default function DashboardSettings() {
     queryKey: ['/api/users/preferences'],
   });
 
-  const defaultEnabledWidgets = AVAILABLE_WIDGETS
+  type DashboardWidgetId = (typeof AVAILABLE_WIDGETS)[number]["id"];
+
+  const defaultEnabledWidgets: DashboardWidgetId[] = AVAILABLE_WIDGETS
     .filter((w) => w.defaultEnabled)
     .map((w) => w.id);
 
-  const [enabledWidgets, setEnabledWidgets] = useState<string[]>(defaultEnabledWidgets);
-  const [widgetOrder, setWidgetOrder] = useState<string[]>(() => AVAILABLE_WIDGETS.map((w) => w.id));
+  const [enabledWidgets, setEnabledWidgets] = useState<DashboardWidgetId[]>(defaultEnabledWidgets);
+  const [widgetOrder, setWidgetOrder] = useState<DashboardWidgetId[]>(() => AVAILABLE_WIDGETS.map((w) => w.id));
 
   useEffect(() => {
     const dashboardPrefs = (preferences && (preferences as any).dashboard) || {};
 
-    const enabledFromPrefs: string[] = Array.isArray(dashboardPrefs.enabledWidgets)
-      ? dashboardPrefs.enabledWidgets
+    const enabledFromPrefs: DashboardWidgetId[] = Array.isArray(dashboardPrefs.enabledWidgets)
+      ? (dashboardPrefs.enabledWidgets.filter((id: string): id is DashboardWidgetId =>
+          AVAILABLE_WIDGETS.some((w) => w.id === id)
+        ) as DashboardWidgetId[])
       : defaultEnabledWidgets;
 
-    const defaultOrder = AVAILABLE_WIDGETS.map((w) => w.id);
-    let orderFromPrefs: string[] = Array.isArray(dashboardPrefs.widgetOrder) && dashboardPrefs.widgetOrder.length
-      ? dashboardPrefs.widgetOrder
+    const defaultOrder: DashboardWidgetId[] = AVAILABLE_WIDGETS.map((w) => w.id);
+    let orderFromPrefs: DashboardWidgetId[] = Array.isArray(dashboardPrefs.widgetOrder) && dashboardPrefs.widgetOrder.length
+      ? (dashboardPrefs.widgetOrder.filter((id: string): id is DashboardWidgetId =>
+          AVAILABLE_WIDGETS.some((w) => w.id === id)
+        ) as DashboardWidgetId[])
       : defaultOrder;
 
-    const availableIdSet = new Set(defaultOrder);
-    orderFromPrefs = orderFromPrefs.filter((id: string) => availableIdSet.has(id));
+    const availableIdSet = new Set<DashboardWidgetId>(defaultOrder);
+    orderFromPrefs = orderFromPrefs.filter((id) => availableIdSet.has(id));
     defaultOrder.forEach((id) => {
       if (!orderFromPrefs.includes(id)) {
         orderFromPrefs.push(id);
@@ -52,7 +58,7 @@ export default function DashboardSettings() {
   }, [preferences, defaultEnabledWidgets]);
 
   const savePreferencesMutation = useMutation({
-    mutationFn: async (data: { dashboard: { enabledWidgets: string[]; widgetOrder: string[] } }) => {
+    mutationFn: async (data: { dashboard: { enabledWidgets: DashboardWidgetId[]; widgetOrder: DashboardWidgetId[] } }) => {
       const response = await fetch('/api/users/preferences', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
@@ -77,7 +83,7 @@ export default function DashboardSettings() {
     },
   });
 
-  const handleToggleWidget = (widgetId: string) => {
+  const handleToggleWidget = (widgetId: DashboardWidgetId) => {
     setEnabledWidgets(prev =>
       prev.includes(widgetId)
         ? prev.filter(id => id !== widgetId)

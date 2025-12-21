@@ -34,7 +34,6 @@ import {
   CheckCircle2
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
-import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import DragDropNavigationPreferences from "@/components/navigation/DragDropNavigationPreferences";
 import { NotificationPreferences as NotificationPreferencesDialog } from "@/components/ui/notification-preferences";

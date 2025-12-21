@@ -74,18 +74,15 @@ export default function AffiliatePage() {
     referrals: Referral[];
     commissions: Commission[];
     payouts: Payout[];
-  }>({
+  } | null>({
     queryKey: ["/api/affiliate/dashboard"],
     retry: false,
     queryFn: async () => {
       try {
-        return await apiRequest<{
-          program: AffiliateProgram;
-          stats: AffiliateStats;
-          referrals: Referral[];
-          commissions: Commission[];
-          payouts: Payout[];
-        }>("GET", "/api/affiliate/dashboard");
+        return await apiRequest(
+          "GET",
+          "/api/affiliate/dashboard"
+        );
       } catch (error: any) {
         const message = (error?.message as string | undefined) ?? "";
         if (

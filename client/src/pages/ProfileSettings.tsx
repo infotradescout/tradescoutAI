@@ -23,6 +23,8 @@ interface UserPreferences {
     secondary?: string;
     background?: string;
     text?: string;
+    accent?: string;
+    border?: string;
   };
   profileSections?: ProfileSections;
   servicesDescription?: string;

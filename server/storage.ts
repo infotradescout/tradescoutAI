@@ -183,8 +183,6 @@ import {
   type InsertMarketplaceFavorite,
   type MarketplaceReport,
   type InsertMarketplaceReport,
-  type ListingBoost,
-  type InsertListingBoost,
   type VendorVerification,
   type InsertVendorVerification,
   type BuyerVerification,
@@ -270,6 +268,7 @@ import {
   type InsertMarketplaceConversation,
   type MarketplaceMessage,
   type InsertMarketplaceMessage,
+  listingBoosts,
   // Payment system types
   type PaymentConfiguration,
   type InsertPaymentConfiguration,

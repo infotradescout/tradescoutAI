@@ -782,7 +782,6 @@ export default function Marketplace() {
                   </div>
                 </div>
               )}
-            </div>
           </CardContent>
         </Card>
 
@@ -1279,7 +1278,7 @@ export default function Marketplace() {
                               type="button"
                               className="inline-flex items-center gap-1.5 rounded-full border border-amber-500 px-3 py-1 text-[11px] text-amber-600 hover:bg-amber-500/10"
                               onClick={() => boostListingMutation.mutate(listing.id)}
-                              disabled={boostListingMutation.isLoading}
+                              disabled={boostListingMutation.isPending}
                             >
                               Boost for $50
                             </button>

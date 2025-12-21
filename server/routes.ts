@@ -50,6 +50,8 @@ import {
   insertGeneratedStorySchema,
   counties,
   userFollows,
+  walletTransactions,
+  marketplaceTransactions,
 } from "../shared/schema";
 import { getUserTypeBadgeLabel } from "../shared/userTypes";
 import type { AffiliateAccount, AffiliateReferral, AffiliatePayout } from "../shared/schema";
@@ -85,7 +87,7 @@ type AuthedRequest = Request & {
 
 type ExpressHandler = (req: Request, res: Response, next: NextFunction) => void | Promise<void>;
 type AuthedHandler = (req: AuthedRequest, res: Response, next: NextFunction) => void | Promise<void>;
-import { eq, desc, and, or, sql, gt } from "drizzle-orm";
+import { eq, desc, and, or, sql, gt, gte, lte, asc, inArray } from "drizzle-orm";
 // Removed duplicate User import
 // Stubs for undeclared globals
 const program = {};
@@ -151,7 +153,7 @@ async function routeLeadToTopContractors(lead: any, leadData: any) {
         ? (leadData as any).description
         : (typeof (lead as any)?.description === 'string' ? (lead as any).description : '');
 
-    const leadKeywords = new Set(
+    const leadKeywords = new Set<string>(
       leadDescription
         .toLowerCase()
         .split(/[^a-z0-9]+/)
@@ -205,7 +207,7 @@ async function routeLeadToTopContractors(lead: any, leadData: any) {
         let keywordScore = 0;
         if (leadKeywords.size && aboutText) {
           const aboutTokens = Array.from(
-            new Set(
+            new Set<string>(
               aboutText
                 .toLowerCase()
                 .split(/[^a-z0-9]+/)
@@ -2926,9 +2928,12 @@ export async function registerRoutes(app: any) {
       }
 
       const allowedSegments = ["all", "homeowners", "contractors", "pros", "admins"] as const;
-      const effectiveSegment = (segment && typeof segment === "string" && allowedSegments.includes(segment))
-        ? segment as (typeof allowedSegments)[number]
-        : "all";
+      type BroadcastSegment = (typeof allowedSegments)[number];
+
+      let effectiveSegment: BroadcastSegment = "all";
+      if (typeof segment === "string" && (allowedSegments as readonly string[]).includes(segment)) {
+        effectiveSegment = segment as BroadcastSegment;
+      }
 
       const allowedMethods = ["in_app", "email", "push", "sms"];
       const requestedMethods = Array.isArray(deliveryMethods)
@@ -3010,7 +3015,7 @@ export async function registerRoutes(app: any) {
       }
 
       // Fetch target users
-      let targetsQuery = db
+      const baseTargetsQuery = db
         .select({ id: users.id })
         .from(users);
 
@@ -3028,11 +3033,9 @@ export async function registerRoutes(app: any) {
         conditions.push(sql`${users.preferences}->>'marketingEmails' = 'true'`);
       }
 
-      if (conditions.length > 0) {
-        targetsQuery = targetsQuery.where(and(...conditions));
-      }
-
-      const targets = await targetsQuery;
+      const targets = conditions.length > 0
+        ? await baseTargetsQuery.where(and(...conditions))
+        : await baseTargetsQuery;
 
       if (!targets || targets.length === 0) {
         return res.json({ success: true, segment: effectiveSegment, targetCount: 0, notifications: [] });
@@ -9387,7 +9390,7 @@ export async function registerRoutes(app: any) {
         directionParam === "credit" || directionParam === "debit" ? directionParam : undefined;
       const normalizedType = typeParam && typeParam.trim().length > 0 ? typeParam.trim() : undefined;
 
-      let query = db.select().from(walletTransactions);
+      const baseQuery = db.select().from(walletTransactions);
       const conditions: any[] = [];
 
       if (hasFrom) {
@@ -9403,11 +9406,11 @@ export async function registerRoutes(app: any) {
         conditions.push(eq(walletTransactions.transactionType, normalizedType as any));
       }
 
-      if (conditions.length > 0) {
-        query = query.where(and(...conditions));
-      }
+      const filteredQuery = conditions.length > 0
+        ? baseQuery.where(and(...conditions))
+        : baseQuery;
 
-      const rows = await query.orderBy(desc(walletTransactions.createdAt)).limit(safeLimit);
+      const rows = await filteredQuery.orderBy(desc(walletTransactions.createdAt)).limit(safeLimit);
 
       const transactions = (rows as any[]).map((row) => ({
         id: String(row.id ?? ""),

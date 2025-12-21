@@ -65,7 +65,7 @@ export default function WalletPage() {
     queryKey: ["/api/wallet/balance"],
     queryFn: async () => {
       try {
-        return await apiRequest<WalletBalanceResponse>("GET", "/api/wallet/balance");
+        return await apiRequest("GET", "/api/wallet/balance");
       } catch (error: any) {
         const message = (error?.message as string | undefined) ?? "";
         if (
@@ -84,7 +84,7 @@ export default function WalletPage() {
     queryKey: ["/api/wallet/transactions"],
     queryFn: async () => {
       try {
-        return await apiRequest<{ transactions: WalletTransactionDto[] }>(
+        return await apiRequest(
           "GET",
           "/api/wallet/transactions?limit=25"
         );
@@ -116,7 +116,7 @@ export default function WalletPage() {
       if (selectedPeriodType === "quarter" && selectedQuarter) {
         params.set("quarter", String(selectedQuarter));
       }
-      return await apiRequest<WalletTaxStatementSummary>(
+      return await apiRequest(
         "GET",
         `/api/wallet/tax-statement?${params.toString()}`
       );
@@ -319,9 +319,9 @@ export default function WalletPage() {
                 <Button
                   type="submit"
                   className="w-full bg-orange-500 hover:bg-orange-600 text-xs font-semibold"
-                  disabled={transferMutation.isLoading}
+                  disabled={transferMutation.isPending}
                 >
-                  {transferMutation.isLoading ? "Sending..." : "Send Funds"}
+                  {transferMutation.isPending ? "Sending..." : "Send Funds"}
                 </Button>
 
                 <p className="text-[11px] text-gray-500 mt-1">

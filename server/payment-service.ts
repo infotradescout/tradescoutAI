@@ -43,7 +43,7 @@ export class PaymentService {
       if (communityShare <= 0 && scholarshipShare <= 0) return;
 
       // Resolve the payer to derive county context for local impact.
-      const payer = await storage.getUserById(payerUserId);
+      const [payer] = await storage.getUsersByIds([payerUserId]);
       if (!payer) return;
 
       let countyId: string | undefined;
@@ -55,8 +55,8 @@ export class PaymentService {
             stateCode: payer.state,
           });
 
-          if (countySnapshot && countySnapshot.countyId) {
-            countyId = countySnapshot.countyId;
+          if (countySnapshot && countySnapshot.county && countySnapshot.county.id) {
+            countyId = countySnapshot.county.id;
           }
         }
       } catch (countyErr) {
@@ -97,11 +97,11 @@ export class PaymentService {
           await storage.createFoundationDonation({
             causeId: targetCause.id,
             userId: payerUserId,
-            amount: scholarshipShare,
+            amount: scholarshipShare.toFixed(2),
             status: 'completed',
             type: 'roundup',
             isRoundupDonation: true,
-            originalAmount: platformFee,
+            originalAmount: platformFee.toFixed(2),
             relatedTransactionId: referenceId,
             relatedTransactionType:
               paymentType === 'contractor_service'
