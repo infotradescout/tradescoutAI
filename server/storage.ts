@@ -181,6 +181,8 @@ import {
   type InsertMarketplaceFavorite,
   type MarketplaceReport,
   type InsertMarketplaceReport,
+  type ListingBoost,
+  type InsertListingBoost,
   type VendorVerification,
   type InsertVendorVerification,
   type BuyerVerification,
@@ -250,6 +252,8 @@ import {
   type InsertTransactionDispute,
   type UserReview,
   type InsertUserReview,
+  type ListingBoost,
+  type InsertListingBoost,
   type RealTimeNotification,
   type InsertRealTimeNotification,
   paymentConfigurations,
@@ -3018,7 +3022,11 @@ export class DatabaseStorage implements IStorage {
       .select()
       .from(marketplaceListings)
       .where(whereClause)
-      .orderBy(orderByClause)
+      .orderBy(
+        desc(marketplaceListings.isPromoted),
+        desc(marketplaceListings.promotedUntil),
+        orderByClause,
+      )
       .limit(limit)
       .offset(offset);
   }
@@ -5528,6 +5536,57 @@ export class DatabaseStorage implements IStorage {
       .where(eq(marketplaceTransactions.id, id))
       .returning();
     return transaction;
+  }
+
+  // Listing boost operations
+  async createListingBoost(boost: InsertListingBoost): Promise<ListingBoost> {
+    const [newBoost] = await db
+      .insert(listingBoosts)
+      .values(boost as any)
+      .returning();
+    return newBoost as ListingBoost;
+  }
+
+  async getListingBoostByTransactionId(transactionId: string): Promise<ListingBoost | undefined> {
+    const [boost] = await db
+      .select()
+      .from(listingBoosts)
+      .where(eq(listingBoosts.transactionId, transactionId));
+    return boost as ListingBoost | undefined;
+  }
+
+  async applyListingBoostForTransaction(transactionId: string): Promise<void> {
+    const boost = await this.getListingBoostByTransactionId(transactionId);
+    if (!boost) return;
+
+    // If already active and not expired, do nothing
+    if (boost.status === 'active' && boost.endDate && boost.endDate > new Date()) {
+      return;
+    }
+
+    const now = new Date();
+    const endDate = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+
+    await db.transaction(async (tx) => {
+      await tx
+        .update(listingBoosts)
+        .set({
+          status: 'active',
+          startDate: now,
+          endDate,
+          updatedAt: now,
+        } as any)
+        .where(eq(listingBoosts.id, boost.id));
+
+      await tx
+        .update(marketplaceListings)
+        .set({
+          isPromoted: true,
+          promotedUntil: endDate,
+          updatedAt: now,
+        } as any)
+        .where(eq(marketplaceListings.id, boost.listingId));
+    });
   }
 
   // Transaction dispute operations

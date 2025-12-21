@@ -1,4 +1,4 @@
-import { memo, useState } from 'react';
+import { memo, useState, ChangeEvent } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Settings as SettingsIcon } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
@@ -11,7 +11,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 import { apiRequest } from '@/lib/queryClient';
 import { formatDistanceToNow } from 'date-fns';
-import { MessageSquare, Heart, Share2 } from 'lucide-react';
+import { MessageSquare, Heart, Share2, Image as ImageIcon } from 'lucide-react';
 import {
   AVAILABLE_WIDGETS,
   ActivityStatsWidget,
@@ -26,6 +26,7 @@ import {
 } from '@/components/dashboard/DashboardWidgets';
 import { LocalImpactCard } from '@/components/dashboard/LocalImpactCard';
 import { HoaLeadershipBadge } from '@/components/dashboard/HoaLeadershipBadge';
+import { uploadObject } from '@/lib/objectUpload';
 
 interface Post {
   id: string;
@@ -44,6 +45,7 @@ interface Post {
 const Dashboard = memo(function Dashboard() {
   const [newPostContent, setNewPostContent] = useState("");
   const [showNewPostForm, setShowNewPostForm] = useState(false);
+  const [newPostImages, setNewPostImages] = useState<string[]>([]);
   const { user } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -56,14 +58,36 @@ const Dashboard = memo(function Dashboard() {
     queryKey: ['/api/community/posts'],
   });
 
+  const handleImagesSelected = async (event: ChangeEvent<HTMLInputElement>) => {
+    const remainingSlots = Math.max(0, 8 - newPostImages.length);
+    const files = Array.from(event.target.files || []).slice(0, remainingSlots);
+
+    const uploaded: string[] = [];
+    for (const file of files) {
+      try {
+        const { publicUrl } = await uploadObject(file);
+        uploaded.push(publicUrl);
+      } catch (error) {
+        console.error('Failed to upload dashboard post image', error);
+      }
+    }
+
+    if (uploaded.length) {
+      setNewPostImages((prev) => [...prev, ...uploaded].slice(0, 8));
+    }
+
+    event.target.value = "";
+  };
+
   const createPostMutation = useMutation({
-    mutationFn: async (postData: { content: string; title?: string }) => {
+    mutationFn: async (postData: { content: string; title?: string; images?: string[] }) => {
       const response = await fetch('/api/community/posts', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           content: postData.content,
           title: postData.title,
+          images: postData.images,
           postType: 'discussion',
           visibility: 'public'
         }),
@@ -75,6 +99,7 @@ const Dashboard = memo(function Dashboard() {
       queryClient.invalidateQueries({ queryKey: ['/api/community/posts'] });
       setShowNewPostForm(false);
       setNewPostContent('');
+      setNewPostImages([]);
       toast({
         title: "Posted!",
         description: "Your post is now live in the community.",
@@ -105,7 +130,10 @@ const Dashboard = memo(function Dashboard() {
 
   const handleCreatePost = () => {
     if (!newPostContent.trim()) return;
-    createPostMutation.mutate({ content: newPostContent });
+    createPostMutation.mutate({
+      content: newPostContent,
+      images: newPostImages.length ? newPostImages : undefined,
+    });
   };
 
   const handleLikePost = (postId: string) => {
@@ -163,14 +191,14 @@ const Dashboard = memo(function Dashboard() {
 
   return (
     <div className="min-h-screen bg-[#0f1419] dark:bg-slate-900 pb-16 lg:pb-0">
-      <div className="max-w-7xl mx-auto px-4 py-6">
+      <div className="max-w-6xl mx-auto px-4 py-6 space-y-6">
         {/* Header */}
-        <div className="flex items-center justify-between mb-6">
-          <div>
-            <h1 className="text-3xl font-bold text-orange-500">
+        <div className="flex items-center justify-between">
+          <div className="space-y-1">
+            <h1 className="text-lg font-semibold text-orange-500">
               Welcome back, {user?.firstName || 'Friend'}!
             </h1>
-            <p className="text-slate-600 dark:text-slate-400 mt-1">
+            <p className="text-sm text-slate-600 dark:text-slate-400">
               Here's what's happening in your community
             </p>
           </div>
@@ -183,18 +211,18 @@ const Dashboard = memo(function Dashboard() {
         </div>
 
         {/* Local Impact (always visible) */}
-        <LocalImpactCard className="mb-6" />
+        <LocalImpactCard className="mb-0" />
 
         {/* HOA Leadership / Membership (if applicable) */}
-        <HoaLeadershipBadge className="mb-6 bg-[#0f1419] dark:bg-slate-800 border-0 shadow-sm" />
+        <HoaLeadershipBadge className="bg-[#0f1419] dark:bg-slate-800 border-0 shadow-sm" />
 
         {/* Snapshot Grid + Live Activity Feed */}
         <div className="space-y-6">
           {/* Live Activity Feed */}
           <div className="space-y-4">
             {/* New Post Composer */}
-            <Card className="bg-[#0f1419] dark:bg-slate-800 border-0 shadow-sm">
-              <CardContent className="p-4">
+            <Card className="bg-[#0f1624] dark:bg-slate-800 border border-[#1f2937] shadow-sm rounded-xl">
+              <CardContent className="p-4 space-y-3">
                 <div className="flex items-center gap-3 mb-4">
                   <Avatar className="h-10 w-10">
                     <AvatarImage src={user?.profileImageUrl} />
@@ -220,26 +248,66 @@ const Dashboard = memo(function Dashboard() {
                         data-testid="input-post-content"
                         autoFocus
                       />
-                      <div className="flex justify-end gap-2">
-                        <Button 
-                          variant="ghost" 
-                          size="sm"
-                          onClick={() => {
-                            setShowNewPostForm(false);
-                            setNewPostContent('');
-                          }}
-                        >
-                          Cancel
-                        </Button>
-                        <Button 
-                          onClick={handleCreatePost}
-                          disabled={!newPostContent.trim() || createPostMutation.isPending}
-                          size="sm"
-                          className="bg-orange-600 hover:bg-orange-700 text-white"
-                          data-testid="button-submit-post"
-                        >
-                          {createPostMutation.isPending ? 'Posting...' : 'Post'}
-                        </Button>
+                      {newPostImages.length > 0 && (
+                        <div className="mt-3 grid grid-cols-3 gap-2">
+                          {newPostImages.map((url, index) => (
+                            <div
+                              key={url + index}
+                              className="relative w-full overflow-hidden rounded-md border border-slate-200 dark:border-slate-600 bg-black/40"
+                              style={{ paddingBottom: '70%' }}
+                            >
+                              <img
+                                src={url}
+                                alt="Post image"
+                                className="absolute inset-0 h-full w-full object-cover"
+                              />
+                              <button
+                                type="button"
+                                className="absolute top-1 right-1 bg-black/70 rounded-full px-1 text-[10px] leading-none text-white"
+                                onClick={() =>
+                                  setNewPostImages((prev) => prev.filter((_, i) => i !== index))
+                                }
+                              >
+                                ×
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                      <div className="flex items-center justify-between mt-3">
+                        <label className="inline-flex items-center gap-2 text-xs text-slate-600 dark:text-slate-400 cursor-pointer hover:text-slate-800 dark:hover:text-slate-200">
+                          <ImageIcon className="h-4 w-4" />
+                          <span>Add photos</span>
+                          <input
+                            type="file"
+                            accept="image/*"
+                            multiple
+                            className="hidden"
+                            onChange={handleImagesSelected}
+                          />
+                        </label>
+                        <div className="flex justify-end gap-2">
+                          <Button 
+                            variant="ghost" 
+                            size="sm"
+                            onClick={() => {
+                              setShowNewPostForm(false);
+                              setNewPostContent('');
+                              setNewPostImages([]);
+                            }}
+                          >
+                            Cancel
+                          </Button>
+                          <Button 
+                            onClick={handleCreatePost}
+                            disabled={!newPostContent.trim() || createPostMutation.isPending}
+                            size="sm"
+                            className="bg-orange-600 hover:bg-orange-700 text-white"
+                            data-testid="button-submit-post"
+                          >
+                            {createPostMutation.isPending ? 'Posting...' : 'Post'}
+                          </Button>
+                        </div>
                       </div>
                     </div>
                   )}
@@ -292,7 +360,33 @@ const Dashboard = memo(function Dashboard() {
                     {post.title && (
                       <h3 className="text-base font-semibold mb-2 text-orange-500">{post.title}</h3>
                     )}
-                    <p className="text-sm text-slate-700 dark:text-slate-300 mb-3 whitespace-pre-wrap">{post.content}</p>
+                    <p className="text-sm text-slate-700 dark:text-slate-300 mb-2 whitespace-pre-wrap">{post.content}</p>
+
+                    {(() => {
+                      const images =
+                        (post as any).imageUrls && Array.isArray((post as any).imageUrls)
+                          ? ((post as any).imageUrls as string[])
+                          : Array.isArray(post.images)
+                          ? post.images
+                          : [];
+                      return images.length > 0 ? (
+                        <div className="mb-3 grid grid-cols-2 gap-2">
+                          {images.slice(0, 4).map((url, index) => (
+                            <div
+                              key={url + index}
+                              className="relative w-full overflow-hidden rounded-md border border-slate-200 dark:border-slate-700 bg-black/40"
+                              style={{ paddingBottom: '70%' }}
+                            >
+                              <img
+                                src={url}
+                                alt="Post image"
+                                className="absolute inset-0 h-full w-full object-cover"
+                              />
+                            </div>
+                          ))}
+                        </div>
+                      ) : null;
+                    })()}
 
                     {(post.likeCount > 0 || post.commentCount > 0) && (
                       <div className="flex items-center gap-4 text-xs text-slate-500 dark:text-slate-400 mb-2 pb-2 border-b border-slate-200 dark:border-slate-700">

@@ -1,3 +1,5 @@
+import { apiRequest } from '@/lib/queryClient';
+import { uploadObject } from '@/lib/objectUpload';
 
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -321,15 +323,8 @@ export default function Settings() {
     if (!file) return;
 
     try {
-      const { uploadURL } = await apiRequest('POST', '/api/objects/upload');
-      await fetch(uploadURL, {
-        method: 'PUT',
-        body: file,
-        headers: { 'Content-Type': file.type || 'application/octet-stream' },
-      });
-
-      const stableUrl = typeof uploadURL === 'string' ? uploadURL.split('?')[0] : '';
-      setProfileForm((prev) => ({ ...prev, profileImageUrl: stableUrl || uploadURL }));
+      const { publicUrl } = await uploadObject(file);
+      setProfileForm((prev) => ({ ...prev, profileImageUrl: publicUrl }));
       toast({ title: 'Photo uploaded', description: 'Click Save Changes to apply it.' });
     } catch (error: any) {
       toast({ title: 'Upload failed', description: error?.message || 'Could not upload photo.', variant: 'destructive' });

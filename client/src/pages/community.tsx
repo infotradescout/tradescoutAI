@@ -52,6 +52,7 @@ interface CommunityPost {
   userVote?: 'up' | 'down' | null;
   pinned: boolean;
   trending: boolean;
+  imageUrls?: string[];
 }
 
 const POST_CATEGORIES = [
@@ -71,6 +72,7 @@ export default function Community() {
   const [searchQuery, setSearchQuery] = useState("");
   const [newPostContent, setNewPostContent] = useState("");
   const [showPostComposer, setShowPostComposer] = useState(false);
+  const [newPostImages, setNewPostImages] = useState<string[]>([]);
   const { unreadCount } = useNotifications();
 
   const stateCode = location.stateCode as string | undefined;
@@ -97,15 +99,17 @@ export default function Community() {
 
   // Create post mutation
   const createPostMutation = useMutation({
-    mutationFn: async (content: string) => {
+    mutationFn: async (payload: { content: string; images?: string[] }) => {
       return apiRequest('POST', '/api/community/posts', {
-        content,
+        content: payload.content,
         category: 'general',
+        images: payload.images,
       });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/community/posts'] });
       setNewPostContent('');
+       setNewPostImages([]);
       setShowPostComposer(false);
       toast({
         title: "Posted!",
@@ -134,7 +138,10 @@ export default function Community() {
       return;
     }
     if (!newPostContent.trim()) return;
-    createPostMutation.mutate(newPostContent);
+    createPostMutation.mutate({
+      content: newPostContent,
+      images: newPostImages.length ? newPostImages : undefined,
+    });
   };
 
   const handleLike = (postId: string) => {
@@ -223,20 +230,20 @@ export default function Community() {
     <CommunityShell sectionLabel="Community" notificationsCount={0}>
       <div className="pb-16 lg:pb-0">
         {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-4xl font-bold text-orange-500 mb-2">Community</h1>
-          <p className="text-base text-slate-300">Connect with neighbors and local contractors</p>
+        <div className="mb-6">
+          <h1 className="text-lg font-semibold text-orange-500 mb-1">Community</h1>
+          <p className="text-sm text-slate-300">Connect with neighbors and local contractors</p>
         </div>
 
         {/* Navigation Tabs */}
         <div className="mb-6">
-          <div className="flex gap-2 bg-[#1a2332] rounded-xl p-1.5 shadow-lg border border-[#2d3748]">
+          <div className="flex gap-2 bg-[#0f1624] rounded-xl p-1.5 shadow-sm border border-[#1f2937]">
             <button
               onClick={() => setActiveTab("for-you")}
-              className={`flex-1 px-6 py-3 rounded-lg text-sm font-semibold transition-all border-b-2 ${
+              className={`flex-1 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
                 activeTab === "for-you"
-                  ? "bg-orange-500 text-white shadow-lg shadow-orange-500/50 border-orange-400"
-                  : "text-slate-300 hover:bg-[#0f1419] hover:text-white border-transparent"
+                  ? "bg-orange-500 text-white shadow-sm"
+                  : "text-slate-300 hover:bg-[#0f1419] hover:text-white"
               }`}
               data-testid="tab-for-you"
             >
@@ -244,10 +251,10 @@ export default function Community() {
             </button>
             <button
               onClick={() => setActiveTab("projects")}
-              className={`flex-1 px-6 py-3 rounded-lg text-sm font-semibold transition-all border-b-2 ${
+              className={`flex-1 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
                 activeTab === "projects"
-                  ? "bg-orange-500 text-white shadow-lg shadow-orange-500/50 border-orange-400"
-                  : "text-slate-300 hover:bg-[#0f1419] hover:text-white border-transparent"
+                  ? "bg-orange-500 text-white shadow-sm"
+                  : "text-slate-300 hover:bg-[#0f1419] hover:text-white"
               }`}
               data-testid="tab-projects"
             >
@@ -292,6 +299,9 @@ export default function Community() {
                   value={newPostContent}
                   onChange={setNewPostContent}
                   onSubmit={handleCreatePost}
+                  images={newPostImages}
+                  onImagesChange={setNewPostImages}
+                  maxImages={8}
                   onOpenRequest={() => {
                     if (!isAuthenticated) {
                       toast({
@@ -363,6 +373,7 @@ export default function Community() {
                       upvotes: post.upvotes,
                       comments: post.comments,
                       tags: post.tags,
+                      imageUrls: post.imageUrls,
                     }}
                     onLike={handleLike}
                     formatTimeAgo={formatTimeAgo}

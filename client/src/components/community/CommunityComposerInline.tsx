@@ -4,6 +4,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
 import { Image as ImageIcon, Video, Smile } from "lucide-react";
 import { useHandedness } from "@/hooks/useHandedness";
+import { uploadObject } from "@/lib/objectUpload";
 
 export interface CommunityComposerInlineProps {
   isAuthenticated: boolean;
@@ -14,6 +15,9 @@ export interface CommunityComposerInlineProps {
   onSubmit: () => void;
   onOpenRequest?: () => void;
   isSubmitting?: boolean;
+  images?: string[];
+  onImagesChange?: (images: string[]) => void;
+  maxImages?: number;
 }
 
 export function CommunityComposerInline({
@@ -25,6 +29,9 @@ export function CommunityComposerInline({
   onSubmit,
   onOpenRequest,
   isSubmitting,
+  images,
+  onImagesChange,
+  maxImages = 8,
 }: CommunityComposerInlineProps) {
   const handedness = useHandedness();
   const handlePrimaryClick = () => {
@@ -35,6 +42,35 @@ export function CommunityComposerInline({
     if (value.trim()) {
       onSubmit();
     }
+  };
+
+  const handleImagesSelected = async (
+    event: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    if (!onImagesChange) {
+      event.target.value = "";
+      return;
+    }
+
+    const existing = images ?? [];
+    const remainingSlots = Math.max(0, maxImages - existing.length);
+    const files = Array.from(event.target.files || []).slice(0, remainingSlots);
+
+    const uploaded: string[] = [];
+    for (const file of files) {
+      try {
+        const { publicUrl } = await uploadObject(file);
+        uploaded.push(publicUrl);
+      } catch (error) {
+        console.error("Failed to upload community post image", error);
+      }
+    }
+
+    if (uploaded.length) {
+      onImagesChange([...existing, ...uploaded].slice(0, maxImages));
+    }
+
+    event.target.value = "";
   };
 
   return (
@@ -56,13 +92,48 @@ export function CommunityComposerInline({
           onChange={(e) => onChange(e.target.value)}
           className="min-h-[72px] resize-none border-0 focus-visible:ring-0 px-0 text-white text-sm sm:text-base bg-transparent"
         />
+        {images && images.length > 0 && (
+          <div className="flex flex-wrap gap-2 pt-1">
+            {images.map((url, index) => (
+              <div
+                key={url + index}
+                className="relative w-20 h-20 rounded-md overflow-hidden border border-[#1f2937]"
+              >
+                <img
+                  src={url}
+                  alt="Post attachment"
+                  className="w-full h-full object-cover"
+                />
+                {onImagesChange && (
+                  <button
+                    type="button"
+                    className="absolute top-1 right-1 bg-black/60 rounded-full px-1 text-[10px] leading-none text-white"
+                    onClick={() => {
+                      const next = images.filter((_, i) => i !== index);
+                      onImagesChange(next);
+                    }}
+                  >
+                    ×
+                  </button>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
         <Separator className="bg-[#1f2937]" />
         <div className="flex items-center justify-between">
           <div className="flex gap-1.5 sm:gap-2 text-xs sm:text-sm">
-            <Button variant="ghost" size="sm" className="h-8 px-2 text-slate-500 dark:text-slate-400">
-              <ImageIcon className="w-4 h-4 mr-2" />
-              Photo
-            </Button>
+            <label className="inline-flex items-center gap-2 h-8 px-2 text-slate-500 dark:text-slate-400 hover:text-slate-300 cursor-pointer">
+              <ImageIcon className="w-4 h-4" />
+              <span>Photo</span>
+              <input
+                type="file"
+                accept="image/*"
+                multiple
+                className="hidden"
+                onChange={handleImagesSelected}
+              />
+            </label>
             <Button variant="ghost" size="sm" className="h-8 px-2 text-slate-500 dark:text-slate-400">
               <Video className="w-4 h-4 mr-2" />
               Video

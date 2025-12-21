@@ -214,6 +214,13 @@ export class PaymentService {
             status: 'completed',
             stripePaymentIntentId: paymentIntent.id
           });
+
+          // If this transaction is associated with a listing boost, activate it
+          try {
+            await storage.applyListingBoostForTransaction(metadata.transactionId);
+          } catch (err) {
+            console.error('Error applying listing boost for transaction', metadata.transactionId, err);
+          }
         }
         break;
 
