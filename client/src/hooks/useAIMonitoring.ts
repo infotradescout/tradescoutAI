@@ -6,8 +6,8 @@ export function useAIMonitoring() {
   const { user, isAuthenticated } = useAuth();
 
   // Assuming isAdmin is derived from user.role, and it's defined elsewhere or passed as a prop.
-  // For this example, let's assume isAdmin is true if user.role is 'head_admin' or 'ops_admin'.
-  const isAdmin = isAuthenticated && user?.role && ['head_admin', 'ops_admin'].includes(user.role);
+  // Consider users with head_admin, ops_admin, or super_admin roles as admins.
+  const isAdmin = isAuthenticated && user?.role && ['head_admin', 'ops_admin', 'super_admin'].includes(user.role);
 
   // Placeholder for reportIssue function, assuming it's defined in the scope or imported.
   const reportIssue = (issue: any) => {

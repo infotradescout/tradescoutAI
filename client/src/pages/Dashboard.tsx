@@ -115,10 +115,31 @@ const Dashboard = memo(function Dashboard() {
   const posts = postsData || [];
 
   const defaultEnabledWidgets = AVAILABLE_WIDGETS
-    .filter(w => w.defaultEnabled)
-    .map(w => w.id);
+    .filter((w) => w.defaultEnabled)
+    .map((w) => w.id);
 
-  const enabledWidgets = (preferences && (preferences as any).dashboard?.enabledWidgets) || defaultEnabledWidgets;
+  const dashboardPrefs = (preferences && (preferences as any).dashboard) || {};
+
+  const enabledWidgets: string[] = Array.isArray(dashboardPrefs.enabledWidgets)
+    ? dashboardPrefs.enabledWidgets
+    : defaultEnabledWidgets;
+
+  const defaultWidgetOrder = AVAILABLE_WIDGETS.map((w) => w.id);
+
+  let widgetOrder: string[] = Array.isArray(dashboardPrefs.widgetOrder) && dashboardPrefs.widgetOrder.length
+    ? dashboardPrefs.widgetOrder
+    : defaultWidgetOrder;
+
+  // Ensure the widget order stays in sync with AVAILABLE_WIDGETS
+  const availableIdSet = new Set(defaultWidgetOrder);
+  widgetOrder = widgetOrder.filter((id) => availableIdSet.has(id));
+  defaultWidgetOrder.forEach((id) => {
+    if (!widgetOrder.includes(id)) {
+      widgetOrder.push(id);
+    }
+  });
+
+  const orderedEnabledWidgets = widgetOrder.filter((id) => enabledWidgets.includes(id));
 
   const widgetComponents: Record<string, React.ComponentType<{ className?: string }>> = {
     'activity-stats': ActivityStatsWidget,
@@ -306,12 +327,12 @@ const Dashboard = memo(function Dashboard() {
           {/* Snapshot Grid (role-aware via preferences) */}
           <div>
             <div className="grid lg:grid-cols-3 gap-4">
-              {Array.isArray(enabledWidgets) && enabledWidgets.map((widgetId: string) => {
+              {Array.isArray(orderedEnabledWidgets) && orderedEnabledWidgets.map((widgetId: string) => {
                 const WidgetComponent = widgetComponents[widgetId];
                 return WidgetComponent ? <WidgetComponent key={widgetId} /> : null;
               })}
 
-              {(!Array.isArray(enabledWidgets) || enabledWidgets.length === 0) && (
+              {(!Array.isArray(orderedEnabledWidgets) || orderedEnabledWidgets.length === 0) && (
                 <Card className="bg-[#0f1419] dark:bg-slate-800 border-0 shadow-sm lg:col-span-3">
                   <CardContent className="p-6 text-center">
                     <p className="text-sm text-slate-600 dark:text-slate-400 mb-4">

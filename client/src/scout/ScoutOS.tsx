@@ -811,7 +811,7 @@ export default function ScoutOS() {
   })();
 
   return (
-    <div className="min-h-screen bg-[#060b1c] text-white flex flex-col items-center">
+    <div className="min-h-screen text-white flex flex-col items-center">
       <div
         className={`w-full ${
           isMobile ? "px-0 pt-3 pb-2" : "max-w-xl px-4 pt-6 pb-3"
@@ -829,7 +829,7 @@ export default function ScoutOS() {
                 <span className="text-orange-400">{heroHeadlineTarget}</span>
               </h1>
               <p className="text-xs text-slate-300/90 max-w-md mx-auto">
-                Your local AI assistant for contractors, community updates, and home projects.
+                Your local AI assistant for projects, people, and everything in your community.
               </p>
             </header>
 
@@ -889,7 +889,7 @@ export default function ScoutOS() {
                 COMMUNITY OS
               </p>
               <p className="text-[11px] text-slate-400">
-                Your local operating system for contractors, projects, and community.
+                Your local operating system for projects, people, and community.
               </p>
 
               <h1 className="mt-1 text-[clamp(0.95rem,3.5vw,1.35rem)] tracking-[0.12em] text-white uppercase">

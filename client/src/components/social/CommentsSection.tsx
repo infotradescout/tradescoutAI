@@ -56,20 +56,36 @@ function Comment({ comment, postId, level = 0 }: CommentProps) {
   const { toast } = useToast();
   const [showReplyForm, setShowReplyForm] = useState(false);
   const [showReplies, setShowReplies] = useState(level === 0);
-  const [isLiked, setIsLiked] = useState(comment.isLiked || false);
-  const [likeCount, setLikeCount] = useState(comment.likeCount || 0);
+  const [isLiked, setIsLiked] = useState(Boolean(comment.userReaction || comment.isLiked));
+  const [likeCount, setLikeCount] = useState(
+    (comment._count && typeof comment._count.reactions === "number"
+      ? comment._count.reactions
+      : comment.reactionCount) ||
+      comment.likeCount ||
+      0
+  );
 
   const replyForm = useForm<CommentFormData>({
     resolver: zodResolver(commentSchema),
     defaultValues: { content: "" },
   });
 
-  // Like comment mutation
+  // Like comment mutation (uses reactions endpoint with "like" reactionType)
   const likeMutation = useMutation({
-    mutationFn: () => apiRequest('POST', `/api/social/comments/${comment.id}/like`),
+    mutationFn: () => {
+      if (isLiked) {
+        return apiRequest(
+          "DELETE",
+          `/api/social/comments/${comment.id}/reactions`
+        );
+      }
+      return apiRequest("POST", `/api/social/comments/${comment.id}/reactions`, {
+        reactionType: "like",
+      });
+    },
     onSuccess: () => {
       setIsLiked(!isLiked);
-      setLikeCount((prev: number) => isLiked ? prev - 1 : prev + 1);
+      setLikeCount((prev: number) => (isLiked ? prev - 1 : prev + 1));
     },
     onError: (error: any) => {
       toast({

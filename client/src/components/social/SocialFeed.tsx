@@ -56,12 +56,30 @@ export function SocialFeed({ className }: SocialFeedProps) {
     enabled: isAuthenticated,
   });
 
-  // Normalize posts data - handle both array response and object response
-  const posts = Array.isArray(data) 
-    ? data 
-    : Array.isArray(data?.posts) 
-    ? data.posts 
+  // Normalize posts data - handle both array response and object response,
+  // and derive like/comment/share counts + isLiked from server metadata
+  const rawPosts = Array.isArray(data)
+    ? data
+    : Array.isArray((data as any)?.posts)
+    ? (data as any).posts
     : [];
+
+  const posts = rawPosts.map((post: any) => ({
+    ...post,
+    likeCount:
+      (post._count && typeof post._count.reactions === "number"
+        ? post._count.reactions
+        : post.likeCount) || 0,
+    commentCount:
+      (post._count && typeof post._count.comments === "number"
+        ? post._count.comments
+        : post.commentCount) || 0,
+    shareCount:
+      (post._count && typeof post._count.shares === "number"
+        ? post._count.shares
+        : post.shareCount) || 0,
+    isLiked: Boolean(post.userReaction || post.isLiked),
+  }));
 
   // Fetch trending topics
   const { data: trending } = useQuery({

@@ -2,7 +2,7 @@
 {
   "name": "TradeScout Pro",
   "short_name": "TradeScout",
-  "description": "Hyperlocal AI Assistant for Homeowners and Contractors",
+  "description": "Hyperlocal AI assistant for residents, pros, and community teams",
   "start_url": ".",
   "display": "standalone",
   "orientation": "portrait",

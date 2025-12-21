@@ -116,7 +116,7 @@ export function useHelpSystem() {
         id: 'groups-intro',
         target: '.groups-grid',
         title: 'Community Groups',
-        content: 'Join local communities of homeowners and contractors. Share projects, get advice, and build connections.',
+        content: 'Join local communities of residents, pros, and leaders. Share projects, get advice, and build connections.',
         illustration: 'house',
         position: 'bottom'
       },

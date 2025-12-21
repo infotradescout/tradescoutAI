@@ -80,7 +80,7 @@ export default function AdminPricingAnalytics() {
       const result = await apiRequest('GET', `/api/admin/pricing-analytics?timeframe=${timeframe}`);
       return result as PricingAnalytics;
     },
-    enabled: !!user && ['head_admin', 'ops_admin'].includes(user.role || ''),
+    enabled: !!user && ['head_admin', 'ops_admin', 'super_admin'].includes(user.role || ''),
   });
 
   // Update calculator pricing
@@ -136,7 +136,7 @@ export default function AdminPricingAnalytics() {
     }
   };
 
-  if (!user || !['head_admin', 'ops_admin'].includes(user.role || '')) {
+  if (!user || !['head_admin', 'ops_admin', 'super_admin'].includes(user.role || '')) {
     return (
       <div className="container mx-auto px-4 py-8">
         <Card className="bg-red-50 border-red-200">

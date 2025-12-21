@@ -1,34 +1,58 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { Settings, Save, LayoutGrid } from 'lucide-react';
+import { Settings, Save, LayoutGrid, GripVertical } from 'lucide-react';
 import { AVAILABLE_WIDGETS } from '@/components/dashboard/DashboardWidgets';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { apiRequest } from '@/lib/queryClient';
+import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd';
 
 export default function DashboardSettings() {
   const { user } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  const { data: preferences } = useQuery({
+  const { data: preferences, isLoading } = useQuery({
     queryKey: ['/api/users/preferences'],
   });
 
   const defaultEnabledWidgets = AVAILABLE_WIDGETS
-    .filter(w => w.defaultEnabled)
-    .map(w => w.id);
+    .filter((w) => w.defaultEnabled)
+    .map((w) => w.id);
 
-  const [enabledWidgets, setEnabledWidgets] = useState<string[]>(
-    (preferences && (preferences as any).dashboard?.enabledWidgets) || defaultEnabledWidgets
-  );
+  const [enabledWidgets, setEnabledWidgets] = useState<string[]>(defaultEnabledWidgets);
+  const [widgetOrder, setWidgetOrder] = useState<string[]>(() => AVAILABLE_WIDGETS.map((w) => w.id));
+
+  useEffect(() => {
+    const dashboardPrefs = (preferences && (preferences as any).dashboard) || {};
+
+    const enabledFromPrefs: string[] = Array.isArray(dashboardPrefs.enabledWidgets)
+      ? dashboardPrefs.enabledWidgets
+      : defaultEnabledWidgets;
+
+    const defaultOrder = AVAILABLE_WIDGETS.map((w) => w.id);
+    let orderFromPrefs: string[] = Array.isArray(dashboardPrefs.widgetOrder) && dashboardPrefs.widgetOrder.length
+      ? dashboardPrefs.widgetOrder
+      : defaultOrder;
+
+    const availableIdSet = new Set(defaultOrder);
+    orderFromPrefs = orderFromPrefs.filter((id: string) => availableIdSet.has(id));
+    defaultOrder.forEach((id) => {
+      if (!orderFromPrefs.includes(id)) {
+        orderFromPrefs.push(id);
+      }
+    });
+
+    setEnabledWidgets(enabledFromPrefs);
+    setWidgetOrder(orderFromPrefs);
+  }, [preferences, defaultEnabledWidgets]);
 
   const savePreferencesMutation = useMutation({
-    mutationFn: async (data: { dashboard: { enabledWidgets: string[] } }) => {
+    mutationFn: async (data: { dashboard: { enabledWidgets: string[]; widgetOrder: string[] } }) => {
       const response = await fetch('/api/users/preferences', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
@@ -65,8 +89,18 @@ export default function DashboardSettings() {
     savePreferencesMutation.mutate({
       dashboard: {
         enabledWidgets,
+        widgetOrder,
       },
     });
+  };
+
+  const handleDragEnd = (result: DropResult) => {
+    if (!result.destination) return;
+
+    const items = Array.from(widgetOrder);
+    const [moved] = items.splice(result.source.index, 1);
+    items.splice(result.destination.index, 0, moved);
+    setWidgetOrder(items);
   };
 
   return (
@@ -101,32 +135,71 @@ export default function DashboardSettings() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            {AVAILABLE_WIDGETS.map((widget) => (
-              <div
-                key={widget.id}
-                className="flex items-center justify-between p-4 rounded-lg bg-[#0f1419] dark:bg-slate-700/50 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
-              >
-                <div className="flex-1">
-                  <Label
-                    htmlFor={widget.id}
-                    className="font-medium text-orange-500 cursor-pointer"
-                  >
-                    {widget.name}
-                  </Label>
-                  {widget.defaultEnabled && (
-                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                      Recommended widget
-                    </p>
+            {isLoading ? (
+              <p className="text-sm text-slate-500 dark:text-slate-400">Loading your dashboard preferences...</p>
+            ) : (
+              <DragDropContext onDragEnd={handleDragEnd}>
+                <Droppable droppableId="dashboard-widgets">
+                  {(provided) => (
+                    <div
+                      ref={provided.innerRef}
+                      {...provided.droppableProps}
+                      className="space-y-2"
+                    >
+                      {widgetOrder.map((widgetId, index) => {
+                        const widget = AVAILABLE_WIDGETS.find((w) => w.id === widgetId);
+                        if (!widget) return null;
+                        const isEnabled = enabledWidgets.includes(widget.id);
+                        return (
+                          <Draggable key={widget.id} draggableId={widget.id} index={index}>
+                            {(draggableProvided, snapshot) => (
+                              <div
+                                ref={draggableProvided.innerRef}
+                                {...draggableProvided.draggableProps}
+                                className={`flex items-center justify-between p-4 rounded-lg bg-[#0f1419] dark:bg-slate-700/50 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors border ${
+                                  snapshot.isDragging ? 'border-orange-500 shadow-md' : 'border-transparent'
+                                }`}
+                              >
+                                <div className="flex items-center gap-3 flex-1">
+                                  <button
+                                    type="button"
+                                    aria-label="Reorder widget"
+                                    {...draggableProvided.dragHandleProps}
+                                    className="text-slate-500 hover:text-orange-500 cursor-grab active:cursor-grabbing"
+                                  >
+                                    <GripVertical className="h-4 w-4" />
+                                  </button>
+                                  <div className="flex-1">
+                                    <Label
+                                      htmlFor={widget.id}
+                                      className="font-medium text-orange-500 cursor-pointer"
+                                    >
+                                      {widget.name}
+                                    </Label>
+                                    {widget.defaultEnabled && (
+                                      <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                                        Recommended widget
+                                      </p>
+                                    )}
+                                  </div>
+                                </div>
+                                <Switch
+                                  id={widget.id}
+                                  checked={isEnabled}
+                                  onCheckedChange={() => handleToggleWidget(widget.id)}
+                                  data-testid={`switch-${widget.id}`}
+                                />
+                              </div>
+                            )}
+                          </Draggable>
+                        );
+                      })}
+                      {provided.placeholder}
+                    </div>
                   )}
-                </div>
-                <Switch
-                  id={widget.id}
-                  checked={enabledWidgets.includes(widget.id)}
-                  onCheckedChange={() => handleToggleWidget(widget.id)}
-                  data-testid={`switch-${widget.id}`}
-                />
-              </div>
-            ))}
+                </Droppable>
+              </DragDropContext>
+            )}
           </CardContent>
         </Card>
 

@@ -46,7 +46,8 @@ export function registerSocialRoutes(app: Express) {
         scope = 'all', // all | connections (future scopes can be added)
       } = req.query as any;
       
-      const offset = (parseInt(page) - 1) * parseInt(limit);
+      const limitNumber = parseInt(limit);
+      const offset = (parseInt(page) - 1) * limitNumber;
       
       // Build query conditions
       let whereConditions: any[] = [];
@@ -92,7 +93,7 @@ export function registerSocialRoutes(app: Express) {
         );
       }
       
-      // Base query (note: currently not executed – feed remains stubbed)
+      // Base query
       let query = db
         .select({
           post: socialPosts,
@@ -119,9 +120,17 @@ export function registerSocialRoutes(app: Express) {
           )
         )
         .groupBy(socialPosts.id, users.id);
-      
-      // Apply sorting - temporarily return empty for now
-      const posts: any[] = [];
+
+      // Apply basic sorting
+      if (sortBy === "popular") {
+        query = query.orderBy(desc(socialPosts.createdAt));
+      } else {
+        // Default to most recent first
+        query = query.orderBy(desc(socialPosts.createdAt));
+      }
+
+      // Apply pagination
+      const posts: any[] = await query.limit(limitNumber).offset(offset);
       
       // Get user reactions for each post
       const postIds = posts.map((p: any) => p.post.id);

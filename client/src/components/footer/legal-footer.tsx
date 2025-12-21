@@ -13,7 +13,7 @@ export function LegalFooter() {
           <div className="col-span-1 md:col-span-1">
             <h3 className="text-lg font-semibold text-white mb-4">TradeScout</h3>
             <p className="text-sm mb-4">
-              Connecting homeowners with verified contractors and facilitating valuable exchanges.
+              Connecting residents, pros, organizations, and neighbors through verified local networks and valuable exchanges.
             </p>
             <div className="text-sm">
               <p>📧 support@tradescout.com</p>

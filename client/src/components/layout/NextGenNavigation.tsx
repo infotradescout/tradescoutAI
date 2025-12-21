@@ -51,8 +51,8 @@ export function NextGenNavigation({ className = "" }: NextGenNavigationProps) {
         { href: "/worker-marketplace", label: "Helpers", icon: Users, priority: 4 },
         { href: "/exchange", label: "Exchange", icon: ArrowLeftRight, priority: 3 },
         { href: "/accelerator", label: "Accelerator", icon: Crown, priority: 2 },
-        // Admin navigation for head_admin users
-        ...(userRole === 'head_admin' || userRole === 'ops_admin' ? [
+        // Admin navigation for admin users
+        ...(userRole === 'head_admin' || userRole === 'ops_admin' || userRole === 'super_admin' ? [
           { href: "/admin/panel", label: "Admin", icon: Shield, priority: 15 },
           { href: "/admin/users", label: "Admin Users", icon: Settings, priority: 14 }
         ] : [])
@@ -60,7 +60,7 @@ export function NextGenNavigation({ className = "" }: NextGenNavigationProps) {
     ];
 
     // Adjust priorities based on user role
-    if (userRole === 'head_admin' || userRole === 'ops_admin') {
+    if (userRole === 'head_admin' || userRole === 'ops_admin' || userRole === 'super_admin') {
       return baseItems.map(item => {
         if (item.href === '/admin/panel') return { ...item, priority: 20 }; // Highest priority
         if (item.href === '/admin/users') return { ...item, priority: 19 };

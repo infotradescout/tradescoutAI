@@ -199,6 +199,7 @@ const ScoutLandingLite = React.lazy(() => import('./experiments/scout-landing-li
 // Advanced Social & Integration Features
 const SocialIntegration = React.lazy(() => import('./pages/social-integration'));
 const CommunityFeed = React.lazy(() => import('./pages/community-feed'));
+const CommunityProfile = React.lazy(() => import('./pages/CommunityProfile'));
 const AdvancedSearchNew = React.lazy(() => import('./pages/advanced-search'));
 const ReferralDashboard = React.lazy(() => import('./pages/referral-dashboard'));
 const EventManagement = React.lazy(() => import('./pages/event-management'));
@@ -326,6 +327,27 @@ const AppLayout = memo(function AppLayout() {
       setLocation(`/scout${location.substring(1)}`);
     }
   }, [location, setLocation]);
+
+  // Respect user default home page preference when landing on '/'
+  useEffect(() => {
+    if (!isAuthenticated || !user?.preferences?.defaultHomePage) return;
+
+    const defaultPage = user.preferences.defaultHomePage;
+    const routeMap: Record<string, string> = {
+      llm: '/scout',
+      marketplace: '/marketplace',
+      'contractor-board': '/contractors/board',
+      dashboard: '/dashboard',
+      profile: '/profile',
+      community: '/community-feed',
+    };
+
+    const targetRoute = routeMap[defaultPage];
+
+    if (targetRoute && location === '/') {
+      setLocation(targetRoute);
+    }
+  }, [isAuthenticated, user, location, setLocation]);
 
   const dismissBetaNotice = () => {
     sessionStorage.setItem('ts_beta_notice_dismissed_session', 'true');
@@ -494,6 +516,7 @@ const AppLayout = memo(function AppLayout() {
                   {/* Community tab should show the rich Nextdoor-style feed */}
                   <Route path="/community"><LazyPage Component={CommunityFeed} /></Route>
                   <Route path="/community-feed"><LazyPage Component={CommunityFeed} /></Route>
+                  <Route path="/community/u/:userId"><LazyPage Component={CommunityProfile} /></Route>
                   <Route path="/community-moderation"><LazyPage Component={CommunityModerationDemo} /></Route>
                   
                   {/* Community Builder routes */}

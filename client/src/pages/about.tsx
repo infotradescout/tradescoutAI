@@ -9,7 +9,7 @@ const About = memo(function About() {
     {
       icon: Hammer,
       title: "Connecting Quality Contractors",
-      description: "We verify and showcase the best contractors in every community, ensuring homeowners find reliable professionals."
+      description: "We verify and showcase the best local pros, organizations, and leaders in every community—so residents and partners can find the right people fast."
     },
     {
       icon: Heart,
@@ -24,7 +24,7 @@ const About = memo(function About() {
     {
       icon: Shield,
       title: "Ensuring Quality",
-      description: "Rigorous verification, insurance requirements, and quality standards protect both contractors and homeowners."
+      description: "Rigorous verification, insurance requirements, and quality standards protect everyone using TradeScout: residents, contractors, businesses, and community teams."
     }
   ];
 
@@ -39,7 +39,7 @@ const About = memo(function About() {
     {
       year: '2023',
       title: 'Foundation',
-      description: 'TradeScout founded with a mission to connect quality contractors with homeowners'
+      description: 'TradeScout founded with a mission to connect local people, pros, and organizations around real projects and decisions'
     },
     {
       year: '2024',
@@ -72,7 +72,7 @@ const About = memo(function About() {
     {
       icon: Shield,
       title: "Trust & Transparency",
-      description: "Open feedback systems, verified RECOMMENDATIONS, and transparent pricing help build trust between contractors and homeowners."
+      description: "Open feedback systems, verified RECOMMENDATIONS, and transparent pricing help build trust across neighbors, pros, and community stakeholders."
     },
     {
       icon: Heart,
@@ -108,7 +108,7 @@ const About = memo(function About() {
             </h1>
             
             <p className="text-xl text-gray-300 mb-8 leading-relaxed">
-              TradeScout connects homeowners with elite contractors while supporting communities 
+              TradeScout connects residents, pros, and community leaders while supporting local projects 
               and the skilled trades through our partnership with the Mike Rowe Works Foundation.
             </p>
             
@@ -130,8 +130,8 @@ const About = memo(function About() {
           <div className="text-center mb-12">
             <h2 className="text-4xl font-bold text-white mb-4">Our Mission</h2>
             <p className="text-xl text-gray-300 max-w-3xl mx-auto">
-              To create the most trusted platform for home improvement by connecting quality contractors 
-              with homeowners while supporting skilled trades and local communities.
+              To create the most trusted community operating system for real-world work by connecting local residents,
+              professionals, and organizations while supporting skilled trades and local communities.
             </p>
           </div>
 
@@ -293,8 +293,8 @@ const About = memo(function About() {
           <CardContent className="p-8 text-center">
             <h2 className="text-3xl font-bold text-white mb-4">Join the TradeScout Community</h2>
             <p className="text-xl text-gray-300 mb-8 max-w-2xl mx-auto">
-              Whether you're a homeowner looking for quality contractors or a contractor 
-              wanting to grow your business, TradeScout is here to help you succeed.
+              Whether you're a resident, contractor, local business, organizer, or civic leader,
+              TradeScout is here to help you and your community succeed.
             </p>
             
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
