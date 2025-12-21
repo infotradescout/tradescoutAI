@@ -15,6 +15,7 @@ import {
   Hammer,
   Info,
 } from "lucide-react";
+import { Link } from "wouter";
 
 export interface CommunityPostCardAuthor {
   id?: string;
@@ -166,40 +167,84 @@ export function CommunityPostCard({ post, onLike, formatTimeAgo }: CommunityPost
 
         <div className="flex items-start justify-between mb-3">
           <div className="flex gap-3">
-            <Avatar className="h-12 w-12 sm:h-14 sm:w-14 ring-2 ring-orange-500/40">
-              <AvatarImage src={post.author?.avatar} />
-              <AvatarFallback className="bg-gradient-to-br from-orange-500 to-orange-600 text-white font-semibold">
-                {post.author?.name?.[0] || "U"}
-              </AvatarFallback>
-            </Avatar>
-            <div>
-              <div className="flex items-center gap-2 mb-1">
-                <span className="font-semibold text-white text-base sm:text-lg">
-                  {post.author?.name || "Anonymous"}
-                </span>
-                {post.author?.role && (
-                  <span className="text-[0.7rem] uppercase tracking-[0.16em] text-slate-400">
-                    {post.author.role}
-                  </span>
-                )}
-              </div>
-              <div className="flex flex-wrap items-center gap-2 text-xs sm:text-[0.8rem] text-slate-400">
-                <span
-                  className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 ${categoryMeta.className}`}
-                >
-                  {categoryMeta.icon}
-                  <span className="font-medium">{categoryMeta.label}</span>
-                </span>
-                <span>• {formatTimeAgo(post.createdAt)}</span>
-                {post.location && (
-                  <span className="inline-flex items-center gap-1">
-                    <span>•</span>
-                    <MapPin className="w-3.5 h-3.5" />
-                    <span>{post.location}</span>
-                  </span>
-                )}
-              </div>
-            </div>
+            {post.author?.id ? (
+              <Link
+                href={`/community/u/${encodeURIComponent(post.author.id)}`}
+                className="flex gap-3 group cursor-pointer"
+              >
+                <Avatar className="h-12 w-12 sm:h-14 sm:w-14 ring-2 ring-orange-500/40 group-hover:ring-orange-400/70">
+                  <AvatarImage src={post.author.avatar} />
+                  <AvatarFallback className="bg-gradient-to-br from-orange-500 to-orange-600 text-white font-semibold">
+                    {post.author.name?.[0] || "U"}
+                  </AvatarFallback>
+                </Avatar>
+                <div>
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="font-semibold text-white text-base sm:text-lg group-hover:text-orange-300">
+                      {post.author.name || "Anonymous"}
+                    </span>
+                    {post.author.role && (
+                      <span className="text-[0.7rem] uppercase tracking-[0.16em] text-slate-400">
+                        {post.author.role}
+                      </span>
+                    )}
+                  </div>
+                  <div className="flex flex-wrap items-center gap-2 text-xs sm:text-[0.8rem] text-slate-400">
+                    <span
+                      className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 ${categoryMeta.className}`}
+                    >
+                      {categoryMeta.icon}
+                      <span className="font-medium">{categoryMeta.label}</span>
+                    </span>
+                    <span>• {formatTimeAgo(post.createdAt)}</span>
+                    {post.location && (
+                      <span className="inline-flex items-center gap-1">
+                        <span>•</span>
+                        <MapPin className="w-3.5 h-3.5" />
+                        <span>{post.location}</span>
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </Link>
+            ) : (
+              <>
+                <Avatar className="h-12 w-12 sm:h-14 sm:w-14 ring-2 ring-orange-500/40">
+                  <AvatarImage src={post.author?.avatar} />
+                  <AvatarFallback className="bg-gradient-to-br from-orange-500 to-orange-600 text-white font-semibold">
+                    {post.author?.name?.[0] || "U"}
+                  </AvatarFallback>
+                </Avatar>
+                <div>
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="font-semibold text-white text-base sm:text-lg">
+                      {post.author?.name || "Anonymous"}
+                    </span>
+                    {post.author?.role && (
+                      <span className="text-[0.7rem] uppercase tracking-[0.16em] text-slate-400">
+                        {post.author.role}
+                      </span>
+                    )}
+                  </div>
+                  <div className="flex flex-wrap items-center gap-2 text-xs sm:text-[0.8rem] text-slate-400">
+                    <span
+                      className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 ${categoryMeta.className}`}
+                    >
+                      {categoryMeta.icon}
+                      <span className="font-medium">{categoryMeta.label}</span>
+                    </span>
+                    <span>• {formatTimeAgo(post.createdAt)}</span>
+                    {post.location && (
+                      <span className="inline-flex items-center gap-1">
+                        <span>•</span>
+                        <MapPin className="w-3.5 h-3.5" />
+                        <span>{post.location}</span>
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </>
+            )}
           </div>
           <Button
             variant="ghost"

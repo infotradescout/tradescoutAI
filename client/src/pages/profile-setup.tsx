@@ -243,7 +243,7 @@ export default function ProfileSetup() {
               <CardContent>
                 <ul className="space-y-2 text-sm text-gray-300">
                   <li>• Find flexible work opportunities</li>
-                  <li>• Help homeowners and contractors</li>
+                  <li>• Help residents, pros, and local teams</li>
                   <li>• Build experience and reputation</li>
                   <li>• Earn on your schedule</li>
                 </ul>

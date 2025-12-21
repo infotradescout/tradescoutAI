@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useToast } from "@/hooks/use-toast";
 
 interface DealRoomPanelProps {
@@ -15,7 +16,7 @@ interface DealRoomPanelProps {
 export function DealRoomPanel({ jobId, userRole }: DealRoomPanelProps) {
 	const { toast } = useToast();
 	const { documents, isLoading, error, refetch } = useJobDocuments(jobId);
-	const [invoiceTotal, setInvoiceTotal] = useState("");
+	const [invoiceTotalInput, setInvoiceTotalInput] = useState("");
 
 	const state = deriveDealRoomState(documents, userRole);
 
@@ -26,6 +27,27 @@ export function DealRoomPanel({ jobId, userRole }: DealRoomPanelProps) {
 	const latestReceipt = state.latestByType.RECEIPT;
 	const canStartMaterialList = !documents.some((d) => d.type === "MATERIAL_LIST");
 	const isStandalone = !jobId;
+
+	const latestInvoicePayload = (latestInvoice?.payload as any) || {};
+	const invoiceLines: Array<{
+		description?: string;
+		quantity?: number;
+		unitPrice?: number;
+		amount?: number;
+	}> = Array.isArray(latestInvoicePayload?.lines) ? latestInvoicePayload.lines : [];
+	const invoiceSubtotal: number | null =
+		typeof latestInvoicePayload?.subtotal === "number" ? latestInvoicePayload.subtotal : null;
+	const invoiceTax: number | null =
+		typeof latestInvoicePayload?.tax === "number" ? latestInvoicePayload.tax : null;
+	const invoiceTotal: number | null =
+		typeof latestInvoicePayload?.total === "number" ? latestInvoicePayload.total : null;
+	const invoiceCurrency: string =
+		typeof latestInvoicePayload?.currency === "string" && latestInvoicePayload.currency.trim()
+			? latestInvoicePayload.currency.trim().toUpperCase()
+			: "USD";
+	const invoicePayment = latestInvoicePayload?.payment as
+		| { method?: string; reference?: string; receivedAt?: string }
+		| undefined;
 
 	const headerPrimary = isStandalone ? "Standalone accounting" : "Project deal room";
 	const headerSecondary = isStandalone
@@ -122,7 +144,7 @@ export function DealRoomPanel({ jobId, userRole }: DealRoomPanelProps) {
 
 	const handleCreateInvoice = async () => {
 		if (!jobId || !state.canCreateInvoice) return;
-		const total = Number(invoiceTotal || 0);
+		const total = Number(invoiceTotalInput || 0);
 		if (!Number.isFinite(total) || total <= 0) {
 			toast({ title: "Enter a valid total", description: "Invoice total must be greater than zero.", variant: "destructive" });
 			return;
@@ -137,6 +159,7 @@ export function DealRoomPanel({ jobId, userRole }: DealRoomPanelProps) {
 						subtotal: total,
 						tax: 0,
 						total,
+						currency: "USD",
 						lines: [],
 					},
 				}),
@@ -146,7 +169,7 @@ export function DealRoomPanel({ jobId, userRole }: DealRoomPanelProps) {
 				throw new Error(mapDocErrorMessage(code, `Invoice creation failed (${res.status})`));
 			}
 			toast({ title: "Invoice created", description: "You can now send this invoice to the homeowner." });
-			setInvoiceTotal("");
+			setInvoiceTotalInput("");
 			refetch();
 		} catch (e: any) {
 			toast({ title: "Could not create invoice", description: e?.message || "Please try again.", variant: "destructive" });
@@ -483,8 +506,8 @@ export function DealRoomPanel({ jobId, userRole }: DealRoomPanelProps) {
 									<div className="flex items-center gap-2">
 										<Input
 											placeholder="Total"
-											value={invoiceTotal}
-											onChange={(e) => setInvoiceTotal(e.target.value)}
+											value={invoiceTotalInput}
+											onChange={(e) => setInvoiceTotalInput(e.target.value)}
 											className="h-8 text-xs bg-slate-900/60 border-slate-700 text-white"
 										/>
 										<Button size="sm" className="h-8" onClick={primaryAction.action}>
@@ -494,6 +517,115 @@ export function DealRoomPanel({ jobId, userRole }: DealRoomPanelProps) {
 								</div>
 							)}
 						</div>
+
+						{latestInvoice && (
+							<div className="mt-1 rounded-md border border-slate-800 bg-slate-950/70 p-3 space-y-3">
+								<div className="flex items-start justify-between gap-2">
+									<div>
+										<p className="text-[11px] uppercase tracking-wide text-gray-500 mb-1">Current invoice</p>
+										<p className="text-sm font-semibold text-white">
+											Invoice {latestInvoice.id.slice(0, 8)}
+										</p>
+										<p className="text-[11px] text-gray-400">
+											Created {new Date(latestInvoice.created_at).toLocaleDateString()}
+										</p>
+									</div>
+									<Badge className="text-[10px] px-2 py-0.5 bg-slate-800 border-slate-600">
+										{latestInvoice.status}
+									</Badge>
+								</div>
+
+								<div className="rounded-md border border-slate-800 bg-slate-900/70">
+									<Table className="text-[11px]">
+										<TableHeader>
+											<TableRow className="border-slate-800">
+												<TableHead className="text-slate-400">Description</TableHead>
+												<TableHead className="text-slate-400 w-16 text-right">Qty</TableHead>
+												<TableHead className="text-slate-400 w-24 text-right">Unit</TableHead>
+												<TableHead className="text-slate-400 w-24 text-right">Amount</TableHead>
+											</TableRow>
+										</TableHeader>
+										<TableBody>
+											{invoiceLines.length === 0 ? (
+												<TableRow className="border-slate-800">
+													<TableCell colSpan={4} className="text-slate-500 text-center py-4">
+														No line items recorded on this invoice.
+													</TableCell>
+												</TableRow>
+											) : (
+												invoiceLines.map((line, idx) => {
+													const qty = typeof line.quantity === "number" ? line.quantity : 1;
+													const unit = typeof line.unitPrice === "number" ? line.unitPrice : 0;
+													const amount = typeof line.amount === "number" ? line.amount : qty * unit;
+													return (
+														<TableRow key={idx} className="border-slate-800">
+															<TableCell className="text-slate-200">
+																{line.description || "Line item"}
+															</TableCell>
+															<TableCell className="text-right text-slate-200">
+																{qty}
+															</TableCell>
+															<TableCell className="text-right text-slate-200">
+																{unit.toLocaleString(undefined, { style: "currency", currency: invoiceCurrency })}
+															</TableCell>
+															<TableCell className="text-right text-slate-200">
+																{amount.toLocaleString(undefined, { style: "currency", currency: invoiceCurrency })}
+															</TableCell>
+														</TableRow>
+													);
+												})
+											)}
+										</TableBody>
+									</Table>
+								</div>
+
+								<div className="mt-3 flex flex-col items-end gap-1 text-[11px] text-slate-200">
+									{invoiceSubtotal !== null && (
+										<div className="flex justify-between gap-6 w-full max-w-xs">
+											<span className="text-slate-400">Subtotal</span>
+											<span>
+												{invoiceSubtotal.toLocaleString(undefined, { style: "currency", currency: invoiceCurrency })}
+											</span>
+										</div>
+									)}
+									{invoiceTax !== null && (
+										<div className="flex justify-between gap-6 w-full max-w-xs">
+											<span className="text-slate-400">Tax</span>
+											<span>
+												{invoiceTax.toLocaleString(undefined, { style: "currency", currency: invoiceCurrency })}
+											</span>
+										</div>
+									)}
+									{invoiceTotal !== null && (
+										<div className="flex justify-between gap-6 w-full max-w-xs font-semibold">
+											<span className="text-slate-200">Total</span>
+											<span>
+												{invoiceTotal.toLocaleString(undefined, { style: "currency", currency: invoiceCurrency })}
+											</span>
+										</div>
+									)}
+								</div>
+
+								{invoicePayment && (
+									<div className="mt-3 border-t border-slate-800 pt-2 text-[11px] text-slate-300">
+										<p className="font-semibold mb-1">Payment</p>
+										<p>
+											Method: <span className="text-slate-100">{invoicePayment.method || "other"}</span>
+										</p>
+										{invoicePayment.reference && (
+											<p>
+												Reference: <span className="text-slate-100">{invoicePayment.reference}</span>
+											</p>
+										)}
+										{invoicePayment.receivedAt && (
+											<p>
+												Received {new Date(invoicePayment.receivedAt).toLocaleString()}
+											</p>
+										)}
+									</div>
+								)}
+							</div>
+						)}
 
 						<div className="mt-2 rounded-md border border-slate-800 bg-slate-950/60 p-3">
 							<p className="text-[11px] uppercase tracking-wide text-gray-500 mb-2">Timeline</p>

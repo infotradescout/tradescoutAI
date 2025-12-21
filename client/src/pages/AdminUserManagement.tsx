@@ -10,7 +10,7 @@ export default function AdminUserManagement() {
   const { user, isAuthenticated } = useAuth();
 
   // Check if user has admin privileges
-  if (!isAuthenticated || !user || !['head_admin', 'ops_admin'].includes(user.role)) {
+  if (!isAuthenticated || !user || !['head_admin', 'ops_admin', 'super_admin'].includes(user.role)) {
     return (
       <div className="container mx-auto px-4 py-8">
         <Card>

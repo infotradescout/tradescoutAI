@@ -568,7 +568,7 @@ export default function ProfileSettings() {
             Default Home Page
           </CardTitle>
           <CardDescription>
-            Choose the first page you see when you visit TradeScout
+            Choose the first page you see when you visit TradeScout. Scout and your home route will use this when you open the app.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -592,6 +592,14 @@ export default function ProfileSettings() {
               </SelectContent>
             </Select>
           </div>
+          <p className="text-xs text-tsTextMuted">
+            Your current default is {preferences.defaultHomePage === 'dashboard' ? 'Dashboard' :
+              preferences.defaultHomePage === 'marketplace' ? 'Marketplace' :
+              preferences.defaultHomePage === 'contractor-board' ? 'Contractor Board' :
+              preferences.defaultHomePage === 'profile' ? 'My Profile' :
+              preferences.defaultHomePage === 'community' ? 'Community Feed' :
+              'Scout (Default)'}.
+          </p>
         </CardContent>
       </Card>
 

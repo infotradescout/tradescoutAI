@@ -42,16 +42,30 @@ export function PostCard({ post }: PostCardProps) {
   const [showComments, setShowComments] = useState(false);
   const [showShareModal, setShowShareModal] = useState(false);
   const [showReportModal, setShowReportModal] = useState(false);
-  const [isLiked, setIsLiked] = useState(post.isLiked || false);
-  const [likeCount, setLikeCount] = useState(post.likeCount || 0);
+  const [isLiked, setIsLiked] = useState(Boolean(post.userReaction || post.isLiked));
+  const [likeCount, setLikeCount] = useState(
+    (post._count && typeof post._count.reactions === "number"
+      ? post._count.reactions
+      : post.likeCount) || 0
+  );
 
-  // Like/unlike mutation
+  // Like/unlike mutation (uses reactions endpoint with "like" reactionType)
   const likeMutation = useMutation({
-    mutationFn: () => apiRequest('POST', `/api/social/posts/${post.id}/like`),
+    mutationFn: () => {
+      if (isLiked) {
+        return apiRequest(
+          "DELETE",
+          `/api/social/posts/${post.id}/reactions`
+        );
+      }
+      return apiRequest("POST", `/api/social/posts/${post.id}/reactions`, {
+        reactionType: "like",
+      });
+    },
     onSuccess: () => {
       setIsLiked(!isLiked);
-      setLikeCount((prev: number) => isLiked ? prev - 1 : prev + 1);
-      queryClient.invalidateQueries({ queryKey: ['/api/social/feed'] });
+      setLikeCount((prev: number) => (isLiked ? prev - 1 : prev + 1));
+      queryClient.invalidateQueries({ queryKey: ["/api/social/feed"] });
     },
     onError: (error: any) => {
       toast({

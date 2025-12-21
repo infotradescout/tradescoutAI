@@ -278,7 +278,7 @@ const SimpleLanding = memo(function SimpleLanding() {
               Trusted by Thousands
             </h2>
             <p className="text-xl text-gray-400 max-w-2xl mx-auto">
-              Join homeowners and contractors across the country
+              Join residents, pros, and community leaders across the country
             </p>
           </div>
           

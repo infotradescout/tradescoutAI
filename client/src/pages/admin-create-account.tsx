@@ -82,7 +82,7 @@ export default function AdminCreateAccount() {
   };
 
   // Check if user has permission to create admin accounts
-  const canCreateAdmins = user?.role === 'head_admin' || user?.role === 'ops_admin';
+  const canCreateAdmins = user?.role === 'head_admin' || user?.role === 'ops_admin' || user?.role === 'super_admin';
 
   if (!canCreateAdmins) {
     return (

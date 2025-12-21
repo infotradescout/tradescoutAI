@@ -133,7 +133,7 @@ export const createOrganizationStructuredData = () => ({
   "@context": "https://schema.org",
   "@type": "Organization",
   "name": "TradeScout",
-  "description": "Leading contractor marketplace connecting homeowners with verified local contractors",
+  "description": "Community operating system connecting residents, pros, organizations, and verified local contractors",
   "url": window.location.origin,
   "logo": `${window.location.origin}/logo.png`,
   "image": `${window.location.origin}/icon-512.png`,

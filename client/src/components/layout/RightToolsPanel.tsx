@@ -95,7 +95,7 @@ export function RightToolsPanel({ footer, onNavigate }: RightToolsPanelProps) {
               href="/profile"
               icon={<User className="h-3.5 w-3.5 text-orange-400" />}
               label="View profile"
-              description="How homeowners and contractors see you."
+              description="How your community sees your profile."
               onClick={onNavigate}
             />
             <NavLink

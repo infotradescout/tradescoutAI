@@ -34,7 +34,7 @@ export function FacebookSignup({ onFacebookSignup, onSkipToRegular }: FacebookSi
           </div>
           <h1 className="text-4xl font-bold text-white mb-3">Join TradeScout</h1>
           <p className="text-xl text-slate-300 mb-2">
-            Connect with trusted contractors and homeowners in your community
+            Connect with trusted residents, pros, and organizations in your community
           </p>
           <p className="text-slate-400">
             The faster, easier way to get started
@@ -45,7 +45,7 @@ export function FacebookSignup({ onFacebookSignup, onSkipToRegular }: FacebookSi
         <Card className="bg-slate-800/50 border-slate-700 max-w-md mx-auto mb-8">
           <CardHeader className="text-center pb-4">
             <CardTitle className="text-2xl text-white">Get Started</CardTitle>
-            <p className="text-slate-400">Join thousands of homeowners and contractors</p>
+            <p className="text-slate-400">Join thousands of residents, pros, and community leaders</p>
           </CardHeader>
           <CardContent className="space-y-6">
             {/* Facebook Signup Button */}

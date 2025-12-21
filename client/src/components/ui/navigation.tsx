@@ -22,7 +22,7 @@ export default function Navigation() {
   const [location] = useLocation();
 
   const isContractor = user?.role === 'contractor_user';
-  const isAdmin = user?.role ? ['owner', 'ops_admin', 'analytics_read'].includes(user.role) : false;
+  const isAdmin = user?.role ? ['owner', 'ops_admin', 'super_admin', 'analytics_read'].includes(user.role) : false;
 
   const publicNavItems = [
     { href: "/", label: "Home", icon: Home },
