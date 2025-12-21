@@ -86,8 +86,7 @@ export default function ProfilePage() {
       if (!user?.id) return;
 
       try {
-        const res = await apiRequest("GET", "/api/profiles");
-        const list = (await res.json()) as OwnedProfile[];
+        const list = (await apiRequest("GET", "/api/profiles")) as OwnedProfile[];
 
         if (!Array.isArray(list) || list.length === 0) return;
 

@@ -50,24 +50,6 @@ const ROLE_HIERARCHY = {
   'head_admin': 7
 };
 
-interface UserManagementData {
-  users: User[];
-  totalCount: number;
-  filters: {
-    search: string;
-    role: string | null;
-  };
-}
-
-const defaultUserManagementData: UserManagementData = {
-  users: [],
-  totalCount: 0,
-  filters: {
-    search: '',
-    role: null
-  }
-};
-
 export default function UserManagement() {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
@@ -75,7 +57,7 @@ export default function UserManagement() {
   const [newActiveRole, setNewActiveRole] = useState('');
   const { toast } = useToast();
 
-  const { data: userManagement = defaultUserManagementData, isLoading } = useQuery<UserManagementData>({
+  const { data: users = [], isLoading } = useQuery<User[]>({
     queryKey: ['/api/admin/users'],
     retry: false,
   });
@@ -126,7 +108,7 @@ export default function UserManagement() {
     },
   });
 
-  const filteredUsers = userManagement.users.filter((user) => 
+  const filteredUsers = users.filter((user) => 
     user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
     `${user.firstName} ${user.lastName}`.toLowerCase().includes(searchTerm.toLowerCase()) ||
     user.roles?.some(role => role.toLowerCase().includes(searchTerm.toLowerCase()))
@@ -185,7 +167,7 @@ export default function UserManagement() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="flex gap-4 mb-6">
+          <div className="flex gap-4 mb-6 items-center">
             <div className="flex-1 relative">
               <Search className="absolute left-3 top-3 w-4 h-4 text-gray-400" />
               <Input
@@ -195,6 +177,9 @@ export default function UserManagement() {
                 className="pl-10"
                 data-testid="input-user-search"
               />
+            </div>
+            <div className="text-sm text-muted-foreground whitespace-nowrap">
+              Showing {filteredUsers.length} of {users.length} users
             </div>
             <Dialog>
               <DialogTrigger asChild>

@@ -5780,6 +5780,20 @@ export const notificationPreferences = pgTable("notification_preferences", {
   index("idx_notification_preferences_user").on(table.userId),
 ]);
 
+// Web push subscriptions for browser/device notifications
+export const pushSubscriptions = pgTable("push_subscriptions", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  endpoint: text("endpoint").notNull(),
+  keys: jsonb("keys").$type<{ p256dh: string; auth: string }>().notNull(),
+  userAgent: text("user_agent"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => [
+  index("idx_push_subscriptions_user").on(table.userId),
+  uniqueIndex("uidx_push_subscriptions_endpoint").on(table.endpoint),
+]);
+
 // User personal events for birthday and anniversary notifications
 export const userPersonalEvents = pgTable("user_personal_events", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),

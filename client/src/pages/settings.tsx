@@ -37,6 +37,8 @@ import { useAuth } from "@/hooks/useAuth";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import DragDropNavigationPreferences from "@/components/navigation/DragDropNavigationPreferences";
+import { NotificationPreferences as NotificationPreferencesDialog } from "@/components/ui/notification-preferences";
+import { registerPushNotifications, unregisterPushSubscription } from "@/lib/pushNotifications";
 
 type HandednessPreference = "right" | "left";
 
@@ -103,6 +105,33 @@ export default function Settings() {
       marketing: saved?.marketing ?? false,
     });
   }, [(user as any)?.preferences?.notificationPrefs]);
+
+  const [pushStatus, setPushStatus] = useState({
+    supported: false,
+    permission: null as NotificationPermission | null,
+    registered: false,
+  });
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const hasSW = 'serviceWorker' in navigator;
+    const hasPush = 'PushManager' in window;
+    const permission = typeof Notification !== 'undefined' ? Notification.permission : null;
+
+    if (!hasSW || !hasPush) {
+      setPushStatus({ supported: false, permission, registered: false });
+      return;
+    }
+
+    navigator.serviceWorker.ready
+      .then((registration) => registration.pushManager.getSubscription())
+      .then((sub) => {
+        setPushStatus({ supported: true, permission, registered: !!sub });
+      })
+      .catch(() => {
+        setPushStatus((prev) => ({ ...prev, supported: false }));
+      });
+  }, []);
 
   const [privacy, setPrivacy] = useState(() => {
     const prefs = (user as any)?.preferences || {};
@@ -245,9 +274,17 @@ export default function Settings() {
 
   const updateNotificationsMutation = useMutation({
     mutationFn: async () => {
-      return apiRequest('PATCH', '/api/users/preferences', {
-        notificationPrefs: notifications,
-      });
+      const results = await Promise.all([
+        apiRequest('PATCH', '/api/users/preferences', {
+          notificationPrefs: notifications,
+        }),
+        apiRequest('POST', '/api/notifications/preferences', {
+          enableEmailNotifications: notifications.email,
+          enableSmsNotifications: notifications.sms,
+          enablePushNotifications: notifications.push,
+        }),
+      ]);
+      return results;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/auth/user'] });
@@ -315,6 +352,8 @@ export default function Settings() {
       toast({ title: 'Error', description: err?.message || 'Failed to change password.', variant: 'destructive' });
     },
   });
+
+  const [advancedNotificationPrefsOpen, setAdvancedNotificationPrefsOpen] = useState(false);
 
   const handleUploadClick = () => fileInputRef.current?.click();
 
@@ -744,6 +783,8 @@ export default function Settings() {
                     marketing: { icon: Globe, label: "Marketing Communications", desc: "Updates about new features and offers" }
                   }).map(([key, config]) => {
                     const Icon = config.icon;
+                    const isPush = key === 'push';
+                    const pushDisabled = isPush && (!pushStatus.supported || pushStatus.permission === 'denied');
                     return (
                       <div key={key} className="flex items-center justify-between p-4 bg-[#0f1419] rounded-xl border border-[#2d3748] hover:border-orange-500/30 transition-all">
                         <div className="flex items-center space-x-4">
@@ -753,17 +794,56 @@ export default function Settings() {
                           <div>
                             <p className="text-white font-medium">{config.label}</p>
                             <p className="text-slate-400 text-sm">{config.desc}</p>
+                            {isPush && (
+                              <p className="text-xs text-slate-500 mt-1">
+                                {pushStatus.permission === 'denied'
+                                  ? 'Browser notifications are blocked for this site. Enable them in your browser settings to turn push on.'
+                                  : pushStatus.registered
+                                  ? 'Registered on this device. Delivered to this device only.'
+                                  : 'Delivered to this device only on supported browsers.'}
+                              </p>
+                            )}
                           </div>
                         </div>
                         <Switch 
                           checked={notifications[key as keyof typeof notifications]}
-                          onCheckedChange={(checked) => 
-                            setNotifications(prev => ({ ...prev, [key]: checked }))
-                          }
+                          disabled={pushDisabled}
+                          onCheckedChange={async (checked) => {
+                            if (isPush && pushDisabled) return;
+                            setNotifications(prev => ({ ...prev, [key]: checked }));
+                            if (isPush) {
+                              if (checked) {
+                                const sub = await registerPushNotifications();
+                                const permission = typeof Notification !== 'undefined' ? Notification.permission : pushStatus.permission;
+                                setPushStatus(prev => ({ ...prev, registered: !!sub, permission }));
+                              } else {
+                                await unregisterPushSubscription();
+                                const permission = typeof Notification !== 'undefined' ? Notification.permission : pushStatus.permission;
+                                setPushStatus(prev => ({ ...prev, registered: false, permission }));
+                              }
+                            }
+                          }}
                         />
                       </div>
                     );
                   })}
+
+                  <div className="mt-6 p-4 bg-[#0f1419] rounded-xl border border-dashed border-[#2d3748] flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                    <div>
+                      <p className="text-white font-medium">Advanced per-area controls</p>
+                      <p className="text-slate-400 text-sm">
+                        Fine-tune notifications for Marketplace, Community, HOA, wallet events, and more by channel.
+                      </p>
+                    </div>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="border-orange-500 text-orange-500 hover:bg-orange-500 hover:text-white px-4"
+                      onClick={() => setAdvancedNotificationPrefsOpen(true)}
+                    >
+                      Open advanced preferences
+                    </Button>
+                  </div>
 
                   <div className="flex justify-end pt-4 border-t border-[#2d3748]">
                     <Button
@@ -972,6 +1052,10 @@ export default function Settings() {
             </TabsContent>
 
           </Tabs>
+          <NotificationPreferencesDialog
+            open={advancedNotificationPrefsOpen}
+            onOpenChange={setAdvancedNotificationPrefsOpen}
+          />
         </div>
       </div>
     </div>

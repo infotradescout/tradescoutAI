@@ -1,6 +1,6 @@
 import { memo, useState } from 'react';
 import { useAuth } from "@/hooks/useAuth";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -11,14 +11,15 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { MessageSquare, DollarSign, Calendar, MapPin, CheckCircle2 } from "lucide-react";
 import { useHandedness } from "@/hooks/useHandedness";
+import { Checkbox } from "@/components/ui/checkbox";
 
 const RequestQuote = memo(function RequestQuote() {
   const { user } = useAuth();
   const { toast } = useToast();
   const [submitted, setSubmitted] = useState(false);
   const handedness = useHandedness();
-
-  const [sendToCount, setSendToCount] = useState<string>('3');
+  const [sendToCount, setSendToCount] = useState<string>('3'); // '1', '3', or 'manual'
+  const [selectedContractorIds, setSelectedContractorIds] = useState<string[]>([]);
 
   const [formData, setFormData] = useState({
     projectType: '',
@@ -29,15 +30,38 @@ const RequestQuote = memo(function RequestQuote() {
     contactMethod: 'email'
   });
 
+  const isManualSelection = sendToCount === 'manual';
+
+  const {
+    data: localContractors = [],
+    isLoading: localContractorsLoading,
+  } = useQuery({
+    queryKey: ['local-contractors', user?.county, formData.projectType],
+    enabled: !!user?.county && !!formData.projectType && isManualSelection,
+    queryFn: async () => {
+      if (!user?.county || !formData.projectType) return [] as any[];
+      const params = new URLSearchParams({
+        county: String(user.county),
+        trade: String(formData.projectType),
+        limit: '50',
+        sort: 'verified',
+      });
+      const res = await apiRequest('GET', `/api/contractors/search?${params.toString()}`);
+      return (res as any[]) || [];
+    },
+  });
+
   const submitQuoteMutation = useMutation({
     mutationFn: async (data: typeof formData) => {
       // Map the friendly form fields into the lead schema used by /api/leads
       const payload = {
         projectType: data.projectType || 'general',
         description: data.description,
-        // For now, keep routing simple and let ops evolve:
-        routingType: 'top3',
-        maxAssignees: Number(sendToCount) || 3,
+        routingType: isManualSelection ? 'manual' : 'top3',
+        maxAssignees: isManualSelection
+          ? (selectedContractorIds.length || 1)
+          : (Number(sendToCount) || 3),
+        manualContractorIds: isManualSelection ? selectedContractorIds : undefined,
         // Use best-effort locality from the user's stored profile/address
         countyId: (user as any)?.countyId || (user as any)?.county || 'unknown',
         tradeId: data.projectType || 'general',
@@ -72,6 +96,26 @@ const RequestQuote = memo(function RequestQuote() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (isManualSelection) {
+      if (!user?.county) {
+        toast({
+          title: "Add your location first",
+          description: "Set your county in profile settings so we can show local pros, or choose a best-matched option instead.",
+          variant: "destructive",
+        });
+        return;
+      }
+      if (!selectedContractorIds.length) {
+        toast({
+          title: "Pick at least one pro",
+          description: "Select one or more local contractors, or switch back to a best-matched option.",
+          variant: "destructive",
+        });
+        return;
+      }
+    }
+
     submitQuoteMutation.mutate(formData);
   };
 
@@ -271,7 +315,12 @@ const RequestQuote = memo(function RequestQuote() {
                     </Label>
                     <Select
                       value={sendToCount}
-                      onValueChange={setSendToCount}
+                      onValueChange={(value) => {
+                        setSendToCount(value);
+                        if (value !== 'manual') {
+                          setSelectedContractorIds([]);
+                        }
+                      }}
                     >
                       <SelectTrigger className="bg-[#0f1419] border-[#2d3748] text-white h-11">
                         <SelectValue />
@@ -279,13 +328,72 @@ const RequestQuote = memo(function RequestQuote() {
                       <SelectContent className="bg-[#1a2332] border-[#2d3748]">
                         <SelectItem value="1">Top 1 best-matched</SelectItem>
                         <SelectItem value="3">Top 3 best-matched</SelectItem>
+                        <SelectItem value="manual">Let me pick specific local pros</SelectItem>
                       </SelectContent>
                     </Select>
-                    <p className="text-xs text-slate-400">
-                      We rank pros by verification, experience, and completeness, then send your request to the
-                      top 1 or 3 matches in your area. If you don't hand-pick specific providers, we'll still route
-                      your request automatically to the best-matched pros for you.
-                    </p>
+                    {isManualSelection ? (
+                      <div className="mt-3 space-y-2 border border-[#2d3748] rounded-lg p-3 bg-[#111827]">
+                        <p className="text-xs text-slate-300 mb-1">
+                          Pick which local contractors should receive this request. We'll still track it as a normal
+                          lead, but only the pros you choose will be notified.
+                        </p>
+                        {!user?.county && (
+                          <p className="text-xs text-red-400">
+                            Add your county in your profile settings so we can list local contractors, or switch back to a best-match option.
+                          </p>
+                        )}
+                        {user?.county && (
+                          <div className="max-h-56 overflow-y-auto space-y-2">
+                            {localContractorsLoading && (
+                              <p className="text-xs text-slate-400">Loading local pros…</p>
+                            )}
+                            {!localContractorsLoading && (!localContractors || (localContractors as any[]).length === 0) && (
+                              <p className="text-xs text-slate-400">
+                                No active contractors found for your county and trade yet. Try a different project type
+                                or use the best-matched routing.
+                              </p>
+                            )}
+                            {(localContractors as any[]).map((contractor: any) => {
+                              const checked = selectedContractorIds.includes(contractor.id);
+                              const label = contractor.companyName || contractor.name || 'Local contractor';
+                              const locationBits = [contractor.city, contractor.state].filter(Boolean).join(', ');
+                              return (
+                                <label
+                                  key={contractor.id}
+                                  className="flex items-start gap-2 rounded-md px-2 py-1.5 hover:bg-[#0f1419] cursor-pointer"
+                                >
+                                  <Checkbox
+                                    checked={checked}
+                                    onCheckedChange={(value) => {
+                                      const isChecked = value === true;
+                                      setSelectedContractorIds((prev) => {
+                                        if (isChecked) {
+                                          if (prev.includes(contractor.id)) return prev;
+                                          return [...prev, contractor.id];
+                                        }
+                                        return prev.filter((id) => id !== contractor.id);
+                                      });
+                                    }}
+                                  />
+                                  <div className="flex-1 min-w-0">
+                                    <p className="text-xs font-medium text-white truncate">{label}</p>
+                                    {locationBits && (
+                                      <p className="text-[11px] text-slate-400 truncate">{locationBits}</p>
+                                    )}
+                                  </div>
+                                </label>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </div>
+                    ) : (
+                      <p className="text-xs text-slate-400">
+                        We rank pros by verification, experience, and completeness, then send your request to the
+                        top 1 or 3 matches in your area. If you don't hand-pick specific providers, we'll still route
+                        your request automatically to the best-matched pros for you.
+                      </p>
+                    )}
                   </div>
                 </div>
 

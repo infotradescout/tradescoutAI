@@ -5,8 +5,11 @@ import {
   insertNotificationSchema,
   insertNotificationPreferencesSchema,
   insertUserPersonalEventSchema,
+  pushSubscriptions,
 } from "@shared/schema";
 import { z } from "zod";
+import { db } from "../src/db/drizzle-mock";
+import { eq } from "drizzle-orm";
 
 export function registerNotificationRoutes(app: Express) {
   // =====================================
@@ -184,6 +187,89 @@ export function registerNotificationRoutes(app: Express) {
 
       console.error("Error updating notification preferences:", error);
       res.status(500).json({ message: "Failed to update notification preferences" });
+    }
+  });
+
+  // =====================================
+  // WEB PUSH SUBSCRIPTIONS
+  // =====================================
+
+  const pushSubscriptionSchema = z.object({
+    endpoint: z.string().url(),
+    keys: z.object({
+      p256dh: z.string(),
+      auth: z.string(),
+    }),
+    userAgent: z.string().optional(),
+  });
+
+  app.post("/api/notifications/push-subscription", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user?.id;
+      if (!userId) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+
+      const body = pushSubscriptionSchema.parse(req.body);
+
+      // Upsert by endpoint
+      const existing = await db
+        .select()
+        .from(pushSubscriptions)
+        .where(eq(pushSubscriptions.endpoint, body.endpoint));
+
+      if (existing.length) {
+        await db
+          .update(pushSubscriptions)
+          .set({
+            userId,
+            keys: body.keys,
+            userAgent: body.userAgent,
+            updatedAt: new Date(),
+          })
+          .where(eq(pushSubscriptions.endpoint, body.endpoint));
+      } else {
+        await db.insert(pushSubscriptions).values({
+          userId,
+          endpoint: body.endpoint,
+          keys: body.keys,
+          userAgent: body.userAgent,
+        });
+      }
+
+      res.json({ success: true });
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({
+          message: "Validation error",
+          errors: error.errors,
+        });
+      }
+      console.error("Error saving push subscription:", error);
+      res.status(500).json({ message: "Failed to save push subscription" });
+    }
+  });
+
+  app.delete("/api/notifications/push-subscription", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user?.id;
+      if (!userId) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+
+      const endpoint = req.query.endpoint as string | undefined;
+      if (!endpoint) {
+        return res.status(400).json({ message: "Missing endpoint" });
+      }
+
+      await db
+        .delete(pushSubscriptions)
+        .where(eq(pushSubscriptions.endpoint, endpoint));
+
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error deleting push subscription:", error);
+      res.status(500).json({ message: "Failed to delete push subscription" });
     }
   });
 

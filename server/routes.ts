@@ -72,6 +72,7 @@ import { communityBuilderPaymentService } from "./community-builder-payment-serv
 import { platformSupportPaymentService } from "./platform-support-payment-service";
 import { antiScrapeShield } from "./middleware/antiScrape";
 import { ObjectStorageService } from "./objectStorage";
+import { notificationService } from "./notification-service";
 // Shared HTTP types for all route handlers
 type AuthedRequest = Request & {
   user?: {
@@ -271,9 +272,22 @@ async function routeLeadToTopContractors(lead: any, leadData: any) {
 
     await Promise.all(scoredContractors.map(async (contractor: ScoredContractor) => {
       try {
-        // In a real application, this would involve sending an email or push notification
-        // For now, we log it
         console.log(`Notifying contractor ${contractor.companyName} (ID: ${contractor.id}) about new lead ${lead.id}`);
+
+        const recipientUserId = contractor.userId;
+        if (recipientUserId) {
+          await notificationService.createNotification({
+            userId: recipientUserId,
+            type: 'new_project_request',
+            title: 'New project request',
+            message: `You have a new project request: ${lead.title} in ${city}, ${state}.`,
+            actionUrl: `/pro-dashboard/leads/${lead.id}`,
+            actionText: 'View lead',
+            iconName: 'briefcase',
+            iconColor: 'orange',
+            deliveryMethods: ['in_app', 'push'],
+          });
+        }
         // Log the assignment event with match score
         await storage.logEvent('lead_assigned', {
           leadId: lead.id,
@@ -307,6 +321,7 @@ export async function registerRoutes(app: any) {
     res.status(200).json({
       firstIntroAppendix:
         process.env.TS_FIRST_INTRO_APPENDIX || DEFAULT_FIRST_INTRO_APPENDIX,
+      vapidPublicKey: process.env.VAPID_PUBLIC_KEY || null,
     });
   });
 
@@ -2852,6 +2867,40 @@ export async function registerRoutes(app: any) {
     }
   });
 
+  // Admin endpoint to send a test in-app + push notification to the current user
+  app.post("/api/admin/test-push-notification", isAuthenticated, async (req: any, res: any) => {
+    try {
+      const userId = (req.user as any)?.id || (req.user as any)?.claims?.sub;
+      if (!userId) {
+        return res.status(401).json({ message: "User ID not found" });
+      }
+
+      const user = await storage.getUser(userId);
+      if (!user || !['head_admin', 'moderator', 'ops_admin'].includes(user.role || '')) {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+
+      const nowIso = new Date().toISOString();
+
+      const notification = await notificationService.createNotification({
+        userId,
+        type: 'system_update',
+        title: 'Test push notification',
+        message: `Test notification · ${nowIso}`,
+        actionUrl: '/notifications',
+        actionText: 'View notifications',
+        iconName: 'bell',
+        iconColor: 'blue',
+        deliveryMethods: ['in_app', 'push'],
+      });
+
+      res.json({ success: true, notification });
+    } catch (error: any) {
+      console.error("Error sending test push notification:", error);
+      res.status(500).json({ message: "Failed to send test push notification" });
+    }
+  });
+
   // Profile setup endpoint
   app.post('/api/auth/setup-profile', isAuthenticated, async (req: any, res: any) => {
     try {
@@ -3211,6 +3260,44 @@ export async function registerRoutes(app: any) {
       // If this is a "top3" routing request, find and notify top contractors
       if (validatedLead.routingType === 'top3' && validatedLead.countyId && validatedLead.tradeId) {
         await routeLeadToTopContractors(lead, validatedLead);
+      }
+
+      // If this is a manual routing request with explicit contractor IDs, assign directly
+      if (validatedLead.routingType === 'manual') {
+        const manualIds: string[] = Array.isArray((leadData as any).manualContractorIds)
+          ? (leadData as any).manualContractorIds.filter((id: any) => typeof id === 'string')
+          : [];
+
+        if (manualIds.length > 0) {
+          await storage.assignLeadToContractors(lead.id, manualIds);
+
+          await Promise.all(manualIds.map(async (contractorId: string) => {
+            try {
+              const contractor = await storage.getContractorById(contractorId);
+              if (!contractor?.userId) return;
+
+              await notificationService.createNotification({
+                userId: contractor.userId,
+                type: 'new_project_request',
+                title: 'New project request',
+                message: 'A homeowner selected you to receive a new quote request.',
+                actionUrl: `/pro-dashboard/leads/${lead.id}`,
+                actionText: 'View lead',
+                iconName: 'briefcase',
+                iconColor: 'orange',
+                deliveryMethods: ['in_app', 'push'],
+              });
+
+              await storage.logEvent('lead_assigned', {
+                leadId: lead.id,
+                contractorId,
+                assignmentType: 'manual_selection',
+              });
+            } catch (manualErr) {
+              console.error(`Failed to notify contractor ${contractorId} for manual lead ${lead.id}:`, manualErr);
+            }
+          }));
+        }
       }
 
       // Log event
@@ -5716,59 +5803,9 @@ export async function registerRoutes(app: any) {
         return res.status(403).json({ message: "Admin access required" });
       }
 
-      // Sample error reports for demonstration
-      const sampleReports = [
-        {
-          id: "1",
-          userId: "user123",
-          userEmail: "user@example.com",
-          title: "Page not loading on mobile",
-          // description: "When I try to access the contractor dashboard on my phone, the page gets stuck loading and never shows content.",
-          errorType: "bug",
-          currentUrl: "https://tradescout.app/contractor-dashboard",
-          userAgent: "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X)",
-          browserInfo: {
-            name: "Safari",
-            version: "17.0",
-            platform: "iPhone",
-            mobile: true
-          },
-          status: "open",
-          priority: "high",
-          assignedTo: null,
-          adminNotes: null,
-          resolution: null,
-          resolvedAt: null,
-          createdAt: "2024-01-15T10:30:00Z",
-          updatedAt: "2024-01-15T10:30:00Z"
-        },
-        {
-          id: "2",
-          userId: null,
-          userEmail: "contractor@email.com",
-          title: "Search filters not working",
-          // description: "The location filter on the contractor board doesn't seem to work. I select a county but all contractors still show up.",
-          errorType: "ui_issue",
-          currentUrl: "https://tradescout.app/contractors/board",
-          userAgent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
-          browserInfo: {
-            name: "Chrome",
-            version: "120.0",
-            platform: "Win32",
-            mobile: false
-          },
-          status: "in_progress",
-          priority: "medium",
-          assignedTo: "admin1",
-          adminNotes: "Investigating filter logic",
-          resolution: null,
-          resolvedAt: null,
-          createdAt: "2024-01-14T15:45:00Z",
-          updatedAt: "2024-01-15T09:15:00Z"
-        }
-      ];
-
-      res.json(sampleReports);
+      // Return real error reports from the database, newest first
+      const reports = await storage.getErrorReports();
+      res.json(reports);
     } catch (error: any) {
       console.error("Error fetching error reports:", error);
       res.status(500).json({ message: "Failed to fetch error reports" });
@@ -5798,33 +5835,169 @@ export async function registerRoutes(app: any) {
   });
 
   // Testing settings endpoints
-  app.get("/api/admin/testing-settings", async (req: any, res: any) => {
-    res.json({
-      bugReportEnabled: true,
-      testingModeEnabled: false,
-      showTestingBanner: false
-    });
+  app.get("/api/admin/testing-settings", isAuthenticated, requireAdmin, async (req: any, res: any) => {
+    try {
+      const settings = await storage.getSiteSettings("testing");
+
+      const defaults = {
+        bugReportEnabled: true,
+        testingModeEnabled: false,
+        showTestingBanner: false,
+      };
+
+      const merged = { ...defaults } as any;
+
+      for (const setting of settings) {
+        const key = String((setting as any).key || "");
+        if (!key) continue;
+        const value = (setting as any).value;
+
+        if (typeof value === "boolean") {
+          merged[key] = value;
+        } else if (value && typeof value === "object" && "enabled" in value) {
+          merged[key] = Boolean((value as any).enabled);
+        } else if (typeof value === "string") {
+          merged[key] = value === "true";
+        }
+      }
+
+      res.json(merged);
+    } catch (error: any) {
+      console.error("Error fetching testing settings:", error);
+      res.status(500).json({ message: "Failed to fetch testing settings" });
+    }
   });
 
-  app.patch("/api/admin/testing-settings", async (req: any, res: any) => {
-    res.json({ message: "Settings updated successfully" });
+  app.patch("/api/admin/testing-settings", isAuthenticated, requireAdmin, async (req: any, res: any) => {
+    try {
+      const updates = req.body || {};
+      const allowedKeys = ["bugReportEnabled", "testingModeEnabled", "showTestingBanner"];
+
+      if (!updates || typeof updates !== "object") {
+        return res.status(400).json({ message: "Invalid settings payload" });
+      }
+
+      const existing = await storage.getSiteSettings("testing");
+      const byKey = new Map<string, any>();
+      for (const setting of existing) {
+        byKey.set(String((setting as any).key), setting);
+      }
+
+      for (const key of allowedKeys) {
+        if (!(key in updates)) continue;
+        const enabled = Boolean(updates[key]);
+        const current = byKey.get(key);
+
+        const value = { enabled } as any;
+
+        if (current) {
+          await storage.updateSiteSetting((current as any).id, { value });
+        } else {
+          await storage.createSiteSetting({
+            category: "testing",
+            key,
+            value,
+          } as any);
+        }
+      }
+
+      res.json({ message: "Settings updated successfully" });
+    } catch (error: any) {
+      console.error("Error updating testing settings:", error);
+      res.status(500).json({ message: "Failed to update testing settings" });
+    }
   });
 
-  app.get("/api/admin/error-report-stats", async (req: any, res: any) => {
-    res.json({
-      total: 8,
-      open: 3,
-      inProgress: 2,
-      resolved: 3
-    });
+  app.get("/api/admin/error-report-stats", isAuthenticated, requireAdmin, async (req: any, res: any) => {
+    try {
+      const reports = await storage.getErrorReports();
+
+      const total = reports.length;
+      let open = 0;
+      let inProgress = 0;
+      let resolved = 0;
+
+      for (const report of reports) {
+        const status = String((report as any).status || "");
+        if (status === "open") open++;
+        else if (status === "in_progress") inProgress++;
+        else if (status === "resolved") resolved++;
+      }
+
+      res.json({
+        total,
+        open,
+        inProgress,
+        resolved,
+      });
+    } catch (error: any) {
+      console.error("Error computing error report stats:", error);
+      res.status(500).json({ message: "Failed to fetch error report stats" });
+    }
   });
 
-  app.post("/api/admin/generate-test-data", async (req: any, res: any) => {
-    res.json({ message: "Test data generated successfully" });
+  app.post("/api/admin/generate-test-data", isAuthenticated, requireAdmin, async (req: any, res: any) => {
+    try {
+      const now = Date.now();
+      const samples = [
+        {
+          id: `TEST-${now}-1`,
+          userId: req.user?.claims?.sub || "test-user",
+          userEmail: req.user?.email || null,
+          title: "[TEST] Sample bug report",
+          errorType: "test_data",
+          currentUrl: "https://tradescout.app/admin/testing-controls",
+          userAgent: req.headers["user-agent"] || "test-agent",
+          browserInfo: null,
+          attachments: null,
+          status: "open",
+          priority: "medium",
+        },
+        {
+          id: `TEST-${now}-2`,
+          userId: req.user?.claims?.sub || "test-user",
+          userEmail: req.user?.email || null,
+          title: "[TEST] Sample UI issue",
+          errorType: "test_data",
+          currentUrl: "https://tradescout.app/",
+          userAgent: req.headers["user-agent"] || "test-agent",
+          browserInfo: null,
+          attachments: null,
+          status: "in_progress",
+          priority: "low",
+        },
+      ];
+
+      for (const sample of samples) {
+        await storage.createErrorReport(sample);
+      }
+
+      res.json({ message: "Test data generated successfully" });
+    } catch (error: any) {
+      console.error("Error generating test error reports:", error);
+      res.status(500).json({ message: "Failed to generate test data" });
+    }
   });
 
-  app.delete("/api/admin/clear-test-data", async (req: any, res: any) => {
-    res.json({ message: "Test data cleared successfully" });
+  app.delete("/api/admin/clear-test-data", isAuthenticated, requireAdmin, async (req: any, res: any) => {
+    try {
+      const reports = await storage.getErrorReports();
+      const testReports = reports.filter((report: any) => {
+        const id = String(report.id || "");
+        const type = String(report.errorType || "");
+        const title = String(report.title || "");
+        return id.startsWith("TEST-") || type === "test_data" || title.startsWith("[TEST]");
+      });
+
+      for (const report of testReports) {
+        await storage.deleteErrorReport((report as any).id);
+      }
+
+      res.json({ message: "Test data cleared successfully" });
+    } catch (error: any) {
+      console.error("Error clearing test error reports:", error);
+      res.status(500).json({ message: "Failed to clear test data" });
+    }
   });
 
   // Marketplace routes
