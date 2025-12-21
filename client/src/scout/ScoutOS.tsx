@@ -407,6 +407,11 @@ export default function ScoutOS() {
           shownAdIds,
         });
 
+        // Backend has responded; we are now preparing the
+        // final Scout answer and actions on the client.
+        // This maps to the READY phase for the progress UI.
+        setStatus("ready");
+
         const isFirstAnswer = !hasSeenFirstAnswer();
         const isScriptedIntro =
           !isAuthenticated &&
