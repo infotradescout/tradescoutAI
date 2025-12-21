@@ -1,68 +1,90 @@
 import { memo } from 'react';
+import { useQuery } from "@tanstack/react-query";
+import { formatDistanceToNow } from "date-fns";
+import { useAuth } from "@/hooks/useAuth";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { TrendingUp, MapPin, DollarSign, Calendar, MessageSquare, Filter } from "lucide-react";
+import { TrendingUp, DollarSign, Calendar, MessageSquare, Filter } from "lucide-react";
+
+interface DashboardProject {
+  id: string;
+  title: string;
+  status?: string;
+  value?: string | number | null;
+  createdAt?: string | Date | null;
+}
+
+interface DashboardQuote {
+  id: string;
+  status?: string;
+}
+
+interface DashboardConversation {
+  id: string;
+  status?: string;
+  lastMessageAt?: string | Date | null;
+}
+
+interface DashboardResponse {
+  myProjects?: DashboardProject[];
+  quotes?: DashboardQuote[];
+  conversations?: DashboardConversation[];
+}
+
+const formatCurrency = (value?: string | number | null) => {
+  if (value === null || value === undefined) return "Not specified";
+  const num = typeof value === "string" ? Number(value) : value;
+  if (!Number.isFinite(num)) return "Not specified";
+  return num.toLocaleString("en-US", {
+    style: "currency",
+    currency: "USD",
+    maximumFractionDigits: 0,
+  });
+};
+
+const getStatusColor = (status: string) => {
+  switch (status) {
+    case 'new':
+      return 'bg-green-500/20 text-green-400 border-green-500/30';
+    case 'contacted':
+    case 'qualified':
+    case 'matched':
+      return 'bg-blue-500/20 text-blue-400 border-blue-500/30';
+    case 'closed':
+      return 'bg-slate-500/20 text-slate-300 border-slate-500/30';
+    default:
+      return 'bg-blue-500/20 text-blue-400 border-blue-500/30';
+  }
+};
 
 const ContractorLeads = memo(function ContractorLeads() {
-  // Mock data - would come from API in real app
-  const leads = [
-    {
-      id: 1,
-      title: "Kitchen Renovation",
-      description: "Complete kitchen remodel including cabinets, countertops, and appliances. Looking for experienced contractor with portfolio.",
-      budget: "$25,000 - $50,000",
-      timeline: "Within 1-2 months",
-      location: "Los Angeles, CA 90001",
-      postedDate: "2 hours ago",
-      responses: 3,
-      status: "new"
-    },
-    {
-      id: 2,
-      title: "Bathroom Plumbing Repair",
-      description: "Need urgent repair for leaking pipes and fixture replacement in master bathroom.",
-      budget: "$1,000 - $5,000",
-      timeline: "As soon as possible",
-      location: "Beverly Hills, CA 90210",
-      postedDate: "5 hours ago",
-      responses: 8,
-      status: "hot"
-    },
-    {
-      id: 3,
-      title: "Exterior House Painting",
-      description: "2-story house exterior painting. Approximately 2,500 sq ft. Surface prep needed.",
-      budget: "$5,000 - $10,000",
-      timeline: "Within 1 month",
-      location: "Santa Monica, CA 90401",
-      postedDate: "1 day ago",
-      responses: 12,
-      status: "active"
-    },
-    {
-      id: 4,
-      title: "HVAC System Installation",
-      description: "Installing new central air conditioning system for 1,800 sq ft home. Need licensed professional.",
-      budget: "$10,000 - $25,000",
-      timeline: "1-3 months",
-      location: "Pasadena, CA 91101",
-      postedDate: "2 days ago",
-      responses: 5,
-      status: "active"
-    }
-  ];
+  const { user } = useAuth();
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'new':
-        return 'bg-green-500/20 text-green-400 border-green-500/30';
-      case 'hot':
-        return 'bg-red-500/20 text-red-400 border-red-500/30';
-      default:
-        return 'bg-blue-500/20 text-blue-400 border-blue-500/30';
-    }
-  };
+  const { data, isLoading } = useQuery<DashboardResponse>({
+    queryKey: ["/api/dashboard", user?.id],
+    enabled: !!user?.id,
+  });
+
+  const leads = (data?.myProjects ?? []).map((project) => ({
+    id: project.id,
+    title: project.title,
+    status: project.status || 'new',
+    value: project.value,
+    createdAt: project.createdAt,
+  }));
+
+  const newTodayCount = leads.filter((lead) => {
+    if (!lead.createdAt) return false;
+    const created = new Date(lead.createdAt);
+    if (Number.isNaN(created.getTime())) return false;
+    const diffMs = Date.now() - created.getTime();
+    const oneDayMs = 24 * 60 * 60 * 1000;
+    return diffMs <= oneDayMs;
+  }).length;
+
+  const responseCount = (data?.quotes ?? []).length;
+  const pendingReplies = (data?.conversations ?? []).filter((c) => c.status !== 'closed').length;
 
   return (
     <div className="min-h-screen bg-[#0f1419] pb-20 lg:pb-0">
@@ -94,7 +116,9 @@ const ContractorLeads = memo(function ContractorLeads() {
             <Card className="bg-[#1a2332] border-[#2d3748]">
               <CardContent className="pt-6">
                 <div className="text-center">
-                  <p className="text-3xl font-bold text-orange-500 mb-1">{leads.length}</p>
+                  <p className="text-3xl font-bold text-orange-500 mb-1">
+                    {isLoading ? '—' : leads.length}
+                  </p>
                   <p className="text-sm text-slate-400">Available Projects</p>
                 </div>
               </CardContent>
@@ -102,7 +126,9 @@ const ContractorLeads = memo(function ContractorLeads() {
             <Card className="bg-[#1a2332] border-[#2d3748]">
               <CardContent className="pt-6">
                 <div className="text-center">
-                  <p className="text-3xl font-bold text-green-500 mb-1">2</p>
+                  <p className="text-3xl font-bold text-green-500 mb-1">
+                    {isLoading ? '—' : newTodayCount}
+                  </p>
                   <p className="text-sm text-slate-400">New Today</p>
                 </div>
               </CardContent>
@@ -110,7 +136,9 @@ const ContractorLeads = memo(function ContractorLeads() {
             <Card className="bg-[#1a2332] border-[#2d3748]">
               <CardContent className="pt-6">
                 <div className="text-center">
-                  <p className="text-3xl font-bold text-blue-500 mb-1">12</p>
+                  <p className="text-3xl font-bold text-blue-500 mb-1">
+                    {isLoading ? '—' : responseCount}
+                  </p>
                   <p className="text-sm text-slate-400">Your Responses</p>
                 </div>
               </CardContent>
@@ -118,8 +146,10 @@ const ContractorLeads = memo(function ContractorLeads() {
             <Card className="bg-[#1a2332] border-[#2d3748]">
               <CardContent className="pt-6">
                 <div className="text-center">
-                  <p className="text-3xl font-bold text-yellow-500 mb-1">5</p>
-                  <p className="text-sm text-slate-400">Pending Replies</p>
+                  <p className="text-3xl font-bold text-yellow-500 mb-1">
+                    {isLoading ? '—' : pendingReplies}
+                  </p>
+                  <p className="text-sm text-slate-400">Open Conversations</p>
                 </div>
               </CardContent>
             </Card>
@@ -127,6 +157,18 @@ const ContractorLeads = memo(function ContractorLeads() {
 
           {/* Leads List */}
           <div className="space-y-4">
+            {!isLoading && leads.length === 0 && (
+              <Card className="bg-[#1a2332] border-[#2d3748] shadow-xl">
+                <CardContent className="pt-12 pb-12 text-center">
+                  <TrendingUp className="h-16 w-16 text-slate-600 mx-auto mb-4" />
+                  <h2 className="text-2xl font-bold text-white mb-2">No Projects Available</h2>
+                  <p className="text-slate-400 mb-6">
+                    Check back soon for new project opportunities in your area
+                  </p>
+                </CardContent>
+              </Card>
+            )}
+
             {leads.map((lead) => (
               <Card key={lead.id} className="bg-[#1a2332] border-[#2d3748] shadow-xl hover:border-orange-500/30 transition-all">
                 <CardHeader className="border-b border-[#2d3748] pb-4">
@@ -138,25 +180,31 @@ const ContractorLeads = memo(function ContractorLeads() {
                           {lead.status.toUpperCase()}
                         </Badge>
                       </div>
-                      <p className="text-sm text-slate-400">Posted {lead.postedDate}</p>
+                      {lead.createdAt && (
+                        <p className="text-sm text-slate-400">
+                          Created {formatDistanceToNow(new Date(lead.createdAt), { addSuffix: true })}
+                        </p>
+                      )}
                     </div>
                     <div className="text-right">
-                      <p className="text-sm text-slate-400 mb-1">Responses</p>
-                      <p className="text-2xl font-bold text-orange-500">{lead.responses}</p>
+                      <p className="text-sm text-slate-400 mb-1">Est. Value</p>
+                      <p className="text-2xl font-bold text-orange-500">{formatCurrency(lead.value)}</p>
                     </div>
                   </div>
                 </CardHeader>
                 <CardContent className="pt-6">
-                  <p className="text-slate-200 mb-6 leading-relaxed">{lead.description}</p>
-                  
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+                  <p className="text-slate-200 mb-6 leading-relaxed">
+                    Project request from your dashboard
+                  </p>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
                     <div className="flex items-center gap-2 text-sm">
                       <div className="h-8 w-8 bg-orange-500/20 rounded-lg flex items-center justify-center flex-shrink-0">
                         <DollarSign className="h-4 w-4 text-orange-500" />
                       </div>
                       <div>
                         <p className="text-slate-400 text-xs">Budget</p>
-                        <p className="text-white font-medium">{lead.budget}</p>
+                        <p className="text-white font-medium">{formatCurrency(lead.value)}</p>
                       </div>
                     </div>
                     <div className="flex items-center gap-2 text-sm">
@@ -164,17 +212,21 @@ const ContractorLeads = memo(function ContractorLeads() {
                         <Calendar className="h-4 w-4 text-orange-500" />
                       </div>
                       <div>
-                        <p className="text-slate-400 text-xs">Timeline</p>
-                        <p className="text-white font-medium">{lead.timeline}</p>
+                        <p className="text-slate-400 text-xs">Status</p>
+                        <p className="text-white font-medium">{lead.status}</p>
                       </div>
                     </div>
-                    <div className="flex items-center gap-2 text-sm md:col-span-2">
+                    <div className="flex items-center gap-2 text-sm">
                       <div className="h-8 w-8 bg-orange-500/20 rounded-lg flex items-center justify-center flex-shrink-0">
-                        <MapPin className="h-4 w-4 text-orange-500" />
+                        <Calendar className="h-4 w-4 text-orange-500" />
                       </div>
                       <div>
-                        <p className="text-slate-400 text-xs">Location</p>
-                        <p className="text-white font-medium">{lead.location}</p>
+                        <p className="text-slate-400 text-xs">Created</p>
+                        <p className="text-white font-medium">
+                          {lead.createdAt
+                            ? formatDistanceToNow(new Date(lead.createdAt), { addSuffix: true })
+                            : 'Not available'}
+                        </p>
                       </div>
                     </div>
                   </div>
@@ -196,18 +248,7 @@ const ContractorLeads = memo(function ContractorLeads() {
             ))}
           </div>
 
-          {/* Empty State (hidden when there are leads) */}
-          {leads.length === 0 && (
-            <Card className="bg-[#1a2332] border-[#2d3748] shadow-xl">
-              <CardContent className="pt-12 pb-12 text-center">
-                <TrendingUp className="h-16 w-16 text-slate-600 mx-auto mb-4" />
-                <h2 className="text-2xl font-bold text-white mb-2">No Projects Available</h2>
-                <p className="text-slate-400 mb-6">
-                  Check back soon for new project opportunities in your area
-                </p>
-              </CardContent>
-            </Card>
-          )}
+          {/* Empty state handled above when there are no leads */}
         </div>
       </div>
     </div>

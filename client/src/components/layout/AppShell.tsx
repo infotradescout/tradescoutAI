@@ -22,6 +22,7 @@ import { NotificationsMenu } from "@/components/NotificationsMenu";
 import { RightToolsPanel } from "@/components/layout/RightToolsPanel";
 import MobileAppBar from "@/components/navigation/MobileAppBar";
 import { TradeScoutLogo } from "@/components/TradeScoutIcons";
+import { AdminPageToolsBar } from "@/components/admin/AdminPageToolsBar";
 
 export type NavItem = {
   label: string;
@@ -68,8 +69,8 @@ const featureNav: NavItem[] = [
     icon: <MessageCircle className="h-5 w-5 text-orange-400" />,
   },
   {
-    label: "Marketplace",
-    href: ROUTES.MARKETPLACE ?? "/exchange",
+    label: "EXCHANGE",
+    href: "/exchange",
     icon: <ShoppingBag className="h-5 w-5 text-orange-400" />,
   },
   {
@@ -205,6 +206,9 @@ export function AppShell({ children, footer }: AppShellProps) {
           </aside>
         )}
       </div>
+
+      {/* Super admin tools bar appears on every page for high-level roles */}
+      <AdminPageToolsBar />
 
       {/* BOTTOM BAR: SCROLLABLE SITE FEATURE NAV (mobile + desktop) */}
       <MobileAppBar items={featureNav} />

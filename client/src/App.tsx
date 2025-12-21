@@ -86,6 +86,7 @@ const PromptAdminPage = React.lazy(() =>
 
 // Marketplace & Social
 const WorkerMarketplace = React.lazy(() => import('./pages/worker-marketplace'));
+const ContractorLeads = React.lazy(() => import('./pages/contractor-leads'));
 const Chat = React.lazy(() => import('./pages/chat'));
 const Messages = React.lazy(() => import('./pages/messages'));
 const SavedAds = React.lazy(() => import('./pages/saved-ads'));
@@ -113,6 +114,8 @@ const Exchange = React.lazy(() => import('./pages/exchange'));
 const HandmadeMarketplace = React.lazy(() => import('./pages/handmade-marketplace'));
 const Leaderboard = React.lazy(() => import('./pages/leaderboard'));
 const Foundation = React.lazy(() => import('./pages/foundation'));
+const Accounting = React.lazy(() => import('./pages/accounting'));
+const TasksHub = React.lazy(() => import('./pages/tasks'));
 // NOTE: CommunityFeedOld mock has been quarantined to client/src/playgrounds/CommunityFeedMock.tsx
 // and should not be routed. This lazy import is intentionally removed.
 const CommunityModerationDemo = React.lazy(() => import('./pages/CommunityModerationDemo'));
@@ -468,7 +471,17 @@ const AppLayout = memo(function AppLayout() {
                   <Route path="/contractors/:slug"><LazyPage Component={ContractorProfile} /></Route>
                   <Route path="/contractors"><LazyPage Component={FindContractors} /></Route>
 
-                  {/* Helpers + Tasks: separate from contractors, but together */}
+                  {/* Contractor project requests / leads */}
+                  <Route path="/contractor-leads">
+                    <ProtectedRoute>
+                      <LazyPage Component={ContractorLeads} />
+                    </ProtectedRoute>
+                  </Route>
+                  <Route path="/contractor/leads">
+                    <RedirectTo to="/contractor-leads" />
+                  </Route>
+
+                  {/* Helpers + Tasks */}
                   <Route path="/helpers"><LazyPage Component={WorkerMarketplace} /></Route>
                   <Route path="/daily-deals/:rest*"><LazyPage Component={DailyDeals} /></Route>
                   <Route path="/help-demo/:rest*"><LazyPage Component={HelpDemo} /></Route>
@@ -758,6 +771,11 @@ const AppLayout = memo(function AppLayout() {
                   <Route path="/boosts"><LazyPage Component={Boosts} /></Route>
                   <Route path="/analytics"><LazyPage Component={Analytics} /></Route>
                   <Route path="/crm"><LazyPage Component={CRM} /></Route>
+                  <Route path="/accounting">
+                    <ProtectedRoute>
+                      <LazyPage Component={Accounting} />
+                    </ProtectedRoute>
+                  </Route>
                   <Route path="/project-tracker"><LazyPage Component={ProjectTracker} /></Route>
                   <Route path="/lead-management"><LazyPage Component={ProjectTracker} /></Route>
                   <Route path="/ad-creator"><LazyPage Component={AdCreator} /></Route>
@@ -794,8 +812,8 @@ const AppLayout = memo(function AppLayout() {
                   <Route path="/training-center"><LazyPage Component={TrainingCenter} /></Route>
                   <Route path="/application-tracker"><LazyPage Component={ApplicationTracker} /></Route>
                   <Route path="/administrative-dashboard"><LazyPage Component={AdministrativeDashboard} /></Route>
-                  <Route path="/advanced-search"><LazyPage Component={AdvancedSearch} /></Route>
-                  <Route path="/search"><LazyPage Component={AdvancedSearch} /></Route>
+                  <Route path="/advanced-search"><RedirectTo to="/contractors" /></Route>
+                  <Route path="/search"><RedirectTo to="/contractors" /></Route>
                   
                   {/* Applications */}
                   <Route path="/realtor-application"><LazyPage Component={RealtorApplication} /></Route>
@@ -849,7 +867,7 @@ const AppLayout = memo(function AppLayout() {
                   <Route path="/schedule-consultation"><LazyPage Component={ScheduleConsultation} /></Route>
                   <Route path="/apply-accelerator"><LazyPage Component={ApplyAccelerator} /></Route>
                   <Route path="/request-quote"><LazyPage Component={RequestQuote} /></Route>
-                  <Route path="/tasks"><LazyPage Component={RequestQuote} /></Route>
+                  <Route path="/tasks"><LazyPage Component={TasksHub} /></Route>
                   
                   {/* Legal pages */}
                   <Route path="/pricing"><LazyPage Component={Pricing} /></Route>

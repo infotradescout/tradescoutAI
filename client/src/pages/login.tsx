@@ -25,7 +25,7 @@ export default function Login() {
             <Home className="h-6 w-6 text-white" />
           </div>
           <CardTitle className="text-2xl font-bold text-tsTextMain">Welcome back to TradeScout</CardTitle>
-          <p className="text-sm text-tsTextMuted">Sign in to access your dashboard, marketplace, and community tools.</p>
+          <p className="text-sm text-tsTextMuted">Sign in to access your dashboard, Exchange, and community tools.</p>
         </CardHeader>
         <CardContent>
           <div className="bg-[#0b1224] border border-tsBorder rounded-xl p-4">

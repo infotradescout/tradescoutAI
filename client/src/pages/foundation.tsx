@@ -247,7 +247,7 @@ export default function Foundation() {
                 <span>TradeScout Foundation</span>
               </div>
               <h1 className="text-2xl sm:text-3xl font-bold text-white">
-                Route marketplace givebacks into real local causes.
+                Route Exchange givebacks into real local causes.
               </h1>
               <p className="text-sm sm:text-base text-gray-300">
                 Every contractor promotion, roundup, and community vault contribution rolls up into county-level funds
@@ -318,7 +318,7 @@ export default function Foundation() {
                 <Badge variant="outline" className="border-orange-500 text-orange-300">Give back</Badge>
               </div>
               <p className="text-gray-300 text-sm mb-3">
-                Donations, marketplace givebacks, and contractor programs all ladder into your community vault. With the Community Builder badge, you can send and vote on which local causes get funded.
+                Donations, Exchange givebacks, and contractor programs all ladder into your community vault. With the Community Builder badge, you can send and vote on which local causes get funded.
               </p>
               <div className="flex flex-col sm:flex-row sm:items-center gap-3">
                 <Button asChild className="bg-orange-500 hover:bg-orange-600 w-full sm:w-auto">

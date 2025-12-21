@@ -135,13 +135,13 @@ const ALL_NAVIGATION: NavItem[] = [
     ],
   },
 
-  // MARKETPLACE
+  // EXCHANGE LISTINGS (legacy marketplace routes)
   {
-    label: 'Marketplace',
+    label: 'Exchange',
     href: '/marketplace',
     icon: ShoppingBag,
     children: [
-      { label: 'All Categories', href: '/marketplace', icon: ShoppingBag },
+      { label: 'Browse Exchange', href: '/marketplace', icon: ShoppingBag },
       { label: 'Real Estate', href: '/real-estate-marketplace', icon: Building },
       { label: 'Vehicles', href: '/vehicle-marketplace', icon: Car },
       { label: 'Handmade & Crafts', href: '/handmade-marketplace', icon: Sparkles },
@@ -153,9 +153,9 @@ const ALL_NAVIGATION: NavItem[] = [
     ],
   },
 
-  // EXCHANGE
+  // EXCHANGE TOOLS
   {
-    label: 'Exchange',
+    label: 'Exchange Tools',
     href: '/exchange',
     icon: Briefcase,
     children: [
