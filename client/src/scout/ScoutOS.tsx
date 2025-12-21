@@ -254,12 +254,64 @@ export default function ScoutOS() {
     mode: ScoutMode,
     userMessage: string,
     serverSuggestions?: string[],
-    opts?: { isFirstAnswer?: boolean; isGuest?: boolean }
+    opts?: {
+      isFirstAnswer?: boolean;
+      isGuest?: boolean;
+      intent?: string;
+      resolvedContext?: {
+        stage?: string;
+        blockingReason?: string | null;
+        allowedActions?: string[];
+      } | null;
+    }
   ): string[] => {
     const base: string[] = [];
     const trimmed = userMessage.trim();
     const short = trimmed.length > 80 ? `${trimmed.slice(0, 77)}…` : trimmed;
     const lower = trimmed.toLowerCase();
+
+    const intent = opts?.intent?.toLowerCase() || "";
+    const ctx = opts?.resolvedContext;
+
+    // Deal room / project flow-aware suggestions when we have a resolved context
+    if (ctx && Array.isArray(ctx.allowedActions) && ctx.allowedActions.length) {
+      const allowed = ctx.allowedActions;
+      const projectBase: string[] = [];
+
+      const hasOpenDealRoom = allowed.includes("OPEN_DEAL_ROOM");
+      const canSendInvoice = allowed.includes("SEND_INVOICE") || allowed.includes("GENERATE_INVOICE");
+      const canMarkPaid = allowed.includes("MARK_INVOICE_PAID");
+      const canSendContract = allowed.includes("SEND_CONTRACT") || allowed.includes("SIGN_CONTRACT");
+
+      if (canSendInvoice) {
+        projectBase.push("Open my deal room so I can review and send this invoice");
+      }
+      if (canMarkPaid) {
+        projectBase.push("Open my deal room so I can mark this invoice paid");
+      }
+      if (canSendContract) {
+        projectBase.push("Open my deal room so I can handle the contract for this job");
+      }
+      if (hasOpenDealRoom && projectBase.length === 0) {
+        projectBase.push("Open my project deal room so I can move this forward");
+      }
+      if (ctx.blockingReason) {
+        projectBase.push("Explain what’s blocking this project and show how to unblock it");
+      }
+
+      if (projectBase.length) {
+        const uniqueProject: string[] = [];
+        for (const raw of projectBase) {
+          const s = sanitizeSuggestionLabel(raw);
+          if (!s || isWeakSuggestionLabel(s)) continue;
+          if (!uniqueProject.includes(s)) uniqueProject.push(s);
+          if (uniqueProject.length >= 3) break;
+        }
+        if (uniqueProject.length) {
+          return uniqueProject.slice(0, 3);
+        }
+      }
+    }
 
     // Very first OS orientation: suggestions should help them explore the platform,
     // not feel like generic chat actions.
@@ -454,7 +506,12 @@ export default function ScoutOS() {
           mode,
           value,
           res.suggestedActions,
-          { isFirstAnswer, isGuest }
+          {
+            isFirstAnswer,
+            isGuest,
+            intent: res.metadata?.intent,
+            resolvedContext: res.metadata?.resolvedContext ?? null,
+          }
         );
 
         const clusters: ScoutCluster[] = [];

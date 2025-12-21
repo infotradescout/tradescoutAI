@@ -70,6 +70,21 @@ export interface ScoutBackendResponse {
     sources?: Array<{ title: string; url?: string; type?: string }>;
   };
   timestamp?: string;
+  metadata?: {
+    intent?: string;
+    thought_flow?: string[];
+    decision?: string;
+    redirect?: string;
+    resolvedContext?: {
+      stage?: string;
+      blockingReason?: string | null;
+      allowedActions?: string[];
+      confidence?: string;
+      requiresLLM?: boolean;
+      [key: string]: unknown;
+    } | null;
+    currentJobId?: string;
+  };
 }
 
 function inferModeFromMessageAndRoles(message: string, roles?: string[]): ScoutMode {
