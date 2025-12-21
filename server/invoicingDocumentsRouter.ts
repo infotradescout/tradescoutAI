@@ -6,64 +6,6 @@ import { isAuthenticated } from "./auth";
 import { storage } from "./storage";
 
 type AuthedRequest = Request & { user?: { id?: string; role?: string; [key: string]: any } };
-
-	r.get(
-		"/api/accounting/reports/summary",
-		isAuthenticated,
-		wrap(async (req: AuthedRequest, res: Response) => {
-			requireAuth(req);
-			const userId = String(req.user!.id);
-
-			const overallRes = await pool.query(
-				`SELECT
-					COUNT(*) AS invoice_count,
-					COUNT(*) FILTER (WHERE status = 'paid') AS paid_count,
-					COUNT(*) FILTER (WHERE status <> 'paid') AS unpaid_count,
-					COALESCE(SUM((payload->>'total')::numeric), 0) AS total_amount,
-					COALESCE(SUM(CASE WHEN status = 'paid' THEN (payload->>'total')::numeric ELSE 0 END), 0) AS paid_amount
-				FROM documents
-				WHERE type = 'INVOICE' AND created_by = $1 AND job_id LIKE 'acct_%'`,
-				[userId],
-			);
-			const overall = overallRes.rows[0] || {
-				invoice_count: 0,
-				paid_count: 0,
-				unpaid_count: 0,
-				total_amount: 0,
-				paid_amount: 0,
-			};
-
-			const byMonthRes = await pool.query(
-				`SELECT
-					date_trunc('month', created_at) AS month,
-					COALESCE(SUM((payload->>'total')::numeric), 0) AS total_amount,
-					COALESCE(SUM(CASE WHEN status = 'paid' THEN (payload->>'total')::numeric ELSE 0 END), 0) AS paid_amount
-				FROM documents
-				WHERE type = 'INVOICE' AND created_by = $1 AND job_id LIKE 'acct_%'
-				GROUP BY 1
-				ORDER BY 1 DESC
-				LIMIT 24`,
-				[userId],
-			);
-
-			res.json({
-				lifetime: {
-					invoiceCount: Number(overall.invoice_count) || 0,
-					paidCount: Number(overall.paid_count) || 0,
-					unpaidCount: Number(overall.unpaid_count) || 0,
-					totalAmount: Number(overall.total_amount) || 0,
-					paidAmount: Number(overall.paid_amount) || 0,
-					unpaidAmount:
-						Number(overall.total_amount || 0) - Number(overall.paid_amount || 0),
-				},
-				byMonth: byMonthRes.rows.map((row) => ({
-					month: (row.month as Date).toISOString(),
-					totalAmount: Number(row.total_amount) || 0,
-					paidAmount: Number(row.paid_amount) || 0,
-				})),
-			});
-		}),
-	);
 function requireAuth(req: AuthedRequest): asserts req is AuthedRequest & { user: { id: string } } {
 	if (!req.user?.id) {
 		const err = new Error("AUTH_REQUIRED");
@@ -351,6 +293,65 @@ export function createInvoicingDocumentsRouter(pool: Pool) {
 				next(e);
 			}
 		};
+
+	// High-level accounting summary for deal-room style reporting
+	r.get(
+		"/api/accounting/reports/summary",
+		isAuthenticated,
+		wrap(async (req: AuthedRequest, res: Response) => {
+			requireAuth(req);
+			const userId = String(req.user!.id);
+
+			const overallRes = await pool.query(
+				`SELECT
+					COUNT(*) AS invoice_count,
+					COUNT(*) FILTER (WHERE status = 'paid') AS paid_count,
+					COUNT(*) FILTER (WHERE status <> 'paid') AS unpaid_count,
+					COALESCE(SUM((payload->>'total')::numeric), 0) AS total_amount,
+					COALESCE(SUM(CASE WHEN status = 'paid' THEN (payload->>'total')::numeric ELSE 0 END), 0) AS paid_amount
+				FROM documents
+				WHERE type = 'INVOICE' AND created_by = $1 AND job_id LIKE 'acct_%'`,
+				[userId],
+			);
+			const overall = overallRes.rows[0] || {
+				invoice_count: 0,
+				paid_count: 0,
+				unpaid_count: 0,
+				total_amount: 0,
+				paid_amount: 0,
+			};
+
+			const byMonthRes = await pool.query(
+				`SELECT
+					date_trunc('month', created_at) AS month,
+					COALESCE(SUM((payload->>'total')::numeric), 0) AS total_amount,
+					COALESCE(SUM(CASE WHEN status = 'paid' THEN (payload->>'total')::numeric ELSE 0 END), 0) AS paid_amount
+				FROM documents
+				WHERE type = 'INVOICE' AND created_by = $1 AND job_id LIKE 'acct_%'
+				GROUP BY 1
+				ORDER BY 1 DESC
+				LIMIT 24`,
+				[userId],
+			);
+
+			res.json({
+				lifetime: {
+					invoiceCount: Number(overall.invoice_count) || 0,
+					paidCount: Number(overall.paid_count) || 0,
+					unpaidCount: Number(overall.unpaid_count) || 0,
+					totalAmount: Number(overall.total_amount) || 0,
+					paidAmount: Number(overall.paid_amount) || 0,
+					unpaidAmount:
+						Number(overall.total_amount || 0) - Number(overall.paid_amount || 0),
+				},
+				byMonth: byMonthRes.rows.map((row) => ({
+					month: (row.month as Date).toISOString(),
+					totalAmount: Number(row.total_amount) || 0,
+					paidAmount: Number(row.paid_amount) || 0,
+				})),
+			});
+		}),
+	);
 
 	// List all documents for a job/project
 	r.get(
