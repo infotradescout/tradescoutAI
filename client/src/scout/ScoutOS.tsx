@@ -71,6 +71,10 @@ function censorProfanity(text: string) {
   return cleaned;
 }
 
+function sortPromptsByLength(prompts: string[]): string[] {
+  return [...prompts].sort((a, b) => a.length - b.length);
+}
+
 export default function ScoutOS() {
   const { user, isAuthenticated } = useAuth();
   const [location, navigate] = useLocation();
@@ -298,9 +302,9 @@ export default function ScoutOS() {
             );
           } else {
             base.push(
-              "Summarize this into a simple next-step plan",
-              "Route me to the best place in TradeScout for this",
-              "Turn this into a trackable project on my board"
+              "Turn this into a trackable project on my board",
+              "Find local contractors or groups who can help with this",
+              "Open the TradeScout view that fits this best (projects, community, or marketplace)"
             );
           }
           break;
@@ -820,16 +824,18 @@ export default function ScoutOS() {
         {isFirstGuestVisit ? (
           // FIRST GUEST INTRO: Clean, intentional, single-purpose
           <div className="space-y-6">
-            <header className="text-center space-y-2">
+            <header className="text-center space-y-1">
               <p className="text-[10px] tracking-[0.25em] text-orange-300 uppercase">
                 COMMUNITY OS
               </p>
-              <h1 className="text-xl md:text-2xl font-black tracking-[0.12em] text-white uppercase">
+              <h1 className="text-lg md:text-xl font-black tracking-[0.12em] text-white uppercase">
                 <span className="text-white">EMPOWERING </span>
                 <span className="text-orange-400">{heroHeadlineTarget}</span>
               </h1>
-              <p className="text-xs text-slate-300/90 max-w-md mx-auto">
-                Your local AI assistant for projects, people, and everything in your community.
+              <p className="text-[11px] text-slate-300/90 max-w-md mx-auto">
+                {isAuthenticated && heroAudienceLabel
+                  ? `For ${heroAudienceLabel} working in ${heroHeadlineTarget}.`
+                  : "Your local AI for projects, people, and community."}
               </p>
             </header>
 
@@ -884,18 +890,20 @@ export default function ScoutOS() {
           // FULL CONVERSATION: All features visible after first message
           <>
             {/* Header + hero (copy only; all navigation lives in AppShell) */}
-            <header className="space-y-2">
+            <header className="space-y-1">
               <p className="text-[10px] tracking-[0.25em] text-orange-300 uppercase">
                 COMMUNITY OS
               </p>
-              <p className="text-[11px] text-slate-400">
-                Your local operating system for projects, people, and community.
-              </p>
-
               <h1 className="mt-1 text-[clamp(0.95rem,3.5vw,1.35rem)] tracking-[0.12em] text-white uppercase">
                 <span className="text-white">EMPOWERING </span>
                 <span className="text-orange-400">{heroHeadlineTarget}</span>
               </h1>
+
+              <p className="text-[11px] text-slate-400 max-w-md">
+                {isAuthenticated && heroAudienceLabel
+                  ? `For ${heroAudienceLabel} working in ${heroHeadlineTarget}.`
+                  : "Your local AI for projects, people, and community."}
+              </p>
 
               {!isAuthenticated && (
                 <p className="mt-1 text-[11px] text-slate-300/90 max-w-md">
@@ -912,15 +920,18 @@ export default function ScoutOS() {
             >
               {!hasUserMessages && (
                 <div className="flex flex-wrap gap-2 justify-center text-center">
-                  {(autoPromptSuggestions.length
-                    ? autoPromptSuggestions.slice(0, 3)
-                    : [
-                        `Find trusted local pros in ${heroLocationLabel || "your area"}`,
-                        heroAudienceLabel
-                          ? `Show opportunities for ${heroAudienceLabel} in ${heroLocationLabel || "my area"}`
-                          : "Show me what's happening in my community",
-                        "Draft a post I can share with my neighbors",
-                      ]
+                  {sortPromptsByLength(
+                    autoPromptSuggestions.length
+                      ? autoPromptSuggestions.slice(0, 3)
+                      : [
+                          `Find trusted local pros in ${heroLocationLabel || "your area"}`,
+                          heroAudienceLabel
+                            ? `Show opportunities for ${heroAudienceLabel} in ${
+                                heroLocationLabel || "my area"
+                              }`
+                            : "Show me what's happening in my community",
+                          "Draft a post I can share with my neighbors",
+                        ]
                   ).map((prompt) => (
                     <button
                       key={prompt}

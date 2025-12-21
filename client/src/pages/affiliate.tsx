@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
-import { Copy, Share2, TrendingUp, Users, DollarSign, Calendar, Check, ExternalLink, Zap } from "lucide-react";
+import { Copy, Share2, TrendingUp, Users, DollarSign, Calendar, Check, ExternalLink, Zap, Wallet } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import { useAuth } from "@/hooks/useAuth";
@@ -190,7 +190,7 @@ export default function AffiliatePage() {
             </div>
             <div>
               <h1 className="text-4xl font-bold text-white">Your Affiliate Dashboard</h1>
-              <p className="text-gray-400">Every link you share automatically earns you 10% commission</p>
+              <p className="text-gray-400">Every link you share automatically powers a 5/5/5 impact model</p>
             </div>
           </div>
           
@@ -198,8 +198,15 @@ export default function AffiliatePage() {
             <Check className="w-5 h-5 text-blue-400 mt-0.5 flex-shrink-0" />
             <div>
               <p className="text-blue-200 font-medium">Automatic Affiliate Program</p>
-              <p className="text-blue-300/80 text-sm">No signup needed! As a TradeScout member, you automatically earn 10% commission on ALL revenue from anyone who signs up through your links.</p>
+              <p className="text-blue-300/80 text-sm">No signup needed! As a TradeScout member, 5% of platform revenue from your referrals goes to you, 5% to your community vaults, and 5% to trade school scholarships.</p>
             </div>
+            <a
+              href="/wallet"
+              className="ml-auto inline-flex items-center gap-2 rounded-full bg-emerald-500/15 border border-emerald-500/40 px-3 py-1.5 text-xs font-medium text-emerald-200 hover:bg-emerald-500/25 transition-colors"
+            >
+              <Wallet className="w-3 h-3" />
+              View Wallet
+            </a>
           </div>
         </div>
 
@@ -258,10 +265,8 @@ export default function AffiliatePage() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-bold text-orange-400">
-                {program?.commissionRate || "10"}%
-              </div>
-              <p className="text-sm text-gray-400 mt-1">On all revenue</p>
+              <div className="text-3xl font-bold text-orange-400">5%</div>
+              <p className="text-sm text-gray-400 mt-1">Directly to you on platform revenue from your referrals</p>
             </CardContent>
           </Card>
         </div>
@@ -301,16 +306,16 @@ export default function AffiliatePage() {
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="bg-slate-800/50 p-4 rounded-lg">
-                <h4 className="text-white font-semibold mb-2">10% Marketplace Promotions</h4>
-                <p className="text-sm text-gray-400">Commission when contractors boost marketplace listings</p>
+                <h4 className="text-white font-semibold mb-2">5% To You</h4>
+                <p className="text-sm text-gray-400">Direct affiliate earnings from marketplace activity and platform revenue</p>
               </div>
               <div className="bg-slate-800/50 p-4 rounded-lg">
-                <h4 className="text-white font-semibold mb-2">10% Marketplace Sales</h4>
-                <p className="text-sm text-gray-400">Earnings from all marketplace transactions</p>
+                <h4 className="text-white font-semibold mb-2">5% To Community Vaults</h4>
+                <p className="text-sm text-gray-400">Automatically routes a matching share back into the community vaults you care about</p>
               </div>
               <div className="bg-slate-800/50 p-4 rounded-lg">
-                <h4 className="text-white font-semibold mb-2">10% Ad Revenue</h4>
-                <p className="text-sm text-gray-400">Share of platform advertising revenue</p>
+                <h4 className="text-white font-semibold mb-2">5% To Trade Schools</h4>
+                <p className="text-sm text-gray-400">Funds scholarships and training for the next generation of tradespeople</p>
               </div>
             </div>
           </CardContent>
@@ -351,19 +356,19 @@ export default function AffiliatePage() {
                       When someone joins TradeScout through your link, they're automatically tracked as your referral forever.
                     </p>
                   </div>
-                  <div>
-                    <div className="w-12 h-12 bg-emerald-500/20 rounded-lg flex items-center justify-center mb-3">
-                      <DollarSign className="w-6 h-6 text-emerald-400" />
+                    <div>
+                      <div className="w-12 h-12 bg-emerald-500/20 rounded-lg flex items-center justify-center mb-3">
+                        <DollarSign className="w-6 h-6 text-emerald-400" />
+                      </div>
+                      <h3 className="text-white font-semibold mb-2">3. 5/5/5 Forever</h3>
+                      <p className="text-gray-400 text-sm">
+                        You earn 5% of platform revenue from your referrals, while another 5% goes to community vaults and 5% to trade school scholarships.
+                      </p>
                     </div>
-                    <h3 className="text-white font-semibold mb-2">3. Earn 10% Forever</h3>
-                    <p className="text-gray-400 text-sm">
-                      You earn 10% of ALL revenue from your referrals - marketplace promotions, sales, and platform ads.
-                    </p>
-                  </div>
                 </div>
 
                 <div className="bg-slate-700/30 p-6 rounded-lg">
-                  <h4 className="text-white font-semibold mb-3">Why 10% is Powerful</h4>
+                  <h4 className="text-white font-semibold mb-3">Why 5/5/5 is Powerful</h4>
                   <ul className="space-y-2 text-gray-300 text-sm">
                     <li className="flex items-start gap-2">
                       <Check className="w-5 h-5 text-emerald-400 flex-shrink-0 mt-0.5" />
@@ -371,7 +376,7 @@ export default function AffiliatePage() {
                     </li>
                     <li className="flex items-start gap-2">
                       <Check className="w-5 h-5 text-emerald-400 flex-shrink-0 mt-0.5" />
-                      <span><strong>Marketplace Revenue:</strong> Every marketplace promotion and transaction generates commission for you</span>
+                      <span><strong>Marketplace Revenue:</strong> Every marketplace promotion and transaction generates 5% commission for you and 10% for community impact</span>
                     </li>
                     <li className="flex items-start gap-2">
                       <Check className="w-5 h-5 text-emerald-400 flex-shrink-0 mt-0.5" />
@@ -379,7 +384,7 @@ export default function AffiliatePage() {
                     </li>
                     <li className="flex items-start gap-2">
                       <Check className="w-5 h-5 text-emerald-400 flex-shrink-0 mt-0.5" />
-                      <span><strong>Passive Income:</strong> After sharing once, you continue earning from your referrals indefinitely</span>
+                      <span><strong>Passive Income:</strong> After sharing once, you continue earning 5% from your referrals indefinitely while also funding communities and scholarships</span>
                     </li>
                   </ul>
                 </div>

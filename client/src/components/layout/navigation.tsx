@@ -4,11 +4,13 @@ import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/hooks/useAuth";
+import { useQuery } from "@tanstack/react-query";
 import { 
   Menu, X, Settings, LogOut, User, Crown, Bookmark, 
   Search, Calculator, Users, Package, Palette, 
   MessageCircle, Shield, Layout, Wrench, Home,
-  ChevronDown, Zap, Star, Trophy, UserPlus, Share, Heart
+  ChevronDown, Zap, Star, Trophy, UserPlus, Share, Heart,
+  DollarSign,
 } from "lucide-react";
 import { ConstructionEmblem } from "@/components/ConstructionEmblem";
 import { NotificationBell } from "@/components/NotificationBell";
@@ -34,6 +36,12 @@ export default function Navigation() {
   const isContractor = user && user.role && ['contractor_user', 'accelerator_member'].includes(user.role);
   const isHomeowner = user && user.role === 'homeowner';
 
+  const { data: walletBalanceData } = useQuery<{ balance: string } | null>({
+    queryKey: ["/api/wallet/balance"],
+    enabled: isAuthenticated,
+    staleTime: 60 * 1000,
+  });
+
   const navItems = [
     { href: "/contractors", label: "Find Contractors", icon: Search, public: true, description: "Find verified local contractors" },
     { href: "/pricing", label: "Pricing", icon: Calculator, public: true, description: "Plans and value guide" },
@@ -48,6 +56,7 @@ export default function Navigation() {
     { href: "/conversations", label: "Messages", icon: MessageCircle, description: "Your marketplace conversations" },
     { href: "/invite", label: "Invite Friends", icon: UserPlus, description: "Invite friends to join TradeScout" },
     { href: "/affiliate", label: "Affiliate Program", icon: Share, description: "Earn 25% commissions on referrals" },
+    { href: "/wallet", label: "Wallet", icon: DollarSign, description: "Your TradeScout balance" },
     { href: "/moderation", label: "Moderation", icon: Shield, description: "Community moderation" },
     ...(isContractor ? [
       { href: "/contractor-dashboard", label: "Dashboard", icon: Layout, description: "Your contractor hub" },
@@ -152,6 +161,21 @@ export default function Navigation() {
 
                 <div className="flex items-center space-x-2">
                   <NotificationBell />
+
+                  {walletBalanceData && (
+                    <Link href="/wallet">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="border-emerald-500/40 text-emerald-300 hover:bg-emerald-500/10 hover:text-emerald-100 transition-all duration-200 hidden xl:inline-flex"
+                      >
+                        <DollarSign className="h-4 w-4 mr-1" />
+                        <span className="text-xs">
+                          ${Number(walletBalanceData.balance || "0").toFixed(2)}
+                        </span>
+                      </Button>
+                    </Link>
+                  )}
 
                   <Link href="/saved-ads">
                     <Button 

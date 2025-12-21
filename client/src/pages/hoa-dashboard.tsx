@@ -62,6 +62,43 @@ const HOADashboard = memo(function HOADashboard() {
 
   const dashboard = data?.dashboard;
 
+  if (isLoading) {
+    return (
+      <CommunityShell sectionLabel="HOA Dashboard" notificationsCount={unreadCount}>
+        <div className="w-full py-12 flex items-center justify-center">
+          <div className="flex flex-col items-center gap-3 text-gray-300">
+            <div className="animate-spin w-8 h-8 border-4 border-orange-500 border-t-transparent rounded-full" />
+            <p>Loading your HOA dashboard&hellip;</p>
+          </div>
+        </div>
+      </CommunityShell>
+    );
+  }
+
+  if (isError || !dashboard) {
+    return (
+      <CommunityShell sectionLabel="HOA Dashboard" notificationsCount={unreadCount}>
+        <div className="w-full py-12 flex items-center justify-center">
+          <Card className="bg-navy-800/60 border-navy-600 max-w-xl w-full">
+            <CardHeader>
+              <CardTitle className="text-white">No HOA linked yet</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-gray-300 mb-4 text-sm">
+                You don&apos;t currently have an HOA linked to your TradeScout account. Once you join or register
+                your neighborhood HOA, this dashboard will show live stats only for your community.
+              </p>
+              <p className="text-gray-400 text-sm">
+                If you believe you should already be connected to an HOA, please verify your address from your
+                profile or contact support.
+              </p>
+            </CardContent>
+          </Card>
+        </div>
+      </CommunityShell>
+    );
+  }
+
   return (
     <CommunityShell sectionLabel="HOA Dashboard" notificationsCount={unreadCount}>
       <div className="w-full py-8">
@@ -72,7 +109,7 @@ const HOADashboard = memo(function HOADashboard() {
             <h1 className="text-4xl font-bold text-white">HOA Management</h1>
           </div>
           <p className="text-gray-300 text-lg">
-            {dashboard ? `${dashboard.hoaName} Dashboard` : "Loading HOA dashboard..."}
+            {`${dashboard.hoaName} Dashboard`}
           </p>
         </div>
 
@@ -83,7 +120,7 @@ const HOADashboard = memo(function HOADashboard() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-gray-400 text-sm">Total Units</p>
-                  <p className="text-2xl font-bold text-white">{dashboard ? dashboard.memberCount : 0}</p>
+                  <p className="text-2xl font-bold text-white">{dashboard.memberCount}</p>
                 </div>
                 <Home className="h-8 w-8 text-blue-400" />
               </div>
@@ -95,7 +132,7 @@ const HOADashboard = memo(function HOADashboard() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-gray-400 text-sm">Monthly Revenue</p>
-                  <p className="text-2xl font-bold text-white">{dashboard && typeof dashboard.balance === 'number' ? `$${dashboard.balance.toLocaleString()}` : '--'}</p>
+                  <p className="text-2xl font-bold text-white">{typeof dashboard.balance === 'number' ? `$${dashboard.balance.toLocaleString()}` : '--'}</p>
                 </div>
                 <DollarSign className="h-8 w-8 text-green-400" />
               </div>
@@ -107,7 +144,7 @@ const HOADashboard = memo(function HOADashboard() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-gray-400 text-sm">Active Residents</p>
-                  <p className="text-2xl font-bold text-white">{dashboard ? dashboard.activeMembers : 0}</p>
+                  <p className="text-2xl font-bold text-white">{dashboard.activeMembers}</p>
                 </div>
                 <Users className="h-8 w-8 text-purple-400" />
               </div>
@@ -119,7 +156,7 @@ const HOADashboard = memo(function HOADashboard() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-gray-400 text-sm">Collection Rate</p>
-                  <p className="text-2xl font-bold text-white">{dashboard && typeof dashboard.balance === 'number' ? '100%' : '--'}</p>
+                  <p className="text-2xl font-bold text-white">{typeof dashboard.balance === 'number' ? '100%' : '--'}</p>
                 </div>
                 <BarChart3 className="h-8 w-8 text-orange-400" />
               </div>
@@ -150,23 +187,27 @@ const HOADashboard = memo(function HOADashboard() {
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-4">
-                    {[
-                      { type: "payment", message: "Unit 247 - HOA dues received", time: "2 hours ago", status: "success" },
-                      { type: "maintenance", message: "Pool maintenance scheduled", time: "4 hours ago", status: "info" },
-                      { type: "vote", message: "Landscaping proposal - Voting closed", time: "1 day ago", status: "warning" },
-                      { type: "document", message: "Monthly financial report uploaded", time: "2 days ago", status: "info" },
-                    ].map((activity, index) => (
-                      <div key={index} className="flex items-center gap-3 p-3 bg-navy-700/50 rounded-lg">
-                        <div className={`w-2 h-2 rounded-full ${
-                          activity.status === 'success' ? 'bg-green-400' :
-                          activity.status === 'warning' ? 'bg-yellow-400' : 'bg-blue-400'
-                        }`} />
-                        <div className="flex-1">
-                          <p className="text-white text-sm">{activity.message}</p>
-                          <p className="text-gray-400 text-xs">{activity.time}</p>
+                    {dashboard.recentTransactions && dashboard.recentTransactions.length > 0 ? (
+                      dashboard.recentTransactions.map((tx) => (
+                        <div key={tx.id} className="flex items-center gap-3 p-3 bg-navy-700/50 rounded-lg">
+                          <div
+                            className={`w-2 h-2 rounded-full ${
+                              tx.type === 'revenue' ? 'bg-green-400' : 'bg-red-400'
+                            }`}
+                          />
+                          <div className="flex-1">
+                            <p className="text-white text-sm">
+                              {tx.type === 'revenue' ? 'Revenue' : 'Expense'} · ${tx.amount.toLocaleString()}
+                            </p>
+                            <p className="text-gray-400 text-xs">{tx.occurredAt}</p>
+                          </div>
                         </div>
-                      </div>
-                    ))}
+                      ))
+                    ) : (
+                      <p className="text-gray-400 text-sm">
+                        No recent financial activity recorded yet for this HOA.
+                      </p>
+                    )}
                   </div>
                 </CardContent>
               </Card>
@@ -181,27 +222,11 @@ const HOADashboard = memo(function HOADashboard() {
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-4">
-                    {[
-                      { issue: "Pool pump replacement", priority: "High", unit: "Common Area", status: "In Progress" },
-                      { issue: "Parking lot lighting", priority: "Medium", unit: "Common Area", status: "Scheduled" },
-                      { issue: "Mailbox repair", priority: "Low", unit: "Building B", status: "Pending" },
-                    ].map((issue, index) => (
-                      <div key={index} className="p-3 bg-navy-700/50 rounded-lg">
-                        <div className="flex justify-between items-start mb-2">
-                          <p className="text-white font-medium">{issue.issue}</p>
-                          <Badge variant={
-                            issue.priority === 'High' ? 'destructive' :
-                            issue.priority === 'Medium' ? 'default' : 'secondary'
-                          }>
-                            {issue.priority}
-                          </Badge>
-                        </div>
-                        <div className="flex justify-between text-sm text-gray-400">
-                          <span>{issue.unit}</span>
-                          <span>{issue.status}</span>
-                        </div>
-                      </div>
-                    ))}
+                    <p className="text-gray-400 text-sm">
+                      Maintenance requests and vendor work are managed from the HOA Management view. As your
+                      association begins tracking work there, this overview will summarize open issues for your
+                      neighborhood only.
+                    </p>
                   </div>
                 </CardContent>
               </Card>
@@ -219,22 +244,12 @@ const HOADashboard = memo(function HOADashboard() {
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="space-y-6">
-                    {[
-                      { category: "Maintenance & Repairs", budget: 120000, spent: 85000, percentage: 71 },
-                      { category: "Landscaping", budget: 45000, spent: 32000, percentage: 71 },
-                      { category: "Insurance", budget: 35000, spent: 35000, percentage: 100 },
-                      { category: "Utilities", budget: 55000, spent: 41000, percentage: 75 },
-                      { category: "Management Fees", budget: 25000, spent: 18500, percentage: 74 },
-                    ].map((item, index) => (
-                      <div key={index} className="space-y-2">
-                        <div className="flex justify-between text-sm">
-                          <span className="text-white">{item.category}</span>
-                          <span className="text-gray-400">${item.spent.toLocaleString()} / ${item.budget.toLocaleString()}</span>
-                        </div>
-                        <Progress value={item.percentage} className="h-2" />
-                      </div>
-                    ))}
+                  <div className="space-y-4">
+                    <p className="text-gray-400 text-sm">
+                      Detailed category breakdowns come from your HOA&apos;s financial records as boards upload
+                      budgets and actuals. For now this card summarizes overall balances only and never mixes data
+                      between different HOAs.
+                    </p>
                   </div>
                 </CardContent>
               </Card>
@@ -246,29 +261,11 @@ const HOADashboard = memo(function HOADashboard() {
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-4">
-                    <div className="text-center">
-                      <div className="text-3xl font-bold text-green-400">96%</div>
-                      <p className="text-gray-400 text-sm">Collection Rate</p>
-                    </div>
-                    
-                    <div className="space-y-3">
-                      <div className="flex justify-between text-sm">
-                        <span className="text-gray-400">Paid on time</span>
-                        <span className="text-green-400">141 units</span>
-                      </div>
-                      <div className="flex justify-between text-sm">
-                        <span className="text-gray-400">Late payments</span>
-                        <span className="text-yellow-400">4 units</span>
-                      </div>
-                      <div className="flex justify-between text-sm">
-                        <span className="text-gray-400">Outstanding</span>
-                        <span className="text-red-400">2 units</span>
-                      </div>
-                    </div>
-
-                    <Button className="w-full bg-orange-600 hover:bg-orange-700">
-                      Send Payment Reminders
-                    </Button>
+                    <p className="text-gray-400 text-sm">
+                      As collections and delinquencies are tracked for your HOA, this card will show live
+                      collection health for your neighborhood. Payment actions are handled in the HOA Management
+                      finances tab.
+                    </p>
                   </div>
                 </CardContent>
               </Card>
@@ -284,25 +281,10 @@ const HOADashboard = memo(function HOADashboard() {
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-4">
-                    {[
-                      { name: "Elite Pool Service", specialty: "Pool Maintenance", rating: 4.9, jobs: 12 },
-                      { name: "GreenScape Landscaping", specialty: "Landscaping", rating: 4.8, jobs: 8 },
-                      { name: "Reliable Handyman", specialty: "General Repairs", rating: 4.7, jobs: 15 },
-                      { name: "ProClean Services", specialty: "Cleaning", rating: 4.6, jobs: 6 },
-                    ].map((vendor, index) => (
-                      <div key={index} className="p-3 bg-navy-700/50 rounded-lg">
-                        <div className="flex justify-between items-start">
-                          <div>
-                            <p className="text-white font-medium">{vendor.name}</p>
-                            <p className="text-gray-400 text-sm">{vendor.specialty}</p>
-                          </div>
-                          <div className="text-right">
-                            <div className="text-yellow-400 text-sm">★ {vendor.rating}</div>
-                            <div className="text-gray-400 text-xs">{vendor.jobs} jobs</div>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
+                    <p className="text-gray-400 text-sm">
+                      Approved vendors are configured per HOA. Use the HOA Management vendors tab to add and rate
+                      vendors for your community; this dashboard will then surface activity summaries here.
+                    </p>
                   </div>
                 </CardContent>
               </Card>
@@ -314,29 +296,10 @@ const HOADashboard = memo(function HOADashboard() {
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-4">
-                    {[
-                      { request: "Broken gate remote", unit: "Unit 145", status: "Completed", date: "2 days ago" },
-                      { request: "Leaky faucet in clubhouse", unit: "Common Area", status: "In Progress", date: "3 days ago" },
-                      { request: "Parking lot pothole", unit: "Building A", status: "Scheduled", date: "5 days ago" },
-                      { request: "Burned out hallway light", unit: "Building C", status: "Pending", date: "1 week ago" },
-                    ].map((request, index) => (
-                      <div key={index} className="p-3 bg-navy-700/50 rounded-lg">
-                        <div className="flex justify-between items-start mb-2">
-                          <p className="text-white text-sm">{request.request}</p>
-                          <Badge variant={
-                            request.status === 'Completed' ? 'default' :
-                            request.status === 'In Progress' ? 'default' :
-                            request.status === 'Scheduled' ? 'secondary' : 'destructive'
-                          }>
-                            {request.status}
-                          </Badge>
-                        </div>
-                        <div className="flex justify-between text-xs text-gray-400">
-                          <span>{request.unit}</span>
-                          <span>{request.date}</span>
-                        </div>
-                      </div>
-                    ))}
+                    <p className="text-gray-400 text-sm">
+                      Service requests submitted by residents will appear here once your HOA starts using TradeScout
+                      for maintenance. Until then, there is no mock or sample resident data shown.
+                    </p>
                   </div>
                 </CardContent>
               </Card>
@@ -355,49 +318,28 @@ const HOADashboard = memo(function HOADashboard() {
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-6">
-                    {[
-                      {
-                        title: "Playground Equipment Upgrade",
-                        description: "Proposal to replace existing playground equipment with new, safer options",
-                        budget: "$25,000",
-                        deadline: "5 days remaining",
-                        votes: { yes: 89, no: 23, abstain: 12 },
-                        total: 147
-                      },
-                      {
-                        title: "Pool Area Security Cameras",
-                        description: "Installation of security cameras around the pool area for safety",
-                        budget: "$8,500",
-                        deadline: "12 days remaining",
-                        votes: { yes: 67, no: 15, abstain: 8 },
-                        total: 147
-                      }
-                    ].map((vote, index) => (
-                      <div key={index} className="p-4 bg-navy-700/50 rounded-lg">
-                        <div className="flex justify-between items-start mb-3">
-                          <div>
-                            <h3 className="text-white font-semibold text-lg">{vote.title}</h3>
-                            <p className="text-gray-400 text-sm mt-1">{vote.description}</p>
-                            <p className="text-orange-400 text-sm mt-2">Budget: {vote.budget}</p>
+                    {dashboard.recentVotes && dashboard.recentVotes.length > 0 ? (
+                      dashboard.recentVotes.map((vote) => (
+                        <div key={vote.id} className="p-4 bg-navy-700/50 rounded-lg">
+                          <div className="flex justify-between items-start mb-3">
+                            <div>
+                              <h3 className="text-white font-semibold text-lg">{vote.title}</h3>
+                              <p className="text-gray-400 text-sm mt-1">Status: {vote.status}</p>
+                            </div>
+                            {vote.closesAt && (
+                              <Badge variant="outline" className="text-yellow-400 border-yellow-400">
+                                Closes {new Date(vote.closesAt).toLocaleDateString()}
+                              </Badge>
+                            )}
                           </div>
-                          <Badge variant="outline" className="text-yellow-400 border-yellow-400">
-                            {vote.deadline}
-                          </Badge>
-                        </div>
-                        
-                        <div className="space-y-2">
-                          <div className="flex justify-between text-sm">
-                            <span className="text-green-400">Yes: {vote.votes.yes}</span>
-                            <span className="text-red-400">No: {vote.votes.no}</span>
-                            <span className="text-gray-400">Abstain: {vote.votes.abstain}</span>
-                          </div>
-                          <Progress value={(vote.votes.yes + vote.votes.no + vote.votes.abstain) / vote.total * 100} className="h-2" />
                           <p className="text-gray-400 text-xs">
-                            {vote.votes.yes + vote.votes.no + vote.votes.abstain} of {vote.total} votes cast
+                            Voting details and participation are available on the HOA Management voting tab.
                           </p>
                         </div>
-                      </div>
-                    ))}
+                      ))
+                    ) : (
+                      <p className="text-gray-400 text-sm">No active HOA votes right now for your association.</p>
+                    )}
                   </div>
                 </CardContent>
               </Card>
@@ -414,40 +356,30 @@ const HOADashboard = memo(function HOADashboard() {
               </CardHeader>
               <CardContent>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {[
-                    { name: "CC&Rs (Covenants, Conditions & Restrictions)", type: "Legal", date: "Updated 2024", size: "2.4 MB" },
-                    { name: "Monthly Financial Report - March 2024", type: "Financial", date: "March 2024", size: "1.8 MB" },
-                    { name: "Board Meeting Minutes - March 15", type: "Minutes", date: "March 2024", size: "456 KB" },
-                    { name: "Reserve Study 2024", type: "Financial", date: "January 2024", size: "3.2 MB" },
-                    { name: "Insurance Policy Documentation", type: "Legal", date: "January 2024", size: "1.1 MB" },
-                    { name: "Architectural Guidelines", type: "Guidelines", date: "Updated 2023", size: "892 KB" },
-                  ].map((doc, index) => (
-                    <div key={index} className="p-4 bg-navy-700/50 rounded-lg hover:bg-navy-600/50 transition-colors cursor-pointer">
-                      <div className="flex items-start gap-3">
-                        <FileText className="h-5 w-5 text-orange-400 mt-1" />
-                        <div className="flex-1">
-                          <h4 className="text-white font-medium text-sm">{doc.name}</h4>
-                          <div className="flex justify-between items-center mt-2">
-                            <Badge variant="outline" className="text-xs">
-                              {doc.type}
-                            </Badge>
-                            <div className="text-gray-400 text-xs">
-                              {doc.date} • {doc.size}
-                            </div>
-                          </div>
-                        </div>
+                  <div className="p-4 bg-navy-700/50 rounded-lg">
+                    <div className="flex items-start gap-3">
+                      <FileText className="h-5 w-5 text-orange-400 mt-1" />
+                      <div className="flex-1">
+                        <h4 className="text-white font-medium text-sm">Governing documents</h4>
+                        <p className="text-gray-400 text-xs mt-1">
+                          CC&Rs, bylaws, rules, and other documents are managed from the HOA Management documents
+                          tab for your specific association.
+                        </p>
                       </div>
                     </div>
-                  ))}
-                </div>
-                
-                <div className="mt-6 flex gap-3">
-                  <Button className="bg-orange-600 hover:bg-orange-700">
-                    Upload Document
-                  </Button>
-                  <Button variant="outline" className="border-orange-600 text-orange-400 hover:bg-orange-600/20">
-                    Document Request
-                  </Button>
+                  </div>
+                  <div className="p-4 bg-navy-700/50 rounded-lg">
+                    <div className="flex items-start gap-3">
+                      <FileText className="h-5 w-5 text-orange-400 mt-1" />
+                      <div className="flex-1">
+                        <h4 className="text-white font-medium text-sm">Financial reports</h4>
+                        <p className="text-gray-400 text-xs mt-1">
+                          As boards upload financials, this dashboard will summarize them here for your
+                          neighborhood only.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </CardContent>
             </Card>
@@ -462,45 +394,10 @@ const HOADashboard = memo(function HOADashboard() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {[
-                    { unit: "101", name: "Johnson Family", phone: "(555) 123-4567", status: "Active", board: false },
-                    { unit: "102", name: "Maria Rodriguez", phone: "(555) 234-5678", status: "Active", board: true },
-                    { unit: "103", name: "Thompson Household", phone: "(555) 345-6789", status: "Active", board: false },
-                    { unit: "104", name: "David Chen", phone: "(555) 456-7890", status: "Active", board: false },
-                    { unit: "105", name: "Wilson Family", phone: "(555) 567-8901", status: "Late Payment", board: false },
-                    { unit: "106", name: "Sarah Mitchell", phone: "(555) 678-9012", status: "Active", board: true },
-                  ].map((resident, index) => (
-                    <div key={index} className="p-4 bg-navy-700/50 rounded-lg">
-                      <div className="flex justify-between items-start mb-2">
-                        <div>
-                          <p className="text-white font-medium">Unit {resident.unit}</p>
-                          <p className="text-gray-400 text-sm">{resident.name}</p>
-                        </div>
-                        {resident.board && (
-                          <Badge className="bg-purple-600 hover:bg-purple-700 text-xs">
-                            Board
-                          </Badge>
-                        )}
-                      </div>
-                      
-                      <p className="text-gray-400 text-sm mb-2">{resident.phone}</p>
-                      
-                      <Badge variant={resident.status === 'Active' ? 'default' : 'destructive'} className="text-xs">
-                        {resident.status}
-                      </Badge>
-                    </div>
-                  ))}
-                </div>
-                
-                <div className="mt-6 flex gap-3">
-                  <Button className="bg-orange-600 hover:bg-orange-700">
-                    Add Resident
-                  </Button>
-                  <Button variant="outline" className="border-orange-600 text-orange-400 hover:bg-orange-600/20">
-                    Export Directory
-                  </Button>
-                </div>
+                <p className="text-gray-400 text-sm">
+                  Resident directories live in the HOA Management view for members of your association only.
+                  This summary will never display residents from HOAs you are not a member of.
+                </p>
               </CardContent>
             </Card>
           </TabsContent>

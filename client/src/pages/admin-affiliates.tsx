@@ -16,12 +16,23 @@ interface AdminAffiliateAccount {
   available: string;
   pending: string;
   referralCode?: string;
+   commissionRate?: string;
   createdAt: string;
 }
 
 export default function AdminAffiliatesPage() {
   const { data, refetch } = useQuery<AdminAffiliateAccount[]>({
     queryKey: ["/api/admin/affiliates"],
+  });
+
+  const commissionMutation = useMutation({
+    mutationFn: (payload: { id: string; commissionRate: number }) =>
+      apiRequest("PUT", `/api/admin/affiliates/${payload.id}/commission-rate`, {
+        commissionRate: payload.commissionRate,
+      }),
+    onSuccess: () => {
+      refetch();
+    },
   });
 
   const payoutMutation = useMutation({
@@ -52,7 +63,14 @@ export default function AdminAffiliatesPage() {
             {!data || data.length === 0 ? (
               <p className="text-slate-400 text-sm">No affiliates found.</p>
             ) : (
-              data.map((a) => <AffiliateRow key={a.id} account={a} onPayout={payoutMutation.mutate} />)
+              data.map((a) => (
+                <AffiliateRow
+                  key={a.id}
+                  account={a}
+                  onPayout={payoutMutation.mutate}
+                  onUpdateCommission={commissionMutation.mutate}
+                />
+              ))
             )}
           </CardContent>
         </Card>
@@ -64,13 +82,16 @@ export default function AdminAffiliatesPage() {
 function AffiliateRow({
   account,
   onPayout,
+  onUpdateCommission,
 }: {
   account: AdminAffiliateAccount;
   onPayout: (payload: { id: string; amount: number; method?: string; note?: string }) => void;
+  onUpdateCommission: (payload: { id: string; commissionRate: number }) => void;
 }) {
   let amount = 0;
   let method = "manual";
   let note = "";
+  let commissionRatePercent = account.commissionRate ? Number(account.commissionRate) * 100 : 5;
 
   return (
     <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 p-3 rounded-lg bg-slate-900 border border-slate-800">
@@ -84,10 +105,26 @@ function AffiliateRow({
           {account.referralCode && <span>Code: {account.referralCode}</span>}
           <span>Joined: {format(new Date(account.createdAt), "MMM d, yyyy")}</span>
         </div>
-        <div className="flex flex-wrap gap-3 text-xs text-slate-300 mt-1">
+        <div className="flex flex-wrap gap-3 text-xs text-slate-300 mt-1 items-center">
           <span>Lifetime: ${account.lifetimeEarned}</span>
           <span>Paid: ${account.available}</span>
           <span>Pending: ${account.pending}</span>
+          <span className="inline-flex items-center gap-1">
+            <span className="text-slate-400">Commission:</span>
+            <Input
+              type="number"
+              min={0}
+              max={100}
+              step={0.1}
+              defaultValue={commissionRatePercent.toFixed(2)}
+              className="w-20 h-7 text-xs bg-slate-950 border-slate-800"
+              onChange={(e) => {
+                const v = Number(e.target.value || 0);
+                commissionRatePercent = v;
+              }}
+            />
+            <span className="text-slate-400">%</span>
+          </span>
         </div>
       </div>
       <div className="flex items-center gap-2">
@@ -123,6 +160,18 @@ function AffiliateRow({
           }}
         >
           Create Payout
+        </Button>
+        <Button
+          size="sm"
+          variant="outline"
+          className="h-8 text-xs border-emerald-600 text-emerald-400 hover:bg-emerald-600/10"
+          onClick={() => {
+            const rateDecimal = commissionRatePercent / 100;
+            if (!rateDecimal || rateDecimal <= 0 || rateDecimal >= 1) return;
+            onUpdateCommission({ id: account.id, commissionRate: rateDecimal });
+          }}
+        >
+          Save Rate
         </Button>
       </div>
     </div>

@@ -118,11 +118,11 @@ export function deriveDealRoomState(
 		(contract.status === "sent" || contract.status === "partially_signed") &&
 		(userRole === "homeowner" || userRole === "contractor");
 
-	const canCreateInvoice =
-		!!contract &&
-		contract.status === "signed" &&
-		!invoice &&
-		userRole === "contractor";
+	// Allow contractors to create an invoice even if they didn't use every
+	// step (material list, estimate, contract). A signed contract still
+	// unlocks the path in guided flows, but small or off-platform jobs can
+	// jump straight to an invoice.
+	const canCreateInvoice = !invoice && userRole === "contractor";
 
 	const canIssueReceipt =
 		!!invoice &&

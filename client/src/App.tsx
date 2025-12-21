@@ -119,6 +119,7 @@ const CommunityModerationDemo = React.lazy(() => import('./pages/CommunityModera
 const Checkout = React.lazy(() => import('./pages/checkout'));
 const PaymentSuccess = React.lazy(() => import('./pages/payment-success'));
 const PaymentHistory = React.lazy(() => import('./pages/payment-history'));
+const Wallet = React.lazy(() => import('./pages/wallet'));
 const RequestQuote = React.lazy(() => import('./pages/request-quote'));
 const SavedContractors = React.lazy(() => import('./pages/saved-contractors'));
 const Notifications = React.lazy(() => import('./pages/notifications'));
@@ -512,7 +513,11 @@ const AppLayout = memo(function AppLayout() {
                   {/* Groups routes */}
                   <Route path="/groups"><LazyPage Component={Groups} /></Route>
                   <Route path="/group/:id"><LazyPage Component={GroupDetail} /></Route>
-                  <Route path="/hoa-management"><LazyPage Component={HoaManagement} /></Route>
+                  <Route path="/hoa-management">
+                    <ProtectedRoute>
+                      <LazyPage Component={HoaManagement} />
+                    </ProtectedRoute>
+                  </Route>
                   {/* Community tab should show the rich Nextdoor-style feed */}
                   <Route path="/community"><LazyPage Component={CommunityFeed} /></Route>
                   <Route path="/community-feed"><LazyPage Component={CommunityFeed} /></Route>
@@ -743,6 +748,11 @@ const AppLayout = memo(function AppLayout() {
                       <LazyPage Component={PaymentHistory} />
                     </ProtectedRoute>
                   </Route>
+                  <Route path="/wallet">
+                    <ProtectedRoute>
+                      <LazyPage Component={Wallet} />
+                    </ProtectedRoute>
+                  </Route>
                   
                   {/* Business Tools */}
                   <Route path="/boosts"><LazyPage Component={Boosts} /></Route>
@@ -770,8 +780,16 @@ const AppLayout = memo(function AppLayout() {
                   <Route path="/resource-center"><LazyPage Component={ResourceCenter} /></Route>
                   
                   {/* Additional Features */}
-                  <Route path="/hoa-dashboard"><LazyPage Component={HOADashboard} /></Route>
-                  <Route path="/hoa-dashboard/:hoaId"><LazyPage Component={HOADashboard} /></Route>
+                  <Route path="/hoa-dashboard">
+                    <ProtectedRoute>
+                      <LazyPage Component={HOADashboard} />
+                    </ProtectedRoute>
+                  </Route>
+                  <Route path="/hoa-dashboard/:hoaId">
+                    <ProtectedRoute>
+                      <LazyPage Component={HOADashboard} />
+                    </ProtectedRoute>
+                  </Route>
                   <Route path="/membership-portal"><LazyPage Component={MembershipPortal} /></Route>
                   <Route path="/training-center"><LazyPage Component={TrainingCenter} /></Route>
                   <Route path="/application-tracker"><LazyPage Component={ApplicationTracker} /></Route>
@@ -831,6 +849,7 @@ const AppLayout = memo(function AppLayout() {
                   <Route path="/schedule-consultation"><LazyPage Component={ScheduleConsultation} /></Route>
                   <Route path="/apply-accelerator"><LazyPage Component={ApplyAccelerator} /></Route>
                   <Route path="/request-quote"><LazyPage Component={RequestQuote} /></Route>
+                  <Route path="/tasks"><LazyPage Component={RequestQuote} /></Route>
                   
                   {/* Legal pages */}
                   <Route path="/pricing"><LazyPage Component={Pricing} /></Route>

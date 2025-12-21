@@ -137,19 +137,32 @@ export class PlatformSupportPaymentService {
         createdAt: new Date(),
       });
 
-      // Credit the community vault (separate from platform ledger, but transparent via platform_support_ledger_entries)
-      await storage.recordCommunityVaultLedgerEntry({
-        profileId: originatingProfileId,
-        amount: communityShare,
-        sourceType: 'platform_support_share',
-        sourceId: session.id,
-        externalKey: `stripe:checkout_session:${session.id}:community_vault_credit`,
-        memo: 'Platform Support split credit',
-      });
-
-      // The originating profile owner effectively drove a paid platform support action.
+      // Credit the sender's county vault (50% to local county, 50% to TradeScout).
       const ownerUserId = await storage.getProfileOwnerUserId(originatingProfileId);
       if (ownerUserId) {
+        try {
+          const user = await storage.getUserById(ownerUserId);
+          if (user?.county && user.state) {
+            const countySnapshot = await storage.getCountyVaultSnapshot({
+              countyName: user.county,
+              stateCode: user.state,
+            });
+
+            if (countySnapshot?.countyId) {
+              await storage.recordVaultLedgerEntry({
+                countyId: countySnapshot.countyId,
+                amount: communityShare,
+                sourceType: 'platform_support_share',
+                sourceId: session.id,
+                memo: 'Platform Support split credit (county vault)',
+              });
+            }
+          }
+        } catch (err) {
+          console.error('[platform_support] Error crediting county vault for one-time support:', err);
+        }
+
+        // The originating profile owner effectively drove a paid platform support action.
         await grantCommunityBuilderBadge(ownerUserId, 'builder_fund');
       }
     }
@@ -216,17 +229,31 @@ export class PlatformSupportPaymentService {
         createdAt: new Date(invoice.created * 1000),
       });
 
-      await storage.recordCommunityVaultLedgerEntry({
-        profileId: originatingProfileId,
-        amount: communityShare,
-        sourceType: 'platform_support_share',
-        sourceId: invoice.id,
-        externalKey: `stripe:invoice:${invoice.id}:community_vault_credit`,
-        memo: 'Platform Support monthly split credit',
-      });
-
       const ownerUserId = await storage.getProfileOwnerUserId(originatingProfileId);
       if (ownerUserId) {
+        try {
+          const user = await storage.getUserById(ownerUserId);
+          if (user?.county && user.state) {
+            const countySnapshot = await storage.getCountyVaultSnapshot({
+              countyId: undefined,
+              countyName: user.county,
+              stateCode: user.state,
+            });
+
+            if (countySnapshot?.countyId) {
+              await storage.recordVaultLedgerEntry({
+                countyId: countySnapshot.countyId,
+                amount: communityShare,
+                sourceType: 'platform_support_share',
+                sourceId: invoice.id,
+                memo: 'Platform Support monthly split credit (county vault)',
+              });
+            }
+          }
+        } catch (err) {
+          console.error('[platform_support] Error crediting county vault for subscription support:', err);
+        }
+
         await grantCommunityBuilderBadge(ownerUserId, 'builder_fund');
       }
     }

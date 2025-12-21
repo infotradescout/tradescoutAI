@@ -3,9 +3,67 @@ import crypto from "crypto";
 import PDFDocument from "pdfkit";
 import type { Pool } from "@neondatabase/serverless";
 import { isAuthenticated } from "./auth";
+import { storage } from "./storage";
 
 type AuthedRequest = Request & { user?: { id?: string; role?: string; [key: string]: any } };
 
+	r.get(
+		"/api/accounting/reports/summary",
+		isAuthenticated,
+		wrap(async (req: AuthedRequest, res: Response) => {
+			requireAuth(req);
+			const userId = String(req.user!.id);
+
+			const overallRes = await pool.query(
+				`SELECT
+					COUNT(*) AS invoice_count,
+					COUNT(*) FILTER (WHERE status = 'paid') AS paid_count,
+					COUNT(*) FILTER (WHERE status <> 'paid') AS unpaid_count,
+					COALESCE(SUM((payload->>'total')::numeric), 0) AS total_amount,
+					COALESCE(SUM(CASE WHEN status = 'paid' THEN (payload->>'total')::numeric ELSE 0 END), 0) AS paid_amount
+				FROM documents
+				WHERE type = 'INVOICE' AND created_by = $1 AND job_id LIKE 'acct_%'`,
+				[userId],
+			);
+			const overall = overallRes.rows[0] || {
+				invoice_count: 0,
+				paid_count: 0,
+				unpaid_count: 0,
+				total_amount: 0,
+				paid_amount: 0,
+			};
+
+			const byMonthRes = await pool.query(
+				`SELECT
+					date_trunc('month', created_at) AS month,
+					COALESCE(SUM((payload->>'total')::numeric), 0) AS total_amount,
+					COALESCE(SUM(CASE WHEN status = 'paid' THEN (payload->>'total')::numeric ELSE 0 END), 0) AS paid_amount
+				FROM documents
+				WHERE type = 'INVOICE' AND created_by = $1 AND job_id LIKE 'acct_%'
+				GROUP BY 1
+				ORDER BY 1 DESC
+				LIMIT 24`,
+				[userId],
+			);
+
+			res.json({
+				lifetime: {
+					invoiceCount: Number(overall.invoice_count) || 0,
+					paidCount: Number(overall.paid_count) || 0,
+					unpaidCount: Number(overall.unpaid_count) || 0,
+					totalAmount: Number(overall.total_amount) || 0,
+					paidAmount: Number(overall.paid_amount) || 0,
+					unpaidAmount:
+						Number(overall.total_amount || 0) - Number(overall.paid_amount || 0),
+				},
+				byMonth: byMonthRes.rows.map((row) => ({
+					month: (row.month as Date).toISOString(),
+					totalAmount: Number(row.total_amount) || 0,
+					paidAmount: Number(row.paid_amount) || 0,
+				})),
+			});
+		}),
+	);
 function requireAuth(req: AuthedRequest): asserts req is AuthedRequest & { user: { id: string } } {
 	if (!req.user?.id) {
 		const err = new Error("AUTH_REQUIRED");
@@ -172,6 +230,118 @@ function renderPdfFromDocument(docRow: any, signatures: any[]) {
 export function createInvoicingDocumentsRouter(pool: Pool) {
 	const r = express.Router();
 
+	async function buildCorrespondenceMetadata(doc: any, req: AuthedRequest) {
+		const senderUserId = String(req.user!.id);
+
+		const senderUserRes = await pool.query(
+			"SELECT id, email, first_name, last_name, phone, active_profile_id FROM users WHERE id = $1",
+			[senderUserId],
+		);
+		const senderUserRow = senderUserRes.rows[0] || null;
+
+		let senderProfile: any = null;
+		let senderBusiness: any = null;
+		if (senderUserRow?.active_profile_id) {
+			try {
+				const profile = await storage.getProfileByIdForOwner(
+					senderUserId,
+					String(senderUserRow.active_profile_id),
+				);
+				if (profile) {
+					senderProfile = {
+						id: profile.id,
+						slug: profile.slug,
+						displayName: profile.displayName,
+						headline: profile.headline,
+						roleContext: profile.roleContext,
+					};
+					if (profile.businessId) {
+						const business = await storage.getBusinessPublicById(profile.businessId);
+						if (business) {
+							senderBusiness = {
+								id: business.id,
+								name: business.name,
+								contactEmail: (business as any).contactEmail ?? null,
+								contactPhone: (business as any).contactPhone ?? null,
+							};
+						}
+					}
+				}
+			} catch (e) {
+				console.error("[DOC_CORRESPONDENCE] sender profile lookup failed", e);
+			}
+		}
+
+		let recipientUserRow: any = null;
+		const rawJobId = doc.job_id as string | null;
+		if (rawJobId && typeof rawJobId === "string" && !rawJobId.startsWith("acct_")) {
+			try {
+				const leadRes = await pool.query(
+					"SELECT id, user_id, contractor_id FROM leads WHERE id = $1",
+					[rawJobId],
+				);
+				const leadRow = leadRes.rows[0] || null;
+				if (leadRow) {
+					const homeownerId = leadRow.user_id ? String(leadRow.user_id) : null;
+					const contractorId = leadRow.contractor_id ? String(leadRow.contractor_id) : null;
+
+					if (homeownerId || contractorId) {
+						const currentUserId = senderUserId;
+
+						// If the sender is the homeowner, aim at the contractor (if any).
+						if (homeownerId && currentUserId === homeownerId && contractorId) {
+							const contractor = await storage.getContractor(contractorId);
+							if (contractor?.userId) {
+								const rec = await pool.query(
+									"SELECT id, email, first_name, last_name, phone FROM users WHERE id = $1",
+									[String(contractor.userId)],
+								);
+								recipientUserRow = rec.rows[0] || null;
+							}
+						} else if (homeownerId && currentUserId !== homeownerId) {
+							// Otherwise assume sender is the contractor (or staff) and aim at homeowner.
+							const rec = await pool.query(
+								"SELECT id, email, first_name, last_name, phone FROM users WHERE id = $1",
+								[homeownerId],
+							);
+							recipientUserRow = rec.rows[0] || null;
+						}
+					}
+				}
+			} catch (e) {
+				console.error("[DOC_CORRESPONDENCE] recipient lookup failed", e);
+			}
+		}
+
+		return {
+			channel: "email" as const,
+			sender: senderUserRow
+				? {
+					user: {
+						id: String(senderUserRow.id),
+						email: senderUserRow.email ?? null,
+						firstName: senderUserRow.first_name ?? null,
+						lastName: senderUserRow.last_name ?? null,
+						phone: senderUserRow.phone ?? null,
+					},
+					profile: senderProfile,
+					business: senderBusiness,
+				}
+				: null,
+			recipient: recipientUserRow
+				? {
+					user: {
+						id: String(recipientUserRow.id),
+						email: recipientUserRow.email ?? null,
+						firstName: recipientUserRow.first_name ?? null,
+						lastName: recipientUserRow.last_name ?? null,
+						phone: recipientUserRow.phone ?? null,
+					},
+				}
+				: null,
+		};
+	}
+
 	// Small wrapper to funnel async errors into the global error handler
 	const wrap = (fn: (req: Request, res: Response) => Promise<unknown>) =>
 		async (req: Request, res: Response, next: (err?: any) => void) => {
@@ -316,7 +486,9 @@ export function createInvoicingDocumentsRouter(pool: Pool) {
 		}),
 	);
 
-	// Send a document to the other party (status transition only)
+	// Send a document to the other party (status transition only).
+	// A separate metadata endpoint exposes sender/recipient info for
+	// correspondence flows (prefilled from profiles and users).
 	r.post(
 		"/api/documents/:id/send",
 		isAuthenticated,
@@ -365,7 +537,41 @@ export function createInvoicingDocumentsRouter(pool: Pool) {
 				type: updatedDoc.type,
 				action: "send",
 			});
+
+			// TODO: when correspondence channels are wired, pull sender profile
+			// from req.user.activeProfileId and prefill sender/recipient details
+			// in the outgoing message template.
+
 			res.json({ document: updatedDoc });
+		}),
+	);
+
+	// Prefill correspondence details for a document: pulls sender info from the
+	// current user's active profile and business, and recipient info from the
+	// lead attached to this job when available.
+	r.get(
+		"/api/documents/:id/correspondence-metadata",
+		isAuthenticated,
+		wrap(async (req: AuthedRequest, res: Response) => {
+			requireAuth(req);
+			const { id } = req.params;
+
+			const docRes = await pool.query("SELECT * FROM documents WHERE id = $1", [id]);
+			if (!docRes.rows.length) {
+				const err = new Error("DOC_NOT_FOUND");
+				// @ts-expect-error attach status
+				err.status = 404;
+				throw err;
+			}
+			const doc = docRes.rows[0];
+			const metadata = await buildCorrespondenceMetadata(doc, req);
+			res.json({
+				documentId: doc.id,
+				jobId: doc.job_id ?? null,
+				type: doc.type,
+				status: doc.status,
+				correspondence: metadata,
+			});
 		}),
 	);
 
@@ -562,37 +768,44 @@ export function createInvoicingDocumentsRouter(pool: Pool) {
 		}),
 	);
 
-	// Create an invoice for a job (requires signed contract)
-		r.post(
+	// Create an invoice for a job.
+	// For structured projects with a contract, this preserves the existing
+	// guardrails (require a signed contract). For smaller or off-platform
+	// jobs, contractors can optionally skip straight to an invoice by passing
+	// { allowSkipContract: true } in the body.
+	r.post(
 		"/api/jobs/:jobId/invoice",
 		isAuthenticated,
 		express.json(),
 		wrap(async (req: AuthedRequest, res: Response) => {
 			requireAuth(req);
 			const { jobId } = req.params;
+			const allowSkipContract = !!(req.body && (req.body as any).allowSkipContract);
 
-			const contractRes = await pool.query(
-				"SELECT * FROM documents WHERE job_id=$1 AND type='CONTRACT' ORDER BY created_at DESC LIMIT 1",
-				[jobId],
-			);
-			if (!contractRes.rows.length) {
-				const err = new Error("CONTRACT_REQUIRED");
-				// @ts-expect-error attach status
-				err.status = 409;
-				throw err;
-			}
-			if (contractRes.rows[0].status !== "signed") {
-				const err = new Error("CONTRACT_NOT_SIGNED");
-				// @ts-expect-error attach status
-				err.status = 409;
-				throw err;
+			if (!allowSkipContract) {
+				const contractRes = await pool.query(
+					"SELECT * FROM documents WHERE job_id=$1 AND type='CONTRACT' ORDER BY created_at DESC LIMIT 1",
+					[jobId],
+				);
+				if (!contractRes.rows.length) {
+					const err = new Error("CONTRACT_REQUIRED");
+					// @ts-expect-error attach status
+					err.status = 409;
+					throw err;
+				}
+				if (contractRes.rows[0].status !== "signed") {
+					const err = new Error("CONTRACT_NOT_SIGNED");
+					// @ts-expect-error attach status
+					err.status = 409;
+					throw err;
+				}
 			}
 
-			const payload = req.body?.payload ?? {};
+			const payload = (req.body && (req.body as any).payload) || req.body?.payload || {};
 			const created = await pool.query(
 				`INSERT INTO documents (job_id, type, status, version, payload, permissions, created_by)
-				 VALUES ($1,'INVOICE','draft',1,$2::jsonb,$3::jsonb,$4)
-				 RETURNING *`,
+					 VALUES ($1,'INVOICE','draft',1,$2::jsonb,$3::jsonb,$4)
+					 RETURNING *`,
 				[jobId, JSON.stringify(payload), JSON.stringify({}), req.user.id],
 			);
 			const invoice = created.rows[0];
@@ -602,7 +815,7 @@ export function createInvoicingDocumentsRouter(pool: Pool) {
 				to: invoice.status,
 				userId: req.user.id,
 				type: invoice.type,
-				action: "create_invoice",
+				action: allowSkipContract ? "create_invoice_without_contract" : "create_invoice",
 			});
 			res.status(201).json({ document: invoice });
 		}),
@@ -667,9 +880,121 @@ export function createInvoicingDocumentsRouter(pool: Pool) {
 		}),
 	);
 
+	// Standalone accounting: create a manual invoice for off-platform or past work.
+	// This does not require a contract and creates a dedicated accounting job id prefix so it
+	// can still flow through the deal room UI.
+	r.post(
+		"/api/accounting/standalone-invoice",
+		isAuthenticated,
+		express.json(),
+		wrap(async (req: AuthedRequest, res: Response) => {
+			requireAuth(req);
+			const { projectTitle, clientName, notes, total, currency } = (req.body ?? {}) as any;
+
+			const amount = okNumber(total);
+			if (!Number.isFinite(amount) || amount <= 0) {
+				const err = new Error("INVALID_TOTAL");
+				// @ts-expect-error attach status
+				err.status = 400;
+				throw err;
+			}
+
+			const jobId = `acct_${token32()}`;
+			const safeCurrency =
+				typeof currency === "string" && currency.trim()
+					? currency.trim().toUpperCase()
+					: "USD";
+			const title =
+				typeof projectTitle === "string" && projectTitle.trim()
+					? projectTitle.trim()
+					: "Manual project";
+			const client =
+				typeof clientName === "string" && clientName.trim()
+					? clientName.trim()
+					: null;
+			const memo =
+				typeof notes === "string" && notes.trim()
+					? notes.trim()
+					: null;
+
+			const payload = {
+				projectTitle: title,
+				clientName: client,
+				notes: memo,
+				subtotal: amount,
+				tax: 0,
+				total: amount,
+				currency: safeCurrency,
+				lines: [],
+			};
+
+			const created = await pool.query(
+				`INSERT INTO documents (job_id, type, status, version, payload, permissions, created_by)
+					 VALUES ($1,'INVOICE','draft',1,$2::jsonb,$3::jsonb,$4)
+					 RETURNING *`,
+				[jobId, JSON.stringify(payload), JSON.stringify({}), req.user.id],
+			);
+			const invoice = created.rows[0];
+			console.info("[DOC_TRANSITION]", {
+				docId: invoice.id,
+				from: null,
+				to: invoice.status,
+				userId: req.user.id,
+				type: invoice.type,
+				action: "create_standalone_invoice",
+				jobId,
+			});
+
+			res.status(201).json({ document: invoice, jobId });
+		}),
+	);
+
+	// Standalone accounting: list manual invoices for the current user, with basic pagination.
+	r.get(
+		"/api/accounting/standalone-invoices",
+		isAuthenticated,
+		wrap(async (req: AuthedRequest, res: Response) => {
+			requireAuth(req);
+			const pageRaw = Array.isArray(req.query.page) ? req.query.page[0] : req.query.page;
+			const pageSizeRaw = Array.isArray(req.query.pageSize)
+				? req.query.pageSize[0]
+				: req.query.pageSize;
+
+			const page = Math.max(1, Number(pageRaw || 1) || 1);
+			const pageSize = Math.min(200, Math.max(1, Number(pageSizeRaw || 50) || 50));
+			const offset = (page - 1) * pageSize;
+
+			const totalRes = await pool.query(
+				`SELECT COUNT(*)::int AS count
+					FROM documents
+					WHERE type='INVOICE' AND created_by=$1 AND job_id LIKE 'acct_%'`,
+				[req.user.id],
+			);
+			const totalCount: number = totalRes.rows[0]?.count ?? 0;
+
+			const { rows } = await pool.query(
+				`SELECT id, job_id, type, status, payload, created_at, updated_at
+					FROM documents
+					WHERE type='INVOICE' AND created_by=$1 AND job_id LIKE 'acct_%'
+					ORDER BY updated_at DESC NULLS LAST, created_at DESC
+					LIMIT $2 OFFSET $3`,
+				[req.user.id, pageSize, offset],
+			);
+			res.json({
+				invoices: rows,
+				pagination: {
+					page,
+					pageSize,
+					totalCount,
+					pageCount: pageSize > 0 ? Math.ceil(totalCount / pageSize) : 0,
+				},
+			});
+		}),
+	);
+
 	// Mark an invoice as paid (manual or external payment) and auto-issue a receipt.
 	// Supports both job-linked and standalone (job_id NULL) invoices.
-		r.post(
+	r.post(
 		"/api/documents/:id/mark-paid",
 		isAuthenticated,
 		express.json(),

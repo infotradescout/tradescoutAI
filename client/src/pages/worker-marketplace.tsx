@@ -22,6 +22,7 @@ import {
   Plus,
   Filter
 } from "lucide-react";
+import { Link } from "wouter";
 import { useAuth } from "@/hooks/useAuth";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -195,6 +196,13 @@ export default function WorkerMarketplace() {
           and homeowners can hire helpers for odd jobs and one-time tasks. 
           All helpers are ID verified and background checked for your peace of mind.
         </p>
+        <div className="mt-4 flex flex-wrap gap-3">
+          <Link href="/tasks">
+            <Button className="bg-orange-500 hover:bg-orange-600 text-white">
+              Start a project (Tasks Portal)
+            </Button>
+          </Link>
+        </div>
       </div>
 
       {/* Main Tabs */}

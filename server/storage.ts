@@ -94,6 +94,8 @@ import {
   communityCauses,
   communityCauseVotes,
   platformSupportLedgerEntries,
+  walletAccounts,
+  walletTransactions,
   // Affiliate accounts
   affiliateAccounts,
   affiliateReferrals,
@@ -296,6 +298,10 @@ import {
   type InsertCommunityCauseVote,
   type PlatformSupportLedgerEntry,
   type InsertPlatformSupportLedgerEntry,
+  type WalletAccount,
+  type InsertWalletAccount,
+  type WalletTransaction,
+  type InsertWalletTransaction,
   type DonationMatching,
   type InsertDonationMatching,
   type AffiliateAccount,
@@ -871,9 +877,19 @@ export interface IStorage {
   // Affiliate system methods
   // Affiliate program management
   getAffiliateProgram(userId: string): Promise<AffiliateProgram | undefined>;
+  getAffiliateProgramByAccountId(id: string): Promise<AffiliateAccount | undefined>;
   createAffiliateProgram(program: InsertAffiliateProgram | { userId: string; referralCode?: string }): Promise<AffiliateProgram>;
   updateAffiliateProgram(id: string, updates: Partial<InsertAffiliateProgram>): Promise<AffiliateProgram>;
   generateAffiliateCode(userId: string): Promise<string>;
+
+  // Wallet & on-platform balance
+  getWalletTransactionsForUser(userId: string, limit?: number): Promise<WalletTransaction[]>;
+  getWalletBalance(userId: string): Promise<string>;
+  creditWallet(userId: string, amount: number, options?: { type?: string; referenceType?: string; referenceId?: string; memo?: string; counterpartyUserId?: string }): Promise<void>;
+  debitWallet(userId: string, amount: number, options?: { type?: string; referenceType?: string; referenceId?: string; memo?: string; counterpartyUserId?: string }): Promise<void>;
+
+  // Affiliate earnings synchronization
+  incrementAffiliateEarnings(affiliateProgramId: string, amount: number): Promise<void>;
   
   // Referral tracking
   trackReferralClick(data: InsertAffiliateReferral): Promise<AffiliateReferral>;
@@ -1513,6 +1529,16 @@ export class DatabaseStorage implements IStorage {
 
   async getAllUsers(): Promise<User[]> {
     return await db.select().from(users).orderBy(desc(users.createdAt));
+  }
+
+  async getUsersByIds(ids: string[]): Promise<User[]> {
+    if (!ids.length) return [];
+    const uniqueIds = Array.from(new Set(ids));
+    const rows = await db
+      .select()
+      .from(users)
+      .where(inArray(users.id, uniqueIds));
+    return rows;
   }
 
   // Account security and management operations
@@ -6548,6 +6574,14 @@ export class DatabaseStorage implements IStorage {
     return program;
   }
 
+  async getAffiliateProgramByAccountId(id: string): Promise<AffiliateAccount | undefined> {
+    const [program] = await db
+      .select()
+      .from(affiliateAccounts)
+      .where(eq(affiliateAccounts.id, id));
+    return program;
+  }
+
   async createAffiliateProgram(data: InsertAffiliateProgram | { userId: string; referralCode?: string }): Promise<AffiliateProgram> {
     const affiliateId = (data as InsertAffiliateProgram).affiliateId || (data as any).userId;
     if (!affiliateId) {
@@ -6586,6 +6620,119 @@ export class DatabaseStorage implements IStorage {
     const baseName = (user.firstName || user.email?.split('@')[0] || 'USER').substring(0, 4).toUpperCase();
     
     return `${baseName}${year}${randomSuffix}`;
+  }
+
+  async getWalletTransactionsForUser(userId: string, limit: number = 50): Promise<WalletTransaction[]> {
+    const rows = await db
+      .select()
+      .from(walletTransactions)
+      .where(eq(walletTransactions.userId, userId))
+      .orderBy(desc(walletTransactions.createdAt))
+      .limit(limit);
+    return rows as WalletTransaction[];
+  }
+
+  // Wallet & on-platform balance
+  async getWalletBalance(userId: string): Promise<string> {
+    const [account] = await db
+      .select()
+      .from(walletAccounts)
+      .where(eq(walletAccounts.userId, userId));
+    return (account?.currentBalance as any) ?? '0';
+  }
+
+  private async getOrCreateWalletAccount(userId: string): Promise<WalletAccount> {
+    const [existing] = await db
+      .select()
+      .from(walletAccounts)
+      .where(eq(walletAccounts.userId, userId));
+    if (existing) return existing;
+
+    const [created] = await db
+      .insert(walletAccounts)
+      .values({ userId, currentBalance: '0' } as InsertWalletAccount)
+      .returning();
+    return created;
+  }
+
+  async creditWallet(
+    userId: string,
+    amount: number,
+    options?: { type?: string; referenceType?: string; referenceId?: string; memo?: string; counterpartyUserId?: string }
+  ): Promise<void> {
+    if (amount <= 0 || !Number.isFinite(amount)) return;
+
+    const account = await this.getOrCreateWalletAccount(userId);
+    const current = parseFloat((account.currentBalance as any) ?? '0');
+    const next = current + amount;
+
+    await db.update(walletAccounts)
+      .set({ currentBalance: next.toFixed(2), updatedAt: new Date() })
+      .where(eq(walletAccounts.id, account.id));
+
+    await db.insert(walletTransactions).values({
+      walletAccountId: account.id,
+      userId,
+      counterpartyUserId: options?.counterpartyUserId,
+      transactionType: (options?.type as any) || 'deposit',
+      direction: 'credit',
+      amount: amount.toFixed(2),
+      referenceType: options?.referenceType,
+      referenceId: options?.referenceId,
+      memo: options?.memo,
+    } as InsertWalletTransaction);
+  }
+
+  async debitWallet(
+    userId: string,
+    amount: number,
+    options?: { type?: string; referenceType?: string; referenceId?: string; memo?: string; counterpartyUserId?: string }
+  ): Promise<void> {
+    if (amount <= 0 || !Number.isFinite(amount)) return;
+
+    const account = await this.getOrCreateWalletAccount(userId);
+    const current = parseFloat((account.currentBalance as any) ?? '0');
+    const next = current - amount;
+    if (next < 0) {
+      throw new Error('Insufficient wallet balance');
+    }
+
+    await db.update(walletAccounts)
+      .set({ currentBalance: next.toFixed(2), updatedAt: new Date() })
+      .where(eq(walletAccounts.id, account.id));
+
+    await db.insert(walletTransactions).values({
+      walletAccountId: account.id,
+      userId,
+      counterpartyUserId: options?.counterpartyUserId,
+      transactionType: (options?.type as any) || 'withdrawal',
+      direction: 'debit',
+      amount: amount.toFixed(2),
+      referenceType: options?.referenceType,
+      referenceId: options?.referenceId,
+      memo: options?.memo,
+    } as InsertWalletTransaction);
+  }
+
+  async incrementAffiliateEarnings(affiliateProgramId: string, amount: number): Promise<void> {
+    if (amount <= 0 || !Number.isFinite(amount)) return;
+
+    const program = await this.getAffiliateProgramByAccountId(affiliateProgramId);
+    if (!program) return;
+
+    const lifetime = parseFloat((program.lifetimeEarned as any) ?? '0');
+    const available = parseFloat((program.available as any) ?? '0');
+
+    const [updated] = await db
+      .update(affiliateAccounts)
+      .set({
+        lifetimeEarned: (lifetime + amount).toFixed(2),
+        available: (available + amount).toFixed(2),
+      })
+      .where(eq(affiliateAccounts.id, affiliateProgramId))
+      .returning();
+
+    void updated;
   }
 
   // Referral tracking

@@ -149,6 +149,13 @@ export function RightToolsPanel({ footer, onNavigate }: RightToolsPanelProps) {
               onClick={onNavigate}
             />
             <NavLink
+              href="/accounting"
+              icon={<ClipboardList className="h-3.5 w-3.5 text-orange-400" />}
+              label="Money"
+              description="Invoices, receipts, and off-site jobs."
+              onClick={onNavigate}
+            />
+            <NavLink
               href="/lead-management"
               icon={<ClipboardList className="h-3.5 w-3.5 text-orange-400" />}
               label="Projects"

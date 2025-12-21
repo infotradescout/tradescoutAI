@@ -49,7 +49,7 @@ export function DealRoomPanel({ jobId, userRole }: DealRoomPanelProps) {
 		| { method?: string; reference?: string; receivedAt?: string }
 		| undefined;
 
-	const headerPrimary = isStandalone ? "Standalone accounting" : "Project deal room";
+	const headerPrimary = isStandalone ? "Standalone Accounting" : "Project Deal Room";
 	const headerSecondary = isStandalone
 		? userRole === "contractor"
 			? "Recording documents and payments for an off-platform client."
@@ -149,12 +149,18 @@ export function DealRoomPanel({ jobId, userRole }: DealRoomPanelProps) {
 			toast({ title: "Enter a valid total", description: "Invoice total must be greater than zero.", variant: "destructive" });
 			return;
 		}
+		// For projects without a signed contract (or very small/off-platform jobs),
+		// allow contractors to jump straight to an invoice by explicitly setting
+		// allowSkipContract. If there is a signed contract, keep the original
+		// guardrails and rely on the server-side contract checks.
+		const allowSkipContract = !latestContract || latestContract.status !== "signed";
 		try {
 			const res = await fetch(`/api/jobs/${jobId}/invoice`, {
 				method: "POST",
 				credentials: "include",
 				headers: { "Content-Type": "application/json" },
 				body: JSON.stringify({
+					allowSkipContract,
 					payload: {
 						subtotal: total,
 						tax: 0,
@@ -479,7 +485,7 @@ export function DealRoomPanel({ jobId, userRole }: DealRoomPanelProps) {
 		<Card className="bg-slate-900/60 border-slate-700 h-full flex flex-col">
 			<CardHeader className="pb-3 space-y-1">
 				<p className="text-[11px] uppercase tracking-wide text-slate-400">{headerPrimary}</p>
-				<CardTitle className="text-sm text-gray-100">Deal room</CardTitle>
+				<CardTitle className="text-sm text-gray-100">Deal Room</CardTitle>
 				<p className="text-[11px] text-gray-400">{headerSecondary}</p>
 			</CardHeader>
 			<CardContent className="space-y-4 flex-1 flex flex-col">
