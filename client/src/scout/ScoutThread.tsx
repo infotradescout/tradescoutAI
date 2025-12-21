@@ -1,5 +1,6 @@
 import React from "react";
 import clsx from "clsx";
+import type { ScoutMode } from "./api";
 import type {
   ScoutAction,
   ScoutCluster,
@@ -10,6 +11,7 @@ import type {
 type ScoutThreadProps = {
   messages: ScoutMessage[];
   status: ScoutStatus;
+  mode?: ScoutMode;
   onAction?: (action: ScoutAction) => void;
   onQuickAction?: (text: string) => void;
 };
@@ -91,6 +93,7 @@ function ClusterCard({
 const ScoutThread: React.FC<ScoutThreadProps> = ({
   messages,
   status,
+  mode,
   onAction,
   onQuickAction,
 }) => {
@@ -170,7 +173,16 @@ const ScoutThread: React.FC<ScoutThreadProps> = ({
   if (status === "resolving_context") {
     statusLabel = "Checking your account and location...";
   } else if (status === "checking_documents") {
-    statusLabel = "Reviewing your projects and documents...";
+    if (mode === "contractors") {
+      statusLabel = "Reviewing your projects, pros, and leads...";
+    } else if (mode === "marketplace") {
+      statusLabel = "Reviewing local listings and saved offers...";
+    } else if (mode === "admin") {
+      statusLabel = "Reviewing system activity and controls...";
+    } else {
+      // Default OS/community view
+      statusLabel = "Reviewing your area and community activity...";
+    }
   } else if (status === "executing_action") {
     statusLabel = "Starting that action...";
   } else if (status === "ready") {

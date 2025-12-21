@@ -83,6 +83,7 @@ export default function ScoutOS() {
   const [appDrawerOpen, setAppDrawerOpen] = useState(false);
   const [toolsOpen, setToolsOpen] = useState(false);
   const [prefillKey, setPrefillKey] = useState(0);
+  const [activeMode, setActiveMode] = useState<ScoutMode>("default");
   const [hasGuestInteracted, setHasGuestInteracted] = useState(false);
   const [firstIntroAppendix, setFirstIntroAppendix] = useState<string>("");
   const [autoPromptSuggestions, setAutoPromptSuggestions] = useState<string[]>([]);
@@ -374,6 +375,7 @@ export default function ScoutOS() {
           : undefined) ?? undefined;
 
       const mode: ScoutMode = explicitMode ?? inferModeFromRoles(rolesForRequest);
+      setActiveMode(mode);
 
       const start = performance.now();
       // User message is recorded into the thread; we immediately move into
@@ -964,6 +966,7 @@ export default function ScoutOS() {
               <ScoutThread
                 messages={state.messages}
                 status={state.status}
+                mode={activeMode}
                 onAction={handleClusterAction}
                 onQuickAction={(text) => {
                   const trimmed = text.trim();
