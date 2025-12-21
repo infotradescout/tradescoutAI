@@ -340,6 +340,33 @@ export default function Marketplace() {
     },
   });
 
+  // Boost listing mutation
+  const boostListingMutation = useMutation({
+    mutationFn: async (listingId: string) => {
+      const response = await apiRequest("POST", `/api/marketplace/listings/${listingId}/boost`);
+      return response as any;
+    },
+    onSuccess: (data: any) => {
+      const checkoutUrl = data?.checkoutUrl as string | undefined;
+      if (checkoutUrl) {
+        window.location.href = checkoutUrl;
+        return;
+      }
+
+      if (data?.transactionId) {
+        const fallbackUrl = `/checkout/marketplace/${data.transactionId}?amount=50.00&description=${encodeURIComponent('Boost your listing for 7 days')}`;
+        window.location.href = fallbackUrl;
+      }
+    },
+    onError: () => {
+      toast({
+        title: "Could not start boost",
+        description: "Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
+
   const formatCurrency = (price: number) => {
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
@@ -416,10 +443,10 @@ export default function Marketplace() {
       <div className="min-h-screen bg-[#0f1419]">
       {/* Smart Value Banner */}
       <div className="bg-gradient-to-r from-orange-600 via-amber-600 to-orange-500 text-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-          <div className="text-center mb-4">
-            <h2 className="text-xl font-bold mb-2">Quality Items, Smart Decisions</h2>
-            <p className="text-orange-100">Where quality meets value from trusted community members</p>
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-5 space-y-4">
+          <div className="text-center space-y-1">
+            <h2 className="text-lg font-semibold">Quality Items, Smart Decisions</h2>
+            <p className="text-sm text-orange-100">Where quality meets value from trusted community members</p>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <div className="flex items-center justify-center bg-white/10 rounded-lg p-4">
@@ -454,14 +481,14 @@ export default function Marketplace() {
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
         {/* Header */}
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8">
-          <div>
-            <h1 className="text-4xl font-bold text-orange-500 mb-3">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+          <div className="space-y-2">
+            <h1 className="text-lg font-semibold text-orange-500">
               Quality Exchange
             </h1>
-            <p className="text-lg text-gray-600 dark:text-gray-300 mb-4">
+            <p className="text-sm text-gray-600 dark:text-gray-300">
               Where smart buyers and quality sellers connect for lasting value
             </p>
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
@@ -505,28 +532,26 @@ export default function Marketplace() {
         </div>
 
         {/* Featured Categories */}
-        <div className="mb-8">
-          <div className="flex items-center justify-between mb-6">
-            <div>
-              <h2 className="text-2xl font-bold text-orange-500 mb-2">
-                Smart Choices for Every Need
-              </h2>
-              <p className="text-gray-600 dark:text-gray-400">
-                Quality items from trusted community members who understand value
-              </p>
-            </div>
+        <div className="space-y-6">
+          <div>
+            <h2 className="text-base font-medium text-orange-500 mb-1">
+              Smart Choices for Every Need
+            </h2>
+            <p className="text-sm text-gray-600 dark:text-gray-400">
+              Quality items from trusted community members who understand value
+            </p>
           </div>
           
           {/* Value Decision Psychology Banner */}
-          <div className="mb-6 p-4 bg-gradient-to-r from-blue-50 via-indigo-50 to-purple-50 dark:from-blue-900/10 dark:via-indigo-900/10 dark:to-purple-900/10 rounded-lg border border-blue-200 dark:border-blue-800">
+          <div className="p-4 bg-gradient-to-r from-blue-50 via-indigo-50 to-purple-50 dark:from-blue-900/10 dark:via-indigo-900/10 dark:to-purple-900/10 rounded-lg border border-blue-200 dark:border-blue-800 space-y-2">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-4">
                 <div className="flex-shrink-0">
                   <CheckCircle className="h-6 w-6 text-blue-600" />
                 </div>
                 <div>
-                  <h3 className="font-semibold text-orange-500">Smart Value Decisions</h3>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">
+                  <h3 className="text-sm font-medium text-orange-500">Smart Value Decisions</h3>
+                  <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
                     Whether you're building a business or enhancing your home, quality choices lead to lasting satisfaction
                   </p>
                 </div>
@@ -547,22 +572,22 @@ export default function Marketplace() {
             {featuredCategories.map((category) => (
               <Card 
                 key={category.id}
-                className={`cursor-pointer transition-all hover:shadow-xl hover:scale-105 border-2 group ${
+                className={`cursor-pointer transition-all border group rounded-xl shadow-sm ${
                   selectedCategory === category.id 
-                    ? `border-orange-500 bg-orange-50 dark:bg-orange-900/20 shadow-lg`
+                    ? `border-orange-500 bg-orange-50 dark:bg-orange-900/20`
                     : 'border-[#2d3748] hover:border-orange-300 dark:hover:border-orange-600'
                 }`}
                 onClick={() => {
                   setSelectedCategory(selectedCategory === category.id ? '' : category.id);
                 }}
               >
-                <CardContent className="p-6">
+                <CardContent className="p-5 space-y-3">
                   <div className="flex items-start gap-4">
-                    <div className={`flex-shrink-0 w-14 h-14 rounded-xl bg-gradient-to-br from-orange-100 to-orange-200 dark:from-orange-900/30 dark:to-orange-800/30 flex items-center justify-center group-hover:scale-110 transition-transform`}>
+                    <div className="flex-shrink-0 w-14 h-14 rounded-xl bg-gradient-to-br from-orange-100 to-orange-200 dark:from-orange-900/30 dark:to-orange-800/30 flex items-center justify-center">
                       {getFeaturedCategoryIcon(category.icon)}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <h3 className="font-bold text-lg text-orange-500 mb-1">
+                      <h3 className="text-base font-medium text-orange-500 mb-1">
                         {category.name}
                       </h3>
                       <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
@@ -588,9 +613,8 @@ export default function Marketplace() {
         </div>
 
         {/* Search and Filters */}
-        <Card className="mb-6">
-          <CardContent className="p-6">
-            <div className="space-y-4">
+        <Card className="rounded-xl border border-[#1f2937] bg-[#0f1624] shadow-sm">
+          <CardContent className="p-5 space-y-4">
               {/* Search Bar */}
               <div className="flex gap-4">
                 <div className="flex-1 relative">
@@ -605,7 +629,7 @@ export default function Marketplace() {
                 <Button
                   variant="outline"
                   onClick={() => setShowFilters(!showFilters)}
-                  className="flex items-center gap-2"
+                  className="flex items-center gap-2 text-sm"
                 >
                   <Filter className="h-4 w-4" />
                   Filters
@@ -1154,13 +1178,13 @@ export default function Marketplace() {
         }>
           {listings.length === 0 ? (
             <div className="col-span-full">
-              <Card className="text-center py-12">
-                <CardContent>
+              <Card className="text-center rounded-xl border border-[#1f2937] bg-[#0f1624] shadow-sm">
+                <CardContent className="py-10 space-y-3">
                   <Package className="h-16 w-16 text-gray-300 mx-auto mb-4" />
-                  <h3 className="text-xl font-semibold text-orange-500 mb-2">
+                  <h3 className="text-base font-medium text-orange-500">
                     No listings found
                   </h3>
-                  <p className="text-gray-600 dark:text-gray-400 mb-6">
+                  <p className="text-sm text-gray-600 dark:text-gray-400">
                     Try adjusting your filters or check back later for new items.
                   </p>
                   {isAuthenticated && (
@@ -1179,7 +1203,7 @@ export default function Marketplace() {
             listings.map((listing) => (
               <Card 
                 key={listing.id} 
-                className="group cursor-pointer transition-all hover:shadow-lg"
+                className="group cursor-pointer transition-all rounded-xl border border-[#1f2937] bg-[#0f1624] shadow-sm hover:border-orange-500/30"
                 onClick={() => setLocation(`/marketplace/item/${listing.id}`)}
               >
                 {viewMode === 'grid' ? (
@@ -1192,26 +1216,32 @@ export default function Marketplace() {
                         <Badge variant="secondary" className="text-xs">
                           {listing.condition}
                         </Badge>
+                        {listing.isPromoted && listing.promotedUntil && new Date(listing.promotedUntil) > new Date() && (
+                          <div className="mt-1">
+                            <Badge variant="default" className="text-[10px] bg-amber-500 text-black">
+                              Boosted
+                            </Badge>
+                          </div>
+                        )}
                       </div>
                       <div className="absolute top-2 right-2">
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          className="h-8 w-8 p-0 bg-white/80 hover:bg-white"
+                        <button
+                          type="button"
+                          className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-white/80 hover:bg-white text-gray-700 shadow-sm"
                           onClick={(e) => {
                             e.stopPropagation();
                             saveListingMutation.mutate(listing.id);
                           }}
                         >
                           <Heart className="h-4 w-4" />
-                        </Button>
+                        </button>
                       </div>
                     </div>
-                    <CardContent className="p-4">
-                      <h3 className="font-semibold text-orange-500 mb-1 line-clamp-2">
+                    <CardContent className="p-4 space-y-2">
+                      <h3 className="text-base font-medium text-orange-500 line-clamp-2">
                         {listing.title}
                       </h3>
-                      <p className="text-sm text-gray-600 dark:text-gray-400 mb-3 line-clamp-2">
+                      <p className="text-sm text-gray-600 dark:text-gray-400 line-clamp-2">
                         {listing.description}
                       </p>
                       <div className="flex items-center justify-between">
@@ -1232,7 +1262,7 @@ export default function Marketplace() {
                           </div>
                         </div>
                       </div>
-                      <div className="flex items-center justify-between mt-3 pt-3 border-t">
+                      <div className="flex items-center justify-between mt-3 pt-3 border-t border-gray-800">
                         <div className="flex items-center gap-3">
                           <div className="flex items-center text-xs text-gray-500">
                             <Clock className="h-3 w-3 mr-1" />
@@ -1243,6 +1273,18 @@ export default function Marketplace() {
                             {listing.viewCount || 0}
                           </div>
                         </div>
+                        {isAuthenticated && user?.id === listing.sellerId && (
+                          <div className="flex items-center" onClick={(e) => e.stopPropagation()}>
+                            <button
+                              type="button"
+                              className="inline-flex items-center gap-1.5 rounded-full border border-amber-500 px-3 py-1 text-[11px] text-amber-600 hover:bg-amber-500/10"
+                              onClick={() => boostListingMutation.mutate(listing.id)}
+                              disabled={boostListingMutation.isLoading}
+                            >
+                              Boost for $50
+                            </button>
+                          </div>
+                        )}
                       </div>
                       {/* Contact Seller Button */}
                       <div className="mt-4" onClick={(e) => e.stopPropagation()}>

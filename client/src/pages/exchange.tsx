@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect } from "react";
-import { useQuery, useMutation } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -35,12 +35,15 @@ import {
   Clock,
   ExternalLink,
   Copy,
-  Share2
+  Share2,
+  Upload as UploadIcon
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { apiRequest } from "@/lib/queryClient";
+import { uploadObject } from "@/lib/objectUpload";
 import { useToast } from "@/hooks/use-toast";
 import { useLocation } from "wouter";
+import { useLocationContext } from "@/hooks/useLocationContext";
 
 interface ExchangeItem {
   id: string;
@@ -145,6 +148,7 @@ const EXCHANGE_CATEGORIES = [
 export default function Exchange() {
   const { user, isAuthenticated } = useAuth();
   const { toast } = useToast();
+  const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState("browse");
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("");
@@ -162,18 +166,29 @@ export default function Exchange() {
 
   const [route] = useLocation();
 
+  const locationCtx = useLocationContext();
+  const stateCode = locationCtx.stateCode as string | undefined;
+  const county = (locationCtx.countyFips || (locationCtx as any).county) as
+    | string
+    | undefined;
+
   // Sell tab draft state (prefill from Scout)
   const [sellTitle, setSellTitle] = useState("");
   const [sellPrice, setSellPrice] = useState("");
   const [sellDescription, setSellDescription] = useState("");
   const [sellLocation, setSellLocation] = useState("");
+  const [sellImages, setSellImages] = useState<string[]>([]);
+  const [sellCategoryId, setSellCategoryId] = useState<string>("");
+  const [sellCondition, setSellCondition] = useState<string>("");
 
   // Fetch exchange items
   const { data: items, isLoading } = useQuery<ExchangeItem[]>({
     queryKey: ['/api/exchange/items', selectedCategory, locationFilter, sortBy, priceRange, conditionFilter],
     queryFn: async () => {
       const params = new URLSearchParams();
-      if (selectedCategory) params.append('category', selectedCategory);
+      if (selectedCategory && selectedCategory !== 'all') {
+        params.append('categoryId', selectedCategory);
+      }
       if (locationFilter) params.append('location', locationFilter);
       if (sortBy) params.append('sort', sortBy);
       if (priceRange) params.append('priceRange', priceRange);
@@ -184,6 +199,42 @@ export default function Exchange() {
       return response.json();
     },
     enabled: activeTab === "browse",
+  });
+
+  const createListingMutation = useMutation({
+    mutationFn: async (body: any) => {
+      return apiRequest("POST", "/api/marketplace/listings", body);
+    },
+    onSuccess: () => {
+      setSellTitle("");
+      setSellPrice("");
+      setSellDescription("");
+      setSellLocation("");
+      setSellImages([]);
+      setSellCategoryId("");
+      setSellCondition("");
+      toast({
+        title: "Listing submitted",
+        description:
+          "Your listing was submitted and is pending approval before going live.",
+      });
+
+      queryClient.invalidateQueries({
+        queryKey: ["/api/exchange/items", selectedCategory, locationFilter, sortBy, priceRange, conditionFilter],
+      });
+
+      setActiveTab("browse");
+    },
+    onError: (error: any) => {
+      const message =
+        (error && (error.message || (error as any).toString())) ||
+        "Failed to create listing";
+      toast({
+        title: "Could not publish listing",
+        description: message,
+        variant: "destructive",
+      });
+    },
   });
 
   // Fetch contractor promotions
@@ -435,9 +486,19 @@ export default function Exchange() {
                 return (
                   <Card key={item.id} className="bg-[#1a2332] border-slate-700 hover:border-orange-500/50 transition-colors cursor-pointer">
                     <div className="relative">
-                      <div className="h-48 bg-slate-700 rounded-t-lg flex items-center justify-center">
-                        <IconComponent className="h-12 w-12 text-slate-500" />
-                      </div>
+                      {item.images && item.images.length > 0 ? (
+                        <div className="h-48 bg-slate-900 rounded-t-lg overflow-hidden">
+                          <img
+                            src={item.images[0]}
+                            alt={item.title}
+                            className="w-full h-full object-cover"
+                          />
+                        </div>
+                      ) : (
+                        <div className="h-48 bg-slate-700 rounded-t-lg flex items-center justify-center">
+                          <IconComponent className="h-12 w-12 text-slate-500" />
+                        </div>
+                      )}
                       {item.featured && (
                         <Badge className="absolute top-2 right-2 bg-orange-500">
                           Featured
@@ -863,7 +924,10 @@ export default function Exchange() {
                   
                   <div>
                     <Label htmlFor="category" className="text-white">Category</Label>
-                    <Select>
+                    <Select
+                      value={sellCategoryId}
+                      onValueChange={setSellCategoryId}
+                    >
                       <SelectTrigger className="bg-slate-700 border-slate-600 text-white">
                         <SelectValue placeholder="Select category" />
                       </SelectTrigger>
@@ -891,7 +955,10 @@ export default function Exchange() {
 
                   <div>
                     <Label htmlFor="condition" className="text-white">Condition</Label>
-                    <Select>
+                    <Select
+                      value={sellCondition}
+                      onValueChange={setSellCondition}
+                    >
                       <SelectTrigger className="bg-slate-700 border-slate-600 text-white">
                         <SelectValue placeholder="Select condition" />
                       </SelectTrigger>
@@ -930,10 +997,55 @@ export default function Exchange() {
 
                   <div>
                     <Label className="text-white">Images</Label>
-                    <div className="border-2 border-dashed border-slate-600 rounded-lg p-8 text-center">
-                      <Plus className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                      <p className="text-gray-400">Drop in clear, well-lit photos</p>
-                      <p className="text-sm text-gray-500">Add up to 8 photos that show real condition</p>
+                    <div className="border-2 border-dashed border-slate-600 rounded-lg p-4 text-center space-y-4">
+                      <div className="flex flex-col items-center justify-center gap-3">
+                        <Plus className="h-10 w-10 text-gray-400" />
+                        <p className="text-gray-400">Drop in clear, well-lit photos</p>
+                        <p className="text-sm text-gray-500">Add up to 8 photos that show real condition</p>
+                        <label className="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-slate-600 text-sm text-slate-200 hover:bg-slate-700 cursor-pointer">
+                          <UploadIcon className="h-4 w-4" />
+                          <span>Choose Files</span>
+                          <input
+                            type="file"
+                            multiple
+                            accept="image/*"
+                            className="hidden"
+                            onChange={async (e) => {
+                              const files = Array.from(e.target.files || []).slice(0, 8 - sellImages.length);
+                              const uploaded: string[] = [];
+                              for (const file of files) {
+                                try {
+                                  const { publicUrl } = await uploadObject(file);
+                                  uploaded.push(publicUrl);
+                                } catch (err) {
+                                  console.error("Image upload failed", err);
+                                }
+                              }
+                              if (uploaded.length) {
+                                setSellImages((prev) => [...prev, ...uploaded].slice(0, 8));
+                              }
+                              e.target.value = "";
+                            }}
+                          />
+                        </label>
+                      </div>
+
+                      {sellImages.length > 0 && (
+                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-2">
+                          {sellImages.map((url, idx) => (
+                            <div key={url + idx} className="relative group rounded-lg overflow-hidden border border-slate-700">
+                              <img src={url} alt="Listing" className="w-full h-24 object-cover" />
+                              <button
+                                type="button"
+                                className="absolute top-1 right-1 bg-black/60 rounded-full p-1 text-xs text-white opacity-0 group-hover:opacity-100 transition-opacity"
+                                onClick={() => setSellImages((prev) => prev.filter((_, i) => i !== idx))}
+                              >
+                                ×
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -943,7 +1055,89 @@ export default function Exchange() {
                 <Button variant="outline" className="border-slate-600 text-slate-300 hover:bg-slate-700">
                   Save Draft
                 </Button>
-                <Button className="bg-orange-500 hover:bg-orange-600">
+                <Button
+                  className="bg-orange-500 hover:bg-orange-600"
+                  disabled={createListingMutation.isPending}
+                  onClick={() => {
+                    if (!isAuthenticated) {
+                      toast({
+                        title: "Sign in required",
+                        description:
+                          "You need an account to publish a listing. Please sign in and try again.",
+                        variant: "destructive",
+                      });
+                      return;
+                    }
+
+                    if (!stateCode || !county) {
+                      toast({
+                        title: "Location needed",
+                        description:
+                          "Set your community location first so we can place this listing on the right local board.",
+                        variant: "destructive",
+                      });
+                      return;
+                    }
+
+                    if (!sellTitle.trim()) {
+                      toast({
+                        title: "Add a title",
+                        description: "Give your listing a clear title before publishing.",
+                        variant: "destructive",
+                      });
+                      return;
+                    }
+
+                    const numericPrice = Number(sellPrice);
+                    if (!Number.isFinite(numericPrice) || numericPrice <= 0) {
+                      toast({
+                        title: "Add a valid price",
+                        description: "Enter a positive price so buyers know what you are asking.",
+                        variant: "destructive",
+                      });
+                      return;
+                    }
+
+                    if (!sellCategoryId) {
+                      toast({
+                        title: "Choose a category",
+                        description: "Pick the closest category so the right people see your listing.",
+                        variant: "destructive",
+                      });
+                      return;
+                    }
+
+                    const mappedCondition =
+                      sellCondition === "new" ||
+                      sellCondition === "like-new" ||
+                      sellCondition === "excellent" ||
+                      sellCondition === "good" ||
+                      sellCondition === "fair" ||
+                      sellCondition === "poor" ||
+                      sellCondition === "parts_only"
+                        ? sellCondition
+                        : "good";
+
+                    const body: any = {
+                      title: sellTitle.trim(),
+                      description: sellDescription.trim() || sellTitle.trim(),
+                      price: numericPrice,
+                      categoryId: sellCategoryId,
+                      state: stateCode,
+                      county,
+                      condition: mappedCondition,
+                      isLocalPickupOnly: true,
+                      willShip: false,
+                      images: sellImages,
+                    };
+
+                    if (sellLocation.trim()) {
+                      body.city = sellLocation.trim();
+                    }
+
+                    createListingMutation.mutate(body);
+                  }}
+                >
                   Publish Listing
                 </Button>
               </div>

@@ -4803,6 +4803,25 @@ export const marketplaceTransactions = pgTable("marketplace_transactions", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
+export const listingBoosts = pgTable("listing_boosts", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  listingId: varchar("listing_id").notNull().references(() => marketplaceListings.id, { onDelete: "cascade" }),
+  sellerId: varchar("seller_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  transactionId: varchar("transaction_id").notNull().references(() => marketplaceTransactions.id, { onDelete: "cascade" }),
+  amount: decimal("amount", { precision: 10, scale: 2 }).notNull(),
+  status: varchar("status", {
+    enum: ["pending_payment", "active", "expired", "cancelled"],
+  }).notNull().default("pending_payment"),
+  startDate: timestamp("start_date"),
+  endDate: timestamp("end_date"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => [
+  index("listing_boost_listing_idx").on(table.listingId),
+  index("listing_boost_seller_idx").on(table.sellerId),
+  uniqueIndex("listing_boost_transaction_unique").on(table.transactionId),
+]);
+
 export const transactionDisputes = pgTable("transaction_disputes", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   transactionId: varchar("transaction_id").notNull().references(() => marketplaceTransactions.id),
@@ -4991,6 +5010,8 @@ export const platformAnalytics = pgTable("platform_analytics", {
 // Additional type exports
 export type MarketplaceTransaction = typeof marketplaceTransactions.$inferSelect;
 export type InsertMarketplaceTransaction = typeof marketplaceTransactions.$inferInsert;
+export type ListingBoost = typeof listingBoosts.$inferSelect;
+export type InsertListingBoost = typeof listingBoosts.$inferInsert;
 export type TransactionDispute = typeof transactionDisputes.$inferSelect;
 export type InsertTransactionDispute = typeof transactionDisputes.$inferInsert;
 export type UserReview = typeof userReviews.$inferSelect;
@@ -5021,6 +5042,21 @@ export const marketplaceTransactionsRelations = relations(marketplaceTransaction
   }),
   disputes: many(transactionDisputes),
   reviews: many(userReviews),
+}));
+
+export const listingBoostsRelations = relations(listingBoosts, ({ one }) => ({
+  listing: one(marketplaceListings, {
+    fields: [listingBoosts.listingId],
+    references: [marketplaceListings.id],
+  }),
+  seller: one(users, {
+    fields: [listingBoosts.sellerId],
+    references: [users.id],
+  }),
+  transaction: one(marketplaceTransactions, {
+    fields: [listingBoosts.transactionId],
+    references: [marketplaceTransactions.id],
+  }),
 }));
 
 export const transactionDisputesRelations = relations(transactionDisputes, ({ one }) => ({

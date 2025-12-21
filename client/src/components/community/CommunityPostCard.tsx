@@ -31,13 +31,14 @@ export interface CommunityPostCardData {
   content: string;
   author?: CommunityPostCardAuthor;
   category?: string;
-   pinned?: boolean;
-   trending?: boolean;
+  pinned?: boolean;
+  trending?: boolean;
   location?: string;
   createdAt: string;
   upvotes?: number;
   comments?: number;
   tags?: string[];
+  imageUrls?: string[];
 }
 
 export interface CommunityPostCardProps {
@@ -148,10 +149,10 @@ export function CommunityPostCard({ post, onLike, formatTimeAgo }: CommunityPost
   const isTrending = !isPinned && post.trending === true;
 
   return (
-    <Card className="bg-[#0f1624] border border-[#1f2937] hover:border-orange-500/30 shadow-md hover:shadow-xl transition-all">
-      <CardContent className="p-5 sm:p-6">
+    <Card className="bg-[#0f1624] border border-[#1f2937] shadow-sm rounded-xl hover:border-orange-500/30 transition-all">
+      <CardContent className="p-4 sm:p-5 space-y-3">
         {(isPinned || isTrending) && (
-          <div className="-mx-5 sm:-mx-6 -mt-5 sm:-mt-6 px-5 sm:px-6 py-1.5 border-b border-orange-500/15 bg-orange-500/5 flex items-center gap-2 text-[11px] text-orange-200 mb-3">
+          <div className="-mx-4 sm:-mx-5 -mt-4 sm:-mt-5 px-4 sm:px-5 py-1.5 border-b border-orange-500/15 bg-orange-500/5 flex items-center gap-2 text-[11px] text-orange-200">
             <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-orange-500/30">
               {isPinned ? (
                 <Heart className="w-3 h-3" />
@@ -165,7 +166,7 @@ export function CommunityPostCard({ post, onLike, formatTimeAgo }: CommunityPost
           </div>
         )}
 
-        <div className="flex items-start justify-between mb-3">
+        <div className="flex items-start justify-between">
           <div className="flex gap-3">
             {post.author?.id ? (
               <Link
@@ -178,9 +179,9 @@ export function CommunityPostCard({ post, onLike, formatTimeAgo }: CommunityPost
                     {post.author.name?.[0] || "U"}
                   </AvatarFallback>
                 </Avatar>
-                <div>
-                  <div className="flex items-center gap-2 mb-1">
-                    <span className="font-semibold text-white text-base sm:text-lg group-hover:text-orange-300">
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2">
+                    <span className="font-semibold text-white text-base group-hover:text-orange-300">
                       {post.author.name || "Anonymous"}
                     </span>
                     {post.author.role && (
@@ -189,7 +190,7 @@ export function CommunityPostCard({ post, onLike, formatTimeAgo }: CommunityPost
                       </span>
                     )}
                   </div>
-                  <div className="flex flex-wrap items-center gap-2 text-xs sm:text-[0.8rem] text-slate-400">
+                  <div className="flex flex-wrap items-center gap-2 text-xs text-slate-400">
                     <span
                       className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 ${categoryMeta.className}`}
                     >
@@ -215,9 +216,9 @@ export function CommunityPostCard({ post, onLike, formatTimeAgo }: CommunityPost
                     {post.author?.name?.[0] || "U"}
                   </AvatarFallback>
                 </Avatar>
-                <div>
-                  <div className="flex items-center gap-2 mb-1">
-                    <span className="font-semibold text-white text-base sm:text-lg">
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2">
+                    <span className="font-semibold text-white text-base">
                       {post.author?.name || "Anonymous"}
                     </span>
                     {post.author?.role && (
@@ -226,7 +227,7 @@ export function CommunityPostCard({ post, onLike, formatTimeAgo }: CommunityPost
                       </span>
                     )}
                   </div>
-                  <div className="flex flex-wrap items-center gap-2 text-xs sm:text-[0.8rem] text-slate-400">
+                  <div className="flex flex-wrap items-center gap-2 text-xs text-slate-400">
                     <span
                       className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 ${categoryMeta.className}`}
                     >
@@ -246,26 +247,42 @@ export function CommunityPostCard({ post, onLike, formatTimeAgo }: CommunityPost
               </>
             )}
           </div>
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-9 w-9 p-0 text-slate-400 hover:text-white hover:bg-[#0f1419]"
+          <button
+            type="button"
+            className="inline-flex h-8 w-8 items-center justify-center rounded-full text-slate-400 hover:text-white hover:bg-[#0f1419] transition-colors"
           >
-            <MoreHorizontal className="w-5 h-5" />
-          </Button>
+            <MoreHorizontal className="w-4 h-4" />
+          </button>
         </div>
 
-        <div className={`mb-3 sm:mb-4 ${categoryMeta.accentClassName}`}>
+        <div className={categoryMeta.accentClassName}>
           {post.title && (
-            <h3 className="font-medium text-orange-400 text-sm sm:text-base mb-2">
+            <h3 className="text-base font-medium text-orange-400 mb-1">
               {post.title}
             </h3>
           )}
-          <p className="text-slate-200 text-sm sm:text-base leading-relaxed whitespace-pre-wrap">
+          <p className="text-sm text-slate-200 leading-relaxed whitespace-pre-wrap">
             {post.content}
           </p>
+          {post.imageUrls && post.imageUrls.length > 0 && (
+            <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-3">
+              {post.imageUrls.slice(0, 6).map((url, index) => (
+                <div
+                  key={url + index}
+                  className="relative w-full overflow-hidden rounded-md border border-[#1f2937] bg-black/40"
+                  style={{ paddingBottom: "70%" }}
+                >
+                  <img
+                    src={url}
+                    alt="Post image"
+                    className="absolute inset-0 h-full w-full object-cover"
+                  />
+                </div>
+              ))}
+            </div>
+          )}
           {post.tags && post.tags.length > 0 && (
-            <div className="flex flex-wrap gap-2 mt-4">
+            <div className="flex flex-wrap gap-2 mt-3">
               {post.tags.map((tag, idx) => (
                 <Badge
                   key={idx}
@@ -279,14 +296,14 @@ export function CommunityPostCard({ post, onLike, formatTimeAgo }: CommunityPost
           )}
         </div>
 
-        <Separator className="mb-2 bg-[#1f2937]" />
+        <Separator className="bg-[#1f2937]" />
 
-        <div className="flex items-center justify-between text-xs sm:text-sm text-slate-300 mb-1.5 sm:mb-2 font-medium">
+        <div className="flex items-center justify-between text-xs text-slate-300 font-medium">
           <span>{post.upvotes || 0} likes</span>
           <span>{post.comments || 0} comments</span>
         </div>
 
-        <div className="flex items-center justify-between pt-1 text-xs sm:text-sm text-slate-400">
+        <div className="flex items-center justify-between pt-1 text-xs text-slate-400">
           <button
             onClick={handleLikeClick}
             className="inline-flex items-center gap-1.5 hover:text-orange-400 transition-colors"

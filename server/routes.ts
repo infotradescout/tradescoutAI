@@ -70,6 +70,7 @@ import { StoryGenerationService } from "./story-generation-service";
 import { communityBuilderPaymentService } from "./community-builder-payment-service";
 import { platformSupportPaymentService } from "./platform-support-payment-service";
 import { antiScrapeShield } from "./middleware/antiScrape";
+import { ObjectStorageService } from "./objectStorage";
 // Shared HTTP types for all route handlers
 type AuthedRequest = Request & {
   user?: {
@@ -108,10 +109,7 @@ const insertAddressVerificationSchema = { parse: (data: any) => data };
 const insertModerationReportSchema = { parse: (data: any) => data };
 const insertModerationVoteSchema = { parse: (data: any) => data };
 const insertModerationAppealSchema = { parse: (data: any) => data };
-const ObjectStorageService = class { async uploadFile() { return "url"; } async getObjectEntityUploadURL() { return "url"; } };
-const objectStorageService = {
-  trySetObjectEntityAclPolicy: async (url: string, opts: any) => url,
-};
+const objectStorageService = new ObjectStorageService();
 const stripe = process.env.STRIPE_SECRET_KEY
   ? new Stripe(process.env.STRIPE_SECRET_KEY, { apiVersion: "2025-07-30.basil" })
   : null;
@@ -5861,6 +5859,61 @@ export async function registerRoutes(app: any) {
     } catch (error: any) {
       console.error("Error creating marketplace listing:", error);
       res.status(400).json({ message: "Failed to create listing" });
+    }
+  });
+
+  // Create a paid visibility boost for a specific marketplace listing
+  app.post("/api/marketplace/listings/:id/boost", isAuthenticated, async (req: any, res: any) => {
+    try {
+      const user = req.user as any;
+      const { id } = req.params;
+
+      const listing = await storage.getMarketplaceListing(id);
+      if (!listing) {
+        return res.status(404).json({ message: "Listing not found" });
+      }
+
+      if (listing.sellerId !== user?.id) {
+        return res.status(403).json({ message: "Not authorized to boost this listing" });
+      }
+
+      const BOOST_AMOUNT = 50;
+
+      // Create a marketplace transaction representing the boost purchase
+      const transaction = await storage.createMarketplaceTransaction({
+        listingId: listing.id,
+        buyerId: user.id,
+        sellerId: listing.sellerId,
+        totalAmount: BOOST_AMOUNT.toString(),
+        sellerAmount: '0',
+        paymentMethod: 'on_platform_stripe',
+        isOffPlatform: false,
+        status: 'pending',
+        notes: 'Marketplace listing visibility boost (7 days)',
+        buyerPreferredContact: 'platform_messages',
+        sellerPreferredContact: 'platform_messages',
+      } as any);
+
+      // Create a pending listing boost tied to this transaction
+      const boost = await storage.createListingBoost({
+        listingId: listing.id,
+        sellerId: listing.sellerId,
+        transactionId: transaction.id,
+        amount: transaction.totalAmount,
+        status: 'pending_payment',
+      } as any);
+
+      const description = `Boost your listing "${listing.title}" for 7 days`;
+      const checkoutUrl = `/checkout/marketplace/${transaction.id}?amount=${BOOST_AMOUNT.toFixed(2)}&description=${encodeURIComponent(description)}`;
+
+      res.status(201).json({
+        transactionId: transaction.id,
+        boostId: boost.id,
+        checkoutUrl,
+      });
+    } catch (error: any) {
+      console.error('Error creating listing boost:', error);
+      res.status(500).json({ message: 'Failed to create listing boost' });
     }
   });
 

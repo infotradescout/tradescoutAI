@@ -2,6 +2,7 @@ import { memo, useRef, useState } from 'react';
 import { useAuth } from "@/hooks/useAuth";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
+import { uploadObject } from "@/lib/objectUpload";
 import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -62,16 +63,8 @@ const Profile = memo(function Profile() {
     if (!file) return;
 
     try {
-      const { uploadURL } = await apiRequest('POST', '/api/objects/upload');
-
-      await fetch(uploadURL, {
-        method: 'PUT',
-        body: file,
-        headers: { 'Content-Type': file.type || 'application/octet-stream' },
-      });
-
-      const stableUrl = typeof uploadURL === 'string' ? uploadURL.split('?')[0] : '';
-      setFormData((prev) => ({ ...prev, profileImageUrl: stableUrl || uploadURL }));
+      const { publicUrl } = await uploadObject(file);
+      setFormData((prev) => ({ ...prev, profileImageUrl: publicUrl }));
       toast({ title: 'Photo updated', description: 'Your profile picture was uploaded.' });
     } catch (error) {
       console.error('Profile photo upload failed:', error);
@@ -96,26 +89,25 @@ const Profile = memo(function Profile() {
 
   return (
     <div className="min-h-screen bg-[#0f1419] text-white pb-20 lg:pb-0">
-      <div className="container mx-auto px-4 py-6 lg:py-10">
-        <div className="max-w-5xl mx-auto">
-          {/* Modern Header */}
-          <div className="mb-8 lg:mb-12">
-            <div className="flex items-center gap-4 mb-3">
-              <div className="h-12 w-12 bg-gradient-to-br from-orange-500 to-orange-600 rounded-xl flex items-center justify-center shadow-lg">
-                <User className="h-6 w-6 text-white" />
-              </div>
-              <div>
-                <h1 className="text-3xl lg:text-5xl font-bold text-white mb-1">My Profile</h1>
-                <p className="text-lg text-slate-400">
-                  Manage your personal information and preferences
-                </p>
-              </div>
+      <div className="max-w-6xl mx-auto px-4 py-6 lg:py-10 space-y-6">
+        {/* Modern Header */}
+        <div>
+          <div className="flex items-center gap-4 mb-3">
+            <div className="h-12 w-12 bg-gradient-to-br from-orange-500 to-orange-600 rounded-xl flex items-center justify-center shadow-sm">
+              <User className="h-6 w-6 text-white" />
+            </div>
+            <div>
+              <h1 className="text-lg font-semibold text-white mb-1">My Profile</h1>
+              <p className="text-sm text-slate-400">
+                Manage your personal information and preferences
+              </p>
             </div>
           </div>
+        </div>
 
-          {/* Profile Header Card */}
-          <Card className="bg-[#1a2332] border-[#2d3748] shadow-xl mb-8">
-            <CardContent className="pt-6">
+        {/* Profile Header Card */}
+        <Card className="bg-[#1a2332] border border-[#2d3748] shadow-sm rounded-xl">
+          <CardContent className="pt-6 pb-6">
               <div className="flex flex-col sm:flex-row items-center sm:items-start gap-6">
                 <div className="relative">
                   <div className="w-24 h-24 bg-gradient-to-br from-orange-500 to-orange-600 rounded-full flex items-center justify-center text-3xl font-bold text-white shadow-lg overflow-hidden">
@@ -161,20 +153,20 @@ const Profile = memo(function Profile() {
             </CardContent>
           </Card>
 
-          {/* Profile Information Form */}
-          <Card className="bg-[#1a2332] border-[#2d3748] shadow-xl mb-8">
-            <CardHeader className="border-b border-[#2d3748] pb-6">
+        {/* Profile Information Form */}
+        <Card className="bg-[#1a2332] border border-[#2d3748] shadow-sm rounded-xl">
+          <CardHeader className="border-b border-[#2d3748] pb-4">
               <div className="flex items-center gap-3">
                 <div className="h-10 w-10 bg-orange-500/20 rounded-lg flex items-center justify-center">
                   <User className="w-5 h-5 text-orange-500" />
                 </div>
                 <div>
-                  <CardTitle className="text-xl text-white">Profile Information</CardTitle>
+                  <CardTitle className="text-base font-medium text-white">Profile Information</CardTitle>
                   <p className="text-sm text-slate-400 mt-1">Update your personal details</p>
                 </div>
               </div>
             </CardHeader>
-            <CardContent className="pt-6">
+          <CardContent className="pt-4 pb-6">
               <form onSubmit={handleSubmit}>
                 <div className="grid md:grid-cols-2 gap-6">
                   <div className="space-y-2">

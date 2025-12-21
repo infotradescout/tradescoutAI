@@ -1,5 +1,6 @@
 import { useState, useRef } from "react";
 import { Bug, X, Send, TestTube, Zap, Camera, Upload, Image, Loader2 } from "lucide-react";
+import { uploadObject } from "@/lib/objectUpload";
 import html2canvas from 'html2canvas';
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -124,35 +125,11 @@ export function TestingErrorReportButton({
 
   const uploadFilesToStorage = async (files: (File | string)[]): Promise<string[]> => {
     const uploadedUrls: string[] = [];
-    
+
     for (const file of files) {
       try {
-        let uploadData;
-        
-        if (typeof file === 'string') {
-          // Screenshot data URL
-          const response = await fetch(file);
-          const blob = await response.blob();
-          uploadData = blob;
-        } else {
-          // Regular file
-          uploadData = file;
-        }
-        
-        // Get upload URL from backend
-        const uploadResponse = await apiRequest("POST", "/api/objects/upload");
-        const { uploadURL } = await uploadResponse.json();
-        
-        // Upload to object storage
-        await fetch(uploadURL, {
-          method: 'PUT',
-          body: uploadData,
-          headers: {
-            'Content-Type': typeof file === 'string' ? 'image/png' : file.type,
-          },
-        });
-        
-        uploadedUrls.push(uploadURL);
+        const { publicUrl } = await uploadObject(file as any);
+        uploadedUrls.push(publicUrl);
       } catch (error) {
         console.error('File upload failed:', error);
         toast({
@@ -162,7 +139,7 @@ export function TestingErrorReportButton({
         });
       }
     }
-    
+
     return uploadedUrls;
   };
 
