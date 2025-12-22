@@ -824,6 +824,9 @@ export function getRoleDisplayName(role: UserRole): string {
     homeowner: 'Homeowner',
     property_manager: 'Property Manager',
     business_owner: 'Business Owner',
+    restaurant_owner: 'Restaurant Owner',
+    food_truck_owner: 'Food Truck Owner',
+    bar_owner: 'Bar Owner',
     
     // Service provider roles
     contractor_user: 'Contractor',
