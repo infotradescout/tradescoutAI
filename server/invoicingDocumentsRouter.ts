@@ -289,7 +289,42 @@ export function createInvoicingDocumentsRouter(pool: Pool) {
 		async (req: Request, res: Response, next: (err?: any) => void) => {
 			try {
 				await fn(req, res);
-			} catch (e) {
+			} catch (e: any) {
+				// For known "zero state" failures (e.g., missing documents table),
+				// respond with an empty accounting snapshot instead of hard 500.
+				const message = (e as Error)?.message || "";
+				if (
+					message.includes("relation \"documents\" does not exist") ||
+					message.includes("undefined_table")
+				) {
+					if (req.path === "/api/accounting/reports/summary") {
+						return res.json({
+							lifetime: {
+								invoiceCount: 0,
+								paidCount: 0,
+								unpaidCount: 0,
+								totalAmount: 0,
+								paidAmount: 0,
+								unpaidAmount: 0,
+								totalExpenses: 0,
+								netProfit: 0,
+							},
+							byMonth: [],
+						});
+					}
+					if (req.path === "/api/accounting/standalone-invoices") {
+						return res.json({
+							invoices: [],
+							pagination: { page: 1, pageSize: 50, totalCount: 0, pageCount: 0 },
+						});
+					}
+					if (req.path === "/api/accounting/expenses") {
+						return res.json({
+							expenses: [],
+							pagination: { page: 1, pageSize: 50, totalCount: 0, pageCount: 0 },
+						});
+					}
+				}
 				next(e);
 			}
 		};
@@ -321,6 +356,17 @@ export function createInvoicingDocumentsRouter(pool: Pool) {
 				paid_amount: 0,
 			};
 
+			// Sum of all recorded expenses in the standalone accounting workspace
+			const expensesRes = await pool.query(
+				`SELECT
+					COALESCE(SUM((payload->>'total')::numeric), 0) AS total_expenses
+				FROM documents
+				WHERE type = 'EXPENSE' AND created_by = $1 AND job_id LIKE 'acct_%'`,
+				[userId],
+			);
+			const totalExpenses: number =
+				Number(expensesRes.rows[0]?.total_expenses) || 0;
+
 			const byMonthRes = await pool.query(
 				`SELECT
 					date_trunc('month', created_at) AS month,
@@ -343,6 +389,9 @@ export function createInvoicingDocumentsRouter(pool: Pool) {
 					paidAmount: Number(overall.paid_amount) || 0,
 					unpaidAmount:
 						Number(overall.total_amount || 0) - Number(overall.paid_amount || 0),
+					totalExpenses,
+					netProfit:
+						Number(overall.total_amount || 0) - totalExpenses,
 				},
 				byMonth: byMonthRes.rows.map((row) => ({
 					month: (row.month as Date).toISOString(),
@@ -983,6 +1032,122 @@ export function createInvoicingDocumentsRouter(pool: Pool) {
 			);
 			res.json({
 				invoices: rows,
+				pagination: {
+					page,
+					pageSize,
+					totalCount,
+					pageCount: pageSize > 0 ? Math.ceil(totalCount / pageSize) : 0,
+				},
+			});
+		}),
+	);
+
+	// Standalone accounting: create a manual expense entry for the current user.
+	r.post(
+		"/api/accounting/standalone-expense",
+		isAuthenticated,
+		express.json(),
+		wrap(async (req: AuthedRequest, res: Response) => {
+			requireAuth(req);
+			const { projectTitle, vendorName, category, notes, total, currency } =
+				(req.body ?? {}) as {
+					projectTitle?: string;
+					vendorName?: string;
+					category?: string;
+					notes?: string;
+					total?: number | string;
+					currency?: string;
+				};
+
+			const amount = Number(total);
+			if (!Number.isFinite(amount) || amount <= 0) {
+				const err = new Error("INVALID_EXPENSE_TOTAL");
+				// @ts-expect-error attach status
+				err.status = 400;
+				throw err;
+			}
+
+			const jobId = `acct_${token32()}`;
+			const safeCurrency =
+				typeof currency === "string" && currency.trim()
+					? currency.trim().toUpperCase()
+					: "USD";
+			const title =
+				typeof projectTitle === "string" && projectTitle.trim()
+					? projectTitle.trim()
+					: "Manual expense";
+			const vendor =
+				typeof vendorName === "string" && vendorName.trim()
+					? vendorName.trim()
+					: null;
+			const memo =
+				typeof notes === "string" && notes.trim()
+					? notes.trim()
+					: null;
+
+			const payload = {
+				projectTitle: title,
+				vendorName: vendor,
+				category: typeof category === "string" && category.trim() ? category.trim() : null,
+				notes: memo,
+				total: amount,
+				currency: safeCurrency,
+			};
+
+			const created = await pool.query(
+				`INSERT INTO documents (job_id, type, status, version, payload, permissions, created_by)
+					 VALUES ($1,'EXPENSE','recorded',1,$2::jsonb,$3::jsonb,$4)
+					 RETURNING *`,
+				[jobId, JSON.stringify(payload), JSON.stringify({}), req.user.id],
+			);
+			const expense = created.rows[0];
+			console.info("[DOC_TRANSITION]", {
+				docId: expense.id,
+				from: null,
+				to: expense.status,
+				userId: req.user.id,
+				type: expense.type,
+				action: "create_standalone_expense",
+				jobId,
+			});
+
+			res.status(201).json({ document: expense, jobId });
+		}),
+	);
+
+	// Standalone accounting: list manual expenses for the current user.
+	r.get(
+		"/api/accounting/expenses",
+		isAuthenticated,
+		wrap(async (req: AuthedRequest, res: Response) => {
+			requireAuth(req);
+			const pageRaw = Array.isArray(req.query.page) ? req.query.page[0] : req.query.page;
+			const pageSizeRaw = Array.isArray(req.query.pageSize)
+				? req.query.pageSize[0]
+				: req.query.pageSize;
+
+			const page = Math.max(1, Number(pageRaw || 1) || 1);
+			const pageSize = Math.min(200, Math.max(1, Number(pageSizeRaw || 50) || 50));
+			const offset = (page - 1) * pageSize;
+
+			const totalRes = await pool.query(
+				`SELECT COUNT(*)::int AS count
+					FROM documents
+					WHERE type='EXPENSE' AND created_by=$1 AND job_id LIKE 'acct_%'`,
+				[req.user.id],
+			);
+			const totalCount: number = totalRes.rows[0]?.count ?? 0;
+
+			const { rows } = await pool.query(
+				`SELECT id, job_id, type, status, payload, created_at, updated_at
+					FROM documents
+					WHERE type='EXPENSE' AND created_by=$1 AND job_id LIKE 'acct_%'
+					ORDER BY updated_at DESC NULLS LAST, created_at DESC
+					LIMIT $2 OFFSET $3`,
+				[req.user.id, pageSize, offset],
+			);
+			res.json({
+				expenses: rows,
 				pagination: {
 					page,
 					pageSize,

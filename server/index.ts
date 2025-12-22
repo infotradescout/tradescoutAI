@@ -387,13 +387,36 @@ app.use((req, res, next) => {
           // Only serve frontend if dist/public exists (allows API-only deployment)
           if (fs.existsSync(publicDistPath)) {
             console.log("Production mode - serving static files from:", publicDistPath);
+
+            // 1) Serve hashed asset chunks with long cache first
+            const assetsPath = path.join(publicDistPath, "assets");
+            if (fs.existsSync(assetsPath)) {
+              app.use(
+                "/assets",
+                express.static(assetsPath, {
+                  immutable: true,
+                  maxAge: "1y",
+                }),
+              );
+            }
+
+            // 2) Serve other static files (index.html, icons, etc.)
             app.use(express.static(publicDistPath));
 
-            // Catch all handler for client-side routing
+            // 3) Catch-all handler for client-side routing, but NEVER for /api or /assets
             app.get("*", (req, res) => {
-              if (req.path.startsWith("/api")) {
+              const reqPath = req.path || "";
+
+              if (reqPath.startsWith("/api")) {
                 return res.status(404).json({ message: "Not found" });
               }
+
+              // If an asset was requested but not found by express.static, do NOT
+              // return index.html – this would surface as a MIME-type error in the browser.
+              if (reqPath.startsWith("/assets")) {
+                return res.status(404).end();
+              }
+
               const indexPath = path.join(publicDistPath, "index.html");
 
               // Check if file exists before trying to serve
