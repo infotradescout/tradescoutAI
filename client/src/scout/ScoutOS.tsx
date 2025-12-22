@@ -934,7 +934,7 @@ export default function ScoutOS() {
 
             {/* Scripted intro demo composer (types, pulses send, then sends) */}
             <div
-              className={`rounded-2xl bg-[#020617] ${
+              className={`rounded-2xl border border-slate-800 bg-[#020617] ${
                 isMobile ? "px-3 py-3" : "px-4 py-4"
               } space-y-2`}
             >
@@ -956,7 +956,7 @@ export default function ScoutOS() {
                 disabled={isBusy}
                 placeholder="Ask about contractors, projects, or your community"
                 rows={3}
-                className="w-full resize-none rounded-2xl border border-slate-800 bg-[#020617] px-4 py-3 text-sm text-slate-100 placeholder:text-slate-400/70 focus:outline-none focus:ring-2 focus:ring-orange-500/60 min-h-[80px]"
+                className="w-full resize-none rounded-2xl bg-[#020617] px-4 py-3 text-sm text-slate-100 placeholder:text-slate-400/70 focus:outline-none focus:ring-2 focus:ring-orange-500/60 min-h-[80px]"
               />
               <button
                 type="button"
@@ -1007,7 +1007,7 @@ export default function ScoutOS() {
 
             {/* Thread + input in a single chat container */}
             <div
-              className={`mt-3 rounded-2xl bg-[#020617] ${
+              className={`mt-3 rounded-2xl border border-slate-800 bg-[#020617] ${
                 isMobile ? "px-3 py-3 space-y-3" : "px-4 py-4 space-y-4"
               }`}
             >
