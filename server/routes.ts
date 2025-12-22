@@ -1028,6 +1028,48 @@ export async function registerRoutes(app: any) {
     }
   });
 
+  // MealScout affiliate: record a subscription payment attributed to a TradeScout affiliate.
+  // This endpoint is intended to be called from MealScout's backend after a
+  // successful merchant subscription charge. It applies a flat commission of
+  // $20 for the first paid month and $5 for each subsequent consecutive month.
+  app.post("/api/mealscout/affiliate/subscription-payment", async (req: Request, res: Response) => {
+    try {
+      const sharedSecret = process.env.MEALSCOUT_WEBHOOK_SECRET;
+      const headerSecret = req.headers["x-mealscout-webhook-secret"];
+
+      if (!sharedSecret || headerSecret !== sharedSecret) {
+        return res.status(401).json({ ok: false, error: "Unauthorized" });
+      }
+
+      const { affiliateCode, merchantUserId, subscriptionAmount } = (req.body ?? {}) as {
+        affiliateCode?: string;
+        merchantUserId?: string;
+        subscriptionAmount?: number;
+      };
+
+      if (!affiliateCode || !merchantUserId) {
+        return res.status(400).json({ ok: false, error: "affiliateCode and merchantUserId are required" });
+      }
+
+      const priorPayments = await storage.getMealscoutSubscriptionPaymentCount(affiliateCode, merchantUserId);
+      const isFirstMonth = priorPayments === 0;
+      const commissionAmount = isFirstMonth ? 20 : 5;
+
+      await storage.recordMealscoutAffiliatePayment({
+        affiliateCode,
+        merchantUserId,
+        commissionAmount,
+        isFirstMonth,
+        subscriptionAmount,
+      });
+
+      return res.json({ ok: true, commissionAmount, isFirstMonth });
+    } catch (error: any) {
+      console.error("[MealScoutAffiliate] Failed to record subscription payment", error);
+      return res.status(500).json({ ok: false, error: "Failed to record MealScout affiliate payment" });
+    }
+  });
+
   // Check if platform setup is needed
   app.get("/api/auth/setup-status", async (req: AuthedRequest, res: Response) => {
     try {
@@ -1653,6 +1695,9 @@ export async function registerRoutes(app: any) {
         'mortgage_broker',
         'property_manager',
         'business_owner',
+        'restaurant_owner',
+        'food_truck_owner',
+        'bar_owner',
         'helper',
         'vehicle_dealer',
         'hoa_admin',

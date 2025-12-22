@@ -917,6 +917,17 @@ export interface IStorage {
     conversionRate: number;
   }>;
 
+  // MealScout-specific affiliate helpers
+  recordMealscoutAffiliatePayment(params: {
+    affiliateCode: string;
+    merchantUserId?: string;
+    commissionAmount: number;
+    isFirstMonth: boolean;
+    subscriptionAmount?: number;
+  }): Promise<void>;
+
+  getMealscoutSubscriptionPaymentCount(affiliateCode: string, merchantUserId: string): Promise<number>;
+
   // CRM operations
   createCrmContact(contact: InsertCrmContact): Promise<CrmContact>;
   updateCrmContact(id: string, updates: Partial<CrmContact>): Promise<CrmContact>;
@@ -7388,6 +7399,91 @@ export class DatabaseStorage implements IStorage {
       monthlyStats,
       topPerformingLinks: [] // To be implemented
     };
+  }
+
+  async recordMealscoutAffiliatePayment(params: {
+    affiliateCode: string;
+    merchantUserId?: string;
+    commissionAmount: number;
+    isFirstMonth: boolean;
+    subscriptionAmount?: number;
+  }): Promise<void> {
+    const { affiliateCode, merchantUserId, commissionAmount, isFirstMonth, subscriptionAmount } = params;
+
+    if (!affiliateCode || !Number.isFinite(commissionAmount) || commissionAmount <= 0) {
+      return;
+    }
+
+    const [affiliate] = await db
+      .select()
+      .from(userAffiliates)
+      .where(eq(userAffiliates.affiliateCode, affiliateCode));
+
+    if (!affiliate) {
+      // Unknown affiliate code; nothing to track
+      return;
+    }
+
+    const currentTotal = parseFloat((affiliate.totalEarnings as any) ?? '0') || 0;
+    const currentPending = parseFloat((affiliate.pendingEarnings as any) ?? '0') || 0;
+
+    const updates: Partial<typeof userAffiliates.$inferInsert> = {
+      totalEarnings: (currentTotal + commissionAmount).toFixed(2),
+      pendingEarnings: (currentPending + commissionAmount).toFixed(2),
+      updatedAt: new Date(),
+    };
+
+    if (isFirstMonth) {
+      const totalReferrals = (affiliate.totalReferrals as number | null) ?? 0;
+      const successfulReferrals = (affiliate.successfulReferrals as number | null) ?? 0;
+      updates.totalReferrals = totalReferrals + 1;
+      updates.successfulReferrals = successfulReferrals + 1;
+    }
+
+    await db
+      .update(userAffiliates)
+      .set(updates)
+      .where(eq(userAffiliates.affiliateCode, affiliateCode));
+
+    const commissionStr = commissionAmount.toFixed(2);
+    const conversionValueStr =
+      typeof subscriptionAmount === 'number' && Number.isFinite(subscriptionAmount)
+        ? subscriptionAmount.toFixed(2)
+        : undefined;
+
+    await db.insert(affiliateTracking).values({
+      affiliateCode,
+      visitingUserId: merchantUserId,
+      action: isFirstMonth ? 'mealscout_subscription_first_month' : 'mealscout_subscription_renewal',
+      sourceUrl: null,
+      targetUrl: null,
+      sessionId: null,
+      ipAddress: null,
+      userAgent: null,
+      conversionValue: conversionValueStr,
+      commissionEarned: commissionStr,
+    });
+  }
+
+  async getMealscoutSubscriptionPaymentCount(affiliateCode: string, merchantUserId: string): Promise<number> {
+    if (!affiliateCode || !merchantUserId) return 0;
+
+    const [row] = await db
+      .select({ count: sql<string>`count(*)` })
+      .from(affiliateTracking)
+      .where(
+        and(
+          eq(affiliateTracking.affiliateCode, affiliateCode),
+          eq(affiliateTracking.visitingUserId, merchantUserId),
+          inArray(affiliateTracking.action, [
+            'mealscout_subscription_first_month',
+            'mealscout_subscription_renewal',
+          ]),
+        ),
+      );
+
+    const count = row?.count ? parseInt(row.count, 10) : 0;
+    return Number.isFinite(count) && count > 0 ? count : 0;
   }
 
   // Smart Recommendation Generator implementation

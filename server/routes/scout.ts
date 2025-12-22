@@ -2253,6 +2253,43 @@ router.post("/", async (req: Request, res: Response) => {
         }
       }
 
+      // MealScout navigation: when the user is clearly talking about food,
+      // restaurants, bars, or events, surface an explicit MealScout command
+      // so the client can deep-link into the MealScout surface.
+      const isFoodOrDrinkIntent =
+        /food|coffee|lunch|dinner|restaurant|truck|catering|snack|meal|bar|brewery|pub|happy hour|cocktail|drinks?/.test(
+          lower
+        );
+
+      const hasMealscoutMerchantRole = (() => {
+        try {
+          const rawRoles = (userRecord as any)?.roles;
+          const rolesArray: string[] = Array.isArray(rawRoles)
+            ? rawRoles.map((r: any) => String(r).toLowerCase())
+            : [String(userRole || "user").toLowerCase()];
+          return rolesArray.some((r) =>
+            ["restaurant_owner", "food_truck_owner", "bar_owner"].includes(r)
+          );
+        } catch {
+          return false;
+        }
+      })();
+
+      const alreadyHasMealscoutCommand = actions.some(
+        (a) => a.type === "MEALSCOUT_COMMAND"
+      );
+
+      if ((isFoodOrDrinkIntent || hasMealscoutMerchantRole) && !alreadyHasMealscoutCommand) {
+        actions.push({
+          type: "MEALSCOUT_COMMAND",
+          label: "Open MealScout",
+          payload: {
+            intent: "mealscout_browse_or_manage_deals",
+            query: message.slice(0, 280),
+          },
+        });
+      }
+
       // Project tracker / deal room actions
       // If the user is authenticated and asking about projects/jobs/contracts/invoices,
       // expose an explicit navigation chip into the Project Tracker / deal room surface.

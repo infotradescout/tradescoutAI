@@ -14,6 +14,7 @@ import {
   Wrench,
   ClipboardList,
   Utensils,
+  CircleHelp,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useHandedness } from "@/hooks/useHandedness";
@@ -80,11 +81,6 @@ const featureNav: NavItem[] = [
     icon: <ShoppingBag className="h-5 w-5 text-orange-400" />,
   },
   {
-    label: "Help",
-    href: ROUTES.HELP ?? "/help",
-    icon: <MessageCircle className="h-5 w-5 text-orange-400" />,
-  },
-  {
     label: "Leaderboard",
     href: "/leaderboard",
     icon: <Trophy className="h-5 w-5 text-orange-400" />,
@@ -93,6 +89,11 @@ const featureNav: NavItem[] = [
     label: "Foundation",
     href: "/foundation",
     icon: <Heart className="h-5 w-5 text-orange-400" />,
+  },
+  {
+    label: "Help",
+    href: ROUTES.HELP ?? "/help",
+    icon: <CircleHelp className="h-5 w-5 text-orange-400" />,
   },
   {
     label: "Share",
@@ -112,7 +113,7 @@ export function AppShell({ children, footer }: AppShellProps) {
   }, []);
 
   return (
-    <div className="h-screen bg-slate-950 text-slate-50 flex flex-col overflow-hidden">
+    <div className="app-shell text-slate-50 flex flex-col overflow-hidden">
       {/* TOP APP NAV HEADER */}
       <header
         className={`flex items-center px-3 sm:px-4 py-3 ${

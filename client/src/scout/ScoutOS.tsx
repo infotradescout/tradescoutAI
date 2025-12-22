@@ -230,6 +230,14 @@ export default function ScoutOS() {
     }
 
     if (
+      normalized.some((r) =>
+        ["restaurant_owner", "food_truck_owner", "bar_owner"].includes(r)
+      )
+    ) {
+      return "mealscout";
+    }
+
+    if (
       normalized.some(
         (r) => r.startsWith("contractor:") || r === "contractor" || r === "pro"
       )
@@ -338,7 +346,7 @@ export default function ScoutOS() {
       const isRoofing = /roof|shingle|hail|storm damage|leak/.test(lower);
       const isTaxOrPermit = /permit|inspection|code|zoning|setback|property tax|assessment/.test(lower);
       const isCommunity = /community|neighbors?|neighbours?|hoa|association|group|groups|club|meet people|connect with my local community/.test(lower);
-      const isFoodOrEvents = /food|coffee|lunch|dinner|restaurant|truck|catering|snack|meal/.test(lower);
+      const isFoodOrEvents = /food|coffee|lunch|dinner|restaurant|truck|catering|snack|meal|bar|brewery|pub|happy hour|cocktail|drinks?/.test(lower);
       const isMoneyOrEstimate = /budget|cost|price|estimate|quote|afford|finance|loan|payment/.test(lower);
       const isOverwhelmed = /overwhelmed|confused|don['’]t understand|not sure where to start|lost/.test(lower);
 
@@ -361,6 +369,33 @@ export default function ScoutOS() {
               "Find vetted local contractors for this and queue intros",
               "Draft a message I can send to the top matches",
               "Turn this into a trackable project on my board"
+            );
+          }
+          break;
+        case "mealscout":
+          if (isOverwhelmed) {
+            base.push(
+              "Explain how MealScout works for my business",
+              "Break this MealScout idea into 3 clear steps",
+              "Recommend the right MealScout plan and next actions"
+            );
+          } else if (isMoneyOrEstimate) {
+            base.push(
+              "Help me price and structure a MealScout deal for this",
+              "Draft a MealScout promo I can post based on this",
+              "Estimate how many customers this MealScout deal could reach"
+            );
+          } else if (isFoodOrEvents) {
+            base.push(
+              "Open MealScout so I can manage or post deals for this",
+              "Show examples of high-performing MealScout promos like this",
+              "Connect this idea to my TradeScout community and MealScout deals"
+            );
+          } else {
+            base.push(
+              "Open MealScout to see my current deals and subscriptions",
+              "Help me create my next MealScout deal or menu update",
+              "Show how MealScout and TradeScout work together for my area"
             );
           }
           break;
@@ -399,8 +434,8 @@ export default function ScoutOS() {
             );
           } else if (isFoodOrEvents) {
             base.push(
-              "Find nearby food trucks, coffee, or events for this",
-              "Help me plan this around local food and community spots",
+              "Open MealScout to browse local food and drink deals",
+              "Help me plan this around nearby restaurants, food trucks, and events",
               "Turn this into a small event I can track and share"
             );
           } else {
@@ -1156,6 +1191,26 @@ export default function ScoutOS() {
                       label: trimmed,
                     });
                     navigate("/leaderboard");
+                    return;
+                  }
+
+                  if (
+                    trimmed === "Open MealScout" ||
+                    trimmed ===
+                      "Open MealScout to browse local food and drink deals" ||
+                    trimmed ===
+                      "Open MealScout so I can manage or post deals for this" ||
+                    trimmed ===
+                      "Open MealScout to see my current deals and subscriptions"
+                  ) {
+                    recordActivity({
+                      type: "navigate",
+                      ts: new Date().toISOString(),
+                      path: location,
+                      to: "/mealscout",
+                      label: trimmed,
+                    });
+                    navigate("/mealscout");
                     return;
                   }
 
