@@ -178,7 +178,7 @@ export default function ContractorDashboardSimple() {
               <p className="text-gray-400 text-sm mb-4">Review and respond to new customer inquiries</p>
               <Button 
                 className="bg-orange-600 hover:bg-orange-700 w-full"
-                onClick={() => window.location.pathname = '/lead-management'}
+                onClick={() => window.location.pathname = '/finances'}
               >
                 View Connections
               </Button>
