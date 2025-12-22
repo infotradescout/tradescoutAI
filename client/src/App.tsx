@@ -521,6 +521,7 @@ const AppLayout = memo(function AppLayout() {
                   <Route path="/real-estate-marketplace"><LazyPage Component={RealEstateMarketplace} /></Route>
                   <Route path="/handmade-marketplace"><LazyPage Component={HandmadeMarketplace} /></Route>
                   <Route path="/exchange"><LazyPage Component={Exchange} /></Route>
+                  <Route path="/mealscout"><LazyPage Component={ComingSoon} /></Route>
                   
                   {/* Groups routes */}
                   <Route path="/groups"><LazyPage Component={Groups} /></Route>

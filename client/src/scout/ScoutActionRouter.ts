@@ -78,6 +78,24 @@ export function executeScoutActions(
         }
         break;
 
+      case "MEALSCOUT_COMMAND": {
+        // For now, treat any MealScout command as a deep-link into the MealScout tab.
+        // We can later read a queued command from storage or context inside MealScoutBridge.
+        try {
+          if (action.payload) {
+            window.localStorage.setItem(
+              "mealscout:pending-command",
+              JSON.stringify(action.payload)
+            );
+          }
+        } catch {
+          // ignore storage failures; navigation still works
+        }
+
+        helpers.navigate("/mealscout");
+        break;
+      }
+
       case "FOLLOW_USER": {
         const targetId =
           typeof action.payload?.userId === "string"
