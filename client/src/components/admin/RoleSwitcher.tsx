@@ -18,7 +18,10 @@ import {
   Crown, 
   RefreshCw,
   User,
-  Briefcase
+  Briefcase,
+  UtensilsCrossed,
+  Truck,
+  Wine,
 } from 'lucide-react';
 
 const ROLE_CONFIG = {
@@ -28,6 +31,9 @@ const ROLE_CONFIG = {
   car_salesman: { label: 'Car Salesman', icon: Car, color: 'bg-purple-500', dashboard: '/car-salesman-dashboard' },
   helper: { label: 'Helper', icon: Users, color: 'bg-cyan-500', dashboard: '/helper-dashboard' },
   business_owner: { label: 'Business Owner', icon: Briefcase, color: 'bg-indigo-500', dashboard: '/business-owner-dashboard' },
+  restaurant_owner: { label: 'Restaurant Owner', icon: UtensilsCrossed, color: 'bg-orange-500', dashboard: '/business-owner-dashboard' },
+  food_truck_owner: { label: 'Food Truck Owner', icon: Truck, color: 'bg-orange-500', dashboard: '/business-owner-dashboard' },
+  bar_owner: { label: 'Bar / Lounge Owner', icon: Wine, color: 'bg-purple-600', dashboard: '/business-owner-dashboard' },
   moderator: { label: 'Moderator', icon: Shield, color: 'bg-yellow-500', dashboard: '/admin/moderation' },
   ops_admin: { label: 'Admin', icon: Eye, color: 'bg-red-500', dashboard: '/admin/dashboard' },
   head_admin: { label: 'Master Admin', icon: Crown, color: 'bg-gradient-to-r from-yellow-400 to-red-500', dashboard: '/admin' },

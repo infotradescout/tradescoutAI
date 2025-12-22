@@ -168,8 +168,8 @@ export default function AccountingWorkspace() {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <Card className="bg-slate-800/50 border-slate-700">
           <CardHeader className="pb-3">
-            <CardTitle className="text-sm text-gray-400">Job Records</CardTitle>
-            <CardDescription>Estimates, invoices, materials, receipts, and contracts you track here</CardDescription>
+            <CardTitle className="text-sm text-gray-400">Job Documents</CardTitle>
+            <CardDescription>Estimates, invoices, materials, receipts, and contracts you track in this workspace</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="text-3xl font-bold text-white">{totalCount}</div>
@@ -234,9 +234,9 @@ export default function AccountingWorkspace() {
 
       <Card className="bg-slate-800/50 border-slate-700 mb-6">
         <CardHeader>
-          <CardTitle className="text-white mb-1">New Job Record</CardTitle>
+          <CardTitle className="text-white mb-1">New Invoice / Job Record</CardTitle>
           <CardDescription>
-            Track any part of a job – estimates, invoices, materials, receipts, or contracts – whether or not it ran through TradeScout.
+            Create a clean invoice record for work that ran off-platform so it still shows up in your ledger.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-3">
@@ -268,7 +268,7 @@ export default function AccountingWorkspace() {
           />
           <div className="flex justify-end">
             <Button size="sm" onClick={() => createInvoice.mutate()} disabled={createInvoice.isPending}>
-              {createInvoice.isPending ? "Creating..." : "Create Record"}
+              {createInvoice.isPending ? "Creating..." : "Create Invoice Record"}
             </Button>
           </div>
         </CardContent>
@@ -310,10 +310,10 @@ export default function AccountingWorkspace() {
         </CardHeader>
         <CardContent>
           {isLoading ? (
-            <div className="py-6 text-center text-sm text-gray-400">Loading invoices...</div>
+            <div className="py-6 text-center text-sm text-gray-400">Loading invoice records...</div>
           ) : invoices.length === 0 ? (
             <div className="py-6 text-center text-sm text-gray-400">
-              No job records yet. Use the form above to create your first one (estimate, invoice, materials, receipt, or contract).
+              No invoice records yet. Use the form above to create your first invoice for a job, even if it ran off TradeScout.
             </div>
           ) : (
             <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1.6fr)_minmax(0,1.6fr)] gap-6">

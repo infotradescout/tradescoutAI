@@ -31,7 +31,10 @@ import {
   Building,
   Users,
   Heart,
-  CheckCircle2
+  CheckCircle2,
+  UtensilsCrossed,
+  Truck,
+  Wine,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
@@ -51,6 +54,9 @@ const ROLE_CONFIG = {
   mortgage_broker: { label: "Mortgage Broker", icon: CreditCard, desc: "Mortgage and lending expert", color: "indigo" },
   property_manager: { label: "Property Manager", icon: Building, desc: "Manage rental properties", color: "teal" },
   business_owner: { label: "Business Owner", icon: Briefcase, desc: "Local business owner", color: "amber" },
+  restaurant_owner: { label: "Restaurant Owner", icon: UtensilsCrossed, desc: "Restaurant, cafe, or food business owner", color: "orange" },
+  food_truck_owner: { label: "Food Truck Owner", icon: Truck, desc: "Mobile food or coffee truck owner", color: "orange" },
+  bar_owner: { label: "Bar / Lounge Owner", icon: Wine, desc: "Bar, lounge, or nightlife venue operator", color: "purple" },
   helper: { label: "Helper/Worker", icon: Heart, desc: "Provide labor and assistance", color: "pink" },
   vehicle_dealer: { label: "Vehicle Dealer", icon: Car, desc: "Vehicle sales and services", color: "cyan" },
   hoa_admin: { label: "HOA Leadership", icon: Users, desc: "HOA leadership & management", color: "violet" }

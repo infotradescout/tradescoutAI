@@ -48,6 +48,36 @@ export function DealRoomPanel({ jobId, userRole }: DealRoomPanelProps) {
 	const invoicePayment = latestInvoicePayload?.payment as
 		| { method?: string; reference?: string; receivedAt?: string }
 		| undefined;
+	const invoiceStatusRaw = latestInvoice?.status ?? "";
+	const invoiceStatusLabel =
+		invoiceStatusRaw === "draft"
+			? "Draft"
+			: invoiceStatusRaw === "sent"
+				? "Issued"
+				: invoiceStatusRaw === "approved"
+					? "Approved"
+					: invoiceStatusRaw === "paid"
+						? "Paid / recorded"
+						: invoiceStatusRaw || "";
+	const invoiceStatusClass =
+		invoiceStatusRaw === "paid"
+			? "bg-emerald-900/60 border-emerald-500/60 text-emerald-100"
+			: invoiceStatusRaw === "sent" || invoiceStatusRaw === "approved"
+				? "bg-amber-900/60 border-amber-500/60 text-amber-100"
+				: "bg-slate-800 border-slate-600 text-slate-100";
+	const invoiceNumberDisplay =
+		typeof latestInvoicePayload?.invoiceNumber === "string" &&
+		latestInvoicePayload.invoiceNumber.trim()
+			? latestInvoicePayload.invoiceNumber.trim()
+			: latestInvoice
+				? `INV-${latestInvoice.id.slice(0, 8).toUpperCase()}`
+				: "";
+	const invoiceIssuedBy =
+		userRole === "contractor"
+			? "Issued by you"
+			: userRole === "homeowner"
+				? "Issued by your contractor"
+				: "Issued for this project";
 
 	const headerPrimary = isStandalone ? "Standalone Accounting" : "Project Deal Room";
 	const headerSecondary = isStandalone
@@ -307,13 +337,22 @@ export function DealRoomPanel({ jobId, userRole }: DealRoomPanelProps) {
 
 			// Invoice stage: focus on recording payment or sending invoice.
 			if (latestInvoice) {
+				if (latestInvoice.status === "paid") {
+					return {
+						...base,
+						kind: "none" as PrimaryActionKind,
+						explanation:
+							"This invoice is recorded as paid and a receipt has been issued. You can download or share it below for your records.",
+					};
+				}
+
 				if (state.canMarkPaymentReceived && userRole === "contractor") {
 					return {
 						...base,
 						kind: "simple" as PrimaryActionKind,
-						label: "Mark payment received",
+						label: "Mark as paid",
 						explanation:
-							"Record that you've been paid. The invoice will be marked paid and a receipt will be issued.",
+							"Record that this invoice has been paid. Scout will mark it paid and issue a receipt for your records.",
 						action: handleIssueReceipt,
 					};
 				}
@@ -322,9 +361,9 @@ export function DealRoomPanel({ jobId, userRole }: DealRoomPanelProps) {
 					return {
 						...base,
 						kind: "simple" as PrimaryActionKind,
-						label: "Send invoice",
+						label: "Issue invoice",
 						explanation:
-							"Send the invoice so your client can review it and pay using whatever method you agree on.",
+							"Issue this invoice so your client can review it and pay using whatever method you agree on. Scout will treat it as outstanding until you record payment.",
 						action: () => handleSendDocument(latestInvoice.id, "Invoice"),
 					};
 				}
@@ -333,7 +372,7 @@ export function DealRoomPanel({ jobId, userRole }: DealRoomPanelProps) {
 					...base,
 					kind: "none" as PrimaryActionKind,
 					explanation:
-						"Waiting on payment for this invoice. Once you've been paid, you can record payment here.",
+						"Invoice is issued and waiting on payment. Once you've collected payment, record it here so your ledger stays accurate.",
 				};
 			}
 
@@ -525,21 +564,42 @@ export function DealRoomPanel({ jobId, userRole }: DealRoomPanelProps) {
 						</div>
 
 						{latestInvoice && (
-							<div className="mt-1 rounded-md border border-slate-800 bg-slate-950/70 p-3 space-y-3">
-								<div className="flex items-start justify-between gap-2">
+							<div
+								className={`mt-1 rounded-md border border-slate-800 bg-slate-950/70 p-3 space-y-3 ${
+									invoiceStatusRaw === "paid" ? "opacity-90" : ""
+								}`}
+							>
+								<div className="flex flex-col md:flex-row md:items-start md:justify-between gap-3">
 									<div>
-										<p className="text-[11px] uppercase tracking-wide text-gray-500 mb-1">Current invoice</p>
+										<p className="text-[11px] uppercase tracking-wide text-gray-500 mb-1">Invoice</p>
 										<p className="text-sm font-semibold text-white">
-											Invoice {latestInvoice.id.slice(0, 8)}
+											{invoiceNumberDisplay}
 										</p>
 										<p className="text-[11px] text-gray-400">
 											Created {new Date(latestInvoice.created_at).toLocaleDateString()}
 										</p>
+										<p className="text-[11px] text-gray-400 mt-1">{invoiceIssuedBy}</p>
 									</div>
-									<Badge className="text-[10px] px-2 py-0.5 bg-slate-800 border-slate-600">
-										{latestInvoice.status}
-									</Badge>
+									<div className="flex flex-col items-end gap-1 text-right">
+										<Badge className={`text-[10px] px-2 py-0.5 ${invoiceStatusClass}`}>
+											{invoiceStatusLabel}
+										</Badge>
+										{invoiceTotal !== null && (
+											<div className="text-sm font-semibold text-sky-400">
+												{invoiceTotal.toLocaleString(undefined, {
+													style: "currency",
+													currency: invoiceCurrency,
+												})}
+											</div>
+										)}
+									</div>
 								</div>
+
+								{invoiceStatusRaw === "paid" && (
+									<p className="text-[11px] text-emerald-300/90">
+										This invoice is locked for editing. Keep it as a permanent record in your files and ledger.
+									</p>
+								)}
 
 								<div className="rounded-md border border-slate-800 bg-slate-900/70">
 									<Table className="text-[11px]">

@@ -150,7 +150,7 @@ export async function createDailyDeal(req: Request, res: Response) {
     }
 
     const role = user.activeRole || user.role || '';
-    if (!['contractor_user', 'service_provider', 'business_owner'].includes(role)) {
+    if (!['contractor_user', 'service_provider', 'business_owner', 'restaurant_owner', 'food_truck_owner', 'bar_owner'].includes(role)) {
       return res.status(403).json({ message: 'Only contractors and service providers can create deals' });
     }
 

@@ -11,7 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useToast } from '@/hooks/use-toast';
-import { Search, UserPlus, Edit, Shield, Users, Crown, Eye, Building, Wrench, Car, Home, User, MoreHorizontal } from 'lucide-react';
+import { Search, UserPlus, Edit, Shield, Users, Crown, Eye, Building, Wrench, Car, Home, User, MoreHorizontal, UtensilsCrossed, Truck, Wine } from 'lucide-react';
 
 interface User {
   id: string;
@@ -33,6 +33,10 @@ const AVAILABLE_ROLES = [
   { value: 'contractor_user', label: 'Contractor', icon: Wrench, color: 'bg-orange-500' },
   { value: 'realtor', label: 'Realtor', icon: Building, color: 'bg-green-500' },
   { value: 'car_salesman', label: 'Car Salesman', icon: Car, color: 'bg-purple-500' },
+  { value: 'business_owner', label: 'Business Owner', icon: Building, color: 'bg-amber-500' },
+  { value: 'restaurant_owner', label: 'Restaurant Owner', icon: UtensilsCrossed, color: 'bg-orange-500' },
+  { value: 'food_truck_owner', label: 'Food Truck Owner', icon: Truck, color: 'bg-orange-500' },
+  { value: 'bar_owner', label: 'Bar / Lounge Owner', icon: Wine, color: 'bg-purple-600' },
   { value: 'helper', label: 'Helper', icon: Users, color: 'bg-cyan-500' },
   { value: 'moderator', label: 'Moderator', icon: Shield, color: 'bg-yellow-500' },
   { value: 'ops_admin', label: 'Admin', icon: Eye, color: 'bg-red-500' },
@@ -45,6 +49,10 @@ const ROLE_HIERARCHY = {
   'contractor_user': 3,
   'realtor': 4,
   'car_salesman': 4,
+   'business_owner': 4,
+   'restaurant_owner': 4,
+   'food_truck_owner': 4,
+   'bar_owner': 4,
   'moderator': 5,
   'ops_admin': 6,
   'head_admin': 7
