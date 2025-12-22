@@ -41,26 +41,9 @@ import { useToast } from "@/hooks/use-toast";
 import DragDropNavigationPreferences from "@/components/navigation/DragDropNavigationPreferences";
 import { NotificationPreferences as NotificationPreferencesDialog } from "@/components/ui/notification-preferences";
 import { registerPushNotifications, unregisterPushSubscription } from "@/lib/pushNotifications";
+import { getRoleUiConfig, SELF_SERVICE_ROLE_KEYS } from "@/lib/roleUiConfig";
 
 type HandednessPreference = "right" | "left";
-
-// Role configurations
-const ROLE_CONFIG = {
-  homeowner: { label: "Homeowner", icon: Home, desc: "Manage your home and projects", color: "blue" },
-  contractor_user: { label: "Contractor", icon: Wrench, desc: "Provide construction services", color: "orange" },
-  realtor: { label: "Realtor", icon: Building, desc: "Real estate professional", color: "purple" },
-  car_salesman: { label: "Car Salesman", icon: Car, desc: "Automotive sales professional", color: "red" },
-  insurance_agent: { label: "Insurance Agent", icon: Shield, desc: "Insurance services provider", color: "green" },
-  mortgage_broker: { label: "Mortgage Broker", icon: CreditCard, desc: "Mortgage and lending expert", color: "indigo" },
-  property_manager: { label: "Property Manager", icon: Building, desc: "Manage rental properties", color: "teal" },
-  business_owner: { label: "Business Owner", icon: Briefcase, desc: "Local business owner", color: "amber" },
-  restaurant_owner: { label: "Restaurant Owner", icon: UtensilsCrossed, desc: "Restaurant, cafe, or food business owner", color: "orange" },
-  food_truck_owner: { label: "Food Truck Owner", icon: Truck, desc: "Mobile food or coffee truck owner", color: "orange" },
-  bar_owner: { label: "Bar / Lounge Owner", icon: Wine, desc: "Bar, lounge, or nightlife venue operator", color: "purple" },
-  helper: { label: "Helper/Worker", icon: Heart, desc: "Provide labor and assistance", color: "pink" },
-  vehicle_dealer: { label: "Vehicle Dealer", icon: Car, desc: "Vehicle sales and services", color: "cyan" },
-  hoa_admin: { label: "HOA Leadership", icon: Users, desc: "HOA leadership & management", color: "violet" }
-};
 
 export default function Settings() {
   const { user } = useAuth();
@@ -593,8 +576,8 @@ export default function Settings() {
                     <div className="flex flex-wrap gap-2">
                       {selectedRoles.length > 0 ? (
                         selectedRoles.map((roleKey) => {
-                          const config = ROLE_CONFIG[roleKey as keyof typeof ROLE_CONFIG];
-                          if (!config) return null;
+                          const config = getRoleUiConfig(roleKey);
+                          if (!config.icon) return null;
                           const Icon = config.icon;
                           return (
                             <Badge key={roleKey} className="bg-orange-500 text-white px-3 py-1.5 text-sm font-medium flex items-center gap-1.5">
@@ -613,7 +596,9 @@ export default function Settings() {
                   <div>
                     <h3 className="text-white font-semibold text-lg mb-5">Available Roles</h3>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      {Object.entries(ROLE_CONFIG).map(([roleKey, config]) => {
+                      {SELF_SERVICE_ROLE_KEYS.map((roleKey) => {
+                        const config = getRoleUiConfig(roleKey);
+                        if (!config.icon) return null;
                         const Icon = config.icon;
                         const isSelected = selectedRoles.includes(roleKey);
                         return (
@@ -640,7 +625,9 @@ export default function Settings() {
                                     <CheckCircle2 className="h-5 w-5 text-orange-500" />
                                   )}
                                 </div>
-                                <p className="text-sm text-slate-400 leading-relaxed">{config.desc}</p>
+                                {config.desc && (
+                                  <p className="text-sm text-slate-400 leading-relaxed">{config.desc}</p>
+                                )}
                               </div>
                             </div>
                           </div>

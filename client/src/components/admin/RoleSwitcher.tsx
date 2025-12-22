@@ -7,37 +7,8 @@ import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
-import { 
-  Home, 
-  Wrench, 
-  Building, 
-  Car, 
-  Users, 
-  Shield, 
-  Eye, 
-  Crown, 
-  RefreshCw,
-  User,
-  Briefcase,
-  UtensilsCrossed,
-  Truck,
-  Wine,
-} from 'lucide-react';
-
-const ROLE_CONFIG = {
-  homeowner: { label: 'Homeowner', icon: Home, color: 'bg-blue-500', dashboard: '/dashboard' },
-  contractor_user: { label: 'Contractor', icon: Wrench, color: 'bg-orange-500', dashboard: '/contractor-dashboard' },
-  realtor: { label: 'Realtor', icon: Building, color: 'bg-green-500', dashboard: '/realtor-dashboard' },
-  car_salesman: { label: 'Car Salesman', icon: Car, color: 'bg-purple-500', dashboard: '/car-salesman-dashboard' },
-  helper: { label: 'Helper', icon: Users, color: 'bg-cyan-500', dashboard: '/helper-dashboard' },
-  business_owner: { label: 'Business Owner', icon: Briefcase, color: 'bg-indigo-500', dashboard: '/business-owner-dashboard' },
-  restaurant_owner: { label: 'Restaurant Owner', icon: UtensilsCrossed, color: 'bg-orange-500', dashboard: '/business-owner-dashboard' },
-  food_truck_owner: { label: 'Food Truck Owner', icon: Truck, color: 'bg-orange-500', dashboard: '/business-owner-dashboard' },
-  bar_owner: { label: 'Bar / Lounge Owner', icon: Wine, color: 'bg-purple-600', dashboard: '/business-owner-dashboard' },
-  moderator: { label: 'Moderator', icon: Shield, color: 'bg-yellow-500', dashboard: '/admin/moderation' },
-  ops_admin: { label: 'Admin', icon: Eye, color: 'bg-red-500', dashboard: '/admin/dashboard' },
-  head_admin: { label: 'Master Admin', icon: Crown, color: 'bg-gradient-to-r from-yellow-400 to-red-500', dashboard: '/admin' },
-};
+import { RefreshCw, User } from 'lucide-react';
+import { getRoleUiConfig, getRoleDashboardPath } from '@/lib/roleUiConfig';
 
 export default function RoleSwitcher() {
   const { user } = useAuth();
@@ -54,16 +25,17 @@ export default function RoleSwitcher() {
     onSuccess: (data, newRole) => {
       queryClient.invalidateQueries({ queryKey: ['/api/auth/user'] });
       
-      const roleConfig = ROLE_CONFIG[newRole as keyof typeof ROLE_CONFIG];
+      const roleConfig = getRoleUiConfig(newRole);
       toast({
         title: "Role Switched",
         description: `Now viewing as ${roleConfig?.label || newRole}`,
       });
       
       // Navigate to role-specific dashboard
-      if (roleConfig?.dashboard) {
+      const dashboard = getRoleDashboardPath(newRole) || '/dashboard';
+      if (dashboard) {
         setTimeout(() => {
-          window.location.href = roleConfig.dashboard;
+          window.location.href = dashboard;
         }, 500);
       } else {
         setTimeout(() => window.location.reload(), 500);
@@ -92,8 +64,12 @@ export default function RoleSwitcher() {
   };
 
   const getCurrentRoleInfo = () => {
-    return ROLE_CONFIG[currentRole as keyof typeof ROLE_CONFIG] || 
-           { label: currentRole, icon: User, color: 'bg-gray-500', dashboard: '/dashboard' };
+    const roleConfig = currentRole ? getRoleUiConfig(currentRole) : {};
+    return {
+      label: roleConfig.label || currentRole,
+      icon: roleConfig.icon || User,
+      color: roleConfig.color || 'bg-gray-500',
+    };
   };
 
   const currentRoleInfo = getCurrentRoleInfo();
@@ -132,26 +108,25 @@ export default function RoleSwitcher() {
           <h4 className="font-medium text-sm">Your Available Roles</h4>
           <div className="grid grid-cols-1 gap-2">
             {userRoles.map((role: string) => {
-              const roleConfig = ROLE_CONFIG[role as keyof typeof ROLE_CONFIG] || 
-                                { label: role, icon: User, color: 'bg-gray-500' };
-              const Icon = roleConfig.icon;
+              const roleConfig = getRoleUiConfig(role);
+              const Icon = roleConfig.icon || User;
               const isActive = role === currentRole;
-              
+
               return (
                 <div
                   key={role}
                   className={`flex items-center gap-3 p-2 rounded-lg border transition-all ${
-                    isActive 
-                      ? 'border-primary bg-primary/10' 
+                    isActive
+                      ? 'border-primary bg-primary/10'
                       : 'border hover:border-primary/50 cursor-pointer'
                   }`}
                   onClick={() => !isActive && setSelectedRole(role)}
                 >
-                  <div className={`w-8 h-8 rounded ${roleConfig.color} flex items-center justify-center`}>
+                  <div className={`w-8 h-8 rounded ${roleConfig.color || 'bg-gray-500'} flex items-center justify-center`}>
                     <Icon className="w-4 h-4 text-white" />
                   </div>
                   <div className="flex-1">
-                    <div className="font-medium">{roleConfig.label}</div>
+                    <div className="font-medium">{roleConfig.label || role}</div>
                     <div className="text-xs text-muted-foreground">
                       {isActive ? 'Currently active' : 'Click to select'}
                     </div>
@@ -176,14 +151,13 @@ export default function RoleSwitcher() {
               </SelectTrigger>
               <SelectContent>
                 {userRoles.map((role: string) => {
-                  const roleConfig = ROLE_CONFIG[role as keyof typeof ROLE_CONFIG] || 
-                                    { label: role, icon: User, color: 'bg-gray-500' };
-                  const Icon = roleConfig.icon;
+                  const roleConfig = getRoleUiConfig(role);
+                  const Icon = roleConfig.icon || User;
                   return (
                     <SelectItem key={role} value={role} disabled={role === currentRole}>
                       <div className="flex items-center gap-2">
                         <Icon className="w-4 h-4" />
-                        {roleConfig.label}
+                        {roleConfig.label || role}
                         {role === currentRole && <span className="text-xs">(Current)</span>}
                       </div>
                     </SelectItem>
@@ -205,10 +179,10 @@ export default function RoleSwitcher() {
         {selectedRole && selectedRole !== currentRole && (
           <div className="p-3 bg-primary/5 border border-primary/20 rounded-lg">
             <div className="text-sm font-medium text-primary mb-1">
-              Switching to: {ROLE_CONFIG[selectedRole as keyof typeof ROLE_CONFIG]?.label || selectedRole}
+              Switching to: {getRoleUiConfig(selectedRole).label || selectedRole}
             </div>
             <div className="text-xs text-muted-foreground">
-              You'll be redirected to the {ROLE_CONFIG[selectedRole as keyof typeof ROLE_CONFIG]?.label || selectedRole} dashboard
+              You'll be redirected to the {getRoleUiConfig(selectedRole).label || selectedRole} dashboard
             </div>
           </div>
         )}
