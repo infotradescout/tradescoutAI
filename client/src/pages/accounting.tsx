@@ -167,23 +167,6 @@ export default function AccountingWorkspace() {
     },
   });
 
-  const invoices = data?.invoices ?? [];
-  const totalCount = data?.pagination?.totalCount ?? invoices.length;
-  const pageCount = data?.pagination?.pageCount ?? 1;
-  const selectedInvoice = invoices.find((inv) => inv.job_id === selectedJobId) ?? invoices[0] ?? null;
-  const effectiveJobId = selectedInvoice?.job_id ?? null;
-
-  const lifetime = summary?.lifetime;
-  const monthly = summary?.byMonth ?? [];
-
-  const chartData = monthly.map((m) => ({
-    month: m.month,
-    billed: m.totalAmount,
-    collected: m.paidAmount,
-  }));
-
-  const recentInvoices = useMemo(() => {
-
   const sendInvoice = useMutation({
     mutationFn: async (id: string) => {
       const res = await fetch(`/api/documents/${id}/send`, {
@@ -250,12 +233,31 @@ export default function AccountingWorkspace() {
       });
     },
   });
+
+  const invoices = data?.invoices ?? [];
+  const totalCount = data?.pagination?.totalCount ?? invoices.length;
+  const pageCount = data?.pagination?.pageCount ?? 1;
+  const selectedInvoice = invoices.find((inv) => inv.job_id === selectedJobId) ?? invoices[0] ?? null;
+  const effectiveJobId = selectedInvoice?.job_id ?? null;
+
+  const lifetime = summary?.lifetime;
+  const monthly = summary?.byMonth ?? [];
+
+  const chartData = monthly.map((m) => ({
+    month: m.month,
+    billed: m.totalAmount,
+    collected: m.paidAmount,
+  }));
+
+  const recentInvoices = useMemo(() => {
     if (!invoices.length) return [] as StandaloneInvoice[];
-    return [...invoices].sort((a, b) => {
-      const aTime = new Date(a.created_at).getTime();
-      const bTime = new Date(b.created_at).getTime();
-      return bTime - aTime;
-    }).slice(0, 5);
+    return [...invoices]
+      .sort((a, b) => {
+        const aTime = new Date(a.created_at).getTime();
+        const bTime = new Date(b.created_at).getTime();
+        return bTime - aTime;
+      })
+      .slice(0, 5);
   }, [invoices]);
 
   const filteredInvoicesForTable = useMemo(() => {

@@ -113,7 +113,13 @@ export function AppShell({ children, footer }: AppShellProps) {
   }, []);
 
   return (
-    <div className="app-shell text-slate-50 flex flex-col overflow-hidden">
+    <div
+      className="app-shell text-slate-50 flex flex-col min-h-screen overflow-x-hidden"
+      style={{
+        backgroundColor: "#060b1c",
+        paddingTop: "env(safe-area-inset-top)",
+      }}
+    >
       {/* TOP APP NAV HEADER */}
       <header
         className={`flex items-center px-3 sm:px-4 py-3 ${
@@ -198,7 +204,7 @@ export function AppShell({ children, footer }: AppShellProps) {
         </div>
       </header>
 
-      <div className="flex flex-1 min-h-0 overflow-hidden">
+      <div className="flex flex-1 min-h-0">
         <main className="flex-1 min-w-0 pb-24 lg:pb-0 overflow-y-auto">
           {children}
         </main>
