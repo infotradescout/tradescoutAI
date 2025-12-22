@@ -25,19 +25,24 @@ export async function mealscoutAction(action: string, params: Record<string, any
   return res.data;
 }
 
+const MEALSCOUT_BASE_URL = process.env.MEALSCOUT_BASE_URL;
+
 const MEALSCOUT_SSO_URL =
-  process.env.MEALSCOUT_SSO_URL || "https://mealscout.yourdomain.com/api/auth/tradescout/sso";
+  process.env.MEALSCOUT_SSO_URL ||
+  (MEALSCOUT_BASE_URL
+    ? `${MEALSCOUT_BASE_URL.replace(/\/+$/, "")}/api/auth/tradescout/sso`
+    : "https://mealscout.yourdomain.com/api/auth/tradescout/sso");
 
 const TRADESCOUT_JWT_FALLBACK_SECRET = "dev-insecure-tradescout-jwt-secret";
 
 export function createMealscoutSsoToken(user: User): string {
-  const secret = process.env.TRADESCOUT_JWT_SECRET;
+  const secret = process.env.TRADESCOUT_JWT_SECRET || process.env.MEALSCOUT_SHARED_SECRET;
 
   if (!secret) {
     if (process.env.NODE_ENV === "production") {
-      throw new Error("TRADESCOUT_JWT_SECRET is not configured");
+      throw new Error("TRADESCOUT_JWT_SECRET or MEALSCOUT_SHARED_SECRET is not configured");
     }
-    console.warn("[MealScoutSSO] TRADESCOUT_JWT_SECRET missing; using insecure dev-only fallback");
+    console.warn("[MealScoutSSO] TRADESCOUT_JWT_SECRET/MEALSCOUT_SHARED_SECRET missing; using insecure dev-only fallback");
   }
 
   const effectiveSecret = secret || TRADESCOUT_JWT_FALLBACK_SECRET;

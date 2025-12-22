@@ -53,7 +53,7 @@ import {
   walletTransactions,
   marketplaceTransactions,
 } from "../shared/schema";
-import { getUserTypeBadgeLabel } from "../shared/userTypes";
+import { getUserTypeBadgeLabel, getUserTypeMetadata } from "../shared/userTypes";
 import type { AffiliateAccount, AffiliateReferral, AffiliatePayout } from "../shared/schema";
 import { storage } from "./storage";
 import { seedCountiesForState } from "./countySeeder";
@@ -76,6 +76,7 @@ import { antiScrapeShield } from "./middleware/antiScrape";
 import { ObjectStorageService } from "./objectStorage";
 import { notificationService } from "./notification-service";
 import { ensureMealscoutSsoSession, createMealscoutSsoToken } from "../services/mealscoutClient.js";
+import { resolveCapabilities } from "./capabilities";
 // Shared HTTP types for all route handlers
 type AuthedRequest = Request & {
   user?: {
@@ -1723,6 +1724,69 @@ export async function registerRoutes(app: any) {
     } catch (error: any) {
       console.error("Error updating user roles:", error);
       res.status(500).json({ message: "Failed to update roles" });
+    }
+  });
+
+  // Update user types (business/account personas) with full multi-select support
+  app.patch('/api/user/user-types', isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const userId = (req.user as any)?.id || (req.user as any)?.claims?.sub;
+      const { userTypes } = (req.body ?? {}) as any;
+
+      if (!Array.isArray(userTypes) || userTypes.length === 0) {
+        return res.status(400).json({ message: "userTypes must be a non-empty array" });
+      }
+
+      const normalizeRole = (value: string) => {
+        const role = value.trim();
+        if (role === "contractor_user") return "contractor";
+        if (role === "vehicle_dealer" || role === "car_salesman") return "car_dealer";
+        return role;
+      };
+
+      const rawTypes = userTypes
+        .map((t: any) => String(t || "").trim())
+        .filter((t: string) => t.length > 0);
+
+      if (rawTypes.length === 0) {
+        return res.status(400).json({ message: "userTypes must be a non-empty array" });
+      }
+
+      // Prevent privilege escalation: no admin/back-office types here.
+      const blocked = new Set([
+        "admin",
+      ]);
+
+      const normalized = Array.from(
+        new Set(
+          rawTypes
+            .map((t: string) => normalizeRole(t))
+        )
+      ).filter((typeId: string) => {
+        if (blocked.has(typeId)) return false;
+        // Only allow known user types with metadata
+        return Boolean(getUserTypeMetadata(typeId));
+      });
+
+      if (normalized.length === 0) {
+        return res.status(400).json({ message: "Invalid userTypes selection" });
+      }
+
+      const current = await storage.getUser(userId);
+      const currentActive = (current as any)?.activeRole || (current as any)?.role;
+      const activeRole = normalized.includes(currentActive) ? currentActive : normalized[0];
+
+      const user = await storage.updateUser(userId, {
+        roles: normalized,
+        activeRole,
+        role: activeRole,
+        updatedAt: new Date(),
+      } as any);
+
+      res.json(sanitizeUserForResponse(user));
+    } catch (error: any) {
+      console.error("Error updating user types:", error);
+      res.status(500).json({ message: "Failed to update user types" });
     }
   });
 
@@ -11497,6 +11561,11 @@ export async function registerRoutes(app: any) {
   // server-to-server call; it only mints the token.
   app.post("/api/mealscout/token", isAuthenticated, async (req: AuthedRequest, res: Response) => {
     try {
+      const caps = resolveCapabilities(req);
+      if (caps.mealscout !== "ok") {
+        return res.status(200).json({ available: false });
+      }
+
       const rawUser: any = req.user;
       const userId: string = rawUser?.id || rawUser?.claims?.sub || "";
       if (!userId) {
@@ -11509,11 +11578,31 @@ export async function registerRoutes(app: any) {
       }
 
       const token = createMealscoutSsoToken(user);
-      return res.json({ token });
+      return res.json({ available: true, token });
     } catch (err: any) {
       console.error("[MealScoutSSO] Failed to mint SSO token", err);
-      return res.status(500).json({ error: "Failed to create MealScout SSO token" });
+      return res.status(200).json({ available: false });
     }
+  });
+
+  // Simple system-wide health + capability snapshot
+  app.get("/api/system/health", async (req: AuthedRequest, res: Response) => {
+    const caps = resolveCapabilities(req);
+
+    // Basic DB reachability check: do not throw, just reflect degraded on failure
+    let dbStatus: CapabilityStatus = caps.accounting;
+    try {
+      await db.select({ id: users.id }).from(users).limit(1);
+      dbStatus = "ok";
+    } catch {
+      dbStatus = "degraded";
+    }
+
+    res.json({
+      accounting: dbStatus,
+      mealscout: caps.mealscout,
+      admin: caps.admin,
+    });
   });
 
   // 4. SENDGRID EMAIL - Setup endpoint

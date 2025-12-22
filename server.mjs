@@ -10,10 +10,39 @@ const app = express()
 const distPath = path.join(__dirname, 'dist', 'public')
 
 app.disable('x-powered-by')
-app.use(express.static(distPath, { maxAge: '1h' }))
 
-// SPA fallback  send index.html for any non-file route
-app.get('*', (_, res) => res.sendFile(path.join(distPath, 'index.html')))
+// 1️⃣ Serve hashed assets first with long cache
+const assetsPath = path.join(distPath, 'assets')
+app.use(
+	'/assets',
+	express.static(assetsPath, {
+		immutable: true,
+		maxAge: '1y',
+	})
+)
+
+// 2️⃣ Serve other static files (but do not auto-fallback to index.html yet)
+app.use(
+	express.static(distPath, {
+		index: false,
+		maxAge: '1h',
+	})
+)
+
+// 3️⃣ SPA fallback LAST – never for /api or /assets
+app.get('*', (req, res) => {
+	const reqPath = req.path || ''
+
+	if (reqPath.startsWith('/api')) {
+		return res.status(404).json({ message: 'Not found' })
+	}
+
+	if (reqPath.startsWith('/assets')) {
+		return res.status(404).end()
+	}
+
+	res.sendFile(path.join(distPath, 'index.html'))
+})
 
 const port = process.env.PORT || 3000
 app.listen(port, '0.0.0.0', () => console.log('✅ TradeScout running on', port))

@@ -11,7 +11,7 @@ import { useToast } from "@/hooks/use-toast";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { CartesianGrid, Line, LineChart, XAxis, YAxis } from "recharts";
-import { LayoutDashboard, FileText, Handshake, BarChart3, Settings2 } from "lucide-react";
+import { LayoutDashboard, FileText, Handshake, BarChart3, Settings2, ChevronDown, ChevronUp } from "lucide-react";
 import { useLocation } from "wouter";
 
 interface StandaloneInvoice {
@@ -33,6 +33,8 @@ interface AccountingSummary {
     totalAmount: number;
     paidAmount: number;
     unpaidAmount: number;
+    totalExpenses: number;
+    netProfit: number;
   };
   byMonth: {
     month: string;
@@ -43,6 +45,26 @@ interface AccountingSummary {
 
 interface StandaloneInvoicesResponse {
   invoices: StandaloneInvoice[];
+  pagination?: {
+    page: number;
+    pageSize: number;
+    totalCount: number;
+    pageCount: number;
+  };
+}
+
+interface ExpenseEntry {
+  id: string;
+  job_id: string | null;
+  type: string;
+  status: string;
+  payload: any;
+  created_at: string;
+  updated_at: string;
+}
+
+interface ExpensesResponse {
+  expenses: ExpenseEntry[];
   pagination?: {
     page: number;
     pageSize: number;
@@ -87,9 +109,15 @@ export default function AccountingWorkspace() {
   const [page, setPage] = useState(1);
   const [pageSize] = useState(50);
   const [activeNav, setActiveNav] = useState<string>("dashboard");
+  const [navCollapsed, setNavCollapsed] = useState(false);
   const [jobQuery, setJobQuery] = useState("");
   const [invoiceStatusFilter, setInvoiceStatusFilter] = useState<"all" | "open" | "paid">("all");
   const [invoiceRangeFilter, setInvoiceRangeFilter] = useState<"all" | "90d" | "365d">("all");
+  const [expenseProjectTitle, setExpenseProjectTitle] = useState("");
+  const [expenseVendor, setExpenseVendor] = useState("");
+  const [expenseCategory, setExpenseCategory] = useState("");
+  const [expenseNotes, setExpenseNotes] = useState("");
+  const [expenseTotal, setExpenseTotal] = useState("");
 
   const { data, isLoading } = useQuery<StandaloneInvoicesResponse>({
     queryKey: ["/api/accounting/standalone-invoices", page, pageSize],
@@ -117,6 +145,20 @@ export default function AccountingWorkspace() {
         throw new Error(`Failed to load accounting summary (${res.status})`);
       }
       return (await res.json()) as AccountingSummary;
+    },
+  });
+
+  const { data: expensesData } = useQuery<ExpensesResponse>({
+    queryKey: ["/api/accounting/expenses"],
+    queryFn: async () => {
+      const res = await fetch("/api/accounting/expenses", {
+        credentials: "include",
+        headers: { Accept: "application/json" },
+      });
+      if (!res.ok) {
+        throw new Error(`Failed to load expenses (${res.status})`);
+      }
+      return (await res.json()) as ExpensesResponse;
     },
   });
 
@@ -234,7 +276,57 @@ export default function AccountingWorkspace() {
     },
   });
 
+  const createExpense = useMutation({
+    mutationFn: async () => {
+      const numericTotal = Number(expenseTotal || 0);
+      if (!Number.isFinite(numericTotal) || numericTotal <= 0) {
+        throw new Error("Enter a valid expense total greater than zero.");
+      }
+      const res = await fetch("/api/accounting/standalone-expense", {
+        method: "POST",
+        credentials: "include",
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json",
+        },
+        body: JSON.stringify({
+          projectTitle: expenseProjectTitle || "Manual expense",
+          vendorName: expenseVendor || undefined,
+          category: expenseCategory || undefined,
+          notes: expenseNotes || undefined,
+          total: numericTotal,
+        }),
+      });
+      if (!res.ok) {
+        const text = await res.text().catch(() => "");
+        throw new Error(text || `Failed to create expense (${res.status})`);
+      }
+      return (await res.json()) as { document: ExpenseEntry; jobId: string };
+    },
+    onSuccess: () => {
+      toast({
+        title: "Expense recorded",
+        description: "This cost now rolls into your finances dashboard.",
+      });
+      setExpenseProjectTitle("");
+      setExpenseVendor("");
+      setExpenseCategory("");
+      setExpenseNotes("");
+      setExpenseTotal("");
+      queryClient.invalidateQueries({ queryKey: ["/api/accounting/expenses"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/accounting/reports/summary"] });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Could not record expense",
+        description: error?.message || "Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
+
   const invoices = data?.invoices ?? [];
+  const expenses = expensesData?.expenses ?? [];
   const totalCount = data?.pagination?.totalCount ?? invoices.length;
   const pageCount = data?.pagination?.pageCount ?? 1;
   const selectedInvoice = invoices.find((inv) => inv.job_id === selectedJobId) ?? invoices[0] ?? null;
@@ -494,47 +586,70 @@ export default function AccountingWorkspace() {
     <div className="flex flex-col lg:flex-row gap-6">
       <aside className="w-full lg:w-64 xl:w-72 flex-shrink-0">
         <Card className="bg-slate-900 border-slate-800 mb-4 sticky top-0">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-semibold text-white">Finances</CardTitle>
-            <CardDescription className="text-xs">
-              Navigate your money workspace: jobs, invoices, expenses, and more.
-            </CardDescription>
+          <CardHeader className="pb-3 flex items-center justify-between gap-2">
+            <div>
+              <CardTitle className="text-sm font-semibold text-white">Finances</CardTitle>
+              {!navCollapsed && (
+                <CardDescription className="text-xs">
+                  Navigate your money workspace: jobs, invoices, expenses, and more.
+                </CardDescription>
+              )}
+            </div>
+            <button
+              type="button"
+              onClick={() => setNavCollapsed((prev) => !prev)}
+              className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-slate-700 bg-slate-900 text-slate-300 hover:border-slate-500 hover:bg-slate-800"
+              aria-label={navCollapsed ? "Expand finances navigation" : "Collapse finances navigation"}
+            >
+              {navCollapsed ? <ChevronDown className="h-4 w-4" /> : <ChevronUp className="h-4 w-4" />}
+            </button>
           </CardHeader>
-          <CardContent className="space-y-1.5">
-            {financeNavItems.map((item) => {
-              const Icon = item.icon;
-              const isActive = item.key === activeNav;
-              return (
-                <button
-                  key={item.key}
-                  type="button"
-                  onClick={() => handleNavClick(item.key, item.targetId)}
-                  className={`w-full flex items-start gap-3 rounded-lg border px-3 py-2 text-left text-xs transition-colors ${
-                    isActive
-                      ? "border-orange-500 bg-orange-500/10 text-white"
-                      : "border-slate-800 bg-slate-950/40 text-slate-300 hover:border-orange-500/60 hover:bg-slate-900"
-                  }`}
-                >
-                  <span className="mt-0.5 inline-flex h-6 w-6 items-center justify-center rounded-md bg-slate-900 border border-slate-700">
-                    <Icon className="h-3.5 w-3.5 text-orange-400" />
-                  </span>
-                  <span className="flex-1">
-                    <span className="block text-[0.75rem] font-semibold leading-snug">
-                      {item.label}
+          {!navCollapsed && (
+            <CardContent className="space-y-1.5">
+              {financeNavItems.map((item) => {
+                const Icon = item.icon;
+                const isActive = item.key === activeNav;
+                return (
+                  <button
+                    key={item.key}
+                    type="button"
+                    onClick={() => handleNavClick(item.key, item.targetId)}
+                    className={`w-full flex items-start gap-3 rounded-lg border px-3 py-2 text-left text-xs transition-colors ${
+                      isActive
+                        ? "border-orange-500 bg-orange-500/10 text-white"
+                        : "border-slate-800 bg-slate-950/40 text-slate-300 hover:border-orange-500/60 hover:bg-slate-900"
+                    }`}
+                  >
+                    <span className="mt-0.5 inline-flex h-6 w-6 items-center justify-center rounded-md bg-slate-900 border border-slate-700">
+                      <Icon className="h-3.5 w-3.5 text-orange-400" />
                     </span>
-                    <span className="block text-[0.7rem] text-slate-400 leading-snug">
-                      {item.description}
+                    <span className="flex-1">
+                      <span className="block text-[0.75rem] font-semibold leading-snug">
+                        {item.label}
+                      </span>
+                      <span className="block text-[0.7rem] text-slate-400 leading-snug">
+                        {item.description}
+                      </span>
                     </span>
-                  </span>
-                </button>
-              );
-            })}
-          </CardContent>
+                  </button>
+                );
+              })}
+            </CardContent>
+          )}
         </Card>
       </aside>
 
       <div className="flex-1 space-y-6">
         <section id="finances-dashboard" className="space-y-4">
+          <div className="mb-4">
+            <h1 className="text-2xl md:text-3xl font-semibold text-slate-50 mb-1">
+              Dashboard
+            </h1>
+            <p className="text-sm text-slate-400">
+              Welcome back! Here's an overview of your contracting business.
+            </p>
+          </div>
+
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
             <Card className="bg-slate-900 border-slate-700">
               <CardHeader className="pb-3">
@@ -579,20 +694,16 @@ export default function AccountingWorkspace() {
             <Card className="bg-slate-900 border-slate-700">
               <CardHeader className="pb-3">
                 <CardTitle className="text-xs font-medium text-slate-300 uppercase tracking-wide">
-                  Collected
+                  Total Expenses
                 </CardTitle>
-                <CardDescription>Payments that have been recorded as paid.</CardDescription>
+                <CardDescription>Recorded costs tied to your jobs and business.</CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-semibold text-emerald-300">
-                  {formatCurrency(lifetime?.paidAmount)}
+                  {formatCurrency(lifetime?.totalExpenses ?? 0)}
                 </div>
                 <p className="mt-1 text-[11px] text-slate-400">
-                  {lifetime
-                    ? `${lifetime.paidCount.toLocaleString()} paid invoice${
-                        lifetime.paidCount === 1 ? "" : "s"
-                      }`
-                    : `${invoices.filter((i) => i.status === "paid").length.toLocaleString()} paid invoices`}
+                  Recorded expenses across this standalone finances workspace.
                 </p>
               </CardContent>
             </Card>
@@ -600,13 +711,17 @@ export default function AccountingWorkspace() {
             <Card className="bg-slate-900 border-slate-700">
               <CardHeader className="pb-3">
                 <CardTitle className="text-xs font-medium text-slate-300 uppercase tracking-wide">
-                  Job Documents
+                  Net Profit
                 </CardTitle>
-                <CardDescription>All standalone records you manage here.</CardDescription>
+                <CardDescription>Revenue minus recorded expenses.</CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-semibold text-sky-300">{totalCount.toLocaleString()}</div>
-                <p className="mt-1 text-[11px] text-slate-400">Includes paid and unpaid invoices.</p>
+                <div className="text-2xl font-semibold text-sky-300">
+                  {formatCurrency(lifetime ? lifetime.netProfit : (lifetime?.totalAmount ?? 0) - (lifetime?.totalExpenses ?? 0))}
+                </div>
+                <p className="mt-1 text-[11px] text-slate-400">
+                  Based on invoices and expenses you track here.
+                </p>
               </CardContent>
             </Card>
           </div>
@@ -1349,17 +1464,120 @@ export default function AccountingWorkspace() {
 
         <section id="finances-expenses">
           <Card className="bg-slate-900 border-slate-800">
-            <CardHeader>
-              <CardTitle className="text-sm font-semibold text-slate-100">Expenses</CardTitle>
-              <CardDescription className="text-xs text-slate-400">
-                Track money going out so you can see true job profitability.
-              </CardDescription>
+            <CardHeader className="pb-3 flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+              <div>
+                <CardTitle className="text-sm font-semibold text-slate-100">Expenses</CardTitle>
+                <CardDescription className="text-xs text-slate-400">
+                  Track money going out so you can see true job profitability.
+                </CardDescription>
+              </div>
+              <div className="text-[11px] text-slate-400">
+                {expenses.length.toLocaleString()} recorded expense{expenses.length === 1 ? "" : "s"}
+              </div>
             </CardHeader>
-            <CardContent>
-              <p className="text-[11px] text-slate-400">
-                Use your invoices, receipts, and HOA/business records today to account for material and labor
-                costs. A dedicated expense ledger will plug into this tab so each job shows both income and spend.
-              </p>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+                  <Input
+                    placeholder="Project or job name"
+                    value={expenseProjectTitle}
+                    onChange={(e) => setExpenseProjectTitle(e.target.value)}
+                    className="bg-slate-900/60 border-slate-700 text-white text-sm"
+                  />
+                  <Input
+                    placeholder="Vendor (optional)"
+                    value={expenseVendor}
+                    onChange={(e) => setExpenseVendor(e.target.value)}
+                    className="bg-slate-900/60 border-slate-700 text-white text-sm"
+                  />
+                  <Input
+                    placeholder="Category (optional)"
+                    value={expenseCategory}
+                    onChange={(e) => setExpenseCategory(e.target.value)}
+                    className="bg-slate-900/60 border-slate-700 text-white text-sm"
+                  />
+                  <Input
+                    placeholder="Total amount"
+                    value={expenseTotal}
+                    onChange={(e) => setExpenseTotal(e.target.value)}
+                    className="bg-slate-900/60 border-slate-700 text-white text-sm"
+                  />
+                </div>
+                <Input
+                  placeholder="Notes (what this expense was for)"
+                  value={expenseNotes}
+                  onChange={(e) => setExpenseNotes(e.target.value)}
+                  className="bg-slate-900/60 border-slate-700 text-white text-sm"
+                />
+                <div className="flex justify-end">
+                  <Button
+                    size="sm"
+                    onClick={() => createExpense.mutate()}
+                    disabled={createExpense.isPending}
+                  >
+                    {createExpense.isPending ? "Recording..." : "Record Expense"}
+                  </Button>
+                </div>
+              </div>
+
+              {expenses.length === 0 ? (
+                <p className="text-[11px] text-slate-400">
+                  Once you start recording expenses, you'll see a simple ledger here alongside your invoices.
+                </p>
+              ) : (
+                <div className="overflow-x-auto -mx-2">
+                  <Table className="min-w-full text-xs">
+                    <TableHeader>
+                      <TableRow className="border-slate-800">
+                        <TableHead className="w-[20%] text-slate-400">Date</TableHead>
+                        <TableHead className="w-[28%] text-slate-400">Project</TableHead>
+                        <TableHead className="w-[22%] text-slate-400">Vendor</TableHead>
+                        <TableHead className="w-[15%] text-slate-400">Category</TableHead>
+                        <TableHead className="w-[15%] text-right text-slate-400">Amount</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {expenses.map((exp) => {
+                        const payload = exp.payload || {};
+                        const title: string = payload.projectTitle || `Expense ${exp.id.slice(0, 8)}`;
+                        const vendor: string | null = payload.vendorName || null;
+                        const category: string | null = payload.category || null;
+                        const totalVal: number | null =
+                          typeof payload.total === "number" ? payload.total : null;
+                        const createdLabel = new Date(exp.created_at).toLocaleDateString();
+
+                        return (
+                          <TableRow
+                            key={exp.id}
+                            className="border-slate-800 hover:bg-slate-900/70"
+                          >
+                            <TableCell className="py-2 text-[11px] text-slate-200">
+                              {createdLabel}
+                            </TableCell>
+                            <TableCell className="py-2 text-[11px] text-slate-100 truncate max-w-[220px]">
+                              {title}
+                            </TableCell>
+                            <TableCell className="py-2 text-[11px] text-slate-200 truncate max-w-[180px]">
+                              {vendor || "—"}
+                            </TableCell>
+                            <TableCell className="py-2 text-[11px] text-slate-200 truncate max-w-[160px]">
+                              {category || "—"}
+                            </TableCell>
+                            <TableCell className="py-2 text-right text-[11px] text-slate-100">
+                              {totalVal !== null
+                                ? totalVal.toLocaleString(undefined, {
+                                    style: "currency",
+                                    currency: payload.currency || "USD",
+                                  })
+                                : "—"}
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })}
+                    </TableBody>
+                  </Table>
+                </div>
+              )}
             </CardContent>
           </Card>
         </section>

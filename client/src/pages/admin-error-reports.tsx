@@ -50,6 +50,18 @@ export default function AdminErrorReports() {
   const safePriority = (priority?: string | null) => priority || 'medium';
   const safeType = (type?: string | null) => type || 'bug';
 
+  const getSafePathname = (rawUrl?: string | null) => {
+    if (!rawUrl) return null;
+
+    try {
+      const base = typeof window !== 'undefined' ? window.location.origin : 'https://app.tradescout.co';
+      const url = new URL(rawUrl, base);
+      return url.pathname || url.toString();
+    } catch {
+      return rawUrl;
+    }
+  };
+
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'open': return 'bg-red-500/20 text-red-500';
@@ -223,7 +235,9 @@ export default function AdminErrorReports() {
                       {report.currentUrl && (
                         <div className="flex items-center gap-1">
                           <Globe className="h-4 w-4" />
-                          <span className="truncate max-w-40">{new URL(report.currentUrl).pathname}</span>
+                          <span className="truncate max-w-40">
+                            {getSafePathname(report.currentUrl) ?? 'Unknown'}
+                          </span>
                         </div>
                       )}
                       {report.browserInfo?.mobile && (

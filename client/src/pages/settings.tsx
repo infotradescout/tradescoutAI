@@ -42,6 +42,8 @@ import DragDropNavigationPreferences from "@/components/navigation/DragDropNavig
 import { NotificationPreferences as NotificationPreferencesDialog } from "@/components/ui/notification-preferences";
 import { registerPushNotifications, unregisterPushSubscription } from "@/lib/pushNotifications";
 import { getRoleUiConfig, SELF_SERVICE_ROLE_KEYS } from "@/lib/roleUiConfig";
+import UserTypeSelect from "@/components/UserTypeSelect";
+import { ACCOUNT_CREATION_USER_TYPES } from "@shared/userTypes";
 
 type HandednessPreference = "right" | "left";
 
@@ -176,6 +178,23 @@ export default function Settings() {
   const userRoles = user?.roles || [user?.role].filter(Boolean);
   const [selectedRoles, setSelectedRoles] = useState<string[]>(userRoles);
 
+  // Multi user-type selection (business/account personas)
+  const normalizeRoleId = (value: string) => {
+    const role = (value || "").trim();
+    if (role === "contractor_user") return "contractor";
+    if (role === "vehicle_dealer" || role === "car_salesman") return "car_dealer";
+    return role;
+  };
+
+  const selectableUserTypeIds = new Set(ACCOUNT_CREATION_USER_TYPES);
+
+  const [selectedUserTypes, setSelectedUserTypes] = useState<string[]>(() => {
+    const base = Array.isArray(userRoles) ? (userRoles as string[]) : [];
+    return base
+      .map((r) => normalizeRoleId(r))
+      .filter((r) => selectableUserTypeIds.has(r));
+  });
+
   // Update roles mutation
   const updateRolesMutation = useMutation({
     mutationFn: async (roles: string[]) => {
@@ -197,6 +216,27 @@ export default function Settings() {
         variant: "destructive",
       });
     }
+  });
+
+  const updateUserTypesMutation = useMutation({
+    mutationFn: async (types: string[]) => {
+      return apiRequest('PATCH', '/api/user/user-types', { userTypes: types });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/auth/user'] });
+      toast({
+        title: "Account Types Updated!",
+        description: "Your business and account types have been updated.",
+      });
+      setTimeout(() => window.location.reload(), 1500);
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to update account types. Please try again.",
+        variant: "destructive",
+      });
+    },
   });
 
   const toggleRole = (roleKey: string) => {
@@ -228,6 +268,18 @@ export default function Settings() {
       return;
     }
     updateRolesMutation.mutate(selectedRoles);
+  };
+
+  const saveUserTypes = () => {
+    if (selectedUserTypes.length === 0) {
+      toast({
+        title: "Error",
+        description: "Please select at least one account type.",
+        variant: "destructive",
+      });
+      return;
+    }
+    updateUserTypesMutation.mutate(selectedUserTypes);
   };
 
   const updateProfileMutation = useMutation({
@@ -589,6 +641,31 @@ export default function Settings() {
                       ) : (
                         <p className="text-slate-400 text-sm">No roles selected</p>
                       )}
+                    </div>
+                  </div>
+
+                  {/* Account Types & Business Personas */}
+                  <div className="bg-[#0f1419] border border-[#2d3748] rounded-xl p-6 shadow-lg space-y-4">
+                    <div className="flex items-center gap-2 mb-2">
+                      <Briefcase className="h-5 w-5 text-orange-500" />
+                      <h3 className="text-white font-semibold text-lg">Account Types &amp; Business Personas</h3>
+                    </div>
+                    <p className="text-sm text-slate-400 mb-2">
+                      Select all the ways you use TradeScout — homeowner, landlord, restaurant owner, contractor, and more. Scout will use these types to personalize your dashboards and recommendations.
+                    </p>
+                    <UserTypeSelect
+                      selectedTypes={selectedUserTypes}
+                      onChange={setSelectedUserTypes}
+                      className="mt-2"
+                    />
+                    <div className="flex justify-end pt-4 border-t border-[#2d3748] mt-2">
+                      <Button
+                        onClick={saveUserTypes}
+                        disabled={updateUserTypesMutation.isPending || selectedUserTypes.length === 0}
+                        className="bg-orange-500 hover:bg-orange-600 text-white px-8 shadow-lg disabled:opacity-50"
+                      >
+                        {updateUserTypesMutation.isPending ? 'Saving…' : 'Save Account Types'}
+                      </Button>
                     </div>
                   </div>
 
