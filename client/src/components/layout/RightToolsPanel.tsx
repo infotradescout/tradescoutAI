@@ -95,10 +95,9 @@ export function RightToolsPanel({ footer, onNavigate }: RightToolsPanelProps) {
               href="/finances"
               icon={<ClipboardList className="h-3.5 w-3.5 text-orange-400" />}
               label="Finances"
-              description="Invoices, deal rooms, and job money flows."
+              description="Invoices, jobs, and money flows."
               onClick={onNavigate}
             />
-            {/* Deal room is part of the Finances workspace now, so we keep a single surface. */}
             <NavLink
               href="/notifications"
               icon={<Bell className="h-3.5 w-3.5 text-orange-400" />}
@@ -143,24 +142,10 @@ export function RightToolsPanel({ footer, onNavigate }: RightToolsPanelProps) {
               onClick={onNavigate}
             />
             <NavLink
-              href="/accounting"
+              href="/finances"
               icon={<ClipboardList className="h-3.5 w-3.5 text-orange-400" />}
-              label="Money"
-              description="Invoices, receipts, and off-site jobs."
-              onClick={onNavigate}
-            />
-            <NavLink
-              href="/lead-management"
-              icon={<ClipboardList className="h-3.5 w-3.5 text-orange-400" />}
-              label="Projects"
-              description="Leads, jobs, and active projects."
-              onClick={onNavigate}
-            />
-            <NavLink
-              href="/lead-management"
-              icon={<ClipboardList className="h-3.5 w-3.5 text-orange-400" />}
-              label="Deal room"
-              description="Conversations, offers, and deal terms."
+              label="Finances workspace"
+              description="Invoices, job records, and deal workflow."
               onClick={onNavigate}
             />
             <NavLink

@@ -424,8 +424,8 @@ export default function WalletPage() {
             <div>
               <CardTitle className="text-sm font-medium text-gray-200">Tax Statements</CardTitle>
               <CardDescription className="text-xs text-gray-400">
-                Download yearly or quarterly wallet movement snapshots to share with your accountant or deal room
-                accounting.
+                Download yearly or quarterly wallet movement snapshots to share with your accountant or for your
+                Finances workspace records.
               </CardDescription>
             </div>
           </CardHeader>
