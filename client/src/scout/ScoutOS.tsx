@@ -1226,6 +1226,42 @@ export default function ScoutOS() {
                     return;
                   }
 
+                  if (trimmed === "Open my Admin Panel and monitoring tools") {
+                    recordActivity({
+                      type: "navigate",
+                      ts: new Date().toISOString(),
+                      path: location,
+                      to: "/admin-panel",
+                      label: trimmed,
+                    });
+                    navigate("/admin-panel");
+                    return;
+                  }
+
+                  if (trimmed === "Show recent Finance / Invoicing ledger activity") {
+                    recordActivity({
+                      type: "navigate",
+                      ts: new Date().toISOString(),
+                      path: location,
+                      to: "/admin-panel?tab=finance",
+                      label: trimmed,
+                    });
+                    navigate("/admin-panel?tab=finance");
+                    return;
+                  }
+
+                  if (trimmed === "Help me send a targeted broadcast announcement from Notification Ops") {
+                    recordActivity({
+                      type: "navigate",
+                      ts: new Date().toISOString(),
+                      path: location,
+                      to: "/admin-panel?tab=notification-ops",
+                      label: trimmed,
+                    });
+                    navigate("/admin-panel?tab=notification-ops");
+                    return;
+                  }
+
                   // Fallback: treat as a normal prompt to Scout so it can
                   // reason about next steps.
                   handleSend(trimmed);

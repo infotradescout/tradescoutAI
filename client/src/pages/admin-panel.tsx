@@ -112,6 +112,37 @@ export default function AdminPanel() {
   const [broadcastTargetState, setBroadcastTargetState] = useState("");
   const [broadcastMarketingOnly, setBroadcastMarketingOnly] = useState(false);
 
+  // Allow deep-linking directly into specific tabs (e.g. finance, notification-ops)
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    try {
+      const search = window.location.search;
+      if (!search) return;
+      const params = new URLSearchParams(search);
+      const tab = params.get("tab");
+      if (!tab) return;
+      const allowedTabs = new Set([
+        "heatmap",
+        "prizes",
+        "advertisements",
+        "site-settings",
+        "contractor-settings",
+        "monitoring",
+        "notification-ops",
+        "error-reports",
+        "ai-fixes",
+        "pricing",
+        "finance",
+        "llm-admin",
+      ]);
+      if (allowedTabs.has(tab)) {
+        setSelectedTab(tab);
+      }
+    } catch {
+      // ignore malformed query params
+    }
+  }, []);
+
   // Check admin access
   const isSuperAdmin = ['owner', 'ops_admin', 'admin', 'super_admin', 'head_admin'].includes(user?.role || '');
   if (!isAuthenticated || !user || !isSuperAdmin) {
