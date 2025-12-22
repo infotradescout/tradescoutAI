@@ -934,7 +934,7 @@ export default function ScoutOS() {
 
             {/* Scripted intro demo composer (types, pulses send, then sends) */}
             <div
-              className={`rounded-2xl border border-slate-800 bg-[#020617] ${
+              className={`rounded-2xl bg-[#020617] ${
                 isMobile ? "px-3 py-3" : "px-4 py-4"
               } space-y-2`}
             >
@@ -1007,7 +1007,7 @@ export default function ScoutOS() {
 
             {/* Thread + input in a single chat container */}
             <div
-              className={`mt-3 rounded-2xl border border-slate-800 bg-[#020617] ${
+              className={`mt-3 rounded-2xl bg-[#020617] ${
                 isMobile ? "px-3 py-3 space-y-3" : "px-4 py-4 space-y-4"
               }`}
             >
