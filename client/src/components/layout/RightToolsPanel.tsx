@@ -92,19 +92,13 @@ export function RightToolsPanel({ footer, onNavigate }: RightToolsPanelProps) {
           </div>
           <div className="space-y-2">
             <NavLink
-              href="/profile"
-              icon={<User className="h-3.5 w-3.5 text-orange-400" />}
-              label="View profile"
-              description="How your community sees your profile."
+              href="/finances"
+              icon={<ClipboardList className="h-3.5 w-3.5 text-orange-400" />}
+              label="Finances"
+              description="Invoices, deal rooms, and job money flows."
               onClick={onNavigate}
             />
-            <NavLink
-              href="/settings"
-              icon={<Settings className="h-3.5 w-3.5 text-orange-400" />}
-              label="Account settings"
-              description="Login, preferences, and privacy."
-              onClick={onNavigate}
-            />
+            {/* Deal room is part of the Finances workspace now, so we keep a single surface. */}
             <NavLink
               href="/notifications"
               icon={<Bell className="h-3.5 w-3.5 text-orange-400" />}
