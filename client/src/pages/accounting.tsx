@@ -11,7 +11,6 @@ import { useToast } from "@/hooks/use-toast";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import { CartesianGrid, Line, LineChart, XAxis, YAxis } from "recharts";
 import { LayoutDashboard, FileText, Handshake, BarChart3, Settings2 } from "lucide-react";
-import { LayoutDashboard, FileText, Handshake, BarChart3, Settings2 } from "lucide-react";
 
 interface StandaloneInvoice {
   id: string;
@@ -71,11 +70,6 @@ function getDealRoomRole(user: any): DealRoomRole {
   return "guest";
 }
 
-export default function AccountingWorkspace() {
-  const { user } = useAuth();
-  const { toast } = useToast();
-  const queryClient = useQueryClient();
-  const role = useMemo(() => getDealRoomRole(user), [user]);
 export default function AccountingWorkspace() {
   const { user } = useAuth();
   const { toast } = useToast();
@@ -569,44 +563,4 @@ export default function AccountingWorkspace() {
     </div>
   );
 }
-                          </div>
 
-                          <div className="min-h-[260px]">
-                            {effectiveJobId ? (
-                              <DealRoomPanel jobId={effectiveJobId} userRole={role} />
-                            ) : (
-                              <div className="h-full flex items-center justify-center text-xs text-gray-500 border border-dashed border-slate-700 rounded-md bg-slate-900/40 p-4">
-                                Select an invoice on the left to open it in the deal room.
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      )}
-                    </CardContent>
-                  </Card>
-                </section>
-              </div>
-                          )}
-                        </div>
-                      </CardContent>
-                    </Card>
-                  );
-                })}
-              </div>
-
-              <div className="min-h-[260px]">
-                {effectiveJobId ? (
-                  <DealRoomPanel jobId={effectiveJobId} userRole={role} />
-                ) : (
-                  <div className="h-full flex items-center justify-center text-xs text-gray-500 border border-dashed border-slate-700 rounded-md bg-slate-900/40 p-4">
-                    Select an invoice on the left to open it in the deal room.
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
-        </CardContent>
-      </Card>
-    </div>
-  );
-}
