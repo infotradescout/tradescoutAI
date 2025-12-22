@@ -776,6 +776,12 @@ const AppLayout = memo(function AppLayout() {
                   <Route path="/boosts"><LazyPage Component={Boosts} /></Route>
                   <Route path="/analytics"><LazyPage Component={Analytics} /></Route>
                   <Route path="/crm"><LazyPage Component={CRM} /></Route>
+                  {/* Finances workspace (aliases /finances and /accounting for back-compat) */}
+                  <Route path="/finances">
+                    <ProtectedRoute>
+                      <LazyPage Component={Accounting} />
+                    </ProtectedRoute>
+                  </Route>
                   <Route path="/accounting">
                     <ProtectedRoute>
                       <LazyPage Component={Accounting} />

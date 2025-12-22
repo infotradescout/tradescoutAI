@@ -8,6 +8,8 @@ import { useAuth } from "@/hooks/useAuth";
 import type { DealRoomRole } from "@/lib/dealRoomState";
 import { DealRoomPanel } from "@/components/jobs/DealRoomPanel";
 import { useToast } from "@/hooks/use-toast";
+import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
+import { CartesianGrid, Line, LineChart, XAxis, YAxis } from "recharts";
 
 interface StandaloneInvoice {
   id: string;
@@ -163,70 +165,149 @@ export default function AccountingWorkspace() {
   const selectedInvoice = invoices.find((inv) => inv.job_id === selectedJobId) ?? invoices[0] ?? null;
   const effectiveJobId = selectedInvoice?.job_id ?? null;
 
+  const lifetime = summary?.lifetime;
+  const monthly = summary?.byMonth ?? [];
+
+  const chartData = monthly.map((m) => ({
+    month: m.month,
+    billed: m.totalAmount,
+    collected: m.paidAmount,
+  }));
+
+  const formatCurrency = (value?: number) => {
+    if (typeof value !== "number" || !Number.isFinite(value)) return "–";
+    return value.toLocaleString(undefined, { style: "currency", currency: "USD" });
+  };
+
   return (
     <div className="space-y-6">
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Card className="bg-slate-800/50 border-slate-700">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm text-gray-400">Job Documents</CardTitle>
-            <CardDescription>Estimates, invoices, materials, receipts, and contracts you track in this workspace</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold text-white">{totalCount}</div>
-          </CardContent>
-        </Card>
-        <Card className="bg-slate-800/50 border-slate-700">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm text-gray-400">Unpaid</CardTitle>
-            <CardDescription>Invoices still waiting on payment</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold text-amber-400">
-              {invoices.filter((i) => i.status !== "paid").length}
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="bg-slate-800/50 border-slate-700">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm text-gray-400">Paid</CardTitle>
-            <CardDescription>Invoices with receipts issued</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold text-emerald-400">
-              {invoices.filter((i) => i.status === "paid").length}
-            </div>
-          </CardContent>
-        </Card>
-
-        {summary && (
-          <Card className="bg-slate-800/50 border-slate-700">
-            <CardHeader>
-              <CardTitle className="text-white">Accounting Reports</CardTitle>
-              <CardDescription>
-                Overview of your job records and money moving through them.
-              </CardDescription>
+      <div className="space-y-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+          <Card className="bg-slate-900 border-slate-700">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-xs font-medium text-slate-300 uppercase tracking-wide">
+                Total Billed
+              </CardTitle>
+              <CardDescription>Lifetime revenue across all job records.</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="grid gap-4 sm:grid-cols-3">
-                <div>
-                  <div className="text-sm text-muted-foreground">Total Billed</div>
-                  <div className="text-xl font-semibold">
-                    ${summary.lifetime.totalAmount.toLocaleString()}
-                  </div>
-                </div>
-                <div>
-                  <div className="text-sm text-muted-foreground">Collected</div>
-                  <div className="text-xl font-semibold">
-                    ${summary.lifetime.paidAmount.toLocaleString()}
-                  </div>
-                </div>
-                <div>
-                  <div className="text-sm text-muted-foreground">Outstanding</div>
-                  <div className="text-xl font-semibold">
-                    ${summary.lifetime.unpaidAmount.toLocaleString()}
-                  </div>
-                </div>
+              <div className="text-2xl font-semibold text-white">
+                {formatCurrency(lifetime?.totalAmount)}
               </div>
+              <p className="mt-1 text-[11px] text-slate-400">
+                {lifetime ? `${lifetime.invoiceCount.toLocaleString()} documents` : `${totalCount.toLocaleString()} documents`}
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-slate-900 border-slate-700">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-xs font-medium text-slate-300 uppercase tracking-wide">
+                Outstanding Invoices
+              </CardTitle>
+              <CardDescription>Work that has been billed but not yet paid.</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-semibold text-amber-300">
+                {formatCurrency(lifetime?.unpaidAmount)}
+              </div>
+              <p className="mt-1 text-[11px] text-slate-400">
+                {lifetime
+                  ? `${lifetime.unpaidCount.toLocaleString()} open invoice${
+                      lifetime.unpaidCount === 1 ? "" : "s"
+                    }`
+                  : `${invoices.filter((i) => i.status !== "paid").length.toLocaleString()} open invoices`}
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-slate-900 border-slate-700">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-xs font-medium text-slate-300 uppercase tracking-wide">
+                Collected
+              </CardTitle>
+              <CardDescription>Payments that have been recorded as paid.</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-semibold text-emerald-300">
+                {formatCurrency(lifetime?.paidAmount)}
+              </div>
+              <p className="mt-1 text-[11px] text-slate-400">
+                {lifetime
+                  ? `${lifetime.paidCount.toLocaleString()} paid invoice${
+                      lifetime.paidCount === 1 ? "" : "s"
+                    }`
+                  : `${invoices.filter((i) => i.status === "paid").length.toLocaleString()} paid invoices`}
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-slate-900 border-slate-700">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-xs font-medium text-slate-300 uppercase tracking-wide">
+                Job Documents
+              </CardTitle>
+              <CardDescription>All standalone records you manage here.</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-semibold text-sky-300">{totalCount.toLocaleString()}</div>
+              <p className="mt-1 text-[11px] text-slate-400">Includes paid and unpaid invoices.</p>
+            </CardContent>
+          </Card>
+        </div>
+
+        {chartData.length > 0 && (
+          <Card className="bg-slate-900 border-slate-700">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-white">Revenue Overview</CardTitle>
+              <CardDescription>
+                Billed vs. collected amounts over your recent months.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="pt-4">
+              <ChartContainer
+                config={{
+                  billed: {
+                    label: "Billed",
+                    color: "hsl(var(--chart-1))",
+                  },
+                  collected: {
+                    label: "Collected",
+                    color: "hsl(var(--chart-2))",
+                  },
+                }}
+                className="h-72 w-full"
+              >
+                <LineChart data={chartData} margin={{ left: 8, right: 16, top: 8, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                  <XAxis dataKey="month" tickLine={false} axisLine={false} tickMargin={8} />
+                  <YAxis
+                    tickLine={false}
+                    axisLine={false}
+                    tickMargin={8}
+                    tickFormatter={(value) =>
+                      typeof value === "number" ? value.toLocaleString() : String(value)
+                    }
+                  />
+                  <ChartTooltip content={<ChartTooltipContent />} />
+                  <Line
+                    type="monotone"
+                    dataKey="billed"
+                    stroke="var(--color-billed)"
+                    strokeWidth={2}
+                    dot={false}
+                    name="Billed"
+                  />
+                  <Line
+                    type="monotone"
+                    dataKey="collected"
+                    stroke="var(--color-collected)"
+                    strokeWidth={2}
+                    dot={false}
+                    name="Collected"
+                  />
+                </LineChart>
+              </ChartContainer>
             </CardContent>
           </Card>
         )}
