@@ -1085,97 +1085,98 @@ export default function AccountingWorkspace() {
                         </TableRow>
                       ) : (
                         filteredInvoicesForTable.map((inv) => {
-                        const payload = inv.payload || {};
-                        const title: string = payload.projectTitle || `Invoice ${inv.id.slice(0, 8)}`;
-                        const client: string | null = payload.clientName || null;
-                        const totalVal: number | null =
-                          typeof payload.total === "number" ? payload.total : null;
-                        const createdLabel = new Date(inv.created_at).toLocaleDateString();
-                        const status = String(inv.status || "").toLowerCase();
-                        const isPaid = status === "paid";
-                        const isSent = status === "sent";
+                          const payload = inv.payload || {};
+                          const title: string = payload.projectTitle || `Invoice ${inv.id.slice(0, 8)}`;
+                          const client: string | null = payload.clientName || null;
+                          const totalVal: number | null =
+                            typeof payload.total === "number" ? payload.total : null;
+                          const createdLabel = new Date(inv.created_at).toLocaleDateString();
+                          const status = String(inv.status || "").toLowerCase();
+                          const isPaid = status === "paid";
+                          const isSent = status === "sent";
                           const payment: any = (payload as any).payment || null;
                           const paidDateLabel = payment?.receivedAt
                             ? new Date(payment.receivedAt).toLocaleDateString()
                             : createdLabel;
 
-                        return (
-                          <TableRow key={inv.id} className="border-slate-800 hover:bg-slate-900/70">
-                            <TableCell className="py-2 text-slate-200 text-[11px]">{createdLabel}</TableCell>
-                            <TableCell className="py-2 text-slate-100 text-[11px] truncate max-w-[220px]">
-                              {title}
-                            </TableCell>
-                            <TableCell className="py-2 text-slate-200 text-[11px] truncate max-w-[180px]">
-                              {client || "—"}
-                            </TableCell>
-                            <TableCell className="py-2 text-right text-[11px] text-slate-100">
-                              {totalVal !== null
-                                ? totalVal.toLocaleString(undefined, {
-                                    style: "currency",
-                                    currency: payload.currency || "USD",
-                                  })
-                                : "—"}
-                            </TableCell>
-                            <TableCell className="py-2 text-right text-[10px]">
-                              <div className="flex flex-col items-end gap-1">
-                                <span
-                                  className={`inline-flex items-center rounded-full px-2 py-0.5 border text-[10px] font-medium capitalize ${
-                                    isPaid
-                                      ? "bg-emerald-500/10 text-emerald-300 border-emerald-500/40"
-                                      : isSent
-                                      ? "bg-sky-500/10 text-sky-300 border-sky-500/40"
-                                      : "bg-slate-600/10 text-slate-200 border-slate-500/60"
-                                  }`}
-                                >
-                                  {inv.status || "draft"}
-                                </span>
-                                <div className="flex items-center gap-1.5">
-                                  <Button
-                                    variant="outline"
-                                    size="sm"
-                                    className="h-6 px-2 border-slate-600 text-[10px]"
-                                    onClick={() => {
-                                      setSelectedJobId(inv.job_id);
-                                      handleNavClick("jobs", "finances-jobs");
-                                    }}
+                          return (
+                            <TableRow key={inv.id} className="border-slate-800 hover:bg-slate-900/70">
+                              <TableCell className="py-2 text-slate-200 text-[11px]">{createdLabel}</TableCell>
+                              <TableCell className="py-2 text-slate-100 text-[11px] truncate max-w-[220px]">
+                                {title}
+                              </TableCell>
+                              <TableCell className="py-2 text-slate-200 text-[11px] truncate max-w-[180px]">
+                                {client || "—"}
+                              </TableCell>
+                              <TableCell className="py-2 text-right text-[11px] text-slate-100">
+                                {totalVal !== null
+                                  ? totalVal.toLocaleString(undefined, {
+                                      style: "currency",
+                                      currency: payload.currency || "USD",
+                                    })
+                                  : "—"}
+                              </TableCell>
+                              <TableCell className="py-2 text-right text-[10px]">
+                                <div className="flex flex-col items-end gap-1">
+                                  <span
+                                    className={`inline-flex items-center rounded-full px-2 py-0.5 border text-[10px] font-medium capitalize ${
+                                      isPaid
+                                        ? "bg-emerald-500/10 text-emerald-300 border-emerald-500/40"
+                                        : isSent
+                                        ? "bg-sky-500/10 text-sky-300 border-sky-500/40"
+                                        : "bg-slate-600/10 text-slate-200 border-slate-500/60"
+                                    }`}
                                   >
-                                    Open
-                                  </Button>
-                                  {status === "draft" && (
+                                    {inv.status || "draft"}
+                                  </span>
+                                  <div className="flex items-center gap-1.5">
                                     <Button
                                       variant="outline"
                                       size="sm"
                                       className="h-6 px-2 border-slate-600 text-[10px]"
-                                      disabled={sendInvoice.isPending || markInvoicePaid.isPending}
-                                      onClick={() => sendInvoice.mutate(inv.id)}
+                                      onClick={() => {
+                                        setSelectedJobId(inv.job_id);
+                                        handleNavClick("jobs", "finances-jobs");
+                                      }}
                                     >
-                                      {sendInvoice.isPending ? "Sending..." : "Send"}
+                                      Open
                                     </Button>
-                                  )}
-                                  {(status === "sent" || status === "approved") && !isPaid && (
-                                    <Button
-                                      variant="outline"
-                                      size="sm"
-                                      className="h-6 px-2 border-slate-600 text-[10px]"
-                                      disabled={markInvoicePaid.isPending || sendInvoice.isPending}
-                                      onClick={() => markInvoicePaid.mutate(inv.id)}
-                                    >
-                                      {markInvoicePaid.isPending ? "Recording..." : "Record payment"}
-                                    </Button>
+                                    {status === "draft" && (
+                                      <Button
+                                        variant="outline"
+                                        size="sm"
+                                        className="h-6 px-2 border-slate-600 text-[10px]"
+                                        disabled={sendInvoice.isPending || markInvoicePaid.isPending}
+                                        onClick={() => sendInvoice.mutate(inv.id)}
+                                      >
+                                        {sendInvoice.isPending ? "Sending..." : "Send"}
+                                      </Button>
+                                    )}
+                                    {(status === "sent" || status === "approved") && !isPaid && (
+                                      <Button
+                                        variant="outline"
+                                        size="sm"
+                                        className="h-6 px-2 border-slate-600 text-[10px]"
+                                        disabled={markInvoicePaid.isPending || sendInvoice.isPending}
+                                        onClick={() => markInvoicePaid.mutate(inv.id)}
+                                      >
+                                        {markInvoicePaid.isPending ? "Recording..." : "Record payment"}
+                                      </Button>
+                                    )}
+                                  </div>
+                                  {isPaid && (
+                                    <div className="text-[10px] text-slate-400 mt-0.5 text-right">
+                                      Paid {paidDateLabel}
+                                      {payment?.method ? ` via ${String(payment.method).toLowerCase()}` : ""}
+                                      {payment?.reference ? ` · Ref ${payment.reference}` : ""}
+                                    </div>
                                   )}
                                 </div>
-                                {isPaid && (
-                                  <div className="text-[10px] text-slate-400 mt-0.5 text-right">
-                                    Paid {paidDateLabel}
-                                    {payment?.method ? ` via ${String(payment.method).toLowerCase()}` : ""}
-                                    {payment?.reference ? ` · Ref ${payment.reference}` : ""}
-                                  </div>
-                                )}
-                              </div>
-                            </TableCell>
-                          </TableRow>
-                        );
-                      ))}
+                              </TableCell>
+                            </TableRow>
+                          );
+                        })
+                      )}
                     </TableBody>
                   </Table>
                 </div>
