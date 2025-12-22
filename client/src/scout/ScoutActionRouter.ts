@@ -48,13 +48,13 @@ export function executeScoutActions(
             break;
           }
 
-          // If a jobId payload is present, deep-link into the Finances workspace
+          // If a jobId payload is present, deep-link into the Deal Room
           const jobId = typeof action.payload?.jobId === "string" ? (action.payload.jobId as string) : null;
           if (
             jobId &&
             (destination === "/lead-management" || destination === "/project-tracker" || destination === "/finances")
           ) {
-            destination = `/finances?jobId=${encodeURIComponent(jobId)}`;
+            destination = `/deal-room/${encodeURIComponent(jobId)}`;
           }
           helpers.navigate(destination);
         }

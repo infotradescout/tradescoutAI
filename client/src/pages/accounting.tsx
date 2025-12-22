@@ -99,7 +99,7 @@ export default function AccountingWorkspace() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const role = useMemo(() => getDealRoomRole(user), [user]);
-  const [location] = useLocation();
+  const [location, navigate] = useLocation();
 
   const [projectTitle, setProjectTitle] = useState("");
   const [clientName, setClientName] = useState("");
@@ -561,6 +561,21 @@ export default function AccountingWorkspace() {
 
   const handleNavClick = (key: string, targetId: string) => {
     setActiveNav(key);
+
+    // Key money flows get their own dedicated routes; the rest still scroll
+    if (key === "dashboard") {
+      navigate("/finances");
+      return;
+    }
+    if (key === "invoices") {
+      navigate("/finances/invoices");
+      return;
+    }
+    if (key === "expenses") {
+      navigate("/finances/expenses");
+      return;
+    }
+
     if (typeof document !== "undefined") {
       const el = document.getElementById(targetId);
       if (el) {
@@ -1339,6 +1354,18 @@ export default function AccountingWorkspace() {
                         onClick={() => setPage((p) => (p < pageCount ? p + 1 : p))}
                       >
                         Next
+                      </Button>
+                    </div>
+                  )}
+                  {effectiveJobId && (
+                    <div className="flex justify-end">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="h-7 px-3 border-slate-600 text-[11px] text-slate-200 mt-1"
+                        onClick={() => navigate(`/deal-room/${encodeURIComponent(effectiveJobId || "")}`)}
+                      >
+                        Open full deal room
                       </Button>
                     </div>
                   )}
