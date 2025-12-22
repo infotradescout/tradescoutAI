@@ -338,14 +338,23 @@ export default function ScoutOS() {
       const isRoofing = /roof|shingle|hail|storm damage|leak/.test(lower);
       const isTaxOrPermit = /permit|inspection|code|zoning|setback|property tax|assessment/.test(lower);
       const isCommunity = /community|neighbors?|neighbours?|hoa|association|group|groups|club|meet people|connect with my local community/.test(lower);
+      const isFoodOrEvents = /food|coffee|lunch|dinner|restaurant|truck|catering|snack|meal/.test(lower);
+      const isMoneyOrEstimate = /budget|cost|price|estimate|quote|afford|finance|loan|payment/.test(lower);
+      const isOverwhelmed = /overwhelmed|confused|don['’]t understand|not sure where to start|lost/.test(lower);
 
       switch (mode) {
         case "contractors":
-          if (isPlumbing || isElectrical || isRoofing) {
+          if (isOverwhelmed) {
             base.push(
+              "Break this into 3 clear steps I can take next",
+              "Summarize the main decisions I need to make for this job",
+              "Turn this into a trackable project on my board"
+            );
+          } else if (isPlumbing || isElectrical || isRoofing || isMoneyOrEstimate || intent === "estimate") {
+            base.push(
+              "Estimate realistic price ranges and timing for this job",
               "Find vetted pros for this exact job in my county",
-              "Turn this into a project I can track and compare bids on",
-              "Explain price range, materials, and code topics for this"
+              "Turn this into a project I can track and compare bids on"
             );
           } else {
             base.push(
@@ -370,7 +379,13 @@ export default function ScoutOS() {
           );
           break;
         default:
-          if (isTaxOrPermit) {
+          if (isOverwhelmed) {
+            base.push(
+              "Break this into 3 concrete steps for me",
+              "Highlight what matters most so I don’t get stuck",
+              "Suggest the right TradeScout view or tool for this"
+            );
+          } else if (isTaxOrPermit) {
             base.push(
               "Help me understand local permits or code rules for this",
               "Find vetted pros who already know these rules in my county",
@@ -381,6 +396,12 @@ export default function ScoutOS() {
               "Open my community feed in TradeScout",
               "Show local groups, HOAs, and boards I can join or follow",
               "Draft a welcome or intro post I can share with my community"
+            );
+          } else if (isFoodOrEvents) {
+            base.push(
+              "Find nearby food trucks, coffee, or events for this",
+              "Help me plan this around local food and community spots",
+              "Turn this into a small event I can track and share"
             );
           } else {
             base.push(
@@ -399,14 +420,17 @@ export default function ScoutOS() {
       .filter((s) => s && !isWeakSuggestionLabel(s));
     const merged: string[] = [];
 
-    for (const s of server) {
+    // Prefer our local, mode-aware suggestions first so they stay tightly
+    // connected to the conversation and product surface, then backfill
+    // with any high-quality server suggestions.
+    for (const raw of base) {
+      const s = sanitizeSuggestionLabel(raw);
+      if (!s || isWeakSuggestionLabel(s)) continue;
       if (!merged.includes(s)) merged.push(s);
       if (merged.length === 3) return merged;
     }
 
-    for (const raw of base) {
-      const s = sanitizeSuggestionLabel(raw);
-      if (!s || isWeakSuggestionLabel(s)) continue;
+    for (const s of server) {
       if (!merged.includes(s)) merged.push(s);
       if (merged.length === 3) return merged;
     }
@@ -908,10 +932,10 @@ export default function ScoutOS() {
   })();
 
   return (
-    <div className="min-h-screen text-white flex flex-col items-center">
+    <div className="min-h-screen text-white flex flex-col items-center bg-slate-950">
       <div
         className={`w-full ${
-          isMobile ? "px-0 pt-3 pb-2" : "max-w-xl px-4 pt-6 pb-3"
+          isMobile ? "max-w-xl px-3 pt-3 pb-2" : "max-w-xl px-4 pt-6 pb-3"
         } space-y-4`}
       >
         {isFirstGuestVisit ? (

@@ -176,7 +176,7 @@ const ScoutInput: React.FC<ScoutInputProps> = ({
         disabled={disabled}
         placeholder={placeholder}
         rows={3}
-        className="w-full resize-none rounded-2xl bg-[#020617] px-4 py-3 text-sm text-slate-100 placeholder:text-slate-400/70 focus:outline-none focus:ring-2 focus:ring-orange-500/60 min-h-[80px]"
+        className="w-full resize-none rounded-2xl border border-slate-800 bg-[#020617] px-4 py-3 text-sm text-slate-100 placeholder:text-slate-400/70 focus:outline-none focus:ring-2 focus:ring-orange-500/60 min-h-[80px]"
       />
       <div
         className={`flex w-full ${

@@ -13,6 +13,7 @@ import {
   Menu,
   Wrench,
   ClipboardList,
+  Utensils,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useHandedness } from "@/hooks/useHandedness";
@@ -62,6 +63,11 @@ const featureNav: NavItem[] = [
     label: "Helpers",
     href: "/worker-marketplace",
     icon: <Wrench className="h-5 w-5 text-orange-400" />,
+  },
+  {
+    label: "MealScout",
+    href: "/mealscout",
+    icon: <Utensils className="h-5 w-5 text-orange-400" />,
   },
   {
     label: "Messages",

@@ -75,6 +75,7 @@ import { platformSupportPaymentService } from "./platform-support-payment-servic
 import { antiScrapeShield } from "./middleware/antiScrape";
 import { ObjectStorageService } from "./objectStorage";
 import { notificationService } from "./notification-service";
+import { ensureMealscoutSsoSession, createMealscoutSsoToken } from "../services/mealscoutClient.js";
 // Shared HTTP types for all route handlers
 type AuthedRequest = Request & {
   user?: {
@@ -992,6 +993,38 @@ export async function registerRoutes(app: any) {
       console.error("Error fetching auth user:", error);
       // Fail-soft: auth must never block the app shell.
       res.status(200).json({ authenticated: false });
+    }
+  });
+
+  // Initialize a MealScout SSO session for the current TradeScout user.
+  // This is intended to be called server-side when the user opens the
+  // MealScout surface in TradeScout. It mints a JWT and forwards any
+  // Set-Cookie headers from MealScout back to the browser.
+  app.post("/api/mealscout/sso", isAuthenticated, async (req: AuthedRequest, res: Response) => {
+    try {
+      const rawUser: any = req.user;
+      const userId: string = rawUser?.id || rawUser?.claims?.sub || "";
+
+      if (!userId) {
+        return res.status(400).json({ ok: false, error: "User ID missing" });
+      }
+
+      const user = await storage.getUser(userId);
+      if (!user) {
+        return res.status(404).json({ ok: false, error: "User not found" });
+      }
+
+      const result = await ensureMealscoutSsoSession(user as any);
+      const token = createMealscoutSsoToken(user);
+
+      for (const cookie of result.cookies) {
+        res.append("Set-Cookie", cookie);
+      }
+
+      return res.json({ ok: true, status: result.status, token });
+    } catch (error: any) {
+      console.error("MealScout SSO error:", error);
+      return res.status(500).json({ ok: false, error: "Failed to initialize MealScout session" });
     }
   });
 
@@ -11411,6 +11444,30 @@ export async function registerRoutes(app: any) {
     } catch (error: any) {
       console.error("[stripe] webhook error", error);
       res.status(500).json({ message: "Webhook processing failed" });
+    }
+  });
+
+  // Returns a signed JWT for MealScout SSO that the client can pass into
+  // performMealScoutSSO from the MealScout SDK. This does not perform any
+  // server-to-server call; it only mints the token.
+  app.post("/api/mealscout/token", isAuthenticated, async (req: AuthedRequest, res: Response) => {
+    try {
+      const rawUser: any = req.user;
+      const userId: string = rawUser?.id || rawUser?.claims?.sub || "";
+      if (!userId) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+
+      const user = await storage.getUser(userId);
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
+      }
+
+      const token = createMealscoutSsoToken(user);
+      return res.json({ token });
+    } catch (err: any) {
+      console.error("[MealScoutSSO] Failed to mint SSO token", err);
+      return res.status(500).json({ error: "Failed to create MealScout SSO token" });
     }
   });
 

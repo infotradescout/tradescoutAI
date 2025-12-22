@@ -1,10 +1,13 @@
 // Role hierarchy and permission system for TradeScout
 
 export type UserRole = 
-  // Customer roles
+  // Customer & business roles
   | 'homeowner'
   | 'property_manager'
   | 'business_owner'
+  | 'restaurant_owner'
+  | 'food_truck_owner'
+  | 'bar_owner'
   
   // Service provider roles  
   | 'contractor_user'
@@ -133,10 +136,13 @@ export interface RolePermissions {
 
 // Role hierarchy levels (higher number = more authority)
 export const ROLE_HIERARCHY: Record<UserRole, number> = {
-  // Customer roles (0-9)
+  // Customer & business roles (0-9)
   homeowner: 0,
   property_manager: 1,
   business_owner: 2,
+  restaurant_owner: 2,
+  food_truck_owner: 2,
+  bar_owner: 2,
   
   // Service provider roles (10-19)
   contractor_user: 10,
@@ -218,6 +224,72 @@ export const ROLE_PERMISSIONS: Record<UserRole, RolePermissions> = {
   },
   
   business_owner: {
+    canCreateContent: true,
+    canEditContent: true,
+    canDeleteContent: true,
+    canModerateContent: false,
+    canViewUsers: true,
+    canEditUsers: false,
+    canDeleteUsers: false,
+    canBanUsers: false,
+    canAccessAdminPanel: false,
+    canManageSettings: false,
+    canViewAnalytics: true,
+    canManagePayments: false,
+    canManageContractors: false,
+    canManageListings: true,
+    canManageReports: false,
+    canManageModeration: false,
+    canPromoteUsers: false,
+    canManageRoles: false,
+    canAccessSuperAdmin: false,
+    canManageAdmins: false,
+  },
+  restaurant_owner: {
+    canCreateContent: true,
+    canEditContent: true,
+    canDeleteContent: true,
+    canModerateContent: false,
+    canViewUsers: true,
+    canEditUsers: false,
+    canDeleteUsers: false,
+    canBanUsers: false,
+    canAccessAdminPanel: false,
+    canManageSettings: false,
+    canViewAnalytics: true,
+    canManagePayments: false,
+    canManageContractors: false,
+    canManageListings: true,
+    canManageReports: false,
+    canManageModeration: false,
+    canPromoteUsers: false,
+    canManageRoles: false,
+    canAccessSuperAdmin: false,
+    canManageAdmins: false,
+  },
+  food_truck_owner: {
+    canCreateContent: true,
+    canEditContent: true,
+    canDeleteContent: true,
+    canModerateContent: false,
+    canViewUsers: true,
+    canEditUsers: false,
+    canDeleteUsers: false,
+    canBanUsers: false,
+    canAccessAdminPanel: false,
+    canManageSettings: false,
+    canViewAnalytics: true,
+    canManagePayments: false,
+    canManageContractors: false,
+    canManageListings: true,
+    canManageReports: false,
+    canManageModeration: false,
+    canPromoteUsers: false,
+    canManageRoles: false,
+    canAccessSuperAdmin: false,
+    canManageAdmins: false,
+  },
+  bar_owner: {
     canCreateContent: true,
     canEditContent: true,
     canDeleteContent: true,
