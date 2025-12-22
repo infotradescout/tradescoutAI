@@ -192,6 +192,43 @@ export function RightToolsPanel({ footer, onNavigate }: RightToolsPanelProps) {
             />
           </div>
         </section>
+
+        {/* Legal & policies */}
+        <section>
+          <div className="text-[0.7rem] uppercase tracking-[0.2em] text-slate-500 mb-2">
+            Legal &amp; policies
+          </div>
+          <div className="space-y-2">
+            <NavLink
+              href="/legal/privacy-policy"
+              icon={<Settings className="h-3.5 w-3.5 text-orange-400" />}
+              label="Privacy & data"
+              description="Privacy policy, data handling, and cookie use."
+              onClick={onNavigate}
+            />
+            <NavLink
+              href="/terms"
+              icon={<ClipboardList className="h-3.5 w-3.5 text-orange-400" />}
+              label="Terms of service"
+              description="Usage rules, responsibilities, and limits."
+              onClick={onNavigate}
+            />
+            <NavLink
+              href="/legal/compliance"
+              icon={<Building className="h-3.5 w-3.5 text-orange-400" />}
+              label="Compliance dashboard"
+              description="Marketplace, INFORM Act, and safety disclosures."
+              onClick={onNavigate}
+            />
+            <NavLink
+              href="/legal/cookie-policy"
+              icon={<Bookmark className="h-3.5 w-3.5 text-orange-400" />}
+              label="Cookie controls"
+              description="Cookie policy and preference controls."
+              onClick={onNavigate}
+            />
+          </div>
+        </section>
       </div>
 
       {/* Footer / bottom tab content */}
