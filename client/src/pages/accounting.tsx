@@ -168,8 +168,8 @@ export default function AccountingWorkspace() {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <Card className="bg-slate-800/50 border-slate-700">
           <CardHeader className="pb-3">
-            <CardTitle className="text-sm text-gray-400">Standalone Invoices</CardTitle>
-            <CardDescription>Off-site and past work you track here</CardDescription>
+            <CardTitle className="text-sm text-gray-400">Job Records</CardTitle>
+            <CardDescription>Estimates, invoices, materials, receipts, and contracts you track here</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="text-3xl font-bold text-white">{totalCount}</div>
@@ -203,7 +203,7 @@ export default function AccountingWorkspace() {
             <CardHeader>
               <CardTitle className="text-white">Accounting Reports</CardTitle>
               <CardDescription>
-                Overview of standalone invoice volume and balances.
+                Overview of your job records and money moving through them.
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -234,9 +234,9 @@ export default function AccountingWorkspace() {
 
       <Card className="bg-slate-800/50 border-slate-700 mb-6">
         <CardHeader>
-          <CardTitle className="text-white mb-1">New Off-Site Invoice</CardTitle>
+          <CardTitle className="text-white mb-1">New Job Record</CardTitle>
           <CardDescription>
-            Create an invoice for work that happened off TradeScout – past jobs, referrals, or side work.
+            Track any part of a job – estimates, invoices, materials, receipts, or contracts – whether or not it ran through TradeScout.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-3">
@@ -268,7 +268,7 @@ export default function AccountingWorkspace() {
           />
           <div className="flex justify-end">
             <Button size="sm" onClick={() => createInvoice.mutate()} disabled={createInvoice.isPending}>
-              {createInvoice.isPending ? "Creating..." : "Create Invoice"}
+              {createInvoice.isPending ? "Creating..." : "Create Record"}
             </Button>
           </div>
         </CardContent>
@@ -279,7 +279,7 @@ export default function AccountingWorkspace() {
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
             <div>
               <CardTitle className="text-white">Money Workspace</CardTitle>
-              <CardDescription>Pick an invoice on the left, then manage it in the deal room.</CardDescription>
+              <CardDescription>Pick a job record on the left, then manage it in the deal room.</CardDescription>
             </div>
             {pageCount > 1 && (
               <div className="flex items-center gap-2 text-[11px] text-slate-400">
@@ -313,7 +313,7 @@ export default function AccountingWorkspace() {
             <div className="py-6 text-center text-sm text-gray-400">Loading invoices...</div>
           ) : invoices.length === 0 ? (
             <div className="py-6 text-center text-sm text-gray-400">
-              No standalone invoices yet. Use the form above to create your first one.
+              No job records yet. Use the form above to create your first one (estimate, invoice, materials, receipt, or contract).
             </div>
           ) : (
             <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1.6fr)_minmax(0,1.6fr)] gap-6">
