@@ -10,7 +10,6 @@ import { SessionProvider } from './contexts/SessionContext';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { useAuth } from './hooks/useAuth';
 import { AppShell } from './components/layout/AppShell';
-import { LegalFooter as SiteLegalFooter } from '@/components/footer/legal-footer';
 import ScoutOS from './scout';
 
 // Only load essential components eagerly
@@ -413,7 +412,7 @@ const AppLayout = memo(function AppLayout() {
                 <Route path=":rest*"><LazyPage Component={NotFound} /></Route>
               </Switch>
             ) : (
-              <AppShell footer={<SiteLegalFooter />}>
+              <AppShell>
                 <Switch>
                   {/* Scout OS: primary AI controller surface and landing page */}
                   <Route path="/" component={ScoutOS} />
