@@ -44,16 +44,6 @@ const featureNav: NavItem[] = [
     icon: <Compass className="h-5 w-5 text-orange-400" />,
   },
   {
-    label: "Tasks",
-    href: "/tasks",
-    icon: <ClipboardList className="h-5 w-5 text-orange-400" />,
-  },
-  {
-    label: "Helpers",
-    href: "/worker-marketplace",
-    icon: <Wrench className="h-5 w-5 text-orange-400" />,
-  },
-  {
     label: "Community",
     href: ROUTES.COMMUNITY ?? "/community",
     icon: <Users className="h-5 w-5 text-orange-400" />,
@@ -62,6 +52,16 @@ const featureNav: NavItem[] = [
     label: "Contractors",
     href: ROUTES.CONTRACTORS ?? "/contractors",
     icon: <Home className="h-5 w-5 text-orange-400" />,
+  },
+  {
+    label: "Tasks",
+    href: "/tasks",
+    icon: <ClipboardList className="h-5 w-5 text-orange-400" />,
+  },
+  {
+    label: "Helpers",
+    href: "/worker-marketplace",
+    icon: <Wrench className="h-5 w-5 text-orange-400" />,
   },
   {
     label: "Messages",
@@ -109,7 +109,7 @@ export function AppShell({ children, footer }: AppShellProps) {
     <div className="h-screen bg-slate-950 text-slate-50 flex flex-col overflow-hidden">
       {/* TOP APP NAV HEADER */}
       <header
-        className={`flex items-center border-b border-slate-800 px-3 sm:px-4 py-3 ${
+        className={`flex items-center px-3 sm:px-4 py-3 ${
           handedness === "left" ? "flex-row-reverse justify-between" : "justify-between"
         }`}
       >
@@ -191,7 +191,6 @@ export function AppShell({ children, footer }: AppShellProps) {
         </div>
       </header>
 
-      {/* MAIN CONTENT + DESKTOP RIGHT PANEL */}
       <div className="flex flex-1 min-h-0 overflow-hidden">
         <main className="flex-1 min-w-0 pb-24 lg:pb-0 overflow-y-auto">
           {children}
@@ -199,7 +198,7 @@ export function AppShell({ children, footer }: AppShellProps) {
 
         {/* USER-SPECIFIC PAGES LIVE HERE (desktop) */}
         {!isMobile && (
-          <aside className="hidden lg:block w-80 border-l border-slate-800 bg-slate-950/90 overflow-y-auto">
+          <aside className="hidden lg:block w-80 bg-slate-950/90 overflow-y-auto">
             {/* On desktop, keep the global footer only at the bottom of the shell;
                the tools panel shows account tools without duplicating legal copy. */}
             <RightToolsPanel />
@@ -213,9 +212,13 @@ export function AppShell({ children, footer }: AppShellProps) {
       {/* BOTTOM BAR: SCROLLABLE SITE FEATURE NAV (mobile + desktop) */}
       <MobileAppBar items={featureNav} />
 
-        {/* Desktop-only legal footer sits below the bottom nav so the
+      {/* Desktop-only legal footer sits below the bottom nav so the
           site still feels app-like while keeping legal links visible. */}
-        {!isMobile && footer}
+      {!isMobile && footer && (
+        <div className="border-t border-slate-900/80 bg-slate-950/95">
+          {footer}
+        </div>
+      )}
 
       {/* MOBILE TOOLS DRAWER = PROFILE / DASHBOARD / SETTINGS, etc. */}
       {isMobile && isToolsOpen && (
@@ -226,8 +229,8 @@ export function AppShell({ children, footer }: AppShellProps) {
             className="flex-1 bg-black/40"
             onClick={() => setIsToolsOpen(false)}
           />
-          <div className="w-72 max-w-full bg-slate-950 border-l border-slate-800 flex flex-col">
-            <div className="flex items-center justify-between px-4 py-3 border-b border-slate-800">
+          <div className="w-72 max-w-full bg-slate-950 flex flex-col">
+            <div className="flex items-center justify-between px-4 py-3">
               <span className="text-[0.7rem] uppercase tracking-[0.2em] text-slate-500">
                 Tools &amp; profile
               </span>
