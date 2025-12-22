@@ -114,7 +114,10 @@ const HandmadeMarketplace = React.lazy(() => import('./pages/handmade-marketplac
 const Leaderboard = React.lazy(() => import('./pages/leaderboard'));
 const Foundation = React.lazy(() => import('./pages/foundation'));
 const Accounting = React.lazy(() => import('./pages/accounting'));
+const FinancesInvoices = React.lazy(() => import('./pages/finances-invoices'));
+const FinancesExpenses = React.lazy(() => import('./pages/finances-expenses'));
 const TasksHub = React.lazy(() => import('./pages/tasks'));
+const DealRoomPage = React.lazy(() => import('./pages/deal-room'));
 // NOTE: CommunityFeedOld mock has been quarantined to client/src/playgrounds/CommunityFeedMock.tsx
 // and should not be routed. This lazy import is intentionally removed.
 const CommunityModerationDemo = React.lazy(() => import('./pages/CommunityModerationDemo'));
@@ -780,6 +783,21 @@ const AppLayout = memo(function AppLayout() {
                   <Route path="/finances">
                     <ProtectedRoute>
                       <LazyPage Component={Accounting} />
+                    </ProtectedRoute>
+                  </Route>
+                  <Route path="/finances/invoices">
+                    <ProtectedRoute>
+                      <LazyPage Component={FinancesInvoices} />
+                    </ProtectedRoute>
+                  </Route>
+                  <Route path="/finances/expenses">
+                    <ProtectedRoute>
+                      <LazyPage Component={FinancesExpenses} />
+                    </ProtectedRoute>
+                  </Route>
+                  <Route path="/deal-room">
+                    <ProtectedRoute>
+                      <LazyPage Component={DealRoomPage} />
                     </ProtectedRoute>
                   </Route>
                   <Route path="/accounting">

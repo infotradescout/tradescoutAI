@@ -292,16 +292,16 @@ export default function ScoutOS() {
       const canSendContract = allowed.includes("SEND_CONTRACT") || allowed.includes("SIGN_CONTRACT");
 
       if (canSendInvoice) {
-        projectBase.push("Open my finances workspace for this job so I can review and send this invoice");
+        projectBase.push("Open invoices so I can review and send this invoice");
       }
       if (canMarkPaid) {
-        projectBase.push("Open my finances workspace for this job so I can mark this invoice paid");
+        projectBase.push("Open invoices so I can mark this invoice paid");
       }
       if (canSendContract) {
-        projectBase.push("Open my finances workspace so I can handle the contract and money for this job");
+        projectBase.push("Open my finances dashboard so I can handle the contract and money for this job");
       }
       if (hasOpenDealRoom && projectBase.length === 0) {
-        projectBase.push("Open my finances workspace for this job so I can move this forward");
+        projectBase.push("Open my finances dashboard for this job so I can move this forward");
       }
       if (ctx.blockingReason) {
         projectBase.push("Explain what’s blocking this project and show how to unblock it");
