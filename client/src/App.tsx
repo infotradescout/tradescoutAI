@@ -361,7 +361,7 @@ const AppLayout = memo(function AppLayout() {
   const appBackgroundClass = 'bg-[#060b1c]';
   const mainClassName = isLiteScoutRoute
     ? 'flex-1 relative w-full bg-[#060b1c]'
-    : 'flex-1 relative w-full px-3 sm:px-4 md:px-6 py-6 bg-[#060b1c]';
+    : 'flex-1 relative w-full bg-[#060b1c]';
 
   const ContractorsBoardLegacy = memo(function ContractorsBoardLegacy() {
     const [, setLocationInner] = useLocation();
