@@ -1011,7 +1011,7 @@ export default function ScoutOS() {
                   </h1>
                   <p className="text-base sm:text-lg text-tsTextMuted max-w-3xl">
                     {isAuthenticated && heroAudienceLabel
-                      ? `For ${heroAudienceLabel} working in ${heroHeadlineTarget}.`
+                      ? `For ${heroAudienceLabel} in ${heroHeadlineTarget}.`
                       : "Interact with neighbors, find verified local talent, and access real-time area intelligence."}
                   </p>
                 </div>
@@ -1129,24 +1129,23 @@ export default function ScoutOS() {
           // FULL CONVERSATION: All features visible after first message,
           // centered column similar to ChatGPT chat layout.
           <div className="max-w-xl mx-auto w-full flex flex-col flex-1 min-h-0">
-            {/* Header + hero (copy only; all navigation lives in AppShell) */}
-            <header className="space-y-1 text-center">
-              <p className="text-[10px] tracking-[0.25em] text-orange-300 uppercase">
-                COMMUNITY OS
+            {/* Header is contextual, not a hero – keep it light and muted */}
+            <header className="space-y-0.5 text-center">
+              <p className="text-[11px] tracking-[0.18em] text-slate-500 uppercase">
+                Community OS
               </p>
-              <h1 className="mt-1 text-[clamp(0.8rem,3vw,1.1rem)] tracking-[0.1em] text-white uppercase whitespace-nowrap">
-                <span className="text-white">EMPOWERING </span>
-                <span className="text-orange-400">YOUR COMMUNITY</span>
-              </h1>
+              <p className="text-[11px] text-slate-400">
+                Empowering your community
+              </p>
 
-              <p className="text-[11px] text-slate-400 max-w-md">
+              <p className="mt-1 text-[11px] text-slate-500 max-w-md mx-auto">
                 {isAuthenticated && heroAudienceLabel
-                  ? `For ${heroAudienceLabel} working in ${heroHeadlineTarget}.`
+                  ? `For ${heroAudienceLabel} in ${heroHeadlineTarget}.`
                   : "Your local AI for projects, people, and community."}
               </p>
 
               {!isAuthenticated && (
-                <p className="mt-1 text-[11px] text-slate-300/90 max-w-md">
+                <p className="mt-0.5 text-[11px] text-slate-400/90 max-w-md mx-auto">
                   You can explore without an account. Sign in when you want to save, post, or message.
                 </p>
               )}
@@ -1156,12 +1155,14 @@ export default function ScoutOS() {
                 the bottom of the viewport, with the input pinned just above
                 the global bottom nav. */}
             <div
-              className={`mt-3 flex flex-col flex-1 min-h-0 ${
+              className={`mt-2 flex flex-col flex-1 min-h-0 ${
                 isMobile ? "space-y-3" : "space-y-4"
               }`}
             >
               {!hasUserMessages && (
-                <div className="flex flex-wrap gap-2 justify-center text-center">
+                <div className="mx-auto w-full max-w-md text-left space-y-1.5">
+                  <p className="text-[11px] text-slate-500">Try asking:</p>
+                  <div className="space-y-1.5">
                   {sortPromptsByLength(
                     autoPromptSuggestions.length
                       ? autoPromptSuggestions.slice(0, 3)
@@ -1190,11 +1191,12 @@ export default function ScoutOS() {
                         setPrefillKey((k) => k + 1);
                         handleSend(prompt);
                       }}
-                      className="px-3 py-1.5 text-[11px] rounded-full border border-slate-700 bg-slate-900 hover:border-orange-400 max-w-full"
+                      className="w-full text-left text-[12px] rounded-lg px-3 py-1.5 text-slate-200 border border-transparent hover:border-slate-600 hover:bg-slate-900/70 transition-colors"
                     >
                       {prompt}
                     </button>
                   ))}
+                  </div>
                 </div>
               )}
 
@@ -1358,23 +1360,28 @@ export default function ScoutOS() {
                 }}
               />
 
-              <ScoutInput
-                key={prefillKey}
-                disabled={isBusy}
-                placeholder="Ask about contractors, projects, or your community"
-                onSend={(value) => handleSend(value)}
-                onUserTyping={() => {
-                  setHasGuestInteracted(true);
-                  recordActivity({
-                    type: "ask_scout",
-                    ts: new Date().toISOString(),
-                    path: location,
-                    label: "typing",
-                  });
-                }}
-                prefillKey="scout-main"
-                initialValue=""
-              />
+              <div className="space-y-1.5">
+                <p className="text-[11px] text-slate-500">
+                  What are you working on today?
+                </p>
+                <ScoutInput
+                  key={prefillKey}
+                  disabled={isBusy}
+                  placeholder="Ask Scout anything about your community, projects, or local pros…"
+                  onSend={(value) => handleSend(value)}
+                  onUserTyping={() => {
+                    setHasGuestInteracted(true);
+                    recordActivity({
+                      type: "ask_scout",
+                      ts: new Date().toISOString(),
+                      path: location,
+                      label: "typing",
+                    });
+                  }}
+                  prefillKey="scout-main"
+                  initialValue=""
+                />
+              </div>
 
               {!isAuthenticated && (
                 <div className="text-xs text-slate-300/90">
