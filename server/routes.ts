@@ -586,6 +586,12 @@ export async function registerRoutes(app: any) {
         console.error('Failed to persist ToS acceptance:', e);
       }
 
+      // Automatic community welcome + (optionally) Scout-authored intro post
+      await createAutomaticCommunityWelcomeForUser(user, {
+        createdViaScout:
+          typeof body.source === "string" && body.source.toLowerCase() === "scout",
+      });
+
       // Auto-login after registration
       req.login(user, (err) => {
         if (err) {
@@ -1381,6 +1387,19 @@ export async function registerRoutes(app: any) {
 
             if (user) {
               (user as any)._wasNewSocialUser = isNewUser;
+
+              if (isNewUser) {
+                // Fire-and-forget welcome post; don't block OAuth callback
+                createAutomaticCommunityWelcomeForUser(user as any).catch((err) => {
+                  console.error(
+                    "[Community] Failed to create automatic welcome/intro posts for Google user",
+                    {
+                      userId: (user as any)?.id,
+                      error: (err as any)?.message,
+                    }
+                  );
+                });
+              }
             }
 
             done(null, user as any);
@@ -6846,7 +6865,8 @@ export async function registerRoutes(app: any) {
   });
 
   // Unified notifications summary endpoint
-  app.get("/api/notifications", isAuthenticated, async (req: any, res: any) => {
+  // NOTE: Detailed notification list + actions live in routes/notification-routes.ts
+  app.get("/api/notifications/summary", isAuthenticated, async (req: any, res: any) => {
     try {
       const user = req.user as any;
       const summary = await (storage as any).getNotificationsSummary(user?.id);
@@ -7339,6 +7359,100 @@ export async function registerRoutes(app: any) {
     }
 
     return Array.from(tags).slice(0, 8);
+  }
+
+  async function createAutomaticCommunityWelcomeForUser(
+    user: any,
+    options?: { createdViaScout?: boolean }
+  ): Promise<void> {
+    try {
+      const resolvedStateCode = (user.state as string | undefined) || undefined;
+      const resolvedCountyFips = ((user as any).countyFips as string | undefined) || undefined;
+      const countyLabel = ((user as any).county as string | undefined) || undefined;
+
+      const rolesRaw: string[] = Array.isArray((user as any).roles) && (user as any).roles.length
+        ? (user as any).roles
+        : ((user as any).role ? [(user as any).role] : []);
+
+      const formatRoleLabel = (role: string) =>
+        role
+          .replace(/_/g, " ")
+          .replace(/\b\w/g, (c) => c.toUpperCase());
+
+      const rolesLabel = rolesRaw.length
+        ? rolesRaw.map((r) => formatRoleLabel(r)).join(", ")
+        : "neighbor";
+
+      const firstName = (user.firstName as string | undefined) || "A neighbor";
+      const lastName = (user.lastName as string | undefined) || "";
+
+      const locationLabel =
+        countyLabel && resolvedStateCode
+          ? `${countyLabel} County, ${resolvedStateCode}`
+          : resolvedStateCode || "your area";
+
+      const welcomeTitle = `Welcome ${firstName} to the community`;
+      const welcomeContent =
+        `Please welcome ${firstName}${lastName ? " " + lastName[0] + "." : ""} in ${locationLabel} to the TradeScout community. ` +
+        `They're joining as ${rolesLabel}. Say hi, share a recommendation, or invite them into your next project.`;
+
+      const welcomeTags = deriveCommunityTagsFromContent(
+        welcomeTitle,
+        welcomeContent,
+        "welcome"
+      );
+
+      await storage.createCommunityPost({
+        title: welcomeTitle,
+        content: welcomeContent,
+        category: "welcome",
+        scope: "county",
+        stateCode: resolvedStateCode,
+        countyFips: resolvedCountyFips,
+        imageUrls: undefined,
+        authorId: user.id,
+        isPublished: true,
+        isHidden: false,
+        likeCount: 0,
+        commentCount: 0,
+        tags: welcomeTags.length ? welcomeTags : undefined,
+      });
+
+      if (options?.createdViaScout) {
+        const introTitle = `Hi neighbors, I'm ${firstName}`;
+        const introContent =
+          `Hi neighbors, I'm ${firstName}${lastName ? " " + lastName[0] + "." : ""}. ` +
+          `I just joined TradeScout as ${rolesLabel}. ` +
+          `I'm here to connect with neighbors, share recommendations, and keep up with trusted local pros in ${locationLabel}.`;
+
+        const introTags = deriveCommunityTagsFromContent(
+          introTitle,
+          introContent,
+          "introduction"
+        );
+
+        await storage.createCommunityPost({
+          title: introTitle,
+          content: introContent,
+          category: "introduction",
+          scope: "county",
+          stateCode: resolvedStateCode,
+          countyFips: resolvedCountyFips,
+          imageUrls: undefined,
+          authorId: user.id,
+          isPublished: true,
+          isHidden: false,
+          likeCount: 0,
+          commentCount: 0,
+          tags: introTags.length ? introTags : undefined,
+        });
+      }
+    } catch (err) {
+      console.error("[Community] Failed to create automatic welcome/intro posts for user", {
+        userId: (user as any)?.id,
+        error: (err as any)?.message,
+      });
+    }
   }
 
   app.post("/api/community/posts", isAuthenticated, async (req: any, res: any) => {

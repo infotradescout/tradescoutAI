@@ -30,36 +30,35 @@ export default function Notifications() {
 
   // Fetch user notifications
   const { data: notifications, isLoading } = useQuery({
-    queryKey: ["/api/notifications", filter === 'unread'],
+    queryKey: ["/api/notifications:list", filter === 'unread'],
     queryFn: async () => {
-      const response = await apiRequest("GET", `/api/notifications?unreadOnly=${filter === 'unread'}`);
-      return response.json();
+      const unread_only = filter === 'unread' ? 'true' : 'false';
+      const data = await apiRequest("GET", `/api/notifications?unread_only=${unread_only}`);
+      return data;
     }
   });
 
   // Mark notification as read
   const markAsReadMutation = useMutation({
     mutationFn: async (notificationId: string) => {
-      const response = await apiRequest("PUT", `/api/notifications/${notificationId}/read`);
-      return response.json();
+      return apiRequest("POST", `/api/notifications/${notificationId}/read`);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/notifications"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/notifications:list"] });
     },
   });
 
   // Mark all notifications as read
   const markAllAsReadMutation = useMutation({
     mutationFn: async () => {
-      const response = await apiRequest("PUT", "/api/notifications/mark-all-read");
-      return response.json();
+      return apiRequest("POST", "/api/notifications/mark-all-read");
     },
     onSuccess: () => {
       toast({
         title: "All Notifications Marked as Read",
         description: "Your notification list has been updated",
       });
-      queryClient.invalidateQueries({ queryKey: ["/api/notifications"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/notifications:list"] });
     },
   });
 

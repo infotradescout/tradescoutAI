@@ -1397,6 +1397,11 @@ async function getStandaloneAccountingSnapshotForUser(userId: string): Promise<{
     [userId],
   );
 
+  console.info("[Scout][Finance] standalone accounting snapshot", {
+    userId,
+    invoiceCount: Array.isArray(rows) ? rows.length : 0,
+  });
+
   let totalInvoiced = 0;
   let totalPaid = 0;
   const perClientOpen: Record<string, number> = {};
@@ -1447,6 +1452,11 @@ async function getStandaloneVendorSnapshotForUser(userId: string): Promise<{
     [userId],
   );
 
+  console.info("[Scout][Finance] standalone vendor snapshot", {
+    userId,
+    expenseCount: Array.isArray(rows) ? rows.length : 0,
+  });
+
   let totalExpenses = 0;
   const perVendor: Record<string, number> = {};
 
@@ -1488,6 +1498,11 @@ async function getJobFinancesSnapshot(jobId: string): Promise<{
        WHERE job_id = $1`,
     [jobId],
   );
+
+  console.info("[Scout][Finance] job finances snapshot", {
+    jobId,
+    documentCount: Array.isArray(rows) ? rows.length : 0,
+  });
 
   let income = 0;
   let collected = 0;
@@ -2488,6 +2503,8 @@ router.post("/", async (req: Request, res: Response) => {
       ) {
         let arSummaryLine: string | null = null;
         let vendorSummaryLine: string | null = null;
+        let arWhyLine: string | null = null;
+        let vendorWhyLine: string | null = null;
 
         try {
           const snapshot = await getStandaloneAccountingSnapshotForUser(String(userId));
@@ -2511,6 +2528,20 @@ router.post("/", async (req: Request, res: Response) => {
             }
 
             arSummaryLine = pieces.join(" ");
+
+            // "Why this matters" interpretation line for AR
+            if (snapshot.totalUnpaid > 0 && snapshot.largestOpenClient && snapshot.largestOpenClient.amount > 0) {
+              const share = snapshot.totalUnpaid > 0
+                ? snapshot.largestOpenClient.amount / snapshot.totalUnpaid
+                : 0;
+              if (share >= 0.6) {
+                arWhyLine = `Why this matters: most of your open AR is tied up with ${snapshot.largestOpenClient.name}, so nudging them will move cash the fastest.`;
+              } else if (snapshot.clientCount > 1) {
+                arWhyLine = `Why this matters: your open AR is spread across ${snapshot.clientCount} clients, so focusing on the largest balances will unlock cash quicker.`;
+              }
+            } else if (snapshot.totalUnpaid === 0 && snapshot.totalPaid > 0) {
+              arWhyLine = `Why this matters: you have no open AR right now, so your next cash bump will come from new invoices or repeat work.`;
+            }
           }
         } catch (finErr) {
           console.error("[Scout] Failed to compute standalone accounting snapshot", finErr);
@@ -2533,6 +2564,17 @@ router.post("/", async (req: Request, res: Response) => {
                 );
               }
               vendorSummaryLine = parts.join(" ");
+
+              // "Why this matters" interpretation line for vendor spend
+              const topShare =
+                vendorSnapshot.totalExpenses > 0 && vendorSnapshot.topVendor
+                  ? vendorSnapshot.topVendor.amount / vendorSnapshot.totalExpenses
+                  : 0;
+              if (vendorSnapshot.topVendor && topShare >= 0.6) {
+                vendorWhyLine = `Why this matters: most of your spend is concentrated with ${vendorSnapshot.topVendor.name}, so any renegotiation or change there will have an outsized impact.`;
+              } else if (vendorSnapshot.vendorCount > 1) {
+                vendorWhyLine = `Why this matters: your expenses are spread across several vendors, so looking at the top few will show where money is really going.`;
+              }
             }
           } catch (vendorErr) {
             console.error("[Scout] Failed to compute standalone vendor snapshot", vendorErr);
@@ -2589,9 +2631,15 @@ router.post("/", async (req: Request, res: Response) => {
         const financeLines: string[] = [aiResponse.message];
         if (arSummaryLine) {
           financeLines.push(arSummaryLine);
+          if (arWhyLine) {
+            financeLines.push(arWhyLine);
+          }
         }
         if (vendorSummaryLine && (wantsVendorsView || (!wantsARView && wantsFinancesOverview))) {
           financeLines.push(vendorSummaryLine);
+          if (vendorWhyLine) {
+            financeLines.push(vendorWhyLine);
+          }
         }
         if (wantsARView) {
           financeLines.push("I'll open your Finances  Clients view so you can see open balances and who still owes you.");
@@ -2663,6 +2711,18 @@ router.post("/", async (req: Request, res: Response) => {
                     lines.push(
                       `You've recorded ${formatUsd(jf.expenses)} in expenses so far, for a simple net of ${formatUsd(jf.net)} before taxes and overhead.`,
                     );
+
+                    // "Why this matters" interpretation for per-job finances
+                    if (jf.net > 0) {
+                      lines.push(
+                        `Why this matters: this job is currently net positive, so protecting margin means watching for any last-minute expenses or discounts.`,
+                      );
+                    } else if (jf.net < 0) {
+                      lines.push(
+                        `Why this matters: this job is currently running negative, so the next decisions on change orders, scope, or expenses will determine whether it breaks even.`,
+                      );
+                    }
+
                     const combined = `${lines.join(" ")}\n\n${aiResponse.message}`;
                     const trimmed = trimResponseToScreenFit(combined);
                     aiResponse.message = appendFinanceConfidenceLine(trimmed);

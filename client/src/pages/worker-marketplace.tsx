@@ -372,7 +372,14 @@ export default function WorkerMarketplace() {
                   <Plus className="h-4 w-4 mr-2" />
                   Post a Task
                 </Button>
-                <Button variant="outline" className="border-gray-300 text-gray-300 hover:bg-gray-300 hover:text-navy-800">
+                <Button
+                  variant="outline"
+                  className="border-gray-300 text-gray-300 hover:bg-gray-300 hover:text-navy-800"
+                  onClick={() => {
+                    // Route helpers into the dedicated Helpers hub to create or manage profiles
+                    window.location.href = "/helpers";
+                  }}
+                >
                   {activeTab === "find-workers" ? "Join as Helper" : "Create Helper Profile"}
                 </Button>
               </div>
