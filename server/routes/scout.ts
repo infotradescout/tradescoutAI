@@ -1367,6 +1367,18 @@ function formatUsd(amount: number): string {
   return rounded % 1 === 0 ? `$${rounded.toFixed(0)}` : `$${rounded.toFixed(2)}`;
 }
 
+function appendFinanceConfidenceLine(message: string): string {
+  // Avoid duplicating the confidence line if we already added it earlier
+  if (message.includes("TradeScout invoices and expenses")) {
+    return message;
+  }
+
+  const confidenceLine =
+    "When I quote amounts here, they're pulled directly from your TradeScout invoices and expenses, not estimates or guesses.";
+
+  return trimResponseToScreenFit(`${message}\n\n${confidenceLine}`);
+}
+
 async function getStandaloneAccountingSnapshotForUser(userId: string): Promise<{
   totalInvoiced: number;
   totalPaid: number;
@@ -2582,24 +2594,18 @@ router.post("/", async (req: Request, res: Response) => {
           financeLines.push(vendorSummaryLine);
         }
         if (wantsARView) {
-          financeLines.push(
-            "I'll open your Finances → Clients view so you can see open balances and who still owes you."
-          );
+          financeLines.push("I'll open your Finances  Clients view so you can see open balances and who still owes you.");
         } else if (wantsVendorsView) {
-          financeLines.push(
-            "I'll open your Finances → Vendors view so you can review where your money is going."
-          );
+          financeLines.push("I'll open your Finances  Vendors view so you can review where your money is going.");
         } else if (wantsReportsView) {
-          financeLines.push(
-            "I'll open your Finances → Reports view so you can see income, expenses, and a simple tax set-aside suggestion."
-          );
+          financeLines.push("I'll open your Finances  Reports view so you can see income, expenses, and a simple tax set-aside suggestion.");
         } else if (wantsFinancesOverview) {
-          financeLines.push(
-            "I'll open your Finances workspace so you can see invoices, expenses, and simple reports in one place."
-          );
+          financeLines.push("I'll open your Finances workspace so you can see invoices, expenses, and simple reports in one place.");
         }
 
         aiResponse.message = trimResponseToScreenFit(financeLines.join("\n\n"));
+        const combinedFinanceMessage = trimResponseToScreenFit(financeLines.join("\n\n"));
+        aiResponse.message = appendFinanceConfidenceLine(combinedFinanceMessage);
       }
 
       // Project tracker / deal room actions
@@ -2658,7 +2664,8 @@ router.post("/", async (req: Request, res: Response) => {
                       `You've recorded ${formatUsd(jf.expenses)} in expenses so far, for a simple net of ${formatUsd(jf.net)} before taxes and overhead.`,
                     );
                     const combined = `${lines.join(" ")}\n\n${aiResponse.message}`;
-                    aiResponse.message = trimResponseToScreenFit(combined);
+                    const trimmed = trimResponseToScreenFit(combined);
+                    aiResponse.message = appendFinanceConfidenceLine(trimmed);
                   }
                 } catch (jobFinErr) {
                   console.error("[Scout] Failed to compute per-job finances snapshot", jobFinErr);
