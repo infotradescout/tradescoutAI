@@ -8,7 +8,6 @@ import { useScoutState } from "./state";
 import ScoutThread from "./ScoutThread";
 import ScoutInput from "./ScoutInput";
 import ScoutToolsDrawer from "./ScoutToolsDrawer";
-import ScoutTrending from "./ScoutTrending";
 import {
   sendToScout,
   logScoutInsight,
@@ -29,9 +28,21 @@ import {
   hasSeenFirstAnswer,
   markFirstAnswerSeen,
 } from "../agent/activity";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { ArrowRight, MessageCircle, Sparkles, Activity } from "lucide-react";
 
 const INTRO_DEMO_TEXT = "What can TradeScout do for my community?";
 const INTRO_DEMO_STORAGE_KEY = "ts_intro_demo_v3";
+
+const HERO_SUGGESTION_PROMPTS = [
+  "Find a reliable plumber for a kitchen leak",
+  "How much does it cost to paint a 12x12 room?",
+  "Roof repair specialists near me",
+  "Permits needed for a deck in Texas",
+  "Best work van for HVAC technician",
+  "Landscaping ideas for small backyards",
+];
 
 const BANNED_TERMS = ["fuck", "shit", "bitch", "asshole", "cunt", "slut", "whore"];
 
@@ -250,13 +261,8 @@ export default function ScoutOS() {
     return "default";
   };
 
-  const recentPrompts = useMemo(
-    () =>
-      state.messages
-        .filter((m) => m.role === "user" && !!m.content)
-        .map((m) => m.content as string),
-    [state.messages]
-  );
+  // We no longer surface the separate "Trending" tab at the bottom; all
+  // focus stays on the main Scout thread and input.
 
   const buildSmartSuggestions = (
     mode: ScoutMode,
@@ -970,72 +976,150 @@ export default function ScoutOS() {
     <div className="min-h-screen text-white flex flex-col items-center bg-slate-950">
       <div
         className={`w-full ${
-          isMobile ? "max-w-xl px-3 pt-3 pb-2" : "max-w-xl px-4 pt-6 pb-3"
+          isMobile ? "max-w-6xl px-3 pt-3 pb-2" : "max-w-6xl px-4 pt-6 pb-3"
         } space-y-4`}
       >
         {isFirstGuestVisit ? (
-          // FIRST GUEST INTRO: Clean, intentional, single-purpose
+          // FIRST GUEST INTRO: Community OS hero layout
           <div className="space-y-6">
-            <header className="text-center space-y-1">
-              <p className="text-[10px] tracking-[0.25em] text-orange-300 uppercase">
-                COMMUNITY OS
-              </p>
-              <h1 className="text-lg md:text-xl font-black tracking-[0.12em] text-white uppercase">
-                <span className="text-white">EMPOWERING </span>
-                <span className="text-orange-400">{heroHeadlineTarget}</span>
-              </h1>
-              <p className="text-[11px] text-slate-300/90 max-w-md mx-auto">
-                {isAuthenticated && heroAudienceLabel
-                  ? `For ${heroAudienceLabel} working in ${heroHeadlineTarget}.`
-                  : "Your local AI for projects, people, and community."}
-              </p>
-            </header>
+            <div className="relative overflow-hidden rounded-2xl border border-tsBorder bg-slate-950/70 shadow-2xl shadow-black/40 px-5 sm:px-8 py-8">
+              <div className="absolute inset-0 pointer-events-none">
+                <div className="absolute inset-0 bg-[radial-gradient(circle_at_35%_30%,#0f1d3d,#020617_55%,#020617)] opacity-70" />
+                <div className="absolute top-1/3 left-1/4 w-80 h-80 bg-orange-500/15 blur-3xl" />
+                <div className="absolute bottom-[-10%] right-1/4 w-96 h-96 bg-cyan-500/12 blur-3xl" />
+              </div>
 
-            {/* Scripted intro demo composer (types, pulses send, then sends) */}
-            <div
-              className={`rounded-2xl border border-slate-800 bg-[#020617] ${
-                isMobile ? "px-3 py-3" : "px-4 py-4"
-              } space-y-2`}
-            >
-              <textarea
-                value={introDemoText}
-                onChange={(e) => {
-                  abortIntroDemo();
-                  if (!hasGuestInteracted && e.target.value.trim().length > 0) {
-                    setHasGuestInteracted(true);
-                    recordActivity({
-                      type: "ask_scout",
-                      ts: new Date().toISOString(),
-                      path: location,
-                      label: "typed",
-                    });
-                  }
-                  setIntroDemoText(e.target.value);
-                }}
-                disabled={isBusy}
-                placeholder="Ask about contractors, projects, or your community"
-                rows={3}
-                className="w-full resize-none rounded-2xl bg-[#020617] px-4 py-3 text-sm text-slate-100 placeholder:text-slate-400/70 focus:outline-none focus:ring-2 focus:ring-orange-500/60 min-h-[80px]"
-              />
-              <button
-                type="button"
-                onClick={() => {
-                  abortIntroDemo();
-                  const trimmed = introDemoText.trim();
-                  if (!trimmed) return;
-                  setHasGuestInteracted(true);
-                  void handleSend(trimmed);
-                }}
-                disabled={isBusy || !introDemoText.trim()}
-                className={`inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-slate-700 px-4 py-3 text-sm font-semibold text-slate-100 hover:bg-slate-600 disabled:cursor-not-allowed disabled:opacity-60 ${
-                  introDemoState === "armingSend" ? "animate-pulse" : ""
-                }`}
-              >
-                <span className="inline-flex h-4 w-4 items-center justify-center rounded-full bg-slate-800/80 text-[10px] font-bold text-orange-300">
-                  ↗
-                </span>
-                <span>{isBusy ? "Sending..." : "Send"}</span>
-              </button>
+              <div className="relative z-10 flex flex-col gap-6">
+                <div className="flex items-center gap-3 flex-wrap justify-between">
+                  <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-white/10 bg-white/5 text-[11px] font-semibold tracking-[0.18em] uppercase text-tsAccentSoft shadow-lg shadow-orange-500/10">
+                    <span className="w-2 h-2 rounded-full bg-orange-400 animate-pulse" />
+                    Community Operating System
+                  </div>
+                  <div className="flex items-center gap-2 text-xs text-tsTextMuted">
+                    <Sparkles className="w-4 h-4 text-tsAccent" />
+                    <span>Nationwide tools, local connection</span>
+                  </div>
+                </div>
+
+                <div className="flex flex-col gap-2 text-left">
+                  <h1 className="text-4xl sm:text-5xl font-black leading-tight drop-shadow-[0_8px_30px_rgba(0,0,0,0.35)]">
+                    <span className="text-white">EMPOWERING </span>
+                    <span className="text-tsAccent">{heroHeadlineTarget}</span>
+                  </h1>
+                  <p className="text-base sm:text-lg text-tsTextMuted max-w-3xl">
+                    {isAuthenticated && heroAudienceLabel
+                      ? `For ${heroAudienceLabel} working in ${heroHeadlineTarget}.`
+                      : "Interact with neighbors, find verified local talent, and access real-time area intelligence."}
+                  </p>
+                </div>
+
+                <div className="grid gap-6 lg:grid-cols-[1.25fr,1fr]">
+                  <Card className="bg-slate-900/80 border border-tsBorder rounded-2xl shadow-xl shadow-black/30">
+                    <div className="p-4 sm:p-6 flex flex-col gap-4">
+                      <div className="flex flex-col gap-3">
+                        <label className="text-xs uppercase tracking-[0.18em] text-tsTextMuted">Ask Scout</label>
+                        <textarea
+                          className="w-full rounded-xl bg-[#0c1a33] border border-white/10 px-4 py-3 text-base text-white placeholder:text-white/55 focus:outline-none focus:ring-2 focus:ring-tsAccent/80 min-h-[96px]"
+                          rows={3}
+                          placeholder="Ask a question, find a pro, check local codes, or get advice..."
+                          value={introDemoText}
+                          onChange={(e) => {
+                            abortIntroDemo();
+                            if (!hasGuestInteracted && e.target.value.trim().length > 0) {
+                              setHasGuestInteracted(true);
+                              recordActivity({
+                                type: "ask_scout",
+                                ts: new Date().toISOString(),
+                                path: location,
+                                label: "typed",
+                              });
+                            }
+                            setIntroDemoText(e.target.value);
+                          }}
+                          disabled={isBusy}
+                        />
+                        <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+                          <Button
+                            onClick={() => {
+                              abortIntroDemo();
+                              const trimmed = introDemoText.trim();
+                              if (!trimmed) return;
+                              setHasGuestInteracted(true);
+                              void handleSend(trimmed);
+                            }}
+                            disabled={!introDemoText.trim() || isBusy}
+                            className="w-full sm:w-auto px-5 h-12 rounded-xl bg-gradient-to-r from-tsAccent to-orange-600 text-white font-semibold shadow-lg shadow-orange-600/30 disabled:cursor-not-allowed disabled:opacity-60"
+                          >
+                            {isBusy ? "Searching..." : "Start Search"}
+                            <ArrowRight className="w-4 h-4 ml-2" />
+                          </Button>
+                          <div className="flex items-center gap-3 text-xs text-tsTextMuted">
+                            <div className="flex items-center gap-1 text-cyan-300">
+                              <Activity className="w-4 h-4" />
+                              Scout Active
+                            </div>
+                            <div className="flex items-center gap-1">
+                              <MessageCircle className="w-4 h-4" />
+                              Real-time intelligence
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </Card>
+
+                  <div className="space-y-4">
+                    <Card className="bg-slate-900/80 border border-tsBorder rounded-2xl shadow-xl shadow-black/30 p-4 sm:p-5">
+                      <div className="flex items-center justify-between mb-3">
+                        <div className="text-sm font-semibold text-tsTextMain">Quick Start</div>
+                        {!isAuthenticated && (
+                          <button
+                            type="button"
+                            className="text-xs text-tsAccent hover:underline"
+                            onClick={() => navigate("/register")}
+                          >
+                            Join
+                          </button>
+                        )}
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                        {HERO_SUGGESTION_PROMPTS.slice(0, 3).map((prompt) => (
+                          <button
+                            key={prompt}
+                            type="button"
+                            onClick={() => {
+                              setHasGuestInteracted(true);
+                              setIntroDemoText(prompt);
+                            }}
+                            className="px-3 py-2 rounded-full bg-slate-800 border border-tsBorder text-xs text-tsTextMain hover:border-tsAccent hover:text-white transition shadow-sm shadow-black/20"
+                          >
+                            {prompt}
+                          </button>
+                        ))}
+                      </div>
+                    </Card>
+
+                    <Card className="bg-slate-900/80 border border-tsBorder rounded-2xl shadow-xl shadow-black/30 p-4 sm:p-5">
+                      <div className="text-sm font-semibold text-tsTextMain mb-3">Explore Community Tools</div>
+                      <div className="flex flex-wrap gap-2">
+                        {HERO_SUGGESTION_PROMPTS.slice(3).map((prompt) => (
+                          <button
+                            key={prompt}
+                            type="button"
+                            onClick={() => {
+                              setHasGuestInteracted(true);
+                              setIntroDemoText(prompt);
+                            }}
+                            className="px-3 py-2 rounded-full bg-slate-800 border border-tsBorder text-xs text-tsTextMain hover:border-tsAccent hover:text-white transition shadow-sm shadow-black/20"
+                          >
+                            {prompt}
+                          </button>
+                        ))}
+                      </div>
+                    </Card>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         ) : (
@@ -1300,16 +1384,6 @@ export default function ScoutOS() {
                 </div>
               )}
             </div>
-
-            {/* Trending */}
-            <ScoutTrending
-              locality={locality}
-              recentPrompts={recentPrompts}
-              onPromptClick={(prompt) => {
-                setHasGuestInteracted(true);
-                handleSend(prompt);
-              }}
-            />
           </>
         )}
       </div>

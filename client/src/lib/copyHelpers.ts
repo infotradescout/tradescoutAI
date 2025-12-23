@@ -13,11 +13,16 @@ export function sanitizeAreaLabel(input: string): string {
 export function getUserLocationLabel(user: User | null | undefined): string {
   if (!user) return "your area";
 
+  const zip = (user as any)?.zipCode || (user as any)?.zipcode || (user as any)?.postalCode;
+
+  if (user.city && user.state && zip) return `${user.city}, ${user.state} ${zip}`;
   if (user.city && user.state) return `${user.city}, ${user.state}`;
   if (user.city) return user.city;
 
   if ((user as any).location) return String((user as any).location);
 
+  if (user.county && user.state && zip)
+    return `${sanitizeAreaLabel(String(user.county))}, ${user.state} ${zip}`;
   if (user.county && user.state)
     return `${sanitizeAreaLabel(String(user.county))}, ${user.state}`;
   if (user.county) return sanitizeAreaLabel(String(user.county));

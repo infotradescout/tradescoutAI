@@ -116,6 +116,17 @@ const Foundation = React.lazy(() => import('./pages/foundation'));
 const Accounting = React.lazy(() => import('./pages/accounting'));
 const FinancesInvoices = React.lazy(() => import('./pages/finances-invoices'));
 const FinancesExpenses = React.lazy(() => import('./pages/finances-expenses'));
+// Per-tab finances workspaces
+const FinancesClients = React.lazy(() => import('./pages/finances-clients'));
+const FinancesMaterials = React.lazy(() => import('./pages/finances-materials'));
+const FinancesEstimates = React.lazy(() => import('./pages/finances-estimates'));
+const FinancesJobs = React.lazy(() => import('./pages/finances-jobs'));
+const FinancesEmployees = React.lazy(() => import('./pages/finances-employees'));
+const FinancesPayroll = React.lazy(() => import('./pages/finances-payroll'));
+const FinancesVendors = React.lazy(() => import('./pages/finances-vendors'));
+const FinancesBankAccounts = React.lazy(() => import('./pages/finances-bank-accounts'));
+const FinancesReports = React.lazy(() => import('./pages/finances-reports'));
+const FinancesSettings = React.lazy(() => import('./pages/finances-settings'));
 const TasksHub = React.lazy(() => import('./pages/tasks'));
 const DealRoomPage = React.lazy(() => import('./pages/deal-room'));
 // NOTE: CommunityFeedOld mock has been quarantined to client/src/playgrounds/CommunityFeedMock.tsx
@@ -793,6 +804,56 @@ const AppLayout = memo(function AppLayout() {
                   <Route path="/finances/expenses">
                     <ProtectedRoute>
                       <LazyPage Component={FinancesExpenses} />
+                    </ProtectedRoute>
+                  </Route>
+                  <Route path="/finances/clients">
+                    <ProtectedRoute>
+                      <LazyPage Component={FinancesClients} />
+                    </ProtectedRoute>
+                  </Route>
+                  <Route path="/finances/materials">
+                    <ProtectedRoute>
+                      <LazyPage Component={FinancesMaterials} />
+                    </ProtectedRoute>
+                  </Route>
+                  <Route path="/finances/estimates">
+                    <ProtectedRoute>
+                      <LazyPage Component={FinancesEstimates} />
+                    </ProtectedRoute>
+                  </Route>
+                  <Route path="/finances/jobs">
+                    <ProtectedRoute>
+                      <LazyPage Component={FinancesJobs} />
+                    </ProtectedRoute>
+                  </Route>
+                  <Route path="/finances/employees">
+                    <ProtectedRoute>
+                      <LazyPage Component={FinancesEmployees} />
+                    </ProtectedRoute>
+                  </Route>
+                  <Route path="/finances/payroll">
+                    <ProtectedRoute>
+                      <LazyPage Component={FinancesPayroll} />
+                    </ProtectedRoute>
+                  </Route>
+                  <Route path="/finances/vendors">
+                    <ProtectedRoute>
+                      <LazyPage Component={FinancesVendors} />
+                    </ProtectedRoute>
+                  </Route>
+                  <Route path="/finances/bank-accounts">
+                    <ProtectedRoute>
+                      <LazyPage Component={FinancesBankAccounts} />
+                    </ProtectedRoute>
+                  </Route>
+                  <Route path="/finances/reports">
+                    <ProtectedRoute>
+                      <LazyPage Component={FinancesReports} />
+                    </ProtectedRoute>
+                  </Route>
+                  <Route path="/finances/settings">
+                    <ProtectedRoute>
+                      <LazyPage Component={FinancesSettings} />
                     </ProtectedRoute>
                   </Route>
                   <Route path="/deal-room">

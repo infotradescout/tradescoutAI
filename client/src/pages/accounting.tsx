@@ -562,25 +562,58 @@ export default function AccountingWorkspace() {
   const handleNavClick = (key: string, targetId: string) => {
     setActiveNav(key);
 
-    // Key money flows get their own dedicated routes; the rest still scroll
+    // All key flows now get their own dedicated routes
     if (key === "dashboard") {
       navigate("/finances");
+      return;
+    }
+    if (key === "clients") {
+      navigate("/finances/clients");
+      return;
+    }
+    if (key === "materials") {
+      navigate("/finances/materials");
+      return;
+    }
+    if (key === "estimates") {
+      navigate("/finances/estimates");
+      return;
+    }
+    if (key === "jobs") {
+      navigate("/finances/jobs");
       return;
     }
     if (key === "invoices") {
       navigate("/finances/invoices");
       return;
     }
+    if (key === "employees") {
+      navigate("/finances/employees");
+      return;
+    }
+    if (key === "payroll") {
+      navigate("/finances/payroll");
+      return;
+    }
     if (key === "expenses") {
       navigate("/finances/expenses");
       return;
     }
-
-    if (typeof document !== "undefined") {
-      const el = document.getElementById(targetId);
-      if (el) {
-        el.scrollIntoView({ behavior: "smooth", block: "start" });
-      }
+    if (key === "vendors") {
+      navigate("/finances/vendors");
+      return;
+    }
+    if (key === "bank-accounts") {
+      navigate("/finances/bank-accounts");
+      return;
+    }
+    if (key === "reports") {
+      navigate("/finances/reports");
+      return;
+    }
+    if (key === "settings") {
+      navigate("/finances/settings");
+      return;
     }
   };
 

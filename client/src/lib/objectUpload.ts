@@ -24,13 +24,21 @@ export async function uploadObject(file: File | string): Promise<UploadResult> {
     contentType = file.type || "application/octet-stream";
   }
 
-  await fetch(uploadURL, {
+  const putResponse = await fetch(uploadURL, {
     method: "PUT",
     body,
     headers: {
       "Content-Type": contentType,
     },
   });
+
+  if (!putResponse.ok) {
+    console.error("Object upload failed", {
+      status: putResponse.status,
+      statusText: putResponse.statusText,
+    });
+    throw new Error("Upload failed. Please try again.");
+  }
 
   const raw = typeof uploadURL === "string" ? uploadURL : String(uploadURL);
   const publicUrl = raw.split("?")[0];
