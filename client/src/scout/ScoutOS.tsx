@@ -30,27 +30,17 @@ import {
 } from "../agent/activity";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-  const isSuperAdminTester =
-    (Array.isArray(userRoles) && userRoles.some((r) => r.toLowerCase() === "super_admin")) ||
-    (typeof sessionRole === "string" && sessionRole.toLowerCase() === "super_admin");
 import { ArrowRight, MessageCircle, Sparkles, Activity } from "lucide-react";
 import { ScoutSuggestions } from "./ScoutSuggestions";
 import { ScoutHeader } from "./ScoutHeader";
 import { ScoutInputRow } from "./ScoutInputRow";
-      if (isSuperAdminTester) {
-        // Super admins should see the intro demo on each
-        // new session's first visit to Scout, regardless of
-        // any previous localStorage flag.
-        hasPlayedIntroDemoRef.current = false;
-      } else {
-        try {
-          hasPlayedIntroDemoRef.current =
-            typeof window !== "undefined" &&
-            window.localStorage.getItem(INTRO_DEMO_STORAGE_KEY) === "1";
-        } catch {
-          hasPlayedIntroDemoRef.current = false;
-        }
-      }
+import { updateGeoPreferencesFromDeviceLocation } from "../agent/tools/geoPreferences";
+
+const INTRO_DEMO_TEXT = "What can TradeScout do for my community?";
+// Bump the storage key so the scripted intro demo runs again for
+// users who previously saw v3 and had it permanently disabled.
+const INTRO_DEMO_STORAGE_KEY = "ts_intro_demo_v4";
+
 const BANNED_TERMS = ["fuck", "shit", "bitch", "asshole", "cunt", "slut", "whore"];
 
 const WEAK_SUGGESTION_PREFIXES = [/^ask\b/i, /^explain\b/i, /^tell me more\b/i];
@@ -104,13 +94,9 @@ export default function ScoutOS() {
   const [introDemoState, setIntroDemoState] = useState<
     "idle" | "typing" | "armingSend" | "sending" | "done"
   >("idle");
-            if (!isSuperAdminTester) {
-              try {
-                window.localStorage.setItem(INTRO_DEMO_STORAGE_KEY, "1");
-              } catch {
-                // ignore
-              }
-            }
+  const introTimersRef = useRef<{
+    typeTimer: number | null;
+    startTimer: number | null;
   }>({ typeTimer: null, startTimer: null });
   const hasPlayedIntroDemoRef = useRef(false);
   const { sessionRole } = useSession();
@@ -162,6 +148,9 @@ export default function ScoutOS() {
   const userRoles = (user as any)?.roles as string[] | undefined;
   const hasRoles = Array.isArray(userRoles) && userRoles.length > 0;
   const isGuest = !isAuthenticated;
+  const isSuperAdminTester =
+    (Array.isArray(userRoles) && userRoles.some((r) => r.toLowerCase() === "super_admin")) ||
+    (typeof sessionRole === "string" && sessionRole.toLowerCase() === "super_admin");
 
   const isBusy =
     state.status === "resolving_context" ||
@@ -782,12 +771,19 @@ export default function ScoutOS() {
   useEffect(() => {
     // Load persisted flag once
     if (!hasPlayedIntroDemoRef.current) {
-      try {
-        hasPlayedIntroDemoRef.current =
-          typeof window !== "undefined" &&
-          window.localStorage.getItem(INTRO_DEMO_STORAGE_KEY) === "1";
-      } catch {
+      if (isSuperAdminTester) {
+        // Super admins should see the intro demo on each
+        // new session's first visit to Scout, regardless of
+        // any previous localStorage flag.
         hasPlayedIntroDemoRef.current = false;
+      } else {
+        try {
+          hasPlayedIntroDemoRef.current =
+            typeof window !== "undefined" &&
+            window.localStorage.getItem(INTRO_DEMO_STORAGE_KEY) === "1";
+        } catch {
+          hasPlayedIntroDemoRef.current = false;
+        }
       }
     }
 
@@ -843,10 +839,12 @@ export default function ScoutOS() {
             setIntroDemoState("sending");
             setHasGuestInteracted(true);
             void handleSend(full, undefined, { isScriptedIntro: true });
-            try {
-              window.localStorage.setItem(INTRO_DEMO_STORAGE_KEY, "1");
-            } catch {
-              // ignore
+            if (!isSuperAdminTester) {
+              try {
+                window.localStorage.setItem(INTRO_DEMO_STORAGE_KEY, "1");
+              } catch {
+                // ignore
+              }
             }
             hasPlayedIntroDemoRef.current = true;
             setIntroDemoState("done");
@@ -883,7 +881,7 @@ export default function ScoutOS() {
       cancelled = true;
       clearTimers();
     };
-  }, [handleSend, hasMessages, isAuthenticated, introDemoState]);
+  }, [handleSend, hasMessages, isAuthenticated, introDemoState, isSuperAdminTester]);
 
   const handleClusterAction = useCallback(
     (action: ScoutAction) => {
