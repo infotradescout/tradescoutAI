@@ -30,22 +30,27 @@ import {
 } from "../agent/activity";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+  const isSuperAdminTester =
+    (Array.isArray(userRoles) && userRoles.some((r) => r.toLowerCase() === "super_admin")) ||
+    (typeof sessionRole === "string" && sessionRole.toLowerCase() === "super_admin");
 import { ArrowRight, MessageCircle, Sparkles, Activity } from "lucide-react";
-
-const INTRO_DEMO_TEXT = "What can TradeScout do for my community?";
-// Bump the storage key so the scripted intro demo runs again for
-// users who previously saw v3 and had it permanently disabled.
-const INTRO_DEMO_STORAGE_KEY = "ts_intro_demo_v4";
-
-const HERO_SUGGESTION_PROMPTS = [
-  "Find a reliable plumber for a kitchen leak",
-  "How much does it cost to paint a 12x12 room?",
-  "Roof repair specialists near me",
-  "Permits needed for a deck in Texas",
-  "Best work van for HVAC technician",
-  "Landscaping ideas for small backyards",
-];
-
+import { ScoutSuggestions } from "./ScoutSuggestions";
+import { ScoutHeader } from "./ScoutHeader";
+import { ScoutInputRow } from "./ScoutInputRow";
+      if (isSuperAdminTester) {
+        // Super admins should see the intro demo on each
+        // new session's first visit to Scout, regardless of
+        // any previous localStorage flag.
+        hasPlayedIntroDemoRef.current = false;
+      } else {
+        try {
+          hasPlayedIntroDemoRef.current =
+            typeof window !== "undefined" &&
+            window.localStorage.getItem(INTRO_DEMO_STORAGE_KEY) === "1";
+        } catch {
+          hasPlayedIntroDemoRef.current = false;
+        }
+      }
 const BANNED_TERMS = ["fuck", "shit", "bitch", "asshole", "cunt", "slut", "whore"];
 
 const WEAK_SUGGESTION_PREFIXES = [/^ask\b/i, /^explain\b/i, /^tell me more\b/i];
@@ -84,12 +89,8 @@ function censorProfanity(text: string) {
   return cleaned;
 }
 
-function sortPromptsByLength(prompts: string[]): string[] {
-  return [...prompts].sort((a, b) => a.length - b.length);
-}
-
 export default function ScoutOS() {
-  const { user, isAuthenticated } = useAuth();
+  const { user, isAuthenticated, refetch: refetchUser } = useAuth();
   const [location, navigate] = useLocation();
   const isMobile = useIsMobile();
 
@@ -103,10 +104,13 @@ export default function ScoutOS() {
   const [introDemoState, setIntroDemoState] = useState<
     "idle" | "typing" | "armingSend" | "sending" | "done"
   >("idle");
-  const [introDemoText, setIntroDemoText] = useState<string>("");
-  const introTimersRef = useRef<{
-    typeTimer: number | null;
-    startTimer: number | null;
+            if (!isSuperAdminTester) {
+              try {
+                window.localStorage.setItem(INTRO_DEMO_STORAGE_KEY, "1");
+              } catch {
+                // ignore
+              }
+            }
   }>({ typeTimer: null, startTimer: null });
   const hasPlayedIntroDemoRef = useRef(false);
   const { sessionRole } = useSession();
@@ -128,16 +132,32 @@ export default function ScoutOS() {
     (user as any)?.unreadNotificationCount ??
     0;
 
-  const locality: ScoutLocality = useMemo(
-    () => ({
-      county: user?.county,
+  const locality: ScoutLocality = useMemo(() => {
+    const prefsGeo = (user as any)?.preferences?.geo;
+    const homeLocation = prefsGeo?.homeLocation as
+      | { lat?: number; lng?: number; label?: string }
+      | undefined;
+
+    return {
+      // Prefer a stored geo home-location label when explicit county
+      // is missing; otherwise keep using the canonical user county.
+      county: user?.county || (homeLocation?.label as string | undefined),
       state: user?.state,
       zip: user?.zip,
-      lat: user?.latitude,
-      lng: user?.longitude,
-    }),
-    [user?.county, user?.state, user?.zip, user?.latitude, user?.longitude]
-  );
+      // Prefer precise geo from preferences when available.
+      lat: typeof homeLocation?.lat === "number" ? homeLocation.lat : user?.latitude,
+      lng: typeof homeLocation?.lng === "number" ? homeLocation.lng : user?.longitude,
+    };
+  }, [
+    user?.county,
+    user?.state,
+    user?.zip,
+    user?.latitude,
+    user?.longitude,
+    (user as any)?.preferences?.geo?.homeLocation?.label,
+    (user as any)?.preferences?.geo?.homeLocation?.lat,
+    (user as any)?.preferences?.geo?.homeLocation?.lng,
+  ]);
 
   const userRoles = (user as any)?.roles as string[] | undefined;
   const hasRoles = Array.isArray(userRoles) && userRoles.length > 0;
@@ -645,17 +665,27 @@ export default function ScoutOS() {
           if (isGuest) {
             clusters.push({
               id: "first-account-prompt",
-              title: "Create an account to unlock local setup",
+              title: "Get set up in TradeScout",
               kind: "generic",
               body:
-                "Save your area, tailor results, and manage projects or listings in one place.",
+                "Here are three powerful first steps to take with Scout right now:\n\n1. Create a free account so Scout can remember your area, projects, and contractors.\n2. Post a question or update in your community feed so neighbors and local pros can respond.\n3. If you're a contractor, join the Contractor board to start getting local leads.",
               actions: [
                 {
                   type: "NAVIGATE",
                   label: "Create account",
                   to: ROUTES.REGISTER,
                 },
-                { type: "NOOP", label: "Continue browsing" },
+                {
+                  type: "NAVIGATE",
+                  label: "Post in community feed",
+                  to: ROUTES.COMMUNITY,
+                },
+                {
+                  type: "NAVIGATE",
+                  label: "Join Contractor board",
+                  to: ROUTES.CONTRACTOR_BOARD,
+                },
+                { type: "NOOP", label: "Keep exploring with Scout" },
               ],
             });
           }
@@ -855,27 +885,6 @@ export default function ScoutOS() {
     };
   }, [handleSend, hasMessages, isAuthenticated, introDemoState]);
 
-  const abortIntroDemo = () => {
-    if (introDemoState === "done" || introDemoState === "idle") return;
-    try {
-      if (typeof window !== "undefined") {
-        window.localStorage.setItem(INTRO_DEMO_STORAGE_KEY, "1");
-      }
-    } catch {
-      // ignore
-    }
-    hasPlayedIntroDemoRef.current = true;
-    if (introTimersRef.current.startTimer !== null) {
-      window.clearTimeout(introTimersRef.current.startTimer);
-      introTimersRef.current.startTimer = null;
-    }
-    if (introTimersRef.current.typeTimer !== null) {
-      window.clearTimeout(introTimersRef.current.typeTimer);
-      introTimersRef.current.typeTimer = null;
-    }
-    setIntroDemoState("done");
-  };
-
   const handleClusterAction = useCallback(
     (action: ScoutAction) => {
       if (action.type === "NAVIGATE") {
@@ -975,6 +984,43 @@ export default function ScoutOS() {
     return "your area";
   })();
 
+  const handleUseDeviceLocation = useCallback(() => {
+    if (isUpdatingGeo) return;
+    if (typeof window === "undefined" || !("geolocation" in navigator)) {
+      console.warn("Geolocation is not available in this environment.");
+      return;
+    }
+
+    setIsUpdatingGeo(true);
+    navigator.geolocation.getCurrentPosition(
+      async (pos) => {
+        try {
+          const { latitude, longitude } = pos.coords;
+          await updateGeoPreferencesFromDeviceLocation({
+            lat: latitude,
+            lng: longitude,
+            enableNearbyDeals: true,
+          });
+          // Refresh auth/user so Scout picks up the new geo prefs.
+          void refetchUser();
+        } catch (err) {
+          console.warn("Failed to update geo preferences from device location", err);
+        } finally {
+          setIsUpdatingGeo(false);
+        }
+      },
+      (error) => {
+        console.warn("Geolocation error", error);
+        setIsUpdatingGeo(false);
+      },
+      {
+        enableHighAccuracy: false,
+        timeout: 15000,
+        maximumAge: 5 * 60 * 1000,
+      }
+    );
+  }, [isUpdatingGeo, refetchUser]);
+
   return (
     <div className="flex flex-col flex-1 min-h-0 w-full items-center bg-slate-950 text-white">
       <div
@@ -982,221 +1028,43 @@ export default function ScoutOS() {
           isMobile ? "px-3 pt-3 pb-0" : "max-w-6xl px-4 pt-6 pb-1"
         } space-y-4 flex flex-col flex-1`}
       >
-        {isFirstGuestVisit ? (
-          // FIRST GUEST INTRO: Community OS hero layout (centered like ChatGPT)
-          <div className="space-y-6 max-w-xl mx-auto w-full">
-            <div className="relative overflow-hidden rounded-2xl border border-tsBorder bg-slate-950/70 shadow-2xl shadow-black/40 px-5 sm:px-8 py-8">
-              <div className="absolute inset-0 pointer-events-none">
-                <div className="absolute inset-0 bg-[radial-gradient(circle_at_35%_30%,#0f1d3d,#020617_55%,#020617)] opacity-70" />
-                <div className="absolute top-1/3 left-1/4 w-80 h-80 bg-orange-500/15 blur-3xl" />
-                <div className="absolute bottom-[-10%] right-1/4 w-96 h-96 bg-cyan-500/12 blur-3xl" />
-              </div>
-
-              <div className="relative z-10 flex flex-col gap-6 items-center text-center">
-                <div className="flex items-center gap-3 flex-wrap justify-center">
-                  <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-white/10 bg-white/5 text-[11px] font-semibold tracking-[0.18em] uppercase text-tsAccentSoft shadow-lg shadow-orange-500/10">
-                    <span className="w-2 h-2 rounded-full bg-orange-400 animate-pulse" />
-                    Community Operating System
-                  </div>
-                  <div className="flex items-center gap-2 text-xs text-tsTextMuted">
-                    <Sparkles className="w-4 h-4 text-tsAccent" />
-                    <span>Nationwide tools, local connection</span>
-                  </div>
-                </div>
-
-                <div className="flex flex-col gap-2 text-center">
-                  <h1 className="text-4xl sm:text-5xl font-black leading-tight drop-shadow-[0_8px_30px_rgba(0,0,0,0.35)]">
-                    <span className="text-white">EMPOWERING </span>
-                    <span className="text-tsAccent">YOUR COMMUNITY</span>
-                  </h1>
-                  <p className="text-base sm:text-lg text-tsTextMuted max-w-3xl">
-                    Interact with neighbors, find verified local talent, and access real-time area intelligence.
-                  </p>
-                </div>
-
-                <div className="grid gap-6 lg:grid-cols-[1.25fr,1fr] w-full">
-                  <Card className="bg-slate-900/80 border border-tsBorder rounded-2xl shadow-xl shadow-black/30">
-                    <div className="p-4 sm:p-6 flex flex-col gap-4">
-                      <div className="flex flex-col gap-3">
-                        <label className="text-xs uppercase tracking-[0.18em] text-tsTextMuted">Ask Scout</label>
-                        <textarea
-                          className="w-full rounded-xl bg-[#0c1a33] border border-white/10 px-4 py-3 text-base text-white placeholder:text-white/55 focus:outline-none focus:ring-2 focus:ring-tsAccent/80 min-h-[96px]"
-                          rows={3}
-                          placeholder="Ask a question, find a pro, check local codes, or get advice..."
-                          value={introDemoText}
-                          onChange={(e) => {
-                            abortIntroDemo();
-                            if (!hasGuestInteracted && e.target.value.trim().length > 0) {
-                              setHasGuestInteracted(true);
-                              recordActivity({
-                                type: "ask_scout",
-                                ts: new Date().toISOString(),
-                                path: location,
-                                label: "typed",
-                              });
-                            }
-                            setIntroDemoText(e.target.value);
-                          }}
-                          disabled={isBusy}
-                        />
-                        <div className="flex flex-col sm:flex-row sm:items-center gap-3">
-                          <Button
-                            onClick={() => {
-                              abortIntroDemo();
-                              const trimmed = introDemoText.trim();
-                              if (!trimmed) return;
-                              setHasGuestInteracted(true);
-                              void handleSend(trimmed);
-                            }}
-                            disabled={!introDemoText.trim() || isBusy}
-                            className="w-full sm:w-auto px-5 h-12 rounded-xl bg-gradient-to-r from-tsAccent to-orange-600 text-white font-semibold shadow-lg shadow-orange-600/30 disabled:cursor-not-allowed disabled:opacity-60"
-                          >
-                            {isBusy ? "Searching..." : "Start Search"}
-                            <ArrowRight className="w-4 h-4 ml-2" />
-                          </Button>
-                          <div className="flex items-center gap-3 text-xs text-tsTextMuted">
-                            <div className="flex items-center gap-1 text-cyan-300">
-                              <Activity className="w-4 h-4" />
-                              Scout Active
-                            </div>
-                            <div className="flex items-center gap-1">
-                              <MessageCircle className="w-4 h-4" />
-                              Real-time intelligence
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </Card>
-
-                  <div className="space-y-4">
-                    <Card className="bg-slate-900/80 border border-tsBorder rounded-2xl shadow-xl shadow-black/30 p-4 sm:p-5">
-                      <div className="flex items-center justify-between mb-3">
-                        <div className="text-sm font-semibold text-tsTextMain">Quick Start</div>
-                        {!isAuthenticated && (
-                          <button
-                            type="button"
-                            className="text-xs text-tsAccent hover:underline"
-                            onClick={() => navigate("/register")}
-                          >
-                            Join
-                          </button>
-                        )}
-                      </div>
-                      <div className="flex flex-wrap gap-2">
-                        {HERO_SUGGESTION_PROMPTS.slice(0, 3).map((prompt) => (
-                          <button
-                            key={prompt}
-                            type="button"
-                            onClick={() => {
-                              setHasGuestInteracted(true);
-                              setIntroDemoText(prompt);
-                            }}
-                            className="px-3 py-2 rounded-full bg-slate-800 border border-tsBorder text-xs text-tsTextMain hover:border-tsAccent hover:text-white transition shadow-sm shadow-black/20"
-                          >
-                            {prompt}
-                          </button>
-                        ))}
-                      </div>
-                    </Card>
-
-                    <Card className="bg-slate-900/80 border border-tsBorder rounded-2xl shadow-xl shadow-black/30 p-4 sm:p-5">
-                      <div className="text-sm font-semibold text-tsTextMain mb-3">Explore Community Tools</div>
-                      <div className="flex flex-wrap gap-2">
-                        {HERO_SUGGESTION_PROMPTS.slice(3).map((prompt) => (
-                          <button
-                            key={prompt}
-                            type="button"
-                            onClick={() => {
-                              setHasGuestInteracted(true);
-                              setIntroDemoText(prompt);
-                            }}
-                            className="px-3 py-2 rounded-full bg-slate-800 border border-tsBorder text-xs text-tsTextMain hover:border-tsAccent hover:text-white transition shadow-sm shadow-black/20"
-                          >
-                            {prompt}
-                          </button>
-                        ))}
-                      </div>
-                    </Card>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        ) : (
-          // FULL CONVERSATION: All features visible after first message,
-          // centered column similar to ChatGPT chat layout.
-          <div className="max-w-xl mx-auto w-full flex flex-col flex-1 min-h-0">
-            {/* Header is contextual, not a hero – keep it light and muted */}
-            <header className="space-y-0.5 text-center">
-              <p className="text-[11px] tracking-[0.18em] text-slate-500 uppercase">
-                Community OS
-              </p>
-              <p className="text-[11px] text-slate-400">
-                Empowering your community
-              </p>
-
-              <p className="mt-1 text-[11px] text-slate-500 max-w-md mx-auto">
-                Your local AI for projects, people, and community.
-              </p>
-
-              {!isAuthenticated && (
-                <p className="mt-0.5 text-[11px] text-slate-400/90 max-w-md mx-auto">
-                  You can explore without an account. Sign in when you want to save, post, or message.
-                </p>
-              )}
-            </header>
+        {/* Main conversation layout: used for all users, including first-time guests. */}
+        <div className="max-w-xl mx-auto w-full flex flex-col flex-1 min-h-0">
+          <ScoutHeader
+            isAuthenticated={isAuthenticated}
+            isFirstGuestVisit={isFirstGuestVisit}
+          />
 
             {/* Thread + input in a single chat container that stretches toward
                 the bottom of the viewport, with the input pinned just above
                 the global bottom nav. */}
-            <div
-              className={`mt-2 flex flex-col flex-1 min-h-0 ${
-                isMobile ? "space-y-3" : "space-y-4"
-              }`}
-            >
-              {!hasUserMessages && (
-                <div className="mx-auto w-full max-w-md text-left space-y-1.5">
-                  <p className="text-[11px] text-slate-500">Try asking:</p>
-                  <div className="space-y-1.5">
-                  {sortPromptsByLength(
-                    autoPromptSuggestions.length
-                      ? autoPromptSuggestions.slice(0, 3)
-                      : [
-                          `Find trusted local pros in ${heroLocationLabel || "your area"}`,
-                          heroAudienceLabel
-                            ? `Show opportunities for ${heroAudienceLabel} in ${
-                                heroLocationLabel || "my area"
-                              }`
-                            : "Show me what's happening in my community",
-                          "Draft a post I can share with my neighbors",
-                        ]
-                  ).map((prompt) => (
-                    <button
-                      key={prompt}
-                      type="button"
-                      onClick={() => {
-                        setHasGuestInteracted(true);
-                        try {
-                          if (typeof window !== "undefined") {
-                            window.localStorage.removeItem("scout:prefill:scout-main");
-                          }
-                        } catch {
-                          // ignore storage errors
-                        }
-                        setPrefillKey((k) => k + 1);
-                        handleSend(prompt);
-                      }}
-                      className="w-full text-left text-[12px] rounded-lg px-3 py-1.5 text-slate-200 border border-transparent hover:border-slate-600 hover:bg-slate-900/70 transition-colors"
-                    >
-                      {prompt}
-                    </button>
-                  ))}
-                  </div>
-                </div>
-              )}
+          <div
+            className={`mt-2 flex flex-col flex-1 min-h-0 ${
+              isMobile ? "space-y-3" : "space-y-4"
+            }`}
+          >
+            {!hasUserMessages && (
+              <ScoutSuggestions
+                hasUserMessages={hasUserMessages}
+                autoPromptSuggestions={autoPromptSuggestions}
+                heroLocationLabel={heroLocationLabel || "your area"}
+                heroAudienceLabel={heroAudienceLabel}
+                onPromptClick={(prompt) => {
+                  setHasGuestInteracted(true);
+                  try {
+                    if (typeof window !== "undefined") {
+                      window.localStorage.removeItem("scout:prefill:scout-main");
+                    }
+                  } catch {
+                    // ignore storage errors
+                  }
+                  setPrefillKey((k) => k + 1);
+                  handleSend(prompt);
+                }}
+              />
+            )}
 
-              <ScoutThread
+            <ScoutThread
                 messages={state.messages}
                 status={state.status}
                 mode={activeMode}
@@ -1356,45 +1224,40 @@ export default function ScoutOS() {
                 }}
               />
 
-              <div className="space-y-1.5">
-                <p className="text-[11px] text-slate-500">
-                  What are you working on today?
-                </p>
-                <ScoutInput
-                  key={prefillKey}
-                  disabled={isBusy}
-                  placeholder="Ask Scout anything about your community, projects, or local pros…"
-                  onSend={(value) => handleSend(value)}
-                  onUserTyping={() => {
-                    setHasGuestInteracted(true);
-                    recordActivity({
-                      type: "ask_scout",
-                      ts: new Date().toISOString(),
-                      path: location,
-                      label: "typing",
-                    });
-                  }}
-                  prefillKey="scout-main"
-                  initialValue=""
-                />
-              </div>
+            <ScoutInputRow
+              isBusy={isBusy}
+              prefillKey={prefillKey}
+              heroLocationLabel={heroLocationLabel}
+              isUpdatingGeo={isUpdatingGeo}
+              onOpenLocationSettings={() => navigate("/settings")}
+              onUseDeviceLocation={handleUseDeviceLocation}
+              onSend={(value) => handleSend(value)}
+              onTyping={() => {
+                setHasGuestInteracted(true);
+                recordActivity({
+                  type: "ask_scout",
+                  ts: new Date().toISOString(),
+                  path: location,
+                  label: "typing",
+                });
+              }}
+            />
 
-              {!isAuthenticated && (
-                <div className="text-xs text-slate-300/90">
-                  You can explore freely.{' '}
-                  <button
-                    type="button"
-                    className="text-tsAccent hover:text-orange-400 font-medium"
-                    onClick={() => navigate("/login")}
-                  >
-                    Sign in
-                  </button>{' '}
-                  to save, post, or message.
-                </div>
-              )}
-            </div>
+            {!isAuthenticated && (
+              <div className="text-xs text-slate-300/90">
+                You can explore freely.{' '}
+                <button
+                  type="button"
+                  className="text-tsAccent hover:text-orange-400 font-medium"
+                  onClick={() => navigate("/login")}
+                >
+                  Sign in
+                </button>{' '}
+                to save, post, or message.
+              </div>
+            )}
           </div>
-        )}
+        </div>
       </div>
 
       {/* Tools & App drawer */}

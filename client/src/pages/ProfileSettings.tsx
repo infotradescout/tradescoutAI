@@ -642,7 +642,7 @@ export default function ProfileSettings() {
               <SelectContent>
                 <SelectItem value="llm">Scout (Default)</SelectItem>
                 <SelectItem value="dashboard">My Dashboard</SelectItem>
-                <SelectItem value="marketplace">Marketplace</SelectItem>
+                <SelectItem value="marketplace">Exchange</SelectItem>
                 <SelectItem value="contractor-board">Contractor Board</SelectItem>
                 <SelectItem value="profile">My Profile</SelectItem>
                 <SelectItem value="community">Community</SelectItem>
@@ -651,7 +651,7 @@ export default function ProfileSettings() {
           </div>
           <p className="text-xs text-tsTextMuted">
             Your current default is {preferences.defaultHomePage === 'dashboard' ? 'Dashboard' :
-              preferences.defaultHomePage === 'marketplace' ? 'Marketplace' :
+              preferences.defaultHomePage === 'marketplace' ? 'Exchange' :
               preferences.defaultHomePage === 'contractor-board' ? 'Contractor Board' :
               preferences.defaultHomePage === 'profile' ? 'My Profile' :
               preferences.defaultHomePage === 'community' ? 'Community Feed' :
