@@ -199,9 +199,36 @@ const ScoutThread: React.FC<ScoutThreadProps> = ({
       : "text-slate-300 border-slate-700/60";
 
   return (
-    <div className="space-y-3 pr-1 max-h-[380px] overflow-y-auto">
+    <div className="space-y-3 pr-1 flex-1 min-h-0 overflow-y-auto">
       {messages.map((msg) => {
         const isUser = msg.role === "user";
+
+        // When a structured frame is present, prefer rendering its
+        // truth/meaning/direction blocks explicitly and trim any
+        // overlapping paragraphs from the raw content so we stay
+        // within the tight, screen-fit answer budget.
+        let displayContent = msg.content;
+        if (!isUser && msg.frame && typeof msg.content === "string") {
+          const { truthLines, meaningLine, directionLine } = msg.frame;
+          const toStrip = [
+            ...(Array.isArray(truthLines) ? truthLines : []),
+            meaningLine,
+            directionLine,
+          ].filter((v): v is string => typeof v === "string" && v.trim().length > 0);
+
+          if (toStrip.length > 0) {
+            const paragraphs = msg.content
+              .split(/\n{2,}/)
+              .map((p) => p.trim())
+              .filter((p) => p.length > 0);
+
+            const filtered = paragraphs.filter(
+              (p) => !toStrip.some((line) => p === line.trim())
+            );
+
+            displayContent = filtered.join("\n\n");
+          }
+        }
 
         return (
           <div
@@ -219,9 +246,69 @@ const ScoutThread: React.FC<ScoutThreadProps> = ({
                   : "bg-slate-900 text-slate-100 border border-slate-700/60"
               )}
             >
-              <p className="whitespace-pre-line leading-relaxed">
-                {msg.content}
-              </p>
+              {!isUser && msg.frame && (
+                <div className="mb-1 space-y-1">
+                  {msg.frame.truthLines && msg.frame.truthLines.length > 0 && (
+                    <ul className="space-y-1 text-[12px] text-slate-100">
+                      {msg.frame.truthLines.map((line, idx) => (
+                        <li key={`${msg.id}-truth-${idx}`} className="flex gap-2">
+                          <span className="mt-[5px] h-1 w-1 rounded-full bg-slate-500" />
+                          <span>{line}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+
+                  {msg.frame.meaningLine && (
+                    <p className="text-[11px] text-amber-200">
+                      {msg.frame.meaningLine}
+                    </p>
+                  )}
+
+                  {msg.frame.directionLine && (
+                    <p className="text-[11px] text-slate-200">
+                      {msg.frame.directionLine}
+                    </p>
+                  )}
+                </div>
+              )}
+
+              {displayContent && (
+                <p className="whitespace-pre-line leading-relaxed">
+                  {displayContent}
+                </p>
+              )}
+
+              {/* Frame-level action chips (e.g., Open Finances, Open Deal Room)
+                  render as navigation buttons just below the core answer. */}
+              {!isUser && msg.frame?.actionChips && msg.frame.actionChips.length > 0 && (
+                <div className="mt-2 flex flex-wrap gap-2">
+                  {msg.frame.actionChips.map((chip) => (
+                    <button
+                      key={`${msg.id}-chip-${chip.id}`}
+                      type="button"
+                      onClick={() => {
+                        if (!onAction) return;
+                        if (chip.kind === "NAVIGATE") {
+                          onAction({
+                            type: "NAVIGATE",
+                            label: chip.label,
+                            to: chip.target,
+                            path: chip.target,
+                            payload:
+                              chip.args && typeof chip.args === "object"
+                                ? (chip.args as Record<string, unknown>)
+                                : undefined,
+                          });
+                        }
+                      }}
+                      className="px-3 py-1.5 text-[11px] rounded-full border border-orange-400/60 bg-slate-900 text-orange-300 hover:bg-orange-500 hover:text-black transition"
+                    >
+                      {chip.label}
+                    </button>
+                  ))}
+                </div>
+              )}
 
               {msg.clusters &&
                 msg.clusters.length > 0 &&

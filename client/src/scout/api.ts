@@ -60,10 +60,42 @@ export interface SponsoredResult {
   targetLocation?: string | null;
 }
 
+export interface ScoutActionChip {
+  id: string;
+  label: string;
+  kind: "NAVIGATE" | "CALL_TOOL";
+  target: string;
+  args?: unknown;
+  priority?: "primary" | "secondary";
+}
+
+export interface ScoutResponseFrame {
+  templateId?: string;
+  truthLines: string[];
+  meaningLine?: string;
+  directionLine?: string;
+  actionChips?: ScoutActionChip[];
+  suggestedPrompts?: string[];
+  workingContextDelta?: {
+    topic?: "finances" | "projects" | "community" | "docs";
+    jobId?: string;
+    communityId?: string;
+  };
+}
+
+export interface ScoutWorkingContext {
+  lastTopic?: "finances" | "projects" | "community" | "docs";
+  lastJobId?: string;
+  lastCommunityId?: string;
+  lastTemplateId?: string;
+}
+
 export interface ScoutBackendResponse {
   message: string;
   suggestedActions?: string[];
   actions?: ScoutAction[];
+   frame?: ScoutResponseFrame;
+   workingContext?: ScoutWorkingContext;
   sponsored?: SponsoredResult | null;
   knowledge?: {
     layer?: number;
