@@ -1211,11 +1211,43 @@ interface ScoutRequest {
   shownAdIds?: string[];
 }
 
+interface ScoutActionChip {
+  id: string;
+  label: string;
+  kind: "NAVIGATE" | "CALL_TOOL";
+  target: string;
+  args?: unknown;
+  priority?: "primary" | "secondary";
+}
+
+interface ScoutResponseFrame {
+  templateId?: string;
+  truthLines: string[];
+  meaningLine?: string;
+  directionLine?: string;
+  actionChips?: ScoutActionChip[];
+  suggestedPrompts?: string[];
+  workingContextDelta?: {
+    topic?: "finances" | "projects" | "community" | "docs";
+    jobId?: string;
+    communityId?: string;
+  };
+}
+
+interface ScoutWorkingContext {
+  lastTopic?: "finances" | "projects" | "community" | "docs";
+  lastJobId?: string;
+  lastCommunityId?: string;
+  lastTemplateId?: string;
+}
+
 interface ScoutResponse {
   message: string;
   suggestedActions?: string[];
   actions?: ScoutClientAction[];
   actionResults?: any[];
+  frame?: ScoutResponseFrame;
+  workingContext?: ScoutWorkingContext;
   sponsored?: {
     id: string;
     title: string;
@@ -2505,6 +2537,7 @@ router.post("/", async (req: Request, res: Response) => {
         let vendorSummaryLine: string | null = null;
         let arWhyLine: string | null = null;
         let vendorWhyLine: string | null = null;
+        let directionLine: string | null = null;
 
         try {
           const snapshot = await getStandaloneAccountingSnapshotForUser(String(userId));
@@ -2642,18 +2675,57 @@ router.post("/", async (req: Request, res: Response) => {
           }
         }
         if (wantsARView) {
-          financeLines.push("I'll open your Finances  Clients view so you can see open balances and who still owes you.");
+          directionLine =
+            "I'll open your Finances  Clients view so you can see open balances and who still owes you.";
+          financeLines.push(directionLine);
         } else if (wantsVendorsView) {
-          financeLines.push("I'll open your Finances  Vendors view so you can review where your money is going.");
+          directionLine =
+            "I'll open your Finances  Vendors view so you can review where your money is going.";
+          financeLines.push(directionLine);
         } else if (wantsReportsView) {
-          financeLines.push("I'll open your Finances  Reports view so you can see income, expenses, and a simple tax set-aside suggestion.");
+          directionLine =
+            "I'll open your Finances  Reports view so you can see income, expenses, and a simple tax set-aside suggestion.";
+          financeLines.push(directionLine);
         } else if (wantsFinancesOverview) {
-          financeLines.push("I'll open your Finances workspace so you can see invoices, expenses, and simple reports in one place.");
+          directionLine =
+            "I'll open your Finances workspace so you can see invoices, expenses, and simple reports in one place.";
+          financeLines.push(directionLine);
         }
 
         aiResponse.message = trimResponseToScreenFit(financeLines.join("\n\n"));
         const combinedFinanceMessage = trimResponseToScreenFit(financeLines.join("\n\n"));
         aiResponse.message = appendFinanceConfidenceLine(combinedFinanceMessage);
+
+        const truthLines: string[] = [];
+        if (arSummaryLine) truthLines.push(arSummaryLine);
+        if (vendorSummaryLine) truthLines.push(vendorSummaryLine);
+
+        if (truthLines.length > 0 || arWhyLine || vendorWhyLine || directionLine) {
+          aiResponse.frame = {
+            templateId: "finance:standalone",
+            truthLines,
+            meaningLine: arWhyLine || vendorWhyLine || undefined,
+            directionLine: directionLine || undefined,
+            actionChips: [
+              {
+                id: "open-finances",
+                label: "Open Finances",
+                kind: "NAVIGATE",
+                target: "/finances",
+                priority: "primary",
+              },
+            ],
+            suggestedPrompts: aiResponse.suggestedActions,
+            workingContextDelta: {
+              topic: "finances",
+            },
+          };
+
+          aiResponse.workingContext = {
+            lastTopic: "finances",
+            lastTemplateId: aiResponse.frame.templateId,
+          };
+        }
       }
 
       // Project tracker / deal room actions
@@ -2713,19 +2785,49 @@ router.post("/", async (req: Request, res: Response) => {
                     );
 
                     // "Why this matters" interpretation for per-job finances
+                    let jobMeaningLine: string | null = null;
                     if (jf.net > 0) {
-                      lines.push(
-                        `Why this matters: this job is currently net positive, so protecting margin means watching for any last-minute expenses or discounts.`,
-                      );
+                      jobMeaningLine =
+                        "Why this matters: this job is currently net positive, so protecting margin means watching for any last-minute expenses or discounts.";
+                      lines.push(jobMeaningLine);
                     } else if (jf.net < 0) {
-                      lines.push(
-                        `Why this matters: this job is currently running negative, so the next decisions on change orders, scope, or expenses will determine whether it breaks even.`,
-                      );
+                      jobMeaningLine =
+                        "Why this matters: this job is currently running negative, so the next decisions on change orders, scope, or expenses will determine whether it breaks even.";
+                      lines.push(jobMeaningLine);
                     }
 
                     const combined = `${lines.join(" ")}\n\n${aiResponse.message}`;
                     const trimmed = trimResponseToScreenFit(combined);
                     aiResponse.message = appendFinanceConfidenceLine(trimmed);
+
+                    const truthLines = lines.slice(0, 2);
+                    aiResponse.frame = {
+                      templateId: "finance:job-snapshot",
+                      truthLines,
+                      meaningLine: jobMeaningLine || undefined,
+                      directionLine: undefined,
+                      actionChips: [
+                        {
+                          id: "open-deal-room",
+                          label: "Open Deal Room",
+                          kind: "NAVIGATE",
+                          target: "/lead-management",
+                          args: { jobId: currentJobId },
+                          priority: "primary",
+                        },
+                      ],
+                      suggestedPrompts: aiResponse.suggestedActions,
+                      workingContextDelta: {
+                        topic: "projects",
+                        jobId: currentJobId,
+                      },
+                    };
+
+                    aiResponse.workingContext = {
+                      lastTopic: "projects",
+                      lastJobId: currentJobId,
+                      lastTemplateId: aiResponse.frame.templateId,
+                    };
                   }
                 } catch (jobFinErr) {
                   console.error("[Scout] Failed to compute per-job finances snapshot", jobFinErr);

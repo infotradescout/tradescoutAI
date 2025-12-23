@@ -1,4 +1,5 @@
 import { useReducer, useCallback } from "react";
+import type { ScoutResponseFrame } from "./api";
 
 export type ScoutRole = "user" | "assistant" | "system";
 
@@ -67,6 +68,7 @@ export interface ScoutMessage {
   timestamp: string; // ISO string
   suggestedActions?: string[];
   clusters?: ScoutCluster[];
+  frame?: ScoutResponseFrame;
 }
 
 export interface ScoutState {

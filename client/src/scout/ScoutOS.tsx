@@ -694,6 +694,7 @@ export default function ScoutOS() {
           timestamp: res.timestamp || new Date().toISOString(),
           suggestedActions: smartSuggestions,
           clusters: clusters.length ? clusters : undefined,
+          frame: res.frame,
         };
 
         applyServerResponse(msg, res.actions);
@@ -973,11 +974,11 @@ export default function ScoutOS() {
   })();
 
   return (
-    <div className="min-h-screen text-white flex flex-col items-center bg-slate-950">
+    <div className="flex flex-col min-h-full w-full items-center bg-slate-950 text-white">
       <div
         className={`w-full ${
           isMobile ? "max-w-6xl px-3 pt-3 pb-2" : "max-w-6xl px-4 pt-6 pb-3"
-        } space-y-4`}
+        } space-y-4 flex flex-col flex-1`}
       >
         {isFirstGuestVisit ? (
           // FIRST GUEST INTRO: Community OS hero layout
@@ -1148,9 +1149,11 @@ export default function ScoutOS() {
               )}
             </header>
 
-            {/* Thread + input in a single chat container */}
+            {/* Thread + input in a single chat container that stretches toward
+                the bottom of the viewport, with the input pinned just above
+                the global bottom nav. */}
             <div
-              className={`mt-3 rounded-2xl border border-slate-800 bg-[#020617] ${
+              className={`mt-3 rounded-2xl border border-slate-800 bg-[#020617] flex flex-col flex-1 min-h-0 ${
                 isMobile ? "px-3 py-3 space-y-3" : "px-4 py-4 space-y-4"
               }`}
             >
