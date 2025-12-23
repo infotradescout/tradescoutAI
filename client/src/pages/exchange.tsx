@@ -9,33 +9,34 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { 
-  Search, 
-  MapPin, 
-  DollarSign, 
-  Star, 
-  Eye,
-  Heart,
-  MessageSquare,
-  Filter,
-  Plus,
-  Building,
-  Home,
+import {
+  ArrowRight,
+  BarChart3,
+  BriefcaseBusiness,
+  Building2,
+  CalendarClock,
   Car,
-  Wrench,
-  Palette,
-  TreePine,
-  Briefcase,
-  Smartphone,
-  Trophy,
-  Gem,
+  CheckCircle2,
+  ChevronDown,
+  ChevronRight,
+  Coins,
+  Factory,
+  Filter,
+  Gavel,
+  HeartHandshake,
+  HelpCircle,
+  Info,
+  MapPin,
   Package,
-  Tag,
   Percent,
-  Clock,
-  ExternalLink,
-  Copy,
-  Share2,
+  Plus,
+  Search,
+  ShieldCheck,
+  Tag,
+  TrendingUp,
+  Upload as UploadIcon,
+} from "lucide-react";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
   Upload as UploadIcon
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
@@ -177,6 +178,7 @@ export default function Exchange() {
   const [sellPrice, setSellPrice] = useState("");
   const [sellDescription, setSellDescription] = useState("");
   const [sellLocation, setSellLocation] = useState("");
+  const [sellLocationVisibility, setSellLocationVisibility] = useState<"exact" | "meetup_only">("exact");
   const [sellImages, setSellImages] = useState<string[]>([]);
   const [sellCategoryId, setSellCategoryId] = useState<string>("");
   const [sellCondition, setSellCondition] = useState<string>("");
@@ -210,6 +212,7 @@ export default function Exchange() {
       setSellPrice("");
       setSellDescription("");
       setSellLocation("");
+      setSellLocationVisibility("exact");
       setSellImages([]);
       setSellCategoryId("");
       setSellCondition("");
@@ -1005,6 +1008,35 @@ export default function Exchange() {
                       value={sellLocation}
                       onChange={(e) => setSellLocation(e.target.value)}
                     />
+                    <div className="mt-3 space-y-1">
+                      <Label className="text-xs text-gray-300">Location privacy</Label>
+                      <ToggleGroup
+                        type="single"
+                        value={sellLocationVisibility}
+                        onValueChange={(value) => {
+                          if (value === "exact" || value === "meetup_only") {
+                            setSellLocationVisibility(value);
+                          }
+                        }}
+                        className="inline-flex rounded-lg border border-slate-700 bg-slate-800 text-xs"
+                      >
+                        <ToggleGroupItem
+                          value="exact"
+                          className="px-3 py-1.5 data-[state=on]:bg-orange-500 data-[state=on]:text-white data-[state=on]:border-orange-500/80"
+                        >
+                          Show exact area
+                        </ToggleGroupItem>
+                        <ToggleGroupItem
+                          value="meetup_only"
+                          className="px-3 py-1.5 data-[state=on]:bg-slate-700 data-[state=on]:text-white"
+                        >
+                          Meetup only
+                        </ToggleGroupItem>
+                      </ToggleGroup>
+                      <p className="text-[11px] text-gray-400">
+                        Meetup only hides your exact spot and skips hyper-local alerts.
+                      </p>
+                    </div>
                   </div>
 
                   <div>
@@ -1141,6 +1173,7 @@ export default function Exchange() {
                       isLocalPickupOnly: true,
                       willShip: false,
                       images: sellImages,
+                      locationVisibility: sellLocationVisibility,
                     };
 
                     if (sellLocation.trim()) {

@@ -1010,9 +1010,7 @@ export default function ScoutOS() {
                     <span className="text-tsAccent">YOUR COMMUNITY</span>
                   </h1>
                   <p className="text-base sm:text-lg text-tsTextMuted max-w-3xl">
-                    {isAuthenticated && heroAudienceLabel
-                      ? `For ${heroAudienceLabel} in ${heroHeadlineTarget}.`
-                      : "Interact with neighbors, find verified local talent, and access real-time area intelligence."}
+                    Interact with neighbors, find verified local talent, and access real-time area intelligence.
                   </p>
                 </div>
 
@@ -1139,9 +1137,7 @@ export default function ScoutOS() {
               </p>
 
               <p className="mt-1 text-[11px] text-slate-500 max-w-md mx-auto">
-                {isAuthenticated && heroAudienceLabel
-                  ? `For ${heroAudienceLabel} in ${heroHeadlineTarget}.`
-                  : "Your local AI for projects, people, and community."}
+                Your local AI for projects, people, and community.
               </p>
 
               {!isAuthenticated && (

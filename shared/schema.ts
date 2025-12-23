@@ -344,6 +344,21 @@ export const users = pgTable("users", {
       layout?: 'single' | 'two-column' | 'three-column'; // Dashboard layout
     };
 
+    // Hyper-local geo preferences for nearby deals/alerts
+    geo?: {
+      homeLocation?: {
+        lat: number;
+        lng: number;
+        label?: string; // Optional human-readable label like "Home" or neighborhood name
+      };
+      // Radius in meters for nearby content (default ~0.5 miles)
+      notifyNearbyRadiusMeters?: number;
+      // Enable/disable hyper-local alerts at the user level
+      enableNearbyDeals?: boolean;
+      // Which content types should be considered for nearby alerts
+      includeTypes?: Array<'marketplace' | 'trade' | 'mealscout'>;
+    };
+
     // Profile site builder settings - which sections appear on the public profile
     profileSections?: {
       about?: boolean;
@@ -2514,6 +2529,11 @@ export const marketplaceListings = pgTable("marketplace_listings", {
   state: varchar("state").notNull(),
   city: varchar("city"),
   zipCode: varchar("zip_code"),
+  locationVisibility: varchar("location_visibility", {
+    enum: ['exact', 'meetup_only'],
+  }).default('exact'),
+  latitude: decimal("latitude", { precision: 9, scale: 6 }),
+  longitude: decimal("longitude", { precision: 9, scale: 6 }),
   isLocalPickupOnly: boolean("is_local_pickup_only").default(false),
   willShip: boolean("will_ship").default(false),
   shippingCost: decimal("shipping_cost", { precision: 10, scale: 2 }),

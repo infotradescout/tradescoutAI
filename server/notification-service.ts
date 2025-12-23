@@ -17,6 +17,7 @@ import {
   type NotificationTemplate,
   type InsertNotificationTemplate,
   type User,
+  type MarketplaceListing,
 } from "@shared/schema";
 import { eq, and, or, sql, desc, asc, isNull } from "drizzle-orm";
 import { MailService } from '@sendgrid/mail';
@@ -42,6 +43,36 @@ export class NotificationService {
       );
       this.webPushConfigured = true;
     }
+  }
+
+  // =====================================
+  // GEO UTILS
+  // =====================================
+
+  /**
+   * Compute haversine distance between two lat/lng points in meters.
+   */
+  private haversineDistanceMeters(
+    lat1: number,
+    lon1: number,
+    lat2: number,
+    lon2: number,
+  ): number {
+    const toRad = (value: number) => (value * Math.PI) / 180;
+    const R = 6371e3; // Earth radius in meters
+
+    const φ1 = toRad(lat1);
+    const φ2 = toRad(lat2);
+    const Δφ = toRad(lat2 - lat1);
+    const Δλ = toRad(lon2 - lon1);
+
+    const a =
+      Math.sin(Δφ / 2) * Math.sin(Δφ / 2) +
+      Math.cos(φ1) * Math.cos(φ2) *
+        Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+
+    return R * c;
   }
 
   // =====================================
@@ -189,7 +220,7 @@ export class NotificationService {
         new_inquiry: { enabled: true, delivery_methods: ['in_app', 'email'] },
         review_received: { enabled: true, delivery_methods: ['in_app'] },
         system_update: { enabled: true, delivery_methods: ['in_app'] },
-        promotional: { enabled: false, delivery_methods: ['in_app'] },
+        promotional: { enabled: true, delivery_methods: ['in_app', 'push'] },
       },
     };
 
@@ -372,8 +403,26 @@ export class NotificationService {
       return;
     }
 
+    // Respect per-type notification preferences when available
+    if (preferences?.typePreferences) {
+      const typePrefs: any = preferences.typePreferences as any;
+      const currentTypePrefs = typePrefs[notification.type as string];
+      if (currentTypePrefs && currentTypePrefs.enabled === false) {
+        return;
+      }
+    }
+
     // Send via enabled delivery methods
-    const deliveryMethods = notification.deliveryMethods || ['in_app'];
+    let deliveryMethods = notification.deliveryMethods || ['in_app'];
+
+    // Override delivery methods from type-specific preferences if provided
+    if (preferences?.typePreferences) {
+      const typePrefs: any = preferences.typePreferences as any;
+      const currentTypePrefs = typePrefs[notification.type as string];
+      if (currentTypePrefs && Array.isArray(currentTypePrefs.delivery_methods)) {
+        deliveryMethods = currentTypePrefs.delivery_methods;
+      }
+    }
 
     for (const method of deliveryMethods) {
       try {
@@ -409,6 +458,124 @@ export class NotificationService {
       .update(notifications)
       .set({ sentAt: new Date() })
       .where(eq(notifications.id, notificationId));
+  }
+
+  // =====================================
+  // HYPER-LOCAL NEARBY CONTENT
+  // =====================================
+
+  /**
+   * Notify geo-opted-in users when a marketplace listing goes live near them.
+   *
+   * Uses user.preferences.geo.homeLocation (lat/lng) and an optional
+   * geo.notifyNearbyRadiusMeters (default ~0.5mi ≈ 800m).
+   */
+  async notifyNearbyUsersOfMarketplaceListing(listing: MarketplaceListing): Promise<void> {
+    // Respect listing-level location privacy; only notify for exact-location listings
+    const visibility: string | undefined = (listing as any).locationVisibility as any;
+    if (visibility && visibility !== 'exact') {
+      return;
+    }
+
+    // Require coordinates on the listing
+    const listingLatRaw: any = (listing as any).latitude;
+    const listingLngRaw: any = (listing as any).longitude;
+
+    const listingLat = listingLatRaw != null ? Number(listingLatRaw) : NaN;
+    const listingLng = listingLngRaw != null ? Number(listingLngRaw) : NaN;
+
+    if (!Number.isFinite(listingLat) || !Number.isFinite(listingLng)) {
+      return;
+    }
+
+    // Fetch users who have geo preferences defined
+    const usersWithGeo = await db
+      .select()
+      .from(users)
+      .where(sql<boolean>`preferences ? 'geo'`);
+
+    if (!usersWithGeo.length) {
+      return;
+    }
+
+    const defaultRadiusMeters = 800; // ~0.5 miles
+
+    for (const user of usersWithGeo) {
+      const prefs: any = (user as any).preferences || {};
+      const geo = prefs.geo;
+
+      if (!geo || !geo.homeLocation) {
+        continue;
+      }
+
+      if (geo.enableNearbyDeals === false) {
+        continue;
+      }
+
+      const includeTypes: string[] = Array.isArray(geo.includeTypes) && geo.includeTypes.length
+        ? geo.includeTypes
+        : ['marketplace', 'trade', 'mealscout'];
+
+      if (!includeTypes.includes('marketplace')) {
+        continue;
+      }
+
+      const homeLat = Number(geo.homeLocation.lat);
+      const homeLng = Number(geo.homeLocation.lng);
+
+      if (!Number.isFinite(homeLat) || !Number.isFinite(homeLng)) {
+        continue;
+      }
+
+      const radiusMeters: number = Number(geo.notifyNearbyRadiusMeters) > 0
+        ? Number(geo.notifyNearbyRadiusMeters)
+        : defaultRadiusMeters;
+
+      const distanceMeters = this.haversineDistanceMeters(
+        homeLat,
+        homeLng,
+        listingLat,
+        listingLng,
+      );
+
+      if (!Number.isFinite(distanceMeters) || distanceMeters > radiusMeters) {
+        continue;
+      }
+
+      const price = (listing as any).price;
+      const priceText = typeof price === 'string' || typeof price === 'number'
+        ? `$${Number(price).toLocaleString(undefined, { maximumFractionDigits: 2 })}`
+        : 'a new item';
+
+      const distanceText = distanceMeters < 100
+        ? 'right by you'
+        : `${(distanceMeters / 1609.34).toFixed(2)} miles away`;
+
+      const actionUrl = listing.slug
+        ? `/exchange?item=${encodeURIComponent(listing.slug)}`
+        : `/exchange?item=${encodeURIComponent(listing.id)}`;
+
+      await this.createNotification({
+        userId: (user as any).id,
+        type: 'promotional',
+        priority: 'normal',
+        title: 'New Exchange listing near you',
+        message: `${listing.title} just went live ${distanceText} for ${priceText}.`,
+        iconName: 'MapPin',
+        iconColor: 'orange',
+        actionUrl,
+        actionText: 'View listing',
+        deliveryMethods: ['in_app', 'push'] as string[],
+        metadata: {
+          source: 'marketplace',
+          listingId: listing.id,
+          radiusMeters,
+          distanceMeters,
+          city: listing.city,
+          state: listing.state,
+        } as any,
+      });
+    }
   }
 
   private async sendEmailNotification(notification: Notification, user: User): Promise<void> {
