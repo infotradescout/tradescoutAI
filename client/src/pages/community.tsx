@@ -236,11 +236,11 @@ export default function Community() {
         </div>
 
         {/* Navigation Tabs */}
-        <div className="mb-6">
-          <div className="flex gap-2 bg-[#0f1624] rounded-xl p-1.5 shadow-sm border border-[#1f2937]">
+        <div className="mb-4">
+          <div className="flex gap-1.5 bg-[#0f1624] rounded-xl p-1 shadow-sm border border-[#1f2937] text-[11px] sm:text-xs">
             <button
               onClick={() => setActiveTab("for-you")}
-              className={`flex-1 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+              className={`flex-1 px-3 py-1.5 rounded-lg font-medium transition-all ${
                 activeTab === "for-you"
                   ? "bg-orange-500 text-white shadow-sm"
                   : "text-slate-300 hover:bg-[#0f1419] hover:text-white"
@@ -251,7 +251,7 @@ export default function Community() {
             </button>
             <button
               onClick={() => setActiveTab("projects")}
-              className={`flex-1 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+              className={`flex-1 px-3 py-1.5 rounded-lg font-medium transition-all ${
                 activeTab === "projects"
                   ? "bg-orange-500 text-white shadow-sm"
                   : "text-slate-300 hover:bg-[#0f1419] hover:text-white"
@@ -262,10 +262,10 @@ export default function Community() {
             </button>
             <button
               onClick={() => setActiveTab("questions")}
-              className={`flex-1 px-6 py-3 rounded-lg text-sm font-semibold transition-all border-b-2 ${
+              className={`flex-1 px-3 py-1.5 rounded-lg font-medium transition-all ${
                 activeTab === "questions"
-                  ? "bg-orange-500 text-white shadow-lg shadow-orange-500/50 border-orange-400"
-                  : "text-slate-300 hover:bg-[#0f1419] hover:text-white border-transparent"
+                  ? "bg-orange-500 text-white shadow-sm"
+                  : "text-slate-300 hover:bg-[#0f1419] hover:text-white"
               }`}
               data-testid="tab-questions"
             >
@@ -273,10 +273,10 @@ export default function Community() {
             </button>
             <button
               onClick={() => setActiveTab("pros")}
-              className={`flex-1 px-6 py-3 rounded-lg text-sm font-semibold transition-all border-b-2 ${
+              className={`flex-1 px-3 py-1.5 rounded-lg font-medium transition-all ${
                 activeTab === "pros"
-                  ? "bg-orange-500 text-white shadow-lg shadow-orange-500/50 border-orange-400"
-                  : "text-slate-300 hover:bg-[#0f1419] hover:text-white border-transparent"
+                  ? "bg-orange-500 text-white shadow-sm"
+                  : "text-slate-300 hover:bg-[#0f1419] hover:text-white"
               }`}
               data-testid="tab-pros"
             >
@@ -321,16 +321,16 @@ export default function Community() {
             {/* Category Filters */}
             <Card className="bg-[#1a2332] shadow-lg border-2 border-[#2d3748]">
               <CardContent className="p-4">
-                <div className="flex gap-2.5 overflow-x-auto pb-1">
+                <div className="flex gap-1.5 overflow-x-auto pb-1">
                   {POST_CATEGORIES.map((category) => {
                     const Icon = category.icon;
                     return (
                       <button
                         key={category.id}
-                        className="flex items-center gap-2 px-4 py-2.5 rounded-lg bg-[#0f1419] border border-[#2d3748] hover:border-orange-500 hover:bg-orange-500/10 text-sm font-semibold text-slate-200 hover:text-orange-400 whitespace-nowrap transition-all shadow-sm"
+                        className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-[#0f1419] border border-[#2d3748] hover:border-orange-500 hover:bg-orange-500/10 text-[11px] sm:text-xs font-medium text-slate-200 hover:text-orange-400 whitespace-nowrap transition-all shadow-sm"
                         data-testid={`filter-${category.id}`}
                       >
-                        <Icon className="w-4 h-4" />
+                        <Icon className="w-3.5 h-3.5" />
                         {category.name}
                       </button>
                     );

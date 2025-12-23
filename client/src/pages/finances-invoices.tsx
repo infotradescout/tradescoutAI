@@ -49,10 +49,18 @@ interface StandaloneInvoicesResponse {
 export default function FinancesInvoicesPage() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const [, navigate] = useLocation();
+  const [location, navigate] = useLocation();
+
+  const initialClientFromQuery = (() => {
+    const idx = location.indexOf("?");
+    if (idx === -1) return "";
+    const search = location.slice(idx + 1);
+    const params = new URLSearchParams(search);
+    return params.get("client") || "";
+  })();
 
   const [projectTitle, setProjectTitle] = useState("");
-  const [clientName, setClientName] = useState("");
+  const [clientName, setClientName] = useState(initialClientFromQuery);
   const [notes, setNotes] = useState("");
   const [total, setTotal] = useState("");
   const [page, setPage] = useState(1);
@@ -216,6 +224,11 @@ export default function FinancesInvoicesPage() {
 
   const filteredInvoicesForTable = useMemo(() => {
     if (!invoices.length) return [] as StandaloneInvoice[];
+    const idx = location.indexOf("?");
+    const search = idx === -1 ? "" : location.slice(idx + 1);
+    const params = new URLSearchParams(search);
+    const clientFilter = (params.get("client") || "").trim().toLowerCase();
+
     const now = Date.now();
     const dayMs = 24 * 60 * 60 * 1000;
     return invoices.filter((inv) => {
@@ -231,9 +244,17 @@ export default function FinancesInvoicesPage() {
         }
       }
 
+      if (clientFilter) {
+        const payload = inv.payload || {};
+        const invoiceClient = String(payload.clientName || "").trim().toLowerCase();
+        if (!invoiceClient || invoiceClient !== clientFilter) {
+          return false;
+        }
+      }
+
       return true;
     });
-  }, [invoices, invoiceStatusFilter, invoiceRangeFilter]);
+  }, [invoices, invoiceStatusFilter, invoiceRangeFilter, location]);
 
   const formatCurrency = (value?: number) => {
     if (typeof value !== "number" || !Number.isFinite(value)) return "–";

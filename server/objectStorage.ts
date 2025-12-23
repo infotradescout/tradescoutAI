@@ -65,13 +65,31 @@ export class ObjectStorageService {
   // Gets the private object directory.
   getPrivateObjectDir(): string {
     const dir = process.env.PRIVATE_OBJECT_DIR || "";
-    if (!dir) {
-      throw new Error(
-        "PRIVATE_OBJECT_DIR not set. Create a bucket in 'Object Storage' " +
-          "tool and set PRIVATE_OBJECT_DIR env var."
-      );
+    if (dir) {
+      return dir;
     }
-    return dir;
+
+    // Fallback: if PRIVATE_OBJECT_DIR is not set, try the first public search path.
+    // This keeps uploads working in environments where only PUBLIC_OBJECT_SEARCH_PATHS
+    // is configured, by treating the first public path as the default object dir.
+    const pathsStr = process.env.PUBLIC_OBJECT_SEARCH_PATHS || "";
+    const firstPath = pathsStr
+      .split(",")
+      .map((p) => p.trim())
+      .filter((p) => p.length > 0)[0];
+
+    if (firstPath) {
+      console.warn(
+        "PRIVATE_OBJECT_DIR not set; falling back to first PUBLIC_OBJECT_SEARCH_PATH",
+        firstPath
+      );
+      return firstPath;
+    }
+
+    throw new Error(
+      "PRIVATE_OBJECT_DIR not set. Create a bucket in 'Object Storage' tool and set " +
+        "PRIVATE_OBJECT_DIR or PUBLIC_OBJECT_SEARCH_PATHS env vars."
+    );
   }
 
   // Search for a public object from the search paths.

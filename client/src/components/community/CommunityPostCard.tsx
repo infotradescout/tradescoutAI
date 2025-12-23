@@ -415,7 +415,7 @@ export function CommunityPostCard({ post, onLike, formatTimeAgo }: CommunityPost
                 <Badge
                   key={idx}
                   variant="secondary"
-                  className="text-xs bg-orange-500/10 border border-orange-500/30 text-orange-400 px-3 py-1"
+                  className="text-[10px] bg-orange-500/10 border border-orange-500/30 text-orange-400 px-2 py-0.5"
                 >
                   #{tag}
                 </Badge>

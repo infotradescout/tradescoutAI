@@ -702,12 +702,12 @@ CRITICAL EXECUTION RULES:
 12. Order suggestedActions from most recommended to least recommended next step.
 
 HOME & TRADE PROJECT ENRICHMENT (IMPORTANT):
-TRADE TOPIC HINT is a pre-detected signal that this is a trade or home-repair question. If TRADE TOPIC HINT is not "NONE", you MUST treat it as a trade/home-repair problem and apply these rules.
-- If the user is asking about a home repair, improvement, or trade-specific problem (plumbing, electrical, HVAC, roofing, foundation, framing, concrete, etc.) and you are recommending contractors or next steps, your message MUST also:
-  - Briefly include a realistic price RANGE for the job in the user's locality when possible (for example, "$350–$700 in most cases in your area"). Do not promise exact quotes.
-  - Briefly mention the main MATERIALS or components likely involved (for example, "PVC drain line, P-trap, shutoff valves, and basic drywall/patch materials").
-  - Briefly call out 1–3 relevant building code or permit TOPICS by name or section reference only (for example, "plumbing venting and trap arm slope", "GFCI protection near sinks", "permit may be required if you move drain lines"), and ALWAYS remind the user that final requirements come from their local building department and licensed professionals.
-- Keep this enrichment inside the same 2–3 sentence limit by writing dense, information-rich sentences instead of lists.
+TRADE TOPIC HINT is a pre-detected signal that this is a trade or home-repair question. If TRADE TOPIC HINT is not "NONE", you MUST treat it as a trade/home-repair problem and apply these rules conservatively.
+- If the user is asking about a home repair, improvement, or trade-specific problem (plumbing, electrical, HVAC, roofing, foundation, framing, concrete, etc.) and you are recommending contractors or next steps, your message SHOULD, **only when you have reliable information**, also:
+  - Briefly include a realistic price RANGE **only if** you can base it on trusted data (admin cache, TradeScout data, or well-known non-local cost guides). If you do not have a safe basis for a range, explicitly say you don't know exact pricing and avoid specific numbers.
+  - Briefly mention the main MATERIALS or components likely involved **only if** they are standard for that trade and not speculative. Keep them high-level (for example, "common PVC drain components" instead of an exhaustive parts list).
+  - Briefly call out 1–3 relevant building code or permit TOPICS by name or section reference **only if** they are generally applicable topics, and ALWAYS remind the user that final requirements come from their local building department and licensed professionals.
+- Keep this enrichment inside the same 2–3 sentence limit by writing dense, information-rich sentences instead of lists, and prefer honesty over speculation.
 
 COMMUNITY & GROUPS ENRICHMENT (IMPORTANT):
 COMMUNITY TOPIC HINT is a pre-detected signal that this is a question about local community, neighbors, groups, HOAs, boards, or events.
@@ -1365,6 +1365,141 @@ function formatUsd(amount: number): string {
   if (!Number.isFinite(amount)) return "$0";
   const rounded = Math.round(amount * 100) / 100;
   return rounded % 1 === 0 ? `$${rounded.toFixed(0)}` : `$${rounded.toFixed(2)}`;
+}
+
+async function getStandaloneAccountingSnapshotForUser(userId: string): Promise<{
+  totalInvoiced: number;
+  totalPaid: number;
+  totalUnpaid: number;
+  clientCount: number;
+  largestOpenClient?: { name: string; amount: number } | null;
+}> {
+  // Reuse the same document model as the standalone Finances workspace.
+  const { rows } = await pool.query(
+    `SELECT
+        COALESCE(payload->>'clientName', '(no client)') AS client_name,
+        status,
+        COALESCE((payload->>'total')::numeric, 0) AS total
+      FROM documents
+      WHERE type = 'INVOICE' AND created_by = $1 AND job_id LIKE 'acct_%'`,
+    [userId],
+  );
+
+  let totalInvoiced = 0;
+  let totalPaid = 0;
+  const perClientOpen: Record<string, number> = {};
+
+  for (const row of rows as any[]) {
+    const clientName: string = row.client_name || "(no client)";
+    const status: string = row.status || "draft";
+    const amount: number = Number(row.total) || 0;
+
+    totalInvoiced += amount;
+    if (status === "paid") {
+      totalPaid += amount;
+    } else {
+      perClientOpen[clientName] = (perClientOpen[clientName] || 0) + amount;
+    }
+  }
+
+  const totalUnpaid = Math.max(0, totalInvoiced - totalPaid);
+  const clientNames = Object.keys(perClientOpen);
+  let largestOpenClient: { name: string; amount: number } | null = null;
+  for (const name of clientNames) {
+    const amount = perClientOpen[name];
+    if (!largestOpenClient || amount > largestOpenClient.amount) {
+      largestOpenClient = { name, amount };
+    }
+  }
+
+  return {
+    totalInvoiced,
+    totalPaid,
+    totalUnpaid,
+    clientCount: clientNames.length,
+    largestOpenClient,
+  };
+}
+
+async function getStandaloneVendorSnapshotForUser(userId: string): Promise<{
+  totalExpenses: number;
+  vendorCount: number;
+  topVendor?: { name: string; amount: number } | null;
+}> {
+  const { rows } = await pool.query(
+    `SELECT
+        COALESCE(payload->>'vendorName', '(no vendor)') AS vendor_name,
+        COALESCE((payload->>'total')::numeric, 0) AS total
+      FROM documents
+      WHERE type = 'EXPENSE' AND created_by = $1 AND job_id LIKE 'acct_%'`,
+    [userId],
+  );
+
+  let totalExpenses = 0;
+  const perVendor: Record<string, number> = {};
+
+  for (const row of rows as any[]) {
+    const vendorName: string = row.vendor_name || "(no vendor)";
+    const amount: number = Number(row.total) || 0;
+    totalExpenses += amount;
+    perVendor[vendorName] = (perVendor[vendorName] || 0) + amount;
+  }
+
+  const vendorNames = Object.keys(perVendor);
+  let topVendor: { name: string; amount: number } | null = null;
+  for (const name of vendorNames) {
+    const amount = perVendor[name];
+    if (!topVendor || amount > topVendor.amount) {
+      topVendor = { name, amount };
+    }
+  }
+
+  return {
+    totalExpenses,
+    vendorCount: vendorNames.length,
+    topVendor,
+  };
+}
+
+async function getJobFinancesSnapshot(jobId: string): Promise<{
+  income: number;
+  collected: number;
+  outstanding: number;
+  expenses: number;
+  net: number;
+}> {
+  const { rows } = await pool.query(
+    `SELECT type,
+            status,
+            COALESCE((payload->>'total')::numeric, 0) AS total
+       FROM documents
+       WHERE job_id = $1`,
+    [jobId],
+  );
+
+  let income = 0;
+  let collected = 0;
+  let expenses = 0;
+
+  for (const row of rows as any[]) {
+    const type: string = row.type || "";
+    const status: string = row.status || "";
+    const amount: number = Number(row.total) || 0;
+
+    if (type === "INVOICE") {
+      income += amount;
+      if (status === "paid") {
+        collected += amount;
+      }
+    } else if (type === "EXPENSE") {
+      expenses += amount;
+    }
+  }
+
+  const outstanding = Math.max(0, income - collected);
+  const net = income - expenses;
+
+  return { income, collected, outstanding, expenses, net };
 }
 
 function getRegionFromState(stateCode: string): string {
@@ -2290,6 +2425,183 @@ router.post("/", async (req: Request, res: Response) => {
         });
       }
 
+      // Finances & accounting navigation: surface the dedicated Finances
+      // workspaces so a contractor can quickly open AR, vendor spend,
+      // or P&L/tax views directly from Scout.
+      const wantsFinancesOverview =
+        lower.includes("finances") ||
+        lower.includes("bookkeeping") ||
+        lower.includes("cash flow") ||
+        lower.includes("cashflow") ||
+        lower.includes("accounting") ||
+        lower.includes("financials");
+
+      const wantsARView =
+        /accounts?\s+receivable/.test(lower) ||
+        lower.includes("who owes me") ||
+        lower.includes("who still owes") ||
+        lower.includes("unpaid invoice") ||
+        lower.includes("unpaid invoices") ||
+        lower.includes("overdue invoice") ||
+        lower.includes("overdue invoices") ||
+        lower.includes("open invoices");
+
+      const wantsVendorsView =
+        lower.includes("vendors") ||
+        lower.includes("supplier") ||
+        lower.includes("suppliers") ||
+        lower.includes("subscriptions") ||
+        /who am i paying/.test(lower);
+
+      const wantsReportsView =
+        lower.includes("profit and loss") ||
+        lower.includes("p&l") ||
+        lower.includes("pnl") ||
+        lower.includes("financial reports") ||
+        /how much.*set aside.*tax/.test(lower) ||
+        lower.includes("tax set aside") ||
+        lower.includes("tax set-aside") ||
+        lower.includes("tax estimate");
+
+      const alreadyHasFinancesNav = actions.some(
+        (a) =>
+          a.type === "NAVIGATE" &&
+          typeof a.to === "string" &&
+          a.to.startsWith("/finances")
+      );
+
+      if (
+        userId &&
+        (wantsFinancesOverview || wantsARView || wantsVendorsView || wantsReportsView)
+      ) {
+        let arSummaryLine: string | null = null;
+        let vendorSummaryLine: string | null = null;
+
+        try {
+          const snapshot = await getStandaloneAccountingSnapshotForUser(String(userId));
+          if (snapshot.totalInvoiced > 0) {
+            const pieces: string[] = [];
+            pieces.push(
+              `Based on your TradeScout accounting data, you've invoiced ${formatUsd(snapshot.totalInvoiced)} lifetime and collected ${formatUsd(snapshot.totalPaid)}.`,
+            );
+
+            if (snapshot.totalUnpaid > 0) {
+              let tail = `You still have ${formatUsd(snapshot.totalUnpaid)} open`;
+              if (snapshot.clientCount > 0) {
+                tail += ` across ${snapshot.clientCount} client${snapshot.clientCount === 1 ? "" : "s"}`;
+              }
+              if (snapshot.largestOpenClient && snapshot.largestOpenClient.amount > 0) {
+                tail += `; the largest balance is ${formatUsd(snapshot.largestOpenClient.amount)} with ${snapshot.largestOpenClient.name}.`;
+              } else {
+                tail += ".";
+              }
+              pieces.push(tail);
+            }
+
+            arSummaryLine = pieces.join(" ");
+          }
+        } catch (finErr) {
+          console.error("[Scout] Failed to compute standalone accounting snapshot", finErr);
+        }
+
+        if (wantsVendorsView || wantsFinancesOverview || wantsReportsView) {
+          try {
+            const vendorSnapshot = await getStandaloneVendorSnapshotForUser(String(userId));
+            if (vendorSnapshot.totalExpenses > 0) {
+              const parts: string[] = [];
+              parts.push(
+                `You've recorded ${formatUsd(vendorSnapshot.totalExpenses)} in standalone expenses.`,
+              );
+              if (vendorSnapshot.vendorCount > 0) {
+                parts[0] += ` across ${vendorSnapshot.vendorCount} vendor${vendorSnapshot.vendorCount === 1 ? "" : "s"}.`;
+              }
+              if (vendorSnapshot.topVendor && vendorSnapshot.topVendor.amount > 0) {
+                parts.push(
+                  `Your top vendor so far is ${vendorSnapshot.topVendor.name} at ${formatUsd(vendorSnapshot.topVendor.amount)}.`,
+                );
+              }
+              vendorSummaryLine = parts.join(" ");
+            }
+          } catch (vendorErr) {
+            console.error("[Scout] Failed to compute standalone vendor snapshot", vendorErr);
+          }
+        }
+        if (!alreadyHasFinancesNav) {
+          actions.push({
+            type: "NAVIGATE",
+            label: "Open Finances workspace",
+            to: "/finances",
+          });
+        }
+
+        if (wantsARView) {
+          const hasClientsNav = actions.some(
+            (a) => a.type === "NAVIGATE" && a.to === "/finances/clients"
+          );
+          if (!hasClientsNav) {
+            actions.push({
+              type: "NAVIGATE",
+              label: "See who owes me (AR)",
+              to: "/finances/clients",
+            });
+          }
+        }
+
+        if (wantsVendorsView) {
+          const hasVendorsNav = actions.some(
+            (a) => a.type === "NAVIGATE" && a.to === "/finances/vendors"
+          );
+          if (!hasVendorsNav) {
+            actions.push({
+              type: "NAVIGATE",
+              label: "Review vendor spend",
+              to: "/finances/vendors",
+            });
+          }
+        }
+
+        if (wantsReportsView || (!wantsARView && !wantsVendorsView && wantsFinancesOverview)) {
+          const hasReportsNav = actions.some(
+            (a) => a.type === "NAVIGATE" && a.to === "/finances/reports"
+          );
+          if (!hasReportsNav) {
+            actions.push({
+              type: "NAVIGATE",
+              label: "View P&L and tax snapshot",
+              to: "/finances/reports",
+            });
+          }
+        }
+
+        // Append concise guidance so the user understands what will open.
+        const financeLines: string[] = [aiResponse.message];
+        if (arSummaryLine) {
+          financeLines.push(arSummaryLine);
+        }
+        if (vendorSummaryLine && (wantsVendorsView || (!wantsARView && wantsFinancesOverview))) {
+          financeLines.push(vendorSummaryLine);
+        }
+        if (wantsARView) {
+          financeLines.push(
+            "I'll open your Finances → Clients view so you can see open balances and who still owes you."
+          );
+        } else if (wantsVendorsView) {
+          financeLines.push(
+            "I'll open your Finances → Vendors view so you can review where your money is going."
+          );
+        } else if (wantsReportsView) {
+          financeLines.push(
+            "I'll open your Finances → Reports view so you can see income, expenses, and a simple tax set-aside suggestion."
+          );
+        } else if (wantsFinancesOverview) {
+          financeLines.push(
+            "I'll open your Finances workspace so you can see invoices, expenses, and simple reports in one place."
+          );
+        }
+
+        aiResponse.message = trimResponseToScreenFit(financeLines.join("\n\n"));
+      }
+
       // Project tracker / deal room actions
       // If the user is authenticated and asking about projects/jobs/contracts/invoices,
       // expose an explicit navigation chip into the Project Tracker / deal room surface.
@@ -2305,6 +2617,10 @@ router.post("/", async (req: Request, res: Response) => {
           lower.includes("receipt") ||
           lower.includes("deal room") ||
           (typeof synthesized.intent === "string" && /project|job/i.test(synthesized.intent));
+
+        const wantsJobFinances =
+          (wantsProjects && /profit|margin|money|finances|p&l|pnl/.test(lower)) ||
+          /job finances|project finances|how much have (we|i) (made|spent)/.test(lower);
 
         if (wantsProjects) {
           const alreadyHasTracker = actions.some(
@@ -2327,6 +2643,28 @@ router.post("/", async (req: Request, res: Response) => {
 
           if (currentJobId) {
             try {
+              // If the user is clearly asking about this job's money
+              // or profitability, compute a concise per-job snapshot
+              // using the same documents that power the Deal Room.
+              if (wantsJobFinances) {
+                try {
+                  const jf = await getJobFinancesSnapshot(currentJobId);
+                  if (jf.income > 0 || jf.expenses > 0) {
+                    const lines: string[] = [];
+                    lines.push(
+                      `For this job's finances, you've invoiced ${formatUsd(jf.income)}, collected ${formatUsd(jf.collected)}, and still have ${formatUsd(jf.outstanding)} open.`,
+                    );
+                    lines.push(
+                      `You've recorded ${formatUsd(jf.expenses)} in expenses so far, for a simple net of ${formatUsd(jf.net)} before taxes and overhead.`,
+                    );
+                    const combined = `${lines.join(" ")}\n\n${aiResponse.message}`;
+                    aiResponse.message = trimResponseToScreenFit(combined);
+                  }
+                } catch (jobFinErr) {
+                  console.error("[Scout] Failed to compute per-job finances snapshot", jobFinErr);
+                }
+              }
+
               const { rows } = await pool.query(
                 "SELECT type, status FROM documents WHERE job_id = $1 ORDER BY created_at ASC, version ASC",
                 [currentJobId]

@@ -12,9 +12,9 @@ const MobileAppBar: React.FC<MobileAppBarProps> = ({ items }) => {
   if (!items.length) return null;
 
   return (
-  <nav className="fixed inset-x-0 bottom-0 z-30 bg-slate-950/95 backdrop-blur py-1.5 pb-[calc(env(safe-area-inset-bottom)+0.35rem)]">
-    <div className="w-full min-h-[68px] overflow-x-auto md:overflow-x-hidden">
-    <div className="flex h-full items-stretch px-1.5 gap-1.5 min-w-max md:min-w-0 md:w-full md:justify-between">
+	<nav className="fixed inset-x-0 bottom-0 z-30 bg-slate-950/95 backdrop-blur py-1.5 pb-[calc(env(safe-area-inset-bottom)+0.35rem)]">
+	  <div className="w-full min-h-[68px] px-1.5">
+	  <div className="flex h-full flex-wrap items-stretch gap-1.5 justify-between">
           {items.map((item) => {
             const active =
               location === item.href || location.startsWith(item.href + "/");

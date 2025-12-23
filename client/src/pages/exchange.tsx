@@ -379,19 +379,31 @@ export default function Exchange() {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-4 mb-6 bg-[#1a2332] border-slate-700">
-          <TabsTrigger value="browse" className="text-slate-300 data-[state=active]:text-white data-[state=active]:bg-slate-700">
+        <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4 mb-5 bg-[#1a2332] border border-slate-700 rounded-xl overflow-hidden text-[11px] sm:text-xs">
+          <TabsTrigger
+            value="browse"
+            className="flex items-center justify-center px-2.5 py-2 text-slate-300 data-[state=active]:text-white data-[state=active]:bg-slate-700"
+          >
             Browse Items
           </TabsTrigger>
-          <TabsTrigger value="sales" className="text-slate-300 data-[state=active]:text-white data-[state=active]:bg-slate-700 relative">
-            <Tag className="h-4 w-4 mr-2" />
-            Sales & Deals
-            <Badge className="absolute -top-1 -right-1 bg-red-500 text-white text-xs px-1">HOT</Badge>
+          <TabsTrigger
+            value="sales"
+            className="flex items-center justify-center px-2.5 py-2 text-slate-300 data-[state=active]:text-white data-[state=active]:bg-slate-700 relative"
+          >
+            <Tag className="h-3 w-3 mr-1" />
+            <span>Sales &amp; Deals</span>
+            <Badge className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] px-1.5 py-0.5">HOT</Badge>
           </TabsTrigger>
-          <TabsTrigger value="categories" className="text-slate-300 data-[state=active]:text-white data-[state=active]:bg-slate-700">
+          <TabsTrigger
+            value="categories"
+            className="flex items-center justify-center px-2.5 py-2 text-slate-300 data-[state=active]:text-white data-[state=active]:bg-slate-700"
+          >
             Categories
           </TabsTrigger>
-          <TabsTrigger value="sell" className="text-slate-300 data-[state=active]:text-white data-[state=active]:bg-slate-700">
+          <TabsTrigger
+            value="sell"
+            className="flex items-center justify-center px-2.5 py-2 text-slate-300 data-[state=active]:text-white data-[state=active]:bg-slate-700"
+          >
             Sell Item
           </TabsTrigger>
         </TabsList>

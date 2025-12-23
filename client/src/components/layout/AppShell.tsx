@@ -25,6 +25,7 @@ import { RightToolsPanel } from "@/components/layout/RightToolsPanel";
 import MobileAppBar from "@/components/navigation/MobileAppBar";
 import { TradeScoutLogo } from "@/components/TradeScoutIcons";
 import { AdminPageToolsBar } from "@/components/admin/AdminPageToolsBar";
+import { useLocation } from "wouter";
 
 export type NavItem = {
   label: string;
@@ -71,11 +72,6 @@ const featureNav: NavItem[] = [
     icon: <Utensils className="h-5 w-5 text-orange-400" />,
   },
   {
-    label: "Messages",
-    href: "/messages",
-    icon: <MessageCircle className="h-5 w-5 text-orange-400" />,
-  },
-  {
     label: "EXCHANGE",
     href: "/exchange",
     icon: <ShoppingBag className="h-5 w-5 text-orange-400" />,
@@ -107,6 +103,7 @@ export function AppShell({ children, footer }: AppShellProps) {
   const isMobile = useIsMobile();
   const [isToolsOpen, setIsToolsOpen] = useState(false);
   const handedness = useHandedness();
+  const [, navigate] = useLocation();
 
   useEffect(() => {
     console.log("AppShell mounted");
@@ -153,14 +150,14 @@ export function AppShell({ children, footer }: AppShellProps) {
             <>
               <button
                 type="button"
-                onClick={() => (window.location.href = "/register")}
+                onClick={() => navigate("/register")}
                 className="inline-flex items-center justify-center rounded-full border border-orange-500/70 bg-orange-500 px-3 py-1 text-[0.7rem] font-semibold text-slate-950 shadow-sm shadow-orange-500/40"
               >
                 Create account
               </button>
               <button
                 type="button"
-                onClick={() => (window.location.href = "/login")}
+                onClick={() => navigate("/login")}
                 className="inline-flex items-center justify-center rounded-full border border-slate-700 bg-slate-950/60 px-3 py-1 text-[0.7rem] font-medium text-slate-200 hover:border-orange-400 hover:text-white"
               >
                 Log in
@@ -171,7 +168,7 @@ export function AppShell({ children, footer }: AppShellProps) {
           {/* Messages quick icon */}
           <button
             type="button"
-            onClick={() => (window.location.href = "/messages")}
+            onClick={() => navigate("/messages")}
             className="inline-flex h-8 w-8 items-center justify-center rounded-xl border border-slate-800 bg-slate-950/80 text-slate-300 hover:bg-slate-900"
             aria-label="Messages and helpers"
           >
@@ -184,7 +181,7 @@ export function AppShell({ children, footer }: AppShellProps) {
           ) : (
             <button
               type="button"
-              onClick={() => (window.location.href = "/notifications")}
+              onClick={() => navigate("/notifications")}
               className="inline-flex h-8 w-8 items-center justify-center rounded-xl border border-slate-800 bg-slate-950/80 text-slate-300 hover:bg-slate-900"
               aria-label="Notifications"
             >

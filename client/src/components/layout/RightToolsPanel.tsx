@@ -92,6 +92,20 @@ export function RightToolsPanel({ footer, onNavigate }: RightToolsPanelProps) {
           </div>
           <div className="space-y-2">
             <NavLink
+              href="/profile"
+              icon={<User className="h-3.5 w-3.5 text-orange-400" />}
+              label="My profile"
+              description="View and edit your public profile."
+              onClick={onNavigate}
+            />
+            <NavLink
+              href="/profile-settings"
+              icon={<Settings className="h-3.5 w-3.5 text-orange-400" />}
+              label="Account settings"
+              description="Profile sections, visibility, and preferences."
+              onClick={onNavigate}
+            />
+            <NavLink
               href="/finances"
               icon={<ClipboardList className="h-3.5 w-3.5 text-orange-400" />}
               label="Finances"
@@ -105,26 +119,6 @@ export function RightToolsPanel({ footer, onNavigate }: RightToolsPanelProps) {
               description="Control alerts from Scout and jobs."
               onClick={onNavigate}
             />
-            {isAuthenticated && (
-              <button
-                type="button"
-                onClick={() => {
-                  logout();
-                  onNavigate?.();
-                }}
-                className="w-full flex flex-col gap-1 rounded-xl border border-red-500/70 bg-slate-950/80 px-3 py-2 text-left hover:bg-red-600/10"
-              >
-                <div className="flex items-center gap-2">
-                  <span className="inline-flex h-7 w-7 items-center justify-center rounded-lg bg-slate-900 border border-red-500/60 text-red-300">
-                    <LogOut className="h-3.5 w-3.5" />
-                  </span>
-                  <span className="text-sm font-medium text-red-300">Sign out</span>
-                </div>
-                <p className="text-[11px] text-slate-400 leading-snug">
-                  Exit this TradeScout session on this device.
-                </p>
-              </button>
-            )}
           </div>
         </section>
 
@@ -214,6 +208,19 @@ export function RightToolsPanel({ footer, onNavigate }: RightToolsPanelProps) {
       <div className="border-t border-slate-800 px-4 py-3 text-[0.7rem] text-slate-500 space-y-2">
         <div className="flex items-center justify-between gap-2">
           <div className="truncate">Signed in as {displayName}</div>
+          {isAuthenticated && (
+            <button
+              type="button"
+              onClick={() => {
+                logout();
+                onNavigate?.();
+              }}
+              className="inline-flex items-center gap-1 rounded-full border border-red-500/60 px-2 py-1 text-[0.65rem] text-red-300 hover:bg-red-600/10"
+            >
+              <LogOut className="h-3 w-3" />
+              <span>Sign out</span>
+            </button>
+          )}
         </div>
         {footer && <div className="text-slate-400">{footer}</div>}
       </div>
