@@ -7,6 +7,7 @@ export const ROUTES = {
   FIND_CONTRACTORS: '/contractors',
   CONTRACTORS: '/contractors',
   MARKETPLACE: '/marketplace',
+  EXCHANGE: '/exchange',
   COMMUNITY: '/community',
   HELP: '/help',
   PRICING: '/pricing',
@@ -37,7 +38,8 @@ export const ROUTES = {
   // Route aliases for backward compatibility
   ALIASES: {
     '/dashboard/messages': '/conversations',
-    '/exchange/list': '/marketplace',
+    '/marketplace': '/exchange',
+    '/exchange/list': '/exchange',
     '/contractors/dashboard': '/contractor-dashboard'
   }
 } as const;
@@ -51,7 +53,7 @@ export const PUBLIC_ROUTES = [
   ROUTES.REGISTER,
   ROUTES.FIND_CONTRACTORS,
   ROUTES.CONTRACTORS,
-  ROUTES.MARKETPLACE,
+  ROUTES.EXCHANGE,
   ROUTES.COMMUNITY,
   ROUTES.HELP,
   ROUTES.PRICING,

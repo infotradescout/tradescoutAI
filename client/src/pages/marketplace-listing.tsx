@@ -35,6 +35,7 @@ import {
   Eye,
   Info
 } from "lucide-react";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 
 const marketplaceListingSchema = z.object({
   title: z.string().min(5, "Title must be at least 5 characters"),
@@ -48,6 +49,7 @@ const marketplaceListingSchema = z.object({
   city: z.string().min(1, "City is required"),
   state: z.string().min(2, "State is required"),
   zipCode: z.string().min(5, "ZIP code is required"),
+  locationVisibility: z.enum(["exact", "meetup_only"]),
 });
 
 type MarketplaceListingForm = z.infer<typeof marketplaceListingSchema>;
@@ -71,6 +73,7 @@ export default function MarketplaceListing() {
       city: "",
       state: "",
       zipCode: "",
+      locationVisibility: "exact",
     },
   });
 
@@ -91,7 +94,7 @@ export default function MarketplaceListing() {
       queryClient.invalidateQueries({ queryKey: ["/api/marketplace/listings"] });
       toast({
         title: "Listing Submitted Successfully!",
-        description: "Your listing has been submitted for admin review. It will appear in the marketplace once approved.",
+        description: "Your listing has been submitted for admin review. It will appear in the Exchange once approved.",
       });
       form.reset();
     },
@@ -126,7 +129,7 @@ export default function MarketplaceListing() {
           <CardContent className="p-6 text-center">
             <AlertCircle className="h-12 w-12 text-orange-500 mx-auto mb-4" />
             <h2 className="text-xl font-semibold mb-2">Login Required</h2>
-            <p className="text-gray-600 mb-4">You need to be logged in to create marketplace listings.</p>
+            <p className="text-gray-600 mb-4">You need to be logged in to create Exchange listings.</p>
             <Button asChild className="bg-orange-600 hover:bg-orange-700">
               <Link href="/login">Log In</Link>
             </Button>
@@ -354,6 +357,44 @@ export default function MarketplaceListing() {
                     )}
                   />
                 </div>
+
+                {/* Location privacy */}
+                <FormField
+                  control={form.control}
+                  name="locationVisibility"
+                  render={({ field }) => (
+                    <FormItem className="space-y-2">
+                      <FormLabel>Location privacy</FormLabel>
+                      <ToggleGroup
+                        type="single"
+                        value={field.value}
+                        onValueChange={(value) => {
+                          if (value === "exact" || value === "meetup_only") {
+                            field.onChange(value);
+                          }
+                        }}
+                        className="inline-flex rounded-lg border border-slate-700 bg-slate-900 text-xs"
+                      >
+                        <ToggleGroupItem
+                          value="exact"
+                          className="px-3 py-1.5 data-[state=on]:bg-orange-500 data-[state=on]:text-white data-[state=on]:border-orange-500/80"
+                        >
+                          Show exact area
+                        </ToggleGroupItem>
+                        <ToggleGroupItem
+                          value="meetup_only"
+                          className="px-3 py-1.5 data-[state=on]:bg-slate-800 data-[state=on]:text-white"
+                        >
+                          Meetup only
+                        </ToggleGroupItem>
+                      </ToggleGroup>
+                      <p className="text-xs text-gray-400">
+                        Meetup only hides your exact spot and skips hyper-local alerts.
+                      </p>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
 
                 {/* Value Enhancement Tips */}
                 <div className="mt-8 p-6 bg-gradient-to-r from-orange-100 to-amber-100 dark:from-orange-900/20 dark:to-amber-900/20 rounded-lg">

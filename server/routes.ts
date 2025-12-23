@@ -1830,6 +1830,68 @@ export async function registerRoutes(app: any) {
     }
   });
 
+  // Helper endpoint for Scout/tools: update just preferences.geo based on device location
+  app.post('/api/agent/preferences/geo', isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const userId = (req.user as any)?.id || (req.user as any)?.claims?.sub;
+      const currentUser = await storage.getUser(userId);
+      if (!currentUser) return res.status(404).json({ message: "User not found" });
+
+      const body: any = req.body ?? {};
+      const homeLocation = body.homeLocation || {};
+      const radius = body.notifyNearbyRadiusMeters;
+      const enableNearbyDeals = body.enableNearbyDeals;
+      const includeTypes = body.includeTypes;
+
+      if (typeof homeLocation.lat !== 'number' || typeof homeLocation.lng !== 'number') {
+        return res.status(400).json({ message: "homeLocation.lat and homeLocation.lng are required and must be numbers" });
+      }
+
+      const currentPrefs: any = (currentUser as any).preferences || {};
+      const currentGeo: any = currentPrefs.geo || {};
+
+      const nextGeo: any = {
+        ...currentGeo,
+        homeLocation: {
+          ...(currentGeo.homeLocation || {}),
+          lat: homeLocation.lat,
+          lng: homeLocation.lng,
+          // Allow optional human-readable label from client
+          ...(homeLocation.label ? { label: String(homeLocation.label) } : {}),
+        },
+      };
+
+      if (typeof radius === 'number' && Number.isFinite(radius) && radius > 0) {
+        nextGeo.notifyNearbyRadiusMeters = radius;
+      }
+
+      if (typeof enableNearbyDeals === 'boolean') {
+        nextGeo.enableNearbyDeals = enableNearbyDeals;
+      }
+
+      if (Array.isArray(includeTypes)) {
+        nextGeo.includeTypes = includeTypes.filter((t: any) =>
+          t === 'marketplace' || t === 'trade' || t === 'mealscout'
+        );
+      }
+
+      const updatedPreferences = {
+        ...currentPrefs,
+        geo: nextGeo,
+      };
+
+      const user = await storage.updateUser(userId, {
+        preferences: updatedPreferences,
+        updatedAt: new Date(),
+      });
+
+      res.json({ geo: (user as any).preferences?.geo });
+    } catch (error: any) {
+      console.error("Error updating user geo preferences via agent helper:", error);
+      res.status(500).json({ message: "Failed to update geo preferences" });
+    }
+  });
+
   // Back-compat: mark onboarding completed (do NOT allow arbitrary updates)
   app.patch('/api/auth/user', isAuthenticated, async (req: Request, res: Response) => {
     try {
@@ -6573,6 +6635,13 @@ export async function registerRoutes(app: any) {
         approvedAt: new Date(),
         moderationNotes: notes,
       });
+
+      // Trigger hyper-local notifications for nearby users when a listing goes live
+      try {
+        await notificationService.notifyNearbyUsersOfMarketplaceListing(listing as any);
+      } catch (notifyError) {
+        console.error("Error sending nearby listing notifications:", notifyError);
+      }
 
       res.json({ 
         message: "Listing approved successfully",
