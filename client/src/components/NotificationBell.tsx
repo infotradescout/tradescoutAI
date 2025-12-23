@@ -30,7 +30,7 @@ export function NotificationBell() {
   const [isOpen, setIsOpen] = useState(false);
 
   const { data: notifications = [], isLoading } = useQuery<Notification[]>({
-    queryKey: ["/api/notifications"],
+    queryKey: ["/api/notifications:list"],
     enabled: isAuthenticated,
     refetchInterval: 60000, // Check every minute
   });
@@ -40,24 +40,26 @@ export function NotificationBell() {
   const markAsReadMutation = useMutation({
     mutationFn: async (notificationId: string) => {
       const response = await fetch(`/api/notifications/${notificationId}/read`, {
-        method: 'PUT',
+        method: 'POST',
+        credentials: 'include',
       });
       if (!response.ok) throw new Error('Failed to mark as read');
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/notifications"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/notifications:list"] });
     },
   });
 
   const markAllAsReadMutation = useMutation({
     mutationFn: async () => {
       const response = await fetch('/api/notifications/mark-all-read', {
-        method: 'PUT',
+        method: 'POST',
+        credentials: 'include',
       });
       if (!response.ok) throw new Error('Failed to mark all as read');
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/notifications"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/notifications:list"] });
       toast({
         title: "All notifications marked as read",
         description: "Your notifications have been cleared.",

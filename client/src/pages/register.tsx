@@ -3,7 +3,7 @@ import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useMutation } from "@tanstack/react-query";
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
 import { ArrowLeft, UserPlus, Mail, Lock, User, MapPin, Phone } from "lucide-react";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -49,6 +49,19 @@ export default function Register() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
+  const [location] = useLocation();
+
+  const createdViaScout = useMemo(() => {
+    try {
+      const query = location.split("?")[1] || "";
+      const params = new URLSearchParams(query);
+      const source = (params.get("source") || params.get("via") || "").toLowerCase();
+      return source === "scout";
+    } catch {
+      return false;
+    }
+  }, [location]);
+
   const beginOAuth = (provider: "google" | "facebook") => {
     window.location.assign(`/api/auth/${provider}`);
   };
@@ -89,7 +102,11 @@ export default function Register() {
 
   const registerMutation = useMutation({
     mutationFn: async (data: Omit<RegisterFormData, "confirmPassword">) => {
-      const response = await apiRequest("POST", "/api/auth/register", data);
+      const payload: any = { ...data };
+      if (createdViaScout) {
+        payload.source = "scout";
+      }
+      const response = await apiRequest("POST", "/api/auth/register", payload);
       return response;
     },
     onSuccess: () => {

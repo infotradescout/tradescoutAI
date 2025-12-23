@@ -11,9 +11,9 @@ export function useNotifications() {
   const { user } = useAuth();
 
   const { data, isLoading, isError } = useQuery<{ summary: NotificationsSummary }>({
-    queryKey: ["/api/notifications"],
+    queryKey: ["/api/notifications/summary"],
     queryFn: async () => {
-      return apiRequest("GET", "/api/notifications");
+      return apiRequest("GET", "/api/notifications/summary");
     },
     // Only fetch notifications when a user is logged in
     enabled: !!user,
