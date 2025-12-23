@@ -101,8 +101,15 @@ export function RightToolsPanel({ footer, onNavigate }: RightToolsPanelProps) {
             <NavLink
               href="/profile-settings"
               icon={<Settings className="h-3.5 w-3.5 text-orange-400" />}
-              label="Account settings"
+              label="Profile settings"
               description="Profile sections, visibility, and preferences."
+              onClick={onNavigate}
+            />
+            <NavLink
+              href="/settings"
+              icon={<Settings className="h-3.5 w-3.5 text-orange-400" />}
+              label="User settings"
+              description="Notifications, app behavior, and connected tools."
               onClick={onNavigate}
             />
             <NavLink
