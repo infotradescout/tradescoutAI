@@ -10,6 +10,7 @@ import { SessionProvider } from './contexts/SessionContext';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { useAuth } from './hooks/useAuth';
 import { AppShell } from './components/layout/AppShell';
+import { resolveDefaultHomeRoute } from './lib/homeRoute';
 import ScoutOS from './scout';
 
 // Only load essential components eagerly
@@ -350,17 +351,8 @@ const AppLayout = memo(function AppLayout() {
   useEffect(() => {
     if (!isAuthenticated || !user?.preferences?.defaultHomePage) return;
 
-    const defaultPage = user.preferences.defaultHomePage;
-    const routeMap: Record<string, string> = {
-      llm: '/scout',
-      marketplace: '/marketplace',
-      'contractor-board': '/contractors/board',
-      dashboard: '/dashboard',
-      profile: '/profile',
-      community: '/community-feed',
-    };
-
-    const targetRoute = routeMap[defaultPage];
+    const defaultPage = user.preferences.defaultHomePage as any;
+    const targetRoute = resolveDefaultHomeRoute(defaultPage);
 
     if (targetRoute && location === '/') {
       setLocation(targetRoute);

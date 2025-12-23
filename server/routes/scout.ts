@@ -10,6 +10,10 @@ import {
   appendChatKnowledge,
   loadComprehensiveKnowledge,
 } from "../services/knowledgeService";
+import {
+  deriveDeterministicIntent,
+  maybeHandleDeterministicIntent,
+} from "../services/scoutDeterministicIntent";
 import { loadSystemPrompt } from "../services/promptService";
 import {
   buildUserContext,
@@ -652,6 +656,12 @@ ${JSON.stringify(resolvedContext, null, 2)}
   ${tradeHintBlock}
   ${communityHintBlock}
 
+LOCALITY & ASSUMPTIONS (CRITICAL):
+- CURRENT STATE locality tells you what area to assume for this user.
+- If locality has a real county or state (not "unknown"), you MUST treat that as the user's area by default.
+- Do NOT ask the user where they are unless BOTH county and state are unknown or the user explicitly says they are asking about a different area.
+- When you talk about activity, pros, pricing, or community, assume the conversation is about the CURRENT STATE locality unless the user clearly overrides it.
+
 User asked: "${userMessage}"
 
 Knowledge from TradeScout (Layer ${knowledge.layer}):
@@ -937,65 +947,6 @@ function deriveContextualActions(
   return final.slice(0, 3);
 }
 
-function parseStructuredResponse(
-  rawResponse: string,
-  userMessage: string,
-  userContext?: any,
-  historyMessages?: { role: string; content: string }[]
-): { message: string; suggestedActions: string[] } {
-  const DEFAULT_ACTIONS = [
-    "Find contractors in my area",
-    "Explore marketplace deals",
-    "Start Community Builder"
-  ];
-
-  try {
-    // Try to extract JSON from response (in case LLM adds markdown code blocks)
-    let jsonText = rawResponse.trim();
-    
-    // Remove markdown code blocks if present
-    if (jsonText.startsWith('```json')) {
-      jsonText = jsonText.replace(/```json\n?/, '').replace(/\n?```$/, '');
-    } else if (jsonText.startsWith('```')) {
-      jsonText = jsonText.replace(/```\n?/, '').replace(/\n?```$/, '');
-    }
-    
-    const parsed = JSON.parse(jsonText);
-    
-    // Validate structure
-    if (!parsed.message || typeof parsed.message !== 'string') {
-      throw new Error('Missing or invalid message field');
-    }
-    
-    if (!Array.isArray(parsed.suggestedActions)) {
-      throw new Error('Missing or invalid suggestedActions array');
-    }
-    
-    // Sanitize suggestedActions
-    let actions = parsed.suggestedActions
-      .filter((a: any) => typeof a === 'string' && a.trim().length > 0)
-      .map((a: string) => a.trim())
-      .slice(0, 5); // allow temp overflow before ranking
-
-    // Enforce contextual ranking + fallback padding
-    actions = deriveContextualActions(actions, userMessage, userContext, historyMessages);
-
-    return {
-      message: parsed.message,
-      suggestedActions: actions
-    };
-    
-  } catch (error) {
-    console.error('[Scout] JSON parsing failed, falling back to text response:', error);
-    
-    // Fallback: treat entire response as message, generate default actions
-    return {
-      message: rawResponse,
-      suggestedActions: DEFAULT_ACTIONS
-    };
-  }
-}
-
 /**
  * Trim response to ensure it fits on screen without scrolling.
  * For general answers we keep things tight; for the first OS orientation
@@ -1056,6 +1007,46 @@ function trimResponseToScreenFit(
   }
 
   return result;
+}
+
+/**
+ * Prepend a short, local-aware first line so Scout feels like a
+ * confident local guide instead of a generic assistant. This is
+ * ONLY applied on the first turn of a conversation when we know
+ * the user's county or state.
+ */
+function prependLocalIntro(
+  message: string,
+  opts: {
+    countyCode?: string;
+    stateCode?: string;
+    historyLength: number;
+    communityPostCount: number;
+    contractorCount: number;
+  }
+): string {
+  if (!message) return message;
+
+  // Only shape the very first answer in a thread.
+  if (opts.historyLength > 0) return message;
+
+  const hasLocation = Boolean(opts.countyCode || opts.stateCode);
+  if (!hasLocation) return message;
+
+  const area = opts.countyCode || opts.stateCode || "your area";
+
+  // Avoid double "Here's..." prefixes if the model already opened that way.
+  const lowerFirstLine = message.split("\n")[0]?.trim().toLowerCase() ?? "";
+  if (lowerFirstLine.startsWith("here's") || lowerFirstLine.startsWith("heres")) {
+    return message;
+  }
+
+  const hasSignals = opts.communityPostCount > 0 || opts.contractorCount > 0;
+  const header = hasSignals
+    ? `Here's what's active around you in ${area}.`
+    : `Based on what's happening in ${area}, here's how I'd approach this.`;
+
+  return `${header}\n\n${message}`;
 }
 
 function detectTradeTopic(message: string): string | null {
@@ -1275,34 +1266,6 @@ type ScoutClientAction = {
   prompt?: string;
   payload?: Record<string, unknown>;
 };
-
-type DeterministicIntent =
-  | "send_invoice"
-  | "mark_invoice_paid"
-  | "send_contract"
-  | "sign_contract"
-  | "open_deal_room";
-
-function deriveDeterministicIntent(message: string): DeterministicIntent | null {
-  const lower = message.toLowerCase();
-  if (/mark (it )?paid|record payment|mark invoice paid|payment received/.test(lower)) {
-    return "mark_invoice_paid";
-  }
-  if (/send (the )?invoice|invoice.*send/.test(lower)) {
-    return "send_invoice";
-  }
-  if (/send (the )?contract|contract.*send/.test(lower)) {
-    return "send_contract";
-  }
-  if (/(sign|e-sign|esign|esig).*(contract)|contract.*sign/.test(lower)) {
-    return "sign_contract";
-  }
-  if (/open (the )?(deal\s*room|project\s*tracker|job\s*room)/.test(lower)) {
-    return "open_deal_room";
-  }
-  return null;
-}
-
 function allowsAction(ctx: ResolvedContext | null, action: AllowedAction): boolean {
   if (!ctx) return false;
   return ctx.allowedActions.includes(action);
@@ -2016,86 +1979,32 @@ router.post("/", async (req: Request, res: Response) => {
     // Deterministic early-exit: if user intent maps cleanly to an allowed
     // action for the current job, return a short, action-first response and
     // skip the LLM altogether.
-    const deterministicIntent = deriveDeterministicIntent(message);
-    if (deterministicIntent && resolvedContext && currentJobId) {
-      let canHandle = false;
-      let actionLabel = "";
-      let actionExplanation = "";
-      let allowedKey: AllowedAction | null = null;
-      switch (deterministicIntent) {
-        case "send_invoice":
-          allowedKey = "SEND_INVOICE";
-          actionLabel = "Open deal room";
-          actionExplanation =
-            "You can send the invoice for this project now. I'll open your deal room so you can review and send it.";
-          break;
-        case "mark_invoice_paid":
-          allowedKey = "MARK_INVOICE_PAID";
-          actionLabel = "Open deal room";
-          actionExplanation =
-            "You can record payment on this invoice from the deal room. I'll open it so you can mark it paid.";
-          break;
-        case "send_contract":
-          allowedKey = "SEND_CONTRACT";
-          actionLabel = "Open deal room";
-          actionExplanation =
-            "The contract is ready to send for signature. I'll open your deal room so you can send it.";
-          break;
-        case "sign_contract":
-          allowedKey = "SIGN_CONTRACT";
-          actionLabel = "Open deal room";
-          actionExplanation =
-            "This contract is waiting on signatures. I'll open your deal room so you can sign it.";
-          break;
-        case "open_deal_room":
-          allowedKey = "OPEN_DEAL_ROOM";
-          actionLabel = "Open deal room";
-          actionExplanation =
-            "I'll open your project deal room so you can handle this.";
-          break;
-      }
+    const deterministic = maybeHandleDeterministicIntent({
+      message,
+      resolvedContext,
+      currentJobId,
+    });
 
-      if (allowedKey && allowsAction(resolvedContext, allowedKey)) {
-        canHandle = true;
-      }
+    if (deterministic) {
+      const aiResponse: ScoutResponse = {
+        message: trimResponseToScreenFit(deterministic.message),
+        suggestedActions: deterministic.suggestedActions,
+        actions: deterministic.actions as any,
+        sponsored: null,
+        metadata: deterministic.metadata as any,
+      };
 
-      if (canHandle) {
-        const aiResponse: ScoutResponse = {
-          message: trimResponseToScreenFit(actionExplanation),
-          suggestedActions: [
-            "Explain what’s blocking this project",
-            "Show other ways TradeScout can help",
-            "Ask another question",
-          ],
-          actions: [
-            {
-              type: "NAVIGATE",
-              label: actionLabel,
-              path: `/lead-management?jobId=${currentJobId}`,
-              payload: { jobId: currentJobId, intent: deterministicIntent },
-            },
-          ],
-          sponsored: null,
-          metadata: {
-            intent: deterministicIntent,
-            decision:
-              "Handled via deterministic route based on project documents and allowed actions.",
-            resolvedContext: { ...resolvedContext, requiresLLM: false },
-          },
-        };
-
-        return res.json({
-          ...aiResponse,
-          knowledge: {
-            layer: knowledge.layer,
-            sources: knowledge.sources,
-            confidence: knowledge.confidence,
-          },
-          llmProvider: "deterministic",
-          promptVersion,
-          timestamp: new Date().toISOString(),
-        });
-      }
+      return res.json({
+        ...aiResponse,
+        knowledge: {
+          layer: knowledge.layer,
+          sources: knowledge.sources,
+          confidence: knowledge.confidence,
+        },
+        llmProvider: "deterministic",
+        promptVersion,
+        timestamp: new Date().toISOString(),
+      });
     }
 
     const synthesized = await synthesizeResponse(
@@ -2168,7 +2077,13 @@ router.post("/", async (req: Request, res: Response) => {
     if (synthesized.intent === "auth_required" && !userId) {
       // Scout has determined user needs to create account
       const aiResponse: ScoutResponse = {
-        message: synthesized.message,
+        message: prependLocalIntro(synthesized.message, {
+          countyCode,
+          stateCode,
+          historyLength: history.length,
+          communityPostCount,
+          contractorCount,
+        }),
         suggestedActions: [
           "Create account now",
           "Learn more about TradeScout",
@@ -2200,7 +2115,13 @@ router.post("/", async (req: Request, res: Response) => {
 
     // The synthesized answer is our response with suggestedActions!
     const aiResponse: ScoutResponse = {
-      message: synthesized.message,
+      message: prependLocalIntro(synthesized.message, {
+        countyCode,
+        stateCode,
+        historyLength: history.length,
+        communityPostCount,
+        contractorCount,
+      }),
       suggestedActions: synthesized.suggestedActions,
       actions: [],
       sponsored: null,
