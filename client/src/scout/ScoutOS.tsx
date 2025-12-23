@@ -94,6 +94,7 @@ export default function ScoutOS() {
   const [introDemoState, setIntroDemoState] = useState<
     "idle" | "typing" | "armingSend" | "sending" | "done"
   >("idle");
+  const [isUpdatingGeo, setIsUpdatingGeo] = useState(false);
   const introTimersRef = useRef<{
     typeTimer: number | null;
     startTimer: number | null;
