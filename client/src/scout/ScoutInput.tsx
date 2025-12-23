@@ -33,6 +33,8 @@ const ScoutInput: React.FC<ScoutInputProps> = ({
   const [isTypingDemo, setIsTypingDemo] = useState(false);
   const handedness = useHandedness();
 
+  const textareaRef = useRef<HTMLTextAreaElement | null>(null);
+
   const demoIndexRef = useRef(0);
   const demoTimeoutRef = useRef<number | null>(null);
   const demoIntervalRef = useRef<number | null>(null);
@@ -53,6 +55,18 @@ const ScoutInput: React.FC<ScoutInputProps> = ({
       sendTimeoutRef.current = null;
     }
   };
+
+  // Auto-focus the main Scout input so it feels like the
+  // primary action, matching the ChatGPT-style mental model.
+  useEffect(() => {
+    if (disabled) return;
+    if (!textareaRef.current) return;
+    try {
+      textareaRef.current.focus();
+    } catch {
+      // ignore focus errors (e.g., mobile safari restrictions)
+    }
+  }, [disabled]);
 
   const handleSubmit = (text?: string) => {
     const trimmed = (text ?? value).trim();
@@ -171,12 +185,13 @@ const ScoutInput: React.FC<ScoutInputProps> = ({
   return (
     <div className="mt-3 space-y-2">
       <textarea
+        ref={textareaRef}
         value={value}
         onChange={handleManualChange}
         disabled={disabled}
         placeholder={placeholder}
         rows={3}
-        className="w-full resize-none rounded-2xl border border-slate-800 bg-[#020617] px-4 py-3 text-sm text-slate-100 placeholder:text-slate-400/70 focus:outline-none focus:ring-2 focus:ring-orange-500/60 min-h-[80px]"
+        className="w-full resize-none rounded-2xl border border-slate-600 bg-slate-950/90 px-4 py-3.5 text-[13px] text-slate-100 placeholder:text-slate-400/80 focus:outline-none focus:ring-2 focus:ring-orange-500/70 focus:border-orange-400 shadow-sm shadow-slate-900/60 min-h-[96px]"
       />
       <div
         className={`flex w-full ${

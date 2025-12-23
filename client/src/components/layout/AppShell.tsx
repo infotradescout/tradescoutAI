@@ -103,7 +103,7 @@ export function AppShell({ children, footer }: AppShellProps) {
   const isMobile = useIsMobile();
   const [isToolsOpen, setIsToolsOpen] = useState(false);
   const handedness = useHandedness();
-  const [, navigate] = useLocation();
+  const [location, navigate] = useLocation();
 
   useEffect(() => {
     console.log("AppShell mounted");
@@ -118,88 +118,141 @@ export function AppShell({ children, footer }: AppShellProps) {
       }}
     >
       {/* TOP APP NAV HEADER */}
-      <header
-        className={`flex items-center px-3 sm:px-4 py-3 ${
-          handedness === "left" ? "flex-row-reverse justify-between" : "justify-between"
-        }`}
-      >
-        {/* Brand */}
-        <Link
-          href="/"
-          className={`flex items-center gap-3 cursor-pointer ${
-            handedness === "left" ? "justify-end" : ""
-          }`}
-        >
-          <TradeScoutLogo
-            size="sm"
-            className=""
-          />
-          <div className="flex flex-col leading-tight">
-            <span className="text-[0.65rem] uppercase tracking-[0.35em] text-slate-400">
+      {location.startsWith("/scout") ? (
+        // Cleaner, chat-focused header for Scout: centered brand, minimal chrome
+        <header className="flex items-center px-3 sm:px-4 py-2 justify-between">
+          <div className="flex-1" />
+
+          <Link
+            href="/"
+            className="flex flex-col items-center gap-1 cursor-pointer flex-none"
+          >
+            <TradeScoutLogo size="sm" className="" />
+            <span className="text-[0.65rem] uppercase tracking-[0.32em] text-slate-400">
               TRADESCOUT
             </span>
-            <span className="text-xs text-slate-400">
-              Connection without compromise
-            </span>
-          </div>
-        </Link>
+          </Link>
 
-        {/* Right side: auth CTA + icons */}
-        <div className="flex items-center gap-2 shrink-0">
-          {!isAuthenticated && (
-            <>
-              <button
-                type="button"
-                onClick={() => navigate("/register")}
-                className="inline-flex items-center justify-center rounded-full border border-orange-500/70 bg-orange-500 px-3 py-1 text-[0.7rem] font-semibold text-slate-950 shadow-sm shadow-orange-500/40"
-              >
-                Create account
-              </button>
-              <button
-                type="button"
-                onClick={() => navigate("/login")}
-                className="inline-flex items-center justify-center rounded-full border border-slate-700 bg-slate-950/60 px-3 py-1 text-[0.7rem] font-medium text-slate-200 hover:border-orange-400 hover:text-white"
-              >
-                Log in
-              </button>
-            </>
-          )}
-
-          {/* Messages quick icon */}
-          <button
-            type="button"
-            onClick={() => navigate("/messages")}
-            className="inline-flex h-8 w-8 items-center justify-center rounded-xl border border-slate-800 bg-slate-950/80 text-slate-300 hover:bg-slate-900"
-            aria-label="Messages and helpers"
-          >
-            <MessageCircle className="h-4 w-4 text-orange-400" />
-          </button>
-
-          {/* Notifications */}
-          {isAuthenticated ? (
-            <NotificationsMenu />
-          ) : (
+          <div className="flex items-center gap-2 flex-1 justify-end">
+            {/* Messages quick icon */}
             <button
               type="button"
-              onClick={() => navigate("/notifications")}
+              onClick={() => navigate("/messages")}
               className="inline-flex h-8 w-8 items-center justify-center rounded-xl border border-slate-800 bg-slate-950/80 text-slate-300 hover:bg-slate-900"
-              aria-label="Notifications"
+              aria-label="Messages and helpers"
             >
-              <Bell className="h-4 w-4 text-orange-400" />
+              <MessageCircle className="h-4 w-4 text-orange-400" />
             </button>
-          )}
 
-          {/* Tools / profile panel (user-specific stuff) */}
-          <button
-            type="button"
-            onClick={() => setIsToolsOpen(true)}
-            className="inline-flex h-8 w-8 items-center justify-center rounded-xl border border-slate-800 bg-slate-950/80 text-slate-200 hover:bg-slate-900"
-            aria-label="Open profile & tools panel"
+            {/* Notifications */}
+            {isAuthenticated ? (
+              <NotificationsMenu />
+            ) : (
+              <button
+                type="button"
+                onClick={() => navigate("/notifications")}
+                className="inline-flex h-8 w-8 items-center justify-center rounded-xl border border-slate-800 bg-slate-950/80 text-slate-300 hover:bg-slate-900"
+                aria-label="Notifications"
+              >
+                <Bell className="h-4 w-4 text-orange-400" />
+              </button>
+            )}
+
+            {/* Tools / profile panel (user-specific stuff) */}
+            <button
+              type="button"
+              onClick={() => setIsToolsOpen(true)}
+              className="inline-flex h-8 w-8 items-center justify-center rounded-xl border border-slate-800 bg-slate-950/80 text-slate-200 hover:bg-slate-900"
+              aria-label="Open profile & tools panel"
+            >
+              <Menu className="h-4 w-4 text-orange-400" />
+            </button>
+          </div>
+        </header>
+      ) : (
+        <header
+          className={`flex items-center px-3 sm:px-4 py-3 ${
+            handedness === "left" ? "flex-row-reverse justify-between" : "justify-between"
+          }`}
+        >
+          {/* Brand */}
+          <Link
+            href="/"
+            className={`flex items-center gap-3 cursor-pointer ${
+              handedness === "left" ? "justify-end" : ""
+            }`}
           >
-            <Menu className="h-4 w-4 text-orange-400" />
-          </button>
-        </div>
-      </header>
+            <TradeScoutLogo
+              size="sm"
+              className=""
+            />
+            <div className="flex flex-col leading-tight">
+              <span className="text-[0.65rem] uppercase tracking-[0.35em] text-slate-400">
+                TRADESCOUT
+              </span>
+              <span className="text-xs text-slate-400">
+                Connection without compromise
+              </span>
+            </div>
+          </Link>
+
+          {/* Right side: auth CTA + icons */}
+          <div className="flex items-center gap-2 shrink-0">
+            {!isAuthenticated && (
+              <>
+                <button
+                  type="button"
+                  onClick={() => navigate("/register")}
+                  className="inline-flex items-center justify-center rounded-full border border-orange-500/70 bg-orange-500 px-3 py-1 text-[0.7rem] font-semibold text-slate-950 shadow-sm shadow-orange-500/40"
+                >
+                  Create account
+                </button>
+                <button
+                  type="button"
+                  onClick={() => navigate("/login")}
+                  className="inline-flex items-center justify-center rounded-full border border-slate-700 bg-slate-950/60 px-3 py-1 text-[0.7rem] font-medium text-slate-200 hover:border-orange-400 hover:text-white"
+                >
+                  Log in
+                </button>
+              </>
+            )}
+
+            {/* Messages quick icon */}
+            <button
+              type="button"
+              onClick={() => navigate("/messages")}
+              className="inline-flex h-8 w-8 items-center justify-center rounded-xl border border-slate-800 bg-slate-950/80 text-slate-300 hover:bg-slate-900"
+              aria-label="Messages and helpers"
+            >
+              <MessageCircle className="h-4 w-4 text-orange-400" />
+            </button>
+
+            {/* Notifications */}
+            {isAuthenticated ? (
+              <NotificationsMenu />
+            ) : (
+              <button
+                type="button"
+                onClick={() => navigate("/notifications")}
+                className="inline-flex h-8 w-8 items-center justify-center rounded-xl border border-slate-800 bg-slate-950/80 text-slate-300 hover:bg-slate-900"
+                aria-label="Notifications"
+              >
+                <Bell className="h-4 w-4 text-orange-400" />
+              </button>
+            )}
+
+            {/* Tools / profile panel (user-specific stuff) */}
+            <button
+              type="button"
+              onClick={() => setIsToolsOpen(true)}
+              className="inline-flex h-8 w-8 items-center justify-center rounded-xl border border-slate-800 bg-slate-950/80 text-slate-200 hover:bg-slate-900"
+              aria-label="Open profile & tools panel"
+            >
+              <Menu className="h-4 w-4 text-orange-400" />
+            </button>
+          </div>
+        </header>
+      )}
 
       <div className="flex flex-1 min-h-0">
         <main className="flex flex-col flex-1 min-w-0 pb-20 lg:pb-0 overflow-y-auto">
