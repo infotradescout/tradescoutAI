@@ -20,7 +20,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useHandedness } from "@/hooks/useHandedness";
 import { useIsMobile } from "@/hooks/useIsMobile";
 import { ROUTES } from "@/lib/routes";
-import { NotificationsMenu } from "@/components/NotificationsMenu";
+import { NotificationCenter } from "@/components/ui/notification-center";
 import { RightToolsPanel } from "@/components/layout/RightToolsPanel";
 import MobileAppBar from "@/components/navigation/MobileAppBar";
 import { TradeScoutLogo } from "@/components/TradeScoutIcons";
@@ -144,9 +144,9 @@ export function AppShell({ children, footer }: AppShellProps) {
               <MessageCircle className="h-4 w-4 text-orange-400" />
             </button>
 
-            {/* Notifications */}
+            {/* Notifications: full activity center (tags, comments, likes, jobs, etc.) */}
             {isAuthenticated ? (
-              <NotificationsMenu />
+              <NotificationCenter />
             ) : (
               <button
                 type="button"
@@ -227,9 +227,9 @@ export function AppShell({ children, footer }: AppShellProps) {
               <MessageCircle className="h-4 w-4 text-orange-400" />
             </button>
 
-            {/* Notifications */}
+            {/* Notifications: full activity center (tags, comments, likes, jobs, etc.) */}
             {isAuthenticated ? (
-              <NotificationsMenu />
+              <NotificationCenter />
             ) : (
               <button
                 type="button"
@@ -255,7 +255,11 @@ export function AppShell({ children, footer }: AppShellProps) {
       )}
 
       <div className="flex flex-1 min-h-0">
-        <main className="flex flex-col flex-1 min-w-0 pb-20 lg:pb-0 overflow-y-auto">
+        <main
+          className={`flex flex-col flex-1 min-w-0 overflow-y-auto ${
+            location.startsWith("/scout") ? "pb-2" : "pb-20 lg:pb-0"
+          }`}
+        >
           {children}
         </main>
 

@@ -202,9 +202,9 @@ const ScoutInput: React.FC<ScoutInputProps> = ({
           type="button"
           onClick={() => handleSubmit()}
           disabled={isButtonDisabled}
-          className="inline-flex items-center justify-center gap-2 rounded-2xl bg-slate-700 px-4 py-3 text-sm font-semibold text-slate-100 hover:bg-slate-600 disabled:cursor-not-allowed disabled:opacity-60"
+          className="inline-flex items-center justify-center gap-2 rounded-full bg-gradient-to-r from-orange-500 to-orange-600 px-5 py-2.5 text-sm font-semibold text-slate-950 shadow-lg shadow-orange-500/40 hover:from-orange-400 hover:to-orange-500 disabled:cursor-not-allowed disabled:opacity-60"
         >
-          <Send className="h-4 w-4" />
+          <Send className="h-4 w-4 text-white" />
           <span>{isSubmitting ? "Sending..." : "Send"}</span>
         </button>
       </div>
