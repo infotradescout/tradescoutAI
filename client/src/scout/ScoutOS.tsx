@@ -33,7 +33,9 @@ import { Card } from "@/components/ui/card";
 import { ArrowRight, MessageCircle, Sparkles, Activity } from "lucide-react";
 
 const INTRO_DEMO_TEXT = "What can TradeScout do for my community?";
-const INTRO_DEMO_STORAGE_KEY = "ts_intro_demo_v3";
+// Bump the storage key so the scripted intro demo runs again for
+// users who previously saw v3 and had it permanently disabled.
+const INTRO_DEMO_STORAGE_KEY = "ts_intro_demo_v4";
 
 const HERO_SUGGESTION_PROMPTS = [
   "Find a reliable plumber for a kitchen leak",
@@ -974,15 +976,15 @@ export default function ScoutOS() {
   })();
 
   return (
-    <div className="flex flex-col min-h-full w-full items-center bg-slate-950 text-white">
+    <div className="flex flex-col flex-1 min-h-0 w-full items-center bg-slate-950 text-white">
       <div
         className={`w-full ${
-          isMobile ? "max-w-6xl px-3 pt-3 pb-2" : "max-w-6xl px-4 pt-6 pb-3"
+          isMobile ? "px-3 pt-3 pb-0" : "max-w-6xl px-4 pt-6 pb-1"
         } space-y-4 flex flex-col flex-1`}
       >
         {isFirstGuestVisit ? (
-          // FIRST GUEST INTRO: Community OS hero layout
-          <div className="space-y-6">
+          // FIRST GUEST INTRO: Community OS hero layout (centered like ChatGPT)
+          <div className="space-y-6 max-w-xl mx-auto w-full">
             <div className="relative overflow-hidden rounded-2xl border border-tsBorder bg-slate-950/70 shadow-2xl shadow-black/40 px-5 sm:px-8 py-8">
               <div className="absolute inset-0 pointer-events-none">
                 <div className="absolute inset-0 bg-[radial-gradient(circle_at_35%_30%,#0f1d3d,#020617_55%,#020617)] opacity-70" />
@@ -990,8 +992,8 @@ export default function ScoutOS() {
                 <div className="absolute bottom-[-10%] right-1/4 w-96 h-96 bg-cyan-500/12 blur-3xl" />
               </div>
 
-              <div className="relative z-10 flex flex-col gap-6">
-                <div className="flex items-center gap-3 flex-wrap justify-between">
+              <div className="relative z-10 flex flex-col gap-6 items-center text-center">
+                <div className="flex items-center gap-3 flex-wrap justify-center">
                   <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-white/10 bg-white/5 text-[11px] font-semibold tracking-[0.18em] uppercase text-tsAccentSoft shadow-lg shadow-orange-500/10">
                     <span className="w-2 h-2 rounded-full bg-orange-400 animate-pulse" />
                     Community Operating System
@@ -1002,10 +1004,10 @@ export default function ScoutOS() {
                   </div>
                 </div>
 
-                <div className="flex flex-col gap-2 text-left">
+                <div className="flex flex-col gap-2 text-center">
                   <h1 className="text-4xl sm:text-5xl font-black leading-tight drop-shadow-[0_8px_30px_rgba(0,0,0,0.35)]">
                     <span className="text-white">EMPOWERING </span>
-                    <span className="text-tsAccent">{heroHeadlineTarget}</span>
+                    <span className="text-tsAccent">YOUR COMMUNITY</span>
                   </h1>
                   <p className="text-base sm:text-lg text-tsTextMuted max-w-3xl">
                     {isAuthenticated && heroAudienceLabel
@@ -1014,7 +1016,7 @@ export default function ScoutOS() {
                   </p>
                 </div>
 
-                <div className="grid gap-6 lg:grid-cols-[1.25fr,1fr]">
+                <div className="grid gap-6 lg:grid-cols-[1.25fr,1fr] w-full">
                   <Card className="bg-slate-900/80 border border-tsBorder rounded-2xl shadow-xl shadow-black/30">
                     <div className="p-4 sm:p-6 flex flex-col gap-4">
                       <div className="flex flex-col gap-3">
@@ -1124,16 +1126,17 @@ export default function ScoutOS() {
             </div>
           </div>
         ) : (
-          // FULL CONVERSATION: All features visible after first message
-          <>
+          // FULL CONVERSATION: All features visible after first message,
+          // centered column similar to ChatGPT chat layout.
+          <div className="max-w-xl mx-auto w-full flex flex-col flex-1 min-h-0">
             {/* Header + hero (copy only; all navigation lives in AppShell) */}
-            <header className="space-y-1">
+            <header className="space-y-1 text-center">
               <p className="text-[10px] tracking-[0.25em] text-orange-300 uppercase">
                 COMMUNITY OS
               </p>
-              <h1 className="mt-1 text-[clamp(0.95rem,3.5vw,1.35rem)] tracking-[0.12em] text-white uppercase">
+              <h1 className="mt-1 text-[clamp(0.8rem,3vw,1.1rem)] tracking-[0.1em] text-white uppercase whitespace-nowrap">
                 <span className="text-white">EMPOWERING </span>
-                <span className="text-orange-400">{heroHeadlineTarget}</span>
+                <span className="text-orange-400">YOUR COMMUNITY</span>
               </h1>
 
               <p className="text-[11px] text-slate-400 max-w-md">
@@ -1153,8 +1156,8 @@ export default function ScoutOS() {
                 the bottom of the viewport, with the input pinned just above
                 the global bottom nav. */}
             <div
-              className={`mt-3 rounded-2xl border border-slate-800 bg-[#020617] flex flex-col flex-1 min-h-0 ${
-                isMobile ? "px-3 py-3 space-y-3" : "px-4 py-4 space-y-4"
+              className={`mt-3 flex flex-col flex-1 min-h-0 ${
+                isMobile ? "space-y-3" : "space-y-4"
               }`}
             >
               {!hasUserMessages && (
@@ -1387,7 +1390,7 @@ export default function ScoutOS() {
                 </div>
               )}
             </div>
-          </>
+          </div>
         )}
       </div>
 
