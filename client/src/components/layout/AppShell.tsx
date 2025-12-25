@@ -119,7 +119,7 @@ export function AppShell({ children, footer }: AppShellProps) {
       {/* TOP APP NAV HEADER */}
       {location.startsWith("/scout") ? (
         // Cleaner, chat-focused header for Scout: now left-aligned brand with tagline
-        <header className="fixed top-0 inset-x-0 z-40 backdrop-blur flex items-center h-[56px] px-3 sm:px-4 justify-between border-b" style={{ background: 'rgba(2, 6, 23, 0.95)', borderColor: 'var(--border-primary)' }}>
+        <header className="fixed top-0 inset-x-0 z-40 backdrop-blur flex items-center h-[56px] px-3 sm:px-4 justify-between border-b" style={{ backgroundColor: 'var(--charcoal-900)', borderColor: 'var(--border-primary)' }}>
           <Link
             href="/"
             className="flex items-center gap-3 cursor-pointer"
@@ -179,7 +179,7 @@ export function AppShell({ children, footer }: AppShellProps) {
           className={`fixed top-0 inset-x-0 z-40 backdrop-blur flex items-center h-[56px] px-3 sm:px-4 border-b ${
             handedness === "left" ? "flex-row-reverse justify-between" : "justify-between"
           }`}
-          style={{ background: 'rgba(2, 6, 23, 0.95)', borderColor: 'var(--border-primary)' }}
+          style={{ backgroundColor: 'var(--charcoal-900)', borderColor: 'var(--border-primary)' }}
         >
           {/* Brand */}
           <Link
