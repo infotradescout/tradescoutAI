@@ -219,10 +219,10 @@ const ScoutThread: React.FC<ScoutThreadProps> = ({
 
   const statusStyles: React.CSSProperties =
     status === "checking_documents"
-      ? { color: 'var(--theme-text-secondary)', border: '1px solid var(--theme-border-primary)' }
+      ? { color: 'var(--text-secondary)', border: '1px solid var(--border-primary)' }
       : status === "ready"
-      ? { color: 'var(--theme-text-primary)', border: '1px solid var(--theme-accent-primary)' }
-      : { color: 'var(--theme-text-secondary)', border: '1px solid var(--theme-border-secondary)' };
+      ? { color: 'var(--text-primary)', border: '1px solid var(--theme-accent-primary)' }
+      : { color: 'var(--text-secondary)', border: '1px solid var(--border-secondary)' };
 
   return (
     <div className="space-y-3 pr-1 flex-1 min-h-0 overflow-y-auto">
@@ -353,7 +353,7 @@ const ScoutThread: React.FC<ScoutThreadProps> = ({
               className={clsx(
                 "mt-1 inline-flex items-center rounded-2xl px-3 py-1 text-[11px]"
               )}
-              style={{ backgroundColor: 'color-mix(in oklab, var(--theme-bg-quaternary) 85%, black)', ...statusStyles }}
+              style={{ backgroundColor: 'color-mix(in oklab, var(--bg-quaternary) 85%, black)', ...statusStyles }}
             >
               <span className="mr-1 h-1.5 w-1.5 rounded-full animate-pulse" style={{ backgroundColor: 'var(--theme-accent-primary)' }} />
               {statusLabel ?? "Scout is thinking about the best local answer..."}

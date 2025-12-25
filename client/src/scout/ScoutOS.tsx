@@ -609,6 +609,35 @@ export default function ScoutOS() {
           markAdSeen(res.sponsored.id);
         }
 
+        // If the backend response reads like a generic template or provides a known
+        // template frame, attach a concrete, pre-filled draft so the user leaves
+        // with something actionable immediately.
+        const looksLikeGenericTemplate =
+          typeof res.message === "string" && /template\s+for\s+a\s+quote\s+request/i.test(res.message);
+        const hasTemplateFrame = typeof res.frame?.templateId === "string" && res.frame.templateId.trim().length > 0;
+        const prefilledDraft = looksLikeGenericTemplate || hasTemplateFrame ? buildAutoFilledDraft(value) : null;
+
+        if (prefilledDraft) {
+          clusters.push({
+            id: `prefilled-draft-${Date.now()}`,
+            title: "Pre-filled request",
+            kind: "generic",
+            body: prefilledDraft,
+            actions: [
+              {
+                type: "PREFILL_INPUT",
+                label: "Edit and send",
+                payload: { text: prefilledDraft },
+              },
+              {
+                type: "OPEN_FLOATING_NOTE",
+                label: "Open a floating note",
+                payload: { noteId: "quick" },
+              },
+            ],
+          });
+        }
+
         if (isFirstAnswer) {
           clusters.push({
             id: "first-nav-contractors",
@@ -677,11 +706,16 @@ export default function ScoutOS() {
         
         // CRITICAL: Sanitize the message to remove any internal reasoning leakage
         const sanitized = sanitizeScoutMessage(res.message);
-        
-        const finalContent =
-          isFirstAnswer && typeof sanitized === "string" && sanitized.length > MAX_FIRST_MESSAGE_CHARS
-            ? `${sanitized.slice(0, MAX_FIRST_MESSAGE_CHARS).trimEnd()}…`
+
+        const enrichedContent =
+          prefilledDraft && typeof sanitized === "string"
+            ? `${sanitized}\n\nHere’s your pre-filled request (ready to send):\n${prefilledDraft}`
             : sanitized;
+
+        const finalContent =
+          isFirstAnswer && typeof enrichedContent === "string" && enrichedContent.length > MAX_FIRST_MESSAGE_CHARS
+            ? `${enrichedContent.slice(0, MAX_FIRST_MESSAGE_CHARS).trimEnd()}…`
+            : enrichedContent;
 
         const msg: ScoutMessage = {
           id: `a_${Date.now()}_${Math.random().toString(36).slice(2)}`,
@@ -882,6 +916,76 @@ export default function ScoutOS() {
       }
     );
   }, [isUpdatingGeo, refetchUser]);
+
+  // Build a concrete, ready-to-send draft using known profile and locality.
+  const buildAutoFilledDraft = useCallback(
+    (userMessage: string): string => {
+      const parts: string[] = [];
+
+      const name =
+        (user as any)?.name ||
+        (user as any)?.fullName ||
+        (user as any)?.displayName ||
+        undefined;
+
+      const county = locality?.county ? String(locality.county) : undefined;
+      const state = locality?.state ? String(locality.state) : undefined;
+      const zip = locality?.zip ? String(locality.zip) : undefined;
+
+      const locLabel = (() => {
+        if (county && state) return `${county}, ${state}`;
+        if (county) return county;
+        if (state) return state;
+        return undefined;
+      })();
+
+      const email = (user as any)?.email || (user as any)?.primaryEmail || undefined;
+      const phone = (user as any)?.phone || (user as any)?.phoneNumber || undefined;
+
+      parts.push("Hello,");
+      if (name || locLabel) {
+        parts.push(
+          [
+            name ? `I'm ${name}` : undefined,
+            locLabel ? `based in ${locLabel}${zip ? ` (${zip})` : ""}` : undefined,
+          ]
+            .filter(Boolean)
+            .join(" ") + "."
+        );
+      }
+
+      const trimmed = userMessage.trim();
+      if (trimmed) {
+        parts.push(`I'm looking for help with: ${trimmed}.`);
+      }
+
+      // If the prompt includes urgency hints, reflect them; otherwise omit.
+      const lower = trimmed.toLowerCase();
+      const urgency =
+        lower.includes("urgent") || lower.includes("asap")
+          ? "This is time-sensitive."
+          : lower.includes("week")
+          ? "Ideally within the next couple of weeks."
+          : lower.includes("month")
+          ? "Ideally within the next month."
+          : undefined;
+      if (urgency) parts.push(urgency);
+
+      if (email || phone) {
+        parts.push(
+          [
+            email ? `Email: ${email}` : undefined,
+            phone ? `Phone: ${phone}` : undefined,
+          ]
+            .filter(Boolean)
+            .join(" \n")
+        );
+      }
+
+      parts.push("Thank you!");
+      return parts.filter((p) => typeof p === "string" && p.trim().length > 0).join("\n\n");
+    }, [user, locality]
+  );
 
   return (
     <div className="scout-shell flex flex-col flex-1 min-h-0 w-full items-center text-white overflow-hidden">

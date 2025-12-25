@@ -204,8 +204,8 @@ const ScoutInput: React.FC<ScoutInputProps> = ({
         rows={3}
         className="w-full resize-none rounded-lg border px-4 py-3 text-[15px] focus:outline-none min-h-[96px] transition-all"
         style={{
-          backgroundColor: '#1a2230',
-          borderColor: 'rgba(255,255,255,0.1)',
+          backgroundColor: 'var(--bg-secondary)',
+          borderColor: 'var(--border-primary)',
           color: 'var(--text-primary)',
         }}
       />
