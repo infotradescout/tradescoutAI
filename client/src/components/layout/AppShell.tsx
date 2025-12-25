@@ -111,8 +111,8 @@ export function AppShell({ children, footer }: AppShellProps) {
 
   return (
     <div
-      className="app-shell text-slate-50 flex flex-col min-h-screen overflow-hidden"
-      style={{
+      className="app-shell flex flex-col min-h-screen overflow-hidden"
+      style={{ color: 'var(--text-primary)' }}
         paddingTop: "env(safe-area-inset-top)",
       }}
     >
@@ -193,10 +193,10 @@ export function AppShell({ children, footer }: AppShellProps) {
               className=""
             />
             <div className="flex flex-col leading-tight">
-              <span className="text-[0.65rem] uppercase tracking-[0.35em] text-slate-400">
+              <span className="text-[0.65rem] uppercase tracking-[0.35em]" style={{ color: 'var(--text-secondary)' }}>
                 TRADESCOUT
               </span>
-              <span className="text-xs text-slate-400">
+              <span className="text-xs" style={{ color: 'var(--text-secondary)' }}>
                 Connection without compromise
               </span>
             </div>
@@ -216,7 +216,8 @@ export function AppShell({ children, footer }: AppShellProps) {
                 <button
                   type="button"
                   onClick={() => navigate("/login")}
-                  className="inline-flex items-center justify-center rounded-full border border-slate-700 bg-slate-950/60 px-3 py-1 text-[0.7rem] font-medium text-slate-200 hover:border-orange-400 hover:text-white"
+                  className="inline-flex items-center justify-center rounded-full border px-3 py-1 text-[0.7rem] font-medium hover:text-white transition"
+                  style={{ borderColor: 'var(--border-primary)', backgroundColor: 'var(--charcoal-900)', color: 'var(--text-secondary)' }}
                 >
                   Log in
                 </button>
@@ -295,7 +296,7 @@ export function AppShell({ children, footer }: AppShellProps) {
       {/* Desktop-only legal footer sits below the bottom nav so the
           site still feels app-like while keeping legal links visible. */}
       {!isMobile && footer && (
-        <div className="border-t border-slate-900/80 bg-slate-950/95">
+        <div className="border-t" style={{ borderColor: 'var(--border-secondary)', background: 'var(--charcoal-900)' }}>
           {footer}
         </div>
       )}
@@ -309,15 +310,16 @@ export function AppShell({ children, footer }: AppShellProps) {
             className="flex-1 bg-black/40"
             onClick={() => setIsToolsOpen(false)}
           />
-          <div className="w-72 max-w-full bg-slate-950 flex flex-col">
+          <div className="w-72 max-w-full flex flex-col" style={{ backgroundColor: 'var(--charcoal-900)' }}>
             <div className="flex items-center justify-between px-4 py-3">
-              <span className="text-[0.7rem] uppercase tracking-[0.2em] text-slate-500">
+              <span className="text-[0.7rem] uppercase tracking-[0.2em]" style={{ color: 'var(--text-secondary)' }}>
                 Tools &amp; profile
               </span>
               <button
                 type="button"
                 onClick={() => setIsToolsOpen(false)}
-                className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-slate-700 text-slate-300 hover:bg-slate-800"
+                className="inline-flex h-7 w-7 items-center justify-center rounded-md border transition"
+                style={{ borderColor: 'var(--border-primary)', color: 'var(--text-secondary)', background: 'var(--bg-secondary)' }}
               >
                 ✕
               </button>

@@ -23,9 +23,10 @@ const MobileAppBar: React.FC<MobileAppBarProps> = ({ items }) => {
               <Link
                 key={item.href}
                 href={item.href}
-                className={`flex flex-col items-center justify-center px-3 py-2 md:flex-1 ${
-                active ? "text-orange-400" : "text-slate-400"
-                } text-[0.75rem]`}
+                className={`flex flex-col items-center justify-center px-3 py-2 md:flex-1 text-[0.75rem] ${
+                active ? "text-orange-400" : ""
+                }`}
+                style={{ color: active ? undefined : 'var(--text-secondary)' }}
               >
                 {item.icon && (
                 <span className="mb-0.5 inline-flex h-6 w-6 items-center justify-center">
