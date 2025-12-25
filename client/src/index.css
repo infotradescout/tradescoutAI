@@ -43,13 +43,14 @@ html {
     padding: 0;
     width: 100%;
     height: 100%;
-    background-color: #0b1220;
+    background: var(--bg-gradient);
     overscroll-behavior: none;
   }
 
   #root {
     min-height: var(--app-height);
     width: 100%;
+    background: var(--bg-gradient);
   }
 
   body {
@@ -246,7 +247,7 @@ html {
   .app-shell {
     min-height: var(--app-height);
     width: 100%;
-    background-color: #0b1220;
+    background: var(--bg-gradient);
     padding-left: env(safe-area-inset-left);
     padding-right: env(safe-area-inset-right);
     padding-top: env(safe-area-inset-top);
@@ -868,6 +869,101 @@ html, body {
 
 .max-w-7xl, .max-w-6xl, .max-w-5xl, .max-w-4xl, .max-w-3xl, .max-w-2xl, .max-w-xl {
   max-width: calc(100vw - 2rem);
+}
+
+/* ============================================================================
+   Global Theme Utilities - Use throughout the site
+   ============================================================================ */
+
+/* Theme-aware page wrapper */
+.page-wrapper {
+  background: var(--bg-gradient);
+  min-height: 100vh;
+  color: var(--text-primary);
+}
+
+/* Theme-aware cards - replaces bg-slate-800 */
+.theme-card {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-primary);
+  color: var(--text-primary);
+}
+
+.theme-card-hover {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-primary);
+  color: var(--text-primary);
+  transition: all 0.2s ease;
+}
+
+.theme-card-hover:hover {
+  border-color: var(--orange-primary);
+  background: var(--bg-tertiary);
+}
+
+/* Theme-aware input fields - replaces bg-slate-700 */
+.theme-input {
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-primary);
+  color: var(--text-primary);
+}
+
+.theme-input:focus {
+  outline: none;
+  border-color: var(--orange-primary);
+  box-shadow: 0 0 0 1px var(--orange-primary);
+}
+
+.theme-input::placeholder {
+  color: var(--text-muted);
+}
+
+/* Theme-aware buttons */
+.theme-button-primary {
+  background: var(--orange-primary);
+  color: #000;
+  font-weight: 600;
+  transition: all 0.2s ease;
+}
+
+.theme-button-primary:hover {
+  background: var(--orange-secondary);
+  transform: translateY(-1px);
+}
+
+.theme-button-secondary {
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+  border: 1px solid var(--border-primary);
+  transition: all 0.2s ease;
+}
+
+.theme-button-secondary:hover {
+  background: var(--bg-quaternary);
+  border-color: var(--orange-primary);
+}
+
+/* Theme-aware text colors */
+.theme-text-primary {
+  color: var(--text-primary);
+}
+
+.theme-text-secondary {
+  color: var(--text-secondary);
+}
+
+.theme-text-muted {
+  color: var(--text-muted);
+}
+
+.theme-text-accent {
+  color: var(--orange-primary);
+}
+
+/* Theme-aware skeleton loaders */
+.theme-skeleton {
+  background: var(--bg-tertiary);
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }
 
 /* ============================================================================
