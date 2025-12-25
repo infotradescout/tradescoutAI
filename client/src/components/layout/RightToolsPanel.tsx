@@ -36,17 +36,17 @@ const NavLink: React.FC<NavLinkProps> = ({
     className="flex flex-col gap-1 rounded-xl border transition-colors"
     style={{
       borderColor: 'var(--border-primary)',
-      backgroundColor: '#1a2230',
+      backgroundColor: 'var(--surface-intermediate)',
     }}
     onMouseEnter={(e) => {
-      (e.currentTarget as HTMLElement).style.backgroundColor = '#1f2a39';
+      (e.currentTarget as HTMLElement).style.backgroundColor = 'var(--surface-card)';
     }}
     onMouseLeave={(e) => {
-      (e.currentTarget as HTMLElement).style.backgroundColor = '#1a2230';
+      (e.currentTarget as HTMLElement).style.backgroundColor = 'var(--surface-intermediate)';
     }}
   >
     <div className="px-3 py-2 flex items-center gap-2">
-      <span className="inline-flex h-7 w-7 items-center justify-center rounded-lg border" style={{ backgroundColor: '#1a2230', borderColor: 'var(--border-primary)', color: 'var(--text-primary)' }}>
+      <span className="inline-flex h-7 w-7 items-center justify-center rounded-lg border" style={{ backgroundColor: 'var(--surface-intermediate)', borderColor: 'var(--border-primary)', color: 'var(--text-primary)' }}>
         {icon}
       </span>
       <span className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>{label}</span>
@@ -81,17 +81,17 @@ const ActionButton = ({
     className="w-full text-left flex flex-col gap-1 rounded-xl border transition-colors"
     style={{
       borderColor: 'var(--border-primary)',
-      backgroundColor: '#1a2230',
+      backgroundColor: 'var(--surface-intermediate)',
     }}
     onMouseEnter={(e) => {
-      (e.currentTarget as HTMLElement).style.backgroundColor = '#1f2a39';
+      (e.currentTarget as HTMLElement).style.backgroundColor = 'var(--surface-card)';
     }}
     onMouseLeave={(e) => {
-      (e.currentTarget as HTMLElement).style.backgroundColor = '#1a2230';
+      (e.currentTarget as HTMLElement).style.backgroundColor = 'var(--surface-intermediate)';
     }}
   >
     <div className="px-3 py-2 flex items-center gap-2">
-      <span className="inline-flex h-7 w-7 items-center justify-center rounded-lg border" style={{ backgroundColor: '#1a2230', borderColor: 'var(--border-primary)', color: 'var(--text-primary)' }}>
+      <span className="inline-flex h-7 w-7 items-center justify-center rounded-lg border" style={{ backgroundColor: 'var(--surface-intermediate)', borderColor: 'var(--border-primary)', color: 'var(--text-primary)' }}>
         {icon}
       </span>
       <span className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>{label}</span>
@@ -119,7 +119,7 @@ export function RightToolsPanel({ footer, onNavigate }: RightToolsPanelProps) {
       : undefined;
 
   return (
-    <div className="h-full flex flex-col relative" style={{ backgroundColor: '#141b26', borderLeft: '1px solid rgba(255,255,255,0.06)', color: 'var(--text-primary)', zIndex: 60 }}>
+    <div className="h-full flex flex-col relative" style={{ backgroundColor: 'var(--surface-intermediate)', borderLeft: '1px solid rgba(255,255,255,0.06)', color: 'var(--text-primary)', zIndex: 60 }}>
       {/* Header */}
       <div className="px-4 py-3 border-b" style={{ borderColor: 'var(--border-secondary)' }}>
         <div className="text-[0.65rem] uppercase tracking-[0.3em]" style={{ color: 'var(--text-secondary)' }}>
@@ -334,7 +334,7 @@ function EmbeddedNotesWorkspace() {
   };
 
   return (
-    <div className="rounded-xl border" style={{ borderColor: 'var(--border-primary)', backgroundColor: '#1a2230' }}>
+    <div className="rounded-xl border" style={{ borderColor: 'var(--border-primary)', backgroundColor: 'var(--surface-intermediate)' }}>
       <div className="px-3 pt-2 text-[0.7rem] uppercase tracking-[0.2em]" style={{ color: 'var(--text-secondary)' }}>
         Workspace notes
       </div>
@@ -346,7 +346,7 @@ function EmbeddedNotesWorkspace() {
             onChange={(e) => setQuickText(e.target.value)}
             onBlur={saveQuick}
             className="mt-1 w-full rounded-lg border px-2 py-1 text-[0.8rem]"
-            style={{ borderColor: 'var(--border-primary)', backgroundColor: '#1a2230', color: 'var(--text-primary)' }}
+            style={{ borderColor: 'var(--border-primary)', backgroundColor: 'var(--surface-intermediate)', color: 'var(--text-primary)' }}
             rows={3}
             placeholder="Type and click away to save"
           />
@@ -356,7 +356,7 @@ function EmbeddedNotesWorkspace() {
             <div className="text-[0.7rem] mb-1" style={{ color: 'var(--text-secondary)' }}>Recent</div>
             <ul className="space-y-1">
               {notes.map((n) => (
-                <li key={n.id} className="rounded-md border px-2 py-1 text-[0.8rem] truncate" style={{ borderColor: 'var(--border-secondary)', color: 'var(--text-primary)', backgroundColor: '#1a2230' }}>
+                <li key={n.id} className="rounded-md border px-2 py-1 text-[0.8rem] truncate" style={{ borderColor: 'var(--border-secondary)', color: 'var(--text-primary)', backgroundColor: 'var(--surface-intermediate)' }}>
                   <span className="font-medium" style={{ color: 'var(--text-primary)' }}>{n.id}</span>
                   <span className="ml-2" style={{ color: 'var(--text-secondary)' }}>{n.text.slice(0, 60)}{n.text.length > 60 ? '…' : ''}</span>
                 </li>

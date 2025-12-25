@@ -29,6 +29,31 @@ html {
 @layer base {
   :root {
     --app-height: 100%;
+
+    /* ===== THEME LOCK: 4-SURFACE SYSTEM ===== */
+    /* FRAME SURFACES (Darkest – Navigation) */
+    --surface-frame: #0b0f14;
+    --surface-frame-border: rgba(255,255,255,0.06);
+
+    /* APPLICATION SURFACES */
+    --surface-app-bg: #11161f;           /* Main canvas */
+    --surface-card: #161e2b;             /* Elevated: cards, suggestions, prompts */
+    --surface-intermediate: #1a2230;     /* In-card surfaces (like preview boxes) */
+    --surface-input: #1b2332;            /* Lightest: input boxes, text areas */
+
+    /* INTERACTION STATES */
+    --border-subtle: rgba(255,255,255,0.06);
+    --border-active: rgba(255,255,255,0.12);
+    --border-focus: rgba(255,255,255,0.18);
+
+    /* TEXT HIERARCHY */
+    --text-primary: rgba(255,255,255,0.95);
+    --text-secondary: rgba(255,255,255,0.7);
+    --text-tertiary: rgba(255,255,255,0.5);
+
+    /* ACCENT (Scout only) */
+    --theme-accent-primary: #5d8adb;
+    /* ===== END THEME LOCK ===== */
   }
 
   @supports (height: 100dvh) {
@@ -1099,10 +1124,11 @@ html, body {
 /* Scout shell - single, controlled gradient on the canvas */
 .scout-shell {
   background-color: #11161f;
-  background-image: radial-gradient(
-    circle at top,
-    rgba(80, 110, 180, 0.1),
-    rgba(17, 22, 31, 1) 65%
+  background-image: linear-gradient(
+    180deg,
+    rgba(40, 60, 110, 0.12) 0%,
+    rgba(17, 22, 31, 0.95) 45%,
+    #11161f 100%
   );
   position: relative;
   min-height: 100vh;
@@ -1133,27 +1159,21 @@ html, body {
   transform: translateY(-1px);
 }
 
-/* Scout input with accent glow */
+/* Scout input with clean, elevated surface */
 .scout-input {
-  background-color: #1a2230;
+  background-color: #1b2332;
   border: 1px solid rgba(255, 255, 255, 0.08);
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .scout-input:focus-within {
-  background-color: #1a2230;
-  border-color: color-mix(in oklab, var(--border-primary) 65%, var(--theme-accent-primary) 35%);
-  box-shadow: 
-    0 0 0 1px color-mix(in oklab, var(--border-primary) 65%, var(--theme-accent-primary) 35%),
-    0 0 18px color-mix(in oklab, var(--theme-accent-primary) 9%, transparent);
+  background-color: #1b2332;
+  border-color: rgba(255, 255, 255, 0.18);
 }
 
 /* Scout input variant for midnight blue */
 .scout-input.theme-blue:focus-within {
-  border-color: #38bdf8;
-  box-shadow: 
-    0 0 0 1px #38bdf8,
-    0 0 24px rgba(56, 189, 248, 0.35);
+  border-color: rgba(255, 255, 255, 0.18);
 }
 
 /* Scout message bubbles */
@@ -1252,27 +1272,23 @@ html, body {
   color: var(--text-secondary) !important;
 }
 
-/* Scout suggestion pills */
+/* Scout suggestion pills - elevated with subtle contrast */
 .scout-suggestion {
-  background: rgba(255, 140, 0, 0.12);
-  border: 1px solid #FF8C00;
-  color: #FF8C00;
+  background-color: #161e2b;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  color: var(--text-primary);
   font-weight: 500;
   cursor: pointer;
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  opacity: 0.9;
 }
 
 .scout-suggestion:hover {
-  background: rgba(255, 140, 0, 0.25);
-  border-color: #FFA500;
-  color: #FFA500;
-  box-shadow: 0 4px 8px rgba(255, 140, 0, 0.2);
-  transform: translateY(-1px);
+  opacity: 1;
+  border-color: rgba(255, 255, 255, 0.12);
 }
 
 .scout-suggestion:active {
-  background: rgba(255, 140, 0, 0.35);
   transform: translateY(0);
 }
 

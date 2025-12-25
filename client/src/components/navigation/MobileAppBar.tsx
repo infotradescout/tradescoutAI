@@ -12,7 +12,7 @@ const MobileAppBar: React.FC<MobileAppBarProps> = ({ items }) => {
   if (!items.length) return null;
 
   return (
-  <nav className="fixed inset-x-0 bottom-0 z-50 backdrop-blur pt-1.5 pb-[env(safe-area-inset-bottom)] overflow-x-auto border-t" style={{ backgroundColor: 'var(--charcoal-950)', borderColor: 'var(--border-primary)' }}>
+  <nav className="fixed inset-x-0 bottom-0 z-50 pt-1.5 pb-[env(safe-area-inset-bottom)] overflow-x-auto border-t" style={{ backgroundColor: 'var(--surface-frame)', borderColor: 'var(--surface-frame-border)' }}>
     <div className="w-full h-[68px] px-1.5">
     <div className="flex h-full flex-nowrap items-stretch gap-1.5 justify-start">
           {items.map((item) => {

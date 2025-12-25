@@ -120,7 +120,7 @@ export function AppShell({ children, footer }: AppShellProps) {
       {/* TOP APP NAV HEADER */}
       {location.startsWith("/scout") ? (
         // Cleaner, chat-focused header for Scout: now left-aligned brand with tagline
-        <header className="fixed top-0 inset-x-0 z-40 backdrop-blur flex items-center h-[56px] px-2 sm:px-4 justify-between border-b" style={{ backgroundColor: 'var(--charcoal-950)', borderColor: 'var(--border-primary)' }}>
+        <header className="fixed top-0 inset-x-0 z-40 flex items-center h-[56px] px-2 sm:px-4 justify-between border-b" style={{ backgroundColor: 'var(--surface-frame)', borderColor: 'var(--surface-frame-border)' }}>
           <Link
             href="/"
             className="flex items-center gap-3 cursor-pointer"
@@ -278,7 +278,7 @@ export function AppShell({ children, footer }: AppShellProps) {
 
       {/* USER-SPECIFIC PAGES LIVE HERE (desktop) - FIXED alongside bottom nav */}
       {!isMobile && (
-        <aside className="hidden lg:block fixed right-0 bottom-0 w-80 overflow-y-auto z-40" style={{ background: '#141b26', height: 'calc(100vh - 56px - 68px)', top: '56px' }}>
+        <aside className="hidden lg:block fixed right-0 bottom-0 w-80 overflow-y-auto z-40" style={{ background: 'var(--surface-intermediate)', height: 'calc(100vh - 56px - 68px)', top: '56px' }}>
           {/* On desktop, keep the global footer only at the bottom of the shell;
              the tools panel shows account tools without duplicating legal copy. */}
           <RightToolsPanel />
@@ -308,7 +308,7 @@ export function AppShell({ children, footer }: AppShellProps) {
             className="flex-1 bg-black/40"
             onClick={() => setIsToolsOpen(false)}
           />
-          <div className="w-72 max-w-full flex flex-col" style={{ backgroundColor: '#141b26' }}>
+          <div className="w-72 max-w-full flex flex-col" style={{ backgroundColor: 'var(--surface-intermediate)' }}>
             <div className="flex items-center justify-between px-4 py-3">
               <span className="text-[0.7rem] uppercase tracking-[0.2em]" style={{ color: 'var(--text-secondary)' }}>
                 Tools &amp; profile
