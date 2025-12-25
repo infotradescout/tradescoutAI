@@ -12,7 +12,7 @@ const MobileAppBar: React.FC<MobileAppBarProps> = ({ items }) => {
   if (!items.length) return null;
 
   return (
-  <nav className="fixed inset-x-0 bottom-0 z-50 backdrop-blur pt-1.5 pb-[env(safe-area-inset-bottom)] overflow-x-auto" style={{ backgroundColor: 'var(--charcoal-900)' }}>
+  <nav className="fixed inset-x-0 bottom-0 z-50 backdrop-blur pt-1.5 pb-[env(safe-area-inset-bottom)] overflow-x-auto" style={{ backgroundColor: 'var(--theme-bg-quaternary)' }}>
     <div className="w-full h-[68px] px-1.5">
     <div className="flex h-full flex-nowrap items-stretch gap-1.5 justify-start">
           {items.map((item) => {
@@ -23,10 +23,8 @@ const MobileAppBar: React.FC<MobileAppBarProps> = ({ items }) => {
               <Link
                 key={item.href}
                 href={item.href}
-                className={`flex flex-col items-center justify-center px-3 py-2 md:flex-1 text-[0.75rem] ${
-                active ? "text-orange-400" : ""
-                }`}
-                style={{ color: active ? undefined : 'var(--text-secondary)' }}
+                className={`flex flex-col items-center justify-center px-3 py-2 md:flex-1 text-[0.75rem]`}
+                style={{ color: active ? 'var(--theme-accent-primary)' : 'var(--theme-text-secondary)' }}
               >
                 {item.icon && (
                 <span className="mb-0.5 inline-flex h-6 w-6 items-center justify-center">
@@ -35,7 +33,7 @@ const MobileAppBar: React.FC<MobileAppBarProps> = ({ items }) => {
                 )}
                 <span className="whitespace-nowrap">{item.label}</span>
                 {item.badge && (
-                  <span className="mt-0.5 text-[0.6rem] rounded-full px-1.5 py-0.5 bg-orange-500/10 border border-orange-500/40">
+                  <span className="mt-0.5 text-[0.6rem] rounded-full px-1.5 py-0.5" style={{ backgroundColor: 'color-mix(in oklab, var(--theme-accent-primary) 12%, transparent)', border: '1px solid color-mix(in oklab, var(--theme-accent-primary) 40%, transparent)', color: 'var(--theme-text-primary)' }}>
                     {item.badge}
                   </span>
                 )}

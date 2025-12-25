@@ -218,12 +218,12 @@ const ScoutThread: React.FC<ScoutThreadProps> = ({
     status !== "error" && 
     messages.length === 0;
 
-  const statusToneClass =
+  const statusStyles: React.CSSProperties =
     status === "checking_documents"
-      ? "text-slate-200 border-slate-600/60"
+      ? { color: 'var(--theme-text-secondary)', border: '1px solid var(--theme-border-primary)' }
       : status === "ready"
-      ? "text-slate-100 border-orange-400/60"
-      : "text-slate-300 border-slate-700/60";
+      ? { color: 'var(--theme-text-primary)', border: '1px solid var(--theme-accent-primary)' }
+      : { color: 'var(--theme-text-secondary)', border: '1px solid var(--theme-border-secondary)' };
 
   return (
     <div className="space-y-3 pr-1 flex-1 min-h-0 overflow-y-auto">
@@ -339,12 +339,12 @@ const ScoutThread: React.FC<ScoutThreadProps> = ({
 
       {showProgress && (
         <div className="space-y-1">
-          <div className="h-1.5 w-full rounded-full overflow-hidden" style={{ backgroundColor: 'var(--bg-tertiary)' }}>
+          <div className="h-1.5 w-full rounded-full overflow-hidden" style={{ backgroundColor: 'var(--theme-bg-quaternary)' }}>
             <div
               className="h-full rounded-full transition-[width] duration-150 ease-out"
               style={{
                 width: `${Math.max(5, Math.min(Math.round(progress * 100), 100))}%`,
-                background: 'linear-gradient(to right, var(--orange-primary), var(--orange-secondary), var(--orange-tertiary))',
+                background: 'linear-gradient(to right, var(--theme-accent-primary), var(--theme-accent-secondary), var(--theme-accent-tertiary, var(--theme-accent-primary)))',
               }}
             />
           </div>
@@ -352,12 +352,11 @@ const ScoutThread: React.FC<ScoutThreadProps> = ({
           <div className="flex justify-start">
             <div
               className={clsx(
-                "mt-1 inline-flex items-center rounded-2xl px-3 py-1 text-[11px]",
-                statusToneClass
+                "mt-1 inline-flex items-center rounded-2xl px-3 py-1 text-[11px]"
               )}
-              style={{ backgroundColor: 'rgba(2, 6, 23, 0.8)' }}
+              style={{ backgroundColor: 'color-mix(in oklab, var(--theme-bg-quaternary) 85%, black)', ...statusStyles }}
             >
-              <span className="mr-1 h-1.5 w-1.5 rounded-full animate-pulse" style={{ backgroundColor: 'var(--orange-primary)' }} />
+              <span className="mr-1 h-1.5 w-1.5 rounded-full animate-pulse" style={{ backgroundColor: 'var(--theme-accent-primary)' }} />
               {statusLabel ?? "Scout is thinking about the best local answer..."}
             </div>
           </div>

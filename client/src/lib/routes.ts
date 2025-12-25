@@ -10,6 +10,7 @@ export const ROUTES = {
   EXCHANGE: '/exchange',
   COMMUNITY: '/community',
   HELP: '/help',
+  NOTES: '/notes',
   PRICING: '/pricing',
 
   // Protected routes (require auth)
@@ -57,6 +58,7 @@ export const PUBLIC_ROUTES = [
   ROUTES.COMMUNITY,
   ROUTES.HELP,
   ROUTES.PRICING,
+  ROUTES.NOTES,
   ROUTES.TERMS,
   ROUTES.PRIVACY,
   ROUTES.COOKIES,

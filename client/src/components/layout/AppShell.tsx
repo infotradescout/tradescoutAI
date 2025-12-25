@@ -44,57 +44,57 @@ const featureNav: NavItem[] = [
   {
     label: "Scout",
     href: "/scout",
-    icon: <Compass className="h-5 w-5 text-orange-400" />,
+    icon: <Compass className="h-5 w-5" style={{ color: 'var(--theme-accent-primary)' }} />,
   },
   {
     label: "Community",
     href: ROUTES.COMMUNITY ?? "/community",
-    icon: <Users className="h-5 w-5 text-orange-400" />,
+    icon: <Users className="h-5 w-5" style={{ color: 'var(--theme-accent-primary)' }} />,
   },
   {
     label: "Contractors",
     href: ROUTES.CONTRACTORS ?? "/contractors",
-    icon: <Home className="h-5 w-5 text-orange-400" />,
+    icon: <Home className="h-5 w-5" style={{ color: 'var(--theme-accent-primary)' }} />,
   },
   {
     label: "Tasks",
     href: "/tasks",
-    icon: <ClipboardList className="h-5 w-5 text-orange-400" />,
+    icon: <ClipboardList className="h-5 w-5" style={{ color: 'var(--theme-accent-primary)' }} />,
   },
   {
     label: "Helpers",
     href: "/worker-marketplace",
-    icon: <Wrench className="h-5 w-5 text-orange-400" />,
+    icon: <Wrench className="h-5 w-5" style={{ color: 'var(--theme-accent-primary)' }} />,
   },
   {
     label: "MealScout",
     href: "/mealscout",
-    icon: <Utensils className="h-5 w-5 text-orange-400" />,
+    icon: <Utensils className="h-5 w-5" style={{ color: 'var(--theme-accent-primary)' }} />,
   },
   {
     label: "EXCHANGE",
-    href: "/exchange",
-    icon: <ShoppingBag className="h-5 w-5 text-orange-400" />,
+    href: ROUTES.EXCHANGE ?? "/exchange",
+    icon: <ShoppingBag className="h-5 w-5" style={{ color: 'var(--theme-accent-primary)' }} />,
   },
   {
     label: "Leaderboard",
     href: "/leaderboard",
-    icon: <Trophy className="h-5 w-5 text-orange-400" />,
+    icon: <Trophy className="h-5 w-5" style={{ color: 'var(--theme-accent-primary)' }} />,
   },
   {
     label: "Foundation",
     href: "/foundation",
-    icon: <Heart className="h-5 w-5 text-orange-400" />,
+    icon: <Heart className="h-5 w-5" style={{ color: 'var(--theme-accent-primary)' }} />,
   },
   {
     label: "Help",
     href: ROUTES.HELP ?? "/help",
-    icon: <CircleHelp className="h-5 w-5 text-orange-400" />,
+    icon: <CircleHelp className="h-5 w-5" style={{ color: 'var(--theme-accent-primary)' }} />,
   },
   {
     label: "Share",
     href: "/affiliate",
-    icon: <Share2 className="h-5 w-5 text-orange-400" />,
+    icon: <Share2 className="h-5 w-5" style={{ color: 'var(--theme-accent-primary)' }} />,
   },
 ];
 
@@ -270,10 +270,7 @@ export function AppShell({ children, footer }: AppShellProps) {
           className={`flex flex-col flex-1 min-w-0 overflow-y-auto ${
             // Reserve space for fixed header on mobile (uniform height)
             isMobile ? "pt-[56px]" : ""
-          } ${
-            // Reserve space for fixed bottom app bar on mobile
-            isMobile ? "pb-[84px]" : location.startsWith("/scout") ? "pb-2" : "pb-20 lg:pb-0"
-          }`}
+          } pb-[84px]`}
         >
           {children}
         </main>
