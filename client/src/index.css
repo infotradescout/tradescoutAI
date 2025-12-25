@@ -136,38 +136,42 @@ html {
 
 :root {
   font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-  background-color: #0b1220;
   color: #e2e8f0;
+  
+  /* ========== UNIVERSAL CHARCOAL DEFAULT THEME ========== */
+  /* This is the default theme applied to every page without exception.
+     Users can customize colors via theme variables, but charcoal is the base. */
   
   /* 3-Layer Charcoal System - Visual Hierarchy */
   --charcoal-900: #0b0e13;   /* Darkest - Structural chrome (nav only) */
   --charcoal-800: #121722;   /* Standard - Primary canvas (page backgrounds) */
   --charcoal-700: #1a2030;   /* Light - Interactive surfaces (input, cards) */
   
-  /* Trade Scout Brand Colors - Dark Navy Theme */
-  /* These base tokens are now driven by the active theme
-     (set via ThemeContext/applyTheme), with sensible defaults
-     so the site still looks correct before JS loads. */
-  --bg-primary: var(--theme-bg-primary, #0a0f1e);
-  --bg-secondary: var(--theme-bg-secondary, #111827);
-  --bg-tertiary: var(--theme-bg-tertiary, #1e293b);
-  --bg-quaternary: var(--theme-bg-tertiary, #334155);
-  --bg-gradient: var(--theme-bg-gradient, linear-gradient(135deg, #0a0f1e, #111827));
+  /* Primary Colors - All pages use these by default */
+  --bg-primary: var(--theme-bg-primary, #121722);           /* Charcoal-800: Page backgrounds */
+  --bg-secondary: var(--theme-bg-secondary, #1a2030);       /* Charcoal-700: Cards, inputs, modals */
+  --bg-tertiary: var(--theme-bg-tertiary, #0b0e13);         /* Charcoal-900: Top/bottom nav only */
+  --bg-quaternary: var(--theme-bg-quaternary, #1a2030);     /* Fallback: charcoal-700 */
+  --bg-gradient: var(--theme-bg-gradient, linear-gradient(135deg, #121722, #1a2030));
 
-  --text-primary: var(--theme-text-primary, #f1f5f9);
-  --text-secondary: var(--theme-text-secondary, #cbd5e1);
-  --text-muted: #94a3b8;
+  /* Text Colors - Universal text hierarchy */
+  --text-primary: var(--theme-text-primary, #f1f5f9);       /* Light text on dark backgrounds */
+  --text-secondary: var(--theme-text-secondary, #cbd5e1);   /* Muted text for secondary info */
+  --text-muted: var(--theme-text-muted, #94a3b8);           /* Very muted for hints/disabled */
 
-  --orange-primary: var(--theme-accent-primary, hsl(25, 85%, 54%));
-  --orange-secondary: var(--theme-accent-secondary, hsl(19, 80%, 47%));
-  --orange-tertiary: var(--theme-accent-secondary, hsl(27, 85%, 60%));
+  /* Accent Colors - Orange brand accent (customizable) */
+  --orange-primary: var(--theme-accent-primary, hsl(25, 85%, 54%));      /* Main orange */
+  --orange-secondary: var(--theme-accent-secondary, hsl(19, 80%, 47%));   /* Darker orange */
+  --orange-tertiary: var(--theme-accent-tertiary, hsl(27, 85%, 60%));     /* Lighter orange */
 
-  --success: hsl(142, 71%, 45%);
-  --warning: hsl(38, 92%, 50%);
-  --error: hsl(0, 84%, 60%);
+  /* Status Colors */
+  --success: var(--theme-success, hsl(142, 71%, 45%));
+  --warning: var(--theme-warning, hsl(38, 92%, 50%));
+  --error: var(--theme-error, hsl(0, 84%, 60%));
 
-  --border-primary: var(--theme-border, #1e293b);
-  --border-secondary: var(--theme-border, #334155);
+  /* Border Colors - Derived from charcoal */
+  --border-primary: var(--theme-border-primary, #2d3645);    /* Slightly lighter than charcoal-700 */
+  --border-secondary: var(--theme-border-secondary, #1a2030); /* Charcoal-700 */
 
   --shadow-card: 0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -1px rgba(0, 0, 0, 0.2);
   --shadow-glow: 0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -1px rgba(0, 0, 0, 0.2);
