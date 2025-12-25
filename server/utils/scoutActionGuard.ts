@@ -331,7 +331,6 @@ export async function safeExecute(
       success: true,
       message: result.message || "Done.",
       data: result.data,
-      nextAction: result.nextAction,
     };
   }
 

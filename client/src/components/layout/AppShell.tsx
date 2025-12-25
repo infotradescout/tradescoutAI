@@ -112,7 +112,8 @@ export function AppShell({ children, footer }: AppShellProps) {
   return (
     <div
       className="app-shell flex flex-col min-h-screen overflow-hidden"
-      style={{ color: 'var(--text-primary)' }}
+      style={{ 
+        color: 'var(--text-primary)',
         paddingTop: "env(safe-area-inset-top)",
       }}
     >

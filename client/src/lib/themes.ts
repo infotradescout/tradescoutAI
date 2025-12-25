@@ -192,7 +192,6 @@ export function applyTheme(theme: Theme) {
   } else {
     root.style.setProperty('--theme-bg-gradient', 
       `linear-gradient(135deg, ${theme.colors.bgPrimary}, ${theme.colors.bgSecondary})`);
-  };
   }
   
   // Save to localStorage for persistence
