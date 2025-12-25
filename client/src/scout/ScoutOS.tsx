@@ -37,6 +37,7 @@ import { ScoutInputRow } from "./ScoutInputRow";
 import { updateGeoPreferencesFromDeviceLocation } from "../agent/tools/geoPreferences";
 import { openFloatingNote } from "@/lib/floatingNotes";
 import { searchContractors, searchMarketplace } from "../agent/tools/scoutTools";
+import { inferContextRoles, deriveModeFromContextRoles } from "./contextRoles";
 
 const INTRO_DEMO_TEXT = "What can TradeScout do for my community?";
 const INTRO_DEMO_SESSION_KEY = "ts_intro_demo_played_session";
@@ -222,6 +223,17 @@ export default function ScoutOS() {
     (user as any)?.preferences?.geo?.homeLocation?.lat,
     (user as any)?.preferences?.geo?.homeLocation?.lng,
   ]);
+
+  // Ephemeral, derived context roles per message/page for tone + defaults
+  const getContextRoles = useCallback((message: string): string[] => {
+    const roles = inferContextRoles({
+      message,
+      pagePath: location,
+      recentActions: state.lastActions.map((a) => a.type),
+      inferredCapabilities: (user as any)?.capabilities ?? [],
+    });
+    return roles;
+  }, [location, state.lastActions, user]);
 
   const userRoles = (user as any)?.roles as string[] | undefined;
   const hasRoles = Array.isArray(userRoles) && userRoles.length > 0;
@@ -524,7 +536,10 @@ export default function ScoutOS() {
           ? ["just-browsing"]
           : undefined) ?? undefined;
 
-      const mode: ScoutMode = explicitMode ?? inferModeFromRoles(rolesForRequest);
+      // Context-aware roles: derive ephemeral roles based on message/page/signals
+      const contextRoles = getContextRoles(value);
+      const contextMode = deriveModeFromContextRoles(contextRoles as any);
+      const mode: ScoutMode = explicitMode ?? contextMode ?? inferModeFromRoles(rolesForRequest);
       setActiveMode(mode);
 
       const start = performance.now();
@@ -605,6 +620,7 @@ export default function ScoutOS() {
                 lastViewedTrade: trade,
                 lastIntent: "find_contractors",
               },
+              contextRoles: getContextRoles(value),
               toolResult: {
                 tool: "searchContractors",
                 success: true,
@@ -689,6 +705,7 @@ export default function ScoutOS() {
               memoryDelta: {
                 lastIntent: "marketplace_search",
               },
+              contextRoles: getContextRoles(value),
               toolResult: {
                 tool: "searchMarketplace",
                 success: true,
@@ -770,6 +787,7 @@ export default function ScoutOS() {
             memoryDelta: {
               lastIntent: "contact_support",
             },
+            contextRoles: getContextRoles(value),
           };
 
           applyServerResponse(msg, []);
@@ -974,6 +992,7 @@ export default function ScoutOS() {
           suggestedActions: smartSuggestions,
           clusters: clusters.length ? clusters : undefined,
           frame: res.frame,
+          contextRoles: getContextRoles(value),
         };
 
         applyServerResponse(msg, res.actions);
