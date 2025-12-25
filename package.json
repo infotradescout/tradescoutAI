@@ -15,7 +15,8 @@
     "test:run:db": "npm run db:push:test && npm run test:run",
     "seed:test-user": "cross-env NODE_ENV=development tsx -r dotenv/config scripts/seed-test-user.ts",
     "seed:states": "cross-env NODE_ENV=development tsx -r dotenv/config scripts/seed-states.ts",
-    "seed:counties": "cross-env NODE_ENV=development tsx -r dotenv/config scripts/seed-counties.ts"
+    "seed:counties": "cross-env NODE_ENV=development tsx -r dotenv/config scripts/seed-counties.ts",
+    "audit:theme": "powershell -ExecutionPolicy Bypass -File scripts/audit-theme-lock.ps1"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.37.0",
