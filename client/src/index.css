@@ -1218,38 +1218,6 @@ html, body {
   transform: translateY(0);
 }
 
-/* Additional Tailwind slate color overrides for comprehensive coverage */
-/* Hover states */
-.hover\:bg-slate-900 {
-  background-color: var(--charcoal-800) !important;
-}
-
-.hover\:bg-slate-800 {
-  background-color: var(--charcoal-700) !important;
-}
-
-.hover\:border-slate-600,
-.hover\:border-slate-500 {
-  border-color: var(--border-primary) !important;
-}
-
-/* Opacity variants */
-.bg-slate-950\\/40 {
-  background-color: rgba(11, 14, 19, 0.4) !important; /* charcoal-900 with opacity */
-}
-
-.bg-slate-900\\/80,
-.bg-slate-900\\/70,
-.bg-slate-900\\/60,
-.bg-slate-900\\/40 {
-  background-color: var(--charcoal-800) !important;
-}
-
-.bg-slate-800\\/50,
-.bg-slate-800\\/70,
-.bg-slate-800\\/30 {
-  background-color: var(--charcoal-700) !important;
-}
 
 .hover\:bg-slate-900\\/80 {
   background-color: var(--charcoal-800) !important;
