@@ -372,6 +372,10 @@ export class LocalityTracker {
   }
 
   private static async storeInteraction(interaction: UserInteraction): Promise<void> {
+    // In development, skip logging to reduce console noise
+    if (process.env.NODE_ENV !== 'production') {
+      return;
+    }
     // Store in database - implement with actual database connection
     console.log('Storing interaction:', {
       type: interaction.interactionType,
