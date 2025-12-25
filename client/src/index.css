@@ -274,6 +274,48 @@ html {
     @apply transform translate-y-[-1px] shadow-sm;
   }
 
+  /* Global input, textarea, select styling - charcoal-700 for interactive surfaces */
+  input:not([type='radio']):not([type='checkbox']),
+  textarea,
+  select {
+    background-color: var(--charcoal-700);
+    border-color: var(--border-primary);
+    color: var(--text-primary);
+  }
+
+  input::placeholder,
+  textarea::placeholder {
+    color: var(--text-muted);
+  }
+
+  input:focus,
+  textarea:focus,
+  select:focus {
+    outline: none;
+    border-color: var(--orange-primary);
+    box-shadow: 0 0 0 1px var(--orange-primary);
+  }
+
+  /* Dropdown menu styling */
+  [role='menu'],
+  [role='listbox'],
+  [role='dialog'] {
+    background-color: var(--charcoal-700);
+    border-color: var(--border-primary);
+  }
+
+  [role='option'],
+  [role='menuitem'],
+  .dropdown-item {
+    color: var(--text-primary);
+  }
+
+  [role='option']:hover,
+  [role='menuitem']:hover,
+  .dropdown-item:hover {
+    background-color: var(--charcoal-800);
+  }
+
   /* Navigation scrollbar styling */
   .nav-scrollbar::-webkit-scrollbar {
     height: 2px;
@@ -437,7 +479,9 @@ html {
   }
 
   .ts-input {
-    @apply bg-navy-800 border-0 shadow-inner focus:ring-2 focus:ring-orange-500/60;
+    @apply border-0 shadow-inner focus:ring-2 focus:ring-orange-500/60;
+    background-color: var(--charcoal-700);
+    color: var(--text-primary);
   }
 
   .ts-hero-header {
@@ -912,9 +956,9 @@ html, body {
   background: var(--bg-tertiary);
 }
 
-/* Theme-aware input fields - replaces bg-slate-700 */
+/* Theme-aware input fields - uses charcoal-700 for inviting interactive surfaces */
 .theme-input {
-  background: var(--bg-tertiary);
+  background-color: var(--charcoal-700);
   border: 1px solid var(--border-primary);
   color: var(--text-primary);
 }
