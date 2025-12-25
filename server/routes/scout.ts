@@ -1,5 +1,9 @@
 import { recordQuery, recordFallback, getAnalytics, getAuditLog } from "../services/adminAnalytics";
 import { Router, type Request, Response } from "express";
+import { extractUserMessage, extractMetadata, type RawScoutOutput } from "../utils/extractUserMessage";
+import { createCapabilityChecker, buildCapabilitySignals, type Capability } from "../utils/userCapabilities";
+import { runScoutAction, safeExecute, type ScoutActionContext } from "../utils/scoutActionGuard";
+import { classifyScoutError, getRecoveryStrategy } from "../utils/scoutErrorMapping";
 import { GeminiProvider, generateWithFallback, LLMProvider } from "../services/llmProvider";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { executeAssistantAction, type AssistantAction, type User } from "../assistantActions";
@@ -911,14 +915,23 @@ function deriveContextualActions(
     pushUnique("Draft a welcome or intro post I can share locally");
   }
 
-  // User roles
-  const roles: string[] = userContext?.userTypes || [];
-  if (roles.includes("contractor")) {
-    pushUnique("Find homeowners in my county who need bids");
-    pushUnique("Tune up my contractor profile so Scout can send better leads");
-  }
-  if (roles.includes("homeowner")) {
-    pushUnique(`Get bids from vetted pros in ${county}`);
+  // User capabilities shape suggested actions
+  // Note: capabilities may be inferred from message/context, not just explicit roles
+  const capabilitiesSet = userContext?.inferredCapabilities; // Will be a Set<string> passed by Scout handler
+  if (capabilitiesSet instanceof Set || Array.isArray(capabilitiesSet)) {
+    const hasCapability = (cap: string) => {
+      if (capabilitiesSet instanceof Set) return capabilitiesSet.has(cap);
+      if (Array.isArray(capabilitiesSet)) return capabilitiesSet.includes(cap);
+      return false;
+    };
+    
+    if (hasCapability("find_contractors")) {
+      pushUnique(`Get bids from vetted pros in ${county}`);
+    }
+    if (hasCapability("send_quotes") || hasCapability("send_invoices")) {
+      pushUnique("Find homeowners in my county who need bids");
+      pushUnique("Tune up my contractor profile so Scout can send better leads");
+    }
   }
 
   // Let contextual suggestions take precedence over raw LLM output.
@@ -1868,6 +1881,31 @@ router.post("/", async (req: Request, res: Response) => {
     const wantsWelcomeDraft = isWelcomeIntroRequest(message);
     const wantsExchangeListingDraft = isExchangeListingRequest(message);
 
+    // BUILD CAPABILITY SIGNALS: Multi-source inference from profile, behavior, context, and message
+    // This enables Scout to personalize responses without explicit role-based gating
+    const capabilitySignals = buildCapabilitySignals({
+      user: {
+        roles: (userRecord as any)?.roles || [],
+        tradeTags: (userRecord as any)?.tradeTags || [],
+      },
+      message,
+      currentPage: (req as any).route?.path,
+      recentActions: recentActivity.map((a) => a.type).filter(Boolean),
+    });
+    const capabilities = createCapabilityChecker(capabilitySignals);
+
+    // Log inferred capabilities for debugging (dev only)
+    if (process.env.NODE_ENV === "development") {
+      console.log("[Scout] Inferred capabilities:", {
+        userId,
+        userRole,
+        profileRoles: (userRecord as any)?.roles || [],
+        profileTags: (userRecord as any)?.tradeTags || [],
+        messageKeywords: capabilitySignals.messageSignals,
+        capabilities: capabilities.getAll(),
+      });
+    }
+
     // LAYER RESOLUTION: Use knowledge service 4-layer system
     const knowledgeRequest = {
       message,
@@ -1958,6 +1996,10 @@ router.post("/", async (req: Request, res: Response) => {
     // Instead of passing raw knowledge to the LLM, first synthesize it smartly
     // [USER-CONTEXT] Build and inject user context for personalized responses
     const userContext = await buildUserContext(userId);
+    // Add inferred capabilities to user context for use in response synthesis
+    if (userContext) {
+      (userContext as any).inferredCapabilities = capabilities.getAll();
+    }
 
     const recentActivityPrompt = formatRecentActivityForPrompt(recentActivity);
     
@@ -2153,7 +2195,8 @@ router.post("/", async (req: Request, res: Response) => {
         (lower.includes("neighbors") &&
           (lower.includes("recommend") || lower.includes("used") || lower.includes("worked with")));
 
-      if (userId && mentionsCommunityQuestion) {
+      // Community posting is open to everyone
+      if (userId && mentionsCommunityQuestion && capabilities.canPostInCommunity()) {
         try {
           let communityLine = "";
           if (communityPostCount > 0) {
@@ -2232,7 +2275,8 @@ router.post("/", async (req: Request, res: Response) => {
 
       // Dedicated navigation for Exchange listings: open the Exchange
       // surface on the Sell tab with this listing prefilled.
-      if (userId && wantsExchangeListingDraft) {
+      // Check capability: can user post marketplace items?
+      if (userId && wantsExchangeListingDraft && capabilities.canPostMarketplaceItem()) {
         try {
           const listingDraft = buildExchangeListingDraft(
             message,
@@ -2295,7 +2339,8 @@ router.post("/", async (req: Request, res: Response) => {
         lower.includes("cause") ||
         lower.includes("causes");
 
-      if (isCommunityVaultTopic) {
+      // Community vault requires user can create vault AND be logged in
+      if (isCommunityVaultTopic && capabilities.canCreateCommunityVault()) {
         const profileId = activeProfileId ?? extractProfileIdFromText(message) ?? undefined;
 
         if (profileId) {
@@ -2408,6 +2453,9 @@ router.post("/", async (req: Request, res: Response) => {
       // Finances & accounting navigation: surface the dedicated Finances
       // workspaces so a contractor can quickly open AR, vendor spend,
       // or P&L/tax views directly from Scout.
+      // Only show if user can actually send invoices (capability, not role)
+      const canAccessFinances = capabilities.canSendInvoices() || capabilities.canAcceptPayments();
+
       const wantsFinancesOverview =
         lower.includes("finances") ||
         lower.includes("bookkeeping") ||
@@ -2452,6 +2500,7 @@ router.post("/", async (req: Request, res: Response) => {
 
       if (
         userId &&
+        canAccessFinances &&
         (wantsFinancesOverview || wantsARView || wantsVendorsView || wantsReportsView)
       ) {
         let arSummaryLine: string | null = null;
@@ -2669,7 +2718,8 @@ router.post("/", async (req: Request, res: Response) => {
           (wantsProjects && /profit|margin|money|finances|p&l|pnl/.test(lower)) ||
           /job finances|project finances|how much have (we|i) (made|spent)/.test(lower);
 
-        if (wantsProjects) {
+        // Project tracker is for users who can track projects
+        if (wantsProjects && capabilities.canTrackProjects()) {
           const alreadyHasTracker = actions.some(
             (a) => a.type === "NAVIGATE" && (a.to === "/lead-management" || a.to === "/project-tracker")
           );
@@ -2891,12 +2941,71 @@ router.post("/", async (req: Request, res: Response) => {
       }
     }
 
-    // Return the response with knowledge layer information and prompt version
+    /**
+     * CRITICAL: Sanitize Scout response before sending to frontend.
+     * 
+     * Uses canonical extractor: enforces single choke point for normalizing
+     * all model output into safe user-facing messages.
+     * 
+     * Contract: No internal reasoning (intent, thought_flow, etc.) ever reaches UI.
+     */
+    const extracted = extractUserMessage(aiResponse as RawScoutOutput);
+    
+    if (!extracted.isClean && extracted.hadLeakage) {
+      console.warn("[Scout] Response blocked reasoning leakage", {
+        userId,
+        leakageFields: extracted.leakageFields,
+        originalMessage: aiResponse.message?.substring(0, 100),
+      });
+    }
+
+    // Replace message with sanitized version
+    aiResponse.message = extracted.message;
+
+    // Extract metadata for backend-only use (not sent to frontend)
+    const metadata = extractMetadata(aiResponse as RawScoutOutput);
+    if (metadata.intent || metadata.confidence) {
+      console.info("[Scout] Backend metadata (server-side only)", {
+        intent: metadata.intent,
+        confidence: metadata.confidence,
+      });
+    }
+
+    // ─────────────────────────────────────────────────────────────────
+    // GUARD: Wrap actions with error handling
+    // ─────────────────────────────────────────────────────────────────
+    // Actions are pre-validated before sending to user. Any errors during
+    // action construction are already trapped above (see actionError catch).
+    // Here we add metadata to help Scout recover gracefully if user
+    // attempts to execute an action that fails.
+    const guardContext: ScoutActionContext = {
+      userId,
+      userProfile: {
+        businessName: (userRecord as any)?.businessName,
+        location: countyCode ? `${countyCode}, ${stateCode}` : undefined,
+        roles: (userRecord as any)?.roles,
+        county: countyCode,
+        state: stateCode,
+      },
+      sessionId: (req as any).sessionId,
+      requestId: (req as any).requestId,
+    };
+
+    // Tag actions with guard context so they can self-recover if needed
+    const guardedActions = aiResponse.actions?.map((action: any) => ({
+      ...action,
+      _guardContext: guardContext, // Internal: used by client/server for recovery
+    })) || [];
+
     res.json({
       message: aiResponse.message,
-      actions: aiResponse.actions || [],
+      actions: guardedActions,
       actionResults: [],
       sponsored: aiResponse.sponsored ?? null,
+      guardContext: {
+        canRetry: true,
+        recoveryAvailable: true,
+      },
       knowledge: {
         layer: knowledge.layer,
         sources: knowledge.sources,
@@ -2911,6 +3020,72 @@ router.post("/", async (req: Request, res: Response) => {
     res.status(500).json({
       error: "Failed to process Scout request",
       details: error instanceof Error ? error.message : "Unknown error",
+    });
+  }
+});
+
+/**
+ * Execute guarded action endpoint
+ * POST /api/scout/execute-action
+ *
+ * Allows frontend to execute Scout actions through the error guard.
+ * Automatically recovers from common errors without exposing internals.
+ */
+router.post("/execute-action", async (req: Request, res: Response) => {
+  try {
+    const { action, guardContext: clientGuardContext } = req.body;
+    const userId = (req as any).user?.id;
+
+    if (!action || !action.type) {
+      return res.status(400).json({
+        success: false,
+        message: "Action type required",
+      });
+    }
+
+    // Reconstruct guard context from request
+    const guardContext: ScoutActionContext = {
+      userId,
+      userProfile: clientGuardContext?.userProfile,
+      sessionId: (req as any).sessionId,
+      requestId: (req as any).requestId,
+    };
+
+    // Execute action through guard
+    const result = await runScoutAction(
+      action,
+      guardContext,
+      async (act) => {
+        // Placeholder executor—real implementations would dispatch to
+        // specific action handlers (invoice, community post, etc.)
+        console.log("[Scout Action] Executing:", { type: act.type, target: act.target });
+        return { executed: true, action: act.type };
+      }
+    );
+
+    if (result.ok) {
+      return res.json({
+        success: true,
+        message: result.message || "Action executed",
+        data: result.data,
+        nextAction: result.nextAction,
+      });
+    }
+
+    // Action failed—return recovery guidance
+    return res.status(400).json({
+      success: false,
+      message: result.error.userMessage,
+      errorType: result.error.type,
+      suggestedAction: result.error.suggestedAction,
+      context: result.error.context,
+    });
+  } catch (err) {
+    console.error("[Scout Action] Unhandled error:", err);
+    res.status(500).json({
+      success: false,
+      message: "Failed to execute action. Let's try a different approach.",
+      error: err instanceof Error ? err.message : "Unknown error",
     });
   }
 });

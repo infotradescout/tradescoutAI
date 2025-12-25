@@ -15,9 +15,26 @@ export interface Theme {
   name: string;
   description: string;
   colors: ThemeColors;
+  backgroundGradient?: string; // Optional gradient for full-page backgrounds
 }
 
 export const PRESET_THEMES: Theme[] = [
+  {
+    id: 'tradescout',
+    name: 'TradeScout Premium',
+    description: 'Charcoal to blue gradient with orange accents',
+    colors: {
+      bgPrimary: '#020617',
+      bgSecondary: '#1a2332',
+      bgTertiary: '#2d3748',
+      textPrimary: '#ffffff',
+      textSecondary: '#cbd5e1',
+      accentPrimary: '#f97316',
+      accentSecondary: '#fb923c',
+      border: '#2d3748',
+    },
+    backgroundGradient: 'radial-gradient(1200px 600px at 50% -200px, #0b2a44 0%, #020617 45%, #020617 100%)',
+  },
   {
     id: 'default',
     name: 'TradeScout Dark',
@@ -46,7 +63,8 @@ export const PRESET_THEMES: Theme[] = [
       accentPrimary: '#00d4ff',
       accentSecondary: '#4de3ff',
       border: '#2a2f4a',
-    }
+    },
+    backgroundGradient: 'radial-gradient(1200px 600px at 50% -200px, #1e3a8a 0%, #0a0e27 55%, #020617 100%)',
   },
   {
     id: 'forest',
@@ -120,6 +138,15 @@ export function applyTheme(theme: Theme) {
   root.style.setProperty('--theme-accent-primary', theme.colors.accentPrimary);
   root.style.setProperty('--theme-accent-secondary', theme.colors.accentSecondary);
   root.style.setProperty('--theme-border', theme.colors.border);
+  
+  // Apply background gradient if available
+  if (theme.backgroundGradient) {
+    root.style.setProperty('--theme-bg-gradient', theme.backgroundGradient);
+    document.documentElement.style.background = theme.backgroundGradient;
+  } else {
+    root.style.setProperty('--theme-bg-gradient', `linear-gradient(135deg, ${theme.colors.bgPrimary}, ${theme.colors.bgSecondary})`);
+    document.documentElement.style.background = theme.colors.bgPrimary;
+  }
 }
 
 export function getThemeById(id: string): Theme {

@@ -35,11 +35,10 @@ import { ScoutSuggestions } from "./ScoutSuggestions";
 import { ScoutHeader } from "./ScoutHeader";
 import { ScoutInputRow } from "./ScoutInputRow";
 import { updateGeoPreferencesFromDeviceLocation } from "../agent/tools/geoPreferences";
+import { openFloatingNote } from "@/lib/floatingNotes";
 
 const INTRO_DEMO_TEXT = "What can TradeScout do for my community?";
-// Bump the storage key so the scripted intro demo runs again for
-// users who previously saw v3 and had it permanently disabled.
-const INTRO_DEMO_STORAGE_KEY = "ts_intro_demo_v4";
+const INTRO_DEMO_SESSION_KEY = "ts_intro_demo_played_session";
 
 const BANNED_TERMS = ["fuck", "shit", "bitch", "asshole", "cunt", "slut", "whore"];
 
@@ -79,6 +78,56 @@ function censorProfanity(text: string) {
   return cleaned;
 }
 
+/**
+ * CRITICAL: Strip internal reasoning from Scout responses before rendering.
+ * Internal fields like intent, thought_flow, reasoning must NEVER be visible to users.
+ * This is a response sanitation contract—Scout output must be user-facing only.
+ */
+function sanitizeScoutMessage(raw: unknown): string {
+  if (typeof raw !== "string") return "";
+
+  const trimmed = raw.trim();
+
+  // Block entire JSON responses that contain internal reasoning fields
+  if (
+    trimmed.startsWith("{") &&
+    (trimmed.includes('"intent"') ||
+      trimmed.includes('"thought_flow"') ||
+      trimmed.includes('"reasoning"') ||
+      trimmed.includes('"decision"') ||
+      trimmed.includes('"step-by-step"'))
+  ) {
+    console.warn("[Scout] Blocked internal reasoning leakage in response", { raw });
+    return "I can help with that. Here's what TradeScout can do for your community:";
+  }
+
+  // If response looks like JSON with reasoning fields anywhere, strip and use fallback
+  try {
+    if (trimmed.startsWith("{")) {
+      const parsed = JSON.parse(trimmed);
+      if (
+        parsed.intent ||
+        parsed.thought_flow ||
+        parsed.reasoning ||
+        parsed.decision
+      ) {
+        console.warn("[Scout] Blocked JSON response with reasoning fields", {
+          parsed,
+        });
+        return (
+          parsed.message ||
+          parsed.answer ||
+          "I can help with that. Here's what TradeScout can do for your community:"
+        );
+      }
+    }
+  } catch {
+    // Not JSON, continue with string validation
+  }
+
+  return trimmed;
+}
+
 export default function ScoutOS() {
   const { user, isAuthenticated, refetch: refetchUser } = useAuth();
   const [location, navigate] = useLocation();
@@ -91,6 +140,7 @@ export default function ScoutOS() {
   const [hasGuestInteracted, setHasGuestInteracted] = useState(false);
   const [firstIntroAppendix, setFirstIntroAppendix] = useState<string>("");
   const [autoPromptSuggestions, setAutoPromptSuggestions] = useState<string[]>([]);
+  const [introDemoText, setIntroDemoText] = useState("");
   const [introDemoState, setIntroDemoState] = useState<
     "idle" | "typing" | "armingSend" | "sending" | "done"
   >("idle");
@@ -99,8 +149,34 @@ export default function ScoutOS() {
     typeTimer: number | null;
     startTimer: number | null;
   }>({ typeTimer: null, startTimer: null });
-  const hasPlayedIntroDemoRef = useRef(false);
   const { sessionRole } = useSession();
+
+  const hasPlayedDemoThisSession = (() => {
+    try {
+      const played =
+        typeof window !== "undefined" &&
+        window.sessionStorage.getItem(INTRO_DEMO_SESSION_KEY) === "1";
+
+      // Allow forcing the intro demo via URL (e.g., /scout?forceIntro=1)
+      let forceIntro = false;
+      try {
+        if (typeof window !== "undefined") {
+          const params = new URLSearchParams(window.location.search);
+          forceIntro = params.get("forceIntro") === "1";
+        }
+      } catch {
+        // ignore
+      }
+
+      // In development, always allow the intro demo to re-run
+      // so designers/devs can validate the animation and auto-prompt.
+      if (import.meta.env.DEV) return false;
+
+      return played && !forceIntro;
+    } catch {
+      return false;
+    }
+  })();
 
   const { state, recordUserMessage, applyServerResponse, setError, setStatus } = useScoutState();
 
@@ -165,6 +241,11 @@ export default function ScoutOS() {
     [state.messages]
   );
 
+  const shouldPlayIntroDemo =
+    isGuest &&
+    !hasPlayedDemoThisSession &&
+    !hasUserMessages;
+
   // Parse URL search params to detect explicit intent (e.g. /scout?intent=estimate)
   const urlIntent = useMemo(() => {
     try {
@@ -183,7 +264,39 @@ export default function ScoutOS() {
   // First-time guest state: controls entire top half of Scout.
   // We treat this as "guest has not actively interacted yet" so that
   // auto-demo typing does NOT collapse the calm intro.
-  const isFirstGuestVisit = isGuest && !hasGuestInteracted && !hasMessages;
+  const isFirstGuestVisit = isGuest && !hasGuestInteracted && !hasUserMessages;
+  // Diagnostic: log intro demo gating values to verify which guard blocks
+  useEffect(() => {
+    try {
+      const sessionPlayed =
+        typeof window !== "undefined" &&
+        window.sessionStorage.getItem(INTRO_DEMO_SESSION_KEY);
+      // One-line truth for debugging
+      console.log("[INTRO DEMO CHECK]", {
+        isAuthenticated,
+        isGuest,
+        hasMessages,
+        hasUserMessages,
+        introDemoState,
+        sessionPlayed,
+        shouldPlayIntroDemo,
+      });
+    } catch {
+      // ignore
+    }
+  }, [isAuthenticated, isGuest, hasMessages, hasUserMessages, introDemoState, shouldPlayIntroDemo]);
+
+  // Clear any stale prefill on first guest visit so input is always empty
+  useEffect(() => {
+    if (isFirstGuestVisit) {
+      try {
+        window.localStorage.removeItem("scout:prefill:scout-main");
+      } catch {
+        // ignore storage errors
+      }
+      setPrefillKey((k) => k + 1);
+    }
+  }, [isFirstGuestVisit]);
 
   // Load public config (first intro appendix text) once
   useEffect(() => {
@@ -230,6 +343,12 @@ export default function ScoutOS() {
     return () => {
       cancelled = true;
     };
+  }, []);
+
+  // Seed auto-demo text with default, then prefer server auto-prompt
+  useEffect(() => {
+    // Use hardcoded intro demo text
+    setIntroDemoText(INTRO_DEMO_TEXT);
   }, []);
 
   const inferModeFromRoles = (roles: string[] | undefined | null): ScoutMode => {
@@ -294,177 +413,39 @@ export default function ScoutOS() {
     const base: string[] = [];
     const trimmed = userMessage.trim();
     const short = trimmed.length > 80 ? `${trimmed.slice(0, 77)}…` : trimmed;
-    const lower = trimmed.toLowerCase();
 
-    const intent = opts?.intent?.toLowerCase() || "";
-    const ctx = opts?.resolvedContext;
-
-    // Finances / job flow-aware suggestions when we have a resolved context
-    if (ctx && Array.isArray(ctx.allowedActions) && ctx.allowedActions.length) {
-      const allowed = ctx.allowedActions;
-      const projectBase: string[] = [];
-
-      const hasOpenDealRoom = allowed.includes("OPEN_DEAL_ROOM");
-      const canSendInvoice = allowed.includes("SEND_INVOICE") || allowed.includes("GENERATE_INVOICE");
-      const canMarkPaid = allowed.includes("MARK_INVOICE_PAID");
-      const canSendContract = allowed.includes("SEND_CONTRACT") || allowed.includes("SIGN_CONTRACT");
-
-      if (canSendInvoice) {
-        projectBase.push("Open invoices so I can review and send this invoice");
-      }
-      if (canMarkPaid) {
-        projectBase.push("Open invoices so I can mark this invoice paid");
-      }
-      if (canSendContract) {
-        projectBase.push("Open my finances dashboard so I can handle the contract and money for this job");
-      }
-      if (hasOpenDealRoom && projectBase.length === 0) {
-        projectBase.push("Open my finances dashboard for this job so I can move this forward");
-      }
-      if (ctx.blockingReason) {
-        projectBase.push("Explain what’s blocking this project and show how to unblock it");
-      }
-
-      if (projectBase.length) {
-        const uniqueProject: string[] = [];
-        for (const raw of projectBase) {
-          const s = sanitizeSuggestionLabel(raw);
-          if (!s || isWeakSuggestionLabel(s)) continue;
-          if (!uniqueProject.includes(s)) uniqueProject.push(s);
-          if (uniqueProject.length >= 3) break;
-        }
-        if (uniqueProject.length) {
-          return uniqueProject.slice(0, 3);
-        }
-      }
-    }
-
-    // Very first OS orientation: suggestions should help them explore the platform,
-    // not feel like generic chat actions.
-    if (opts?.isFirstAnswer) {
-      if (opts.isGuest) {
-        // First-time guests should see clear, allowed actions that don't
-        // require an existing account.
+    switch (mode) {
+      case "admin":
         base.push(
-          "Create Account",
-          "Find a Contractor",
-          "Leaderboard"
+          "Open my Admin Panel and monitoring tools",
+          "Show recent Finance / Invoicing ledger activity",
+          "Help me send a targeted broadcast announcement from Notification Ops",
+          "Open a floating note to keep this visible"
         );
-      } else {
+        break;
+      case "marketplace":
         base.push(
-          "Show me everything TradeScout can do for my situation",
-          "Help me set up TradeScout for where I live",
-          "Suggest 3 high-impact ways to use TradeScout this week"
+          "Show Exchange listings that match this need near me",
+          "Draft a listing I can post based on this",
+          "Alert me if new local deals match this search",
+          "Open a floating note to keep this visible"
         );
-      }
-    } else {
-      // Light trade/topic/community-aware nudging
-      const isPlumbing = /leak|clog|drain|sewer|sump pump|water heater|plumbing/.test(lower);
-      const isElectrical = /panel|breaker|gfci|afci|outlet|receptacle|electrical/.test(lower);
-      const isRoofing = /roof|shingle|hail|storm damage|leak/.test(lower);
-      const isTaxOrPermit = /permit|inspection|code|zoning|setback|property tax|assessment/.test(lower);
-      const isCommunity = /community|neighbors?|neighbours?|hoa|association|group|groups|club|meet people|connect with my local community/.test(lower);
-      const isFoodOrEvents = /food|coffee|lunch|dinner|restaurant|truck|catering|snack|meal|bar|brewery|pub|happy hour|cocktail|drinks?/.test(lower);
-      const isMoneyOrEstimate = /budget|cost|price|estimate|quote|afford|finance|loan|payment/.test(lower);
-      const isOverwhelmed = /overwhelmed|confused|don['’]t understand|not sure where to start|lost/.test(lower);
-
-      switch (mode) {
-        case "contractors":
-          if (isOverwhelmed) {
-            base.push(
-              "Break this into 3 clear steps I can take next",
-              "Summarize the main decisions I need to make for this job",
-              "Turn this into a trackable project on my board"
-            );
-          } else if (isPlumbing || isElectrical || isRoofing || isMoneyOrEstimate || intent === "estimate") {
-            base.push(
-              "Estimate realistic price ranges and timing for this job",
-              "Find vetted pros for this exact job in my county",
-              "Turn this into a project I can track and compare bids on"
-            );
-          } else {
-            base.push(
-              "Find vetted local contractors for this and queue intros",
-              "Draft a message I can send to the top matches",
-              "Turn this into a trackable project on my board"
-            );
-          }
-          break;
-        case "mealscout":
-          if (isOverwhelmed) {
-            base.push(
-              "Explain how MealScout works for my business",
-              "Break this MealScout idea into 3 clear steps",
-              "Recommend the right MealScout plan and next actions"
-            );
-          } else if (isMoneyOrEstimate) {
-            base.push(
-              "Help me price and structure a MealScout deal for this",
-              "Draft a MealScout promo I can post based on this",
-              "Estimate how many customers this MealScout deal could reach"
-            );
-          } else if (isFoodOrEvents) {
-            base.push(
-              "Open MealScout so I can manage or post deals for this",
-              "Show examples of high-performing MealScout promos like this",
-              "Connect this idea to my TradeScout community and MealScout deals"
-            );
-          } else {
-            base.push(
-              "Open MealScout to see my current deals and subscriptions",
-              "Help me create my next MealScout deal or menu update",
-              "Show how MealScout and TradeScout work together for my area"
-            );
-          }
-          break;
-        case "admin":
-          base.push(
-            "Open my Admin Panel and monitoring tools",
-            "Show recent Finance / Invoicing ledger activity",
-            "Help me send a targeted broadcast announcement from Notification Ops"
-          );
-          break;
-        case "marketplace":
-          base.push(
-            "Show Exchange listings that match this need near me",
-            "Draft a listing I can post based on this",
-            "Alert me if new local deals match this search"
-          );
-          break;
-        default:
-          if (isOverwhelmed) {
-            base.push(
-              "Break this into 3 concrete steps for me",
-              "Highlight what matters most so I don’t get stuck",
-              "Suggest the right TradeScout view or tool for this"
-            );
-          } else if (isTaxOrPermit) {
-            base.push(
-              "Help me understand local permits or code rules for this",
-              "Find vetted pros who already know these rules in my county",
-              "Summarize my options and next steps for this situation"
-            );
-          } else if (isCommunity) {
-            base.push(
-              "Open my community feed in TradeScout",
-              "Show local groups, HOAs, and boards I can join or follow",
-              "Draft a welcome or intro post I can share with my community"
-            );
-          } else if (isFoodOrEvents) {
-            base.push(
-              "Open MealScout to browse local food and drink deals",
-              "Help me plan this around nearby restaurants, food trucks, and events",
-              "Turn this into a small event I can track and share"
-            );
-          } else {
-            base.push(
-              "Turn this into a trackable project on my board",
-              "Find local contractors or groups who can help with this",
-              "Open the TradeScout view that fits this best (projects, community, or marketplace)"
-            );
-          }
-          break;
-      }
+        break;
+      case "mealscout":
+        base.push(
+          "Open MealScout to see my current deals and subscriptions",
+          "Help me create my next MealScout deal or menu update",
+          "Show how MealScout and TradeScout work together for my area",
+          "Open a floating note to keep this visible"
+        );
+        break;
+      default:
+        base.push(
+          "Turn this into a trackable project on my board",
+          "Find local contractors or groups who can help with this",
+          "Open a floating note to keep this visible"
+        );
+        break;
     }
 
     const server = (serverSuggestions ?? [])
@@ -473,9 +454,6 @@ export default function ScoutOS() {
       .filter((s) => s && !isWeakSuggestionLabel(s));
     const merged: string[] = [];
 
-    // Prefer our local, mode-aware suggestions first so they stay tightly
-    // connected to the conversation and product surface, then backfill
-    // with any high-quality server suggestions.
     for (const raw of base) {
       const s = sanitizeSuggestionLabel(raw);
       if (!s || isWeakSuggestionLabel(s)) continue;
@@ -619,61 +597,28 @@ export default function ScoutOS() {
         }
 
         if (isFirstAnswer) {
-          clusters.push(
-            {
-              id: "first-nav-contractors",
-              title: "Browse local professionals",
-              kind: "generic",
-              primaryAction: {
-                type: "NAVIGATE",
-                label: "Open",
-                to: ROUTES.CONTRACTORS,
-              },
+          clusters.push({
+            id: "first-nav-contractors",
+            title: "Browse local professionals",
+            kind: "generic",
+            primaryAction: {
+              type: "NAVIGATE",
+              label: "Open",
+              to: ROUTES.CONTRACTORS,
             },
-            {
-              id: "first-nav-community",
-              title: "Open community feed",
-              kind: "generic",
-              primaryAction: {
-                type: "NAVIGATE",
-                label: "Open",
-                to: ROUTES.COMMUNITY,
-              },
-            },
-            {
-              id: "first-nav-marketplace",
-              title: "Explore Exchange",
-              kind: "generic",
-              primaryAction: {
-                type: "NAVIGATE",
-                label: "Open",
-                to: "/exchange",
-              },
-            }
-          );
+          });
 
           if (isGuest) {
             clusters.push({
               id: "first-account-prompt",
-              title: "Get set up in TradeScout",
+              title: "Save your area and projects",
               kind: "generic",
-              body:
-                "Here are three powerful first steps to take with Scout right now:\n\n1. Create a free account so Scout can remember your area, projects, and contractors.\n2. Post a question or update in your community feed so neighbors and local pros can respond.\n3. If you're a contractor, join the Contractor board to start getting local leads.",
+              body: "Create a free account so Scout can remember your area and keep your projects synced.",
               actions: [
                 {
                   type: "NAVIGATE",
                   label: "Create account",
                   to: ROUTES.REGISTER,
-                },
-                {
-                  type: "NAVIGATE",
-                  label: "Post in community feed",
-                  to: ROUTES.COMMUNITY,
-                },
-                {
-                  type: "NAVIGATE",
-                  label: "Join Contractor board",
-                  to: ROUTES.CONTRACTOR_BOARD,
                 },
                 { type: "NOOP", label: "Keep exploring with Scout" },
               ],
@@ -704,10 +649,14 @@ export default function ScoutOS() {
         // navigation. This is a hard character cap, tuned for the
         // current layout.
         const MAX_FIRST_MESSAGE_CHARS = 600;
+        
+        // CRITICAL: Sanitize the message to remove any internal reasoning leakage
+        const sanitized = sanitizeScoutMessage(res.message);
+        
         const finalContent =
-          isFirstAnswer && typeof mergedMessage === "string" && mergedMessage.length > MAX_FIRST_MESSAGE_CHARS
-            ? `${mergedMessage.slice(0, MAX_FIRST_MESSAGE_CHARS).trimEnd()}…`
-            : mergedMessage;
+          isFirstAnswer && typeof sanitized === "string" && sanitized.length > MAX_FIRST_MESSAGE_CHARS
+            ? `${sanitized.slice(0, MAX_FIRST_MESSAGE_CHARS).trimEnd()}…`
+            : sanitized;
 
         const msg: ScoutMessage = {
           id: `a_${Date.now()}_${Math.random().toString(36).slice(2)}`,
@@ -768,121 +717,8 @@ export default function ScoutOS() {
     ]
   );
 
-  // Intro demo: scripted first message (type -> pulse send -> real send)
-  useEffect(() => {
-    // Load persisted flag once
-    if (!hasPlayedIntroDemoRef.current) {
-      if (isSuperAdminTester) {
-        // Super admins should see the intro demo on each
-        // new session's first visit to Scout, regardless of
-        // any previous localStorage flag.
-        hasPlayedIntroDemoRef.current = false;
-      } else {
-        try {
-          hasPlayedIntroDemoRef.current =
-            typeof window !== "undefined" &&
-            window.localStorage.getItem(INTRO_DEMO_STORAGE_KEY) === "1";
-        } catch {
-          hasPlayedIntroDemoRef.current = false;
-        }
-      }
-    }
-
-    // Only run on an empty thread, and only once per browser.
-    // If a Help Center intent is queued, let that drive the first
-    // interaction instead of the scripted demo to avoid double prompts.
-    if (hasMessages) return;
-    if (hasSeenFirstAnswer()) return;
-    if (hasPlayedIntroDemoRef.current) return;
-    if (introDemoState !== "idle") return;
-
-    try {
-      if (typeof window !== "undefined") {
-        const queuedHelpIntent = window.localStorage.getItem("scout:help-intent");
-        if (queuedHelpIntent) {
-          return;
-        }
-      }
-    } catch {
-      // ignore storage errors and fall back to normal intro behavior
-    }
-
-    let cancelled = false;
-
-    const clearTimers = () => {
-      if (introTimersRef.current.startTimer !== null) {
-        window.clearTimeout(introTimersRef.current.startTimer);
-        introTimersRef.current.startTimer = null;
-      }
-      if (introTimersRef.current.typeTimer !== null) {
-        window.clearTimeout(introTimersRef.current.typeTimer);
-        introTimersRef.current.typeTimer = null;
-      }
-    };
-
-    const startTyping = (full: string) => {
-      if (cancelled) return;
-      setIntroDemoState("typing");
-      setIntroDemoText("");
-      let idx = 0;
-
-      const step = () => {
-        if (cancelled) return;
-        idx += 1;
-        setIntroDemoText(full.slice(0, idx));
-        if (idx < full.length) {
-          introTimersRef.current.typeTimer = window.setTimeout(step, 45) as unknown as number;
-        } else {
-          // Finished typing: pulse send briefly, then send for real
-          setIntroDemoState("armingSend");
-          introTimersRef.current.typeTimer = window.setTimeout(() => {
-            if (cancelled) return;
-            setIntroDemoState("sending");
-            setHasGuestInteracted(true);
-            void handleSend(full, undefined, { isScriptedIntro: true });
-            if (!isSuperAdminTester) {
-              try {
-                window.localStorage.setItem(INTRO_DEMO_STORAGE_KEY, "1");
-              } catch {
-                // ignore
-              }
-            }
-            hasPlayedIntroDemoRef.current = true;
-            setIntroDemoState("done");
-          }, 600) as unknown as number;
-        }
-      };
-
-      introTimersRef.current.typeTimer = window.setTimeout(step, 300) as unknown as number;
-    };
-
-    let fullPrompt = INTRO_DEMO_TEXT;
-
-    // Fire off auto-prompt fetch without blocking the animation.
-    fetch("/api/scout/auto-prompt", { credentials: "include" })
-      .then((res) => (res.ok ? res.json() : null))
-      .then((data) => {
-        if (cancelled || !data) return;
-        const candidate =
-          typeof data.autoPrompt === "string" ? data.autoPrompt.trim() : "";
-        if (candidate.length > 0) {
-          fullPrompt = candidate;
-        }
-      })
-      .catch(() => {
-        // If auto-prompt fails, we keep the default intro text.
-      });
-
-    introTimersRef.current.startTimer = window.setTimeout(
-      () => startTyping(fullPrompt),
-      500
-    ) as unknown as number;
-
-    return () => {
-      cancelled = true;
-      clearTimers();
-    };
-  }, [handleSend, hasMessages, isAuthenticated, introDemoState, isSuperAdminTester]);
+  // Intro demo typing is handled by ScoutInput; we only supply
+  // session-scoped enable flag and the demo text.
 
   const handleClusterAction = useCallback(
     (action: ScoutAction) => {
@@ -943,6 +779,8 @@ export default function ScoutOS() {
 
     const hasUserMsgs = state.messages.some((m) => m.role === "user");
     if (hasUserMsgs) return;
+    // If the intro demo will run, do not auto-send the help intent here
+    if (shouldPlayIntroDemo) return;
 
     try {
       const raw = window.localStorage.getItem("scout:help-intent");
@@ -969,7 +807,7 @@ export default function ScoutOS() {
     } catch {
       // ignore storage/JSON errors
     }
-  }, [location, state.messages, handleSend, setPrefillKey]);
+  }, [location, state.messages, handleSend, setPrefillKey, shouldPlayIntroDemo]);
 
   const heroLocationLabel = getUserLocationLabel(user as any);
   const heroAudienceLabel = getUserAudienceLabel(user as any);
@@ -1021,17 +859,19 @@ export default function ScoutOS() {
   }, [isUpdatingGeo, refetchUser]);
 
   return (
-    <div className="flex flex-col flex-1 min-h-0 w-full items-center bg-slate-950 text-white">
-      <div
-        className={`w-full ${
-          isMobile ? "px-3 pt-3 pb-0" : "max-w-6xl px-4 pt-6 pb-1"
-        } space-y-4 flex flex-col flex-1`}
-      >
+    <div className="scout-shell flex flex-col flex-1 min-h-0 w-full items-center text-white overflow-hidden">
+      <div className="scout-content w-full flex flex-col flex-1 min-h-0">
+        <div
+          className={`w-full ${
+            isMobile ? "px-3 pt-3 pb-0" : "max-w-5xl px-4 pt-4 pb-0"
+          } flex flex-col flex-1 min-h-0`}
+        >
         {/* Main conversation layout: used for all users, including first-time guests. */}
         <div className="max-w-xl mx-auto w-full flex flex-col flex-1 min-h-0">
           <ScoutHeader
             isAuthenticated={isAuthenticated}
             isFirstGuestVisit={isFirstGuestVisit}
+                      locationLabel={heroLocationLabel}
           />
 
             {/* Thread + input in a single chat container that stretches toward
@@ -1039,7 +879,7 @@ export default function ScoutOS() {
                 the global bottom nav. */}
           <div
             className={`mt-2 flex flex-col flex-1 min-h-0 ${
-              isMobile ? "space-y-3" : "space-y-4"
+              isMobile ? "space-y-2" : "space-y-2"
             }`}
           >
             {!hasUserMessages && (
@@ -1205,6 +1045,22 @@ export default function ScoutOS() {
                     return;
                   }
 
+                  if (
+                    trimmed === "Open a floating note" ||
+                    trimmed === "Open floating note" ||
+                    trimmed === "Open a quick note" ||
+                    trimmed === "Open quick note"
+                  ) {
+                    recordActivity({
+                      type: "open_note",
+                      ts: new Date().toISOString(),
+                      path: location,
+                      label: trimmed,
+                    });
+                    void openFloatingNote("quick");
+                    return;
+                  }
+
                   if (trimmed === "Help me send a targeted broadcast announcement from Notification Ops") {
                     recordActivity({
                       type: "navigate",
@@ -1240,6 +1096,8 @@ export default function ScoutOS() {
                   label: "typing",
                 });
               }}
+              autoDemoText={introDemoText}
+              enableAutoDemo={shouldPlayIntroDemo}
             />
 
             {!isAuthenticated && (
@@ -1257,6 +1115,7 @@ export default function ScoutOS() {
             )}
           </div>
         </div>
+      </div>
       </div>
 
       {/* Tools & App drawer */}

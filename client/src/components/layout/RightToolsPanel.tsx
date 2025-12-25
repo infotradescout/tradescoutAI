@@ -10,8 +10,10 @@ import {
   ClipboardList,
   Building,
   LogOut,
+  StickyNote,
 } from "lucide-react";
 import { useAuth, useLogout } from "@/hooks/useAuth";
+import { openFloatingNote } from "@/lib/floatingNotes";
 
 type NavLinkProps = {
   href: string;
@@ -51,6 +53,37 @@ type RightToolsPanelProps = {
   footer?: ReactNode;
   onNavigate?: () => void;
 };
+
+const ActionButton = ({
+  icon,
+  label,
+  description,
+  onClick,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  description?: string;
+  onClick: () => void;
+}) => (
+  <button
+    type="button"
+    onClick={onClick}
+    className="w-full text-left flex flex-col gap-1 rounded-xl border border-slate-800/60 bg-slate-950/60 px-3 py-2 hover:bg-slate-900"
+  >
+    <div className="flex items-center gap-2">
+      <span className="inline-flex h-7 w-7 items-center justify-center rounded-lg bg-slate-900 border border-slate-700 text-slate-200">
+        {icon}
+      </span>
+      <span className="text-sm font-medium text-slate-50">{label}</span>
+    </div>
+    {description && (
+      <p className="text-[11px] text-slate-400 leading-snug">
+        {description}
+      </p>
+    )}
+  </button>
+);
+
 
 export function RightToolsPanel({ footer, onNavigate }: RightToolsPanelProps) {
   const { user, isAuthenticated } = useAuth();
@@ -162,6 +195,33 @@ export function RightToolsPanel({ footer, onNavigate }: RightToolsPanelProps) {
               label="Saved items"
               description="Saved projects, listings, and ideas."
               onClick={onNavigate}
+            />
+          </div>
+        </section>
+
+        {/* Notes & quick capture */}
+        <section>
+          <div className="text-[0.7rem] uppercase tracking-[0.2em] text-slate-500 mb-2">
+            Notes
+          </div>
+          <div className="space-y-2">
+            <ActionButton
+              icon={<StickyNote className="h-3.5 w-3.5 text-orange-400" />}
+              label="Quick note"
+              description="Open a pinned note window that stays on top while you work."
+              onClick={() => {
+                void openFloatingNote("quick");
+                onNavigate?.();
+              }}
+            />
+            <ActionButton
+              icon={<StickyNote className="h-3.5 w-3.5 text-orange-400" />}
+              label="Project note"
+              description="Keep a project-specific note floating while switching apps."
+              onClick={() => {
+                void openFloatingNote("project");
+                onNavigate?.();
+              }}
             />
           </div>
         </section>

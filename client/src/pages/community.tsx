@@ -1,5 +1,6 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import type { PostType } from "@/components/community/CommunityComposerInline";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -99,10 +100,10 @@ export default function Community() {
 
   // Create post mutation
   const createPostMutation = useMutation({
-    mutationFn: async (payload: { content: string; images?: string[] }) => {
+    mutationFn: async (payload: { content: string; images?: string[]; category: string }) => {
       return apiRequest('POST', '/api/community/posts', {
         content: payload.content,
-        category: 'general',
+        category: payload.category,
         images: payload.images,
       });
     },
@@ -128,6 +129,26 @@ export default function Community() {
     },
   });
 
+  // Map composer PostType to API category enum
+  const mapPostTypeToCategory = (t: PostType): string => {
+    switch (t) {
+      case 'alert':
+        return 'announcements';
+      case 'project':
+        return 'projects';
+      case 'recommendation':
+        return 'recommendations';
+      case 'admin_notice':
+        return 'announcements';
+      case 'discussion':
+      default:
+        return 'general';
+    }
+  };
+
+  // Capture last selected type from composer at click time
+  const lastPostTypeRef = useRef<PostType>('discussion');
+
   const handleCreatePost = () => {
     if (!isAuthenticated) {
       toast({
@@ -138,9 +159,11 @@ export default function Community() {
       return;
     }
     if (!newPostContent.trim()) return;
+    const category = mapPostTypeToCategory(lastPostTypeRef.current);
     createPostMutation.mutate({
       content: newPostContent,
       images: newPostImages.length ? newPostImages : undefined,
+      category,
     });
   };
 
@@ -299,6 +322,9 @@ export default function Community() {
                   value={newPostContent}
                   onChange={setNewPostContent}
                   onSubmit={handleCreatePost}
+                  onSubmitWithMeta={({ postType }) => {
+                    lastPostTypeRef.current = postType;
+                  }}
                   images={newPostImages}
                   onImagesChange={setNewPostImages}
                   maxImages={8}

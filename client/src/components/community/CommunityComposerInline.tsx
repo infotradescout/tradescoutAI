@@ -13,12 +13,20 @@ export interface CommunityComposerInlineProps {
   value: string;
   onChange: (value: string) => void;
   onSubmit: () => void;
+  onSubmitWithMeta?: (meta: { postType: PostType }) => void;
   onOpenRequest?: () => void;
   isSubmitting?: boolean;
   images?: string[];
   onImagesChange?: (images: string[]) => void;
   maxImages?: number;
 }
+
+export type PostType =
+  | "alert"
+  | "project"
+  | "recommendation"
+  | "discussion"
+  | "admin_notice";
 
 export function CommunityComposerInline({
   isAuthenticated,
@@ -32,14 +40,19 @@ export function CommunityComposerInline({
   images,
   onImagesChange,
   maxImages = 8,
+  onSubmitWithMeta,
 }: CommunityComposerInlineProps) {
   const handedness = useHandedness();
+  const [postType, setPostType] = React.useState<PostType>("discussion");
   const handlePrimaryClick = () => {
     if (!value.trim() && onOpenRequest) {
       onOpenRequest();
       return;
     }
     if (value.trim()) {
+      if (onSubmitWithMeta) {
+        onSubmitWithMeta({ postType });
+      }
       onSubmit();
     }
   };
@@ -82,6 +95,34 @@ export function CommunityComposerInline({
         </AvatarFallback>
       </Avatar>
       <div className="flex-1 space-y-3">
+        {/* Post type selector: enforces intent */}
+        <div className="flex items-center gap-2 text-[12px] text-slate-300">
+          <span className="text-slate-500">Type:</span>
+          <div className="flex flex-wrap gap-1.5">
+            {(
+              [
+                { k: "alert", label: "Alert" },
+                { k: "project", label: "Project" },
+                { k: "recommendation", label: "Recommendation" },
+                { k: "discussion", label: "Discussion" },
+                { k: "admin_notice", label: "Admin Notice" },
+              ] as Array<{ k: PostType; label: string }>
+            ).map((opt) => (
+              <button
+                key={opt.k}
+                type="button"
+                onClick={() => setPostType(opt.k)}
+                className={`px-2 py-1 rounded-full border text-[11px] transition-colors ${
+                  postType === opt.k
+                    ? "bg-orange-500 text-black border-orange-400"
+                    : "bg-slate-900 text-slate-300 border-slate-700 hover:border-orange-400"
+                }`}
+              >
+                {opt.label}
+              </button>
+            ))}
+          </div>
+        </div>
         <Textarea
           placeholder={
             isAuthenticated
@@ -121,8 +162,8 @@ export function CommunityComposerInline({
           </div>
         )}
         <Separator className="bg-[#1f2937]" />
-        <div className="flex items-center justify-between">
-          <div className="flex gap-1.5 sm:gap-2 text-xs sm:text-sm">
+        <div className="flex items-center justify-between gap-2 flex-wrap">
+          <div className="flex flex-wrap gap-1.5 sm:gap-2 text-xs sm:text-sm">
             <label className="inline-flex items-center gap-2 h-8 px-2 text-slate-500 dark:text-slate-400 hover:text-slate-300 cursor-pointer">
               <ImageIcon className="w-4 h-4" />
               <span>Photo</span>
@@ -143,11 +184,7 @@ export function CommunityComposerInline({
               Feeling
             </Button>
           </div>
-          <div
-            className={`flex gap-1.5 sm:gap-2 ${
-              handedness === "left" ? "justify-start" : "justify-end"
-            } w-full sm:w-auto`}
-          >
+          <div className={`flex gap-1.5 sm:gap-2 ml-auto ${handedness === "left" ? "order-first" : ""}`}>
             <Button
               variant="outline"
               size="sm"

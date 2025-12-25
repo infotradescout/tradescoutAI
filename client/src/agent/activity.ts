@@ -3,7 +3,8 @@ export type RecentActivityEventType =
   | "navigate"
   | "click_sponsored"
   | "intro_shown"
-  | "intro_dismissed";
+  | "intro_dismissed"
+  | "open_note";
 
 export interface RecentActivityEvent {
   type: RecentActivityEventType;

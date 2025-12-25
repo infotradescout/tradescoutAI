@@ -36,24 +36,24 @@ function ClusterCard({
   };
 
   return (
-    <div className="mt-3 rounded-xl border border-slate-800 bg-slate-950/70 px-3 py-2">
+    <div className="scout-card mt-3 rounded-xl px-3 py-2">
       {cluster.title && (
-        <div className="text-xs font-semibold text-slate-100">
+        <div className="text-xs font-semibold" style={{ color: 'var(--text-primary)' }}>
           {cluster.title}
         </div>
       )}
 
       {cluster.body && (
-        <p className="mt-1 text-[13px] text-slate-300 whitespace-pre-line">
+        <p className="mt-1 text-[13px] whitespace-pre-line" style={{ color: 'var(--text-secondary)' }}>
           {cluster.body}
         </p>
       )}
 
       {cluster.items && cluster.items.length > 0 && (
-        <ul className="mt-2 space-y-1 text-[12px] text-slate-300">
+        <ul className="mt-2 space-y-1 text-[12px]" style={{ color: 'var(--text-secondary)' }}>
           {cluster.items.map((item) => (
             <li key={item.id} className="flex gap-2">
-              <span className="mt-[3px] h-1 w-1 rounded-full bg-slate-500" />
+              <span className="mt-[3px] h-1 w-1 rounded-full" style={{ backgroundColor: 'var(--text-muted)' }} />
               <span>{item.label}</span>
             </li>
           ))}
@@ -67,7 +67,7 @@ function ClusterCard({
               key={`${cluster.id}-${action.label}`}
               type="button"
               onClick={() => handleAction(action)}
-              className="inline-flex items-center rounded-full border border-orange-400/40 bg-slate-900 px-3 py-1 text-[11px] font-medium text-orange-300 hover:bg-orange-500 hover:text-black transition"
+              className="scout-action-button"
             >
               {action.label}
             </button>
@@ -80,7 +80,8 @@ function ClusterCard({
           <button
             type="button"
             onClick={handlePrimary}
-            className="inline-flex items-center justify-center rounded-full bg-orange-500 px-3 py-2 text-xs font-semibold text-black hover:bg-orange-400"
+            className="inline-flex items-center justify-center rounded-full px-3 py-2 text-xs font-semibold text-black transition"
+            style={{ backgroundColor: 'var(--orange-primary)' }}
           >
             {cluster.primaryAction.label}
           </button>
@@ -133,15 +134,16 @@ const ScoutThread: React.FC<ScoutThreadProps> = ({
       type PhaseConfig = { base: number; max: number; durationMs: number };
       const phaseConfig: Record<string, PhaseConfig> = {
         // Quick snap into motion while Scout reads account + locality
-        resolving_context: { base: 0.06, max: 0.24, durationMs: 550 },
+        resolving_context: { base: 0.06, max: 0.18, durationMs: 550 },
         // Heavier work: knowledge + documents. Slightly slower crawl so
-        // users attribute wait time to real reading.
-        checking_documents: { base: 0.24, max: 0.86, durationMs: 4200 },
+        // users attribute wait time to real reading. Variable max to avoid
+        // predictable stops.
+        checking_documents: { base: 0.18, max: 0.75 + Math.random() * 0.15, durationMs: 4200 },
         // When Scout is running tools or navigation actions, stay below
         // 100% but show confident forward motion.
-        executing_action: { base: 0.55, max: 0.97, durationMs: 1900 },
+        executing_action: { base: 0.6, max: 0.95 + Math.random() * 0.02, durationMs: 1900 },
         // Final synthesis on the client: short, smooth ease-out into 100%.
-        ready: { base: 0.86, max: 1.0, durationMs: 750 },
+        ready: { base: 0.9, max: 1.0, durationMs: 750 },
       };
 
       const cfg: PhaseConfig =
@@ -173,16 +175,36 @@ const ScoutThread: React.FC<ScoutThreadProps> = ({
   if (status === "resolving_context") {
     statusLabel = "Checking your account and location...";
   } else if (status === "checking_documents") {
-    if (mode === "contractors") {
-      statusLabel = "Reviewing your projects, pros, and leads...";
-    } else if (mode === "marketplace") {
-      statusLabel = "Reviewing local listings and saved offers...";
-    } else if (mode === "admin") {
-      statusLabel = "Reviewing system activity and controls...";
-    } else {
-      // Default OS/community view
-      statusLabel = "Reviewing your area and community activity...";
-    }
+    // Rotate through status messages based on progress in this phase
+    // to show Scout is actively working on different aspects
+    const statusMessages = 
+      mode === "contractors"
+        ? [
+            "Analyzing your project needs...",
+            "Matching local contractors...",
+            "Loading profiles and ratings..."
+          ]
+        : mode === "marketplace"
+        ? [
+            "Scanning local listings...",
+            "Filtering matched offers...",
+            "Loading marketplace updates..."
+          ]
+        : mode === "admin"
+        ? [
+            "Checking system status...",
+            "Gathering activity reports...",
+            "Compiling control settings..."
+          ]
+        : [
+            "Scanning your community...",
+            "Reviewing local activity...",
+            "Preparing community insights..."
+          ];
+    
+    // Cycle through messages based on progress (0-1 range maps to 0-messages.length)
+    const messageIndex = Math.floor(progress * statusMessages.length);
+    statusLabel = statusMessages[Math.min(messageIndex, statusMessages.length - 1)];
   } else if (status === "executing_action") {
     statusLabel = "Starting that action...";
   } else if (status === "ready") {
@@ -240,39 +262,10 @@ const ScoutThread: React.FC<ScoutThreadProps> = ({
           >
             <div
               className={clsx(
-                "max-w-[80%] rounded-2xl px-3 py-2 text-[13px]",
-                isUser
-                  ? "bg-orange-500 text-black"
-                  : "bg-slate-900 text-slate-100 border border-slate-700/60"
+                "scout-message",
+                isUser ? "user" : "assistant"
               )}
             >
-              {!isUser && msg.frame && (
-                <div className="mb-1 space-y-1">
-                  {msg.frame.truthLines && msg.frame.truthLines.length > 0 && (
-                    <ul className="space-y-1 text-[12px] text-slate-100">
-                      {msg.frame.truthLines.map((line, idx) => (
-                        <li key={`${msg.id}-truth-${idx}`} className="flex gap-2">
-                          <span className="mt-[5px] h-1 w-1 rounded-full bg-slate-500" />
-                          <span>{line}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  )}
-
-                  {msg.frame.meaningLine && (
-                    <p className="text-[11px] text-amber-200">
-                      {msg.frame.meaningLine}
-                    </p>
-                  )}
-
-                  {msg.frame.directionLine && (
-                    <p className="text-[11px] text-slate-200">
-                      {msg.frame.directionLine}
-                    </p>
-                  )}
-                </div>
-              )}
-
               {displayContent && (
                 <p className="whitespace-pre-line leading-relaxed">
                   {displayContent}
@@ -302,7 +295,7 @@ const ScoutThread: React.FC<ScoutThreadProps> = ({
                           });
                         }
                       }}
-                      className="px-3 py-1.5 text-[11px] rounded-full border border-orange-400/60 bg-slate-900 text-orange-300 hover:bg-orange-500 hover:text-black transition"
+                      className="scout-action-button"
                     >
                       {chip.label}
                     </button>
@@ -327,7 +320,7 @@ const ScoutThread: React.FC<ScoutThreadProps> = ({
                       key={act}
                       type="button"
                       onClick={() => onQuickAction && onQuickAction(act)}
-                      className="px-3 py-1.5 text-[11px] rounded-full border border-slate-700 bg-slate-900 text-slate-200 hover:border-orange-400"
+                      className="scout-suggestion px-3 py-1.5 text-[11px] rounded-full"
                     >
                       {act}
                     </button>
@@ -341,11 +334,12 @@ const ScoutThread: React.FC<ScoutThreadProps> = ({
 
       {showProgress && (
         <div className="space-y-1">
-          <div className="h-1.5 w-full rounded-full bg-slate-800 overflow-hidden">
+          <div className="h-1.5 w-full rounded-full overflow-hidden" style={{ backgroundColor: 'var(--bg-tertiary)' }}>
             <div
-              className="h-full rounded-full bg-gradient-to-r from-orange-400 via-orange-300 to-amber-300 transition-[width] duration-150 ease-out"
+              className="h-full rounded-full transition-[width] duration-150 ease-out"
               style={{
                 width: `${Math.max(5, Math.min(Math.round(progress * 100), 100))}%`,
+                background: 'linear-gradient(to right, var(--orange-primary), var(--orange-secondary), var(--orange-tertiary))',
               }}
             />
           </div>
@@ -353,11 +347,12 @@ const ScoutThread: React.FC<ScoutThreadProps> = ({
           <div className="flex justify-start">
             <div
               className={clsx(
-                "mt-1 inline-flex items-center rounded-2xl bg-slate-900/80 px-3 py-1 text-[11px]",
+                "mt-1 inline-flex items-center rounded-2xl px-3 py-1 text-[11px]",
                 statusToneClass
               )}
+              style={{ backgroundColor: 'rgba(2, 6, 23, 0.8)' }}
             >
-              <span className="mr-1 h-1.5 w-1.5 rounded-full bg-orange-400 animate-pulse" />
+              <span className="mr-1 h-1.5 w-1.5 rounded-full animate-pulse" style={{ backgroundColor: 'var(--orange-primary)' }} />
               {statusLabel ?? "Scout is thinking about the best local answer..."}
             </div>
           </div>

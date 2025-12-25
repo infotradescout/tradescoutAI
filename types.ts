@@ -188,3 +188,33 @@ export interface LocalDataContext {
   county?: LocalTradeData;
   region?: LocalTradeData;
 }
+
+/**
+ * Scout API Response Types
+ * 
+ * Canonical contract for Scout endpoints.
+ * Frontend renders only `message` and `actions`.
+ * Metadata is preserved for backend logging/analytics only.
+ */
+
+export interface ScoutMetadata {
+  intent?: string;
+  resolvedContext?: unknown;
+  confidence?: number;
+}
+
+export interface ScoutApiResponse {
+  message: string;
+  actions?: unknown[];
+  clusters?: unknown[];
+  metadata?: ScoutMetadata;
+  sponsored?: unknown | null;
+  knowledge?: {
+    layer: string;
+    sources: unknown[];
+    confidence?: number;
+  };
+  llmProvider?: string;
+  promptVersion?: string;
+  timestamp?: string;
+}
