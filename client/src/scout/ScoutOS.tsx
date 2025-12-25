@@ -36,6 +36,7 @@ import { ScoutHeader } from "./ScoutHeader";
 import { ScoutInputRow } from "./ScoutInputRow";
 import { updateGeoPreferencesFromDeviceLocation } from "../agent/tools/geoPreferences";
 import { openFloatingNote } from "@/lib/floatingNotes";
+import { searchContractors, searchMarketplace } from "../agent/tools/scoutTools";
 
 const INTRO_DEMO_TEXT = "What can TradeScout do for my community?";
 const INTRO_DEMO_SESSION_KEY = "ts_intro_demo_played_session";
@@ -540,6 +541,173 @@ export default function ScoutOS() {
       });
 
       try {
+        // ==================================================================
+        // INTENT DETECTION: Check if user wants a contractor or marketplace search
+        // ==================================================================
+        const lowerMsg = value.toLowerCase();
+        const contractorKeywords = ["contractor", "plumber", "electrician", "roofer", "hvac", "painter", "landscaper", "carpenter", "mason", "find a pro"];
+        const marketplaceKeywords = ["marketplace", "for sale", "buying", "selling", "used", "buy", "sell"];
+        
+        const wantsContractor = contractorKeywords.some(kw => lowerMsg.includes(kw));
+        const wantsMarketplace = marketplaceKeywords.some(kw => lowerMsg.includes(kw));
+
+        // ------------------------------------------------------------------
+        // CONTRACTOR SEARCH INTENT
+        // ------------------------------------------------------------------
+        if (wantsContractor && locality?.county && locality?.state) {
+          setStatus("executing_action");
+          
+          // Extract trade from message (basic pattern matching)
+          let trade = "general";
+          if (lowerMsg.includes("plumber")) trade = "plumbing";
+          else if (lowerMsg.includes("electrician")) trade = "electrical";
+          else if (lowerMsg.includes("roofer") || lowerMsg.includes("roofing")) trade = "roofing";
+          else if (lowerMsg.includes("hvac")) trade = "hvac";
+          else if (lowerMsg.includes("painter") || lowerMsg.includes("painting")) trade = "painting";
+          else if (lowerMsg.includes("landscap")) trade = "landscaping";
+          else if (lowerMsg.includes("carpenter") || lowerMsg.includes("carpentry")) trade = "carpentry";
+          else if (lowerMsg.includes("mason")) trade = "masonry";
+
+          const contractorResult = await searchContractors({
+            trade,
+            county: locality.county,
+            state: locality.state,
+            limit: 5,
+          });
+
+          if (contractorResult.success && contractorResult.data && contractorResult.data.length > 0) {
+            const contractors = contractorResult.data;
+            const contractorClusters: ScoutCluster[] = contractors.slice(0, 3).map((c) => ({
+              id: `contractor-${c.id}`,
+              title: `${c.name} • ${c.trade}`,
+              kind: "generic",
+              body: `${c.rating ? `⭐ ${c.rating} (${c.reviewCount} reviews)` : "Not yet rated"}\n${c.location}\n${c.availability || "Availability unknown"}`,
+              primaryAction: {
+                type: "NAVIGATE",
+                label: "View profile",
+                to: c.profileUrl || `/contractors/${c.id}`,
+              },
+            }));
+
+            const msg: ScoutMessage = {
+              id: `a_${Date.now()}_${Math.random().toString(36).slice(2)}`,
+              role: "assistant",
+              content: `Found ${contractors.length} ${trade} contractors near ${locality.county}, ${locality.state}. Here are the top matches:`,
+              timestamp: new Date().toISOString(),
+              clusters: contractorClusters,
+              navTarget: "/contractors",
+              memoryDelta: {
+                lastViewedTrade: trade,
+                lastIntent: "find_contractors",
+              },
+              toolResult: {
+                tool: "searchContractors",
+                success: true,
+                data: contractors,
+                durationMs: contractorResult.telemetry?.durationMs,
+              },
+            };
+
+            applyServerResponse(msg, []);
+            setStatus("idle");
+
+            const latencyMs = performance.now() - start;
+            logScoutInsight({
+              message: value,
+              mode,
+              locality,
+              success: true,
+              latencyMs,
+            });
+            return;
+          } else {
+            // No contractors found
+            const msg: ScoutMessage = {
+              id: `a_${Date.now()}_${Math.random().toString(36).slice(2)}`,
+              role: "assistant",
+              content: `I couldn't find any ${trade} contractors in ${locality.county}, ${locality.state} right now. Try browsing all contractors or ask me about a different trade.`,
+              timestamp: new Date().toISOString(),
+              clusters: [
+                {
+                  id: "browse-all-contractors",
+                  title: "Browse all contractors",
+                  kind: "generic",
+                  primaryAction: {
+                    type: "NAVIGATE",
+                    label: "Open",
+                    to: "/contractors",
+                  },
+                },
+              ],
+            };
+            applyServerResponse(msg, []);
+            setStatus("idle");
+            return;
+          }
+        }
+
+        // ------------------------------------------------------------------
+        // MARKETPLACE SEARCH INTENT
+        // ------------------------------------------------------------------
+        if (wantsMarketplace && locality?.state) {
+          setStatus("executing_action");
+
+          const marketplaceResult = await searchMarketplace({
+            query: value,
+            location: locality.state,
+            limit: 5,
+          });
+
+          if (marketplaceResult.success && marketplaceResult.data && marketplaceResult.data.length > 0) {
+            const listings = marketplaceResult.data;
+            const listingClusters: ScoutCluster[] = listings.slice(0, 3).map((l) => ({
+              id: `listing-${l.id}`,
+              title: l.title,
+              kind: "generic",
+              body: `$${l.price}${l.condition ? ` • ${l.condition}` : ""}\n${l.location}\n${l.sellerName}${l.verified ? " ✓" : ""}`,
+              primaryAction: {
+                type: "NAVIGATE",
+                label: "View listing",
+                to: l.listingUrl || `/exchange/${l.id}`,
+              },
+            }));
+
+            const msg: ScoutMessage = {
+              id: `a_${Date.now()}_${Math.random().toString(36).slice(2)}`,
+              role: "assistant",
+              content: `Found ${listings.length} marketplace listings matching "${value}". Here are the top results:`,
+              timestamp: new Date().toISOString(),
+              clusters: listingClusters,
+              navTarget: "/exchange",
+              memoryDelta: {
+                lastIntent: "marketplace_search",
+              },
+              toolResult: {
+                tool: "searchMarketplace",
+                success: true,
+                data: listings,
+                durationMs: marketplaceResult.telemetry?.durationMs,
+              },
+            };
+
+            applyServerResponse(msg, []);
+            setStatus("idle");
+
+            const latencyMs = performance.now() - start;
+            logScoutInsight({
+              message: value,
+              mode,
+              locality,
+              success: true,
+              latencyMs,
+            });
+            return;
+          }
+        }
+
+        // ==================================================================
+        // FALLBACK: Use existing server flow if no intent matched
+        // ==================================================================
         // Once we start building the server payload and hitting /api/scout,
         // switch to CHECKING_DOCUMENTS to drive the loader animation.
         setStatus("checking_documents");
