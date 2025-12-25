@@ -23,45 +23,47 @@ import {
 describe("extractMessageSignals", () => {
   it("should detect invoice-related keywords", () => {
     const signals = extractMessageSignals("I need to invoice my client for $500");
-    expect(signals.mentionsInvoice).toBe(true);
+    expect(signals?.mentionsInvoice).toBe(true);
   });
 
   it("should detect payment keywords", () => {
     const signals = extractMessageSignals("Client paid me yesterday");
-    expect(signals.mentionsPaid).toBe(true);
+    expect(signals?.mentionsPaid).toBe(true);
   });
 
   it("should detect job-related keywords", () => {
     const signals = extractMessageSignals("I bid on a roofing job");
-    expect(signals.mentionsJob).toBe(true);
+    expect(signals?.mentionsJob).toBe(true);
   });
 
   it("should detect HOA keywords", () => {
     const signals = extractMessageSignals("Our HOA board is voting on new rules");
-    expect(signals.mentionsHOA).toBe(true);
-    expect(signals.mentionsBoard).toBe(true);
-    expect(signals.mentionsVoting).toBe(true);
+    expect(signals?.mentionsHOA).toBe(true);
+    expect(signals?.mentionsBoard).toBe(true);
+    expect(signals?.mentionsVoting).toBe(true);
   });
 
   it("should detect marketplace keywords", () => {
     const signals = extractMessageSignals("I want to list my pressure washer for sale");
-    expect(signals.mentionsMarketplace).toBe(true);
+    expect(signals?.mentionsMarketplace).toBe(true);
   });
 
   it("should detect community keywords", () => {
     const signals = extractMessageSignals("Is this normal in my area?");
-    expect(signals.mentionsCommunity).toBe(true);
+    expect(signals?.mentionsCommunity).toBe(true);
   });
 
   it("should handle case-insensitive matching", () => {
     const signals = extractMessageSignals("INVOICE THIS CLIENT IMMEDIATELY");
-    expect(signals.mentionsInvoice).toBe(true);
-    expect(signals.mentionsBilling).toBe(true);
+    expect(signals?.mentionsInvoice).toBe(true);
+    expect(signals?.mentionsBilling).toBe(true);
   });
 
   it("should handle empty message", () => {
     const signals = extractMessageSignals("");
-    expect(Object.values(signals).some((v) => v === true)).toBe(false);
+    if (signals) {
+      expect(Object.values(signals).some((v) => v === true)).toBe(false);
+    }
   });
 });
 

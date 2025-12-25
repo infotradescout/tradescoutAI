@@ -329,3 +329,4 @@ and expose:
 
 Never give mock data, placeholders or stubs in production code. Always use real data fetching and handling patterns.
 always fix problems, dont remove just because they are hard to fix
+always use the best ai model for each task

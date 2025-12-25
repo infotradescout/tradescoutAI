@@ -1223,7 +1223,7 @@ html, body {
 }
 
 
-.hover\:bg-slate-900\\/80 {
+.hover\:bg-slate-900\/80 {
   background-color: var(--charcoal-800) !important;
 }
 
@@ -1235,28 +1235,28 @@ html, body {
 
 /* Navy color scheme fallback for legacy pages */
 .bg-navy-900,
-.bg-navy-900\\/70,
-.bg-navy-900\\/60 {
+.bg-navy-900\/70,
+.bg-navy-900\/60 {
   background-color: var(--charcoal-900) !important;
 }
 
 .bg-navy-800,
-.bg-navy-800\\/70 {
+.bg-navy-800\/70 {
   background-color: var(--charcoal-800) !important;
 }
 
 /* Dark mode text colors - inherit from theme */
-.dark\\:text-slate-50,
-.dark\\:text-slate-100 {
+.dark\:text-slate-50,
+.dark\:text-slate-100 {
   color: var(--text-primary) !important;
 }
 
-.dark\\:text-slate-200 {
+.dark\:text-slate-200 {
   color: var(--text-primary) !important;
 }
 
-.dark\\:text-slate-300,
-.dark\\:text-slate-400 {
+.dark\:text-slate-300,
+.dark\:text-slate-400 {
   color: var(--text-secondary) !important;
 }
 

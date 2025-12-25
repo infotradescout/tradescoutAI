@@ -242,7 +242,6 @@ export function inferCapabilities(signals: CapabilitySignals): Set<Capability> {
     roles.includes("property_manager") ||
     roles.includes("investor") ||
     msg.mentionsJob ||
-    msg.mentionsRepair ||
     context.currentPage?.includes("contractors") ||
     context.parentObjectType === "job"
   ) {
@@ -275,8 +274,6 @@ export function inferCapabilities(signals: CapabilitySignals): Set<Capability> {
     roles.includes("contractor") ||
     roles.includes("business_owner") ||
     msg.mentionsJob ||
-    msg.mentionsEstimate ||
-    msg.mentionsQuote ||
     context.parentObjectType === "job" ||
     history.hasPostedJob
   ) {
@@ -356,8 +353,7 @@ export function inferCapabilities(signals: CapabilitySignals): Set<Capability> {
   // ===== RECOMMENDATIONS & REVIEWS (Power users, frequent participants) =====
   if (
     history.isFrequentUser ||
-    roles.some((r) => ["realtor", "contractor", "property_manager"].includes(r)) ||
-    msg.mentionsRecommendation
+    roles.some((r) => ["realtor", "contractor", "property_manager"].includes(r))
   ) {
     caps.add("post_recommendations");
   }
@@ -509,7 +505,7 @@ export function buildCapabilitySignals(data: {
   message?: string;
   currentPage?: string;
   currentAction?: string;
-  parentObjectType?: CapabilitySignals["context"]["parentObjectType"];
+  parentObjectType?: "job" | "invoice" | "hoa" | "community" | "marketplace" | "group";
   recentActions?: string[];
 }): CapabilitySignals {
   const messageSignals = data.message ? extractMessageSignals(data.message) : {};
