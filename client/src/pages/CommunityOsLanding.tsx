@@ -11,12 +11,12 @@ interface ScoutResponse {
 }
 
 const suggestionPrompts = [
-  'Find a reliable plumber for a kitchen leak',
-  'How much does it cost to paint a 12x12 room?',
-  'Roof repair specialists near me',
-  'Permits needed for a deck in Texas',
-  'Best work van for HVAC technician',
-  'Landscaping ideas for small backyards',
+  'Trusted plumber — kitchen leak.',
+  'Paint 12×12 room cost?',
+  'Roof repair near me.',
+  'Deck permits in Texas.',
+  'Best HVAC work van.',
+  'Small backyard ideas.',
 ];
 
 export default function CommunityOsLanding() {
