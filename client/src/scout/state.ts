@@ -98,6 +98,8 @@ export interface ScoutMessage {
   toolResult?: ScoutToolResult;
   navTarget?: string; // primary navigation target for this message
   memoryDelta?: ScoutMemoryDelta; // working context updates
+  // Ephemeral, derived context roles used for tone + defaults
+  contextRoles?: string[];
 }
 
 export interface ScoutState {
