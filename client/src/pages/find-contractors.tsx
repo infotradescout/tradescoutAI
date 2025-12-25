@@ -300,19 +300,19 @@ const FindContractors = memo(function FindContractors({ title = 'Find Local Cont
               <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {featured.map((contractor) => (
                   <div key={contractor.id} className="ts-card p-5">
-                    <h3 className="text-xl font-semibold mb-2 text-orange-300">
+                    <h3 className="text-xl font-semibold mb-2 ts-accent-text-muted">
                       {contractor.businessName || contractor.name || 'Contractor'}
                     </h3>
                     <p className="text-gray-300 mb-4">
                       {(contractor.trades && contractor.trades.join(', ')) || 'Trade not listed'}
                     </p>
                     <div className="flex justify-between items-center text-sm">
-                      <span className="text-yellow-400">
+                      <span className="ts-accent-text">
                         {typeof contractor.rating === 'number' ? contractor.rating.toFixed(1) : 'N/A'}
                         {' '}★
                       </span>
                       <a
-                        className="bg-orange-500 hover:bg-orange-600 text-white px-3 py-2 rounded-lg transition-colors"
+                        className="ts-accent-btn px-3 py-2 rounded-lg transition-colors"
                         href={`/contractors/${encodeURIComponent(contractor.id)}`}
                       >
                         View profile
@@ -324,9 +324,9 @@ const FindContractors = memo(function FindContractors({ title = 'Find Local Cont
             )}
           </section>
 
-          <section className="ts-card bg-orange-500/10 shadow-[0_0_30px_rgba(255,140,0,0.2)] p-6 text-center space-y-3">
-          <h3 className="text-xl font-semibold text-orange-100">Not sure where to start?</h3>
-          <p className="text-gray-100 max-w-3xl mx-auto">
+          <section className="ts-card accent-soft p-6 text-center space-y-3">
+          <h3 className="text-xl font-semibold ts-accent-text-muted">Not sure where to start?</h3>
+          <p className="text-gray-100 max-w-3xl mx-auto" style={{ color: 'var(--theme-text-secondary)' }}>
             Ask Scout to draft bids, verify licenses, or queue tasks on your board. Or jump in with search, quick actions, and the featured list—no waiting on chat.
           </p>
         </section>

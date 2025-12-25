@@ -621,6 +621,18 @@ export default function ScoutOS() {
             },
           });
 
+          // Provide a direct Notes entry as a first-answer chip
+          clusters.push({
+            id: "first-nav-notes",
+            title: "Open Notes",
+            kind: "generic",
+            primaryAction: {
+              type: "NAVIGATE",
+              label: "Open",
+              to: ROUTES.NOTES,
+            },
+          });
+
           if (isGuest) {
             clusters.push({
               id: "first-account-prompt",
@@ -975,6 +987,18 @@ export default function ScoutOS() {
                       label: trimmed,
                     });
                     navigate(ROUTES.CONTRACTORS);
+                    return;
+                  }
+
+                  if (trimmed === "Open my Notes" || trimmed === "Open Notes") {
+                    recordActivity({
+                      type: "navigate",
+                      ts: new Date().toISOString(),
+                      path: location,
+                      to: ROUTES.NOTES,
+                      label: trimmed,
+                    });
+                    navigate(ROUTES.NOTES);
                     return;
                   }
 

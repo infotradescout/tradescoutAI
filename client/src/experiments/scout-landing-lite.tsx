@@ -102,14 +102,16 @@ export default function ScoutLandingLite() {
           {/* Simple top bar */}
           <div className="flex items-center justify-between mb-6">
             <button
-              className="inline-flex items-center gap-2 rounded-xl bg-slate-900/70 border border-slate-700 px-3 py-2 text-sm text-slate-200 hover:bg-slate-800"
+              className="inline-flex items-center gap-2 rounded-xl px-3 py-2 text-sm"
+              style={{ backgroundColor: 'color-mix(in oklab, var(--theme-bg-quaternary) 70%, transparent)', border: '1px solid var(--theme-border-secondary)', color: 'var(--theme-text-secondary)' }}
               onClick={() => navigate("/")}
             >
-              <Home className="w-4 h-4 text-orange-400" />
+              <Home className="w-4 h-4" style={{ color: 'var(--theme-accent-primary)' }} />
               <span className="font-semibold tracking-wide">TradeScout</span>
             </button>
             <button
-              className="rounded-xl bg-slate-900/70 border border-slate-700 px-3 py-2 text-xs text-slate-300 hover:bg-slate-800"
+              className="rounded-xl px-3 py-2 text-xs"
+              style={{ backgroundColor: 'color-mix(in oklab, var(--theme-bg-quaternary) 70%, transparent)', border: '1px solid var(--theme-border-secondary)', color: 'var(--theme-text-secondary)' }}
               onClick={() => setAppDrawerOpen(true)}
             >
               Browse apps
@@ -118,14 +120,14 @@ export default function ScoutLandingLite() {
 
           {/* Hero */}
           <div className="mb-6 space-y-3">
-            <div className="inline-flex items-center rounded-full bg-slate-900/80 border border-slate-700 px-3 py-1 text-xs text-slate-300 mb-2">
-              <span className="mr-1 text-orange-400">●</span>
+            <div className="inline-flex items-center rounded-full px-3 py-1 text-xs mb-2" style={{ backgroundColor: 'color-mix(in oklab, var(--theme-bg-quaternary) 80%, transparent)', border: '1px solid var(--theme-border-secondary)', color: 'var(--theme-text-secondary)' }}>
+              <span className="mr-1" style={{ color: 'var(--theme-accent-primary)' }}>●</span>
               Scout is your community OS
             </div>
             <h1 className="text-3xl sm:text-4xl md:text-5xl font-semibold tracking-tight">
-              Ask Scout. Ship work. <span className="text-orange-400">Locally.</span>
+              Ask Scout. Ship work. <span className="ts-accent-text">Locally.</span>
             </h1>
-            <p className="text-slate-300 max-w-2xl text-sm sm:text-base">
+            <p className="max-w-2xl text-sm sm:text-base" style={{ color: 'var(--theme-text-secondary)' }}>
               Tell Scout what you want for your home, HOA, or business.
               Scout will search local context, call TradeScout tools, and hand
               you links into the right pages.
@@ -134,10 +136,10 @@ export default function ScoutLandingLite() {
 
           {/* Chat panel */}
           <div className="grid grid-cols-1 md:grid-cols-[minmax(0,2fr)_minmax(0,1fr)] gap-6">
-            <div className="bg-slate-950/80 border border-slate-800 rounded-2xl shadow-xl flex flex-col min-h-[340px]">
+            <div className="rounded-2xl shadow-xl flex flex-col min-h-[340px]" style={{ backgroundColor: 'color-mix(in oklab, var(--theme-bg-quaternary) 80%, transparent)', border: '1px solid var(--theme-border-secondary)' }}>
               <div className="flex-1 overflow-y-auto px-4 pt-4 pb-2 space-y-3">
                 {messages.length === 0 && (
-                  <div className="text-sm text-slate-400">
+                  <div className="text-sm" style={{ color: 'var(--theme-text-secondary)' }}>
                     {isAuthenticated
                       ? "Welcome back. Describe a project, neighbor issue, or hiring need and I’ll scout options."
                       : "Start with something like: ‘Find a roofer in my area under $20k’ or ‘Draft a post to my HOA board about parking.’"}
@@ -148,8 +150,10 @@ export default function ScoutLandingLite() {
                     key={m.id}
                     className={
                       m.role === "user"
-                        ? "ml-auto max-w-[85%] rounded-2xl bg-orange-500 text-white px-3 py-2 text-sm shadow"
-                        : "mr-auto max-w-[85%] rounded-2xl bg-slate-900 text-slate-100 px-3 py-2 text-sm border border-slate-800"
+                        ? "ml-auto max-w-[85%] rounded-2xl px-3 py-2 text-sm shadow ts-accent-btn"
+                        : "mr-auto max-w-[85%] rounded-2xl px-3 py-2 text-sm border"
+                      }
+                      style={ isUser ? undefined : { backgroundColor: 'var(--theme-bg-secondary)', color: 'var(--theme-text-primary)', borderColor: 'var(--theme-border-secondary)' } }
                     }
                   >
                     {m.content}
@@ -168,7 +172,7 @@ export default function ScoutLandingLite() {
                 <button
                   onClick={handleSend}
                   disabled={isLoading || !input.trim()}
-                  className="inline-flex items-center justify-center rounded-xl bg-orange-500 px-3 py-2 text-sm font-semibold text-white shadow disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="inline-flex items-center justify-center rounded-xl ts-accent-btn px-3 py-2 text-sm font-semibold shadow disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <Send className="w-4 h-4 mr-1" />
                   {isLoading ? "Sending" : "Ask Scout"}
@@ -184,28 +188,32 @@ export default function ScoutLandingLite() {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
                 <Link
                   href="/community"
-                  className="block rounded-xl bg-slate-950/70 border border-slate-800 px-3 py-3 hover:border-orange-500/60"
+                  className="block rounded-xl px-3 py-3"
+                  style={{ backgroundColor: 'color-mix(in oklab, var(--theme-bg-quaternary) 70%, transparent)', border: '1px solid var(--theme-border-secondary)' }}
                 >
                   <div className="font-semibold text-white mb-1">Community feed</div>
                   <div className="text-slate-400 text-xs">See local posts and HOA chatter.</div>
                 </Link>
                 <Link
                   href="/marketplace"
-                  className="block rounded-xl bg-slate-950/70 border border-slate-800 px-3 py-3 hover:border-orange-500/60"
+                  className="block rounded-xl px-3 py-3"
+                  style={{ backgroundColor: 'color-mix(in oklab, var(--theme-bg-quaternary) 70%, transparent)', border: '1px solid var(--theme-border-secondary)' }}
                 >
                   <div className="font-semibold text-white mb-1">Marketplace</div>
                   <div className="text-slate-400 text-xs">List items or browse offers from neighbors.</div>
                 </Link>
                 <Link
                   href="/hoa-dashboard"
-                  className="block rounded-xl bg-slate-950/70 border border-slate-800 px-3 py-3 hover:border-orange-500/60"
+                  className="block rounded-xl px-3 py-3"
+                  style={{ backgroundColor: 'color-mix(in oklab, var(--theme-bg-quaternary) 70%, transparent)', border: '1px solid var(--theme-border-secondary)' }}
                 >
                   <div className="font-semibold text-white mb-1">HOA dashboard</div>
                   <div className="text-slate-400 text-xs">If you manage an HOA, open the console.</div>
                 </Link>
                 <Link
                   href="/contractors"
-                  className="block rounded-xl bg-slate-950/70 border border-slate-800 px-3 py-3 hover:border-orange-500/60"
+                  className="block rounded-xl px-3 py-3"
+                  style={{ backgroundColor: 'color-mix(in oklab, var(--theme-bg-quaternary) 70%, transparent)', border: '1px solid var(--theme-border-secondary)' }}
                 >
                   <div className="font-semibold text-white mb-1">Find contractors</div>
                   <div className="text-slate-400 text-xs">Search pros by trade and location.</div>

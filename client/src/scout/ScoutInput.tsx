@@ -213,7 +213,8 @@ const ScoutInput: React.FC<ScoutInputProps> = ({
           type="button"
           onClick={() => handleSubmit()}
           disabled={isButtonDisabled}
-          className="inline-flex items-center justify-center gap-2 rounded-full bg-gradient-to-r from-orange-500 to-orange-600 px-5 py-2.5 text-sm font-semibold text-slate-950 shadow-lg shadow-orange-500/40 hover:from-orange-400 hover:to-orange-500 disabled:cursor-not-allowed disabled:opacity-60"
+          className="inline-flex items-center justify-center gap-2 rounded-full px-5 py-2.5 text-sm font-semibold shadow-lg disabled:cursor-not-allowed disabled:opacity-60 ts-accent-btn"
+          style={{ boxShadow: '0 6px 20px color-mix(in oklab, var(--theme-accent-primary) 40%, transparent)' }}
         >
           <Send className="h-4 w-4 text-white" />
           <span>{isSubmitting ? "Sending..." : "Send"}</span>

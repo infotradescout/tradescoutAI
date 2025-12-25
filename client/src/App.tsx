@@ -210,6 +210,7 @@ const ResourceCenter = React.lazy(() => import('./pages/resource-center'));
 const MembershipPortal = React.lazy(() => import('./pages/membership-portal'));
 const TrainingCenter = React.lazy(() => import('./pages/training-center'));
 const RoleHubPage = React.lazy(() => import('./pages/role-hub'));
+const NotesPage = React.lazy(() => import('./pages/notes'));
 
 // Debug / experimental views
 const ScoutLandingLite = React.lazy(() => import('./experiments/scout-landing-lite'));
@@ -950,6 +951,9 @@ const AppLayout = memo(function AppLayout() {
                   <Route path="/apply-accelerator"><LazyPage Component={ApplyAccelerator} /></Route>
                   <Route path="/request-quote"><LazyPage Component={RequestQuote} /></Route>
                   <Route path="/tasks"><LazyPage Component={TasksHub} /></Route>
+                  
+                  {/* Notes */}
+                  <Route path="/notes"><LazyPage Component={NotesPage} /></Route>
                   
                   {/* Legal pages */}
                   <Route path="/pricing"><LazyPage Component={Pricing} /></Route>

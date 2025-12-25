@@ -1,4 +1,4 @@
-import React, { ReactNode } from "react";
+import React, { ReactNode, useEffect, useState } from "react";
 import { Link } from "wouter";
 import {
   User,
@@ -243,6 +243,8 @@ export function RightToolsPanel({ footer, onNavigate }: RightToolsPanelProps) {
                 onNavigate?.();
               }}
             />
+            {/* Embedded notes workspace */}
+            <EmbeddedNotesWorkspace />
           </div>
         </section>
 
@@ -309,3 +311,75 @@ export function RightToolsPanel({ footer, onNavigate }: RightToolsPanelProps) {
 }
 
 export default RightToolsPanel;
+
+// Embedded mini notes inside the right workspace panel
+function EmbeddedNotesWorkspace() {
+  const [notes, setNotes] = useState<Array<{ id: string; text: string }>>([]);
+  const [quickText, setQuickText] = useState<string>("");
+
+  useEffect(() => {
+    try {
+      const arr: Array<{ id: string; text: string }> = [];
+      for (let i = 0; i < (typeof window !== 'undefined' ? window.localStorage.length : 0); i++) {
+        const key = window.localStorage.key(i) || "";
+        if (!key.startsWith("ts:note:")) continue;
+        const id = key.slice("ts:note:".length);
+        const val = window.localStorage.getItem(key) || "";
+        arr.push({ id, text: val });
+      }
+      // Show most recent first by simple length heuristic
+      setNotes(arr.reverse().slice(0, 5));
+      setQuickText(window.localStorage.getItem("ts:note:quick") || "");
+    } catch {
+      // ignore storage errors
+    }
+  }, []);
+
+  const saveQuick = () => {
+    try {
+      window.localStorage.setItem("ts:note:quick", quickText);
+    } catch {
+      // ignore storage errors
+    }
+  };
+
+  return (
+    <div className="rounded-xl border" style={{ borderColor: 'var(--border-primary)', backgroundColor: 'var(--charcoal-700)' }}>
+      <div className="px-3 pt-2 text-[0.7rem] uppercase tracking-[0.2em]" style={{ color: 'var(--text-secondary)' }}>
+        Workspace notes
+      </div>
+      <div className="px-3 pb-2 space-y-2">
+        <div>
+          <label className="text-[0.7rem]" style={{ color: 'var(--text-secondary)' }}>Quick note</label>
+          <textarea
+            value={quickText}
+            onChange={(e) => setQuickText(e.target.value)}
+            onBlur={saveQuick}
+            className="mt-1 w-full rounded-lg border px-2 py-1 text-[0.8rem]"
+            style={{ borderColor: 'var(--border-primary)', backgroundColor: 'var(--charcoal-800)', color: 'var(--text-primary)' }}
+            rows={3}
+            placeholder="Type and click away to save"
+          />
+        </div>
+        {notes.length > 0 && (
+          <div>
+            <div className="text-[0.7rem] mb-1" style={{ color: 'var(--text-secondary)' }}>Recent</div>
+            <ul className="space-y-1">
+              {notes.map((n) => (
+                <li key={n.id} className="rounded-md border px-2 py-1 text-[0.8rem] truncate" style={{ borderColor: 'var(--border-secondary)', color: 'var(--text-primary)', backgroundColor: 'var(--charcoal-800)' }}>
+                  <span className="font-medium" style={{ color: 'var(--text-primary)' }}>{n.id}</span>
+                  <span className="ml-2" style={{ color: 'var(--text-secondary)' }}>{n.text.slice(0, 60)}{n.text.length > 60 ? '…' : ''}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+        <div className="pt-1">
+          <Link href="/notes" className="inline-flex items-center rounded-md border px-2 py-1 text-[0.75rem]" style={{ borderColor: 'var(--border-primary)', color: 'var(--theme-accent-primary)' }}>
+            Open full Notes
+          </Link>
+        </div>
+      </div>
+    </div>
+  );
+}

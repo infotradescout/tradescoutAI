@@ -72,25 +72,28 @@ html {
 
 /* Scout suggestion buttons - TradeScout dark blueprint style */
 .scout-suggestion {
-  background: rgba(255, 140, 0, 0.12);
-  border: 1px solid #FF8C00;
-  color: #FF8C00;
+  background-color: var(--theme-accent-primary);
+  border: 1px solid var(--theme-accent-secondary);
+  color: var(--theme-text-primary);
   font-weight: 500;
   cursor: pointer;
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  opacity: 0.15;
 }
 
 .scout-suggestion:hover {
-  background: rgba(255, 140, 0, 0.25);
-  border-color: #FFA500;
-  color: #FFA500;
-  box-shadow: 0 4px 8px rgba(255, 140, 0, 0.2);
+  background-color: var(--theme-accent-tertiary, var(--theme-accent-primary));
+  border-color: var(--theme-accent-primary);
+  color: var(--theme-text-primary);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.25);
+  opacity: 0.3;
   transform: translateY(-1px);
 }
 
 .scout-suggestion:active {
-  background: rgba(255, 140, 0, 0.35);
+  background-color: var(--theme-accent-secondary);
+  opacity: 0.4;
   transform: translateY(0);
 }
 
@@ -1288,6 +1291,26 @@ html, body {
   opacity: 0.5;
   cursor: not-allowed;
   transform: none !important;
+}
+
+/* Accent helpers for replacing hardcoded orange classes */
+.ts-accent-btn {
+  background-color: var(--theme-accent-primary);
+  color: var(--theme-text-primary);
+  border: 1px solid var(--theme-accent-secondary);
+}
+.ts-accent-btn:hover {
+  background-color: var(--theme-accent-secondary);
+}
+.ts-accent-text {
+  color: var(--theme-accent-primary);
+}
+.ts-accent-text-muted {
+  color: var(--theme-accent-tertiary, var(--theme-accent-primary));
+}
+.accent-soft {
+  border: 1px solid var(--theme-accent-secondary);
+  box-shadow: 0 0 20px rgba(0,0,0,0.25);
 }
 
 /* stylelint-enable */
