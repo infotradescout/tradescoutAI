@@ -364,6 +364,17 @@ function EmbeddedNotesWorkspace() {
             </ul>
           </div>
         )}
+        {/* Notes routing button */}
+        <div className="mt-3 flex justify-end">
+          <a href="/notes" className="inline-flex items-center gap-1 rounded-lg border px-3 py-1.5 text-[0.8rem]"
+             style={{ backgroundColor: 'var(--surface-card)', borderColor: 'var(--border-subtle)', color: 'var(--text-primary)' }}>
+            Open Notes
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="h-4 w-4">
+              <path d="M13.5 4.5a.75.75 0 0 1 .75-.75h5.25a.75.75 0 0 1 .75.75v5.25a.75.75 0 0 1-1.5 0V6.31l-6.97 6.97a.75.75 0 1 1-1.06-1.06l6.97-6.97h-3.44a.75.75 0 0 1-.75-.75Z"/>
+              <path d="M3.75 5.25A2.25 2.25 0 0 1 6 3h5.25a.75.75 0 0 1 0 1.5H6A.75.75 0 0 0 5.25 5.25v12A.75.75 0 0 0 6 18.75h12a.75.75 0 0 0 .75-.75V12.75a.75.75 0 0 1 1.5 0V18a2.25 2.25 0 0 1-2.25 2.25H6A2.25 2.25 0 0 1 3.75 18V5.25Z"/>
+            </svg>
+          </a>
+        </div>
         {/* Full Notes entry removed (accessible via other nav + Scout chips) */}
       </div>
     </div>
