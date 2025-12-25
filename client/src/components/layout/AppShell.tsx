@@ -126,10 +126,10 @@ export function AppShell({ children, footer }: AppShellProps) {
           >
             <TradeScoutLogo size="sm" className="" />
             <div className="flex flex-col leading-tight">
-              <span className="text-[0.65rem] uppercase tracking-[0.32em] text-slate-400">
+              <span className="text-[0.65rem] uppercase tracking-[0.32em]" style={{ color: 'var(--text-secondary)' }}>
                 TRADESCOUT
               </span>
-              <span className="text-xs text-slate-400">
+              <span className="text-xs" style={{ color: 'var(--text-secondary)' }}>
                 Connection without compromise
               </span>
             </div>
@@ -140,10 +140,11 @@ export function AppShell({ children, footer }: AppShellProps) {
             <button
               type="button"
               onClick={() => navigate("/messages")}
-              className="inline-flex h-8 w-8 items-center justify-center rounded-xl border border-slate-800 bg-slate-950/80 text-slate-300 hover:bg-slate-900"
+              className="inline-flex h-8 w-8 items-center justify-center rounded-xl border transition"
+              style={{ borderColor: 'var(--border-primary)', background: 'var(--bg-secondary)' }}
               aria-label="Messages and helpers"
             >
-              <MessageCircle className="h-4 w-4 text-orange-400" />
+              <MessageCircle className="h-4 w-4" style={{ color: 'var(--orange-primary)' }} />
             </button>
 
             {/* Notifications: full activity center (tags, comments, likes, jobs, etc.) */}
@@ -153,10 +154,11 @@ export function AppShell({ children, footer }: AppShellProps) {
               <button
                 type="button"
                 onClick={() => navigate("/notifications")}
-                className="inline-flex h-8 w-8 items-center justify-center rounded-xl border border-slate-800 bg-slate-950/80 text-slate-300 hover:bg-slate-900"
+                className="inline-flex h-8 w-8 items-center justify-center rounded-xl border transition"
+                style={{ borderColor: 'var(--border-primary)', background: 'var(--bg-secondary)' }}
                 aria-label="Notifications"
               >
-                <Bell className="h-4 w-4 text-orange-400" />
+                <Bell className="h-4 w-4" style={{ color: 'var(--orange-primary)' }} />
               </button>
             )}
 
@@ -164,10 +166,11 @@ export function AppShell({ children, footer }: AppShellProps) {
             <button
               type="button"
               onClick={() => setIsToolsOpen(true)}
-              className="inline-flex h-8 w-8 items-center justify-center rounded-xl border border-slate-800 bg-slate-950/80 text-slate-200 hover:bg-slate-900"
+              className="inline-flex h-8 w-8 items-center justify-center rounded-xl border transition"
+              style={{ borderColor: 'var(--border-primary)', background: 'var(--bg-secondary)' }}
               aria-label="Open profile & tools panel"
             >
-              <Menu className="h-4 w-4 text-orange-400" />
+              <Menu className="h-4 w-4" style={{ color: 'var(--orange-primary)' }} />
             </button>
           </div>
         </header>
@@ -224,10 +227,11 @@ export function AppShell({ children, footer }: AppShellProps) {
             <button
               type="button"
               onClick={() => navigate("/messages")}
-              className="inline-flex h-8 w-8 items-center justify-center rounded-xl border border-slate-800 bg-slate-950/80 text-slate-300 hover:bg-slate-900"
+              className="inline-flex h-8 w-8 items-center justify-center rounded-xl border transition"
+              style={{ borderColor: 'var(--border-primary)', background: 'var(--bg-secondary)' }}
               aria-label="Messages and helpers"
             >
-              <MessageCircle className="h-4 w-4 text-orange-400" />
+              <MessageCircle className="h-4 w-4" style={{ color: 'var(--orange-primary)' }} />
             </button>
 
             {/* Notifications: full activity center (tags, comments, likes, jobs, etc.) */}
@@ -237,10 +241,11 @@ export function AppShell({ children, footer }: AppShellProps) {
               <button
                 type="button"
                 onClick={() => navigate("/notifications")}
-                className="inline-flex h-8 w-8 items-center justify-center rounded-xl border border-slate-800 bg-slate-950/80 text-slate-300 hover:bg-slate-900"
+                className="inline-flex h-8 w-8 items-center justify-center rounded-xl border transition"
+                style={{ borderColor: 'var(--border-primary)', background: 'var(--bg-secondary)' }}
                 aria-label="Notifications"
               >
-                <Bell className="h-4 w-4 text-orange-400" />
+                <Bell className="h-4 w-4" style={{ color: 'var(--orange-primary)' }} />
               </button>
             )}
 
@@ -248,10 +253,11 @@ export function AppShell({ children, footer }: AppShellProps) {
             <button
               type="button"
               onClick={() => setIsToolsOpen(true)}
-              className="inline-flex h-8 w-8 items-center justify-center rounded-xl border border-slate-800 bg-slate-950/80 text-slate-200 hover:bg-slate-900"
+              className="inline-flex h-8 w-8 items-center justify-center rounded-xl border transition"
+              style={{ borderColor: 'var(--border-primary)', background: 'var(--bg-secondary)' }}
               aria-label="Open profile & tools panel"
             >
-              <Menu className="h-4 w-4 text-orange-400" />
+              <Menu className="h-4 w-4" style={{ color: 'var(--orange-primary)' }} />
             </button>
           </div>
         </header>
@@ -272,7 +278,7 @@ export function AppShell({ children, footer }: AppShellProps) {
 
         {/* USER-SPECIFIC PAGES LIVE HERE (desktop) */}
         {!isMobile && (
-          <aside className="hidden lg:block w-80 bg-slate-950/90 overflow-y-auto">
+          <aside className="hidden lg:block w-80 overflow-y-auto" style={{ background: 'var(--bg-secondary)' }}>
             {/* On desktop, keep the global footer only at the bottom of the shell;
                the tools panel shows account tools without duplicating legal copy. */}
             <RightToolsPanel />
