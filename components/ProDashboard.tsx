@@ -64,7 +64,7 @@ const ProDashboard: React.FC<ProDashboardProps> = ({ currentUser, onBack }) => {
                                 <div className="space-y-4">
                                     <div className="flex justify-between items-center p-3 bg-slate-900 rounded-xl border border-slate-700">
                                         <div className="flex items-center">
-                                            <StarIcon className="w-5 h-5 text-orange-500 mr-2" />
+                                            <StarIcon className="w-5 h-5 mr-2" style={{ color: 'var(--theme-accent-primary)' }} />
                                             <span className="text-sm font-bold text-slate-300">Monthly Score</span>
                                         </div>
                                         <span className="text-lg font-bold text-white">{contractorProfile.monthlyScore}</span>

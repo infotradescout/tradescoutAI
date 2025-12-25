@@ -152,9 +152,8 @@ export default function ScoutLandingLite() {
                       m.role === "user"
                         ? "ml-auto max-w-[85%] rounded-2xl px-3 py-2 text-sm shadow ts-accent-btn"
                         : "mr-auto max-w-[85%] rounded-2xl px-3 py-2 text-sm border"
-                      }
-                      style={ isUser ? undefined : { backgroundColor: 'var(--theme-bg-secondary)', color: 'var(--theme-text-primary)', borderColor: 'var(--theme-border-secondary)' } }
                     }
+                    style={ m.role === "user" ? undefined : { backgroundColor: 'var(--theme-bg-secondary)', color: 'var(--theme-text-primary)', borderColor: 'var(--theme-border-secondary)' } }
                   >
                     {m.content}
                   </div>

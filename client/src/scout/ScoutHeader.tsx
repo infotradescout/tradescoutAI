@@ -14,7 +14,7 @@ export function ScoutHeader({ isAuthenticated, isFirstGuestVisit, locationLabel 
   return (
     <header className="space-y-2 text-center">
             <h1 className="text-2xl font-semibold" style={{ color: 'var(--text-primary)' }}>
-              Empowering <span style={{ color: 'var(--orange-primary)' }}>{communityText}</span>
+              Empowering <span style={{ color: 'var(--theme-accent-primary)' }}>{communityText}</span>
             </h1>
       <p className="text-[13px] font-semibold" style={{ color: 'var(--text-secondary)' }}>Scout</p>
       {!isAuthenticated && (

@@ -81,7 +81,7 @@ function ClusterCard({
             type="button"
             onClick={handlePrimary}
             className="inline-flex items-center justify-center rounded-full px-3 py-2 text-xs font-semibold text-black transition"
-            style={{ backgroundColor: 'var(--orange-primary)' }}
+            style={{ backgroundColor: 'var(--theme-accent-primary)' }}
           >
             {cluster.primaryAction.label}
           </button>
@@ -211,12 +211,11 @@ const ScoutThread: React.FC<ScoutThreadProps> = ({
     statusLabel = "Preparing your answer...";
   }
 
-  // Only show loader when busy AND no messages yet
-  // Once any Scout message lands, unlock the UI immediately
+  // Show loader for any active phase so returning answers and actions
+  // still surface a visible state indicator.
   const showProgress = 
     status !== "idle" && 
-    status !== "error" && 
-    messages.length === 0;
+    status !== "error";
 
   const statusStyles: React.CSSProperties =
     status === "checking_documents"
@@ -339,7 +338,7 @@ const ScoutThread: React.FC<ScoutThreadProps> = ({
 
       {showProgress && (
         <div className="space-y-1">
-          <div className="h-1.5 w-full rounded-full overflow-hidden" style={{ backgroundColor: 'var(--theme-bg-quaternary)' }}>
+          <div className="h-1.5 w-full rounded-full overflow-hidden" style={{ backgroundColor: 'var(--charcoal-800)' }}>
             <div
               className="h-full rounded-full transition-[width] duration-150 ease-out"
               style={{

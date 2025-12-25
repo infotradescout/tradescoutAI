@@ -485,7 +485,7 @@ const Chatbot: React.FC<ChatbotProps> = ({ currentUser, onLogin, onSignup, onSea
                                 onKeyDown={handleKeyPress}
                                 placeholder="Type a command or question..."
                                 rows={1}
-                                className="w-full pl-4 pr-12 py-3 bg-slate-800 border border-slate-700 rounded-xl focus:ring-2 focus:ring-orange-500 focus:bg-slate-900 text-white text-sm resize-none placeholder-slate-500"
+                                className="w-full pl-4 pr-12 py-3 bg-slate-800 border border-slate-700 rounded-xl focus:bg-slate-900 focus:border-slate-500 focus:ring-0 focus:outline-none text-white text-sm resize-none placeholder-slate-500"
                             />
                             <button 
                                 onClick={handleSend}
