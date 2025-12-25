@@ -38,9 +38,14 @@ export interface CommunityPostCardData {
   content: string;
   author?: CommunityPostCardAuthor;
   category?: string;
+  postType?: string; // new: explicit post type if provided by backend
   pinned?: boolean;
   trending?: boolean;
   location?: string;
+  county?: string;
+  state?: string;
+  audienceScope?: "neighborhood" | "county" | "area" | "global";
+  distanceMiles?: number;
   createdAt: string;
   upvotes?: number;
   comments?: number;
@@ -54,8 +59,19 @@ export interface CommunityPostCardProps {
   formatTimeAgo: (dateString: string) => string;
 }
 
-function getCategoryMeta(category?: string) {
-  const normalized = (category || "").toLowerCase();
+function getCategoryMeta(category?: string, postTypeRaw?: string, authorRole?: string) {
+  const normalized = (postTypeRaw || category || "").toLowerCase();
+  const isAdmin = (authorRole || "").toLowerCase().includes("admin");
+
+  if (normalized === "admin_notice" || (isAdmin && normalized === "admin")) {
+    return {
+      label: "Official Update",
+      icon: <Info className="w-3.5 h-3.5" />,
+      className: "bg-orange-500/10 border-orange-400/50 text-orange-200",
+      accentClassName: "border-l-2 border-orange-400/70 pl-4",
+      adminNotice: true,
+    } as const;
+  }
 
   if (normalized === "recommendations" || normalized === "recommendation") {
     return {
@@ -166,9 +182,10 @@ export function CommunityPostCard({ post, onLike, formatTimeAgo }: CommunityPost
     }
   };
 
-  const categoryMeta = getCategoryMeta(post.category);
+  const categoryMeta = getCategoryMeta(post.category, post.postType, post.author?.role);
   const isPinned = post.pinned === true;
   const isTrending = !isPinned && post.trending === true;
+  const isAdminNotice = (categoryMeta as any).adminNotice === true;
   const canOpenMessages = isAuthenticated && !!post.author?.id && !isAuthor;
 
   const invalidateCommunityQueries = () => {
@@ -246,20 +263,36 @@ export function CommunityPostCard({ post, onLike, formatTimeAgo }: CommunityPost
     }
   };
 
+  const localityLabel = (() => {
+    if (post.audienceScope === "county" || (post.location || "").toLowerCase().includes("county")) {
+      return "County-wide";
+    }
+    if (typeof post.distanceMiles === "number" && post.distanceMiles > 0) {
+      return `${Math.round(post.distanceMiles)} miles away`;
+    }
+    return null;
+  })();
+
   return (
-    <Card className="bg-[#0f1624] border border-[#1f2937] shadow-sm rounded-xl hover:border-orange-500/30 transition-all">
+    <Card className={`bg-[#0f1624] border border-[#1f2937] shadow-sm rounded-xl hover:border-orange-500/30 transition-all ${isAdminNotice ? "ring-1 ring-orange-400/40 bg-[#0f1624]/95" : ""}`}>
       <CardContent className="p-4 sm:p-5 space-y-3">
-        {(isPinned || isTrending) && (
+        {(isPinned || isTrending || isAdminNotice) && (
           <div className="-mx-4 sm:-mx-5 -mt-4 sm:-mt-5 px-4 sm:px-5 py-1.5 border-b border-orange-500/15 bg-orange-500/5 flex items-center gap-2 text-[11px] text-orange-200">
             <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-orange-500/30">
               {isPinned ? (
                 <Heart className="w-3 h-3" />
+              ) : isAdminNotice ? (
+                <Info className="w-3 h-3" />
               ) : (
                 <MessageSquare className="w-3 h-3" />
               )}
             </span>
             <span className="font-medium">
-              {isPinned ? "Pinned · From TradeScout" : "Trending in your area"}
+              {isPinned
+                ? "Pinned · From TradeScout"
+                : isAdminNotice
+                ? `Official TradeScout Update${post.county ? ` — ${post.county}` : post.location ? ` — ${post.location}` : ""}`
+                : "Trending in your area"}
             </span>
           </div>
         )}
@@ -301,6 +334,7 @@ export function CommunityPostCard({ post, onLike, formatTimeAgo }: CommunityPost
                         <span>•</span>
                         <MapPin className="w-3.5 h-3.5" />
                         <span>{post.location}</span>
+                        {localityLabel && <span className="ml-1 text-slate-500">· {localityLabel}</span>}
                       </span>
                     )}
                   </div>
@@ -338,6 +372,7 @@ export function CommunityPostCard({ post, onLike, formatTimeAgo }: CommunityPost
                         <span>•</span>
                         <MapPin className="w-3.5 h-3.5" />
                         <span>{post.location}</span>
+                        {localityLabel && <span className="ml-1 text-slate-500">· {localityLabel}</span>}
                       </span>
                     )}
                   </div>
@@ -424,33 +459,35 @@ export function CommunityPostCard({ post, onLike, formatTimeAgo }: CommunityPost
           )}
         </div>
 
-        <Separator className="bg-[#1f2937]" />
-
-        <div className="flex items-center justify-between text-xs text-slate-300 font-medium">
-          <span>{post.upvotes || 0} likes</span>
-          <span>{post.comments || 0} comments</span>
-        </div>
-
-        <div className="flex items-center justify-between pt-1 text-xs text-slate-400">
-          <button
-            onClick={handleLikeClick}
-            className="inline-flex items-center gap-1.5 hover:text-orange-400 transition-colors"
-          >
-            <Heart className="w-4 h-4" />
-            <span>Like</span>
-          </button>
-          <button className="inline-flex items-center gap-1.5 hover:text-orange-400 transition-colors">
-            <MessageSquare className="w-4 h-4" />
-            <span>Comment</span>
-          </button>
-          <button
-            className="inline-flex items-center gap-1.5 hover:text-orange-400 transition-colors"
-            onClick={handleShareClick}
-          >
-            <Share2 className="w-4 h-4" />
-            <span>Share</span>
-          </button>
-        </div>
+        {!isAdminNotice && (
+          <>
+            <Separator className="bg-[#1f2937]" />
+            <div className="flex items-center justify-between text-[11px] text-slate-300 font-medium">
+              <span>{post.upvotes || 0} likes</span>
+              <span>{post.comments || 0} comments</span>
+            </div>
+            <div className="mt-1 grid grid-cols-3 text-[12px] overflow-hidden border border-[#1f2937] rounded-lg bg-slate-900/40">
+              <button
+                onClick={handleLikeClick}
+                className="flex items-center justify-center gap-1.5 py-2 hover:bg-slate-900 transition-colors"
+              >
+                <Heart className="w-4 h-4" />
+                <span>Like</span>
+              </button>
+              <button className="flex items-center justify-center gap-1.5 py-2 hover:bg-slate-900 transition-colors border-l border-[#1f2937]">
+                <MessageSquare className="w-4 h-4" />
+                <span>Comment</span>
+              </button>
+              <button
+                className="flex items-center justify-center gap-1.5 py-2 hover:bg-slate-900 transition-colors border-l border-[#1f2937]"
+                onClick={handleShareClick}
+              >
+                <Share2 className="w-4 h-4" />
+                <span>Share</span>
+              </button>
+            </div>
+          </>
+        )}
       </CardContent>
     </Card>
   );

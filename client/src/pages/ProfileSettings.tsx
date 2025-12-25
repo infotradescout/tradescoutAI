@@ -43,7 +43,7 @@ type ProfileSections = {
 
 export default function ProfileSettings() {
   const { user, refetch } = useAuth();
-  const { updateCustomColors } = useTheme();
+  const { updateCustomColors, setTheme } = useTheme();
   const [location, navigate] = useLocation();
   const [loading, setLoading] = useState(false);
   const [preferences, setPreferences] = useState<UserPreferences>({
@@ -342,6 +342,7 @@ export default function ProfileSettings() {
     };
 
     applyTheme(themeFromScheme);
+    setTheme(`profile-${preset}`);
     if (typeof window !== 'undefined') {
       localStorage.setItem('themeId', themeFromScheme.id);
       localStorage.setItem('customColors', JSON.stringify(themeFromScheme.colors));

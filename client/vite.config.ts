@@ -11,6 +11,18 @@ export default defineConfig({
     }
   },
   server: {
+    watch: {
+      ignored: [
+        path.resolve(__dirname, '../server/cache/**'),
+        path.resolve(__dirname, '../server/logs'),
+        path.resolve(__dirname, '../data/**'),
+        path.resolve(__dirname, '../dist/**'),
+        path.resolve(__dirname, '../test-results/**'),
+        path.resolve(__dirname, '../validation-results-*.json'),
+        path.resolve(__dirname, '../response.json'),
+        path.resolve(__dirname, '../test.json'),
+      ]
+    },
     proxy: {
       '/api': {
         target: 'http://localhost:5000',

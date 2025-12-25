@@ -111,7 +111,7 @@ export function AppShell({ children, footer }: AppShellProps) {
 
   return (
     <div
-      className="app-shell text-slate-50 flex flex-col min-h-screen overflow-x-hidden"
+      className="app-shell text-slate-50 flex flex-col min-h-screen overflow-hidden"
       style={{
         backgroundColor: "#060b1c",
         paddingTop: "env(safe-area-inset-top)",
@@ -119,21 +119,24 @@ export function AppShell({ children, footer }: AppShellProps) {
     >
       {/* TOP APP NAV HEADER */}
       {location.startsWith("/scout") ? (
-        // Cleaner, chat-focused header for Scout: centered brand, minimal chrome
-        <header className="flex items-center px-3 sm:px-4 py-2 justify-between">
-          <div className="flex-1" />
-
+        // Cleaner, chat-focused header for Scout: now left-aligned brand with tagline
+        <header className="fixed top-0 inset-x-0 z-40 bg-slate-950/95 backdrop-blur flex items-center h-[56px] px-3 sm:px-4 justify-between border-b border-slate-900/60">
           <Link
             href="/"
-            className="flex flex-col items-center gap-1 cursor-pointer flex-none"
+            className="flex items-center gap-3 cursor-pointer"
           >
             <TradeScoutLogo size="sm" className="" />
-            <span className="text-[0.65rem] uppercase tracking-[0.32em] text-slate-400">
-              TRADESCOUT
-            </span>
+            <div className="flex flex-col leading-tight">
+              <span className="text-[0.65rem] uppercase tracking-[0.32em] text-slate-400">
+                TRADESCOUT
+              </span>
+              <span className="text-xs text-slate-400">
+                Connection without compromise
+              </span>
+            </div>
           </Link>
 
-          <div className="flex items-center gap-2 flex-1 justify-end">
+          <div className="flex items-center gap-2 justify-end">
             {/* Messages quick icon */}
             <button
               type="button"
@@ -171,7 +174,7 @@ export function AppShell({ children, footer }: AppShellProps) {
         </header>
       ) : (
         <header
-          className={`flex items-center px-3 sm:px-4 py-3 ${
+          className={`fixed top-0 inset-x-0 z-40 bg-slate-950/95 backdrop-blur flex items-center h-[56px] px-3 sm:px-4 border-b border-slate-900/60 ${
             handedness === "left" ? "flex-row-reverse justify-between" : "justify-between"
           }`}
         >
@@ -257,7 +260,11 @@ export function AppShell({ children, footer }: AppShellProps) {
       <div className="flex flex-1 min-h-0">
         <main
           className={`flex flex-col flex-1 min-w-0 overflow-y-auto ${
-            location.startsWith("/scout") ? "pb-2" : "pb-20 lg:pb-0"
+            // Reserve space for fixed header on mobile (uniform height)
+            isMobile ? "pt-[56px]" : ""
+          } ${
+            // Reserve space for fixed bottom app bar on mobile
+            isMobile ? "pb-[84px]" : location.startsWith("/scout") ? "pb-2" : "pb-20 lg:pb-0"
           }`}
         >
           {children}

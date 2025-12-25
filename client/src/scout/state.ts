@@ -50,6 +50,7 @@ export type ScoutActionType =
   | "START_COMMUNITY_VAULT_DONATION"
   | "START_PLATFORM_SUPPORT"
   | "SEND_ADMIN_BROADCAST"
+  | "OPEN_FLOATING_NOTE"
   | "NOOP";
 
 export interface ScoutAction {

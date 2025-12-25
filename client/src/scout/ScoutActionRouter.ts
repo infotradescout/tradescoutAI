@@ -5,6 +5,7 @@ import {
 } from "../agent/tools/communityPayments";
 import { followUser, unfollowUser } from "../agent/tools/connections";
 import { sendAdminBroadcast } from "../agent/tools/adminBroadcast";
+import { openFloatingNote } from "@/lib/floatingNotes";
 
 export interface ScoutActionHelpers {
   navigate: (to: string) => void;
@@ -270,6 +271,15 @@ export function executeScoutActions(
           }
         })();
 
+        break;
+      }
+
+      case "OPEN_FLOATING_NOTE": {
+        const noteId =
+          typeof action.payload?.noteId === "string" && action.payload.noteId.trim()
+            ? (action.payload.noteId as string).trim()
+            : "quick";
+        void openFloatingNote(noteId);
         break;
       }
 

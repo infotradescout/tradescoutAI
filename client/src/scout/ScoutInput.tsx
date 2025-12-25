@@ -13,7 +13,7 @@ type ScoutInputProps = {
   enableAutoDemo?: boolean;
 };
 
-const AUTO_DEMO_STORAGE_KEY = "scout:autoDemo:v1";
+const INTRO_DEMO_SESSION_KEY = "ts_intro_demo_session";
 const AUTO_DEMO_START_DELAY_MS = 600;
 const AUTO_DEMO_TYPE_DELAY_MS = 45;
 const AUTO_DEMO_SEND_DELAY_MS = 400;
@@ -97,7 +97,7 @@ const ScoutInput: React.FC<ScoutInputProps> = ({
       setIsTypingDemo(false);
       clearDemoTimers();
       try {
-        window.sessionStorage.setItem(AUTO_DEMO_STORAGE_KEY, "1");
+        window.sessionStorage.setItem(INTRO_DEMO_SESSION_KEY, "1");
       } catch {
         // ignore storage errors
       }
@@ -136,23 +136,28 @@ const ScoutInput: React.FC<ScoutInputProps> = ({
 
   // Auto-typing demo for guests
   useEffect(() => {
-    if (!enableAutoDemo || !autoDemoText) return;
     if (typeof window === "undefined") return;
+    console.log("[INTRO DEMO INPUT CHECK]", {
+      enableAutoDemo,
+      autoDemoTextLen: autoDemoText ? autoDemoText.length : 0,
+      sessionPlayed: window.sessionStorage.getItem(INTRO_DEMO_SESSION_KEY),
+      currentValueLen: value ? value.length : 0,
+    });
+    if (!enableAutoDemo || !autoDemoText) return;
 
     try {
-      if (window.sessionStorage.getItem(AUTO_DEMO_STORAGE_KEY)) return;
+      if (window.sessionStorage.getItem(INTRO_DEMO_SESSION_KEY)) {
+        console.log("[INTRO DEMO] Already played this session, skipping");
+        return;
+      }
     } catch {
       // ignore storage errors
     }
 
     if (value.trim().length > 0) return;
 
+    console.log("[INTRO DEMO] STARTING auto-demo");
     setIsTypingDemo(true);
-    try {
-      window.sessionStorage.setItem(AUTO_DEMO_STORAGE_KEY, "1");
-    } catch {
-      // ignore storage errors
-    }
 
     demoIndexRef.current = 0;
 
@@ -167,6 +172,12 @@ const ScoutInput: React.FC<ScoutInputProps> = ({
           setIsTypingDemo(false);
 
           sendTimeoutRef.current = window.setTimeout(() => {
+            console.log("[INTRO DEMO] Sending auto-prompt and marking session as played");
+            try {
+              window.sessionStorage.setItem(INTRO_DEMO_SESSION_KEY, "1");
+            } catch {
+              // ignore storage errors
+            }
             handleSubmit(autoDemoText);
           }, AUTO_DEMO_SEND_DELAY_MS);
         }
@@ -183,7 +194,7 @@ const ScoutInput: React.FC<ScoutInputProps> = ({
     disabled || isSubmitting || (!value.trim() && !isTypingDemo);
 
   return (
-    <div className="mt-3 space-y-2">
+    <div className="mt-3 space-y-0.5 scout-input">
       <textarea
         ref={textareaRef}
         value={value}
@@ -191,12 +202,12 @@ const ScoutInput: React.FC<ScoutInputProps> = ({
         disabled={disabled}
         placeholder={placeholder}
         rows={3}
-        className="w-full resize-none rounded-2xl border border-slate-600 bg-slate-950/90 px-4 py-3.5 text-[13px] text-slate-100 placeholder:text-slate-400/80 focus:outline-none focus:ring-2 focus:ring-orange-500/70 focus:border-orange-400 shadow-sm shadow-slate-900/60 min-h-[96px]"
+        className="w-full resize-none rounded-2xl border px-4 py-3.5 text-[15px] placeholder:text-slate-400/80 focus:outline-none shadow-sm min-h-[96px]"
       />
       <div
         className={`flex w-full ${
           handedness === "left" ? "justify-start" : "justify-end"
-        }`}
+        } pb-2`}
       >
         <button
           type="button"

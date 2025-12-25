@@ -31,7 +31,7 @@ const Header: React.FC<HeaderProps> = ({
     <>
         {/* TOP HEADER (Desktop: Full, Mobile: Minimal) */}
         <header className="sticky top-0 z-50 backdrop-blur-md bg-slate-900/90 border-b border-slate-700 shadow-lg transition-all duration-300">
-        <div className="container mx-auto px-4 py-3">
+        <div className="container mx-auto px-4 py-2 md:py-3">
             <div className="flex justify-between items-center gap-3">
                 {/* Logo Section */}
                 <div className="flex items-center space-x-2 sm:space-x-3 group cursor-pointer" onClick={() => window.location.reload()}>
@@ -121,22 +121,45 @@ const Header: React.FC<HeaderProps> = ({
                                 Logout
                             </button>
                         </div>
-                    ) : (
-                        <div className="flex items-center space-x-2">
-                            <button
-                                onClick={onLoginClick}
-                                className="px-4 py-1.5 text-xs sm:text-sm font-bold rounded-full bg-slate-800 text-white hover:bg-slate-700 border border-slate-600 transition-all"
-                            >
-                                Login
-                            </button>
-                            <button
-                                onClick={onSignupClick}
-                                className="px-4 py-1.5 text-xs sm:text-sm font-bold rounded-full bg-orange-600 text-white shadow-lg shadow-orange-900/50 hover:bg-orange-700 transition-all"
-                            >
-                                Join
-                            </button>
-                        </div>
-                    )}
+                                        ) : (
+                                                <>
+                                                    {/* Mobile: icon-only */}
+                                                    <div className="flex items-center gap-2 sm:hidden">
+                                                        <button
+                                                            onClick={onSignupClick}
+                                                            title="Create account"
+                                                            aria-label="Create account"
+                                                            className="flex items-center justify-center p-2 rounded-full bg-orange-600 text-white hover:bg-orange-700 shadow-sm border border-orange-700/60 transition-all"
+                                                        >
+                                                            <CheckBadgeIcon className="w-5 h-5" />
+                                                        </button>
+                                                        <button
+                                                            onClick={onLoginClick}
+                                                            title="Log in"
+                                                            aria-label="Log in"
+                                                            className="flex items-center justify-center p-2 rounded-full bg-slate-800 text-white hover:bg-slate-700 border border-slate-600 transition-all"
+                                                        >
+                                                            <UserIcon className="w-5 h-5" />
+                                                        </button>
+                                                    </div>
+
+                                                    {/* Desktop/Tablet: text buttons */}
+                                                    <div className="hidden sm:flex items-center space-x-2">
+                                                        <button
+                                                            onClick={onSignupClick}
+                                                            className="px-4 py-1.5 text-xs sm:text-sm font-bold rounded-full bg-orange-600 text-white shadow-lg shadow-orange-900/50 hover:bg-orange-700 transition-all"
+                                                        >
+                                                            Create account
+                                                        </button>
+                                                        <button
+                                                            onClick={onLoginClick}
+                                                            className="px-4 py-1.5 text-xs sm:text-sm font-bold rounded-full bg-slate-800 text-white hover:bg-slate-700 border border-slate-600 transition-all"
+                                                        >
+                                                            Log in
+                                                        </button>
+                                                    </div>
+                                                </>
+                                        )}
                 </div>
             </div>
             
