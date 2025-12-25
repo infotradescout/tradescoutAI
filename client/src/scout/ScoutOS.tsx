@@ -888,8 +888,9 @@ export default function ScoutOS() {
       <div className="scout-content w-full flex flex-col flex-1 min-h-0">
         <div
           className={`w-full ${
-            isMobile ? "px-3 pt-3 pb-0" : "max-w-5xl px-4 pt-4 pb-0"
+            isMobile ? "px-3 pt-3 pb-24" : "max-w-5xl px-4 pt-4 pb-12"
           } flex flex-col flex-1 min-h-0`}
+          style={{ paddingBottom: isMobile ? 'calc(6rem + env(safe-area-inset-bottom))' : undefined }}
         >
         {/* Main conversation layout: used for all users, including first-time guests. */}
         <div className="max-w-xl mx-auto w-full flex flex-col flex-1 min-h-0">
@@ -906,6 +907,7 @@ export default function ScoutOS() {
             className={`mt-2 flex flex-col flex-1 min-h-0 ${
               isMobile ? "space-y-2" : "space-y-2"
             }`}
+            style={{ paddingBottom: isMobile ? '2rem' : '1.5rem' }}
           >
             {!hasUserMessages && (
               <ScoutSuggestions

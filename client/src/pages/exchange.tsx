@@ -35,6 +35,14 @@ import {
   Tag,
   TrendingUp,
   Upload as UploadIcon,
+  Home,
+  Wrench,
+  Trees,
+  Briefcase,
+  Smartphone,
+  Trophy,
+  Palette,
+  Gem,
 } from "lucide-react";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { useAuth } from "@/hooks/useAuth";
@@ -128,13 +136,13 @@ interface CompanyPromotion {
 }
 
 const EXCHANGE_CATEGORIES = [
-  { id: 'business', name: 'Sell Your Business', icon: Building, description: 'Complete businesses, franchises, opportunities' },
+  { id: 'business', name: 'Sell Your Business', icon: Building2, description: 'Complete businesses, franchises, opportunities' },
   { id: 'real-estate', name: 'Real Estate', icon: Home, description: 'Houses, land, commercial properties' },
   { id: 'vehicles', name: 'Vehicles', icon: Car, description: 'Cars, trucks, motorcycles, boats' },
   { id: 'construction', name: 'Construction Equipment', icon: Wrench, description: 'Heavy machinery, tools, equipment' },
   { id: 'tools', name: 'Tools & Hardware', icon: Wrench, description: 'Professional tools, hardware' },
   { id: 'furniture', name: 'Furniture & Home', icon: Home, description: 'Quality furniture and home goods' },
-  { id: 'farm', name: 'Farm Equipment', icon: TreePine, description: 'Agricultural equipment and livestock' },
+  { id: 'farm', name: 'Farm Equipment', icon: Trees, description: 'Agricultural equipment and livestock' },
   { id: 'business-equipment', name: 'Business Equipment', icon: Briefcase, description: 'Office and commercial equipment' },
   { id: 'electronics', name: 'Electronics', icon: Smartphone, description: 'High-end electronics and technology' },
   { id: 'sports', name: 'Sports & Recreation', icon: Trophy, description: 'Premium sports and recreation equipment' },

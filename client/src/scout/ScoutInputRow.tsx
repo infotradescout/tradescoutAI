@@ -28,15 +28,15 @@ export function ScoutInputRow({
 }: ScoutInputRowProps) {
   return (
     <div className="space-y-2">
-      <div className="flex items-center justify-between gap-2">
-        <p className="text-[13px] text-slate-500 font-medium">What are you working on today?</p>
+      <div className="flex items-center justify-between gap-2 px-1">
+        <p className="text-sm font-medium" style={{ color: 'var(--text-secondary)' }}>What are you working on today?</p>
         {heroLocationLabel && (
-          <div className="flex items-center gap-1">
+          <div className="flex items-center gap-2">
             <button
               type="button"
               onClick={onOpenLocationSettings}
-              className="text-[12px] px-2 py-0.5 rounded-full transition-colors"
-              style={{ backgroundColor: 'color-mix(in oklab, var(--theme-bg-quaternary) 80%, transparent)', border: '1px solid var(--theme-border-secondary)', color: 'var(--theme-text-secondary)' }}
+              className="text-[12px] px-2.5 py-1 rounded-full transition-all hover:scale-105"
+              style={{ backgroundColor: 'color-mix(in oklab, var(--theme-bg-quaternary) 60%, transparent)', border: '1px solid rgba(255,255,255,0.08)', color: 'var(--text-secondary)' }}
             >
               📍 {heroLocationLabel}
             </button>
@@ -44,7 +44,8 @@ export function ScoutInputRow({
               type="button"
               onClick={onUseDeviceLocation}
               disabled={isUpdatingGeo}
-              className="text-[11px] text-slate-500 hover:text-slate-300 disabled:opacity-60 disabled:cursor-default"
+              className="text-[11px] transition-colors hover:opacity-80 disabled:opacity-50 disabled:cursor-default"
+              style={{ color: 'var(--text-secondary)' }}
             >
               Use my location
             </button>

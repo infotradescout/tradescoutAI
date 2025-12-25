@@ -32,14 +32,14 @@ const Header: React.FC<HeaderProps> = ({
         {/* TOP HEADER (Desktop: Full, Mobile: Minimal) */}
         <header className="sticky top-0 z-50 backdrop-blur-md bg-slate-900/90 border-b border-slate-700 shadow-lg transition-all duration-300">
         <div className="container mx-auto px-4 py-2 md:py-3">
-            <div className="flex justify-between items-center gap-3">
+            <div className="flex justify-between items-start gap-3 flex-wrap">
                 {/* Logo Section */}
-                <div className="flex items-center space-x-2 sm:space-x-3 group cursor-pointer" onClick={() => window.location.reload()}>
+                <div className="flex items-center space-x-2 sm:space-x-3 group cursor-pointer flex-shrink" onClick={() => window.location.reload()}>
                     <div className="bg-gradient-to-br from-orange-600 to-red-600 p-2 rounded-lg shadow-lg shadow-orange-900/50 group-hover:scale-105 transition-transform duration-200">
                         <HomeIcon className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
                     </div>
-                    <div>
-                        <h1 className="text-xl sm:text-2xl font-extrabold text-white tracking-tight uppercase leading-none">
+                    <div className="leading-tight">
+                        <h1 className="text-lg sm:text-2xl font-extrabold text-white tracking-tight uppercase leading-none break-words">
                         Trade<span className="text-orange-500">Scout</span>
                         </h1>
                         <p className="text-[10px] sm:text-xs font-medium text-slate-400 uppercase tracking-wide hidden sm:block mt-0.5">
@@ -180,7 +180,8 @@ const Header: React.FC<HeaderProps> = ({
         {/* BOTTOM MOBILE NAVIGATION BAR */}
         <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-slate-900 border-t border-slate-700 pb-safe pt-1 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.3)]">
             <div className="grid grid-cols-5 h-16 items-center">
-                <button onClick={() => window.location.reload()} className="flex flex-col items-center justify-center space-y-1 text-slate-400 hover:text-orange-500 active:text-orange-500">
+                <button onClick={() => window.location.reload()} className="flex flex-col items-center justify-center space-y-1 text-slate-400">
+                    
                     <HomeIcon className="w-6 h-6" />
                     <span className="text-[10px] font-medium">Home</span>
                 </button>

@@ -50,7 +50,13 @@ export function openPopupNote(noteId = "quick") {
 
   const key = storageKey(noteId);
   try {
-    ta.value = localStorage.getItem(key) ?? "";
+    const raw = localStorage.getItem(key) ?? "";
+    try {
+      const parsed = JSON.parse(raw);
+      ta.value = typeof parsed?.text === "string" ? parsed.text : raw;
+    } catch {
+      ta.value = raw;
+    }
   } catch {
     ta.value = "";
   }
@@ -58,8 +64,9 @@ export function openPopupNote(noteId = "quick") {
   const channel = new BroadcastChannel(NOTES_CHANNEL);
 
   ta.addEventListener("input", () => {
+    const payload = JSON.stringify({ text: ta.value, updatedAt: Date.now() });
     try {
-      localStorage.setItem(key, ta.value);
+      localStorage.setItem(key, payload);
     } catch {
       // ignore storage errors
     }
@@ -151,7 +158,13 @@ export async function openFloatingNote(noteId = "quick") {
   doc.body.append(container);
 
   try {
-    textarea.value = localStorage.getItem(storageKey(noteId)) ?? "";
+    const raw = localStorage.getItem(storageKey(noteId)) ?? "";
+    try {
+      const parsed = JSON.parse(raw);
+      textarea.value = typeof parsed?.text === "string" ? parsed.text : raw;
+    } catch {
+      textarea.value = raw;
+    }
   } catch {
     textarea.value = "";
   }
@@ -160,8 +173,9 @@ export async function openFloatingNote(noteId = "quick") {
   const postUpdate = (text: string) => channel.postMessage({ type: "update", id: noteId, text });
 
   const save = (text: string) => {
+    const payload = JSON.stringify({ text, updatedAt: Date.now() });
     try {
-      localStorage.setItem(storageKey(noteId), text);
+      localStorage.setItem(storageKey(noteId), payload);
     } catch {
       // ignore
     }

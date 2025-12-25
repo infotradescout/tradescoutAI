@@ -36,17 +36,17 @@ const NavLink: React.FC<NavLinkProps> = ({
     className="flex flex-col gap-1 rounded-xl border transition-colors"
     style={{
       borderColor: 'var(--border-primary)',
-      backgroundColor: 'var(--charcoal-700)',
+      backgroundColor: '#1a2230',
     }}
     onMouseEnter={(e) => {
-      (e.currentTarget as HTMLElement).style.backgroundColor = 'var(--charcoal-800)';
+      (e.currentTarget as HTMLElement).style.backgroundColor = '#1f2a39';
     }}
     onMouseLeave={(e) => {
-      (e.currentTarget as HTMLElement).style.backgroundColor = 'var(--charcoal-700)';
+      (e.currentTarget as HTMLElement).style.backgroundColor = '#1a2230';
     }}
   >
     <div className="px-3 py-2 flex items-center gap-2">
-      <span className="inline-flex h-7 w-7 items-center justify-center rounded-lg border" style={{ backgroundColor: 'var(--charcoal-800)', borderColor: 'var(--border-primary)', color: 'var(--text-primary)' }}>
+      <span className="inline-flex h-7 w-7 items-center justify-center rounded-lg border" style={{ backgroundColor: '#1a2230', borderColor: 'var(--border-primary)', color: 'var(--text-primary)' }}>
         {icon}
       </span>
       <span className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>{label}</span>
@@ -81,17 +81,17 @@ const ActionButton = ({
     className="w-full text-left flex flex-col gap-1 rounded-xl border transition-colors"
     style={{
       borderColor: 'var(--border-primary)',
-      backgroundColor: 'var(--charcoal-700)',
+      backgroundColor: '#1a2230',
     }}
     onMouseEnter={(e) => {
-      (e.currentTarget as HTMLElement).style.backgroundColor = 'var(--charcoal-800)';
+      (e.currentTarget as HTMLElement).style.backgroundColor = '#1f2a39';
     }}
     onMouseLeave={(e) => {
-      (e.currentTarget as HTMLElement).style.backgroundColor = 'var(--charcoal-700)';
+      (e.currentTarget as HTMLElement).style.backgroundColor = '#1a2230';
     }}
   >
     <div className="px-3 py-2 flex items-center gap-2">
-      <span className="inline-flex h-7 w-7 items-center justify-center rounded-lg border" style={{ backgroundColor: 'var(--charcoal-800)', borderColor: 'var(--border-primary)', color: 'var(--text-primary)' }}>
+      <span className="inline-flex h-7 w-7 items-center justify-center rounded-lg border" style={{ backgroundColor: '#1a2230', borderColor: 'var(--border-primary)', color: 'var(--text-primary)' }}>
         {icon}
       </span>
       <span className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>{label}</span>
@@ -103,7 +103,6 @@ const ActionButton = ({
     )}
   </button>
 );
-
 
 export function RightToolsPanel({ footer, onNavigate }: RightToolsPanelProps) {
   const { user, isAuthenticated } = useAuth();
@@ -120,7 +119,7 @@ export function RightToolsPanel({ footer, onNavigate }: RightToolsPanelProps) {
       : undefined;
 
   return (
-    <div className="h-full flex flex-col" style={{ backgroundColor: 'var(--charcoal-800)', color: 'var(--text-primary)' }}>
+    <div className="h-full flex flex-col relative" style={{ backgroundColor: '#141b26', borderLeft: '1px solid rgba(255,255,255,0.06)', color: 'var(--text-primary)', zIndex: 60 }}>
       {/* Header */}
       <div className="px-4 py-3 border-b" style={{ borderColor: 'var(--border-secondary)' }}>
         <div className="text-[0.65rem] uppercase tracking-[0.3em]" style={{ color: 'var(--text-secondary)' }}>
@@ -146,28 +145,21 @@ export function RightToolsPanel({ footer, onNavigate }: RightToolsPanelProps) {
           <div className="space-y-2">
             <NavLink
               href="/profile"
-              icon={<User className="h-3.5 w-3.5 text-orange-400" />}
+              icon={<User className="h-3.5 w-3.5" style={{ color: 'var(--theme-accent-primary)' }} />}
               label="My profile"
               description="View and edit your public profile, sections, and visibility."
               onClick={onNavigate}
             />
             <NavLink
               href="/settings"
-              icon={<Settings className="h-3.5 w-3.5 text-orange-400" />}
+              icon={<Settings className="h-3.5 w-3.5" style={{ color: 'var(--theme-accent-primary)' }} />}
               label="Account settings"
               description="Notifications, app behavior, and connected tools."
               onClick={onNavigate}
             />
             <NavLink
-              href="/finances"
-              icon={<ClipboardList className="h-3.5 w-3.5 text-orange-400" />}
-              label="Finances"
-              description="Invoices, jobs, and money flows."
-              onClick={onNavigate}
-            />
-            <NavLink
               href="/notifications"
-              icon={<Bell className="h-3.5 w-3.5 text-orange-400" />}
+              icon={<Bell className="h-3.5 w-3.5" style={{ color: 'var(--theme-accent-primary)' }} />}
               label="Notifications"
               description="Control alerts from Scout and jobs."
               onClick={onNavigate}
@@ -183,35 +175,35 @@ export function RightToolsPanel({ footer, onNavigate }: RightToolsPanelProps) {
           <div className="space-y-2">
             <NavLink
               href="/dashboard"
-              icon={<LayoutDashboard className="h-3.5 w-3.5 text-orange-400" />}
+              icon={<LayoutDashboard className="h-3.5 w-3.5" style={{ color: 'var(--theme-accent-primary)' }} />}
               label="Dashboard"
               description="Your personal hub and live metrics."
               onClick={onNavigate}
             />
             <NavLink
               href="/finances"
-              icon={<ClipboardList className="h-3.5 w-3.5 text-orange-400" />}
+              icon={<ClipboardList className="h-3.5 w-3.5" style={{ color: 'var(--theme-accent-primary)' }} />}
               label="Finances workspace"
               description="Invoices, job records, and deal workflow."
               onClick={onNavigate}
             />
             <NavLink
               href="/hoa-management"
-              icon={<Building className="h-3.5 w-3.5 text-orange-400" />}
+              icon={<Building className="h-3.5 w-3.5" style={{ color: 'var(--theme-accent-primary)' }} />}
               label="HOA & neighborhood"
               description="Join or manage your neighborhood HOA."
               onClick={onNavigate}
             />
             <NavLink
               href="/messages"
-              icon={<MessageCircle className="h-3.5 w-3.5 text-orange-400" />}
+              icon={<MessageCircle className="h-3.5 w-3.5" style={{ color: 'var(--theme-accent-primary)' }} />}
               label="Messages & quotes"
               description="Conversations, quotes, follow-ups."
               onClick={onNavigate}
             />
             <NavLink
               href="/saved"
-              icon={<Bookmark className="h-3.5 w-3.5 text-orange-400" />}
+              icon={<Bookmark className="h-3.5 w-3.5" style={{ color: 'var(--theme-accent-primary)' }} />}
               label="Saved items"
               description="Saved projects, listings, and ideas."
               onClick={onNavigate}
@@ -219,31 +211,13 @@ export function RightToolsPanel({ footer, onNavigate }: RightToolsPanelProps) {
           </div>
         </section>
 
-        {/* Notes & quick capture */}
+        {/* Notes */}
         <section>
           <div className="text-[0.7rem] uppercase tracking-[0.2em] mb-2" style={{ color: 'var(--text-secondary)' }}>
             Notes
           </div>
           <div className="space-y-2">
-            <ActionButton
-              icon={<StickyNote className="h-3.5 w-3.5 text-orange-400" />}
-              label="Quick note"
-              description="Open a pinned note window that stays on top while you work."
-              onClick={() => {
-                void openFloatingNote("quick");
-                onNavigate?.();
-              }}
-            />
-            <ActionButton
-              icon={<StickyNote className="h-3.5 w-3.5 text-orange-400" />}
-              label="Project note"
-              description="Keep a project-specific note floating while switching apps."
-              onClick={() => {
-                void openFloatingNote("project");
-                onNavigate?.();
-              }}
-            />
-            {/* Embedded notes workspace */}
+            {/* Embedded notes workspace only; full Notes is reachable via main nav/Scout */}
             <EmbeddedNotesWorkspace />
           </div>
         </section>
@@ -324,12 +298,27 @@ function EmbeddedNotesWorkspace() {
         const key = window.localStorage.key(i) || "";
         if (!key.startsWith("ts:note:")) continue;
         const id = key.slice("ts:note:".length);
-        const val = window.localStorage.getItem(key) || "";
-        arr.push({ id, text: val });
+        const raw = window.localStorage.getItem(key) || "";
+        let text = raw;
+        try {
+          const parsed = JSON.parse(raw);
+          if (parsed && typeof parsed === 'object' && typeof parsed.text === 'string') {
+            text = parsed.text as string;
+          }
+        } catch {
+          // keep raw
+        }
+        arr.push({ id, text });
       }
       // Show most recent first by simple length heuristic
       setNotes(arr.reverse().slice(0, 5));
-      setQuickText(window.localStorage.getItem("ts:note:quick") || "");
+      const quickRaw = window.localStorage.getItem("ts:note:quick") || "";
+      try {
+        const parsedQuick = JSON.parse(quickRaw);
+        setQuickText(typeof parsedQuick?.text === 'string' ? parsedQuick.text : quickRaw);
+      } catch {
+        setQuickText(quickRaw);
+      }
     } catch {
       // ignore storage errors
     }
@@ -337,14 +326,15 @@ function EmbeddedNotesWorkspace() {
 
   const saveQuick = () => {
     try {
-      window.localStorage.setItem("ts:note:quick", quickText);
+      const payload = JSON.stringify({ text: quickText, updatedAt: Date.now() });
+      window.localStorage.setItem("ts:note:quick", payload);
     } catch {
       // ignore storage errors
     }
   };
 
   return (
-    <div className="rounded-xl border" style={{ borderColor: 'var(--border-primary)', backgroundColor: 'var(--charcoal-700)' }}>
+    <div className="rounded-xl border" style={{ borderColor: 'var(--border-primary)', backgroundColor: '#1a2230' }}>
       <div className="px-3 pt-2 text-[0.7rem] uppercase tracking-[0.2em]" style={{ color: 'var(--text-secondary)' }}>
         Workspace notes
       </div>
@@ -356,7 +346,7 @@ function EmbeddedNotesWorkspace() {
             onChange={(e) => setQuickText(e.target.value)}
             onBlur={saveQuick}
             className="mt-1 w-full rounded-lg border px-2 py-1 text-[0.8rem]"
-            style={{ borderColor: 'var(--border-primary)', backgroundColor: 'var(--charcoal-800)', color: 'var(--text-primary)' }}
+            style={{ borderColor: 'var(--border-primary)', backgroundColor: '#1a2230', color: 'var(--text-primary)' }}
             rows={3}
             placeholder="Type and click away to save"
           />
@@ -366,7 +356,7 @@ function EmbeddedNotesWorkspace() {
             <div className="text-[0.7rem] mb-1" style={{ color: 'var(--text-secondary)' }}>Recent</div>
             <ul className="space-y-1">
               {notes.map((n) => (
-                <li key={n.id} className="rounded-md border px-2 py-1 text-[0.8rem] truncate" style={{ borderColor: 'var(--border-secondary)', color: 'var(--text-primary)', backgroundColor: 'var(--charcoal-800)' }}>
+                <li key={n.id} className="rounded-md border px-2 py-1 text-[0.8rem] truncate" style={{ borderColor: 'var(--border-secondary)', color: 'var(--text-primary)', backgroundColor: '#1a2230' }}>
                   <span className="font-medium" style={{ color: 'var(--text-primary)' }}>{n.id}</span>
                   <span className="ml-2" style={{ color: 'var(--text-secondary)' }}>{n.text.slice(0, 60)}{n.text.length > 60 ? '…' : ''}</span>
                 </li>
@@ -374,12 +364,9 @@ function EmbeddedNotesWorkspace() {
             </ul>
           </div>
         )}
-        <div className="pt-1">
-          <Link href="/notes" className="inline-flex items-center rounded-md border px-2 py-1 text-[0.75rem]" style={{ borderColor: 'var(--border-primary)', color: 'var(--theme-accent-primary)' }}>
-            Open full Notes
-          </Link>
-        </div>
+        {/* Full Notes entry removed (accessible via other nav + Scout chips) */}
       </div>
     </div>
   );
 }
+

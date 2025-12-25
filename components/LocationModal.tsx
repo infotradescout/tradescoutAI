@@ -27,8 +27,8 @@ const LocationModal: React.FC<LocationModalProps> = ({ onClose, onSelect }) => {
                 </button>
 
                 <div className="text-center mb-6">
-                    <div className="bg-orange-900/30 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 border border-orange-500/30">
-                        <MapPinIcon className="w-8 h-8 text-orange-500" />
+                    <div className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 border" style={{ backgroundColor: 'color-mix(in oklab, var(--theme-accent-primary) 20%, transparent)', borderColor: 'color-mix(in oklab, var(--theme-accent-primary) 40%, transparent)' }}>
+                        <MapPinIcon className="w-8 h-8" style={{ color: 'var(--theme-accent-primary)' }} />
                     </div>
                     <h2 className="text-2xl font-bold text-white">Set Your Location</h2>
                     <p className="text-slate-400 mt-2 text-sm">
@@ -43,7 +43,7 @@ const LocationModal: React.FC<LocationModalProps> = ({ onClose, onSelect }) => {
                             value={selectedState}
                             onChange={(e) => setSelectedState(e.target.value)}
                             required
-                            className="w-full bg-slate-800 border border-slate-600 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-orange-500 outline-none"
+                            className="w-full bg-slate-800 border border-slate-600 rounded-xl px-4 py-3 text-white outline-none ts-input"
                         >
                             <option value="">Select State</option>
                             {US_STATES.map((s) => (

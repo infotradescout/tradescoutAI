@@ -26,28 +26,28 @@ const ProjectAssistant: React.FC<ProjectAssistantProps> = ({ onQuerySubmit, isLo
             case 'VEHICLE':
                 return {
                     title: 'Fleet & Gear Advisor',
-                    icon: <TruckIcon className="w-6 h-6 text-orange-400"/>,
+                    icon: <TruckIcon className="w-6 h-6" style={{ color: 'var(--theme-accent-primary)' }} />,
                     costLabel: 'Market Price',
                     processLabel: 'Selection Criteria'
                 };
             case 'CODES':
                 return {
                     title: 'Regulatory Briefing',
-                    icon: <ScaleIcon className="w-6 h-6 text-orange-400"/>,
+                    icon: <ScaleIcon className="w-6 h-6" style={{ color: 'var(--theme-accent-primary)' }} />,
                     costLabel: 'Permit Fees',
                     processLabel: 'Approval Process'
                 };
             case 'GENERAL':
                 return {
                     title: 'System Overview',
-                    icon: <InformationCircleIcon className="w-6 h-6 text-orange-400"/>,
+                    icon: <InformationCircleIcon className="w-6 h-6" style={{ color: 'var(--theme-accent-primary)' }} />,
                     costLabel: 'Service Model',
                     processLabel: 'How it Works'
                 };
             default:
                 return {
                     title: 'Scout Report',
-                    icon: <SparklesIcon className="w-6 h-6 text-orange-400"/>,
+                    icon: <SparklesIcon className="w-6 h-6" style={{ color: 'var(--theme-accent-primary)' }} />,
                     costLabel: 'Estimated Cost',
                     processLabel: 'Execution Plan'
                 };
@@ -62,7 +62,7 @@ const ProjectAssistant: React.FC<ProjectAssistantProps> = ({ onQuerySubmit, isLo
                 <div className="bg-slate-900 rounded-[14px] p-5 sm:p-6 h-full flex flex-col relative overflow-hidden">
                     {/* Decorative Background */}
                     <div className="absolute top-0 right-0 p-8 opacity-5 transform translate-x-1/4 -translate-y-1/4 pointer-events-none">
-                        <SparklesIcon className="w-64 h-64 text-orange-500" />
+                        <SparklesIcon className="w-64 h-64" style={{ color: 'var(--theme-accent-primary)' }} />
                     </div>
                     
                     <div className="flex items-center mb-6 relative z-10">
@@ -113,7 +113,7 @@ const ProjectAssistant: React.FC<ProjectAssistantProps> = ({ onQuerySubmit, isLo
                              <div className="absolute top-0 right-0 w-16 h-16 bg-orange-900/20 rounded-bl-full opacity-50 transition-opacity group-hover:opacity-70"></div>
                             <div className="relative">
                                 <div className="flex items-center mb-3">
-                                    <CalculatorIcon className="w-5 h-5 text-orange-500 mr-2" />
+                                    <CalculatorIcon className="w-5 h-5 mr-2" style={{ color: 'var(--theme-accent-primary)' }} />
                                     <h4 className="font-bold text-slate-300 text-sm uppercase tracking-wide">{config.costLabel}</h4>
                                 </div>
                                 <p className="text-3xl sm:text-4xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-orange-400 to-red-400 mb-4">
@@ -138,7 +138,7 @@ const ProjectAssistant: React.FC<ProjectAssistantProps> = ({ onQuerySubmit, isLo
                                     
                                     {analysisResult.processSteps.map((step, idx) => (
                                         <div key={idx} className="relative pl-8 pb-5 last:pb-0 group">
-                                            <div className="absolute left-[7px] top-1.5 w-2.5 h-2.5 rounded-full bg-slate-800 border-2 border-slate-600 group-hover:border-orange-500 group-hover:scale-110 transition-all z-10"></div>
+                                            <div className="absolute left-[7px] top-1.5 w-2.5 h-2.5 rounded-full bg-slate-800 border-2 border-slate-600 group-hover:scale-110 transition-all z-10" style={{ borderColor: 'var(--theme-accent-primary)' }}></div>
                                             <p className="text-sm text-slate-300 leading-snug group-hover:text-white transition-colors">{step}</p>
                                         </div>
                                     ))}
@@ -162,7 +162,8 @@ const ProjectAssistant: React.FC<ProjectAssistantProps> = ({ onQuerySubmit, isLo
                                             target={analysisResult.intent === 'GENERAL' ? '_self' : "_blank"}
                                             rel="noopener noreferrer"
                                             onClick={e => analysisResult.intent === 'GENERAL' && e.preventDefault()}
-                                            className="px-3 py-1 bg-slate-800 text-slate-200 rounded-md text-xs font-semibold border border-slate-700 shadow-sm hover:shadow hover:border-orange-500/50 hover:text-orange-400 transition-all cursor-pointer flex items-center group"
+                                            className="px-3 py-1 bg-slate-800 text-slate-200 rounded-md text-xs font-semibold border border-slate-700 shadow-sm hover:shadow transition-all cursor-pointer flex items-center group"
+                                            style={{ borderColor: 'var(--theme-border-primary)', color: 'var(--theme-text-secondary)' }}
                                             title={analysisResult.intent === 'GENERAL' ? item : `Shop for ${item}`}
                                         >
                                             {item}
@@ -222,7 +223,8 @@ const ProjectAssistant: React.FC<ProjectAssistantProps> = ({ onQuerySubmit, isLo
 
                         <button 
                             onClick={onReset}
-                            className="w-full mt-2 py-3 rounded-xl text-sm text-orange-400 font-bold bg-slate-800 hover:bg-slate-700 transition-colors border border-slate-700"
+                            className="w-full mt-2 py-3 rounded-xl text-sm font-bold bg-slate-800 hover:bg-slate-700 transition-colors border border-slate-700"
+                            style={{ color: 'var(--theme-accent-primary)' }}
                         >
                             New Analysis
                         </button>
@@ -236,7 +238,7 @@ const ProjectAssistant: React.FC<ProjectAssistantProps> = ({ onQuerySubmit, isLo
         <div className="bg-slate-800 p-6 rounded-2xl shadow-lg border border-slate-700 h-full flex flex-col">
             <div className="flex items-center mb-6">
                 <div className="bg-slate-700 p-2.5 rounded-xl mr-4 shadow-sm border border-slate-600">
-                    <SparklesIcon className="w-6 h-6 text-orange-500"/>
+                    <SparklesIcon className="w-6 h-6" style={{ color: 'var(--theme-accent-primary)' }} />
                 </div>
                 <div>
                     <h3 className="text-xl font-bold text-white">Scout Intelligence</h3>
@@ -255,7 +257,7 @@ const ProjectAssistant: React.FC<ProjectAssistantProps> = ({ onQuerySubmit, isLo
                             onChange={(e) => setQuery(e.target.value)}
                             placeholder="e.g., 'What are the rules for fences in my county?' or 'Estimate cost for bathroom tile in Chicago'..."
                             rows={6}
-                            className="w-full p-4 text-sm border border-slate-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500 bg-slate-900 text-white shadow-inner resize-none transition-all placeholder-slate-500"
+                            className="w-full p-4 text-sm border border-slate-600 rounded-xl focus:outline-none bg-slate-900 text-white shadow-inner resize-none transition-all placeholder-slate-500 ts-input"
                             required
                         />
                     </div>

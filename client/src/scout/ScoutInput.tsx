@@ -194,7 +194,7 @@ const ScoutInput: React.FC<ScoutInputProps> = ({
     disabled || isSubmitting || (!value.trim() && !isTypingDemo);
 
   return (
-    <div className="mt-3 space-y-0.5 scout-input">
+    <div className="space-y-1.5 scout-input">
       <textarea
         ref={textareaRef}
         value={value}
@@ -202,21 +202,30 @@ const ScoutInput: React.FC<ScoutInputProps> = ({
         disabled={disabled}
         placeholder={placeholder}
         rows={3}
-        className="w-full resize-none rounded-2xl border px-4 py-3.5 text-[15px] placeholder:text-slate-400/80 focus:outline-none shadow-sm min-h-[96px]"
+        className="w-full resize-none rounded-lg border px-4 py-3 text-[15px] focus:outline-none min-h-[96px] transition-all"
+        style={{
+          backgroundColor: '#1a2230',
+          borderColor: 'rgba(255,255,255,0.1)',
+          color: 'var(--text-primary)',
+        }}
       />
       <div
         className={`flex w-full ${
           handedness === "left" ? "justify-start" : "justify-end"
-        } pb-2`}
+        } mt-1`}
       >
         <button
           type="button"
           onClick={() => handleSubmit()}
           disabled={isButtonDisabled}
-          className="inline-flex items-center justify-center gap-2 rounded-full px-5 py-2.5 text-sm font-semibold shadow-lg disabled:cursor-not-allowed disabled:opacity-60 ts-accent-btn"
-          style={{ boxShadow: '0 6px 20px color-mix(in oklab, var(--theme-accent-primary) 40%, transparent)' }}
+          className="inline-flex items-center justify-center gap-2 rounded-lg px-5 py-2 text-sm font-semibold transition-all disabled:cursor-not-allowed disabled:opacity-60"
+          style={{ 
+            backgroundColor: 'var(--theme-accent-primary)',
+            color: 'white',
+            boxShadow: isButtonDisabled ? 'none' : '0 4px 12px color-mix(in oklab, var(--theme-accent-primary) 35%, transparent)',
+          }}
         >
-          <Send className="h-4 w-4 text-white" />
+          <Send className="h-4 w-4" />
           <span>{isSubmitting ? "Sending..." : "Send"}</span>
         </button>
       </div>

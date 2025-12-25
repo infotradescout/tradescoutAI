@@ -43,23 +43,22 @@ html {
     padding: 0;
     width: 100%;
     height: 100%;
-    background: var(--bg-gradient);
+    background-color: #0a0d12;
     overscroll-behavior: none;
   }
 
   #root {
     min-height: var(--app-height);
     width: 100%;
-    background: var(--bg-gradient);
+    background-color: #0a0d12;
   }
 
   body {
     @apply font-sans antialiased;
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
     color: #e2e8f0;
+    background-color: #0a0d12;
   }
-  background: #f5a524;
-  animation: dotPulse 0.9s ease-in-out infinite;
 }
 
 .loading-dot:nth-child(2) { animation-delay: 0.1s; }
@@ -146,16 +145,17 @@ html {
      Users can customize colors via theme variables, but charcoal is the base. */
   
   /* 3-Layer Charcoal System - Visual Hierarchy */
-  --charcoal-900: #0b0e13;   /* Darkest - Structural chrome (nav only) */
-  --charcoal-800: #121722;   /* Standard - Primary canvas (page backgrounds) */
-  --charcoal-700: #1a2030;   /* Light - Interactive surfaces (input, cards) */
+  --charcoal-950: #0a0d12;   /* Darkest - Structural chrome (nav only) */
+  --charcoal-900: #11161f;   /* Canvas - Primary page backgrounds */
+  --charcoal-800: #1a2230;   /* Surfaces - Inputs, cards, messages */
+  --charcoal-700: #1f2a39;   /* Legacy light surface (fallback only) */
   
   /* Primary Colors - All pages use these by default */
-  --bg-primary: var(--theme-bg-primary, #121722);           /* Charcoal-800: Page backgrounds */
-  --bg-secondary: var(--theme-bg-secondary, #1a2030);       /* Charcoal-700: Cards, inputs, modals */
-  --bg-tertiary: var(--theme-bg-tertiary, #0b0e13);         /* Charcoal-900: Top/bottom nav only */
-  --bg-quaternary: var(--theme-bg-quaternary, #1a2030);     /* Fallback: charcoal-700 */
-  --bg-gradient: var(--theme-bg-gradient, linear-gradient(135deg, #121722, #1a2030));
+  --bg-primary: var(--theme-bg-primary, var(--charcoal-900));       /* Canvas */
+  --bg-secondary: var(--theme-bg-secondary, var(--charcoal-800));   /* Surfaces */
+  --bg-tertiary: var(--theme-bg-tertiary, var(--charcoal-950));     /* Nav chrome */
+  --bg-quaternary: var(--theme-bg-quaternary, var(--charcoal-800)); /* Fallback: surfaces */
+  --bg-gradient: var(--theme-bg-gradient, var(--bg-primary));
 
   /* Text Colors - Universal text hierarchy */
   --text-primary: var(--theme-text-primary, #f1f5f9);       /* Light text on dark backgrounds */
@@ -212,13 +212,13 @@ html {
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
     margin: 0;
     min-height: 100vh;
-    background: var(--bg-gradient);
+    background-color: #0a0d12;
     color: #e2e8f0;
   }
 
   /* Custom gradient background */
   .gradient-bg {
-    background: linear-gradient(135deg, hsl(211, 24%, 14%) 0%, hsl(213, 35%, 8%) 100%);
+    background-color: var(--bg-primary);
     min-height: 100vh;
   }
 
@@ -260,12 +260,7 @@ html {
   .app-shell {
     min-height: var(--app-height);
     width: 100%;
-    background-color: var(--charcoal-800);
-    background-image: radial-gradient(
-      circle at top,
-      rgba(56, 80, 140, 0.15),
-      transparent 60%
-    );
+    background-color: #11161f;
     padding-left: env(safe-area-inset-left);
     padding-right: env(safe-area-inset-right);
     padding-top: env(safe-area-inset-top);
@@ -281,11 +276,11 @@ html {
     @apply transform translate-y-[-1px] shadow-sm;
   }
 
-  /* Global input, textarea, select styling - charcoal-700 for interactive surfaces */
+  /* Global input, textarea, select styling - solid surface tone */
   input:not([type='radio']):not([type='checkbox']),
   textarea,
   select {
-    background-color: var(--charcoal-700);
+    background-color: #1a2230;
     border-color: var(--border-primary);
     color: var(--text-primary);
   }
@@ -299,8 +294,8 @@ html {
   textarea:focus,
   select:focus {
     outline: none;
-    border-color: var(--orange-primary);
-    box-shadow: 0 0 0 1px var(--orange-primary);
+    border-color: var(--border-primary);
+    box-shadow: 0 0 0 1px color-mix(in oklab, var(--border-primary) 75%, var(--theme-accent-primary) 25%);
   }
 
   /* Dropdown menu styling */
@@ -324,31 +319,31 @@ html {
   }
 
   /* CHARCOAL MAPPING: Replace legacy bg-slate-* with charcoal system */
-  /* bg-slate-950 → charcoal-900 (darkest structural chrome) */
+  /* bg-slate-950 → charcoal-950 (darkest structural chrome) */
   .bg-slate-950,
   .bg-slate-950\/95,
   .bg-slate-950\/60,
   .dark\:bg-slate-900 {
-    background-color: var(--charcoal-900) !important;
+    background-color: var(--charcoal-950) !important;
   }
 
-  /* bg-slate-900 → charcoal-800 (standard canvas) */
+  /* bg-slate-900 → charcoal-900 (standard canvas) */
   .bg-slate-900,
   .bg-slate-900\/70,
   .bg-slate-900\/60,
   .bg-slate-900\/40,
   .hover\:bg-slate-900,
   .dark\:bg-slate-900 {
-    background-color: var(--charcoal-800) !important;
+    background-color: var(--charcoal-900) !important;
   }
 
-  /* bg-slate-800 → charcoal-700 (interactive surfaces) */
+  /* bg-slate-800 → charcoal-800 (interactive surfaces) */
   .bg-slate-800,
   .bg-slate-800\/50,
   .bg-slate-800\/70,
   .bg-slate-800\/30,
   .dark\:bg-slate-800 {
-    background-color: var(--charcoal-700) !important;
+    background-color: var(--charcoal-800) !important;
   }
 
   /* Border color mapping */
@@ -545,9 +540,14 @@ html {
   }
 
   .ts-input {
-    @apply border-0 shadow-inner focus:ring-2 focus:ring-orange-500/60;
+    @apply border-0 shadow-inner;
     background-color: var(--charcoal-700);
     color: var(--text-primary);
+  }
+  .ts-input:focus {
+    outline: none;
+    box-shadow: 0 0 0 2px color-mix(in oklab, var(--theme-accent-primary) 22%, transparent);
+    border-color: var(--theme-border-primary);
   }
 
   .ts-hero-header {
@@ -806,7 +806,12 @@ html {
 
   /* Form field styling */
   .form-field {
-    @apply w-full bg-navy-600 border border-navy-500 rounded-lg px-4 py-3 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-orange-500;
+    @apply w-full bg-navy-600 border border-navy-500 rounded-lg px-4 py-3 text-white placeholder-gray-400 focus:outline-none;
+  }
+  .form-field:focus {
+    outline: none;
+    box-shadow: 0 0 0 2px color-mix(in oklab, var(--theme-accent-primary) 22%, transparent);
+    border-color: var(--theme-border-primary);
   }
 
   /* Navigation styling */
@@ -1091,33 +1096,16 @@ html, body {
    Scout Page Theme & Premium UI
    ============================================================================ */
 
-/* Scout shell - charcoal canvas with subtle depth */
+/* Scout shell - single, controlled gradient on the canvas */
 .scout-shell {
-  background-color: var(--charcoal-800);
+  background-color: #11161f;
   background-image: radial-gradient(
     circle at top,
-    rgba(56, 80, 140, 0.15),
-    transparent 60%
+    rgba(80, 110, 180, 0.1),
+    rgba(17, 22, 31, 1) 65%
   );
   position: relative;
   min-height: 100vh;
-}
-
-/* Scout shell - add vignette effect for depth */
-.scout-shell::before {
-  content: '';
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: radial-gradient(
-    ellipse at center,
-    transparent 0%,
-    rgba(0, 0, 0, 0.3) 100%
-  );
-  pointer-events: none;
-  z-index: 0;
 }
 
 /* Scout content wrapper */
@@ -1128,7 +1116,7 @@ html, body {
 
 /* Scout cards with subtle borders and depth */
 .scout-card {
-  background-color: var(--charcoal-700);
+  background-color: #1a2230;
   border: 1px solid rgba(255, 255, 255, 0.06);
   box-shadow: 
     0 0 0 1px rgba(255, 255, 255, 0.02),
@@ -1137,8 +1125,8 @@ html, body {
 }
 
 .scout-card:hover {
-  background-color: var(--charcoal-700);
-  border-color: rgba(255, 255, 255, 0.1);
+  background-color: #1a2230;
+  border-color: rgba(255, 255, 255, 0.12);
   box-shadow: 
     0 0 0 1px rgba(255, 255, 255, 0.08),
     0 8px 16px -2px rgba(0, 0, 0, 0.4);
@@ -1147,17 +1135,17 @@ html, body {
 
 /* Scout input with accent glow */
 .scout-input {
-  background-color: var(--charcoal-700);
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  background-color: #1a2230;
+  border: 1px solid rgba(255, 255, 255, 0.08);
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .scout-input:focus-within {
-  background-color: var(--charcoal-700);
-  border-color: var(--orange-primary);
+  background-color: #1a2230;
+  border-color: color-mix(in oklab, var(--border-primary) 65%, var(--theme-accent-primary) 35%);
   box-shadow: 
-    0 0 0 1px var(--orange-primary),
-    0 0 24px rgba(249, 115, 22, 0.35);
+    0 0 0 1px color-mix(in oklab, var(--border-primary) 65%, var(--theme-accent-primary) 35%),
+    0 0 18px color-mix(in oklab, var(--theme-accent-primary) 9%, transparent);
 }
 
 /* Scout input variant for midnight blue */
@@ -1188,16 +1176,17 @@ html, body {
 }
 
 .scout-message.user {
-  background: var(--orange-primary);
-  color: white;
+  background: color-mix(in oklab, #1a2230 85%, var(--theme-accent-primary) 15%);
+  color: var(--text-primary);
+  border: 1px solid color-mix(in oklab, var(--theme-accent-primary) 32%, var(--border-primary));
   margin-left: auto;
   max-width: 80%;
 }
 
 .scout-message.assistant {
-  background-color: var(--charcoal-700);
+  background-color: #1a2230;
   color: var(--text-primary);
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.08);
   max-width: 90%;
 }
 

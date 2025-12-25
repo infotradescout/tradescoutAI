@@ -111,7 +111,7 @@ export function AppShell({ children, footer }: AppShellProps) {
 
   return (
     <div
-      className="app-shell flex flex-col min-h-screen overflow-hidden"
+      className="app-shell flex flex-col min-h-screen"
       style={{ 
         color: 'var(--text-primary)',
         paddingTop: "env(safe-area-inset-top)",
@@ -120,7 +120,7 @@ export function AppShell({ children, footer }: AppShellProps) {
       {/* TOP APP NAV HEADER */}
       {location.startsWith("/scout") ? (
         // Cleaner, chat-focused header for Scout: now left-aligned brand with tagline
-        <header className="fixed top-0 inset-x-0 z-40 backdrop-blur flex items-center h-[56px] px-3 sm:px-4 justify-between border-b" style={{ backgroundColor: 'var(--charcoal-900)', borderColor: 'var(--border-primary)' }}>
+        <header className="fixed top-0 inset-x-0 z-40 backdrop-blur flex items-center h-[56px] px-2 sm:px-4 justify-between border-b" style={{ backgroundColor: 'var(--charcoal-950)', borderColor: 'var(--border-primary)' }}>
           <Link
             href="/"
             className="flex items-center gap-3 cursor-pointer"
@@ -145,7 +145,7 @@ export function AppShell({ children, footer }: AppShellProps) {
               style={{ borderColor: 'var(--border-primary)', background: 'var(--bg-secondary)' }}
               aria-label="Messages and helpers"
             >
-              <MessageCircle className="h-4 w-4" style={{ color: 'var(--orange-primary)' }} />
+              <MessageCircle className="h-4 w-4" style={{ color: 'var(--theme-accent-primary)' }} />
             </button>
 
             {/* Notifications: full activity center (tags, comments, likes, jobs, etc.) */}
@@ -159,7 +159,7 @@ export function AppShell({ children, footer }: AppShellProps) {
                 style={{ borderColor: 'var(--border-primary)', background: 'var(--bg-secondary)' }}
                 aria-label="Notifications"
               >
-                <Bell className="h-4 w-4" style={{ color: 'var(--orange-primary)' }} />
+                <Bell className="h-4 w-4" style={{ color: 'var(--theme-accent-primary)' }} />
               </button>
             )}
 
@@ -171,7 +171,7 @@ export function AppShell({ children, footer }: AppShellProps) {
               style={{ borderColor: 'var(--border-primary)', background: 'var(--bg-secondary)' }}
               aria-label="Open profile & tools panel"
             >
-              <Menu className="h-4 w-4" style={{ color: 'var(--orange-primary)' }} />
+              <Menu className="h-4 w-4" style={{ color: 'var(--theme-accent-primary)' }} />
             </button>
           </div>
         </header>
@@ -180,7 +180,7 @@ export function AppShell({ children, footer }: AppShellProps) {
           className={`fixed top-0 inset-x-0 z-40 backdrop-blur flex items-center h-[56px] px-3 sm:px-4 border-b ${
             handedness === "left" ? "flex-row-reverse justify-between" : "justify-between"
           }`}
-          style={{ backgroundColor: 'var(--charcoal-900)', borderColor: 'var(--border-primary)' }}
+          style={{ backgroundColor: 'var(--charcoal-950)', borderColor: 'var(--border-primary)' }}
         >
           {/* Brand */}
           <Link
@@ -233,7 +233,7 @@ export function AppShell({ children, footer }: AppShellProps) {
               style={{ borderColor: 'var(--border-primary)', background: 'var(--bg-secondary)' }}
               aria-label="Messages and helpers"
             >
-              <MessageCircle className="h-4 w-4" style={{ color: 'var(--orange-primary)' }} />
+              <MessageCircle className="h-4 w-4" style={{ color: 'var(--theme-accent-primary)' }} />
             </button>
 
             {/* Notifications: full activity center (tags, comments, likes, jobs, etc.) */}
@@ -247,7 +247,7 @@ export function AppShell({ children, footer }: AppShellProps) {
                 style={{ borderColor: 'var(--border-primary)', background: 'var(--bg-secondary)' }}
                 aria-label="Notifications"
               >
-                <Bell className="h-4 w-4" style={{ color: 'var(--orange-primary)' }} />
+                <Bell className="h-4 w-4" style={{ color: 'var(--theme-accent-primary)' }} />
               </button>
             )}
 
@@ -259,7 +259,7 @@ export function AppShell({ children, footer }: AppShellProps) {
               style={{ borderColor: 'var(--border-primary)', background: 'var(--bg-secondary)' }}
               aria-label="Open profile & tools panel"
             >
-              <Menu className="h-4 w-4" style={{ color: 'var(--orange-primary)' }} />
+              <Menu className="h-4 w-4" style={{ color: 'var(--theme-accent-primary)' }} />
             </button>
           </div>
         </header>
@@ -274,16 +274,16 @@ export function AppShell({ children, footer }: AppShellProps) {
         >
           {children}
         </main>
-
-        {/* USER-SPECIFIC PAGES LIVE HERE (desktop) */}
-        {!isMobile && (
-          <aside className="hidden lg:block w-80 overflow-y-auto" style={{ background: 'var(--bg-secondary)' }}>
-            {/* On desktop, keep the global footer only at the bottom of the shell;
-               the tools panel shows account tools without duplicating legal copy. */}
-            <RightToolsPanel />
-          </aside>
-        )}
       </div>
+
+      {/* USER-SPECIFIC PAGES LIVE HERE (desktop) - FIXED alongside bottom nav */}
+      {!isMobile && (
+        <aside className="hidden lg:block fixed right-0 bottom-0 w-80 overflow-y-auto z-40" style={{ background: '#141b26', height: 'calc(100vh - 56px - 68px)', top: '56px' }}>
+          {/* On desktop, keep the global footer only at the bottom of the shell;
+             the tools panel shows account tools without duplicating legal copy. */}
+          <RightToolsPanel />
+        </aside>
+      )}
 
       {/* Super admin tools bar appears on every page for high-level roles */}
       <AdminPageToolsBar />
@@ -301,14 +301,14 @@ export function AppShell({ children, footer }: AppShellProps) {
 
       {/* MOBILE TOOLS DRAWER = PROFILE / DASHBOARD / SETTINGS, etc. */}
       {isMobile && isToolsOpen && (
-        <div className="fixed inset-0 z-40 flex">
+        <div className="fixed inset-x-0 top-0 z-40 flex" style={{ bottom: 'calc(68px + env(safe-area-inset-bottom))' }}>
           <button
             type="button"
             aria-label="Close tools menu"
             className="flex-1 bg-black/40"
             onClick={() => setIsToolsOpen(false)}
           />
-          <div className="w-72 max-w-full flex flex-col" style={{ backgroundColor: 'var(--charcoal-900)' }}>
+          <div className="w-72 max-w-full flex flex-col" style={{ backgroundColor: '#141b26' }}>
             <div className="flex items-center justify-between px-4 py-3">
               <span className="text-[0.7rem] uppercase tracking-[0.2em]" style={{ color: 'var(--text-secondary)' }}>
                 Tools &amp; profile
