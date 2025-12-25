@@ -18,18 +18,23 @@ export interface DeterministicContext {
 
 function deriveDeterministicIntentInternal(message: string): DeterministicIntent | null {
   const lower = message.toLowerCase();
-  if (/mark (it )?paid|record payment|mark invoice paid|payment received/.test(lower)) {
+  // Mark invoice paid: handle common phrasing variations
+  if (/mark (it )?paid|record payment|mark .*invoice paid|payment received/.test(lower)) {
     return "mark_invoice_paid";
   }
+  // Send invoice
   if (/send (the )?invoice|invoice.*send/.test(lower)) {
     return "send_invoice";
   }
+  // Send contract
   if (/send (the )?contract|contract.*send/.test(lower)) {
     return "send_contract";
   }
+  // Sign contract
   if (/(sign|e-sign|esign|esig).*(contract)|contract.*sign/.test(lower)) {
     return "sign_contract";
   }
+  // Open deal room / project tracker
   if (/open (the )?(deal\s*room|project\s*tracker|job\s*room)/.test(lower)) {
     return "open_deal_room";
   }
