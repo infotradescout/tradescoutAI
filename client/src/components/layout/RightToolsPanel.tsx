@@ -33,16 +33,26 @@ const NavLink: React.FC<NavLinkProps> = ({
   <Link
     href={href}
     onClick={onClick}
-    className="flex flex-col gap-1 rounded-xl border border-slate-800/60 bg-slate-950/60 px-3 py-2 hover:bg-slate-900"
+    className="flex flex-col gap-1 rounded-xl border transition-colors"
+    style={{
+      borderColor: 'var(--border-primary)',
+      backgroundColor: 'var(--charcoal-700)',
+    }}
+    onMouseEnter={(e) => {
+      (e.currentTarget as HTMLElement).style.backgroundColor = 'var(--charcoal-800)';
+    }}
+    onMouseLeave={(e) => {
+      (e.currentTarget as HTMLElement).style.backgroundColor = 'var(--charcoal-700)';
+    }}
   >
-    <div className="flex items-center gap-2">
-      <span className="inline-flex h-7 w-7 items-center justify-center rounded-lg bg-slate-900 border border-slate-700 text-slate-200">
+    <div className="px-3 py-2 flex items-center gap-2">
+      <span className="inline-flex h-7 w-7 items-center justify-center rounded-lg border" style={{ backgroundColor: 'var(--charcoal-800)', borderColor: 'var(--border-primary)', color: 'var(--text-primary)' }}>
         {icon}
       </span>
-      <span className="text-sm font-medium text-slate-50">{label}</span>
+      <span className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>{label}</span>
     </div>
     {description && (
-      <p className="text-[11px] text-slate-400 leading-snug">
+      <p className="px-3 pb-2 text-[11px] leading-snug" style={{ color: 'var(--text-secondary)' }}>
         {description}
       </p>
     )}
@@ -68,16 +78,26 @@ const ActionButton = ({
   <button
     type="button"
     onClick={onClick}
-    className="w-full text-left flex flex-col gap-1 rounded-xl border border-slate-800/60 bg-slate-950/60 px-3 py-2 hover:bg-slate-900"
+    className="w-full text-left flex flex-col gap-1 rounded-xl border transition-colors"
+    style={{
+      borderColor: 'var(--border-primary)',
+      backgroundColor: 'var(--charcoal-700)',
+    }}
+    onMouseEnter={(e) => {
+      (e.currentTarget as HTMLElement).style.backgroundColor = 'var(--charcoal-800)';
+    }}
+    onMouseLeave={(e) => {
+      (e.currentTarget as HTMLElement).style.backgroundColor = 'var(--charcoal-700)';
+    }}
   >
-    <div className="flex items-center gap-2">
-      <span className="inline-flex h-7 w-7 items-center justify-center rounded-lg bg-slate-900 border border-slate-700 text-slate-200">
+    <div className="px-3 py-2 flex items-center gap-2">
+      <span className="inline-flex h-7 w-7 items-center justify-center rounded-lg border" style={{ backgroundColor: 'var(--charcoal-800)', borderColor: 'var(--border-primary)', color: 'var(--text-primary)' }}>
         {icon}
       </span>
-      <span className="text-sm font-medium text-slate-50">{label}</span>
+      <span className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>{label}</span>
     </div>
     {description && (
-      <p className="text-[11px] text-slate-400 leading-snug">
+      <p className="px-3 pb-2 text-[11px] leading-snug" style={{ color: 'var(--text-secondary)' }}>
         {description}
       </p>
     )}
