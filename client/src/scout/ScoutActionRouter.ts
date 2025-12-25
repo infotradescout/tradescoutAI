@@ -283,6 +283,19 @@ export function executeScoutActions(
         break;
       }
 
+      case "EXTERNAL_LINK": {
+        const url = action.to ?? action.path;
+        if (url && typeof url === "string") {
+          // Handle mailto:, tel:, sms: links
+          if (/^(mailto|tel|sms):/i.test(url)) {
+            window.location.href = url;
+          } else if (/^https?:\/\//i.test(url)) {
+            window.open(url, "_blank", "noopener,noreferrer");
+          }
+        }
+        break;
+      }
+
       case "NOOP":
       default:
         // ignore unknown or noop

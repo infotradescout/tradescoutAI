@@ -12,6 +12,7 @@ const ALLOWED_ACTION_TYPES: Set<ScoutActionType> = new Set([
   "OPEN_TOOLS_DRAWER",
   "ASK_SCOUT",
   "OPEN_FLOATING_NOTE",
+  "EXTERNAL_LINK",
   "NOOP",
   "MEALSCOUT_COMMAND",
   "FOLLOW_USER",
@@ -122,9 +123,10 @@ export function validateAction(action: ScoutAction): ScoutAction | null {
     }
   }
 
-  // ASK_SCOUT requires prompt
+  // ASK_SCOUT requires prompt (either top-level or in payload)
   if (action.type === "ASK_SCOUT") {
-    if (typeof action.prompt !== "string" || !action.prompt.trim()) {
+    const prompt = action.prompt || (action.payload?.prompt as string | undefined);
+    if (typeof prompt !== "string" || !prompt.trim()) {
       console.warn("[Scout] ASK_SCOUT missing prompt", action);
       return null;
     }

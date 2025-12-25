@@ -528,6 +528,8 @@ export default function ScoutOS() {
       setActiveMode(mode);
 
       const start = performance.now();
+       let activeTool: string | null = null;
+
       // User message is recorded into the thread; we immediately move into
       // a short RESOLVING_CONTEXT state so the UI can show progress without
       // exposing any internal reasoning text.
@@ -547,9 +549,11 @@ export default function ScoutOS() {
         const lowerMsg = value.toLowerCase();
         const contractorKeywords = ["contractor", "plumber", "electrician", "roofer", "hvac", "painter", "landscaper", "carpenter", "mason", "find a pro"];
         const marketplaceKeywords = ["marketplace", "for sale", "buying", "selling", "used", "buy", "sell"];
+        const contactKeywords = ["contact", "support", "help desk", "reach out", "call", "phone", "text", "email", "mail"];
         
         const wantsContractor = contractorKeywords.some(kw => lowerMsg.includes(kw));
         const wantsMarketplace = marketplaceKeywords.some(kw => lowerMsg.includes(kw));
+        const wantsContact = contactKeywords.some(kw => lowerMsg.includes(kw));
 
         // ------------------------------------------------------------------
         // CONTRACTOR SEARCH INTENT
@@ -574,6 +578,7 @@ export default function ScoutOS() {
             state: locality.state,
             limit: 5,
           });
+           activeTool = null;
 
           if (contractorResult.success && contractorResult.data && contractorResult.data.length > 0) {
             const contractors = contractorResult.data;
@@ -651,12 +656,14 @@ export default function ScoutOS() {
         // ------------------------------------------------------------------
         if (wantsMarketplace && locality?.state) {
           setStatus("executing_action");
+           activeTool = "searchMarketplace";
 
           const marketplaceResult = await searchMarketplace({
             query: value,
             location: locality.state,
             limit: 5,
           });
+           activeTool = null;
 
           if (marketplaceResult.success && marketplaceResult.data && marketplaceResult.data.length > 0) {
             const listings = marketplaceResult.data;
@@ -703,6 +710,80 @@ export default function ScoutOS() {
             });
             return;
           }
+        }
+
+        // ------------------------------------------------------------------
+        // CONTACT SUPPORT INTENT
+        // ------------------------------------------------------------------
+        if (wantsContact) {
+          setStatus("ready");
+
+          const contactClusters: ScoutCluster[] = [
+            {
+              id: "contact-email",
+              title: "Email Us",
+              kind: "generic",
+              body: "Send us a detailed message at info.tradescout@gmail.com",
+              primaryAction: {
+                type: "EXTERNAL_LINK",
+                label: "Send Email",
+                to: "mailto:info.tradescout@gmail.com",
+              },
+            },
+            {
+              id: "contact-phone",
+              title: "Call or Text",
+              kind: "generic",
+              body: "(850) 543-0748\nAvailable 24/7",
+              actions: [
+                {
+                  type: "EXTERNAL_LINK",
+                  label: "Call Now",
+                  to: "tel:+18505430748",
+                },
+                {
+                  type: "EXTERNAL_LINK",
+                  label: "Text Us",
+                  to: "sms:+18505430748",
+                },
+              ],
+            },
+            {
+              id: "contact-help-center",
+              title: "Help Center",
+              kind: "generic",
+              body: "Browse FAQs and guides",
+              primaryAction: {
+                type: "NAVIGATE",
+                label: "Open Help",
+                to: "/help",
+              },
+            },
+          ];
+
+          const msg: ScoutMessage = {
+            id: `a_${Date.now()}_${Math.random().toString(36).slice(2)}`,
+            role: "assistant",
+            content: "Here's how to reach our support team:",
+            timestamp: new Date().toISOString(),
+            clusters: contactClusters,
+            memoryDelta: {
+              lastIntent: "contact_support",
+            },
+          };
+
+          applyServerResponse(msg, []);
+          setStatus("idle");
+
+          const latencyMs = performance.now() - start;
+          logScoutInsight({
+            message: value,
+            mode,
+            locality,
+            success: true,
+            latencyMs,
+          });
+          return;
         }
 
         // ==================================================================
