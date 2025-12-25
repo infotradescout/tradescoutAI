@@ -113,14 +113,13 @@ export function AppShell({ children, footer }: AppShellProps) {
     <div
       className="app-shell text-slate-50 flex flex-col min-h-screen overflow-hidden"
       style={{
-        backgroundColor: "#060b1c",
         paddingTop: "env(safe-area-inset-top)",
       }}
     >
       {/* TOP APP NAV HEADER */}
       {location.startsWith("/scout") ? (
         // Cleaner, chat-focused header for Scout: now left-aligned brand with tagline
-        <header className="fixed top-0 inset-x-0 z-40 bg-slate-950/95 backdrop-blur flex items-center h-[56px] px-3 sm:px-4 justify-between border-b border-slate-900/60">
+        <header className="fixed top-0 inset-x-0 z-40 backdrop-blur flex items-center h-[56px] px-3 sm:px-4 justify-between border-b" style={{ background: 'rgba(2, 6, 23, 0.95)', borderColor: 'var(--border-primary)' }}>
           <Link
             href="/"
             className="flex items-center gap-3 cursor-pointer"
@@ -174,9 +173,10 @@ export function AppShell({ children, footer }: AppShellProps) {
         </header>
       ) : (
         <header
-          className={`fixed top-0 inset-x-0 z-40 bg-slate-950/95 backdrop-blur flex items-center h-[56px] px-3 sm:px-4 border-b border-slate-900/60 ${
+          className={`fixed top-0 inset-x-0 z-40 backdrop-blur flex items-center h-[56px] px-3 sm:px-4 border-b ${
             handedness === "left" ? "flex-row-reverse justify-between" : "justify-between"
           }`}
+          style={{ background: 'rgba(2, 6, 23, 0.95)', borderColor: 'var(--border-primary)' }}
         >
           {/* Brand */}
           <Link
