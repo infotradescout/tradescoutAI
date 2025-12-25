@@ -461,8 +461,8 @@ export default function ScoutOS() {
       case "marketplace":
         base.push(
           "Show Exchange listings that match this need near me",
-          "Draft a listing I can post based on this",
-          "Alert me if new local deals match this search",
+          "Post a listing",
+          "Manage my listings",
           "Open a floating note to keep this visible"
         );
         break;
@@ -490,6 +490,14 @@ export default function ScoutOS() {
         "Open HOA dashboard",
         "Post HOA notice",
         "Review dues and payments"
+      );
+    }
+
+    if (roles.includes("marketplace_vendor") || roles.includes("vendor")) {
+      base.splice(0, base.length,
+        "Manage my listings",
+        "Post a listing",
+        "View offers"
       );
     }
 
@@ -1369,6 +1377,42 @@ export default function ScoutOS() {
                       label: trimmed,
                     });
                     navigate("/exchange");
+                    return;
+                  }
+
+                  if (trimmed === "Post a listing") {
+                    recordActivity({
+                      type: "navigate",
+                      ts: new Date().toISOString(),
+                      path: location,
+                      to: "/exchange?new=1",
+                      label: trimmed,
+                    });
+                    navigate("/exchange?new=1");
+                    return;
+                  }
+
+                  if (trimmed === "Manage my listings") {
+                    recordActivity({
+                      type: "navigate",
+                      ts: new Date().toISOString(),
+                      path: location,
+                      to: "/exchange?tab=my-listings",
+                      label: trimmed,
+                    });
+                    navigate("/exchange?tab=my-listings");
+                    return;
+                  }
+
+                  if (trimmed === "View offers") {
+                    recordActivity({
+                      type: "navigate",
+                      ts: new Date().toISOString(),
+                      path: location,
+                      to: "/exchange?tab=offers",
+                      label: trimmed,
+                    });
+                    navigate("/exchange?tab=offers");
                     return;
                   }
 
