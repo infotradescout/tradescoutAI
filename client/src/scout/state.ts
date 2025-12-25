@@ -62,6 +62,28 @@ export interface ScoutAction {
   payload?: Record<string, unknown>;
 }
 
+export interface ScoutToolCall {
+  tool: string;
+  input: Record<string, unknown>;
+  status: "pending" | "success" | "error";
+}
+
+export interface ScoutToolResult {
+  tool: string;
+  success: boolean;
+  data?: unknown;
+  error?: string;
+  durationMs?: number;
+}
+
+export interface ScoutMemoryDelta {
+  lastViewedTrade?: string;
+  lastJobId?: string;
+  lastCommunityId?: string;
+  lastIntent?: string;
+  [key: string]: unknown;
+}
+
 export interface ScoutMessage {
   id: string;
   role: ScoutRole;
@@ -70,6 +92,11 @@ export interface ScoutMessage {
   suggestedActions?: string[];
   clusters?: ScoutCluster[];
   frame?: ScoutResponseFrame;
+  // Structured agent outputs
+  toolCall?: ScoutToolCall;
+  toolResult?: ScoutToolResult;
+  navTarget?: string; // primary navigation target for this message
+  memoryDelta?: ScoutMemoryDelta; // working context updates
 }
 
 export interface ScoutState {
