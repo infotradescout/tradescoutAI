@@ -434,6 +434,7 @@ export default function ScoutOS() {
         blockingReason?: string | null;
         allowedActions?: string[];
       } | null;
+      contextRoles?: string[];
     }
   ): string[] => {
     const base: string[] = [];
@@ -446,6 +447,14 @@ export default function ScoutOS() {
           "Open my Admin Panel and monitoring tools",
           "Show recent Finance / Invoicing ledger activity",
           "Help me send a targeted broadcast announcement from Notification Ops",
+          "Open a floating note to keep this visible"
+        );
+        break;
+      case "contractors":
+        base.push(
+          "Open my deal room",
+          "View invoices and payments",
+          "Post a new job",
           "Open a floating note to keep this visible"
         );
         break;
@@ -472,6 +481,16 @@ export default function ScoutOS() {
           "Open a floating note to keep this visible"
         );
         break;
+    }
+
+    // If the inferred context includes HOA board signals, tailor a few options.
+    const roles = (opts?.contextRoles || []).map((r) => r.toLowerCase());
+    if (roles.includes("hoa_board")) {
+      base.splice(0, base.length,
+        "Open HOA dashboard",
+        "Post HOA notice",
+        "Review dues and payments"
+      );
     }
 
     const server = (serverSuggestions ?? [])
@@ -846,6 +865,7 @@ export default function ScoutOS() {
             isGuest,
             intent: res.metadata?.intent,
             resolvedContext: res.metadata?.resolvedContext ?? null,
+            contextRoles,
           }
         );
 
@@ -1456,6 +1476,42 @@ export default function ScoutOS() {
                     return;
                   }
 
+                  if (trimmed === "Open my deal room") {
+                    recordActivity({
+                      type: "navigate",
+                      ts: new Date().toISOString(),
+                      path: location,
+                      to: "/lead-management",
+                      label: trimmed,
+                    });
+                    navigate("/lead-management");
+                    return;
+                  }
+
+                  if (trimmed === "View invoices and payments") {
+                    recordActivity({
+                      type: "navigate",
+                      ts: new Date().toISOString(),
+                      path: location,
+                      to: "/finances",
+                      label: trimmed,
+                    });
+                    navigate("/finances");
+                    return;
+                  }
+
+                  if (trimmed === "Post a new job") {
+                    recordActivity({
+                      type: "navigate",
+                      ts: new Date().toISOString(),
+                      path: location,
+                      to: "/lead-management?new=1",
+                      label: trimmed,
+                    });
+                    navigate("/lead-management?new=1");
+                    return;
+                  }
+
                   if (
                     trimmed === "Open a floating note" ||
                     trimmed === "Open floating note" ||
@@ -1481,6 +1537,43 @@ export default function ScoutOS() {
                       label: trimmed,
                     });
                     navigate("/admin-panel?tab=notification-ops");
+                    return;
+                  }
+
+                  // HOA-focused quick actions
+                  if (trimmed === "Open HOA dashboard") {
+                    recordActivity({
+                      type: "navigate",
+                      ts: new Date().toISOString(),
+                      path: location,
+                      to: "/hoa-dashboard",
+                      label: trimmed,
+                    });
+                    navigate("/hoa-dashboard");
+                    return;
+                  }
+
+                  if (trimmed === "Post HOA notice") {
+                    recordActivity({
+                      type: "navigate",
+                      ts: new Date().toISOString(),
+                      path: location,
+                      to: "/hoa-management?tab=notices",
+                      label: trimmed,
+                    });
+                    navigate("/hoa-management?tab=notices");
+                    return;
+                  }
+
+                  if (trimmed === "Review dues and payments") {
+                    recordActivity({
+                      type: "navigate",
+                      ts: new Date().toISOString(),
+                      path: location,
+                      to: "/hoa-dashboard?tab=dues",
+                      label: trimmed,
+                    });
+                    navigate("/hoa-dashboard?tab=dues");
                     return;
                   }
 
