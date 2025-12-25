@@ -227,7 +227,25 @@ export const getUsers = (): User[] => {
 
 export const getSuggestedPrompts = (): string[] => {
     const prompts = localStorage.getItem(DB_KEYS.PROMPTS);
-    return prompts ? JSON.parse(prompts) : [];
+    if (prompts) {
+        try {
+            const parsed = JSON.parse(prompts);
+            if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+        } catch {}
+    }
+    // Default, outcome-focused prompts (3–5 words)
+    return [
+        'Find trusted plumber.',
+        'Get roofing quotes.',
+        'Estimate paint costs.',
+        'Check deck permits.',
+        'Hire HVAC pro.',
+        'Plan backyard design.',
+        'Compare van options.',
+        'Verify local codes.',
+        'Post job request.',
+        'Review contractor ratings.',
+    ];
 };
 
 export const getKnowledgeBase = (): KnowledgeEntry[] => {
