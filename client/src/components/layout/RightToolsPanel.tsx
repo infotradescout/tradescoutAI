@@ -120,17 +120,17 @@ export function RightToolsPanel({ footer, onNavigate }: RightToolsPanelProps) {
       : undefined;
 
   return (
-    <div className="h-full flex flex-col bg-slate-950 text-slate-50">
+    <div className="h-full flex flex-col" style={{ backgroundColor: 'var(--charcoal-800)', color: 'var(--text-primary)' }}>
       {/* Header */}
-      <div className="px-4 py-3 border-b border-slate-800">
-        <div className="text-[0.65rem] uppercase tracking-[0.3em] text-slate-500">
+      <div className="px-4 py-3 border-b" style={{ borderColor: 'var(--border-secondary)' }}>
+        <div className="text-[0.65rem] uppercase tracking-[0.3em]" style={{ color: 'var(--text-secondary)' }}>
           Your space
         </div>
-        <div className="mt-1 text-sm font-semibold text-slate-50">
+        <div className="mt-1 text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
           {displayName}
         </div>
         {locationLabel && (
-          <div className="text-[0.7rem] text-slate-400 mt-0.5">
+          <div className="text-[0.7rem] mt-0.5" style={{ color: 'var(--text-secondary)' }}>
             {locationLabel}
           </div>
         )}
@@ -140,7 +140,7 @@ export function RightToolsPanel({ footer, onNavigate }: RightToolsPanelProps) {
       <div className="flex-1 overflow-y-auto px-3 py-3 space-y-4">
         {/* Profile & account */}
         <section>
-          <div className="text-[0.7rem] uppercase tracking-[0.2em] text-slate-500 mb-2">
+          <div className="text-[0.7rem] uppercase tracking-[0.2em] mb-2" style={{ color: 'var(--text-secondary)' }}>
             Profile
           </div>
           <div className="space-y-2">
@@ -177,7 +177,7 @@ export function RightToolsPanel({ footer, onNavigate }: RightToolsPanelProps) {
 
         {/* Workspaces (user-specific) */}
         <section>
-          <div className="text-[0.7rem] uppercase tracking-[0.2em] text-slate-500 mb-2">
+          <div className="text-[0.7rem] uppercase tracking-[0.2em] mb-2" style={{ color: 'var(--text-secondary)' }}>
             Workspaces
           </div>
           <div className="space-y-2">
@@ -221,7 +221,7 @@ export function RightToolsPanel({ footer, onNavigate }: RightToolsPanelProps) {
 
         {/* Notes & quick capture */}
         <section>
-          <div className="text-[0.7rem] uppercase tracking-[0.2em] text-slate-500 mb-2">
+          <div className="text-[0.7rem] uppercase tracking-[0.2em] mb-2" style={{ color: 'var(--text-secondary)' }}>
             Notes
           </div>
           <div className="space-y-2">
@@ -248,7 +248,7 @@ export function RightToolsPanel({ footer, onNavigate }: RightToolsPanelProps) {
 
         {/* Legal & policies */}
         <section>
-          <div className="text-[0.7rem] uppercase tracking-[0.2em] text-slate-500 mb-2">
+          <div className="text-[0.7rem] uppercase tracking-[0.2em] mb-2" style={{ color: 'var(--text-secondary)' }}>
             Legal &amp; policies
           </div>
           <div className="space-y-2">
@@ -285,7 +285,7 @@ export function RightToolsPanel({ footer, onNavigate }: RightToolsPanelProps) {
       </div>
 
       {/* Footer / bottom tab content */}
-      <div className="border-t border-slate-800 px-4 py-3 text-[0.7rem] text-slate-500 space-y-2">
+      <div className="border-t px-4 py-3 text-[0.7rem] space-y-2" style={{ borderColor: 'var(--border-secondary)', color: 'var(--text-secondary)' }}>
         <div className="flex items-center justify-between gap-2">
           <div className="truncate">Signed in as {displayName}</div>
           {isAuthenticated && (
@@ -302,7 +302,7 @@ export function RightToolsPanel({ footer, onNavigate }: RightToolsPanelProps) {
             </button>
           )}
         </div>
-        {footer && <div className="text-slate-400">{footer}</div>}
+        {footer && <div style={{ color: 'var(--text-secondary)' }}>{footer}</div>}
       </div>
     </div>
   );
