@@ -72,6 +72,22 @@ html {
     overscroll-behavior: none;
   }
 
+  /* Prevent iOS Safari auto-zoom when focusing small inputs */
+  /* iOS triggers zoom on focus when font-size < 16px; enforce a minimum */
+  @supports (-webkit-overflow-scrolling: touch) {
+    input,
+    select,
+    textarea {
+      font-size: 16px !important;
+    }
+  }
+
+  /* Keep text size adjustments consistent across devices */
+  html {
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+  }
+
   #root {
     min-height: var(--app-height);
     width: 100%;

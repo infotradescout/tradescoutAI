@@ -5786,7 +5786,7 @@ export async function registerRoutes(app: any) {
     }
   });
 
-  // Admin: get user info (sanitized)
+  // Admin: get user info (expanded for full visibility to platform admins)
   app.post("/api/admin/users/info", isAuthenticated, isAdmin, async (req: any, res: any) => {
     try {
       const { email, userId } = req.body || {};
@@ -5802,9 +5802,17 @@ export async function registerRoutes(app: any) {
         return res.status(404).json({ error: "User not found" });
       }
 
+      // Return expanded profile details but never include password hashes
       const sanitized = {
         id: target.id,
         email: target.email,
+        phone: (target as any).phone || null,
+        firstName: (target as any).firstName || null,
+        lastName: (target as any).lastName || null,
+        city: (target as any).city || null,
+        county: (target as any).county || null,
+        state: (target as any).state || null,
+        zipCode: (target as any).zipCode || null,
         roles: target.roles || (target.role ? [target.role] : []),
         activeRole: target.activeRole || target.role,
         verificationStatus: target.verificationStatus,

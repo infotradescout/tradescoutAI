@@ -141,8 +141,7 @@ export function AppShell({ children, footer }: AppShellProps) {
             <button
               type="button"
               onClick={() => navigate("/messages")}
-              className="inline-flex h-8 w-8 items-center justify-center rounded-xl border transition"
-              style={{ borderColor: 'var(--border-primary)', background: 'var(--bg-secondary)' }}
+              className="inline-flex h-8 w-8 items-center justify-center transition hover:opacity-80"
               aria-label="Messages and helpers"
             >
               <MessageCircle className="h-4 w-4" style={{ color: 'var(--theme-accent-primary)' }} />
@@ -155,8 +154,7 @@ export function AppShell({ children, footer }: AppShellProps) {
               <button
                 type="button"
                 onClick={() => navigate("/notifications")}
-                className="inline-flex h-8 w-8 items-center justify-center rounded-xl border transition"
-                style={{ borderColor: 'var(--border-primary)', background: 'var(--bg-secondary)' }}
+                className="inline-flex h-8 w-8 items-center justify-center transition hover:opacity-80"
                 aria-label="Notifications"
               >
                 <Bell className="h-4 w-4" style={{ color: 'var(--theme-accent-primary)' }} />
@@ -167,8 +165,7 @@ export function AppShell({ children, footer }: AppShellProps) {
             <button
               type="button"
               onClick={() => setIsToolsOpen(true)}
-              className="inline-flex h-8 w-8 items-center justify-center rounded-xl border transition"
-              style={{ borderColor: 'var(--border-primary)', background: 'var(--bg-secondary)' }}
+              className="inline-flex h-8 w-8 items-center justify-center transition hover:opacity-80"
               aria-label="Open profile & tools panel"
             >
               <Menu className="h-4 w-4" style={{ color: 'var(--theme-accent-primary)' }} />
@@ -229,8 +226,7 @@ export function AppShell({ children, footer }: AppShellProps) {
             <button
               type="button"
               onClick={() => navigate("/messages")}
-              className="inline-flex h-8 w-8 items-center justify-center rounded-xl border transition"
-              style={{ borderColor: 'var(--border-primary)', background: 'var(--bg-secondary)' }}
+              className="inline-flex h-8 w-8 items-center justify-center transition hover:opacity-80"
               aria-label="Messages and helpers"
             >
               <MessageCircle className="h-4 w-4" style={{ color: 'var(--theme-accent-primary)' }} />
@@ -243,8 +239,7 @@ export function AppShell({ children, footer }: AppShellProps) {
               <button
                 type="button"
                 onClick={() => navigate("/notifications")}
-                className="inline-flex h-8 w-8 items-center justify-center rounded-xl border transition"
-                style={{ borderColor: 'var(--border-primary)', background: 'var(--bg-secondary)' }}
+                className="inline-flex h-8 w-8 items-center justify-center transition hover:opacity-80"
                 aria-label="Notifications"
               >
                 <Bell className="h-4 w-4" style={{ color: 'var(--theme-accent-primary)' }} />
@@ -255,8 +250,7 @@ export function AppShell({ children, footer }: AppShellProps) {
             <button
               type="button"
               onClick={() => setIsToolsOpen(true)}
-              className="inline-flex h-8 w-8 items-center justify-center rounded-xl border transition"
-              style={{ borderColor: 'var(--border-primary)', background: 'var(--bg-secondary)' }}
+              className="inline-flex h-8 w-8 items-center justify-center transition hover:opacity-80"
               aria-label="Open profile & tools panel"
             >
               <Menu className="h-4 w-4" style={{ color: 'var(--theme-accent-primary)' }} />

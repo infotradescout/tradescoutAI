@@ -1254,6 +1254,9 @@ function LLMAdminPanel() {
               <div className="font-semibold">User</div>
               <div>ID: {userInfo.id}</div>
               <div>Email: {userInfo.email}</div>
+              {userInfo.phone && (<div>Phone: {userInfo.phone}</div>)}
+              <div>Name: {[userInfo.firstName, userInfo.lastName].filter(Boolean).join(' ') || '—'}</div>
+              <div>Location: {[userInfo.city, userInfo.county, userInfo.state, userInfo.zipCode].filter(Boolean).join(', ') || '—'}</div>
               <div>Roles: {(userInfo.roles || []).join(', ')}</div>
               <div>Active: {userInfo.activeRole}</div>
               <div>Verification: {userInfo.verificationStatus}</div>

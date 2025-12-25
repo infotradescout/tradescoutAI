@@ -1429,14 +1429,19 @@ export default function Help() {
                   <div className="space-y-2 text-sm text-gray-400">
                     <div className="flex items-center space-x-2">
                       <Mail className="h-4 w-4" />
-                      <span>support@tradescout.app</span>
+                      <span>info.tradescout@gmail.com</span>
                     </div>
                     <div className="flex items-center space-x-2">
                       <Clock className="h-4 w-4" />
                       <span>Response within 24 hours</span>
                     </div>
                   </div>
-                  <Button variant="outline" className="w-full border-navy-600 text-gray-300 hover:bg-navy-700">
+                  <Button
+                    variant="outline"
+                    className="w-full border-navy-600 text-gray-300 hover:bg-navy-700"
+                    type="button"
+                    onClick={() => (window.location.href = 'mailto:info.tradescout@gmail.com')}
+                  >
                     Send Email
                   </Button>
                 </CardContent>
@@ -1454,16 +1459,31 @@ export default function Help() {
                   <div className="space-y-2 text-sm text-gray-400">
                     <div className="flex items-center space-x-2">
                       <Phone className="h-4 w-4" />
-                      <span>1-800-TRADESCOUT</span>
+                      <span>(850) 543-0748 (call or text)</span>
                     </div>
                     <div className="flex items-center space-x-2">
                       <Clock className="h-4 w-4" />
-                      <span>Mon-Fri 9AM-6PM EST</span>
+                      <span>Available 24/7</span>
                     </div>
                   </div>
-                  <Button variant="outline" className="w-full border-navy-600 text-gray-300 hover:bg-navy-700">
-                    Call Now
-                  </Button>
+                  <div className="grid grid-cols-2 gap-2">
+                    <Button
+                      variant="outline"
+                      className="w-full border-navy-600 text-gray-300 hover:bg-navy-700"
+                      type="button"
+                      onClick={() => (window.location.href = 'tel:+18505430748')}
+                    >
+                      Call Now
+                    </Button>
+                    <Button
+                      variant="outline"
+                      className="w-full border-navy-600 text-gray-300 hover:bg-navy-700"
+                      type="button"
+                      onClick={() => (window.location.href = 'sms:+18505430748')}
+                    >
+                      Text Us
+                    </Button>
+                  </div>
                 </CardContent>
               </Card>
 

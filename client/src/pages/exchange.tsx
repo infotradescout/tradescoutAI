@@ -197,7 +197,11 @@ export default function Exchange() {
       if (selectedCategory && selectedCategory !== 'all') {
         params.append('categoryId', selectedCategory);
       }
-      if (locationFilter) params.append('location', locationFilter);
+      // Pass proper geo params expected by server: state + county
+      if (stateCode) params.append('state', stateCode);
+      if (county) params.append('county', county);
+      // Search query support
+      if (searchQuery) params.append('search', searchQuery);
       if (sortBy) params.append('sort', sortBy);
       if (priceRange) params.append('priceRange', priceRange);
       if (conditionFilter) params.append('condition', conditionFilter);
