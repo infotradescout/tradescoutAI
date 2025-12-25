@@ -211,7 +211,12 @@ const ScoutThread: React.FC<ScoutThreadProps> = ({
     statusLabel = "Preparing your answer...";
   }
 
-  const showProgress = status !== "idle" && status !== "error";
+  // Only show loader when busy AND no messages yet
+  // Once any Scout message lands, unlock the UI immediately
+  const showProgress = 
+    status !== "idle" && 
+    status !== "error" && 
+    messages.length === 0;
 
   const statusToneClass =
     status === "checking_documents"

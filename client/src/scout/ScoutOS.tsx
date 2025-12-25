@@ -236,6 +236,19 @@ export default function ScoutOS() {
 
   const hasMessages = state.messages.length > 0;
 
+  // Watchdog: force idle state after 12 seconds if still busy
+  // This ensures no user can ever be stuck, even if an API fails silently
+  useEffect(() => {
+    if (!isBusy) return;
+
+    const timeout = setTimeout(() => {
+      console.warn('[ScoutOS] Watchdog triggered - forcing idle state after 12s');
+      setStatus("idle");
+    }, 12000); // 12s max
+
+    return () => clearTimeout(timeout);
+  }, [isBusy, setStatus]);
+
   const hasUserMessages = useMemo(
     () => state.messages.some((m) => m.role === "user"),
     [state.messages]
