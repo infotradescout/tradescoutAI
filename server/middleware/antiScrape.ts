@@ -100,15 +100,14 @@ export function antiScrapeShield(req: Request, res: Response, next: NextFunction
   const windowLimit = isSensitivePath(path) ? Math.floor(MAX_WINDOW_HITS / 3) : MAX_WINDOW_HITS;
   const burstLimit = isSensitivePath(path) ? Math.floor(MAX_BURST_HITS / 2) : MAX_BURST_HITS;
 
-  // In development, log but don't block
+  // In development, don't log or block (too noisy with HMR)
   if (burstHits > burstLimit || windowHits > windowLimit) {
     if (process.env.NODE_ENV === 'production') {
       return res.status(429).json({
         error: "Too many requests. Slow down to continue.",
       });
-    } else {
-      console.log(`[AntiScrape] Rate limit hit but allowing in dev: ${windowHits}/${windowLimit} window, ${burstHits}/${burstLimit} burst`);
     }
+    // In dev: silently allow
   }
 
   res.setHeader("X-Scout-Guard", "enabled");
