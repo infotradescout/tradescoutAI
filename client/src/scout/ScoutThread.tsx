@@ -7,6 +7,7 @@ import type {
   ScoutMessage,
   ScoutStatus,
 } from "./state";
+import { validateAction } from "./actionValidation";
 
 type ScoutThreadProps = {
   messages: ScoutMessage[];
@@ -25,13 +26,19 @@ function ClusterCard({
 }) {
   const handlePrimary = () => {
     if (onAction && cluster.primaryAction) {
-      onAction(cluster.primaryAction);
+      const validated = validateAction(cluster.primaryAction);
+      if (validated) {
+        onAction(validated);
+      }
     }
   };
 
   const handleAction = (action: ScoutAction) => {
     if (onAction) {
-      onAction(action);
+      const validated = validateAction(action);
+      if (validated) {
+        onAction(validated);
+      }
     }
   };
 
