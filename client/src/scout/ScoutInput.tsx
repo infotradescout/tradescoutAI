@@ -215,11 +215,12 @@ const ScoutInput: React.FC<ScoutInputProps> = ({
         disabled={disabled}
         placeholder={placeholder}
         rows={3}
-        className="w-full resize-none rounded-lg border px-4 py-3 text-[15px] focus:outline-none min-h-[96px] transition-all"
+        className="w-full resize-none rounded-lg px-4 py-3 text-[15px] min-h-[96px] transition-all"
         style={{
           backgroundColor: 'var(--bg-secondary)',
-          borderColor: 'var(--border-primary)',
           color: 'var(--text-primary)',
+          border: 'none',
+          outline: 'none',
         }}
       />
       <div
