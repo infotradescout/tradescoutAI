@@ -17,10 +17,6 @@ import {
   CircleHelp,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
-  const { user } = useAuth();
-  // Impersonation banner logic
-  const isImpersonating = user?.isImpersonating || user?.impersonating;
-  const impersonatedUser = user?.impersonatedUser || (isImpersonating ? { name: user?.firstName + ' ' + user?.lastName, email: user?.email } : null);
 import { useHandedness } from "@/hooks/useHandedness";
 import { useIsMobile } from "@/hooks/useIsMobile";
 import { ROUTES } from "@/lib/routes";
@@ -103,7 +99,10 @@ const featureNav: NavItem[] = [
 ];
 
 export function AppShell({ children, footer }: AppShellProps) {
-  const { isAuthenticated } = useAuth();
+  const { user, isAuthenticated } = useAuth();
+  // Impersonation banner logic
+  const isImpersonating = user?.isImpersonating || user?.impersonating;
+  const impersonatedUser = user?.impersonatedUser || (isImpersonating ? { name: user?.firstName + ' ' + user?.lastName, email: user?.email } : null);
   const isMobile = useIsMobile();
   const [isToolsOpen, setIsToolsOpen] = useState(false);
   const handedness = useHandedness();
