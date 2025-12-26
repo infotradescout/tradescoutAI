@@ -43,6 +43,13 @@ interface Post {
 }
 
 const Dashboard = memo(function Dashboard() {
+    // Workspace resolution fallback
+    const workspaceId = (typeof workspace !== 'undefined' && workspace?.id) || user?.workspaceId || user?.businessId || null;
+    const isAuthenticated = Boolean(user);
+    const canLoadDashboard =
+      isAuthenticated &&
+      Boolean(user?.location?.state || user?.location?.county) &&
+      Boolean(workspaceId);
   const [newPostContent, setNewPostContent] = useState("");
   const [showNewPostForm, setShowNewPostForm] = useState(false);
   const [newPostImages, setNewPostImages] = useState<string[]>([]);
@@ -52,10 +59,12 @@ const Dashboard = memo(function Dashboard() {
 
   const { data: preferences, isLoading: preferencesLoading } = useQuery({
     queryKey: ['/api/users/preferences'],
+    enabled: canLoadDashboard,
   });
 
   const { data: postsData, isLoading: postsLoading } = useQuery({
     queryKey: ['/api/community/posts'],
+    enabled: canLoadDashboard,
   });
 
   const handleImagesSelected = async (event: ChangeEvent<HTMLInputElement>) => {
@@ -187,6 +196,13 @@ const Dashboard = memo(function Dashboard() {
     'community-builder-impact': CommunityBuilderImpactWidget,
   };
 
+  if (!canLoadDashboard) {
+    return (
+      <div className="min-h-screen flex items-center justify-center text-center text-slate-500">
+        Finish setup to unlock your dashboard.
+      </div>
+    );
+  }
   if (preferencesLoading) {
     return (
       <div className="min-h-screen bg-tsBg dark:bg-slate-900 flex items-center justify-center">
