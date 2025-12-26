@@ -229,7 +229,7 @@ export default function Conversations() {
                                     {otherParticipant.firstName} {otherParticipant.lastName}
                                   </h4>
                                   {isUnread && (
-                                    <Badge variant="destructive" className="ml-2 text-xs">
+                                    <Badge variant="error" className="ml-2 text-xs">
                                       {conversation.unreadCount}
                                     </Badge>
                                   )}

@@ -109,8 +109,8 @@ export default function DeviceManagement() {
     const variants = {
       approved: 'default',
       pending: 'secondary',
-      denied: 'destructive',
-      revoked: 'destructive'
+      denied: 'error',
+      revoked: 'error'
     } as const;
 
     return (

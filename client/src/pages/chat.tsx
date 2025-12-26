@@ -548,7 +548,7 @@ export default function Chat() {
                                   <Badge 
                                     variant={
                                       item.status === 'approved' ? 'default' : 
-                                      item.status === 'denied' ? 'destructive' : 
+                                      item.status === 'denied' ? 'error' : 
                                       'secondary'
                                     }
                                     className="text-xs"

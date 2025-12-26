@@ -402,7 +402,7 @@ export function UIMonitoringDashboard() {
                     {analysis.patterns.topProblematicPages.map((page, idx) => (
                       <div key={idx} className="flex items-center justify-between">
                         <span className="text-gray-300">{page.page}</span>
-                        <Badge variant="destructive">{page.issueCount} issues</Badge>
+                        <Badge variant="error">{page.issueCount} issues</Badge>
                       </div>
                     ))}
                   </div>

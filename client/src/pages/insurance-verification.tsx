@@ -85,7 +85,7 @@ const InsuranceVerification = memo(function InsuranceVerification() {
                       </div>
                       <div className="flex items-center gap-2">
                         {req.required && (
-                          <Badge variant="destructive" className="text-xs">Required</Badge>
+                          <Badge variant="error" className="text-xs">Required</Badge>
                         )}
                         {isUploaded && (
                           <CheckCircle className="w-5 h-5 text-emerald-400" />
@@ -135,7 +135,7 @@ const InsuranceVerification = memo(function InsuranceVerification() {
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
                   <h3 className="text-lg font-semibold text-white">General Liability Insurance</h3>
-                  <Badge variant="destructive">Required</Badge>
+                  <Badge variant="error">Required</Badge>
                 </div>
                 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

@@ -127,7 +127,7 @@ export default function Notifications() {
                 <Filter className="h-5 w-5" />
                 Filters
                 {unreadCount > 0 && (
-                  <Badge variant="destructive" className="ml-2">
+                  <Badge variant="error" className="ml-2">
                     {unreadCount} new
                   </Badge>
                 )}
@@ -192,7 +192,7 @@ export default function Notifications() {
                                   {getNotificationTypeLabel(notification.type)}
                                 </Badge>
                                 {!notification.isRead && (
-                                  <Badge variant="destructive" className="text-xs">
+                                  <Badge variant="error" className="text-xs">
                                     New
                                   </Badge>
                                 )}

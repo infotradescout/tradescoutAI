@@ -87,7 +87,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack }) => {
 
     const handleCreateCountyConfig = () => {
         if (!cmState || !cmCounty.trim()) return;
-        const newConfig: CountyConfig = {
+                                        <Badge variant="error" className="ml-2">Error</Badge>
             countyCode: cmCounty.trim(),
             stateCode: cmState,
             displayName: `${cmCounty.trim()} County`,

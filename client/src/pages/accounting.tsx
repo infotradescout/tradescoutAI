@@ -1,3 +1,5 @@
+// Expense Helper link (define if the tool exists, otherwise set to undefined)
+const expenseHelperLink = "/tools/expense-helper";
 import { useEffect, useMemo, useState } from "react";
 import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
