@@ -174,7 +174,7 @@ export function AppShell({ children, footer }: AppShellProps) {
         </header>
       ) : (
         <header
-          className={`fixed top-0 inset-x-0 z-40 backdrop-blur flex items-center h-[56px] px-3 sm:px-4 border-b ${
+          className={`fixed top-0 inset-x-0 z-40 glass-header flex items-center h-[56px] px-3 sm:px-4 border-b ${
             handedness === "left" ? "flex-row-reverse justify-between" : "justify-between"
           }`}
           style={{ backgroundColor: 'var(--charcoal-950)', borderColor: 'var(--border-primary)' }}
@@ -259,10 +259,10 @@ export function AppShell({ children, footer }: AppShellProps) {
         </header>
       )}
 
-      <div className="flex flex-1 min-h-0">
+      <div className="flex flex-1 min-h-0" style={{ background: 'var(--surface-app-bg)' }}>
         <main
-          className={`flex flex-col flex-1 min-w-0 overflow-y-auto pt-[56px]`}
-          style={{ paddingBottom: 'calc(68px + env(safe-area-inset-bottom))' }}
+          className={`flex flex-col flex-1 min-w-0 pt-[56px] ${!isMobile ? 'lg:pr-64' : ''}`}
+          style={{ background: 'var(--surface-app-bg)', color: 'var(--text-primary)' }}
         >
           {children}
         </main>
@@ -270,7 +270,7 @@ export function AppShell({ children, footer }: AppShellProps) {
 
       {/* USER-SPECIFIC PAGES LIVE HERE (desktop) - FIXED alongside bottom nav */}
       {!isMobile && (
-        <aside className="hidden lg:block fixed right-0 bottom-0 w-80 overflow-y-auto z-40" style={{ background: 'var(--surface-intermediate)', height: 'calc(100vh - 56px - 68px)', top: '56px' }}>
+        <aside className="hidden lg:block fixed right-0 bottom-0 w-64 overflow-y-auto z-40" style={{ background: 'var(--surface-intermediate)', height: 'calc(100vh - 56px - 68px)', top: '56px', color: 'var(--text-primary)' }}>
           {/* On desktop, keep the global footer only at the bottom of the shell;
              the tools panel shows account tools without duplicating legal copy. */}
           <RightToolsPanel />
@@ -286,7 +286,7 @@ export function AppShell({ children, footer }: AppShellProps) {
       {/* Desktop-only legal footer sits below the bottom nav so the
           site still feels app-like while keeping legal links visible. */}
       {!isMobile && footer && (
-        <div className="border-t" style={{ borderColor: 'var(--border-secondary)', background: 'var(--charcoal-900)' }}>
+        <div className="border-t" style={{ borderColor: 'var(--border-secondary)', background: 'var(--surface-app-bg)' }}>
           {footer}
         </div>
       )}

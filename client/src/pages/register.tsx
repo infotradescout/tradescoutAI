@@ -132,7 +132,7 @@ export default function Register() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-[#0a0f1e] via-[#020617] to-[#020617] flex items-center justify-center px-4 py-10 text-tsTextMain">
+    <div className="min-h-screen bg-gradient-to-b from-tsBg via-slate-950 to-tsBg flex items-center justify-center px-4 py-10 text-tsTextMain">
       <div className="max-w-5xl w-full grid grid-cols-1 lg:grid-cols-[1.1fr_minmax(0,1fr)] gap-8">
         <div className="space-y-6">
           <Link href="/">
@@ -196,7 +196,7 @@ export default function Register() {
           </CardHeader>
 
           <CardContent>
-            <div className="bg-[#0b1224] border border-tsBorder rounded-xl p-4 mb-5">
+            <div className="bg-tsBg border border-tsBorder rounded-xl p-4 mb-5">
               <div className="text-sm text-slate-300">Continue with</div>
               <div className="mt-3 grid grid-cols-1 gap-2">
                 <button
@@ -459,7 +459,7 @@ export default function Register() {
                 </p>
               </div>
 
-              <div className="mt-4 p-4 bg-[#0b1224] border border-tsBorder rounded-lg">
+              <div className="mt-4 p-4 bg-tsBg border border-tsBorder rounded-lg">
                 <p className="text-xs text-tsTextMuted">
                   <strong className="text-tsTextMain">Why join TradeScout?</strong>{" "}
                   Your profile replaces a website: colors, roles, and your area are all baked in. Scout uses this to tune

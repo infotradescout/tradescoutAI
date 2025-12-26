@@ -42,7 +42,13 @@ export function MobileAppBar() {
   return (
     <>
       {/* Mobile Bottom Navigation */}
-      <div className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-navy-900/95 backdrop-blur-lg border-t border-navy-700">
+      <div
+        className="md:hidden fixed bottom-0 left-0 right-0 z-40 glass-bottom-nav border-t border-navy-700"
+        style={{
+          paddingBottom: "env(safe-area-inset-bottom)",
+          height: "calc(var(--bottom-nav-height, 64px) + env(safe-area-inset-bottom))",
+        }}
+      >
         <div className="flex items-center justify-around py-2 px-1">
           {mobileNavItems.map((item) => {
             // Skip auth-required items if not authenticated

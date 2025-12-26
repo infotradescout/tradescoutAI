@@ -48,7 +48,8 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
             textSecondary: scheme.text,
             accentPrimary: scheme.primary,
             accentSecondary: scheme.secondary || scheme.primary,
-            border: scheme.border || scheme.background,
+            borderPrimary: scheme.border || scheme.background,
+            borderSecondary: scheme.secondary || scheme.background,
           },
         };
         return { theme: themeFromProfile, custom: preferenceScheme.preset === 'custom' ? preferenceScheme : null, themeId: preferenceScheme.preset || 'profile-theme' };

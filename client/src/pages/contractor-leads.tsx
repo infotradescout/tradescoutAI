@@ -87,7 +87,7 @@ const ContractorLeads = memo(function ContractorLeads() {
   const pendingReplies = (data?.conversations ?? []).filter((c) => c.status !== 'closed').length;
 
   return (
-    <div className="min-h-screen bg-[#0f1419] pb-20 lg:pb-0">
+    <div className="min-h-screen bg-tsBg pb-20 lg:pb-0">
       <div className="container mx-auto px-4 py-6 lg:py-10">
         <div className="max-w-6xl mx-auto">
           {/* Header */}
@@ -104,7 +104,7 @@ const ContractorLeads = memo(function ContractorLeads() {
                   </p>
                 </div>
               </div>
-              <Button variant="outline" className="border-[#2d3748] text-slate-300 hover:bg-[#0f1419]">
+              <Button variant="outline" className="border-tsBorder text-slate-300 hover:bg-tsBg">
                 <Filter className="h-4 w-4 mr-2" />
                 Filters
               </Button>
@@ -113,7 +113,7 @@ const ContractorLeads = memo(function ContractorLeads() {
 
           {/* Stats Cards */}
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
-            <Card className="bg-[#1a2332] border-[#2d3748]">
+            <Card className="bg-tsCard border-tsBorder">
               <CardContent className="pt-6">
                 <div className="text-center">
                   <p className="text-3xl font-bold text-orange-500 mb-1">
@@ -123,7 +123,7 @@ const ContractorLeads = memo(function ContractorLeads() {
                 </div>
               </CardContent>
             </Card>
-            <Card className="bg-[#1a2332] border-[#2d3748]">
+            <Card className="bg-tsCard border-tsBorder">
               <CardContent className="pt-6">
                 <div className="text-center">
                   <p className="text-3xl font-bold text-green-500 mb-1">
@@ -133,7 +133,7 @@ const ContractorLeads = memo(function ContractorLeads() {
                 </div>
               </CardContent>
             </Card>
-            <Card className="bg-[#1a2332] border-[#2d3748]">
+            <Card className="bg-tsCard border-tsBorder">
               <CardContent className="pt-6">
                 <div className="text-center">
                   <p className="text-3xl font-bold text-blue-500 mb-1">
@@ -143,7 +143,7 @@ const ContractorLeads = memo(function ContractorLeads() {
                 </div>
               </CardContent>
             </Card>
-            <Card className="bg-[#1a2332] border-[#2d3748]">
+            <Card className="bg-tsCard border-tsBorder">
               <CardContent className="pt-6">
                 <div className="text-center">
                   <p className="text-3xl font-bold text-yellow-500 mb-1">
@@ -158,7 +158,7 @@ const ContractorLeads = memo(function ContractorLeads() {
           {/* Leads List */}
           <div className="space-y-4">
             {!isLoading && leads.length === 0 && (
-              <Card className="bg-[#1a2332] border-[#2d3748] shadow-xl">
+              <Card className="bg-tsCard border-tsBorder shadow-xl">
                 <CardContent className="pt-12 pb-12 text-center">
                   <TrendingUp className="h-16 w-16 text-slate-600 mx-auto mb-4" />
                   <h2 className="text-2xl font-bold text-white mb-2">No Projects Available</h2>
@@ -170,8 +170,8 @@ const ContractorLeads = memo(function ContractorLeads() {
             )}
 
             {leads.map((lead) => (
-              <Card key={lead.id} className="bg-[#1a2332] border-[#2d3748] shadow-xl hover:border-orange-500/30 transition-all">
-                <CardHeader className="border-b border-[#2d3748] pb-4">
+              <Card key={lead.id} className="bg-tsCard border-tsBorder shadow-xl hover:border-orange-500/30 transition-all">
+                <CardHeader className="border-b border-tsBorder pb-4">
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
                       <div className="flex items-center gap-3 mb-2">
@@ -236,10 +236,10 @@ const ContractorLeads = memo(function ContractorLeads() {
                       <MessageSquare className="h-4 w-4 mr-2" />
                       Respond to Project
                     </Button>
-                    <Button variant="outline" className="border-[#2d3748] text-slate-300 hover:bg-[#0f1419]">
+                    <Button variant="outline" className="border-tsBorder text-slate-300 hover:bg-tsBg">
                       View Details
                     </Button>
-                    <Button variant="outline" className="border-[#2d3748] text-slate-300 hover:bg-[#0f1419]">
+                    <Button variant="outline" className="border-tsBorder text-slate-300 hover:bg-tsBg">
                       Save for Later
                     </Button>
                   </div>

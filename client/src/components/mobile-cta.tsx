@@ -110,8 +110,9 @@ export default function MobileCTA() {
         className={`fixed bottom-0 left-0 right-0 z-50 md:hidden transition-transform duration-300 ${
           isVisible ? 'translate-y-0' : 'translate-y-full'
         }`}
+          style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
       >
-        <div className="bg-navy-800/95 backdrop-blur-sm border-t border-navy-600 p-4">
+        <div className="bg-navy-800/95 glass-bottom-cta border-t border-navy-600 p-4">
           <Sheet open={isQuoteSheetOpen} onOpenChange={setIsQuoteSheetOpen}>
             <SheetTrigger asChild>
               <Button

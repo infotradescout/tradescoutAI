@@ -61,7 +61,7 @@ export function FloatingHelpButton() {
             exit={{ opacity: 0, scale: 0.8, y: 20 }}
             className="absolute bottom-16 right-0 w-80"
           >
-            <Card className="bg-slate-800/95 border-slate-600 backdrop-blur-sm">
+            <Card className="ts-surface border-slate-600 bg-slate-800/95">
               <CardContent className="p-4">
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="font-semibold text-white">TradeScout Help</h3>

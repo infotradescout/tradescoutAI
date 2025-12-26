@@ -74,36 +74,38 @@ const COMMUNITY_BUILDER_BADGE_LABEL = "Community Builder Badge";
 function renderUserBadge(badge: string) {
   const lower = badge.toLowerCase();
 
-  let backgroundClass = "bg-slate-700";
-  let textClass = "text-white";
+  let backgroundClass = "";
+  let textClass = "";
   let Icon: React.ComponentType<any> = Award;
   let labelText = badge;
 
   if (badge.startsWith("Founder")) {
-    backgroundClass = "bg-emerald-500";
+    backgroundClass = "bg-[color:var(--user-primary, var(--theme-accent-primary))]";
     Icon = Award;
   } else if (lower.includes("community builder")) {
-    backgroundClass = "bg-orange-500";
+    backgroundClass = "bg-[color:var(--user-accent,var(--theme-accent-primary))]";
     Icon = Award;
     labelText = "Community Builder";
   } else if (lower.includes("affiliate")) {
-    backgroundClass = "bg-purple-600";
+    backgroundClass = "bg-[color:var(--user-secondary,var(--theme-accent-secondary))]";
     Icon = Share2;
   } else if (lower.includes("hoa")) {
-    backgroundClass = "bg-sky-600";
+    backgroundClass = "bg-[color:var(--user-secondary,var(--theme-accent-secondary))]";
     Icon = Building;
   } else if (lower.includes("admin") || lower.includes("moderator")) {
-    backgroundClass = "bg-rose-600";
+    backgroundClass = "bg-[color:var(--user-accent,var(--theme-accent-primary))]";
     Icon = Shield;
   } else {
-    backgroundClass = "bg-tsAccent";
+    backgroundClass = "bg-[color:var(--user-primary,var(--theme-accent-primary))]";
     Icon = Star;
   }
+  textClass = "text-[color:var(--user-text,var(--text-primary))]";
 
   return (
     <Badge
       key={badge}
       className={`${backgroundClass} ${textClass} px-3 py-1 flex items-center gap-1`}
+      style={{ background: 'var(--user-primary, var(--theme-accent-primary))', color: 'var(--user-text, var(--text-primary))' }}
     >
       <Icon className="h-3 w-3" />
       <span>{labelText}</span>

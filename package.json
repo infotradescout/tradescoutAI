@@ -10,6 +10,7 @@
     "check": "tsc",
     "test": "cross-env NODE_ENV=test vitest",
     "test:run": "cross-env NODE_ENV=test vitest run",
+    "verify": "npm run check && npm run test:run && npm run audit:theme && npm run audit:blur",
     "verify:scout-tiles": "node scripts/verify-scout-tiles.js",
     "db:push": "drizzle-kit push",
     "db:push:test": "node scripts/withTestDb.mjs drizzle-kit push",
@@ -17,7 +18,8 @@
     "seed:test-user": "cross-env NODE_ENV=development tsx -r dotenv/config scripts/seed-test-user.ts",
     "seed:states": "cross-env NODE_ENV=development tsx -r dotenv/config scripts/seed-states.ts",
     "seed:counties": "cross-env NODE_ENV=development tsx -r dotenv/config scripts/seed-counties.ts",
-    "audit:theme": "powershell -ExecutionPolicy Bypass -File scripts/audit-theme-lock.ps1"
+    "audit:theme": "powershell -ExecutionPolicy Bypass -File scripts/audit-theme-lock.ps1",
+    "audit:blur": "node scripts/audit-blur-ancestors.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.37.0",

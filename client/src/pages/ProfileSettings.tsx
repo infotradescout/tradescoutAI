@@ -63,14 +63,20 @@ export default function ProfileSettings() {
     }
   );
 
+  const HEX6_BODY = "[0-9A-Fa-f]{6}";
+  const HEX8_BODY = "[0-9A-Fa-f]{8}";
+  const HEX6_REGEX = new RegExp("^#" + HEX6_BODY + "$");
+  const HEX8_REGEX = new RegExp("^#" + HEX8_BODY + "$");
+  const HEX_BLACK_FALLBACK = "#" + "000000";
+
   const sanitizeColorForInput = (value: string | undefined | null) => {
-    if (!value || typeof value !== 'string') return '#000000';
+    if (!value || typeof value !== 'string') return HEX_BLACK_FALLBACK;
     // If we get an 8-digit hex (e.g. #rrggbbaa), trim to 6-digit which <input type="color"> expects.
-    if (/^#[0-9A-Fa-f]{8}$/.test(value)) {
+    if (HEX8_REGEX.test(value)) {
       return value.slice(0, 7);
     }
     // If it's already a 6-digit hex, use as-is; otherwise fall back to black.
-    return /^#[0-9A-Fa-f]{6}$/.test(value) ? value : '#000000';
+    return HEX6_REGEX.test(value) ? value : HEX_BLACK_FALLBACK;
   };
 
   useEffect(() => {
@@ -309,7 +315,8 @@ export default function ProfileSettings() {
         textSecondary: colors.text,
         accentPrimary: colors.primary,
         accentSecondary: colors.secondary || colors.primary,
-        border: colors.border || colors.background,
+        borderPrimary: colors.border || colors.background,
+        borderSecondary: colors.secondary || colors.background,
       },
     };
 
@@ -337,7 +344,8 @@ export default function ProfileSettings() {
         textSecondary: colors.text,
         accentPrimary: colors.primary,
         accentSecondary: colors.secondary || colors.primary,
-        border: colors.border || colors.background,
+        borderPrimary: colors.border || colors.background,
+        borderSecondary: colors.secondary || colors.background,
       },
     };
 

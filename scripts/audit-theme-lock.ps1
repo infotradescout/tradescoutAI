@@ -29,6 +29,16 @@ $tsxFiles = Get-ChildItem -Path "client/src" -Recurse -Include "*.tsx" -ErrorAct
 foreach ($file in $tsxFiles) {
     $content = Get-Content $file.FullName -Raw
     $shortPath = $file.FullName -replace [regex]::Escape("$PWD\"), ""
+    $relativePath = $shortPath -replace "\\", "/"
+
+    # Path-based allowlist for safe experimentation/test surfaces
+    # Allow hex colors in clearly non-production surfaces like test-page, demo, sandbox
+    $allowHexByPath = $false
+    if ($relativePath -match '(?i)test-page' -or
+        $relativePath -match '(?i)/demo/' -or
+        $relativePath -match '(?i)/sandbox/') {
+        $allowHexByPath = $true
+    }
     
     # Skip files that are allowed exceptions
     $isAllowedFile = $false
@@ -42,13 +52,30 @@ foreach ($file in $tsxFiles) {
     if ($isAllowedFile) { continue }
     
     # Check for inline hex colors
-    $hexFindings = Select-String -Path $file.FullName -Pattern $suspiciousHex -AllMatches
-    foreach ($hit in $hexFindings) {
-        $violations += @{
-            File = $shortPath
-            Line = $hit.LineNumber
-            Type = "Inline hex color"
-            Content = $hit.Line.Trim()
+    # - Allow only when hex is used as a fallback in a CSS variable, e.g. var(--user-primary, #f97316)
+    # - Allow hex in explicitly safe test/demo/sandbox surfaces (handled via $allowHexByPath)
+    if (-not $allowHexByPath) {
+        $hexFindings = Select-String -Path $file.FullName -Pattern $suspiciousHex -AllMatches
+        foreach ($hit in $hexFindings) {
+            $line = $hit.Line
+
+            # Strip out CSS variable fallback segments like var(--user-primary, #f97316)
+            $lineWithoutVarFallbacks = [regex]::Replace(
+                $line,
+                'var\(\s*--[^,]+,\s*#[0-9a-fA-F]{6}\s*\)',
+                '',
+                'IgnoreCase'
+            )
+
+            # If any hex remains after removing var() fallbacks, treat as a real violation
+            if ($lineWithoutVarFallbacks -match $suspiciousHex) {
+                $violations += @{
+                    File = $shortPath
+                    Line = $hit.LineNumber
+                    Type = "Inline hex color"
+                    Content = $hit.Line.Trim()
+                }
+            }
         }
     }
     

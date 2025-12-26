@@ -365,10 +365,10 @@ const AppLayout = memo(function AppLayout() {
     setShowBetaNotice(false);
   };
 
-  const appBackgroundClass = 'bg-[#060b1c]';
+  const appBackgroundClass = 'bg-tsBg';
   const mainClassName = isLiteScoutRoute
-    ? 'flex-1 relative w-full bg-[#060b1c]'
-    : 'flex-1 relative w-full bg-[#060b1c]';
+    ? 'flex-1 relative w-full bg-tsBg'
+    : 'flex-1 relative w-full bg-tsBg';
 
   const ContractorsBoardLegacy = memo(function ContractorsBoardLegacy() {
     const [, setLocationInner] = useLocation();
@@ -390,23 +390,21 @@ const AppLayout = memo(function AppLayout() {
     <SimpleMobileGestures>
       <div className={`min-h-screen ${appBackgroundClass} text-tsTextMain font-sans flex flex-col`}>
         {showBetaNotice && (
-          <div className="fixed bottom-24 right-4 z-50 max-w-sm rounded-2xl border border-orange-400/50 bg-slate-950/95 shadow-2xl shadow-orange-500/20 p-4 text-sm text-gray-100">
-            <div className="flex items-start gap-3">
-              <div className="mt-0.5 h-2 w-2 rounded-full bg-orange-400 shadow-[0_0_0_4px_rgba(249,115,22,0.25)]" />
-              <div className="space-y-1">
-                <p className="text-orange-200 font-semibold">TradeScout is in active beta</p>
-                <p className="text-gray-300 leading-relaxed">
-                  You may encounter rough edges, non-working features, or intermittent errors. Add TradeScout to your home screen from your browser so it lives like an app, and please share issues so we can polish fast.
-                </p>
-              </div>
+          <div className="fixed left-1/2 bottom-24 z-50 max-w-md w-full -translate-x-1/2 rounded-2xl border border-orange-400/70 bg-[color:var(--surface-card)] shadow-2xl shadow-orange-500/20 p-5 text-sm text-[color:var(--text-main)] flex flex-col items-center justify-center">
+            <div className="flex items-center gap-3 w-full justify-center">
+              <div className="h-2 w-2 rounded-full bg-orange-400 shadow-[0_0_0_4px_rgba(249,115,22,0.25)]" />
+              <p className="text-orange-600 font-semibold">TradeScout is in active beta</p>
               <button
                 aria-label="Dismiss beta notice"
                 onClick={dismissBetaNotice}
-                className="ml-auto text-gray-400 hover:text-white transition"
+                className="ml-auto text-gray-400 hover:text-orange-600 transition"
               >
                 <X className="h-4 w-4" />
               </button>
             </div>
+            <p className="text-gray-700 dark:text-gray-300 leading-relaxed mt-2 text-center">
+              You may encounter rough edges, non-working features, or intermittent errors. Add TradeScout to your home screen from your browser so it lives like an app, and please share issues so we can polish fast.
+            </p>
           </div>
         )}
 

@@ -23,6 +23,8 @@ import {
   Factory,
   Filter,
   Gavel,
+  Eye,
+  Heart,
   HeartHandshake,
   HelpCircle,
   Info,
@@ -32,6 +34,13 @@ import {
   Plus,
   Search,
   ShieldCheck,
+  Star,
+  Share2,
+  MessageSquare,
+  Copy,
+  Building,
+  Clock,
+  ExternalLink,
   Tag,
   TrendingUp,
   Upload as UploadIcon,
@@ -171,7 +180,7 @@ export default function Exchange() {
   const [dealType, setDealType] = useState("");
   const [salesSortBy, setSalesSortBy] = useState("newest");
 
-  const [route] = useLocation();
+  const [route, navigate] = useLocation();
 
   const locationCtx = useLocationContext();
   const stateCode = locationCtx.stateCode as string | undefined;
@@ -316,7 +325,7 @@ export default function Exchange() {
       'good': 'bg-yellow-500',
       'fair': 'bg-orange-500'
     };
-    return colors[condition as keyof typeof colors] || 'bg-[#0f1419]0';
+    return colors[condition as keyof typeof colors] || 'bg-tsBg/10';
   };
 
   const shareLink = async (url: string, title: string, text?: string) => {
@@ -384,6 +393,47 @@ export default function Exchange() {
     if (loc) setSellLocation(loc);
   }, [route]);
 
+  const hasLocationContext = Boolean(stateCode || county);
+
+  if (!hasLocationContext) {
+    if (import.meta.env.DEV) {
+      // Dev-only signal so we notice when Exchange is rendered
+      // without a usable location context.
+      console.warn("[Exchange] Rendered without location context. Check useLocationContext/Auth wiring.", {
+        userId: user?.id,
+        rawLocationContext: locationCtx,
+      });
+    }
+
+    return (
+      <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+        <Card className="ts-surface border-slate-700">
+          <CardContent className="p-6 space-y-4">
+            <div className="space-y-3">
+              <h1 className="text-2xl font-semibold text-white">Set your location to view Exchange</h1>
+              <p className="text-sm text-slate-300">
+                Exchange runs on local trust. Choose your state and county so we can show listings and promotions from
+                the right community.
+              </p>
+              <p className="text-xs text-slate-400">
+                Scout and the rest of the app will use this same location to keep everything in sync.
+              </p>
+            </div>
+            <div>
+              <Button
+                type="button"
+                onClick={() => navigate("/settings")}
+                className="bg-orange-500 hover:bg-orange-600 text-black font-semibold px-4 py-2 rounded-md"
+              >
+                Open location settings
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <div className="mb-8">
@@ -392,7 +442,7 @@ export default function Exchange() {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4 mb-5 bg-[#1a2332] border border-slate-700 rounded-xl overflow-hidden text-[11px] sm:text-xs">
+        <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4 mb-5 bg-tsCard border border-tsBorder rounded-xl overflow-hidden text-[11px] sm:text-xs">
           <TabsTrigger
             value="browse"
             className="flex items-center justify-center px-2.5 py-2 text-slate-300 data-[state=active]:text-white data-[state=active]:bg-slate-700"
@@ -423,7 +473,7 @@ export default function Exchange() {
 
         <TabsContent value="browse" className="space-y-6">
           {/* Search and Filters */}
-          <Card className="bg-[#1a2332] border-slate-700">
+          <Card className="bg-tsCard border-tsBorder">
             <CardContent className="p-6">
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
                 <div className="relative">
@@ -440,7 +490,7 @@ export default function Exchange() {
                   <SelectTrigger className="bg-slate-700 border-slate-600 text-white">
                     <SelectValue placeholder="Category" />
                   </SelectTrigger>
-                  <SelectContent className="bg-[#1a2332] border-slate-700">
+                  <SelectContent className="bg-tsCard border-tsBorder">
                     <SelectItem value="all">All Categories</SelectItem>
                     {EXCHANGE_CATEGORIES.map(category => (
                       <SelectItem key={category.id} value={category.id}>
@@ -454,7 +504,7 @@ export default function Exchange() {
                   <SelectTrigger className="bg-slate-700 border-slate-600 text-white">
                     <SelectValue placeholder="Price Range" />
                   </SelectTrigger>
-                  <SelectContent className="bg-[#1a2332] border-slate-700">
+                  <SelectContent className="bg-tsCard border-tsBorder">
                     <SelectItem value="any">Any Price</SelectItem>
                     <SelectItem value="0-1000">Under $1K</SelectItem>
                     <SelectItem value="1000-5000">$1K - $5K</SelectItem>
@@ -468,7 +518,7 @@ export default function Exchange() {
                   <SelectTrigger className="bg-slate-700 border-slate-600 text-white">
                     <SelectValue placeholder="Condition" />
                   </SelectTrigger>
-                  <SelectContent className="bg-[#1a2332] border-slate-700">
+                  <SelectContent className="bg-tsCard border-tsBorder">
                     <SelectItem value="any">Any Condition</SelectItem>
                     <SelectItem value="new">New</SelectItem>
                     <SelectItem value="like-new">Like New</SelectItem>
@@ -481,7 +531,7 @@ export default function Exchange() {
                   <SelectTrigger className="bg-slate-700 border-slate-600 text-white">
                     <SelectValue placeholder="Sort By" />
                   </SelectTrigger>
-                  <SelectContent className="bg-[#1a2332] border-slate-700">
+                  <SelectContent className="bg-tsCard border-tsBorder">
                     <SelectItem value="newest">Newest First</SelectItem>
                     <SelectItem value="price-low">Price: Low to High</SelectItem>
                     <SelectItem value="price-high">Price: High to Low</SelectItem>
@@ -496,7 +546,7 @@ export default function Exchange() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
             {isLoading ? (
               Array.from({ length: 8 }).map((_, i) => (
-                <Card key={i} className="bg-[#1a2332] border-slate-700 animate-pulse">
+                <Card key={i} className="bg-tsCard border-tsBorder animate-pulse">
                   <div className="h-48 bg-slate-700 rounded-t-lg"></div>
                   <CardContent className="p-4">
                     <div className="h-4 bg-slate-700 rounded mb-2"></div>
@@ -509,7 +559,7 @@ export default function Exchange() {
               filteredItems.map((item) => {
                 const IconComponent = getCategoryIcon(item.category);
                 return (
-                  <Card key={item.id} className="bg-[#1a2332] border-slate-700 hover:border-orange-500/50 transition-colors cursor-pointer">
+                  <Card key={item.id} className="bg-tsCard border-tsBorder hover:border-orange-500/50 transition-colors cursor-pointer">
                     <div className="relative">
                       {item.images && item.images.length > 0 ? (
                         <div className="h-48 bg-slate-900 rounded-t-lg overflow-hidden">
@@ -603,7 +653,7 @@ export default function Exchange() {
 
         <TabsContent value="sales" className="space-y-6">
           {/* Sales and Deals Search */}
-          <Card className="bg-[#1a2332] border-slate-700">
+          <Card className="bg-tsCard border-tsBorder">
             <CardContent className="p-6">
               <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                 <div className="relative">
@@ -620,7 +670,7 @@ export default function Exchange() {
                   <SelectTrigger className="bg-slate-700 border-slate-600 text-white">
                     <SelectValue placeholder="Category" />
                   </SelectTrigger>
-                  <SelectContent className="bg-[#1a2332] border-slate-700">
+                  <SelectContent className="bg-tsCard border-tsBorder">
                     <SelectItem value="all">All Categories</SelectItem>
                     <SelectItem value="tools">Tools & Hardware</SelectItem>
                     <SelectItem value="lumber">Lumber & Materials</SelectItem>
@@ -635,7 +685,7 @@ export default function Exchange() {
                   <SelectTrigger className="bg-slate-700 border-slate-600 text-white">
                     <SelectValue placeholder="Deal Type" />
                   </SelectTrigger>
-                  <SelectContent className="bg-[#1a2332] border-slate-700">
+                  <SelectContent className="bg-tsCard border-tsBorder">
                     <SelectItem value="all">All Deals</SelectItem>
                     <SelectItem value="percentage_off">Percentage Off</SelectItem>
                     <SelectItem value="dollar_off">Dollar Amount Off</SelectItem>
@@ -649,7 +699,7 @@ export default function Exchange() {
                   <SelectTrigger className="bg-slate-700 border-slate-600 text-white">
                     <SelectValue placeholder="Sort By" />
                   </SelectTrigger>
-                  <SelectContent className="bg-[#1a2332] border-slate-700">
+                  <SelectContent className="bg-tsCard border-tsBorder">
                     <SelectItem value="newest">Newest First</SelectItem>
                     <SelectItem value="ending_soon">Ending Soon</SelectItem>
                     <SelectItem value="biggest_savings">Biggest Savings</SelectItem>
@@ -675,7 +725,7 @@ export default function Exchange() {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {contractorPromosLoading ? (
                 Array.from({ length: 6 }).map((_, i) => (
-                  <Card key={i} className="bg-[#1a2332] border-slate-700 animate-pulse">
+                  <Card key={i} className="bg-tsCard border-tsBorder animate-pulse">
                     <CardContent className="p-6">
                       <div className="h-4 bg-slate-600 rounded mb-4"></div>
                       <div className="h-6 bg-slate-600 rounded mb-2"></div>
@@ -686,7 +736,7 @@ export default function Exchange() {
                 ))
               ) : contractorPromos && contractorPromos.length > 0 ? (
                 contractorPromos.map((promo) => (
-                  <Card key={promo.id} className="bg-[#1a2332] border-slate-700 hover:border-orange-500/50 transition-colors">
+                  <Card key={promo.id} className="bg-tsCard border-tsBorder hover:border-orange-500/50 transition-colors">
                     <CardContent className="p-6">
                       <div className="flex items-start justify-between mb-4">
                         <div className="flex items-center">
@@ -791,7 +841,7 @@ export default function Exchange() {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {companyPromotionsLoading ? (
                 Array.from({ length: 6 }).map((_, i) => (
-                  <Card key={i} className="bg-[#1a2332] border-slate-700 animate-pulse">
+                  <Card key={i} className="bg-tsCard border-tsBorder animate-pulse">
                     <CardContent className="p-6">
                       <div className="h-16 bg-slate-600 rounded mb-4"></div>
                       <div className="h-6 bg-slate-600 rounded mb-2"></div>
@@ -802,11 +852,11 @@ export default function Exchange() {
                 ))
               ) : companyPromotions && companyPromotions.length > 0 ? (
                 companyPromotions.map((promotion) => (
-                  <Card key={promotion.id} className="bg-[#1a2332] border-slate-700 hover:border-blue-500/50 transition-colors">
+                  <Card key={promotion.id} className="bg-tsCard border-tsBorder hover:border-blue-500/50 transition-colors">
                     <CardContent className="p-6">
                       <div className="flex items-start justify-between mb-4">
                         <div className="flex items-center">
-                          <div className="w-16 h-16 bg-[#0f1419] rounded-lg flex items-center justify-center mr-3">
+                          <div className="w-16 h-16 bg-tsBg rounded-lg flex items-center justify-center mr-3">
                             {promotion.companyLogo ? (
                               <img src={promotion.companyLogo} alt={promotion.companyName} className="w-12 h-12 object-contain" />
                             ) : (
@@ -905,7 +955,7 @@ export default function Exchange() {
             {EXCHANGE_CATEGORIES.map((category) => {
               const IconComponent = category.icon;
               return (
-                <Card key={category.id} className="bg-[#1a2332] border-slate-700 hover:border-orange-500/50 transition-colors cursor-pointer"
+                <Card key={category.id} className="bg-tsCard border-tsBorder hover:border-orange-500/50 transition-colors cursor-pointer"
                       onClick={() => {
                         setSelectedCategory(category.id);
                         setActiveTab("browse");
@@ -928,7 +978,7 @@ export default function Exchange() {
         </TabsContent>
 
         <TabsContent value="sell" className="space-y-6">
-          <Card className="bg-[#1a2332] border-slate-700">
+          <Card className="bg-tsCard border-tsBorder">
             <CardHeader>
               <CardTitle className="text-white">List Your Item</CardTitle>
               <p className="text-gray-400">Create a clear, trustworthy listing for other TradeScout members</p>
@@ -956,7 +1006,7 @@ export default function Exchange() {
                       <SelectTrigger className="bg-slate-700 border-slate-600 text-white">
                         <SelectValue placeholder="Select category" />
                       </SelectTrigger>
-                      <SelectContent className="bg-[#1a2332] border-slate-700">
+                      <SelectContent className="bg-tsCard border-tsBorder">
                         {EXCHANGE_CATEGORIES.map(category => (
                           <SelectItem key={category.id} value={category.id}>
                             {category.name}
@@ -987,7 +1037,7 @@ export default function Exchange() {
                       <SelectTrigger className="bg-slate-700 border-slate-600 text-white">
                         <SelectValue placeholder="Select condition" />
                       </SelectTrigger>
-                      <SelectContent className="bg-[#1a2332] border-slate-700">
+                      <SelectContent className="bg-tsCard border-tsBorder">
                         <SelectItem value="new">New</SelectItem>
                         <SelectItem value="like-new">Like New</SelectItem>
                         <SelectItem value="good">Good</SelectItem>

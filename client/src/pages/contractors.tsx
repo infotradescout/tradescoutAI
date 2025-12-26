@@ -39,7 +39,7 @@ export default function ForContractors() {
   const totalContractorCount = allContractors?.length || 0;
 
   return (
-    <div className="min-h-screen bg-[#0f1419]">
+    <div className="min-h-screen bg-tsBg">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         {/* Header */}
         <div className="text-center mb-12">
@@ -50,7 +50,7 @@ export default function ForContractors() {
             Access exclusive resources, join our accelerator program, and connect with homeowners 
             looking for quality contractors in your area.
           </p>
-          <div className="inline-flex items-center px-4 py-2 bg-[#1a2332] rounded-full border border-[#2d3748]">
+          <div className="inline-flex items-center px-4 py-2 bg-tsCard rounded-full border border-tsBorder">
             <Users className="h-5 w-5 text-orange-500 mr-2" />
             <span className="text-gray-300">
               Connect with verified, local contractors for your next project
@@ -66,7 +66,7 @@ export default function ForContractors() {
         {/* Main Content Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-12">
           {/* Free Growth Pack */}
-          <Card className="bg-[#1a2332] border-[#2d3748] glow-effect">
+          <Card className="bg-tsCard border-tsBorder glow-effect">
             <CardHeader>
               <div className="flex items-center justify-between">
                 <CardTitle className="text-2xl font-bold text-orange-500 flex items-center">
@@ -171,7 +171,7 @@ export default function ForContractors() {
 
         {/* Additional Features */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
-          <Card className="bg-navy-700 border-[#2d3748] hover:border-orange-500/50 transition-colors">
+          <Card className="bg-tsCard border-tsBorder hover:border-orange-500/50 transition-colors">
             <CardContent className="p-6 text-center">
               <Briefcase className="h-12 w-12 text-orange-500 mx-auto mb-4" />
               <h3 className="text-lg font-semibold text-orange-500 mb-2">Contractor Dashboard</h3>
@@ -194,7 +194,7 @@ export default function ForContractors() {
             </CardContent>
           </Card>
 
-          <Card className="bg-navy-700 border-[#2d3748] hover:border-orange-500/50 transition-colors">
+          <Card className="bg-tsCard border-tsBorder hover:border-orange-500/50 transition-colors">
             <CardContent className="p-6 text-center">
               <DollarSign className="h-12 w-12 text-green-500 mx-auto mb-4" />
               <h3 className="text-lg font-semibold text-orange-500 mb-2">Find Homeowners</h3>
@@ -209,7 +209,7 @@ export default function ForContractors() {
             </CardContent>
           </Card>
 
-          <Card className="bg-navy-700 border-[#2d3748] hover:border-orange-500/50 transition-colors">
+          <Card className="bg-tsCard border-tsBorder hover:border-orange-500/50 transition-colors">
             <CardContent className="p-6 text-center">
               <FileText className="h-12 w-12 text-blue-500 mx-auto mb-4" />
               <h3 className="text-lg font-semibold text-orange-500 mb-2">Business Resources</h3>

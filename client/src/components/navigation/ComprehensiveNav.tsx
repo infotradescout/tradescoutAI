@@ -111,7 +111,7 @@ const ALL_NAVIGATION: NavItem[] = [
     icon: Hammer,
     children: [
       { label: 'Find Contractors', href: '/contractors', icon: Search },
-      { label: 'Scout Estimates', href: '/scout?intent=estimate', icon: Calculator },
+      // { label: 'Scout Estimates', href: '/scout?intent=estimate', icon: Calculator }, // Hidden from nav, contextual only
       { label: 'Top Contractors', href: '/contractors/top', icon: Award },
     ],
   },
@@ -186,6 +186,7 @@ const ALL_NAVIGATION: NavItem[] = [
       { label: 'Mortgage Application', href: '/mortgage-broker-application', icon: UserPlus },
       { label: 'Property Manager Dashboard', href: '/property-manager-dashboard', icon: Building2, roles: ['property_manager'] },
       { label: 'Property Manager Application', href: '/property-manager-application', icon: UserPlus },
+      // Calculator and financial tools hidden from nav, contextual only
     ],
   },
 
