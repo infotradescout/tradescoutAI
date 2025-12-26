@@ -101,9 +101,9 @@ const BusinessProfileModal: React.FC<BusinessProfileModalProps> = ({ isOpen, onC
     };
 
     return (
-        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex justify-center items-center p-4" aria-modal="true" role="dialog">
-            <div className="bg-white rounded-lg shadow-xl w-full max-w-lg p-6 relative animate-fade-in-up">
-                <button onClick={onClose} className="absolute top-4 right-4 text-slate-500 hover:text-slate-800">
+        <div className="fixed inset-0 bg-overlay/80 z-50 flex justify-center items-center p-4" aria-modal="true" role="dialog">
+            <div className="bg-surface rounded-lg shadow-xl w-full max-w-lg p-6 relative animate-fade-in-up">
+                <button onClick={onClose} className="absolute top-4 right-4 text-muted-foreground hover:text-foreground">
                     <XIcon className="w-6 h-6" />
                 </button>
 
@@ -111,27 +111,27 @@ const BusinessProfileModal: React.FC<BusinessProfileModalProps> = ({ isOpen, onC
                     <>
                         {step === 1 && (
                             <form onSubmit={handleSendCode}>
-                                <h2 className="text-2xl font-bold text-slate-800 mb-2">Claim This Business</h2>
-                                <p className="text-slate-600 mb-4">
+                                <h2 className="text-2xl font-bold text-foreground mb-2">Claim This Business</h2>
+                                <p className="text-muted-foreground mb-4">
                                     To verify your ownership of <strong>{contractor.name}</strong>, we need to send a verification code to your business email.
                                 </p>
                                 
                                 <div className="mb-4">
-                                    <label className="block text-sm font-medium text-slate-700 mb-1">Business Email Address</label>
+                                    <label className="block text-sm font-medium text-muted-foreground mb-1">Business Email Address</label>
                                     <input 
                                         type="email" 
                                         required 
                                         placeholder="you@business.com"
                                         value={verificationEmail}
                                         onChange={e => setVerificationEmail(e.target.value)}
-                                        className="w-full border border-slate-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white text-slate-800"
+                                        className="w-full border border-border rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary bg-surface text-foreground"
                                     />
                                 </div>
 
                                 <button 
                                     type="submit" 
                                     disabled={isLoading}
-                                    className="w-full bg-indigo-600 text-white font-bold py-2 px-4 rounded-md hover:bg-indigo-700 disabled:bg-indigo-400 flex items-center justify-center"
+                                    className="w-full bg-primary text-primary-foreground font-bold py-2 px-4 rounded-md hover:bg-primary/90 disabled:bg-primary/50 flex items-center justify-center"
                                 >
                                     {isLoading ? 'Sending...' : 'Send Verification Code'}
                                 </button>
@@ -140,15 +140,15 @@ const BusinessProfileModal: React.FC<BusinessProfileModalProps> = ({ isOpen, onC
 
                         {step === 2 && (
                             <form onSubmit={handleVerifyCode}>
-                                <h2 className="text-2xl font-bold text-slate-800 mb-2">Check Your Email</h2>
-                                <div className="bg-blue-50 p-4 rounded-md mb-4 border border-blue-100">
+                                <h2 className="text-2xl font-bold text-foreground mb-2">Check Your Email</h2>
+                                <div className="bg-info/10 p-4 rounded-md mb-4 border border-info/20">
                                     <div className="flex items-start">
-                                        <EnvelopeIcon className="w-5 h-5 text-blue-600 mt-0.5 mr-2" />
+                                        <EnvelopeIcon className="w-5 h-5 text-info mt-0.5 mr-2" />
                                         <div>
-                                            <p className="text-sm text-blue-800">
+                                            <p className="text-sm text-info-foreground">
                                                 We've sent a verification code to <strong>{verificationEmail}</strong>.
                                             </p>
-                                            <p className="text-xs text-blue-600 mt-2 font-mono bg-white inline-block px-2 py-1 rounded border border-blue-200">
+                                            <p className="text-xs text-info mt-2 font-mono bg-surface inline-block px-2 py-1 rounded border border-info/30">
                                                 Demo Code: {generatedCode}
                                             </p>
                                         </div>
@@ -156,7 +156,7 @@ const BusinessProfileModal: React.FC<BusinessProfileModalProps> = ({ isOpen, onC
                                 </div>
                                 
                                 <div className="mb-4">
-                                    <label className="block text-sm font-medium text-slate-700 mb-1">Enter 6-Digit Code</label>
+                                    <label className="block text-sm font-medium text-muted-foreground mb-1">Enter 6-Digit Code</label>
                                     <input 
                                         type="text" 
                                         required 
