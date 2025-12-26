@@ -65,7 +65,7 @@ export default function HelperDashboard() {
   });
 
   return (
-    <div className="min-h-screen bg-[#0f1419] p-6">
+    <div className="min-h-screen bg-tsBg p-6">
       <div className="max-w-7xl mx-auto">
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-white">Helper Dashboard</h1>
