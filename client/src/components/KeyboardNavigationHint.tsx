@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { safeStorage } from '../utils/safeStorage';
 import { Keyboard, ChevronLeft, ChevronRight, MousePointer } from 'lucide-react';
 
 interface KeyboardNavigationHintProps {
@@ -15,7 +16,7 @@ export function KeyboardNavigationHint({ className = "" }: KeyboardNavigationHin
     if (!isDesktop) return;
 
     // Show hint for first-time desktop users
-    const hasSeenKeyboardHint = localStorage.getItem('hasSeenKeyboardNavigationHint');
+    const hasSeenKeyboardHint = safeStorage.get('hasSeenKeyboardNavigationHint');
     
     if (!hasSeenKeyboardHint) {
       // Delay showing hint slightly to avoid overwhelming new users
@@ -32,7 +33,7 @@ export function KeyboardNavigationHint({ className = "" }: KeyboardNavigationHin
       // Auto-hide after 6 seconds
       const timer = setTimeout(() => {
         setShowHint(false);
-        localStorage.setItem('hasSeenKeyboardNavigationHint', 'true');
+        safeStorage.set('hasSeenKeyboardNavigationHint', 'true');
       }, 6000);
 
       return () => clearTimeout(timer);

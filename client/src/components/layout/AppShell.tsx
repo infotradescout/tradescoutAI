@@ -17,6 +17,10 @@ import {
   CircleHelp,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
+  const { user } = useAuth();
+  // Impersonation banner logic
+  const isImpersonating = user?.isImpersonating || user?.impersonating;
+  const impersonatedUser = user?.impersonatedUser || (isImpersonating ? { name: user?.firstName + ' ' + user?.lastName, email: user?.email } : null);
 import { useHandedness } from "@/hooks/useHandedness";
 import { useIsMobile } from "@/hooks/useIsMobile";
 import { ROUTES } from "@/lib/routes";
@@ -105,20 +109,37 @@ export function AppShell({ children, footer }: AppShellProps) {
   const handedness = useHandedness();
   const [location, navigate] = useLocation();
 
+  // Set CSS variables for nav sizing (Step 2)
   useEffect(() => {
-    console.log("AppShell mounted");
+    const root = document.documentElement;
+    root.style.setProperty('--top-nav-h', '56px');
+    root.style.setProperty('--bottom-nav-h', '68px');
+    root.style.setProperty('--right-nav-w', '256px');
   }, []);
 
   return (
     <div
-      className="app-shell flex flex-col min-h-screen w-full"
+      className="app-shell relative h-full w-full overflow-hidden"
       style={{ 
         color: 'var(--text-primary)',
         paddingTop: "env(safe-area-inset-top)",
-        position: 'relative',
-        minHeight: '100dvh',
       }}
     >
+      {/* Impersonation banner (always visible, not dismissible) */}
+      {isImpersonating && impersonatedUser && (
+        <div style={{ background: '#fffbe6', color: '#ad7b00', borderBottom: '2px solid #ffe58f', padding: '10px 0', textAlign: 'center', zIndex: 9999, fontWeight: 600 }}>
+          Impersonating {impersonatedUser.name} ({impersonatedUser.email})
+          <button
+            style={{ marginLeft: 24, background: '#ffe58f', color: '#ad7b00', border: 'none', borderRadius: 4, padding: '4px 12px', fontWeight: 700, cursor: 'pointer' }}
+            onClick={async () => {
+              await fetch('/api/admin/impersonate/exit', { method: 'POST', credentials: 'include' });
+              window.location.reload();
+            }}
+          >
+            Exit impersonation
+          </button>
+        </div>
+      )}
       {/* TOP APP NAV HEADER */}
       {location.startsWith("/scout") ? (
         // Cleaner, chat-focused header for Scout: now left-aligned brand with tagline
@@ -261,20 +282,41 @@ export function AppShell({ children, footer }: AppShellProps) {
         </header>
       )}
 
-      <div className="flex flex-1 min-h-0 w-full" style={{ background: 'var(--surface-app-bg)' }}>
-        <main
-          className={`flex flex-col flex-1 min-w-0 pt-[56px] ${!isMobile ? 'lg:pr-64' : ''} overflow-y-auto`}
-          style={{ background: 'var(--surface-app-bg)', color: 'var(--text-primary)', minHeight: '0', position: 'relative', zIndex: 0 }}
-        >
-          {children}
-        </main>
-      </div>
+      {/* Main content: ONLY scroll container */}
+      <main
+        id="app-scroll-root"
+        className={`
+          absolute
+          left-0
+          right-0
+          overflow-y-auto
+          overscroll-contain
+          touch-pan-y
+        `}
+        style={{
+          top: 'var(--top-nav-h)',
+          bottom: 'var(--bottom-nav-h)',
+          paddingRight: !isMobile ? 'var(--right-nav-w)' : undefined,
+          background: 'var(--surface-app-bg)',
+          color: 'var(--text-primary)'
+        }}
+      >
+        {children}
+      </main>
 
       {/* USER-SPECIFIC PAGES LIVE HERE (desktop) - FIXED alongside bottom nav */}
       {!isMobile && (
-        <aside className="hidden lg:block fixed right-0 bottom-0 w-64 overflow-y-auto z-40" style={{ background: 'var(--surface-intermediate)', height: 'calc(100vh - 56px - 68px)', top: '56px', color: 'var(--text-primary)' }}>
-          {/* On desktop, keep the global footer only at the bottom of the shell;
-             the tools panel shows account tools without duplicating legal copy. */}
+        <aside
+          className="hidden lg:block fixed z-40"
+          style={{
+            top: 'var(--top-nav-h)',
+            bottom: 'var(--bottom-nav-h)',
+            right: 0,
+            width: 'var(--right-nav-w)',
+            background: 'var(--surface-intermediate)',
+            color: 'var(--text-primary)'
+          }}
+        >
           <RightToolsPanel />
         </aside>
       )}

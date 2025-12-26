@@ -1,4 +1,5 @@
 import { createContext, useContext, useEffect, useMemo, useState } from 'react';
+import { safeStorage } from '../utils/safeStorage';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { PRESET_THEMES, applyTheme, getThemeById, type Theme } from '@/lib/themes';
 import { apiRequest } from '@/lib/queryClient';
@@ -22,7 +23,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const savedCustomColors = useMemo(() => {
     try {
       if (user?.customThemeColors) return JSON.parse(user.customThemeColors);
-      const local = typeof window !== 'undefined' ? localStorage.getItem('customColors') : null;
+      const local = typeof window !== 'undefined' ? safeStorage.get('customColors') : null;
       return local ? JSON.parse(local) : null;
     } catch (err) {
       console.warn('Failed to parse saved custom colors', err);
@@ -56,7 +57,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
       }
 
       // Priority 2: stored theme preference / local storage
-      const savedThemeId = user?.themePreference || (typeof window !== 'undefined' ? localStorage.getItem('themeId') : null) || 'default';
+      const savedThemeId = user?.themePreference || (typeof window !== 'undefined' ? safeStorage.get('themeId') : null) || 'default';
       const baseTheme = getThemeById(savedThemeId);
 
       if (savedCustomColors) {
@@ -83,8 +84,8 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     mutationFn: async ({ themeId, colors }: { themeId: string; colors?: string }) => {
       if (!user) {
         // Save to localStorage if not logged in
-        localStorage.setItem('themeId', themeId);
-        if (colors) localStorage.setItem('customColors', colors);
+        safeStorage.set('themeId', themeId);
+        if (colors) safeStorage.set('customColors', colors);
         return null;
       }
       
@@ -106,7 +107,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     setCustomColors(null);
     applyTheme(newTheme);
     if (typeof window !== 'undefined') {
-      localStorage.setItem('themeId', themeId);
+      safeStorage.set('themeId', themeId);
       localStorage.removeItem('customColors');
     }
     saveThemeMutation.mutate({ themeId });
@@ -126,8 +127,8 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     setCustomColors(colors);
     applyTheme(customTheme);
     if (typeof window !== 'undefined') {
-      localStorage.setItem('themeId', 'custom');
-      localStorage.setItem('customColors', JSON.stringify(colors));
+      safeStorage.set('themeId', 'custom');
+      safeStorage.set('customColors', JSON.stringify(colors));
     }
     saveThemeMutation.mutate({ 
       themeId: 'custom', 
@@ -147,9 +148,9 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     setCustomColors(custom);
     applyTheme(theme);
     if (typeof window !== 'undefined') {
-      localStorage.setItem('themeId', themeId);
+      safeStorage.set('themeId', themeId);
       if (custom) {
-        localStorage.setItem('customColors', JSON.stringify(custom));
+        safeStorage.set('customColors', JSON.stringify(custom));
       } else {
         localStorage.removeItem('customColors');
       }
