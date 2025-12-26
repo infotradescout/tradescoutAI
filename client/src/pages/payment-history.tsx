@@ -47,26 +47,26 @@ interface PaymentHistoryProps {}
 const getStatusIcon = (status: string) => {
   switch (status) {
     case 'completed':
-      return <CheckCircle className="w-4 h-4 text-green-600" />;
+      return <CheckCircle className="w-4 h-4 text-tsSuccess" />;
     case 'failed':
-      return <XCircle className="w-4 h-4 text-red-600" />;
+      return <XCircle className="w-4 h-4 text-tsError" />;
     case 'processing':
-      return <RefreshCw className="w-4 h-4 text-blue-600 animate-spin" />;
+      return <RefreshCw className="w-4 h-4 text-tsWarning animate-spin" />;
     default:
-      return <Clock className="w-4 h-4 text-yellow-600" />;
+      return <Clock className="w-4 h-4 text-tsWarning" />;
   }
 };
 
 const getStatusColor = (status: string) => {
   switch (status) {
     case 'completed':
-      return 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-300';
+      return 'bg-tsSuccess text-tsSuccess';
     case 'failed':
-      return 'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-300';
+      return 'bg-tsError text-tsError';
     case 'processing':
-      return 'bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-300';
+      return 'bg-tsWarning text-tsWarning';
     default:
-      return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-300';
+      return 'bg-tsWarning text-tsWarning';
   }
 };
 
@@ -99,14 +99,13 @@ export default function PaymentHistory() {
     <div className="container mx-auto p-6 max-w-6xl">
       <div className="flex justify-between items-center mb-6">
         <div>
-          <h1 className="text-3xl font-bold">Payment History</h1>
-          <p className="text-gray-600 dark:text-gray-300">
+          <h1 className="text-3xl font-bold text-tsText">Payment History</h1>
+          <p className="text-tsTextSecondary">
             Track all your payments and transactions
           </p>
         </div>
-        
         <Select value={filterType} onValueChange={setFilterType}>
-          <SelectTrigger className="w-48">
+          <SelectTrigger className="w-48 bg-tsCard border-tsBorder text-tsText">
             <SelectValue placeholder="Filter payments" />
           </SelectTrigger>
           <SelectContent>
@@ -116,25 +115,23 @@ export default function PaymentHistory() {
           </SelectContent>
         </Select>
       </div>
-
       <Tabs defaultValue="overview" className="w-full">
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className="grid w-full grid-cols-4 bg-tsCard border-tsBorder">
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="contractor">Contractor Payments</TabsTrigger>
           <TabsTrigger value="marketplace">Marketplace</TabsTrigger>
           <TabsTrigger value="receipts">Receipts</TabsTrigger>
         </TabsList>
-
         <TabsContent value="overview" className="space-y-6">
           {/* Summary Cards */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <Card>
+            <Card className="bg-tsCard border-tsBorder">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Total Payments</CardTitle>
-                <DollarSign className="h-4 w-4 text-muted-foreground" />
+                <CardTitle className="text-sm font-medium text-tsText">Total Payments</CardTitle>
+                <DollarSign className="h-4 w-4 text-tsTextMuted" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">
+                <div className="text-2xl font-bold text-tsText">
                   ${(
                     [...contractorPayments.asHomeowner, ...contractorPayments.asContractor]
                       .filter(p => p.status === 'completed')
@@ -144,48 +141,45 @@ export default function PaymentHistory() {
                       .reduce((sum, t) => sum + Number(t.totalAmount || 0), 0)
                   ).toFixed(2)}
                 </div>
-                <p className="text-xs text-muted-foreground">
+                <p className="text-xs text-tsTextMuted">
                   Completed transactions
                 </p>
               </CardContent>
             </Card>
-
-            <Card>
+            <Card className="bg-tsCard border-tsBorder">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Contractor Services</CardTitle>
-                <Building2 className="h-4 w-4 text-muted-foreground" />
+                <CardTitle className="text-sm font-medium text-tsText">Contractor Services</CardTitle>
+                <Building2 className="h-4 w-4 text-tsTextMuted" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">
+                <div className="text-2xl font-bold text-tsText">
                   {[...contractorPayments.asHomeowner, ...contractorPayments.asContractor].length}
                 </div>
-                <p className="text-xs text-muted-foreground">
+                <p className="text-xs text-tsTextMuted">
                   Service payments
                 </p>
               </CardContent>
             </Card>
-
-            <Card>
+            <Card className="bg-tsCard border-tsBorder">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Marketplace</CardTitle>
-                <CreditCard className="h-4 w-4 text-muted-foreground" />
+                <CardTitle className="text-sm font-medium text-tsText">Marketplace</CardTitle>
+                <CreditCard className="h-4 w-4 text-tsTextMuted" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">
+                <div className="text-2xl font-bold text-tsText">
                   {[...marketplaceTransactions.asBuyer, ...marketplaceTransactions.asSeller].length}
                 </div>
-                <p className="text-xs text-muted-foreground">
+                <p className="text-xs text-tsTextMuted">
                   Item transactions
                 </p>
               </CardContent>
             </Card>
           </div>
-
           {/* Recent Activity */}
-          <Card>
+          <Card className="bg-tsCard border-tsBorder">
             <CardHeader>
-              <CardTitle>Recent Activity</CardTitle>
-              <CardDescription>Your latest payment transactions</CardDescription>
+              <CardTitle className="text-tsText">Recent Activity</CardTitle>
+              <CardDescription className="text-tsTextMuted">Your latest payment transactions</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
@@ -224,38 +218,34 @@ export default function PaymentHistory() {
                 .slice(0, 10)
                 .map((transaction, index) => (
                   <div key={`${transaction.type}-${transaction.id}-${index}`} 
-                       className="flex items-center space-x-4 p-4 border rounded-lg hover:bg-[#0f1419] dark:hover:bg-[#1a2332] transition-colors">
+                       className="flex items-center space-x-4 p-4 border-tsBorder border rounded-lg hover:bg-tsCardMuted transition-colors">
                     <div className="flex-shrink-0">
                       {transaction.role === 'homeowner' || transaction.role === 'buyer' ? (
-                        <ArrowUpRight className="w-5 h-5 text-red-500" />
+                        <ArrowUpRight className="w-5 h-5 text-tsError" />
                       ) : (
-                        <ArrowDownLeft className="w-5 h-5 text-green-500" />
+                        <ArrowDownLeft className="w-5 h-5 text-tsSuccess" />
                       )}
                     </div>
-                    
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-orange-500 truncate">
+                      <p className="text-sm font-medium text-tsText">
                         {transaction.title}
                       </p>
-                      <p className="text-sm text-gray-500 truncate">
+                      <p className="text-sm text-tsTextMuted">
                         {transaction.subtitle}
                       </p>
                     </div>
-                    
                     <div className="flex items-center space-x-3">
                       <div className="text-right">
-                        <p className="text-sm font-medium">
+                        <p className="text-sm font-medium text-tsText">
                           ${Number(transaction.totalAmount || 0).toFixed(2)}
                         </p>
-                        <p className="text-xs text-gray-500">
+                        <p className="text-xs text-tsTextMuted">
                           {formatDistance(new Date(transaction.createdAt), new Date(), { addSuffix: true })}
                         </p>
                       </div>
-                      
                       <div className="flex items-center">
                         {getStatusIcon(transaction.status)}
                       </div>
-                      
                       <Badge className={getStatusColor(transaction.status)}>
                         {transaction.status}
                       </Badge>
