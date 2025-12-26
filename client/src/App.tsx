@@ -1,4 +1,7 @@
 import React, { memo, Suspense, useEffect, useState } from 'react';
+// In-app browser detection and safe storage utilities
+import { isFacebookInAppBrowser, useInAppBrowser } from './utils/inAppBrowser';
+import { safeStorage } from './utils/safeStorage';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { Link, Router, Route, Switch, useLocation } from 'wouter';
 import { MessageCircle, SlidersHorizontal, X } from 'lucide-react';

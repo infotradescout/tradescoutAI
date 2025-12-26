@@ -47,6 +47,19 @@ interface StandaloneInvoicesResponse {
 }
 
 export default function FinancesInvoicesPage() {
+    // Workspace resolution fallback
+    // You may want to import/use useAuth or workspace context if available
+    const user = (typeof useAuth === 'function' ? useAuth()?.user : undefined) || {};
+    const workspaceId = (typeof workspace !== 'undefined' && workspace?.id) || user?.workspaceId || user?.businessId || null;
+    const isAuthenticated = Boolean(user);
+    const canLoadInvoices = isAuthenticated && Boolean(workspaceId);
+    if (!canLoadInvoices) {
+      return (
+        <div className="min-h-screen flex items-center justify-center text-center text-slate-500">
+          Create a workspace to start managing invoices.
+        </div>
+      );
+    }
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [location, navigate] = useLocation();
