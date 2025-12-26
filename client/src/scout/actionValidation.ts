@@ -49,6 +49,7 @@ const ALLOWED_NAVIGATION_PATHS = new Set([
   "/lead-management",
   "/finances",
   "/register",
+  "/create-account",
   "/login",
 ]);
 

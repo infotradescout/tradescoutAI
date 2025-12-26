@@ -77,8 +77,8 @@ export function AuthFlow({ onComplete, initialType }: AuthFlowProps) {
       await updateRoleMutation.mutateAsync(role);
 
       toast({
-        title: "Role Selected",
-        description: `Welcome to TradeScout as a ${role}!`,
+        title: "You’re almost set",
+        description: "We’ll use this to tailor your local experience.",
         variant: "default",
       });
 
@@ -117,10 +117,8 @@ export function AuthFlow({ onComplete, initialType }: AuthFlowProps) {
       });
 
       toast({
-        title: "Welcome to TradeScout!",
-        description: selectedRole === 'homeowner' 
-          ? "You can start browsing contractors. Remember to complete verification to write recommendations."
-          : "Your profile is under review. You'll be notified when you're approved for the contractor board.",
+        title: "Your account is ready",
+        description: "You can now use TradeScout for local projects, services, and community activity.",
         variant: "default",
       });
 
@@ -130,44 +128,6 @@ export function AuthFlow({ onComplete, initialType }: AuthFlowProps) {
       toast({
         title: "Error",
         description: "Failed to save your information. Please try again.",
-        variant: "destructive",
-      });
-    }
-  };
-
-  const skipOnboardingMutation = useMutation({
-    mutationFn: async (role: string) => {
-      const response = await fetch('/api/auth/skip-onboarding', {
-        method: 'POST',
-        credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ role }),
-      });
-      if (!response.ok) throw new Error('Failed to skip onboarding');
-      return response.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/auth/user'] });
-    },
-  });
-
-  const handleSkipOnboarding = async () => {
-    try {
-      if (!selectedRole) return;
-      await skipOnboardingMutation.mutateAsync(selectedRole);
-
-      toast({
-        title: "Account Created",
-        description: "You can complete your profile anytime in account settings.",
-        variant: "default",
-      });
-
-      onComplete();
-    } catch (error) {
-      console.error('Failed to skip onboarding:', error);
-      toast({
-        title: "Error",
-        description: "Failed to create account. Please try again.",
         variant: "destructive",
       });
     }
@@ -199,7 +159,7 @@ export function AuthFlow({ onComplete, initialType }: AuthFlowProps) {
           role={onboardingRole}
           userInfo={userInfo || {}}
           onComplete={handleOnboardingComplete}
-          onSkip={handleSkipOnboarding}
+          onSkip={() => {}}
         />
       );
 

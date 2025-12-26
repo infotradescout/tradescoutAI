@@ -1,31 +1,14 @@
 User-agent: *
-Allow: /
+Allow: /contractors/
+Allow: /profile/
+Allow: /community/
 
-Sitemap: https://tradescout.com/sitemap.xml
-
-# Optimize crawl budget
-Crawl-delay: 1
-
-# Prioritize important pages
-Allow: /contractors/board
-Allow: /quote
-Allow: /contractors
-Allow: /workers
-
-# Prevent crawling of admin areas
 Disallow: /admin/
+Disallow: /dashboard/
+Disallow: /settings/
+Disallow: /messages/
+Disallow: /scout/
+Disallow: /auth/
 Disallow: /api/
-Disallow: /login
-Disallow: /register
-Disallow: /profile-setup
-Disallow: /dashboard
-Disallow: /contractor-dashboard
-Disallow: /homeowner-dashboard
-Disallow: /chat/
 
-# Allow crawling of contractor profiles
-Allow: /contractors/*
-
-# Block test and temporary files
-Disallow: /*.json$
-Disallow: /*?test=*
+Sitemap: https://www.thetradescout.com/sitemap-index.xml

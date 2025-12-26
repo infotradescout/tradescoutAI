@@ -4,7 +4,7 @@ import { useLocation } from "wouter";
 export default function Signup() {
   const [, setLocation] = useLocation();
   useEffect(() => {
-    setLocation(`/register${window.location.search || ""}`);
+    setLocation(`/create-account${window.location.search || ""}`);
   }, [setLocation]);
 
   return null;

@@ -56,9 +56,16 @@ export function ProtectedRoute({
 
   // Not authenticated
   if (!isAuthenticated) {
-    setLocation('/login');
+    setLocation('/create-account');
     return null;
   }
+
+   // Authenticated but has not completed onboarding (non-admin): send to account setup
+   const isAdmin = user?.isAdmin === true;
+   if (!isAdmin && user && user.onboardingCompleted === false) {
+     setLocation('/create-account');
+     return null;
+   }
 
   // Authenticated but insufficient permissions
   if (!hasAccess) {

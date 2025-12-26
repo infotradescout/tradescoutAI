@@ -62,7 +62,7 @@ export function AuthButtons({
   };
 
   const handleEmailSignUp = () => {
-    setLocation("/register");
+    setLocation("/create-account");
   };
 
   const handleEmailLogin = () => {

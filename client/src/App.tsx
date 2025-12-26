@@ -60,6 +60,7 @@ const Login = React.lazy(() => import('./pages/login'));
 const AddressVerification = React.lazy(() => import('./pages/address-verification'));
 const Register = React.lazy(() => import('./pages/register'));
 const Signup = React.lazy(() => import('./pages/signup'));
+const CreateAccount = React.lazy(() => import('./pages/create-account'));
 
 // Contractor Features
 const ContractorApply = React.lazy(() => import('./pages/contractor-apply'));
@@ -309,7 +310,7 @@ const AppLayout = memo(function AppLayout() {
     let entryRoute: 'login' | 'register' | 'oauth' | 'other' = 'other';
     if (currentPath.startsWith('/login')) {
       entryRoute = 'login';
-    } else if (currentPath.startsWith('/register') || currentPath.startsWith('/signup')) {
+    } else if (currentPath.startsWith('/register') || currentPath.startsWith('/signup') || currentPath.startsWith('/create-account')) {
       entryRoute = 'register';
     } else if (
       currentPath.startsWith('/profile-settings') &&
@@ -462,22 +463,25 @@ const AppLayout = memo(function AppLayout() {
 
                 {/* Auth routes */}
                   <Route path="/login"><LazyPage Component={Login} /></Route>
-                  <Route path="/register"><LazyPage Component={Register} /></Route>
+                  <Route path="/register">
+                    <RedirectTo to="/create-account" />
+                  </Route>
                   <Route path="/signup"><LazyPage Component={Signup} /></Route>
+                  <Route path="/create-account"><LazyPage Component={CreateAccount} /></Route>
 
                   {/* Legacy auth URLs: redirect old /auth/* paths to current routes */}
                   <Route path="/auth/login">
                     <RedirectTo to="/login" />
                   </Route>
                   <Route path="/auth/signup">
-                    <RedirectTo to="/register" />
+                    <RedirectTo to="/create-account" />
                   </Route>
                   <Route path="/address-verification"><LazyPage Component={AddressVerification} /></Route>
                   <Route path="/unauthorized"><LazyPage Component={Unauthorized} /></Route>
 
-                  {/* Legacy guard: hard-redirect any old profile setup links into the dashboard */}
+                  {/* Legacy guard: hard-redirect any old profile setup links into the canonical account setup portal */}
                   <Route path="/profile-setup">
-                    <RedirectTo to="/dashboard" />
+                    <RedirectTo to="/create-account" />
                   </Route>
                   
                   {/* Core pages */}
