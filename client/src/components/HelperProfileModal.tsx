@@ -104,52 +104,52 @@ export function HelperProfileModal({ helper, isOpen, onClose }: HelperProfileMod
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto bg-navy-800 border-navy-600">
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto bg-popover border-border">
         <DialogHeader className="pb-6">
           <div className="flex items-start gap-4">
             <Avatar className="h-20 w-20">
               <AvatarImage src={helper.profileImageUrl} />
-              <AvatarFallback className="bg-orange-500 text-white text-lg">
+              <AvatarFallback className="bg-accent text-accent-foreground text-lg">
                 {getInitials(helper.firstName, helper.lastName)}
               </AvatarFallback>
             </Avatar>
             
             <div className="flex-1">
-              <DialogTitle className="text-2xl font-bold text-white mb-2">
+              <DialogTitle className="text-2xl font-bold text-foreground mb-2">
                 {helper.firstName} {helper.lastName}
               </DialogTitle>
               
               <div className="flex items-center gap-4 mb-3">
                 {helper.averageRating && (
                   <div className="flex items-center">
-                    <Star className="h-4 w-4 text-yellow-400 fill-current mr-1" />
-                    <span className="text-white font-medium">{helper.averageRating}</span>
-                    <span className="text-gray-400 ml-1">({helper.totalJobsCompleted} jobs)</span>
+                    <Star className="h-4 w-4 text-warning fill-current mr-1" />
+                    <span className="text-foreground font-medium">{helper.averageRating}</span>
+                    <span className="text-muted-foreground ml-1">({helper.totalJobsCompleted} jobs)</span>
                   </div>
                 )}
                 
                 <div className="flex items-center gap-2">
                   {helper.isIdVerified && (
-                    <Badge className="bg-green-500/20 text-green-400 border-green-500/50">
+                    <Badge className="bg-success/10 text-success-foreground border-success/30">
                       <Shield className="h-3 w-3 mr-1" />
                       ID Verified
                     </Badge>
                   )}
                   {helper.isBackgroundChecked && (
-                    <Badge className="bg-blue-500/20 text-blue-400 border-blue-500/50">
+                    <Badge className="bg-info/10 text-info-foreground border-info/30">
                       <CheckCircle className="h-3 w-3 mr-1" />
                       Background Checked
                     </Badge>
                   )}
                   {helper.isAvailable && (
-                    <Badge className="bg-green-500/20 text-green-400 border-green-500/50">
+                    <Badge className="bg-success/10 text-success-foreground border-success/30">
                       Available
                     </Badge>
                   )}
                 </div>
               </div>
               
-              <div className="flex items-center gap-4 text-sm text-gray-300">
+              <div className="flex items-center gap-4 text-sm text-muted-foreground">
                 {helper.city && (
                   <div className="flex items-center">
                     <MapPin className="h-4 w-4 mr-1" />
