@@ -129,6 +129,19 @@ export const createWebsiteStructuredData = () => ({
   ]
 });
 
+export const createFAQStructuredData = (faqs: Array<{ question: string; answer: string }>) => ({
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": faqs.map((faq) => ({
+    "@type": "Question",
+    "name": faq.question,
+    "acceptedAnswer": {
+      "@type": "Answer",
+      "text": faq.answer,
+    },
+  })),
+});
+
 export const createOrganizationStructuredData = () => ({
   "@context": "https://schema.org",
   "@type": "Organization",

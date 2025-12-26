@@ -31,7 +31,7 @@ export function executeScoutActions(
             void fetch("/api/ads/track-click", {
               method: "POST",
               headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ adId }),
+              body: JSON.stringify({ adId, source: "scout" }),
             }).catch(() => undefined);
           }
 

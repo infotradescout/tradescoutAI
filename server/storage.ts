@@ -173,6 +173,9 @@ import {
   type InsertContractorPromo,
   type PromoInteraction,
   type InsertPromoInteraction,
+  adEvents,
+  type AdEvent,
+  type InsertAdEvent,
   type MarketplaceCategory,
   type InsertMarketplaceCategory,
   type MarketplaceListing,
@@ -202,6 +205,9 @@ import {
   type InsertProductReview,
   type SellerProfile,
   type InsertSellerProfile,
+  adFeedback,
+  type AdFeedback,
+  type InsertAdFeedback,
   // Social features
   type CommunityPost,
   type InsertCommunityPost,
@@ -575,12 +581,33 @@ export interface IStorage {
     placement?: string;
     excludeAdIds?: string[];
     preferAffiliate?: boolean;
+    minCommunityScore?: number;
   }): Promise<Advertisement | null>;
   incrementAdImpressions(adId: string): Promise<void>;
   incrementAdClicks(adId: string): Promise<void>;
   saveAdForUser(userId: string, adId: string): Promise<SavedAd>;
   getSavedAdsForUser(userId: string): Promise<Advertisement[]>;
   removeSavedAd(userId: string, adId: string): Promise<void>;
+  normalizeAdLinkForUser(params: {
+    linkUrl?: string | null;
+    isAffiliate?: boolean | null;
+    userId?: string | null;
+  }): Promise<string | null>;
+  trackAdEvent(params: {
+    adId: string;
+    eventType: "impression" | "click";
+    source?: string | null;
+    userId?: string | null;
+  }): Promise<void>;
+
+  // Community Value Score (CVS) operations
+  submitAdFeedback(params: {
+    adId: string;
+    userId: string;
+    rating: "helpful" | "not_relevant" | "spam";
+    source: "scout" | "site_visit" | "saved";
+  }): Promise<void>;
+  recomputeAdCommunityScores(params?: { sinceDays?: number }): Promise<void>;
   
   // Notification operations
   createNotification(notification: InsertNotification): Promise<Notification>;
@@ -2377,6 +2404,151 @@ export class DatabaseStorage implements IStorage {
     await db.delete(advertisements).where(eq(advertisements.id, id));
   }
 
+  async normalizeAdLinkForUser(params: {
+    linkUrl?: string | null;
+    isAffiliate?: boolean | null;
+    userId?: string | null;
+  }): Promise<string | null> {
+    const { linkUrl, isAffiliate, userId } = params;
+
+    if (!linkUrl) return null;
+    if (!isAffiliate) return linkUrl;
+    if (!userId) return linkUrl;
+
+    try {
+      let program = await this.getAffiliateProgram(userId);
+      if (!program) {
+        program = await this.createAffiliateProgram({ userId });
+      }
+
+      const referralCode: unknown = (program as any).referralCode;
+      const code = typeof referralCode === "string" && referralCode.length > 0 ? referralCode : null;
+      if (!code) return linkUrl;
+
+      const baseOrigin = process.env.PUBLIC_WEB_URL || process.env.APP_URL || "https://www.thetradescout.com";
+
+      try {
+        const url = new URL(linkUrl, baseOrigin);
+        if (!url.searchParams.has("ref")) {
+          url.searchParams.set("ref", code);
+        }
+        return url.toString();
+      } catch {
+        return linkUrl;
+      }
+    } catch {
+      return linkUrl;
+    }
+  }
+
+  async trackAdEvent(params: {
+    adId: string;
+    eventType: "impression" | "click";
+    source?: string | null;
+    userId?: string | null;
+  }): Promise<void> {
+    const { adId, eventType, source, userId } = params;
+    if (!adId || !eventType) return;
+
+    const safeSource = typeof source === "string" && source.length > 0 ? source : "unknown";
+
+    try {
+      await db.insert(adEvents).values({
+        adId,
+        eventType,
+        source: safeSource,
+        userId: userId || null,
+      } as InsertAdEvent);
+    } catch (error) {
+      console.error("Failed to track ad event", { adId, eventType, safeSource, error });
+    }
+  }
+
+  /**
+   * Recompute Community Value Score (CVS) for ads.
+   * Uses a rolling window (default 30 days) over adEvents and adFeedback.
+   */
+  async recomputeAdCommunityScores(params?: { sinceDays?: number }): Promise<void> {
+    const sinceDays = typeof params?.sinceDays === "number" && params.sinceDays > 0 ? params.sinceDays : 30;
+    const sinceDate = new Date(Date.now() - sinceDays * 24 * 60 * 60 * 1000);
+
+    // Load all active ads
+    const allAds = await db.select().from(advertisements).where(eq(advertisements.isActive, true));
+    if (!allAds.length) return;
+
+    // Load recent events and feedback for these ads
+    const adIds = allAds.map((a: any) => a.id);
+
+    const recentEvents = await db
+      .select()
+      .from(adEvents)
+      .where(and(inArray(adEvents.adId, adIds), gte(adEvents.createdAt, sinceDate)));
+
+    const recentFeedback = await db
+      .select()
+      .from(adFeedback)
+      .where(and(inArray(adFeedback.adId, adIds), gte(adFeedback.createdAt, sinceDate)));
+
+    const eventsByAd = new Map<string, AdEvent[]>();
+    for (const ev of recentEvents as AdEvent[]) {
+      const list = eventsByAd.get(ev.adId) ?? [];
+      list.push(ev);
+      eventsByAd.set(ev.adId, list);
+    }
+
+    const feedbackByAd = new Map<string, AdFeedback[]>();
+    for (const fb of recentFeedback as AdFeedback[]) {
+      const list = feedbackByAd.get(fb.adId) ?? [];
+      list.push(fb);
+      feedbackByAd.set(fb.adId, list);
+    }
+
+    const updates: Array<{ id: string; communityScore: number }> = [];
+
+    for (const ad of allAds as Advertisement[]) {
+      let score = 50; // base
+
+      const feedback = feedbackByAd.get(ad.id) ?? [];
+      for (const fb of feedback) {
+        if (fb.rating === "helpful") score += 5;
+        else if (fb.rating === "not_relevant") score -= 5;
+        else if (fb.rating === "spam") score -= 15;
+      }
+
+      const events = (eventsByAd.get(ad.id) ?? []).sort(
+        (a, b) => (a.createdAt?.getTime?.() ?? 0) - (b.createdAt?.getTime?.() ?? 0)
+      );
+
+      let impressionCount = 0;
+      let clickCount = 0;
+
+      for (const ev of events) {
+        if (ev.eventType === "impression") impressionCount++;
+        if (ev.eventType === "click") clickCount++;
+      }
+
+      // Simple CTR-based adjustment: impressions with no clicks slightly negative
+      if (impressionCount > 0 && clickCount === 0) {
+        score -= 1;
+      }
+
+      // Clamp to [0, 100]
+      const clamped = Math.max(0, Math.min(100, score));
+      updates.push({ id: ad.id, communityScore: clamped });
+    }
+
+    if (!updates.length) return;
+
+    await db.transaction(async (tx) => {
+      for (const u of updates) {
+        await tx
+          .update(advertisements)
+          .set({ communityScore: u.communityScore })
+          .where(eq(advertisements.id, u.id));
+      }
+    });
+  }
+
   // Get targeted ad based on audience and location
   async getTargetedAd(criteria: { 
     audience: string; 
@@ -2386,6 +2558,7 @@ export class DatabaseStorage implements IStorage {
     placement?: string;
     excludeAdIds?: string[];
     preferAffiliate?: boolean;
+    minCommunityScore?: number;
   }): Promise<Advertisement | null> {
     // Build location targeting filters
     const locationFilters = ['national'];
@@ -2407,6 +2580,9 @@ export class DatabaseStorage implements IStorage {
       ? criteria.excludeAdIds.filter(Boolean)
       : [];
     const preferAffiliate = Boolean(criteria.preferAffiliate);
+    const minCommunityScore = typeof criteria.minCommunityScore === 'number'
+      ? Math.max(0, Math.min(100, criteria.minCommunityScore))
+      : 0;
 
     // Query for active ads matching audience and location
     const ads = await db
@@ -2420,10 +2596,14 @@ export class DatabaseStorage implements IStorage {
           excludeAdIds.length > 0 ? notInArray(advertisements.id, excludeAdIds) : sql`1=1`,
           criteria.audience !== 'all' 
             ? eq(advertisements.targetAudience, criteria.audience)
+            : sql`1=1`,
+          minCommunityScore > 0
+            ? gte(advertisements.communityScore, minCommunityScore)
             : sql`1=1`
         )
       )
       .orderBy(
+        desc(advertisements.communityScore),
         desc(advertisements.priority),
         preferAffiliate ? desc(advertisements.isAffiliate) : sql`0`,
         sql`RANDOM()`
@@ -2450,6 +2630,32 @@ export class DatabaseStorage implements IStorage {
         clickCount: sql`${advertisements.clickCount} + 1`
       })
       .where(eq(advertisements.id, adId));
+  }
+
+  async submitAdFeedback(params: {
+    adId: string;
+    userId: string;
+    rating: "helpful" | "not_relevant" | "spam";
+    source: "scout" | "site_visit" | "saved";
+  }): Promise<void> {
+    const { adId, userId, rating, source } = params;
+    if (!adId || !userId) return;
+
+    // Upsert-like behavior: ensure one feedback per user per ad
+    const [existing] = await db
+      .select()
+      .from(adFeedback)
+      .where(and(eq(adFeedback.adId, adId), eq(adFeedback.userId, userId)))
+      .limit(1);
+
+    if (existing) {
+      await db
+        .update(adFeedback)
+        .set({ rating, source, createdAt: new Date() })
+        .where(eq(adFeedback.id, existing.id));
+    } else {
+      await db.insert(adFeedback).values({ adId, userId, rating, source } as InsertAdFeedback);
+    }
   }
 
   // Saved ads functionality

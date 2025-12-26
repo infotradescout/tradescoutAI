@@ -2901,16 +2901,28 @@ router.post("/", async (req: Request, res: Response) => {
           placement: "site_visit",
           excludeAdIds: excludeIds,
           preferAffiliate,
+          // Higher bar for Scout-injected ads
+          minCommunityScore: 60,
         });
 
         if (ad) {
           await storage.incrementAdImpressions(ad.id);
+
+          const user = req.user as any;
+          const userId = (user as any)?.claims?.sub || (user as any)?.id || null;
+          await storage.trackAdEvent({ adId: ad.id, eventType: "impression", source: "scout", userId });
+
+          const linkUrl = await storage.normalizeAdLinkForUser({
+            linkUrl: (ad as any).linkUrl,
+            isAffiliate: (ad as any).isAffiliate,
+            userId,
+          });
           aiResponse.sponsored = {
             id: ad.id,
             title: ad.title,
             content: ad.content,
             imageUrl: ad.imageUrl,
-            linkUrl: ad.linkUrl,
+            linkUrl,
             isAffiliate: ad.isAffiliate,
             targetLocation: ad.targetLocation,
           };

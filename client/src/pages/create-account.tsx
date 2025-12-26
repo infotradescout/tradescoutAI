@@ -7,6 +7,7 @@ import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { US_STATES, getCountiesForState } from "@shared/us-states-counties";
 import { MapPin, Users, Briefcase, Sparkles } from "lucide-react";
 import { TradeScoutLogo } from "@/components/TradeScoutIcons";
@@ -200,7 +201,7 @@ export default function CreateAccountPortal() {
         title: "You’re ready to use TradeScout",
         description: "Your account is now set up for local projects, services, and community activity.",
       });
-      navigate("/dashboard");
+      navigate("/dashboard?orientation=1");
     },
     onError: (error: any) => {
       toast({
@@ -310,6 +311,9 @@ export default function CreateAccountPortal() {
 
             {isOnboardingFlow && step === 1 && (
               <div className="space-y-4">
+                <p className="text-xs text-tsTextMuted">
+                  You can choose more than onethis just tells Scout how you plan to participate locally.
+                </p>
                 <div className="grid grid-cols-1 gap-3">
                   {PURPOSE_OPTIONS.map((option) => {
                     const isSelected = selectedPurposes.includes(option.key);
@@ -363,21 +367,24 @@ export default function CreateAccountPortal() {
                     <MapPin className="h-4 w-4" />
                     State
                   </Label>
-                  <select
-                    className="w-full rounded-md border border-tsBorder bg-slate-900 px-3 py-2 text-sm text-tsTextMain"
-                    value={stateCode}
-                    onChange={(e) => {
-                      setStateCode(e.target.value);
+                  <Select
+                    value={stateCode || undefined}
+                    onValueChange={(value) => {
+                      setStateCode(value);
                       setCounty("");
                     }}
                   >
-                    <option value="">Select state</option>
-                    {US_STATES.map((s) => (
-                      <option key={s.code} value={s.code}>
-                        {s.name}
-                      </option>
-                    ))}
-                  </select>
+                    <SelectTrigger className="bg-slate-900 border-tsBorder text-tsTextMain">
+                      <SelectValue placeholder="Select state" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {US_STATES.map((s) => (
+                        <SelectItem key={s.code} value={s.code}>
+                          {s.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
 
                 <div className="space-y-2">
@@ -386,18 +393,21 @@ export default function CreateAccountPortal() {
                     Neighborhood / area
                   </Label>
                   {stateCode ? (
-                    <select
-                      className="w-full rounded-md border border-tsBorder bg-slate-900 px-3 py-2 text-sm text-tsTextMain"
-                      value={county}
-                      onChange={(e) => setCounty(e.target.value)}
+                    <Select
+                      value={county || undefined}
+                      onValueChange={(value) => setCounty(value)}
                     >
-                      <option value="">Select area</option>
-                      {countiesForState.map((name) => (
-                        <option key={name} value={name}>
-                          {name}
-                        </option>
-                      ))}
-                    </select>
+                      <SelectTrigger className="bg-slate-900 border-tsBorder text-tsTextMain">
+                        <SelectValue placeholder="Select area" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {countiesForState.map((name) => (
+                          <SelectItem key={name} value={name}>
+                            {name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   ) : (
                     <Input
                       value={county}
@@ -510,11 +520,14 @@ export default function CreateAccountPortal() {
                 <div className="rounded-lg border border-tsBorder bg-black/30 p-3 text-xs text-tsTextMuted space-y-2">
                   <p className="font-semibold text-tsTextMain">How you’ll show up</p>
                   <p>
-                    Intent: <span className="text-white">{
-                      intent
-                        ? INTENT_OPTIONS.find((o) => o.key === intent)?.title
-                        : "Not selected"
-                    }</span>
+                    What you're here to do: {" "}
+                    <span className="text-white">
+                      {selectedPurposes.length > 0
+                        ? PURPOSE_OPTIONS.filter((o) => selectedPurposes.includes(o.key))
+                            .map((o) => o.title)
+                            .join(", ")
+                        : "Not selected"}
+                    </span>
                   </p>
                   <p>
                     Area: <span className="text-white">{county || "Not set"}</span>

@@ -70,6 +70,13 @@ export default function SavedAds() {
 
   const handleAdClick = (ad: SavedAdvertisement) => {
     if (ad.linkUrl) {
+      // Track click from Saved Ads surface
+      fetch('/api/ads/track-click', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ adId: ad.id, source: 'saved' }),
+      }).catch(() => undefined);
+
       window.open(ad.linkUrl, '_blank');
     }
   };

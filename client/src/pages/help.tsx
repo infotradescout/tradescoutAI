@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useLocation } from 'wouter';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -42,6 +42,9 @@ import {
   Crown
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
+import { SEOHelmet, createFAQStructuredData } from "@/components/SEOHelmet";
+import { trackShellEvent } from "@/lib/analytics";
+import { OrientationCard } from "@/components/orientation/OrientationCard";
 import type { userRoleEnum } from "@shared/schema";
 
 type UserRole = typeof userRoleEnum.enumValues[number];
@@ -79,15 +82,33 @@ export default function Help() {
   const [, navigate] = useLocation();
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("all");
+  const firstName = (user?.firstName || user?.username || "") as string;
 
-  const sendToScout = (prompt: string) => {
+  useEffect(() => {
+    // Lightweight orientation metric: Help overview viewed
+    try {
+      trackShellEvent({
+        type: "scout_query",
+        payload: {
+          event: "help_overview_viewed",
+          authenticated: !!user,
+          capabilityBundles: (user as any)?.capabilityBundles ?? [],
+          ts: new Date().toISOString(),
+        },
+      });
+    } catch {
+      // fail-soft: analytics should never block help
+    }
+  }, [user]);
+
+  const sendToScout = (prompt: string, options?: { source?: string }) => {
     try {
       window.localStorage.setItem("scout:prefill:scout-main", prompt);
       window.localStorage.setItem(
         "scout:help-intent",
         JSON.stringify({
           prompt,
-          source: "help-center",
+          source: options?.source || "help-center",
           ts: new Date().toISOString(),
         })
       );
@@ -106,13 +127,15 @@ export default function Help() {
 
     // Default: chat-first controller.
     sendToScout(
-      `Help Center quick action: "${action.title}". Walk me through this step-by-step using TradeScout, and suggest any views or tools I should open. Context: ${action.description}`
+      `Help Center quick action: "${action.title}". Walk me through this step-by-step using TradeScout, and suggest any views or tools I should open. Context: ${action.description}`,
+      { source: "help-quick-action" }
     );
   };
 
   const handleArticleClick = (article: HelpArticle) => {
     sendToScout(
-      `Help Center article: "${article.title}" (category: ${article.category}). Walk me through this topic step-by-step inside TradeScout, and suggest the best pages or tools for me to use. Summary: ${article.description}`
+      `Help Center article: "${article.title}" (category: ${article.category}). Walk me through this topic step-by-step inside TradeScout, and suggest the best pages or tools for me to use. Summary: ${article.description}`,
+      { source: "help-article" }
     );
   };
 
@@ -1167,6 +1190,8 @@ export default function Help() {
   const currentRole = (user?.role || 'homeowner') as UserRole;
   const roleConfig = roleConfigs[currentRole] || roleConfigs.homeowner!;
 
+  const firstName = (user?.firstName || user?.username || "") as string;
+
   // Filter articles based on search and category
   const filteredArticles = useMemo(() => {
     let allArticles: HelpArticle[] = [];
@@ -1191,13 +1216,38 @@ export default function Help() {
   return (
     <div className="min-h-screen gradient-bg">
       <div className="w-full max-w-5xl mx-auto px-3 md:px-4 py-5 md:py-8">
-        {/* Header */}
-        <div className="text-center mb-5 md:mb-8">
-          <h1 className="text-2xl md:text-4xl font-bold text-white mb-2 md:mb-4">Help Center</h1>
-          <p className="text-base md:text-xl text-gray-300 max-w-2xl mx-auto">
-            Get answers to your questions and learn how to make the most of TradeScout
-          </p>
-        </div>
+        <SEOHelmet
+          title="TradeScout Help Center – Scout and Local Participation"
+          description="Learn what TradeScout and Scout are, who they're for, and how to use Scout as your front door for getting things done locally."
+          structuredData={createFAQStructuredData([
+            {
+              question: "What is TradeScout?",
+              answer:
+                "TradeScout is a local participation platform that connects people, services, and tools through verified community activity.",
+            },
+            {
+              question: "What is Scout on TradeScout?",
+              answer:
+                "Scout is TradeScout's built-in assistant that helps users understand what they can do next, find or offer services, use tools step-by-step, and see what's happening locally.",
+            },
+            {
+              question: "Who is TradeScout for?",
+              answer:
+                "TradeScout is for anyone who participates locally—people getting projects done, offering services, managing properties or groups, buying and selling locally, or organizing communities.",
+            },
+            {
+              question: "Do I need to be a contractor or homeowner to use TradeScout?",
+              answer:
+                "No. TradeScout supports many ways of participating locally, including services, property management, community activity, buying and selling, and general tools.",
+            },
+          ])}
+        />
+        <OrientationCard
+          roleLabel={roleConfig.name}
+          sendToScout={sendToScout}
+          firstName={firstName}
+          contextSource="help"
+        />
 
         {/* Role-Specific Header */}
         <div className="mb-5 md:mb-8">
