@@ -98,7 +98,7 @@ export default function AdminCommunityBuilderManagementPage() {
                       {b.status === 'active' ? (
                         <Badge className="bg-green-100 text-green-800 flex items-center gap-1"><CheckCircle className="w-3 h-3" /> Active</Badge>
                       ) : (
-                        <Badge variant="destructive" className="flex items-center gap-1"><Ban className="w-3 h-3" /> {b.status}</Badge>
+                        <Badge variant="error" className="flex items-center gap-1"><Ban className="w-3 h-3" /> {b.status}</Badge>
                       )}
                     </TableCell>
                     <TableCell className="text-right">{b.completedContributionsCount}</TableCell>

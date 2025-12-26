@@ -390,20 +390,29 @@ const AppLayout = memo(function AppLayout() {
     <SimpleMobileGestures>
       <div className={`min-h-screen ${appBackgroundClass} text-tsTextMain font-sans flex flex-col`}>
         {showBetaNotice && (
-          <div className="fixed left-1/2 bottom-24 z-50 max-w-md w-full -translate-x-1/2 rounded-2xl border border-orange-400/70 bg-[color:var(--surface-card)] shadow-2xl shadow-orange-500/20 p-5 text-sm text-[color:var(--text-main)] flex flex-col items-center justify-center">
+          <div
+            className="fixed left-1/2 bottom-24 z-50 max-w-md w-full -translate-x-1/2 rounded-2xl border border-orange-500 bg-[color:var(--theme-accent-primary)] shadow-2xl shadow-orange-500/30 p-6 flex flex-col items-center justify-center"
+            style={{
+              color: 'var(--theme-on-accent, #fff)',
+              background: 'var(--theme-accent-primary, #ff6600)',
+              borderColor: 'var(--theme-accent-primary, #ff6600)',
+              boxShadow: '0 4px 32px 0 rgba(249,115,22,0.25)',
+            }}
+          >
             <div className="flex items-center gap-3 w-full justify-center">
-              <div className="h-2 w-2 rounded-full bg-orange-400 shadow-[0_0_0_4px_rgba(249,115,22,0.25)]" />
-              <p className="text-orange-600 font-semibold">TradeScout is in active beta</p>
+              <div className="h-2 w-2 rounded-full bg-orange-300 shadow-[0_0_0_4px_rgba(249,115,22,0.25)]" />
+              <p className="font-bold tracking-wide text-lg" style={{color: 'var(--theme-on-accent, #fff)'}}>TradeScout is in active beta</p>
               <button
                 aria-label="Dismiss beta notice"
                 onClick={dismissBetaNotice}
-                className="ml-auto text-gray-400 hover:text-orange-600 transition"
+                className="ml-auto text-white hover:text-orange-100 transition"
               >
                 <X className="h-4 w-4" />
               </button>
             </div>
-            <p className="text-gray-700 dark:text-gray-300 leading-relaxed mt-2 text-center">
-              You may encounter rough edges, non-working features, or intermittent errors. Add TradeScout to your home screen from your browser so it lives like an app, and please share issues so we can polish fast.
+            <p className="leading-relaxed mt-3 text-center font-medium" style={{color: 'var(--theme-on-accent, #fff)'}}>
+              You may encounter rough edges, non-working features, or intermittent errors.<br />
+              Add TradeScout to your home screen from your browser so it lives like an app, and please share issues so we can polish fast.
             </p>
           </div>
         )}

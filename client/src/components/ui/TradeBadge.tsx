@@ -16,7 +16,7 @@ import {
 interface TradeBadgeProps {
   trade: TradeCategory;
   showIcon?: boolean;
-  variant?: "default" | "secondary" | "destructive" | "outline";
+  variant?: "default" | "secondary" | "error" | "outline";
   size?: "sm" | "md" | "lg";
 }
 

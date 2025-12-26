@@ -141,7 +141,7 @@ export default function InvitePage() {
       case "pending":
         return "secondary";
       case "expired":
-        return "destructive";
+        return "error";
       default:
         return "outline";
     }

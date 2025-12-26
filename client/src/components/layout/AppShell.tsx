@@ -261,7 +261,7 @@ export function AppShell({ children, footer }: AppShellProps) {
 
       <div className="flex flex-1 min-h-0" style={{ background: 'var(--surface-app-bg)' }}>
         <main
-          className={`flex flex-col flex-1 min-w-0 pt-[56px] ${!isMobile ? 'lg:pr-64' : ''}`}
+          className={`flex flex-col flex-1 min-w-0 pt-[56px] ${!isMobile ? 'lg:pr-64' : ''} overflow-y-auto`}
           style={{ background: 'var(--surface-app-bg)', color: 'var(--text-primary)' }}
         >
           {children}

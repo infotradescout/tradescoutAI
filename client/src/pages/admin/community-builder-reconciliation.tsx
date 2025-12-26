@@ -94,7 +94,7 @@ export default function AdminCommunityBuilderReconciliationPage() {
                         {Math.abs(r.delta) < 1 ? (
                           <Badge className="bg-green-100 text-green-800 flex items-center gap-1"><CheckCircle className="w-3 h-3" /> OK</Badge>
                         ) : (
-                          <Badge variant="destructive">{r.delta.toFixed(2)}</Badge>
+                          <Badge variant="error">{r.delta.toFixed(2)}</Badge>
                         )}
                       </TableCell>
                     </TableRow>

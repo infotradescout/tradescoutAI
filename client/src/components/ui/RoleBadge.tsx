@@ -6,7 +6,7 @@ import { Shield, Crown, Star, Users, Wrench, Home, Building } from "lucide-react
 interface RoleBadgeProps {
   role: UserRole;
   showIcon?: boolean;
-  variant?: "default" | "secondary" | "destructive" | "outline";
+  variant?: "default" | "secondary" | "error" | "outline";
   size?: "sm" | "md" | "lg";
 }
 
@@ -21,10 +21,10 @@ function getRoleIcon(role: UserRole) {
   return <Home className="h-3 w-3" />; // Customer
 }
 
-function getRoleVariant(role: UserRole): "default" | "secondary" | "destructive" | "outline" {
+function getRoleVariant(role: UserRole): "default" | "secondary" | "error" | "outline" {
   const level = ROLE_HIERARCHY[role];
   
-  if (level >= 90) return "destructive"; // Super/Head Admin - Red
+  if (level >= 90) return "error"; // Super/Head Admin - Error (red)
   if (level >= 50) return "default"; // Admin/Moderator - Primary
   if (level >= 30) return "secondary"; // Staff - Secondary
   if (level >= 20) return "outline"; // Community - Outline
@@ -55,7 +55,10 @@ export function RoleBadge({
 }: RoleBadgeProps) {
   const displayName = getRoleDisplayName(role);
   const icon = showIcon ? getRoleIcon(role) : null;
-  const badgeVariant = variant || getRoleVariant(role);
+  // Only allow Badge-supported variants
+  const allowedVariants = ["default", "secondary", "error", "outline"];
+  const computedVariant = getRoleVariant(role);
+  const badgeVariant = allowedVariants.includes(variant as any) ? variant : computedVariant;
   
   const sizeClasses = {
     sm: "text-xs px-1.5 py-0.5",

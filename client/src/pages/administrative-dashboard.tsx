@@ -148,7 +148,7 @@ const AdministrativeDashboard = memo(function AdministrativeDashboard() {
                       <p className="text-white font-bold">{metric.value}</p>
                       <Badge variant={
                         metric.status === 'excellent' ? 'default' :
-                        metric.status === 'good' ? 'secondary' : 'destructive'
+                        metric.status === 'good' ? 'secondary' : 'error'
                       } className="text-xs">
                         {metric.status}
                       </Badge>
@@ -235,7 +235,7 @@ const AdministrativeDashboard = memo(function AdministrativeDashboard() {
                     <div className="flex justify-between items-start mb-2">
                       <h4 className="text-white font-medium text-sm">{alert.title}</h4>
                       <Badge variant={
-                        alert.type === 'warning' ? 'destructive' :
+                        alert.type === 'warning' ? 'error' :
                         alert.type === 'success' ? 'default' : 'secondary'
                       } className="text-xs">
                         {alert.type}

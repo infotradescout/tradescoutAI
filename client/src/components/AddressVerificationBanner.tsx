@@ -65,12 +65,12 @@ export function AddressVerificationBanner() {
               <AlertTitle className={`flex items-center gap-2 ${getTitleColor()}`}>
                 Address Verification Required
                 {needsUrgentAction && (
-                  <Badge variant="destructive" className="text-xs">
+                  <Badge variant="error" className="text-xs">
                     Urgent
                   </Badge>
                 )}
                 {isExpired && (
-                  <Badge variant="destructive" className="text-xs">
+                  <Badge variant="error" className="text-xs">
                     Overdue
                   </Badge>
                 )}

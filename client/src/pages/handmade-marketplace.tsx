@@ -187,7 +187,7 @@ export default function HandmadeMarketplace() {
               <Badge variant="outline" className="text-xs">Free Shipping</Badge>
             )}
             {!product.inStock && (
-              <Badge variant="destructive" className="text-xs">Out of Stock</Badge>
+              <Badge variant="error" className="text-xs">Out of Stock</Badge>
             )}
           </div>
         </div>
