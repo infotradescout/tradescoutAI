@@ -1185,16 +1185,51 @@ html, body {
   border-color: var(--border-primary) !important;
 }
 
-/* Navy color scheme fallback for legacy pages */
+/* Navy color scheme fallback for legacy pages - ALL navy to charcoal */
 .bg-navy-900,
 .bg-navy-900\/70,
-.bg-navy-900\/60 {
+.bg-navy-900\/60,
+.bg-navy-900\/50,
+.bg-navy-900\/40,
+.hover\:bg-navy-900 {
   background-color: var(--charcoal-900) !important;
 }
 
 .bg-navy-800,
-.bg-navy-800\/70 {
+.bg-navy-800\/70,
+.bg-navy-800\/60,
+.bg-navy-800\/50,
+.bg-navy-800\/40,
+.hover\:bg-navy-800 {
   background-color: var(--charcoal-800) !important;
+}
+
+.bg-navy-700,
+.bg-navy-700\/50 {
+  background-color: var(--charcoal-700) !important;
+}
+
+.bg-navy-600,
+.bg-navy-600\/50 {
+  background-color: var(--charcoal-800) !important;
+}
+
+/* Navy border colors to charcoal borders */
+.border-navy-900,
+.border-navy-900\/70,
+.border-navy-800,
+.border-navy-800\/50,
+.border-navy-700,
+.border-navy-600 {
+  border-color: var(--border-primary) !important;
+}
+
+/* Navy text colors */
+.text-navy-400,
+.text-navy-500,
+.text-navy-600,
+.dark\:text-navy-400 {
+  color: var(--text-secondary) !important;
 }
 
 /* Dark mode text colors - inherit from theme */

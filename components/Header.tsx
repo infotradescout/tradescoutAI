@@ -30,7 +30,7 @@ const Header: React.FC<HeaderProps> = ({
   return (
     <>
         {/* TOP HEADER (Desktop: Full, Mobile: Minimal) */}
-        <header className="sticky top-0 z-50 backdrop-blur-md bg-slate-900/90 border-b border-slate-700 shadow-lg transition-all duration-300">
+        <header className="sticky top-0 z-50 backdrop-blur-md bg-charcoal-900/90 border-b border-charcoal-700 shadow-lg transition-all duration-300">
         <div className="container mx-auto px-4 py-2 md:py-3">
             <div className="flex justify-between items-start gap-3 flex-wrap">
                 {/* Logo Section */}
