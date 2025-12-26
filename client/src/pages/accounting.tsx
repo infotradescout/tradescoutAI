@@ -765,7 +765,7 @@ export default function AccountingWorkspace() {
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-semibold text-sky-300">
-                  {formatCurrency(lifetime ? lifetime.netProfit : (lifetime?.totalAmount ?? 0) - (lifetime?.totalExpenses ?? 0))}
+                  {formatCurrency(lifetime ? lifetime.netProfit : 0)}
                 </div>
                 <p className="mt-1 text-[11px] text-slate-400">
                   Based on invoices and expenses you track here.
@@ -1078,6 +1078,9 @@ export default function AccountingWorkspace() {
               <CardDescription>
                 Create, send, and approve estimates as part of each job's deal room. Once approved, they
                 automatically roll into contracts and invoices.
+                <span className="block mt-1 text-xs text-orange-400">
+                  Need to double-check an estimate? <a href="/tools/estimate-calculator" className="underline hover:text-orange-300">Estimate Calculator</a>
+                </span>
               </CardDescription>
             </CardHeader>
             <CardContent className="flex justify-between items-center text-xs text-slate-300">
@@ -1103,6 +1106,9 @@ export default function AccountingWorkspace() {
               <CardTitle className="text-white mb-1">New Invoice / Job Record</CardTitle>
               <CardDescription>
                 Create a clean invoice record for work that ran off-platform so it still shows up in your ledger.
+                <span className="block mt-1 text-xs text-orange-400">
+                  Need to check payment math? <a href="/tools/invoice-calculator" className="underline hover:text-orange-300">Open Invoice Calculator</a>
+                </span>
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-3">
@@ -1529,6 +1535,11 @@ export default function AccountingWorkspace() {
                 <CardTitle className="text-sm font-semibold text-slate-100">Expenses</CardTitle>
                 <CardDescription className="text-xs text-slate-400">
                   Track money going out so you can see true job profitability.
+                  {expenseHelperLink && (
+                    <span className="block mt-1 text-xs text-orange-400">
+                      Need help splitting or categorizing? <a href="/tools/expense-helper" className="underline hover:text-orange-300">Expense Helper</a>
+                    </span>
+                  )}
                 </CardDescription>
               </div>
               <div className="text-[11px] text-slate-400">

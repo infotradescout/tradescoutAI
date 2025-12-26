@@ -42,32 +42,49 @@ export default function ContractorCard({
   const serviceAreas = contractor.serviceAreas || [];
 
   return (
-		<Card className="ts-card" data-testid={`contractor-card`}>
-      <CardContent className={`${compact ? 'p-4' : 'p-3 md:p-6'}`}>
-        {/* Company Avatar */}
+    <Card className="ts-card" data-testid={`contractor-card`}>
+      <CardContent className={`${compact ? "p-4" : "p-3 md:p-6"}`}>
+        {/* Company Avatar + Rating */}
         <div className="flex items-start justify-between mb-4">
-          <div className={`${compact ? 'w-12 h-12' : 'w-16 h-16'} bg-orange-500 rounded-lg flex items-center justify-center text-white font-bold ${compact ? 'text-lg' : 'text-xl'}`}>
-            <div className={`${compact ? 'w-12 h-12' : 'w-16 h-16'} ts-accent-btn rounded-lg flex items-center justify-center font-bold ${compact ? 'text-lg' : 'text-xl'}`}>
+          <div
+            className={`${
+              compact ? "w-12 h-12 text-lg" : "w-16 h-16 text-xl"
+            } ts-accent-btn rounded-lg flex items-center justify-center font-bold`}
+          >
             {companyInitials}
           </div>
 
-          {/* Rating */}
           <div className="flex items-center space-x-2">
             <div className="flex items-center space-x-1">
-              <ThumbsUp className={`${compact ? 'h-3 w-3' : 'h-4 w-4'} text-green-400`} />
-              <span className={`text-green-400 font-medium ${compact ? 'text-xs' : 'text-sm'}`}>
+              <ThumbsUp
+                className={`${compact ? "h-3 w-3" : "h-4 w-4"} text-green-400`}
+              />
+              <span
+                className={`text-green-400 font-medium ${
+                  compact ? "text-xs" : "text-sm"
+                }`}
+              >
                 {contractor.positiveRecommendations || 0}
               </span>
             </div>
             {(contractor.negativeRecommendations || 0) > 0 && (
               <div className="flex items-center space-x-1">
-                <ThumbsDown className={`${compact ? 'h-3 w-3' : 'h-4 w-4'} text-red-400`} />
-                <span className={`text-red-400 font-medium ${compact ? 'text-xs' : 'text-sm'}`}>
+                <ThumbsDown
+                  className={`${compact ? "h-3 w-3" : "h-4 w-4"} text-red-400`}
+                />
+                <span
+                  className={`text-red-400 font-medium ${
+                    compact ? "text-xs" : "text-sm"
+                  }`}
+                >
                   {contractor.negativeRecommendations}
                 </span>
               </div>
             )}
-            <span className={`text-gray-300 ${compact ? 'text-xs' : 'text-sm'}`} data-testid="recommendation-count">
+            <span
+              className={`text-gray-300 ${compact ? "text-xs" : "text-sm"}`}
+              data-testid="recommendation-count"
+            >
               ({contractor.totalRecommendations || 0} total)
             </span>
           </div>
@@ -75,8 +92,11 @@ export default function ContractorCard({
 
         {/* Company Name */}
         <Link href={`/contractors/${contractor.slug}`}>
-          <h3 className={`font-semibold text-white mb-2 hover:text-orange-400 transition-colors cursor-pointer ${compact ? 'text-base' : 'text-lg'}`}>
-                      <h3 className={`font-semibold mb-2 transition-colors cursor-pointer ts-accent-text-muted ${compact ? 'text-base' : 'text-lg'}`}>
+          <h3
+            className={`font-semibold mb-2 transition-colors cursor-pointer ts-accent-text-muted ${
+              compact ? "text-base" : "text-lg"
+            }`}
+          >
             {contractor.companyName}
           </h3>
         </Link>
@@ -84,43 +104,85 @@ export default function ContractorCard({
         {/* Trade Badges (derived from contractor flags) */}
         <div className="flex flex-wrap gap-2 mb-3">
           {contractor.isGeneralContractor && (
-            <Badge variant="outline" className="bg-navy-600 text-orange-400 border-orange-400/30 text-xs">
-                          <Badge variant="outline" className="text-xs ts-accent-text" style={{ backgroundColor: 'color-mix(in oklab, var(--theme-accent-primary) 12%, transparent)', border: '1px solid color-mix(in oklab, var(--theme-accent-primary) 30%, transparent)' }}>
-                          <Badge variant="outline" className="text-xs ts-accent-text" style={{ backgroundColor: 'color-mix(in oklab, var(--theme-accent-primary) 12%, transparent)', border: '1px solid color-mix(in oklab, var(--theme-accent-primary) 30%, transparent)' }}>
+            <Badge
+              variant="outline"
+              className="text-xs ts-accent-text"
+              style={{
+                backgroundColor:
+                  "color-mix(in oklab, var(--theme-accent-primary) 12%, transparent)",
+                border:
+                  "1px solid color-mix(in oklab, var(--theme-accent-primary) 30%, transparent)",
+              }}
+            >
               General contractor
             </Badge>
           )}
           {contractor.isResidentialContractor && (
-            <Badge variant="outline" className="bg-navy-600 text-orange-400 border-orange-400/30 text-xs">
+            <Badge
+              variant="outline"
+              className="text-xs ts-accent-text"
+              style={{
+                backgroundColor:
+                  "color-mix(in oklab, var(--theme-accent-primary) 12%, transparent)",
+                border:
+                  "1px solid color-mix(in oklab, var(--theme-accent-primary) 30%, transparent)",
+              }}
+            >
               Residential
             </Badge>
           )}
         </div>
 
         {/* Service Areas */}
-        <p className={`text-gray-300 mb-4 flex items-center ${compact ? 'text-xs' : 'text-sm'}`}>
-          <MapPin className={`text-orange-500 mr-1 ${compact ? 'h-3 w-3' : 'h-4 w-4'}`} />
-                    <MapPin className={`mr-1 ${compact ? 'h-3 w-3' : 'h-4 w-4'}`} style={{ color: 'var(--theme-accent-primary)' }} />
+        <p
+          className={`text-gray-300 mb-4 flex items-center ${
+            compact ? "text-xs" : "text-sm"
+          }`}
+        >
+          <MapPin
+            className={`${compact ? "h-3 w-3" : "h-4 w-4"} mr-1`}
+            style={{ color: "var(--theme-accent-primary)" }}
+          />
           {serviceAreas.length > 0
-            ? `${serviceAreas.slice(0, 2).join(', ')}${serviceAreas.length > 2 ? ` +${serviceAreas.length - 2} more` : ''}`
-            : 'Service area not specified'}
+            ? `${serviceAreas
+                .slice(0, 2)
+                .join(", ")}${
+                serviceAreas.length > 2
+                  ? ` +${serviceAreas.length - 2} more`
+                  : ""
+              }`
+            : "Service area not specified"}
         </p>
 
         {/* Business Info */}
-        <div className={`flex items-center justify-between text-gray-300 mb-4 ${compact ? 'text-xs' : 'text-sm'}`}>
+        <div
+          className={`flex items-center justify-between text-gray-300 mb-4 ${
+            compact ? "text-xs" : "text-sm"
+          }`}
+        >
           <span className="flex items-center">
-            <Calendar className={`text-orange-500 mr-1 ${compact ? 'h-3 w-3' : 'h-4 w-4'}`} />
-                        <Calendar className={`mr-1 ${compact ? 'h-3 w-3' : 'h-4 w-4'}`} style={{ color: 'var(--theme-accent-primary)' }} />
-            {contractor.yearsInBusiness ? `${contractor.yearsInBusiness} years` : 'Years in business n/a'}
+            <Calendar
+              className={`${compact ? "h-3 w-3" : "h-4 w-4"} mr-1`}
+              style={{ color: "var(--theme-accent-primary)" }}
+            />
+            {contractor.yearsInBusiness
+              ? `${contractor.yearsInBusiness} years`
+              : "Years in business n/a"}
           </span>
           <span className="flex items-center">
-            <Clock className={`text-orange-500 mr-1 ${compact ? 'h-3 w-3' : 'h-4 w-4'}`} />
-                        <Clock className={`mr-1 ${compact ? 'h-3 w-3' : 'h-4 w-4'}`} style={{ color: 'var(--theme-accent-primary)' }} />
-            {contractor.responseTimeSla ? `${contractor.responseTimeSla} hrs response` : 'Response time n/a'}
+            <Clock
+              className={`${compact ? "h-3 w-3" : "h-4 w-4"} mr-1`}
+              style={{ color: "var(--theme-accent-primary)" }}
+            />
+            {contractor.responseTimeSla
+              ? `${contractor.responseTimeSla} hrs response`
+              : "Response time n/a"}
           </span>
           <span className="flex items-center">
-            <ThumbsUp className={`text-orange-500 mr-1 ${compact ? 'h-3 w-3' : 'h-4 w-4'}`} />
-                        <ThumbsUp className={`mr-1 ${compact ? 'h-3 w-3' : 'h-4 w-4'}`} style={{ color: 'var(--theme-accent-primary)' }} />
+            <ThumbsUp
+              className={`${compact ? "h-3 w-3" : "h-4 w-4"} mr-1`}
+              style={{ color: "var(--theme-accent-primary)" }}
+            />
             {(contractor.totalRecommendations || 0)} recommendations
           </span>
         </div>
@@ -147,38 +209,46 @@ export default function ContractorCard({
         </div>
 
         {/* Action Buttons */}
-        {showCallToAction && (
+        {showCallToAction ? (
           <div className="flex space-x-2">
             {contractor.phone ? (
               <a href={`tel:${contractor.phone}`} className="flex-1">
-                <Button className="w-full bg-orange-500 hover:bg-orange-600 text-white transition-all duration-300">
+                <Button className="w-full ts-accent-btn transition-all duration-300">
                   <Phone className="h-4 w-4 mr-1" />
                   Call Now
                 </Button>
               </a>
             ) : (
-              <Link href={`/contractors/${contractor.slug}`} className="flex-1">
-                <Button className="w-full bg-orange-500 hover:bg-orange-600 text-white transition-all duration-300">
+              <Link
+                href={`/contractors/${contractor.slug}`}
+                className="flex-1"
+              >
+                <Button className="w-full ts-accent-btn transition-all duration-300">
                   <Phone className="h-4 w-4 mr-1" />
                   Get Contact
                 </Button>
               </Link>
             )}
 
-            <Link href={`/contractors/${contractor.slug}`} className="flex-1">
-              <Button variant="outline" className="w-full border-navy-500 text-white hover:bg-navy-500">
+            <Link
+              href={`/contractors/${contractor.slug}`}
+              className="flex-1"
+            >
+              <Button
+                variant="outline"
+                className="w-full border-navy-500 text-white hover:bg-navy-500"
+              >
                 <ExternalLink className="h-4 w-4 mr-1" />
-                <Button className="w-full ts-accent-btn transition-all duration-300">
                 View Profile
               </Button>
             </Link>
           </div>
-        )}
-
-        {/* Compact mode - just view profile link */}
-        {!showCallToAction && (
+        ) : (
           <Link href={`/contractors/${contractor.slug}`}>
-            <Button variant="outline" className="w-full border-orange-500 text-orange-500 hover:bg-orange-500 hover:text-white">
+            <Button
+              variant="outline"
+              className="w-full border-orange-500 text-orange-500 hover:bg-orange-500 hover:text-white"
+            >
               View Full Profile
               <ExternalLink className="h-4 w-4 ml-2" />
             </Button>

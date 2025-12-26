@@ -28,6 +28,24 @@ function listStoredNotes(): Array<NoteRecord> {
   return out.sort((a, b) => b.updatedAt - a.updatedAt);
 }
 
+function deriveNoteTitle(note: NoteRecord): string {
+  if (note.jobTitle && note.jobTitle.trim()) {
+    return note.jobTitle.trim();
+  }
+
+  const raw = (note.text || "").trim();
+  if (raw) {
+    const words = raw.split(/\s+/);
+    const head = words.slice(0, 5).join(" ");
+    return words.length > 5 ? `${head}…` : head;
+  }
+
+  const d = new Date(note.updatedAt || Date.now());
+  const time = d.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+  const prefix = note.type === "quick" ? "Quick note" : "Note";
+  return `${prefix} – ${time}`;
+}
+
 export default function NotesPage() {
   const [location] = useLocation();
   const [notes, setNotes] = useState(listStoredNotes());
@@ -35,6 +53,7 @@ export default function NotesPage() {
   const [text, setText] = useState<string>(() => notes.find(n => n.id === activeId)?.text || "");
   const [noteType, setNoteType] = useState<NoteRecord['type']>(() => notes.find(n => n.id === activeId)?.type || 'general');
   const [jobTitle, setJobTitle] = useState<string>(() => notes.find(n => n.id === activeId)?.jobTitle || "");
+  const [lastSavedAt, setLastSavedAt] = useState<number | null>(() => notes.find(n => n.id === activeId)?.updatedAt ?? null);
   const channel = useMemo(() => new BroadcastChannel("ts-floating-notes"), []);
 
   useEffect(() => {
@@ -43,6 +62,7 @@ export default function NotesPage() {
     const payload = JSON.stringify({ text, updatedAt: Date.now(), type: noteType, jobTitle: jobTitle || undefined });
     localStorage.setItem(key, payload);
     setNotes(listStoredNotes());
+    setLastSavedAt(Date.now());
     try {
       channel.postMessage({ type: "update", id, text, noteType, jobTitle });
     } catch {}
@@ -53,6 +73,7 @@ export default function NotesPage() {
     setText(current?.text || "");
     setNoteType(current?.type || 'general');
     setJobTitle(current?.jobTitle || "");
+    setLastSavedAt(current?.updatedAt ?? null);
   }, [activeId, notes]);
 
   const addNewNote = (type: NoteRecord['type'] = 'general') => {
@@ -70,6 +91,7 @@ export default function NotesPage() {
       const payload = JSON.stringify({ text, updatedAt: Date.now(), type: noteType, jobTitle: jobTitle || undefined });
       localStorage.setItem(key, payload);
       setNotes(listStoredNotes());
+      setLastSavedAt(Date.now());
       channel.postMessage({ type: "update", id, text, noteType, jobTitle });
     } catch {}
   };
@@ -95,12 +117,22 @@ export default function NotesPage() {
     window.location.href = "/finances?from=notes&noteId=" + encodeURIComponent(id);
   };
 
+  const activeNote = notes.find(n => n.id === activeId);
+  const activeTitle = activeNote
+    ? deriveNoteTitle(activeNote)
+    : activeId === "quick"
+      ? "Quick note"
+      : activeId;
+
   return (
     <div className="flex flex-col lg:flex-row gap-4 p-4" style={{ color: 'var(--theme-text-primary)' }}>
       <aside className="w-full lg:w-80 flex-shrink-0">
         <div className="rounded-xl p-3" style={{ backgroundColor: 'var(--theme-bg-secondary)', border: '1px solid var(--theme-border-secondary)' }}>
           <div className="flex items-center justify-between mb-2 gap-2">
-            <h2 className="text-sm" style={{ color: 'var(--theme-text-secondary)' }}>Your Notes</h2>
+            <div>
+              <h2 className="text-sm font-medium" style={{ color: 'var(--theme-text-secondary)' }}>Saved notes</h2>
+              <p className="text-[11px]" style={{ color: 'var(--theme-text-muted)' }}>Tap to open in the editor</p>
+            </div>
             <div className="flex gap-1">
               <button className="ts-accent-btn px-2 py-1 rounded-md text-xs" onClick={() => addNewNote('general')}>New</button>
               <button className="px-2 py-1 rounded-md text-xs" style={{ border: '1px solid var(--theme-border-secondary)', color: 'var(--theme-text-secondary)' }} onClick={() => addNewNote('quick')}>Quick</button>
@@ -115,9 +147,15 @@ export default function NotesPage() {
                   style={{ backgroundColor: activeId === n.id ? 'color-mix(in oklab, var(--theme-accent-primary) 12%, transparent)' : 'transparent', color: 'var(--theme-text-secondary)' }}
                   onClick={() => setActiveId(n.id)}
                 >
-                  <span className="font-semibold" style={{ color: 'var(--theme-text-primary)' }}>{n.id}</span>
-                  <span className="ml-2 text-[11px] uppercase" style={{ color: 'var(--theme-text-secondary)' }}>{n.type}</span>
-                  <span className="ml-2 text-[11px]" style={{ color: 'var(--theme-text-secondary)' }}>{new Date(n.updatedAt).toLocaleString()}</span>
+                  <div className="flex flex-col">
+                    <span className="font-semibold truncate" style={{ color: 'var(--theme-text-primary)' }}>
+                      {deriveNoteTitle(n)}
+                    </span>
+                    <span className="text-[11px]" style={{ color: 'var(--theme-text-secondary)' }}>
+                      <span className="uppercase mr-1">{n.type}</span>
+                      <span>{new Date(n.updatedAt).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}</span>
+                    </span>
+                  </div>
                 </button>
               </li>
             ))}
@@ -128,7 +166,7 @@ export default function NotesPage() {
       <main className="flex-1 min-w-0">
         <div className="rounded-xl p-4 space-y-2" style={{ backgroundColor: 'var(--theme-bg-secondary)', border: '1px solid var(--theme-border-secondary)' }}>
           <div className="flex flex-wrap items-center justify-between gap-2">
-            <span className="text-sm" style={{ color: 'var(--theme-text-secondary)' }}>Editing: {activeId}</span>
+            <span className="text-sm" style={{ color: 'var(--theme-text-secondary)' }}>Editing: {activeTitle}</span>
             <div className="flex items-center gap-2 text-xs" style={{ color: 'var(--theme-text-secondary)' }}>
               <label className="flex items-center gap-1">
                 <span>Type</span>
@@ -146,6 +184,11 @@ export default function NotesPage() {
                   placeholder="Job / project title"
                   style={{ borderColor: 'var(--theme-border-secondary)', backgroundColor: 'var(--theme-bg-primary)', color: 'var(--theme-text-primary)' }}
                 />
+              )}
+              {lastSavedAt && (
+                <span className="ml-2" style={{ color: 'var(--theme-text-muted)' }}>
+                  Saved at {new Date(lastSavedAt).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}
+                </span>
               )}
             </div>
           </div>

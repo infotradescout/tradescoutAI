@@ -260,13 +260,13 @@ export default function Community() {
 
         {/* Navigation Tabs */}
         <div className="mb-4">
-          <div className="flex gap-1.5 bg-[#0f1624] rounded-xl p-1 shadow-sm border border-[#1f2937] text-[11px] sm:text-xs">
+          <div className="flex gap-1.5 bg-tsCard rounded-xl p-1 shadow-sm border border-tsBorder text-[11px] sm:text-xs">
             <button
               onClick={() => setActiveTab("for-you")}
               className={`flex-1 px-3 py-1.5 rounded-lg font-medium transition-all ${
                 activeTab === "for-you"
                   ? "bg-orange-500 text-white shadow-sm"
-                  : "text-slate-300 hover:bg-[#0f1419] hover:text-white"
+                  : "text-slate-300 hover:bg-tsBg hover:text-white"
               }`}
               data-testid="tab-for-you"
             >
@@ -277,7 +277,7 @@ export default function Community() {
               className={`flex-1 px-3 py-1.5 rounded-lg font-medium transition-all ${
                 activeTab === "projects"
                   ? "bg-orange-500 text-white shadow-sm"
-                  : "text-slate-300 hover:bg-[#0f1419] hover:text-white"
+                  : "text-slate-300 hover:bg-tsBg hover:text-white"
               }`}
               data-testid="tab-projects"
             >
@@ -288,7 +288,7 @@ export default function Community() {
               className={`flex-1 px-3 py-1.5 rounded-lg font-medium transition-all ${
                 activeTab === "questions"
                   ? "bg-orange-500 text-white shadow-sm"
-                  : "text-slate-300 hover:bg-[#0f1419] hover:text-white"
+                  : "text-slate-300 hover:bg-tsBg hover:text-white"
               }`}
               data-testid="tab-questions"
             >
@@ -299,7 +299,7 @@ export default function Community() {
               className={`flex-1 px-3 py-1.5 rounded-lg font-medium transition-all ${
                 activeTab === "pros"
                   ? "bg-orange-500 text-white shadow-sm"
-                  : "text-slate-300 hover:bg-[#0f1419] hover:text-white"
+                  : "text-slate-300 hover:bg-tsBg hover:text-white"
               }`}
               data-testid="tab-pros"
             >
@@ -313,7 +313,7 @@ export default function Community() {
           <div className="space-y-4">
 
             {/* Post Composer */}
-            <Card className="bg-[#1a2332] shadow-xl border-2 border-[#2d3748] hover:border-orange-500/30 transition-all">
+            <Card className="bg-tsCard shadow-xl border-2 border-tsBorder hover:border-orange-500/30 transition-all">
               <CardContent className="p-5">
                 <CommunityComposerInline
                   isAuthenticated={isAuthenticated}
@@ -345,15 +345,15 @@ export default function Community() {
             </Card>
 
             {/* Category Filters */}
-            <Card className="bg-[#1a2332] shadow-lg border-2 border-[#2d3748]">
+            <Card className="bg-tsCard shadow-lg border-2 border-tsBorder">
               <CardContent className="p-4">
                 <div className="flex gap-1.5 overflow-x-auto pb-1">
                   {POST_CATEGORIES.map((category) => {
                     const Icon = category.icon;
                     return (
-                      <button
+                        <button
                         key={category.id}
-                        className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-[#0f1419] border border-[#2d3748] hover:border-orange-500 hover:bg-orange-500/10 text-[11px] sm:text-xs font-medium text-slate-200 hover:text-orange-400 whitespace-nowrap transition-all shadow-sm"
+                          className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-tsBg border border-tsBorder hover:border-orange-500 hover:bg-orange-500/10 text-[11px] sm:text-xs font-medium text-slate-200 hover:text-orange-400 whitespace-nowrap transition-all shadow-sm"
                         data-testid={`filter-${category.id}`}
                       >
                         <Icon className="w-3.5 h-3.5" />

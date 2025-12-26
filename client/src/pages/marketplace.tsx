@@ -440,7 +440,7 @@ export default function Marketplace() {
 
   return (
     <Page className="max-w-none px-0">
-      <div className="min-h-screen bg-[#0f1419]">
+      <div className="min-h-screen bg-tsBg">
       {/* Smart Value Banner */}
       <div className="bg-gradient-to-r from-orange-600 via-amber-600 to-orange-500 text-white">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-5 space-y-4">
@@ -575,7 +575,7 @@ export default function Marketplace() {
                 className={`cursor-pointer transition-all border group rounded-xl shadow-sm ${
                   selectedCategory === category.id 
                     ? `border-orange-500 bg-orange-50 dark:bg-orange-900/20`
-                    : 'border-[#2d3748] hover:border-orange-300 dark:hover:border-orange-600'
+                    : 'border-tsBorder hover:border-orange-300 dark:hover:border-orange-600'
                 }`}
                 onClick={() => {
                   setSelectedCategory(selectedCategory === category.id ? '' : category.id);
@@ -613,7 +613,7 @@ export default function Marketplace() {
         </div>
 
         {/* Search and Filters */}
-        <Card className="rounded-xl border border-[#1f2937] bg-[#0f1624] shadow-sm">
+        <Card className="rounded-xl border border-tsBorder bg-tsCard shadow-sm">
           <CardContent className="p-5 space-y-4">
               {/* Search Bar */}
               <div className="flex gap-4">
@@ -803,7 +803,7 @@ export default function Marketplace() {
                   </p>
                   
                   <div className="grid md:grid-cols-2 gap-4">
-                    <div className="bg-[#1a2332] p-4 rounded-lg">
+                    <div className="bg-tsCard p-4 rounded-lg">
                       <h4 className="font-medium text-orange-500 mb-2">Trust & Safety:</h4>
                       <ul className="text-sm text-gray-600 dark:text-gray-300 space-y-1">
                         <li>• Address verification required</li>
@@ -812,7 +812,7 @@ export default function Marketplace() {
                         <li>• Transaction protection guidance</li>
                       </ul>
                     </div>
-                    <div className="bg-[#1a2332] p-4 rounded-lg">
+                    <div className="bg-tsCard p-4 rounded-lg">
                       <h4 className="font-medium text-orange-500 mb-2">Community Benefits:</h4>
                       <ul className="text-sm text-gray-600 dark:text-gray-300 space-y-1">
                         <li>• Support local contractors</li>
@@ -855,7 +855,7 @@ export default function Marketplace() {
                   </p>
                   
                   <div className="grid md:grid-cols-4 gap-4">
-                    <div className="bg-[#1a2332] p-4 rounded-lg">
+                    <div className="bg-tsCard p-4 rounded-lg">
                       <h4 className="font-medium text-orange-500 mb-2 flex items-center">
                         <CheckCircle className="h-4 w-4 mr-2 text-green-600" />
                         Quality Verified
@@ -864,7 +864,7 @@ export default function Marketplace() {
                         Items checked by knowledgeable owners
                       </p>
                     </div>
-                    <div className="bg-[#1a2332] p-4 rounded-lg">
+                    <div className="bg-tsCard p-4 rounded-lg">
                       <h4 className="font-medium text-orange-500 mb-2 flex items-center">
                         <TrendingUp className="h-4 w-4 mr-2 text-blue-600" />
                         Smart Value
@@ -873,7 +873,7 @@ export default function Marketplace() {
                         Quality items maintain worth over time
                       </p>
                     </div>
-                    <div className="bg-[#1a2332] p-4 rounded-lg">
+                    <div className="bg-tsCard p-4 rounded-lg">
                       <h4 className="font-medium text-orange-500 mb-2 flex items-center">
                         <Users className="h-4 w-4 mr-2 text-purple-600" />
                         Owner Stories
@@ -882,7 +882,7 @@ export default function Marketplace() {
                         Learn from experienced equipment owners
                       </p>
                     </div>
-                    <div className="bg-[#1a2332] p-4 rounded-lg">
+                    <div className="bg-tsCard p-4 rounded-lg">
                       <h4 className="font-medium text-orange-500 mb-2 flex items-center">
                         <Shield className="h-4 w-4 mr-2 text-emerald-600" />
                         Trust Network
@@ -916,7 +916,7 @@ export default function Marketplace() {
                   </p>
                   
                   <div className="grid md:grid-cols-3 gap-4">
-                    <div className="bg-[#1a2332] p-4 rounded-lg">
+                    <div className="bg-tsCard p-4 rounded-lg">
                       <h4 className="font-medium text-orange-500 mb-2 flex items-center">
                         <TrendingUp className="h-4 w-4 mr-2 text-emerald-600" />
                         Property Value
@@ -925,7 +925,7 @@ export default function Marketplace() {
                         Quality improvements that add lasting value
                       </p>
                     </div>
-                    <div className="bg-[#1a2332] p-4 rounded-lg">
+                    <div className="bg-tsCard p-4 rounded-lg">
                       <h4 className="font-medium text-orange-500 mb-2 flex items-center">
                         <Award className="h-4 w-4 mr-2 text-blue-600" />
                         Proven Results
@@ -934,7 +934,7 @@ export default function Marketplace() {
                         Items with track records of performance
                       </p>
                     </div>
-                    <div className="bg-[#1a2332] p-4 rounded-lg">
+                    <div className="bg-tsCard p-4 rounded-lg">
                       <h4 className="font-medium text-orange-500 mb-2 flex items-center">
                         <Users className="h-4 w-4 mr-2 text-purple-600" />
                         Community Tips
@@ -968,7 +968,7 @@ export default function Marketplace() {
                   </p>
                   
                   <div className="grid md:grid-cols-3 gap-4">
-                    <div className="bg-[#1a2332] p-4 rounded-lg">
+                    <div className="bg-tsCard p-4 rounded-lg">
                       <h4 className="font-medium text-orange-500 mb-2 flex items-center">
                         <CheckCircle className="h-4 w-4 mr-2 text-purple-600" />
                         Authenticated Items
@@ -977,7 +977,7 @@ export default function Marketplace() {
                         Verified provenance and quality documentation
                       </p>
                     </div>
-                    <div className="bg-[#1a2332] p-4 rounded-lg">
+                    <div className="bg-tsCard p-4 rounded-lg">
                       <h4 className="font-medium text-orange-500 mb-2 flex items-center">
                         <TrendingUp className="h-4 w-4 mr-2 text-emerald-600" />
                         Value Appreciation
@@ -986,7 +986,7 @@ export default function Marketplace() {
                         Quality pieces that often gain worth over time
                       </p>
                     </div>
-                    <div className="bg-[#1a2332] p-4 rounded-lg">
+                    <div className="bg-tsCard p-4 rounded-lg">
                       <h4 className="font-medium text-orange-500 mb-2 flex items-center">
                         <Users className="h-4 w-4 mr-2 text-blue-600" />
                         Expert Network
@@ -1019,7 +1019,7 @@ export default function Marketplace() {
                   </p>
                   
                   <div className="grid md:grid-cols-4 gap-4">
-                    <div className="bg-[#1a2332] p-4 rounded-lg">
+                    <div className="bg-tsCard p-4 rounded-lg">
                       <h4 className="font-medium text-orange-500 mb-2 flex items-center">
                         <TrendingUp className="h-4 w-4 mr-2 text-emerald-600" />
                         Complete Businesses
@@ -1028,7 +1028,7 @@ export default function Marketplace() {
                         Established operations with proven revenue streams
                       </p>
                     </div>
-                    <div className="bg-[#1a2332] p-4 rounded-lg">
+                    <div className="bg-tsCard p-4 rounded-lg">
                       <h4 className="font-medium text-orange-500 mb-2 flex items-center">
                         <CheckCircle className="h-4 w-4 mr-2 text-blue-600" />
                         Business Packages
@@ -1037,7 +1037,7 @@ export default function Marketplace() {
                         Tested business models with systems and training
                       </p>
                     </div>
-                    <div className="bg-[#1a2332] p-4 rounded-lg">
+                    <div className="bg-tsCard p-4 rounded-lg">
                       <h4 className="font-medium text-orange-500 mb-2 flex items-center">
                         <Users className="h-4 w-4 mr-2 text-purple-600" />
                         Franchises
@@ -1046,7 +1046,7 @@ export default function Marketplace() {
                         Proven brands with ongoing support and territory rights
                       </p>
                     </div>
-                    <div className="bg-[#1a2332] p-4 rounded-lg">
+                    <div className="bg-tsCard p-4 rounded-lg">
                       <h4 className="font-medium text-orange-500 mb-2 flex items-center">
                         <Star className="h-4 w-4 mr-2 text-amber-600" />
                         Turnkey Solutions
@@ -1087,7 +1087,7 @@ export default function Marketplace() {
                   </p>
                   
                   <div className="grid md:grid-cols-3 gap-4">
-                    <div className="bg-[#1a2332] p-4 rounded-lg">
+                    <div className="bg-tsCard p-4 rounded-lg">
                       <h4 className="font-medium text-orange-500 mb-2 flex items-center">
                         <TrendingUp className="h-4 w-4 mr-2 text-violet-600" />
                         Market Value
@@ -1096,7 +1096,7 @@ export default function Marketplace() {
                         Competitive pricing based on local market conditions
                       </p>
                     </div>
-                    <div className="bg-[#1a2332] p-4 rounded-lg">
+                    <div className="bg-tsCard p-4 rounded-lg">
                       <h4 className="font-medium text-orange-500 mb-2 flex items-center">
                         <CheckCircle className="h-4 w-4 mr-2 text-emerald-600" />
                         Detailed Information
@@ -1105,7 +1105,7 @@ export default function Marketplace() {
                         Complete property details and neighborhood insights
                       </p>
                     </div>
-                    <div className="bg-[#1a2332] p-4 rounded-lg">
+                    <div className="bg-tsCard p-4 rounded-lg">
                       <h4 className="font-medium text-orange-500 mb-2 flex items-center">
                         <Shield className="h-4 w-4 mr-2 text-blue-600" />
                         Trusted Sellers
@@ -1177,7 +1177,7 @@ export default function Marketplace() {
         }>
           {listings.length === 0 ? (
             <div className="col-span-full">
-              <Card className="text-center rounded-xl border border-[#1f2937] bg-[#0f1624] shadow-sm">
+              <Card className="text-center rounded-xl border border-tsBorder bg-tsCard shadow-sm">
                 <CardContent className="py-10 space-y-3">
                   <Package className="h-16 w-16 text-gray-300 mx-auto mb-4" />
                   <h3 className="text-base font-medium text-orange-500">
@@ -1202,7 +1202,7 @@ export default function Marketplace() {
             listings.map((listing) => (
               <Card 
                 key={listing.id} 
-                className="group cursor-pointer transition-all rounded-xl border border-[#1f2937] bg-[#0f1624] shadow-sm hover:border-orange-500/30"
+                className="group cursor-pointer transition-all rounded-xl border border-tsBorder bg-tsCard shadow-sm hover:border-orange-500/30"
                 onClick={() => setLocation(`/marketplace/item/${listing.id}`)}
               >
                 {viewMode === 'grid' ? (

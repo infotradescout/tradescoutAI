@@ -3,11 +3,20 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 export default function FinancesPayrollPage() {
   return (
     <div className="flex flex-col gap-4 bg-tsBg">
-      <div>
-        <h1 className="text-2xl md:text-3xl font-semibold text-tsText mb-1">Payroll</h1>
-        <p className="text-sm text-tsTextMuted">
-          Summaries of payouts and tax statements driven by your wallet and external payroll tools.
-        </p>
+      <div className="flex items-center gap-3">
+        <div className="flex-1">
+          <h1 className="text-2xl md:text-3xl font-semibold text-tsText mb-1">Payroll</h1>
+          <p className="text-sm text-tsTextMuted">
+            Summaries of payouts and tax statements driven by your wallet and external payroll tools.
+          </p>
+        </div>
+        <a
+          href="/payroll-helper"
+          className="text-xs text-orange-500 hover:underline font-medium"
+          style={{ whiteSpace: 'nowrap' }}
+        >
+          Payroll math
+        </a>
       </div>
 
       <Card className="bg-tsCard border-tsBorder">

@@ -5,7 +5,7 @@
 
 import type { ScoutAction, ScoutActionType } from "./state";
 
-const ALLOWED_ACTION_TYPES: Set<ScoutActionType> = new Set([
+const ALLOWED_ACTION_TYPES: Set<ScoutActionType> = new Set<ScoutActionType>([
   "NAVIGATE",
   "OPEN_APP_DRAWER",
   "PREFILL_INPUT",

@@ -174,7 +174,7 @@ export default function ProfilePage() {
         <div
           className="rounded-lg p-8 shadow-lg border"
           style={{
-            backgroundColor: 'color-mix(in srgb, var(--user-background) 92%, #111827 8%)',
+            backgroundColor: 'color-mix(in srgb, var(--user-background) 92%, var(--user-border) 8%)',
             borderColor: 'var(--user-border)',
           }}
         >
@@ -273,7 +273,7 @@ export default function ProfilePage() {
                 <div
                   className="border rounded-lg p-4"
                   style={{
-                    backgroundColor: 'color-mix(in srgb, var(--user-background) 90%, #0a0f1e 10%)',
+                    backgroundColor: 'color-mix(in srgb, var(--user-background) 90%, var(--user-border) 10%)',
                     borderColor: 'var(--user-border)',
                   }}
                 >

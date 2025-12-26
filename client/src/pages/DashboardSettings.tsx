@@ -110,7 +110,7 @@ export default function DashboardSettings() {
   };
 
   return (
-    <div className="min-h-screen bg-[#0f1419] dark:bg-slate-900">
+    <div className="min-h-screen bg-tsBg dark:bg-slate-900">
       <div className="max-w-4xl mx-auto px-4 py-8">
         {/* Header */}
         <div className="mb-8">
@@ -130,7 +130,7 @@ export default function DashboardSettings() {
         </div>
 
         {/* Widgets Configuration */}
-        <Card className="bg-[#0f1419] dark:bg-slate-800 border-0 shadow-sm">
+        <Card className="bg-tsBg dark:bg-slate-800 border-0 shadow-sm">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <LayoutGrid className="h-5 w-5 text-orange-500" />
@@ -162,7 +162,7 @@ export default function DashboardSettings() {
                               <div
                                 ref={draggableProvided.innerRef}
                                 {...draggableProvided.draggableProps}
-                                className={`flex items-center justify-between p-4 rounded-lg bg-[#0f1419] dark:bg-slate-700/50 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors border ${
+                                className={`flex items-center justify-between p-4 rounded-lg bg-tsBg dark:bg-slate-700/50 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors border ${
                                   snapshot.isDragging ? 'border-orange-500 shadow-md' : 'border-transparent'
                                 }`}
                               >

@@ -280,10 +280,9 @@ export default function ScoutOS() {
     [state.messages]
   );
 
-  const shouldPlayIntroDemo =
-    isGuest &&
-    !hasPlayedDemoThisSession &&
-    !hasUserMessages;
+  // Disable auto-demo typing so Scout never speaks before the user does.
+  // Scout should only respond after an explicit user intent (typing or tile).
+  const shouldPlayIntroDemo = false;
 
   // Parse URL search params to detect explicit intent (e.g. /scout?intent=estimate)
   const urlIntent = useMemo(() => {
@@ -1542,16 +1541,16 @@ export default function ScoutOS() {
             style={{ paddingBottom: isMobile ? '2rem' : '1.5rem' }}
           >
             {!hasUserMessages && (
-              <div className="flex flex-col gap-3 py-4 px-2">
-                <div className="space-y-1">
+              <div className="flex flex-col gap-3 py-3 px-1">
+                <div className="space-y-0.5">
                   <h2 className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
                     Scout for {heroLocationLabel || "your area"}
                   </h2>
                   <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>
-                    Choose an action or type a question.
+                    Pick a command or start typing.
                   </p>
                 </div>
-                <div className="grid grid-cols-1 gap-2">
+                <div className="flex flex-col divide-y divide-slate-800/60">
                   {resolvedTiles.map((tile) => (
                     <button
                       key={tile.id}
@@ -1559,17 +1558,21 @@ export default function ScoutOS() {
                         setHasGuestInteracted(true);
                         handleActionTile(tile);
                       }}
-                      className="flex flex-col items-start p-3 rounded-lg border transition hover:opacity-80 active:scale-95 text-left"
+                      className="flex items-center justify-between py-2 px-1 text-left transition-colors hover:bg-slate-900/60 rounded-md"
                       style={{
-                        backgroundColor: 'var(--surface-intermediate)',
-                        borderColor: 'var(--border-primary)',
                         color: 'var(--text-primary)',
+                        border: 'none',
+                        backgroundColor: 'transparent',
                       }}
                     >
-                      <span className="font-medium text-sm">{tile.label}</span>
-                      <span className="text-xs mt-1" style={{ color: 'var(--text-secondary)' }}>
-                        {tile.description}
-                      </span>
+                      <div className="flex flex-col">
+                        <span className="font-medium text-sm">{tile.label}</span>
+                        {tile.description && (
+                          <span className="text-[11px] mt-0.5" style={{ color: 'var(--text-secondary)' }}>
+                            {tile.description}
+                          </span>
+                        )}
+                      </div>
                     </button>
                   ))}
                 </div>
@@ -1890,8 +1893,8 @@ export default function ScoutOS() {
                   label: "typing",
                 });
               }}
-              autoDemoText={introDemoText}
-              enableAutoDemo={shouldPlayIntroDemo}
+              autoDemoText={undefined}
+              enableAutoDemo={false}
             />
 
             {!isAuthenticated && (

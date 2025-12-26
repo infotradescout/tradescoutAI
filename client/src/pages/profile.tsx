@@ -97,7 +97,7 @@ function Profile() {
   };
 
   return (
-    <div className="min-h-screen bg-[#0f1419] text-white pb-20 lg:pb-0">
+    <div className="min-h-screen bg-tsBg text-white pb-20 lg:pb-0">
       <div className="max-w-6xl mx-auto px-4 py-6 lg:py-10 space-y-6">
         <div>
           <div className="flex items-center gap-4 mb-3">
@@ -113,7 +113,7 @@ function Profile() {
           </div>
         </div>
 
-        <Card className="bg-[#1a2332] border border-[#2d3748] shadow-sm rounded-xl">
+  <Card className="bg-tsCard border border-tsBorder shadow-sm rounded-xl">
           <CardContent className="pt-6 pb-6">
             <div className="flex flex-col sm:flex-row items-center sm:items-start gap-6">
               <div className="relative">
@@ -134,7 +134,7 @@ function Profile() {
                 <button
                   type="button"
                   onClick={handleUploadClick}
-                  className="absolute bottom-0 right-0 h-8 w-8 bg-orange-500 rounded-full flex items-center justify-center border-2 border-[#1a2332] hover:bg-orange-600 transition-colors"
+                  className="absolute bottom-0 right-0 h-8 w-8 bg-orange-500 rounded-full flex items-center justify-center border-2 border-tsCard hover:bg-orange-600 transition-colors"
                 >
                   <Camera className="h-4 w-4 text-white" />
                 </button>
@@ -167,8 +167,8 @@ function Profile() {
           </CardContent>
         </Card>
 
-        <Card className="bg-[#1a2332] border border-[#2d3748] shadow-sm rounded-xl">
-          <CardHeader className="border-b border-[#2d3748] pb-4">
+        <Card className="bg-tsCard border border-tsBorder shadow-sm rounded-xl">
+          <CardHeader className="border-b border-tsBorder pb-4">
             <div className="flex items-center gap-3">
               <div className="h-10 w-10 bg-orange-500/20 rounded-lg flex items-center justify-center">
                 <User className="w-5 h-5 text-orange-500" />
@@ -190,28 +190,28 @@ function Profile() {
                   <Label htmlFor="firstName" className="text-white font-medium">
                     First Name
                   </Label>
-                  <Input
+                    <Input
                     id="firstName"
                     type="text"
                     value={formData.firstName}
                     onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
                       setFormData((prev) => ({ ...prev, firstName: e.target.value }))
                     }
-                    className="bg-[#0f1419] border-[#2d3748] text-white h-11 focus:border-orange-500 transition-colors"
+                    className="bg-tsBg border-tsBorder text-white h-11 focus:border-orange-500 transition-colors"
                   />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="lastName" className="text-white font-medium">
                     Last Name
                   </Label>
-                  <Input
+                    <Input
                     id="lastName"
                     type="text"
                     value={formData.lastName}
                     onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
                       setFormData((prev) => ({ ...prev, lastName: e.target.value }))
                     }
-                    className="bg-[#0f1419] border-[#2d3748] text-white h-11 focus:border-orange-500 transition-colors"
+                    className="bg-tsBg border-tsBorder text-white h-11 focus:border-orange-500 transition-colors"
                   />
                 </div>
                 <div className="space-y-2">
@@ -229,7 +229,7 @@ function Profile() {
                     onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
                       setFormData((prev) => ({ ...prev, email: e.target.value }))
                     }
-                    className="bg-[#0f1419] border-[#2d3748] text-white h-11 focus:border-orange-500 transition-colors"
+                    className="bg-tsBg border-tsBorder text-white h-11 focus:border-orange-500 transition-colors"
                   />
                 </div>
                 <div className="space-y-2">
@@ -247,7 +247,7 @@ function Profile() {
                     onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
                       setFormData((prev) => ({ ...prev, phone: e.target.value }))
                     }
-                    className="bg-[#0f1419] border-[#2d3748] text-white h-11 focus:border-orange-500 transition-colors"
+                    className="bg-tsBg border-tsBorder text-white h-11 focus:border-orange-500 transition-colors"
                   />
                 </div>
                 <div className="md:col-span-2 space-y-2">
@@ -265,7 +265,7 @@ function Profile() {
                     onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
                       setFormData((prev) => ({ ...prev, address: e.target.value }))
                     }
-                    className="bg-[#0f1419] border-[#2d3748] text-white h-11 focus:border-orange-500 transition-colors"
+                    className="bg-tsBg border-tsBorder text-white h-11 focus:border-orange-500 transition-colors"
                   />
                 </div>
                 <div className="space-y-2">
@@ -279,7 +279,7 @@ function Profile() {
                     onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
                       setFormData((prev) => ({ ...prev, city: e.target.value }))
                     }
-                    className="bg-[#0f1419] border-[#2d3748] text-white h-11 focus:border-orange-500 transition-colors"
+                    className="bg-tsBg border-tsBorder text-white h-11 focus:border-orange-500 transition-colors"
                   />
                 </div>
                 <div className="space-y-2">
@@ -293,7 +293,7 @@ function Profile() {
                     onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
                       setFormData((prev) => ({ ...prev, state: e.target.value }))
                     }
-                    className="bg-[#0f1419] border-[#2d3748] text-white h-11 focus:border-orange-500 transition-colors"
+                    className="bg-tsBg border-tsBorder text-white h-11 focus:border-orange-500 transition-colors"
                   />
                 </div>
                 <div className="space-y-2">
@@ -307,7 +307,7 @@ function Profile() {
                     onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
                       setFormData((prev) => ({ ...prev, zipCode: e.target.value }))
                     }
-                    className="bg-[#0f1419] border-[#2d3748] text-white h-11 focus:border-orange-500 transition-colors"
+                    className="bg-tsBg border-tsBorder text-white h-11 focus:border-orange-500 transition-colors"
                   />
                 </div>
                 <div className="space-y-2">
@@ -321,11 +321,11 @@ function Profile() {
                     onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
                       setFormData((prev) => ({ ...prev, county: e.target.value }))
                     }
-                    className="bg-[#0f1419] border-[#2d3748] text-white h-11 focus:border-orange-500 transition-colors"
+                    className="bg-tsBg border-tsBorder text-white h-11 focus:border-orange-500 transition-colors"
                   />
                 </div>
               </div>
-              <div className="flex items-center gap-3 mt-8 pt-6 border-t border-[#2d3748]">
+              <div className="flex items-center gap-3 mt-8 pt-6 border-t border-tsBorder">
                 <Button
                   type="submit"
                   disabled={updateProfileMutation.isPending}
@@ -336,7 +336,7 @@ function Profile() {
                 <Button
                   type="button"
                   variant="outline"
-                  className="border-[#2d3748] text-slate-300 hover:bg-[#0f1419]"
+                  className="border-tsBorder text-slate-300 hover:bg-tsBg"
                   onClick={() =>
                     setFormData({
                       firstName: user?.firstName || "",
@@ -359,8 +359,8 @@ function Profile() {
           </CardContent>
         </Card>
 
-        <Card className="bg-[#1a2332] border border-[#2d3748] shadow-sm rounded-xl">
-          <CardHeader className="border-b border-[#2d3748] pb-4">
+        <Card className="bg-tsCard border border-tsBorder shadow-sm rounded-xl">
+          <CardHeader className="border-b border-tsBorder pb-4">
             <div className="flex items-center gap-3">
               <div className="h-10 w-10 bg-orange-500/20 rounded-lg flex items-center justify-center">
                 <Bell className="w-5 h-5 text-orange-500" />
@@ -376,7 +376,7 @@ function Profile() {
             </div>
           </CardHeader>
           <CardContent className="space-y-4 pt-4 pb-6">
-            <div className="flex items-center justify-between p-4 bg-[#0f1419] rounded-xl border border-[#2d3748]">
+            <div className="flex items-center justify-between p-4 bg-tsBg rounded-xl border border-tsBorder">
               <div>
                 <p className="text-white font-medium">
                   Email notifications for new deals
@@ -392,7 +392,7 @@ function Profile() {
                 }
               />
             </div>
-            <div className="flex items-center justify-between p-4 bg-[#0f1419] rounded-xl border border-[#2d3748]">
+            <div className="flex items-center justify-between p-4 bg-tsBg rounded-xl border border-tsBorder">
               <div>
                 <p className="text-white font-medium">
                   SMS notifications for project updates
@@ -408,7 +408,7 @@ function Profile() {
                 }
               />
             </div>
-            <div className="flex items-center justify-between p-4 bg-[#0f1419] rounded-xl border border-[#2d3748]">
+            <div className="flex items-center justify-between p-4 bg-tsBg rounded-xl border border-tsBorder">
               <div>
                 <p className="text-white font-medium">
                   Weekly contractor recommendations

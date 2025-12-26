@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta
       name="viewport"
-      content="width=device-width, initial-scale=1, viewport-fit=cover"
+      content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover"
     />
     <title>TradeScout</title>
     <script src="https://cdn.tailwindcss.com"></script>
@@ -22,8 +22,15 @@
         padding: 0;
         width: 100%;
         height: 100%;
+        overflow: hidden;
         background-color: #0b1220;
         overscroll-behavior: none;
+      }
+
+      #root {
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
       }
 
       body {

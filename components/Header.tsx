@@ -30,7 +30,7 @@ const Header: React.FC<HeaderProps> = ({
   return (
     <>
         {/* TOP HEADER (Desktop: Full, Mobile: Minimal) */}
-        <header className="sticky top-0 z-50 backdrop-blur-md bg-charcoal-900/90 border-b border-charcoal-700 shadow-lg transition-all duration-300">
+                <header className="sticky top-0 z-50 border-b shadow-lg transition-all duration-300 bg-tsBg border-tsBorder px-4 py-2 md:py-3">
         <div className="container mx-auto px-4 py-2 md:py-3">
             <div className="flex justify-between items-start gap-3 flex-wrap">
                 {/* Logo Section */}
@@ -39,12 +39,15 @@ const Header: React.FC<HeaderProps> = ({
                         <HomeIcon className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
                     </div>
                     <div className="leading-tight">
-                        <h1 className="text-lg sm:text-2xl font-extrabold text-white tracking-tight uppercase leading-none break-words">
-                        Trade<span className="text-orange-500">Scout</span>
-                        </h1>
-                        <p className="text-[10px] sm:text-xs font-medium text-slate-400 uppercase tracking-wide hidden sm:block mt-0.5">
-                        Nationwide Tools, Local Connection
-                        </p>
+                                                <h1
+                                                    className="font-extrabold tracking-tight leading-none break-words text-tsText capitalize"
+                                                    style={{ fontSize: 'clamp(1.25rem, 2vw + 1rem, 2.25rem)' }}
+                                                >
+                                                    Empowering <span className="text-tsAccent">Your Community</span>
+                                                </h1>
+                                                <p className="text-xs font-medium uppercase tracking-wide hidden sm:block mt-0.5 text-tsTextSecondary">
+                                                    Nationwide Tools, Local Connection
+                                                </p>
                     </div>
                 </div>
                 
@@ -178,39 +181,38 @@ const Header: React.FC<HeaderProps> = ({
         </header>
 
         {/* BOTTOM MOBILE NAVIGATION BAR */}
-        <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-slate-900 border-t border-slate-700 pb-safe pt-1 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.3)]">
+                <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 pb-safe pt-1 bg-tsBg border-t border-tsBorder shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.3)]">
             <div className="grid grid-cols-5 h-16 items-center">
-                <button onClick={() => window.location.reload()} className="flex flex-col items-center justify-center space-y-1 text-slate-400">
-                    
-                    <HomeIcon className="w-6 h-6" />
-                    <span className="text-[10px] font-medium">Home</span>
-                </button>
+                                <button onClick={() => window.location.reload()} className="flex flex-col items-center justify-center space-y-1 text-tsTextSecondary">
+                                        <HomeIcon className="w-6 h-6" />
+                                        <span className="text-[10px] font-medium">Home</span>
+                                </button>
                 
-                <button onClick={onNavigateToProjects} className="flex flex-col items-center justify-center space-y-1 text-slate-400 hover:text-emerald-400 active:text-emerald-400">
-                    <ClipboardDocumentCheckIcon className="w-6 h-6" />
-                    <span className="text-[10px] font-medium">Projects</span>
-                </button>
+                                <button onClick={onNavigateToProjects} className="flex flex-col items-center justify-center space-y-1 text-tsTextSecondary hover:text-tsAccent active:text-tsAccent">
+                                        <ClipboardDocumentCheckIcon className="w-6 h-6" />
+                                        <span className="text-[10px] font-medium">Projects</span>
+                                </button>
 
                 {/* Center Action Button (Add) */}
                 <div className="relative -top-5 flex justify-center">
                     <button 
                         onClick={onAddBusinessClick}
-                        className="bg-orange-600 text-white p-3 rounded-full shadow-lg shadow-orange-900/50 border-4 border-slate-900 hover:bg-orange-500 transition-transform active:scale-95"
+                        className="p-3 rounded-full shadow-lg hover:opacity-90 transition-transform active:scale-95 bg-tsAccent text-tsText border-4 border-tsBg"
                     >
                         <PlusCircleIcon className="w-7 h-7" />
                     </button>
                 </div>
 
-                <button onClick={onNavigateToForum} className="flex flex-col items-center justify-center space-y-1 text-slate-400 hover:text-cyan-400 active:text-cyan-400">
-                    <ChatBubbleLeftRightIcon className="w-6 h-6" />
-                    <span className="text-[10px] font-medium">Neighbors</span>
-                </button>
+                                <button onClick={onNavigateToForum} className="flex flex-col items-center justify-center space-y-1 text-tsTextSecondary hover:text-tsAccent active:text-tsAccent">
+                                        <ChatBubbleLeftRightIcon className="w-6 h-6" />
+                                        <span className="text-[10px] font-medium">Neighbors</span>
+                                </button>
 
-                <button onClick={onNavigateToDashboard} className="flex flex-col items-center justify-center space-y-1 text-slate-400 hover:text-white active:text-white">
+                <button onClick={onNavigateToDashboard} className="flex flex-col items-center justify-center space-y-1 text-tsTextSecondary hover:text-tsText active:text-tsText">
                     {currentUser ? (
                         <div className="relative">
-                            <img src={currentUser.avatarUrl} className="w-6 h-6 rounded-full border border-slate-500" alt="Profile" />
-                            {currentUser.role === 'contractor' && <div className="absolute -top-1 -right-1 w-2 h-2 bg-cyan-500 rounded-full border border-slate-900"></div>}
+                            <img src={currentUser.avatarUrl} className="w-6 h-6 rounded-full border border-tsBorder" alt="Profile" />
+                            {currentUser.role === 'contractor' && <div className="absolute -top-1 -right-1 w-2 h-2 bg-tsAccent rounded-full border border-tsBg"></div>}
                         </div>
                     ) : (
                         <UserIcon className="w-6 h-6" />

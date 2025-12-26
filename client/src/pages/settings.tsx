@@ -413,7 +413,7 @@ export default function Settings() {
   };
 
   return (
-    <div className="min-h-screen bg-[#0f1419] pb-20 lg:pb-0">
+    <div className="min-h-screen bg-tsBg pb-20 lg:pb-0">
       <div className="container mx-auto px-4 py-6 lg:py-10">
         <div className="max-w-5xl mx-auto ts-surface px-4 py-6 md:px-10 md:py-8">
           {/* Modern Header */}
@@ -432,7 +432,7 @@ export default function Settings() {
           </div>
 
           <Tabs defaultValue={defaultTab} className="space-y-6">
-            <TabsList className="w-full bg-[#1a2332] border border-[#2d3748] p-1.5 rounded-xl shadow-lg overflow-x-auto flex lg:grid lg:grid-cols-7">
+            <TabsList className="w-full bg-tsCard border border-tsBorder p-1.5 rounded-xl shadow-lg overflow-x-auto flex lg:grid lg:grid-cols-7">
               <TabsTrigger value="profile" className="data-[state=active]:bg-orange-500 data-[state=active]:text-white transition-all rounded-lg">
                 Profile
               </TabsTrigger>
@@ -454,12 +454,56 @@ export default function Settings() {
               <TabsTrigger value="security" className="data-[state=active]:bg-orange-500 data-[state=active]:text-white transition-all rounded-lg">
                 Security
               </TabsTrigger>
+              <TabsTrigger value="tools" className="data-[state=active]:bg-orange-500 data-[state=active]:text-white transition-all rounded-lg">
+                Financial Tools
+              </TabsTrigger>
+                        {/* Financial Tools List */}
+                        <TabsContent value="tools">
+                          <Card className="bg-tsCard border-tsBorder shadow-xl">
+                            <CardHeader className="border-b border-tsBorder pb-6">
+                              <div className="flex items-center gap-3">
+                                <div className="h-10 w-10 bg-orange-500/20 rounded-lg flex items-center justify-center">
+                                  <Wrench className="w-5 h-5 text-orange-500" />
+                                </div>
+                                <div>
+                                  <CardTitle className="text-xl text-white">Financial Tools</CardTitle>
+                                  <p className="text-sm text-slate-400 mt-1">Quick access to calculators and helpers for your finances.</p>
+                                </div>
+                              </div>
+                            </CardHeader>
+                            <CardContent className="space-y-6 pt-6">
+                              <div className="space-y-4">
+                                <div className="flex flex-col md:flex-row md:items-center md:gap-6">
+                                  <div className="flex-1">
+                                    <h3 className="text-white font-semibold text-lg mb-1">Invoice Calculator</h3>
+                                    <p className="text-sm text-slate-400 mb-2">Check payment math and totals for your invoices.</p>
+                                    <a href="/tools/invoice-calculator" className="text-orange-400 underline hover:text-orange-300 text-sm">Open Invoice Calculator</a>
+                                  </div>
+                                </div>
+                                <div className="flex flex-col md:flex-row md:items-center md:gap-6">
+                                  <div className="flex-1">
+                                    <h3 className="text-white font-semibold text-lg mb-1">Estimate Calculator</h3>
+                                    <p className="text-sm text-slate-400 mb-2">Double-check your job estimates before sending.</p>
+                                    <a href="/tools/estimate-calculator" className="text-orange-400 underline hover:text-orange-300 text-sm">Open Estimate Calculator</a>
+                                  </div>
+                                </div>
+                                <div className="flex flex-col md:flex-row md:items-center md:gap-6">
+                                  <div className="flex-1">
+                                    <h3 className="text-white font-semibold text-lg mb-1">Expense Helper</h3>
+                                    <p className="text-sm text-slate-400 mb-2">Split, categorize, or review your expenses for better tracking.</p>
+                                    <a href="/tools/expense-helper" className="text-orange-400 underline hover:text-orange-300 text-sm">Open Expense Helper</a>
+                                  </div>
+                                </div>
+                              </div>
+                            </CardContent>
+                          </Card>
+                        </TabsContent>
             </TabsList>
 
             {/* Profile Settings */}
             <TabsContent value="profile">
-              <Card className="bg-[#1a2332] border-[#2d3748] shadow-xl">
-                <CardHeader className="border-b border-[#2d3748] pb-6">
+              <Card className="bg-tsCard border-tsBorder shadow-xl">
+                <CardHeader className="border-b border-tsBorder pb-6">
                   <div className="flex items-center gap-3">
                     <div className="h-10 w-10 bg-orange-500/20 rounded-lg flex items-center justify-center">
                       <User className="w-5 h-5 text-orange-500" />
@@ -472,7 +516,7 @@ export default function Settings() {
                 </CardHeader>
                 <CardContent className="space-y-8 pt-6">
                   {/* Profile Photo Section */}
-                  <div className="flex items-center gap-6 pb-6 border-b border-[#2d3748]">
+                  <div className="flex items-center gap-6 pb-6 border-b border-tsBorder">
                     <div className="h-20 w-20 bg-gradient-to-br from-orange-500 to-orange-600 rounded-full flex items-center justify-center text-white text-2xl font-bold shadow-lg">
                       {profileForm.profileImageUrl ? (
                         <img src={profileForm.profileImageUrl} alt="Profile" className="h-20 w-20 rounded-full object-cover" />
@@ -509,7 +553,7 @@ export default function Settings() {
                         id="firstName" 
                         value={profileForm.firstName}
                         onChange={(e) => setProfileForm((prev) => ({ ...prev, firstName: e.target.value }))}
-                        className="bg-[#0f1419] border-[#2d3748] text-white h-11 focus:border-orange-500 transition-colors"
+                        className="bg-tsBg border-tsBorder text-tsTextMain h-11 focus:border-orange-500 transition-colors"
                         placeholder="Enter first name"
                       />
                     </div>
@@ -519,7 +563,7 @@ export default function Settings() {
                         id="lastName" 
                         value={profileForm.lastName}
                         onChange={(e) => setProfileForm((prev) => ({ ...prev, lastName: e.target.value }))}
-                        className="bg-[#0f1419] border-[#2d3748] text-white h-11 focus:border-orange-500 transition-colors"
+                        className="bg-tsBg border-tsBorder text-tsTextMain h-11 focus:border-orange-500 transition-colors"
                         placeholder="Enter last name"
                       />
                     </div>
@@ -536,7 +580,7 @@ export default function Settings() {
                       type="email"
                       defaultValue={user?.email || ""}
                       disabled
-                      className="bg-[#0f1419] border-[#2d3748] text-white h-11 focus:border-orange-500 transition-colors"
+                      className="bg-tsBg border-tsBorder text-tsTextMain h-11 focus:border-orange-500 transition-colors"
                       placeholder="email@example.com"
                     />
                     <p className="text-xs text-slate-400">We'll never share your email with anyone</p>
@@ -550,14 +594,14 @@ export default function Settings() {
                       placeholder="Tell us about yourself..."
                       value={profileForm.bio}
                       onChange={(e) => setProfileForm((prev) => ({ ...prev, bio: e.target.value }))}
-                      className="bg-[#0f1419] border-[#2d3748] text-white min-h-[120px] focus:border-orange-500 transition-colors resize-none"
+                      className="bg-tsBg border-tsBorder text-tsTextMain min-h-[120px] focus:border-orange-500 transition-colors resize-none"
                       rows={5}
                     />
                     <p className="text-xs text-slate-400">Brief description for your profile. Maximum 500 characters.</p>
                   </div>
 
                   {/* Action Buttons */}
-                  <div className="flex items-center gap-3 pt-4 border-t border-[#2d3748]">
+                  <div className="flex items-center gap-3 pt-4 border-t border-tsBorder">
                     <Button
                       className="bg-orange-500 hover:bg-orange-600 text-white px-6 shadow-lg"
                       onClick={() => updateProfileMutation.mutate()}
@@ -565,7 +609,7 @@ export default function Settings() {
                     >
                       {updateProfileMutation.isPending ? 'Saving…' : 'Save Changes'}
                     </Button>
-                    <Button variant="outline" className="border-[#2d3748] text-slate-300 hover:bg-[#0f1419]">
+                    <Button variant="outline" className="border-tsBorder text-slate-300 hover:bg-tsBg">
                       Cancel
                     </Button>
                   </div>
@@ -576,8 +620,8 @@ export default function Settings() {
             {/* Navigation Settings */}
             <TabsContent value="navigation">
               <div className="space-y-6">
-                <Card className="bg-[#1a2332] border-[#2d3748] shadow-xl">
-                  <CardHeader className="border-b border-[#2d3748] pb-6">
+                <Card className="bg-tsCard border-tsBorder shadow-xl">
+                  <CardHeader className="border-b border-tsBorder pb-6">
                     <div className="flex items-center gap-3">
                       <div className="h-10 w-10 bg-orange-500/20 rounded-lg flex items-center justify-center">
                         <Smartphone className="w-5 h-5 text-orange-500" />
@@ -620,7 +664,7 @@ export default function Settings() {
                 </CardHeader>
                 <CardContent className="space-y-8 pt-6">
                   {/* Current Roles Summary */}
-                  <div className="bg-gradient-to-br from-[#0f1419] to-[#1a2332] border border-[#2d3748] rounded-xl p-6 shadow-lg">
+                  <div className="bg-gradient-to-br from-tsBg to-tsCard border border-tsBorder rounded-xl p-6 shadow-lg">
                     <div className="flex items-center gap-2 mb-4">
                       <CheckCircle2 className="h-5 w-5 text-orange-500" />
                       <h3 className="text-white font-semibold text-lg">Currently Active Roles</h3>
@@ -645,7 +689,7 @@ export default function Settings() {
                   </div>
 
                   {/* Account Types & Business Personas */}
-                  <div className="bg-[#0f1419] border border-[#2d3748] rounded-xl p-6 shadow-lg space-y-4">
+                  <div className="bg-tsBg border border-tsBorder rounded-xl p-6 shadow-lg space-y-4">
                     <div className="flex items-center gap-2 mb-2">
                       <Briefcase className="h-5 w-5 text-orange-500" />
                       <h3 className="text-white font-semibold text-lg">Account Types &amp; Business Personas</h3>
@@ -658,7 +702,7 @@ export default function Settings() {
                       onChange={setSelectedUserTypes}
                       className="mt-2"
                     />
-                    <div className="flex justify-end pt-4 border-t border-[#2d3748] mt-2">
+                    <div className="flex justify-end pt-4 border-t border-tsBorder mt-2">
                       <Button
                         onClick={saveUserTypes}
                         disabled={updateUserTypesMutation.isPending || selectedUserTypes.length === 0}
@@ -686,13 +730,13 @@ export default function Settings() {
                               relative p-5 rounded-xl border-2 cursor-pointer transition-all duration-200 hover:shadow-lg
                               ${isSelected 
                                 ? 'bg-gradient-to-br from-orange-500/20 to-orange-600/10 border-orange-500 shadow-orange-500/20' 
-                                : 'bg-[#0f1419] border-[#2d3748] hover:border-orange-500/50 hover:bg-[#1a2332]/50'
+                                : 'bg-tsBg border-tsBorder hover:border-orange-500/50 hover:bg-tsCard/50'
                               }
                             `}
                             data-testid={`role-option-${roleKey}`}
                           >
                             <div className="flex items-start gap-4">
-                              <div className={`p-3 rounded-xl transition-all ${isSelected ? 'bg-orange-500 shadow-lg' : 'bg-[#2d3748]'}`}>
+                              <div className={`p-3 rounded-xl transition-all ${isSelected ? 'bg-orange-500 shadow-lg' : 'bg-tsCard'}`}>
                                 <Icon className={`h-6 w-6 ${isSelected ? 'text-white' : 'text-orange-500'}`} />
                               </div>
                               <div className="flex-1">
@@ -714,7 +758,7 @@ export default function Settings() {
                   </div>
 
                   {/* Save Button */}
-                  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pt-6 border-t border-[#2d3748]">
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pt-6 border-t border-tsBorder">
                     <div className="flex items-center gap-2">
                       <div className="h-8 w-8 bg-orange-500/20 rounded-lg flex items-center justify-center">
                         <span className="text-orange-500 font-bold text-sm">{selectedRoles.length}</span>
@@ -739,8 +783,8 @@ export default function Settings() {
             {/* Appearance & Layout Settings */}
             <TabsContent value="appearance">
               <div className="space-y-6">
-                <Card className="bg-[#1a2332] border-[#2d3748] shadow-xl">
-                  <CardHeader className="border-b border-[#2d3748] pb-6">
+                <Card className="bg-tsCard border-tsBorder shadow-xl">
+                  <CardHeader className="border-b border-tsBorder pb-6">
                     <div className="flex items-center gap-3">
                       <div className="h-10 w-10 bg-orange-500/20 rounded-lg flex items-center justify-center">
                         <Palette className="w-5 h-5 text-orange-500" />
@@ -766,8 +810,8 @@ export default function Settings() {
                   </CardContent>
                 </Card>
 
-                <Card className="bg-[#1a2332] border-[#2d3748] shadow-xl">
-                  <CardHeader className="border-b border-[#2d3748] pb-4">
+                <Card className="bg-tsCard border-tsBorder shadow-xl">
+                  <CardHeader className="border-b border-tsBorder pb-4">
                     <div className="flex items-center gap-3">
                       <div className="h-10 w-10 bg-orange-500/20 rounded-lg flex items-center justify-center">
                         <Smartphone className="w-5 h-5 text-orange-500" />
@@ -794,7 +838,7 @@ export default function Settings() {
                         className={
                           handedness === "right"
                             ? "bg-orange-500 hover:bg-orange-600 text-white flex-1"
-                            : "border-[#2d3748] text-slate-200 hover:border-orange-500/70 flex-1"
+                            : "border-tsBorder text-slate-200 hover:border-orange-500/70 flex-1"
                         }
                         onClick={() => setHandedness("right")}
                       >
@@ -806,14 +850,14 @@ export default function Settings() {
                         className={
                           handedness === "left"
                             ? "bg-orange-500 hover:bg-orange-600 text-white flex-1"
-                            : "border-[#2d3748] text-slate-200 hover:border-orange-500/70 flex-1"
+                            : "border-tsBorder text-slate-200 hover:border-orange-500/70 flex-1"
                         }
                         onClick={() => setHandedness("left")}
                       >
                         Left-handed layout
                       </Button>
                     </div>
-                    <div className="flex justify-end pt-2 border-t border-[#2d3748] mt-2">
+                    <div className="flex justify-end pt-2 border-t border-tsBorder mt-2">
                       <Button
                         type="button"
                         className="bg-orange-500 hover:bg-orange-600 text-white px-6 shadow-lg"
@@ -830,8 +874,8 @@ export default function Settings() {
 
             {/* Notification Settings */}
             <TabsContent value="notifications">
-              <Card className="bg-[#1a2332] border-[#2d3748] shadow-xl">
-                <CardHeader className="border-b border-[#2d3748] pb-6">
+              <Card className="bg-tsCard border-tsBorder shadow-xl">
+                <CardHeader className="border-b border-tsBorder pb-6">
                   <div className="flex items-center gap-3">
                     <div className="h-10 w-10 bg-orange-500/20 rounded-lg flex items-center justify-center">
                       <Bell className="w-5 h-5 text-orange-500" />
@@ -855,7 +899,7 @@ export default function Settings() {
                     const isPush = key === 'push';
                     const pushDisabled = isPush && (!pushStatus.supported || pushStatus.permission === 'denied');
                     return (
-                      <div key={key} className="flex items-center justify-between p-4 bg-[#0f1419] rounded-xl border border-[#2d3748] hover:border-orange-500/30 transition-all">
+                      <div key={key} className="flex items-center justify-between p-4 bg-tsBg rounded-xl border border-tsBorder hover:border-orange-500/30 transition-all">
                         <div className="flex items-center space-x-4">
                           <div className="h-10 w-10 bg-orange-500/20 rounded-lg flex items-center justify-center flex-shrink-0">
                             <Icon className="w-5 h-5 text-orange-500" />
@@ -897,7 +941,7 @@ export default function Settings() {
                     );
                   })}
 
-                  <div className="mt-6 p-4 bg-[#0f1419] rounded-xl border border-dashed border-[#2d3748] flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                  <div className="mt-6 p-4 bg-tsBg rounded-xl border border-dashed border-tsBorder flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                     <div>
                       <p className="text-white font-medium">Advanced per-area controls</p>
                       <p className="text-slate-400 text-sm">
@@ -914,7 +958,7 @@ export default function Settings() {
                     </Button>
                   </div>
 
-                  <div className="flex justify-end pt-4 border-t border-[#2d3748]">
+                  <div className="flex justify-end pt-4 border-t border-tsBorder">
                     <Button
                       onClick={() => updateNotificationsMutation.mutate()}
                       disabled={updateNotificationsMutation.isPending}
@@ -929,8 +973,8 @@ export default function Settings() {
 
             {/* Privacy Settings */}
             <TabsContent value="privacy">
-              <Card className="bg-[#1a2332] border-[#2d3748] shadow-xl">
-                <CardHeader className="border-b border-[#2d3748] pb-6">
+              <Card className="bg-tsCard border-tsBorder shadow-xl">
+                <CardHeader className="border-b border-tsBorder pb-6">
                   <div className="flex items-center gap-3">
                     <div className="h-10 w-10 bg-orange-500/20 rounded-lg flex items-center justify-center">
                       <Eye className="w-5 h-5 text-orange-500" />
@@ -944,7 +988,7 @@ export default function Settings() {
                   </div>
                 </CardHeader>
                 <CardContent className="space-y-6 pt-6">
-                  <div className="flex items-center justify-between p-4 bg-[#0f1419] rounded-xl border border-[#2d3748]">
+                  <div className="flex items-center justify-between p-4 bg-tsBg rounded-xl border border-tsBorder">
                     <div className="flex items-center gap-4">
                       <div className="h-10 w-10 bg-orange-500/20 rounded-lg flex items-center justify-center flex-shrink-0">
                         <User className="w-5 h-5 text-orange-500" />
@@ -960,7 +1004,7 @@ export default function Settings() {
                     />
                   </div>
                   
-                  <div className="flex items-center justify-between p-4 bg-[#0f1419] rounded-xl border border-[#2d3748]">
+                  <div className="flex items-center justify-between p-4 bg-tsBg rounded-xl border border-tsBorder">
                     <div className="flex items-center gap-4">
                       <div className="h-10 w-10 bg-orange-500/20 rounded-lg flex items-center justify-center flex-shrink-0">
                         <Globe className="w-5 h-5 text-orange-500" />
@@ -976,7 +1020,7 @@ export default function Settings() {
                     />
                   </div>
 
-                  <div className="space-y-3 p-4 bg-[#0f1419] rounded-xl border border-[#2d3748]">
+                  <div className="space-y-3 p-4 bg-tsBg rounded-xl border border-tsBorder">
                     <div className="flex items-center gap-4 mb-3">
                       <div className="h-10 w-10 bg-orange-500/20 rounded-lg flex items-center justify-center flex-shrink-0">
                         <Mail className="w-5 h-5 text-orange-500" />
@@ -990,10 +1034,10 @@ export default function Settings() {
                       value={privacy.contactPolicy}
                       onValueChange={(value) => setPrivacy((prev) => ({ ...prev, contactPolicy: value }))}
                     >
-                      <SelectTrigger className="bg-[#1a2332] border-[#2d3748] text-white h-11">
+                      <SelectTrigger className="bg-tsCard border-tsBorder text-tsTextMain h-11">
                         <SelectValue />
                       </SelectTrigger>
-                      <SelectContent className="bg-[#1a2332] border-[#2d3748]">
+                      <SelectContent className="bg-tsCard border-tsBorder">
                         <SelectItem value="everyone">Everyone</SelectItem>
                         <SelectItem value="verified">Verified users only</SelectItem>
                         <SelectItem value="contractors">Contractors only</SelectItem>
@@ -1017,8 +1061,8 @@ export default function Settings() {
 
             {/* Security Settings */}
             <TabsContent value="security">
-              <Card className="bg-[#1a2332] border-[#2d3748] shadow-xl">
-                <CardHeader className="border-b border-[#2d3748] pb-6">
+              <Card className="bg-tsCard border-tsBorder shadow-xl">
+                <CardHeader className="border-b border-tsBorder pb-6">
                   <div className="flex items-center gap-3">
                     <div className="h-10 w-10 bg-orange-500/20 rounded-lg flex items-center justify-center">
                       <Shield className="w-5 h-5 text-orange-500" />
@@ -1032,7 +1076,7 @@ export default function Settings() {
                   </div>
                 </CardHeader>
                 <CardContent className="space-y-6 pt-6">
-                  <div className="p-6 bg-[#0f1419] rounded-xl border border-[#2d3748]">
+                  <div className="p-6 bg-tsBg rounded-xl border border-tsBorder">
                     <div className="flex items-center gap-3 mb-5">
                       <div className="h-10 w-10 bg-orange-500/20 rounded-lg flex items-center justify-center">
                         <Lock className="w-5 h-5 text-orange-500" />
@@ -1050,7 +1094,7 @@ export default function Settings() {
                           placeholder="Enter current password"
                           value={passwordForm.currentPassword}
                           onChange={(e) => setPasswordForm((prev) => ({ ...prev, currentPassword: e.target.value }))}
-                          className="bg-[#1a2332] border-[#2d3748] text-white h-11 focus:border-orange-500 transition-colors"
+                          className="bg-tsCard border-tsBorder text-tsTextMain h-11 focus:border-orange-500 transition-colors"
                         />
                       </div>
                       <div className="space-y-2">
@@ -1060,7 +1104,7 @@ export default function Settings() {
                           placeholder="Enter new password"
                           value={passwordForm.newPassword}
                           onChange={(e) => setPasswordForm((prev) => ({ ...prev, newPassword: e.target.value }))}
-                          className="bg-[#1a2332] border-[#2d3748] text-white h-11 focus:border-orange-500 transition-colors"
+                          className="bg-tsCard border-tsBorder text-tsTextMain h-11 focus:border-orange-500 transition-colors"
                         />
                       </div>
                       <div className="space-y-2">
@@ -1070,7 +1114,7 @@ export default function Settings() {
                           placeholder="Confirm new password"
                           value={passwordForm.confirmNewPassword}
                           onChange={(e) => setPasswordForm((prev) => ({ ...prev, confirmNewPassword: e.target.value }))}
-                          className="bg-[#1a2332] border-[#2d3748] text-white h-11 focus:border-orange-500 transition-colors"
+                          className="bg-tsCard border-tsBorder text-tsTextMain h-11 focus:border-orange-500 transition-colors"
                         />
                       </div>
                       <Button
@@ -1094,7 +1138,7 @@ export default function Settings() {
                     </div>
                   </div>
 
-                  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-6 bg-[#0f1419] rounded-xl border border-[#2d3748]">
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-6 bg-tsBg rounded-xl border border-tsBorder">
                     <div className="flex items-center gap-4">
                       <div className="h-12 w-12 bg-orange-500/20 rounded-lg flex items-center justify-center flex-shrink-0">
                         <Shield className="w-6 h-6 text-orange-500" />

@@ -18,6 +18,7 @@ import {
   deriveDeterministicIntent,
   maybeHandleDeterministicIntent,
 } from "../services/scoutDeterministicIntent";
+import type { DeterministicContext } from "../services/scoutDeterministicIntent";
 import { loadSystemPrompt } from "../services/promptService";
 import {
   buildUserContext,
@@ -2023,7 +2024,7 @@ router.post("/", async (req: Request, res: Response) => {
     // skip the LLM altogether.
     const deterministic = maybeHandleDeterministicIntent({
       message,
-      resolvedContext,
+      resolvedContext: resolvedContext as DeterministicContext | null,
       currentJobId,
     });
 
@@ -3068,7 +3069,7 @@ router.post("/execute-action", async (req: Request, res: Response) => {
         success: true,
         message: result.message || "Action executed",
         data: result.data,
-        nextAction: result.nextAction,
+        nextAction: (result as any).nextAction,
       });
     }
 

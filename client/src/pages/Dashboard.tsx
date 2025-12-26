@@ -189,14 +189,14 @@ const Dashboard = memo(function Dashboard() {
 
   if (preferencesLoading) {
     return (
-      <div className="min-h-screen bg-[#0f1419] dark:bg-slate-900 flex items-center justify-center">
+      <div className="min-h-screen bg-tsBg dark:bg-slate-900 flex items-center justify-center">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500"></div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-[#0f1419] dark:bg-slate-900 pb-16 lg:pb-0">
+    <div className="min-h-screen bg-tsBg dark:bg-slate-900 pb-16 lg:pb-0">
       <div className="max-w-6xl mx-auto px-4 py-6 space-y-6">
         {/* Header */}
         <div className="flex items-center justify-between">
@@ -220,14 +220,14 @@ const Dashboard = memo(function Dashboard() {
         <LocalImpactCard className="mb-0" />
 
         {/* HOA Leadership / Membership (if applicable) */}
-        <HoaLeadershipBadge className="bg-[#0f1419] dark:bg-slate-800 border-0 shadow-sm" />
+        <HoaLeadershipBadge className="bg-tsBg dark:bg-slate-800 border-0 shadow-sm" />
 
         {/* Snapshot Grid + Live Activity Feed */}
         <div className="space-y-6">
           {/* Live Activity Feed */}
           <div className="space-y-4">
             {/* New Post Composer */}
-            <Card className="bg-[#0f1624] dark:bg-slate-800 border border-[#1f2937] shadow-sm rounded-xl">
+            <Card className="bg-tsCard dark:bg-slate-800 border border-slate-800 shadow-sm rounded-xl">
               <CardContent className="p-4 space-y-3">
                 <div className="flex items-center gap-3 mb-4">
                   <Avatar className="h-10 w-10">
@@ -323,14 +323,14 @@ const Dashboard = memo(function Dashboard() {
 
             {/* Community Posts Feed */}
             {postsLoading ? (
-              <Card className="bg-[#0f1419] dark:bg-slate-800 border-0 shadow-sm">
+              <Card className="bg-tsBg dark:bg-slate-800 border-0 shadow-sm">
                 <CardContent className="p-8 text-center">
                   <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500 mx-auto"></div>
                   <p className="text-slate-500 dark:text-slate-400 mt-4 text-sm">Loading feed...</p>
                 </CardContent>
               </Card>
             ) : (!Array.isArray(posts) || posts.length === 0) ? (
-              <Card className="bg-[#0f1419] dark:bg-slate-800 border-0 shadow-sm">
+              <Card className="bg-tsBg dark:bg-slate-800 border-0 shadow-sm">
                 <CardContent className="p-12 text-center">
                   <h3 className="text-lg font-semibold mb-2 text-orange-500">Welcome to your neighborhood!</h3>
                   <p className="text-sm text-slate-500 dark:text-slate-400">Be the first to share something with your community.</p>
@@ -338,7 +338,7 @@ const Dashboard = memo(function Dashboard() {
               </Card>
             ) : (
               Array.isArray(posts) && posts.map((post: Post) => (
-                <Card key={post.id} className="bg-[#0f1419] dark:bg-slate-800 border-0 shadow-sm hover:shadow-md transition-shadow">
+                <Card key={post.id} className="bg-tsBg dark:bg-slate-800 border-0 shadow-sm hover:shadow-md transition-shadow">
                   <CardContent className="p-4">
                     <div className="flex items-start gap-3 mb-3">
                       <Avatar className="h-10 w-10">
@@ -433,7 +433,7 @@ const Dashboard = memo(function Dashboard() {
               })}
 
               {(!Array.isArray(orderedEnabledWidgets) || orderedEnabledWidgets.length === 0) && (
-                <Card className="bg-[#0f1419] dark:bg-slate-800 border-0 shadow-sm lg:col-span-3">
+                <Card className="bg-tsBg dark:bg-slate-800 border-0 shadow-sm lg:col-span-3">
                   <CardContent className="p-6 text-center">
                     <p className="text-sm text-slate-600 dark:text-slate-400 mb-4">
                       No widgets enabled. Customize your snapshot grid to add cards.

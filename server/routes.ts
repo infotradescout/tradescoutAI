@@ -76,7 +76,7 @@ import { antiScrapeShield } from "./middleware/antiScrape";
 import { ObjectStorageService } from "./objectStorage";
 import { notificationService } from "./notification-service";
 import { ensureMealscoutSsoSession, createMealscoutSsoToken } from "../services/mealscoutClient.js";
-import { resolveCapabilities } from "./capabilities";
+import { resolveCapabilities, type CapabilityStatus } from "./capabilities";
 // Shared HTTP types for all route handlers
 type AuthedRequest = Request & {
   user?: {
@@ -7482,7 +7482,7 @@ export async function registerRoutes(app: any) {
       await storage.createCommunityPost({
         title: welcomeTitle,
         content: welcomeContent,
-        category: "welcome",
+        category: "announcements",
         scope: "county",
         stateCode: resolvedStateCode,
         countyFips: resolvedCountyFips,
@@ -7511,7 +7511,7 @@ export async function registerRoutes(app: any) {
         await storage.createCommunityPost({
           title: introTitle,
           content: introContent,
-          category: "introduction",
+          category: "announcements",
           scope: "county",
           stateCode: resolvedStateCode,
           countyFips: resolvedCountyFips,

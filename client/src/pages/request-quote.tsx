@@ -121,10 +121,10 @@ const RequestQuote = memo(function RequestQuote() {
 
   if (submitted) {
     return (
-      <div className="min-h-screen bg-[#0f1419] pb-20 lg:pb-0">
+      <div className="min-h-screen bg-tsBg pb-20 lg:pb-0">
         <div className="container mx-auto px-4 py-6 lg:py-10">
           <div className="max-w-3xl mx-auto">
-            <Card className="bg-[#1a2332] border-[#2d3748] shadow-xl">
+            <Card className="bg-tsCard border-tsBorder shadow-xl">
               <CardContent className="pt-12 pb-12 text-center">
                 <div className="flex justify-center mb-6">
                   <div className="h-20 w-20 bg-green-500/20 rounded-full flex items-center justify-center">
@@ -145,7 +145,7 @@ const RequestQuote = memo(function RequestQuote() {
                   </Button>
                   <Button 
                     variant="outline"
-                    className="border-[#2d3748] text-slate-300 hover:bg-[#0f1419]"
+                    className="border-tsBorder text-slate-300 hover:bg-tsBg"
                     onClick={() => window.location.href = '/'}
                   >
                     Back to Dashboard
@@ -160,7 +160,7 @@ const RequestQuote = memo(function RequestQuote() {
   }
 
   return (
-    <div className="min-h-screen bg-[#0f1419] pb-20 lg:pb-0">
+    <div className="min-h-screen bg-tsBg pb-20 lg:pb-0">
       <div className="container mx-auto px-4 py-6 lg:py-10">
         <div className="max-w-3xl mx-auto">
           {/* Header */}
@@ -179,8 +179,8 @@ const RequestQuote = memo(function RequestQuote() {
           </div>
 
           {/* Form */}
-          <Card className="bg-[#1a2332] border-[#2d3748] shadow-xl">
-            <CardHeader className="border-b border-[#2d3748] pb-6">
+          <Card className="bg-tsCard border-tsBorder shadow-xl">
+            <CardHeader className="border-b border-tsBorder pb-6">
               <CardTitle className="text-xl text-white">Project Details</CardTitle>
               <p className="text-sm text-slate-400 mt-1">
                 Provide information about your project to receive accurate quotes
@@ -197,10 +197,10 @@ const RequestQuote = memo(function RequestQuote() {
                       value={formData.projectType}
                       onValueChange={(value) => setFormData(prev => ({ ...prev, projectType: value }))}
                     >
-                      <SelectTrigger className="bg-[#0f1419] border-[#2d3748] text-white h-11">
+                      <SelectTrigger className="bg-tsBg border-tsBorder text-white h-11">
                         <SelectValue placeholder="Select project type" />
                       </SelectTrigger>
-                      <SelectContent className="bg-[#1a2332] border-[#2d3748]">
+                      <SelectContent className="bg-tsCard border-tsBorder">
                         <SelectItem value="plumbing">Plumbing</SelectItem>
                         <SelectItem value="electrical">Electrical</SelectItem>
                         <SelectItem value="hvac">HVAC</SelectItem>
@@ -222,7 +222,7 @@ const RequestQuote = memo(function RequestQuote() {
                       id="description"
                       value={formData.description}
                       onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
-                      className="bg-[#0f1419] border-[#2d3748] text-white min-h-[120px] focus:border-orange-500 transition-colors resize-none"
+                      className="bg-tsBg border-tsBorder text-white min-h-[120px] focus:border-orange-500 transition-colors resize-none"
                       placeholder="Describe your project in detail..."
                       required
                       rows={5}
@@ -237,10 +237,10 @@ const RequestQuote = memo(function RequestQuote() {
                       value={formData.budget}
                       onValueChange={(value) => setFormData(prev => ({ ...prev, budget: value }))}
                     >
-                      <SelectTrigger className="bg-[#0f1419] border-[#2d3748] text-white h-11">
+                      <SelectTrigger className="bg-tsBg border-tsBorder text-white h-11">
                         <SelectValue placeholder="Select budget range" />
                       </SelectTrigger>
-                      <SelectContent className="bg-[#1a2332] border-[#2d3748]">
+                      <SelectContent className="bg-tsCard border-tsBorder">
                         <SelectItem value="under-1k">Under $1,000</SelectItem>
                         <SelectItem value="1k-5k">$1,000 - $5,000</SelectItem>
                         <SelectItem value="5k-10k">$5,000 - $10,000</SelectItem>
@@ -260,10 +260,10 @@ const RequestQuote = memo(function RequestQuote() {
                       value={formData.timeline}
                       onValueChange={(value) => setFormData(prev => ({ ...prev, timeline: value }))}
                     >
-                      <SelectTrigger className="bg-[#0f1419] border-[#2d3748] text-white h-11">
+                      <SelectTrigger className="bg-tsBg border-tsBorder text-white h-11">
                         <SelectValue placeholder="When do you need this done?" />
                       </SelectTrigger>
-                      <SelectContent className="bg-[#1a2332] border-[#2d3748]">
+                      <SelectContent className="bg-tsCard border-tsBorder">
                         <SelectItem value="asap">As soon as possible</SelectItem>
                         <SelectItem value="1-2-weeks">Within 1-2 weeks</SelectItem>
                         <SelectItem value="1-month">Within 1 month</SelectItem>
@@ -284,7 +284,7 @@ const RequestQuote = memo(function RequestQuote() {
                       type="text"
                       value={formData.location}
                       onChange={(e) => setFormData(prev => ({ ...prev, location: e.target.value }))}
-                      className="bg-[#0f1419] border-[#2d3748] text-white h-11 focus:border-orange-500 transition-colors"
+                      className="bg-tsBg border-tsBorder text-white h-11 focus:border-orange-500 transition-colors"
                       placeholder="Enter project address"
                       required
                     />
@@ -298,10 +298,10 @@ const RequestQuote = memo(function RequestQuote() {
                       value={formData.contactMethod}
                       onValueChange={(value) => setFormData(prev => ({ ...prev, contactMethod: value }))}
                     >
-                      <SelectTrigger className="bg-[#0f1419] border-[#2d3748] text-white h-11">
+                      <SelectTrigger className="bg-tsBg border-tsBorder text-white h-11">
                         <SelectValue />
                       </SelectTrigger>
-                      <SelectContent className="bg-[#1a2332] border-[#2d3748]">
+                      <SelectContent className="bg-tsCard border-tsBorder">
                         <SelectItem value="email">Email</SelectItem>
                         <SelectItem value="phone">Phone</SelectItem>
                         <SelectItem value="text">Text Message</SelectItem>
@@ -322,17 +322,17 @@ const RequestQuote = memo(function RequestQuote() {
                         }
                       }}
                     >
-                      <SelectTrigger className="bg-[#0f1419] border-[#2d3748] text-white h-11">
+                      <SelectTrigger className="bg-tsBg border-tsBorder text-white h-11">
                         <SelectValue />
                       </SelectTrigger>
-                      <SelectContent className="bg-[#1a2332] border-[#2d3748]">
+                      <SelectContent className="bg-tsCard border-tsBorder">
                         <SelectItem value="1">Top 1 best-matched</SelectItem>
                         <SelectItem value="3">Top 3 best-matched</SelectItem>
                         <SelectItem value="manual">Let me pick specific local pros</SelectItem>
                       </SelectContent>
                     </Select>
                     {isManualSelection ? (
-                      <div className="mt-3 space-y-2 border border-[#2d3748] rounded-lg p-3 bg-[#111827]">
+                      <div className="mt-3 space-y-2 border border-tsBorder rounded-lg p-3 bg-tsBg">
                         <p className="text-xs text-slate-300 mb-1">
                           Pick which local contractors should receive this request. We'll still track it as a normal
                           lead, but only the pros you choose will be notified.
@@ -360,7 +360,7 @@ const RequestQuote = memo(function RequestQuote() {
                               return (
                                 <label
                                   key={contractor.id}
-                                  className="flex items-start gap-2 rounded-md px-2 py-1.5 hover:bg-[#0f1419] cursor-pointer"
+                                  className="flex items-start gap-2 rounded-md px-2 py-1.5 hover:bg-tsBg cursor-pointer"
                                 >
                                   <Checkbox
                                     checked={checked}
@@ -397,7 +397,7 @@ const RequestQuote = memo(function RequestQuote() {
                   </div>
                 </div>
 
-                <div className="flex items-center gap-3 mt-8 pt-6 border-t border-[#2d3748]">
+                <div className="flex items-center gap-3 mt-8 pt-6 border-t border-tsBorder">
                   <Button
                     type="submit"
                     disabled={submitQuoteMutation.isPending}
@@ -409,7 +409,7 @@ const RequestQuote = memo(function RequestQuote() {
                   <Button
                     type="button"
                     variant="outline"
-                    className="border-[#2d3748] text-slate-300 hover:bg-[#0f1419]"
+                    className="border-tsBorder text-slate-300 hover:bg-tsBg"
                     onClick={() => window.history.back()}
                   >
                     Cancel
@@ -421,7 +421,7 @@ const RequestQuote = memo(function RequestQuote() {
 
           {/* Info Section */}
           <div className="mt-8 grid md:grid-cols-3 gap-4">
-            <Card className="bg-[#1a2332] border-[#2d3748]">
+            <Card className="bg-tsCard border-tsBorder">
               <CardContent className="pt-6 text-center">
                 <div className="h-12 w-12 bg-orange-500/20 rounded-full flex items-center justify-center mx-auto mb-3">
                   <MessageSquare className="h-6 w-6 text-orange-500" />
@@ -432,7 +432,7 @@ const RequestQuote = memo(function RequestQuote() {
                 </p>
               </CardContent>
             </Card>
-            <Card className="bg-[#1a2332] border-[#2d3748]">
+            <Card className="bg-tsCard border-tsBorder">
               <CardContent className="pt-6 text-center">
                 <div className="h-12 w-12 bg-orange-500/20 rounded-full flex items-center justify-center mx-auto mb-3">
                   <CheckCircle2 className="h-6 w-6 text-orange-500" />
@@ -443,7 +443,7 @@ const RequestQuote = memo(function RequestQuote() {
                 </p>
               </CardContent>
             </Card>
-            <Card className="bg-[#1a2332] border-[#2d3748]">
+            <Card className="bg-tsCard border-tsBorder">
               <CardContent className="pt-6 text-center">
                 <div className="h-12 w-12 bg-orange-500/20 rounded-full flex items-center justify-center mx-auto mb-3">
                   <DollarSign className="h-6 w-6 text-orange-500" />
