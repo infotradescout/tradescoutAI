@@ -139,7 +139,7 @@ export function CommunityComposerInline({
             {images.map((url, index) => (
               <div
                 key={url + index}
-                className="relative w-20 h-20 rounded-md overflow-hidden border border-[#1f2937]"
+                className="relative w-20 h-20 rounded-md overflow-hidden border border-tsBorder"
               >
                 <img
                   src={url}
@@ -162,7 +162,7 @@ export function CommunityComposerInline({
             ))}
           </div>
         )}
-        <Separator className="bg-[#1f2937]" />
+        <Separator className="bg-tsBorder" />
         <div className="flex items-center justify-between gap-2 flex-wrap">
           <div className="flex flex-wrap gap-1.5 sm:gap-2 text-xs sm:text-sm">
             <label className="inline-flex items-center gap-2 h-8 px-2 text-slate-500 dark:text-slate-400 hover:text-slate-300 cursor-pointer">
