@@ -91,7 +91,7 @@ export default function ContractorAccelerator() {
             
             <div className="space-y-4">
               <Button 
-                onClick={() => window.location.href = '/register'}
+                onClick={() => window.location.href = '/create-account'}
                 className="bg-purple-500 hover:bg-purple-600 text-white px-8 py-3"
               >
                 Create Contractor Account

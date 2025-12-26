@@ -57,7 +57,7 @@ import { getUserTypeBadgeLabel, getUserTypeMetadata } from "../shared/userTypes"
 import type { AffiliateAccount, AffiliateReferral, AffiliatePayout } from "../shared/schema";
 import { storage } from "./storage";
 import { seedCountiesForState } from "./countySeeder";
-import { setupAuth, isAuthenticated, isAdmin, hashPassword, requireRole, isContractor, isCommunityModerator } from "./auth";
+import { setupAuth, isAuthenticated, isAdmin, hashPassword, requireRole, isContractor, isCommunityModerator, requireOnboardingComplete } from "./auth";
 import { localityTrackingMiddleware } from "./localityTracking";
 import passport from "passport";
 import { Strategy as GoogleStrategy, Profile as GoogleProfile } from "passport-google-oauth20";
@@ -908,6 +908,12 @@ export async function registerRoutes(app: any) {
 
   app.post("/api/auth/skip-onboarding", isAuthenticated, async (req: Request, res: Response) => {
     try {
+      if (process.env.NODE_ENV === "production") {
+        return res.status(400).json({
+          error: "Onboarding cannot be skipped",
+        });
+      }
+
       const { role } = (req.body ?? {}) as any;
       const user = req.user as any;
       const userId: string = user.id || user.claims?.sub || "";
@@ -1367,7 +1373,8 @@ export async function registerRoutes(app: any) {
                 googleId: profile.id,
                 provider: "google",
                 providerId: profile.id,
-                role: "homeowner",
+                role: null as any,
+                onboardingCompleted: false,
               });
             } else {
               const updates: Partial<import("@shared/schema").User> = {};
@@ -1468,8 +1475,8 @@ export async function registerRoutes(app: any) {
       (req: Request, res: Response, next: any) => {
         try {
           if (typeof (req as any).isAuthenticated === 'function' && (req as any).isAuthenticated() && (req as any).user) {
-            const wasNew = (req.user as any)?._wasNewSocialUser;
-            const redirectTo = wasNew ? '/profile-settings?onboarding=1' : '/dashboard';
+            const user = req.user as any;
+            const redirectTo = user?.onboardingCompleted === true ? '/dashboard' : '/create-account';
             return res.redirect(redirectTo);
           }
         } catch {
@@ -1479,8 +1486,8 @@ export async function registerRoutes(app: any) {
       },
       passport.authenticate('facebook', { failureRedirect: '/login' }),
       (req: Request, res: Response) => {
-        const wasNew = (req.user as any)?._wasNewSocialUser;
-        const redirectTo = wasNew ? '/profile-settings?onboarding=1' : '/dashboard';
+        const user = req.user as any;
+        const redirectTo = user?.onboardingCompleted === true ? '/dashboard' : '/create-account';
         res.redirect(redirectTo);
       }
     );
@@ -1500,8 +1507,8 @@ export async function registerRoutes(app: any) {
       (req: Request, res: Response, next: any) => {
         try {
           if (typeof (req as any).isAuthenticated === 'function' && (req as any).isAuthenticated() && (req as any).user) {
-            const wasNew = (req.user as any)?._wasNewSocialUser;
-            const redirectTo = wasNew ? '/profile-settings?onboarding=1' : '/dashboard';
+            const user = req.user as any;
+            const redirectTo = user?.onboardingCompleted === true ? '/dashboard' : '/create-account';
             return res.redirect(redirectTo);
           }
         } catch {
@@ -1514,8 +1521,8 @@ export async function registerRoutes(app: any) {
         session: true,
       }),
       (req: Request, res: Response) => {
-        const wasNew = (req.user as any)?._wasNewSocialUser;
-        const redirectTo = wasNew ? '/profile-settings?onboarding=1' : '/dashboard';
+        const user = req.user as any;
+        const redirectTo = user?.onboardingCompleted === true ? '/dashboard' : '/create-account';
         res.redirect(redirectTo);
       }
     );
@@ -4142,7 +4149,7 @@ export async function registerRoutes(app: any) {
   });
 
   // Contractor application submission
-  app.post("/api/contractors/apply", isAuthenticated, async (req: any, res: any) => {
+  app.post("/api/contractors/apply", isAuthenticated, requireOnboardingComplete, async (req: any, res: any) => {
     try {
       const userId = (req.user as any)?.id || (req.user as any)?.claims?.sub;
       const user = await storage.getUser(userId);
@@ -4232,7 +4239,7 @@ export async function registerRoutes(app: any) {
   });
 
   // Create recommendation for contractor with anti-abuse protection (LOGIN REQUIRED)
-  app.post("/api/contractors/:contractorId/recommendations", isAuthenticated, async (req: any, res: any) => {
+  app.post("/api/contractors/:contractorId/recommendations", isAuthenticated, requireOnboardingComplete, async (req: any, res: any) => {
     try {
       const { contractorId } = req.params;
       const {
@@ -4529,7 +4536,7 @@ export async function registerRoutes(app: any) {
 
   // Chat system routes
   // Conversations
-  app.post("/api/conversations", isAuthenticated, async (req: any, res: any) => {
+  app.post("/api/conversations", isAuthenticated, requireOnboardingComplete, async (req: any, res: any) => {
     try {
       const userId = (req.user as any)?.claims?.sub || (req.user as any)?.id;
       const { contractorId, leadId } = (req.body ?? {}) as any;
@@ -4546,7 +4553,7 @@ export async function registerRoutes(app: any) {
     }
   });
 
-  app.get("/api/conversations", isAuthenticated, async (req: any, res: any) => {
+  app.get("/api/conversations", isAuthenticated, requireOnboardingComplete, async (req: any, res: any) => {
     try {
       const userId = (req.user as any)?.claims?.sub || (req.user as any)?.id;
       const userType = req.query.userType || 'homeowner'; 
@@ -4560,7 +4567,7 @@ export async function registerRoutes(app: any) {
   });
 
   // Message Threads API (Nextdoor-style inbox)
-  app.get("/api/messages/threads", isAuthenticated, async (req: any, res: any) => {
+  app.get("/api/messages/threads", isAuthenticated, requireOnboardingComplete, async (req: any, res: any) => {
     try {
       const userId = (req.user as any)?.claims?.sub || (req.user as any)?.id;
       if (!userId) {
@@ -4578,7 +4585,7 @@ export async function registerRoutes(app: any) {
     }
   });
 
-  app.get("/api/messages/threads/:threadId", isAuthenticated, async (req: any, res: any) => {
+  app.get("/api/messages/threads/:threadId", isAuthenticated, requireOnboardingComplete, async (req: any, res: any) => {
     try {
       const userId = (req.user as any)?.claims?.sub || (req.user as any)?.id;
       if (!userId) {
@@ -4612,7 +4619,7 @@ export async function registerRoutes(app: any) {
     }
   });
 
-  app.post("/api/messages/threads/:threadId/messages", isAuthenticated, async (req: any, res: any) => {
+  app.post("/api/messages/threads/:threadId/messages", isAuthenticated, requireOnboardingComplete, async (req: any, res: any) => {
     try {
       const userId = (req.user as any)?.claims?.sub || (req.user as any)?.id;
       if (!userId) {
@@ -4648,7 +4655,7 @@ export async function registerRoutes(app: any) {
     }
   });
 
-  app.get("/api/conversations/:id", isAuthenticated, async (req: any, res: any) => {
+  app.get("/api/conversations/:id", isAuthenticated, requireOnboardingComplete, async (req: any, res: any) => {
     try {
       const conversation = await storage.getConversation(req.params.id);
       if (!conversation) {
@@ -4667,7 +4674,7 @@ export async function registerRoutes(app: any) {
     }
   });
 
-  app.post("/api/conversations/:id/rate", isAuthenticated, async (req: any, res: any) => {
+  app.post("/api/conversations/:id/rate", isAuthenticated, requireOnboardingComplete, async (req: any, res: any) => {
     try {
       const { rating, feedback } = (req.body ?? {}) as any;
       const userId = (req.user as any)?.claims?.sub || (req.user as any)?.id;
@@ -4694,7 +4701,7 @@ export async function registerRoutes(app: any) {
   });
 
   // Messages
-  app.post("/api/conversations/:id/messages", isAuthenticated, async (req: any, res: any) => {
+  app.post("/api/conversations/:id/messages", isAuthenticated, requireOnboardingComplete, async (req: any, res: any) => {
     try {
       const userId = (req.user as any)?.claims?.sub || (req.user as any)?.id;
       const { content, messageType, metadata } = req.body;
@@ -4726,7 +4733,7 @@ export async function registerRoutes(app: any) {
     }
   });
 
-  app.get("/api/conversations/:id/messages", isAuthenticated, async (req: any, res: any) => {
+  app.get("/api/conversations/:id/messages", isAuthenticated, requireOnboardingComplete, async (req: any, res: any) => {
     try {
       const userId = (req.user as any)?.claims?.sub || (req.user as any)?.id;
 
@@ -7532,7 +7539,7 @@ export async function registerRoutes(app: any) {
     }
   }
 
-  app.post("/api/community/posts", isAuthenticated, async (req: any, res: any) => {
+  app.post("/api/community/posts", isAuthenticated, requireOnboardingComplete, async (req: any, res: any) => {
     try {
       const userId = (req.user as any)?.id || (req.user as any)?.claims?.sub;
       const user = await storage.getUser(userId);
@@ -7594,7 +7601,7 @@ export async function registerRoutes(app: any) {
   });
 
   // Post Interactions
-  app.post("/api/community/posts/:id/like", isAuthenticated, async (req: any, res: any) => {
+  app.post("/api/community/posts/:id/like", isAuthenticated, requireOnboardingComplete, async (req: any, res: any) => {
     try {
       const userId = (req.user as any)?.id || (req.user as any)?.claims?.sub;
       const { id: postId } = req.params;
@@ -7607,7 +7614,7 @@ export async function registerRoutes(app: any) {
     }
   });
 
-  app.post("/api/community/posts/:id/comments", isAuthenticated, async (req: any, res: any) => {
+  app.post("/api/community/posts/:id/comments", isAuthenticated, requireOnboardingComplete, async (req: any, res: any) => {
     try {
       const userId = req.user?.claims?.sub;
       const { id: postId } = req.params;
@@ -7638,7 +7645,7 @@ export async function registerRoutes(app: any) {
   });
 
   // Community Post Admin Actions
-  app.patch("/api/community/posts/:id/pin", isAuthenticated, isCommunityModerator, async (req: any, res: any) => {
+  app.patch("/api/community/posts/:id/pin", isAuthenticated, requireOnboardingComplete, isCommunityModerator, async (req: any, res: any) => {
     try {
       const { id } = req.params;
       const { isPinned } = (req.body ?? {}) as any;
@@ -7664,7 +7671,7 @@ export async function registerRoutes(app: any) {
     }
   });
 
-  app.patch("/api/community/posts/:id/hide", isAuthenticated, isCommunityModerator, async (req: any, res: any) => {
+  app.patch("/api/community/posts/:id/hide", isAuthenticated, requireOnboardingComplete, isCommunityModerator, async (req: any, res: any) => {
     try {
       const { id } = req.params;
       const { isHidden, moderatorNotes } = (req.body ?? {}) as any;
@@ -7691,7 +7698,7 @@ export async function registerRoutes(app: any) {
     }
   });
 
-  app.delete("/api/community/posts/:id", isAuthenticated, isCommunityModerator, async (req: any, res: any) => {
+  app.delete("/api/community/posts/:id", isAuthenticated, requireOnboardingComplete, isCommunityModerator, async (req: any, res: any) => {
     try {
       const { id } = req.params;
 
@@ -7748,7 +7755,7 @@ export async function registerRoutes(app: any) {
     }
   });
 
-  app.post("/api/community/groups/:groupId/join", isAuthenticated, async (req: any, res: any) => {
+  app.post("/api/community/groups/:groupId/join", isAuthenticated, requireOnboardingComplete, async (req: any, res: any) => {
     try {
       const userId = (req.user as any)?.id || (req.user as any)?.claims?.sub;
       if (!userId) {
@@ -7765,7 +7772,7 @@ export async function registerRoutes(app: any) {
     }
   });
 
-  app.post("/api/community/groups/:groupId/leave", isAuthenticated, async (req: any, res: any) => {
+  app.post("/api/community/groups/:groupId/leave", isAuthenticated, requireOnboardingComplete, async (req: any, res: any) => {
     try {
       const userId = (req.user as any)?.id || (req.user as any)?.claims?.sub;
       if (!userId) {

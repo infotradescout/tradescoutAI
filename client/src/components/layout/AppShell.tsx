@@ -108,6 +108,37 @@ export function AppShell({ children, footer }: AppShellProps) {
   const handedness = useHandedness();
   const [location, navigate] = useLocation();
 
+  // Mobile hero content for context/messaging/CTAs
+  const renderMobileHero = () => (
+    <section className="pt-[52px] px-4 py-6 md:hidden">
+      <h1 className="text-xl font-semibold">
+        Empowering <span className="text-accent">Your Community</span>
+      </h1>
+      <p className="mt-2 text-sm text-secondary">
+        Scout local projects, pros, and updates in your area.
+      </p>
+      {!isAuthenticated && (
+        <div className="mt-4 flex gap-2">
+          <button
+            type="button"
+            onClick={() => navigate("/create-account")}
+            className="inline-flex items-center justify-center rounded-full border border-orange-500/70 bg-orange-500 px-3 py-1 text-[0.85rem] font-semibold text-slate-950 shadow-sm shadow-orange-500/40"
+          >
+            Create account
+          </button>
+          <button
+            type="button"
+            onClick={() => navigate("/login")}
+            className="inline-flex items-center justify-center rounded-full border px-3 py-1 text-[0.85rem] font-medium hover:text-white transition"
+            style={{ borderColor: 'var(--border-primary)', backgroundColor: 'var(--charcoal-900)', color: 'var(--text-secondary)' }}
+          >
+            Log in
+          </button>
+        </div>
+      )}
+    </section>
+  );
+
   // Set CSS variables for nav sizing (Step 2)
   useEffect(() => {
     const root = document.documentElement;
@@ -139,58 +170,24 @@ export function AppShell({ children, footer }: AppShellProps) {
           </button>
         </div>
       )}
-      {/* TOP APP NAV HEADER */}
-      {location.startsWith("/scout") ? (
-        // Cleaner, chat-focused header for Scout: now left-aligned brand with tagline
-        <header className="fixed top-0 inset-x-0 z-40 flex items-center h-[56px] px-2 sm:px-4 justify-between border-b" style={{ backgroundColor: 'var(--surface-frame)', borderColor: 'var(--surface-frame-border)' }}>
-          <Link
-            href="/"
-            className="flex items-center gap-3 cursor-pointer"
-          >
-            <TradeScoutLogo size="sm" className="" />
-            <div className="flex flex-col leading-tight">
-              <span className="text-[0.65rem] uppercase tracking-[0.32em]" style={{ color: 'var(--text-secondary)' }}>
-                TRADESCOUT
-              </span>
-              <span className="text-xs" style={{ color: 'var(--text-secondary)' }}>
-                Connection without compromise
-              </span>
-            </div>
+      {/* TOP APP NAV HEADER (MOBILE/COMPACT) */}
+      {isMobile ? (
+        <header
+          className="fixed top-0 inset-x-0 z-50 flex items-center h-[52px] px-3 md:hidden"
+          style={{ background: 'var(--surface-frame)', borderBottom: '1px solid var(--border-primary)' }}
+        >
+          <Link href="/" className="flex items-center cursor-pointer">
+            <TradeScoutLogo size="xs" />
           </Link>
-
-          <div className="flex items-center gap-2 justify-end">
-            {/* Messages quick icon */}
-            <button
-              type="button"
-              onClick={() => navigate("/messages")}
-              className="inline-flex h-8 w-8 items-center justify-center transition hover:opacity-80"
-              aria-label="Messages and helpers"
-            >
-              <MessageCircle className="h-4 w-4" style={{ color: 'var(--theme-accent-primary)' }} />
-            </button>
-
-            {/* Notifications: full activity center (tags, comments, likes, jobs, etc.) */}
-            {isAuthenticated ? (
-              <NotificationCenter />
-            ) : (
-              <button
-                type="button"
-                onClick={() => navigate("/notifications")}
-                className="inline-flex h-8 w-8 items-center justify-center transition hover:opacity-80"
-                aria-label="Notifications"
-              >
-                <Bell className="h-4 w-4" style={{ color: 'var(--theme-accent-primary)' }} />
-              </button>
-            )}
-
-            {/* Tools / profile panel (user-specific stuff) */}
+          <div className="ml-auto flex items-center gap-2">
+            <NotificationCenter />
             <button
               type="button"
               onClick={() => setIsToolsOpen(true)}
               className="inline-flex h-8 w-8 items-center justify-center transition hover:opacity-80"
               aria-label="Open profile & tools panel"
             >
-              <Menu className="h-4 w-4" style={{ color: 'var(--theme-accent-primary)' }} />
+              <Menu className="h-5 w-5" style={{ color: 'var(--theme-accent-primary)' }} />
             </button>
           </div>
         </header>
@@ -228,7 +225,7 @@ export function AppShell({ children, footer }: AppShellProps) {
               <>
                 <button
                   type="button"
-                  onClick={() => navigate("/register")}
+                  onClick={() => navigate("/create-account")}
                   className="inline-flex items-center justify-center rounded-full border border-orange-500/70 bg-orange-500 px-3 py-1 text-[0.7rem] font-semibold text-slate-950 shadow-sm shadow-orange-500/40"
                 >
                   Create account
@@ -280,6 +277,9 @@ export function AppShell({ children, footer }: AppShellProps) {
           </div>
         </header>
       )}
+
+      {/* Mobile hero/context strip (scrolls with content) */}
+      {isMobile && renderMobileHero()}
 
       {/* Main content: ONLY scroll container */}
       <main

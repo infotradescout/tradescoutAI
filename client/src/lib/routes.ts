@@ -3,7 +3,7 @@ export const ROUTES = {
   // Public routes
   HOME: '/',
   LOGIN: '/login',
-  REGISTER: '/register',
+  REGISTER: '/create-account',
   FIND_CONTRACTORS: '/contractors',
   CONTRACTORS: '/contractors',
   MARKETPLACE: '/marketplace',

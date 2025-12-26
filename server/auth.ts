@@ -183,6 +183,20 @@ export const isAuthenticated: RequestHandler = (req, res, next) => {
   res.status(401).json({ message: "Authentication required" });
 };
 
+// Onboarding completion guard: blocks "real" participation until onboarding is finished.
+export const requireOnboardingComplete: RequestHandler = (req, res, next) => {
+  const user = req.user as User | undefined;
+
+  if (user && (user as any).onboardingCompleted === true) {
+    return next();
+  }
+
+  return res.status(403).json({
+    code: "ONBOARDING_REQUIRED",
+    redirect: "/create-account",
+  });
+};
+
 // Enhanced role-based authorization middleware with hierarchy support
 export const requireRole = (allowedRoles: UserRole[]): RequestHandler => {
   return (req, res, next) => {

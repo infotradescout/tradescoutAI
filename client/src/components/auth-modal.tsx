@@ -64,7 +64,7 @@ export function AuthModal({
               variant="outline"
               className="w-full"
               onClick={() => {
-                window.location.href = "/register";
+                window.location.href = "/create-account";
               }}
             >
               Create account

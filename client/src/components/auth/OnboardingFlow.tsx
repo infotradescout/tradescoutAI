@@ -63,9 +63,9 @@ export function OnboardingFlow({ role, userInfo, onComplete, onSkip }: Onboardin
             <TradeScoutLogo size="lg" variant="gradient" />
           </div>
           <h1 className="text-2xl font-bold text-white mb-2">
-            {role === 'homeowner' ? 'Homeowner' : 'Contractor'} Setup
+            {role === 'homeowner' ? 'Personal account' : 'Work & services'} setup
           </h1>
-          <p className="text-slate-400">Let's get your account ready</p>
+          <p className="text-slate-400">Tell us a bit about yourself and where you’re active</p>
           
           {/* Progress Bar */}
           <div className="mt-6 max-w-md mx-auto">
@@ -186,7 +186,7 @@ export function OnboardingFlow({ role, userInfo, onComplete, onSkip }: Onboardin
                     />
                   </div>
                   <div>
-                    <Label htmlFor="county" className="text-slate-200">Area</Label>
+                    <Label htmlFor="county" className="text-slate-200">Neighborhood / area</Label>
                     <Input
                       id="county"
                       onChange={(e) => updateFormData({ county: e.target.value })}
@@ -214,19 +214,19 @@ export function OnboardingFlow({ role, userInfo, onComplete, onSkip }: Onboardin
                     <div className="bg-blue-900/30 border border-blue-500/30 rounded-lg p-4">
                       <h3 className="text-blue-400 font-semibold mb-2 flex items-center gap-2">
                         <MapPin className="w-5 h-5" />
-                        Address Verification (Nextdoor-style)
+                        Location & identity checks
                       </h3>
                       <p className="text-slate-300 text-sm mb-3">
-                        To maintain community trust and prevent spam, we require address verification before you can write recommendations.
+                        To keep local interactions trustworthy, we may ask for additional checks before certain actions (like publishing recommendations).
                       </p>
                       <div className="space-y-2 text-sm">
                         <div className="flex items-center gap-2">
                           <Clock className="w-4 h-4 text-blue-400" />
-                          <span className="text-slate-300">14-day grace period to complete verification</span>
+                          <span className="text-slate-300">You’ll still be able to browse and explore right away</span>
                         </div>
                         <div className="flex items-center gap-2">
                           <FileText className="w-4 h-4 text-blue-400" />
-                          <span className="text-slate-300">Options: Postcard verification or document upload</span>
+                          <span className="text-slate-300">We’ll guide you if and when extra verification is needed</span>
                         </div>
                       </div>
                     </div>
@@ -237,24 +237,24 @@ export function OnboardingFlow({ role, userInfo, onComplete, onSkip }: Onboardin
                         ID Verification
                       </h3>
                       <p className="text-slate-300 text-sm">
-                        Upload a photo of your government-issued ID to verify your identity.
+                        For higher-impact actions, we may ask for additional proof that you’re a real person in the area.
                       </p>
                     </div>
 
                     <div className="bg-slate-700/50 rounded-lg p-4">
-                      <h4 className="text-white font-medium mb-2">What you can do without verification:</h4>
+                      <h4 className="text-white font-medium mb-2">What you can do right away:</h4>
                       <ul className="text-slate-300 text-sm space-y-1">
-                        <li>• Browse and contact contractors</li>
-                        <li>• Request quotes and estimates</li>
-                        <li>• Use the project calculator</li>
-                        <li>• Chat with contractors</li>
+                        <li>• Browse and contact local services</li>
+                        <li>• Request help, quotes, and estimates</li>
+                        <li>• Use project and planning tools</li>
+                        <li>• Chat with people and providers in your area</li>
                       </ul>
                       
-                      <h4 className="text-white font-medium mb-2 mt-4">After verification:</h4>
+                      <h4 className="text-white font-medium mb-2 mt-4">After additional checks:</h4>
                       <ul className="text-slate-300 text-sm space-y-1">
-                        <li>• Write contractor recommendations</li>
-                        <li>• Participate in community discussions</li>
-                        <li>• Access premium features</li>
+                        <li>• Publish recommendations and public signals</li>
+                        <li>• Participate more deeply in community discussions</li>
+                        <li>• Access higher-trust features</li>
                       </ul>
                     </div>
                   </div>

@@ -81,11 +81,11 @@ export function RoleSelection({ onRoleSelect, userInfo, initialType }: RoleSelec
               <TradeScoutLogo size="xl" variant="gradient" />
             </div>
             <h1 className="text-3xl font-bold text-white mb-2">Welcome to TradeScout</h1>
-            <p className="text-slate-400">How would you like to get started?</p>
+            <p className="text-slate-400">How do you plan to participate locally?</p>
           </div>
 
           <div className="grid md:grid-cols-2 gap-6 mb-8">
-            {/* Homeowner Option */}
+            {/* Personal use option (maps to homeowner role internally) */}
             <Card 
               className="cursor-pointer transition-all duration-300 border-2 border-slate-700 bg-slate-800/50 hover:border-blue-500 hover:bg-blue-900/20 hover:shadow-lg hover:shadow-blue-500/25"
               onClick={() => {
@@ -100,30 +100,30 @@ export function RoleSelection({ onRoleSelect, userInfo, initialType }: RoleSelec
                     <Home className="w-10 h-10 text-blue-400" />
                   </div>
                 </div>
-                <CardTitle className="text-2xl text-white">I'm a Homeowner</CardTitle>
+                <CardTitle className="text-2xl text-white">Use TradeScout for my own projects</CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
                 <p className="text-slate-300 text-center mb-4">
-                  Find trusted contractors and professionals for your home projects
+                  Find trusted local services, projects, and community activity around you
                 </p>
                 <div className="space-y-2 text-sm">
                   <div className="flex items-center gap-2 text-slate-400">
                     <Star className="w-4 h-4 text-blue-400" />
-                    Browse verified contractors
+                    Browse verified local services
                   </div>
                   <div className="flex items-center gap-2 text-slate-400">
                     <Heart className="w-4 h-4 text-blue-400" />
-                    Get instant quotes
+                    Get help and estimates for real projects
                   </div>
                   <div className="flex items-center gap-2 text-slate-400">
                     <Users className="w-4 h-4 text-blue-400" />
-                    Join your local community
+                    Join conversations in your local community
                   </div>
                 </div>
               </CardContent>
             </Card>
 
-            {/* Professional Option */}
+            {/* Work / business option (maps to professional roles internally) */}
             <Card 
               className="cursor-pointer transition-all duration-300 border-2 border-slate-700 bg-slate-800/50 hover:border-orange-500 hover:bg-orange-900/20 hover:shadow-lg hover:shadow-orange-500/25"
               onClick={() => setAccountType('professional')}
@@ -135,16 +135,16 @@ export function RoleSelection({ onRoleSelect, userInfo, initialType }: RoleSelec
                     <Briefcase className="w-10 h-10 text-orange-400" />
                   </div>
                 </div>
-                <CardTitle className="text-2xl text-white">I'm a Professional</CardTitle>
+                <CardTitle className="text-2xl text-white">Offer services or run a business</CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
                 <p className="text-slate-300 text-center mb-4">
-                  Grow your business and connect with local customers
+                  Show your work, offer services, and connect with people and organizations nearby
                 </p>
                 <div className="space-y-2 text-sm">
                   <div className="flex items-center gap-2 text-slate-400">
                     <Users className="w-4 h-4 text-orange-400" />
-                    Connect with homeowners
+                    Connect with local people, businesses, and organizations
                   </div>
                   <div className="flex items-center gap-2 text-slate-400">
                     <Star className="w-4 h-4 text-orange-400" />

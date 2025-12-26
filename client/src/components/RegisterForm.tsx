@@ -100,7 +100,7 @@ export function RegisterForm({ onSuccess, onSwitchToLogin }: RegisterFormProps) 
       <CardHeader>
         <CardTitle>Create Account</CardTitle>
         <CardDescription>
-          Join TradeScout to connect with contractors
+          Join TradeScout to connect around local projects, services, and community activity.
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -179,18 +179,18 @@ export function RegisterForm({ onSuccess, onSwitchToLogin }: RegisterFormProps) 
               name="role"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Account Type</FormLabel>
+                  <FormLabel>How do you plan to use TradeScout?</FormLabel>
                   <Select onValueChange={field.onChange} defaultValue={field.value}>
                     <FormControl>
                       <SelectTrigger>
-                        <SelectValue placeholder="Select your account type" />
+                        <SelectValue placeholder="Choose what fits best (you can change this later)" />
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      <SelectItem value="homeowner">Homeowner</SelectItem>
-                      <SelectItem value="contractor">Contractor</SelectItem>
-                      <SelectItem value="realtor">Realtor</SelectItem>
-                      <SelectItem value="car_dealer">Car Dealer</SelectItem>
+                      <SelectItem value="homeowner">Use TradeScout for my own projects</SelectItem>
+                      <SelectItem value="contractor">Offer services or run a business</SelectItem>
+                      <SelectItem value="realtor">Work with property, housing, or real estate</SelectItem>
+                      <SelectItem value="car_dealer">Work with vehicles, transport, or equipment</SelectItem>
                     </SelectContent>
                   </Select>
                   <FormMessage />
