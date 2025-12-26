@@ -35,8 +35,8 @@ export function ScoutInputRow({
             <button
               type="button"
               onClick={onOpenLocationSettings}
-              className="text-[12px] px-2.5 py-1 rounded-full transition-all hover:scale-105"
-              style={{ backgroundColor: 'color-mix(in oklab, var(--theme-bg-quaternary) 60%, transparent)', border: '1px solid rgba(255,255,255,0.08)', color: 'var(--text-secondary)' }}
+              className="text-[12px] px-2.5 py-1 rounded-md transition-all hover:opacity-80"
+              style={{ backgroundColor: 'color-mix(in srgb, var(--bg-secondary) 70%, var(--theme-accent-primary) 30%)', border: 'none', color: 'var(--text-secondary)' }}
             >
               📍 {heroLocationLabel}
             </button>
