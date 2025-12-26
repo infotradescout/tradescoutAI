@@ -164,7 +164,8 @@ export default function PublicProfileView() {
               textSecondary: colorScheme.text,
               accentPrimary: colorScheme.primary,
               accentSecondary: colorScheme.secondary || colorScheme.primary,
-              border: colorScheme.border || colorScheme.background,
+              borderPrimary: colorScheme.border || colorScheme.background,
+              borderSecondary: colorScheme.secondary || colorScheme.background,
             },
           };
 
@@ -286,7 +287,7 @@ export default function PublicProfileView() {
 
   if (loading) {
     return (
-      <div className="container mx-auto py-12 text-center">
+      <div className="container mx-auto py-12 text-center bg-tsBg">
         <p className="text-tsTextMuted">Loading profile...</p>
       </div>
     );
@@ -294,9 +295,9 @@ export default function PublicProfileView() {
 
   if (notFound || !profile) {
     return (
-      <div className="container mx-auto py-12 text-center">
+      <div className="container mx-auto py-12 text-center bg-tsBg">
         <Eye className="h-12 w-12 text-tsTextMuted mx-auto mb-4" />
-        <h2 className="text-2xl font-bold text-tsTextMain mb-2">Profile Not Found</h2>
+        <h2 className="text-2xl font-bold text-tsText mb-2">Profile Not Found</h2>
         <p className="text-tsTextMuted">
           This profile is private or doesn't exist.
         </p>
@@ -401,7 +402,7 @@ export default function PublicProfileView() {
 
   return (
     <div 
-      className="min-h-screen transition-colors duration-300"
+      className="min-h-screen transition-colors duration-300 bg-tsBg text-tsText"
       style={{ 
         backgroundColor: 'var(--user-background, #0a0f1e)',
         color: 'var(--user-text, #f1f5f9)'
@@ -410,7 +411,7 @@ export default function PublicProfileView() {
       <div className="container mx-auto py-8 space-y-6">
         {/* Header */}
         <div 
-          className="rounded-lg p-8 shadow-lg border"
+          className="rounded-lg p-8 shadow-lg border bg-tsCard border-tsBorder"
           style={{
             backgroundColor: 'var(--user-background, #111827)',
             borderColor: 'var(--user-border, #1e293b)',
@@ -419,14 +420,14 @@ export default function PublicProfileView() {
           <div className="flex flex-col md:flex-row gap-6 items-start md:items-center">
             {profile.profileImageUrl ? (
               <img
-                src={profile.profileImageUrl}
-                alt={displayName}
-                className="w-24 h-24 rounded-full object-cover border-4"
-                style={{ borderColor: 'var(--user-primary, #f97316)' }}
-              />
+                  src={profile.profileImageUrl}
+                  alt={displayName}
+                  className="w-24 h-24 rounded-full object-cover border-4 border-tsAccent"
+                  style={{ borderColor: 'var(--user-primary, #f97316)' }}
+                />
             ) : (
               <div 
-                className="w-24 h-24 rounded-full flex items-center justify-center text-3xl font-bold border-4"
+                className="w-24 h-24 rounded-full flex items-center justify-center text-3xl font-bold border-4 border-tsAccent"
                 style={{
                   backgroundColor: 'var(--user-primary, #f97316)',
                   borderColor: 'var(--user-secondary, #fb923c)',
@@ -464,7 +465,7 @@ export default function PublicProfileView() {
                     return (
                       <Badge
                         key={roleId}
-                        className="px-3 py-1"
+                        className="px-3 py-1 bg-tsAccent text-tsBg"
                         style={{
                           backgroundColor: 'var(--user-primary, #f97316)',
                           color: 'var(--user-background, #0a0f1e)',
@@ -506,7 +507,7 @@ export default function PublicProfileView() {
                   {profile.stats.listings !== undefined && (
                     <div className="text-center">
                       <div
-                        className="text-2xl font-bold"
+                        className="text-2xl font-bold text-tsAccent"
                         style={{ color: "var(--user-primary, #f97316)" }}
                       >
                         {profile.stats.listings}
@@ -517,7 +518,7 @@ export default function PublicProfileView() {
                   {profile.stats.reviews !== undefined && (
                     <div className="text-center">
                       <div
-                        className="text-2xl font-bold"
+                        className="text-2xl font-bold text-tsAccent"
                         style={{ color: "var(--user-primary, #f97316)" }}
                       >
                         {profile.stats.reviews}
@@ -529,13 +530,13 @@ export default function PublicProfileView() {
                     <div className="text-center">
                       <div className="flex items-center gap-1">
                         <span
-                          className="text-2xl font-bold"
+                          className="text-2xl font-bold text-tsAccent"
                           style={{ color: "var(--user-primary, #f97316)" }}
                         >
                           {profile.stats.rating.toFixed(1)}
                         </span>
                         <Star
-                          className="h-5 w-5 fill-current"
+                          className="h-5 w-5 fill-current text-tsAccent"
                           style={{ color: "var(--user-primary, #f97316)" }}
                         />
                       </div>
