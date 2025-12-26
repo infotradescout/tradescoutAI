@@ -167,6 +167,88 @@ export async function searchMarketplace(
   return runTool(marketplaceSearchTool, input, context || {});
 }
 
+/* ======================== Marketplace Post Tool ======================== */
+
+export interface MarketplacePostInput {
+  title: string;
+  description?: string;
+  price: number;
+  category?: string;
+}
+
+export interface MarketplacePostResult {
+  id?: string;
+  title: string;
+  price: number;
+  category?: string;
+  status: "created" | "drafted";
+}
+
+const marketplacePostTool: ToolDefinition<MarketplacePostInput, MarketplacePostResult> = {
+  name: "marketplace_post",
+  description: "Create a new marketplace listing via assistant action, with safe fallback",
+  timeout: 12000,
+  retries: 1,
+  async execute(input, context) {
+    // First attempt: call assistant guarded action endpoint if available
+    try {
+      const res = await fetch("/api/assistant/execute-action", {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: {
+            type: "list_item",
+            params: {
+              title: input.title,
+              description: input.description,
+              price: input.price,
+              category: input.category,
+            },
+          },
+          guardContext: {
+            intent: "marketplace_post",
+            sessionId: context.sessionId,
+          },
+        }),
+      });
+
+      if (res.ok) {
+        const json = await res.json().catch(() => ({} as any));
+        // Some servers return { success, data } others may proxy a generic message
+        const data = json?.data || json;
+        const listingId = String(data?.id || data?.listingId || "").trim();
+        return {
+          id: listingId || undefined,
+          title: input.title,
+          price: input.price,
+          category: input.category,
+          status: listingId ? "created" : "drafted",
+        };
+      }
+
+      // Non-200: fall through to fallback logic
+      throw new Error(`HTTP ${res.status}`);
+    } catch (err) {
+      // Fallback: return a draft result; UI should navigate to Exchange to finish
+      return {
+        id: undefined,
+        title: input.title,
+        price: input.price,
+        category: input.category,
+        status: "drafted",
+      };
+    }
+  },
+};
+
+export async function postMarketplaceListing(
+  input: MarketplacePostInput,
+  context?: ToolContext
+): Promise<ReturnType<typeof runTool<MarketplacePostInput, MarketplacePostResult>>> {
+  return runTool(marketplacePostTool, input, context || {});
+}
+
 /* ======================== Notes Tool ======================== */
 
 export interface CreateNoteInput {
@@ -293,4 +375,237 @@ export async function createProject(
   context?: ToolContext
 ): Promise<ReturnType<typeof runTool<CreateProjectInput, ProjectResult>>> {
   return runTool(createProjectTool, input, context || {});
+}
+
+/* ======================== Affiliate Tools (Phase 1) ======================== */
+
+/**
+ * AFFILIATE_ENROLL
+ * Purpose: Make this user an affiliate (idempotent)
+ * Proven by: POST /api/affiliate/enroll
+ */
+export interface AffiliateEnrollInput {
+  userId?: string; // optional; server can infer from session
+}
+
+export interface AffiliateEnrollResult {
+  affiliateId: string;
+  status: "active" | "pending" | "disabled";
+}
+
+const affiliateEnrollTool: ToolDefinition<AffiliateEnrollInput, AffiliateEnrollResult> = {
+  name: "affiliate_enroll",
+  description: "Enroll the current user into the affiliate program (idempotent)",
+  timeout: 8000,
+  retries: 1,
+  async execute(input, context) {
+    const res = await fetch("/api/affiliate/enroll", {
+      method: "POST",
+      credentials: "include",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ userId: input.userId }),
+    });
+
+    if (!res.ok) {
+      throw new Error(`Affiliate enroll HTTP ${res.status}: ${await res.text().catch(() => "")}`);
+    }
+
+    const data = await res.json().catch(() => ({} as any));
+    return {
+      affiliateId: String(data.affiliateId || data.id || ""),
+      status: (data.status as any) || "active",
+    };
+  },
+};
+
+export async function enrollAffiliate(
+  input: AffiliateEnrollInput,
+  context?: ToolContext
+): Promise<ReturnType<typeof runTool<AffiliateEnrollInput, AffiliateEnrollResult>>> {
+  return runTool(affiliateEnrollTool, input, context || {});
+}
+
+/**
+ * AFFILIATE_LINK_GENERATE
+ * Input: destination (profile, listing, deal)
+ * Output: canonical referral URL
+ * Proven by: POST /api/affiliate/link
+ */
+export interface AffiliateLinkInput {
+  destination: string; // e.g. "/contractors/123" or "/exchange/abc"
+  entityId?: string;
+}
+
+export interface AffiliateLinkResult {
+  url: string;
+}
+
+const affiliateLinkTool: ToolDefinition<AffiliateLinkInput, AffiliateLinkResult> = {
+  name: "affiliate_link_generate",
+  description: "Generate a canonical referral URL for an affiliate",
+  timeout: 6000,
+  retries: 1,
+  async execute(input, context) {
+    const res = await fetch("/api/affiliate/link", {
+      method: "POST",
+      credentials: "include",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ destination: input.destination, entityId: input.entityId }),
+    });
+
+    if (!res.ok) {
+      throw new Error(`Affiliate link HTTP ${res.status}: ${await res.text().catch(() => "")}`);
+    }
+
+    const data = await res.json().catch(() => ({} as any));
+    const url: string = String(data.url || "");
+    return { url };
+  },
+};
+
+export async function generateAffiliateLink(
+  input: AffiliateLinkInput,
+  context?: ToolContext
+): Promise<ReturnType<typeof runTool<AffiliateLinkInput, AffiliateLinkResult>>> {
+  return runTool(affiliateLinkTool, input, context || {});
+}
+
+/**
+ * AFFILIATE_REFERRAL_LOG
+ * Internal only; safe fallback on failure (does not throw)
+ * Proven by: POST /api/affiliate/referral
+ */
+export interface AffiliateReferralLogInput {
+  affiliateId: string;
+  action: string; // e.g. "listing_view", "contractor_contact", "deal_redeem"
+  entityId?: string;
+  meta?: Record<string, unknown>;
+}
+
+export interface AffiliateReferralLogResult {
+  success: boolean;
+}
+
+const affiliateReferralLogTool: ToolDefinition<AffiliateReferralLogInput, AffiliateReferralLogResult> = {
+  name: "affiliate_referral_log",
+  description: "Log an attributed action for affiliate tracking (non-throwing)",
+  timeout: 4000,
+  retries: 0,
+  async execute(input, context) {
+    try {
+      const res = await fetch("/api/affiliate/referral", {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          affiliateId: input.affiliateId,
+          action: input.action,
+          entityId: input.entityId,
+          meta: input.meta || {},
+        }),
+      });
+      if (!res.ok) return { success: false };
+      return { success: true };
+    } catch {
+      return { success: false };
+    }
+  },
+};
+
+export async function logAffiliateReferral(
+  input: AffiliateReferralLogInput,
+  context?: ToolContext
+): Promise<ReturnType<typeof runTool<AffiliateReferralLogInput, AffiliateReferralLogResult>>> {
+  return runTool(affiliateReferralLogTool, input, context || {});
+}
+
+/* ======================== Promotion Tools (Phase 2) ======================== */
+
+/**
+ * PROMOTION_CREATE
+ * Scope-limited (county + category), requires capability
+ * Proven by: POST /api/promotions
+ */
+export interface PromotionCreateInput {
+  title: string;
+  description: string;
+  category: string;
+  county: string;
+  state: string;
+  startsAt?: string;
+  endsAt?: string;
+}
+
+export interface PromotionCreateResult {
+  promotionId: string;
+}
+
+const promotionCreateTool: ToolDefinition<PromotionCreateInput, PromotionCreateResult> = {
+  name: "promotion_create",
+  description: "Create a scoped promotion for a verified business",
+  timeout: 10000,
+  retries: 1,
+  async execute(input, context) {
+    const res = await fetch("/api/promotions", {
+      method: "POST",
+      credentials: "include",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(input),
+    });
+    if (!res.ok) {
+      throw new Error(`Promotion create HTTP ${res.status}: ${await res.text().catch(() => "")}`);
+    }
+    const data = await res.json().catch(() => ({} as any));
+    return { promotionId: String(data.promotionId || data.id || "") };
+  },
+};
+
+export async function createPromotion(
+  input: PromotionCreateInput,
+  context?: ToolContext
+): Promise<ReturnType<typeof runTool<PromotionCreateInput, PromotionCreateResult>>> {
+  return runTool(promotionCreateTool, input, context || {});
+}
+
+/**
+ * PROMOTION_TRACK
+ * Read impressions/actions for Scout performance explanations
+ * Proven by: GET /api/promotions/:id/metrics
+ */
+export interface PromotionTrackInput {
+  promotionId: string;
+}
+
+export interface PromotionMetricsResult {
+  impressions: number;
+  actions: number;
+}
+
+const promotionTrackTool: ToolDefinition<PromotionTrackInput, PromotionMetricsResult> = {
+  name: "promotion_track",
+  description: "Track promotion performance (impressions/actions)",
+  timeout: 6000,
+  retries: 1,
+  async execute(input, context) {
+    const res = await fetch(`/api/promotions/${encodeURIComponent(input.promotionId)}/metrics`, {
+      method: "GET",
+      credentials: "include",
+      headers: { "Content-Type": "application/json" },
+    });
+    if (!res.ok) {
+      throw new Error(`Promotion metrics HTTP ${res.status}: ${await res.text().catch(() => "")}`);
+    }
+    const data = await res.json().catch(() => ({} as any));
+    return {
+      impressions: typeof data.impressions === "number" ? data.impressions : 0,
+      actions: typeof data.actions === "number" ? data.actions : 0,
+    };
+  },
+};
+
+export async function trackPromotion(
+  input: PromotionTrackInput,
+  context?: ToolContext
+): Promise<ReturnType<typeof runTool<PromotionTrackInput, PromotionMetricsResult>>> {
+  return runTool(promotionTrackTool, input, context || {});
 }

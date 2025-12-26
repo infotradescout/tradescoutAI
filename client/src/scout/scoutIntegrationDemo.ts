@@ -6,7 +6,7 @@
  * Copy this pattern when adding new tool-backed responses.
  */
 
-import { searchContractors, searchMarketplace, createNote } from "../agent/tools/scoutTools";
+import { searchContractors, searchMarketplace, createNote, type ContractorResult, type MarketplaceResult } from "../agent/tools/scoutTools";
 import type { ScoutAction, ScoutCluster, ScoutMessage, ScoutToolResult } from "./state";
 
 /**
@@ -52,10 +52,10 @@ export async function handleFindContractorsIntent(
     };
   }
 
-  const contractors = result.data || [];
+  const contractors: ContractorResult[] = Array.isArray(result.data) ? result.data : [];
 
   // Build clusters for each contractor
-  const clusters: ScoutCluster[] = contractors.slice(0, 3).map((c) => ({
+  const clusters: ScoutCluster[] = contractors.slice(0, 3).map((c: ContractorResult) => ({
     id: `contractor-${c.id}`,
     title: c.name,
     kind: "pros" as const,
@@ -148,7 +148,7 @@ export async function handleMarketplaceSearchIntent(
     };
   }
 
-  const listings = result.data || [];
+    const listings: MarketplaceResult[] = Array.isArray(result.data) ? result.data : [];
 
   const clusters: ScoutCluster[] = listings.slice(0, 3).map((listing) => ({
     id: `listing-${listing.id}`,

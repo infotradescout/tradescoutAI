@@ -78,7 +78,7 @@ export async function handleContractorSearchWithTools(
   }
 
   // Tool succeeded
-  const contractors = result.data || [];
+  const contractors: any[] = Array.isArray(result.data) ? result.data : [];
 
   if (contractors.length === 0) {
     return {
@@ -106,12 +106,12 @@ export async function handleContractorSearchWithTools(
     title: trade ? `Top ${trade.toUpperCase()} contractors` : "Top contractors",
     kind: "pros",
     body: `Found ${contractors.length} professionals near you.`,
-    items: contractors.map((c) => ({
+    items: contractors.map((c: any) => ({
       id: c.id,
       label: `${c.name} · ${c.rating}⭐ (${c.reviewCount} reviews)`,
       description: c.location,
     })),
-    actions: contractors.slice(0, 3).map((c) => ({
+    actions: contractors.slice(0, 3).map((c: any) => ({
       type: "NAVIGATE",
       label: `View ${c.name}`,
       to: c.profileUrl,
@@ -171,7 +171,7 @@ export async function handleCreateNoteWithTools(
     };
   }
 
-  const note = result.data;
+  const note: any = result.data;
 
   return {
     message: {
@@ -192,7 +192,7 @@ export async function handleCreateNoteWithTools(
         id: `note-${Date.now()}`,
         title: "Note saved",
         kind: "generic",
-        body: note?.content.slice(0, 100),
+        body: note?.content?.slice(0, 100),
         primaryAction: {
           type: "NAVIGATE",
           label: "Open Notes",
@@ -234,7 +234,7 @@ export async function handleCreateProjectWithTools(
     };
   }
 
-  const project = result.data;
+  const project: any = result.data;
 
   return {
     message: {
@@ -259,7 +259,7 @@ export async function handleCreateProjectWithTools(
         id: `project-${Date.now()}`,
         title: project?.title || "New project",
         kind: "projects",
-        body: project?.description.slice(0, 150),
+        body: project?.description?.slice(0, 150),
         primaryAction: {
           type: "NAVIGATE",
           label: "Open Deal Room",

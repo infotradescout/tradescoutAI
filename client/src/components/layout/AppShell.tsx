@@ -261,10 +261,8 @@ export function AppShell({ children, footer }: AppShellProps) {
 
       <div className="flex flex-1 min-h-0">
         <main
-          className={`flex flex-col flex-1 min-w-0 overflow-y-auto ${
-            // Reserve space for fixed header on mobile (uniform height)
-            isMobile ? "pt-[56px]" : ""
-          } pb-[84px]`}
+          className={`flex flex-col flex-1 min-w-0 overflow-y-auto pt-[56px]`}
+          style={{ paddingBottom: 'calc(68px + env(safe-area-inset-bottom))' }}
         >
           {children}
         </main>

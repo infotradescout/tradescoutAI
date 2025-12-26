@@ -155,18 +155,7 @@ html {
 
 .card-enhanced:hover {
   transform: translateY(-2px);
-  box-shadow: var(--shadow-glow);
-}
-
-/* Gradient background with scroll effects */
-.gradient-bg {
-  background: linear-gradient(135deg, 
-    #0a0f1e 0%, 
-    #111827 25%, 
-    #1e293b 50%, 
-    #0f172a 75%, 
-    #0a0f1e 100%);
-  background-attachment: fixed;
+  box-shadow: var(--shadow-card);
 }
 
 /* Responsive scroll adjustments */
@@ -175,76 +164,6 @@ html {
     --header-height: 56px;
     --page-padding: 60px;
   }
-}
-
-:root {
-  font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-  color: #e2e8f0;
-  
-  /* ========== UNIVERSAL CHARCOAL DEFAULT THEME ========== */
-  /* This is the default theme applied to every page without exception.
-     Users can customize colors via theme variables, but charcoal is the base. */
-  
-  /* 3-Layer Charcoal System - Visual Hierarchy */
-  --charcoal-950: #0a0d12;   /* Darkest - Structural chrome (nav only) */
-  --charcoal-900: #11161f;   /* Canvas - Primary page backgrounds */
-  --charcoal-800: #1a2230;   /* Surfaces - Inputs, cards, messages */
-  --charcoal-700: #1f2a39;   /* Legacy light surface (fallback only) */
-  
-  /* Primary Colors - All pages use these by default */
-  --bg-primary: var(--theme-bg-primary, var(--charcoal-900));       /* Canvas */
-  --bg-secondary: var(--theme-bg-secondary, var(--charcoal-800));   /* Surfaces */
-  --bg-tertiary: var(--theme-bg-tertiary, var(--charcoal-950));     /* Nav chrome */
-  --bg-quaternary: var(--theme-bg-quaternary, var(--charcoal-800)); /* Fallback: surfaces */
-  --bg-gradient: var(--theme-bg-gradient, var(--bg-primary));
-
-  /* Text Colors - Universal text hierarchy */
-  --text-primary: var(--theme-text-primary, #f1f5f9);       /* Light text on dark backgrounds */
-  --text-secondary: var(--theme-text-secondary, #cbd5e1);   /* Muted text for secondary info */
-  --text-muted: var(--theme-text-muted, #94a3b8);           /* Very muted for hints/disabled */
-
-  /* Accent Colors - Orange brand accent (customizable) */
-  --orange-primary: var(--theme-accent-primary, hsl(25, 85%, 54%));      /* Main orange */
-  --orange-secondary: var(--theme-accent-secondary, hsl(19, 80%, 47%));   /* Darker orange */
-  --orange-tertiary: var(--theme-accent-tertiary, hsl(27, 85%, 60%));     /* Lighter orange */
-
-  /* Status Colors */
-  --success: var(--theme-success, hsl(142, 71%, 45%));
-  --warning: var(--theme-warning, hsl(38, 92%, 50%));
-  --error: var(--theme-error, hsl(0, 84%, 60%));
-
-  /* Border Colors - Derived from charcoal */
-  --border-primary: var(--theme-border-primary, #2d3645);    /* Slightly lighter than charcoal-700 */
-  --border-secondary: var(--theme-border-secondary, #1a2030); /* Charcoal-700 */
-
-  --shadow-card: 0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -1px rgba(0, 0, 0, 0.2);
-  --shadow-glow: 0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -1px rgba(0, 0, 0, 0.2);
-  
-  --header-height: 64px;
-  --page-padding: 80px;
-
-  /* shadcn/ui compatibility */
-  --background: var(--bg-primary);
-  --foreground: var(--text-primary);
-  --card: var(--bg-secondary);
-  --card-foreground: var(--text-primary);
-  --popover: var(--bg-secondary);
-  --popover-foreground: var(--text-primary);
-  --primary: var(--orange-primary);
-  --primary-foreground: hsl(0, 0%, 100%);
-  --secondary: var(--bg-tertiary);
-  --secondary-foreground: var(--text-primary);
-  --muted: var(--bg-tertiary);
-  --muted-foreground: var(--text-muted);
-  --accent: var(--bg-quaternary);
-  --accent-foreground: var(--text-primary);
-  --destructive: var(--error);
-  --destructive-foreground: hsl(0, 0%, 100%);
-  --border: var(--border-primary);
-  --input: var(--bg-tertiary);
-  --ring: var(--orange-primary);
-
-  --radius: 0.75rem;
 }
 
 @layer base {
@@ -1042,59 +961,64 @@ html, body {
    Global Theme Utilities - Use throughout the site
    ============================================================================ */
 
-/* Theme-aware page wrapper */
+/* Theme-aware page wrapper - Pure charcoal (no gradient bleed) */
 .page-wrapper {
-  background: var(--bg-gradient);
+  background: var(--surface-app);
   min-height: 100vh;
   color: var(--text-primary);
 }
 
-/* Theme-aware cards - replaces bg-slate-800 */
+/* Scout shell - optional contained surface treatment */
+.scout-shell {
+  background: var(--surface-scout-shell);
+}
+
+/* Theme-aware cards */
 .theme-card {
-  background: var(--bg-secondary);
-  border: 1px solid var(--border-primary);
+  background: var(--surface-card);
+  border: 1px solid var(--border-subtle);
   color: var(--text-primary);
 }
 
 .theme-card-hover {
-  background: var(--bg-secondary);
-  border: 1px solid var(--border-primary);
+  background: var(--surface-card);
+  border: 1px solid var(--border-subtle);
   color: var(--text-primary);
   transition: all 0.2s ease;
 }
 
 .theme-card-hover:hover {
-  border-color: var(--orange-primary);
-  background: var(--bg-tertiary);
+  border-color: var(--theme-accent-primary);
+  background: var(--surface-intermediate);
 }
 
-/* Theme-aware input fields - uses charcoal-700 for inviting interactive surfaces */
+/* Theme-aware input fields */
 .theme-input {
-  background-color: var(--charcoal-700);
-  border: 1px solid var(--border-primary);
+  background-color: var(--surface-input);
+  border: 1px solid var(--border-subtle);
   color: var(--text-primary);
 }
 
 .theme-input:focus {
   outline: none;
-  border-color: var(--orange-primary);
-  box-shadow: 0 0 0 1px var(--orange-primary);
+  border-color: var(--theme-accent-primary);
+  box-shadow: 0 0 0 1px var(--theme-accent-primary);
 }
 
 .theme-input::placeholder {
-  color: var(--text-muted);
+  color: var(--text-secondary);
 }
 
 /* Theme-aware buttons */
 .theme-button-primary {
-  background: var(--orange-primary);
+  background: var(--theme-accent-primary);
   color: #000;
   font-weight: 600;
   transition: all 0.2s ease;
 }
 
 .theme-button-primary:hover {
-  background: var(--orange-secondary);
+  opacity: 0.9;
   transform: translateY(-1px);
 }
 
