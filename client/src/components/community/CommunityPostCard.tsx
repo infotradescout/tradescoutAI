@@ -274,7 +274,7 @@ export function CommunityPostCard({ post, onLike, formatTimeAgo }: CommunityPost
   })();
 
   return (
-    <Card className={`bg-[#0f1624] border border-[#1f2937] shadow-sm rounded-xl hover:border-orange-500/30 transition-all ${isAdminNotice ? "ring-1 ring-orange-400/40 bg-[#0f1624]/95" : ""}`}>
+    <Card className={`bg-tsCard border border-tsBorder shadow-sm rounded-xl hover:border-orange-500/30 transition-all ${isAdminNotice ? "ring-1 ring-orange-400/40 bg-tsCard/95" : ""}`}>
       <CardContent className="p-4 sm:p-5 space-y-3">
         {(isPinned || isTrending || isAdminNotice) && (
           <div className="-mx-4 sm:-mx-5 -mt-4 sm:-mt-5 px-4 sm:px-5 py-1.5 border-b border-orange-500/15 bg-orange-500/5 flex items-center gap-2 text-[11px] text-orange-200">
@@ -384,7 +384,7 @@ export function CommunityPostCard({ post, onLike, formatTimeAgo }: CommunityPost
             <DropdownMenuTrigger asChild>
               <button
                 type="button"
-                className="inline-flex h-8 w-8 items-center justify-center rounded-full text-slate-400 hover:text-white hover:bg-[#0f1419] transition-colors"
+                className="inline-flex h-8 w-8 items-center justify-center rounded-full text-muted-foreground hover:text-foreground hover:bg-tsBg transition-colors"
               >
                 <MoreHorizontal className="w-4 h-4" />
               </button>
@@ -432,7 +432,7 @@ export function CommunityPostCard({ post, onLike, formatTimeAgo }: CommunityPost
               {post.imageUrls.slice(0, 6).map((url, index) => (
                 <div
                   key={url + index}
-                  className="relative w-full overflow-hidden rounded-md border border-[#1f2937] bg-black/40"
+                  className="relative w-full overflow-hidden rounded-md border border-tsBorder bg-tsBg/40"
                   style={{ paddingBottom: "70%" }}
                 >
                   <img
@@ -461,25 +461,25 @@ export function CommunityPostCard({ post, onLike, formatTimeAgo }: CommunityPost
 
         {!isAdminNotice && (
           <>
-            <Separator className="bg-[#1f2937]" />
+            <Separator className="bg-tsBorder" />
             <div className="flex items-center justify-between text-[11px] text-slate-300 font-medium">
               <span>{post.upvotes || 0} likes</span>
               <span>{post.comments || 0} comments</span>
             </div>
-            <div className="mt-1 grid grid-cols-3 text-[12px] overflow-hidden border border-[#1f2937] rounded-lg bg-slate-900/40">
+            <div className="mt-1 grid grid-cols-3 text-[12px] overflow-hidden border border-tsBorder rounded-lg bg-tsBg/40">
               <button
                 onClick={handleLikeClick}
-                className="flex items-center justify-center gap-1.5 py-2 hover:bg-slate-900 transition-colors"
+                className="flex items-center justify-center gap-1.5 py-2 hover:bg-tsBg transition-colors"
               >
                 <Heart className="w-4 h-4" />
                 <span>Like</span>
               </button>
-              <button className="flex items-center justify-center gap-1.5 py-2 hover:bg-slate-900 transition-colors border-l border-[#1f2937]">
+              <button className="flex items-center justify-center gap-1.5 py-2 hover:bg-tsBg transition-colors border-l border-tsBorder">
                 <MessageSquare className="w-4 h-4" />
                 <span>Comment</span>
               </button>
               <button
-                className="flex items-center justify-center gap-1.5 py-2 hover:bg-slate-900 transition-colors border-l border-[#1f2937]"
+                className="flex items-center justify-center gap-1.5 py-2 hover:bg-tsBg transition-colors border-l border-tsBorder"
                 onClick={handleShareClick}
               >
                 <Share2 className="w-4 h-4" />
