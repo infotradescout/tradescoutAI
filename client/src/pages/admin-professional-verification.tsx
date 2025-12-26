@@ -162,7 +162,7 @@ export default function AdminProfessionalVerification() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-[#0f1419] p-6">
+      <div className="min-h-screen bg-tsBg p-6">
         <div className="max-w-7xl mx-auto">
           <div className="flex items-center justify-center h-64">
             <div className="animate-spin w-8 h-8 border-4 border-orange-600 border-t-transparent rounded-full"></div>
@@ -176,7 +176,7 @@ export default function AdminProfessionalVerification() {
   const carSalesmen = pendingApplications?.carSalesmen || [];
 
   return (
-    <div className="min-h-screen bg-[#0f1419] p-6">
+    <div className="min-h-screen bg-tsBg p-6">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="mb-8">
