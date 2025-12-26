@@ -65,29 +65,29 @@ const ComparisonModal: React.FC<ComparisonModalProps> = ({ isOpen, onClose, cont
     const gridColsClass = `grid-cols-${contractors.length + 1}`;
 
     return (
-        <div className="fixed inset-0 bg-black bg-opacity-60 z-50 flex justify-center items-center p-4" onClick={onClose}>
-            <div className="bg-white rounded-xl shadow-2xl w-full max-w-6xl h-[90vh] flex flex-col overflow-hidden ring-1 ring-slate-900/5" onClick={e => e.stopPropagation()}>
-                <div className="p-5 border-b border-slate-100 flex justify-between items-center flex-shrink-0 bg-slate-50/50">
+        <div className="fixed inset-0 bg-overlay/80 z-50 flex justify-center items-center p-4" onClick={onClose}>
+            <div className="bg-surface rounded-xl shadow-2xl w-full max-w-6xl h-[90vh] flex flex-col overflow-hidden ring-1 ring-border/50" onClick={e => e.stopPropagation()}>
+                <div className="p-5 border-b border-border flex justify-between items-center flex-shrink-0 bg-muted/60">
                     <div>
-                        <h2 className="text-2xl font-bold text-slate-800">Compare Pros</h2>
-                        <p className="text-sm text-slate-500">Side-by-side breakdown</p>
+                        <h2 className="text-2xl font-bold text-foreground">Compare Pros</h2>
+                        <p className="text-sm text-muted-foreground">Side-by-side breakdown</p>
                     </div>
-                    <button onClick={onClose} className="bg-white p-2 rounded-full shadow-sm text-slate-400 hover:text-slate-800 transition-colors">
+                    <button onClick={onClose} className="bg-surface p-2 rounded-full shadow-sm text-muted-foreground hover:text-foreground transition-colors">
                         <XIcon className="w-6 h-6" />
                     </button>
                 </div>
 
-                <div className="overflow-auto flex-grow bg-slate-50">
-                    <div className={`grid ${gridColsClass} min-w-max bg-white shadow-sm m-4 rounded-lg border border-slate-200 overflow-hidden`}>
+                <div className="overflow-auto flex-grow bg-muted">
+                    <div className={`grid ${gridColsClass} min-w-max bg-surface shadow-sm m-4 rounded-lg border border-border overflow-hidden`}>
                         {/* Headers Column */}
-                        <div className="bg-slate-50 border-r border-slate-100">
-                            <div className="h-40 border-b border-slate-100"></div>
-                            <div className="p-4 font-semibold text-slate-500 text-sm uppercase tracking-wide border-b border-slate-100 h-16 flex items-center">Category</div>
-                            <div className="p-4 font-semibold text-slate-500 text-sm uppercase tracking-wide border-b border-slate-100 h-16 flex items-center">Avg. Rating</div>
-                            <div className="p-4 font-semibold text-slate-500 text-sm uppercase tracking-wide border-b border-slate-100 h-16 flex items-center">Lifetime Score</div>
-                            <div className="p-4 font-semibold text-slate-500 text-sm uppercase tracking-wide border-b border-slate-100 h-16 flex items-center">Verified</div>
-                            <div className="p-4 font-semibold text-slate-500 text-sm uppercase tracking-wide border-b border-slate-100 min-h-[8rem] flex items-start pt-4">Specialties</div>
-                            <div className="p-4 font-semibold text-slate-500 text-sm uppercase tracking-wide min-h-[12rem] flex items-start pt-4">AI Summary</div>
+                        <div className="bg-muted border-r border-border">
+                            <div className="h-40 border-b border-border"></div>
+                            <div className="p-4 font-semibold text-muted-foreground text-sm uppercase tracking-wide border-b border-border h-16 flex items-center">Category</div>
+                            <div className="p-4 font-semibold text-muted-foreground text-sm uppercase tracking-wide border-b border-border h-16 flex items-center">Avg. Rating</div>
+                            <div className="p-4 font-semibold text-muted-foreground text-sm uppercase tracking-wide border-b border-border h-16 flex items-center">Lifetime Score</div>
+                            <div className="p-4 font-semibold text-muted-foreground text-sm uppercase tracking-wide border-b border-border h-16 flex items-center">Verified</div>
+                            <div className="p-4 font-semibold text-muted-foreground text-sm uppercase tracking-wide border-b border-border min-h-[8rem] flex items-start pt-4">Specialties</div>
+                            <div className="p-4 font-semibold text-muted-foreground text-sm uppercase tracking-wide min-h-[12rem] flex items-start pt-4">AI Summary</div>
                         </div>
 
                         {/* Contractor Columns */}
@@ -97,25 +97,25 @@ const ComparisonModal: React.FC<ComparisonModalProps> = ({ isOpen, onClose, cont
                             const isMaxScore = c.lifetimeScore === stats.maxScore && c.lifetimeScore > 0;
 
                             return (
-                                <div key={c.id} className="border-r border-slate-100 last:border-r-0">
-                                    <div className="h-40 border-b border-slate-100 p-4 bg-white flex flex-col items-center justify-center text-center">
+                                <div key={c.id} className="border-r border-border last:border-r-0">
+                                    <div className="h-40 border-b border-border p-4 bg-surface flex flex-col items-center justify-center text-center">
                                         <img src={c.avatarUrl} alt={c.name} className="w-16 h-16 rounded-2xl object-cover mb-3 shadow-md" />
-                                        <h3 className="font-bold text-slate-800 leading-tight px-2">{c.name}</h3>
+                                        <h3 className="font-bold text-foreground leading-tight px-2">{c.name}</h3>
                                     </div>
-                                    <div className="p-4 border-b border-slate-100 text-slate-800 h-16 flex items-center justify-center font-medium">{c.category}</div>
-                                    <div className={`p-4 border-b border-slate-100 h-16 flex items-center justify-center ${isMaxRating ? 'bg-green-50' : ''}`}>
+                                    <div className="p-4 border-b border-border text-foreground h-16 flex items-center justify-center font-medium">{c.category}</div>
+                                    <div className={`p-4 border-b border-border h-16 flex items-center justify-center ${isMaxRating ? 'bg-success/10' : ''}`}>
                                         <div className="flex items-center">
-                                            <StarIcon className={`w-5 h-5 mr-1.5 ${isMaxRating ? 'text-green-500' : 'text-yellow-400'}`} />
-                                            <span className={`font-bold text-lg ${isMaxRating ? 'text-green-700' : 'text-slate-700'}`}>{avgRating}</span>
-                                            <span className="text-xs text-slate-400 ml-1">({c.reviews.length})</span>
+                                            <StarIcon className={`w-5 h-5 mr-1.5 ${isMaxRating ? 'text-success' : 'text-warning'}"`} />
+                                            <span className={`font-bold text-lg ${isMaxRating ? 'text-success-foreground' : 'text-muted-foreground'}`}>{avgRating}</span>
+                                            <span className="text-xs text-muted-foreground ml-1">({c.reviews.length})</span>
                                         </div>
                                     </div>
-                                    <div className={`p-4 border-b border-slate-100 h-16 flex items-center justify-center ${isMaxScore ? 'bg-green-50' : ''}`}>
-                                        <span className={`font-bold text-lg ${isMaxScore ? 'text-green-700' : 'text-slate-700'}`}>{c.lifetimeScore}</span>
+                                    <div className={`p-4 border-b border-border h-16 flex items-center justify-center ${isMaxScore ? 'bg-success/10' : ''}`}>
+                                        <span className={`font-bold text-lg ${isMaxScore ? 'text-success-foreground' : 'text-muted-foreground'}`}>{c.lifetimeScore}</span>
                                     </div>
-                                    <div className="p-4 border-b border-slate-100 h-16 flex items-center justify-center">
+                                    <div className="p-4 border-b border-border h-16 flex items-center justify-center">
                                         {c.verified ? (
-                                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-sky-100 text-sky-800">
+                                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-info/10 text-info-foreground">
                                                 <CheckBadgeIcon className="w-4 h-4 mr-1" /> Verified
                                             </span>
                                         ) : (
