@@ -30,30 +30,30 @@ const AuthModal: React.FC<AuthModalProps> = ({ mode, onClose, onLogin, onSignup,
     };
 
     return (
-        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex justify-center items-center p-4" aria-modal="true" role="dialog">
-            <div className="bg-white rounded-lg shadow-xl w-full max-w-md p-6 relative animate-fade-in-up">
-                <button onClick={onClose} className="absolute top-4 right-4 text-slate-500 hover:text-slate-800">
+        <div className="fixed inset-0 bg-overlay/80 z-50 flex justify-center items-center p-4" aria-modal="true" role="dialog">
+            <div className="bg-surface rounded-lg shadow-xl w-full max-w-md p-6 relative animate-fade-in-up">
+                <button onClick={onClose} className="absolute top-4 right-4 text-muted-foreground hover:text-foreground">
                     <XIcon className="w-6 h-6" />
                 </button>
-                <h2 className="text-2xl font-bold text-slate-800 mb-4 text-center">
+                <h2 className="text-2xl font-bold text-foreground mb-4 text-center">
                     {mode === 'login' ? 'Welcome Back!' : 'Create Your Account'}
                 </h2>
-                {error && <p className="bg-red-100 border border-red-400 text-red-700 px-4 py-2 rounded-md text-sm mb-4">{error}</p>}
+                {error && <p className="bg-error/10 border border-error text-error px-4 py-2 rounded-md text-sm mb-4">{error}</p>}
                 <form onSubmit={handleSubmit} className="space-y-4">
                     <div>
-                        <label htmlFor="username" className="block text-sm font-medium text-slate-700">Username</label>
+                        <label htmlFor="username" className="block text-sm font-medium text-muted-foreground">Username</label>
                         <input
                             id="username"
                             type="text"
                             value={username}
                             onChange={(e) => setUsername(e.target.value)}
                             required
-                            className="mt-1 block w-full border border-slate-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 bg-white text-slate-800"
+                            className="mt-1 block w-full border border-border rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-primary focus:border-primary bg-surface text-foreground"
                         />
                     </div>
                     {mode === 'signup' && (
                          <div>
-                            <label htmlFor="bio" className="block text-sm font-medium text-slate-700">Short Bio</label>
+                            <label htmlFor="bio" className="block text-sm font-medium text-muted-foreground">Short Bio</label>
                             <textarea
                                 id="bio"
                                 value={bio}
@@ -61,29 +61,29 @@ const AuthModal: React.FC<AuthModalProps> = ({ mode, onClose, onLogin, onSignup,
                                 rows={2}
                                 required
                                 placeholder="e.g. Home improvement enthusiast."
-                                className="mt-1 block w-full border border-slate-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 bg-white text-slate-800"
+                                className="mt-1 block w-full border border-border rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-primary focus:border-primary bg-surface text-foreground"
                             />
                         </div>
                     )}
                     <div>
-                        <label htmlFor="password" className="block text-sm font-medium text-slate-700">Password</label>
+                        <label htmlFor="password" className="block text-sm font-medium text-muted-foreground">Password</label>
                         <input
                             id="password"
                             type="password"
                             value={password}
                             onChange={(e) => setPassword(e.target.value)}
                             required
-                            className="mt-1 block w-full border border-slate-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 bg-white text-slate-800"
+                            className="mt-1 block w-full border border-border rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-primary focus:border-primary bg-surface text-foreground"
                         />
-                         <p className="text-xs text-slate-500 mt-1">Note: For this demo, any password will work.</p>
+                         <p className="text-xs text-muted-foreground mt-1">Note: For this demo, any password will work.</p>
                     </div>
-                    <button type="submit" className="w-full bg-indigo-600 text-white font-bold py-2 px-4 rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors">
+                    <button type="submit" className="w-full bg-primary text-primary-foreground font-bold py-2 px-4 rounded-md hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary transition-colors">
                         {mode === 'login' ? 'Login' : 'Sign Up'}
                     </button>
                 </form>
-                <p className="text-center text-sm text-slate-600 mt-4">
+                <p className="text-center text-sm text-muted-foreground mt-4">
                     {mode === 'login' ? "Don't have an account?" : "Already have an account?"}
-                    <button onClick={onSwitchMode} className="font-semibold text-indigo-600 hover:underline ml-1">
+                    <button onClick={onSwitchMode} className="font-semibold text-primary hover:underline ml-1">
                        {mode === 'login' ? "Sign up" : "Login"}
                     </button>
                 </p>
