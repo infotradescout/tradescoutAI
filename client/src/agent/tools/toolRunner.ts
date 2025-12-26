@@ -11,9 +11,8 @@ export interface ToolContext {
   sessionId?: string;
 }
 
-export interface ToolInput {
-  [key: string]: unknown;
-}
+// Accept plain object inputs; no index signature requirement for ergonomics
+export type ToolInput = object;
 
 export interface ToolResult<T = unknown> {
   success: boolean;
@@ -127,7 +126,7 @@ class ToolRunnerImpl {
         lastError = this.classifyError(err);
 
         // If not retryable or last attempt, bail
-        if (!lastError.retryable || attemptCount > maxRetries) {
+        if (!lastError || !lastError.retryable || attemptCount > maxRetries) {
           break;
         }
 
@@ -140,11 +139,18 @@ class ToolRunnerImpl {
     const completedAt = performance.now();
     this.recordFailure(tool.name);
 
+    const finalError =
+      lastError || {
+        code: "UNKNOWN_ERROR",
+        message: "Tool failed without classified error",
+        category: "unknown" as const,
+        retryable: false,
+      };
     if (this.config.telemetryEnabled) {
       this.emitTelemetry({
         tool: tool.name,
         success: false,
-        error: lastError,
+        error: finalError,
         durationMs: completedAt - startedAt,
         attemptCount,
       });
@@ -152,7 +158,7 @@ class ToolRunnerImpl {
 
     return {
       success: false,
-      error: lastError,
+      error: finalError,
       telemetry: {
         startedAt,
         completedAt,

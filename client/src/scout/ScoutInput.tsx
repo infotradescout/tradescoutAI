@@ -134,7 +134,11 @@ const ScoutInput: React.FC<ScoutInputProps> = ({
     }
   }, [prefillKey, value]);
 
-  // Auto-typing demo for guests
+  // Auto-typing demo for guests ONLY
+  // Behavior:
+  // 1. Clear any stored draft BEFORE demo starts
+  // 2. Demo runs only once per session (sessionStorage guard)
+  // 3. Manual typing immediately stops demo
   useEffect(() => {
     if (typeof window === "undefined") return;
     console.log("[INTRO DEMO INPUT CHECK]", {
@@ -156,9 +160,18 @@ const ScoutInput: React.FC<ScoutInputProps> = ({
 
     if (value.trim().length > 0) return;
 
-    console.log("[INTRO DEMO] STARTING auto-demo");
-    setIsTypingDemo(true);
+    console.log("[INTRO DEMO] STARTING auto-demo; clearing any draft first");
+    
+    // CRITICAL: Clear draft before demo fires
+    if (prefillKey) {
+      try {
+        window.localStorage.removeItem(`scout:prefill:${prefillKey}`);
+      } catch {
+        // ignore storage errors
+      }
+    }
 
+    setIsTypingDemo(true);
     demoIndexRef.current = 0;
 
     demoTimeoutRef.current = window.setTimeout(() => {
@@ -188,7 +201,7 @@ const ScoutInput: React.FC<ScoutInputProps> = ({
       clearDemoTimers();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [enableAutoDemo, autoDemoText]);
+  }, [enableAutoDemo, autoDemoText, prefillKey]);
 
   const isButtonDisabled =
     disabled || isSubmitting || (!value.trim() && !isTypingDemo);

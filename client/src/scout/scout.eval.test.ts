@@ -336,7 +336,7 @@ describe("Scout Tool Evals", () => {
     // Skip - integration test requiring mocked fetch/server
     it("should classify network errors correctly", async () => {
       // Mock fetch to fail
-      global.fetch = vi.fn().mockRejectedValue(new Error("Network error"));
+      globalThis.fetch = vi.fn().mockRejectedValue(new Error("Network error"));
 
       const result = await searchContractors({
         trade: "plumbing",
@@ -348,12 +348,12 @@ describe("Scout Tool Evals", () => {
       expect(result.success).toBe(false);
       if (!result.success) {
         expect(result.error).toBeDefined();
-        expect(result.error?.type).toBe("network");
+        expect(result.error?.category).toBe("network");
       }
     });
 
     it("should handle 404 responses", async () => {
-      global.fetch = vi.fn().mockResolvedValue({
+      globalThis.fetch = vi.fn().mockResolvedValue({
         ok: false,
         status: 404,
         statusText: "Not Found",
@@ -368,13 +368,13 @@ describe("Scout Tool Evals", () => {
 
       expect(result.success).toBe(false);
       if (!result.success) {
-        expect(result.error?.type).toBe("not_found");
+        expect(result.error?.category).toBe("not_found");
       }
     });
 
     it("should respect retry configuration", async () => {
       let callCount = 0;
-      global.fetch = vi.fn().mockImplementation(() => {
+      globalThis.fetch = vi.fn().mockImplementation(() => {
         callCount++;
         return Promise.reject(new Error("Temporary failure"));
       });

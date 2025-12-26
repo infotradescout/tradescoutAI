@@ -1,7 +1,9 @@
 import React, { useEffect, useMemo, useState, useCallback, useRef } from "react";
 import { useLocation } from "wouter";
+import { useQuery } from "@tanstack/react-query";
 // Note: navigation is handled via AppShell top/bottom nav; ScoutOS focuses on chat.
 import { useAuth } from "../hooks/useAuth";
+import { apiRequest } from "@/lib/queryClient";
 import { useIsMobile } from "../hooks/useIsMobile";
 import AppDrawer from "../components/AppDrawer";
 import { useScoutState } from "./state";
@@ -31,12 +33,21 @@ import {
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { ArrowRight, MessageCircle, Sparkles, Activity } from "lucide-react";
-import { ScoutSuggestions } from "./ScoutSuggestions";
 import { ScoutHeader } from "./ScoutHeader";
 import { ScoutInputRow } from "./ScoutInputRow";
+import { scoutActionTiles } from "./scoutActionTiles";
+import { resolveAllTiles } from "./resolveScoutTiles";
+import type { ScoutTileContext } from "./scoutActionTiles";
 import { updateGeoPreferencesFromDeviceLocation } from "../agent/tools/geoPreferences";
 import { openFloatingNote } from "@/lib/floatingNotes";
-import { searchContractors, searchMarketplace } from "../agent/tools/scoutTools";
+import {
+  searchContractors,
+  searchMarketplace,
+  postMarketplaceListing,
+  type ContractorResult,
+  type MarketplaceResult,
+  type MarketplacePostResult,
+} from "../agent/tools/scoutTools";
 import { inferContextRoles, deriveModeFromContextRoles } from "./contextRoles";
 
 const INTRO_DEMO_TEXT = "What can TradeScout do for my community?";
@@ -141,7 +152,6 @@ export default function ScoutOS() {
   const [activeMode, setActiveMode] = useState<ScoutMode>("default");
   const [hasGuestInteracted, setHasGuestInteracted] = useState(false);
   const [firstIntroAppendix, setFirstIntroAppendix] = useState<string>("");
-  const [autoPromptSuggestions, setAutoPromptSuggestions] = useState<string[]>([]);
   const [introDemoText, setIntroDemoText] = useState("");
   const [introDemoState, setIntroDemoState] = useState<
     "idle" | "typing" | "armingSend" | "sending" | "done"
@@ -181,6 +191,9 @@ export default function ScoutOS() {
   })();
 
   const { state, recordUserMessage, applyServerResponse, setError, setStatus } = useScoutState();
+
+  // KPI: Track time-to-action from render to first action execution
+  const renderStartRef = useRef<number | null>(null);
 
   // One-time init guard (keeps animations / welcome seed from re-running).
   // Removed client-side injected welcome message to avoid collision
@@ -337,33 +350,6 @@ export default function ScoutOS() {
       })
       .catch(() => {
         // If config fails, we simply don't append anything.
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  // Load auto-prompt suggestions for initial quick-tap chips
-  useEffect(() => {
-    let cancelled = false;
-
-    fetch("/api/scout/auto-prompt", { credentials: "include" })
-      .then((r) => (r.ok ? r.json() : null))
-      .then((data) => {
-        if (cancelled || !data) return;
-        const raw = Array.isArray(data.suggestions) ? data.suggestions : [];
-        const cleaned = raw
-          .map((s: unknown) =>
-            typeof s === "string" ? sanitizeSuggestionLabel(s) : ""
-          )
-          .filter((s: string) => s.length > 0 && !isWeakSuggestionLabel(s));
-        if (cleaned.length > 0) {
-          setAutoPromptSuggestions(cleaned.slice(0, 6));
-        }
-      })
-      .catch(() => {
-        // If auto-prompt suggestions fail, we fall back to static chips.
       });
 
     return () => {
@@ -590,7 +576,7 @@ export default function ScoutOS() {
         // ==================================================================
         const lowerMsg = value.toLowerCase();
         const contractorKeywords = ["contractor", "plumber", "electrician", "roofer", "hvac", "painter", "landscaper", "carpenter", "mason", "find a pro"];
-        const marketplaceKeywords = ["marketplace", "for sale", "buying", "selling", "used", "buy", "sell"];
+        const marketplaceKeywords = ["marketplace", "for sale", "buying", "selling", "used", "buy", "sell", "list", "post"];
         const contactKeywords = ["contact", "support", "help desk", "reach out", "call", "phone", "text", "email", "mail"];
         
         const wantsContractor = contractorKeywords.some(kw => lowerMsg.includes(kw));
@@ -622,8 +608,8 @@ export default function ScoutOS() {
           });
            activeTool = null;
 
-          if (contractorResult.success && contractorResult.data && contractorResult.data.length > 0) {
-            const contractors = contractorResult.data;
+          if (contractorResult.success && Array.isArray(contractorResult.data) && contractorResult.data.length > 0) {
+            const contractors: ContractorResult[] = contractorResult.data;
             const contractorClusters: ScoutCluster[] = contractors.slice(0, 3).map((c) => ({
               id: `contractor-${c.id}`,
               title: `${c.name} • ${c.trade}`,
@@ -695,21 +681,98 @@ export default function ScoutOS() {
         }
 
         // ------------------------------------------------------------------
-        // MARKETPLACE SEARCH INTENT
+        // MARKETPLACE INTENT: search vs post
         // ------------------------------------------------------------------
         if (wantsMarketplace && locality?.state) {
           setStatus("executing_action");
-           activeTool = "searchMarketplace";
+          // Determine if the user is trying to post a listing (sell/list/post)
+          const wantsPost = /\b(post|list|sell|for sale)\b/i.test(value);
 
+          if (wantsPost) {
+            activeTool = "postMarketplaceListing";
+
+            // Extract basic fields from the free-form message
+            const priceMatch = value.match(/\$\s*(\d+(?:\.\d{1,2})?)|\b(\d+(?:\.\d{1,2})?)\b/);
+            const price = priceMatch ? Number(priceMatch[1] || priceMatch[2]) : 0;
+            // Title heuristic: remove common verbs, take a short slice
+            const cleaned = value
+              .replace(/\b(post|list|sell|for sale|please|help|i want to|i'd like to|i would like to)\b/gi, "")
+              .trim();
+            const title = cleaned.split(/\s+/).slice(0, 10).join(" ") || "My item";
+
+            const postResult = await postMarketplaceListing({
+              title,
+              description: cleaned,
+              price: price > 0 ? price : 0,
+            });
+            activeTool = null;
+
+            const created = postResult.success && (postResult.data as MarketplacePostResult | undefined)?.status === "created";
+            const listingId = (postResult.data as MarketplacePostResult | undefined)?.id;
+            const listingUrl = created && listingId ? `/exchange/${listingId}` : "/exchange?new=1";
+
+            const msg: ScoutMessage = {
+              id: `a_${Date.now()}_${Math.random().toString(36).slice(2)}`,
+              role: "assistant",
+              content: created
+                ? `Your listing "${title}" is created. You can review and manage it here:`
+                : `I prepared a listing draft for "${title}". Tap below to finish and publish it:`,
+              timestamp: new Date().toISOString(),
+              clusters: [
+                {
+                  id: "post-listing",
+                  title: created ? "View listing" : "Finish listing",
+                  kind: "generic",
+                  body: price > 0 ? `$${price}` : undefined,
+                  primaryAction: {
+                    type: "NAVIGATE",
+                    label: created ? "Open" : "Open Exchange",
+                    to: listingUrl,
+                  },
+                },
+                {
+                  id: "manage-listings",
+                  title: "Manage my listings",
+                  kind: "generic",
+                  primaryAction: {
+                    type: "NAVIGATE",
+                    label: "Open",
+                    to: "/exchange?tab=my-listings",
+                  },
+                },
+              ],
+              navTarget: listingUrl,
+              memoryDelta: {
+                lastIntent: "marketplace_post",
+              },
+              contextRoles: getContextRoles(value),
+              toolResult: {
+                tool: "postMarketplaceListing",
+                success: Boolean(postResult.success),
+                data: postResult.data,
+                durationMs: postResult.telemetry?.durationMs,
+              },
+            };
+
+            applyServerResponse(msg, []);
+            setStatus("idle");
+
+            const latencyMs = performance.now() - start;
+            logScoutInsight({ message: value, mode, locality, success: true, latencyMs });
+            return;
+          }
+
+          // Otherwise, run a marketplace search
+          activeTool = "searchMarketplace";
           const marketplaceResult = await searchMarketplace({
             query: value,
             location: locality.state,
             limit: 5,
           });
-           activeTool = null;
+          activeTool = null;
 
-          if (marketplaceResult.success && marketplaceResult.data && marketplaceResult.data.length > 0) {
-            const listings = marketplaceResult.data;
+          if (marketplaceResult.success && Array.isArray(marketplaceResult.data) && marketplaceResult.data.length > 0) {
+            const listings: MarketplaceResult[] = marketplaceResult.data;
             const listingClusters: ScoutCluster[] = listings.slice(0, 3).map((l) => ({
               id: `listing-${l.id}`,
               title: l.title,
@@ -729,9 +792,7 @@ export default function ScoutOS() {
               timestamp: new Date().toISOString(),
               clusters: listingClusters,
               navTarget: "/exchange",
-              memoryDelta: {
-                lastIntent: "marketplace_search",
-              },
+              memoryDelta: { lastIntent: "marketplace_search" },
               contextRoles: getContextRoles(value),
               toolResult: {
                 tool: "searchMarketplace",
@@ -745,13 +806,7 @@ export default function ScoutOS() {
             setStatus("idle");
 
             const latencyMs = performance.now() - start;
-            logScoutInsight({
-              message: value,
-              mode,
-              locality,
-              success: true,
-              latencyMs,
-            });
+            logScoutInsight({ message: value, mode, locality, success: true, latencyMs });
             return;
           }
         }
@@ -1078,17 +1133,20 @@ export default function ScoutOS() {
   const handleClusterAction = useCallback(
     (action: ScoutAction) => {
       if (action.type === "NAVIGATE") {
+        const ttaMs = renderStartRef.current ? Date.now() - renderStartRef.current : undefined;
         recordActivity({
           type: "navigate",
           ts: new Date().toISOString(),
           path: location,
           to: action.to ?? action.path,
           label: action.label,
-          meta:
-            typeof action.payload?.jobId === "string"
-              ? { jobId: action.payload.jobId as string }
-              : undefined,
+          meta: {
+            ...(typeof action.payload?.jobId === "string" ? { jobId: action.payload.jobId as string } : {}),
+            ttaMs,
+            source: "cluster_action",
+          },
         });
+        renderStartRef.current = null;
       }
 
       if (action.type === "NOOP") {
@@ -1213,6 +1271,180 @@ export default function ScoutOS() {
     );
   }, [isUpdatingGeo, refetchUser]);
 
+  // Fetch saved contractors for tile context (deterministic personalization)
+  const { data: savedContractorsData } = useQuery<
+    Array<{ id: string; name: string; category?: string | null }>
+  >({
+    queryKey: ["/api/saved-contractors"],
+    queryFn: () => apiRequest("GET", "/api/saved-contractors"),
+    // Only fetch if user is logged in
+    enabled: !!user,
+    // Cache for 5 minutes (tiles don't need real-time updates)
+    staleTime: 5 * 60 * 1000,
+  });
+
+  // Fetch dashboard data to derive active projects (deterministic personalization)
+  const { data: dashboardData } = useQuery<{
+    myProjects?: Array<{ id: string; title: string; contractorName?: string | null; updatedAt?: string | Date | null }>
+  }>({
+    queryKey: ["/api/dashboard", user?.id],
+    queryFn: () => apiRequest("GET", "/api/dashboard"),
+    enabled: !!user?.id,
+    staleTime: 5 * 60 * 1000,
+  });
+
+  // Fetch invoices for tile context (deterministic personalization)
+  const { data: invoicesData } = useQuery<
+    Array<{ id: string; jobName?: string | null; status: string; updatedAt?: string | Date | null; amount?: number | null }>
+  >({
+    queryKey: ["/api/invoices", user?.id],
+    queryFn: () => apiRequest("GET", "/api/invoices"),
+    // Only fetch if user is logged in
+    enabled: !!user?.id,
+    // Cache for 5 minutes (tiles don't need real-time updates)
+    staleTime: 5 * 60 * 1000,
+  });
+
+  // Build tile context from deterministic user state (no guessing, only real data)
+  const tileContext: ScoutTileContext = useMemo(() => {
+    const saved = savedContractorsData ?? [];
+    const projects = dashboardData?.myProjects ?? [];
+    const invoices = invoicesData ?? [];
+
+    // Confidence rule: Only include saved contractors if we have data
+    const savedContractors = saved.map((c) => ({
+      id: c.id,
+      name: c.name,
+      trade: c.category ?? undefined,
+    }));
+
+    // Map projects to activeJobs with updatedAt for freshness logic
+    const activeJobs = projects.map((p) => ({
+      id: p.id,
+      name: p.title,
+      status: "active",
+      updatedAt: p.updatedAt ?? null,
+    }));
+
+    // Map invoices to activeInvoices with updatedAt for freshness logic
+    const activeInvoices = invoices.map((inv) => ({
+      id: inv.id,
+      jobName: (inv.jobName ?? undefined) as string | undefined,
+      status: inv.status,
+      amount: typeof inv.amount === "number" ? inv.amount : undefined,
+      updatedAt: inv.updatedAt ?? null,
+    }));
+
+    return {
+      activeJobs,
+      activeInvoices,
+      savedContractors,
+      location: heroLocationLabel || undefined,
+      recentActivity: [],
+    };
+  }, [heroLocationLabel, savedContractorsData, dashboardData, invoicesData]);
+
+  // Resolve tiles to contextual variants based on deterministic state
+  // Feature kill switch: Set VITE_DISABLE_CONTEXTUAL_TILES=true to disable variants
+  const resolvedTiles = useMemo(() => {
+    const disableFeature = import.meta.env.VITE_DISABLE_CONTEXTUAL_TILES === "true";
+    
+    if (disableFeature) {
+      console.warn("[Scout] Contextual tiles disabled via feature flag");
+      return scoutActionTiles; // Return defaults only
+    }
+
+    const resolved = resolveAllTiles(scoutActionTiles, tileContext);
+
+    // Dev-mode logging: always log tile context summary
+    if (import.meta.env.DEV) {
+      console.info("[Scout Tile Context]", {
+        location: tileContext.location || "unknown",
+        savedContractors: tileContext.savedContractors.length,
+        activeProjects: tileContext.activeJobs.length,
+        activeInvoices: tileContext.activeInvoices.length,
+      });
+    }
+
+    // Dev-mode logging: trace which variants rendered and why
+    if (import.meta.env.DEV) {
+      resolved.forEach((tile, i) => {
+        const original = scoutActionTiles[i];
+        const usedVariant = tile.label !== original.label || tile.description !== original.description;
+        
+        if (usedVariant) {
+          console.info(`[Scout Tiles] ${tile.id}:`, {
+            variant: "custom",
+            label: tile.label,
+            context: {
+              savedContractors: tileContext.savedContractors.length,
+              location: tileContext.location,
+              activeJobs: tileContext.activeJobs.length,
+              activeInvoices: tileContext.activeInvoices.length,
+            },
+          });
+        }
+      });
+    }
+
+    // KPI: mark render start time for time-to-action tracking
+    renderStartRef.current = Date.now();
+
+    return resolved;
+  }, [tileContext]);
+
+  const handleActionTile = useCallback(
+    (tile: typeof scoutActionTiles[0]) => {
+      // Derive lightweight variant metadata for KPI logging
+      const isFresh = (updatedAt: string | Date | null | undefined, days = 14) => {
+        if (!updatedAt) return false;
+        const t = typeof updatedAt === "string" ? new Date(updatedAt).getTime() : new Date(updatedAt).getTime();
+        const windowMs = days * 24 * 60 * 60 * 1000;
+        return Date.now() - t <= windowMs;
+      };
+      let variantType: "default" | "single" | "multi" = "default";
+      let entityId: string | undefined = undefined;
+      if (tile.id === "manage") {
+        const invs = tileContext.activeInvoices;
+        if (invs.length === 1 && isFresh(invs[0]?.updatedAt)) {
+          variantType = "single";
+          entityId = invs[0]?.id;
+        } else if (invs.length > 1) {
+          variantType = "multi";
+        } else {
+          variantType = "default";
+        }
+      } else if (tile.id === "start_project") {
+        const jobs = tileContext.activeJobs;
+        if (jobs.length === 1 && isFresh(jobs[0]?.updatedAt)) variantType = "single";
+        else if (jobs.length > 1) variantType = "multi";
+        else variantType = "default";
+      }
+
+      const ttaMs = renderStartRef.current ? Date.now() - renderStartRef.current : undefined;
+
+      recordActivity({
+        type: "navigate",
+        ts: new Date().toISOString(),
+        path: location,
+        to: tile.action.to,
+        label: tile.label,
+        meta: {
+          tileId: tile.id,
+          variantType,
+          entityId,
+          ttaMs,
+        },
+      });
+
+      // Reset render start to avoid double-counting subsequent actions
+      renderStartRef.current = null;
+      const navTarget = (tile.action as any)?.to ?? (tile.action as any)?.path ?? "/";
+      navigate(navTarget);
+    },
+    [location, navigate, tileContext]
+  );
+
   // Build a concrete, ready-to-send draft using known profile and locality.
   const buildAutoFilledDraft = useCallback(
     (userMessage: string): string => {
@@ -1310,24 +1542,38 @@ export default function ScoutOS() {
             style={{ paddingBottom: isMobile ? '2rem' : '1.5rem' }}
           >
             {!hasUserMessages && (
-              <ScoutSuggestions
-                hasUserMessages={hasUserMessages}
-                autoPromptSuggestions={autoPromptSuggestions}
-                heroLocationLabel={heroLocationLabel || "your area"}
-                heroAudienceLabel={heroAudienceLabel}
-                onPromptClick={(prompt) => {
-                  setHasGuestInteracted(true);
-                  try {
-                    if (typeof window !== "undefined") {
-                      window.localStorage.removeItem("scout:prefill:scout-main");
-                    }
-                  } catch {
-                    // ignore storage errors
-                  }
-                  setPrefillKey((k) => k + 1);
-                  handleSend(prompt);
-                }}
-              />
+              <div className="flex flex-col gap-3 py-4 px-2">
+                <div className="space-y-1">
+                  <h2 className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
+                    Scout for {heroLocationLabel || "your area"}
+                  </h2>
+                  <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>
+                    Choose an action or type a question.
+                  </p>
+                </div>
+                <div className="grid grid-cols-1 gap-2">
+                  {resolvedTiles.map((tile) => (
+                    <button
+                      key={tile.id}
+                      onClick={() => {
+                        setHasGuestInteracted(true);
+                        handleActionTile(tile);
+                      }}
+                      className="flex flex-col items-start p-3 rounded-lg border transition hover:opacity-80 active:scale-95 text-left"
+                      style={{
+                        backgroundColor: 'var(--surface-intermediate)',
+                        borderColor: 'var(--border-primary)',
+                        color: 'var(--text-primary)',
+                      }}
+                    >
+                      <span className="font-medium text-sm">{tile.label}</span>
+                      <span className="text-xs mt-1" style={{ color: 'var(--text-secondary)' }}>
+                        {tile.description}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              </div>
             )}
 
             <ScoutThread

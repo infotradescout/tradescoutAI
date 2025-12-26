@@ -7,10 +7,9 @@ param(
     [switch]$Verbose = $false
 )
 
-Write-Host "🔍 Theme Lock Audit Starting..." -ForegroundColor Cyan
+Write-Host "Theme Lock Audit Starting..." -ForegroundColor Cyan
 
 $violations = @()
-$fixedCount = 0
 
 # Define patterns
 $suspiciousHex = '#[0-9a-fA-F]{6}'
@@ -22,7 +21,7 @@ $allowedScoutFiles = @('ScoutInput', 'scout', 'Scout')
 # Define allowed files for inline colors (component-specific)
 $allowedColorFiles = @('Icons', 'Logo', 'Theme')
 
-Write-Host "`n📋 Scanning components..." -ForegroundColor Gray
+Write-Host "`nScanning components..." -ForegroundColor Gray
 
 # Scan TSX files
 $tsxFiles = Get-ChildItem -Path "client/src" -Recurse -Include "*.tsx" -ErrorAction SilentlyContinue
@@ -34,7 +33,7 @@ foreach ($file in $tsxFiles) {
     # Skip files that are allowed exceptions
     $isAllowedFile = $false
     foreach ($allowed in $allowedColorFiles + $allowedScoutFiles) {
-        if ($file.Name -match $allowed) {
+        if ($file.Name -like "*${allowed}*") {
             $isAllowedFile = $true
             break
         }
@@ -43,52 +42,39 @@ foreach ($file in $tsxFiles) {
     if ($isAllowedFile) { continue }
     
     # Check for inline hex colors
-    if ($content -match "backgroundColor:\s*['\`]($suspiciousHex)" -or
-        $content -match "borderColor:\s*['\`]($suspiciousHex)" -or
-        $content -match "color:\s*['\`]($suspiciousHex)" -or
-        $content -match "'background':\s*['\`]($suspiciousHex)" -or
-        $content -match "'backgroundColor':\s*['\`]($suspiciousHex)") {
-        
-        $matches = [regex]::Matches($content, ".*($suspiciousHex).*")
-        foreach ($match in $matches) {
-            $lineNum = ($content.Substring(0, $match.Index) -split "`n").Count
-            $violations += @{
-                File = $shortPath
-                Line = $lineNum
-                Type = "Inline hex color"
-                Content = $match.Value.Trim()
-            }
+    $hexFindings = Select-String -Path $file.FullName -Pattern $suspiciousHex -AllMatches
+    foreach ($hit in $hexFindings) {
+        $violations += @{
+            File = $shortPath
+            Line = $hit.LineNumber
+            Type = "Inline hex color"
+            Content = $hit.Line.Trim()
         }
     }
     
     # Check for unauthorized gradients
     $isScoutFile = $false
     foreach ($scout in $allowedScoutFiles) {
-        if ($file.Name -match $scout) {
+        if ($file.Name -like "*${scout}*") {
             $isScoutFile = $true
             break
         }
     }
     
     if (-not $isScoutFile) {
-        if ($content -match "background:\s*($unauthorizedGradient)" -or
-            $content -match "backgroundImage:\s*($unauthorizedGradient)") {
-            
-            $matches = [regex]::Matches($content, ".*($unauthorizedGradient).*")
-            foreach ($match in $matches) {
-                $lineNum = ($content.Substring(0, $match.Index) -split "`n").Count
-                $violations += @{
-                    File = $shortPath
-                    Line = $lineNum
-                    Type = "Unauthorized gradient"
-                    Content = $match.Value.Trim()
-                }
+        $gradientFindings = Select-String -Path $file.FullName -Pattern "background:\s*($unauthorizedGradient)|backgroundImage:\s*($unauthorizedGradient)" -AllMatches
+        foreach ($hit in $gradientFindings) {
+            $violations += @{
+                File = $shortPath
+                Line = $hit.LineNumber
+                Type = "Unauthorized gradient"
+                Content = $hit.Line.Trim()
             }
         }
     }
 }
 
-Write-Host "`n📋 Scanning CSS files..." -ForegroundColor Gray
+Write-Host "`nScanning CSS files..." -ForegroundColor Gray
 
 # Scan CSS files
 $cssFiles = Get-ChildItem -Path "client/src" -Recurse -Include "*.css" -ErrorAction SilentlyContinue
@@ -98,21 +84,16 @@ foreach ($file in $cssFiles) {
     $shortPath = $file.FullName -replace [regex]::Escape("$PWD\"), ""
     
     # Skip scout-shell (allowed gradient)
-    if ($content -match "\.scout-shell|\.scout-gradient") { continue }
+    if ($content -like "*.scout-shell*" -or $content -like "*.scout-gradient*") { continue }
     
     # Check for unauthorized gradients
-    if ($content -match "background:\s*($unauthorizedGradient)" -or
-        $content -match "background-image:\s*($unauthorizedGradient)") {
-        
-        $matches = [regex]::Matches($content, "(?m)^.*($unauthorizedGradient).*$")
-        foreach ($match in $matches) {
-            $lineNum = ($content.Substring(0, $match.Index) -split "`n").Count
-            $violations += @{
-                File = $shortPath
-                Line = $lineNum
-                Type = "Unauthorized gradient in CSS"
-                Content = $match.Value.Trim()
-            }
+    $cssGradientFindings = Select-String -Path $file.FullName -Pattern "background:\s*($unauthorizedGradient)|background-image:\s*($unauthorizedGradient)" -AllMatches
+    foreach ($hit in $cssGradientFindings) {
+        $violations += @{
+            File = $shortPath
+            Line = $hit.LineNumber
+            Type = "Unauthorized gradient in CSS"
+            Content = $hit.Line.Trim()
         }
     }
 }
@@ -120,25 +101,25 @@ foreach ($file in $cssFiles) {
 # Report violations
 Write-Host "`n" -ForegroundColor Gray
 if ($violations.Count -eq 0) {
-    Write-Host "✅ Theme Lock Audit PASSED" -ForegroundColor Green
+    Write-Host "Theme Lock Audit PASSED" -ForegroundColor Green
     Write-Host "   No violations found in $($tsxFiles.Count + $cssFiles.Count) files" -ForegroundColor Green
     exit 0
 } else {
-    Write-Host "❌ Theme Lock Audit FAILED" -ForegroundColor Red
+    Write-Host "Theme Lock Audit FAILED" -ForegroundColor Red
     Write-Host "   Found $($violations.Count) violations:`n" -ForegroundColor Red
     
     foreach ($violation in $violations) {
-        Write-Host "   ⚠️  $($violation.File):$($violation.Line)" -ForegroundColor Yellow
+        Write-Host "   Warning: $($violation.File):$($violation.Line)" -ForegroundColor Yellow
         Write-Host "      Type: $($violation.Type)" -ForegroundColor Gray
         Write-Host "      Code: $($violation.Content)" -ForegroundColor DarkGray
         Write-Host ""
     }
     
     if ($Verbose) {
-        Write-Host "`n📚 Remediation Guide:" -ForegroundColor Cyan
+        Write-Host "`nRemediation Guide:" -ForegroundColor Cyan
         Write-Host "   1. Open each file listed above" -ForegroundColor Gray
         Write-Host "   2. Replace hardcoded hex with CSS variable:" -ForegroundColor Gray
-        Write-Host "      backgroundColor: '#1a2230'  →  backgroundColor: 'var(--surface-card)'" -ForegroundColor DarkGray
+        Write-Host "      backgroundColor: '#1a2230'  ->  backgroundColor: 'var(--surface-card)'" -ForegroundColor DarkGray
         Write-Host "   3. Remove gradients (Scout only exception):" -ForegroundColor Gray
         Write-Host "      Use solid surface colors instead" -ForegroundColor DarkGray
     }

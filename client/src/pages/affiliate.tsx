@@ -145,7 +145,7 @@ export default function AffiliatePage() {
 
   if (!isAuthenticated || !dashboardData) {
     return (
-      <div className="min-h-screen gradient-bg pt-24 pb-16 px-4">
+      <div className="min-h-screen gradient-bg px-4">
         <div className="container mx-auto max-w-4xl">
           <div className="rounded-2xl border border-slate-800 bg-gradient-to-br from-slate-900 via-slate-950 to-slate-900 px-6 py-7 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div className="space-y-2 max-w-xl">
@@ -177,7 +177,7 @@ export default function AffiliatePage() {
   const affiliateLink = program?.referralLink || `${baseUrl}/?ref=YOUR_CODE`;
 
   return (
-    <div className="min-h-screen gradient-bg pt-24 pb-16 px-4">
+    <div className="min-h-screen gradient-bg px-4">
       <div className="container mx-auto max-w-7xl">
         {/* Header */}
         <div className="mb-8">
