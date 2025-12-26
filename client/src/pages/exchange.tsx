@@ -60,6 +60,7 @@ import { uploadObject } from "@/lib/objectUpload";
 import { useToast } from "@/hooks/use-toast";
 import { useLocation } from "wouter";
 import { useLocationContext } from "@/hooks/useLocationContext";
+import { share } from "@/utils/share";
 
 interface ExchangeItem {
   id: string;
@@ -329,41 +330,12 @@ export default function Exchange() {
   };
 
   const shareLink = async (url: string, title: string, text?: string) => {
-    try {
-      const fullUrl = typeof window !== 'undefined' ? `${window.location.origin}${url}` : url;
-      const shareText = (text || '').toString().slice(0, 200);
-
-      if (navigator.share) {
-        try {
-          await navigator.share({ title, text: shareText, url: fullUrl });
-          return;
-        } catch (err: any) {
-          if (err && (err.name === 'AbortError' || err.name === 'NotAllowedError')) {
-            return;
-          }
-        }
-      }
-
-      if (navigator.clipboard && typeof navigator.clipboard.writeText === 'function') {
-        await navigator.clipboard.writeText(fullUrl);
-        toast({
-          title: 'Link copied',
-          description: 'Share link copied to your clipboard.',
-        });
-      } else {
-        toast({
-          title: 'Unable to share automatically',
-          description: 'Copy the link from your browser address bar to share.',
-          variant: 'destructive',
-        });
-      }
-    } catch {
-      toast({
-        title: 'Unable to share',
-        description: 'Something went wrong while preparing the share link.',
-        variant: 'destructive',
-      });
-    }
+    await share({
+      path: url,
+      title,
+      text,
+      contextLabel: 'Share link',
+    });
   };
 
   // Allow Scout to prefill the sell form via

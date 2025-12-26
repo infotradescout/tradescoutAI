@@ -56,11 +56,6 @@ export function OnboardingProvider({ children }: OnboardingProviderProps) {
       await apiRequest('PATCH', '/api/users/preferences', {
         completedTours: newCompletedTours,
       });
-
-      // Mark onboarding as completed if this was a new user tour
-      if (tourKey.startsWith('new-user-tour') && user && !user.onboardingCompleted) {
-        await apiRequest('POST', '/api/user/complete-onboarding', {});
-      }
     } catch (error) {
       console.error('Failed to save tour completion:', error);
     }

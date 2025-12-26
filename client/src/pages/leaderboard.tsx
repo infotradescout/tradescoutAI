@@ -15,9 +15,9 @@ import {
 	Medal,
 	MapPin,
 	Calendar,
-	Users,
-	Target,
-	CheckCircle,
+  Users,
+  Target,
+  CheckCircle,
 } from "lucide-react";
 import { useLocationContext } from "@/hooks/useLocationContext";
 
@@ -57,7 +57,7 @@ export default function Leaderboard() {
       if (countyName && (selectedState === defaultState || !selectedState)) {
         params.append('county', countyName);
       }
-      if (selectedTrade) params.append('trade', selectedTrade);
+      if (selectedTrade && selectedTrade !== "all") params.append('trade', selectedTrade);
       
       const response = await fetch(`/api/leaderboard/monthly?${params.toString()}`);
       if (!response.ok) throw new Error('Failed to fetch monthly rankings');
@@ -75,7 +75,7 @@ export default function Leaderboard() {
       if (countyName && (selectedState === defaultState || !selectedState)) {
         params.append('county', countyName);
       }
-      if (selectedTrade) params.append('trade', selectedTrade);
+      if (selectedTrade && selectedTrade !== "all") params.append('trade', selectedTrade);
       
       const response = await fetch(`/api/leaderboard/lifetime?${params.toString()}`);
       if (!response.ok) throw new Error('Failed to fetch lifetime rankings');
@@ -151,7 +151,8 @@ export default function Leaderboard() {
         <Card className="bg-[#1a2332] border-slate-700">
           <CardContent className="p-12 text-center">
             <Trophy className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-            <p className="text-gray-400">No contractors found for the selected criteria.</p>
+				<p className="text-gray-400 font-medium mb-1">No contributors found</p>
+				<p className="text-gray-500 text-sm">Try adjusting location or contribution type. Rankings update hourly based on real activity.</p>
           </CardContent>
         </Card>
       );
@@ -235,8 +236,8 @@ export default function Leaderboard() {
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-white mb-2">Contractor Leaderboard</h1>
-        <p className="text-gray-300">Top contractors by customer recommendations</p>
+    <h1 className="text-3xl font-bold text-white mb-2">Community Leaderboard</h1>
+    <p className="text-gray-300">Top contributors based on activity, recommendations, and community trust</p>
         {countyName && (
           <div className="mt-2 inline-flex items-center rounded-full bg-slate-800/80 px-3 py-1 text-xs font-medium text-slate-200 border border-slate-700">
             <span className="mr-1 h-1.5 w-1.5 rounded-full bg-orange-400" />
@@ -276,15 +277,14 @@ export default function Leaderboard() {
 
               <Select value={selectedTrade} onValueChange={setSelectedTrade}>
                 <SelectTrigger className="bg-slate-700 border-slate-600 text-white">
-                  <SelectValue placeholder="All Trades" />
+          <SelectValue placeholder="All contribution types" />
                 </SelectTrigger>
                 <SelectContent className="bg-[#1a2332] border-slate-700">
-                  <SelectItem value="all">All Trades</SelectItem>
-                  <SelectItem value="plumbing">Plumbing</SelectItem>
-                  <SelectItem value="electrical">Electrical</SelectItem>
-                  <SelectItem value="roofing">Roofing</SelectItem>
-                  <SelectItem value="hvac">HVAC</SelectItem>
-                  <SelectItem value="painting">Painting</SelectItem>
+          <SelectItem value="all">All</SelectItem>
+          <SelectItem value="services">Services</SelectItem>
+          <SelectItem value="properties">Properties</SelectItem>
+          <SelectItem value="marketplace">Marketplace</SelectItem>
+          <SelectItem value="community">Community</SelectItem>
                 </SelectContent>
               </Select>
 
@@ -322,11 +322,11 @@ export default function Leaderboard() {
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-3 text-sm text-gray-300">
-          <p>• Rankings are based on verified customer recommendations</p>
-          <p>• Monthly rankings reset on the 1st of each month</p>
-          <p>• Lifetime rankings track all-time performance</p>
-          <p>• Only verified contractors with active status are included</p>
-          <p>• Rankings are updated hourly to reflect recent recommendations</p>
+		  <p>• Rankings are based on verified activity and community recommendations</p>
+		  <p>• Monthly rankings reset on the 1st of each month</p>
+		  <p>• Lifetime rankings track all-time contribution across TradeScout</p>
+		  <p>• Only verified contributors with active status are included</p>
+		  <p>• Rankings are updated regularly to reflect recent activity</p>
         </CardContent>
       </Card>
     </div>

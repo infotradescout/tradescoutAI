@@ -47,7 +47,7 @@ export default function Navigation() {
     { href: "/pricing", label: "Pricing", icon: Calculator, public: true, description: "Plans and value guide" },
     ...(!isHomeowner ? [{ href: "/contractor-apply", label: "For Contractors", icon: Wrench, public: true, description: "Join our contractor network" }] : []),
     { href: "/exchange", label: "EXCHANGE", icon: Package, public: true, description: "Premium equipment & valuable items" },
-    { href: "/leaderboard", label: "Leaderboard", icon: Trophy, public: true, description: "Top contractors by recommendations" },
+    { href: "/leaderboard", label: "Leaderboard", icon: Trophy, public: true, description: "Top contributors by recommendations" },
     { href: "/community", label: "Community", icon: MessageCircle, public: true, description: "Connect with neighbors" },
     { href: "/foundation", label: "Foundation", icon: Heart, public: true, description: "Community foundation and charitable initiatives" },
   ];

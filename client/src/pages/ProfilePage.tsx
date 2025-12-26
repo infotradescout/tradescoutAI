@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import { useLocation } from "wouter";
 import { apiRequest } from "@/lib/queryClient";
+import { share } from "@/utils/share";
 
 function getDefaultHomePageLabel(value?: string) {
   if (!value || value === 'llm') return 'Scout';
@@ -154,8 +155,12 @@ export default function ProfilePage() {
     : `${window.location.origin}/profile/${user.id}`;
   const isPublic = user.preferences?.profileVisibility === 'public';
 
-  const copyProfileUrl = () => {
-    navigator.clipboard.writeText(profileUrl);
+  const copyProfileUrl = async () => {
+    await share({
+      url: profileUrl,
+      title: `${displayName}'s TradeScout profile`,
+      contextLabel: 'Profile link',
+    });
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };

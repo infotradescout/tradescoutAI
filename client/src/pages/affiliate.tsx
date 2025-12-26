@@ -10,6 +10,7 @@ import { Copy, Share2, TrendingUp, Users, DollarSign, Calendar, Check, ExternalL
 import { toast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import { useAuth } from "@/hooks/useAuth";
+import { share } from "@/utils/share";
 
 interface AffiliateProgram {
   id: string;
@@ -65,7 +66,7 @@ interface Payout {
 
 export default function AffiliatePage() {
   const [copySuccess, setCopySuccess] = useState<string | null>(null);
-  const { isAuthenticated } = useAuth();
+  const { user, isAuthenticated } = useAuth();
 
   // Get affiliate dashboard data - automatically created for all users
   const { data: dashboardData, isLoading } = useQuery<{
@@ -143,7 +144,7 @@ export default function AffiliatePage() {
     );
   }
 
-  if (!isAuthenticated || !dashboardData) {
+  if (!isAuthenticated) {
     return (
       <div className="min-h-screen gradient-bg px-4">
         <div className="container mx-auto max-w-4xl">
@@ -172,9 +173,19 @@ export default function AffiliatePage() {
   const commissions = dashboardData.commissions || [];
   const payouts = dashboardData.payouts || [];
 
-  // Generate referral link (even if program not set up yet)
+  // Generate referral link from real affiliate code; fall back to site root if unavailable
   const baseUrl = window.location.origin;
-  const affiliateLink = program?.referralLink || `${baseUrl}/?ref=YOUR_CODE`;
+  const affiliateCode = program?.affiliateCode;
+  const affiliateLink = program?.referralLink || (affiliateCode ? `${baseUrl}/?ref=${encodeURIComponent(affiliateCode)}` : baseUrl);
+
+  const shareWithRef = async (path: string, label: string) => {
+    await share({
+      path,
+      title: label,
+      contextLabel: label,
+      affiliateCodeOverride: affiliateCode,
+    });
+  };
 
   return (
     <div className="min-h-screen gradient-bg px-4">
@@ -206,6 +217,74 @@ export default function AffiliatePage() {
             </a>
           </div>
         </div>
+
+        {/* Personal invite link & quick share actions */}
+        <Card className="bg-slate-800/70 border-slate-700 mb-8">
+          <CardHeader className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+            <div>
+              <CardTitle className="text-white flex items-center gap-2">
+                <Share2 className="w-5 h-5 text-orange-400" />
+                Your invite link
+              </CardTitle>
+              <CardDescription className="text-gray-300">
+                Share this link anywhere. Anyone who joins through it is permanently attributed to you.
+              </CardDescription>
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex flex-col md:flex-row gap-3">
+              <Input
+                readOnly
+                value={affiliateLink}
+                className="bg-slate-900/70 border-slate-700 text-sm text-gray-100 font-mono flex-1"
+              />
+              <Button
+                type="button"
+                className="bg-orange-500 hover:bg-orange-600 whitespace-nowrap"
+                onClick={() => copyToClipboard(affiliateLink, "Invite link")}
+              >
+                <Copy className="w-4 h-4 mr-2" />
+                Copy link
+              </Button>
+            </div>
+
+            <div className="flex flex-wrap gap-2 text-xs text-gray-400">
+              <span>Quick share:</span>
+              <Button
+                type="button"
+                variant="outline"
+                className="border-slate-600 text-slate-200 hover:bg-slate-800/70"
+                onClick={() => shareWithRef("/", "Share TradeScout")}
+              >
+                Share TradeScout
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                className="border-slate-600 text-slate-200 hover:bg-slate-800/70"
+                onClick={() => shareWithRef("/contractors", "Share contractors")}
+              >
+                Share contractors
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                className="border-slate-600 text-slate-200 hover:bg-slate-800/70"
+                onClick={() => shareWithRef("/community", "Share community")}
+              >
+                Share community
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                className="border-slate-600 text-slate-200 hover:bg-slate-800/70"
+                onClick={() => shareWithRef("/exchange", "Share Exchange")}
+              >
+                Share Exchange
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
 
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">

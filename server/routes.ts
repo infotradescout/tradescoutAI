@@ -871,11 +871,45 @@ export async function registerRoutes(app: any) {
 
   app.post("/api/auth/complete-onboarding", isAuthenticated, async (req: Request, res: Response) => {
     try {
-      const { firstName, lastName, phone, address, city, state, zipCode, county, businessName, licenseNumber, specialties, yearsExperience, role } = (req.body ?? {}) as any;
-      const user = req.user as any;
-      const userId: string = user.id || user.claims?.sub || "";
-      
-      // Update user profile with onboarding data
+      const {
+        firstName,
+        lastName,
+        phone,
+        address,
+        city,
+        state,
+        zipCode,
+        county,
+        businessName,
+        licenseNumber,
+        specialties,
+        yearsExperience,
+        role,
+        capabilityBundles,
+        participationModes,
+      } = (req.body ?? {}) as any;
+
+      const sessionUser = req.user as any;
+      const userId: string = sessionUser?.id || sessionUser?.claims?.sub || "";
+
+      if (!userId) return res.status(400).json({ message: "User ID missing" });
+
+      const normalizeStringArray = (value: unknown): string[] => {
+        if (!Array.isArray(value)) return [];
+        return Array.from(
+          new Set(
+            value
+              .map((v) => (typeof v === "string" ? v : String(v ?? "")))
+              .map((v) => v.trim())
+              .filter((v) => v.length > 0),
+          ),
+        );
+      };
+
+      const bundles = normalizeStringArray(capabilityBundles);
+      const modes = normalizeStringArray(participationModes);
+
+      // Start with basic profile + geo data
       const updateData: any = {
         firstName,
         lastName,
@@ -887,18 +921,101 @@ export async function registerRoutes(app: any) {
         county,
         onboardingCompleted: true,
       };
-      
-      // Add contractor-specific fields
-      if (role === 'contractor') {
+
+      // If capability bundles are provided, persist them and derive compatible roles
+      if (bundles.length > 0) {
+        updateData.capabilityBundles = bundles;
+        if (modes.length > 0) {
+          updateData.participationModes = modes;
+        }
+
+        // Derive legacy roles/user types from capability bundles for compatibility
+        const hasServiceProvider = bundles.includes("service_provider");
+        const hasPropertyOperator = bundles.includes("property_operator");
+        const hasLocalSeller = bundles.includes("local_seller");
+        const hasBusinessOrOrgSignal =
+          hasServiceProvider ||
+          hasPropertyOperator ||
+          hasLocalSeller ||
+          bundles.includes("organization_admin") ||
+          bundles.includes("team_manager") ||
+          bundles.includes("finance_tools_user");
+
+        const inferredRoles = new Set<string>();
+
+        if (hasServiceProvider) {
+          inferredRoles.add("contractor");
+        }
+
+        if (hasPropertyOperator) {
+          inferredRoles.add("property_manager");
+        }
+
+        if (hasLocalSeller) {
+          // Local seller is its own tag, but we also map to business_owner
+          inferredRoles.add("local_seller");
+          inferredRoles.add("business_owner");
+        }
+
+        if (bundles.includes("community_participant") && !hasBusinessOrOrgSignal) {
+          inferredRoles.add("community_member");
+        }
+
+        // Default homeowner context when there is no explicit business/org signal
+        if (!hasBusinessOrOrgSignal) {
+          inferredRoles.add("homeowner");
+        }
+
+        // Merge with any existing roles so we don't drop admin/affiliate/etc.
+        const currentUser = await storage.getUser(userId);
+        const existingRolesRaw: unknown = (currentUser as any)?.roles;
+        const existingRoles: string[] = Array.isArray(existingRolesRaw)
+          ? (existingRolesRaw as unknown[])
+              .filter((v) => typeof v === "string")
+              .map((v) => v as string)
+          : [];
+
+        const mergedRoles = Array.from(
+          new Set<string>([...existingRoles, ...Array.from(inferredRoles)]),
+        );
+
+        // Choose a primary legacy role compatible with the enum for users.role
+        const pickPrimaryRole = (): string => {
+          if (inferredRoles.has("contractor")) return "contractor";
+          if (inferredRoles.has("property_manager")) return "property_manager";
+          if (inferredRoles.has("business_owner")) return "business_owner";
+          if (inferredRoles.has("homeowner")) return "homeowner";
+          // Fallback: keep current primary if present, else homeowner
+          const currentPrimary: string | undefined =
+            (currentUser as any)?.activeRole || (currentUser as any)?.role;
+          if (typeof currentPrimary === "string" && currentPrimary.length > 0) {
+            return currentPrimary;
+          }
+          return "homeowner";
+        };
+
+        const primaryRole = pickPrimaryRole();
+
+        updateData.roles = mergedRoles;
+        updateData.activeRole = primaryRole;
+        updateData.role = primaryRole as any;
+      }
+
+      // Add contractor/business-specific fields
+      const isBusinessOrServiceProfile =
+        bundles.length > 0
+          ? bundles.includes("service_provider") || bundles.includes("property_operator")
+          : role === "contractor";
+
+      if (isBusinessOrServiceProfile) {
         updateData.businessName = businessName;
         updateData.licenseNumber = licenseNumber;
         updateData.specialties = specialties;
         updateData.yearsExperience = parseInt(yearsExperience) || 0;
       }
-      
-      if (!userId) return res.status(400).json({ message: "User ID missing" });
+
       await storage.updateUser(userId, updateData);
-      
+
       res.json({ message: "Onboarding completed successfully" });
     } catch (error: any) {
       console.error("Onboarding completion error:", error);

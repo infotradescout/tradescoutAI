@@ -52,13 +52,22 @@ export async function apiRequest(methodOrUrl: string, urlOrData?: string | Recor
     if (!response.ok) {
       const errorText = await response.text();
       let errorMessage = `Request failed with status ${response.status}`;
+      let errorCode: string | undefined;
 
       try {
         const errorJson = JSON.parse(errorText);
         errorMessage = errorJson.message || errorMessage;
+        errorCode = errorJson.code;
       } catch {
         // Use the raw text as error message
         errorMessage = errorText || errorMessage;
+      }
+
+      if (response.status === 403 && errorCode === "ONBOARDING_REQUIRED") {
+        if (typeof window !== "undefined") {
+          window.location.href = "/create-account";
+        }
+        throw new Error("Please finish creating your account before continuing.");
       }
 
       throw new Error(errorMessage);
@@ -115,7 +124,24 @@ export const queryClient = new QueryClient({
         });
 
         if (!response.ok) {
-          throw new Error(`Request failed with status ${response.status}`);
+          let message = `Request failed with status ${response.status}`;
+          let code: string | undefined;
+          try {
+            const errorJson = await response.json();
+            message = errorJson?.message || message;
+            code = errorJson?.code;
+          } catch {
+            // fall through with default message
+          }
+
+          if (response.status === 403 && code === "ONBOARDING_REQUIRED") {
+            if (typeof window !== "undefined") {
+              window.location.href = "/create-account";
+            }
+            throw new Error("Please finish creating your account before continuing.");
+          }
+
+          throw new Error(message);
         }
 
         return response.json();
