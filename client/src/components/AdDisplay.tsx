@@ -52,7 +52,7 @@ export function AdDisplay({ className = "", userLocation }: AdDisplayProps) {
       fetch('/api/ads/track-impression', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ adId: ad.id })
+        body: JSON.stringify({ adId: ad.id, source: 'site_visit' })
       }).catch(console.error);
     }
   }, [ad, dismissedAds, currentAd]);
@@ -63,7 +63,7 @@ export function AdDisplay({ className = "", userLocation }: AdDisplayProps) {
       fetch('/api/ads/track-click', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ adId: currentAd.id })
+        body: JSON.stringify({ adId: currentAd.id, source: 'site_visit' })
       }).catch(console.error);
       
       window.open(currentAd.linkUrl, '_blank');

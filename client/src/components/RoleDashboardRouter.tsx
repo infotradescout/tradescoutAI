@@ -3,6 +3,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useLocation } from 'wouter';
 import { Loader2 } from 'lucide-react';
 import { trackShellEvent } from '@/lib/analytics';
+import { OrientationCard } from '@/components/orientation/OrientationCard';
 
 // Import all role-specific dashboards
 const SimpleHome = lazy(() => import('@/pages/SimpleHome'));
@@ -21,9 +22,10 @@ const HelperDashboard = lazy(() => import('@/pages/helper-dashboard'));
 
 const RoleDashboardRouter = memo(function RoleDashboardRouter() {
   const { user, isLoading } = useAuth();
-  const [, setLocation] = useLocation();
+  const [location, setLocation] = useLocation();
 
   const [showFirstSessionBanner, setShowFirstSessionBanner] = useState(false);
+  const [showOrientation, setShowOrientation] = useState(false);
 
   // First-session dashboard banner (non-blocking, session-scoped)
   useEffect(() => {
@@ -59,6 +61,39 @@ const RoleDashboardRouter = memo(function RoleDashboardRouter() {
       });
     }
   }, [user]);
+
+  // One-time post-onboarding orientation card via ?orientation=1
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    if (!user) return;
+
+    try {
+      const params = new URLSearchParams(location.search || '');
+      const shouldShow = params.get('orientation') === '1';
+
+      if (shouldShow) {
+        setShowOrientation(true);
+
+        trackShellEvent({
+          type: 'scout_query',
+          payload: {
+            event: 'orientation_shown_post_onboarding',
+            capabilityBundles: (user as any)?.capabilityBundles ?? [],
+            ts: new Date().toISOString(),
+          },
+        }).catch(() => {
+          // ignore analytics failures
+        });
+
+        params.delete('orientation');
+        const nextSearch = params.toString();
+        const nextPath = nextSearch ? `/dashboard?${nextSearch}` : '/dashboard';
+        setLocation(nextPath, { replace: true } as any);
+      }
+    } catch {
+      // ignore URL parse errors
+    }
+  }, [location, setLocation, user]);
 
   if (isLoading) {
     return (
@@ -148,6 +183,31 @@ const RoleDashboardRouter = memo(function RoleDashboardRouter() {
 
   return (
     <>
+      {showOrientation && (
+        <div className="max-w-5xl mx-auto mt-4 px-3">
+          <OrientationCard
+            roleLabel={String(user?.role || 'participant')}
+            sendToScout={(prompt, options) => {
+              try {
+                window.localStorage.setItem('scout:prefill:scout-main', prompt);
+                window.localStorage.setItem(
+                  'scout:help-intent',
+                  JSON.stringify({
+                    prompt,
+                    source: options?.source || 'dashboard-orientation',
+                    ts: new Date().toISOString(),
+                  })
+                );
+              } catch {
+                // ignore
+              }
+              setLocation('/scout');
+            }}
+            contextSource="post-onboarding"
+          />
+        </div>
+      )}
+
       {showFirstSessionBanner && (
         <div className="fixed bottom-20 right-4 z-40 max-w-sm rounded-2xl border border-orange-400/60 bg-slate-950/95 px-4 py-3 text-xs text-slate-100 shadow-lg shadow-orange-500/20">
           <div className="flex items-start gap-2">

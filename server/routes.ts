@@ -3094,13 +3094,24 @@ export async function registerRoutes(app: any) {
         audience: userType as string || 'all',
         state: state as string,
         county: county as string,
+        minCommunityScore: 40,
       });
 
       if (!ad) {
         return res.status(404).json({ message: "No ads available" });
       }
+      const user = req.user as any;
+      const userId = (user as any)?.claims?.sub || (user as any)?.id || null;
+      const linkUrl = await storage.normalizeAdLinkForUser({
+        linkUrl: (ad as any).linkUrl,
+        isAffiliate: (ad as any).isAffiliate,
+        userId,
+      });
 
-      res.json(ad);
+      res.json({
+        ...ad,
+        linkUrl,
+      });
     } catch (error: any) {
       console.error("Error fetching targeted ad:", error);
       res.status(500).json({ message: "Failed to fetch ad" });
@@ -3110,7 +3121,7 @@ export async function registerRoutes(app: any) {
   // Track ad impressions
   app.post("/api/ads/track-impression", async (req: any, res: any) => {
     try {
-      const { adId } = (req.body ?? {}) as any;
+      const { adId, source } = (req.body ?? {}) as any;
 
       if (!adId) {
         return res.status(400).json({ message: "adId is required" });
@@ -3120,6 +3131,9 @@ export async function registerRoutes(app: any) {
       // await LocalityTracker.trackAdInteraction(req, adId, 'view');
 
       await storage.incrementAdImpressions(adId);
+      const user = req.user as any;
+      const userId = (user as any)?.claims?.sub || (user as any)?.id || null;
+      await storage.trackAdEvent({ adId, eventType: "impression", source, userId });
       res.json({ success: true });
     } catch (error: any) {
       console.error("Error tracking impression:", error);
@@ -3130,7 +3144,7 @@ export async function registerRoutes(app: any) {
   // Track ad clicks
   app.post("/api/ads/track-click", async (req: any, res: any) => {
     try {
-      const { adId } = (req.body ?? {}) as any;
+      const { adId, source } = (req.body ?? {}) as any;
 
       if (!adId) {
         return res.status(400).json({ message: "adId is required" });
@@ -3140,6 +3154,9 @@ export async function registerRoutes(app: any) {
       // await LocalityTracker.trackAdInteraction(req, adId, 'click');
 
       await storage.incrementAdClicks(adId);
+      const user = req.user as any;
+      const userId = (user as any)?.claims?.sub || (user as any)?.id || null;
+      await storage.trackAdEvent({ adId, eventType: "click", source, userId });
       res.json({ success: true });
     } catch (error: any) {
       console.error("Error tracking click:", error);
@@ -3179,7 +3196,22 @@ export async function registerRoutes(app: any) {
       }
 
       const savedAds = await storage.getSavedAdsForUser(userId);
-      res.json(savedAds);
+
+      const adsWithAffiliateLinks = await Promise.all(
+        savedAds.map(async (ad) => {
+          const linkUrl = await storage.normalizeAdLinkForUser({
+            linkUrl: (ad as any).linkUrl,
+            isAffiliate: (ad as any).isAffiliate,
+            userId,
+          });
+          return {
+            ...ad,
+            linkUrl,
+          };
+        })
+      );
+
+      res.json(adsWithAffiliateLinks);
     } catch (error: any) {
       console.error("Error fetching saved ads:", error);
       res.status(500).json({ message: "Failed to fetch saved ads" });

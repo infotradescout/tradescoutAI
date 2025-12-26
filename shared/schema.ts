@@ -1595,6 +1595,7 @@ export const advertisements = pgTable("advertisements", {
   clickCount: integer("click_count").default(0),
   viewCount: integer("view_count").default(0),
   impressions: integer("impressions").default(0),
+  communityScore: integer("community_score").default(50), // Community Value Score (0-100)
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
@@ -1633,6 +1634,37 @@ export const savedAds = pgTable("saved_ads", {
 export type SavedAd = typeof savedAds.$inferSelect;
 export type InsertSavedAd = typeof savedAds.$inferInsert;
 
+// Per-ad feedback to drive Community Value Score (CVS)
+export const adFeedback = pgTable("ad_feedback", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  adId: varchar("ad_id").notNull().references(() => advertisements.id),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  rating: varchar("rating", { length: 32 }).notNull(), // 'helpful' | 'not_relevant' | 'spam'
+  source: varchar("source", { length: 32 }).notNull(), // 'scout' | 'site_visit' | 'saved'
+  createdAt: timestamp("created_at").defaultNow(),
+}, (table) => [
+  // One feedback per user per ad
+  index("idx_ad_feedback_ad").on(table.adId),
+  index("idx_ad_feedback_user").on(table.userId),
+]);
+
+export type AdFeedback = typeof adFeedback.$inferSelect;
+export type InsertAdFeedback = typeof adFeedback.$inferInsert;
+
+// Per-user ad event log (surface-level performance tracking)
+export const adEvents = pgTable("ad_events", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  adId: varchar("ad_id").notNull().references(() => advertisements.id),
+  eventType: varchar("event_type", { length: 50 }).notNull(), // 'impression' | 'click'
+  source: varchar("source", { length: 50 }).notNull(), // 'site_visit' | 'scout' | 'saved' | 'unknown'
+  userId: varchar("user_id").references(() => users.id),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export type AdEvent = typeof adEvents.$inferSelect;
+export type InsertAdEvent = typeof adEvents.$inferInsert;
+
+// Ad events for surface-level performance tracking
 // Note: Notification system moved to comprehensive notification tables below
 
 export type InsertContractor = typeof contractors.$inferInsert;
