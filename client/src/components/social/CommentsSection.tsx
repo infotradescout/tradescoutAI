@@ -161,7 +161,7 @@ function Comment({ comment, postId, level = 0 }: CommentProps) {
   const shouldIndent = level < maxNestingLevel;
 
   return (
-    <div className={`space-y-3 ${shouldIndent ? 'ml-4 pl-4 border-l-2 border-gray-100 dark:border-gray-800' : ''}`}>
+    <div className={`space-y-3 ${shouldIndent ? 'ml-4 pl-4 border-l-2 border-tsBorder' : ''}`}>
       {/* Comment */}
       <div className="flex items-start space-x-3">
         <Avatar className="h-8 w-8">
@@ -173,7 +173,7 @@ function Comment({ comment, postId, level = 0 }: CommentProps) {
 
         <div className="flex-1 space-y-2">
           {/* Author & Content */}
-          <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-3">
+          <div className="bg-tsCard rounded-lg p-3">
             <div className="flex items-center justify-between mb-1">
               <div className="flex items-center space-x-2">
                 <span className="font-medium text-sm">
