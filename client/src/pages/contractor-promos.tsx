@@ -15,6 +15,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
+import { share } from "@/utils/share";
 
 const promoFormSchema = z.object({
   title: z.string().min(1, "Title is required").max(100, "Title must be under 100 characters"),
@@ -334,9 +335,13 @@ function PromoCard({ promo }: { promo: ContractorPromo }) {
 
   const shareUrl = `${window.location.origin}/promo/${promo.slug}`;
 
-  const copyToClipboard = () => {
-    navigator.clipboard.writeText(shareUrl);
-    toast({ title: "Promo link copied to clipboard!" });
+  const copyToClipboard = async () => {
+    await share({
+      url: shareUrl,
+      title: promo.title,
+      text: promo.description,
+      contextLabel: "Promo link",
+    });
   };
 
   const formatDiscountValue = () => {

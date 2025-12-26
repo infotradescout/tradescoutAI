@@ -299,6 +299,8 @@ export const users = pgTable("users", {
   activeRole: varchar("active_role").default('homeowner'), // Currently active role for dashboard switching
   activeBusinessId: varchar("active_business_id"), // Currently active business profile for the active role
   activeProfileId: varchar("active_profile_id"), // Currently active Profile (public website) for the active role
+  capabilityBundles: text("capability_bundles").array().default([]), // Capability bundles derived from onboarding
+  participationModes: text("participation_modes").array().default([]), // Self vs business/organization participation
   provider: varchar("provider").default('local'), // 'local', 'facebook', 'google'
   providerId: varchar("provider_id"), // social login ID
   facebookId: varchar("facebook_id"), // Add facebookId field

@@ -16,6 +16,7 @@ import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/hooks/useAuth";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { share, shareToPlatform } from "@/utils/share";
 import {
   Copy,
   Facebook,
@@ -66,46 +67,28 @@ export function ShareModal({ open, onOpenChange, post }: ShareModalProps) {
   });
 
   const handleCopyLink = async () => {
-    try {
-      await navigator.clipboard.writeText(postUrl);
-      setIsCopied(true);
-      setTimeout(() => setIsCopied(false), 2000);
-      toast({
-        title: "Success",
-        description: "Link copied to clipboard!",
-      });
-      // Track share
-      shareMutation.mutate({ shareType: 'copy_link' });
-    } catch (err) {
-      toast({
-        title: "Error",
-        description: "Failed to copy link",
-        variant: "destructive",
-      });
-    }
+    await share({
+      url: postUrl,
+      title: post.title || 'TradeScout community post',
+      text: shareMessage || post.content.substring(0, 100),
+      contextLabel: 'Post link',
+    });
+    setIsCopied(true);
+    setTimeout(() => setIsCopied(false), 2000);
+    // Track share
+    shareMutation.mutate({ shareType: 'copy_link' });
   };
 
   const handleSocialShare = (platform: string) => {
     const text = post.title ? `${post.title} - ${post.content.substring(0, 100)}...` : post.content.substring(0, 100);
-    let shareUrl = "";
-
-    switch (platform) {
-      case 'facebook':
-        shareUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(postUrl)}`;
-        break;
-      case 'twitter':
-        shareUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(postUrl)}`;
-        break;
-      case 'email':
-        shareUrl = `mailto:?subject=${encodeURIComponent(post.title || 'Check out this post')}&body=${encodeURIComponent(text + '\n\n' + postUrl)}`;
-        break;
-    }
-
-    if (shareUrl) {
-      window.open(shareUrl, '_blank', 'noopener,noreferrer');
-      // Track share
-      shareMutation.mutate({ shareType: platform });
-    }
+    shareToPlatform({
+      platform: platform as 'facebook' | 'twitter' | 'email',
+      url: postUrl,
+      title: post.title || 'Check out this post',
+      text,
+    });
+    // Track share
+    shareMutation.mutate({ shareType: platform });
   };
 
   const handleInternalShare = () => {

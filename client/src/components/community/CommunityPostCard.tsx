@@ -5,6 +5,7 @@ import { Separator } from "@/components/ui/separator";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { useToast } from "@/hooks/use-toast";
+import { share } from "@/utils/share";
 import {
   MapPin,
   MessageSquare,
@@ -143,43 +144,12 @@ export function CommunityPostCard({ post, onLike, formatTimeAgo }: CommunityPost
   };
 
   const handleShareClick = async () => {
-    try {
-      const origin = typeof window !== 'undefined' ? window.location.origin : '';
-      const url = `${origin}/community?post=${encodeURIComponent(post.id)}`;
-      const title = post.title || 'TradeScout community post';
-      const text = (post.content || '').toString().slice(0, 200);
-
-      if (navigator.share) {
-        try {
-          await navigator.share({ title, text, url });
-          return;
-        } catch (err: any) {
-          if (err && (err.name === 'AbortError' || err.name === 'NotAllowedError')) {
-            return;
-          }
-        }
-      }
-
-      if (navigator.clipboard && typeof navigator.clipboard.writeText === 'function') {
-        await navigator.clipboard.writeText(url);
-        toast({
-          title: 'Link copied',
-          description: 'Post link copied to your clipboard.',
-        });
-      } else {
-        toast({
-          title: 'Unable to share automatically',
-          description: 'Copy the link from your browser address bar to share.',
-          variant: 'destructive',
-        });
-      }
-    } catch {
-      toast({
-        title: 'Unable to share',
-        description: 'Something went wrong while preparing the share link.',
-        variant: 'destructive',
-      });
-    }
+    await share({
+      path: `/community?post=${encodeURIComponent(post.id)}`,
+      title: post.title || "TradeScout community post",
+      text: (post.content || "").toString(),
+      contextLabel: "Post link",
+    });
   };
 
   const categoryMeta = getCategoryMeta(post.category, post.postType, post.author?.role);

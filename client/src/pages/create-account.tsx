@@ -12,41 +12,87 @@ import { MapPin, Users, Briefcase, Sparkles } from "lucide-react";
 import { TradeScoutLogo } from "@/components/TradeScoutIcons";
 import { RegisterForm } from "@/components/RegisterForm";
 
-type IntentKey = "personal" | "services" | "community" | "tools";
+type CapabilityBundle =
+  | "community_participant"
+  | "creator_publisher"
+  | "service_provider"
+  | "property_operator"
+  | "local_seller"
+  | "buyer_browser"
+  | "organization_admin"
+  | "team_manager"
+  | "finance_tools_user"
+  | "tools_user"
+  | "referral_partner";
 
-interface IntentOption {
-  key: IntentKey;
+type PurposeKey =
+  | "find_help"
+  | "offer_services"
+  | "buy_sell"
+  | "manage_properties"
+  | "community_participate"
+  | "use_tools"
+  | "referrals";
+
+interface PurposeOption {
+  key: PurposeKey;
   title: string;
   description: string;
 }
 
-const INTENT_OPTIONS: IntentOption[] = [
+const PURPOSE_OPTIONS: PurposeOption[] = [
   {
-    key: "personal",
-    title: "Use TradeScout for my own projects",
-    description: "Find trusted local services, manage projects, and keep everything organized in one place.",
+    key: "find_help",
+    title: "Find local help / services",
+    description: "Scout trusted local help for projects, maintenance, or one-off tasks.",
   },
   {
-    key: "services",
-    title: "Offer services or run a business",
+    key: "offer_services",
+    title: "Offer services / run a business",
     description: "Show your work, offer services, and connect with people, businesses, and organizations nearby.",
   },
   {
-    key: "community",
-    title: "Participate in local discussions",
-    description: "Join community updates, conversations, and local decisions for where you live and work.",
+    key: "buy_sell",
+    title: "Buy / sell locally",
+    description: "Use Exchange to list, sell, or find local items, gear, and services.",
   },
   {
-    key: "tools",
-    title: "Use tools and resources",
-    description: "Use Scout’s planning, budgeting, and coordination tools for local projects and initiatives.",
+    key: "manage_properties",
+    title: "Manage properties or tenants",
+    description: "Manage rentals, tenants, vendors, or HOA / building activity.",
+  },
+  {
+    key: "community_participate",
+    title: "Post updates & participate in the community",
+    description: "Join conversations, share updates, and participate in local decisions.",
+  },
+  {
+    key: "use_tools",
+    title: "Use tools (invoices, notes, estimates, etc.)",
+    description: "Use Scout’s planning, notes, invoices, and coordination tools.",
+  },
+  {
+    key: "referrals",
+    title: "Help promote TradeScout / referrals",
+    description: "Share TradeScout with others and track referrals or rewards.",
   },
 ];
 
-function mapIntentToRole(intent: IntentKey): "homeowner" | "contractor" {
-  if (intent === "services") return "contractor";
-  return "homeowner";
-}
+const PURPOSE_TO_BUNDLES: Record<PurposeKey, CapabilityBundle[]> = {
+  find_help: ["community_participant", "buyer_browser", "tools_user"],
+  offer_services: [
+    "service_provider",
+    "organization_admin",
+    "local_seller",
+    "finance_tools_user",
+    "tools_user",
+  ],
+  buy_sell: ["local_seller", "buyer_browser", "tools_user"],
+  manage_properties: ["property_operator", "organization_admin", "team_manager", "tools_user"],
+  community_participate: ["community_participant", "creator_publisher", "tools_user"],
+  use_tools: ["finance_tools_user", "tools_user"],
+  referrals: ["referral_partner", "community_participant"],
+};
 
 export default function CreateAccountPortal() {
   const { user, isAuthenticated, isLoading } = useAuth();
@@ -55,7 +101,7 @@ export default function CreateAccountPortal() {
   const [location, navigate] = useLocation();
 
   const [step, setStep] = useState<1 | 2 | 3 | 4>(1);
-  const [intent, setIntent] = useState<IntentKey | null>(null);
+  const [selectedPurposes, setSelectedPurposes] = useState<PurposeKey[]>([]);
 
   const [stateCode, setStateCode] = useState("");
   const [county, setCounty] = useState("");
@@ -74,8 +120,12 @@ export default function CreateAccountPortal() {
     if (!stateCode) return [] as string[];
     return (getCountiesForState(stateCode) || []).map((c) => c.name);
   }, [stateCode]);
-
-  const selectedRole: "homeowner" | "contractor" | null = intent ? mapIntentToRole(intent) : null;
+  const hasBusinessOrOrgPurpose = useMemo(
+    () =>
+      selectedPurposes.includes("offer_services") ||
+      selectedPurposes.includes("manage_properties"),
+    [selectedPurposes]
+  );
 
   // If user is already fully onboarded, send them to their dashboard
 
@@ -87,19 +137,24 @@ export default function CreateAccountPortal() {
 
   const completeOnboarding = useMutation({
     mutationFn: async () => {
-      if (!selectedRole || !intent) {
-        throw new Error("Please choose how you plan to use TradeScout.");
+      if (selectedPurposes.length === 0) {
+        throw new Error("Please choose what you’re here to do.");
       }
 
-      const updateRoleRes = await fetch("/api/auth/update-role", {
-        method: "POST",
-        credentials: "include",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ role: selectedRole }),
-      });
-      if (!updateRoleRes.ok) {
-        throw new Error("Failed to save how you plan to use TradeScout.");
+      const participationModes = Array.from(
+        new Set<string>([
+          "self",
+          ...(hasBusinessOrOrgPurpose ? ["business"] : []),
+        ])
+      );
+
+      const capabilityBundleSet = new Set<CapabilityBundle>();
+      for (const purpose of selectedPurposes) {
+        for (const bundle of PURPOSE_TO_BUNDLES[purpose] || []) {
+          capabilityBundleSet.add(bundle);
+        }
       }
+      const capabilityBundles = Array.from(capabilityBundleSet);
 
       const body: any = {
         firstName: user?.firstName,
@@ -110,10 +165,11 @@ export default function CreateAccountPortal() {
         state: stateCode,
         zipCode,
         county,
-        role: selectedRole,
+        participationModes,
+        capabilityBundles,
       };
 
-      if (selectedRole === "contractor") {
+      if (hasBusinessOrOrgPurpose) {
         body.businessName = businessName || undefined;
         body.specialties = specialties || undefined;
         body.yearsExperience = yearsExperience || undefined;
@@ -156,8 +212,8 @@ export default function CreateAccountPortal() {
   });
 
   const goNextFromIntent = () => {
-    if (!intent) {
-      setErrors((prev) => ({ ...prev, intent: "Choose one to continue." }));
+    if (selectedPurposes.length === 0) {
+      setErrors((prev) => ({ ...prev, intent: "Choose at least one to continue." }));
       return;
     }
     setErrors((prev) => ({ ...prev, intent: undefined }));
@@ -170,14 +226,14 @@ export default function CreateAccountPortal() {
       return;
     }
     setErrors((prev) => ({ ...prev, location: undefined }));
-    if (selectedRole === "contractor") {
+    if (hasBusinessOrOrgPurpose) {
       setStep(3);
     } else {
       setStep(4);
     }
   };
 
-  const canSubmit = !!selectedRole && !!stateCode && !!county;
+  const canSubmit = selectedPurposes.length > 0 && !!stateCode && !!county;
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -234,7 +290,7 @@ export default function CreateAccountPortal() {
             </div>
             <CardTitle className="text-lg font-semibold text-tsTextMain">
               {!isOnboardingFlow && "Create your TradeScout account"}
-              {isOnboardingFlow && step === 1 && "How do you plan to use TradeScout?"}
+              {isOnboardingFlow && step === 1 && "What are you here to do?"}
               {isOnboardingFlow && step === 2 && "Where are you active locally?"}
               {isOnboardingFlow && step === 3 && "Tell us about your work"}
               {isOnboardingFlow && step === 4 && "Review and finish"}
@@ -255,15 +311,27 @@ export default function CreateAccountPortal() {
             {isOnboardingFlow && step === 1 && (
               <div className="space-y-4">
                 <div className="grid grid-cols-1 gap-3">
-                  {INTENT_OPTIONS.map((option) => {
-                    const isSelected = intent === option.key;
+                  {PURPOSE_OPTIONS.map((option) => {
+                    const isSelected = selectedPurposes.includes(option.key);
                     const Icon =
-                      option.key === "services" ? Briefcase : option.key === "community" ? Users : option.key === "tools" ? Sparkles : MapPin;
+                      option.key === "offer_services"
+                        ? Briefcase
+                        : option.key === "community_participate"
+                        ? Users
+                        : option.key === "use_tools"
+                        ? Sparkles
+                        : MapPin;
                     return (
                       <button
                         key={option.key}
                         type="button"
-                        onClick={() => setIntent(option.key)}
+                        onClick={() => {
+                          setSelectedPurposes((prev) =>
+                            prev.includes(option.key)
+                              ? prev.filter((k) => k !== option.key)
+                              : [...prev, option.key]
+                          );
+                        }}
                         className={`text-left rounded-xl border px-4 py-3 text-sm transition focus:outline-none focus:ring-2 focus:ring-tsAccent/80 ${
                           isSelected
                             ? "border-tsAccent bg-tsBg"
@@ -382,7 +450,7 @@ export default function CreateAccountPortal() {
               </div>
             )}
 
-            {isOnboardingFlow && step === 3 && selectedRole === "contractor" && (
+            {isOnboardingFlow && step === 3 && hasBusinessOrOrgPurpose && (
               <div className="space-y-4">
                 <p className="text-xs text-tsTextMuted">
                   If you offer services or run a business, share a few details so locals know who they’re working with.
@@ -459,7 +527,12 @@ export default function CreateAccountPortal() {
                 </p>
 
                 <div className="flex justify-between mt-4">
-                  <Button size="sm" variant="outline" type="button" onClick={() => setStep(selectedRole === "contractor" ? 3 : 2)}>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    type="button"
+                    onClick={() => setStep(hasBusinessOrOrgPurpose ? 3 : 2)}
+                  >
                     Back
                   </Button>
                   <Button size="sm" type="submit" disabled={!canSubmit || completeOnboarding.isLoading}>
