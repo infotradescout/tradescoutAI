@@ -1,27 +1,30 @@
 import React, { useEffect, useMemo, useState } from "react";
+import { safeStorage } from '../utils/safeStorage';
 import { useLocation } from "wouter";
 
 type NoteRecord = { id: string; text: string; updatedAt: number; type: 'quick' | 'project' | 'general'; jobTitle?: string };
 
 function listStoredNotes(): Array<NoteRecord> {
   const out: Array<NoteRecord> = [];
-  for (let i = 0; i < localStorage.length; i++) {
-    const key = localStorage.key(i) || "";
-    if (key.startsWith("ts:note:")) {
-      const raw = localStorage.getItem(key) || "";
-      try {
-        const parsed = JSON.parse(raw);
-        if (parsed && typeof parsed === "object") {
-          out.push({
-            id: key.replace("ts:note:", ""),
-            text: parsed.text || "",
-            updatedAt: parsed.updatedAt || Date.now(),
-            type: parsed.type === 'project' || parsed.type === 'quick' ? parsed.type : 'general',
-            jobTitle: parsed.jobTitle,
-          });
+  if (typeof window !== 'undefined') {
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i) || "";
+      if (key.startsWith("ts:note:")) {
+        const raw = safeStorage.get(key) || "";
+        try {
+          const parsed = JSON.parse(raw);
+          if (parsed && typeof parsed === "object") {
+            out.push({
+              id: key.replace("ts:note:", ""),
+              text: parsed.text || "",
+              updatedAt: parsed.updatedAt || Date.now(),
+              type: parsed.type === 'project' || parsed.type === 'quick' ? parsed.type : 'general',
+              jobTitle: parsed.jobTitle,
+            });
+          }
+        } catch {
+          out.push({ id: key.replace("ts:note:", ""), text: raw, updatedAt: Date.now(), type: 'general' });
         }
-      } catch {
-        out.push({ id: key.replace("ts:note:", ""), text: raw, updatedAt: Date.now(), type: 'general' });
       }
     }
   }
@@ -60,7 +63,7 @@ export default function NotesPage() {
     const id = activeId || "quick";
     const key = `ts:note:${id}`;
     const payload = JSON.stringify({ text, updatedAt: Date.now(), type: noteType, jobTitle: jobTitle || undefined });
-    localStorage.setItem(key, payload);
+    safeStorage.set(key, payload);
     setNotes(listStoredNotes());
     setLastSavedAt(Date.now());
     try {
@@ -89,7 +92,7 @@ export default function NotesPage() {
     const key = `ts:note:${id}`;
     try {
       const payload = JSON.stringify({ text, updatedAt: Date.now(), type: noteType, jobTitle: jobTitle || undefined });
-      localStorage.setItem(key, payload);
+      safeStorage.set(key, payload);
       setNotes(listStoredNotes());
       setLastSavedAt(Date.now());
       channel.postMessage({ type: "update", id, text, noteType, jobTitle });

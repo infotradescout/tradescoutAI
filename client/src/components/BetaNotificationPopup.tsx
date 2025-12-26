@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { safeStorage } from '../utils/safeStorage';
 // Force cache refresh
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -12,7 +13,7 @@ export function BetaNotificationPopup() {
   useEffect(() => {
     try {
       // Check if user has seen the beta notification
-      const hasSeenBetaNotification = localStorage.getItem('hasSeenBetaNotification');
+      const hasSeenBetaNotification = safeStorage.get('hasSeenBetaNotification');
       if (!hasSeenBetaNotification) {
         // Show after a short delay
         const timer = setTimeout(() => {
@@ -30,7 +31,7 @@ export function BetaNotificationPopup() {
     setIsOpen(false);
     try {
       // Mark as seen for this session
-      localStorage.setItem('hasSeenBetaNotification', 'true');
+      safeStorage.set('hasSeenBetaNotification', 'true');
     } catch (error) {
       console.error('Failed to save beta notification state:', error);
     }

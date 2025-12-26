@@ -1,3 +1,8 @@
+/* Layout lock: Only one scroll container (AppShell main) */
+html, body, #root {
+  height: 100%;
+  overflow: hidden;
+}
 /* stylelint-disable */
 @tailwind base;
 @tailwind components;

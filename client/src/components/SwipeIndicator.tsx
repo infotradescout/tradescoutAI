@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { safeStorage } from '../utils/safeStorage';
 import { ChevronLeft, ChevronRight, MoreHorizontal } from 'lucide-react';
 
 interface SwipeIndicatorProps {
@@ -20,7 +21,7 @@ export function SwipeIndicator({
 
   useEffect(() => {
     // Show swipe indicator on mobile for first-time users
-    const hasSeenSwipeIndicator = localStorage.getItem('hasSeenSwipeIndicator');
+    const hasSeenSwipeIndicator = safeStorage.get('hasSeenSwipeIndicator');
     const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || 
                      window.innerWidth <= 768;
 
@@ -30,7 +31,7 @@ export function SwipeIndicator({
       // Hide after 4 seconds
       const timer = setTimeout(() => {
         setShowIndicator(false);
-        localStorage.setItem('hasSeenSwipeIndicator', 'true');
+        safeStorage.set('hasSeenSwipeIndicator', 'true');
       }, 4000);
 
       return () => clearTimeout(timer);

@@ -1,3 +1,4 @@
+// Minimal user controls for super admin
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
@@ -62,6 +63,9 @@ export default function AdminUsers() {
   const [userToEdit, setUserToEdit] = useState<User | null>(null);
   const [newRole, setNewRole] = useState<string>("");
 
+  // Pending state for each user action (by userId + action)
+  const [pendingAction, setPendingAction] = useState<{ [key: string]: boolean }>({});
+
   // Check if current user is head admin
   const isHeadAdmin = user?.role === 'head_admin';
   const currentUserLevel = roleHierarchy[user?.role as keyof typeof roleHierarchy]?.level || 0;
@@ -113,6 +117,43 @@ export default function AdminUsers() {
       });
     },
   });
+
+  const handleUserControl = async (action: string, userId: string, newRole?: string) => {
+    const key = action === 'role' && newRole ? `${userId}:role:${newRole}` : `${userId}:${action}`;
+    setPendingAction((prev) => ({ ...prev, [key]: true }));
+    let url = '';
+    let body: any = undefined;
+    let successMsg = '';
+    switch (action) {
+      case 'suspend': url = `/api/admin/user-controls/suspend/${userId}`; successMsg = 'User suspended'; break;
+      case 'unsuspend': url = `/api/admin/user-controls/unsuspend/${userId}`; successMsg = 'User unsuspended'; break;
+      case 'verify': url = `/api/admin/user-controls/verify/${userId}`; successMsg = 'User verified'; break;
+      case 'revoke_verify': url = `/api/admin/user-controls/revoke-verify/${userId}`; successMsg = 'Verification revoked'; break;
+      case 'role': url = `/api/admin/user-controls/role/${userId}`; body = JSON.stringify({ newRole }); successMsg = `Role updated to ${newRole?.replace('_', ' ')}`; break;
+      default: setPendingAction((prev) => ({ ...prev, [key]: false })); return;
+    }
+    try {
+      const res = await fetch(url, {
+        method: 'POST',
+        credentials: 'include',
+        headers: body ? { 'Content-Type': 'application/json' } : undefined,
+        body,
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.message || 'Action failed');
+      }
+      toast({ title: successMsg });
+      window.location.reload();
+    } catch (err: any) {
+      toast({
+        title: 'Error',
+        description: err.message || 'Action failed',
+        variant: 'destructive',
+      });
+      setPendingAction((prev) => ({ ...prev, [key]: false }));
+    }
+  };
 
   const handleUpdateRole = () => {
     if (userToEdit && newRole) {
@@ -304,35 +345,92 @@ export default function AdminUsers() {
                           {new Date(user.createdAt).toLocaleDateString()}
                         </TableCell>
                         <TableCell>
-                          <div className="flex gap-2">
-                            {/* Only show actions if user has permission */}
-                            {(currentUserLevel > roleHierarchy[user.role as keyof typeof roleHierarchy]?.level || 
-                              (isHeadAdmin && user.role === 'head_admin')) && (
-                              <>
+                          {/* Admin Controls: Grouped and with dropdown for less common actions */}
+                          {(currentUserLevel > roleHierarchy[user.role as keyof typeof roleHierarchy]?.level || 
+                            (isHeadAdmin && user.role === 'head_admin')) && (
+                            <div className="flex flex-wrap gap-2 items-center">
+                              {/* Primary Actions */}
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => {
+                                  setUserToEdit(user);
+                                  setNewRole(user.role);
+                                }}
+                                className="border-navy-600 text-gray-300 hover:bg-navy-600"
+                                title="Edit user role"
+                              >
+                                Edit Role
+                              </Button>
+                              {isHeadAdmin && user.id !== (userToEdit?.id || '') && user.role !== 'head_admin' && (
                                 <Button
                                   size="sm"
                                   variant="outline"
-                                  onClick={() => {
-                                    setUserToEdit(user);
-                                    setNewRole(user.role);
+                                  onClick={async () => {
+                                    const key = `${user.id}:impersonate`;
+                                    setPendingAction((prev) => ({ ...prev, [key]: true }));
+                                    try {
+                                      const res = await fetch(`/api/admin/impersonate/start/${user.id}`, {
+                                        method: "POST",
+                                        credentials: "include",
+                                      });
+                                      if (!res.ok) {
+                                        const err = await res.json().catch(() => ({}));
+                                        throw new Error(err.message || 'Impersonation failed');
+                                      }
+                                      toast({ title: 'Impersonation started' });
+                                      window.location.reload();
+                                    } catch (err: any) {
+                                      toast({
+                                        title: 'Error',
+                                        description: err.message || 'Impersonation failed',
+                                        variant: 'destructive',
+                                      });
+                                      setPendingAction((prev) => ({ ...prev, [key]: false }));
+                                    }
                                   }}
-                                  className="border-navy-600 text-gray-300 hover:bg-navy-600"
+                                  className="border-yellow-500 text-yellow-600 hover:bg-yellow-100"
+                                  title="Impersonate user"
+                                  disabled={pendingAction[`${user.id}:impersonate`]}
                                 >
-                                  Edit Role
+                                  {pendingAction[`${user.id}:impersonate`] ? 'Working…' : 'Impersonate'}
                                 </Button>
-                                {user.id !== user.id && ( // Prevent self-deletion
-                                  <Button
-                                    size="sm"
-                                    variant="outline"
-                                    onClick={() => handleDeleteUser(user.id, user.role)}
-                                    className="border-red-600 text-red-400 hover:bg-red-600 hover:text-white"
-                                  >
-                                    <Trash2 className="w-3 h-3" />
+                              )}
+                              {/* Status Controls */}
+                              {isHeadAdmin && user.id !== (userToEdit?.id || '') && user.role !== 'head_admin' && (
+                                <div className="flex gap-1">
+                                  <Button size="sm" variant="outline" onClick={() => handleUserControl('suspend', user.id)} className="border-red-500 text-red-600" title="Suspend user" disabled={pendingAction[`${user.id}:suspend`]}> {pendingAction[`${user.id}:suspend`] ? 'Working…' : 'Suspend'} </Button>
+                                  <Button size="sm" variant="outline" onClick={() => handleUserControl('unsuspend', user.id)} className="border-green-500 text-green-600" title="Unsuspend user" disabled={pendingAction[`${user.id}:unsuspend`]}> {pendingAction[`${user.id}:unsuspend`] ? 'Working…' : 'Unsuspend'} </Button>
+                                  <Button size="sm" variant="outline" onClick={() => handleUserControl('verify', user.id)} className="border-blue-500 text-blue-600" title="Verify user" disabled={pendingAction[`${user.id}:verify`]}> {pendingAction[`${user.id}:verify`] ? 'Working…' : 'Verify'} </Button>
+                                  <Button size="sm" variant="outline" onClick={() => handleUserControl('revoke_verify', user.id)} className="border-gray-500 text-gray-600" title="Revoke verification" disabled={pendingAction[`${user.id}:revoke_verify`]}> {pendingAction[`${user.id}:revoke_verify`] ? 'Working…' : 'Revoke Verify'} </Button>
+                                </div>
+                              )}
+                              {/* Role Quick Set Dropdown */}
+                              {isHeadAdmin && user.id !== (userToEdit?.id || '') && user.role !== 'head_admin' && (
+                                <div className="relative group">
+                                  <Button size="sm" variant="outline" className="border-orange-500 text-orange-600 group-hover:bg-orange-50" title="Quick set role">
+                                    More
                                   </Button>
-                                )}
-                              </>
-                            )}
-                          </div>
+                                  <div className="absolute left-0 z-10 hidden group-hover:block bg-navy-700 border border-navy-600 rounded shadow-lg mt-1 min-w-[160px]">
+                                    <button onClick={() => handleUserControl('role', user.id, 'contractor_user')} className="block w-full text-left px-4 py-2 text-orange-500 hover:bg-orange-100" disabled={pendingAction[`${user.id}:role:contractor_user`]}> {pendingAction[`${user.id}:role:contractor_user`] ? 'Working…' : 'Set Contractor'} </button>
+                                    <button onClick={() => handleUserControl('role', user.id, 'homeowner')} className="block w-full text-left px-4 py-2 text-purple-500 hover:bg-purple-100" disabled={pendingAction[`${user.id}:role:homeowner`]}> {pendingAction[`${user.id}:role:homeowner`] ? 'Working…' : 'Set Homeowner'} </button>
+                                  </div>
+                                </div>
+                              )}
+                              {/* (Optional) Delete user button, if ever enabled */}
+                              {/* {user.id !== user.id && (
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => handleDeleteUser(user.id, user.role)}
+                                  className="border-red-600 text-red-400 hover:bg-red-600 hover:text-white"
+                                  title="Delete user"
+                                >
+                                  <Trash2 className="w-3 h-3" />
+                                </Button>
+                              )} */}
+                            </div>
+                          )}
                         </TableCell>
                       </TableRow>
                     );
