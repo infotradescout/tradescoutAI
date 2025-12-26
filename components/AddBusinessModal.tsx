@@ -133,24 +133,24 @@ const AddBusinessModal: React.FC<AddBusinessModalProps> = ({ isOpen, onClose, on
     if (!isOpen) return null;
 
     return (
-        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex justify-center items-center p-4" aria-modal="true" role="dialog">
-            <div className="bg-white rounded-lg shadow-xl w-full max-w-md p-6 relative animate-fade-in-up">
-                <button onClick={onClose} className="absolute top-4 right-4 text-slate-500 hover:text-slate-800">
+        <div className="fixed inset-0 bg-overlay/80 z-50 flex justify-center items-center p-4" aria-modal="true" role="dialog">
+            <div className="bg-surface rounded-lg shadow-xl w-full max-w-md p-6 relative animate-fade-in-up">
+                <button onClick={onClose} className="absolute top-4 right-4 text-muted-foreground hover:text-foreground">
                     <XIcon className="w-6 h-6" />
                 </button>
                 
-                <h2 className="text-2xl font-bold text-slate-800 mb-4 flex items-center">
-                    <BuildingStorefrontIcon className="w-6 h-6 mr-2 text-indigo-600"/>
+                <h2 className="text-2xl font-bold text-foreground mb-4 flex items-center">
+                    <BuildingStorefrontIcon className="w-6 h-6 mr-2 text-primary"/>
                     Add Business
                 </h2>
                 
-                <p className="text-sm text-slate-600 mb-4">
+                <p className="text-sm text-muted-foreground mb-4">
                     Search for a real business on Google to create a profile.
                 </p>
 
                 <form onSubmit={handleSearch} className="space-y-4">
                     <div>
-                        <label htmlFor="business-search" className="block text-sm font-medium text-slate-700">Business Name & City</label>
+                        <label htmlFor="business-search" className="block text-sm font-medium text-muted-foreground">Business Name & City</label>
                         <div className="flex mt-1">
                             <input
                                 id="business-search"
@@ -158,12 +158,12 @@ const AddBusinessModal: React.FC<AddBusinessModalProps> = ({ isOpen, onClose, on
                                 value={searchQuery}
                                 onChange={(e) => setSearchQuery(e.target.value)}
                                 placeholder="e.g. Joe's Plumbing Mississauga"
-                                className="block w-full border border-slate-300 rounded-l-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 bg-white text-slate-800"
+                                className="block w-full border border-border rounded-l-md shadow-sm py-2 px-3 focus:outline-none focus:ring-primary focus:border-primary bg-surface text-foreground"
                             />
                             <button 
                                 type="submit" 
                                 disabled={isLoading || !searchQuery.trim()}
-                                className="bg-indigo-600 text-white px-4 py-2 rounded-r-md font-semibold hover:bg-indigo-700 disabled:bg-indigo-400 transition-colors"
+                                className="bg-primary text-primary-foreground px-4 py-2 rounded-r-md font-semibold hover:bg-primary/90 disabled:bg-primary/50 transition-colors"
                             >
                                 {isLoading ? '...' : 'Search'}
                             </button>
@@ -172,21 +172,21 @@ const AddBusinessModal: React.FC<AddBusinessModalProps> = ({ isOpen, onClose, on
                 </form>
 
                 {error && (
-                    <div className="mt-4 p-3 bg-red-50 text-red-700 text-sm rounded-md border border-red-200">
+                    <div className="mt-4 p-3 bg-error/10 text-error text-sm rounded-md border border-error/20">
                         {error}
                     </div>
                 )}
 
                 {foundBusiness && (
-                    <div className="mt-6 bg-slate-50 p-4 rounded-lg border border-slate-200">
-                        <h3 className="font-bold text-lg text-slate-800">{foundBusiness.name}</h3>
-                        <p className="text-xs text-indigo-600 font-semibold uppercase tracking-wide mt-1">{foundBusiness.category}</p>
-                        <p className="text-sm text-slate-600 mt-2">{foundBusiness.location}</p>
-                        {foundBusiness.phone && <p className="text-sm text-slate-500 mt-1">{foundBusiness.phone}</p>}
+                    <div className="mt-6 bg-muted p-4 rounded-lg border border-border">
+                        <h3 className="font-bold text-lg text-foreground">{foundBusiness.name}</h3>
+                        <p className="text-xs text-primary font-semibold uppercase tracking-wide mt-1">{foundBusiness.category}</p>
+                        <p className="text-sm text-muted-foreground mt-2">{foundBusiness.location}</p>
+                        {foundBusiness.phone && <p className="text-sm text-muted-foreground mt-1">{foundBusiness.phone}</p>}
                         
                         <div className="mt-3 flex flex-wrap gap-1">
                             {foundBusiness.specialties?.map((s, i) => (
-                                <span key={i} className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-white border border-slate-300 text-slate-700">
+                                <span key={i} className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-surface border border-border text-muted-foreground">
                                     {s}
                                 </span>
                             ))}
