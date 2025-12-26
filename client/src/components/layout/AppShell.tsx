@@ -111,10 +111,12 @@ export function AppShell({ children, footer }: AppShellProps) {
 
   return (
     <div
-      className="app-shell flex flex-col min-h-screen"
+      className="app-shell flex flex-col min-h-screen w-full"
       style={{ 
         color: 'var(--text-primary)',
         paddingTop: "env(safe-area-inset-top)",
+        position: 'relative',
+        minHeight: '100dvh',
       }}
     >
       {/* TOP APP NAV HEADER */}
@@ -259,10 +261,10 @@ export function AppShell({ children, footer }: AppShellProps) {
         </header>
       )}
 
-      <div className="flex flex-1 min-h-0" style={{ background: 'var(--surface-app-bg)' }}>
+      <div className="flex flex-1 min-h-0 w-full" style={{ background: 'var(--surface-app-bg)' }}>
         <main
           className={`flex flex-col flex-1 min-w-0 pt-[56px] ${!isMobile ? 'lg:pr-64' : ''} overflow-y-auto`}
-          style={{ background: 'var(--surface-app-bg)', color: 'var(--text-primary)' }}
+          style={{ background: 'var(--surface-app-bg)', color: 'var(--text-primary)', minHeight: '0', position: 'relative', zIndex: 0 }}
         >
           {children}
         </main>
@@ -281,7 +283,9 @@ export function AppShell({ children, footer }: AppShellProps) {
       <AdminPageToolsBar />
 
       {/* BOTTOM BAR: SCROLLABLE SITE FEATURE NAV (mobile + desktop) */}
-      <MobileAppBar items={featureNav} />
+      <div style={{ position: 'fixed', left: 0, right: 0, bottom: 0, zIndex: 1000 }}>
+        <MobileAppBar items={featureNav} />
+      </div>
 
       {/* Desktop-only legal footer sits below the bottom nav so the
           site still feels app-like while keeping legal links visible. */}
