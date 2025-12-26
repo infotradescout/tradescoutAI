@@ -8,7 +8,7 @@ export interface CommunityEmptyStateProps {
 
 export function CommunityEmptyState({ onCreateFirstPost }: CommunityEmptyStateProps) {
   return (
-    <Card className="bg-[#1a2332] shadow-xl border-2 border-[#2d3748]">
+    <Card className="bg-tsCard shadow-xl border-2 border-tsBorder">
       <CardContent className="py-16 text-center space-y-6">
         <MessageSquare className="w-16 h-16 mx-auto text-orange-500/40" />
         <div>
