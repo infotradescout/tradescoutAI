@@ -125,7 +125,7 @@ export function ReportContentModal({
           <Button
             variant="outline"
             size="sm"
-            className={`text-red-600 border-red-200 hover:bg-red-50 ${triggerClassName}`}
+            className={`text-error border-error/30 hover:bg-error/10 ${triggerClassName}`}
           >
             <Flag className="h-4 w-4 mr-2" />
             Report
@@ -135,7 +135,7 @@ export function ReportContentModal({
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <AlertTriangle className="h-5 w-5 text-red-500" />
+            <AlertTriangle className="h-5 w-5 text-error" />
             Report Content
           </DialogTitle>
           <DialogDescription>
@@ -201,7 +201,7 @@ export function ReportContentModal({
               <Button
                 type="submit"
                 disabled={reportMutation.isPending}
-                className="bg-red-600 hover:bg-red-700 text-white"
+                className="bg-error hover:bg-error/90 text-error-foreground"
               >
                 {reportMutation.isPending ? "Submitting..." : "Submit Report"}
               </Button>
