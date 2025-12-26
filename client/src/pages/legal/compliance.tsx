@@ -129,7 +129,7 @@ export default function CompliancePage() {
       case "Pending":
         return "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200";
       default:
-        return "bg-[#0f1419] text-gray-800 dark:bg-gray-900 dark:text-gray-200";
+        return "bg-[var(--surface-frame)] text-gray-800 dark:bg-[var(--surface-frame-alt)] dark:text-gray-200";
     }
   };
 
@@ -145,7 +145,7 @@ export default function CompliancePage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#0f1419]">
+    <div className="min-h-screen bg-[var(--surface-frame)]">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         
         {/* Header */}
@@ -287,7 +287,7 @@ export default function CompliancePage() {
                   </h4>
                   <div className="space-y-3">
                     {area.requirements.map((req, index) => (
-                      <div key={index} className="flex items-start space-x-3 p-3 bg-[#0f1419] dark:bg-[#1a2332] rounded-lg">
+                      <div key={index} className="flex items-start space-x-3 p-3 bg-[var(--surface-frame)] dark:bg-[var(--surface-frame-alt)] rounded-lg">
                         <CheckCircle className="h-5 w-5 text-green-500 mt-0.5 flex-shrink-0" />
                         <span className="text-sm text-gray-700 dark:text-gray-300">
                           {req}

@@ -7,7 +7,7 @@ export default function TermsOfService() {
   const lastUpdated = "August 11, 2025";
   
   return (
-    <div className="min-h-screen bg-[#0f1419]">
+    <div className="min-h-screen bg-[var(--surface-frame)]">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <Card>
           <CardHeader className="text-center">
@@ -178,7 +178,7 @@ export default function TermsOfService() {
               </ol>
               
               <h3 className="text-xl font-medium mb-3">Legal Disputes</h3>
-              <div className="bg-[#0f1419] dark:bg-[#1a2332] p-6 rounded-lg mb-6">
+              <div className="bg-[var(--surface-frame)] dark:bg-[var(--surface-frame-alt)] p-6 rounded-lg mb-6">
                 <p className="mb-4"><strong>Governing Law:</strong> These terms are governed by the laws of [Your State/Country]</p>
                 <p className="mb-4"><strong>Jurisdiction:</strong> Disputes resolved in courts of [Your Jurisdiction]</p>
                 <p className="mb-4"><strong>Arbitration:</strong> Most disputes subject to binding arbitration</p>
@@ -267,7 +267,7 @@ export default function TermsOfService() {
 
             <section className="mb-8">
               <h2 className="text-2xl font-semibold mb-4">10. Contact Information</h2>
-              <div className="bg-[#0f1419] dark:bg-[#1a2332] p-6 rounded-lg">
+              <div className="bg-[var(--surface-frame)] dark:bg-[var(--surface-frame-alt)] p-6 rounded-lg">
                 <p className="mb-2"><strong>Legal Department:</strong></p>
                 <p className="mb-2">Email: legal@tradescout.com</p>
                 <p className="mb-2">Address: [Your Business Address]</p>
@@ -279,7 +279,7 @@ export default function TermsOfService() {
               </div>
             </section>
 
-            <div className="text-center mt-8 pt-6 border-t border-[#2d3748]">
+            <div className="text-center mt-8 pt-6 border-t" style={{ borderColor: 'var(--border-secondary)' }}>
               <p className="text-sm text-gray-600 dark:text-gray-400">
                 These Terms of Service are effective as of {lastUpdated}
               </p>
