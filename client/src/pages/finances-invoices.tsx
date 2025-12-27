@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/useAuth";
 
 interface StandaloneInvoice {
   id: string;
@@ -47,20 +48,9 @@ interface StandaloneInvoicesResponse {
 }
 
 export default function FinancesInvoicesPage() {
-    // Workspace resolution fallback
-    // You may want to import/use useAuth or workspace context if available
-    const user = (typeof useAuth === 'function' ? useAuth()?.user : undefined) || {};
-    const workspaceId = (typeof workspace !== 'undefined' && workspace?.id) || user?.workspaceId || user?.businessId || null;
-    const isAuthenticated = Boolean(user);
-    const canLoadInvoices = isAuthenticated && Boolean(workspaceId);
-    if (!canLoadInvoices) {
-      return (
-        <div className="min-h-screen flex items-center justify-center text-center text-slate-500">
-          Create a workspace to start managing invoices.
-        </div>
-      );
-    }
+  const { isAuthenticated } = useAuth();
   const { toast } = useToast();
+  const newInvoiceRef = useRef<HTMLDivElement | null>(null);
   const queryClient = useQueryClient();
   const [location, navigate] = useLocation();
 
@@ -80,6 +70,20 @@ export default function FinancesInvoicesPage() {
   const [pageSize] = useState(50);
   const [invoiceStatusFilter, setInvoiceStatusFilter] = useState<"all" | "open" | "paid">("all");
   const [invoiceRangeFilter, setInvoiceRangeFilter] = useState<"all" | "90d" | "365d">("all");
+
+  if (!isAuthenticated) {
+    return (
+      <div className="min-h-screen flex items-center justify-center text-center text-slate-500">
+        Sign in to view and manage invoices.
+      </div>
+    );
+  }
+
+  const handleNewInvoiceClick = () => {
+    if (newInvoiceRef.current) {
+      newInvoiceRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  };
 
   const { data, isLoading } = useQuery<StandaloneInvoicesResponse>({
     queryKey: ["/api/accounting/standalone-invoices", page, pageSize],
@@ -361,6 +365,14 @@ export default function FinancesInvoicesPage() {
         </div>
         <div className="flex items-center gap-2">
           <Button
+            variant="default"
+            size="sm"
+            className="h-8 px-3 text-[11px]"
+            onClick={handleNewInvoiceClick}
+          >
+            New invoice
+          </Button>
+          <Button
             variant="outline"
             size="sm"
             className="h-8 px-3 border-tsBorder text-[11px] text-tsText"
@@ -438,7 +450,7 @@ export default function FinancesInvoicesPage() {
         </Card>
       </div>
 
-      <Card className="bg-tsCard border-tsBorder mb-4">
+      <Card ref={newInvoiceRef} className="bg-tsCard border-tsBorder mb-4">
         <CardHeader>
           <CardTitle className="text-tsText mb-1">New invoice / job record</CardTitle>
           <CardDescription>

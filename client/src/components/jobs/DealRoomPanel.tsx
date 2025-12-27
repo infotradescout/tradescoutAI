@@ -81,12 +81,8 @@ export function DealRoomPanel({ jobId, userRole }: DealRoomPanelProps) {
 
 	const headerPrimary = isStandalone ? "Standalone Accounting" : "Project Deal Room";
 	const headerSecondary = isStandalone
-		? userRole === "contractor"
-			? "Recording documents and payments for an off-platform client."
-			: "Tracking documents for work with a contractor."
-		: userRole === "contractor"
-			? "Working with a homeowner on this project."
-			: "Working with your contractor on this project.";
+		? "Track any documents for this off-platform work. Create, attach, or convert documents in any order."
+		: "Track any documents related to this project. Create, attach, or convert documents in any order.";
 
 	const mapDocErrorMessage = (code?: string | null, fallback?: string) => {
 		switch (code) {
@@ -520,6 +516,19 @@ export function DealRoomPanel({ jobId, userRole }: DealRoomPanelProps) {
 		]
 	);
 
+	const stageLabel =
+		state.stage === "EMPTY"
+			? "Getting started"
+			: state.stage === "MATERIALS"
+				? "Materials"
+				: state.stage === "ESTIMATE"
+					? "Estimate"
+					: state.stage === "CONTRACT"
+						? "Contract"
+						: state.stage === "INVOICE"
+							? "Invoice"
+							: "Receipt";
+
 	return (
 		<Card className="bg-slate-900/60 border-slate-700 h-full flex flex-col">
 			<CardHeader className="pb-3 space-y-1">
@@ -536,7 +545,7 @@ export function DealRoomPanel({ jobId, userRole }: DealRoomPanelProps) {
 					<>
 						<div className="rounded-md border border-slate-700 bg-slate-900/60 p-3 mb-2">
 							<p className="text-xs uppercase tracking-wide text-gray-400 mb-1">Current stage</p>
-							<p className="text-sm font-semibold text-white mb-1">{state.stage}</p>
+							<p className="text-sm font-semibold text-white mb-1">{stageLabel}</p>
 							<p className="text-xs text-gray-300 mb-2">{primaryAction.explanation}</p>
 							{primaryAction.kind === "simple" && primaryAction.action && primaryAction.label && (
 								<Button size="sm" className="w-full" onClick={primaryAction.action}>
@@ -698,23 +707,23 @@ export function DealRoomPanel({ jobId, userRole }: DealRoomPanelProps) {
 							<div className="space-y-1 text-[11px] text-gray-300">
 								<p>
 									<span className="font-semibold">Material list:</span>{" "}
-									{latestMaterial ? latestMaterial.status : "Not started"}
+									{latestMaterial ? latestMaterial.status : "Not created yet"}
 								</p>
 								<p>
 									<span className="font-semibold">Estimate:</span>{" "}
-									{latestEstimate ? latestEstimate.status : "Not started"}
+									{latestEstimate ? latestEstimate.status : "Not created yet"}
 								</p>
 								<p>
 									<span className="font-semibold">Contract:</span>{" "}
-									{latestContract ? latestContract.status : "Not started"}
+									{latestContract ? latestContract.status : "Not created yet"}
 								</p>
 								<p>
 									<span className="font-semibold">Invoice:</span>{" "}
-									{latestInvoice ? latestInvoice.status : "Not started"}
+									{latestInvoice ? latestInvoice.status : "Not created yet"}
 								</p>
 								<p>
 									<span className="font-semibold">Receipt:</span>{" "}
-									{latestReceipt ? latestReceipt.status : "Not started"}
+									{latestReceipt ? latestReceipt.status : "Not created yet"}
 								</p>
 							</div>
 						</div>
@@ -722,7 +731,9 @@ export function DealRoomPanel({ jobId, userRole }: DealRoomPanelProps) {
 						<div className="mt-3 space-y-2 flex-1 overflow-auto">
 							<p className="text-xs uppercase tracking-wide text-gray-500">All documents</p>
 							{documents.length === 0 ? (
-								<p className="text-xs text-gray-400">No documents yet for this project.</p>
+								<p className="text-xs text-gray-400">
+									No documents recorded yet. When you create or attach a document, it will show up here.
+								</p>
 							) : (
 								<div className="space-y-2">
 									{documents.map((doc) => (

@@ -1057,6 +1057,15 @@ export async function registerRoutes(app: any) {
     }
   });
 
+  const COMMUNITY_FIRST_EMAILS = [
+    "traderscornerllc@gmail.com",
+  ];
+
+  const isCommunityFirstUser = (user: any | null | undefined) => {
+    if (!user?.email || typeof user.email !== "string") return false;
+    return COMMUNITY_FIRST_EMAILS.includes(user.email.toLowerCase());
+  };
+
   app.get("/api/auth/user", async (req: AuthedRequest, res: Response) => {
     try {
       const authDiagnostics = {
@@ -1125,8 +1134,10 @@ export async function registerRoutes(app: any) {
           return;
         }
       }
+  const finalUser = sanitizeUserForResponse(applyImpersonation(user));
+  const communityFirst = isCommunityFirstUser(finalUser);
 
-      res.json({ authenticated: true, user: sanitizeUserForResponse(applyImpersonation(user)) });
+  res.json({ authenticated: true, user: { ...finalUser, communityFirst } });
     } catch (error: any) {
       console.error("Error fetching auth user:", error);
       // Fail-soft: auth must never block the app shell.

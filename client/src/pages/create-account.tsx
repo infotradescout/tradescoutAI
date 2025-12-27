@@ -132,6 +132,12 @@ export default function CreateAccountPortal() {
 
   useEffect(() => {
     if (user && (user as any).onboardingCompleted) {
+      // Community-first experiment: for allowlisted users, send them
+      // directly into the community feed instead of dashboards.
+      if ((user as any).communityFirst) {
+        navigate("/community-feed");
+        return;
+      }
       navigate("/dashboard");
     }
   }, [user, navigate]);
@@ -201,7 +207,13 @@ export default function CreateAccountPortal() {
         title: "You’re ready to use TradeScout",
         description: "Your account is now set up for local projects, services, and community activity.",
       });
-      navigate("/dashboard?orientation=1");
+
+			const u: any = user;
+			if (u?.communityFirst) {
+				navigate("/community-feed?orientation=1");
+			} else {
+				navigate("/dashboard?orientation=1");
+			}
     },
     onError: (error: any) => {
       toast({

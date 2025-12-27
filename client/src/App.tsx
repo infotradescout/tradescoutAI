@@ -161,7 +161,7 @@ const DashboardJobs = React.lazy(() => import('./pages/dashboard-jobs'));
 const RecommendationGeneratorPage = React.lazy(() => import('./pages/contractor/recommendation-generator'));
 
 // Role-specific Dashboards (heavy components)
-const ContractorDashboard = React.lazy(() => import('./pages/contractor-dashboard-simple'));
+const ContractorDashboard = React.lazy(() => import('./pages/contractor-dashboard'));
 const HomeownerDashboard = React.lazy(() => import('./pages/homeowner-dashboard'));
 const RealtorDashboard = React.lazy(() => import('./pages/realtor-dashboard'));
 const StoryGeneratorPage = React.lazy(() => import('./pages/StoryGeneratorPage'));
@@ -353,9 +353,18 @@ const AppLayout = memo(function AppLayout() {
     }
   }, [location, setLocation]);
 
-  // Respect user default home page preference when landing on '/'
+  // Respect user default home page preference when landing on '/'.
+  // Community-first users always land on the community feed.
   useEffect(() => {
-    if (!isAuthenticated || !user?.preferences?.defaultHomePage) return;
+    if (!isAuthenticated || !user) return;
+
+    const anyUser: any = user;
+    if (anyUser.communityFirst && location === '/') {
+      setLocation('/community-feed');
+      return;
+    }
+
+    if (!user.preferences?.defaultHomePage) return;
 
     const defaultPage = user.preferences.defaultHomePage as any;
     const targetRoute = resolveDefaultHomeRoute(defaultPage);
