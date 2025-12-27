@@ -41,6 +41,7 @@ export default function Leaderboard() {
   const location = useLocationContext();
   const defaultState = (location.stateCode as string | undefined) || "";
   const countyName = (location as any)?.county as string | undefined;
+  const hasCountyContext = Boolean(location.stateCode && ((location as any)?.county || location.countyFips));
 
   const [activeTab, setActiveTab] = useState("monthly");
   const [selectedState, setSelectedState] = useState(defaultState);
@@ -63,7 +64,7 @@ export default function Leaderboard() {
       if (!response.ok) throw new Error('Failed to fetch monthly rankings');
       return response.json();
     },
-    enabled: activeTab === "monthly",
+    enabled: activeTab === "monthly" && hasCountyContext,
   });
 
   // Fetch lifetime rankings
@@ -81,7 +82,7 @@ export default function Leaderboard() {
       if (!response.ok) throw new Error('Failed to fetch lifetime rankings');
       return response.json();
     },
-    enabled: activeTab === "lifetime",
+    enabled: activeTab === "lifetime" && hasCountyContext,
   });
 
   const getRankIcon = (rank: number) => {
@@ -232,6 +233,38 @@ export default function Leaderboard() {
       </Card>
     ));
   };
+
+  if (!hasCountyContext) {
+    const areaLabel = location.label || "your area";
+
+    return (
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="mb-6">
+          <h1 className="text-3xl font-bold text-white mb-2">Community Leaderboard</h1>
+          <p className="text-gray-300">Top contributors based on activity, recommendations, and community trust</p>
+        </div>
+        <Card className="bg-[#0b1220] border-slate-800">
+          <CardContent className="p-6 space-y-4">
+            <p className="text-sm text-slate-300">
+              Leaderboard is county-based. Set your county so rankings reflect whats actually happening in your area instead of a global list.
+            </p>
+            <div className="flex items-center justify-between gap-3">
+              <p className="text-xs text-slate-400">
+                Current location context: <span className="font-medium text-slate-100">{areaLabel}</span>
+              </p>
+              <Button
+                type="button"
+                className="bg-orange-500 hover:bg-orange-600 text-black text-xs font-semibold px-3 py-2 rounded-md"
+                asChild
+              >
+                <a href="/settings">Open location settings</a>
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">

@@ -62,6 +62,7 @@ export default function MarketplacePage() {
       if (categoryFilter) params.set("categoryId", categoryFilter);
       if (searchTerm.trim()) params.set("search", searchTerm.trim());
 
+      const hasCountyContext = Boolean(stateCode && county);
       const rawListings = await apiRequest(
         "GET",
         `/api/marketplace/listings?${params.toString()}`
@@ -71,7 +72,7 @@ export default function MarketplacePage() {
         id: l.id,
         title: l.title,
         description: l.description ?? null,
-        price: Number(l.price ?? 0),
+        enabled: hasCountyContext,
         thumbnailUrl: (l.images && Array.isArray(l.images) && l.images[0]) || null,
         categoryName: (l as any).categoryName ?? null,
         state: l.state,
@@ -155,6 +156,37 @@ export default function MarketplacePage() {
             }
             className="w-32 rounded-xl border border-slate-800 bg-slate-950/60 px-2 py-2 text-xs text-slate-100 focus:outline-none focus:ring-2 focus:ring-orange-500/70"
             data-testid="marketplace-category-filter"
+      if (!hasCountyContext) {
+        const areaLabel = location.label || "your area";
+
+        return (
+          <CommunityShell sectionLabel="For Sale" notificationsCount={unreadCount}>
+            <div className="max-w-2xl mx-auto py-10">
+              <Card className="bg-slate-950/70 border-slate-800">
+                <CardContent className="p-6 space-y-4">
+                  <h1 className="text-xl font-semibold text-white">Set your county to browse local listings</h1>
+                  <p className="text-sm text-slate-300">
+                    Marketplace is scoped to real counties. Choose your county so listings and promotions line up with where you actually live.
+                  </p>
+                  <div className="flex items-center justify-between gap-3">
+                    <p className="text-xs text-slate-400">
+                      Current location context: <span className="font-medium text-slate-100">{areaLabel}</span>
+                    </p>
+                    <Button
+                      type="button"
+                      className="bg-orange-500 hover:bg-orange-600 text-black text-xs font-semibold px-3 py-2 rounded-md"
+                      asChild
+                    >
+                      <a href="/settings">Open location settings</a>
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          </CommunityShell>
+        );
+      }
+
           >
             <option value="">All</option>
           </select>

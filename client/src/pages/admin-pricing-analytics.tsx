@@ -332,7 +332,7 @@ export default function AdminPricingAnalytics() {
       <div className="flex items-center justify-between mb-8">
         <div>
           <h1 className="text-3xl font-bold text-white mb-2">Pricing Analytics</h1>
-          <p className="text-gray-300">Monitor market trends and update calculator pricing</p>
+          <p className="text-gray-300">Monitor system-wide market trends across all regions and update calculator pricing</p>
         </div>
         
         <div className="flex items-center gap-4">

@@ -78,11 +78,12 @@ export default function Community() {
 
   const stateCode = location.stateCode as string | undefined;
   const countyFips = location.countyFips as string | undefined;
+  const hasCountyContext = Boolean(stateCode && countyFips);
 
   // Fetch community posts scoped to the user's county
   const { data: posts, isLoading: postsLoading } = useQuery<CommunityPost[]>({
     queryKey: ['/api/community/posts', stateCode, countyFips],
-    enabled: Boolean(stateCode && countyFips),
+    enabled: hasCountyContext,
     queryFn: async () => {
       const params = new URLSearchParams({
         scope: 'county',
@@ -248,6 +249,39 @@ export default function Community() {
 
     return [...pinned, ...trending, ...regular];
   }, [posts, activeTab]);
+
+  if (!hasCountyContext) {
+    const areaLabel = location.label || "your area";
+
+    return (
+      <CommunityShell sectionLabel="Community" notificationsCount={unreadCount}>
+        <div className="max-w-2xl mx-auto py-12">
+          <Card className="bg-slate-950/70 border-slate-800">
+            <CardContent className="p-6 space-y-4">
+              <div>
+                <h1 className="text-xl font-semibold text-white mb-2">Choose your county to see whats happening nearby</h1>
+                <p className="text-sm text-slate-300">
+                  Community only shows posts from your local area. Set your county so we can load a real feed for you instead of a global default.
+                </p>
+              </div>
+              <div className="flex items-center justify-between gap-3">
+                <p className="text-xs text-slate-400">
+                  Current location context: <span className="font-medium text-slate-100">{areaLabel}</span>
+                </p>
+                <Button
+                  type="button"
+                  className="bg-orange-500 hover:bg-orange-600 text-black text-xs font-semibold px-3 py-2 rounded-md"
+                  asChild
+                >
+                  <a href="/settings">Open location settings</a>
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </CommunityShell>
+    );
+  }
 
   return (
     <CommunityShell sectionLabel="Community" notificationsCount={0}>

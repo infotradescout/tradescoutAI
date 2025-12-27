@@ -44,6 +44,7 @@ const HOADashboard = memo(function HOADashboard() {
     layer: "hoa",
     hoaId: hoaId ?? undefined,
   });
+  const hasCountyContext = Boolean(location.stateCode && location.countyFips);
 
   const { data, isLoading, isError } = useQuery<{ dashboard: HoaDashboard}>(
     {
@@ -56,11 +57,37 @@ const HOADashboard = memo(function HOADashboard() {
         }
         return res.json();
       },
-      enabled: !!user,
+      enabled: !!user && hasCountyContext,
     }
   );
 
   const dashboard = data?.dashboard;
+
+  if (!hasCountyContext) {
+    return (
+      <CommunityShell sectionLabel="HOA Dashboard" notificationsCount={unreadCount}>
+        <div className="w-full py-12 flex items-center justify-center">
+          <Card className="bg-navy-800/60 border-navy-600 max-w-xl w-full">
+            <CardHeader>
+              <CardTitle className="text-white">Set your county to view HOA stats</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-gray-300 mb-4 text-sm">
+                HOA dashboards are scoped to specific counties. Choose your county in settings so we can load boards and metrics for the right neighborhood.
+              </p>
+              <Button
+                type="button"
+                className="bg-orange-500 hover:bg-orange-600 text-black text-xs font-semibold px-3 py-2 rounded-md"
+                asChild
+              >
+                <a href="/settings">Open location settings</a>
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
+      </CommunityShell>
+    );
+  }
 
   if (isLoading) {
     return (

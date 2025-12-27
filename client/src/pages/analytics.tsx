@@ -1,4 +1,5 @@
 import { memo } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -7,49 +8,72 @@ import { TrendingUp, Users, DollarSign, Eye, Calendar, Target, MapPin, Clock } f
 import { getStatusColorClass } from '@/lib/colors';
 
 const Analytics = memo(function Analytics() {
+  type SummaryResponse = {
+    totalRequests: number;
+    revenue: number;
+    profileViews: number;
+    conversionRate: number;
+  };
+
+  type SourcesResponse = {
+    sources: {
+      source: string;
+      requests: number;
+    }[];
+  };
+
+  type ProjectsResponse = {
+    projects: {
+      id: string;
+      title: string;
+      client: string | null;
+      value: number;
+      status: string;
+      date: string;
+      location: string | null;
+    }[];
+  };
+
+  type RevenueTrendResponse = {
+    points: {
+      date: string;
+      label: string;
+      value: number;
+    }[];
+  };
+
+  type FunnelResponse = {
+    requestsReceived: number;
+    contacted: number;
+    quoted: number;
+    converted: number;
+  };
+
+  const { data: summary, isLoading: summaryLoading } = useQuery<SummaryResponse>({
+    queryKey: ['/api/pro/analytics/summary'],
+  });
+
+  const { data: sourcesData, isLoading: sourcesLoading } = useQuery<SourcesResponse>({
+    queryKey: ['/api/pro/analytics/sources'],
+  });
+
+  const { data: projectsData, isLoading: projectsLoading } = useQuery<ProjectsResponse>({
+    queryKey: ['/api/pro/analytics/projects'],
+  });
+
+  const { data: revenueTrend, isLoading: revenueTrendLoading } = useQuery<RevenueTrendResponse>({
+    queryKey: ['/api/pro/analytics/revenue-trend'],
+  });
+
+  const { data: funnel, isLoading: funnelLoading } = useQuery<FunnelResponse>({
+    queryKey: ['/api/pro/analytics/funnel'],
+  });
+
   const metrics = [
-    { label: 'Total Requests', value: '247', change: '+12%', icon: Users, color: 'blue' },
-    { label: 'Revenue', value: '$42,380', change: '+18%', icon: DollarSign, color: 'emerald' },
-    { label: 'Profile Views', value: '1,284', change: '+7%', icon: Eye, color: 'purple' },
-    { label: 'Conversion Rate', value: '24.3%', change: '+3%', icon: Target, color: 'orange' }
-  ];
-
-  const requestSources = [
-    { source: 'Direct Search', requests: 89, percentage: 36 },
-    { source: 'TradeScout Community Groups', requests: 67, percentage: 27 },
-    { source: 'Referrals', requests: 45, percentage: 18 },
-    { source: 'Daily Deals', requests: 32, percentage: 13 },
-    { source: 'Other', requests: 14, percentage: 6 }
-  ];
-
-  const recentProjects = [
-    { 
-      id: 1, 
-      title: 'Kitchen Renovation', 
-      client: 'Sarah Johnson', 
-      value: '$8,500', 
-      status: 'Completed',
-      date: '2024-03-15',
-      location: 'Beverly Hills, CA'
-    },
-    { 
-      id: 2, 
-      title: 'Bathroom Remodel', 
-      client: 'Mike Chen', 
-      value: '$5,200', 
-      status: 'In Progress',
-      date: '2024-03-10',
-      location: 'Santa Monica, CA'
-    },
-    { 
-      id: 3, 
-      title: 'Deck Installation', 
-      client: 'Emily Davis', 
-      value: '$3,800', 
-      status: 'Quoted',
-      date: '2024-03-08',
-      location: 'Pasadena, CA'
-    }
+    { label: 'Total Requests', value: summary ? summary.totalRequests.toLocaleString() : '—', icon: Users, color: 'blue' },
+    { label: 'Revenue', value: summary ? `$${summary.revenue.toLocaleString(undefined, { maximumFractionDigits: 0 })}` : '—', icon: DollarSign, color: 'emerald' },
+    { label: 'Profile Views', value: summary ? summary.profileViews.toLocaleString() : '—', icon: Eye, color: 'purple' },
+    { label: 'Conversion Rate', value: summary ? `${summary.conversionRate.toFixed(1)}%` : '—', icon: Target, color: 'orange' }
   ];
 
   const getColorClasses = (color: string) => {
@@ -79,25 +103,33 @@ const Analytics = memo(function Analytics() {
 
         {/* Key Metrics */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          {metrics.map((metric, index) => {
-            const Icon = metric.icon;
-            return (
+          {summaryLoading && !summary ? (
+            Array.from({ length: 4 }).map((_, index) => (
               <Card key={index} className="bg-slate-800/50 border-slate-700">
-                <CardContent className="p-6">
-                  <div className="flex items-center justify-between mb-4">
-                    <div className={`p-3 rounded-lg ${getColorClasses(metric.color)}`}>
-                      <Icon className="w-6 h-6" />
-                    </div>
-                    <Badge variant="outline" className="text-emerald-400 border-emerald-400/50">
-                      {metric.change}
-                    </Badge>
-                  </div>
-                  <h3 className="text-2xl font-bold text-white mb-1">{metric.value}</h3>
-                  <p className="text-gray-400 text-sm">{metric.label}</p>
+                <CardContent className="p-6 animate-pulse">
+                  <div className="h-6 bg-slate-700 rounded mb-4" />
+                  <div className="h-4 bg-slate-700 rounded w-1/2" />
                 </CardContent>
               </Card>
-            );
-          })}
+            ))
+          ) : (
+            metrics.map((metric, index) => {
+              const Icon = metric.icon;
+              return (
+                <Card key={index} className="bg-slate-800/50 border-slate-700">
+                  <CardContent className="p-6">
+                    <div className="flex items-center justify-between mb-4">
+                      <div className={`p-3 rounded-lg ${getColorClasses(metric.color)}`}>
+                        <Icon className="w-6 h-6" />
+                      </div>
+                    </div>
+                    <h3 className="text-2xl font-bold text-white mb-1">{metric.value}</h3>
+                    <p className="text-gray-400 text-sm">{metric.label}</p>
+                  </CardContent>
+                </Card>
+              );
+            })
+          )}
         </div>
 
         {/* Analytics Tabs */}
@@ -121,23 +153,39 @@ const Analytics = memo(function Analytics() {
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-4">
-                    {requestSources.map((source, index) => (
-                      <div key={index} className="flex items-center justify-between">
-                        <div className="flex items-center gap-3 flex-1">
-                          <div className="w-3 h-3 bg-orange-500 rounded-full"></div>
-                          <span className="text-gray-300">{source.source}</span>
-                        </div>
-                        <div className="flex items-center gap-3">
-                          <div className="w-24 bg-slate-700 rounded-full h-2">
-                            <div 
-                              className="bg-orange-500 h-2 rounded-full"
-                              style={{ width: `${source.percentage}%` }}
-                            ></div>
-                          </div>
-                          <span className="text-white font-medium w-8">{source.requests}</span>
-                        </div>
+                    {sourcesLoading && !sourcesData ? (
+                      <div className="space-y-2">
+                        {Array.from({ length: 4 }).map((_, index) => (
+                          <div key={index} className="h-4 bg-slate-700 rounded animate-pulse" />
+                        ))}
                       </div>
-                    ))}
+                    ) : !sourcesData || sourcesData.sources.length === 0 ? (
+                      <p className="text-gray-400 text-sm">
+                        No request source analytics available yet.
+                      </p>
+                    ) : (
+                      sourcesData.sources.map((source, index) => {
+                        const total = sourcesData.sources.reduce((sum, s) => sum + s.requests, 0) || 1;
+                        const percentage = (source.requests / total) * 100;
+                        return (
+                          <div key={index} className="flex items-center justify-between">
+                            <div className="flex items-center gap-3 flex-1">
+                              <div className="w-3 h-3 bg-orange-500 rounded-full"></div>
+                              <span className="text-gray-300">{source.source}</span>
+                            </div>
+                            <div className="flex items-center gap-3">
+                              <div className="w-24 bg-slate-700 rounded-full h-2">
+                                <div 
+                                  className="bg-orange-500 h-2 rounded-full"
+                                  style={{ width: `${percentage}%` }}
+                                ></div>
+                              </div>
+                              <span className="text-white font-medium w-8">{source.requests}</span>
+                            </div>
+                          </div>
+                        );
+                      })
+                    )}
                   </div>
                 </CardContent>
               </Card>
@@ -155,26 +203,36 @@ const Analytics = memo(function Analytics() {
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-4">
-                    {['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'].map((month, index) => {
-                      const values = [28000, 32000, 35000, 38000, 40000, 42380];
-                      const maxValue = Math.max(...values);
-                      const percentage = (values[index] / maxValue) * 100;
-                      
-                      return (
-                        <div key={month} className="flex items-center justify-between">
-                          <span className="text-gray-300 w-8">{month}</span>
-                          <div className="flex items-center gap-3 flex-1 ml-4">
-                            <div className="w-full bg-slate-700 rounded-full h-3">
-                              <div 
-                                className="bg-emerald-500 h-3 rounded-full"
-                                style={{ width: `${percentage}%` }}
-                              ></div>
-                            </div>
-                            <span className="text-white font-medium w-16">${(values[index] / 1000).toFixed(0)}k</span>
-                          </div>
+                    {revenueTrendLoading && !revenueTrend ? (
+                      Array.from({ length: 6 }).map((_, index) => (
+                        <div key={index} className="flex items-center justify-between">
+                          <div className="h-3 bg-slate-700 rounded w-full animate-pulse" />
                         </div>
-                      );
-                    })}
+                      ))
+                    ) : !revenueTrend || revenueTrend.points.length === 0 ? (
+                      <p className="text-gray-400 text-sm">
+                        No revenue trend data available yet.
+                      </p>
+                    ) : (
+                      revenueTrend.points.map((point) => {
+                        const maxValue = Math.max(...revenueTrend.points.map((p) => p.value)) || 1;
+                        const percentage = (point.value / maxValue) * 100;
+                        return (
+                          <div key={point.date} className="flex items-center justify-between">
+                            <span className="text-gray-300 w-8">{point.label}</span>
+                            <div className="flex items-center gap-3 flex-1 ml-4">
+                              <div className="w-full bg-slate-700 rounded-full h-3">
+                                <div 
+                                  className="bg-emerald-500 h-3 rounded-full"
+                                  style={{ width: `${percentage}%` }}
+                                ></div>
+                              </div>
+                              <span className="text-white font-medium w-16">${(point.value / 1000).toFixed(0)}k</span>
+                            </div>
+                          </div>
+                        );
+                      })
+                    )}
                   </div>
                 </CardContent>
               </Card>
@@ -191,21 +249,29 @@ const Analytics = memo(function Analytics() {
               </CardHeader>
               <CardContent>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-                  <div className="p-4 bg-blue-600/10 border border-blue-600/20 rounded-lg text-center">
-                    <h3 className="text-2xl font-bold text-blue-400 mb-1">73</h3>
-                    <p className="text-gray-300">New Requests</p>
-                    <p className="text-xs text-gray-500">This month</p>
-                  </div>
-                  <div className="p-4 bg-yellow-600/10 border border-yellow-600/20 rounded-lg text-center">
-                    <h3 className="text-2xl font-bold text-yellow-400 mb-1">45</h3>
-                    <p className="text-gray-300">In Progress</p>
-                    <p className="text-xs text-gray-500">Being worked</p>
-                  </div>
-                  <div className="p-4 bg-emerald-600/10 border border-emerald-600/20 rounded-lg text-center">
-                    <h3 className="text-2xl font-bold text-emerald-400 mb-1">29</h3>
-                    <p className="text-gray-300">Converted</p>
-                    <p className="text-xs text-gray-500">This month</p>
-                  </div>
+                  {funnelLoading && !funnel ? (
+                    Array.from({ length: 3 }).map((_, index) => (
+                      <div key={index} className="p-4 bg-slate-800/50 border border-slate-700 rounded-lg animate-pulse" />
+                    ))
+                  ) : (
+                    <>
+                      <div className="p-4 bg-blue-600/10 border border-blue-600/20 rounded-lg text-center">
+                        <h3 className="text-2xl font-bold text-blue-400 mb-1">{funnel ? funnel.requestsReceived : 0}</h3>
+                        <p className="text-gray-300">Requests Received</p>
+                        <p className="text-xs text-gray-500">Last 30 days</p>
+                      </div>
+                      <div className="p-4 bg-yellow-600/10 border border-yellow-600/20 rounded-lg text-center">
+                        <h3 className="text-2xl font-bold text-yellow-400 mb-1">{funnel ? funnel.quoted : 0}</h3>
+                        <p className="text-gray-300">Quoted</p>
+                        <p className="text-xs text-gray-500">Last 30 days</p>
+                      </div>
+                      <div className="p-4 bg-emerald-600/10 border border-emerald-600/20 rounded-lg text-center">
+                        <h3 className="text-2xl font-bold text-emerald-400 mb-1">{funnel ? funnel.converted : 0}</h3>
+                        <p className="text-gray-300">Converted</p>
+                        <p className="text-xs text-gray-500">Last 30 days</p>
+                      </div>
+                    </>
+                  )}
                 </div>
 
                 <div className="space-y-4">
@@ -213,19 +279,19 @@ const Analytics = memo(function Analytics() {
                   <div className="space-y-2">
                     <div className="flex items-center justify-between p-3 bg-slate-700/30 rounded-lg">
                       <span className="text-gray-300">Requests Received</span>
-                      <span className="text-white font-medium">247</span>
+                      <span className="text-white font-medium">{funnel ? funnel.requestsReceived : 0}</span>
                     </div>
                     <div className="flex items-center justify-between p-3 bg-slate-700/30 rounded-lg">
                       <span className="text-gray-300">Contacted</span>
-                      <span className="text-white font-medium">198 (80%)</span>
+                      <span className="text-white font-medium">{funnel ? funnel.contacted : 0}</span>
                     </div>
                     <div className="flex items-center justify-between p-3 bg-slate-700/30 rounded-lg">
                       <span className="text-gray-300">Quoted</span>
-                      <span className="text-white font-medium">134 (54%)</span>
+                      <span className="text-white font-medium">{funnel ? funnel.quoted : 0}</span>
                     </div>
                     <div className="flex items-center justify-between p-3 bg-slate-700/30 rounded-lg">
                       <span className="text-gray-300">Converted</span>
-                      <span className="text-white font-medium">60 (24%)</span>
+                      <span className="text-white font-medium">{funnel ? funnel.converted : 0}</span>
                     </div>
                   </div>
                 </div>
@@ -243,34 +309,46 @@ const Analytics = memo(function Analytics() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  {recentProjects.map((project) => (
-                    <div key={project.id} className="p-4 bg-slate-700/30 rounded-lg">
-                      <div className="flex items-start justify-between mb-3">
-                        <div>
-                          <h3 className="font-semibold text-white mb-1">{project.title}</h3>
-                          <p className="text-gray-400 text-sm">Client: {project.client}</p>
+                  {projectsLoading && !projectsData ? (
+                    Array.from({ length: 3 }).map((_, index) => (
+                      <div key={index} className="p-4 bg-slate-700/30 rounded-lg animate-pulse h-20" />
+                    ))
+                  ) : !projectsData || projectsData.projects.length === 0 ? (
+                    <p className="text-gray-400 text-sm">
+                      No recent project analytics available yet.
+                    </p>
+                  ) : (
+                    projectsData.projects.map((project) => (
+                      <div key={project.id} className="p-4 bg-slate-700/30 rounded-lg">
+                        <div className="flex items-start justify-between mb-3">
+                          <div>
+                            <h3 className="font-semibold text-white mb-1">{project.title}</h3>
+                            {project.client && (
+                              <p className="text-gray-400 text-sm">Client: {project.client}</p>
+                            )}
+                          </div>
+                          <Badge className={getStatusColor(project.status)}>
+                            {project.status}
+                          </Badge>
                         </div>
-                        <Badge className={getStatusColor(project.status)}>
-                          {project.status}
-                        </Badge>
+                        
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+                          <div className="flex items-center gap-2 text-gray-300">
+                            <DollarSign className="w-4 h-4 text-emerald-400" />
+                            <span>Value: ${project.value.toLocaleString()}</span>
+                          </div>
+                          <div className="flex items-center gap-2 text-gray-300">
+                            <MapPin className="w-4 h-4 text-blue-400" />
+                            <span>{project.location || '—'}</span>
+                          </div>
+                          <div className="flex items-center gap-2 text-gray-300">
+                            <Calendar className="w-4 h-4 text-purple-400" />
+                            <span>{new Date(project.date).toLocaleDateString()}</span>
+                          </div>
+                        </div>
                       </div>
-                      
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
-                        <div className="flex items-center gap-2 text-gray-300">
-                          <DollarSign className="w-4 h-4 text-emerald-400" />
-                          <span>{project.value}</span>
-                        </div>
-                        <div className="flex items-center gap-2 text-gray-300">
-                          <MapPin className="w-4 h-4 text-blue-400" />
-                          <span>{project.location}</span>
-                        </div>
-                        <div className="flex items-center gap-2 text-gray-300">
-                          <Calendar className="w-4 h-4 text-purple-400" />
-                          <span>{project.date}</span>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
+                    ))
+                  )}
                 </div>
               </CardContent>
             </Card>

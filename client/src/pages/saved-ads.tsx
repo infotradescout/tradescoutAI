@@ -3,7 +3,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Bookmark, ExternalLink, X, Calendar } from "lucide-react";
+import { Bookmark, ExternalLink, X, Calendar, ThumbsUp, ThumbsDown, Ban } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Link } from "wouter";
 import { useEffect } from "react";
@@ -83,6 +83,18 @@ export default function SavedAds() {
 
   const handleRemove = (adId: string) => {
     removeMutation.mutate(adId);
+  };
+
+  const sendFeedback = async (adId: string, rating: "helpful" | "not_relevant" | "spam") => {
+    try {
+      await fetch("/api/ads/feedback", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ adId, rating, source: "saved" }),
+      });
+    } catch {
+      // best-effort only
+    }
   };
 
   if (authLoading) {
@@ -202,16 +214,49 @@ export default function SavedAds() {
                       Saved {new Date(ad.createdAt).toLocaleDateString()}
                     </div>
 
-                    {ad.linkUrl && (
-                      <Button 
-                        onClick={() => handleAdClick(ad)}
-                        className="bg-orange-500 hover:bg-orange-600 text-white"
-                        size="sm"
-                      >
-                        <ExternalLink className="h-4 w-4 mr-2" />
-                        Visit Link
-                      </Button>
-                    )}
+                    <div className="flex items-center gap-3">
+                      {ad.linkUrl && (
+                        <Button 
+                          onClick={() => handleAdClick(ad)}
+                          className="bg-orange-500 hover:bg-orange-600 text-white"
+                          size="sm"
+                        >
+                          <ExternalLink className="h-4 w-4 mr-2" />
+                          Visit Link
+                        </Button>
+                      )}
+
+                      <div className="flex items-center gap-1 text-xs text-gray-400">
+                        <span className="mr-1">Rate</span>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-6 w-6 text-green-500 hover:text-green-400"
+                          onClick={() => sendFeedback(ad.id, "helpful")}
+                          title="Helpful"
+                        >
+                          <ThumbsUp className="h-3 w-3" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-6 w-6 text-yellow-500 hover:text-yellow-400"
+                          onClick={() => sendFeedback(ad.id, "not_relevant")}
+                          title="Not relevant"
+                        >
+                          <ThumbsDown className="h-3 w-3" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-6 w-6 text-red-500 hover:text-red-400"
+                          onClick={() => sendFeedback(ad.id, "spam")}
+                          title="Spam or misleading"
+                        >
+                          <Ban className="h-3 w-3" />
+                        </Button>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </CardContent>

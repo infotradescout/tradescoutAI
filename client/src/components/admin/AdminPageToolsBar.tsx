@@ -93,8 +93,8 @@ export function AdminPageToolsBar() {
       {
         id: "admin-dashboard",
         label: "Admin Dashboard",
-        href: "/admin-dashboard",
-        description: "High-level platform overview",
+        href: "/admin/workspace",
+        description: "Ops workspace: stats, flags, and queues",
       },
       {
         id: "admin-panel",

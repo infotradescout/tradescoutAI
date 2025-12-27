@@ -3164,6 +3164,34 @@ export async function registerRoutes(app: any) {
     }
   });
 
+  // Ad feedback (Community Value Score input)
+  app.post("/api/ads/feedback", isAuthenticated, async (req: any, res: any) => {
+    try {
+      const { adId, rating, source } = (req.body ?? {}) as {
+        adId?: string;
+        rating?: "helpful" | "not_relevant" | "spam";
+        source?: "scout" | "site_visit" | "saved";
+      };
+
+      if (!adId || !rating || !source) {
+        return res.status(400).json({ message: "adId, rating, and source are required" });
+      }
+
+      const user = req.user as any;
+      const userId = (user as any)?.claims?.sub || (user as any)?.id;
+      if (!userId) {
+        return res.status(401).json({ message: "Authentication required" });
+      }
+
+      await storage.submitAdFeedback({ adId, userId, rating, source });
+      res.json({ success: true });
+    } catch (error: any) {
+      console.error("Error recording ad feedback:", error);
+      // Fail-soft: don't break UX if feedback fails
+      res.status(200).json({ success: false });
+    }
+  });
+
   // Save ad for later (authenticated users only)
   app.post("/api/ads/save", isAuthenticated, async (req: any, res: any) => {
     try {
@@ -4200,6 +4228,113 @@ export async function registerRoutes(app: any) {
     } catch (error: any) {
       console.error("Error fetching admin stats:", error);
       res.status(500).json({ message: "Failed to fetch stats" });
+    }
+  });
+
+  // Pro / Business analytics (contractor-facing)
+  app.get("/api/pro/analytics/summary", isAuthenticated, isContractor, async (req: any, res: any) => {
+    try {
+      const now = new Date();
+      const from = new Date(now);
+      from.setMonth(from.getMonth() - 1);
+
+      const rows = await storage.getPlatformAnalytics(from, now);
+
+      let totalRequests = 0;
+      let totalRevenue = 0;
+      let totalConversions = 0;
+
+      for (const row of rows as any[]) {
+        totalRequests += Number((row as any).listingsCreated || 0);
+        totalRevenue += Number((row as any).revenue || 0);
+        totalConversions += Number((row as any).transactionsCompleted || 0);
+      }
+
+      const conversionRate = totalRequests > 0 ? (totalConversions / totalRequests) * 100 : 0;
+
+      res.json({
+        totalRequests,
+        revenue: totalRevenue,
+        profileViews: 0,
+        conversionRate,
+      });
+    } catch (error: any) {
+      console.error("Error fetching pro analytics summary:", error);
+      res.status(500).json({ message: "Failed to fetch analytics summary" });
+    }
+  });
+
+  app.get("/api/pro/analytics/revenue-trend", isAuthenticated, isContractor, async (req: any, res: any) => {
+    try {
+      const now = new Date();
+      const from = new Date(now);
+      from.setMonth(from.getMonth() - 5);
+
+      const rows = await storage.getPlatformAnalytics(from, now);
+
+      const points = (rows as any[]).map((row) => {
+        const date = new Date((row as any).date);
+        const label = date.toLocaleString("en-US", { month: "short" });
+        const value = Number((row as any).revenue || 0);
+        return {
+          date: date.toISOString(),
+          label,
+          value,
+        };
+      });
+
+      res.json({ points });
+    } catch (error: any) {
+      console.error("Error fetching pro revenue trend:", error);
+      res.status(500).json({ message: "Failed to fetch revenue trend" });
+    }
+  });
+
+  app.get("/api/pro/analytics/sources", isAuthenticated, isContractor, async (_req: any, res: any) => {
+    try {
+      // Source-level breakdowns are not yet tracked; return an empty dataset with clear semantics.
+      res.json({ sources: [] });
+    } catch (error: any) {
+      console.error("Error fetching pro analytics sources:", error);
+      res.status(500).json({ message: "Failed to fetch analytics sources" });
+    }
+  });
+
+  app.get("/api/pro/analytics/projects", isAuthenticated, isContractor, async (_req: any, res: any) => {
+    try {
+      // Project-level analytics will be wired to real project tables; for now return an empty list.
+      res.json({ projects: [] });
+    } catch (error: any) {
+      console.error("Error fetching pro analytics projects:", error);
+      res.status(500).json({ message: "Failed to fetch analytics projects" });
+    }
+  });
+
+  app.get("/api/pro/analytics/funnel", isAuthenticated, isContractor, async (_req: any, res: any) => {
+    try {
+      const now = new Date();
+      const from = new Date(now);
+      from.setMonth(from.getMonth() - 1);
+
+      const rows = await storage.getPlatformAnalytics(from, now);
+
+      let requestsReceived = 0;
+      let converted = 0;
+
+      for (const row of rows as any[]) {
+        requestsReceived += Number((row as any).listingsCreated || 0);
+        converted += Number((row as any).transactionsCompleted || 0);
+      }
+
+      res.json({
+        requestsReceived,
+        contacted: 0,
+        quoted: 0,
+        converted,
+      });
+    } catch (error: any) {
+      console.error("Error fetching pro analytics funnel:", error);
+      res.status(500).json({ message: "Failed to fetch analytics funnel" });
     }
   });
 
@@ -7128,6 +7263,104 @@ export async function registerRoutes(app: any) {
     } catch (error: any) {
       console.error("Error updating verification:", error);
       res.status(400).json({ message: "Failed to update verification" });
+    }
+  });
+
+  // Admin Verification API (normalized view for Ops workspace)
+  app.get("/api/admin/verifications", isAuthenticated, isAdmin, async (req: any, res: any) => {
+    try {
+      const { type = 'all', status = 'pending' } = req.query;
+
+      const verifications = await storage.getVerifications({
+        type: (type as string) || 'all',
+        status: (status as string) || 'pending',
+      });
+
+      const now = new Date();
+
+      const normalized = (verifications || []).map((v: any) => {
+        const isVendor = Boolean((v as any).categoryId);
+
+        const submittedAt: string = (v.createdAt || v.submittedAt || v.updatedAt || now).toISOString();
+
+        // Derive document statuses from available fields
+        const hasLicense = Boolean(
+          (v as any).businessLicenseUrl ||
+          (v as any).businessLicenseNumber
+        );
+
+        let insuranceStatus: boolean | 'expires_soon' = false;
+        const insuranceExpiry = (v as any).insuranceExpiry ? new Date((v as any).insuranceExpiry) : null;
+        if ((v as any).insuranceCertificateUrl || insuranceExpiry) {
+          if (insuranceExpiry) {
+            const diffDays = (insuranceExpiry.getTime() - now.getTime()) / (1000 * 60 * 60 * 24);
+            insuranceStatus = diffDays <= 30 ? 'expires_soon' : true;
+          } else {
+            insuranceStatus = true;
+          }
+        }
+
+        const hasId = Boolean((v as any).identityDocumentUrl || (v as any).identityVerified);
+
+        return {
+          id: v.id,
+          kind: isVendor ? 'vendor' : 'buyer',
+          status: v.status,
+          userId: v.userId,
+          companyName: isVendor ? (v.businessName || null) : null,
+          trade: null,
+          serviceArea: null,
+          licenseNumber: isVendor ? (v.businessLicenseNumber || null) : null,
+          submittedAt,
+          documents: {
+            license: hasLicense,
+            insurance: insuranceStatus,
+            id: hasId,
+          },
+        };
+      });
+
+      res.json(normalized);
+    } catch (error: any) {
+      console.error("Error fetching admin verifications:", error);
+      res.status(500).json({ message: "Failed to fetch admin verifications" });
+    }
+  });
+
+  app.post("/api/admin/verifications/:id/actions", isAuthenticated, isAdmin, async (req: any, res: any) => {
+    try {
+      const { id } = req.params;
+      const { action, reason } = req.body as { action: string; reason?: string };
+      const user = req.user as any;
+
+      if (!['approve', 'reject', 'request_update'].includes(action)) {
+        return res.status(400).json({ message: "Invalid action" });
+      }
+
+      const updates: any = {
+        reviewedBy: user?.id,
+        reviewedAt: new Date(),
+        updatedAt: new Date(),
+      };
+
+      if (action === 'approve') {
+        updates.status = 'approved';
+        updates.rejectionReason = null;
+      } else if (action === 'reject') {
+        updates.status = 'rejected';
+        updates.rejectionReason = reason || 'Rejected by admin';
+      } else if (action === 'request_update') {
+        updates.status = 'in_review';
+        if (reason) {
+          updates.adminNotes = reason;
+        }
+      }
+
+      const verification = await storage.updateVerification(id, updates);
+      res.json(verification);
+    } catch (error: any) {
+      console.error("Error processing admin verification action:", error);
+      res.status(400).json({ message: "Failed to process verification action" });
     }
   });
 
