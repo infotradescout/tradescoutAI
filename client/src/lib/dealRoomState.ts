@@ -43,7 +43,8 @@ export function deriveDealRoomState(
 	if (!documents.length) {
 		return {
 			stage: "EMPTY",
-			waitingOn: "No documents yet for this project.",
+			waitingOn:
+				"Track any documents related to this project. Start by creating a material list, estimate, contract, or invoice—whatever makes sense first.",
 			latestByType: {},
 			canApproveEstimate: false,
 			canSignContract: false,
@@ -63,7 +64,8 @@ export function deriveDealRoomState(
 	let stage: DealRoomStage = "EMPTY";
 	let waitingOn = "";
 
-	// Simple pipeline: material list → estimate → contract → invoice → receipt
+	// We still derive a "stage" to summarize where things stand,
+	// but documents can be created in any order.
 	if (receipt) {
 		stage = "RECEIPT";
 		waitingOn = "This project has a receipt issued.";
@@ -105,7 +107,8 @@ export function deriveDealRoomState(
 		}
 	} else {
 		stage = "EMPTY";
-		waitingOn = "No documents yet for this project.";
+		waitingOn =
+			"Track any documents related to this project. Start by creating a material list, estimate, contract, or invoice—whatever makes sense first.";
 	}
 
 	const canApproveEstimate =

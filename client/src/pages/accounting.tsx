@@ -691,13 +691,25 @@ export default function AccountingWorkspace() {
 
       <div className="flex-1 space-y-6">
         <section id="finances-dashboard" className="space-y-4">
-          <div className="mb-4">
-            <h1 className="text-2xl md:text-3xl font-semibold text-slate-50 mb-1">
-              Dashboard
-            </h1>
-            <p className="text-sm text-slate-400">
-              Welcome back! Here's an overview of your contracting business.
-            </p>
+          <div className="mb-4 flex items-center justify-between gap-3">
+            <div>
+              <h1 className="text-2xl md:text-3xl font-semibold text-slate-50 mb-1">
+                Dashboard
+              </h1>
+              <p className="text-sm text-slate-400">
+                Welcome back! Here's an overview of your contracting business.
+              </p>
+            </div>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="default"
+                size="sm"
+                className="h-8 px-3 text-[11px]"
+                onClick={() => navigate("/finances/invoices")}
+              >
+                New invoice
+              </Button>
+            </div>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">

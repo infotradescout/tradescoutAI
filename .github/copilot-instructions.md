@@ -163,6 +163,25 @@ and expose:
 
 Never give mock data, placeholders or stubs in production code. Always use real data fetching and handling patterns.
 always fix problems, dont remove just because they are hard to fix
+always use the best ai model for each task
+
+---
+
+## 9. Pilot user rollout (community-first & future changes)
+
+- All new behavioral or UX changes MUST roll out to the pilot account first:
+  - Pilot user (by email): `traderscornerllc@gmail.com`.
+- Implementation pattern:
+  - Server-side: expose a truthy flag on the auth payload (e.g. `user.communityFirst`, `user.isPilotX`) derived from an allowlist in the API layer (not from localStorage or client-only checks).
+  - Client-side: branch on that flag so that:
+    - Pilot user sees the new behavior (routing, layout, empty states, copy, etc.).
+    - All other users keep existing behavior until an explicit decision to graduate the feature.
+- When graduating a feature from pilot to general availability:
+  - Invert or remove the pilot gate so the new behavior becomes the default.
+  - Keep the pilot flag wiring available for future experiments unless explicitly retired.
+- Do NOT:
+  - Introduce per-feature pilots based solely on client heuristics.
+  - Change production behavior for all users without first wiring and testing it through the pilot account.
 
 # Copilot Instructions for TradeScout
 

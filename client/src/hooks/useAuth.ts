@@ -43,6 +43,7 @@ export interface User {
   originalRole?: string;
   createdAt?: string | Date;
   updatedAt?: string | Date;
+  communityFirst?: boolean;
 }
 
 export function useAuth() {
