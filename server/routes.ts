@@ -12316,6 +12316,20 @@ export async function registerRoutes(app: any) {
     }
   });
 
+  // 1b. VERSION ENDPOINT (backend build metadata)
+  app.get("/api/version", (req: Request, res: Response) => {
+    // Prefer explicit build metadata from env when available
+    const commit = process.env.BUILD_COMMIT || process.env.VERCEL_GIT_COMMIT_SHA || process.env.RENDER_GIT_COMMIT || "unknown";
+    const builtAt = process.env.BUILD_AT || process.env.VERCEL_BUILD_TIME || undefined;
+
+    res.json({
+      service: "tradescout-backend",
+      commit,
+      builtAt: builtAt || undefined,
+      env: process.env.NODE_ENV || "development",
+    });
+  });
+
   // 2. MESSAGING API - Basic endpoints (real-time via WebSocket in WebSocketManager)
   app.post("/api/conversations", isAuthenticated, async (req: AuthedRequest, res: Response) => {
     try {
