@@ -268,6 +268,27 @@ const CommunityFeed = memo(function CommunityFeed() {
     },
   });
 
+  const isSuperAdmin = Boolean((user as any)?.isSuperAdmin);
+
+  const { data: globalPostsData, isLoading: globalPostsLoading } = useQuery<Post[]>({
+    queryKey: [
+      "/api/community/posts",
+      "global",
+    ],
+    enabled: isSuperAdmin && activeTab === "all",
+    queryFn: async () => {
+      const params = new URLSearchParams({
+        scope: "all",
+        limit: "50",
+        offset: "0",
+      });
+
+      const response = await fetch(`/api/community/posts?${params.toString()}`);
+      if (!response.ok) throw new Error("Failed to fetch posts");
+      return response.json();
+    },
+  });
+
   // Create post mutation
   const createPostMutation = useMutation({
     mutationFn: async (postData: { content: string; title?: string }) => {
@@ -314,7 +335,8 @@ const CommunityFeed = memo(function CommunityFeed() {
   };
 
   // Use real posts from API, with sample posts as fallback
-  const posts = postsData || [];
+  const activePostsSource = isSuperAdmin && activeTab === "all" ? globalPostsData : postsData;
+  const posts = activePostsSource || [];
 
   const { data: communityStatsData } = useQuery<CommunityStats>({
     queryKey: ['/api/community/stats'],
@@ -577,6 +599,9 @@ const CommunityFeed = memo(function CommunityFeed() {
                 <TabsTrigger value="recent" className="flex-1 rounded-full data-[state=active]:bg-orange-500 data-[state=active]:text-slate-950 data-[state=inactive]:text-slate-300 text-xs md:text-sm">Recent</TabsTrigger>
                 <TabsTrigger value="nearby" className="flex-1 rounded-full data-[state=active]:bg-orange-500 data-[state=active]:text-slate-950 data-[state=inactive]:text-slate-300 text-xs md:text-sm">Nearby</TabsTrigger>
                 <TabsTrigger value="trending" className="flex-1 rounded-full data-[state=active]:bg-orange-500 data-[state=active]:text-slate-950 data-[state=inactive]:text-slate-300 text-xs md:text-sm">Trending</TabsTrigger>
+                {isSuperAdmin && (
+                  <TabsTrigger value="all" className="flex-1 rounded-full data-[state=active]:bg-orange-500 data-[state=active]:text-slate-950 data-[state=inactive]:text-slate-300 text-xs md:text-sm">All</TabsTrigger>
+                )}
               </TabsList>
               {/* Inline composer always visible at top of feed */}
               <Card className="bg-[color:var(--surface-card)] border border-[color:var(--border-subtle)] shadow-sm mb-3 md:mb-5 md:sticky md:top-16">

@@ -27,6 +27,8 @@ import { useToast } from "@/hooks/use-toast";
 import { HelperProfileModal } from "@/components/HelperProfileModal";
 import type { Worker, Task, TaskCategory } from "@shared/schema";
 
+type EnrichedTask = Task & { posterName?: string };
+
 export default function Helpers() {
   const { user, isAuthenticated } = useAuth();
   const { toast } = useToast();
@@ -56,12 +58,13 @@ export default function Helpers() {
   });
 
   // Fetch tasks
-  const { data: tasks, isLoading: tasksLoading } = useQuery<Task[]>({
+  const { data: tasks, isLoading: tasksLoading } = useQuery<EnrichedTask[]>({
     queryKey: ['/api/tasks', selectedCategory, locationFilter],
     queryFn: async () => {
       const params = new URLSearchParams();
       if (selectedCategory) params.append('category', selectedCategory);
       if (locationFilter) params.append('location', locationFilter);
+      if (user) params.append('radiusMiles', '50');
       
       const response = await fetch(`/api/tasks?${params.toString()}`);
       if (!response.ok) throw new Error('Failed to fetch tasks');
@@ -426,10 +429,14 @@ export default function Helpers() {
               filteredTasks.map((task) => (
                 <Card key={task.id} className="bg-tsCard border-tsBorder hover:border-orange-500/50 transition-colors">
                   <CardContent className="p-6">
-                    <div className="flex items-start justify-between mb-4">
+                    <div className="flex items-start justify-between mb-1">
                       <h3 className="font-semibold text-white text-lg">{task.title}</h3>
                       {getUrgencyBadge('standard')}
                     </div>
+
+                    <p className="text-xs text-gray-400 mb-3">
+                      Posted by {task.posterName || 'Neighbor'}
+                    </p>
 
                     <p className="text-gray-300 mb-4 line-clamp-3">{task.description}</p>
 
