@@ -272,10 +272,11 @@ export default function ScoutOS() {
     user?.zip,
   ]);
 
-  // Log a lightweight "intro_shown" event the first time the Scout
-  // surface renders without any prior messages. This lets us measure
-  // how often users see the onboarding hero without relying on LLM
-  // content or extra UI state.
+  const hasMessages = state.messages.length > 0;
+
+  // Log a lightweight "intro_shown" event the first time the Scout surface
+  // renders without any prior messages. Keep hasMessages above this effect to
+  // avoid TDZ issues in production builds.
   useEffect(() => {
     if (!hasMessages && !hasLoggedIntroRef.current) {
       recordActivity({
@@ -310,8 +311,6 @@ export default function ScoutOS() {
     state.status === "resolving_context" ||
     state.status === "checking_documents" ||
     state.status === "executing_action";
-
-  const hasMessages = state.messages.length > 0;
 
   // Watchdog: force idle state after 12 seconds if still busy
   // This ensures no user can ever be stuck, even if an API fails silently
@@ -386,32 +385,6 @@ export default function ScoutOS() {
       setPrefillKey((k) => k + 1);
     }
   }, [isFirstGuestVisit]);
-
-  // Auto-consume one-time onboarding marker set by post-signup/dashboard flows.
-  // If present on first clean /scout load (no prior user messages and no intro
-  // demo), send the onboarding token directly so the intent detector routes
-  // into the "What are you here to do today?" chooser without requiring a
-  // manual keypress. Marker is cleared immediately so this is strictly
-  // one-time unless explicitly re-set.
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    if (!location.startsWith("/scout")) return;
-
-    const hasUserMsgs = state.messages.some((m) => m.role === "user");
-    if (hasUserMsgs) return;
-    if (shouldPlayIntroDemo) return;
-
-    try {
-      const marker = window.localStorage.getItem("scout:prefill:scout-main");
-      if (marker === "__SCOUT_ONBOARDING__") {
-        window.localStorage.removeItem("scout:prefill:scout-main");
-        setPrefillKey((k) => k + 1);
-        void handleSend("__SCOUT_ONBOARDING__");
-      }
-    } catch {
-      // ignore storage errors
-    }
-  }, [location, state.messages, shouldPlayIntroDemo, handleSend, setPrefillKey]);
 
   // Load public config (first intro appendix text) once
   useEffect(() => {
@@ -1357,6 +1330,32 @@ export default function ScoutOS() {
       userRoles,
     ]
   );
+
+  // Auto-consume one-time onboarding marker set by post-signup/dashboard flows.
+  // If present on first clean /scout load (no prior user messages and no intro
+  // demo), send the onboarding token directly so the intent detector routes
+  // into the "What are you here to do today?" chooser without requiring a
+  // manual keypress. Marker is cleared immediately so this is strictly
+  // one-time unless explicitly re-set.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (!location.startsWith("/scout")) return;
+
+    const hasUserMsgs = state.messages.some((m) => m.role === "user");
+    if (hasUserMsgs) return;
+    if (shouldPlayIntroDemo) return;
+
+    try {
+      const marker = window.localStorage.getItem("scout:prefill:scout-main");
+      if (marker === "__SCOUT_ONBOARDING__") {
+        window.localStorage.removeItem("scout:prefill:scout-main");
+        setPrefillKey((k) => k + 1);
+        void handleSend("__SCOUT_ONBOARDING__");
+      }
+    } catch {
+      // ignore storage errors
+    }
+  }, [location, state.messages, shouldPlayIntroDemo, handleSend, setPrefillKey]);
 
   // Intro demo typing is handled by ScoutInput; we only supply
   // session-scoped enable flag and the demo text.
