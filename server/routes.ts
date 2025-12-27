@@ -420,11 +420,21 @@ export async function registerRoutes(app: any) {
       user.isSuperAdmin === true ||
       Boolean(primaryRole && ["super_admin", "head_admin"].includes(primaryRole));
 
+    const hasCanonicalLocation =
+      typeof (user as any).stateCode === "string" &&
+      (user as any).stateCode.length === 2 &&
+      typeof (user as any).countyFips === "string" &&
+      (user as any).countyFips.length === 5;
+
     return {
       ...user,
       badges: computeBadgesForUser(user),
       isAdmin: computedIsAdmin,
       isSuperAdmin: computedIsSuperAdmin,
+      // Canonical flag for whether this account has a committed
+      // county-level location. All UX prompts should key off this,
+      // not off ad-hoc context checks.
+      locationCommitted: hasCanonicalLocation,
       password: undefined,
     };
   };

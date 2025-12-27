@@ -3,6 +3,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { UserBadges } from "@/components/user-badges";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { USER_TYPES } from "@shared/userTypes";
 import { getUserColorScheme } from "@shared/colorPresets";
@@ -33,46 +34,6 @@ type OwnedProfile = {
 };
 
 const COMMUNITY_BUILDER_BADGE_LABEL = "Community Builder Badge";
-
-function renderUserBadge(badge: string) {
-  const lower = badge.toLowerCase();
-
-  let backgroundClass = "bg-slate-700";
-  let textClass = "text-white";
-  let Icon: React.ComponentType<any> = Award;
-  let labelText = badge;
-
-  if (badge.startsWith("Founder")) {
-    backgroundClass = "bg-emerald-500";
-    Icon = Award;
-  } else if (lower.includes("community builder")) {
-    backgroundClass = "bg-orange-500";
-    Icon = Award;
-    labelText = "Community Builder";
-  } else if (lower.includes("affiliate")) {
-    backgroundClass = "bg-purple-600";
-    Icon = Share2;
-  } else if (lower.includes("hoa")) {
-    backgroundClass = "bg-sky-600";
-    Icon = Building;
-  } else if (lower.includes("admin") || lower.includes("moderator")) {
-    backgroundClass = "bg-rose-600";
-    Icon = Shield;
-  } else {
-    backgroundClass = "bg-tsAccent";
-    Icon = Star;
-  }
-
-  return (
-    <Badge
-      key={badge}
-      className={`${backgroundClass} ${textClass} px-3 py-1 flex items-center gap-1`}
-    >
-      <Icon className="h-3 w-3" />
-      <span>{labelText}</span>
-    </Badge>
-  );
-}
 
 export default function ProfilePage() {
   const { user } = useAuth();
@@ -246,8 +207,14 @@ export default function ProfilePage() {
 
               {showBadges && (badges.length > 0 || hasCommunityBuilder) && (
                 <div className="flex flex-wrap gap-2 mt-2">
-                  {hasCommunityBuilder && renderUserBadge(COMMUNITY_BUILDER_BADGE_LABEL)}
-                  {distinctBadges.map((badge: string) => renderUserBadge(badge))}
+                  <UserBadges
+                    badges={[
+                      ...(hasCommunityBuilder ? [COMMUNITY_BUILDER_BADGE_LABEL] : []),
+                      ...distinctBadges,
+                    ]}
+                    size="md"
+                    maxVisible={4}
+                  />
                 </div>
               )}
 

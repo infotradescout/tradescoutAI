@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useLocationContext, hasCountyContext, type LocationContext } from "@/hooks/useLocationContext";
 import { recordActivity } from "../agent/activity";
+import { useAuth } from "@/hooks/useAuth";
 
 interface CountyRequiredGateProps {
   locationOverride?: LocationContext | null;
@@ -16,11 +17,18 @@ interface CountyRequiredGateProps {
  * CTA that routes to Settings → Location. Otherwise renders children.
  */
 export function CountyRequiredGate({ locationOverride, children, surface }: CountyRequiredGateProps) {
+  const { user } = useAuth() as any;
+  // Canonical gate: user-level committed location, not ad-hoc context
+  const hasCanonicalLocation = !!(
+    user &&
+    (((user as any).locationCommitted as boolean | undefined) ||
+      (((user as any).stateCode && (user as any).countyFips)))
+  );
+
   const ctx = locationOverride ?? useLocationContext();
-  const countyCommitted = hasCountyContext(ctx);
 
   useEffect(() => {
-    if (countyCommitted) return;
+    if (hasCanonicalLocation) return;
 
     const surf = surface || "unknown";
 
@@ -46,9 +54,9 @@ export function CountyRequiredGate({ locationOverride, children, surface }: Coun
     } catch {
       // Ignore storage/telemetry failures.
     }
-  }, [countyCommitted, surface]);
+  }, [hasCanonicalLocation, surface]);
 
-  if (countyCommitted) {
+  if (hasCanonicalLocation) {
     return <>{children}</>;
   }
 

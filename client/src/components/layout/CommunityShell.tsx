@@ -38,12 +38,18 @@ export const CommunityShell: React.FC<CommunityShellProps> = ({
 
   // Track shell usage for analytics only
   React.useEffect(() => {
+    const u: any = user;
+    const locationSet = !!(
+      u &&
+      (u.locationCommitted || (u.stateCode && u.countyFips))
+    );
+
     trackShellEvent({
       type: "community_shell_load",
       path: location,
       deviceType: getDeviceType(),
       hasUnreadNotifications: notificationsCount > 0,
-      locationSet: !!(user && ((user as any).location || (user as any).county)),
+      locationSet,
     });
   }, [location, notificationsCount, user]);
 
