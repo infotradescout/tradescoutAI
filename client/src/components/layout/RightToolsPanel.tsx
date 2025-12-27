@@ -78,7 +78,7 @@ const ActionButton = ({
   <button
     type="button"
     onClick={onClick}
-    className="w-full text-left flex flex-col gap-1 rounded-xl border transition-colors"
+    className="w-full text-left flex flex-col gap-1 rounded-xl border transition-colors focus:outline-none focus-visible:outline-none"
     style={{
       borderColor: 'var(--border-primary)',
       backgroundColor: 'var(--surface-intermediate)',

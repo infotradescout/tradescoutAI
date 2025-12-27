@@ -1226,7 +1226,7 @@ export default function Help() {
             {
               question: "What is Scout on TradeScout?",
               answer:
-                "Scout is TradeScout's built-in assistant that helps users understand what they can do next, find or offer services, use tools step-by-step, and see what's happening locally.",
+                "Scout is TradeScout's built-in helper that runs the site day-to-day. It helps people understand what they can do next, find or offer services, use tools step-by-step, and see what's happening locally.",
             },
             {
               question: "Who is TradeScout for?",

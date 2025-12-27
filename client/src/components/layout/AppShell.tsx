@@ -111,6 +111,7 @@ export function AppShell({ children, footer }: AppShellProps) {
   const [isToolsOpen, setIsToolsOpen] = useState(false);
   const handedness = useHandedness();
   const [location, navigate] = useLocation();
+  const isScoutSurface = location === "/" || location.startsWith("/scout");
 
   // Mobile hero content for context/messaging/CTAs
   const renderMobileHero = () => (
@@ -349,8 +350,9 @@ export function AppShell({ children, footer }: AppShellProps) {
         </aside>
       )}
 
-      {/* Super admin tools bar appears on every page for high-level roles */}
-      <AdminPageToolsBar />
+        {/* Super admin tools bar appears on app surfaces, but never on
+          public or onboarding Scout surfaces to avoid confusion. */}
+        {!isScoutSurface && <AdminPageToolsBar />}
 
       {/* BOTTOM BAR: SCROLLABLE SITE FEATURE NAV (mobile + desktop) */}
       <div style={{ position: 'fixed', left: 0, right: 0, bottom: 0, zIndex: 1000 }}>

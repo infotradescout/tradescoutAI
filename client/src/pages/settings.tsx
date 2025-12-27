@@ -38,6 +38,7 @@ import {
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
+import { StateCountySelector } from "@/components/state-county-selector";
 import DragDropNavigationPreferences from "@/components/navigation/DragDropNavigationPreferences";
 import { NotificationPreferences as NotificationPreferencesDialog } from "@/components/ui/notification-preferences";
 import { registerPushNotifications, unregisterPushSubscription } from "@/lib/pushNotifications";
@@ -48,10 +49,14 @@ import { ACCOUNT_CREATION_USER_TYPES } from "@shared/userTypes";
 type HandednessPreference = "right" | "left";
 
 export default function Settings() {
-  const { user } = useAuth();
+  const { user, refetch } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const [locationStateCode, setLocationStateCode] = useState<string>((user as any)?.stateCode || "");
+  const [locationCountyFips, setLocationCountyFips] = useState<string>((user as any)?.countyFips || "");
+  const [locationCountyName, setLocationCountyName] = useState<string>((user as any)?.countyName || (user as any)?.county || "");
 
   const defaultTab = useMemo(() => {
     if (typeof window === 'undefined') return 'profile';
@@ -258,6 +263,36 @@ export default function Settings() {
     });
   };
 
+  const updateLocationMutation = useMutation({
+    mutationFn: async (payload: { stateCode: string; countyFips: string; countyName?: string }) => {
+      return apiRequest("PUT", "/api/user/profile", {
+        stateCode: payload.stateCode,
+        countyFips: payload.countyFips,
+        countyName: payload.countyName,
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
+      // Ensure auth user and any location-aware hooks see the new values immediately
+      try {
+        refetch?.();
+      } catch {
+        // ignore refetch failures; invalidateQueries will still refresh eventually
+      }
+      toast({
+        title: "Location Saved",
+        description: "Your location settings were updated.",
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to update location. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
+
   const saveRoles = () => {
     if (selectedRoles.length === 0) {
       toast({
@@ -457,53 +492,13 @@ export default function Settings() {
               <TabsTrigger value="tools" className="data-[state=active]:bg-orange-500 data-[state=active]:text-white transition-all rounded-lg">
                 Financial Tools
               </TabsTrigger>
-                        {/* Financial Tools List */}
-                        <TabsContent value="tools">
-                          <Card className="bg-tsCard border-tsBorder shadow-xl">
-                            <CardHeader className="border-b border-tsBorder pb-6">
-                              <div className="flex items-center gap-3">
-                                <div className="h-10 w-10 bg-orange-500/20 rounded-lg flex items-center justify-center">
-                                  <Wrench className="w-5 h-5 text-orange-500" />
-                                </div>
-                                <div>
-                                  <CardTitle className="text-xl text-white">Financial Tools</CardTitle>
-                                  <p className="text-sm text-slate-400 mt-1">Quick access to calculators and helpers for your finances.</p>
-                                </div>
-                              </div>
-                            </CardHeader>
-                            <CardContent className="space-y-6 pt-6">
-                              <div className="space-y-4">
-                                <div className="flex flex-col md:flex-row md:items-center md:gap-6">
-                                  <div className="flex-1">
-                                    <h3 className="text-white font-semibold text-lg mb-1">Invoice Calculator</h3>
-                                    <p className="text-sm text-slate-400 mb-2">Check payment math and totals for your invoices.</p>
-                                    <a href="/tools/invoice-calculator" className="text-orange-400 underline hover:text-orange-300 text-sm">Open Invoice Calculator</a>
-                                  </div>
-                                </div>
-                                <div className="flex flex-col md:flex-row md:items-center md:gap-6">
-                                  <div className="flex-1">
-                                    <h3 className="text-white font-semibold text-lg mb-1">Estimate Calculator</h3>
-                                    <p className="text-sm text-slate-400 mb-2">Double-check your job estimates before sending.</p>
-                                    <a href="/tools/estimate-calculator" className="text-orange-400 underline hover:text-orange-300 text-sm">Open Estimate Calculator</a>
-                                  </div>
-                                </div>
-                                <div className="flex flex-col md:flex-row md:items-center md:gap-6">
-                                  <div className="flex-1">
-                                    <h3 className="text-white font-semibold text-lg mb-1">Expense Helper</h3>
-                                    <p className="text-sm text-slate-400 mb-2">Split, categorize, or review your expenses for better tracking.</p>
-                                    <a href="/tools/expense-helper" className="text-orange-400 underline hover:text-orange-300 text-sm">Open Expense Helper</a>
-                                  </div>
-                                </div>
-                              </div>
-                            </CardContent>
-                          </Card>
-                        </TabsContent>
             </TabsList>
 
             {/* Profile Settings */}
             <TabsContent value="profile">
-              <Card className="bg-tsCard border-tsBorder shadow-xl">
-                <CardHeader className="border-b border-tsBorder pb-6">
+              <div className="space-y-6">
+                <Card className="bg-tsCard border-tsBorder shadow-xl">
+                  <CardHeader className="border-b border-tsBorder pb-6">
                   <div className="flex items-center gap-3">
                     <div className="h-10 w-10 bg-orange-500/20 rounded-lg flex items-center justify-center">
                       <User className="w-5 h-5 text-orange-500" />
@@ -513,8 +508,8 @@ export default function Settings() {
                       <p className="text-sm text-slate-400 mt-1">Update your personal details and profile</p>
                     </div>
                   </div>
-                </CardHeader>
-                <CardContent className="space-y-8 pt-6">
+                  </CardHeader>
+                  <CardContent className="space-y-8 pt-6">
                   {/* Profile Photo Section */}
                   <div className="flex items-center gap-6 pb-6 border-b border-tsBorder">
                     <div className="h-20 w-20 bg-gradient-to-br from-orange-500 to-orange-600 rounded-full flex items-center justify-center text-white text-2xl font-bold shadow-lg">
@@ -613,8 +608,63 @@ export default function Settings() {
                       Cancel
                     </Button>
                   </div>
-                </CardContent>
-              </Card>
+                  </CardContent>
+                </Card>
+
+                <Card className="bg-tsCard border-tsBorder shadow-xl">
+                  <CardHeader className="border-b border-tsBorder pb-6">
+                    <div className="flex items-center gap-3">
+                      <div className="h-10 w-10 bg-orange-500/20 rounded-lg flex items-center justify-center">
+                        <Globe className="w-5 h-5 text-orange-500" />
+                      </div>
+                      <div>
+                        <CardTitle className="text-xl text-white">Location</CardTitle>
+                        <p className="text-sm text-slate-400 mt-1">
+                          Set your home state and county. This powers local community, marketplace, and HOA experiences.
+                        </p>
+                      </div>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="space-y-6 pt-6">
+                    <div className="space-y-2">
+                      <Label className="text-white font-medium">Home region</Label>
+                      <p className="text-xs text-slate-400">
+                        Scout uses this location to unlock county-gated pages and match you with the right local feeds.
+                      </p>
+                    </div>
+                    <StateCountySelector
+                      selectedState={locationStateCode}
+                      selectedCounty={locationCountyFips}
+                      onStateChange={(code) => {
+                        setLocationStateCode(code);
+                        setLocationCountyFips("");
+                        setLocationCountyName("");
+                      }}
+                      onCountyChange={(fips) => setLocationCountyFips(fips)}
+                      onCountySelected={(county) => setLocationCountyName(county?.name || "")}
+                      disabled={updateLocationMutation.isPending}
+                    />
+                    <div className="flex items-center justify-between gap-3 pt-4 border-t border-tsBorder flex-col sm:flex-row">
+                      <p className="text-xs text-slate-500 max-w-xl">
+                        Device location (when shared) helps Scout understand what&apos;s nearby, but your saved county is what unlocks local experiences.
+                      </p>
+                      <Button
+                        className="bg-orange-500 hover:bg-orange-600 text-white px-6 shadow-lg w-full sm:w-auto"
+                        disabled={updateLocationMutation.isPending || !locationStateCode || !locationCountyFips}
+                        onClick={() =>
+                          updateLocationMutation.mutate({
+                            stateCode: locationStateCode,
+                            countyFips: locationCountyFips,
+                            countyName: locationCountyName,
+                          })
+                        }
+                      >
+                        {updateLocationMutation.isPending ? 'Saving…' : 'Save Location'}
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
             </TabsContent>
 
             {/* Navigation Settings */}
@@ -1159,6 +1209,48 @@ export default function Settings() {
                     >
                       {privacy.twoFactorEnabled ? 'Disable 2FA' : 'Enable 2FA'}
                     </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            {/* Financial Tools List */}
+            <TabsContent value="tools">
+              <Card className="bg-tsCard border-tsBorder shadow-xl">
+                <CardHeader className="border-b border-tsBorder pb-6">
+                  <div className="flex items-center gap-3">
+                    <div className="h-10 w-10 bg-orange-500/20 rounded-lg flex items-center justify-center">
+                      <Wrench className="w-5 h-5 text-orange-500" />
+                    </div>
+                    <div>
+                      <CardTitle className="text-xl text-white">Financial Tools</CardTitle>
+                      <p className="text-sm text-slate-400 mt-1">Quick access to calculators and helpers for your finances.</p>
+                    </div>
+                  </div>
+                </CardHeader>
+                <CardContent className="space-y-6 pt-6">
+                  <div className="space-y-4">
+                    <div className="flex flex-col md:flex-row md:items-center md:gap-6">
+                      <div className="flex-1">
+                        <h3 className="text-white font-semibold text-lg mb-1">Invoice Calculator</h3>
+                        <p className="text-sm text-slate-400 mb-2">Check payment math and totals for your invoices.</p>
+                        <a href="/tools/invoice-calculator" className="text-orange-400 underline hover:text-orange-300 text-sm">Open Invoice Calculator</a>
+                      </div>
+                    </div>
+                    <div className="flex flex-col md:flex-row md:items-center md:gap-6">
+                      <div className="flex-1">
+                        <h3 className="text-white font-semibold text-lg mb-1">Estimate Calculator</h3>
+                        <p className="text-sm text-slate-400 mb-2">Double-check your job estimates before sending.</p>
+                        <a href="/tools/estimate-calculator" className="text-orange-400 underline hover:text-orange-300 text-sm">Open Estimate Calculator</a>
+                      </div>
+                    </div>
+                    <div className="flex flex-col md:flex-row md:items-center md:gap-6">
+                      <div className="flex-1">
+                        <h3 className="text-white font-semibold text-lg mb-1">Expense Helper</h3>
+                        <p className="text-sm text-slate-400 mb-2">Split, categorize, or review your expenses for better tracking.</p>
+                        <a href="/tools/expense-helper" className="text-orange-400 underline hover:text-orange-300 text-sm">Open Expense Helper</a>
+                      </div>
+                    </div>
                   </div>
                 </CardContent>
               </Card>

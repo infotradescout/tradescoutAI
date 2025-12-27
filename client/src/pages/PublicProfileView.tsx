@@ -4,8 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { getUserColorScheme } from "@shared/colorPresets";
-import { applyTheme, type Theme } from "@/lib/themes";
-import { useTheme } from "@/contexts/ThemeContext";
+import { ThemeScope } from "@/components/theme/ThemeScope";
 import { USER_TYPES } from "@shared/userTypes";
 import {
   MapPin,
@@ -121,14 +120,7 @@ export default function PublicProfileView() {
   const [sellerProducts, setSellerProducts] = useState<SellerProductSummary[]>([]);
   const [sellerRatings, setSellerRatings] = useState<SellerRatingsSummary | null>(null);
   const [communityPosts, setCommunityPosts] = useState<CommunityPostSummary[]>([]);
-  const { currentTheme } = useTheme();
-  const viewerThemeRef = useRef<Theme | null>(currentTheme);
-
-  // Keep the viewer's theme up to date so we can restore it
-  // after temporarily applying a creator's profile colors.
-  useEffect(() => {
-    viewerThemeRef.current = currentTheme;
-  }, [currentTheme]);
+  const profileThemeIdRef = useRef<string | null>(null);
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -149,37 +141,12 @@ export default function PublicProfileView() {
         const data = await response.json();
         setProfile(data);
 
-        // Apply the profile owner's color scheme as the active theme
-        // so visitors see their branding on this page.
-        if (data.preferences?.colorScheme) {
-          const colorScheme = getUserColorScheme(data.preferences);
-
-          const themeFromProfile: Theme = {
-            id: "profile-public",
-            name: "Profile Color Scheme",
-            description: "Public profile colors",
-            colors: {
-              bgPrimary: colorScheme.background,
-              bgSecondary: colorScheme.background,
-              bgTertiary: colorScheme.secondary || colorScheme.background,
-              textPrimary: colorScheme.text,
-              textSecondary: colorScheme.text,
-              accentPrimary: colorScheme.primary,
-              accentSecondary: colorScheme.secondary || colorScheme.primary,
-              borderPrimary: colorScheme.border || colorScheme.background,
-              borderSecondary: colorScheme.secondary || colorScheme.background,
-            },
-          };
-
-          applyTheme(themeFromProfile);
-
-          const root = document.documentElement;
-          root.style.setProperty("--user-primary", colorScheme.primary);
-          root.style.setProperty("--user-secondary", colorScheme.secondary);
-          root.style.setProperty("--user-background", colorScheme.background);
-          root.style.setProperty("--user-text", colorScheme.text);
-          root.style.setProperty("--user-accent", colorScheme.accent || colorScheme.primary);
-          root.style.setProperty("--user-border", colorScheme.border || colorScheme.background);
+        if (data.preferences?.themeId && typeof data.preferences.themeId === "string") {
+          profileThemeIdRef.current = data.preferences.themeId;
+        } else if (data.preferences?.colorScheme) {
+          // Fallback: derive a synthetic theme id from colorScheme preset if present
+          const preset = (data.preferences.colorScheme as any).preset;
+          profileThemeIdRef.current = typeof preset === "string" ? preset : "charcoal";
         }
       } catch (error) {
         console.error('Error fetching profile:', error);
@@ -190,21 +157,12 @@ export default function PublicProfileView() {
 
     fetchProfile();
 
-    // Reset colors and restore the viewer's theme when component unmounts
     return () => {
-      const root = document.documentElement;
-      root.style.removeProperty("--user-primary");
-      root.style.removeProperty("--user-secondary");
-      root.style.removeProperty("--user-background");
-      root.style.removeProperty("--user-text");
-      root.style.removeProperty("--user-accent");
-      root.style.removeProperty("--user-border");
-
-      if (viewerThemeRef.current) {
-        applyTheme(viewerThemeRef.current);
-      }
+      profileThemeIdRef.current = null;
     };
   }, [params?.userId]);
+
+  const profileThemeId = profileThemeIdRef.current;
 
   // Load additional public data tied to this user: handmade offerings, ratings, community posts
   useEffect(() => {
@@ -289,18 +247,18 @@ export default function PublicProfileView() {
 
   if (loading) {
     return (
-      <div className="container mx-auto py-12 text-center bg-tsBg">
-        <p className="text-tsTextMuted">Loading profile...</p>
+      <div className="bg-app min-h-screen flex items-center justify-center">
+        <p className="text-muted">Loading profile...</p>
       </div>
     );
   }
 
   if (notFound || !profile) {
     return (
-      <div className="container mx-auto py-12 text-center bg-tsBg">
-        <Eye className="h-12 w-12 text-tsTextMuted mx-auto mb-4" />
-        <h2 className="text-2xl font-bold text-tsText mb-2">Profile Not Found</h2>
-        <p className="text-tsTextMuted">
+      <div className="bg-app min-h-screen flex flex-col items-center justify-center text-center px-4">
+        <Eye className="h-12 w-12 text-muted mx-auto mb-4" />
+        <h2 className="text-2xl font-bold text-primary mb-2">Profile Not Found</h2>
+        <p className="text-muted">
           This profile is private or doesn't exist.
         </p>
       </div>
@@ -403,22 +361,11 @@ export default function PublicProfileView() {
   };
 
   return (
-    <div 
-      className="min-h-screen transition-colors duration-300 bg-tsBg text-tsText"
-      style={{ 
-        backgroundColor: 'var(--user-background, #0a0f1e)',
-        color: 'var(--user-text, #f1f5f9)'
-      }}
-    >
-      <div className="container mx-auto py-8 space-y-6">
-        {/* Header */}
-        <div 
-          className="rounded-lg p-8 shadow-lg border bg-tsCard border-tsBorder"
-          style={{
-            backgroundColor: 'var(--user-background, #111827)',
-            borderColor: 'var(--user-border, #1e293b)',
-          }}
-        >
+    <div className="bg-app min-h-screen text-primary">
+      <div className="max-w-5xl mx-auto p-4 md:p-6 lg:p-8">
+        <ThemeScope themeId={profileThemeId || undefined}>
+          <div className="ts-card rounded-2xl p-6 md:p-8 border-subtle space-y-6">
+            {/* Header */}
           <div className="flex flex-col md:flex-row gap-6 items-start md:items-center">
             {profile.profileImageUrl ? (
               <img
@@ -560,10 +507,11 @@ export default function PublicProfileView() {
               )}
             </div>
           </div>
-        </div>
+            </div>
+          </div>
 
-        {/* Content sections based on user types and activity */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {/* Content sections based on user types and activity */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {showAbout && (
             <Card>
               <CardHeader>
@@ -737,34 +685,24 @@ export default function PublicProfileView() {
               </CardContent>
             </Card>
           )}
-        </div>
+          )}
 
-        {/* Contact CTA */}
-        {showContactCard && (
-          <div 
-            className="rounded-lg p-6 text-center"
-            style={{
-              backgroundColor: 'var(--user-primary, #f97316)',
-              color: 'var(--user-background, #0a0f1e)',
-            }}
-          >
-            <h3 className="text-xl font-bold mb-2">
-              Interested in connecting with {profile.firstName || 'this user'}?
-            </h3>
-            <p className="mb-4 opacity-90">
-              Send a message or inquiry through TradeScout
-            </p>
-            <Button 
-              size="lg"
-              style={{
-                backgroundColor: 'var(--user-background, #0a0f1e)',
-                color: 'var(--user-text, #f1f5f9)',
-              }}
-            >
-              Send Message
-            </Button>
+          {/* Contact CTA */}
+          {showContactCard && (
+            <div className="ts-card rounded-2xl p-6 text-center bg-accent text-[color:var(--ts-text-on-accent)]">
+              <h3 className="text-xl font-bold mb-2">
+                Interested in connecting with {profile.firstName || "this user"}?
+              </h3>
+              <p className="mb-4 opacity-90">
+                Send a message or inquiry through TradeScout
+              </p>
+              <Button size="lg" className="ts-btn-ghost ts-focus">
+                Send Message
+              </Button>
+            </div>
+          )}
           </div>
-        )}
+        </ThemeScope>
       </div>
     </div>
   );

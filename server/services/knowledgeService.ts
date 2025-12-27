@@ -5,6 +5,7 @@ import { GoogleGenerativeAI } from "@google/generative-ai";
 import mammoth from "mammoth";
 import { db } from "../../src/db/drizzle-mock";
 import { storage } from "../storage";
+import { chooseKnowledgeMode } from "../scout/brandGuard";
 
 // ES module equivalent of __dirname
 const __filename = fileURLToPath(import.meta.url);
@@ -697,7 +698,8 @@ export async function resolveKnowledge(
     }
   }
 
-  // LAYER 1B: Curated knowledge base in data/TradeScout Brain (docx/txt/md)
+  // LAYER 1B: Admin-controlled knowledge base in data/TradeScout Brain (docx/txt/md)
+  // This is the canonical source for how TradeScout works (help docs, "TradeScout for Dummies", workflows, FAQs).
   const knowledgeBaseResult = await searchLocalKnowledgeBase(message);
   if (knowledgeBaseResult.source === "manual" && Array.isArray(knowledgeBaseResult.data) && knowledgeBaseResult.data.length > 0) {
     sources.push("TradeScout Brain (data folder)");
@@ -708,8 +710,9 @@ export async function resolveKnowledge(
     highestLayer = Math.min(highestLayer, 1);
   }
 
-  // LAYER 2: Website Data (Auto-Generated Cache + Database)
-  // Check cache first (faster), then DB if needed
+  // LAYER 2: First-party website intelligence (auto-generated cache + live database)
+  // Scout should reason over what exists on the site right now.
+  // Check cache first (faster), then DB if needed.
   let category = detectCategory(message);
   
   // Try auto-generated cache
@@ -742,7 +745,7 @@ export async function resolveKnowledge(
     highestLayer = Math.min(highestLayer, 2);
   }
 
-  // If we have enough content from Layers 1-2, return it
+  // If we have enough content from Layers 1-2, return it (no need to hit the wider web)
   if (aggregatedContent.length > 0) {
     // Combine all sources and truncate to reasonable size
     const combinedAnswer = aggregatedContent.join("\n\n========\n\n").slice(0, 5000);
@@ -770,17 +773,21 @@ export async function resolveKnowledge(
     }
   }
 
-  // LAYER 3: Internet Search (Only when local data doesn't exist)
-  // Use real web sources - DO NOT invent local businesses, prices, or county rules
-  const internetResult = await searchInternet(gemini, message, countyCode, stateCode);
-  if (internetResult.source === "internet" && internetResult.data?.content) {
-    sources.push("Internet Search (Not Local TradeScout Data)");
-    return {
-      answer: internetResult.data.content,
-      sources,
-      layer: 3,
-      confidence: "medium",
-    };
+  // LAYER 3: Hyperlocal internet search (only when internal knowledge is insufficient)
+  // Use real web sources - DO NOT invent local businesses, prices, or county rules.
+  // Location (county/state) must be used when available and answers should be framed as "here's what I found locally".
+  const mode = chooseKnowledgeMode(message);
+  if (mode === "kb_site_then_web") {
+    const internetResult = await searchInternet(gemini, message, countyCode, stateCode);
+    if (internetResult.source === "internet" && internetResult.data?.content) {
+      sources.push("Internet Search (Not Local TradeScout Data)");
+      return {
+        answer: internetResult.data.content,
+        sources,
+        layer: 3,
+        confidence: "medium",
+      };
+    }
   }
 
   // LAYER 4: Total Failure (Honest "I don't know")

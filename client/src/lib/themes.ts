@@ -10,25 +10,21 @@
  * - bgSecondary (charcoal-700): Interactive surfaces (cards, inputs, dropdowns)
  */
 
+// Backwards-compatible Theme shape used by ThemeContext and settings.
+// Internally we now drive a semantic token contract (ThemeTokens) but keep
+// this interface so existing code continues to compile.
 export interface ThemeColors {
-  // Background Colors - All Customizable
-  bgPrimary: string;      // Page background (charcoal-800 by default)
-  bgSecondary: string;    // Cards, inputs, modals (charcoal-700 by default)
-  bgTertiary: string;     // Nav bars (charcoal-900 by default)
-  bgGradient?: string;    // Optional custom gradient
-  
-  // Text Colors - All Customizable
-  textPrimary: string;    // Main text
-  textSecondary: string;  // Muted text
-  
-  // Accent Colors - All Customizable
-  accentPrimary: string;   // Main accent color
-  accentSecondary: string; // Darker accent
-  accentTertiary?: string; // Lighter accent
-  
-  // Border Colors - All Customizable
-  borderPrimary: string;   // Main borders
-  borderSecondary?: string; // Secondary borders
+  bgPrimary: string;
+  bgSecondary: string;
+  bgTertiary: string;
+  bgGradient?: string;
+  textPrimary: string;
+  textSecondary: string;
+  accentPrimary: string;
+  accentSecondary: string;
+  accentTertiary?: string;
+  borderPrimary: string;
+  borderSecondary?: string;
 }
 
 export interface Theme {
@@ -36,7 +32,189 @@ export interface Theme {
   name: string;
   description: string;
   colors: ThemeColors;
-  backgroundGradient?: string; // Optional full-page gradient override
+  backgroundGradient?: string;
+}
+
+// New semantic token contract for 6 locked theme IDs.
+export type ThemeId =
+  | "charcoal"
+  | "graphite"
+  | "sand"
+  | "sage"
+  | "midnight"
+  | "ember";
+
+export type ThemeTokens = {
+  "--ts-bg": string;
+  "--ts-surface": string;
+  "--ts-surface-strong": string;
+  "--ts-surface-hover": string;
+  "--ts-border-subtle": string;
+  "--ts-border-strong": string;
+  "--ts-text": string;
+  "--ts-text-muted": string;
+  "--ts-accent": string;
+  "--ts-accent-strong": string;
+  "--ts-accent-soft": string;
+  "--ts-text-on-accent": string;
+  "--ts-input-bg": string;
+  "--ts-input-border": string;
+  "--ts-focus-ring": string;
+  "--ts-success": string;
+  "--ts-warning": string;
+  "--ts-danger": string;
+  "--ts-shadow-soft": string;
+};
+
+export const THEME_IDS: ThemeId[] = [
+  "charcoal",
+  "graphite",
+  "sand",
+  "sage",
+  "midnight",
+  "ember",
+];
+
+export const THEME_LABELS: Record<ThemeId, string> = {
+  charcoal: "Charcoal",
+  graphite: "Graphite",
+  sand: "Sand",
+  sage: "Sage",
+  midnight: "Midnight",
+  ember: "Ember",
+};
+
+export const THEMES: Record<ThemeId, ThemeTokens> = {
+  charcoal: {
+    "--ts-bg": "#0B0F14",
+    "--ts-surface": "#121A24",
+    "--ts-surface-strong": "#0F1620",
+    "--ts-surface-hover": "#1A2432",
+    "--ts-border-subtle": "rgba(255,255,255,0.10)",
+    "--ts-border-strong": "rgba(255,255,255,0.18)",
+    "--ts-text": "#E6EDF6",
+    "--ts-text-muted": "rgba(230,237,246,0.68)",
+    "--ts-accent": "#FF6A00",
+    "--ts-accent-strong": "#FF8A3D",
+    "--ts-accent-soft": "rgba(255,106,0,0.16)",
+    "--ts-text-on-accent": "#0B0F14",
+    "--ts-input-bg": "#0F1620",
+    "--ts-input-border": "rgba(255,255,255,0.14)",
+    "--ts-focus-ring": "rgba(255,106,0,0.55)",
+    "--ts-success": "#22C55E",
+    "--ts-warning": "#F59E0B",
+    "--ts-danger": "#EF4444",
+    "--ts-shadow-soft": "0 10px 30px rgba(0,0,0,0.45)",
+  },
+  graphite: {
+    "--ts-bg": "#10141B",
+    "--ts-surface": "#171E29",
+    "--ts-surface-strong": "#121824",
+    "--ts-surface-hover": "#202A3A",
+    "--ts-border-subtle": "rgba(255,255,255,0.10)",
+    "--ts-border-strong": "rgba(255,255,255,0.18)",
+    "--ts-text": "#EEF2F8",
+    "--ts-text-muted": "rgba(238,242,248,0.70)",
+    "--ts-accent": "#FF6A00",
+    "--ts-accent-strong": "#FF8A3D",
+    "--ts-accent-soft": "rgba(255,106,0,0.14)",
+    "--ts-text-on-accent": "#10141B",
+    "--ts-input-bg": "#121824",
+    "--ts-input-border": "rgba(255,255,255,0.14)",
+    "--ts-focus-ring": "rgba(255,106,0,0.55)",
+    "--ts-success": "#22C55E",
+    "--ts-warning": "#F59E0B",
+    "--ts-danger": "#EF4444",
+    "--ts-shadow-soft": "0 10px 30px rgba(0,0,0,0.40)",
+  },
+  sand: {
+    "--ts-bg": "#0E1116",
+    "--ts-surface": "#141A22",
+    "--ts-surface-strong": "#0F141B",
+    "--ts-surface-hover": "#1B2330",
+    "--ts-border-subtle": "rgba(255,255,255,0.10)",
+    "--ts-border-strong": "rgba(255,255,255,0.18)",
+    "--ts-text": "#F3F1EA",
+    "--ts-text-muted": "rgba(243,241,234,0.68)",
+    "--ts-accent": "#D97706",
+    "--ts-accent-strong": "#F59E0B",
+    "--ts-accent-soft": "rgba(217,119,6,0.16)",
+    "--ts-text-on-accent": "#0E1116",
+    "--ts-input-bg": "#0F141B",
+    "--ts-input-border": "rgba(255,255,255,0.14)",
+    "--ts-focus-ring": "rgba(245,158,11,0.55)",
+    "--ts-success": "#22C55E",
+    "--ts-warning": "#F59E0B",
+    "--ts-danger": "#EF4444",
+    "--ts-shadow-soft": "0 10px 30px rgba(0,0,0,0.45)",
+  },
+  sage: {
+    "--ts-bg": "#0B1110",
+    "--ts-surface": "#111B19",
+    "--ts-surface-strong": "#0E1715",
+    "--ts-surface-hover": "#192623",
+    "--ts-border-subtle": "rgba(255,255,255,0.10)",
+    "--ts-border-strong": "rgba(255,255,255,0.18)",
+    "--ts-text": "#EAF3EF",
+    "--ts-text-muted": "rgba(234,243,239,0.70)",
+    "--ts-accent": "#34D399",
+    "--ts-accent-strong": "#10B981",
+    "--ts-accent-soft": "rgba(52,211,153,0.16)",
+    "--ts-text-on-accent": "#0B1110",
+    "--ts-input-bg": "#0E1715",
+    "--ts-input-border": "rgba(255,255,255,0.14)",
+    "--ts-focus-ring": "rgba(16,185,129,0.55)",
+    "--ts-success": "#22C55E",
+    "--ts-warning": "#F59E0B",
+    "--ts-danger": "#EF4444",
+    "--ts-shadow-soft": "0 10px 30px rgba(0,0,0,0.45)",
+  },
+  midnight: {
+    "--ts-bg": "#05070A",
+    "--ts-surface": "#0B0F14",
+    "--ts-surface-strong": "#070A0F",
+    "--ts-surface-hover": "#121A24",
+    "--ts-border-subtle": "rgba(255,255,255,0.10)",
+    "--ts-border-strong": "rgba(255,255,255,0.18)",
+    "--ts-text": "#F6F7FB",
+    "--ts-text-muted": "rgba(246,247,251,0.68)",
+    "--ts-accent": "#60A5FA",
+    "--ts-accent-strong": "#3B82F6",
+    "--ts-accent-soft": "rgba(96,165,250,0.16)",
+    "--ts-text-on-accent": "#05070A",
+    "--ts-input-bg": "#070A0F",
+    "--ts-input-border": "rgba(255,255,255,0.14)",
+    "--ts-focus-ring": "rgba(59,130,246,0.55)",
+    "--ts-success": "#22C55E",
+    "--ts-warning": "#F59E0B",
+    "--ts-danger": "#EF4444",
+    "--ts-shadow-soft": "0 10px 30px rgba(0,0,0,0.55)",
+  },
+  ember: {
+    "--ts-bg": "#0B0F14",
+    "--ts-surface": "#121A24",
+    "--ts-surface-strong": "#0F1620",
+    "--ts-surface-hover": "#1A2432",
+    "--ts-border-subtle": "rgba(255,255,255,0.10)",
+    "--ts-border-strong": "rgba(255,255,255,0.18)",
+    "--ts-text": "#FFEFE6",
+    "--ts-text-muted": "rgba(255,239,230,0.70)",
+    "--ts-accent": "#FB7185",
+    "--ts-accent-strong": "#F43F5E",
+    "--ts-accent-soft": "rgba(244,63,94,0.16)",
+    "--ts-text-on-accent": "#0B0F14",
+    "--ts-input-bg": "#0F1620",
+    "--ts-input-border": "rgba(255,255,255,0.14)",
+    "--ts-focus-ring": "rgba(244,63,94,0.55)",
+    "--ts-success": "#22C55E",
+    "--ts-warning": "#F59E0B",
+    "--ts-danger": "#EF4444",
+    "--ts-shadow-soft": "0 10px 30px rgba(0,0,0,0.45)",
+  },
+};
+
+export function isThemeId(x: unknown): x is ThemeId {
+  return typeof x === "string" && (THEME_IDS as string[]).includes(x);
 }
 
 /**
@@ -161,39 +339,37 @@ export const PRESET_THEMES: Theme[] = [
  */
 export function applyTheme(theme: Theme) {
   const root = document.documentElement;
-  
-  // Background colors - ALL CUSTOMIZABLE
+  // Drive new semantic tokens based on the closest matching ThemeId.
+  const themeId: ThemeId = isThemeId(theme.id) ? theme.id : "charcoal";
+  const tokens = THEMES[themeId];
+  Object.entries(tokens).forEach(([key, value]) => {
+    root.style.setProperty(key, value);
+  });
+
+  // Maintain legacy --theme-* variables for existing CSS that still
+  // references them (e.g. scout-suggestion styles).
   root.style.setProperty('--theme-bg-primary', theme.colors.bgPrimary);
   root.style.setProperty('--theme-bg-secondary', theme.colors.bgSecondary);
   root.style.setProperty('--theme-bg-quaternary', theme.colors.bgTertiary);
-  
-  // Text colors - ALL CUSTOMIZABLE
   root.style.setProperty('--theme-text-primary', theme.colors.textPrimary);
   root.style.setProperty('--theme-text-secondary', theme.colors.textSecondary);
   root.style.setProperty('--theme-text-muted', theme.colors.textSecondary);
-  
-  // Accent colors - ALL CUSTOMIZABLE
   root.style.setProperty('--theme-accent-primary', theme.colors.accentPrimary);
   root.style.setProperty('--theme-accent-secondary', theme.colors.accentSecondary);
   if (theme.colors.accentTertiary) {
     root.style.setProperty('--theme-accent-tertiary', theme.colors.accentTertiary);
   }
-  
-  // Border colors - ALL CUSTOMIZABLE
   root.style.setProperty('--theme-border-primary', theme.colors.borderPrimary);
-  root.style.setProperty('--theme-border-secondary', 
-    theme.colors.borderSecondary || theme.colors.bgSecondary);
-  
-  // Background gradient - OPTIONAL OVERRIDE
+  root.style.setProperty('--theme-border-secondary', theme.colors.borderSecondary || theme.colors.bgSecondary);
+
   if (theme.backgroundGradient) {
     root.style.setProperty('--theme-bg-gradient', theme.backgroundGradient);
   } else if (theme.colors.bgGradient) {
     root.style.setProperty('--theme-bg-gradient', theme.colors.bgGradient);
   } else {
-    root.style.setProperty('--theme-bg-gradient', 
-      `linear-gradient(135deg, ${theme.colors.bgPrimary}, ${theme.colors.bgSecondary})`);
+    root.style.setProperty('--theme-bg-gradient', `linear-gradient(135deg, ${theme.colors.bgPrimary}, ${theme.colors.bgSecondary})`);
   }
-  
+
   // Save to localStorage for persistence
   try {
     localStorage.setItem('ts-active-theme', theme.id);

@@ -14,8 +14,8 @@ interface SEOHelmetProps {
 
 export function SEOHelmet({
   title = "TradeScout – Scout for Contractors and Communities",
-  description = "Scout, your AI project assistant, helps you find verified local contractors, compare options, and run your projects with confidence.",
-  keywords = "scout, ai assistant, local contractors, home improvement, verified contractors, free quotes, trusted contractors, roofing, plumbing, electrical",
+  description = "Scout, your local helper, connects you with verified local contractors, helps you compare options, and run your projects with confidence.",
+  keywords = "scout, local helper, local contractors, home improvement, verified contractors, free quotes, trusted contractors, roofing, plumbing, electrical",
   canonical,
   ogType = "website",
   ogImage = "/icon-512.png",
@@ -115,7 +115,7 @@ export const createWebsiteStructuredData = () => ({
   "@context": "https://schema.org",
   "@type": "WebSite",
   "name": "TradeScout",
-  "description": "Scout, the AI assistant inside TradeScout, connects you with verified local contractors and helps you manage home projects.",
+  "description": "Scout, the built-in helper that runs TradeScout, connects you with verified local contractors and helps you manage home projects.",
   "url": window.location.origin,
   "potentialAction": {
     "@type": "SearchAction",

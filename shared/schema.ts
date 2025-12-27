@@ -294,6 +294,13 @@ export const users = pgTable("users", {
   state: varchar("state"),
   county: varchar("county"), // Add county field
   zipCode: varchar("zip_code"),
+  // Canonical machine-readable location fields for hyper-local features
+  stateCode: varchar("state_code", { length: 2 }),
+  countyFips: varchar("county_fips", { length: 5 }),
+  countyId: varchar("county_id"),
+  countyName: varchar("county_name"),
+  latitude: decimal("latitude", { precision: 9, scale: 6 }),
+  longitude: decimal("longitude", { precision: 9, scale: 6 }),
   role: userRoleEnum("role").default('homeowner'), // Primary role for backward compatibility
   roles: text("roles").array().default([]), // Multi-role support - array of role strings
   activeRole: varchar("active_role").default('homeowner'), // Currently active role for dashboard switching
@@ -344,6 +351,10 @@ export const users = pgTable("users", {
       enabledWidgets?: string[]; // Which widgets to show on dashboard
       widgetOrder?: string[]; // Order of widgets
       layout?: 'single' | 'two-column' | 'three-column'; // Dashboard layout
+    };
+
+    communication?: {
+      allowPhoneCalls?: boolean;
     };
 
     // Hyper-local geo preferences for nearby deals/alerts

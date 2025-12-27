@@ -53,8 +53,8 @@ export type ScoutActionTile = {
 export const scoutActionTiles: ScoutActionTile[] = [
   {
     id: "start_project",
-    label: "Start a local project",
-    description: "Post a project and get quotes from verified contractors",
+    label: "Post a task",
+    description: "Describe what you need done and reach local pros",
     action: { type: "NAVIGATE", to: "/request-quote" },
     variants: [
       {
@@ -81,8 +81,8 @@ export const scoutActionTiles: ScoutActionTile[] = [
   },
   {
     id: "find_pros",
-    label: "Find local professionals",
-    description: "Search contractors, vendors, and service providers",
+    label: "Find a local pro",
+    description: "Browse and contact verified professionals near you",
     action: { type: "NAVIGATE", to: "/contractors" },
     variants: [
       {
@@ -102,7 +102,7 @@ export const scoutActionTiles: ScoutActionTile[] = [
   {
     id: "nearby",
     label: "See what's happening nearby",
-    description: "Browse community posts, events, and marketplace listings",
+    description: "Browse community posts, events, and marketplace in your county",
     action: { type: "NAVIGATE", to: "/community" },
     variants: [
       {
@@ -115,9 +115,9 @@ export const scoutActionTiles: ScoutActionTile[] = [
   },
   {
     id: "manage",
-    label: "Manage projects or invoices",
-    description: "Track jobs, payments, and financial records",
-    action: { type: "NAVIGATE", to: "/deal-room" },
+    label: "Sell or trade something",
+    description: "List items or services to sell or trade",
+    action: { type: "NAVIGATE", to: "/exchange" },
     variants: [
       {
         // Proven by: GET /api/invoices → active invoices (when count === 1) AND fresh within 14 days

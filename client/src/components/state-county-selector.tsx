@@ -21,6 +21,9 @@ interface StateCountySelectorProps {
   selectedCounty?: string;
   onStateChange: (stateCode: string) => void;
   onCountyChange: (countyFips: string) => void;
+  // Optional detailed callback with full county record for callers that
+  // need both FIPS (machine) and name (display).
+  onCountySelected?: (county: County | null) => void;
   disabled?: boolean;
   className?: string;
 }
@@ -30,6 +33,7 @@ export function StateCountySelector({
   selectedCounty,
   onStateChange,
   onCountyChange,
+  onCountySelected,
   disabled = false,
   className = ""
 }: StateCountySelectorProps) {
@@ -60,11 +64,18 @@ export function StateCountySelector({
     setCurrentCounty(''); // Reset county when state changes
     onStateChange(stateCode);
     onCountyChange(''); // Clear county selection
+    if (onCountySelected) {
+      onCountySelected(null);
+    }
   };
 
   const handleCountyChange = (countyFips: string) => {
     setCurrentCounty(countyFips);
     onCountyChange(countyFips);
+    if (onCountySelected) {
+      const county = counties.find((c) => c.fips === countyFips) || null;
+      onCountySelected(county);
+    }
   };
 
   // Update internal state when props change

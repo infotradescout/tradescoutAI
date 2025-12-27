@@ -29,6 +29,11 @@ export interface User {
   city?: string;
   state?: string;
   zipCode?: string;
+  // Canonical machine-readable location fields
+  stateCode?: string;
+  countyFips?: string;
+  countyId?: string;
+  countyName?: string;
   // Some parts of the UI still reference legacy location field names
   zip?: string;
   latitude?: number;
