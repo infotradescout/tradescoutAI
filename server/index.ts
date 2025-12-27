@@ -12,6 +12,7 @@ import { startCrawlerScheduler } from "./services/crawlerScheduler";
 import { initializeMessagingService } from "./messaging-service";
 import { storage } from "./storage";
 import { ensureProfilesTable } from "./ensureDb";
+import { runSchemaPreflight } from "./schemaPreflight";
 import path from "path";
 import fs from "fs";
 import { fileURLToPath } from "url";
@@ -252,6 +253,12 @@ app.use((req, res, next) => {
   };
 
   await ensureMasterAdmin();
+  // Best-effort, read-only schema drift check: logs but never blocks startup.
+  try {
+    await runSchemaPreflight();
+  } catch (err) {
+    console.error("[SchemaPreflight] Failed during startup (non-fatal):", err);
+  }
   // NOTE: Ensure 'routes' is imported or defined before this point if 'registerRoutes' uses it directly.
   // If 'routes' is not implicitly available, it needs to be imported.
   // For this example, assuming 'routes' is handled within 'registerRoutes' or imported elsewhere.
