@@ -59,7 +59,8 @@ import { apiRequest } from "@/lib/queryClient";
 import { uploadObject } from "@/lib/objectUpload";
 import { useToast } from "@/hooks/use-toast";
 import { useLocation } from "wouter";
-import { useLocationContext } from "@/hooks/useLocationContext";
+import { useLocationContext, hasCountyContext } from "@/hooks/useLocationContext";
+import { CountyRequiredGate } from "@/components/CountyRequiredGate";
 import { share } from "@/utils/share";
 
 interface ExchangeItem {
@@ -188,8 +189,7 @@ export default function Exchange() {
   const county = (locationCtx.countyFips || (locationCtx as any).county) as
     | string
     | undefined;
-  const hasCountyContext = Boolean(stateCode && county);
-  const countyCommitted = hasCountyContext(location);
+  const countyCommitted = hasCountyContext(locationCtx as any);
 
   // Sell tab draft state (prefill from Scout)
   const [sellTitle, setSellTitle] = useState("");
@@ -220,7 +220,23 @@ export default function Exchange() {
       
       const response = await fetch(`/api/exchange/items?${params.toString()}`);
       if (!response.ok) throw new Error('Failed to fetch items');
-      return response.json();
+      const json = await response.json();
+
+      if (countyCommitted) {
+        try {
+          const { recordActivity } = await import("../agent/activity");
+          recordActivity({
+            type: "county_gated_query_success",
+            ts: new Date().toISOString(),
+            path: typeof window !== "undefined" ? window.location.pathname : "",
+            meta: { surface: "exchange", queryKey: "exchange_items" },
+          });
+        } catch {
+          // ignore telemetry failures
+        }
+      }
+
+      return json;
     },
     enabled: activeTab === "browse" && countyCommitted,
   });
@@ -230,7 +246,6 @@ export default function Exchange() {
       return apiRequest("POST", "/api/marketplace/listings", body);
     },
     onSuccess: () => {
-      setSellTitle("");
       setSellPrice("");
       setSellDescription("");
       setSellLocation("");
@@ -369,47 +384,9 @@ export default function Exchange() {
 
   const hasLocationContext = countyCommitted;
 
-  if (!hasLocationContext) {
-    if (import.meta.env.DEV) {
-      // Dev-only signal so we notice when Exchange is rendered
-      // without a usable location context.
-      console.warn("[Exchange] Rendered without location context. Check useLocationContext/Auth wiring.", {
-        userId: user?.id,
-        rawLocationContext: locationCtx,
-      });
-    }
-
-    return (
-      <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <Card className="ts-surface border-slate-700">
-          <CardContent className="p-6 space-y-4">
-            <div className="space-y-3">
-              <h1 className="text-2xl font-semibold text-white">Set your location to view Exchange</h1>
-              <p className="text-sm text-slate-300">
-                Exchange runs on local trust. Choose your state and county so we can show listings and promotions from
-                the right community.
-              </p>
-              <p className="text-xs text-slate-400">
-                Scout and the rest of the app will use this same location to keep everything in sync.
-              </p>
-            </div>
-            <div>
-              <Button
-                type="button"
-                onClick={() => navigate("/settings")}
-                className="bg-orange-500 hover:bg-orange-600 text-black font-semibold px-4 py-2 rounded-md"
-              >
-                Open location settings
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
-
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <CountyRequiredGate locationOverride={locationCtx as any}>
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <div className="mb-8">
         <h1 className="text-3xl font-bold text-white mb-2">Exchange</h1>
         <p className="text-gray-300">Local exchange for properties, vehicles, businesses, equipment, and other big-ticket deals</p>
@@ -1225,5 +1202,6 @@ export default function Exchange() {
         </TabsContent>
       </Tabs>
     </div>
+    </CountyRequiredGate>
   );
 }

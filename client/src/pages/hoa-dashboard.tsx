@@ -11,6 +11,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/useAuth";
 import { useLocationContext } from "@/hooks/useLocationContext";
 import { useParams } from "wouter";
+import { CountyRequiredGate } from "@/components/CountyRequiredGate";
 
 type HoaDashboard = {
   hoaId: string;
@@ -55,7 +56,23 @@ const HOADashboard = memo(function HOADashboard() {
         if (!res.ok) {
           throw new Error("Failed to load HOA dashboard");
         }
-        return res.json();
+        const json = await res.json();
+
+        if (hasCountyContext) {
+          try {
+            const { recordActivity } = await import("../agent/activity");
+            recordActivity({
+              type: "county_gated_query_success",
+              ts: new Date().toISOString(),
+              path: typeof window !== "undefined" ? window.location.pathname : "",
+              meta: { surface: "hoa_dashboard", queryKey: "hoa_dashboard" },
+            });
+          } catch {
+            // ignore telemetry failures
+          }
+        }
+
+        return json;
       },
       enabled: !!user && hasCountyContext,
     }
@@ -63,33 +80,7 @@ const HOADashboard = memo(function HOADashboard() {
 
   const dashboard = data?.dashboard;
 
-  if (!hasCountyContext) {
-    return (
-      <CommunityShell sectionLabel="HOA Dashboard" notificationsCount={unreadCount}>
-        <div className="w-full py-12 flex items-center justify-center">
-          <Card className="bg-navy-800/60 border-navy-600 max-w-xl w-full">
-            <CardHeader>
-              <CardTitle className="text-white">Set your county to view HOA stats</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-gray-300 mb-4 text-sm">
-                HOA dashboards are scoped to specific counties. Choose your county in settings so we can load boards and metrics for the right neighborhood.
-              </p>
-              <Button
-                type="button"
-                className="bg-orange-500 hover:bg-orange-600 text-black text-xs font-semibold px-3 py-2 rounded-md"
-                asChild
-              >
-                <a href="/settings">Open location settings</a>
-              </Button>
-            </CardContent>
-          </Card>
-        </div>
-      </CommunityShell>
-    );
-  }
-
-  if (isLoading) {
+  if (hasCountyContext && isLoading) {
     return (
       <CommunityShell sectionLabel="HOA Dashboard" notificationsCount={unreadCount}>
         <div className="w-full py-12 flex items-center justify-center">
@@ -102,7 +93,7 @@ const HOADashboard = memo(function HOADashboard() {
     );
   }
 
-  if (isError || !dashboard) {
+  if (hasCountyContext && (isError || !dashboard)) {
     return (
       <CommunityShell sectionLabel="HOA Dashboard" notificationsCount={unreadCount}>
         <div className="w-full py-12 flex items-center justify-center">
@@ -128,6 +119,7 @@ const HOADashboard = memo(function HOADashboard() {
 
   return (
     <CommunityShell sectionLabel="HOA Dashboard" notificationsCount={unreadCount}>
+      <CountyRequiredGate locationOverride={location}>
       <div className="w-full py-8">
         {/* Header */}
         <div className="mb-8">
@@ -430,6 +422,7 @@ const HOADashboard = memo(function HOADashboard() {
           </TabsContent>
         </Tabs>
       </div>
+      </CountyRequiredGate>
     </CommunityShell>
   );
 });

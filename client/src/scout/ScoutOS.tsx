@@ -54,6 +54,10 @@ import { inferContextRoles, deriveModeFromContextRoles } from "./contextRoles";
 const INTRO_DEMO_TEXT = "What can TradeScout do for my community?";
 const INTRO_DEMO_SESSION_KEY = "ts_intro_demo_played_session";
 
+const COUNTY_EXPLAINED_KEY = "scout:county_explained:v1";
+const COUNTY_EXPLAINED_AT_KEY = "scout:county_explained_at";
+const COUNTY_EXPLAINED_FOLLOWUP_KEY = "scout:county_explained_followup_recorded";
+
 const BANNED_TERMS = ["fuck", "shit", "bitch", "asshole", "cunt", "slut", "whore"];
 
 const WEAK_SUGGESTION_PREFIXES = [/^ask\b/i, /^explain\b/i, /^tell me more\b/i];
@@ -90,6 +94,39 @@ function censorProfanity(text: string) {
     cleaned = cleaned.replace(re, `${term[0]}***`);
   }
   return cleaned;
+}
+
+function tryRecordCountyExplanationFollowup(kind: "navigate" | "scout_message" | "gated_query_success", path: string) {
+  try {
+    if (typeof window === "undefined") return;
+
+    if (window.localStorage.getItem(COUNTY_EXPLAINED_FOLLOWUP_KEY) === "1") {
+      return;
+    }
+
+    const raw = window.localStorage.getItem(COUNTY_EXPLAINED_AT_KEY);
+    if (!raw) return;
+
+    const explainedAt = Number(raw);
+    if (!Number.isFinite(explainedAt)) return;
+
+    const now = Date.now();
+    const fiveMinutes = 5 * 60 * 1000;
+    if (now - explainedAt > fiveMinutes) {
+      return;
+    }
+
+    recordActivity({
+      type: "county_explained_followup_action",
+      ts: new Date().toISOString(),
+      path,
+      meta: { kind },
+    });
+
+    window.localStorage.setItem(COUNTY_EXPLAINED_FOLLOWUP_KEY, "1");
+  } catch {
+    // Ignore storage/telemetry failures; never affect UX.
+  }
 }
 
 /**
@@ -196,6 +233,7 @@ export default function ScoutOS() {
   // KPI: Track time-to-action from render to first action execution
   const renderStartRef = useRef<number | null>(null);
   const hasLoggedIntroRef = useRef<boolean>(false);
+  const hasLoggedConfusionRef = useRef<boolean>(false);
 
   // One-time init guard (keeps animations / welcome seed from re-running).
   // Removed client-side injected welcome message to avoid collision
@@ -608,12 +646,35 @@ export default function ScoutOS() {
         label: value.slice(0, 160),
       });
 
+      // If a county explanation was recently shown, treat this as a
+      // potential follow-up signal when it happens within the
+      // five-minute window. This does not affect behavior.
+      tryRecordCountyExplanationFollowup("scout_message", location);
+
       try {
         // ==================================================================
         // INTENT DETECTION: Check for onboarding, contractor, marketplace, or
         // support flows before falling back to the generic Scout endpoint.
         // ==================================================================
         const lowerMsg = value.toLowerCase();
+        const normalized = lowerMsg.replace(/[^a-z0-9\s]/gi, " ");
+
+        if (!hasLoggedConfusionRef.current) {
+          const looksConfused =
+            /why[^\n]*\b(see|locked|show)\b/.test(normalized) ||
+            /can['’]?t[^\n]*\bsee\b/.test(normalized);
+
+          if (looksConfused) {
+            recordActivity({
+              type: "scout_confusion_location",
+              ts: new Date().toISOString(),
+              path: location,
+              label: value.slice(0, 160),
+              meta: { normalized: "why_cant_i_see" },
+            });
+            hasLoggedConfusionRef.current = true;
+          }
+        }
         const contractorKeywords = ["contractor", "plumber", "electrician", "roofer", "hvac", "painter", "landscaper", "carpenter", "mason", "find a pro"];
         const marketplaceKeywords = ["marketplace", "for sale", "buying", "selling", "used", "buy", "sell", "list", "post"];
         const contactKeywords = ["contact", "support", "help desk", "reach out", "call", "phone", "text", "email", "mail"];
@@ -1214,6 +1275,44 @@ export default function ScoutOS() {
 
         if (!hasSeenFirstAnswer()) {
           markFirstAnswerSeen();
+        }
+
+        // One-time, neutral explanation of why county matters.
+        // This runs only after we have a committed county and the
+        // user has seen at least one full Scout answer. It does not
+        // ask the user to change anything; it simply explains the
+        // system rule once and then marks a local flag.
+        try {
+          const alreadyExplained =
+            typeof window !== "undefined" &&
+            window.localStorage.getItem(COUNTY_EXPLAINED_KEY) === "1";
+
+          if (countyCommitted && !alreadyExplained) {
+            const explanation: ScoutMessage = {
+              id: `a_${Date.now()}_${Math.random().toString(36).slice(2)}`,
+              role: "assistant",
+              content:
+                "Behind the scenes, TradeScout uses your saved home county as the single source of truth for what counts as local. That same county powers your community feed, marketplace, HOA tools, and leaderboards, and changing it later in Settings → Your Home County updates everything; your device location alone does not.",
+              timestamp: new Date().toISOString(),
+            };
+
+            applyServerResponse(explanation, []);
+
+            if (typeof window !== "undefined") {
+              window.localStorage.setItem(COUNTY_EXPLAINED_KEY, "1");
+              window.localStorage.setItem(COUNTY_EXPLAINED_AT_KEY, String(Date.now()));
+              window.localStorage.removeItem(COUNTY_EXPLAINED_FOLLOWUP_KEY);
+            }
+
+            recordActivity({
+              type: "county_explained_shown",
+              ts: new Date().toISOString(),
+              path: location,
+              meta: { countyCommitted: true },
+            });
+          }
+        } catch {
+          // If storage is unavailable, silently skip the explanation flag.
         }
 
         // NOTE: do not auto-execute server actions; show them as chips instead.
