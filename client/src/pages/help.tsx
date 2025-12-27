@@ -44,7 +44,6 @@ import {
 import { useAuth } from "@/hooks/useAuth";
 import { SEOHelmet, createFAQStructuredData } from "@/components/SEOHelmet";
 import { trackShellEvent } from "@/lib/analytics";
-import { OrientationCard } from "@/components/orientation/OrientationCard";
 import type { userRoleEnum } from "@shared/schema";
 
 type UserRole = typeof userRoleEnum.enumValues[number];
@@ -125,7 +124,7 @@ export default function Help() {
       return;
     }
 
-    // Default: chat-first controller.
+    // Default: fall back to Scout only when explicitly requested from this quick action.
     sendToScout(
       `Help Center quick action: "${action.title}". Walk me through this step-by-step using TradeScout, and suggest any views or tools I should open. Context: ${action.description}`,
       { source: "help-quick-action" }
@@ -133,10 +132,21 @@ export default function Help() {
   };
 
   const handleArticleClick = (article: HelpArticle) => {
-    sendToScout(
-      `Help Center article: "${article.title}" (category: ${article.category}). Walk me through this topic step-by-step inside TradeScout, and suggest the best pages or tools for me to use. Summary: ${article.description}`,
-      { source: "help-article" }
-    );
+    // Articles should be readable directly in the Help Center.
+    // Record lightweight telemetry only; do not auto-route into Scout.
+    try {
+      trackShellEvent({
+        type: "help_article_viewed",
+        payload: {
+          articleId: article.id,
+          title: article.title,
+          category: article.category,
+          ts: new Date().toISOString(),
+        },
+      });
+    } catch {
+      // ignore telemetry failures
+    }
   };
 
   // Role-specific help configurations
@@ -1186,8 +1196,37 @@ export default function Help() {
     }
   };
 
-  // Get current user's role configuration
-  const currentRole = (user?.role || 'homeowner') as UserRole;
+  // Get current user's role configuration, preferring admin/staff roles when present.
+  const resolveHelpRole = (u: any): UserRole => {
+    if (!u) return "homeowner";
+
+    const rolesArray: string[] = Array.isArray(u.roles) ? u.roles : [];
+    const primary: string | undefined = (u as any).activeRole || u.role;
+
+    const prioritized: UserRole[] = [
+      "head_admin",
+      "super_admin",
+      "ops_admin",
+      "moderator",
+      "community_leader",
+      "community_moderator",
+      "support_agent",
+    ].filter((role) => roleConfigs[role]);
+
+    for (const role of prioritized) {
+      if ((primary && primary === role) || rolesArray.includes(role)) {
+        return role;
+      }
+    }
+
+    if (primary && roleConfigs[primary as UserRole]) {
+      return primary as UserRole;
+    }
+
+    return "homeowner";
+  };
+
+  const currentRole = resolveHelpRole(user as any);
   const roleConfig = roleConfigs[currentRole] || roleConfigs.homeowner!;
 
   // Filter articles based on search and category
@@ -1215,8 +1254,8 @@ export default function Help() {
     <div className="min-h-screen gradient-bg">
       <div className="w-full max-w-5xl mx-auto px-3 md:px-4 py-5 md:py-8">
         <SEOHelmet
-          title="TradeScout Help Center – Scout and Local Participation"
-          description="Learn what TradeScout and Scout are, who they're for, and how to use Scout as your front door for getting things done locally."
+          title="TradeScout Help Center – Articles and Guides"
+          description="Browse help articles and role-based guides for TradeScout. If you still don't see the answer, you can ask Scout from here for step-by-step help."
           structuredData={createFAQStructuredData([
             {
               question: "What is TradeScout?",
@@ -1240,13 +1279,6 @@ export default function Help() {
             },
           ])}
         />
-        <OrientationCard
-          roleLabel={roleConfig.name}
-          sendToScout={sendToScout}
-          firstName={firstName}
-          contextSource="help"
-        />
-
         {/* Role-Specific Header */}
         <div className="mb-5 md:mb-8">
           <Card className={`${roleConfig.color} border-navy-600`}>
@@ -1384,6 +1416,33 @@ export default function Help() {
                 <p className="text-gray-400">Try adjusting your search or browse by category</p>
               </div>
             )}
+
+            {/* Optional: escalate into Scout only if articles aren't enough */}
+            <div className="mt-8 max-w-2xl">
+              <Card className="bg-navy-800/50 border-navy-600">
+                <CardContent className="p-4 md:p-5 flex flex-col md:flex-row md:items-center md:justify-between gap-3 md:gap-4">
+                  <div>
+                    <h3 className="text-white font-semibold text-sm md:text-base mb-1">Still don&apos;t see what you need?</h3>
+                    <p className="text-gray-300 text-xs md:text-sm">
+                      You can ask Scout to walk you through your specific situation using the tools and pages in TradeScout.
+                    </p>
+                  </div>
+                  <Button
+                    type="button"
+                    className="bg-orange-500 hover:bg-orange-600 text-xs md:text-sm whitespace-nowrap"
+                    onClick={() => {
+                      const trimmed = searchQuery.trim();
+                      const prompt = trimmed
+                        ? `I am on the Help Center and searched for "${trimmed}", but I still need help. Please walk me through this step-by-step using TradeScout and suggest the right tools and pages.`
+                        : `I am on the Help Center but I still need help. Please walk me through what I am trying to do step-by-step using TradeScout and suggest the right tools and pages.`;
+                      sendToScout(prompt, { source: "help-ask-scout" });
+                    }}
+                  >
+                    Ask Scout for help
+                  </Button>
+                </CardContent>
+              </Card>
+            </div>
           </TabsContent>
 
           <TabsContent value="categories">

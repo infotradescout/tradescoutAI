@@ -145,6 +145,16 @@ html {
   }
 }
 
+/* Global focus handling: remove default white outlines and rely on theme-aware rings */
+:focus {
+  outline: none;
+}
+
+:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(249, 115, 22, 0.6);
+}
+
 /* Semantic theme utilities bound to --ts-* tokens */
 .bg-app { background-color: var(--ts-bg); }
 .bg-surface { background-color: var(--ts-surface); }
@@ -651,11 +661,14 @@ html {
   }
 
   .ts-tile {
-    @apply border-0 rounded-xl bg-navy-900/70 shadow-sm transition-all duration-300;
+    @apply rounded-xl shadow-sm transition-all duration-300;
+    background: var(--surface-card);
+    border: 1px solid var(--border-subtle);
   }
 
   .ts-tile:hover {
     @apply shadow-md;
+    border-color: var(--border-active);
   }
 
   .ts-section {

@@ -5807,11 +5807,105 @@ export async function registerRoutes(app: any) {
 
       const whereClause = filters.length ? (filters.length === 1 ? filters[0] : and(...filters)) : undefined;
 
-      const rows = whereClause
-        ? await db.select().from(tasks).where(whereClause).orderBy(desc(tasks.createdAt)).limit(100)
-        : await db.select().from(tasks).orderBy(desc(tasks.createdAt)).limit(100);
+      const authUserId = (req.user as any)?.id || (req.user as any)?.claims?.sub;
+      let viewerLat: number | undefined;
+      let viewerLng: number | undefined;
 
-      res.json(rows);
+      if (authUserId) {
+        try {
+          const viewer = await storage.getUser(authUserId as string);
+          const lat = (viewer as any)?.latitude;
+          const lng = (viewer as any)?.longitude;
+
+          if (lat != null && lng != null) {
+            const latNum = Number(lat);
+            const lngNum = Number(lng);
+            if (Number.isFinite(latNum) && Number.isFinite(lngNum)) {
+              viewerLat = latNum;
+              viewerLng = lngNum;
+            }
+          }
+
+          if ((!viewerLat || !viewerLng) && (viewer as any)?.preferences?.geo?.homeLocation) {
+            const home = (viewer as any).preferences.geo.homeLocation;
+            if (typeof home.lat === "number" && typeof home.lng === "number") {
+              viewerLat = home.lat;
+              viewerLng = home.lng;
+            }
+          }
+        } catch (e) {
+          console.warn("Failed to load viewer for tasks radius filter; falling back to non-radius listing", e);
+        }
+      }
+
+      const radiusMilesRaw = typeof req.query?.radiusMiles === "string" ? Number(req.query.radiusMiles) : NaN;
+      const radiusMiles = Number.isFinite(radiusMilesRaw) && radiusMilesRaw > 0 ? radiusMilesRaw : 50;
+      const radiusMeters = radiusMiles * 1609.34;
+
+      const baseQuery = db
+        .select({ task: tasks, poster: users })
+        .from(tasks)
+        .leftJoin(users, eq(tasks.posterId, users.id));
+
+      const rows = whereClause
+        ? await baseQuery.where(whereClause).orderBy(desc(tasks.createdAt)).limit(100)
+        : await baseQuery.orderBy(desc(tasks.createdAt)).limit(100);
+
+      const haversineDistanceMeters = (
+        lat1: number,
+        lon1: number,
+        lat2: number,
+        lon2: number,
+      ): number => {
+        const toRad = (value: number) => (value * Math.PI) / 180;
+        const R = 6371e3; // Earth radius in meters
+
+        const phi1 = toRad(lat1);
+        const phi2 = toRad(lat2);
+        const dPhi = toRad(lat2 - lat1);
+        const dLambda = toRad(lon2 - lon1);
+
+        const a =
+          Math.sin(dPhi / 2) * Math.sin(dPhi / 2) +
+          Math.cos(phi1) * Math.cos(phi2) *
+            Math.sin(dLambda / 2) * Math.sin(dLambda / 2);
+        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+
+        return R * c;
+      };
+
+      const filtered = viewerLat != null && viewerLng != null
+        ? rows.filter(({ poster }) => {
+            if (!poster) return false;
+            const pLat = (poster as any)?.latitude;
+            const pLng = (poster as any)?.longitude;
+            if (pLat == null || pLng == null) return false;
+            const pLatNum = Number(pLat);
+            const pLngNum = Number(pLng);
+            if (!Number.isFinite(pLatNum) || !Number.isFinite(pLngNum)) return false;
+
+            const distance = haversineDistanceMeters(viewerLat as number, viewerLng as number, pLatNum, pLngNum);
+            return distance <= radiusMeters;
+          })
+        : rows;
+
+      const normalized = filtered.map(({ task, poster }) => {
+        let posterName = "Neighbor";
+        if (poster) {
+          const first = ((poster as any).firstName || "").toString().trim();
+          const last = ((poster as any).lastName || "").toString().trim();
+          const lastInitial = last ? `${last[0]}.` : "";
+          const combined = [first, lastInitial].filter(Boolean).join(" ");
+          if (combined) posterName = combined;
+        }
+
+        return {
+          ...task,
+          posterName,
+        };
+      });
+
+      res.json(normalized);
     } catch (error: any) {
       console.error("Error fetching tasks:", error);
       res.status(500).json({ message: error?.message || "Failed to fetch tasks" });
@@ -7693,23 +7787,41 @@ export async function registerRoutes(app: any) {
       const authUserId = (req.user as any)?.id || (req.user as any)?.claims?.sub;
       const user = authUserId ? await storage.getUser(authUserId) : null;
 
+      const scopeParam = typeof req.query.scope === "string" ? (req.query.scope as string) : undefined;
+
+      // Super-admins can intentionally bypass county/state scoping to see all posts.
+      const roleFromClaims = (req.user as any)?.claims?.role;
+      const rawRoles = Array.isArray((req.user as any)?.roles) ? (req.user as any).roles : [];
+      const roles: string[] = [roleFromClaims, ...(rawRoles || [])].filter(
+        (r): r is string => typeof r === "string"
+      );
+      const isSuperAdminLike = roles.some((r) => ["head_admin", "super_admin"].includes(r));
+
+      const wantsGlobalScope = scopeParam === "all" || scopeParam === "global";
+      const bypassLocation = Boolean(isSuperAdminLike && wantsGlobalScope);
+
       const hasExplicitLocationFilters =
         Boolean(req.query.stateCode) || Boolean(req.query.countyFips);
 
       const filters: Parameters<typeof storage.getCommunityPosts>[0] = {
-        scope: (req.query.scope as any) || (user && !hasExplicitLocationFilters ? "county" : undefined),
-        stateCode:
-          (req.query.stateCode as string) ||
-          (user && !hasExplicitLocationFilters ? (user.state as string | undefined) : undefined),
-        countyFips:
-          (req.query.countyFips as string) ||
-          (user && !hasExplicitLocationFilters
-            ? ((user as any).countyFips as string | undefined)
-            : undefined),
+        // When bypassing location, deliberately avoid applying any scope/state/county filters.
+        scope: bypassLocation
+          ? undefined
+          : ((scopeParam as any) || (user && !hasExplicitLocationFilters ? "county" : undefined)),
+        stateCode: bypassLocation
+          ? undefined
+          : ((req.query.stateCode as string) ||
+            (user && !hasExplicitLocationFilters ? (user.state as string | undefined) : undefined)),
+        countyFips: bypassLocation
+          ? undefined
+          : ((req.query.countyFips as string) ||
+            (user && !hasExplicitLocationFilters
+              ? ((user as any).countyFips as string | undefined)
+              : undefined)),
         category: req.query.category as any,
         authorId: req.query.authorId as string,
-        limit: req.query.limit ? parseInt(req.query.limit as string) : 20,
-        offset: req.query.offset ? parseInt(req.query.offset as string) : 0,
+        limit: req.query.limit ? parseInt(req.query.limit as string, 10) : 20,
+        offset: req.query.offset ? parseInt(req.query.offset as string, 10) : 0,
       };
 
       const posts = await storage.getCommunityPosts(filters);
