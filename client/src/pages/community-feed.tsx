@@ -140,7 +140,7 @@ function CommunityComments({ postId }: { postId: string }) {
               value={content}
               onChange={(e) => setContent(e.target.value)}
               rows={2}
-              className="bg-slate-900/70 border-slate-700 text-xs md:text-sm"
+              className="text-xs md:text-sm"
             />
             <div className="flex justify-end">
               <Button
@@ -180,7 +180,7 @@ function CommunityComments({ postId }: { postId: string }) {
                   {(comment.author?.name || "U").substring(0, 2).toUpperCase()}
                 </AvatarFallback>
               </Avatar>
-              <div className="flex-1 rounded-xl bg-slate-900/80 border border-slate-800 px-3 py-2">
+              <div className="flex-1 rounded-xl border border-[color:var(--border-subtle)] bg-[color:var(--surface-card)] px-3 py-2">
                 <p className="font-medium text-slate-100 mb-0.5 text-[11px] md:text-xs">
                   {comment.author?.name || "Neighbor"}
                 </p>
@@ -504,13 +504,13 @@ const CommunityFeed = memo(function CommunityFeed() {
       case 'project_showcase':
         return <Crown className="h-4 w-4 text-yellow-400" />;
       case 'recommendation_request':
-        return <MessageSquare className="h-4 w-4 text-blue-400" />;
+        return <MessageSquare className="h-4 w-4 text-orange-400" />;
       case 'promotion':
         return <TrendingUp className="h-4 w-4 text-green-400" />;
       case 'community_highlight':
         return <Trophy className="h-4 w-4 text-orange-400" />;
       case 'discussion':
-        return <MessageSquare className="h-4 w-4 text-blue-400" />;
+        return <MessageSquare className="h-4 w-4 text-orange-400" />;
       case 'poll':
         return <BarChart3 className="h-4 w-4 text-purple-400" />;
       case 'announcement':
@@ -572,14 +572,14 @@ const CommunityFeed = memo(function CommunityFeed() {
           {/* Main Feed */}
           <div className="lg:col-span-2 space-y-3 md:space-y-6">
             <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-              <TabsList className="inline-flex w-full justify-between rounded-full bg-slate-900/80 border border-slate-800 backdrop-blur mb-4 md:mb-5 px-1 py-1">
+              <TabsList className="inline-flex w-full justify-between rounded-full bg-[color:var(--surface-card)] border border-[color:var(--border-subtle)] backdrop-blur mb-4 md:mb-5 px-1 py-1">
                 <TabsTrigger value="forYou" className="flex-1 rounded-full data-[state=active]:bg-orange-500 data-[state=active]:text-slate-950 data-[state=inactive]:text-slate-300 text-xs md:text-sm">For you</TabsTrigger>
                 <TabsTrigger value="recent" className="flex-1 rounded-full data-[state=active]:bg-orange-500 data-[state=active]:text-slate-950 data-[state=inactive]:text-slate-300 text-xs md:text-sm">Recent</TabsTrigger>
                 <TabsTrigger value="nearby" className="flex-1 rounded-full data-[state=active]:bg-orange-500 data-[state=active]:text-slate-950 data-[state=inactive]:text-slate-300 text-xs md:text-sm">Nearby</TabsTrigger>
                 <TabsTrigger value="trending" className="flex-1 rounded-full data-[state=active]:bg-orange-500 data-[state=active]:text-slate-950 data-[state=inactive]:text-slate-300 text-xs md:text-sm">Trending</TabsTrigger>
               </TabsList>
               {/* Inline composer always visible at top of feed */}
-              <Card className="bg-slate-950/80 border border-slate-800 shadow-sm mb-3 md:mb-5 md:sticky md:top-16">
+              <Card className="bg-[color:var(--surface-card)] border border-[color:var(--border-subtle)] shadow-sm mb-3 md:mb-5 md:sticky md:top-16">
                 <CardContent className="p-3 md:p-5">
                   <div className="flex gap-4">
                     <Avatar className="w-10 h-10 md:w-11 md:h-11">
@@ -594,7 +594,6 @@ const CommunityFeed = memo(function CommunityFeed() {
                         placeholder="What's happening in your community today? Ask a question or share a project..."
                         value={newPostContent}
                         onChange={(e) => setNewPostContent(e.target.value)}
-                        className="bg-navy-700 border-navy-600 text-white"
                         rows={3}
                       />
 
@@ -610,7 +609,7 @@ const CommunityFeed = memo(function CommunityFeed() {
                                 key={prompt}
                                 type="button"
                                 onClick={() => handlePromptClick(prompt)}
-                                className="w-full rounded-full border border-slate-700 bg-slate-900/60 px-3 py-2 text-left text-xs md:text-sm text-slate-200 hover:border-orange-500 hover:bg-slate-900/90 transition-colors"
+                                className="w-full rounded-full border border-[color:var(--border-subtle)] bg-[color:var(--surface-card)] px-3 py-2 text-left text-xs md:text-sm text-[color:var(--text-secondary)] hover:border-[color:var(--border-active)] hover:bg-[color:var(--surface-intermediate)] transition-colors"
                               >
                                 {prompt}
                               </button>
@@ -621,15 +620,15 @@ const CommunityFeed = memo(function CommunityFeed() {
 
                       <div className="flex flex-col gap-2 sm:flex-row sm:justify-between sm:items-center pt-1">
                         <div className="flex flex-wrap gap-2">
-                          <Button size="sm" variant="outline" className="border-navy-600 text-gray-400 hover:bg-navy-600/50">
+                          <Button size="sm" variant="outline" className="border-[color:var(--border-subtle)] text-[color:var(--text-secondary)] hover:bg-[color:var(--surface-intermediate)] hover:text-[color:var(--text-primary)]">
                             <Image className="h-4 w-4 mr-1" />
                             Photo
                           </Button>
-                          <Button size="sm" variant="outline" className="border-navy-600 text-gray-400 hover:bg-navy-600/50">
+                          <Button size="sm" variant="outline" className="border-[color:var(--border-subtle)] text-[color:var(--text-secondary)] hover:bg-[color:var(--surface-intermediate)] hover:text-[color:var(--text-primary)]">
                             <Video className="h-4 w-4 mr-1" />
                             Video
                           </Button>
-                          <Button size="sm" variant="outline" className="border-navy-600 text-gray-400 hover:bg-navy-600/50">
+                          <Button size="sm" variant="outline" className="border-[color:var(--border-subtle)] text-[color:var(--text-secondary)] hover:bg-[color:var(--surface-intermediate)] hover:text-[color:var(--text-primary)]">
                             <BarChart3 className="h-4 w-4 mr-1" />
                             Poll
                           </Button>
@@ -665,10 +664,10 @@ const CommunityFeed = memo(function CommunityFeed() {
                         return (
                           <Card
                             key={post.id}
-                            className={`rounded-2xl hover:border-slate-700 transition-colors shadow-sm hover:shadow-md hover:shadow-black/40 ${
+                            className={`rounded-2xl border border-[color:var(--border-subtle)] hover:border-[color:var(--border-active)] transition-colors shadow-sm hover:shadow-md hover:shadow-black/40 ${
                               isSystemPost
-                                ? 'bg-slate-900/90 border-slate-800/80'
-                                : 'bg-slate-950/90 border-slate-800/80'
+                                ? 'bg-[color:var(--surface-intermediate)]'
+                                : 'bg-[color:var(--surface-card)]'
                             }`}
                             data-testid={`card-post-${post.id}`}
                           >
@@ -767,7 +766,7 @@ const CommunityFeed = memo(function CommunityFeed() {
                               </div>
 
                               {/* Post Actions */}
-                              <div className="flex items-center justify-between pt-3 border-t border-slate-800 text-xs md:text-sm">
+                              <div className="flex items-center justify-between pt-3 border-t border-[color:var(--border-subtle)] text-xs md:text-sm">
                                 <div className="flex items-center gap-4 md:gap-6">
                                   <Button
                                     variant="ghost"
@@ -784,7 +783,7 @@ const CommunityFeed = memo(function CommunityFeed() {
                                   <Button
                                     variant="ghost"
                                     size="sm"
-                                    className="text-gray-400 hover:text-blue-400"
+                                    className="text-gray-400 hover:text-orange-400"
                                     data-testid={`button-comment-${post.id}`}
                                     onClick={() => {
                                       if (!isAuthenticated) {
@@ -864,7 +863,7 @@ const CommunityFeed = memo(function CommunityFeed() {
                                 </Avatar>
                                 <button
                                   type="button"
-                                  className="flex-1 rounded-full border border-slate-800 bg-slate-900/60 px-3 py-2 text-left text-xs md:text-sm text-slate-400 hover:border-slate-700 hover:bg-slate-900/80"
+                                  className="flex-1 rounded-full border border-[color:var(--border-subtle)] bg-[color:var(--surface-input)] px-3 py-2 text-left text-xs md:text-sm text-[color:var(--text-secondary)] hover:border-[color:var(--border-active)] hover:bg-[color:var(--surface-intermediate)]"
                                   onClick={() => {
                                     if (!isAuthenticated) {
                                       toast({
@@ -923,7 +922,7 @@ const CommunityFeed = memo(function CommunityFeed() {
 
           {/* Right column: collapsed community context so feed dominates */}
           <div className="lg:col-span-1 space-y-4">
-            <Card className="bg-navy-800/40 border-navy-700 backdrop-blur-sm">
+            <Card className="bg-[color:var(--surface-card)] border-[color:var(--surface-frame-border)] backdrop-blur-sm">
               <CardHeader className="flex flex-row items-center justify-between py-3">
                 <CardTitle className="text-white text-sm flex items-center gap-2">
                   <Users2 className="h-4 w-4 text-orange-400" />
@@ -954,7 +953,7 @@ const CommunityFeed = memo(function CommunityFeed() {
                         </div>
                         <div className="flex justify-between">
                           <span className="text-gray-400">Posts today</span>
-                          <span className="text-blue-400">{communityStats.postsToday}</span>
+                          <span className="text-orange-400">{communityStats.postsToday}</span>
                         </div>
                         <div className="flex justify-between">
                           <span className="text-gray-400">Active counties</span>

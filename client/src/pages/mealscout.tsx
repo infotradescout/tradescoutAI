@@ -34,7 +34,19 @@ export default function MealScoutPage() {
           throw new Error('Failed to get MealScout SSO token');
         }
 
-        const { token } = (await tokenRes.json()) as { token?: string };
+        const tokenPayload = (await tokenRes.json()) as { token?: string; available?: boolean; error?: string };
+
+        // If MealScout is not enabled for this account, surface a friendly
+        // message instead of throwing an internal SSO error.
+        if (tokenPayload.available === false) {
+          if (!cancelled) {
+            setError('MealScout is not enabled for this account yet.');
+            setState('error');
+          }
+          return;
+        }
+
+        const token = tokenPayload.token;
         if (!token) {
           throw new Error('MealScout SSO token missing in response');
         }
