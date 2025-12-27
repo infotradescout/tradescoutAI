@@ -11,6 +11,8 @@ import {
   Share2,
   Compass,
   Menu,
+  UserPlus,
+  LogIn,
   Wrench,
   ClipboardList,
   Utensils,
@@ -179,14 +181,39 @@ export function AppShell({ children, footer }: AppShellProps) {
           style={{ background: 'var(--surface-frame)', borderBottom: '1px solid var(--border-primary)' }}
         >
           <Link href="/" className="flex items-center cursor-pointer">
-            <TradeScoutLogo size="xs" />
+            <TradeScoutLogo size="sm" />
+            <span className="ml-2 text-xs font-semibold tracking-wide" style={{ color: 'var(--text-primary)' }}>
+              TradeScout
+            </span>
           </Link>
           <div className="ml-auto flex items-center gap-2">
+            {(!isLoggedIn || !isOnboarded) && (
+              <>
+                <button
+                  type="button"
+                  onClick={() => navigate("/create-account")}
+                  className="inline-flex h-8 w-8 items-center justify-center rounded-full border transition hover:opacity-80 focus:outline-none"
+                  style={{ borderColor: 'var(--border-primary)', backgroundColor: 'var(--charcoal-900)' }}
+                  aria-label="Create account"
+                >
+                  <UserPlus className="h-4 w-4" style={{ color: 'var(--theme-accent-primary)' }} />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => navigate("/login")}
+                  className="inline-flex h-8 w-8 items-center justify-center rounded-full border transition hover:opacity-80 focus:outline-none"
+                  style={{ borderColor: 'var(--border-primary)', backgroundColor: 'var(--charcoal-900)' }}
+                  aria-label="Log in"
+                >
+                  <LogIn className="h-4 w-4" style={{ color: 'var(--theme-accent-primary)' }} />
+                </button>
+              </>
+            )}
             <NotificationCenter />
             <button
               type="button"
               onClick={() => setIsToolsOpen(true)}
-              className="inline-flex h-8 w-8 items-center justify-center transition hover:opacity-80"
+              className="inline-flex h-8 w-8 items-center justify-center transition hover:opacity-80 focus:outline-none"
               aria-label="Open profile & tools panel"
             >
               <Menu className="h-5 w-5" style={{ color: 'var(--theme-accent-primary)' }} />
@@ -228,14 +255,14 @@ export function AppShell({ children, footer }: AppShellProps) {
                 <button
                   type="button"
                   onClick={() => navigate("/create-account")}
-                  className="inline-flex items-center justify-center rounded-full border border-orange-500/70 bg-orange-500 px-3 py-1 text-[0.7rem] font-semibold text-slate-950 shadow-sm shadow-orange-500/40"
+                  className="inline-flex items-center justify-center rounded-full border border-orange-500/70 bg-orange-500 px-3 py-1 text-[0.7rem] font-semibold text-slate-950 shadow-sm shadow-orange-500/40 focus:outline-none"
                 >
                   Create account
                 </button>
                 <button
                   type="button"
                   onClick={() => navigate("/login")}
-                  className="inline-flex items-center justify-center rounded-full border px-3 py-1 text-[0.7rem] font-medium hover:text-white transition"
+                  className="inline-flex items-center justify-center rounded-full border px-3 py-1 text-[0.7rem] font-medium hover:text-white transition focus:outline-none"
                   style={{ borderColor: 'var(--border-primary)', backgroundColor: 'var(--charcoal-900)', color: 'var(--text-secondary)' }}
                 >
                   Log in
@@ -247,7 +274,7 @@ export function AppShell({ children, footer }: AppShellProps) {
             <button
               type="button"
               onClick={() => navigate("/messages")}
-              className="inline-flex h-8 w-8 items-center justify-center transition hover:opacity-80"
+              className="inline-flex h-8 w-8 items-center justify-center transition hover:opacity-80 focus:outline-none"
               aria-label="Messages and helpers"
             >
               <MessageCircle className="h-4 w-4" style={{ color: 'var(--theme-accent-primary)' }} />
@@ -260,7 +287,7 @@ export function AppShell({ children, footer }: AppShellProps) {
               <button
                 type="button"
                 onClick={() => navigate("/notifications")}
-                className="inline-flex h-8 w-8 items-center justify-center transition hover:opacity-80"
+                className="inline-flex h-8 w-8 items-center justify-center transition hover:opacity-80 focus:outline-none"
                 aria-label="Notifications"
               >
                 <Bell className="h-4 w-4" style={{ color: 'var(--theme-accent-primary)' }} />
@@ -271,7 +298,7 @@ export function AppShell({ children, footer }: AppShellProps) {
             <button
               type="button"
               onClick={() => setIsToolsOpen(true)}
-              className="inline-flex h-8 w-8 items-center justify-center transition hover:opacity-80"
+              className="inline-flex h-8 w-8 items-center justify-center transition hover:opacity-80 focus:outline-none"
               aria-label="Open profile & tools panel"
             >
               <Menu className="h-4 w-4" style={{ color: 'var(--theme-accent-primary)' }} />
