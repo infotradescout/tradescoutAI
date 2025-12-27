@@ -1190,8 +1190,6 @@ export default function Help() {
   const currentRole = (user?.role || 'homeowner') as UserRole;
   const roleConfig = roleConfigs[currentRole] || roleConfigs.homeowner!;
 
-  const firstName = (user?.firstName || user?.username || "") as string;
-
   // Filter articles based on search and category
   const filteredArticles = useMemo(() => {
     let allArticles: HelpArticle[] = [];

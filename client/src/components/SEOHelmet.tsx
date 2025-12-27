@@ -249,15 +249,4 @@ export const createBreadcrumbStructuredData = (items: Array<{name: string, url: 
   }))
 });
 
-export const createFAQStructuredData = (faqs: Array<{question: string, answer: string}>) => ({
-  "@context": "https://schema.org",
-  "@type": "FAQPage",
-  "mainEntity": faqs.map(faq => ({
-    "@type": "Question",
-    "name": faq.question,
-    "acceptedAnswer": {
-      "@type": "Answer",
-      "text": faq.answer
-    }
-  }))
-});
+// Deprecated duplicate; use the top-level createFAQStructuredData instead

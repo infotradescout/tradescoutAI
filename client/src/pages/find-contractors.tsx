@@ -7,6 +7,7 @@ import { sanitizeAreaLabel } from '@/lib/copyHelpers';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { apiRequest } from '@/lib/queryClient';
+import { useLocationContext, setSessionLocationOverride } from '@/hooks/useLocationContext';
 
 const quickActions = [
   { title: 'View Connections', desc: 'Check new project opportunities' },
@@ -33,9 +34,11 @@ type FindContractorsProps = {
 };
 
 const FindContractors = memo(function FindContractors({ title = 'Find Local Contractors' }: FindContractorsProps) {
-  const [stateCode, setStateCode] = useState('');
-  const [countyFips, setCountyFips] = useState('');
+  const location = useLocationContext();
+  const [stateCode, setStateCode] = useState(location.stateCode || '');
+  const [countyFips, setCountyFips] = useState(location.countyFips || '');
   const [tradeSlug, setTradeSlug] = useState('');
+  const hasCountyContext = Boolean(stateCode && countyFips);
 
   const { data: trades = [] } = useQuery({
     queryKey: ['/api/trades'],
@@ -49,7 +52,7 @@ const FindContractors = memo(function FindContractors({ title = 'Find Local Cont
     refetch: refetchTopContractors,
   } = useQuery<Contractor[]>({
     queryKey: ['/api/contractors/top', countyFips, tradeSlug],
-    enabled: Boolean(countyFips && tradeSlug),
+    enabled: hasCountyContext && Boolean(tradeSlug),
     queryFn: async () => {
       const params = new URLSearchParams({ county: countyFips, trade: tradeSlug, limit: '5' });
       return apiRequest('GET', `/api/contractors/top?${params.toString()}`);
@@ -87,6 +90,25 @@ const FindContractors = memo(function FindContractors({ title = 'Find Local Cont
 
   const featured = useMemo(() => ranked.slice(0, 3), [ranked]);
 
+  const handleStateChange = (value: string) => {
+    setStateCode(value);
+  };
+
+  const handleCountyChange = (value: string) => {
+    setCountyFips(value);
+    if (value && stateCode) {
+      setSessionLocationOverride({
+        stateCode,
+        countyFips: value,
+        countyName: undefined,
+        countyId: undefined,
+        lat: undefined,
+        lng: undefined,
+        label: undefined,
+      });
+    }
+  };
+
   return (
     <div className="max-w-6xl mx-auto ts-surface px-4 py-6 md:px-10 md:py-8 space-y-10">
           <header className="space-y-3">
@@ -109,8 +131,8 @@ const FindContractors = memo(function FindContractors({ title = 'Find Local Cont
           <StateCountySelector
             selectedState={stateCode}
             selectedCounty={countyFips}
-            onStateChange={setStateCode}
-            onCountyChange={setCountyFips}
+            onStateChange={handleStateChange}
+            onCountyChange={handleCountyChange}
             className="mt-2"
           />
 
@@ -130,7 +152,7 @@ const FindContractors = memo(function FindContractors({ title = 'Find Local Cont
 
             <Button
               type="button"
-              disabled={!countyFips || !tradeSlug}
+              disabled={!hasCountyContext || !tradeSlug}
               onClick={() => refetchTopContractors()}
               className="bg-gradient-to-r from-orange-500 to-orange-600 shadow-lg hover:from-orange-600 hover:to-orange-700 text-white px-6 py-3 text-sm rounded-xl flex items-center gap-2 font-semibold transition-all border border-orange-400/30 focus-visible:ring-2 focus-visible:ring-orange-400"
             >

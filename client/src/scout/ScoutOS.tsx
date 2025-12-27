@@ -17,7 +17,7 @@ import {
   type ScoutMode,
 } from "./api";
 import { executeScoutActions } from "./ScoutActionRouter";
-import { getUserLocationLabel, getUserAudienceLabel } from "@/lib/copyHelpers";
+import { getUserAudienceLabel } from "@/lib/copyHelpers";
 import { ROUTES } from "@/lib/routes";
 import type { ScoutAction, ScoutCluster, ScoutMessage } from "./state";
 import { useSession } from "../contexts/SessionContext";
@@ -32,13 +32,14 @@ import {
 } from "../agent/activity";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { ArrowRight, MessageCircle, Sparkles, Activity } from "lucide-react";
+import { ArrowRight, MessageCircle, Sparkles, Activity, ThumbsUp, ThumbsDown, Ban } from "lucide-react";
 import { ScoutHeader } from "./ScoutHeader";
 import { ScoutInputRow } from "./ScoutInputRow";
 import { scoutActionTiles } from "./scoutActionTiles";
 import { resolveAllTiles } from "./resolveScoutTiles";
 import type { ScoutTileContext } from "./scoutActionTiles";
 import { updateGeoPreferencesFromDeviceLocation } from "../agent/tools/geoPreferences";
+import { useLocationContext } from "@/hooks/useLocationContext";
 import { openFloatingNote } from "@/lib/floatingNotes";
 import {
   searchContractors,
@@ -210,31 +211,25 @@ export default function ScoutOS() {
     (user as any)?.unreadNotificationCount ??
     0;
 
-  const locality: ScoutLocality = useMemo(() => {
-    const prefsGeo = (user as any)?.preferences?.geo;
-    const homeLocation = prefsGeo?.homeLocation as
-      | { lat?: number; lng?: number; label?: string }
-      | undefined;
+  const locationCtx = useLocationContext();
 
+  const locality: ScoutLocality = useMemo(() => {
     return {
-      // Prefer a stored geo home-location label when explicit county
-      // is missing; otherwise keep using the canonical user county.
-      county: user?.county || (homeLocation?.label as string | undefined),
-      state: user?.state,
+      // Align Scout locality with the canonical LocationContext for all reads.
+      county: (locationCtx as any).countyName || (locationCtx as any).county,
+      state: locationCtx.stateCode,
+      // zip is still sourced from the user profile when present.
       zip: user?.zip,
-      // Prefer precise geo from preferences when available.
-      lat: typeof homeLocation?.lat === "number" ? homeLocation.lat : user?.latitude,
-      lng: typeof homeLocation?.lng === "number" ? homeLocation.lng : user?.longitude,
+      lat: locationCtx.lat,
+      lng: locationCtx.lng,
     };
   }, [
-    user?.county,
-    user?.state,
+    locationCtx.stateCode,
+    (locationCtx as any).county,
+    (locationCtx as any).countyName,
+    locationCtx.lat,
+    locationCtx.lng,
     user?.zip,
-    user?.latitude,
-    user?.longitude,
-    (user as any)?.preferences?.geo?.homeLocation?.label,
-    (user as any)?.preferences?.geo?.homeLocation?.lat,
-    (user as any)?.preferences?.geo?.homeLocation?.lng,
   ]);
 
   // Ephemeral, derived context roles per message/page for tone + defaults
@@ -954,7 +949,28 @@ export default function ScoutOS() {
                   payload: { adId: res.sponsored.id },
                 }
               : undefined,
-          });
+            // Minimal feedback affordance rendered as secondary actions
+            secondaryActions: [
+              {
+                type: "CALL_TOOL",
+                name: "ads.feedback",
+                args: { adId: res.sponsored.id, rating: "helpful", source: "scout" },
+                label: "👍 Helpful",
+              },
+              {
+                type: "CALL_TOOL",
+                name: "ads.feedback",
+                args: { adId: res.sponsored.id, rating: "not_relevant", source: "scout" },
+                label: "👎 Not relevant",
+              },
+              {
+                type: "CALL_TOOL",
+                name: "ads.feedback",
+                args: { adId: res.sponsored.id, rating: "spam", source: "scout" },
+                label: "🚫 Spam",
+              },
+            ],
+          } as any);
           markAdSeen(res.sponsored.id);
         }
 
@@ -1221,7 +1237,7 @@ export default function ScoutOS() {
     }
   }, [location, state.messages, handleSend, setPrefillKey, shouldPlayIntroDemo]);
 
-  const heroLocationLabel = getUserLocationLabel(user as any);
+  const heroLocationLabel = locationCtx.label;
   const heroAudienceLabel = getUserAudienceLabel(user as any);
   const heroHeadlineTarget = (() => {
     if (isAuthenticated && heroLocationLabel) {

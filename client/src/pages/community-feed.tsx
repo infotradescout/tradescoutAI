@@ -223,6 +223,7 @@ const CommunityFeed = memo(function CommunityFeed() {
 
   const stateCode = location.stateCode as string | undefined;
   const countyFips = location.countyFips as string | undefined;
+  const hasCountyContext = Boolean(stateCode && countyFips);
 
   // Fetch posts from the API scoped to the user's county
   const { data: postsData, isLoading: postsLoading } = useQuery<Post[]>({
@@ -231,20 +232,15 @@ const CommunityFeed = memo(function CommunityFeed() {
       stateCode,
       countyFips,
     ],
+    enabled: hasCountyContext,
     queryFn: async () => {
       const params = new URLSearchParams({
+        scope: 'county',
+        stateCode: stateCode!,
+        countyFips: countyFips!,
         limit: '20',
         offset: '0',
       });
-
-      // When we know the user’s county/state from location context,
-      // explicitly scope to that county. Otherwise, let the server
-      // infer the best scope from the authenticated user.
-      if (stateCode && countyFips) {
-        params.set('scope', 'county');
-        params.set('stateCode', stateCode);
-        params.set('countyFips', countyFips);
-      }
 
       const response = await fetch(`/api/community/posts?${params.toString()}`);
       if (!response.ok) throw new Error('Failed to fetch posts');
@@ -311,6 +307,7 @@ const CommunityFeed = memo(function CommunityFeed() {
 
   const { data: trendingTopicsData } = useQuery<TrendingTopic[]>({
     queryKey: ['/api/community/trending', stateCode, countyFips],
+    enabled: hasCountyContext,
     queryFn: async () => {
       const params = new URLSearchParams();
       if (stateCode) params.set('stateCode', stateCode);
@@ -528,17 +525,59 @@ const CommunityFeed = memo(function CommunityFeed() {
 
   const handleSharePost = async (post: any) => {
     try {
-      const origin = typeof window !== 'undefined' ? window.location.origin : '';
-      const url = `${origin}/community?post=${encodeURIComponent(post.id)}`;
-      const title = post.title || 'TradeScout community post';
-      const text = (post.content || '').toString().slice(0, 200);
+      await share({
+        path: `/community?post=${encodeURIComponent(post.id)}`,
+        title: post.title || "TradeScout community post",
+        text: (post.content || "").toString(),
+        contextLabel: "Post link",
+      });
+    } catch (err) {
+      console.error("Failed to share community post", err);
+      toast({
+        title: "Share failed",
+        description: "Unable to share this post right now.",
+        variant: "destructive",
+      });
+    }
+  };
 
-    await share({
-      path: `/community?post=${encodeURIComponent(post.id)}`,
-      title: post.title || "TradeScout community post",
-      text: (post.content || "").toString(),
-      contextLabel: "Post link",
-    });
+  if (!hasCountyContext) {
+    const areaLabel = location.label || "your area";
+
+    return (
+      <CommunityShell
+        sectionLabel="CommunityOS · A live feed for recommendations, projects, and trusted local pros."
+        notificationsCount={unreadCount}
+      >
+        <div className="max-w-3xl mx-auto py-10">
+          <Card className="bg-slate-950/70 border-slate-800">
+            <CardHeader>
+              <CardTitle className="text-white text-lg">
+                Choose your county to unlock your community feed
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <p className="text-sm text-slate-300">
+                Community Feed only shows posts from your real local area. Set your county so we can load a live feed instead of falling back to a global default.
+              </p>
+              <div className="flex items-center justify-between gap-3">
+                <p className="text-xs text-slate-400">
+                  Current location context: <span className="font-medium text-slate-100">{areaLabel}</span>
+                </p>
+                <Button
+                  type="button"
+                  className="bg-orange-500 hover:bg-orange-600 text-black text-xs font-semibold px-3 py-2 rounded-md"
+                  asChild
+                >
+                  <a href="/settings">Open location settings</a>
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </CommunityShell>
+    );
+  }
 
   return (
     <CommunityShell

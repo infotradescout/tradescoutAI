@@ -296,6 +296,38 @@ export function executeScoutActions(
         break;
       }
 
+      case "CALL_TOOL": {
+        const name = typeof action.name === "string" ? action.name : "";
+        const args = (action as any).args ?? action.payload ?? {};
+
+        // Small feature flag so Scout feedback can be toggled without UI changes
+        const feedbackEnabled =
+          typeof window !== "undefined" &&
+          window.localStorage.getItem("scout:ads-feedback-enabled") !== "0";
+
+        if (name === "ads.feedback" && feedbackEnabled) {
+          const adId = typeof args.adId === "string" ? (args.adId as string) : undefined;
+          const rating =
+            args.rating === "helpful" || args.rating === "not_relevant" || args.rating === "spam"
+              ? (args.rating as "helpful" | "not_relevant" | "spam")
+              : undefined;
+          const source =
+            args.source === "scout" || args.source === "site_visit" || args.source === "saved"
+              ? (args.source as "scout" | "site_visit" | "saved")
+              : "scout";
+
+          if (adId && rating) {
+            void fetch("/api/ads/feedback", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ adId, rating, source }),
+            }).catch(() => undefined);
+          }
+        }
+
+        break;
+      }
+
       case "NOOP":
       default:
         // ignore unknown or noop

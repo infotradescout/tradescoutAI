@@ -91,6 +91,7 @@ export default function HOAManagement() {
     layer: "hoa",
     hoaId: hoaIdFromRoute ?? undefined,
   });
+  const hasCountyContext = Boolean(location.stateCode && location.countyFips);
   const [selectedVote, setSelectedVote] = useState<string | null>(null);
   const [notification, setNotification] = useState<{ type: 'success' | 'error', message: string } | null>(null);
 
@@ -105,7 +106,7 @@ export default function HOAManagement() {
         }
         return res.json();
       },
-      enabled: !!user,
+      enabled: !!user && hasCountyContext,
     }
   );
 
@@ -122,34 +123,34 @@ export default function HOAManagement() {
       }
       return response.json();
     },
-    enabled: !!user && !!activeHoaId,
+    enabled: !!user && !!activeHoaId && hasCountyContext,
     retry: false
   });
 
   const { data: hoa, isLoading: hoaLoading } = useQuery({
     queryKey: ['/api/hoa', activeHoaId],
     queryFn: () => fetch(`/api/hoa/${activeHoaId}`).then(res => res.json()),
-    enabled: !!activeHoaId,
+    enabled: !!activeHoaId && hasCountyContext,
   });
 
   const { data: finances, isLoading: financesLoading } = useQuery({
     queryKey: ['/api/hoa', activeHoaId, 'finances'],
     queryFn: () => fetch(`/api/hoa/${activeHoaId}/finances`).then(res => res.json()),
-    enabled: !!activeHoaId && (memberData?.canViewFinances || false)
+    enabled: !!activeHoaId && (memberData?.canViewFinances || false) && hasCountyContext
   });
 
   const { data: vendors = [], isLoading: vendorsLoading } = useQuery({
     queryKey: ['/api/hoa', activeHoaId, 'vendors'],
     queryFn: () => fetch(`/api/hoa/${activeHoaId}/vendors`).then(res => res.json()),
     initialData: [],
-    enabled: !!activeHoaId,
+    enabled: !!activeHoaId && hasCountyContext,
   });
 
   const { data: votes = [], isLoading: votesLoading } = useQuery({
     queryKey: ['/api/hoa', activeHoaId, 'votes'],
     queryFn: () => fetch(`/api/hoa/${activeHoaId}/votes`).then(res => res.json()),
     initialData: [],
-    enabled: !!activeHoaId,
+    enabled: !!activeHoaId && hasCountyContext,
   });
 
   // Placeholder for refreshing financial data
@@ -289,6 +290,29 @@ export default function HOAManagement() {
     };
     return roleNames[role] || role;
   };
+
+  if (!hasCountyContext) {
+    return (
+      <CommunityShell sectionLabel="HOA" notificationsCount={unreadCount}>
+        <div className="max-w-7xl mx-auto">
+          <Card className="bg-slate-800/50 border-slate-700 text-center p-12">
+            <Building className="w-16 h-16 text-orange-400 mx-auto mb-4" />
+            <h2 className="text-2xl font-bold text-white mb-2">Set your county to manage your HOA</h2>
+            <p className="text-slate-400 mb-6">
+              HOA management is tied to specific counties. Choose your county so boards, votes, and vendors stay scoped to the right neighborhood.
+            </p>
+            <Button
+              type="button"
+              className="bg-orange-500 hover:bg-orange-600"
+              asChild
+            >
+              <a href="/settings">Open location settings</a>
+            </Button>
+          </Card>
+        </div>
+      </CommunityShell>
+    );
+  }
 
   if (hoaLoading || memberLoading || membershipLoading) {
     return (

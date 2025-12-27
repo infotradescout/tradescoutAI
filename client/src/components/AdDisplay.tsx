@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/useAuth";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { X, Bookmark, ExternalLink } from "lucide-react";
+import { X, Bookmark, ExternalLink, ThumbsUp, ThumbsDown, Ban } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 interface AdDisplayProps {
@@ -30,6 +30,7 @@ export function AdDisplay({ className = "", userLocation }: AdDisplayProps) {
   const queryClient = useQueryClient();
   const [dismissedAds, setDismissedAds] = useState<string[]>([]);
   const [currentAd, setCurrentAd] = useState<Advertisement | null>(null);
+  const [hasInteracted, setHasInteracted] = useState(false);
 
   // Determine user type for ad targeting
   const userType = user?.role && ['contractor_user', 'accelerator_member'].includes(user.role) 
@@ -65,6 +66,8 @@ export function AdDisplay({ className = "", userLocation }: AdDisplayProps) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ adId: currentAd.id, source: 'site_visit' })
       }).catch(console.error);
+
+      setHasInteracted(true);
       
       window.open(currentAd.linkUrl, '_blank');
     }
@@ -117,6 +120,20 @@ export function AdDisplay({ className = "", userLocation }: AdDisplayProps) {
     if (currentAd) {
       setDismissedAds(prev => [...prev, currentAd.id]);
       setCurrentAd(null);
+      setHasInteracted(true);
+    }
+  };
+
+  const sendFeedback = async (rating: "helpful" | "not_relevant" | "spam") => {
+    if (!currentAd || !user) return;
+    try {
+      await fetch("/api/ads/feedback", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ adId: currentAd.id, rating, source: "site_visit" }),
+      });
+    } catch {
+      // silent fail; feedback is best-effort
     }
   };
 
@@ -178,6 +195,39 @@ export function AdDisplay({ className = "", userLocation }: AdDisplayProps) {
               {saveAdMutation.isPending ? 'Saving...' : 'Save for Later'}
             </Button>
           </div>
+
+          {hasInteracted && user && (
+            <div className="mt-3 flex items-center gap-2 text-xs text-gray-400">
+              <span className="mr-2">Was this helpful?</span>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-6 w-6 text-green-600 hover:text-green-700"
+                onClick={() => sendFeedback("helpful")}
+                title="Helpful"
+              >
+                <ThumbsUp className="h-3 w-3" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-6 w-6 text-yellow-600 hover:text-yellow-700"
+                onClick={() => sendFeedback("not_relevant")}
+                title="Not relevant"
+              >
+                <ThumbsDown className="h-3 w-3" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-6 w-6 text-red-600 hover:text-red-700"
+                onClick={() => sendFeedback("spam")}
+                title="Spam or misleading"
+              >
+                <Ban className="h-3 w-3" />
+              </Button>
+            </div>
+          )}
           
           {currentAd.isAffiliate && (
             <div className="mt-2">

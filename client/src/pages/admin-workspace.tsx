@@ -37,6 +37,23 @@ interface AdminStats {
   totalRecommendations: number;
 }
 
+interface AdminVerificationItem {
+  id: string;
+  kind: "vendor" | "buyer" | "unknown";
+  status?: string;
+  userId?: string;
+  companyName: string | null;
+  trade: string | null;
+  licenseNumber: string | null;
+  serviceArea: string | null;
+  submittedAt: string;
+  documents: {
+    license: boolean;
+    insurance: boolean | "expires_soon";
+    id: boolean;
+  };
+}
+
 const ADMIN_ROLES = ['owner', 'ops_admin', 'analytics_read', 'territory_manager', 'contractor_success'];
 
 export default function AdminWorkspace() {
@@ -74,38 +91,13 @@ export default function AdminWorkspace() {
     enabled: !!isAuthenticated && !!hasAdminAccess,
     retry: false,
   });
-
-  // Mock pending verifications for demonstration
-  const pendingVerifications = [
-    {
-      id: 'ver1',
-      companyName: 'Elite Plumbing Co.',
-      type: 'new_application',
-      trade: 'Plumbing',
-      licenseNumber: 'CA-987654321',
-      serviceArea: 'Los Angeles',
-      documents: {
-        license: true,
-        insurance: true,
-        id: false
-      },
-      submittedAt: new Date().toISOString(),
+  const { data: pendingVerifications = [], isLoading: verificationsLoading } = useQuery<AdminVerificationItem[]>({
+    queryKey: ["/api/admin/verifications"],
+    enabled: !!isAuthenticated && !!hasAdminAccess,
+    queryFn: async () => {
+      return apiRequest("GET", "/api/admin/verifications?type=all&status=pending");
     },
-    {
-      id: 'ver2',
-      companyName: 'ProRoof Solutions',
-      type: 're_verification',
-      trade: 'Roofing',
-      licenseNumber: 'CA-123456789',
-      serviceArea: 'Orange',
-      documents: {
-        license: true,
-        insurance: 'expires_soon',
-        id: true
-      },
-      submittedAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
-    }
-  ];
+  });
 
   const verificationActionMutation = useMutation({
     mutationFn: async ({ verificationId, action, reason }: { 
@@ -113,8 +105,10 @@ export default function AdminWorkspace() {
       action: 'approve' | 'reject' | 'request_update'; 
       reason?: string;
     }) => {
-      // This would be a real API call in production
-      return new Promise(resolve => setTimeout(resolve, 1000));
+      return apiRequest("POST", `/api/admin/verifications/${verificationId}/actions`, {
+        action,
+        reason,
+      });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/verifications"] });
@@ -359,36 +353,44 @@ export default function AdminWorkspace() {
                 {pendingVerifications.length} pending
               </Badge>
             </div>
-
-            <div className="space-y-4">
-              {pendingVerifications.map((verification) => (
+            {verificationsLoading ? (
+              <div className="flex items-center justify-center py-8">
+                <div className="animate-spin w-6 h-6 border-4 border-orange-500 border-t-transparent rounded-full" />
+              </div>
+            ) : pendingVerifications.length === 0 ? (
+              <div className="text-center text-gray-400 text-sm py-8">
+                No pending verifications found.
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {pendingVerifications.map((verification) => (
                 <Card key={verification.id} className="bg-navy-600 border-navy-500">
                   <CardContent className="p-4">
                     <div className="flex items-start justify-between">
                       <div className="flex-1">
                         <div className="flex items-center space-x-3 mb-2">
-                          <h4 className="text-white font-semibold">{verification.companyName}</h4>
+                          <h4 className="text-white font-semibold">{verification.companyName || 'Marketplace verification'}</h4>
                           <Badge className={
-                            verification.type === 'new_application' 
-                              ? 'bg-amber-600 text-amber-100' 
+                            verification.kind === 'vendor'
+                              ? 'bg-amber-600 text-amber-100'
                               : 'bg-blue-600 text-blue-100'
                           }>
-                            {verification.type === 'new_application' ? 'New Application' : 'Re-verification'}
+                            {verification.kind === 'vendor' ? 'Vendor Verification' : 'Buyer Verification'}
                           </Badge>
                         </div>
                         
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
                           <div>
                             <p className="text-gray-400">Trade:</p>
-                            <p className="text-white">{verification.trade}</p>
+                            <p className="text-white">{verification.trade || 'Not specified'}</p>
                           </div>
                           <div>
                             <p className="text-gray-400">License #:</p>
-                            <p className="text-white">{verification.licenseNumber}</p>
+                            <p className="text-white">{verification.licenseNumber || 'N/A'}</p>
                           </div>
                           <div>
                             <p className="text-gray-400">Service Area:</p>
-                            <p className="text-white">{verification.serviceArea}</p>
+                            <p className="text-white">{verification.serviceArea || 'Marketplace'}</p>
                           </div>
                         </div>
                         
@@ -507,8 +509,9 @@ export default function AdminWorkspace() {
                     </div>
                   </CardContent>
                 </Card>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
           </TabsContent>
 
           {/* Connection Management Tab */}
