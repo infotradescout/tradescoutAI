@@ -66,9 +66,27 @@ export function clearSessionLocationOverride() {
  */
 export function hasCountyContext(ctx: LocationContext | undefined | null): boolean {
   if (!ctx) return false;
-  if (!ctx.stateCode || !ctx.countyFips) return false;
-  // Keep validation light here; the server enforces strict FIPS format.
-  return true;
+
+  // Primary contract: fully committed county when we have
+  // both a two-letter state code and a 5-digit county FIPS.
+  if (ctx.stateCode && ctx.countyFips) {
+    return true;
+  }
+
+  // Fallback: treat a saved geo/profile home location with
+  // lat/lng + human-readable label as "committed enough" for
+  // gating purposes, even if FIPS has not been resolved yet.
+  if (
+    (ctx.source === "profile" || ctx.source === "geo_preference") &&
+    (typeof ctx.lat === "number" || typeof ctx.lng === "number") &&
+    typeof ctx.label === "string" &&
+    ctx.label.trim().length > 0
+  ) {
+    return true;
+  }
+
+  // Otherwise, we still consider the user not county-committed.
+  return false;
 }
 
 export function useLocationContext(

@@ -28,6 +28,7 @@ import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { CommunityShell } from "@/components/layout/CommunityShell";
 import { useLocationContext, hasCountyContext } from "@/hooks/useLocationContext";
+import { CountyRequiredGate } from "@/components/CountyRequiredGate";
 import { CommunityPostCard } from "@/components/community/CommunityPostCard";
 import { CommunityComposerInline } from "@/components/community/CommunityComposerInline";
 import { CommunityEmptyState } from "@/components/community/CommunityEmptyState";
@@ -97,27 +98,6 @@ export default function Community() {
       const response = await fetch(`/api/community/posts?${params.toString()}`);
       if (!response.ok) throw new Error('Failed to fetch posts');
       return response.json();
-    },
-  });
-
-  // Create post mutation
-  const createPostMutation = useMutation({
-    mutationFn: async (payload: { content: string; images?: string[]; category: string }) => {
-      return apiRequest('POST', '/api/community/posts', {
-        content: payload.content,
-        category: payload.category,
-        images: payload.images,
-      });
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/community/posts'] });
-      setNewPostContent('');
-       setNewPostImages([]);
-      setShowPostComposer(false);
-      toast({
-        title: "Posted!",
-        description: "Your post is now live in the community.",
-      });
     },
   });
 
@@ -251,41 +231,9 @@ export default function Community() {
     return [...pinned, ...trending, ...regular];
   }, [posts, activeTab]);
 
-  if (!countyCommitted) {
-    const areaLabel = location.label || "your area";
-
-    return (
-      <CommunityShell sectionLabel="Community" notificationsCount={unreadCount}>
-        <div className="max-w-2xl mx-auto py-12">
-          <Card className="bg-slate-950/70 border-slate-800">
-            <CardContent className="p-6 space-y-4">
-              <div>
-                <h1 className="text-xl font-semibold text-white mb-2">Choose your county to see whats happening nearby</h1>
-                <p className="text-sm text-slate-300">
-                  Community only shows posts from your local area. Set your county so we can load a real feed for you instead of a global default.
-                </p>
-              </div>
-              <div className="flex items-center justify-between gap-3">
-                <p className="text-xs text-slate-400">
-                  Current location context: <span className="font-medium text-slate-100">{areaLabel}</span>
-                </p>
-                <Button
-                  type="button"
-                  className="bg-orange-500 hover:bg-orange-600 text-black text-xs font-semibold px-3 py-2 rounded-md"
-                  asChild
-                >
-                  <a href="/settings">Open location settings</a>
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      </CommunityShell>
-    );
-  }
-
   return (
-    <CommunityShell sectionLabel="Community" notificationsCount={0}>
+    <CommunityShell sectionLabel="Community" notificationsCount={unreadCount}>
+      <CountyRequiredGate locationOverride={location}>
       <div className="pb-16 lg:pb-0">
         {/* Header */}
         <div className="mb-6">
@@ -447,6 +395,7 @@ export default function Community() {
         </div>
 
       </div>
+      </CountyRequiredGate>
     </CommunityShell>
   );
 }

@@ -3,12 +3,11 @@ import { useQuery } from '@tanstack/react-query';
 import { Search, Sparkles, Zap, MapPin, Star, ThumbsUp, Briefcase, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { StateCountySelector } from '@/components/state-county-selector';
-import { useLocationContext, hasCountyContext } from '@/hooks/useLocationContext';
+import { useLocationContext, hasCountyContext, setSessionLocationOverride } from '@/hooks/useLocationContext';
 import { sanitizeAreaLabel } from '@/lib/copyHelpers';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { apiRequest } from '@/lib/queryClient';
-import { useLocationContext, setSessionLocationOverride } from '@/hooks/useLocationContext';
 
 const quickActions = [
   { title: 'View Connections', desc: 'Check new project opportunities' },
