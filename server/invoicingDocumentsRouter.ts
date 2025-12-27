@@ -324,6 +324,11 @@ export function createInvoicingDocumentsRouter(pool: Pool) {
 							pagination: { page: 1, pageSize: 50, totalCount: 0, pageCount: 0 },
 						});
 					}
+					// For the lightweight invoices list used by Scout/Finances,
+					// treat a missing documents table as "no invoices yet".
+					if (req.path === "/api/invoices") {
+						return res.json([]);
+					}
 				}
 				next(e);
 			}
