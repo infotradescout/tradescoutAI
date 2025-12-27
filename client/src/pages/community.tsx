@@ -42,6 +42,7 @@ interface CommunityPost {
     avatar?: string;
     role: string;
     verified: boolean;
+    badges?: string[];
   };
   category: string;
   location: string;
@@ -424,6 +425,7 @@ export default function Community() {
                         avatar: post.author?.avatar,
                         role: post.author?.role,
                         verified: post.author?.verified,
+                        badges: post.author?.badges,
                       },
                       category: post.category,
                       pinned: post.pinned,

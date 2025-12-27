@@ -149,9 +149,20 @@ export function RoleBasedNavigation({ isMobile = false }: RoleBasedNavigationPro
   }
 
   const userRole = user.role as UserRole;
+  const isCommunityFirst = Boolean((user as any)?.communityFirst);
   const permissions = getRolePermissions(userRole);
 
   const isItemVisible = (item: NavigationItem): boolean => {
+    // For community-first pilot users, soft-hide role hub/identity-heavy nav groups
+    if (
+      isCommunityFirst &&
+      (item.href === "/contractor-dashboard" ||
+        item.href === "/realtor-application" ||
+        item.href === "/car-salesman-application")
+    ) {
+      return false;
+    }
+
     // Check role requirements
     if (item.requiredRoles && !item.requiredRoles.includes(userRole)) {
       return false;

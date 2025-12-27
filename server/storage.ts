@@ -365,7 +365,7 @@ import {
   type DealEngagement,
   type InsertDealEngagement,
 } from "@shared/schema";
-import { db } from "./db";
+import { db, pool as neonPool } from "./db";
 import { eq, and, desc, asc, sql, inArray, like, gt, or, lt, isNull, isNotNull, ne, gte, lte, notInArray, type SQL } from "drizzle-orm";
 import { getTableColumns } from "drizzle-orm/utils";
 import bcrypt from "bcrypt";
@@ -525,6 +525,11 @@ export interface IStorage {
   // Analytics operations
   logEvent(eventType: string, data: any): Promise<void>;
   getEventStats(eventType: string, dateRange?: { from: Date; to: Date }): Promise<number>;
+  getUserCredibilityStats(userId: string): Promise<{
+    jobsCompleted: number;
+    peopleHelped: number;
+    activeWeeks: number;
+  }>;
 
   // Chat system operations
   // Conversations
@@ -1900,6 +1905,11 @@ export class DatabaseStorage implements IStorage {
     return newLead;
   }
 
+  async getLeadById(id: string): Promise<Lead | null> {
+    const [lead] = await db.select().from(leads).where(eq(leads.id, id));
+    return lead ?? null;
+  }
+
   async getLeads(contractorId?: string, status?: string): Promise<Lead[]> {
     const conditions = [];
     if (contractorId) {
@@ -2005,14 +2015,36 @@ export class DatabaseStorage implements IStorage {
 
   // Analytics operations
   async logEvent(eventType: string, data: any): Promise<void> {
-    await db.insert(events).values({
-      eventType,
-      data,
-      ipAddress: data.ipAddress,
-      userAgent: data.userAgent,
-      userId: data.userId,
-      contractorId: data.contractorId,
-    });
+    const [inserted] = await db
+      .insert(events)
+      .values({
+        eventType,
+        data,
+        ipAddress: data.ipAddress,
+        userAgent: data.userAgent,
+        userId: data.userId,
+        contractorId: data.contractorId,
+      })
+      .returning();
+
+    // Best-effort XP and badge processing; never block core event logging.
+    try {
+      const { processXpForEvent } = await import("./xp/xpEngine");
+      const { evaluateBadgesForEvent } = await import("./badges/badgeEngine");
+      const { LoggedEvent } = await import("./xp/eventTypes");
+
+      const loggedEvent: any = {
+        id: inserted.id,
+        eventType: inserted.eventType,
+        createdAt: inserted.createdAt ?? new Date(),
+        data: inserted.data,
+      };
+
+      await processXpForEvent({ pool: neonPool }, loggedEvent);
+      await evaluateBadgesForEvent({ pool: neonPool }, loggedEvent);
+    } catch (err) {
+      console.error("XP/Badge processing failed for event", eventType, err);
+    }
   }
 
   async getEventStats(eventType: string, dateRange?: { from: Date; to: Date }): Promise<number> {
@@ -2032,6 +2064,113 @@ export class DatabaseStorage implements IStorage {
     
     const [result] = await baseQuery.where(eq(events.eventType, eventType));
     return result?.count || 0;
+  }
+
+  async getUserCredibilityStats(userId: string): Promise<{
+    jobsCompleted: number;
+    peopleHelped: number;
+    activeWeeks: number;
+  }> {
+    if (!userId) {
+      return { jobsCompleted: 0, peopleHelped: 0, activeWeeks: 0 };
+    }
+
+    const [jobsRes, helpedRes, weeksRes] = await Promise.all([
+      neonPool.query(
+        `
+        SELECT COUNT(*) AS c
+        FROM events
+        WHERE (data->>'userId')::text = $1
+          AND event_type = 'job.completed';
+        `,
+        [userId],
+      ),
+      neonPool.query(
+        `
+        SELECT COUNT(DISTINCT (data->>'targetUserId')) AS c
+        FROM events
+        WHERE (data->>'userId')::text = $1
+          AND event_type IN ('reaction.marked_helpful','user.thanked')
+          AND COALESCE(data->>'targetUserId','') <> '';
+        `,
+        [userId],
+      ),
+      neonPool.query(
+        `
+        SELECT COUNT(DISTINCT date_trunc('week', created_at)) AS weeks
+        FROM events
+        WHERE (data->>'userId')::text = $1
+          AND event_type IN ('user.session_started','community.viewed_scope')
+          AND created_at >= now() - INTERVAL '365 days';
+        `,
+        [userId],
+      ),
+    ]);
+
+    const jobsCompleted = Number(jobsRes.rows?.[0]?.c ?? 0) || 0;
+    const peopleHelped = Number(helpedRes.rows?.[0]?.c ?? 0) || 0;
+    const activeWeeks = Number(weeksRes.rows?.[0]?.weeks ?? 0) || 0;
+
+    return { jobsCompleted, peopleHelped, activeWeeks };
+  }
+
+  // XP & badges read helpers (debug + user-facing)
+  async getUserXpTotal(userId: string): Promise<number> {
+    const res = await neonPool.query(
+      `SELECT xp_total FROM user_xp WHERE user_id = $1`,
+      [userId],
+    );
+    const raw = res.rows?.[0]?.xp_total;
+    const n = typeof raw === "number" ? raw : raw != null ? Number(raw) : 0;
+    return Number.isFinite(n) ? n : 0;
+  }
+
+  async getUserXpLedger(userId: string, limit = 50): Promise<
+    Array<{
+      id: string;
+      delta: number;
+      reason: string;
+      dayKeyUtc: string;
+      createdAt: string;
+    }>
+  > {
+    const safeLimit = Math.max(1, Math.min(200, limit));
+    const res = await neonPool.query(
+      `
+      SELECT id, delta, reason, day_key_utc, created_at
+      FROM xp_ledger
+      WHERE user_id = $1
+      ORDER BY created_at DESC
+      LIMIT $2
+      `,
+      [userId, safeLimit],
+    );
+    return (res.rows || []).map((row: any) => ({
+      id: String(row.id),
+      delta: Number(row.delta) || 0,
+      reason: String(row.reason || ""),
+      dayKeyUtc: String(row.day_key_utc || ""),
+      createdAt: new Date(row.created_at).toISOString(),
+    }));
+  }
+
+  async getUserAwardedBadges(userId: string): Promise<
+    Array<{ badgeId: string; awardedAt: string; source: string }>
+  > {
+    const res = await neonPool.query(
+      `
+      SELECT badge_id, awarded_at, source
+      FROM user_badges
+      WHERE user_id = $1
+      ORDER BY awarded_at DESC
+      `,
+      [userId],
+    );
+    return (res.rows || []).map((row: any) => ({
+      badgeId: String(row.badge_id),
+      awardedAt: new Date(row.awarded_at).toISOString(),
+      source: String(row.source || "engine"),
+    }));
   }
 
   // Chat system implementations
@@ -3706,6 +3845,7 @@ export class DatabaseStorage implements IStorage {
       role?: string | null;
       verified: boolean;
       isPrivateProfile: boolean;
+      badges?: string[] | null;
     };
     tags: string[];
     location: string;
@@ -3764,6 +3904,7 @@ export class DatabaseStorage implements IStorage {
         role: user?.role,
         verified: user?.addressVerified || false,
         isPrivateProfile: (user as any)?.isPrivateProfile ?? false,
+        badges: (user as any)?.badges ?? null,
       },
       tags: post.tags ?? [],
       location: post.countyFips ?? '',

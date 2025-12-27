@@ -177,6 +177,26 @@ export async function setupAuth(app: Express) {
 // Authentication middleware
 export const isAuthenticated: RequestHandler = (req, res, next) => {
   if (req.isAuthenticated()) {
+    try {
+      const user = req.user as User | undefined;
+      const userId = user?.id;
+      const anySession = req.session as any;
+      const todayKey = new Date().toISOString().slice(0, 10);
+
+      if (userId) {
+        if (!anySession?.lastSessionStartedDayKey || anySession.lastSessionStartedDayKey !== todayKey) {
+          anySession.lastSessionStartedDayKey = todayKey;
+          storage
+            .logEvent("user.session_started", { userId })
+            .catch((err: any) => {
+              console.error("Failed to log user.session_started", err);
+            });
+        }
+      }
+    } catch (err) {
+      console.error("Error handling user.session_started logging", err);
+    }
+
     return next();
   }
 

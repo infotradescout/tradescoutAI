@@ -1005,6 +1005,18 @@ export const socialPosts = pgTable("social_posts", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
+// Saved social posts (bookmarks)
+export const socialPostSaves = pgTable("social_post_saves", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  postId: varchar("post_id").notNull().references(() => socialPosts.id, { onDelete: 'cascade' }),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: 'cascade' }),
+  createdAt: timestamp("created_at").defaultNow(),
+}, (table) => [
+  uniqueIndex("social_post_saves_user_post_uidx").on(table.userId, table.postId),
+  index("idx_social_post_saves_user").on(table.userId),
+  index("idx_social_post_saves_post").on(table.postId),
+]);
+
 // Post reactions table
 export const postReactions = pgTable("post_reactions", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -1173,6 +1185,11 @@ export const socialPostsRelations = relations(socialPosts, ({ one, many }) => ({
   comments: many(postComments),
   shares: many(postShares),
   reports: many(contentReports),
+}));
+
+export const socialPostSavesRelations = relations(socialPostSaves, ({ one }) => ({
+  post: one(socialPosts, { fields: [socialPostSaves.postId], references: [socialPosts.id] }),
+  user: one(users, { fields: [socialPostSaves.userId], references: [users.id] }),
 }));
 
 // Type-only exports for main tables used in routes and db stub
@@ -1495,6 +1512,9 @@ export type ContentReport = typeof contentReports.$inferSelect;
 export type Neighborhood = typeof neighborhoods.$inferSelect;
 
 export type InsertSocialPost = z.infer<typeof insertSocialPostSchema>;
+
+export type SocialPostSave = typeof socialPostSaves.$inferSelect;
+export type InsertSocialPostSave = typeof socialPostSaves.$inferInsert;
 export type InsertPostComment = z.infer<typeof insertPostCommentSchema>;
 export type InsertPostReaction = z.infer<typeof insertPostReactionSchema>;
 export type InsertPostShare = z.infer<typeof insertPostShareSchema>;

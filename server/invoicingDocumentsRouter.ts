@@ -446,7 +446,18 @@ export function createInvoicingDocumentsRouter(pool: Pool) {
 				[jobId, JSON.stringify(payload), JSON.stringify(permissions), req.user.id],
 			);
 
-			res.status(201).json({ document: rows[0] });
+			const document = rows[0];
+			try {
+				await storage.logEvent("finance.document_created", {
+					userId: req.user.id,
+					documentType: document.type,
+					jobId: document.job_id ?? null,
+				});
+			} catch (err) {
+				console.error("finance.document_created logging failed", err);
+			}
+
+			res.status(201).json({ document });
 		}),
 	);
 
@@ -692,6 +703,15 @@ export function createInvoicingDocumentsRouter(pool: Pool) {
 			);
 
 			const contractDoc = contract.rows[0];
+			try {
+				await storage.logEvent("finance.document_created", {
+					userId: req.user.id,
+					documentType: contractDoc.type,
+					jobId: contractDoc.job_id ?? null,
+				});
+			} catch (err) {
+				console.error("finance.document_created logging failed", err);
+			}
 			console.info("[DOC_TRANSITION]", {
 				docId: contractDoc.id,
 				from: null,
@@ -859,6 +879,15 @@ export function createInvoicingDocumentsRouter(pool: Pool) {
 				[jobId, JSON.stringify(payload), JSON.stringify({}), req.user.id],
 			);
 			const invoice = created.rows[0];
+			try {
+				await storage.logEvent("finance.document_created", {
+					userId: req.user.id,
+					documentType: invoice.type,
+					jobId: invoice.job_id ?? null,
+				});
+			} catch (err) {
+				console.error("finance.document_created logging failed", err);
+			}
 			console.info("[DOC_TRANSITION]", {
 				docId: invoice.id,
 				from: null,
@@ -917,6 +946,15 @@ export function createInvoicingDocumentsRouter(pool: Pool) {
 				[jobId, JSON.stringify(receiptPayload), JSON.stringify({}), req.user.id],
 			);
 			const receipt = created.rows[0];
+			try {
+				await storage.logEvent("finance.document_created", {
+					userId: req.user.id,
+					documentType: receipt.type,
+					jobId: receipt.job_id ?? null,
+				});
+			} catch (err) {
+				console.error("finance.document_created logging failed", err);
+			}
 			console.info("[DOC_TRANSITION]", {
 				docId: receipt.id,
 				from: null,
@@ -985,6 +1023,15 @@ export function createInvoicingDocumentsRouter(pool: Pool) {
 				[jobId, JSON.stringify(payload), JSON.stringify({}), req.user.id],
 			);
 			const invoice = created.rows[0];
+			try {
+				await storage.logEvent("finance.document_created", {
+					userId: req.user.id,
+					documentType: invoice.type,
+					jobId: invoice.job_id ?? null,
+				});
+			} catch (err) {
+				console.error("finance.document_created logging failed", err);
+			}
 			console.info("[DOC_TRANSITION]", {
 				docId: invoice.id,
 				from: null,
@@ -1144,6 +1191,15 @@ export function createInvoicingDocumentsRouter(pool: Pool) {
 				[jobId, JSON.stringify(payload), JSON.stringify({}), req.user.id],
 			);
 			const expense = created.rows[0];
+			try {
+				await storage.logEvent("finance.document_created", {
+					userId: req.user.id,
+					documentType: expense.type,
+					jobId: expense.job_id ?? null,
+				});
+			} catch (err) {
+				console.error("finance.document_created logging failed", err);
+			}
 			console.info("[DOC_TRANSITION]", {
 				docId: expense.id,
 				from: null,
@@ -1277,6 +1333,15 @@ export function createInvoicingDocumentsRouter(pool: Pool) {
 				[paidInvoice.job_id ?? null, JSON.stringify(receiptPayload), JSON.stringify({}), req.user.id],
 			);
 			const receipt = created.rows[0];
+			try {
+				await storage.logEvent("finance.document_created", {
+					userId: req.user.id,
+					documentType: receipt.type,
+					jobId: receipt.job_id ?? null,
+				});
+			} catch (err) {
+				console.error("finance.document_created logging failed", err);
+			}
 			console.info("[DOC_TRANSITION]", {
 				docId: receipt.id,
 				from: null,

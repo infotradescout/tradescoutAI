@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
+import { Link } from "wouter";
 
 interface StandaloneInvoice {
   id: string;
@@ -48,7 +49,8 @@ interface StandaloneInvoicesResponse {
 }
 
 export default function FinancesInvoicesPage() {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, user } = useAuth();
+  const isCommunityFirst = Boolean((user as any)?.communityFirst);
   const { toast } = useToast();
   const newInvoiceRef = useRef<HTMLDivElement | null>(null);
   const queryClient = useQueryClient();
@@ -591,9 +593,30 @@ export default function FinancesInvoicesPage() {
           {isLoading ? (
             <p className="text-xs text-tsTextMuted py-4">Loading invoice records...</p>
           ) : invoices.length === 0 ? (
-            <p className="text-xs text-tsTextMuted">
-              Once you start creating invoice records, you'll see them listed here with quick actions.
-            </p>
+            <div className="text-xs text-tsTextMuted space-y-2">
+              <p>
+                {isCommunityFirst
+                  ? "You only need invoices when you want a record. Create one when it’s useful; until then, everything else in TradeScout still works."
+                  : "Once you start creating invoice records, you'll see them listed here with quick actions."}
+              </p>
+              {isCommunityFirst && (
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="default"
+                    size="sm"
+                    className="h-7 px-3 text-[11px]"
+                    onClick={handleNewInvoiceClick}
+                  >
+                    New invoice
+                  </Button>
+                  <Link href="/community">
+                    <a className="text-[11px] text-sky-400 hover:text-sky-300">
+                      See what’s happening nearby
+                    </a>
+                  </Link>
+                </div>
+              )}
+            </div>
           ) : (
             <div className="overflow-x-auto -mx-2">
               <Table className="min-w-full text-xs">
