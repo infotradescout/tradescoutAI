@@ -27,7 +27,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { CommunityShell } from "@/components/layout/CommunityShell";
-import { useLocationContext } from "@/hooks/useLocationContext";
+import { useLocationContext, hasCountyContext } from "@/hooks/useLocationContext";
 import { CommunityPostCard } from "@/components/community/CommunityPostCard";
 import { CommunityComposerInline } from "@/components/community/CommunityComposerInline";
 import { CommunityEmptyState } from "@/components/community/CommunityEmptyState";
@@ -78,12 +78,12 @@ export default function Community() {
 
   const stateCode = location.stateCode as string | undefined;
   const countyFips = location.countyFips as string | undefined;
-  const hasCountyContext = Boolean(stateCode && countyFips);
+  const countyCommitted = hasCountyContext(location);
 
   // Fetch community posts scoped to the user's county
   const { data: posts, isLoading: postsLoading } = useQuery<CommunityPost[]>({
     queryKey: ['/api/community/posts', stateCode, countyFips],
-    enabled: hasCountyContext,
+    enabled: countyCommitted,
     queryFn: async () => {
       const params = new URLSearchParams({
         scope: 'county',
@@ -250,7 +250,7 @@ export default function Community() {
     return [...pinned, ...trending, ...regular];
   }, [posts, activeTab]);
 
-  if (!hasCountyContext) {
+  if (!countyCommitted) {
     const areaLabel = location.label || "your area";
 
     return (

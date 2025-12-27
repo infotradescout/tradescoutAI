@@ -16,7 +16,7 @@ import { share } from "@/utils/share";
 import { apiRequest } from '@/lib/queryClient';
 import { CommunityShell } from '@/components/layout/CommunityShell';
 import { TradeScoutIcon } from '@/components/TradeScoutIcons';
-import { useLocationContext } from '@/hooks/useLocationContext';
+import { useLocationContext, hasCountyContext } from '@/hooks/useLocationContext';
 import { useLocation } from 'wouter';
 import { COMMUNITY_TONE } from '../../../shared/communityLanguage';
 
@@ -223,7 +223,7 @@ const CommunityFeed = memo(function CommunityFeed() {
 
   const stateCode = location.stateCode as string | undefined;
   const countyFips = location.countyFips as string | undefined;
-  const hasCountyContext = Boolean(stateCode && countyFips);
+  const countyCommitted = hasCountyContext(location);
 
   // Fetch posts from the API scoped to the user's county
   const { data: postsData, isLoading: postsLoading } = useQuery<Post[]>({
@@ -232,7 +232,7 @@ const CommunityFeed = memo(function CommunityFeed() {
       stateCode,
       countyFips,
     ],
-    enabled: hasCountyContext,
+    enabled: countyCommitted,
     queryFn: async () => {
       const params = new URLSearchParams({
         scope: 'county',
@@ -307,7 +307,7 @@ const CommunityFeed = memo(function CommunityFeed() {
 
   const { data: trendingTopicsData } = useQuery<TrendingTopic[]>({
     queryKey: ['/api/community/trending', stateCode, countyFips],
-    enabled: hasCountyContext,
+    enabled: countyCommitted,
     queryFn: async () => {
       const params = new URLSearchParams();
       if (stateCode) params.set('stateCode', stateCode);
@@ -547,7 +547,7 @@ const CommunityFeed = memo(function CommunityFeed() {
       notificationsCount={unreadCount}
     >
       <div className="mx-auto w-full max-w-5xl px-3 py-3 md:px-4 md:py-4 overflow-x-hidden">
-        {!hasCountyContext && (
+        {!countyCommitted && (
           <div className="mb-4">
             <Card className="bg-slate-950/70 border-slate-800">
               <CardHeader>

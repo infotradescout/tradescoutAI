@@ -55,6 +55,22 @@ export function clearSessionLocationOverride() {
   safeStorage.remove(SESSION_LOCATION_KEY);
 }
 
+/**
+ * Canonical check for whether the user has "committed" a home county.
+ *
+ * This should be used anywhere we gate truly local experiences (community
+ * feed, HOA tools, Exchange, Scout hero action grid, etc.). It encodes the
+ * rule that a user is "county committed" only when we have both a
+ * two-letter state code and a 5-digit county FIPS in the active
+ * LocationContext.
+ */
+export function hasCountyContext(ctx: LocationContext | undefined | null): boolean {
+  if (!ctx) return false;
+  if (!ctx.stateCode || !ctx.countyFips) return false;
+  // Keep validation light here; the server enforces strict FIPS format.
+  return true;
+}
+
 export function useLocationContext(
   overrides?: Partial<LocationContext>
 ): LocationContext {
