@@ -1042,6 +1042,49 @@ export function createInvoicingDocumentsRouter(pool: Pool) {
 		}),
 	);
 
+	// Lightweight invoice list for Scout contextual tiles and Finances workspace.
+	// Returns a small, normalized array of invoices for the current user so the
+	// frontend can reason about "active invoices" without loading full documents.
+	r.get(
+		"/api/invoices",
+		isAuthenticated,
+		wrap(async (req: AuthedRequest, res: Response) => {
+			requireAuth(req);
+			const userId = String(req.user!.id);
+
+			const { rows } = await pool.query(
+				`SELECT id, job_id, status, payload, created_at, updated_at
+					FROM documents
+					WHERE type = 'INVOICE' AND created_by = $1
+					ORDER BY updated_at DESC NULLS LAST, created_at DESC
+					LIMIT 100`,
+				[userId],
+			);
+
+			const invoices = (rows as any[]).map((row) => {
+				const payload = row.payload || {};
+				const amount = okNumber(payload.total);
+				const jobName =
+					payload.jobName ||
+					payload.clientName ||
+					payload.client_name ||
+					payload.title ||
+					row.job_id ||
+					null;
+
+				return {
+					id: String(row.id),
+					jobName,
+					status: row.status || "draft",
+					amount: Number.isFinite(amount) ? amount : null,
+					updatedAt: row.updated_at || row.created_at || null,
+				};
+			});
+
+			res.json(invoices);
+		}),
+	);
+
 	// Standalone accounting: create a manual expense entry for the current user.
 	r.post(
 		"/api/accounting/standalone-expense",

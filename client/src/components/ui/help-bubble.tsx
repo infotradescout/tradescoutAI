@@ -24,7 +24,7 @@ const iconMap = {
 };
 
 const variantColors = {
-  info: 'border-blue-500 bg-blue-500/10',
+  info: 'border-orange-500 bg-orange-500/10',
   tip: 'border-amber-500 bg-amber-500/10',
   success: 'border-green-500 bg-green-500/10',
   warning: 'border-orange-500 bg-orange-500/10',
@@ -66,7 +66,7 @@ export function HelpBubble({
   return (
     <div className="relative inline-block">
       <button
-        className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-blue-500/20 text-blue-400 hover:bg-blue-500/30 transition-colors"
+        className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-orange-500/20 text-orange-400 hover:bg-orange-500/30 transition-colors"
         onMouseEnter={handleMouseEnter}
         onMouseLeave={handleMouseLeave}
         onClick={handleClick}
@@ -123,7 +123,7 @@ export function GuidedTour({ steps, isActive, onComplete, onSkip }: {
 
   return (
     <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center">
-      <Card className="bg-slate-800 border-slate-600 max-w-md">
+      <Card className="bg-[color:var(--surface-card)] border-[color:var(--border-subtle)] max-w-md">
         <CardContent className="p-6 text-center">
           <h3 className="text-lg font-semibold text-white mb-2">Welcome Tour</h3>
           <p className="text-slate-300 mb-4">
@@ -132,7 +132,7 @@ export function GuidedTour({ steps, isActive, onComplete, onSkip }: {
           <div className="flex space-x-3">
             <button
               onClick={onComplete}
-              className="flex-1 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded"
+              className="flex-1 bg-orange-600 hover:bg-orange-700 text-white px-4 py-2 rounded"
             >
               Start Tour
             </button>

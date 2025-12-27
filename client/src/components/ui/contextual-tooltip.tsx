@@ -101,7 +101,7 @@ export const ContextualTooltip = forwardRef<
   const variantClasses = {
     default: 'text-gray-400 hover:text-gray-300',
     contractor: 'text-orange-400 hover:text-orange-300',
-    homeowner: 'text-blue-400 hover:text-blue-300'
+    homeowner: 'text-orange-400 hover:text-orange-300'
   };
 
   const TriggerButton = forwardRef<HTMLButtonElement, React.ButtonHTMLAttributes<HTMLButtonElement>>(
@@ -126,7 +126,7 @@ export const ContextualTooltip = forwardRef<
         </TooltipTrigger>
         <TooltipContent 
           side={placement}
-          className="max-w-xs bg-navy-800 border-navy-600 text-white p-4 rounded-lg shadow-xl"
+          className="max-w-xs bg-[color:var(--surface-card)] border border-[color:var(--border-subtle)] text-white p-4 rounded-lg shadow-xl"
         >
           <div className="flex items-start space-x-3">
             <div className="flex-shrink-0">
