@@ -18,8 +18,8 @@ export default defineConfig({
   },
   resolve: {
     alias: {
-      // Keep any existing aliases you rely on
-      '@': r('./'),
+      // Match Vite/TS aliases so client imports like "@/hooks/useAuth" resolve in tests.
+      '@': r('client/src'),
       // Critical: ensure @shared/schema resolves in Vitest the same way as in Vite/TS
       '@shared': r('shared'),
     },

@@ -12,6 +12,7 @@ import { Building, DollarSign, Users, Vote, Wrench, Calendar, TrendingUp, Phone,
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { CommunityShell } from "@/components/layout/CommunityShell";
+import { CountyRequiredGate } from "@/components/CountyRequiredGate";
 
 interface HOA {
   id: string;
@@ -129,7 +130,29 @@ export default function HOAManagement() {
 
   const { data: hoa, isLoading: hoaLoading } = useQuery({
     queryKey: ['/api/hoa', activeHoaId],
-    queryFn: () => fetch(`/api/hoa/${activeHoaId}`).then(res => res.json()),
+    queryFn: async () => {
+      const res = await fetch(`/api/hoa/${activeHoaId}`);
+      if (!res.ok) {
+        throw new Error('Failed to load HOA');
+      }
+      const json = await res.json();
+
+      if (hasCountyContext) {
+        try {
+          const { recordActivity } = await import("../agent/activity");
+          recordActivity({
+            type: "county_gated_query_success",
+            ts: new Date().toISOString(),
+            path: typeof window !== "undefined" ? window.location.pathname : "",
+            meta: { surface: "hoa_management", queryKey: "hoa_detail" },
+          });
+        } catch {
+          // ignore telemetry failures
+        }
+      }
+
+      return json;
+    },
     enabled: !!activeHoaId && hasCountyContext,
   });
 
@@ -291,30 +314,7 @@ export default function HOAManagement() {
     return roleNames[role] || role;
   };
 
-  if (!hasCountyContext) {
-    return (
-      <CommunityShell sectionLabel="HOA" notificationsCount={unreadCount}>
-        <div className="max-w-7xl mx-auto">
-          <Card className="bg-slate-800/50 border-slate-700 text-center p-12">
-            <Building className="w-16 h-16 text-orange-400 mx-auto mb-4" />
-            <h2 className="text-2xl font-bold text-white mb-2">Set your county to manage your HOA</h2>
-            <p className="text-slate-400 mb-6">
-              HOA management is tied to specific counties. Choose your county so boards, votes, and vendors stay scoped to the right neighborhood.
-            </p>
-            <Button
-              type="button"
-              className="bg-orange-500 hover:bg-orange-600"
-              asChild
-            >
-              <a href="/settings">Open location settings</a>
-            </Button>
-          </Card>
-        </div>
-      </CommunityShell>
-    );
-  }
-
-  if (hoaLoading || memberLoading || membershipLoading) {
+  if (hasCountyContext && (hoaLoading || memberLoading || membershipLoading)) {
     return (
       <CommunityShell sectionLabel="HOA" notificationsCount={unreadCount}>
         <div className="max-w-7xl mx-auto">
@@ -328,7 +328,7 @@ export default function HOAManagement() {
   }
 
   // Show message if user has no HOA memberships
-  if (!activeHoaId && !membershipLoading) {
+  if (hasCountyContext && !activeHoaId && !membershipLoading) {
     return (
       <CommunityShell sectionLabel="HOA" notificationsCount={unreadCount}>
         <div className="max-w-7xl mx-auto">
@@ -347,6 +347,7 @@ export default function HOAManagement() {
 
   return (
     <CommunityShell sectionLabel="HOA" notificationsCount={unreadCount}>
+      <CountyRequiredGate locationOverride={location}>
       <div className="max-w-7xl mx-auto space-y-8" data-testid="hoa-management-page">
         {/* Header */}
         <div className="text-center space-y-4">
@@ -762,7 +763,8 @@ export default function HOAManagement() {
             </Card>
           </TabsContent>
         </Tabs>
-      </div>
-    </CommunityShell>
+        </div>
+        </CountyRequiredGate>
+      </CommunityShell>
   );
 }

@@ -3,7 +3,8 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { CommunityShell } from "@/components/layout/CommunityShell";
 import { useNotifications } from "@/hooks/useNotifications";
 import { apiRequest } from "@/lib/queryClient";
-import { useLocationContext } from "@/hooks/useLocationContext";
+import { useLocationContext, hasCountyContext } from "@/hooks/useLocationContext";
+import { CountyRequiredGate } from "@/components/CountyRequiredGate";
 
 type Listing = {
   id: string;
@@ -137,8 +138,11 @@ export default function MarketplacePage() {
     });
   };
 
+  const countyCommitted = hasCountyContext(location as any);
+
   return (
     <CommunityShell sectionLabel="For Sale" notificationsCount={unreadCount}>
+      <CountyRequiredGate locationOverride={location}>
       <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex flex-1 gap-2">
           <input
@@ -156,37 +160,6 @@ export default function MarketplacePage() {
             }
             className="w-32 rounded-xl border border-slate-800 bg-slate-950/60 px-2 py-2 text-xs text-slate-100 focus:outline-none focus:ring-2 focus:ring-orange-500/70"
             data-testid="marketplace-category-filter"
-      if (!countyCommitted) {
-        const areaLabel = location.label || "your area";
-
-        return (
-          <CommunityShell sectionLabel="For Sale" notificationsCount={unreadCount}>
-            <div className="max-w-2xl mx-auto py-10">
-              <Card className="bg-slate-950/70 border-slate-800">
-                <CardContent className="p-6 space-y-4">
-                  <h1 className="text-xl font-semibold text-white">Set your county to browse local listings</h1>
-                  <p className="text-sm text-slate-300">
-                    Marketplace is scoped to real counties. Choose your county so listings and promotions line up with where you actually live.
-                  </p>
-                  <div className="flex items-center justify-between gap-3">
-                    <p className="text-xs text-slate-400">
-                      Current location context: <span className="font-medium text-slate-100">{areaLabel}</span>
-                    </p>
-                    <Button
-                      type="button"
-                      className="bg-orange-500 hover:bg-orange-600 text-black text-xs font-semibold px-3 py-2 rounded-md"
-                      asChild
-                    >
-                      <a href="/settings">Open location settings</a>
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-          </CommunityShell>
-        );
-      }
-
           >
             <option value="">All</option>
           </select>
@@ -275,9 +248,9 @@ export default function MarketplacePage() {
               <span>{new Date(listing.createdAt).toLocaleDateString()}</span>
             </div>
           </article>
-        ))}
-      </div>
+        )}
 
+        {isCreateOpen && (
       {isCreateOpen && (
         <div
           className="fixed inset-0 z-40 flex items-center justify-center bg-black/60"
@@ -376,6 +349,7 @@ export default function MarketplacePage() {
           </div>
         </div>
       )}
+      </CountyRequiredGate>
     </CommunityShell>
   );
 }

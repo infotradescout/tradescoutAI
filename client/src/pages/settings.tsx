@@ -265,11 +265,28 @@ export default function Settings() {
 
   const updateLocationMutation = useMutation({
     mutationFn: async (payload: { stateCode: string; countyFips: string; countyName?: string }) => {
-      return apiRequest("PUT", "/api/user/profile", {
+      const result = await apiRequest("PUT", "/api/user/profile", {
         stateCode: payload.stateCode,
         countyFips: payload.countyFips,
         countyName: payload.countyName,
       });
+
+      try {
+        const { recordActivity } = await import("../agent/activity");
+        recordActivity({
+          type: "settings_location_saved",
+          ts: new Date().toISOString(),
+          path: typeof window !== "undefined" ? window.location.pathname : "",
+          meta: {
+            stateCode: payload.stateCode,
+            countyFips: payload.countyFips,
+          },
+        });
+      } catch {
+        // ignore telemetry failures
+      }
+
+      return result;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
@@ -618,18 +635,18 @@ export default function Settings() {
                         <Globe className="w-5 h-5 text-orange-500" />
                       </div>
                       <div>
-                        <CardTitle className="text-xl text-white">Location</CardTitle>
+                        <CardTitle className="text-xl text-white">Your Home County</CardTitle>
                         <p className="text-sm text-slate-400 mt-1">
-                          Set your home state and county. This powers local community, marketplace, and HOA experiences.
+                          This is the one place where you commit your home state and county. It powers community, marketplace, HOA, and leaderboard surfaces across TradeScout.
                         </p>
                       </div>
                     </div>
                   </CardHeader>
                   <CardContent className="space-y-6 pt-6">
                     <div className="space-y-2">
-                      <Label className="text-white font-medium">Home region</Label>
+                      <Label className="text-white font-medium">Home region (authoritative)</Label>
                       <p className="text-xs text-slate-400">
-                        Scout uses this location to unlock county-gated pages and match you with the right local feeds.
+                        Scout uses this saved county to unlock county-gated pages and match you with the right local feeds. Changing it here updates your location everywhere.
                       </p>
                     </div>
                     <StateCountySelector
@@ -646,7 +663,7 @@ export default function Settings() {
                     />
                     <div className="flex items-center justify-between gap-3 pt-4 border-t border-tsBorder flex-col sm:flex-row">
                       <p className="text-xs text-slate-500 max-w-xl">
-                        Device location (when shared) helps Scout understand what&apos;s nearby, but your saved county is what unlocks local experiences.
+                        Device location (when shared) helps Scout understand what&apos;s nearby, but your saved county here is what actually unlocks local experiences.
                       </p>
                       <Button
                         className="bg-orange-500 hover:bg-orange-600 text-white px-6 shadow-lg w-full sm:w-auto"

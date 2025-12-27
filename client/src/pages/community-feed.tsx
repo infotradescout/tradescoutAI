@@ -17,6 +17,7 @@ import { apiRequest } from '@/lib/queryClient';
 import { CommunityShell } from '@/components/layout/CommunityShell';
 import { TradeScoutIcon } from '@/components/TradeScoutIcons';
 import { useLocationContext, hasCountyContext } from '@/hooks/useLocationContext';
+import { CountyRequiredGate } from '@/components/CountyRequiredGate';
 import { useLocation } from 'wouter';
 import { COMMUNITY_TONE } from '../../../shared/communityLanguage';
 
@@ -244,7 +245,26 @@ const CommunityFeed = memo(function CommunityFeed() {
 
       const response = await fetch(`/api/community/posts?${params.toString()}`);
       if (!response.ok) throw new Error('Failed to fetch posts');
-      return response.json();
+      const json = await response.json();
+
+      // Telemetry: log a single success event when a county-scoped
+      // community feed query runs successfully with a committed
+      // county. This does not affect behavior or UI.
+      if (countyCommitted) {
+        try {
+          const { recordActivity } = await import("../agent/activity");
+          recordActivity({
+            type: "county_gated_query_success",
+            ts: new Date().toISOString(),
+            path: typeof window !== "undefined" ? window.location.pathname : "",
+            meta: { surface: "community", queryKey: "community_feed" },
+          });
+        } catch {
+          // ignore telemetry failures
+        }
+      }
+
+      return json;
     },
   });
 
@@ -546,44 +566,8 @@ const CommunityFeed = memo(function CommunityFeed() {
       sectionLabel="CommunityOS · A live feed for recommendations, projects, and trusted local pros."
       notificationsCount={unreadCount}
     >
+      <CountyRequiredGate locationOverride={location}>
       <div className="mx-auto w-full max-w-5xl px-3 py-3 md:px-4 md:py-4 overflow-x-hidden">
-        {!countyCommitted && (
-          <div className="mb-4">
-            <Card className="bg-slate-950/70 border-slate-800">
-              <CardHeader>
-                <CardTitle className="text-white text-lg">
-                  Choose your home county to unlock everything
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <p className="text-sm text-slate-300">
-                  You&apos;re viewing nearby activity. Set your home county to unlock fully local posts, professionals, and jobs.
-                </p>
-                <div className="flex flex-wrap items-center justify-between gap-3">
-                  <p className="text-xs text-slate-400">
-                    Current area: <span className="font-medium text-slate-100">{location.label || "your area"}</span>
-                  </p>
-                  <div className="flex items-center gap-2">
-                    <Button
-                      type="button"
-                      className="bg-orange-500 hover:bg-orange-600 text-black text-xs font-semibold px-3 py-2 rounded-md"
-                      asChild
-                    >
-                      <a href="/settings">Set my county</a>
-                    </Button>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      className="border-slate-700 text-slate-200 text-xs px-3 py-2"
-                    >
-                      Not now
-                    </Button>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        )}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-8">
           {/* Main Feed */}
           <div className="lg:col-span-2 space-y-3 md:space-y-6">
@@ -1006,6 +990,7 @@ const CommunityFeed = memo(function CommunityFeed() {
           </div>
         </div>
       </div>
+      </CountyRequiredGate>
     </CommunityShell>
   );
 });
