@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Search, Sparkles, Zap, MapPin, Star, ThumbsUp, Briefcase, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { StateCountySelector } from '@/components/state-county-selector';
+import { useLocationContext, hasCountyContext } from '@/hooks/useLocationContext';
 import { sanitizeAreaLabel } from '@/lib/copyHelpers';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
@@ -38,7 +39,7 @@ const FindContractors = memo(function FindContractors({ title = 'Find Local Cont
   const [stateCode, setStateCode] = useState(location.stateCode || '');
   const [countyFips, setCountyFips] = useState(location.countyFips || '');
   const [tradeSlug, setTradeSlug] = useState('');
-  const hasCountyContext = Boolean(stateCode && countyFips);
+  const countyCommitted = hasCountyContext(location);
 
   const { data: trades = [] } = useQuery({
     queryKey: ['/api/trades'],
@@ -52,7 +53,7 @@ const FindContractors = memo(function FindContractors({ title = 'Find Local Cont
     refetch: refetchTopContractors,
   } = useQuery<Contractor[]>({
     queryKey: ['/api/contractors/top', countyFips, tradeSlug],
-    enabled: hasCountyContext && Boolean(tradeSlug),
+    enabled: countyCommitted && Boolean(tradeSlug),
     queryFn: async () => {
       const params = new URLSearchParams({ county: countyFips, trade: tradeSlug, limit: '5' });
       return apiRequest('GET', `/api/contractors/top?${params.toString()}`);
@@ -152,7 +153,7 @@ const FindContractors = memo(function FindContractors({ title = 'Find Local Cont
 
             <Button
               type="button"
-              disabled={!hasCountyContext || !tradeSlug}
+      disabled={!countyCommitted || !tradeSlug}
               onClick={() => refetchTopContractors()}
               className="bg-gradient-to-r from-orange-500 to-orange-600 shadow-lg hover:from-orange-600 hover:to-orange-700 text-white px-6 py-3 text-sm rounded-xl flex items-center gap-2 font-semibold transition-all border border-orange-400/30 focus-visible:ring-2 focus-visible:ring-orange-400"
             >

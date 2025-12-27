@@ -39,7 +39,7 @@ import { scoutActionTiles } from "./scoutActionTiles";
 import { resolveAllTiles } from "./resolveScoutTiles";
 import type { ScoutTileContext } from "./scoutActionTiles";
 import { updateGeoPreferencesFromDeviceLocation } from "../agent/tools/geoPreferences";
-import { useLocationContext } from "@/hooks/useLocationContext";
+import { useLocationContext, hasCountyContext } from "@/hooks/useLocationContext";
 import { openFloatingNote } from "@/lib/floatingNotes";
 import {
   searchContractors,
@@ -195,6 +195,7 @@ export default function ScoutOS() {
 
   // KPI: Track time-to-action from render to first action execution
   const renderStartRef = useRef<number | null>(null);
+  const hasLoggedIntroRef = useRef<boolean>(false);
 
   // One-time init guard (keeps animations / welcome seed from re-running).
   // Removed client-side injected welcome message to avoid collision
@@ -212,6 +213,7 @@ export default function ScoutOS() {
     0;
 
   const locationCtx = useLocationContext();
+  const countyCommitted = hasCountyContext(locationCtx as any);
 
   const locality: ScoutLocality = useMemo(() => {
     return {
@@ -231,6 +233,22 @@ export default function ScoutOS() {
     locationCtx.lng,
     user?.zip,
   ]);
+
+  // Log a lightweight "intro_shown" event the first time the Scout
+  // surface renders without any prior messages. This lets us measure
+  // how often users see the onboarding hero without relying on LLM
+  // content or extra UI state.
+  useEffect(() => {
+    if (!hasMessages && !hasLoggedIntroRef.current) {
+      recordActivity({
+        type: "intro_shown",
+        ts: new Date().toISOString(),
+        path: location,
+        label: "scout_intro_hero",
+      });
+      hasLoggedIntroRef.current = true;
+    }
+  }, [hasMessages, location]);
 
   // Ephemeral, derived context roles per message/page for tone + defaults
   const getContextRoles = useCallback((message: string): string[] => {
@@ -1667,7 +1685,7 @@ export default function ScoutOS() {
                 </div>
 
                 {/* Primary action grid: navigation with intent, not chat suggestions */}
-                {locationCtx.stateCode && locationCtx.countyFips ? (
+                {countyCommitted ? (
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-2">
                     {resolvedTiles.map((tile) => (
                       <button

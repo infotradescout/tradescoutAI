@@ -189,6 +189,7 @@ export default function Exchange() {
     | string
     | undefined;
   const hasCountyContext = Boolean(stateCode && county);
+  const countyCommitted = hasCountyContext(location);
 
   // Sell tab draft state (prefill from Scout)
   const [sellTitle, setSellTitle] = useState("");
@@ -221,7 +222,7 @@ export default function Exchange() {
       if (!response.ok) throw new Error('Failed to fetch items');
       return response.json();
     },
-    enabled: activeTab === "browse" && hasCountyContext,
+    enabled: activeTab === "browse" && countyCommitted,
   });
 
   const createListingMutation = useMutation({
@@ -366,7 +367,7 @@ export default function Exchange() {
     if (loc) setSellLocation(loc);
   }, [route]);
 
-  const hasLocationContext = hasCountyContext;
+  const hasLocationContext = countyCommitted;
 
   if (!hasLocationContext) {
     if (import.meta.env.DEV) {

@@ -508,7 +508,6 @@ export default function PublicProfileView() {
             </div>
           </div>
             </div>
-          </div>
 
           {/* Content sections based on user types and activity */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -684,7 +683,6 @@ export default function PublicProfileView() {
                 </div>
               </CardContent>
             </Card>
-          )}
           )}
 
           {/* Contact CTA */}

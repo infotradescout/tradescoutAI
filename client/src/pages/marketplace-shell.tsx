@@ -62,7 +62,7 @@ export default function MarketplacePage() {
       if (categoryFilter) params.set("categoryId", categoryFilter);
       if (searchTerm.trim()) params.set("search", searchTerm.trim());
 
-      const hasCountyContext = Boolean(stateCode && county);
+      const countyCommitted = hasCountyContext(location);
       const rawListings = await apiRequest(
         "GET",
         `/api/marketplace/listings?${params.toString()}`
@@ -156,7 +156,7 @@ export default function MarketplacePage() {
             }
             className="w-32 rounded-xl border border-slate-800 bg-slate-950/60 px-2 py-2 text-xs text-slate-100 focus:outline-none focus:ring-2 focus:ring-orange-500/70"
             data-testid="marketplace-category-filter"
-      if (!hasCountyContext) {
+      if (!countyCommitted) {
         const areaLabel = location.label || "your area";
 
         return (
