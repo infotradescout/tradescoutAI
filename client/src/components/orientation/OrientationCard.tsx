@@ -75,7 +75,7 @@ export function OrientationCard({
                 <h2 className="text-lg md:text-2xl font-bold text-white">What is TradeScout?</h2>
               </div>
               <p className="text-sm md:text-base text-gray-200 mb-2 md:mb-3">
-                TradeScout is a local participation platform that connects people, services, and tools through verified community activity. Scout, the built-in assistant, helps you find people, organize projects, and move money and trust around your neighborhood without juggling ten different apps.
+                TradeScout is a local participation platform that connects people, services, and tools through verified community activity. Scout, the built-in community helper and site guide, helps you find people, organize projects, and move money and trust around your neighborhood without juggling ten different apps.
               </p>
               <div className="mt-1 md:mt-2 text-xs md:text-sm text-gray-300 space-y-1.5">
                 <p className="font-semibold text-gray-200">Scout is especially useful if:</p>

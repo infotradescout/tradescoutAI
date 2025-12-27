@@ -6,13 +6,15 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import { Eye, EyeOff } from "lucide-react";
 import { SiFacebook } from "react-icons/si";
+
+const roleOptions = ["homeowner", "contractor", "realtor", "car_dealer"] as const;
+type RoleOption = (typeof roleOptions)[number];
 
 const registerSchema = z.object({
   email: z.string().email("Please enter a valid email address"),
@@ -27,10 +29,13 @@ const registerSchema = z.object({
   confirmPassword: z.string(),
   firstName: z.string().min(1, "First name is required"),
   lastName: z.string().min(1, "Last name is required"),
-  role: z.enum(["homeowner", "contractor", "realtor", "car_dealer"], {
-    required_error: "Please select your account type",
-  }),
+  // Primary role is derived from userTypes[0] on submit; keep role optional for backward compatibility
+  role: z.enum(roleOptions).optional(),
+  userTypes: z
+    .array(z.enum(roleOptions))
+    .min(1, "Please select at least one way you plan to use TradeScout"),
   acceptTerms: z.boolean().refine((val) => val === true, "You must accept the Terms of Service"),
+  allowPhoneCalls: z.boolean().optional(),
 }).refine((data) => data.password === data.confirmPassword, {
   message: "Passwords don't match",
   path: ["confirmPassword"],
@@ -58,7 +63,9 @@ export function RegisterForm({ onSuccess, onSwitchToLogin }: RegisterFormProps) 
       confirmPassword: "",
       firstName: "",
       lastName: "",
+      userTypes: [],
       acceptTerms: false,
+      allowPhoneCalls: false,
     },
   });
 
@@ -76,6 +83,14 @@ export function RegisterForm({ onSuccess, onSwitchToLogin }: RegisterFormProps) 
         title: "Welcome to TradeScout!",
         description: "Your account has been created successfully.",
       });
+      try {
+        // Seed Scout with a one-time onboarding marker so the first
+        // visit to /scout can offer the "What are you here to do today?"
+        // chooser without asking the user to type.
+        window.localStorage.setItem("scout:prefill:scout-main", "__SCOUT_ONBOARDING__");
+      } catch {
+        // ignore storage errors
+      }
       // Invalidate user query to refetch current user
       queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
       onSuccess?.();
@@ -91,7 +106,15 @@ export function RegisterForm({ onSuccess, onSwitchToLogin }: RegisterFormProps) 
   });
 
   const onSubmit = (data: RegisterFormData) => {
-    const { confirmPassword, ...registerData } = data;
+    const primaryRole: RoleOption = data.userTypes[0];
+    const { confirmPassword, ...rest } = data;
+
+    const registerData = {
+      ...rest,
+      role: primaryRole,
+      userTypes: data.userTypes,
+    };
+
     registerMutation.mutate(registerData);
   };
 
@@ -176,23 +199,40 @@ export function RegisterForm({ onSuccess, onSwitchToLogin }: RegisterFormProps) 
 
             <FormField
               control={form.control}
-              name="role"
+              name="userTypes"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>How do you plan to use TradeScout?</FormLabel>
-                  <Select onValueChange={field.onChange} defaultValue={field.value}>
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Choose what fits best (you can change this later)" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      <SelectItem value="homeowner">Use TradeScout for my own projects</SelectItem>
-                      <SelectItem value="contractor">Offer services or run a business</SelectItem>
-                      <SelectItem value="realtor">Work with property, housing, or real estate</SelectItem>
-                      <SelectItem value="car_dealer">Work with vehicles, transport, or equipment</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <FormLabel>How do you plan to use TradeScout? (Select all that apply)</FormLabel>
+                  <div className="space-y-2">
+                    {[
+                      { value: "homeowner" as RoleOption, label: "Use TradeScout for my own projects" },
+                      { value: "contractor" as RoleOption, label: "Offer services or run a business" },
+                      { value: "realtor" as RoleOption, label: "Work with property, housing, or real estate" },
+                      { value: "car_dealer" as RoleOption, label: "Work with vehicles, transport, or equipment" },
+                    ].map((option) => {
+                      const checked = field.value?.includes(option.value) ?? false;
+                      return (
+                        <div key={option.value} className="flex flex-row items-start space-x-3 space-y-0">
+                          <FormControl>
+                            <Checkbox
+                              checked={checked}
+                              onCheckedChange={(isChecked) => {
+                                const current: RoleOption[] = field.value || [];
+                                if (isChecked) {
+                                  field.onChange([...current, option.value]);
+                                } else {
+                                  field.onChange(current.filter((v) => v !== option.value));
+                                }
+                              }}
+                            />
+                          </FormControl>
+                          <div className="space-y-1 leading-none">
+                            <FormLabel className="font-normal">{option.label}</FormLabel>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
                   <FormMessage />
                 </FormItem>
               )}
@@ -276,10 +316,32 @@ export function RegisterForm({ onSuccess, onSwitchToLogin }: RegisterFormProps) 
                   </FormControl>
                   <div className="space-y-1 leading-none">
                     <FormLabel>
-                      I agree to the{" "}
+                      By creating an account, I agree to the{" "}
                       <a href="/terms" className="underline" target="_blank" rel="noreferrer">
                         Terms of Service
+                      </a>{" "}
+                      and acknowledge the{" "}
+                      <a href="/privacy" className="underline" target="_blank" rel="noreferrer">
+                        Privacy Policy
                       </a>
+                    </FormLabel>
+                    <FormMessage />
+                  </div>
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="allowPhoneCalls"
+              render={({ field }) => (
+                <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                  <FormControl>
+                    <Checkbox checked={field.value} onCheckedChange={field.onChange} />
+                  </FormControl>
+                  <div className="space-y-1 leading-none">
+                    <FormLabel>
+                      I agree that TradeScout may contact me by phone about my account and activity.
                     </FormLabel>
                     <FormMessage />
                   </div>

@@ -7,15 +7,14 @@ interface ScoutHeaderProps {
 }
 
 export function ScoutHeader({ isAuthenticated, isFirstGuestVisit, locationLabel }: ScoutHeaderProps) {
-  const communityText = locationLabel && locationLabel.toLowerCase() !== "your area" 
-    ? locationLabel 
-    : "Your Community";
+  const hasSpecificLocation = !!locationLabel && locationLabel.toLowerCase() !== "your area";
+  const communityText = hasSpecificLocation ? locationLabel! : "Your Community";
 
   return (
     <header className="space-y-2 text-center">
-            <h1 className="text-2xl font-semibold" style={{ color: 'var(--text-primary)' }}>
-              Empowering <span style={{ color: 'var(--theme-accent-primary)' }}>{communityText}</span>
-            </h1>
+      <h1 className="text-2xl font-semibold" style={{ color: 'var(--text-primary)' }}>
+        {hasSpecificLocation ? `Empowering ${communityText}` : "Empowering Your Community"}
+      </h1>
       <p className="text-[13px] font-semibold" style={{ color: 'var(--text-secondary)' }}>Scout</p>
       {!isAuthenticated && (
         <p className="text-[13px] max-w-md mx-auto" style={{ color: 'var(--text-muted)' }}>

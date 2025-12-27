@@ -541,50 +541,49 @@ const CommunityFeed = memo(function CommunityFeed() {
     }
   };
 
-  if (!hasCountyContext) {
-    const areaLabel = location.label || "your area";
-
-    return (
-      <CommunityShell
-        sectionLabel="CommunityOS · A live feed for recommendations, projects, and trusted local pros."
-        notificationsCount={unreadCount}
-      >
-        <div className="max-w-3xl mx-auto py-10">
-          <Card className="bg-slate-950/70 border-slate-800">
-            <CardHeader>
-              <CardTitle className="text-white text-lg">
-                Choose your county to unlock your community feed
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <p className="text-sm text-slate-300">
-                Community Feed only shows posts from your real local area. Set your county so we can load a live feed instead of falling back to a global default.
-              </p>
-              <div className="flex items-center justify-between gap-3">
-                <p className="text-xs text-slate-400">
-                  Current location context: <span className="font-medium text-slate-100">{areaLabel}</span>
-                </p>
-                <Button
-                  type="button"
-                  className="bg-orange-500 hover:bg-orange-600 text-black text-xs font-semibold px-3 py-2 rounded-md"
-                  asChild
-                >
-                  <a href="/settings">Open location settings</a>
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      </CommunityShell>
-    );
-  }
-
   return (
     <CommunityShell
       sectionLabel="CommunityOS · A live feed for recommendations, projects, and trusted local pros."
       notificationsCount={unreadCount}
     >
       <div className="mx-auto w-full max-w-5xl px-3 py-3 md:px-4 md:py-4 overflow-x-hidden">
+        {!hasCountyContext && (
+          <div className="mb-4">
+            <Card className="bg-slate-950/70 border-slate-800">
+              <CardHeader>
+                <CardTitle className="text-white text-lg">
+                  Choose your home county to unlock everything
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <p className="text-sm text-slate-300">
+                  You&apos;re viewing nearby activity. Set your home county to unlock fully local posts, professionals, and jobs.
+                </p>
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <p className="text-xs text-slate-400">
+                    Current area: <span className="font-medium text-slate-100">{location.label || "your area"}</span>
+                  </p>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      type="button"
+                      className="bg-orange-500 hover:bg-orange-600 text-black text-xs font-semibold px-3 py-2 rounded-md"
+                      asChild
+                    >
+                      <a href="/settings">Set my county</a>
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="border-slate-700 text-slate-200 text-xs px-3 py-2"
+                    >
+                      Not now
+                    </Button>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        )}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-8">
           {/* Main Feed */}
           <div className="lg:col-span-2 space-y-3 md:space-y-6">

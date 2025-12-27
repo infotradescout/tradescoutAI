@@ -52,7 +52,7 @@ const helpTopics: HelpTopic[] = [
         'High-quality photos increase conversion by 40%',
         'Responding within 2 hours improves your success rate'
       ],
-      wittyNote: 'Getting set up on TradeScout is easier than finding your tape measure when you need it.'
+      wittyNote: 'Getting set up on TradeScout is easier than finding your tape measure when you need it – Scout can walk you through the first steps.'
     }
   },
   {
@@ -80,14 +80,14 @@ const helpTopics: HelpTopic[] = [
   {
     id: 'quote-calculator',
     title: 'Using Scout for Estimates',
-    description: 'Let Scout help you price projects accurately - no more guessing or losing money.',
+    description: 'Let Scout, your local helper on TradeScout, help you price projects accurately - no more guessing or losing money.',
     category: 'features',
     illustration: 'ruler',
     content: {
-      overview: 'Scout combines your project details with local pricing context to help you quote with confidence.',
+      overview: 'Scout combines your project details with local pricing context to help you quote with confidence and route you into the right quoting tools.',
       steps: [
         'Tell Scout what you\'re planning (project type and scope)',
-        'Answer Scout\'s follow-up questions about size, materials, and timing',
+        'Answer Scout\'s quick questions about size, materials, and timing so it can set things up correctly',
         'Review the suggested ranges and trade-offs',
         'Use Scout\'s guidance to send a professional quote to the customer'
       ],
@@ -141,7 +141,7 @@ const helpTopics: HelpTopic[] = [
         'Use Chrome or Firefox for optimal experience',
         'Screenshots help our support team diagnose issues faster'
       ],
-      wittyNote: 'Troubleshooting TradeScout is easier than fixing that one electrical outlet that never worked right.'
+      wittyNote: 'Troubleshooting TradeScout is easier than fixing that one electrical outlet that never worked right – and if you get stuck, Scout can point you to the right place.'
     }
   }
 ];

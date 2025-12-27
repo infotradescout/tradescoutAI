@@ -14,6 +14,7 @@ import {
   appendChatKnowledge,
   loadComprehensiveKnowledge,
 } from "../services/knowledgeService";
+import { shouldOverrideResponse, isOnboardingOrIdentityQuery } from "../scout/brandGuard";
 import {
   deriveDeterministicIntent,
   maybeHandleDeterministicIntent,
@@ -500,8 +501,8 @@ async function generateSmartSynthesis(
     // Use cached comprehensive knowledge
     const comprehensiveKnowledge = await getCachedComprehensiveKnowledge();
     
-     // Create a synthesis-focused prompt focused on TRANSFORMATION, ROLES, and OS MENTAL MODEL
-     const synthPrompt = `You are Scout, the AI for TradeScout. Your job is to give people a mind-opening orientation to TradeScout as their COMMUNITY OPERATING SYSTEM b7 not just "an app".
+    // Create a synthesis-focused prompt focused on TRANSFORMATION, ROLES, and OS MENTAL MODEL
+    const synthPrompt = `You are Scout, the built-in helper that runs TradeScout. Your job is to give people a mind-opening orientation to TradeScout as their COMMUNITY OPERATING SYSTEM b7 not just "an app".
 
   User asked: "${message}"
 
@@ -532,9 +533,10 @@ async function generateSmartSynthesis(
       * Help them plan, estimate, and keep track of projects or ideas over time.
 
   DO NOT:
-  - Describe backend mechanics or technical details (no databases, no Stripe, no LLMS).
+  - Describe backend mechanics or technical details (no databases, no Stripe, no LLMs).
   - Dump a long bullet list of micro-features.
-  - Talk about yourself as a model; stay in character as Scout.
+  - Call yourself an AI, bot, model, or AI assistant.
+  - Explain how you are implemented; stay in character as Scout, a community helper and site guide.
   - Use marketing buzzwords without concrete meaning.
 
   TONE & SHAPE:
@@ -1139,7 +1141,7 @@ async function generateAutoPrompt(gemini: GoogleGenerativeAI | null) {
 
   try {
     const model = gemini.getGenerativeModel({ model: "gemini-2.5-flash" });
-    const prompt = `You are designing the very first question a brand new person should ask Scout, the AI inside TradeScout b7 a community operating system, not just an app.
+    const prompt = `You are designing the very first question a brand new person should ask Scout, the built-in helper that runs TradeScout b7 a community operating system, not just an app.
 
 Create a SINGLE best starter prompt that will cause Scout to give a rich orientation to TradeScout as their community OS b7 what it is, who it serves, and how it can run their local projects and community flows.
 
@@ -1148,7 +1150,7 @@ Guidelines for autoPrompt:
 - It should invite Scout to explain the OS and how it can help THEM and THEIR COMMUNITY, not just list features.
 - Keep it concise (under 140 characters) and in the form of a question.
 
-Also return 6 short suggestion prompts that help them explore high-impact things Scout can do for them (finding pros, starting projects, connecting community, etc.).
+Also return 6 short suggestion prompts that help them explore high-impact things Scout can do for them (finding pros, starting projects, connecting community, etc.). None of the suggestions or the autoPrompt should describe Scout as an AI, bot, or model.
 
 Return JSON with keys autoPrompt (string) and suggestions (string array).`;
     const result = await model.generateContent(prompt);
@@ -2050,7 +2052,7 @@ router.post("/", async (req: Request, res: Response) => {
       });
     }
 
-    const synthesized = await synthesizeResponse(
+    let synthesized = await synthesizeResponse(
       message,
       knowledge,
       geminiClient,
@@ -2062,6 +2064,28 @@ router.post("/", async (req: Request, res: Response) => {
       requestState,
       resolvedContext
     );
+
+    // Brand identity firewall: if the synthesized answer clearly violates
+    // TradeScout identity rules (e.g., mentions CME futures, "as an AI",
+    // or open-web sourcing), override it with a safe, internal explanation
+    // that reflects our own onboarding knowledge.
+    if (shouldOverrideResponse(synthesized.message)) {
+      if (isOnboardingOrIdentityQuery(message)) {
+        try {
+          const synthesisResponse = await generateSmartSynthesis(message, geminiClient, llmProviders);
+          synthesized.message = trimResponseToScreenFit(synthesisResponse);
+        } catch (error) {
+          console.error("[Scout] Brand-guard override synthesis failed", error);
+          synthesized.message = trimResponseToScreenFit(
+            "TradeScout is your local participation operating system. It brings together people, services, money, and community tools so you can get real-world projects and community work done. Scout is the built-in helper that routes you to the right tools and pages inside TradeScout."
+          );
+        }
+      } else {
+        synthesized.message = trimResponseToScreenFit(
+          "Let me rephrase that based only on what TradeScout itself knows. TradeScout is your local participation operating system, and Scout is the helper that orchestrates tools and pages inside TradeScout — not a trading or futures product."
+        );
+      }
+    }
 
     // If the user is asking for a community welcome/intro post,
     // override the core message with a concrete draft they can post
@@ -2178,6 +2202,8 @@ router.post("/", async (req: Request, res: Response) => {
     };
 
     // Community Vault and navigation helpers (explicit chips; no auto-execution on client)
+    const lowConfidenceForLocal = knowledge.layer >= 3 || knowledge.confidence === "low";
+
     try {
       const lower = message.toLowerCase();
       let actions: ScoutClientAction[] = Array.isArray(aiResponse.actions)
@@ -2196,50 +2222,67 @@ router.post("/", async (req: Request, res: Response) => {
         (lower.includes("neighbors") &&
           (lower.includes("recommend") || lower.includes("used") || lower.includes("worked with")));
 
-      // Community posting is open to everyone
-      if (userId && mentionsCommunityQuestion && capabilities.canPostInCommunity()) {
+      // Community posting is open to everyone with posting capability
+      if (userId && capabilities.canPostInCommunity()) {
         try {
-          let communityLine = "";
-          if (communityPostCount > 0) {
-            communityLine =
-              "I’m seeing a few recent posts from neighbors in your county about this.";
-          } else if (communityPostCount === 0) {
-            communityLine =
-              "I don’t see anyone discussing this yet in your area.";
-          }
-
           const prefill = buildCommunityPrefill(message, countyCode, stateCode);
           const safePrefill = encodeURIComponent(prefill);
-
-          const bridgeLines = [
-            "I can give you general guidance — but the strongest answers come from people in your area.",
-            communityLine,
-            "Want to read them directly or add your own question in your county feed?",
-          ]
-            .filter(Boolean)
-            .join("\n\n");
-
-          aiResponse.message = trimResponseToScreenFit(
-            `${aiResponse.message}\n\n${bridgeLines}`
-          );
 
           const alreadyHasCommunityNav = actions.some(
             (a) => a.type === "NAVIGATE" && typeof a.to === "string" && a.to.startsWith("/community")
           );
 
-          if (!alreadyHasCommunityNav) {
-            actions.push(
-              {
-                type: "NAVIGATE",
-                label: "View community discussion",
-                to: "/community?tab=for-you",
-              },
-              {
-                type: "NAVIGATE",
-                label: "Ask neighbors in your county feed",
-                to: `/community?compose=1&prefill=${safePrefill}`,
-              }
+          if (mentionsCommunityQuestion) {
+            let communityLine = "";
+            if (communityPostCount > 0) {
+              communityLine =
+                "I’m seeing a few recent posts from neighbors in your county about this.";
+            } else if (communityPostCount === 0) {
+              communityLine =
+                "I don’t see anyone discussing this yet in your area.";
+            }
+
+            const bridgeLines = [
+              "I can give you general guidance — but the strongest answers come from people in your area.",
+              communityLine,
+              "Want to read them directly or add your own question in your county feed?",
+            ]
+              .filter(Boolean)
+              .join("\n\n");
+
+            aiResponse.message = trimResponseToScreenFit(
+              `${aiResponse.message}\n\n${bridgeLines}`
             );
+
+            if (!alreadyHasCommunityNav) {
+              actions.push(
+                {
+                  type: "NAVIGATE",
+                  label: "View community discussion",
+                  to: "/community?tab=for-you",
+                },
+                {
+                  type: "NAVIGATE",
+                  label: "Ask neighbors in your county feed",
+                  to: `/community?compose=1&prefill=${safePrefill}`,
+                }
+              );
+            }
+          } else if (lowConfidenceForLocal && !alreadyHasCommunityNav) {
+            const bridgeLines = [
+              "I don’t see a clear local answer for this yet.",
+              "If you’d like, I can turn this into a quick question in your county feed so neighbors can weigh in.",
+            ].join("\n\n");
+
+            aiResponse.message = trimResponseToScreenFit(
+              `${aiResponse.message}\n\n${bridgeLines}`
+            );
+
+            actions.push({
+              type: "NAVIGATE",
+              label: "Ask the community in my county feed",
+              to: `/community?compose=1&prefill=${safePrefill}`,
+            });
           }
         } catch (communityError) {
           console.error("[Scout] community suggestion logic failed", communityError);

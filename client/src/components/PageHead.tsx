@@ -10,8 +10,8 @@ interface PageHeadProps {
 
 export function PageHead({ 
   title = "TradeScout – Scout for Contractors and Communities", 
-  description = "Scout, your AI project assistant, helps you find verified local contractors, compare options, and manage projects with confidence.",
-  keywords = "scout, ai assistant, contractors, home improvement, quotes, local contractors, verified contractors",
+  description = "Scout, your local helper, connects you with verified local contractors, helps you compare options, and manage projects with confidence.",
+  keywords = "scout, local helper, contractors, home improvement, quotes, local contractors, verified contractors",
   ogImage = "/icon-512.png",
   canonicalUrl
 }: PageHeadProps) {

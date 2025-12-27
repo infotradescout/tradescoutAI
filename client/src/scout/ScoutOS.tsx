@@ -331,6 +331,32 @@ export default function ScoutOS() {
     }
   }, [isFirstGuestVisit]);
 
+  // Auto-consume one-time onboarding marker set by post-signup/dashboard flows.
+  // If present on first clean /scout load (no prior user messages and no intro
+  // demo), send the onboarding token directly so the intent detector routes
+  // into the "What are you here to do today?" chooser without requiring a
+  // manual keypress. Marker is cleared immediately so this is strictly
+  // one-time unless explicitly re-set.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (!location.startsWith("/scout")) return;
+
+    const hasUserMsgs = state.messages.some((m) => m.role === "user");
+    if (hasUserMsgs) return;
+    if (shouldPlayIntroDemo) return;
+
+    try {
+      const marker = window.localStorage.getItem("scout:prefill:scout-main");
+      if (marker === "__SCOUT_ONBOARDING__") {
+        window.localStorage.removeItem("scout:prefill:scout-main");
+        setPrefillKey((k) => k + 1);
+        void handleSend("__SCOUT_ONBOARDING__");
+      }
+    } catch {
+      // ignore storage errors
+    }
+  }, [location, state.messages, shouldPlayIntroDemo, handleSend, setPrefillKey]);
+
   // Load public config (first intro appendix text) once
   useEffect(() => {
     let cancelled = false;
@@ -566,16 +592,100 @@ export default function ScoutOS() {
 
       try {
         // ==================================================================
-        // INTENT DETECTION: Check if user wants a contractor or marketplace search
+        // INTENT DETECTION: Check for onboarding, contractor, marketplace, or
+        // support flows before falling back to the generic Scout endpoint.
         // ==================================================================
         const lowerMsg = value.toLowerCase();
         const contractorKeywords = ["contractor", "plumber", "electrician", "roofer", "hvac", "painter", "landscaper", "carpenter", "mason", "find a pro"];
         const marketplaceKeywords = ["marketplace", "for sale", "buying", "selling", "used", "buy", "sell", "list", "post"];
         const contactKeywords = ["contact", "support", "help desk", "reach out", "call", "phone", "text", "email", "mail"];
-        
-        const wantsContractor = contractorKeywords.some(kw => lowerMsg.includes(kw));
-        const wantsMarketplace = marketplaceKeywords.some(kw => lowerMsg.includes(kw));
-        const wantsContact = contactKeywords.some(kw => lowerMsg.includes(kw));
+        const onboardingKeywords = [
+          "get started",
+          "start onboarding",
+          "help me get started",
+          "what should i do first",
+          "onboard me",
+          "orientation",
+          "what do you want to get done right now",
+        ];
+
+        const wantsOnboarding =
+          onboardingKeywords.some((kw) => lowerMsg.includes(kw)) ||
+          lowerMsg.includes("__scout_onboarding__");
+        const wantsContractor = contractorKeywords.some((kw) => lowerMsg.includes(kw));
+        const wantsMarketplace = marketplaceKeywords.some((kw) => lowerMsg.includes(kw));
+        const wantsContact = contactKeywords.some((kw) => lowerMsg.includes(kw));
+
+        // ------------------------------------------------------------------
+        // SCOUT ONBOARDING INTENT (fast win)
+        // ------------------------------------------------------------------
+        if (wantsOnboarding) {
+          setStatus("ready");
+
+          const onboardingClusters: ScoutCluster[] = [
+            {
+              id: "onboarding-intent",
+              title: "What are you here to do today?",
+              kind: "generic",
+              body: "Pick the fastest win that fits right now. You can always change paths later.",
+              actions: [
+                {
+                  type: "PREFILL_INPUT",
+                  label: "Find help for a project",
+                  payload: {
+                    text: "Help me find someone local to do a project.",
+                  },
+                },
+                {
+                  type: "PREFILL_INPUT",
+                  label: "Get more work",
+                  payload: {
+                    text: "Help me get more local jobs and leads.",
+                  },
+                },
+                {
+                  type: "PREFILL_INPUT",
+                  label: "Explore community",
+                  payload: {
+                    text: "Show me community activity and groups near me.",
+                  },
+                },
+                {
+                  type: "PREFILL_INPUT",
+                  label: "Just looking around",
+                  payload: {
+                    text: "I am just looking around—suggest a quick tour of TradeScout.",
+                  },
+                },
+              ],
+            },
+          ];
+
+          const msg: ScoutMessage = {
+            id: `a_${Date.now()}_${Math.random().toString(36).slice(2)}`,
+            role: "assistant",
+            content: "Let’s get you a quick win.",
+            timestamp: new Date().toISOString(),
+            clusters: onboardingClusters,
+            memoryDelta: {
+              lastIntent: "onboarding_intent",
+            },
+            contextRoles,
+          };
+
+          applyServerResponse(msg, []);
+          setStatus("idle");
+
+          const latencyMs = performance.now() - start;
+          logScoutInsight({
+            message: value,
+            mode,
+            locality,
+            success: true,
+            latencyMs,
+          });
+          return;
+        }
 
         // ------------------------------------------------------------------
         // CONTRACTOR SEARCH INTENT
@@ -1003,7 +1113,7 @@ export default function ScoutOS() {
           });
         }
 
-        if (isFirstAnswer) {
+          if (isFirstAnswer) {
           clusters.push({
             id: "first-nav-contractors",
             title: "Browse local professionals",
@@ -1012,18 +1122,6 @@ export default function ScoutOS() {
               type: "NAVIGATE",
               label: "Open",
               to: ROUTES.CONTRACTORS,
-            },
-          });
-
-          // Provide a direct Notes entry as a first-answer chip
-          clusters.push({
-            id: "first-nav-notes",
-            title: "Open Notes",
-            kind: "generic",
-            primaryAction: {
-              type: "NAVIGATE",
-              label: "Open",
-              to: ROUTES.NOTES,
             },
           });
 
@@ -1066,8 +1164,9 @@ export default function ScoutOS() {
         // Keep Scout's very first answer tight so it never feels
         // like a wall of text or gets visually "cut off" behind
         // navigation. This is a hard character cap, tuned for the
-        // current layout.
-        const MAX_FIRST_MESSAGE_CHARS = 600;
+        // current layout. Onboarding answers should feel like a lead-in
+        // to action tiles, not an essay.
+        const MAX_FIRST_MESSAGE_CHARS = 280;
         
         // CRITICAL: Sanitize the message to remove any internal reasoning leakage
         const sanitized = sanitizeScoutMessage(res.message);
@@ -1558,40 +1657,64 @@ export default function ScoutOS() {
           >
             {!hasUserMessages && (
               <div className="flex flex-col gap-3 py-3 px-1">
-                <div className="space-y-0.5">
-                  <h2 className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
-                    Scout for {heroLocationLabel || "your area"}
-                  </h2>
-                  <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>
-                    Pick a command or start typing.
+                <div className="space-y-1">
+                  <p className="text-xs md:text-sm" style={{ color: 'var(--text-secondary)' }}>
+                    I help you get things done in your local community.
+                  </p>
+                  <p className="text-xs md:text-sm" style={{ color: 'var(--text-secondary)' }}>
+                    Tell me what you want to do, and I&apos;ll take you there.
                   </p>
                 </div>
-                <div className="flex flex-col divide-y divide-slate-800/60">
-                  {resolvedTiles.map((tile) => (
-                    <button
-                      key={tile.id}
-                      onClick={() => {
-                        setHasGuestInteracted(true);
-                        handleActionTile(tile);
-                      }}
-                      className="flex items-center justify-between py-2 px-1 text-left transition-colors hover:bg-slate-900/60 rounded-md"
-                      style={{
-                        color: 'var(--text-primary)',
-                        border: 'none',
-                        backgroundColor: 'transparent',
-                      }}
-                    >
-                      <div className="flex flex-col">
-                        <span className="font-medium text-sm">{tile.label}</span>
+
+                {/* Primary action grid: navigation with intent, not chat suggestions */}
+                {locationCtx.stateCode && locationCtx.countyFips ? (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-2">
+                    {resolvedTiles.map((tile) => (
+                      <button
+                        key={tile.id}
+                        onClick={() => {
+                          setHasGuestInteracted(true);
+                          handleActionTile(tile);
+                        }}
+                        className="flex flex-col items-start justify-between rounded-lg border border-slate-800 bg-slate-900/60 px-3 py-3 text-left hover:border-orange-400/80 transition-colors"
+                        style={{ color: 'var(--text-primary)' }}
+                      >
+                        <span className="font-medium text-sm mb-0.5">{tile.label}</span>
                         {tile.description && (
-                          <span className="text-[11px] mt-0.5" style={{ color: 'var(--text-secondary)' }}>
+                          <span className="text-[11px]" style={{ color: 'var(--text-secondary)' }}>
                             {tile.description}
                           </span>
                         )}
-                      </div>
-                    </button>
-                  ))}
-                </div>
+                      </button>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="mt-2 space-y-2 rounded-lg border border-slate-800 bg-slate-900/60 px-3 py-3">
+                    <p className="text-xs md:text-sm" style={{ color: 'var(--text-secondary)' }}>
+                      You&apos;re viewing nearby activity. Set your home county to unlock fully local pros, posts, and jobs.
+                    </p>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <Button
+                        type="button"
+                        size="sm"
+                        className="h-7 px-3 text-[11px] bg-orange-500 hover:bg-orange-600 text-black font-semibold"
+                        onClick={() => navigate(ROUTES.SETTINGS)}
+                      >
+                        Set my county
+                      </Button>
+                    </div>
+                  </div>
+                )}
+
+                {/* Optional, collapsed explanation about TradeScout (secondary) */}
+                <details className="mt-2 text-left">
+                  <summary className="text-[11px] md:text-xs font-semibold cursor-pointer" style={{ color: 'var(--text-secondary)' }}>
+                    What is TradeScout?
+                  </summary>
+                  <p className="mt-1 text-[11px] md:text-xs" style={{ color: 'var(--text-secondary)' }}>
+                    TradeScout helps people connect, work, and trade locally — without spam, paywalls, or fake leads.
+                  </p>
+                </details>
               </div>
             )}
 

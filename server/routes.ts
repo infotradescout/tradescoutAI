@@ -463,6 +463,10 @@ export async function registerRoutes(app: any) {
       const county = typeof body.county === 'string' ? body.county.trim() : undefined;
       const phone = typeof body.phone === 'string' ? body.phone.trim() : '';
       const verificationStatus = body.verificationStatus;
+      const allowPhoneCalls =
+        body.allowPhoneCalls === true ||
+        body.phoneCallConsent === true ||
+        body.allowPhoneContact === true;
 
       const acceptTerms =
         body.acceptTerms === true ||
@@ -553,6 +557,10 @@ export async function registerRoutes(app: any) {
         ...(body.preferences || {}),
         badges: {
           show: body?.preferences?.badges?.show ?? true,
+        },
+        communication: {
+          ...(body?.preferences?.communication || {}),
+          allowPhoneCalls,
         },
       };
 
@@ -1746,11 +1754,24 @@ export async function registerRoutes(app: any) {
         address,
         city,
         state,
+        stateCode,
         zipCode,
         county,
+        countyName,
+        countyFips,
+        countyId,
+        latitude,
+        longitude,
         preferences,
         profileImageUrl,
       } = (req.body ?? {}) as any;
+
+      const trimmedCountyFips = typeof countyFips === "string" ? countyFips.trim() : countyFips;
+      if (trimmedCountyFips && !/^\d{5}$/.test(trimmedCountyFips)) {
+        return res.status(400).json({
+          message: "Invalid countyFips; expected a 5-digit FIPS code.",
+        });
+      }
 
       let normalizedProfileImageUrl = profileImageUrl;
       if (profileImageUrl) {
@@ -1770,9 +1791,21 @@ export async function registerRoutes(app: any) {
         phone,
         address,
         city,
+        // legacy string fields remain for back-compat
         state,
         zipCode,
         county,
+
+        // canonical machine + display fields used by useLocationContext and locality-aware APIs
+        stateCode: stateCode ?? state ?? null,
+        countyFips: trimmedCountyFips ?? null,
+        countyId: countyId ?? null,
+        countyName: countyName ?? county ?? null,
+
+        // optional profile-level coordinates if provided
+        latitude: typeof latitude === "number" ? latitude : undefined,
+        longitude: typeof longitude === "number" ? longitude : undefined,
+
         preferences,
         profileImageUrl: normalizedProfileImageUrl,
         updatedAt: new Date(),

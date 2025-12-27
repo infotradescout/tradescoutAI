@@ -9,6 +9,7 @@ import { queryClient } from './lib/queryClient';
 import { trackShellEvent } from './lib/analytics';
 import { ErrorBoundary } from './components/ui/error-boundary';
 import { ThemeProvider } from './contexts/ThemeContext';
+import { ThemeApplier } from './components/theme/ThemeApplier';
 import { SessionProvider } from './contexts/SessionContext';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { useAuth } from './hooks/useAuth';
@@ -1009,6 +1010,7 @@ const App = memo(function App() {
       <QueryClientProvider client={queryClient}>
         <ThemeProvider>
           <SessionProvider>
+            <ThemeApplier />
             <Router>
               <AppLayout />
             </Router>

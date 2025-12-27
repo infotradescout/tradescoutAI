@@ -66,9 +66,8 @@ export function useLocationContext(
     (user as any)?.countyFips ?? undefined;
   const profileCountyId: string | undefined =
     (user as any)?.countyId ?? undefined;
-  const profileCountyName: string | undefined = user?.county
-    ? String(user.county)
-    : undefined;
+  const profileCountyName: string | undefined =
+    (user as any)?.countyName ?? (user?.county ? String(user.county) : undefined);
   const profileLat: number | undefined =
     typeof user?.latitude === "number" ? user.latitude : undefined;
   const profileLng: number | undefined =
@@ -134,7 +133,11 @@ export function useLocationContext(
 
   // 2) Hyper-local geo preference (homeLocation) overrides profile geo when present
   if (homeLocation) {
-    const label = getUserLocationLabel(user as any);
+    const fallbackLabel = getUserLocationLabel(user as any);
+    const label =
+      typeof homeLocation.label === "string" && homeLocation.label.trim().length > 0
+        ? homeLocation.label
+        : fallbackLabel;
 
     resolved = {
       ...resolved,
