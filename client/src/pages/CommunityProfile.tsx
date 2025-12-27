@@ -178,6 +178,7 @@ export default function CommunityProfile() {
                             avatar: post.author.avatar,
                             role: post.author.role || undefined,
                             verified: post.author.verified,
+                            badges: (post.author as any).badges,
                           }
                         : undefined,
                       category: post.category,

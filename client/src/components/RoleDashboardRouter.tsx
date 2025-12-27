@@ -27,10 +27,14 @@ const RoleDashboardRouter = memo(function RoleDashboardRouter() {
   const [showFirstSessionBanner, setShowFirstSessionBanner] = useState(false);
   const [showOrientation, setShowOrientation] = useState(false);
 
-  // First-session dashboard banner (non-blocking, session-scoped)
+  const isCommunityFirst = Boolean((user as any)?.communityFirst);
+
+  // First-session dashboard banner (non-blocking, session-scoped).
+  // For community-first users, skip this banner entirely so the
+  // dashboard feels like an optional tools surface, not required setup.
   useEffect(() => {
     if (typeof window === 'undefined') return;
-    if (!user) return;
+    if (!user || isCommunityFirst) return;
 
     const countKey = 'ts_dashboard_session_count';
     const dismissedKey = 'ts_dashboard_first_banner_dismissed';
@@ -60,7 +64,7 @@ const RoleDashboardRouter = memo(function RoleDashboardRouter() {
         route: '/dashboard',
       });
     }
-  }, [user]);
+  }, [user, isCommunityFirst]);
 
   // One-time post-onboarding orientation card via ?orientation=1
   useEffect(() => {

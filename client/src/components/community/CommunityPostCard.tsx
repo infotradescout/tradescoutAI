@@ -24,6 +24,7 @@ import {
 import { Link, useLocation } from "wouter";
 import { useAuth } from "@/hooks/useAuth";
 import { apiRequest, queryClient } from "@/lib/queryClient";
+import { UserBadges } from "@/components/user-badges";
 
 export interface CommunityPostCardAuthor {
   id?: string;
@@ -31,6 +32,7 @@ export interface CommunityPostCardAuthor {
   avatar?: string;
   role?: string;
   verified?: boolean;
+   badges?: string[];
 }
 
 export interface CommunityPostCardData {
@@ -308,6 +310,14 @@ export function CommunityPostCard({ post, onLike, formatTimeAgo }: CommunityPost
                       </span>
                     )}
                   </div>
+                  {post.author.badges && post.author.badges.length > 0 && (
+                    <UserBadges
+                      badges={post.author.badges}
+                      size="sm"
+                      maxVisible={3}
+                      className="mt-1"
+                    />
+                  )}
                 </div>
               </Link>
             ) : (
@@ -346,6 +356,14 @@ export function CommunityPostCard({ post, onLike, formatTimeAgo }: CommunityPost
                       </span>
                     )}
                   </div>
+                  {post.author?.badges && post.author.badges.length > 0 && (
+                    <UserBadges
+                      badges={post.author.badges}
+                      size="sm"
+                      maxVisible={3}
+                      className="mt-1"
+                    />
+                  )}
                 </div>
               </>
             )}

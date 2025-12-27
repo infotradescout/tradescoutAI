@@ -5,6 +5,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { Link } from "wouter";
+import { useAuth } from "@/hooks/useAuth";
 
 interface StandaloneInvoice {
   id: string;
@@ -54,6 +56,8 @@ interface JobRow {
 }
 
 export default function FinancesJobsPage() {
+  const { user } = useAuth();
+  const isCommunityFirst = Boolean((user as any)?.communityFirst);
   const [, navigate] = useLocation();
 
   const { data: invoicesData, isLoading: isInvoicesLoading } = useQuery<StandaloneInvoicesResponse>({
@@ -231,9 +235,30 @@ export default function FinancesJobsPage() {
           {isInvoicesLoading || isExpensesLoading ? (
             <p className="text-[11px] text-slate-400 py-4">Loading jobs…</p>
           ) : filteredJobs.length === 0 ? (
-            <p className="text-[11px] text-slate-400 py-4">
-              No jobs found yet. Once you create invoices or expenses tied to jobs, they'll appear here.
-            </p>
+            <div className="text-[11px] text-slate-400 py-4 space-y-2">
+              <p>
+                {isCommunityFirst
+                  ? "You don’t need to set up jobs in advance. When you create invoices or expenses and tie them to work, jobs will appear here automatically."
+                  : "No jobs found yet. Once you create invoices or expenses tied to jobs, they'll appear here."}
+              </p>
+              {isCommunityFirst && (
+                <div className="flex items-center gap-2 text-[11px]">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-7 px-3 border-slate-700 text-slate-200"
+                    onClick={() => navigate("/finances/invoices")}
+                  >
+                    Create an invoice when you’re ready
+                  </Button>
+                  <Link href="/community">
+                    <a className="text-sky-400 hover:text-sky-300">
+                      See what’s happening nearby
+                    </a>
+                  </Link>
+                </div>
+              )}
+            </div>
           ) : (
             <div className="space-y-2">
               {filteredJobs.map((job) => {

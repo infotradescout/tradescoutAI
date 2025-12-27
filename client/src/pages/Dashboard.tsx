@@ -42,18 +42,25 @@ interface Post {
   shareCount: number;
 }
 
+
 const Dashboard = memo(function Dashboard() {
-    // Workspace resolution fallback
-    const workspaceId = (typeof workspace !== 'undefined' && workspace?.id) || user?.workspaceId || user?.businessId || null;
-    const isAuthenticated = Boolean(user);
-    const canLoadDashboard =
-      isAuthenticated &&
-      Boolean(user?.location?.state || user?.location?.county) &&
-      Boolean(workspaceId);
+  const { user } = useAuth();
+  const isCommunityFirst = Boolean((user as any)?.communityFirst);
+
+  // Workspace resolution fallback
+  // NOTE: This still gates the personalized dashboard experience,
+  // but community-first users get a softer empty state.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const anyGlobal: any = typeof workspace !== 'undefined' ? workspace : undefined;
+  const workspaceId = anyGlobal?.id || (user as any)?.workspaceId || (user as any)?.businessId || null;
+  const isAuthenticated = Boolean(user);
+  const canLoadDashboard =
+    isAuthenticated &&
+    Boolean((user as any)?.location?.state || (user as any)?.location?.county) &&
+    Boolean(workspaceId);
   const [newPostContent, setNewPostContent] = useState("");
   const [showNewPostForm, setShowNewPostForm] = useState(false);
   const [newPostImages, setNewPostImages] = useState<string[]>([]);
-  const { user } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -197,6 +204,28 @@ const Dashboard = memo(function Dashboard() {
   };
 
   if (!canLoadDashboard) {
+    if (isCommunityFirst) {
+      return (
+        <div className="min-h-screen flex items-center justify-center text-center text-slate-300 bg-tsBg">
+          <div className="max-w-md px-6 space-y-3">
+            <h1 className="text-lg font-semibold text-white">
+              Your tools live here when you need them
+            </h1>
+            <p className="text-sm text-slate-400">
+              Use this workspace to keep track of projects, saved pros, and activity as your community life grows.
+            </p>
+            <p className="text-sm text-slate-500">
+              For now, see what&apos;s happening in your community and come back here whenever you want to organize things.
+            </p>
+            <div className="mt-4">
+              <Link href="/community-feed">
+                <Button className="w-full">Open community feed</Button>
+              </Link>
+            </div>
+          </div>
+        </div>
+      );
+    }
     return (
       <div className="min-h-screen flex items-center justify-center text-center text-slate-500">
         Finish setup to unlock your dashboard.

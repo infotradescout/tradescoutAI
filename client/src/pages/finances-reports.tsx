@@ -2,6 +2,8 @@ import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { useAuth } from "@/hooks/useAuth";
+import { Link } from "wouter";
 
 interface AccountingSummary {
   lifetime: {
@@ -50,6 +52,8 @@ interface ExpensesResponse {
 }
 
 export default function FinancesReportsPage() {
+  const { user } = useAuth();
+  const isCommunityFirst = Boolean((user as any)?.communityFirst);
   const [range, setRange] = useState<"all" | "90d" | "365d">("90d");
 
   const { data } = useQuery<AccountingSummary>({
@@ -170,7 +174,28 @@ export default function FinancesReportsPage() {
         </CardHeader>
         <CardContent className="space-y-3 text-[11px] text-slate-300">
           {!lifetime ? (
-            <p className="text-slate-400">Once you start issuing invoices and logging expenses, youll see totals here.</p>
+            <div className="space-y-2">
+              <p className="text-slate-400">
+                {isCommunityFirst
+                  ? "You don’t need to wire up reports before you work. When you log invoices and expenses, this snapshot will fill in automatically."
+                  : "Once you start issuing invoices and logging expenses, you’ll see totals here."}
+              </p>
+              {isCommunityFirst && (
+                <div className="flex items-center gap-2 text-[11px]">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="h-7 px-3 border-slate-700 text-slate-200"
+                  >
+                    Go to invoices
+                  </Button>
+                  <Link href="/community">
+                    <a className="text-sky-400 hover:text-sky-300">See what’s happening nearby</a>
+                  </Link>
+                </div>
+              )}
+            </div>
           ) : (
             <>
               <p>

@@ -3,6 +3,8 @@ import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { useAuth } from "@/hooks/useAuth";
+import { Link } from "wouter";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
@@ -71,6 +73,8 @@ const getStatusColor = (status: string) => {
 };
 
 export default function PaymentHistory() {
+    const { user } = useAuth();
+    const isCommunityFirst = Boolean((user as any)?.communityFirst);
   const [filterType, setFilterType] = useState('all');
   
   const { data: paymentHistory, isLoading } = useQuery<PaymentHistoryResponse>({
@@ -257,11 +261,20 @@ export default function PaymentHistory() {
                   <div className="text-center py-8">
                     <CreditCard className="w-12 h-12 text-gray-400 mx-auto mb-4" />
                     <h3 className="text-lg font-medium text-orange-500 mb-2">
-                      No payments yet
+                      {isCommunityFirst ? "No payments on record" : "No payments yet"}
                     </h3>
-                    <p className="text-gray-600 dark:text-gray-300">
-                      Your payment history will appear here once you make your first transaction.
+                    <p className="text-gray-600 dark:text-gray-300 text-sm max-w-md mx-auto">
+                      {isCommunityFirst
+                        ? "You don’t need to force a transaction just to fill this page. When money actually moves through TradeScout, it will show up here automatically."
+                        : "Your payment history will appear here once you make your first transaction."}
                     </p>
+                    {isCommunityFirst && (
+                      <div className="mt-4 flex items-center justify-center gap-3 text-sm">
+                        <Link href="/community">
+                          <a className="text-sky-400 hover:text-sky-300">See what’s happening nearby</a>
+                        </Link>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>

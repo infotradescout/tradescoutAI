@@ -2172,6 +2172,23 @@ export async function registerRoutes(app: any) {
         console.error("Error enriching public profile with connections:", err);
       }
 
+      // Enrich with subtle credibility metrics (jobs completed, people helped, activity)
+      let credibilityStats:
+        | { jobsCompleted?: number; peopleHelped?: number; activeWeeks?: number }
+        | undefined;
+      try {
+        const { jobsCompleted, peopleHelped, activeWeeks } = await storage.getUserCredibilityStats(
+          user.id,
+        );
+        credibilityStats = {
+          jobsCompleted: jobsCompleted || undefined,
+          peopleHelped: peopleHelped || undefined,
+          activeWeeks: activeWeeks || undefined,
+        };
+      } catch (err) {
+        console.error("Failed to compute public profile credibility stats", err);
+      }
+
       // Return safe public profile data
       const publicProfile = {
         id: user.id,
@@ -2189,11 +2206,22 @@ export async function registerRoutes(app: any) {
           profileSections: user.preferences?.profileSections,
           servicesDescription: user.preferences?.servicesDescription,
         },
-        // Stats can be populated later from real aggregates; omit fake zeros
-        stats: undefined,
+        // Stats: populate from real aggregates only; omit fake zeros
+        stats: credibilityStats,
         connections: connectionSummary,
         viewerConnection,
       };
+      try {
+        const viewerId = (req as AuthedRequest)?.user?.id || (req as AuthedRequest)?.user?.claims?.sub;
+        if (viewerId && typeof viewerId === "string" && viewerId !== user.id) {
+          await storage.logEvent("user.profile_viewed", {
+            userId: viewerId,
+            targetUserId: user.id,
+          });
+        }
+      } catch (e) {
+        console.error("Failed to log user.profile_viewed for XP", e);
+      }
 
       res.json(publicProfile);
     } catch (error: any) {
@@ -4229,6 +4257,63 @@ export async function registerRoutes(app: any) {
     } catch (error: any) {
       console.error("Error fetching contractor dashboard:", error);
       res.status(500).json({ message: "Failed to fetch dashboard data" });
+    }
+  });
+
+  // Explicit job completion endpoint
+  app.post("/api/leads/:id/complete", isAuthenticated, async (req: any, res: any) => {
+    try {
+      const leadId = String(req.params.id);
+      const userId: string | undefined = (req.user as any)?.claims?.sub || (req.user as any)?.id;
+
+      if (!leadId || !userId) {
+        return res.status(400).json({ message: "Invalid request" });
+      }
+
+      const lead = await storage.getLeadById(leadId);
+      if (!lead) {
+        return res.status(404).json({ message: "Lead not found" });
+      }
+
+      // Authorization: lead owner (homeowner) or assigned contractor or admin
+      const rolesRaw = Array.isArray((req.user as any)?.roles) ? (req.user as any).roles : [];
+      const primaryRole = (req.user as any)?.role;
+      const roles: string[] = [primaryRole, ...(rolesRaw || [])].filter((r): r is string => typeof r === 'string');
+      const isAdminLike = roles.some((r) => ["admin", "moderator", "ops_admin", "super_admin", "head_admin"].includes(r));
+
+      const isHomeownerOwner = typeof lead.userId === 'string' && lead.userId === userId;
+      const isAssignedContractor = typeof lead.contractorId === 'string' && !!lead.contractorId && (await (async () => {
+        try {
+          const contractor = await storage.getContractorByUserId(userId);
+          return !!contractor && contractor.id === lead.contractorId;
+        } catch {
+          return false;
+        }
+      })());
+
+      if (!isHomeownerOwner && !isAssignedContractor && !isAdminLike) {
+        return res.status(403).json({ message: "Not authorized to complete this job" });
+      }
+
+      if (lead.status === 'completed') {
+        return res.status(200).json({ message: "Job already marked completed" });
+      }
+
+      const updated = await storage.updateLeadStatus(leadId, 'completed');
+
+      try {
+        await storage.logEvent("job.completed", {
+          userId,
+          jobId: updated.id,
+        });
+      } catch (err) {
+        console.error("job.completed logging failed", err);
+      }
+
+      res.json({ message: "Job marked as completed", lead: updated });
+    } catch (error: any) {
+      console.error("Error completing lead:", error);
+      res.status(500).json({ message: "Failed to complete job" });
     }
   });
 
@@ -7835,6 +7920,46 @@ export async function registerRoutes(app: any) {
         offset: req.query.offset ? parseInt(req.query.offset as string, 10) : 0,
       };
 
+      if (user) {
+        try {
+          let scopeType: string | null = null;
+          let scopeId: string | null = null;
+
+          const countyFips = (filters.countyFips as string | undefined) || null;
+          const stateCode = (filters.stateCode as string | undefined) || null;
+          const scope = filters.scope as string | undefined;
+
+          if (scope) {
+            scopeType = scope;
+            if (scope === "county" && countyFips) {
+              scopeId = countyFips;
+            } else if (scope === "state" && stateCode) {
+              scopeId = stateCode;
+            } else if (scope === "all" || scope === "global") {
+              scopeId = "global";
+            }
+          } else if (countyFips) {
+            scopeType = "county";
+            scopeId = countyFips;
+          } else if (stateCode) {
+            scopeType = "state";
+            scopeId = stateCode;
+          }
+
+          if (scopeType && scopeId) {
+            await storage.logEvent("community.viewed_scope", {
+              userId: user.id,
+              scopeType,
+              scopeId,
+              countyFips,
+              stateCode,
+            });
+          }
+        } catch (e) {
+          console.error("Failed to log community.viewed_scope for XP", e);
+        }
+      }
+
       const posts = await storage.getCommunityPosts(filters);
       res.json(posts);
     } catch (error: any) {
@@ -7897,6 +8022,59 @@ export async function registerRoutes(app: any) {
 
   // Trending Topics (DB-backed; community-only)
   app.get("/api/community/trending", async (req: any, res: any) => {
+
+  // XP & badges read endpoints (me-only for now)
+  app.get("/api/xp/me", isAuthenticated, async (req: any, res: any) => {
+    try {
+      const userId: string | undefined = (req.user as any)?.claims?.sub || (req.user as any)?.id;
+      if (!userId) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+
+      const [xpTotal, ledger] = await Promise.all([
+        storage.getUserXpTotal(userId),
+        storage.getUserXpLedger(userId, 50),
+      ]);
+
+      res.json({
+        userId,
+        xpTotal,
+        recentLedger: ledger,
+      });
+    } catch (error: any) {
+      console.error("Error fetching XP for current user:", error);
+      res.status(500).json({ message: "Failed to fetch XP" });
+    }
+  });
+
+  app.get("/api/badges/me", isAuthenticated, async (req: any, res: any) => {
+    try {
+      const userId: string | undefined = (req.user as any)?.claims?.sub || (req.user as any)?.id;
+      if (!userId) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+
+      const [user, awarded] = await Promise.all([
+        storage.getUser(userId),
+        storage.getUserAwardedBadges(userId),
+      ]);
+
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      const computedLabels = computeBadgesForUser(user);
+
+      res.json({
+        userId,
+        labels: computedLabels,
+        awarded,
+      });
+    } catch (error: any) {
+      console.error("Error fetching badges for current user:", error);
+      res.status(500).json({ message: "Failed to fetch badges" });
+    }
+  });
     try {
       const stateCode = typeof req.query.stateCode === "string" ? req.query.stateCode : undefined;
       const countyFips = typeof req.query.countyFips === "string" ? req.query.countyFips : undefined;

@@ -325,6 +325,8 @@ const ComprehensiveNav = memo(function ComprehensiveNav() {
   const [location] = useLocation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
+  const isCommunityFirst = Boolean((user as any)?.communityFirst);
+
   const hasPermission = (item: NavItem): boolean => {
     if (!user) return !item.roles && !item.permission;
 
@@ -346,6 +348,21 @@ const ComprehensiveNav = memo(function ComprehensiveNav() {
 
   const filterItems = (items: NavItem[]): NavItem[] => {
     return items.filter(item => {
+      // For community-first pilot users, soft-hide identity/role hub sections
+      if (
+        isCommunityFirst &&
+        [
+          "Contractor Dashboard",
+          "Professional Tools",
+          "HOA Management",
+          "Business Owner",
+          "Helper Marketplace",
+          "Affiliate Program",
+        ].includes(item.label)
+      ) {
+        return false;
+      }
+
       if (!hasPermission(item)) return false;
       if (item.children) {
         item.children = filterItems(item.children);

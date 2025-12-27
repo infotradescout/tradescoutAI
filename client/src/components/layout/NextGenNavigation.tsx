@@ -33,24 +33,25 @@ export function NextGenNavigation({ className = "" }: NextGenNavigationProps) {
   // Role-based navigation items with dynamic priority system
   const navItems: NavItem[] = useMemo(() => {
     const userRole = user?.role || 'homeowner';
+    const isCommunityFirst = Boolean((user as any)?.communityFirst);
     
     // Base navigation items with role-specific priorities
     const baseItems = [
-      { href: "/contractors", label: "Contractors", icon: Users, priority: 10 },
+      { href: "/contractors", label: "Contractors", icon: Users, priority: isCommunityFirst ? 6 : 10 },
       { href: "/scout", label: "Scout", icon: Calculator, priority: 9 },
       { href: "/daily-deals", label: "Daily Deals", icon: Percent, priority: 8 },
       // Full features available for authenticated users
       ...(isAuthenticated ? [
-        { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard, priority: 7 },
-        { href: "/boosts", label: "Boosts", icon: TrendingUp, priority: 6 },
+        { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard, priority: isCommunityFirst ? 3 : 7 },
+        { href: "/boosts", label: "Boosts", icon: TrendingUp, priority: isCommunityFirst ? 2 : 6 },
         { href: "/groups", label: "Groups", icon: Users, priority: 5 },
-        { href: "/hoa-dashboard", label: "HOA", icon: Building, priority: 4 },
+        { href: "/hoa-dashboard", label: "HOA", icon: Building, priority: isCommunityFirst ? 2 : 4 },
         { href: "/county-directory", label: "Area Directory", icon: Users, priority: 3 },
         { href: "/foundation", label: "Foundation", icon: Building, priority: 2 },
         { href: "/community", label: "Community", icon: MessageSquare, priority: 3 },
         { href: "/worker-marketplace", label: "Helpers", icon: Users, priority: 4 },
         { href: "/exchange", label: "Exchange", icon: ArrowLeftRight, priority: 3 },
-        { href: "/accelerator", label: "Accelerator", icon: Crown, priority: 2 },
+        { href: "/accelerator", label: "Accelerator", icon: Crown, priority: isCommunityFirst ? 1 : 2 },
         // Admin navigation for admin users
         ...(userRole === 'head_admin' || userRole === 'ops_admin' || userRole === 'super_admin' ? [
           { href: "/admin/panel", label: "Admin", icon: Shield, priority: 15 },
@@ -96,6 +97,8 @@ export function NextGenNavigation({ className = "" }: NextGenNavigationProps) {
       });
     } else { // homeowner (default)
       return baseItems.map(item => {
+        if (item.href === '/community' && isCommunityFirst) return { ...item, priority: 16 };
+        if (item.href === '/dashboard' && isCommunityFirst) return { ...item, priority: 8 };
         if (item.href === '/dashboard') return { ...item, priority: 15 };
         if (item.href === '/contractors') return { ...item, priority: 14 };
         if (item.href === '/scout') return { ...item, priority: 13 };
@@ -104,7 +107,7 @@ export function NextGenNavigation({ className = "" }: NextGenNavigationProps) {
         return item;
       });
     }
-  }, [user?.role, isAuthenticated]);
+  }, [user, isAuthenticated]);
 
   const allPages = useMemo(() => [
     { href: "/", label: "Home", icon: Home },

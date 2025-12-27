@@ -5,6 +5,8 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { getUserColorScheme } from "@shared/colorPresets";
 import { ThemeScope } from "@/components/theme/ThemeScope";
+import { UserBadges } from "@/components/user-badges";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { USER_TYPES } from "@shared/userTypes";
 import {
   MapPin,
@@ -34,6 +36,9 @@ interface PublicProfile {
     listings?: number;
     reviews?: number;
     rating?: number;
+    jobsCompleted?: number;
+    peopleHelped?: number;
+    activeWeeks?: number;
   };
   connections?: {
     followers: number;
@@ -298,6 +303,7 @@ export default function PublicProfileView() {
   const showContactCard = profileSections.contactCard !== false;
 
   const [isUpdatingConnection, setIsUpdatingConnection] = useState(false);
+  const [badgeModalOpen, setBadgeModalOpen] = useState(false);
 
   const handleToggleConnection = async () => {
     if (isUpdatingConnection || !profile?.id) return;
@@ -429,10 +435,46 @@ export default function PublicProfileView() {
 
               {/* Badges */}
               {showRolesAndBadges && showBadges && (badges.length > 0 || hasCommunityBuilder) && (
-                <div className="flex flex-wrap gap-2 mt-3">
-                  {hasCommunityBuilder && renderUserBadge(COMMUNITY_BUILDER_BADGE_LABEL)}
-                  {distinctBadges.map((badge: string) => renderUserBadge(badge))}
-                </div>
+                <>
+                  <button
+                    type="button"
+                    className="mt-3 inline-flex max-w-full items-center gap-2 rounded-full bg-black/20 px-2 py-1 hover:bg-black/30 transition-colors"
+                    onClick={() => setBadgeModalOpen(true)}
+                  >
+                    <UserBadges
+                      badges={[
+                        ...(hasCommunityBuilder ? [COMMUNITY_BUILDER_BADGE_LABEL] : []),
+                        ...distinctBadges,
+                      ]}
+                      size="md"
+                      maxVisible={3}
+                    />
+                  </button>
+                  <Dialog open={badgeModalOpen} onOpenChange={setBadgeModalOpen}>
+                    <DialogContent className="max-w-lg">
+                      <DialogHeader>
+                        <DialogTitle>Badges</DialogTitle>
+                        <DialogDescription>
+                          Contribution and trust signals this profile has earned.
+                        </DialogDescription>
+                      </DialogHeader>
+                      <div className="mt-4 space-y-3">
+                        <UserBadges
+                          badges={[
+                            ...(hasCommunityBuilder ? [COMMUNITY_BUILDER_BADGE_LABEL] : []),
+                            ...distinctBadges,
+                          ]}
+                          size="lg"
+                          maxVisible={64}
+                          showLabels
+                        />
+                        <p className="text-xs text-gray-400">
+                          Badges are awarded for real activity in the community and job tools.
+                        </p>
+                      </div>
+                    </DialogContent>
+                  </Dialog>
+                </>
               )}
             </div>
             <div className="flex flex-col items-end gap-4">
@@ -450,48 +492,35 @@ export default function PublicProfileView() {
                   : "Connect"}
               </Button>
 
-              {/* Stats */}
+              {/* Credibility metrics (subtle, non-competitive) */}
               {showStats && profile.stats && (
-                <div className="flex gap-6">
-                  {profile.stats.listings !== undefined && (
-                    <div className="text-center">
-                      <div
-                        className="text-2xl font-bold text-tsAccent"
-                        style={{ color: "var(--user-primary, #f97316)" }}
-                      >
-                        {profile.stats.listings}
+                <div className="flex flex-col items-end gap-1 text-xs opacity-80 mt-1">
+                  <div className="flex gap-4">
+                    {profile.stats.jobsCompleted !== undefined && profile.stats.jobsCompleted > 0 && (
+                      <div className="text-right">
+                        <div className="font-semibold">
+                          {profile.stats.jobsCompleted} job
+                          {profile.stats.jobsCompleted === 1 ? "" : "s"} completed
+                        </div>
                       </div>
-                      <div className="text-sm opacity-70">Listings</div>
-                    </div>
-                  )}
-                  {profile.stats.reviews !== undefined && (
-                    <div className="text-center">
-                      <div
-                        className="text-2xl font-bold text-tsAccent"
-                        style={{ color: "var(--user-primary, #f97316)" }}
-                      >
-                        {profile.stats.reviews}
+                    )}
+                    {profile.stats.peopleHelped !== undefined && profile.stats.peopleHelped > 0 && (
+                      <div className="text-right">
+                        <div className="font-semibold">
+                          Helped {profile.stats.peopleHelped} person
+                          {profile.stats.peopleHelped === 1 ? "" : "s"}
+                        </div>
                       </div>
-                      <div className="text-sm opacity-70">RECOMMENDATIONS</div>
-                    </div>
-                  )}
-                  {profile.stats.rating !== undefined && (
-                    <div className="text-center">
-                      <div className="flex items-center gap-1">
-                        <span
-                          className="text-2xl font-bold text-tsAccent"
-                          style={{ color: "var(--user-primary, #f97316)" }}
-                        >
-                          {profile.stats.rating.toFixed(1)}
-                        </span>
-                        <Star
-                          className="h-5 w-5 fill-current text-tsAccent"
-                          style={{ color: "var(--user-primary, #f97316)" }}
-                        />
+                    )}
+                    {profile.stats.activeWeeks !== undefined && profile.stats.activeWeeks > 0 && (
+                      <div className="text-right">
+                        <div className="font-semibold">
+                          Active in this community {profile.stats.activeWeeks} week
+                          {profile.stats.activeWeeks === 1 ? "" : "s"} this year
+                        </div>
                       </div>
-                      <div className="text-sm opacity-70">Rating</div>
-                    </div>
-                  )}
+                    )}
+                  </div>
                 </div>
               )}
 

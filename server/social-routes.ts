@@ -10,7 +10,8 @@ import {
   contentReports,
   userFollows,
   neighborhoods,
-  users
+  users,
+  socialPostSaves,
 } from "@shared/schema";
 import { storage } from "./storage";
 import { isAuthenticated, requirePermission } from "./auth";
@@ -187,7 +188,18 @@ export function registerSocialRoutes(app: Express) {
         .insert(socialPosts)
         .values(postData)
         .returning();
-      
+      try {
+        await storage.logEvent("post.created", {
+          userId,
+          postId: post.id,
+          scopeType: "county",
+          scopeId: user.county || null,
+          countyFips: (user as any).countyFips || null,
+        });
+      } catch (e) {
+        console.error("Failed to log post.created for XP", e);
+      }
+
       res.json(post);
     } catch (error) {
       console.error("Error creating post:", error);
@@ -252,6 +264,52 @@ export function registerSocialRoutes(app: Express) {
       res.status(500).json({ message: "Failed to fetch post" });
     }
   });
+
+  // Save/bookmark a post
+  app.post("/api/social/posts/:postId/save", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const { postId } = req.params as { postId: string };
+
+      const [post] = await db
+        .select({ id: socialPosts.id, authorId: socialPosts.authorId })
+        .from(socialPosts)
+        .where(eq(socialPosts.id, postId))
+        .limit(1);
+
+      if (!post) {
+        return res.status(404).json({ message: "Post not found" });
+      }
+
+      const [existing] = await db
+        .select()
+        .from(socialPostSaves)
+        .where(and(eq(socialPostSaves.userId, userId), eq(socialPostSaves.postId, postId)))
+        .limit(1);
+
+      if (!existing) {
+        await db
+          .insert(socialPostSaves)
+          .values({ userId, postId })
+          .returning();
+
+        try {
+          await storage.logEvent("post.saved", {
+            userId,
+            targetUserId: post.authorId,
+            postId,
+          });
+        } catch (e) {
+          console.error("Failed to log post.saved for XP", e);
+        }
+      }
+
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error saving post:", error);
+      res.status(500).json({ message: "Failed to save post" });
+    }
+  });
   
   // React to post
   app.post("/api/social/posts/:postId/reactions", isAuthenticated, async (req: any, res) => {
@@ -298,7 +356,31 @@ export function registerSocialRoutes(app: Express) {
             reactionType: typedReactionType,
           });
       }
-      
+      try {
+        if (typedReactionType === "helpful" || typedReactionType === "thanks") {
+          const [post] = await db
+            .select({ authorId: socialPosts.authorId })
+            .from(socialPosts)
+            .where(eq(socialPosts.id, postId))
+            .limit(1);
+
+          if (post?.authorId && post.authorId !== userId) {
+            await storage.logEvent(
+              typedReactionType === "helpful"
+                ? "reaction.marked_helpful"
+                : "user.thanked",
+              {
+                userId,
+                targetUserId: post.authorId,
+                postId,
+              },
+            );
+          }
+        }
+      } catch (e) {
+        console.error("Failed to log reaction XP event", e);
+      }
+
       res.json({ success: true });
     } catch (error) {
       console.error("Error reacting to post:", error);
@@ -419,7 +501,16 @@ export function registerSocialRoutes(app: Express) {
           parentCommentId: parentCommentId || null,
         })
         .returning();
-      
+      try {
+        await storage.logEvent("comment.created", {
+          userId,
+          commentId: comment.id,
+          postId,
+        });
+      } catch (e) {
+        console.error("Failed to log comment.created for XP", e);
+      }
+
       res.json(comment);
     } catch (error) {
       console.error("Error creating comment:", error);
