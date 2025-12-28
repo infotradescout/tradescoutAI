@@ -2350,6 +2350,172 @@ export class DatabaseStorage implements IStorage {
     };
   }
 
+  async getOutcomeAnalyticsSummary(fromDate: Date, toDate: Date): Promise<{
+    from: string;
+    to: string;
+    byActionType: Array<{
+      actionType: "community_notice" | "provider_coordination" | "promotion";
+      initiated: number;
+      success: number;
+      pending: number;
+      failed: number;
+      medianTimeToOutcomeMs: number | null;
+      topCountiesByConfirmationRate: Array<{
+        stateCode: string | null;
+        countyFips: string | null;
+        initiated: number;
+        confirmed: number;
+        confirmationRate: number;
+      }>;
+    }>;
+  }> {
+    const from = new Date(fromDate);
+    const to = new Date(toDate);
+
+    const rowsResult = await neonPool.query(
+      `
+      SELECT
+        (data->>'actionType') AS action_type,
+        (data->>'result') AS result,
+        (data->>'timeToOutcomeMs') AS time_to_outcome_ms,
+        (data->>'stateCode') AS state_code,
+        (data->>'countyFips') AS county_fips
+      FROM events
+      WHERE event_type = 'local_action_outcome'
+        AND created_at >= $1
+        AND created_at < $2
+      `,
+      [from, to],
+    );
+
+    type ActionType = "community_notice" | "provider_coordination" | "promotion";
+    type OutcomeResult = "success" | "pending" | "failed";
+
+    type OutcomeAccumulator = {
+      actionType: ActionType;
+      initiated: number;
+      success: number;
+      pending: number;
+      failed: number;
+      outcomeDurations: number[];
+      counties: Map<string, { stateCode: string | null; countyFips: string | null; initiated: number; confirmed: number }>;
+    };
+
+    const actionTypes: ActionType[] = ["community_notice", "provider_coordination", "promotion"];
+    const byType = new Map<ActionType, OutcomeAccumulator>();
+
+    for (const type of actionTypes) {
+      byType.set(type, {
+        actionType: type,
+        initiated: 0,
+        success: 0,
+        pending: 0,
+        failed: 0,
+        outcomeDurations: [],
+        counties: new Map(),
+      });
+    }
+
+    const rows: any[] = rowsResult.rows || [];
+
+    for (const row of rows) {
+      const rawType = row.action_type;
+      const actionType: ActionType | null =
+        rawType === "community_notice" || rawType === "provider_coordination" || rawType === "promotion"
+          ? rawType
+          : null;
+      if (!actionType) continue;
+
+      const acc = byType.get(actionType);
+      if (!acc) continue;
+
+      const rawResult = row.result;
+      const result: OutcomeResult | null =
+        rawResult === "success" || rawResult === "pending" || rawResult === "failed" ? rawResult : null;
+      if (!result) continue;
+
+      acc.initiated += 1;
+      acc[result] += 1;
+
+      const stateCode = row.state_code != null ? String(row.state_code) : null;
+      const countyFips = row.county_fips != null ? String(row.county_fips) : null;
+      const hasCounty = !!stateCode && !!countyFips;
+
+      if (result === "success") {
+        const rawDuration = row.time_to_outcome_ms;
+        if (rawDuration != null) {
+          const n = typeof rawDuration === "number" ? rawDuration : Number(rawDuration);
+          if (Number.isFinite(n) && n >= 0) {
+            acc.outcomeDurations.push(n);
+          }
+        }
+      }
+
+      if (hasCounty) {
+        const key = `${stateCode}:${countyFips}`;
+        const existing = acc.counties.get(key) ?? {
+          stateCode,
+          countyFips,
+          initiated: 0,
+          confirmed: 0,
+        };
+        existing.initiated += 1;
+        if (result === "success") {
+          existing.confirmed += 1;
+        }
+        acc.counties.set(key, existing);
+      }
+    }
+
+    const computeMedian = (values: number[]): number | null => {
+      if (!values.length) return null;
+      const sorted = [...values].sort((a, b) => a - b);
+      const mid = Math.floor(sorted.length / 2);
+      if (sorted.length % 2 === 0) {
+        return (sorted[mid - 1] + sorted[mid]) / 2;
+      }
+      return sorted[mid];
+    };
+
+    const byActionType = actionTypes.map((type) => {
+      const acc = byType.get(type)!;
+      const median = computeMedian(acc.outcomeDurations);
+
+      const countyArray = Array.from(acc.counties.values())
+        .filter((c) => c.initiated > 0 && c.confirmed > 0)
+        .map((c) => ({
+          stateCode: c.stateCode,
+          countyFips: c.countyFips,
+          initiated: c.initiated,
+          confirmed: c.confirmed,
+          confirmationRate: c.initiated > 0 ? c.confirmed / c.initiated : 0,
+        }))
+        .sort((a, b) => {
+          if (b.confirmationRate !== a.confirmationRate) {
+            return b.confirmationRate - a.confirmationRate;
+          }
+          return b.confirmed - a.confirmed;
+        })
+        .slice(0, 5);
+
+      return {
+        actionType: acc.actionType,
+        initiated: acc.initiated,
+        success: acc.success,
+        pending: acc.pending,
+        failed: acc.failed,
+        medianTimeToOutcomeMs: median,
+        topCountiesByConfirmationRate: countyArray,
+      };
+    });
+
+    return {
+      from: from.toISOString(),
+      to: to.toISOString(),
+      byActionType,
+    };
+  }
+
   async getUserCredibilityStats(userId: string): Promise<{
     jobsCompleted: number;
     peopleHelped: number;

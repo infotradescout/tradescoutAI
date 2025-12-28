@@ -60,7 +60,7 @@ const featureNav: NavItem[] = [
     icon: <Home className="h-5 w-5" style={{ color: 'var(--theme-accent-primary)' }} />,
   },
   {
-    label: "Tasks",
+    label: "Direct Connect",
     href: "/tasks",
     icon: <ClipboardList className="h-5 w-5" style={{ color: 'var(--theme-accent-primary)' }} />,
   },

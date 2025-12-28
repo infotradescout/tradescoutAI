@@ -104,10 +104,10 @@ export default function TasksHub() {
     <div className="w-full max-w-full overflow-x-hidden bg-slate-950">
       <div className="max-w-7xl mx-auto ts-surface px-4 py-6 md:px-10 md:py-8 pb-20">
         <div className="mb-8">
-          <h1 className="text-4xl font-bold text-white mb-3">Work Board</h1>
+          <h1 className="text-4xl font-bold text-white mb-3">Direct Connect</h1>
           <p className="text-lg text-gray-300 max-w-3xl">
             Create and track the work you need done. Each request lives here as a Work Request so Scout and your community can
-            help route it over time.
+            help route it over time through Direct Connect.
           </p>
         </div>
 
@@ -126,10 +126,10 @@ export default function TasksHub() {
             <Card className="bg-navy-800 border-navy-700 mb-6">
               <CardHeader className="pb-4">
                 <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-                  <h2 className="text-lg font-semibold text-white">Your Work Requests</h2>
+                  <h2 className="text-lg font-semibold text-white">Your Direct Connect board</h2>
                   <p className="text-sm text-gray-300 max-w-xl">
                     This is your personal board of Work Requests. Over time Scout and your community can help match these to
-                    the right people.
+                    the right people through Direct Connect.
                   </p>
                 </div>
               </CardHeader>
@@ -180,10 +180,10 @@ export default function TasksHub() {
               <Card className="bg-navy-700 border-navy-600">
                 <CardContent className="p-8 text-center">
                   <Briefcase className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                  <h3 className="text-lg font-semibold text-white mb-2">Sign in to use your Work Board</h3>
+                  <h3 className="text-lg font-semibold text-white mb-2">Sign in to use Direct Connect</h3>
                   <p className="text-gray-300">
                     Create and track Work Requests from here. Once you sign in, this becomes your command center for projects
-                    Scout can help with.
+                    Scout can help coordinate through Direct Connect.
                   </p>
                 </CardContent>
               </Card>

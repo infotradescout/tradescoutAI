@@ -35,6 +35,28 @@ const PlatformAnalytics = memo(function PlatformAnalytics() {
     artifacts: ScoutDraftArtifactSummary[];
   };
 
+  type OutcomeSummaryByActionType = {
+    actionType: 'community_notice' | 'provider_coordination' | 'promotion';
+    initiated: number;
+    success: number;
+    pending: number;
+    failed: number;
+    medianTimeToOutcomeMs: number | null;
+    topCountiesByConfirmationRate: Array<{
+      stateCode: string | null;
+      countyFips: string | null;
+      initiated: number;
+      confirmed: number;
+      confirmationRate: number;
+    }>;
+  };
+
+  type OutcomeSummaryResponse = {
+    from: string;
+    to: string;
+    byActionType: OutcomeSummaryByActionType[];
+  };
+
   const { data: moneyMovements } = useQuery<{
     date: string;
     wallet: { totalCredits: number; totalDebits: number; netChange: number };
@@ -45,22 +67,31 @@ const PlatformAnalytics = memo(function PlatformAnalytics() {
     staleTime: 60 * 1000,
   });
 
+  const outcomeRolesAllowed = !!user && [
+    'support_agent',
+    'content_moderator',
+    'territory_manager',
+    'contractor_success',
+    'content_seo',
+    'analytics_specialist',
+    'marketing_specialist',
+    'moderator',
+    'ops_admin',
+    'super_admin',
+    'head_admin',
+  ].includes(user.role || '');
+
   const { data: scoutDraftSummary } = useQuery<ScoutDraftSummaryResponse>({
     queryKey: ["/api/analytics/scout-drafts/summary"],
     queryFn: () => apiRequest("GET", "/api/analytics/scout-drafts/summary"),
-    enabled: !!user && [
-      'support_agent',
-      'content_moderator',
-      'territory_manager',
-      'contractor_success',
-      'content_seo',
-      'analytics_specialist',
-      'marketing_specialist',
-      'moderator',
-      'ops_admin',
-      'super_admin',
-      'head_admin',
-    ].includes(user.role || ''),
+    enabled: outcomeRolesAllowed,
+    staleTime: 30 * 1000,
+  });
+
+  const { data: outcomeSummary } = useQuery<OutcomeSummaryResponse>({
+    queryKey: ["/api/analytics/outcomes/summary"],
+    queryFn: () => apiRequest("GET", "/api/analytics/outcomes/summary"),
+    enabled: outcomeRolesAllowed,
     staleTime: 30 * 1000,
   });
 
@@ -124,6 +155,18 @@ const PlatformAnalytics = memo(function PlatformAnalytics() {
     if (communityRate > promoRate) return 'Community posts are currently winning';
     return 'Flows are performing similarly';
   })();
+
+  const outcomeByType = (outcomeSummary?.byActionType || []).reduce<Record<OutcomeSummaryByActionType['actionType'], OutcomeSummaryByActionType | undefined>>(
+    (acc, item) => {
+      acc[item.actionType] = item;
+      return acc;
+    },
+    {
+      community_notice: undefined,
+      provider_coordination: undefined,
+      promotion: undefined,
+    },
+  );
 
   return (
     <div className="min-h-screen bg-navy-900 text-white">
@@ -271,6 +314,101 @@ const PlatformAnalytics = memo(function PlatformAnalytics() {
                   <div className="mt-4 text-xs text-gray-400">
                     <span className="font-semibold text-gray-200">Verdict: </span>
                     {winnerLabel}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Outcome Confirmation Summary */}
+            {outcomeSummary && (
+              <Card className="bg-navy-800/50 border-navy-600 backdrop-blur-sm">
+                <CardHeader>
+                  <CardTitle className="text-white flex items-center gap-2">
+                    <Clock className="h-5 w-5 text-orange-400" />
+                    Outcome Confirmation (last 72h)
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-sm text-gray-200">
+                    {([
+                      { key: 'community_notice', label: 'Community Notices' },
+                      { key: 'provider_coordination', label: 'Provider Coordination' },
+                      { key: 'promotion', label: 'Promotions' },
+                    ] as const).map(({ key, label }) => {
+                      const bucket = outcomeByType[key];
+                      if (!bucket) {
+                        return (
+                          <div key={key} className="space-y-2">
+                            <div className="flex items-center justify-between">
+                              <span className="font-semibold">{label}</span>
+                              <Badge variant="outline" className="text-xs border-gray-500 text-gray-300">
+                                No data yet
+                              </Badge>
+                            </div>
+                            <p className="text-xs text-gray-400">
+                              Waiting for outcome confirmations to accumulate.
+                            </p>
+                          </div>
+                        );
+                      }
+
+                      const { initiated, success, pending, failed, medianTimeToOutcomeMs, topCountiesByConfirmationRate } = bucket;
+                      const successRate = initiated > 0 ? (success / initiated) * 100 : 0;
+                      const medianMinutes = medianTimeToOutcomeMs != null
+                        ? Math.round(medianTimeToOutcomeMs / 60000)
+                        : null;
+
+                      return (
+                        <div key={key} className="space-y-2">
+                          <div className="flex items-center justify-between">
+                            <span className="font-semibold">{label}</span>
+                            <Badge variant="outline" className="text-xs border-green-500/50 text-green-300">
+                              {successRate.toFixed(1)}% confirmed
+                            </Badge>
+                          </div>
+                          <div className="flex items-center justify-between text-xs mt-1">
+                            <span>Initiated</span>
+                            <span className="font-mono">{initiated}</span>
+                          </div>
+                          <div className="flex items-center justify-between text-xs">
+                            <span>Success</span>
+                            <span className="font-mono">{success}</span>
+                          </div>
+                          <div className="flex items-center justify-between text-xs">
+                            <span>Pending</span>
+                            <span className="font-mono">{pending}</span>
+                          </div>
+                          <div className="flex items-center justify-between text-xs">
+                            <span>Failed</span>
+                            <span className="font-mono">{failed}</span>
+                          </div>
+                          <div className="flex items-center justify-between text-xs">
+                            <span>Median time-to-outcome</span>
+                            <span className="font-mono">
+                              {medianMinutes != null ? `${medianMinutes} min` : '—'}
+                            </span>
+                          </div>
+                          {topCountiesByConfirmationRate.length > 0 && (
+                            <div className="mt-2">
+                              <p className="text-[11px] text-gray-400 mb-1">Top counties by confirmation rate</p>
+                              <ul className="space-y-0.5 text-[11px] text-gray-300">
+                                {topCountiesByConfirmationRate.map((c) => (
+                                  <li key={`${c.stateCode}-${c.countyFips}`} className="flex justify-between">
+                                    <span>
+                                      {c.countyFips ?? 'Unknown'}
+                                      {c.stateCode ? `, ${c.stateCode}` : ''}
+                                    </span>
+                                    <span className="font-mono">
+                                      {Math.round(c.confirmationRate * 100)}% ({c.confirmed}/{c.initiated})
+                                    </span>
+                                  </li>
+                                ))}
+                              </ul>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
                   </div>
                 </CardContent>
               </Card>

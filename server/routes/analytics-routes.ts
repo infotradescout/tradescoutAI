@@ -68,4 +68,26 @@ export function registerAnalyticsRoutes(app: Express) {
       res.status(500).json({ message: "Failed to fetch Scout draft analytics summary" });
     }
   });
+
+  // Internal: Outcome confirmation summary across action types
+  app.get("/api/analytics/outcomes/summary", isStaff, async (req: any, res: Response) => {
+    try {
+      const now = new Date();
+
+      const windowHoursRaw = req.query.windowHours;
+      const parsedWindowHours = typeof windowHoursRaw === "string" ? Number(windowHoursRaw) : NaN;
+      const safeWindowHours = Number.isFinite(parsedWindowHours)
+        ? Math.min(Math.max(parsedWindowHours, 1), 24 * 30)
+        : 72; // default: last 72 hours
+
+      const to = now;
+      const from = new Date(to.getTime() - safeWindowHours * 60 * 60 * 1000);
+
+      const summary = await storage.getOutcomeAnalyticsSummary(from, to);
+      res.json(summary);
+    } catch (error) {
+      console.error("Error fetching outcome analytics summary", error);
+      res.status(500).json({ message: "Failed to fetch outcome analytics summary" });
+    }
+  });
 }

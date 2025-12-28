@@ -73,6 +73,16 @@ export type ShellEvent =
       timeToPublishMs?: number;
       stateCode?: string;
       countyFips?: string;
+    }
+  | {
+      type: "local_action_outcome";
+      actionType: "community_notice" | "provider_coordination" | "promotion";
+      result: "success" | "pending" | "failed";
+      stateCode?: string;
+      countyFips?: string;
+      initiatedBy?: "scout" | "direct";
+      timeToOutcomeMs?: number;
+      artifactId?: string;
     };
 
 export function getDeviceType(): DeviceType {

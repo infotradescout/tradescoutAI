@@ -59,7 +59,7 @@ export const CommunityShell: React.FC<CommunityShellProps> = ({
 
     items.push({
       key: "work-request",
-      label: "Post a work request",
+      label: "Open Direct Connect",
       href: "/tasks",
       icon: <Target className="h-3.5 w-3.5" />,
     });
@@ -134,7 +134,7 @@ export const CommunityShell: React.FC<CommunityShellProps> = ({
             </Link>
             <span className="text-slate-600">·</span>
             <Link href="/tasks" className="hover:text-orange-400 transition-colors">
-              Work Board
+              Direct Connect
             </Link>
           </nav>
         </div>
