@@ -106,8 +106,8 @@ export default function TasksHub() {
         <div className="mb-8">
           <h1 className="text-4xl font-bold text-white mb-3">Direct Connect</h1>
           <p className="text-lg text-gray-300 max-w-3xl">
-            Create and track the work you need done. Each request lives here as a Work Request so Scout and your community can
-            help route it over time through Direct Connect.
+            Direct Connect is where local coordination happens. Capture what you need done, and Scout plus your community help
+            route it to the right people over time until it's resolved.
           </p>
         </div>
 
@@ -115,10 +115,10 @@ export default function TasksHub() {
           <TabsList className="grid w-full grid-cols-2 bg-navy-700 border-navy-600">
             <TabsTrigger value="browse" className="data-[state=active]:bg-orange-500">
               <Briefcase className="h-4 w-4 mr-2" />
-              Browse Tasks
+              Active coordination
             </TabsTrigger>
             <TabsTrigger value="post" className="data-[state=active]:bg-orange-500">
-              Post a Task
+              Start a Direct Connect request
             </TabsTrigger>
           </TabsList>
 
@@ -126,10 +126,10 @@ export default function TasksHub() {
             <Card className="bg-navy-800 border-navy-700 mb-6">
               <CardHeader className="pb-4">
                 <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-                  <h2 className="text-lg font-semibold text-white">Your Direct Connect board</h2>
+                  <h2 className="text-lg font-semibold text-white">Active coordination</h2>
                   <p className="text-sm text-gray-300 max-w-xl">
-                    This is your personal board of Work Requests. Over time Scout and your community can help match these to
-                    the right people through Direct Connect.
+                    These are the things you're currently trying to get done. Scout, your community, and local providers all
+                    coordinate from here.
                   </p>
                 </div>
               </CardHeader>
@@ -138,7 +138,7 @@ export default function TasksHub() {
                   <div className="relative">
                     <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
                     <Input
-                      placeholder="Search work requests..."
+                      placeholder="Search active requests..."
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
                       className="pl-10 bg-navy-600 border-navy-500 text-white"
@@ -168,7 +168,7 @@ export default function TasksHub() {
                         className="bg-orange-500 hover:bg-orange-600"
                         onClick={() => setActiveTab("post")}
                       >
-                        Post a Task
+                        Start a Direct Connect request
                       </Button>
                     )}
                   </div>
@@ -182,8 +182,8 @@ export default function TasksHub() {
                   <Briefcase className="h-12 w-12 text-gray-400 mx-auto mb-4" />
                   <h3 className="text-lg font-semibold text-white mb-2">Sign in to use Direct Connect</h3>
                   <p className="text-gray-300">
-                    Create and track Work Requests from here. Once you sign in, this becomes your command center for projects
-                    Scout can help coordinate through Direct Connect.
+                    Direct Connect is your command center for getting things done locally. Once you sign in, Scout and your
+                    community can help coordinate what you need from here.
                   </p>
                 </CardContent>
               </Card>
@@ -233,10 +233,10 @@ export default function TasksHub() {
                     <Card className="bg-navy-700 border-navy-600">
                       <CardContent className="p-8 text-center">
                         <Briefcase className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                        <h3 className="text-lg font-semibold text-white mb-2">No work requests yet</h3>
+                        <h3 className="text-lg font-semibold text-white mb-2">Nothing in coordination yet</h3>
                         <p className="text-gray-300">
-                          Start by posting a Work Request. This will become your single place to track work you want help
-                          with.
+                          When you want to get something done  a project, service, or help  it will appear here while Scout
+                          and your community work on it.
                         </p>
                       </CardContent>
                     </Card>
