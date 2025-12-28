@@ -40,6 +40,7 @@ import { resolveAllTiles } from "./resolveScoutTiles";
 import type { ScoutTileContext } from "./scoutActionTiles";
 import { updateGeoPreferencesFromDeviceLocation } from "../agent/tools/geoPreferences";
 import { useLocationContext, hasCountyContext } from "@/hooks/useLocationContext";
+import { formatCityOnly } from "@/utils/locationDisplay";
 import { openFloatingNote } from "@/lib/floatingNotes";
 import {
   searchContractors,
@@ -188,8 +189,22 @@ function sanitizeScoutMessage(raw: unknown): string {
   } catch {
     // Not JSON, continue with string validation
   }
+  // Strip obvious internal reasoning sections from plain-text responses.
+  const withoutInternal = trimmed
+    .split("\n")
+    .filter((line) => {
+      const lower = line.trim().toLowerCase();
+      if (!lower) return true;
+      if (lower.startsWith("reasoning:")) return false;
+      if (lower.startsWith("internal reasoning:")) return false;
+      if (lower.startsWith("thought process:")) return false;
+      if (lower.startsWith("analysis:")) return false;
+      return true;
+    })
+    .join("\n")
+    .trim();
 
-  return trimmed;
+  return withoutInternal || trimmed;
 }
 
 function enforceShortIntentDiscipline(
@@ -2056,7 +2071,7 @@ export default function ScoutOS() {
     }
   }, [location, state.messages, handleSend, setPrefillKey, shouldPlayIntroDemo]);
 
-  const heroLocationLabel = locationCtx.label;
+  const heroLocationLabel = formatCityOnly({ label: locationCtx.label });
   const heroAudienceLabel = getUserAudienceLabel(user as any);
   const heroHeadlineTarget = (() => {
     if (isAuthenticated && heroLocationLabel) {

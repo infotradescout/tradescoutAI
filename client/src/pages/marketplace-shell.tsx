@@ -1,13 +1,11 @@
 import React, { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { CommunityShell } from "@/components/layout/CommunityShell";
-import { useNotifications } from "@/hooks/useNotifications";
 import { apiRequest } from "@/lib/queryClient";
 import {
   useLocationContext,
   hasCountyContext,
 } from "@/hooks/useLocationContext";
-import { CountyRequiredGate } from "@/components/CountyRequiredGate";
+import { MarketplaceShell } from "@/shells/MarketplaceShell";
 import type { MarketplaceListing } from "@shared/schema";
 
 type CreateListingPayload = {
@@ -24,9 +22,8 @@ function formatListingPrice(price: MarketplaceListing["price"]): string {
   return numeric.toLocaleString();
 }
 
-export default function MarketplaceShell() {
+export default function MarketplaceShellPage() {
   const location = useLocationContext();
-  const { unreadCount } = useNotifications();
   const queryClient = useQueryClient();
 
   const [searchTerm, setSearchTerm] = useState("");
@@ -129,8 +126,7 @@ export default function MarketplaceShell() {
   };
 
   return (
-    <CommunityShell sectionLabel="For Sale" notificationsCount={unreadCount}>
-      <CountyRequiredGate locationOverride={location} surface="community">
+    <MarketplaceShell locationOverride={location}>
         <div className="max-w-5xl mx-auto px-3 py-4 sm:px-4 sm:py-6">
           <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex flex-1 gap-2">
@@ -353,7 +349,6 @@ export default function MarketplaceShell() {
             </div>
           )}
         </div>
-      </CountyRequiredGate>
-    </CommunityShell>
+    </MarketplaceShell>
   );
 }

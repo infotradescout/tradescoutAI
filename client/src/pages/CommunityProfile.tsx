@@ -4,7 +4,6 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { CommunityShell } from "@/components/layout/CommunityShell";
 import { CommunityPostCard } from "@/components/community/CommunityPostCard";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
@@ -104,7 +103,7 @@ export default function CommunityProfile() {
   }, [posts]);
 
   return (
-    <CommunityShell sectionLabel="Community profile">
+    <div className="w-full max-w-full overflow-x-hidden bg-slate-950">
       <div className="max-w-4xl mx-auto space-y-6">
         {/* Header */}
         <Card
@@ -211,6 +210,6 @@ export default function CommunityProfile() {
           </CardContent>
         </Card>
       </div>
-    </CommunityShell>
+    </div>
   );
 }

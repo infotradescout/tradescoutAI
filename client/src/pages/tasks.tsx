@@ -12,7 +12,6 @@ import { Briefcase, Search } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { useNotifications } from "@/hooks/useNotifications";
-import { CommunityShell } from "@/components/layout/CommunityShell";
 import { apiRequest } from "@/lib/queryClient";
 import type { WorkRequest, TaskCategory } from "@shared/schema";
 
@@ -102,7 +101,7 @@ export default function TasksHub() {
   }, [workRequests, searchQuery, selectedCategory]);
 
   return (
-    <CommunityShell sectionLabel="Tasks" notificationsCount={unreadCount}>
+    <div className="w-full max-w-full overflow-x-hidden bg-slate-950">
       <div className="max-w-7xl mx-auto ts-surface px-4 py-6 md:px-10 md:py-8 pb-20">
         <div className="mb-8">
           <h1 className="text-4xl font-bold text-white mb-3">Work Board</h1>
@@ -391,6 +390,6 @@ export default function TasksHub() {
           </TabsContent>
         </Tabs>
       </div>
-    </CommunityShell>
+    </div>
   );
 }

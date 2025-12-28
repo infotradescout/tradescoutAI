@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { ArrowRight, MessageCircle, Sparkles, Activity } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { getUserLocationLabel, getUserAudienceLabel } from '@/lib/copyHelpers';
+import { formatCityOnly } from '@/utils/locationDisplay';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 
@@ -28,7 +29,9 @@ export default function CommunityOsLanding() {
 
   const locationLabel = getUserLocationLabel(user as any);
   const audienceLabel = getUserAudienceLabel(user as any);
-  const headlineCommunity = isAuthenticated && locationLabel ? locationLabel : 'YOUR COMMUNITY';
+  const headlineCommunity = isAuthenticated && locationLabel
+	? (formatCityOnly({ label: locationLabel }) || 'YOUR COMMUNITY')
+    : 'YOUR COMMUNITY';
 
   const handleSubmit = async () => {
     if (!question.trim()) return;

@@ -6,12 +6,12 @@ import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from "@/hooks/useAuth";
 import { useNotifications } from "@/hooks/useNotifications";
-import { useLocationContext } from "@/hooks/useLocationContext";
+import { useLocationContext, hasCountyContext } from "@/hooks/useLocationContext";
 import { useParams } from "wouter";
 import { Building, DollarSign, Users, Vote, Wrench, Calendar, TrendingUp, Phone, Mail, Star, CheckCircle, XCircle } from "lucide-react";
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
-import { CommunityShell } from "@/components/layout/CommunityShell";
+import { HOAManagementShell } from "@/shells/HOAManagementShell";
 import { CountyRequiredGate } from "@/components/CountyRequiredGate";
 
 interface HOA {
@@ -92,7 +92,7 @@ export default function HOAManagement() {
     layer: "hoa",
     hoaId: hoaIdFromRoute ?? undefined,
   });
-  const hasCountyContext = Boolean(location.stateCode && location.countyFips);
+  const countyCommitted = hasCountyContext(location);
   const [selectedVote, setSelectedVote] = useState<string | null>(null);
   const [notification, setNotification] = useState<{ type: 'success' | 'error', message: string } | null>(null);
 
@@ -107,7 +107,7 @@ export default function HOAManagement() {
         }
         return res.json();
       },
-      enabled: !!user && hasCountyContext,
+      enabled: !!user && countyCommitted,
     }
   );
 
@@ -124,7 +124,7 @@ export default function HOAManagement() {
       }
       return response.json();
     },
-    enabled: !!user && !!activeHoaId && hasCountyContext,
+    enabled: !!user && !!activeHoaId && countyCommitted,
     retry: false
   });
 
@@ -137,7 +137,7 @@ export default function HOAManagement() {
       }
       const json = await res.json();
 
-      if (hasCountyContext) {
+      if (countyCommitted) {
         try {
           const { recordActivity } = await import("../agent/activity");
           recordActivity({
@@ -153,27 +153,27 @@ export default function HOAManagement() {
 
       return json;
     },
-    enabled: !!activeHoaId && hasCountyContext,
+    enabled: !!activeHoaId && countyCommitted,
   });
 
   const { data: finances, isLoading: financesLoading } = useQuery({
     queryKey: ['/api/hoa', activeHoaId, 'finances'],
     queryFn: () => fetch(`/api/hoa/${activeHoaId}/finances`).then(res => res.json()),
-    enabled: !!activeHoaId && (memberData?.canViewFinances || false) && hasCountyContext
+    enabled: !!activeHoaId && (memberData?.canViewFinances || false) && countyCommitted
   });
 
   const { data: vendors = [], isLoading: vendorsLoading } = useQuery({
     queryKey: ['/api/hoa', activeHoaId, 'vendors'],
     queryFn: () => fetch(`/api/hoa/${activeHoaId}/vendors`).then(res => res.json()),
     initialData: [],
-    enabled: !!activeHoaId && hasCountyContext,
+    enabled: !!activeHoaId && countyCommitted,
   });
 
   const { data: votes = [], isLoading: votesLoading } = useQuery({
     queryKey: ['/api/hoa', activeHoaId, 'votes'],
     queryFn: () => fetch(`/api/hoa/${activeHoaId}/votes`).then(res => res.json()),
     initialData: [],
-    enabled: !!activeHoaId && hasCountyContext,
+    enabled: !!activeHoaId && countyCommitted,
   });
 
   // Placeholder for refreshing financial data
@@ -314,41 +314,35 @@ export default function HOAManagement() {
     return roleNames[role] || role;
   };
 
-  if (hasCountyContext && (hoaLoading || memberLoading || membershipLoading)) {
+  if (countyCommitted && (hoaLoading || memberLoading || membershipLoading)) {
     return (
-      <CommunityShell sectionLabel="HOA" notificationsCount={unreadCount}>
-        <div className="max-w-7xl mx-auto">
-          <div className="text-center py-10">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500 mx-auto"></div>
-            <p className="mt-2 text-slate-400">Loading HOA information...</p>
-          </div>
+      <HOAManagementShell locationOverride={location}>
+        <div className="text-center py-10">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500 mx-auto"></div>
+          <p className="mt-2 text-slate-400">Loading HOA information...</p>
         </div>
-      </CommunityShell>
+      </HOAManagementShell>
     );
   }
 
   // Show message if user has no HOA memberships
-  if (hasCountyContext && !activeHoaId && !membershipLoading) {
+  if (countyCommitted && !activeHoaId && !membershipLoading) {
     return (
-      <CommunityShell sectionLabel="HOA" notificationsCount={unreadCount}>
-        <div className="max-w-7xl mx-auto">
-          <Card className="bg-slate-800/50 border-slate-700 text-center p-12" data-testid="hoa-not-member">
-            <Building className="w-16 h-16 text-orange-400 mx-auto mb-4" />
-            <h2 className="text-2xl font-bold text-white mb-2">Not an HOA Member</h2>
-            <p className="text-slate-400 mb-6">You're not currently linked to an HOA in TradeScout.</p>
-            <Button data-testid="button-back-home" onClick={() => window.location.href = '/'} className="bg-orange-500 hover:bg-orange-600">
-              Return Home
-            </Button>
-          </Card>
-        </div>
-      </CommunityShell>
+      <HOAManagementShell locationOverride={location}>
+        <Card className="bg-slate-800/50 border-slate-700 text-center p-12" data-testid="hoa-not-member">
+          <Building className="w-16 h-16 text-orange-400 mx-auto mb-4" />
+          <h2 className="text-2xl font-bold text-white mb-2">Not an HOA Member</h2>
+          <p className="text-slate-400 mb-6">You're not currently linked to an HOA in TradeScout.</p>
+          <Button data-testid="button-back-home" onClick={() => window.location.href = '/'} className="bg-orange-500 hover:bg-orange-600">
+            Return Home
+          </Button>
+        </Card>
+      </HOAManagementShell>
     );
   }
 
   return (
-    <CommunityShell sectionLabel="HOA" notificationsCount={unreadCount}>
-      <CountyRequiredGate locationOverride={location}>
-      <div className="max-w-7xl mx-auto space-y-8" data-testid="hoa-management-page">
+    <HOAManagementShell locationOverride={location}>
         {/* Header */}
         <div className="text-center space-y-4">
           <div className="flex items-center justify-center space-x-3">
@@ -376,6 +370,17 @@ export default function HOAManagement() {
             </div>
           )}
         </div>
+
+        <Card className="bg-slate-800/60 border-slate-700">
+          <CardContent className="p-4 text-sm text-slate-300">
+            <p className="font-medium text-slate-100">
+              Work with Scout from this HOA surface
+            </p>
+            <p className="mt-1 text-xs text-slate-400">
+              Try asking Scout to "Post HOA notice", "Review dues and payments", or "Find vendors for our common areas" and youll land back here with the right tab or tools ready.
+            </p>
+          </CardContent>
+        </Card>
 
         {/* Quick Stats */}
         {hoa && (
@@ -763,8 +768,6 @@ export default function HOAManagement() {
             </Card>
           </TabsContent>
         </Tabs>
-        </div>
-        </CountyRequiredGate>
-      </CommunityShell>
+    </HOAManagementShell>
   );
 }

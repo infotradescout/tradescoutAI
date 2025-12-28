@@ -10,6 +10,15 @@ export type LocationSource =
   | "override"
   | "session";
 
+// Canonical user location shape used for all county-gated experiences.
+// This intentionally matches the server-side contract (stateCode + countyFips
+// + optional countyName) and is the only authoritative model for location.
+export type UserLocation = {
+  stateCode: string;
+  countyFips: string;
+  countyName?: string;
+};
+
 export type LocationContext = {
   layer: LocationLayer;
   /** Canonical machine fields used for all locality-aware APIs */
@@ -67,26 +76,15 @@ export function clearSessionLocationOverride() {
 export function hasCountyContext(ctx: LocationContext | undefined | null): boolean {
   if (!ctx) return false;
 
-  // Primary contract: fully committed county when we have
-  // both a two-letter state code and a 5-digit county FIPS.
-  if (ctx.stateCode && ctx.countyFips) {
-    return true;
+  // A user is "county committed" only when both canonical
+  // fields are present in the active LocationContext.
+  // No alternates, no heuristics.
+  const { stateCode, countyFips } = ctx;
+  if (typeof stateCode !== "string" || typeof countyFips !== "string") {
+    return false;
   }
 
-  // Fallback: treat a saved geo/profile home location with
-  // lat/lng + human-readable label as "committed enough" for
-  // gating purposes, even if FIPS has not been resolved yet.
-  if (
-    (ctx.source === "profile" || ctx.source === "geo_preference") &&
-    (typeof ctx.lat === "number" || typeof ctx.lng === "number") &&
-    typeof ctx.label === "string" &&
-    ctx.label.trim().length > 0
-  ) {
-    return true;
-  }
-
-  // Otherwise, we still consider the user not county-committed.
-  return false;
+  return stateCode.length === 2 && countyFips.length === 5;
 }
 
 export function useLocationContext(

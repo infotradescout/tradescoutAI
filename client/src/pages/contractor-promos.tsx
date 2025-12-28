@@ -17,6 +17,7 @@ import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { share } from "@/utils/share";
 import { getDeviceType, trackShellEvent } from "@/lib/analytics";
+import { useLocationContext } from "@/hooks/useLocationContext";
 
 const promoFormSchema = z.object({
   title: z.string().min(1, "Title is required").max(100, "Title must be under 100 characters"),
@@ -513,6 +514,9 @@ function PromoCard({ promo }: { promo: ContractorPromo }) {
 }
 
 export default function ContractorPromos() {
+  const location = useLocationContext();
+  const stateCode = location.stateCode as string | undefined;
+  const countyFips = location.countyFips as string | undefined;
   const [showForm, setShowForm] = useState(false);
   const [draftDefaults, setDraftDefaults] = useState<Partial<PromoFormValues> | null>(null);
   const [fromScoutDraft, setFromScoutDraft] = useState(false);
@@ -558,6 +562,8 @@ export default function ContractorPromos() {
             path,
             ts,
             deviceType,
+            stateCode,
+            countyFips,
           });
           void trackShellEvent({
             type: "scout_draft_viewed",
@@ -565,6 +571,8 @@ export default function ContractorPromos() {
             path,
             ts,
             deviceType,
+            stateCode,
+            countyFips,
           });
         } catch {
           // Ignore analytics failures.
@@ -598,7 +606,8 @@ export default function ContractorPromos() {
           <div>
             <h1 className="text-3xl font-bold text-gray-900">My Promotional Campaigns</h1>
             <p className="text-gray-600 mt-2">
-              Create and manage your promotional offers with shareable links for local marketing
+              Create and manage your promotional offers with shareable links for local marketing.
+              You can also ask Scout to "Draft a promotion for my services" and well prefill this form for you.
             </p>
           </div>
           
@@ -634,7 +643,9 @@ export default function ContractorPromos() {
                       path,
                       ts,
                       deviceType,
-                      timeToPublishMs,
+                        timeToPublishMs,
+                        stateCode,
+                        countyFips,
                     });
                   } catch {
                     // Ignore analytics failures.
@@ -653,6 +664,9 @@ export default function ContractorPromos() {
                 <h3 className="text-lg font-medium mb-2">No promotional campaigns yet</h3>
                 <p className="text-sm">
                   Create your first promotional campaign to start attracting customers with special offers
+                </p>
+                <p className="text-xs text-gray-500 mt-3">
+                  Tip: From the Scout chat, try asking "Draft a promotion for my services" and well bring you back here with a prefilled draft ready to review.
                 </p>
               </div>
               <Button onClick={() => setShowForm(true)}>

@@ -10,9 +10,8 @@ import { Users, MessageSquare, Plus, Search, MapPin, Crown } from "lucide-react"
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { Link } from "wouter";
-import { CommunityShell } from "@/components/layout/CommunityShell";
-import { useNotifications } from "@/hooks/useNotifications";
 import { useLocationContext } from "@/hooks/useLocationContext";
+import { GroupsShell } from "@/shells/GroupsShell";
 
 interface Group {
   id: string;
@@ -37,7 +36,6 @@ type HoaMembership = {
 };
 
 export default function Groups() {
-  const { unreadCount } = useNotifications();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [searchQuery, setSearchQuery] = useState('');
@@ -179,7 +177,7 @@ export default function Groups() {
 
   if (!hasCountyContext) {
     return (
-      <CommunityShell sectionLabel="Groups" notificationsCount={unreadCount}>
+      <GroupsShell>
         <div className="max-w-7xl mx-auto py-10">
           <Card className="border-slate-700 bg-slate-900/70">
             <CardHeader>
@@ -203,25 +201,25 @@ export default function Groups() {
             </CardContent>
           </Card>
         </div>
-      </CommunityShell>
+      </GroupsShell>
     );
   }
 
   if (groupsLoading) {
     return (
-      <CommunityShell sectionLabel="Groups" notificationsCount={unreadCount}>
+      <GroupsShell>
         <div className="max-w-7xl mx-auto">
           <div className="text-center py-10">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500 mx-auto"></div>
             <p className="mt-2 text-slate-400">Loading groups...</p>
           </div>
         </div>
-      </CommunityShell>
+      </GroupsShell>
     );
   }
 
   return (
-    <CommunityShell sectionLabel="Groups" notificationsCount={unreadCount}>
+    <GroupsShell>
       <div className="max-w-7xl mx-auto space-y-8" data-testid="groups-page">
         {/* Header */}
         <div className="text-center space-y-4">
@@ -506,6 +504,6 @@ export default function Groups() {
           </div>
         )}
       </div>
-    </CommunityShell>
+    </GroupsShell>
   );
 }

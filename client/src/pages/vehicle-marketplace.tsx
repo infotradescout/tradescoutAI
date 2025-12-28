@@ -5,11 +5,9 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { CommunityShell } from "@/components/layout/CommunityShell";
-import { useNotifications } from "@/hooks/useNotifications";
+import { VehicleMarketplaceShell } from '@/shells/VehicleMarketplaceShell';
 
 const VehicleMarketplace = memo(function VehicleMarketplace() {
-  const { unreadCount } = useNotifications();
   const [searchQuery, setSearchQuery] = useState("");
   const [priceRange, setPriceRange] = useState("all");
   const [vehicleType, setVehicleType] = useState("all");
@@ -95,8 +93,7 @@ const VehicleMarketplace = memo(function VehicleMarketplace() {
   ];
 
   return (
-    <CommunityShell sectionLabel="Vehicle Marketplace" notificationsCount={unreadCount}>
-      <div className="container mx-auto px-4 py-8 pb-20">
+    <VehicleMarketplaceShell>
         {/* Header */}
         <div className="mb-8">
           <div className="flex items-center gap-3 mb-4">
@@ -239,12 +236,15 @@ const VehicleMarketplace = memo(function VehicleMarketplace() {
               <CardContent className="p-6">
                 <div className="flex justify-between items-start mb-3">
                   <div>
-                    <h3 className="text-xl font-semibold text-white mb-1">{vehicle.title}</h3>
-                    <p className="text-2xl font-bold text-orange-400">{vehicle.price}</p>
+                    <h2 className="text-xl font-semibold text-white mb-1">{vehicle.title}</h2>
+                    <p className="text-gray-400 text-sm">{vehicle.year} {vehicle.make} {vehicle.model}</p>
                   </div>
-                  <div className="flex items-center gap-1">
-                    <Star className="h-4 w-4 text-yellow-400 fill-current" />
-                    <span className="text-yellow-400 text-sm">{vehicle.rating}</span>
+                  <div className="text-right">
+                    <p className="text-2xl font-bold text-orange-400">{vehicle.price}</p>
+                    <div className="flex items-center gap-1 justify-end mt-1">
+                      <Star className="h-4 w-4 text-yellow-400 fill-current" />
+                      <span className="text-yellow-400 text-sm">{vehicle.rating}</span>
+                    </div>
                   </div>
                 </div>
 
@@ -318,8 +318,7 @@ const VehicleMarketplace = memo(function VehicleMarketplace() {
             Load More Vehicles
           </Button>
         </div>
-      </div>
-    </CommunityShell>
+    </VehicleMarketplaceShell>
   );
 });
 

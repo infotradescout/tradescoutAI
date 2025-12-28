@@ -28,6 +28,7 @@ import MobileAppBar from "@/components/navigation/MobileAppBar";
 import { TradeScoutLogo } from "@/components/TradeScoutIcons";
 import { AdminPageToolsBar } from "@/components/admin/AdminPageToolsBar";
 import { useLocation } from "wouter";
+import { setSessionLocationOverride } from "@/hooks/useLocationContext";
 
 export type NavItem = {
   label: string;
@@ -149,6 +150,37 @@ export function AppShell({ children, footer }: AppShellProps) {
     root.style.setProperty('--top-nav-h', '56px');
     root.style.setProperty('--bottom-nav-h', '68px');
     root.style.setProperty('--right-nav-w', '256px');
+  }, []);
+
+  // Rehydrate canonical location into the session layer on boot so that
+  // useLocationContext can resolve a single authoritative source. Server
+  // profile remains primary; this only helps anonymous/offline flows.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    try {
+      const raw = window.localStorage.getItem("userLocation");
+      if (!raw) return;
+
+      const parsed = JSON.parse(raw) as {
+        stateCode?: string;
+        countyFips?: string;
+        countyName?: string;
+      } | null;
+
+      if (!parsed || !parsed.stateCode || !parsed.countyFips) return;
+
+      setSessionLocationOverride({
+        stateCode: parsed.stateCode,
+        countyFips: parsed.countyFips,
+        countyName: parsed.countyName,
+        label: undefined,
+        lat: undefined,
+        lng: undefined,
+      });
+    } catch {
+      // Ignore malformed payloads or storage issues.
+    }
   }, []);
 
   return (

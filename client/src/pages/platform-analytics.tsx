@@ -6,10 +6,34 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { apiRequest } from '@/lib/queryClient';
+import { useAuth } from '@/hooks/useAuth';
 
 const PlatformAnalytics = memo(function PlatformAnalytics() {
   const [timeRange, setTimeRange] = useState("30d");
   const [activeTab, setActiveTab] = useState("overview");
+
+  const { user } = useAuth();
+
+  type ScoutDraftArtifactSummary = {
+    draftKind: 'promo' | 'community';
+    created: number;
+    viewed: number;
+    published: number;
+    medianTimeToPublishMs: number | null;
+    topCountiesByPublishRate: Array<{
+      stateCode: string | null;
+      countyFips: string | null;
+      created: number;
+      published: number;
+      publishRate: number;
+    }>;
+  };
+
+  type ScoutDraftSummaryResponse = {
+    from: string;
+    to: string;
+    artifacts: ScoutDraftArtifactSummary[];
+  };
 
   const { data: moneyMovements } = useQuery<{
     date: string;
@@ -19,6 +43,25 @@ const PlatformAnalytics = memo(function PlatformAnalytics() {
     queryKey: ["/api/admin/money-movements/daily"],
     queryFn: () => apiRequest("GET", "/api/admin/money-movements/daily"),
     staleTime: 60 * 1000,
+  });
+
+  const { data: scoutDraftSummary } = useQuery<ScoutDraftSummaryResponse>({
+    queryKey: ["/api/analytics/scout-drafts/summary"],
+    queryFn: () => apiRequest("GET", "/api/analytics/scout-drafts/summary"),
+    enabled: !!user && [
+      'support_agent',
+      'content_moderator',
+      'territory_manager',
+      'contractor_success',
+      'content_seo',
+      'analytics_specialist',
+      'marketing_specialist',
+      'moderator',
+      'ops_admin',
+      'super_admin',
+      'head_admin',
+    ].includes(user.role || ''),
+    staleTime: 30 * 1000,
   });
 
   const overviewStats = [
@@ -61,6 +104,26 @@ const PlatformAnalytics = memo(function PlatformAnalytics() {
       maximumFractionDigits: 0,
     }).format(amount);
   };
+
+  const scoutArtifacts = (scoutDraftSummary?.artifacts || []).reduce<Record<'promo' | 'community', ScoutDraftArtifactSummary | undefined>>(
+    (acc, art) => {
+      acc[art.draftKind] = art;
+      return acc;
+    },
+    { promo: undefined, community: undefined },
+  );
+
+  const winnerLabel = (() => {
+    const promo = scoutArtifacts.promo;
+    const community = scoutArtifacts.community;
+    if (!promo && !community) return 'Not enough data yet';
+    const promoRate = promo && promo.created > 0 ? promo.published / promo.created : 0;
+    const communityRate = community && community.created > 0 ? community.published / community.created : 0;
+    if (promoRate === 0 && communityRate === 0) return 'No publishes yet';
+    if (promoRate > communityRate) return 'Promotions are currently winning';
+    if (communityRate > promoRate) return 'Community posts are currently winning';
+    return 'Flows are performing similarly';
+  })();
 
   return (
     <div className="min-h-screen bg-navy-900 text-white">
@@ -123,6 +186,95 @@ const PlatformAnalytics = memo(function PlatformAnalytics() {
                 );
               })}
             </div>
+
+            {/* Scout Draft Funnel */}
+            {scoutDraftSummary && (
+              <Card className="bg-navy-800/50 border-navy-600 backdrop-blur-sm">
+                <CardHeader>
+                  <CardTitle className="text-white flex items-center gap-2">
+                    <Zap className="h-5 w-5 text-orange-400" />
+                    Scout Draft Conversion (last 72h)
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-sm text-gray-200">
+                    {(['promo', 'community'] as const).map((kind) => {
+                      const art = scoutArtifacts[kind];
+                      const label = kind === 'promo' ? 'Promotions' : 'Community Posts';
+                      if (!art) {
+                        return (
+                          <div key={kind} className="space-y-2">
+                            <div className="flex items-center justify-between">
+                              <span className="font-semibold">{label}</span>
+                              <Badge variant="outline" className="text-xs border-gray-500 text-gray-300">
+                                No data yet
+                              </Badge>
+                            </div>
+                            <p className="text-xs text-gray-400">Waiting for Scout-driven drafts to accumulate.</p>
+                          </div>
+                        );
+                      }
+
+                      const publishRate = art.created > 0 ? (art.published / art.created) * 100 : 0;
+                      const medianMinutes = art.medianTimeToPublishMs != null
+                        ? Math.round(art.medianTimeToPublishMs / 60000)
+                        : null;
+
+                      return (
+                        <div key={kind} className="space-y-2">
+                          <div className="flex items-center justify-between">
+                            <span className="font-semibold">{label}</span>
+                            <Badge variant="outline" className="text-xs border-orange-500/40 text-orange-300">
+                              {publishRate.toFixed(1)}% publish rate
+                            </Badge>
+                          </div>
+                          <div className="flex items-center justify-between text-xs mt-1">
+                            <span>Created</span>
+                            <span className="font-mono">{art.created}</span>
+                          </div>
+                          <div className="flex items-center justify-between text-xs">
+                            <span>Viewed</span>
+                            <span className="font-mono">{art.viewed}</span>
+                          </div>
+                          <div className="flex items-center justify-between text-xs">
+                            <span>Published</span>
+                            <span className="font-mono">{art.published}</span>
+                          </div>
+                          <div className="flex items-center justify-between text-xs">
+                            <span>Median time-to-publish</span>
+                            <span className="font-mono">
+                              {medianMinutes != null ? `${medianMinutes} min` : '—'}
+                            </span>
+                          </div>
+                          {art.topCountiesByPublishRate.length > 0 && (
+                            <div className="mt-2">
+                              <p className="text-[11px] text-gray-400 mb-1">Top counties by publish rate</p>
+                              <ul className="space-y-0.5 text-[11px] text-gray-300">
+                                {art.topCountiesByPublishRate.map((c) => (
+                                  <li key={`${c.stateCode}-${c.countyFips}`} className="flex justify-between">
+                                    <span>
+                                      {c.countyFips ?? 'Unknown'}
+                                      {c.stateCode ? `, ${c.stateCode}` : ''}
+                                    </span>
+                                    <span className="font-mono">
+                                      {Math.round(c.publishRate * 100)}% ({c.published}/{c.created})
+                                    </span>
+                                  </li>
+                                ))}
+                              </ul>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                  <div className="mt-4 text-xs text-gray-400">
+                    <span className="font-semibold text-gray-200">Verdict: </span>
+                    {winnerLabel}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
 
             {/* Growth Chart */}
             <Card className="bg-navy-800/50 border-navy-600 backdrop-blur-sm">

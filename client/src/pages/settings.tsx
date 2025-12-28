@@ -288,7 +288,7 @@ export default function Settings() {
 
       return result;
     },
-    onSuccess: () => {
+    onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
       // Ensure auth user and any location-aware hooks see the new values immediately
       try {
@@ -296,6 +296,21 @@ export default function Settings() {
       } catch {
         // ignore refetch failures; invalidateQueries will still refresh eventually
       }
+
+      // Mirror the canonical location into localStorage for fast boot/offline.
+      try {
+        if (typeof window !== "undefined" && window.localStorage) {
+          const payload = {
+            stateCode: variables.stateCode,
+            countyFips: variables.countyFips,
+            countyName: variables.countyName ?? "",
+          };
+          window.localStorage.setItem("userLocation", JSON.stringify(payload));
+        }
+      } catch {
+        // best-effort only; do not block UX on storage issues
+      }
+
       toast({
         title: "Location Saved",
         description: "Your location settings were updated.",

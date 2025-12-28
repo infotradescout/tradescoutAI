@@ -19,7 +19,7 @@ import {
   Target,
   CheckCircle,
 } from "lucide-react";
-import { useLocationContext } from "@/hooks/useLocationContext";
+import { useLocationContext, hasCountyContext } from "@/hooks/useLocationContext";
 import { CountyRequiredGate } from "@/components/CountyRequiredGate";
 
 interface ContractorRanking {
@@ -41,8 +41,8 @@ interface ContractorRanking {
 export default function Leaderboard() {
   const location = useLocationContext();
   const defaultState = (location.stateCode as string | undefined) || "";
-  const countyName = (location as any)?.county as string | undefined;
-  const hasCountyContext = Boolean(location.stateCode && ((location as any)?.county || location.countyFips));
+  const countyName = (location.countyName as string | undefined) || (location as any)?.county;
+  const countyCommitted = hasCountyContext(location);
 
   const [activeTab, setActiveTab] = useState("monthly");
   const [selectedState, setSelectedState] = useState(defaultState);
@@ -65,7 +65,7 @@ export default function Leaderboard() {
       if (!response.ok) throw new Error('Failed to fetch monthly rankings');
       const json = await response.json();
 
-      if (hasCountyContext) {
+      if (countyCommitted) {
         try {
           const { recordActivity } = await import("../agent/activity");
           recordActivity({
@@ -81,7 +81,7 @@ export default function Leaderboard() {
 
       return json;
     },
-    enabled: activeTab === "monthly" && hasCountyContext,
+    enabled: activeTab === "monthly" && countyCommitted,
   });
 
   // Fetch lifetime rankings
@@ -99,7 +99,7 @@ export default function Leaderboard() {
       if (!response.ok) throw new Error('Failed to fetch lifetime rankings');
       return response.json();
     },
-    enabled: activeTab === "lifetime" && hasCountyContext,
+    enabled: activeTab === "lifetime" && countyCommitted,
   });
 
   const getRankIcon = (rank: number) => {

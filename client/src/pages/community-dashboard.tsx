@@ -19,10 +19,13 @@ import {
 } from "lucide-react";
 
 import { useLocationContext } from "@/hooks/useLocationContext";
+import { formatCityOnly } from "@/utils/locationDisplay";
 
 export default function CommunityDashboard() {
   const { user } = useAuth();
   const location = useLocationContext();
+  const { label: locationLabel } = location;
+  const cityHeadline = formatCityOnly({ label: locationLabel });
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -33,8 +36,8 @@ export default function CommunityDashboard() {
           Community Dashboard
         </h1>
         <p className="text-gray-400 mt-2">
-          Engage with your neighborhood community in {location.label || "your area"}
-        </p>
+      Engage with your neighborhood community in {cityHeadline || "your area"}
+    </p>
       </div>
 
       {/* Key Metrics */}
