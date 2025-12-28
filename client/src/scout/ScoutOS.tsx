@@ -51,6 +51,9 @@ import {
   type PromotionProposal,
   type PromotionProposalPayload,
   proposePromotion,
+  type CommunityPostProposal,
+  type CommunityPostProposalPayload,
+  proposeCommunityPost,
 } from "../agent/tools/scoutTools";
 import {
   getProviderRequirements,
@@ -727,6 +730,20 @@ export default function ScoutOS() {
           "deal for my services",
           "deal for my business",
         ];
+        const communityAnnouncementKeywords = [
+          "community announcement",
+          "post to community",
+          "post in community",
+          "announce to neighbors",
+          "post to my neighbors",
+          "neighborhood update",
+          "neighbourhood update",
+          "hoa notice",
+          "hoa announcement",
+          "community alert",
+          "post to the feed",
+          "post on the feed",
+        ];
         const marketplaceKeywords = ["marketplace", "for sale", "buying", "selling", "used", "buy", "sell", "list", "post"];
         const contactKeywords = ["contact", "support", "help desk", "reach out", "call", "phone", "text", "email", "mail"];
         const onboardingKeywords = [
@@ -748,6 +765,7 @@ export default function ScoutOS() {
         const wantsProviderOffer = providerOfferKeywords.some((kw) => lowerMsg.includes(kw));
         const wantsProviderStanding = providerStandingKeywords.some((kw) => lowerMsg.includes(kw));
         const wantsProviderPromotion = providerPromotionKeywords.some((kw) => lowerMsg.includes(kw));
+        const wantsCommunityAnnouncement = communityAnnouncementKeywords.some((kw) => lowerMsg.includes(kw));
 
         // ------------------------------------------------------------------
         // SCOUT ONBOARDING INTENT (fast win)
@@ -1198,6 +1216,109 @@ export default function ScoutOS() {
             contextRoles,
             toolResult: {
               tool: "promotion_proposal",
+              success: true,
+              data: proposal,
+            },
+          };
+
+          applyServerResponse(msg, []);
+          setStatus("idle");
+
+          const latencyMs = performance.now() - start;
+          logScoutInsight({
+            message: value,
+            mode,
+            locality,
+            success: true,
+            latencyMs,
+          });
+          return;
+        }
+
+        // ------------------------------------------------------------------
+        // COMMUNITY INTENT: "Help me post an announcement/update"
+        // ------------------------------------------------------------------
+        if (wantsCommunityAnnouncement && hasCountyContext(locationCtx)) {
+          setStatus("executing_action");
+
+          const countyName = (locationCtx as any).countyName || (locationCtx as any).county;
+          const stateCode = (locationCtx as any).stateCode as string | undefined;
+
+          const singleLine = value.replace(/\s+/g, " ").trim();
+          const body = singleLine.length > 0 ? singleLine : "Community announcement for my area.";
+
+          let postTypeForComposer: "alert" | "discussion" | "admin_notice" = "discussion";
+          if (
+            lowerMsg.includes("hoa") ||
+            lowerMsg.includes("board") ||
+            lowerMsg.includes("association")
+          ) {
+            postTypeForComposer = "admin_notice";
+          } else if (
+            lowerMsg.includes("alert") ||
+            lowerMsg.includes("urgent") ||
+            lowerMsg.includes("maintenance") ||
+            lowerMsg.includes("closure") ||
+            lowerMsg.includes("notice")
+          ) {
+            postTypeForComposer = "alert";
+          }
+
+          const proposalPayload: CommunityPostProposalPayload = {
+            body,
+            category: "announcements",
+            scope: "county",
+            county: countyName,
+            state: stateCode,
+          };
+
+          const proposal: CommunityPostProposal = proposeCommunityPost(proposalPayload);
+
+          const params = new URLSearchParams();
+          params.set("postDraft", "1");
+          params.set("content", body);
+          params.set("postType", postTypeForComposer);
+
+          const communityUrl = `/community?${params.toString()}`;
+
+          const summaryLines: string[] = [];
+          if (countyName && stateCode) {
+            summaryLines.push(`Area: ${countyName}, ${stateCode}`);
+          } else if (stateCode) {
+            summaryLines.push(`Area: ${stateCode}`);
+          }
+          summaryLines.push("Scope: County community feed");
+
+          const clusters: ScoutCluster[] = [
+            {
+              id: "community-announcement-draft",
+              title: "Draft community post ready to review",
+              kind: "generic",
+              body: summaryLines.join("\n"),
+              primaryAction: {
+                type: "NAVIGATE",
+                label: "Review and post",
+                to: communityUrl,
+              },
+            },
+          ];
+
+          const msg: ScoutMessage = {
+            id: `a_${Date.now()}_${Math.random().toString(36).slice(2)}`,
+            role: "assistant",
+            content:
+              countyName && stateCode
+                ? `I drafted a community announcement for ${countyName}, ${stateCode}. Review it and post when you're ready.`
+                : "I drafted a community announcement for your area. Review the details and post when you're ready.",
+            timestamp: new Date().toISOString(),
+            clusters,
+            navTarget: communityUrl,
+            memoryDelta: {
+              lastIntent: "community_announcement_here",
+            },
+            contextRoles,
+            toolResult: {
+              tool: "community_post_proposal",
               success: true,
               data: proposal,
             },

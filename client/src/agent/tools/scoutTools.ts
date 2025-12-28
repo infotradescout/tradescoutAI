@@ -292,3 +292,31 @@ export function proposePromotion(input: PromotionProposalPayload): PromotionProp
     },
   };
 }
+
+/* ======================== Community Post Proposal (Pure) ======================== */
+
+export type CommunityPostProposalPayload = {
+  body: string;
+  title?: string;
+  category?: string;
+  scope?: "county" | "hoa" | "neighborhood";
+  county?: string;
+  state?: string;
+};
+
+export type CommunityPostProposal = {
+  type: "COMMUNITY_POST_PROPOSAL";
+  payload: CommunityPostProposalPayload & { proposedAt: number };
+};
+
+export function proposeCommunityPost(
+  input: CommunityPostProposalPayload,
+): CommunityPostProposal {
+  return {
+    type: "COMMUNITY_POST_PROPOSAL",
+    payload: {
+      ...input,
+      proposedAt: Date.now(),
+    },
+  };
+}

@@ -1,4 +1,4 @@
-import { useState, useMemo, useRef } from "react";
+import { useEffect, useState, useMemo, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import type { PostType } from "@/components/community/CommunityComposerInline";
 import { Card, CardContent } from "@/components/ui/card";
@@ -32,6 +32,7 @@ import { CountyRequiredGate } from "@/components/CountyRequiredGate";
 import { CommunityPostCard } from "@/components/community/CommunityPostCard";
 import { CommunityComposerInline } from "@/components/community/CommunityComposerInline";
 import { CommunityEmptyState } from "@/components/community/CommunityEmptyState";
+import { getDeviceType, trackShellEvent } from "@/lib/analytics";
 
 interface CommunityPost {
   id: string;
@@ -78,6 +79,8 @@ export default function Community() {
   const [newPostContent, setNewPostContent] = useState("");
   const [showPostComposer, setShowPostComposer] = useState(false);
   const [newPostImages, setNewPostImages] = useState<string[]>([]);
+  const [fromScoutDraft, setFromScoutDraft] = useState(false);
+  const draftStartedAtRef = useRef<number | null>(null);
   const { unreadCount } = useNotifications();
 
   const stateCode = location.stateCode as string | undefined;
@@ -122,9 +125,44 @@ export default function Community() {
       });
     },
     onSuccess: () => {
+      const wasFromScout = fromScoutDraft;
+      const startedAt = draftStartedAtRef.current;
+      draftStartedAtRef.current = null;
+
       queryClient.invalidateQueries({ queryKey: ['/api/community/posts', stateCode, countyFips] });
       setNewPostContent("");
       setNewPostImages([]);
+      setFromScoutDraft(false);
+      try {
+        if (typeof window !== "undefined") {
+          const url = new URL(window.location.href);
+          url.searchParams.delete("postDraft");
+          url.searchParams.delete("content");
+          url.searchParams.delete("postType");
+          window.history.replaceState({}, "", url.toString());
+        }
+      } catch {
+        // Ignore history manipulation failures.
+      }
+
+      if (wasFromScout) {
+        try {
+          const path = typeof window !== "undefined" ? window.location.pathname : "/community";
+          const ts = new Date().toISOString();
+          const deviceType = getDeviceType();
+          const timeToPublishMs = typeof startedAt === "number" ? Date.now() - startedAt : undefined;
+          void trackShellEvent({
+            type: "scout_draft_published",
+            draftKind: "community",
+            path,
+            ts,
+            deviceType,
+            timeToPublishMs,
+          });
+        } catch {
+          // Ignore analytics failures.
+        }
+      }
       toast({
         title: "Posted!",
         description: "Your post has been published to your community feed.",
@@ -158,6 +196,52 @@ export default function Community() {
 
   // Capture last selected type from composer at click time
   const lastPostTypeRef = useRef<PostType>('discussion');
+
+  // Initialize from Scout draft parameters if present in URL
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    try {
+      const params = new URLSearchParams(window.location.search);
+      if (params.get("postDraft") === "1") {
+        const content = params.get("content") ?? "";
+        const postTypeParam = params.get("postType") as PostType | null;
+
+        setNewPostContent(content);
+
+        if (postTypeParam && ["alert", "project", "recommendation", "admin_notice", "discussion"].includes(postTypeParam)) {
+          lastPostTypeRef.current = postTypeParam;
+        }
+
+        setFromScoutDraft(true);
+
+        draftStartedAtRef.current = Date.now();
+
+        try {
+          const path = window.location.pathname;
+          const ts = new Date().toISOString();
+          const deviceType = getDeviceType();
+          void trackShellEvent({
+            type: "scout_draft_created",
+            draftKind: "community",
+            path,
+            ts,
+            deviceType,
+          });
+          void trackShellEvent({
+            type: "scout_draft_viewed",
+            draftKind: "community",
+            path,
+            ts,
+            deviceType,
+          });
+        } catch {
+          // Ignore analytics failures.
+        }
+      }
+    } catch {
+      // Ignore URL parsing errors; composer will simply open empty.
+    }
+  }, []);
 
   const handleCreatePost = () => {
     if (!isAuthenticated) {
@@ -326,6 +410,17 @@ export default function Community() {
             {/* Post Composer */}
             <Card className="bg-tsCard shadow-xl border-2 border-tsBorder hover:border-orange-500/30 transition-all">
               <CardContent className="p-5">
+                {fromScoutDraft && newPostContent.trim().length > 0 && (
+                  <div className="mb-3 rounded-md border border-dashed border-orange-300 bg-tsBg px-3 py-2 text-xs text-gray-200 flex gap-2 items-start">
+                    <span className="mt-0.5 h-2 w-2 rounded-full bg-orange-400" aria-hidden="true" />
+                    <div>
+                      <p className="font-medium text-sm text-slate-50">Draft imported from Scout</p>
+                      <p className="text-[11px] text-slate-300">
+                        Scout prefilled this community post based on your request. Review the text below and make any edits before publishing.
+                      </p>
+                    </div>
+                  </div>
+                )}
                 <CommunityComposerInline
                   isAuthenticated={isAuthenticated}
                   userInitial={user?.firstName?.[0] || user?.email?.[0]}
