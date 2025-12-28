@@ -209,8 +209,10 @@ import {
   adFeedback,
   type AdFeedback,
   type InsertAdFeedback,
+  providerDeclarations,
   providerLocalStats,
   businessVerifications,
+  type ProviderDeclaration,
   type ProviderLocalStat,
   type BusinessVerification,
   type TradeRequirement,
@@ -504,6 +506,20 @@ export interface IStorage {
   getTrades(parentId?: string): Promise<Trade[]>;
   getTradeBySlug(slug: string): Promise<Trade | undefined>;
   createTrade(trade: InsertTrade): Promise<Trade>;
+
+  // Provider declaration & requirements operations
+  upsertProviderDeclarationForUser(params: {
+    userId: string;
+    tradeIds: string[];
+    serviceAreas: { countyFips: string }[];
+    availabilityFlags?: {
+      emergency?: boolean;
+      weekends?: boolean;
+      evenings?: boolean;
+    };
+  }): Promise<ProviderDeclaration>;
+  getProviderDeclarationForUser(userId: string): Promise<ProviderDeclaration | undefined>;
+  getProviderLocalStatsForUserInCounty(userId: string, countyFips: string): Promise<ProviderLocalStat | undefined>;
   
   // Recommendation operations
   getRecommendations(contractorId: string): Promise<Recommendation[]>;
@@ -1901,6 +1917,69 @@ export class DatabaseStorage implements IStorage {
   async createTrade(trade: InsertTrade): Promise<Trade> {
     const [newTrade] = await db.insert(trades).values(trade).returning();
     return newTrade;
+  }
+
+  async upsertProviderDeclarationForUser(params: {
+    userId: string;
+    tradeIds: string[];
+    serviceAreas: { countyFips: string }[];
+    availabilityFlags?: {
+      emergency?: boolean;
+      weekends?: boolean;
+      evenings?: boolean;
+    };
+  }): Promise<ProviderDeclaration> {
+    const { userId, tradeIds, serviceAreas, availabilityFlags } = params;
+
+    const [existing] = await db
+      .select()
+      .from(providerDeclarations)
+      .where(eq(providerDeclarations.providerUserId, userId));
+
+    if (existing) {
+      const [updated] = await db
+        .update(providerDeclarations)
+        .set({
+          tradeIds,
+          serviceAreas,
+          availabilityFlags,
+          updatedAt: new Date(),
+        })
+        .where(eq(providerDeclarations.id, existing.id))
+        .returning();
+      return updated;
+    }
+
+    const [inserted] = await db
+      .insert(providerDeclarations)
+      .values({
+        providerUserId: userId,
+        tradeIds,
+        serviceAreas,
+        availabilityFlags,
+      })
+      .returning();
+
+    return inserted;
+  }
+
+  async getProviderDeclarationForUser(userId: string): Promise<ProviderDeclaration | undefined> {
+    const [existing] = await db
+      .select()
+      .from(providerDeclarations)
+      .where(eq(providerDeclarations.providerUserId, userId));
+    return existing;
+  }
+
+  async getProviderLocalStatsForUserInCounty(userId: string, countyFips: string): Promise<ProviderLocalStat | undefined> {
+    const [row] = await db
+      .select()
+      .from(providerLocalStats)
+      .where(and(
+        eq(providerLocalStats.providerUserId, userId),
+        eq(providerLocalStats.countyFips, countyFips),
+      ));
+    return row;
   }
 
   // Recommendation operations

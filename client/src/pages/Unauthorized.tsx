@@ -12,7 +12,7 @@ export default function UnauthorizedPage() {
         </CardHeader>
         <CardContent className="space-y-4">
           <p className="text-gray-300">
-            You found a control room thats reserved for TradeScout admins.
+            You found a control room that's reserved for TradeScout admins.
           </p>
           <p className="text-gray-400 text-sm">
             If you believe you should have access here, contact the

@@ -13,7 +13,8 @@
 
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { validateAction, validateActions } from "./actionValidation";
-import { searchContractors, searchMarketplace, createNote } from "../agent/tools/scoutTools";
+import { searchContractors, searchMarketplace } from "../agent/tools/scoutTools";
+import { createNote } from "../agent/tools/scoutMutations";
 import type { ScoutAction } from "./state";
 
 describe("Scout Tool Evals", () => {

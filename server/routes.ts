@@ -1833,9 +1833,9 @@ export async function registerRoutes(app: any) {
         countyId: countyId ?? null,
         countyName: countyName ?? county ?? null,
 
-        // optional profile-level coordinates if provided
-        latitude: typeof latitude === "number" ? latitude : undefined,
-        longitude: typeof longitude === "number" ? longitude : undefined,
+        // optional profile-level coordinates if provided (stored as strings for back-compat)
+        latitude: typeof latitude === "number" ? String(latitude) : undefined,
+        longitude: typeof longitude === "number" ? String(longitude) : undefined,
 
         preferences,
         profileImageUrl: normalizedProfileImageUrl,
@@ -3296,6 +3296,289 @@ export async function registerRoutes(app: any) {
     } catch (error: any) {
       console.error("Error fetching trades:", error);
       res.status(500).json({ message: "Failed to fetch trades" });
+    }
+  });
+
+  // Provider declarations: create/update what a user offers (trades + service areas)
+  app.post("/api/providers/profile", isAuthenticated, async (req: AuthedRequest, res: Response) => {
+    try {
+      const userId = req.user?.id || req.user?.claims?.sub;
+      if (!userId) {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
+
+      const { trades, serviceAreas, availability } = req.body ?? {};
+
+      if (!Array.isArray(trades) || trades.length === 0) {
+        return res.status(400).json({ message: "At least one trade is required" });
+      }
+
+      if (!Array.isArray(serviceAreas) || serviceAreas.length === 0) {
+        return res.status(400).json({ message: "At least one service area is required" });
+      }
+
+      // Resolve trade ids from provided tradeId or slug
+      const tradeIds: string[] = [];
+      for (const t of trades) {
+        const rawId = (t as any)?.tradeId ?? (t as any)?.id;
+        const slug = (t as any)?.slug;
+
+        let tradeRecord = null;
+        if (rawId) {
+          // Best effort: try slug lookup first if it looks like a slug
+          tradeRecord = await storage.getTradeBySlug(String(rawId));
+        }
+        if (!tradeRecord && slug) {
+          tradeRecord = await storage.getTradeBySlug(String(slug));
+        }
+
+        if (!tradeRecord) {
+          return res.status(400).json({ message: "Unknown trade in request" });
+        }
+
+        tradeIds.push(tradeRecord.id);
+      }
+
+      // Validate service areas by county FIPS
+      const normalizedServiceAreas: { countyFips: string }[] = [];
+      for (const area of serviceAreas) {
+        const countyFips = String((area as any)?.countyFips || "").trim();
+        if (!countyFips) {
+          return res.status(400).json({ message: "Each service area must include countyFips" });
+        }
+        const countyRecord = await storage.getCountyByFips(countyFips);
+        if (!countyRecord) {
+          return res.status(400).json({ message: `Unknown countyFips: ${countyFips}` });
+        }
+        normalizedServiceAreas.push({ countyFips: countyRecord.fips });
+      }
+
+      const availabilityFlags = availability ?? {};
+
+      const declaration = await storage.upsertProviderDeclarationForUser({
+        userId,
+        tradeIds,
+        serviceAreas: normalizedServiceAreas,
+        availabilityFlags,
+      });
+
+      // Expand response with trade and county labels for convenience
+      const tradeRecords = await Promise.all(tradeIds.map((id) => storage.getTradeBySlug(id).catch(() => null)));
+      const uniqueCountyFips = Array.from(new Set(normalizedServiceAreas.map((a) => a.countyFips)));
+      const countyRecords = await Promise.all(uniqueCountyFips.map((fips) => storage.getCountyByFips(fips)));
+
+      const tradesOut = tradeRecords
+        .filter((t): t is any => !!t)
+        .map((t) => ({ tradeId: t.id, name: t.name, slug: t.slug }));
+
+      const serviceAreasOut = countyRecords
+        .filter((c): c is any => !!c)
+        .map((c) => ({ countyFips: c.fips, countyName: c.name, stateCode: c.stateCode }));
+
+      res.json({
+        providerUserId: userId,
+        trades: tradesOut,
+        serviceAreas: serviceAreasOut,
+        availability: availabilityFlags,
+        lastUpdatedAt: declaration.updatedAt ?? declaration.createdAt,
+      });
+    } catch (error: any) {
+      console.error("Error upserting provider profile:", error);
+      res.status(500).json({ message: "Failed to update provider profile" });
+    }
+  });
+
+  // Provider requirements: read-only trade requirements for given trades and optional jurisdiction
+  app.get("/api/providers/requirements", async (req: any, res: any) => {
+    try {
+      const tradeSlugsParam = req.query.tradeSlug ?? req.query.tradeId ?? req.query.trade;
+      const countyFips = req.query.countyFips as string | undefined;
+
+      const slugs: string[] = Array.isArray(tradeSlugsParam)
+        ? (tradeSlugsParam as string[])
+        : tradeSlugsParam
+        ? [String(tradeSlugsParam)]
+        : [];
+
+      if (!slugs.length) {
+        return res.status(400).json({ message: "At least one tradeSlug is required" });
+      }
+
+      const tradesResolved = await Promise.all(slugs.map((slug) => storage.getTradeBySlug(slug)));
+      const validTrades = tradesResolved.filter((t): t is any => !!t);
+      if (!validTrades.length) {
+        return res.status(400).json({ message: "No valid trades found for provided slugs" });
+      }
+
+      let stateCode: string | undefined;
+      if (countyFips) {
+        const countyRecord = await storage.getCountyByFips(countyFips);
+        stateCode = countyRecord?.stateCode;
+      }
+
+      const requirementsOut = [] as any[];
+
+      for (const trade of validTrades) {
+        const reqRow = await storage.getTradeRequirementsByTradeId(trade.id);
+        if (!reqRow) {
+          // If no explicit requirements, still return a row indicating nothing is required
+          requirementsOut.push({
+            trade: { tradeId: trade.id, name: trade.name, slug: trade.slug },
+            jurisdiction: countyFips || stateCode
+              ? { stateCode, countyFips }
+              : undefined,
+            requires: {
+              ein: false,
+              license: false,
+              insurance: false,
+            },
+            notes: null,
+          });
+          continue;
+        }
+
+        requirementsOut.push({
+          trade: { tradeId: trade.id, name: trade.name, slug: trade.slug },
+          jurisdiction: countyFips || stateCode
+            ? { stateCode, countyFips }
+            : undefined,
+          requires: {
+            ein: reqRow.requiresEin ?? false,
+            license: reqRow.requiresLicense ?? false,
+            insurance: reqRow.requiresInsurance ?? false,
+          },
+          notes: reqRow.notes ?? null,
+        });
+      }
+
+      res.json({ requirements: requirementsOut });
+    } catch (error: any) {
+      console.error("Error fetching provider requirements:", error);
+      res.status(500).json({ message: "Failed to fetch provider requirements" });
+    }
+  });
+
+  // Provider standing: summarize how a provider is set up and showing up in a specific county
+  app.get("/api/providers/standing", isAuthenticated, async (req: AuthedRequest, res: Response) => {
+    try {
+      const userId = req.user?.id || req.user?.claims?.sub;
+      if (!userId) {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
+
+      const countyFips = (req.query.countyFips as string | undefined)?.trim();
+      if (!countyFips) {
+        return res.status(400).json({ message: "countyFips is required" });
+      }
+
+      const county = await storage.getCountyByFips(countyFips);
+      if (!county) {
+        return res.status(400).json({ message: "Unknown countyFips" });
+      }
+
+      // Provider declaration (trades + service areas)
+      const declaration = await storage.getProviderDeclarationForUser(userId);
+      const tradeIds = declaration?.tradeIds ?? [];
+      const declaredServiceAreas = declaration?.serviceAreas ?? [];
+      const servesThisCounty = declaredServiceAreas.some((a: any) => a.countyFips === countyFips);
+
+      // Local stats (behavior in this county) with a fallback to global credibility stats
+      const localStats = await storage.getProviderLocalStatsForUserInCounty(userId, countyFips).catch(() => undefined);
+      const globalCred = await storage.getUserCredibilityStats(userId);
+
+      const jobsCompleted = localStats?.jobsCompleted ?? globalCred.jobsCompleted;
+      const peopleHelped = localStats?.peopleHelped ?? globalCred.peopleHelped;
+      const activeWeeks = localStats?.activeWeeks ?? globalCred.activeWeeks;
+
+      // Trade requirements + verification summary
+      const requirementsByTrade: any[] = [];
+      if (tradeIds.length > 0) {
+        for (const tradeId of tradeIds) {
+          const reqRow = await storage.getTradeRequirementsByTradeId(tradeId);
+          if (reqRow) {
+            requirementsByTrade.push(reqRow);
+          }
+        }
+      }
+
+      const verificationSummary = await storage.getUserVerificationSummary([userId]);
+      const userVerification = verificationSummary[userId] || {
+        hasLicense: false,
+        hasInsurance: false,
+        hasEin: false,
+      };
+
+      // Aggregate requirement flags across all trades for this provider
+      const anyRequiresEin = requirementsByTrade.some((r) => r.requiresEin);
+      const anyRequiresLicense = requirementsByTrade.some((r) => r.requiresLicense);
+      const anyRequiresInsurance = requirementsByTrade.some((r) => r.requiresInsurance);
+
+      const einBlocked = anyRequiresEin && !userVerification.hasEin;
+      const licenseBlocked = anyRequiresLicense && !userVerification.hasLicense;
+      const insuranceBlocked = anyRequiresInsurance && !userVerification.hasInsurance;
+
+      const promotionBlocked = einBlocked || licenseBlocked || insuranceBlocked;
+      const promotionReasons: string[] = [];
+      if (einBlocked) promotionReasons.push("Some trades here expect a business tax ID (EIN) on file.");
+      if (licenseBlocked) promotionReasons.push("At least one trade here requires an active license on file.");
+      if (insuranceBlocked) promotionReasons.push("Some trades here expect proof of insurance before promotion.");
+
+      // Reach label is intentionally simple and explainable
+      let reachLabel = "not_set_up";
+      if (servesThisCounty && declaredServiceAreas.length <= 3) {
+        reachLabel = "local_here";
+      } else if (servesThisCounty && declaredServiceAreas.length > 3) {
+        reachLabel = "regional_here";
+      } else if (!servesThisCounty && declaredServiceAreas.length > 0) {
+        reachLabel = "nearby_not_listed_here";
+      }
+
+      res.json({
+        county: {
+          countyFips: county.fips,
+          countyName: county.name,
+          stateCode: county.stateCode,
+        },
+        declaration: declaration
+          ? {
+              hasDeclaration: true,
+              tradeIds: declaration.tradeIds,
+              serviceAreas: declaration.serviceAreas,
+            }
+          : { hasDeclaration: false },
+        reach: {
+          label: reachLabel,
+          servesThisCounty,
+          declaredServiceAreaCount: declaredServiceAreas.length,
+        },
+        activity: {
+          jobsCompleted,
+          peopleHelped,
+          activeWeeks,
+          lastActiveAt: localStats?.lastActiveAt ?? null,
+        },
+        requirements: {
+          ein: {
+            required: anyRequiresEin,
+            has: userVerification.hasEin,
+          },
+          license: {
+            required: anyRequiresLicense,
+            has: userVerification.hasLicense,
+          },
+          insurance: {
+            required: anyRequiresInsurance,
+            has: userVerification.hasInsurance,
+          },
+        },
+        promotion: {
+          blocked: promotionBlocked,
+          reasons: promotionReasons,
+        },
+      });
+    } catch (error: any) {
+      console.error("Error fetching provider standing:", error);
+      res.status(500).json({ message: "Failed to fetch provider standing" });
     }
   });
 

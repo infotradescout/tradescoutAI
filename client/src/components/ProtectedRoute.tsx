@@ -63,8 +63,10 @@ export function ProtectedRoute({
 
   // Authenticated but needs profile normalization: send to onboarding profile
   const isAdmin = user?.isAdmin === true;
+  const role = (user as any)?.role as string | undefined;
+  const isSuperAdminLike = role === 'super_admin' || role === 'head_admin';
   const profileVersion = typeof (user as any)?.profileVersion === 'number' ? (user as any).profileVersion : 0;
-  if (!isAdmin && user && profileVersion < CURRENT_PROFILE_VERSION) {
+  if (!isAdmin && !isSuperAdminLike && user && profileVersion < CURRENT_PROFILE_VERSION) {
     setLocation('/onboarding/profile');
     return null;
   }

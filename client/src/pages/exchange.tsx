@@ -200,6 +200,7 @@ export default function Exchange() {
   const [sellImages, setSellImages] = useState<string[]>([]);
   const [sellCategoryId, setSellCategoryId] = useState<string>("");
   const [sellCondition, setSellCondition] = useState<string>("");
+  const [hasScoutDraft, setHasScoutDraft] = useState(false);
 
   // Fetch exchange items
   const { data: items, isLoading } = useQuery<ExchangeItem[]>({
@@ -380,6 +381,13 @@ export default function Exchange() {
     if (description) setSellDescription(description);
     if (price) setSellPrice(price);
     if (loc) setSellLocation(loc);
+
+    // Scout-driven drafts always arrive with the sell tab preselected
+    // and at least one of these fields populated. Mark a one-shot
+    // "draft created" state so users understand why the form is filled.
+    if (tab === "sell" && (title || description || price || loc)) {
+      setHasScoutDraft(true);
+    }
   }, [route]);
 
   const hasLocationContext = countyCommitted;
@@ -935,6 +943,18 @@ export default function Exchange() {
               <p className="text-gray-400">Create a clear, trustworthy listing for other TradeScout members</p>
             </CardHeader>
             <CardContent className="space-y-6">
+              {hasScoutDraft && (
+                <div className="rounded-lg border border-amber-500/60 bg-amber-500/10 px-3 py-2 text-xs text-amber-100 flex items-start gap-2">
+                  <Sparkles className="h-3 w-3 mt-[2px]" />
+                  <div>
+                    <p className="font-semibold">Draft created from Scout</p>
+                    <p className="mt-0.5 text-[11px] text-amber-100/90">
+                      We pre-filled this listing based on your last Scout request. Edit any field before you publish&mdash;nothing goes live until you confirm.
+                    </p>
+                  </div>
+                </div>
+              )}
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-4">
                   <div>

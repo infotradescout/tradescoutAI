@@ -154,7 +154,7 @@ export default function Register() {
             </h1>
             <p className="text-sm md:text-base text-tsTextMuted max-w-xl">
               Pick your user types (homeowner, contractor, realtor, restaurant owner, community builder and more).
-              Your profile becomes your websiteScout handles the routing, tools, and trust badges.
+              Your profile becomes your website - Scout handles the routing, tools, and trust badges.
             </p>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs text-tsTextMuted">
               <div className="space-y-1">
@@ -463,7 +463,7 @@ export default function Register() {
                 <p className="text-xs text-tsTextMuted">
                   <strong className="text-tsTextMain">Why join TradeScout?</strong>{" "}
                   Your profile replaces a website: colors, roles, and your area are all baked in. Scout uses this to tune
-                  marketplace matches, community visibility, and future tools for whatever roles you pickhomeowner,
+                  marketplace matches, community visibility, and future tools for whatever roles you pick - homeowner,
                   pro, organizer, affiliate, or any new roles we add later.
                 </p>
               </div>

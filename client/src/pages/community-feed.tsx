@@ -1,4 +1,4 @@
-import { memo, useState, useRef, useEffect } from 'react';
+import { memo, useState, useRef, useEffect, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { MessageSquare, Zap, TrendingUp, MoreHorizontal, Image, Video, Calendar, Compass, Users2, Crown, Award, Flag, Plus, SlidersHorizontal, Trophy, BarChart3, Share, Target, Heart, Send } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -583,7 +583,7 @@ const CommunityFeed = memo(function CommunityFeed() {
     }
   };
 
-  const snapshotProps = React.useMemo(() => ({
+  const snapshotProps = useMemo(() => ({
     membersCount: communityStats.totalMembers,
     activeToday: communityStats.activeToday,
     postsToday: communityStats.postsToday,

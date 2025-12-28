@@ -142,7 +142,7 @@ export function useHelpSystem() {
         id: 'connections-suggested',
         target: '.connections-suggested',
         title: 'Suggested connections',
-        content: 'We highlight people who follow you that you arent following back yet so you can build mutual connections quickly.',
+        content: "We highlight people who follow you that you aren't following back yet so you can build mutual connections quickly.",
         illustration: 'sparkles',
         position: 'right'
       }

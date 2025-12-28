@@ -335,7 +335,7 @@ export default function HOAManagement() {
           <Card className="bg-slate-800/50 border-slate-700 text-center p-12" data-testid="hoa-not-member">
             <Building className="w-16 h-16 text-orange-400 mx-auto mb-4" />
             <h2 className="text-2xl font-bold text-white mb-2">Not an HOA Member</h2>
-            <p className="text-slate-400 mb-6">Youre not currently linked to an HOA in TradeScout.</p>
+            <p className="text-slate-400 mb-6">You're not currently linked to an HOA in TradeScout.</p>
             <Button data-testid="button-back-home" onClick={() => window.location.href = '/'} className="bg-orange-500 hover:bg-orange-600">
               Return Home
             </Button>

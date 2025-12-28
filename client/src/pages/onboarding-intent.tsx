@@ -11,6 +11,13 @@ import { MessageCircle, Users, Briefcase, SlidersHorizontal } from "lucide-react
 
  type StartIntent = "community" | "services" | "business" | "tools";
 
+ const INTENT_ROUTES: Record<StartIntent, string> = {
+  community: "/community-feed",
+  services: "/contractors",
+  business: "/offer-services",
+  tools: "/scout",
+ } as const;
+
 export default function OnboardingIntent() {
   const { user, isAuthenticated } = useAuth();
   const { toast } = useToast();
@@ -34,7 +41,7 @@ export default function OnboardingIntent() {
     },
     onError: (error: any) => {
       toast({
-        title: "Couldnt save preference",
+        title: "Couldn't save preference",
         description: error?.message || "Please try again.",
         variant: "destructive",
       });
@@ -42,19 +49,8 @@ export default function OnboardingIntent() {
   });
 
   const routeForIntent = (intent: StartIntent | null): string => {
-    if (!intent) return "/community-feed";
-    switch (intent) {
-      case "community":
-        return "/community-feed?orientation=1";
-      case "services":
-        return "/contractors";
-      case "business":
-        return "/contractor-dashboard";
-      case "tools":
-        return "/dashboard";
-      default:
-        return "/community-feed";
-    }
+    if (!intent) return INTENT_ROUTES.community;
+    return INTENT_ROUTES[intent];
   };
 
   const handleChoose = (intent: StartIntent | null) => {
@@ -73,7 +69,7 @@ export default function OnboardingIntent() {
         <div className="space-y-6">
           <Button
             variant="ghost"
-            onClick={() => navigate("/community-feed")}
+            onClick={() => navigate(INTENT_ROUTES.community)}
             className="flex items-center gap-2 text-tsTextMuted hover:text-white hover:bg-white/5 pl-0"
           >
             <span className="text-sm">Skip for now</span>
@@ -87,7 +83,7 @@ export default function OnboardingIntent() {
               What would you like to focus on right now?
             </h1>
             <p className="text-sm md:text-base text-tsTextMuted max-w-xl">
-              This doesnt lock you into a role or limit what you can do. It just tells Scout what to open firstyou can always explore everything from the navigation.
+              This doesn't lock you into a role or limit what you can do. It just tells Scout what to open first - you can always explore everything from the navigation.
             </p>
           </div>
         </div>

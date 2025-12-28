@@ -46,7 +46,7 @@ export default function CreateAccountPortal() {
               Create your TradeScout account.
             </h1>
             <p className="text-sm md:text-base text-tsTextMuted max-w-xl">
-              Start with the basicsjust your email and password. After this step, Scout will walk you through a quick profile check so things look right in your neighborhood.
+              Start with the basics - just your email and password. After this step, Scout will walk you through a quick profile check so things look right in your neighborhood.
             </p>
 
             <div className="rounded-2xl border border-tsBorder bg-black/30 p-4 text-xs text-tsTextMuted">
