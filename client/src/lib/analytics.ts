@@ -45,6 +45,15 @@ export type ShellEvent =
       sessionCount: number;
       userTypes: string[];
       route: string;
+    }
+  | {
+      type: "help_article_viewed";
+      payload: {
+        articleId: string;
+        title: string;
+        category?: string;
+        ts: string;
+      };
     };
 
 export function getDeviceType(): DeviceType {

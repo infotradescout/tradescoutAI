@@ -452,7 +452,10 @@ export default function MarketplaceListing() {
         </Card>
 
         {/* Post-Submission Information */}
-        <Card className="mt-8 bg-[#1a2332] border-slate-600">
+        <Card
+          className="mt-8 border-slate-600"
+          style={{ backgroundColor: "var(--surface-card)" }}
+        >
           <CardContent className="p-6">
             <div className="flex items-start gap-4">
               <div className="flex-shrink-0">

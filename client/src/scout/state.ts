@@ -52,6 +52,7 @@ export type ScoutActionType =
   | "SEND_ADMIN_BROADCAST"
   | "OPEN_FLOATING_NOTE"
   | "EXTERNAL_LINK"
+  | "CALL_TOOL"
   | "NOOP";
 
 export interface ScoutAction {

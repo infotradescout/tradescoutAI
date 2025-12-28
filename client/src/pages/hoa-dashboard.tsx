@@ -128,7 +128,7 @@ const HOADashboard = memo(function HOADashboard() {
             <h1 className="text-4xl font-bold text-white">HOA Management</h1>
           </div>
           <p className="text-gray-300 text-lg">
-            {`${dashboard.hoaName} Dashboard`}
+            {`${dashboard?.hoaName ?? 'Your HOA'} Dashboard`}
           </p>
         </div>
 
@@ -139,7 +139,7 @@ const HOADashboard = memo(function HOADashboard() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-gray-400 text-sm">Total Units</p>
-                  <p className="text-2xl font-bold text-white">{dashboard.memberCount}</p>
+                  <p className="text-2xl font-bold text-white">{dashboard?.memberCount ?? 0}</p>
                 </div>
                 <Home className="h-8 w-8 text-blue-400" />
               </div>
@@ -151,7 +151,7 @@ const HOADashboard = memo(function HOADashboard() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-gray-400 text-sm">Monthly Revenue</p>
-                  <p className="text-2xl font-bold text-white">{typeof dashboard.balance === 'number' ? `$${dashboard.balance.toLocaleString()}` : '--'}</p>
+                  <p className="text-2xl font-bold text-white">{typeof dashboard?.balance === 'number' ? `$${dashboard.balance.toLocaleString()}` : '--'}</p>
                 </div>
                 <DollarSign className="h-8 w-8 text-green-400" />
               </div>
@@ -163,7 +163,7 @@ const HOADashboard = memo(function HOADashboard() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-gray-400 text-sm">Active Residents</p>
-                  <p className="text-2xl font-bold text-white">{dashboard.activeMembers}</p>
+                  <p className="text-2xl font-bold text-white">{dashboard?.activeMembers ?? 0}</p>
                 </div>
                 <Users className="h-8 w-8 text-purple-400" />
               </div>
@@ -175,7 +175,7 @@ const HOADashboard = memo(function HOADashboard() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-gray-400 text-sm">Collection Rate</p>
-                  <p className="text-2xl font-bold text-white">{typeof dashboard.balance === 'number' ? '100%' : '--'}</p>
+                  <p className="text-2xl font-bold text-white">{typeof dashboard?.balance === 'number' ? '100%' : '--'}</p>
                 </div>
                 <BarChart3 className="h-8 w-8 text-orange-400" />
               </div>
@@ -206,7 +206,7 @@ const HOADashboard = memo(function HOADashboard() {
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-4">
-                    {dashboard.recentTransactions && dashboard.recentTransactions.length > 0 ? (
+                    {dashboard?.recentTransactions && dashboard.recentTransactions.length > 0 ? (
                       dashboard.recentTransactions.map((tx) => (
                         <div key={tx.id} className="flex items-center gap-3 p-3 bg-navy-700/50 rounded-lg">
                           <div
@@ -337,7 +337,7 @@ const HOADashboard = memo(function HOADashboard() {
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-6">
-                    {dashboard.recentVotes && dashboard.recentVotes.length > 0 ? (
+                    {dashboard?.recentVotes && dashboard.recentVotes.length > 0 ? (
                       dashboard.recentVotes.map((vote) => (
                         <div key={vote.id} className="p-4 bg-navy-700/50 rounded-lg">
                           <div className="flex justify-between items-start mb-3">

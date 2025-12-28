@@ -339,7 +339,10 @@ export default function AdminAddressVerifications() {
                                 {/* Address Info */}
                                 <div>
                                   <Label className="text-sm font-medium">Address</Label>
-                                  <div className="mt-1 p-3 bg-[#0f1419] dark:bg-[#1a2332] rounded-md">
+                                  <div
+                                    className="mt-1 p-3 rounded-md"
+                                    style={{ backgroundColor: "var(--surface-card)" }}
+                                  >
                                     <p>{selectedVerification.verification.fullAddress}</p>
                                     <p className="text-sm text-gray-500">
                                       {selectedVerification.verification.city}, {selectedVerification.verification.state} {selectedVerification.verification.zipCode}

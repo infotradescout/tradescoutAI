@@ -167,6 +167,23 @@ export default function AffiliatePage() {
     );
   }
 
+  if (!dashboardData) {
+    return (
+      <div className="min-h-screen gradient-bg px-4">
+        <div className="container mx-auto max-w-4xl">
+          <div className="rounded-2xl border border-slate-800 bg-gradient-to-br from-slate-900 via-slate-950 to-slate-900 px-6 py-7 flex flex-col gap-3">
+            <div className="space-y-2 max-w-xl">
+              <h1 className="text-2xl sm:text-3xl font-bold text-white">Affiliate dashboard not available yet</h1>
+              <p className="text-sm sm:text-base text-gray-300">
+                We couldn&apos;t load your affiliate dashboard data right now. Please try again later or contact support if the issue persists.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   const program = dashboardData.program;
   const stats = dashboardData.stats;
   const referrals = dashboardData.referrals || [];

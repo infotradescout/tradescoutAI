@@ -351,7 +351,10 @@ export default function AdminPanel() {
         </div>
 
         <Tabs value={selectedTab} onValueChange={setSelectedTab} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-12 bg-[#1a2332]">
+          <TabsList
+            className="grid w-full grid-cols-12"
+            style={{ backgroundColor: "var(--surface-frame)" }}
+          >
             <TabsTrigger value="heatmap" className="flex items-center gap-2">
               <Map className="w-4 h-4" />
               User Heatmap
@@ -584,7 +587,10 @@ export default function AdminPanel() {
                           {setting.description && (
                             <p className="text-gray-300 text-sm mb-2">{setting.description}</p>
                           )}
-                          <div className="text-xs text-gray-400 font-mono bg-[#1a2332] p-2 rounded">
+                          <div
+                            className="text-xs text-gray-400 font-mono p-2 rounded"
+                            style={{ backgroundColor: "var(--surface-card)" }}
+                          >
                             {JSON.stringify(setting.value, null, 2)}
                           </div>
                         </div>
@@ -652,7 +658,10 @@ export default function AdminPanel() {
                           {setting.description && (
                             <p className="text-gray-300 text-sm mb-2">{setting.description}</p>
                           )}
-                          <div className="text-xs text-gray-400 font-mono bg-[#1a2332] p-2 rounded">
+                          <div
+                            className="text-xs text-gray-400 font-mono p-2 rounded"
+                            style={{ backgroundColor: "var(--surface-card)" }}
+                          >
                             {JSON.stringify(setting.value, null, 2)}
                           </div>
                         </div>
@@ -954,7 +963,7 @@ export default function AdminPanel() {
               <Button
                 variant="outline"
                 size="sm"
-                className="border-navy-600 text-slate-200 hover:bg-[#0f1419]"
+                className="border-navy-600 text-slate-200 hover:bg-navy-900/60"
                 onClick={() => setLocation("/admin/error-reports")}
               >
                 View full error report console
@@ -1197,7 +1206,10 @@ function LLMAdminPanel() {
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-      <Card className="bg-[#0f172a] border-slate-700">
+      <Card
+        className="border-slate-700"
+        style={{ backgroundColor: "var(--surface-card)" }}
+      >
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-white"><Upload className="w-5 h-5 text-orange-500" /> Knowledge Upload</CardTitle>
           <CardDescription>Upload files (json, md, text, images). Backend will sort into overrides, county guides, or bulk.</CardDescription>
@@ -1224,7 +1236,10 @@ function LLMAdminPanel() {
         </CardContent>
       </Card>
 
-      <Card className="bg-[#0f172a] border-slate-700">
+      <Card
+        className="border-slate-700"
+        style={{ backgroundColor: "var(--surface-card)" }}
+      >
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-white"><KeyRound className="w-5 h-5 text-orange-500" /> User Lookup & Password Reset</CardTitle>
           <CardDescription>Super-admin tools: fetch user info and set a new password.</CardDescription>

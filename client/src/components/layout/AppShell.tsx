@@ -161,10 +161,29 @@ export function AppShell({ children, footer }: AppShellProps) {
     >
       {/* Impersonation banner (always visible, not dismissible) */}
       {isImpersonating && impersonatedUser && (
-        <div style={{ background: '#fffbe6', color: '#ad7b00', borderBottom: '2px solid #ffe58f', padding: '10px 0', textAlign: 'center', zIndex: 9999, fontWeight: 600 }}>
+        <div
+          style={{
+            backgroundColor: 'var(--surface-intermediate)',
+            color: 'var(--text-primary)',
+            borderBottom: '1px solid var(--border-active)',
+            padding: '10px 0',
+            textAlign: 'center',
+            zIndex: 9999,
+            fontWeight: 600,
+          }}
+        >
           Impersonating {impersonatedUser.name} ({impersonatedUser.email})
           <button
-            style={{ marginLeft: 24, background: '#ffe58f', color: '#ad7b00', border: 'none', borderRadius: 4, padding: '4px 12px', fontWeight: 700, cursor: 'pointer' }}
+            style={{
+              marginLeft: 24,
+              backgroundColor: 'var(--theme-accent-primary)',
+              color: 'var(--text-primary)',
+              border: 'none',
+              borderRadius: 4,
+              padding: '4px 12px',
+              fontWeight: 700,
+              cursor: 'pointer',
+            }}
             onClick={async () => {
               await fetch('/api/admin/impersonate/exit', { method: 'POST', credentials: 'include' });
               window.location.reload();

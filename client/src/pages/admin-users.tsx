@@ -51,7 +51,7 @@ const roleHierarchy = {
   'ops_admin': { level: 70, label: 'Operations Admin', icon: UserCog, color: 'bg-green-500' },
   'contractor_user': { level: 20, label: 'Contractor', icon: Users, color: 'bg-orange-500' },
   'accelerator_member': { level: 15, label: 'Accelerator Member', icon: Users, color: 'bg-yellow-500' },
-  'homeowner': { level: 10, label: 'Homeowner', icon: Users, color: 'bg-[#0f1419]0' },
+  'homeowner': { level: 10, label: 'Homeowner', icon: Users, color: 'bg-slate-900/60' },
 };
 
 export default function AdminUsers() {
@@ -204,7 +204,7 @@ export default function AdminUsers() {
       level: 0,
       label: role,
       icon: Users,
-      color: 'bg-[#0f1419]0'
+      color: 'bg-slate-900/60'
     };
   };
 

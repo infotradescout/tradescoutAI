@@ -4,7 +4,15 @@ export type RecentActivityEventType =
   | "click_sponsored"
   | "intro_shown"
   | "intro_dismissed"
-  | "open_note";
+  | "open_note"
+  // County-gated surfaces & location telemetry
+  | "county_gate_hit"
+  | "county_gate_rehit_after_explained"
+  | "county_gated_query_success"
+  | "county_explained_followup_action"
+  | "county_explained_shown"
+  | "scout_confusion_location"
+  | "settings_location_saved";
 
 export interface RecentActivityEvent {
   type: RecentActivityEventType;

@@ -75,8 +75,14 @@ export default function RecommendationGeneratorPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#0f1419]">
-      <div className="border-b bg-[#0f1419]">
+    <div
+      className="min-h-screen"
+      style={{ backgroundColor: "var(--surface-app-bg)" }}
+    >
+      <div
+        className="border-b"
+        style={{ backgroundColor: "var(--surface-frame)", borderColor: "var(--surface-frame-border)" }}
+      >
         <div className="container mx-auto px-6 py-4">
           <div className="flex items-center gap-4">
             <Button variant="ghost" size="sm" asChild>

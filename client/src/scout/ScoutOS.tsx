@@ -48,6 +48,9 @@ import {
   type MarketplaceResult,
   type MarketplaceListingProposal,
   proposeMarketplaceListing,
+  type PromotionProposal,
+  type PromotionProposalPayload,
+  proposePromotion,
 } from "../agent/tools/scoutTools";
 import {
   getProviderRequirements,
@@ -712,6 +715,18 @@ export default function ScoutOS() {
           "am i eligible to be promoted",
           "am i eligible to be featured",
         ];
+        const providerPromotionKeywords = [
+          "run a promotion",
+          "run a promo",
+          "run promo",
+          "draft a promotion",
+          "draft promo",
+          "special offer",
+          "discount campaign",
+          "marketing campaign",
+          "deal for my services",
+          "deal for my business",
+        ];
         const marketplaceKeywords = ["marketplace", "for sale", "buying", "selling", "used", "buy", "sell", "list", "post"];
         const contactKeywords = ["contact", "support", "help desk", "reach out", "call", "phone", "text", "email", "mail"];
         const onboardingKeywords = [
@@ -732,6 +747,7 @@ export default function ScoutOS() {
         const wantsContact = contactKeywords.some((kw) => lowerMsg.includes(kw));
         const wantsProviderOffer = providerOfferKeywords.some((kw) => lowerMsg.includes(kw));
         const wantsProviderStanding = providerStandingKeywords.some((kw) => lowerMsg.includes(kw));
+        const wantsProviderPromotion = providerPromotionKeywords.some((kw) => lowerMsg.includes(kw));
 
         // ------------------------------------------------------------------
         // SCOUT ONBOARDING INTENT (fast win)
@@ -1060,6 +1076,131 @@ export default function ScoutOS() {
               lastIntent: "provider_standing_here",
             },
             contextRoles,
+          };
+
+          applyServerResponse(msg, []);
+          setStatus("idle");
+
+          const latencyMs = performance.now() - start;
+          logScoutInsight({
+            message: value,
+            mode,
+            locality,
+            success: true,
+            latencyMs,
+          });
+          return;
+        }
+
+        // ------------------------------------------------------------------
+        // PROVIDER INTENT C: "Help me run a promotion/deal"
+        // ------------------------------------------------------------------
+        if (wantsProviderPromotion && hasCountyContext(locationCtx)) {
+          setStatus("executing_action");
+
+          const countyName = (locationCtx as any).countyName || (locationCtx as any).county;
+          const stateCode = (locationCtx as any).stateCode as string | undefined;
+
+          // Derive a concise title from the user's message.
+          const singleLine = value.replace(/\s+/g, " ").trim();
+          let title = "Local services promotion";
+          if (singleLine.length > 0) {
+            title = singleLine.length > 80 ? `${singleLine.slice(0, 77)}…` : singleLine;
+          }
+
+          // Heuristic discount extraction (percentage or fixed amount).
+          const percentMatch = value.match(/(\d{1,3})\s*%/);
+          const dollarMatch = value.match(/\$\s*(\d+(?:\.\d{1,2})?)/);
+
+          let discountTypeForForm: "percentage" | "fixed_amount" | undefined;
+          let discountValueForForm: string | undefined;
+          if (percentMatch) {
+            discountTypeForForm = "percentage";
+            discountValueForForm = percentMatch[1];
+          } else if (dollarMatch) {
+            discountTypeForForm = "fixed_amount";
+            discountValueForForm = dollarMatch[1];
+          }
+
+          // Default to a 30-day window starting today for the proposal.
+          const nowDate = new Date();
+          const startDateStr = nowDate.toISOString().split("T")[0];
+          const endDate = new Date(nowDate.getTime() + 30 * 24 * 60 * 60 * 1000);
+          const endDateStr = endDate.toISOString().split("T")[0];
+
+          const proposalPayload: PromotionProposalPayload = {
+            title,
+            description: value,
+            category: "services",
+            county: countyName,
+            state: stateCode,
+            startsAt: startDateStr,
+            endsAt: endDateStr,
+          };
+
+          const proposal: PromotionProposal = proposePromotion(proposalPayload);
+
+          // Build a prefilled contractor promo URL for review/publish.
+          const params = new URLSearchParams();
+          params.set("promoDraft", "1");
+          params.set("title", title);
+          if (proposalPayload.description) params.set("description", proposalPayload.description);
+          // Reuse description as default offerDetails if none is provided explicitly.
+          if (proposalPayload.description) params.set("offerDetails", proposalPayload.description);
+          if (discountTypeForForm) params.set("discountType", discountTypeForForm);
+          if (discountValueForForm) params.set("discountValue", discountValueForForm);
+          if (proposalPayload.endsAt) params.set("expiresAt", proposalPayload.endsAt);
+
+          const promoUrl = `/contractor-promos?${params.toString()}`;
+
+          const summaryLines: string[] = [];
+          if (countyName && stateCode) {
+            summaryLines.push(`Area: ${countyName}, ${stateCode}`);
+          } else if (stateCode) {
+            summaryLines.push(`Area: ${stateCode}`);
+          }
+          if (discountTypeForForm && discountValueForForm) {
+            const discountLabel =
+              discountTypeForForm === "percentage"
+                ? `${discountValueForForm}% off`
+                : `$${discountValueForForm} off`;
+            summaryLines.push(`Discount: ${discountLabel}`);
+          }
+          summaryLines.push(`Window: ${startDateStr} → ${endDateStr}`);
+
+          const clusters: ScoutCluster[] = [
+            {
+              id: "provider-promotion-draft",
+              title: "Draft promotion ready to review",
+              kind: "generic",
+              body: summaryLines.join("\n"),
+              primaryAction: {
+                type: "NAVIGATE",
+                label: "Review and publish",
+                to: promoUrl,
+              },
+            },
+          ];
+
+          const msg: ScoutMessage = {
+            id: `a_${Date.now()}_${Math.random().toString(36).slice(2)}`,
+            role: "assistant",
+            content:
+              countyName && stateCode
+                ? `I drafted a promotion for your services in ${countyName}, ${stateCode}. Review it and publish when you're ready.`
+                : "I drafted a promotion for your services. Review the details and publish when you're ready.",
+            timestamp: new Date().toISOString(),
+            clusters,
+            navTarget: promoUrl,
+            memoryDelta: {
+              lastIntent: "provider_promotion_here",
+            },
+            contextRoles,
+            toolResult: {
+              tool: "promotion_proposal",
+              success: true,
+              data: proposal,
+            },
           };
 
           applyServerResponse(msg, []);

@@ -148,7 +148,11 @@ export default function Leaderboard() {
   const renderRankingsList = (rankings: ContractorRanking[], isLoading: boolean) => {
     if (isLoading) {
       return Array.from({ length: 10 }).map((_, i) => (
-        <Card key={i} className="bg-[#1a2332] border-slate-700 animate-pulse">
+        <Card
+          key={i}
+          className="border-slate-700 animate-pulse"
+          style={{ backgroundColor: "var(--surface-card)" }}
+        >
           <CardContent className="p-6">
             <div className="flex items-center space-x-4">
               <div className="w-6 h-6 bg-slate-600 rounded"></div>
@@ -166,7 +170,10 @@ export default function Leaderboard() {
 
     if (!rankings || rankings.length === 0) {
       return (
-        <Card className="bg-[#1a2332] border-slate-700">
+        <Card
+          className="border-slate-700"
+          style={{ backgroundColor: "var(--surface-card)" }}
+        >
           <CardContent className="p-12 text-center">
             <Trophy className="h-12 w-12 text-gray-400 mx-auto mb-4" />
 				<p className="text-gray-400 font-medium mb-1">No contributors found</p>
@@ -177,9 +184,13 @@ export default function Leaderboard() {
     }
 
     return rankings.map((contractor) => (
-      <Card key={contractor.id} className={`bg-[#1a2332] border-slate-700 hover:border-orange-500/50 transition-colors ${
+      <Card
+        key={contractor.id}
+        className={`border-slate-700 hover:border-orange-500/50 transition-colors ${
         contractor.rank <= 3 ? 'border-orange-500/30' : ''
-      }`}>
+      }`}
+        style={{ backgroundColor: "var(--surface-card)" }}
+      >
         <CardContent className="p-6">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-4">
@@ -266,7 +277,10 @@ export default function Leaderboard() {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-2 mb-6 bg-[#1a2332] border-slate-700">
+        <TabsList
+          className="grid w-full grid-cols-2 mb-6 border-slate-700"
+          style={{ backgroundColor: "var(--surface-frame)" }}
+        >
           <TabsTrigger value="monthly" className="text-slate-300 data-[state=active]:text-white data-[state=active]:bg-slate-700">
             <Calendar className="h-4 w-4 mr-2" />
             Monthly Rankings
@@ -278,14 +292,20 @@ export default function Leaderboard() {
         </TabsList>
 
         {/* Filters */}
-        <Card className="bg-[#1a2332] border-slate-700 mb-6">
+        <Card
+          className="border-slate-700 mb-6"
+          style={{ backgroundColor: "var(--surface-card)" }}
+        >
           <CardContent className="p-6">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <Select value={selectedState} onValueChange={setSelectedState}>
                 <SelectTrigger className="bg-slate-700 border-slate-600 text-white">
                   <SelectValue placeholder="All States" />
                 </SelectTrigger>
-                <SelectContent className="bg-[#1a2332] border-slate-700">
+                  <SelectContent
+                    className="border-slate-700"
+                    style={{ backgroundColor: "var(--surface-card)" }}
+                  >
                   <SelectItem value="all">All States</SelectItem>
                   <SelectItem value="TX">Texas</SelectItem>
                   <SelectItem value="CA">California</SelectItem>
@@ -298,7 +318,10 @@ export default function Leaderboard() {
                 <SelectTrigger className="bg-slate-700 border-slate-600 text-white">
           <SelectValue placeholder="All contribution types" />
                 </SelectTrigger>
-                <SelectContent className="bg-[#1a2332] border-slate-700">
+                  <SelectContent
+                    className="border-slate-700"
+                    style={{ backgroundColor: "var(--surface-card)" }}
+                  >
           <SelectItem value="all">All</SelectItem>
           <SelectItem value="services">Services</SelectItem>
           <SelectItem value="properties">Properties</SelectItem>
@@ -333,7 +356,10 @@ export default function Leaderboard() {
       </Tabs>
 
       {/* Info Card */}
-      <Card className="bg-[#1a2332] border-slate-700 mt-8">
+      <Card
+        className="border-slate-700 mt-8"
+        style={{ backgroundColor: "var(--surface-card)" }}
+      >
         <CardHeader>
           <CardTitle className="text-white flex items-center">
             <Trophy className="h-5 w-5 mr-2 text-orange-500" />

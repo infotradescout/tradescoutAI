@@ -53,7 +53,10 @@ const InsuranceVerification = memo(function InsuranceVerification() {
         </div>
 
         {/* Requirements Overview */}
-        <Card className="bg-[#1a2332]/50 border-slate-700 mb-8">
+        <Card
+          className="border-slate-700 mb-8"
+          style={{ backgroundColor: "var(--surface-card)" }}
+        >
           <CardHeader>
             <CardTitle className="text-white flex items-center gap-2">
               <Shield className="w-5 h-5 text-orange-500" />
@@ -122,7 +125,10 @@ const InsuranceVerification = memo(function InsuranceVerification() {
         </Card>
 
         {/* Upload Form */}
-        <Card className="bg-[#1a2332]/50 border-slate-700 mb-8">
+        <Card
+          className="border-slate-700 mb-8"
+          style={{ backgroundColor: "var(--surface-card)" }}
+        >
           <CardHeader>
             <CardTitle className="text-white">Insurance Certificate Upload</CardTitle>
             <CardDescription className="text-gray-400">

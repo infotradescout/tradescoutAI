@@ -127,7 +127,10 @@ export default function GroupDetail() {
         </div>
 
         {/* Group Info */}
-        <Card className="bg-[#1a2332]/50 border-slate-700">
+        <Card
+          className="border-slate-700"
+          style={{ backgroundColor: "var(--surface-card)" }}
+        >
           <CardHeader>
             <div className="flex items-start justify-between">
               <div className="space-y-2">
@@ -159,7 +162,10 @@ export default function GroupDetail() {
         </Card>
 
         {/* Create Post */}
-        <Card className="bg-[#1a2332]/50 border-slate-700">
+        <Card
+          className="border-slate-700"
+          style={{ backgroundColor: "var(--surface-card)" }}
+        >
           <CardContent className="p-4">
             {!showCreatePost ? (
               <Button 
@@ -212,7 +218,10 @@ export default function GroupDetail() {
         {/* Posts Feed */}
         <div className="space-y-6">
           {posts.length === 0 ? (
-            <Card className="bg-[#1a2332]/50 border-slate-700">
+            <Card
+              className="border-slate-700"
+              style={{ backgroundColor: "var(--surface-card)" }}
+            >
               <CardContent className="p-12 text-center">
                 <MessageSquare className="w-16 h-16 text-slate-500 mx-auto mb-4" />
                 <h3 className="text-xl font-semibold text-white mb-2">No posts yet</h3>
@@ -227,7 +236,12 @@ export default function GroupDetail() {
             </Card>
           ) : (
             posts.map((post: GroupPost) => (
-              <Card key={post.id} className="bg-[#1a2332]/50 border-slate-700" data-testid={`post-${post.id}`}>
+              <Card
+                key={post.id}
+                className="border-slate-700"
+                style={{ backgroundColor: "var(--surface-card)" }}
+                data-testid={`post-${post.id}`}
+              >
                 <CardHeader className="pb-3">
                   <div className="flex items-start justify-between">
                     <div className="flex items-center space-x-3">

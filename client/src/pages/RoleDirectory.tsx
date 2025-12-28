@@ -39,7 +39,10 @@ export default function RoleDirectory() {
         </div>
 
         {/* User Roles Section */}
-        <Card className="bg-[#1a2332]/50 border-slate-700">
+        <Card
+          className="border-slate-700"
+          style={{ backgroundColor: "var(--surface-card)" }}
+        >
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-white">
               <Shield className="h-6 w-6" />
@@ -122,7 +125,10 @@ export default function RoleDirectory() {
         </Card>
 
         {/* Trade Categories Section */}
-        <Card className="bg-[#1a2332]/50 border-slate-700">
+        <Card
+          className="border-slate-700"
+          style={{ backgroundColor: "var(--surface-card)" }}
+        >
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-white">
               <Hammer className="h-6 w-6" />
@@ -153,7 +159,10 @@ export default function RoleDirectory() {
         </Card>
 
         {/* Role Permissions Matrix */}
-        <Card className="bg-[#1a2332]/50 border-slate-700">
+        <Card
+          className="border-slate-700"
+          style={{ backgroundColor: "var(--surface-card)" }}
+        >
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-white">
               <Shield className="h-6 w-6" />

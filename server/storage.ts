@@ -448,6 +448,11 @@ export interface IStorage {
   upsertUser(user: UpsertUser): Promise<User>;
   deleteUser(userId: string): Promise<void>;
   getAllUsers(): Promise<User[]>;
+  suspendUser(userId: string): Promise<void>;
+  unsuspendUser(userId: string): Promise<void>;
+  verifyUser(userId: string): Promise<void>;
+  revokeVerifyUser(userId: string): Promise<void>;
+  changeUserRole(userId: string, newRole: string): Promise<void>;
   
   // Account security and management operations
   getUserTrustedDevices(userId: string): Promise<TrustedDevice[]>;
@@ -2146,7 +2151,6 @@ export class DatabaseStorage implements IStorage {
     try {
       const { processXpForEvent } = await import("./xp/xpEngine");
       const { evaluateBadgesForEvent } = await import("./badges/badgeEngine");
-      const { LoggedEvent } = await import("./xp/eventTypes");
 
       const loggedEvent: any = {
         id: inserted.id,
@@ -2994,6 +2998,7 @@ export class DatabaseStorage implements IStorage {
         clickCount: advertisements.clickCount,
         viewCount: advertisements.viewCount,
         impressions: advertisements.impressions,
+        communityScore: advertisements.communityScore,
         createdAt: advertisements.createdAt,
         updatedAt: advertisements.updatedAt,
       })
@@ -4931,6 +4936,61 @@ export class DatabaseStorage implements IStorage {
       .where(eq(userModerationReputation.userId, userId))
       .returning();
     return reputation;
+  }
+
+  async suspendUser(userId: string): Promise<void> {
+    const existing = await this.getUserModerationReputation(userId);
+    if (existing) {
+      await this.updateUserModerationReputation(userId, {
+        isSuspended: true,
+        suspendedUntil: null,
+        suspensionReason: existing.suspensionReason || 'Admin suspension',
+      } as any);
+    } else {
+      await this.createUserModerationReputation({
+        userId,
+        canVote: true,
+        votingPower: '1.0' as any,
+        primaryCounty: null,
+        primaryState: null,
+      } as any);
+      await this.updateUserModerationReputation(userId, {
+        isSuspended: true,
+        suspendedUntil: null,
+        suspensionReason: 'Admin suspension',
+      } as any);
+    }
+  }
+
+  async unsuspendUser(userId: string): Promise<void> {
+    const existing = await this.getUserModerationReputation(userId);
+    if (!existing) return;
+    await this.updateUserModerationReputation(userId, {
+      isSuspended: false,
+      suspendedUntil: null,
+      suspensionReason: null as any,
+    } as any);
+  }
+
+  async verifyUser(userId: string): Promise<void> {
+    await db
+      .update(users)
+      .set({ verificationStatus: 'approved' as any, addressVerified: true })
+      .where(eq(users.id, userId));
+  }
+
+  async revokeVerifyUser(userId: string): Promise<void> {
+    await db
+      .update(users)
+      .set({ verificationStatus: 'pending' as any })
+      .where(eq(users.id, userId));
+  }
+
+  async changeUserRole(userId: string, newRole: string): Promise<void> {
+    await db
+      .update(users)
+      .set({ role: newRole as any, activeRole: newRole })
+      .where(eq(users.id, userId));
   }
 
   // Actions

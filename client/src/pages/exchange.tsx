@@ -52,6 +52,7 @@ import {
   Trophy,
   Palette,
   Gem,
+  Sparkles,
 } from "lucide-react";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { useAuth } from "@/hooks/useAuth";

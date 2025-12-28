@@ -72,7 +72,8 @@ const RoleDashboardRouter = memo(function RoleDashboardRouter() {
     if (!user) return;
 
     try {
-      const params = new URLSearchParams(location.search || '');
+      const search = typeof window !== 'undefined' ? window.location.search : '';
+      const params = new URLSearchParams(search || '');
       const shouldShow = params.get('orientation') === '1';
 
       if (shouldShow) {
@@ -97,7 +98,7 @@ const RoleDashboardRouter = memo(function RoleDashboardRouter() {
     } catch {
       // ignore URL parse errors
     }
-  }, [location, setLocation, user]);
+  }, [setLocation, user]);
 
   if (isLoading) {
     return (

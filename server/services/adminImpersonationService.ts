@@ -10,6 +10,7 @@ export async function createImpersonationToken(adminId: string, targetUserId: st
   return jwt.sign({ adminId, targetUserId, impersonating: true }, IMPERSONATION_SECRET, { expiresIn: IMPERSONATION_TTL });
 }
 
+export async function endImpersonation(adminId: string) {
   // Invalidate token if using a token blacklist, or rely on TTL
   await logAdminAction({ type: 'impersonation_exit', adminId });
   return true;

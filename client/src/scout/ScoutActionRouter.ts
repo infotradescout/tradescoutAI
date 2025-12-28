@@ -297,7 +297,7 @@ export function executeScoutActions(
       }
 
       case "CALL_TOOL": {
-        const name = typeof action.name === "string" ? action.name : "";
+        const name = typeof (action as any).name === "string" ? (action as any).name : "";
         const args = (action as any).args ?? action.payload ?? {};
 
         // Small feature flag so Scout feedback can be toggled without UI changes
