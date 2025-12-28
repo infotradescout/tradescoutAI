@@ -8,6 +8,7 @@ import { useIsMobile } from "../hooks/useIsMobile";
 import AppDrawer from "../components/AppDrawer";
 import { useScoutState } from "./state";
 import ScoutThread from "./ScoutThread";
+import { ScoutDirectConnectPanel } from "./ScoutDirectConnectPanel";
 import ScoutInput from "./ScoutInput";
 import ScoutToolsDrawer from "./ScoutToolsDrawer";
 import {
@@ -2374,22 +2375,29 @@ export default function ScoutOS() {
           style={{ paddingBottom: isMobile ? 'calc(6rem + env(safe-area-inset-bottom))' : undefined }}
         >
         {/* Main conversation layout: used for all users, including first-time guests. */}
-        <div className="max-w-xl mx-auto w-full flex flex-col flex-1 min-h-0">
-          <ScoutHeader
-            isAuthenticated={isAuthenticated}
-            isFirstGuestVisit={isFirstGuestVisit}
-                      locationLabel={heroLocationLabel}
-          />
+        <div
+          className={
+            isMobile
+              ? "max-w-xl mx-auto w-full flex flex-col flex-1 min-h-0"
+              : "mx-auto w-full flex flex-1 min-h-0 max-w-5xl gap-4"
+          }
+        >
+          <div className="w-full flex flex-col flex-1 min-h-0 max-w-xl">
+            <ScoutHeader
+              isAuthenticated={isAuthenticated}
+              isFirstGuestVisit={isFirstGuestVisit}
+                        locationLabel={heroLocationLabel}
+            />
 
-            {/* Thread + input in a single chat container that stretches toward
-                the bottom of the viewport, with the input pinned just above
-                the global bottom nav. */}
-          <div
-            className={`mt-2 flex flex-col flex-1 min-h-0 ${
-              isMobile ? "space-y-2" : "space-y-2"
-            }`}
-            style={{ paddingBottom: isMobile ? '2rem' : '1.5rem' }}
-          >
+              {/* Thread + input in a single chat container that stretches toward
+                  the bottom of the viewport, with the input pinned just above
+                  the global bottom nav. */}
+            <div
+              className={`mt-2 flex flex-col flex-1 min-h-0 ${
+                isMobile ? "space-y-2" : "space-y-2"
+              }`}
+              style={{ paddingBottom: isMobile ? '2rem' : '1.5rem' }}
+            >
             {!hasUserMessages && (
               <div className="flex flex-col gap-3 py-3 px-1">
                 <div className="space-y-1">
@@ -2785,6 +2793,18 @@ export default function ScoutOS() {
               </div>
             )}
           </div>
+          </div>
+
+          {/* Right-side coordination panel on larger screens; stacks below chat on mobile. */}
+          {isMobile ? (
+            <div className="mt-4">
+              <ScoutDirectConnectPanel isAuthenticated={isAuthenticated} />
+            </div>
+          ) : (
+            <div className="hidden md:flex w-80 flex-shrink-0">
+              <ScoutDirectConnectPanel isAuthenticated={isAuthenticated} />
+            </div>
+          )}
         </div>
       </div>
       </div>
