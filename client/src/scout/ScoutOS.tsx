@@ -9,6 +9,7 @@ import AppDrawer from "../components/AppDrawer";
 import { useScoutState } from "./state";
 import ScoutThread from "./ScoutThread";
 import { ScoutDirectConnectPanel } from "./ScoutDirectConnectPanel";
+import { ScoutHasDonePanel } from "./ScoutHasDonePanel";
 import ScoutInput from "./ScoutInput";
 import ScoutToolsDrawer from "./ScoutToolsDrawer";
 import {
@@ -2797,12 +2798,14 @@ export default function ScoutOS() {
 
           {/* Right-side coordination panel on larger screens; stacks below chat on mobile. */}
           {isMobile ? (
-            <div className="mt-4">
+            <div className="mt-4 space-y-3">
               <ScoutDirectConnectPanel isAuthenticated={isAuthenticated} />
+              <ScoutHasDonePanel />
             </div>
           ) : (
-            <div className="hidden md:flex w-80 flex-shrink-0">
+            <div className="hidden md:flex w-80 flex-shrink-0 flex-col gap-3">
               <ScoutDirectConnectPanel isAuthenticated={isAuthenticated} />
+              <ScoutHasDonePanel />
             </div>
           )}
         </div>
