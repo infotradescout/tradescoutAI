@@ -11,7 +11,7 @@ export default function FinancesMaterialsPage() {
         <div>
           <h1 className="text-2xl md:text-3xl font-semibold text-slate-50 mb-1">Materials</h1>
           <p className="text-sm text-slate-400">
-            Material lists tied to active jobs, managed through each jobs deal room.
+            Material lists tied to active jobs, managed through each job's deal room.
           </p>
         </div>
         <div className="flex items-center gap-2">

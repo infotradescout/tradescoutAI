@@ -359,7 +359,8 @@ const AppLayout = memo(function AppLayout() {
 
     const anyUser: any = user || {};
     const profileVersion: number = typeof anyUser.profileVersion === 'number' ? anyUser.profileVersion : 0;
-    const hasCompletedProfileBasics = profileVersion >= CURRENT_PROFILE_VERSION || !!anyUser.onboardingCompleted;
+    const isSuperAdminLike = anyUser.role === 'super_admin' || anyUser.role === 'head_admin';
+    const hasCompletedProfileBasics = isSuperAdminLike || profileVersion >= CURRENT_PROFILE_VERSION;
 
     trackShellEvent({
       type: 'identity_session',
@@ -393,8 +394,9 @@ const AppLayout = memo(function AppLayout() {
 
     const anyUser: any = user;
     const profileVersion: number = typeof anyUser.profileVersion === 'number' ? anyUser.profileVersion : 0;
+    const isSuperAdminLike = anyUser.role === 'super_admin' || anyUser.role === 'head_admin';
 
-    if (profileVersion < CURRENT_PROFILE_VERSION) {
+    if (!isSuperAdminLike && profileVersion < CURRENT_PROFILE_VERSION) {
       setLocation('/onboarding/profile');
     }
   }, [isAuthenticated, user, location, setLocation]);
@@ -597,6 +599,11 @@ const AppLayout = memo(function AppLayout() {
                     <RedirectTo to="/contractor-dashboard" />
                   </Route>
                   <Route path="/contractor-apply"><LazyPage Component={ContractorApply} /></Route>
+                  <Route path="/offer-services">
+                    <ProtectedRoute>
+                      <LazyPage Component={ContractorApply} />
+                    </ProtectedRoute>
+                  </Route>
                   <Route path="/business-listing"><LazyPage Component={BusinessListing} /></Route>
                   <Route path="/business-owner-dashboard"><LazyPage Component={BusinessOwnerDashboard} /></Route>
                   <Route path="/accelerator"><LazyPage Component={Accelerator} /></Route>

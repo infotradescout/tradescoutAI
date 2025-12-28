@@ -275,3 +275,4 @@ function extractCategory(message: string): string | undefined {
   if (lower.includes("vehicle") || lower.includes("car")) return "vehicles";
   return undefined;
 }
+import { createNote } from "@/agent/tools/scoutMutations";

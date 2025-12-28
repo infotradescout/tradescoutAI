@@ -11,7 +11,7 @@ export default function FinancesEstimatesPage() {
         <div>
           <h1 className="text-2xl md:text-3xl font-semibold text-slate-50 mb-1">Estimates</h1>
           <p className="text-sm text-slate-400">
-            Quotes waiting for approval, driven by each jobs deal room.
+            Quotes waiting for approval, driven by each job's deal room.
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -30,13 +30,13 @@ export default function FinancesEstimatesPage() {
         <CardHeader>
           <CardTitle className="text-sm font-semibold text-slate-100">Estimate pipeline</CardTitle>
           <CardDescription className="text-xs text-slate-400">
-            Estimates are created and sent from the jobs deal room. This workspace will grow into a true
+            Estimates are created and sent from the job's deal room. This workspace will grow into a true
             estimate board (by stage, by client, by job).
           </CardDescription>
         </CardHeader>
         <CardContent>
           <p className="text-[11px] text-slate-400">
-            For now, go to a jobs deal room to draft, send, or approve estimates. As the accounting layer
+            For now, go to a job's deal room to draft, send, or approve estimates. As the accounting layer
             deepens, this view will summarize open and approved estimates across your jobs.
           </p>
         </CardContent>

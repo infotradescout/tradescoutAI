@@ -103,7 +103,6 @@ const featureNav: NavItem[] = [
 export function AppShell({ children, footer }: AppShellProps) {
   const { user, isAuthenticated } = useAuth();
   const isLoggedIn = !!user;
-  const isOnboarded = user?.onboardingCompleted === true;
   // Impersonation banner logic
   const isImpersonating = user?.isImpersonating || user?.impersonating;
   const impersonatedUser = user?.impersonatedUser || (isImpersonating ? { name: user?.firstName + ' ' + user?.lastName, email: user?.email } : null);
@@ -122,7 +121,7 @@ export function AppShell({ children, footer }: AppShellProps) {
       <p className="mt-2 text-sm text-secondary">
         Scout local projects, pros, and updates in your area.
       </p>
-      {(!isLoggedIn || !isOnboarded) && (
+      {!isLoggedIn && (
         <div className="mt-4 flex gap-2">
           <button
             type="button"
@@ -188,7 +187,7 @@ export function AppShell({ children, footer }: AppShellProps) {
             </span>
           </Link>
           <div className="ml-auto flex items-center gap-2">
-            {(!isLoggedIn || !isOnboarded) && (
+            {!isLoggedIn && (
               <>
                 <button
                   type="button"
@@ -251,7 +250,7 @@ export function AppShell({ children, footer }: AppShellProps) {
 
           {/* Right side: auth CTA + icons */}
           <div className="flex items-center gap-2 shrink-0">
-            {(!isLoggedIn || !isOnboarded) && (
+            {!isLoggedIn && (
               <>
                 <button
                   type="button"

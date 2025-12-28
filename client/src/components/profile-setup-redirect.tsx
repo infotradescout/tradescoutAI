@@ -16,8 +16,9 @@ export function ProfileSetupRedirect({ children }: { children: React.ReactNode }
       // have not been normalized onto the current schema version.
       const anyUser: any = user;
       const profileVersion: number = typeof anyUser.profileVersion === 'number' ? anyUser.profileVersion : 0;
+      const isSuperAdminLike = anyUser.role === 'super_admin' || anyUser.role === 'head_admin';
 
-      if (!isAdmin && profileVersion < CURRENT_PROFILE_VERSION) {
+      if (!isAdmin && !isSuperAdminLike && profileVersion < CURRENT_PROFILE_VERSION) {
         setLocation('/onboarding/profile');
       }
     }
@@ -27,8 +28,9 @@ export function ProfileSetupRedirect({ children }: { children: React.ReactNode }
   const isAdmin = user?.isAdmin === true;
   const anyUser: any = user || {};
   const profileVersion: number = typeof anyUser.profileVersion === 'number' ? anyUser.profileVersion : 0;
+  const isSuperAdminLike = anyUser.role === 'super_admin' || anyUser.role === 'head_admin';
 
-  if (isLoading || !user || profileVersion >= CURRENT_PROFILE_VERSION || isAdmin) {
+  if (isLoading || !user || profileVersion >= CURRENT_PROFILE_VERSION || isAdmin || isSuperAdminLike) {
     return <>{children}</>;
   }
 

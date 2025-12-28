@@ -5,6 +5,8 @@
  */
 
 import { searchContractors, createNote, createProject } from "@/agent/tools/scoutTools";
+import { searchContractors } from "@/agent/tools/scoutTools";
+import { createNote, createProject } from "@/agent/tools/scoutMutations";
 import type { ScoutMessage, ScoutCluster } from "./state";
 
 /* ======================== BEFORE (old pattern) ======================== */

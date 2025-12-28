@@ -20,7 +20,7 @@ export function AuthFlow({ onComplete }: AuthFlowProps) {
     const anyUser: any = user;
     const profileVersion: number = typeof anyUser.profileVersion === "number" ? anyUser.profileVersion : 0;
 
-    if (profileVersion >= CURRENT_PROFILE_VERSION || anyUser.onboardingCompleted) {
+    if (profileVersion >= CURRENT_PROFILE_VERSION) {
       onComplete();
     } else {
       navigate("/onboarding/profile");

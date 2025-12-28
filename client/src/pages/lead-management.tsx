@@ -24,7 +24,7 @@ export default function ProjectTracker() {
 			<div className="max-w-md text-center space-y-2">
 				<h1 className="text-base font-semibold">Projects moved to Finances</h1>
 				<p className="text-xs text-slate-400">
-					Your jobs and deal workflow now live in your Finances workspace. Were sending you there
+					Your jobs and deal workflow now live in your Finances workspace. We're sending you there
 					automatically.
 				</p>
 			</div>

@@ -1,5 +1,11 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { enrollAffiliate, generateAffiliateLink, logAffiliateReferral, createPromotion, trackPromotion } from "./scoutTools";
+import {
+  enrollAffiliate,
+  generateAffiliateLink,
+  logAffiliateReferral,
+  createPromotion,
+  trackPromotion,
+} from "./scoutMutations";
 
 // Mock fetch for deterministic tool tests
 const originalFetch = globalThis.fetch;

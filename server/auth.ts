@@ -212,7 +212,12 @@ export const requireOnboardingComplete: RequestHandler = (req, res, next) => {
   const anyUser: any = user || {};
   const profileVersion: number = typeof anyUser.profileVersion === "number" ? anyUser.profileVersion : 0;
 
-  if (user && (anyUser.onboardingCompleted === true || profileVersion >= CURRENT_PROFILE_VERSION)) {
+  // Super admins and head admins always bypass onboarding gates.
+  if (anyUser.role === "super_admin" || anyUser.role === "head_admin") {
+    return next();
+  }
+
+  if (user && profileVersion >= CURRENT_PROFILE_VERSION) {
     return next();
   }
 

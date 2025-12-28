@@ -13,10 +13,13 @@ import { useAuth } from "@/hooks/useAuth";
 import { GuestGate } from "@/components/guest-gate";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { useLocation } from "wouter";
 
 export default function ContractorApply() {
   const { user, isAuthenticated, isLoading } = useAuth();
   const { toast } = useToast();
+  const [route] = useLocation();
+  const [fromScoutReview, setFromScoutReview] = useState(false);
   const [formData, setFormData] = useState({
     companyName: '',
     contactName: '',
@@ -87,6 +90,17 @@ export default function ContractorApply() {
     applicationMutation.mutate(formData);
   };
 
+  useEffect(() => {
+    if (!route) return;
+    const idx = route.indexOf("?");
+    if (idx === -1) return;
+    const search = route.slice(idx + 1);
+    const params = new URLSearchParams(search);
+    if (params.get("review") === "1") {
+      setFromScoutReview(true);
+    }
+  }, [route]);
+
   // Show authentication required for guests
   if (!isLoading && !isAuthenticated) {
     return (
@@ -117,6 +131,17 @@ export default function ContractorApply() {
       <div className="text-center mb-12">
         <h1 className="text-4xl font-bold text-white mb-4">Join TradeScout's Contractor Network</h1>
         <p className="text-xl text-gray-300 mb-6">Connect with qualified homeowners and grow your business</p>
+        {fromScoutReview && (
+          <div className="mx-auto max-w-2xl mt-3 rounded-lg border border-amber-500/60 bg-amber-500/10 px-3 py-2 text-xs text-amber-100 flex items-start gap-2 text-left">
+            <Shield className="h-4 w-4 mt-[2px] text-amber-300" />
+            <div>
+              <p className="font-semibold">Scout drafted this setup</p>
+              <p className="mt-0.5 text-[11px] text-amber-100/90">
+                We brought you here from Scout so you can review and complete your provider details. Make any edits you need, then submit your application when everything looks right.
+              </p>
+            </div>
+          </div>
+        )}
         
         <div className="flex justify-center gap-6 mb-8">
           <div className="flex items-center gap-2 text-gray-300">

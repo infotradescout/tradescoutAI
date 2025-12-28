@@ -2,6 +2,25 @@
 
 **Status**: ✅ Built and ready to use locally
 
+## Scout Tool Layer Rules
+
+Scout tools are pure.
+
+Allowed:
+- Proposal helpers (return data only)
+- Read-only helpers (search, summarize)
+
+Forbidden:
+- API mutations (POST/PUT/PATCH/DELETE)
+- Direct database writes
+- Side effects of any kind
+
+All mutations must live in:
+- UI-owned submit flows, or
+- Explicit mutating service modules (for example: `client/src/agent/tools/scoutMutations.ts`)
+
+These rules are enforced by the `verify:scout-purity` script.
+
 ## What's Already in Place
 
 ### 1. Tool Layer Infrastructure (`client/src/agent/tools/`)

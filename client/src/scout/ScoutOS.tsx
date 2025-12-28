@@ -44,11 +44,18 @@ import { openFloatingNote } from "@/lib/floatingNotes";
 import {
   searchContractors,
   searchMarketplace,
-  postMarketplaceListing,
   type ContractorResult,
   type MarketplaceResult,
-  type MarketplacePostResult,
+  type MarketplaceListingProposal,
+  proposeMarketplaceListing,
 } from "../agent/tools/scoutTools";
+import {
+  getProviderRequirements,
+  getProviderStanding,
+  proposeProviderProfileUpdate,
+  type ProviderStanding,
+  type ProviderProfileProposal,
+} from "@/agent/tools/providers";
 import { inferContextRoles, deriveModeFromContextRoles } from "./contextRoles";
 
 const INTRO_DEMO_TEXT = "What can TradeScout do for my community?";
@@ -177,6 +184,42 @@ function sanitizeScoutMessage(raw: unknown): string {
   }
 
   return trimmed;
+}
+
+function enforceShortIntentDiscipline(
+  userMessage: string,
+  content: string,
+  intentLabel?: string
+): string {
+  const lower = userMessage.trim().toLowerCase();
+  const isVeryShortPrompt = lower.length > 0 && lower.length <= 120;
+  const startsWithShortWh = /^(what|why|who|where|when)\b/.test(lower);
+
+  const looksShortIntent =
+    isVeryShortPrompt &&
+    (startsWithShortWh ||
+      intentLabel === "short" ||
+      intentLabel === "definition" ||
+      intentLabel === "why");
+
+  if (!looksShortIntent) return content;
+
+  const trimmed = content.trim();
+  if (!trimmed) return trimmed;
+
+  // Keep only the first 1–3 sentences to match the
+  // short-intent contract without changing the core answer.
+  const sentences = trimmed
+    .split(/(?<=[.!?])\s+/)
+    .map((s) => s.trim())
+    .filter((s) => s.length > 0);
+
+  if (sentences.length <= 3) return trimmed;
+
+  const kept = sentences.slice(0, 3).join(" ");
+  return kept.endsWith(".") || kept.endsWith("!") || kept.endsWith("?")
+    ? kept
+    : `${kept}…`;
 }
 
 export default function ScoutOS() {
@@ -353,8 +396,9 @@ export default function ScoutOS() {
   // We treat this as "guest has not actively interacted yet" so that
   // auto-demo typing does NOT collapse the calm intro.
   const isFirstGuestVisit = isGuest && !hasGuestInteracted && !hasUserMessages;
-  // Diagnostic: log intro demo gating values to verify which guard blocks
+  // Diagnostic: log intro demo gating values to verify which guard blocks (dev-only)
   useEffect(() => {
+    if (!import.meta.env.DEV) return;
     try {
       const sessionPlayed =
         typeof window !== "undefined" &&
@@ -605,13 +649,13 @@ export default function ScoutOS() {
       setActiveMode(mode);
 
       const start = performance.now();
-       let activeTool: string | null = null;
 
       // User message is recorded into the thread; we immediately move into
       // a short RESOLVING_CONTEXT state so the UI can show progress without
       // exposing any internal reasoning text.
       recordUserMessage(value);
-      setStatus("resolving_context");
+      // recordUserMessage already moves state into "resolving_context";
+      // avoid a redundant status dispatch here.
       recordActivity({
         type: "ask_scout",
         ts: new Date().toISOString(),
@@ -649,6 +693,25 @@ export default function ScoutOS() {
           }
         }
         const contractorKeywords = ["contractor", "plumber", "electrician", "roofer", "hvac", "painter", "landscaper", "carpenter", "mason", "find a pro"];
+        const providerOfferKeywords = [
+          "offer services",
+          "offer my services",
+          "get more work",
+          "get more local jobs",
+          "get more local leads",
+          "use this to get jobs",
+          "use this to get leads",
+          "i want to offer services here",
+          "set up my business here",
+        ];
+        const providerStandingKeywords = [
+          "how strong is my presence",
+          "how strong is my presence here",
+          "how am i showing up here",
+          "how visible am i here",
+          "am i eligible to be promoted",
+          "am i eligible to be featured",
+        ];
         const marketplaceKeywords = ["marketplace", "for sale", "buying", "selling", "used", "buy", "sell", "list", "post"];
         const contactKeywords = ["contact", "support", "help desk", "reach out", "call", "phone", "text", "email", "mail"];
         const onboardingKeywords = [
@@ -667,6 +730,8 @@ export default function ScoutOS() {
         const wantsContractor = contractorKeywords.some((kw) => lowerMsg.includes(kw));
         const wantsMarketplace = marketplaceKeywords.some((kw) => lowerMsg.includes(kw));
         const wantsContact = contactKeywords.some((kw) => lowerMsg.includes(kw));
+        const wantsProviderOffer = providerOfferKeywords.some((kw) => lowerMsg.includes(kw));
+        const wantsProviderStanding = providerStandingKeywords.some((kw) => lowerMsg.includes(kw));
 
         // ------------------------------------------------------------------
         // SCOUT ONBOARDING INTENT (fast win)
@@ -740,6 +805,278 @@ export default function ScoutOS() {
         }
 
         // ------------------------------------------------------------------
+        // PROVIDER INTENT A: "I want to offer services here"
+        // ------------------------------------------------------------------
+        if (wantsProviderOffer && hasCountyContext(locationCtx)) {
+          setStatus("executing_action");
+
+          // Resolve a likely trade from the message using the trades catalog
+          let selectedTrade: { id: string; name: string; slug?: string } | null = null;
+          try {
+            const tradesRes = await fetch("/api/trades", { credentials: "include" });
+            if (tradesRes.ok) {
+              const trades = (await tradesRes.json()) as { id: string; name: string; slug?: string }[];
+              const msg = lowerMsg;
+              const matchOrder = [
+                { key: "plumb", test: (t: any) => /plumb/i.test(t.name || t.slug || "") },
+                { key: "electric", test: (t: any) => /electric/i.test(t.name || t.slug || "") },
+                { key: "roof", test: (t: any) => /roof/i.test(t.name || t.slug || "") },
+                { key: "hvac", test: (t: any) => /hvac/i.test(t.name || t.slug || "") },
+                { key: "paint", test: (t: any) => /paint/i.test(t.name || t.slug || "") },
+                { key: "landscap", test: (t: any) => /landscap/i.test(t.name || t.slug || "") },
+                { key: "carpent", test: (t: any) => /carpent/i.test(t.name || t.slug || "") },
+                { key: "mason", test: (t: any) => /mason/i.test(t.name || t.slug || "") },
+              ];
+
+              for (const rule of matchOrder) {
+                if (msg.includes(rule.key)) {
+                  const found = trades.find(rule.test);
+                  if (found) {
+                    selectedTrade = found;
+                    break;
+                  }
+                }
+              }
+
+              if (!selectedTrade && trades.length > 0) {
+                selectedTrade = trades[0];
+              }
+            }
+          } catch {
+            // If trades lookup fails, we will fall back to navigation-only guidance
+          }
+
+          const countyFips = (locationCtx as any).countyFips as string | undefined;
+          const countyName = (locationCtx as any).countyName || (locationCtx as any).county;
+          const stateCode = (locationCtx as any).stateCode;
+
+          let requirementsSummary: string | undefined;
+
+          // Build a pure provider profile proposal; no writes, no API calls.
+          const proposal: ProviderProfileProposal | null =
+            selectedTrade && stateCode
+              ? proposeProviderProfileUpdate({
+                  services: [selectedTrade.name || selectedTrade.slug || ""].filter(Boolean),
+                  serviceAreas: [
+                    {
+                      state: stateCode,
+                      county: countyName,
+                    },
+                  ],
+                })
+              : null;
+
+          // Best-effort: fetch requirements so the user knows what promotion will expect.
+          if (selectedTrade && countyFips) {
+            try {
+              const requirements = await getProviderRequirements({
+                tradeSlugs: selectedTrade.slug ? [selectedTrade.slug] : [],
+                countyFips,
+              });
+
+              if (requirements && requirements.length > 0) {
+                const r = requirements[0];
+                const needs: string[] = [];
+                if (r.requires.ein) needs.push("a business tax ID (EIN)");
+                if (r.requires.license) needs.push("an active license");
+                if (r.requires.insurance) needs.push("proof of insurance");
+
+                if (needs.length > 0) {
+                  requirementsSummary = `For ${r.trade.name} in this area, promotion usually expects ${needs.join(", ")}.`;
+                } else {
+                  requirementsSummary = `For ${r.trade.name} in this area, there are no extra business documents required before we can start promoting you.`;
+                }
+              }
+            } catch {
+              // If requirements call fails, continue with navigation-only guidance
+            }
+          }
+
+          const clusters: ScoutCluster[] = [
+            {
+              id: "provider-offer-services-here",
+              title: "Review provider profile",
+              kind: "generic",
+              body:
+                requirementsSummary ||
+                "I drafted updates to your provider profile. Review and confirm them before saving.",
+              primaryAction: {
+                type: "NAVIGATE",
+                label: "Review profile",
+                to: "/offer-services?review=1",
+              },
+            },
+          ];
+
+          const msg: ScoutMessage = {
+            id: `a_${Date.now()}_${Math.random().toString(36).slice(2)}`,
+            role: "assistant",
+            content:
+              selectedTrade && countyName && stateCode
+                ? `I drafted a setup to offer ${selectedTrade.name.toLowerCase()} services in ${countyName}, ${stateCode}. Review and confirm it before we start promoting you.`
+                : "I drafted a setup for your services in this area. Review and confirm it before saving.",
+            timestamp: new Date().toISOString(),
+            clusters,
+            navTarget: "/offer-services?review=1",
+            memoryDelta: {
+              lastIntent: "provider_offer_here",
+            },
+            contextRoles,
+            toolResult: proposal
+              ? {
+                  tool: "provider_profile_proposal",
+                  success: true,
+                  data: proposal,
+                }
+              : undefined,
+          };
+
+          applyServerResponse(msg, []);
+          setStatus("idle");
+
+          const latencyMs = performance.now() - start;
+          logScoutInsight({
+            message: value,
+            mode,
+            locality,
+            success: true,
+            latencyMs,
+          });
+          return;
+        }
+
+        // ------------------------------------------------------------------
+        // PROVIDER INTENT B: "How strong is my presence here?"
+        // ------------------------------------------------------------------
+        if (wantsProviderStanding && hasCountyContext(locationCtx)) {
+          setStatus("executing_action");
+
+          const countyFips = (locationCtx as any).countyFips as string | undefined;
+          const countyName = (locationCtx as any).countyName || (locationCtx as any).county;
+          const stateCode = (locationCtx as any).stateCode;
+
+          let standing: ProviderStanding | null = null;
+          try {
+            if (countyFips) {
+              standing = await getProviderStanding({ countyFips });
+            }
+          } catch {
+            standing = null;
+          }
+
+          if (!standing || !countyFips) {
+            const msg: ScoutMessage = {
+              id: `a_${Date.now()}_${Math.random().toString(36).slice(2)}`,
+              role: "assistant",
+              content:
+                "I couldn't read your presence for this county yet. Let's open your provider setup so you can review and adjust it.",
+              timestamp: new Date().toISOString(),
+              clusters: [
+                {
+                  id: "provider-standing-fallback",
+                  title: "Review provider setup",
+                  kind: "generic",
+                  primaryAction: {
+                    type: "NAVIGATE",
+                    label: "Open provider setup",
+                    to: "/offer-services",
+                  },
+                },
+              ],
+              navTarget: "/offer-services",
+              memoryDelta: {
+                lastIntent: "provider_standing_here",
+              },
+              contextRoles,
+            };
+
+            applyServerResponse(msg, []);
+            setStatus("idle");
+            return;
+          }
+
+          const reachLabel = standing.reach.label;
+          let reachText: string;
+          if (reachLabel === "local_here") {
+            reachText = "You're set up as a local provider for this county.";
+          } else if (reachLabel === "regional_here") {
+            reachText = "You're set up to serve this county as part of a broader region.";
+          } else if (reachLabel === "nearby_not_listed_here") {
+            reachText = "You're listed in nearby areas but not yet committed to this county.";
+          } else {
+            reachText = "You haven't fully set up your presence for this county yet.";
+          }
+
+          const a = standing.activity;
+          const activityParts: string[] = [];
+          if (a.jobsCompleted > 0) activityParts.push(`${a.jobsCompleted} jobs completed`);
+          if (a.peopleHelped > 0) activityParts.push(`${a.peopleHelped} people helped`);
+          if (a.activeWeeks > 0) activityParts.push(`active in ${a.activeWeeks} recent weeks`);
+          const activitySummary =
+            activityParts.length > 0
+              ? `What we've seen so far: ${activityParts.join(", ")}.`
+              : "We haven't seen much recorded activity for you here yet.";
+
+          const blockers = standing.promotion;
+          let promotionSummary: string;
+          if (!blockers.blocked) {
+            promotionSummary =
+              "You're not blocked by any business requirements in this county. When your activity grows, we can highlight you more confidently.";
+          } else if (blockers.reasons.length > 0) {
+            promotionSummary = blockers.reasons.join(" ");
+          } else {
+            promotionSummary =
+              "There are a few business requirements we still need on file before we can fully promote you here.";
+          }
+
+          const clusters: ScoutCluster[] = [
+            {
+              id: "provider-standing-overview",
+              title:
+                countyName && stateCode
+                  ? `Your presence in ${countyName}, ${stateCode}`
+                  : "Your presence here",
+              kind: "generic",
+              body: `${reachText}\n\n${activitySummary}\n\n${promotionSummary}`,
+              primaryAction: {
+                type: "NAVIGATE",
+                label: "Review provider setup",
+                to: "/offer-services",
+              },
+            },
+          ];
+
+          const msg: ScoutMessage = {
+            id: `a_${Date.now()}_${Math.random().toString(36).slice(2)}`,
+            role: "assistant",
+            content:
+              countyName && stateCode
+                ? `Here's how you're currently set up for ${countyName}, ${stateCode}.`
+                : "Here's how you're currently set up for this area.",
+            timestamp: new Date().toISOString(),
+            clusters,
+            navTarget: "/offer-services",
+            memoryDelta: {
+              lastIntent: "provider_standing_here",
+            },
+            contextRoles,
+          };
+
+          applyServerResponse(msg, []);
+          setStatus("idle");
+
+          const latencyMs = performance.now() - start;
+          logScoutInsight({
+            message: value,
+            mode,
+            locality,
+            success: true,
+            latencyMs,
+          });
+          return;
+        }
+
+        // ------------------------------------------------------------------
         // CONTRACTOR SEARCH INTENT
         // ------------------------------------------------------------------
         if (wantsContractor && locality?.county && locality?.state) {
@@ -762,7 +1099,7 @@ export default function ScoutOS() {
             state: locality.state,
             limit: 5,
           });
-           activeTool = null;
+          
 
           if (contractorResult.success && Array.isArray(contractorResult.data) && contractorResult.data.length > 0) {
             const contractors: ContractorResult[] = contractorResult.data;
@@ -845,8 +1182,6 @@ export default function ScoutOS() {
           const wantsPost = /\b(post|list|sell|for sale)\b/i.test(value);
 
           if (wantsPost) {
-            activeTool = "postMarketplaceListing";
-
             // Extract basic fields from the free-form message
             const priceMatch = value.match(/\$\s*(\d+(?:\.\d{1,2})?)|\b(\d+(?:\.\d{1,2})?)\b/);
             const price = priceMatch ? Number(priceMatch[1] || priceMatch[2]) : 0;
@@ -855,34 +1190,44 @@ export default function ScoutOS() {
               .replace(/\b(post|list|sell|for sale|please|help|i want to|i'd like to|i would like to)\b/gi, "")
               .trim();
             const title = cleaned.split(/\s+/).slice(0, 10).join(" ") || "My item";
-
-            const postResult = await postMarketplaceListing({
+            // Build a pure listing proposal; no writes, no API calls.
+            const proposal: MarketplaceListingProposal = proposeMarketplaceListing({
               title,
               description: cleaned,
-              price: price > 0 ? price : 0,
+              price: price > 0 ? price : undefined,
             });
-            activeTool = null;
 
-            const created = postResult.success && (postResult.data as MarketplacePostResult | undefined)?.status === "created";
-            const listingId = (postResult.data as MarketplacePostResult | undefined)?.id;
-            const listingUrl = created && listingId ? `/exchange/${listingId}` : "/exchange?new=1";
+            // Route user to Exchange sell tab with prefilled fields.
+            const params = new URLSearchParams();
+            params.set("tab", "sell");
+            params.set("title", title);
+            if (cleaned) params.set("description", cleaned);
+            if (price > 0) params.set("price", String(price));
+
+            // Best-effort location prefill, using committed locality only.
+            if (locality.county && locality.state) {
+              params.set("loc", `${locality.county}, ${locality.state}`);
+            } else if (locality.state) {
+              params.set("loc", String(locality.state));
+            }
+
+            const listingUrl = `/exchange?${params.toString()}`;
 
             const msg: ScoutMessage = {
               id: `a_${Date.now()}_${Math.random().toString(36).slice(2)}`,
               role: "assistant",
-              content: created
-                ? `Your listing "${title}" is created. You can review and manage it here:`
-                : `I prepared a listing draft for "${title}". Tap below to finish and publish it:`,
+              content:
+                `I drafted a listing for "${title}" based on what you described. Review it in Exchange and confirm before it goes live.`,
               timestamp: new Date().toISOString(),
               clusters: [
                 {
                   id: "post-listing",
-                  title: created ? "View listing" : "Finish listing",
+                  title: "Review draft listing",
                   kind: "generic",
                   body: price > 0 ? `$${price}` : undefined,
                   primaryAction: {
                     type: "NAVIGATE",
-                    label: created ? "Open" : "Open Exchange",
+                    label: "Open Exchange",
                     to: listingUrl,
                   },
                 },
@@ -903,10 +1248,9 @@ export default function ScoutOS() {
               },
               contextRoles: getContextRoles(value),
               toolResult: {
-                tool: "postMarketplaceListing",
-                success: Boolean(postResult.success),
-                data: postResult.data,
-                durationMs: postResult.telemetry?.durationMs,
+                tool: "marketplace_listing_proposal",
+                success: true,
+                data: proposal,
               },
             };
 
@@ -919,14 +1263,11 @@ export default function ScoutOS() {
           }
 
           // Otherwise, run a marketplace search
-          activeTool = "searchMarketplace";
           const marketplaceResult = await searchMarketplace({
             query: value,
             location: locality.state,
             limit: 5,
           });
-          activeTool = null;
-
           if (marketplaceResult.success && Array.isArray(marketplaceResult.data) && marketplaceResult.data.length > 0) {
             const listings: MarketplaceResult[] = marketplaceResult.data;
             const listingClusters: ScoutCluster[] = listings.slice(0, 3).map((l) => ({
@@ -1209,10 +1550,6 @@ export default function ScoutOS() {
           });
         }
 
-        const mergedMessage = isScriptedIntro
-          ? `${res.message}\n\n${firstIntroAppendix.trim()}`
-          : res.message;
-
         // Keep Scout's very first answer tight so it never feels
         // like a wall of text or gets visually "cut off" behind
         // navigation. This is a hard character cap, tuned for the
@@ -1223,10 +1560,15 @@ export default function ScoutOS() {
         // CRITICAL: Sanitize the message to remove any internal reasoning leakage
         const sanitized = sanitizeScoutMessage(res.message);
 
-        const enrichedContent =
-          prefilledDraft && typeof sanitized === "string"
-            ? `${sanitized}\n\nHere’s your pre-filled request (ready to send):\n${prefilledDraft}`
+        const disciplined =
+          typeof sanitized === "string"
+            ? enforceShortIntentDiscipline(value, sanitized, res.metadata?.intent)
             : sanitized;
+
+        const enrichedContent =
+          prefilledDraft && typeof disciplined === "string"
+            ? `${disciplined}\n\nHere’s your pre-filled request (ready to send):\n${prefilledDraft}`
+            : disciplined;
 
         const finalContent =
           isFirstAnswer && typeof enrichedContent === "string" && enrichedContent.length > MAX_FIRST_MESSAGE_CHARS
@@ -1508,7 +1850,7 @@ export default function ScoutOS() {
     queryKey: ["/api/saved-contractors"],
     queryFn: () => apiRequest("GET", "/api/saved-contractors"),
     // Only fetch if user is logged in
-    enabled: !!user,
+    enabled: !!user && countyCommitted,
     // Cache for 5 minutes (tiles don't need real-time updates)
     staleTime: 5 * 60 * 1000,
   });
@@ -1519,7 +1861,7 @@ export default function ScoutOS() {
   }>({
     queryKey: ["/api/dashboard", user?.id],
     queryFn: () => apiRequest("GET", "/api/dashboard"),
-    enabled: !!user?.id,
+    enabled: !!user?.id && countyCommitted,
     staleTime: 5 * 60 * 1000,
   });
 
@@ -1530,7 +1872,7 @@ export default function ScoutOS() {
     queryKey: ["/api/invoices", user?.id],
     queryFn: () => apiRequest("GET", "/api/invoices"),
     // Only fetch if user is logged in
-    enabled: !!user?.id,
+    enabled: !!user?.id && countyCommitted,
     // Cache for 5 minutes (tiles don't need real-time updates)
     staleTime: 5 * 60 * 1000,
   });

@@ -56,7 +56,7 @@ export default function OnboardingProfile() {
         throw new Error("Please add your name.");
       }
       if (!stateCode || !countyFips) {
-        throw new Error("Please choose where youre active locally.");
+        throw new Error("Please choose where you're active locally.");
       }
 
       const existingPrefs = ((user as any)?.preferences || {}) as Record<string, any>;
@@ -80,13 +80,13 @@ export default function OnboardingProfile() {
       }
       toast({
         title: "Profile updated",
-        description: "Youre all set. You can change this anytime in Settings.",
+        description: "You're all set. You won't be asked to update this again unless something important changes.",
       });
       navigate("/onboarding/intent");
     },
     onError: (error: any) => {
       toast({
-        title: "Couldnt save profile",
+        title: "Couldn't save profile",
         description: error?.message || "Please try again.",
         variant: "destructive",
       });
@@ -95,7 +95,7 @@ export default function OnboardingProfile() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (updateProfile.isLoading) return;
+    if (updateProfile.isPending) return;
     updateProfile.mutate();
   };
 
@@ -107,7 +107,7 @@ export default function OnboardingProfile() {
         <div className="space-y-6">
           <Button
             variant="ghost"
-            onClick={() => navigate("/")}
+            onClick={() => navigate("/scout")}
             className="flex items-center gap-2 text-tsTextMuted hover:text-white hover:bg-white/5 pl-0"
           >
             <span className="text-sm">Back to Scout</span>
@@ -118,7 +118,7 @@ export default function OnboardingProfile() {
               PROFILE UPDATE
             </div>
             <h1 className="text-3xl md:text-4xl font-semibold tracking-tight text-white">
-              Weve improved how profiles work.
+              We've improved how profiles work.
             </h1>
             <p className="text-sm md:text-base text-tsTextMuted max-w-xl">
               TradeScout now uses a simpler, more flexible profile setup that better reflects how people actually use the platform.
@@ -130,7 +130,7 @@ export default function OnboardingProfile() {
               <ul className="list-disc list-inside space-y-1">
                 <li>Confirm your name so people recognize you.</li>
                 <li>Set a single, trusted location for local activity.</li>
-                <li>Keep everything elsebadges, posts, jobs, and messagesexactly as-is.</li>
+                <li>Keep everything else - badges, posts, jobs, and messages - exactly as-is.</li>
               </ul>
             </div>
           </div>
@@ -185,8 +185,8 @@ export default function OnboardingProfile() {
                 <p className="text-[11px] text-tsTextMuted max-w-xs">
                   We only use this to power local feeds and matching. You can change it anytime in Settings.
                 </p>
-                <Button type="submit" size="sm" disabled={!canContinue || updateProfile.isLoading}>
-                  {updateProfile.isLoading ? "Saving..." : "Update profile"}
+                <Button type="submit" size="sm" disabled={!canContinue || updateProfile.isPending}>
+                  {updateProfile.isPending ? "Saving..." : "Update profile"}
                 </Button>
               </div>
             </form>
