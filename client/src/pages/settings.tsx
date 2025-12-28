@@ -715,8 +715,11 @@ export default function Settings() {
 
             {/* Roles Management */}
             <TabsContent value="roles">
-              <Card className="bg-[#1a2332] border-[#2d3748] shadow-xl">
-                <CardHeader className="border-b border-[#2d3748] pb-6">
+              <Card
+                className="border border-slate-700 shadow-xl"
+                style={{ backgroundColor: "var(--surface-card)" }}
+              >
+                <CardHeader className="border-b border-slate-700 pb-6">
                   <div className="flex items-center gap-3">
                     <div className="h-10 w-10 bg-orange-500/20 rounded-lg flex items-center justify-center">
                       <Briefcase className="w-5 h-5 text-orange-500" />

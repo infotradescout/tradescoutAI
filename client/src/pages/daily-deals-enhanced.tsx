@@ -211,7 +211,12 @@ export default function DailyDealsEnhanced() {
           {deals
             .filter((deal: DailyDeal) => selectedCategory === 'all' || deal.dealType === selectedCategory || (selectedCategory === 'featured' && deal.featured))
             .map((deal: DailyDeal) => (
-            <Card key={deal.id} className="bg-[#1a2332]/50 border-slate-600 hover:border-orange-500/50 transition-all duration-300 deal-card" data-testid={`deal-${deal.id}`}>
+            <Card
+              key={deal.id}
+              className="border-slate-600 hover:border-orange-500/50 transition-all duration-300 deal-card"
+              data-testid={`deal-${deal.id}`}
+              style={{ backgroundColor: "var(--surface-card)" }}
+            >
               <CardHeader className="pb-3">
                 <div className="flex items-start justify-between mb-2">
                   <Badge 

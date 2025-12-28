@@ -6,7 +6,7 @@
  * Copy this pattern when adding new tool-backed responses.
  */
 
-import { searchContractors, searchMarketplace, createNote, type ContractorResult, type MarketplaceResult } from "../agent/tools/scoutTools";
+import { searchContractors, searchMarketplace, type ContractorResult, type MarketplaceResult } from "../agent/tools/scoutTools";
 import type { ScoutAction, ScoutCluster, ScoutMessage, ScoutToolResult } from "./state";
 
 /**

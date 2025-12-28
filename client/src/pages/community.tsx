@@ -113,6 +113,32 @@ export default function Community() {
     },
   });
 
+  const createPostMutation = useMutation({
+    mutationFn: async (postData: { content: string; images?: string[]; category: string }) => {
+      return apiRequest('POST', '/api/community/posts', {
+        content: postData.content,
+        images: postData.images,
+        category: postData.category,
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/community/posts', stateCode, countyFips] });
+      setNewPostContent("");
+      setNewPostImages([]);
+      toast({
+        title: "Posted!",
+        description: "Your post has been published to your community feed.",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error?.message || 'Failed to create post',
+        variant: "destructive",
+      });
+    },
+  });
+
   // Map composer PostType to API category enum
   const mapPostTypeToCategory = (t: PostType): string => {
     switch (t) {

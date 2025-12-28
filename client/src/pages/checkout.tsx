@@ -195,7 +195,10 @@ const CheckoutForm = ({
         
         <CardContent className="space-y-6">
           {/* Payment Summary */}
-          <div className="bg-[#0f1419] dark:bg-[#1a2332] p-4 rounded-lg">
+          <div
+            className="p-4 rounded-lg"
+            style={{ backgroundColor: "var(--surface-card)" }}
+          >
             <div className="flex justify-between items-center">
               <span className="font-medium">Amount</span>
               <span className="text-xl font-bold">${amount.toFixed(2)}</span>
@@ -260,10 +263,14 @@ const CheckoutForm = ({
               <h4 className="font-medium">Available Payment Methods</h4>
               <div className="grid gap-3">
                 {paymentMethods.map((method: any) => (
-                  <div key={method.id} 
-                       className={`p-3 border rounded-lg cursor-pointer transition-colors ${
-                         method.recommended ? 'border-primary bg-primary/5' : 'border-[#2d3748] hover:bg-[#0f1419]'
-                       }`}>
+                  <div
+                    key={method.id}
+                    className={`p-3 border rounded-lg cursor-pointer transition-colors ${
+                      method.recommended
+                        ? 'border-primary bg-primary/5'
+                        : 'border-slate-700 hover:bg-slate-900'
+                    }`}
+                  >
                     <div className="flex justify-between items-start">
                       <div>
                         <div className="font-medium flex items-center gap-2">

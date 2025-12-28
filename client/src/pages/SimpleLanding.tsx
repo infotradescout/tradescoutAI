@@ -50,7 +50,7 @@ const SimpleLanding = memo(function SimpleLanding() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-900 text-white">
+    <div className="min-h-screen text-white" style={{ backgroundColor: 'var(--surface-app-bg)' }}>
       {/* Premium Hero Section */}
       <section className="relative min-h-screen flex items-center overflow-hidden">
         {/* Background Elements */}
@@ -59,18 +59,33 @@ const SimpleLanding = memo(function SimpleLanding() {
           <div className="absolute top-0 left-1/4 w-96 h-96 bg-orange-500/10 rounded-full blur-3xl"></div>
           <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl"></div>
           <div className="absolute inset-0 opacity-30">
-            <div className="absolute top-10 left-10 w-2 h-2 bg-[#0f1419] rounded-full"></div>
-            <div className="absolute top-20 left-32 w-1 h-1 bg-[#0f1419] rounded-full"></div>
-            <div className="absolute top-32 left-64 w-2 h-2 bg-[#0f1419] rounded-full"></div>
-            <div className="absolute top-48 left-24 w-1 h-1 bg-[#0f1419] rounded-full"></div>
-            <div className="absolute top-64 left-80 w-2 h-2 bg-[#0f1419] rounded-full"></div>
+            <div
+              className="absolute top-10 left-10 w-2 h-2 rounded-full"
+              style={{ backgroundColor: 'var(--surface-frame)' }}
+            ></div>
+            <div
+              className="absolute top-20 left-32 w-1 h-1 rounded-full"
+              style={{ backgroundColor: 'var(--surface-frame)' }}
+            ></div>
+            <div
+              className="absolute top-32 left-64 w-2 h-2 rounded-full"
+              style={{ backgroundColor: 'var(--surface-frame)' }}
+            ></div>
+            <div
+              className="absolute top-48 left-24 w-1 h-1 rounded-full"
+              style={{ backgroundColor: 'var(--surface-frame)' }}
+            ></div>
+            <div
+              className="absolute top-64 left-80 w-2 h-2 rounded-full"
+              style={{ backgroundColor: 'var(--surface-frame)' }}
+            ></div>
           </div>
         </div>
         
         <div className="container mx-auto px-6 relative z-10">
           <div className="max-w-5xl mx-auto text-center">
             {/* Trust Badge - Dynamic */}
-            <div className="inline-flex items-center gap-2 px-6 py-3 bg-[#0f1419]/5 backdrop-blur-sm border border-white/10 rounded-full text-sm font-medium mb-8 hover:bg-[#0f1419]/10 transition-all duration-300">
+            <div className="inline-flex items-center gap-2 px-6 py-3 bg-slate-900/5 backdrop-blur-sm border border-white/10 rounded-full text-sm font-medium mb-8 hover:bg-slate-900/10 transition-all duration-300">
               <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
               <span className="text-gray-300">
                 {statsLoading ? 'Loading...' : `Trusted by ${formatNumber(stats?.totalHomeowners || 0)}+ homeowners nationwide`}
@@ -404,7 +419,7 @@ const SimpleLanding = memo(function SimpleLanding() {
               
               <a 
                 href="/signup?type=homeowner"
-                className="group relative px-10 py-5 bg-[#0f1419]/5 backdrop-blur-sm border border-white/20 rounded-2xl font-bold text-white text-lg hover:bg-[#0f1419]/10 hover:border-white/30 transition-all duration-300 min-w-[280px] inline-block text-center"
+                className="group relative px-10 py-5 backdrop-blur-sm border border-white/20 rounded-2xl font-bold text-white text-lg hover:border-white/30 transition-all duration-300 min-w-[280px] inline-block text-center"
                 data-testid="button-schedule-consultation"
               >
                 <span className="flex items-center justify-center gap-3">

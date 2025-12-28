@@ -72,10 +72,16 @@ export default function Navigation() {
   const closeMobileMenu = () => setIsMobileMenuOpen(false);
 
   return (
-    <nav className={cn(
-      "bg-[#0a0f1e]/95 border-b border-[#1e293b] sticky top-0 z-50 backdrop-blur-md transition-all duration-300 pt-[env(safe-area-inset-top)]",
-      isScrolled && "bg-[#0b1120]/98 shadow-lg border-[#1e293b]/70"
-    )}>
+    <nav
+      className={cn(
+        "border-b sticky top-0 z-50 backdrop-blur-md transition-all duration-300 pt-[env(safe-area-inset-top)]",
+        isScrolled && "shadow-lg"
+      )}
+      style={{
+        backgroundColor: "var(--surface-frame)",
+        borderColor: "var(--surface-frame-border)",
+      }}
+    >
       <div className="max-w-7xl mx-auto px-3 sm:px-5 lg:px-8">
         <div className="flex justify-between items-center h-14">
           {/* Logo */}
@@ -242,7 +248,14 @@ export default function Navigation() {
                   Menu
                 </Button>
               </SheetTrigger>
-              <SheetContent side="right" className="bg-gradient-to-br from-[#0a0f1e] to-[#111827] border-[#1e293b] w-72">
+              <SheetContent
+                side="right"
+                className="border w-72"
+                style={{
+                  backgroundColor: "var(--surface-frame)",
+                  borderColor: "var(--surface-frame-border)",
+                }}
+              >
                 <div className="flex flex-col space-y-2 mt-8">
                   {/* Mobile Brand */}
                   <div className="flex items-center gap-3 px-3 pb-6 border-b border-navy-600">
@@ -397,7 +410,14 @@ export default function Navigation() {
                   <Menu className="h-6 w-6" />
                 </Button>
               </SheetTrigger>
-              <SheetContent side="right" className="bg-gradient-to-br from-[#0a0f1e] to-[#111827] border-[#1e293b] w-72">
+              <SheetContent
+                side="right"
+                className="border w-72"
+                style={{
+                  backgroundColor: "var(--surface-frame)",
+                  borderColor: "var(--surface-frame-border)",
+                }}
+              >
                 <div className="flex flex-col space-y-2 mt-8">
                   {/* Mobile Brand */}
                   <div className="flex items-center gap-3 px-3 pb-6 border-b border-navy-600">
@@ -471,7 +491,8 @@ export default function Navigation() {
                         <Link href="/saved-ads" onClick={closeMobileMenu}>
                           <Button 
                             variant="outline" 
-                            className="w-full justify-start border-[#1e293b] text-gray-200 hover:bg-[#1e293b] hover:text-white"
+                            className="w-full justify-start border text-gray-200 hover:bg-navy-900/60 hover:text-white"
+                            style={{ borderColor: "var(--surface-frame-border)" }}
                           >
                             <Bookmark className="h-4 w-4 mr-2" />
                             Saved Ads
@@ -481,7 +502,8 @@ export default function Navigation() {
                         <Link href="/profile" onClick={closeMobileMenu}>
                           <Button 
                             variant="outline" 
-                            className="w-full justify-start border-[#1e293b] text-gray-200 hover:bg-[#1e293b] hover:text-white"
+                            className="w-full justify-start border text-gray-200 hover:bg-navy-900/60 hover:text-white"
+                            style={{ borderColor: "var(--surface-frame-border)" }}
                           >
                             <User className="h-4 w-4 mr-2" />
                             My Profile
@@ -491,7 +513,8 @@ export default function Navigation() {
                         <Link href="/profile-settings" onClick={closeMobileMenu}>
                           <Button 
                             variant="outline" 
-                            className="w-full justify-start border-[#1e293b] text-gray-200 hover:bg-[#1e293b] hover:text-white"
+                            className="w-full justify-start border text-gray-200 hover:bg-navy-900/60 hover:text-white"
+                            style={{ borderColor: "var(--surface-frame-border)" }}
                           >
                             <Settings className="h-4 w-4 mr-2" />
                             Profile Settings

@@ -125,7 +125,10 @@ export default function Conversations() {
 
   if (!isAuthenticated) {
     return (
-      <div className="min-h-screen bg-[#0f1419] flex items-center justify-center">
+      <div
+        className="min-h-screen flex items-center justify-center"
+        style={{ backgroundColor: "var(--surface-app-bg)" }}
+      >
         <Card className="w-96">
           <CardContent className="p-6 text-center">
             <MessageCircle className="h-12 w-12 mx-auto mb-4 text-gray-400" />
@@ -143,7 +146,10 @@ export default function Conversations() {
   }
 
   return (
-    <div className="min-h-screen bg-[#0f1419]">
+    <div
+      className="min-h-screen"
+      style={{ backgroundColor: "var(--surface-app-bg)" }}
+    >
       <div className="max-w-7xl mx-auto p-4">
         <div className="mb-6">
           <h1 className="text-3xl font-bold text-orange-500 mb-2">
@@ -209,7 +215,7 @@ export default function Conversations() {
                           <div
                             key={conversation.id}
                             onClick={() => handleSelectConversation(conversation.id)}
-                            className={`p-4 cursor-pointer transition-colors border-b border-gray-100 dark:border-gray-800 hover:bg-[#0f1419] dark:hover:bg-[#1a2332] ${
+                            className={`p-4 cursor-pointer transition-colors border-b border-gray-100 dark:border-gray-800 hover:bg-slate-900 dark:hover:bg-navy-800 ${
                               selectedConversation === conversation.id 
                                 ? 'bg-orange-50 dark:bg-orange-900/20 border-orange-200 dark:border-orange-800' 
                                 : ''
@@ -269,7 +275,7 @@ export default function Conversations() {
           <div className="lg:col-span-2">
             {selectedConversation && selectedConversationData ? (
               <Card className="h-full flex flex-col">
-                <CardHeader className="border-b border-[#2d3748]">
+                <CardHeader className="border-b border-slate-700">
                   <div className="flex items-center gap-4">
                     <Button 
                       variant="ghost" 
@@ -353,7 +359,7 @@ export default function Conversations() {
                                 <div className={`inline-block p-3 rounded-lg ${
                                   isOwn 
                                     ? 'bg-orange-600 text-white' 
-                                    : 'bg-[#0f1419] dark:bg-[#1a2332] text-orange-500'
+                                    : 'bg-[color:var(--surface-card)] text-orange-500'
                                 }`}>
                                   <p className="text-sm">{message.content}</p>
                                 </div>
@@ -370,7 +376,7 @@ export default function Conversations() {
                 </CardContent>
 
                 {/* Message Input */}
-                <div className="border-t border-[#2d3748] p-4">
+                <div className="border-t border-slate-700 p-4">
                   <form onSubmit={handleSendMessage} className="flex gap-2">
                     <Input
                       value={newMessage}

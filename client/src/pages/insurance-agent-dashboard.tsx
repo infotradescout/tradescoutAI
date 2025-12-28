@@ -88,8 +88,8 @@ export default function InsuranceAgentDashboard() {
       case 'active': return 'bg-green-500';
       case 'pending': return 'bg-yellow-500';
       case 'expired': return 'bg-red-500';
-      case 'cancelled': return 'bg-[#0f1419]0';
-      default: return 'bg-[#0f1419]0';
+      case 'cancelled': return 'bg-slate-900/60';
+      default: return 'bg-slate-900/60';
     }
   };
 
@@ -98,7 +98,7 @@ export default function InsuranceAgentDashboard() {
       case 'low': return 'text-green-600 bg-green-100';
       case 'medium': return 'text-yellow-600 bg-yellow-100';
       case 'high': return 'text-red-600 bg-red-100';
-      default: return 'text-gray-600 bg-[#0f1419]';
+      default: return 'text-gray-600 bg-slate-900';
     }
   };
 

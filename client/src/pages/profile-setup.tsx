@@ -435,7 +435,7 @@ export default function ProfileSetup() {
                                 <FormLabel className="text-gray-300">License Number</FormLabel>
                                 <FormControl>
                                   <Input
-                                    placeholder="License #123456"
+                                    placeholder="Professional license ID"
                                     {...field}
                                     className="bg-navy-700 border-navy-600 text-white placeholder-gray-400"
                                   />

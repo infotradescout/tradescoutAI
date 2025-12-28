@@ -1203,15 +1203,15 @@ export default function Help() {
     const rolesArray: string[] = Array.isArray(u.roles) ? u.roles : [];
     const primary: string | undefined = (u as any).activeRole || u.role;
 
-    const prioritized: UserRole[] = [
+    const priorityOrder: UserRole[] = [
       "head_admin",
       "super_admin",
       "ops_admin",
       "moderator",
-      "community_leader",
-      "community_moderator",
-      "support_agent",
-    ].filter((role) => roleConfigs[role]);
+      "admin",
+    ];
+
+    const prioritized: UserRole[] = priorityOrder.filter((role) => roleConfigs[role]);
 
     for (const role of prioritized) {
       if ((primary && primary === role) || rolesArray.includes(role)) {
@@ -1285,7 +1285,7 @@ export default function Help() {
             <CardContent className="p-4 md:p-6">
               <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 md:gap-4">
                 <div className="flex items-center space-x-3 md:space-x-4">
-                  <div className="bg-[#0f1419]/20 rounded-lg p-2 md:p-3">
+                  <div className="rounded-lg p-2 md:p-3 bg-slate-900/40">
                     <roleConfig.icon className="h-7 w-7 md:h-8 md:w-8 text-white" />
                   </div>
                   <div>
@@ -1293,7 +1293,7 @@ export default function Help() {
                     <p className="text-sm md:text-base text-white/80">{roleConfig.description}</p>
                   </div>
                 </div>
-                <Badge className="self-start md:self-auto bg-[#0f1419]/20 text-white border-white/30 text-xs md:text-sm">
+                <Badge className="self-start md:self-auto bg-slate-900/40 text-white border-white/30 text-xs md:text-sm">
                   {filteredArticles.length} articles
                 </Badge>
               </div>

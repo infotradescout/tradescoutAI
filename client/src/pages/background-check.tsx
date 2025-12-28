@@ -80,7 +80,10 @@ const BackgroundCheck = memo(function BackgroundCheck() {
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-6">
+    <div
+      className="min-h-screen p-6"
+      style={{ backgroundColor: "var(--surface-app-bg)" }}
+    >
       <div className="max-w-6xl mx-auto">
         {/* Header */}
         <div className="mb-8">
@@ -91,7 +94,10 @@ const BackgroundCheck = memo(function BackgroundCheck() {
         </div>
 
         {/* Benefits Overview */}
-        <Card className="bg-[#1a2332]/50 border-slate-700 mb-8">
+        <Card
+          className="border-slate-700 mb-8"
+          style={{ backgroundColor: "var(--surface-card)" }}
+        >
           <CardHeader>
             <CardTitle className="text-white flex items-center gap-2">
               <Shield className="w-5 h-5 text-orange-500" />
@@ -120,7 +126,10 @@ const BackgroundCheck = memo(function BackgroundCheck() {
         </Card>
 
         {/* Package Selection */}
-        <Card className="bg-[#1a2332]/50 border-slate-700 mb-8">
+        <Card
+          className="border-slate-700 mb-8"
+          style={{ backgroundColor: "var(--surface-card)" }}
+        >
           <CardHeader>
             <CardTitle className="text-white">Choose Your Background Check Package</CardTitle>
             <CardDescription className="text-gray-400">
@@ -167,7 +176,10 @@ const BackgroundCheck = memo(function BackgroundCheck() {
                         : 'border-gray-400'
                     }`}>
                       {selectedPackage === pkg.id && (
-                        <div className="w-full h-full rounded-full bg-[#0f1419]"></div>
+                        <div
+                          className="w-full h-full rounded-full"
+                          style={{ backgroundColor: "var(--surface-frame)" }}
+                        ></div>
                       )}
                     </div>
                   </div>
@@ -178,7 +190,10 @@ const BackgroundCheck = memo(function BackgroundCheck() {
         </Card>
 
         {/* Personal Information Form */}
-        <Card className="bg-[#1a2332]/50 border-slate-700 mb-8">
+        <Card
+          className="border-slate-700 mb-8"
+          style={{ backgroundColor: "var(--surface-card)" }}
+        >
           <CardHeader>
             <CardTitle className="text-white">Personal Information</CardTitle>
             <CardDescription className="text-gray-400">
@@ -240,7 +255,10 @@ const BackgroundCheck = memo(function BackgroundCheck() {
         </Card>
 
         {/* Process Timeline */}
-        <Card className="bg-[#1a2332]/50 border-slate-700 mb-8">
+        <Card
+          className="border-slate-700 mb-8"
+          style={{ backgroundColor: "var(--surface-card)" }}
+        >
           <CardHeader>
             <CardTitle className="text-white">Verification Process</CardTitle>
             <CardDescription className="text-gray-400">
@@ -289,7 +307,10 @@ const BackgroundCheck = memo(function BackgroundCheck() {
         </Card>
 
         {/* Terms and Submit */}
-        <Card className="bg-[#1a2332]/50 border-slate-700">
+        <Card
+          className="border-slate-700"
+          style={{ backgroundColor: "var(--surface-card)" }}
+        >
           <CardContent className="pt-6">
             <div className="space-y-6">
               <div className="bg-yellow-600/10 border border-yellow-600/20 rounded-lg p-4">

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Link, useLocation } from "wouter";
 import { Plus, Share2, Eye, MousePointer, TrendingUp, Calendar, DollarSign, MapPin, Edit, Trash2 } from "lucide-react";
@@ -51,23 +51,36 @@ interface ContractorPromo {
   createdAt: string;
 }
 
-function PromoForm({ promo, onClose }: { promo?: ContractorPromo; onClose: () => void }) {
+function PromoForm({
+  promo,
+  onClose,
+  initialValues,
+  fromScoutDraft,
+}: {
+  promo?: ContractorPromo;
+  onClose: () => void;
+  initialValues?: Partial<PromoFormValues>;
+  fromScoutDraft?: boolean;
+}) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   
   const form = useForm<PromoFormValues>({
     resolver: zodResolver(promoFormSchema),
     defaultValues: {
-      title: promo?.title || "",
-      description: promo?.description || "",
-      offerDetails: promo?.offerDetails || "",
-      discountType: promo?.discountType as any || "percentage",
-      discountValue: promo?.discountValue || "",
-      minimumJobValue: promo?.minimumJobValue || "",
-      promoCode: promo?.promoCode || "",
-      maxUses: promo?.maxUses?.toString() || "",
-      expiresAt: promo?.expiresAt ? new Date(promo.expiresAt).toISOString().split('T')[0] : "",
-    }
+      title: initialValues?.title ?? promo?.title ?? "",
+      description: initialValues?.description ?? promo?.description ?? "",
+      offerDetails: initialValues?.offerDetails ?? promo?.offerDetails ?? "",
+      discountType:
+        (initialValues?.discountType as any) ?? (promo?.discountType as any) ?? "percentage",
+      discountValue: initialValues?.discountValue ?? promo?.discountValue ?? "",
+      minimumJobValue: initialValues?.minimumJobValue ?? promo?.minimumJobValue ?? "",
+      promoCode: initialValues?.promoCode ?? promo?.promoCode ?? "",
+      maxUses: initialValues?.maxUses ?? (promo?.maxUses?.toString() ?? ""),
+      expiresAt:
+        initialValues?.expiresAt ??
+        (promo?.expiresAt ? new Date(promo.expiresAt).toISOString().split("T")[0] : ""),
+    },
   });
 
   const createMutation = useMutation({
@@ -123,6 +136,18 @@ function PromoForm({ promo, onClose }: { promo?: ContractorPromo; onClose: () =>
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+        {fromScoutDraft && !promo && (
+          <div className="rounded-md border border-dashed border-orange-300 bg-tsCard px-3 py-2 text-sm text-gray-800 flex gap-2 items-start">
+            <span className="mt-0.5 h-2 w-2 rounded-full bg-orange-400" aria-hidden="true" />
+            <div>
+              <p className="font-medium text-gray-900">Draft imported from Scout</p>
+              <p className="text-xs text-gray-600">
+                Scout prefilled this promotion based on your request. Review the details and make any edits before publishing.
+              </p>
+            </div>
+          </div>
+        )}
+
         <FormField
           control={form.control}
           name="title"
@@ -483,6 +508,43 @@ function PromoCard({ promo }: { promo: ContractorPromo }) {
 
 export default function ContractorPromos() {
   const [showForm, setShowForm] = useState(false);
+  const [draftDefaults, setDraftDefaults] = useState<Partial<PromoFormValues> | null>(null);
+  const [fromScoutDraft, setFromScoutDraft] = useState(false);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    try {
+      const params = new URLSearchParams(window.location.search);
+      if (params.get("promoDraft") === "1") {
+        const title = params.get("title") ?? "";
+        const description = params.get("description") ?? "";
+        const offerDetails = params.get("offerDetails") ?? description;
+        const rawDiscountType = params.get("discountType") ?? undefined;
+        const discountValue = params.get("discountValue") ?? "";
+        const expiresAt = params.get("expiresAt") ?? "";
+
+        const discountType: PromoFormValues["discountType"] =
+          rawDiscountType === "fixed_amount" ||
+          rawDiscountType === "free_service" ||
+          rawDiscountType === "bundle_deal"
+            ? rawDiscountType
+            : "percentage";
+
+        setDraftDefaults({
+          title,
+          description,
+          offerDetails,
+          discountType,
+          discountValue,
+          expiresAt,
+        });
+        setFromScoutDraft(true);
+        setShowForm(true);
+      }
+    } catch {
+      // Ignore URL parsing errors; form will simply open empty.
+    }
+  }, []);
   
   const { data: promos = [], isLoading } = useQuery<ContractorPromo[]>({
     queryKey: ["/api/contractor-promos"],
@@ -524,7 +586,11 @@ export default function ContractorPromos() {
                   Create a shareable promotional offer that you can use for local marketing
                 </DialogDescription>
               </DialogHeader>
-              <PromoForm onClose={() => setShowForm(false)} />
+              <PromoForm
+                onClose={() => setShowForm(false)}
+                initialValues={draftDefaults ?? undefined}
+                fromScoutDraft={fromScoutDraft}
+              />
             </DialogContent>
           </Dialog>
         </div>

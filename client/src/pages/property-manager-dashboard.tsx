@@ -140,7 +140,7 @@ export default function PropertyManagerDashboard() {
       case 'partially_vacant': return 'bg-yellow-500';
       case 'maintenance_required': return 'bg-orange-500';
       case 'under_renovation': return 'bg-blue-500';
-      default: return 'bg-[#0f1419]0';
+      default: return 'bg-slate-900/60';
     }
   };
 
@@ -160,7 +160,7 @@ export default function PropertyManagerDashboard() {
       case 'high': return 'text-orange-600 bg-orange-100';
       case 'medium': return 'text-yellow-600 bg-yellow-100';
       case 'low': return 'text-green-600 bg-green-100';
-      default: return 'text-gray-600 bg-[#0f1419]';
+      default: return 'text-gray-600 bg-slate-900';
     }
   };
 

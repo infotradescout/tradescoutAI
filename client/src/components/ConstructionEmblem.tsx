@@ -341,8 +341,8 @@ export function ConstructionEmblem({ className = "" }: ConstructionEmblemProps) 
         }`}
         onClick={isGolden ? handleGoldenEmblemClick : undefined}
         style={{
-          color: isGolden ? '#FFD700' : '#F97316',
-          filter: isGolden ? 'drop-shadow(0 0 8px #FFD700)' : 'none'
+          color: isGolden ? 'var(--text-primary)' : 'var(--theme-accent-primary)',
+          filter: isGolden ? 'drop-shadow(0 0 8px var(--text-primary))' : 'none'
         }}
       >
         <EmblemComponent />

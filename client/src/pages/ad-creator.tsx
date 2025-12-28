@@ -62,7 +62,7 @@ const AdCreator = memo(function AdCreator() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-6">
+    <div className="min-h-screen p-6" style={{ backgroundColor: 'var(--surface-app-bg)' }}>
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="mb-8">
@@ -76,7 +76,10 @@ const AdCreator = memo(function AdCreator() {
           {/* Ad Creation Panel */}
           <div className="lg:col-span-2 space-y-6">
             <Tabs value={adType} onValueChange={setAdType}>
-              <TabsList className="grid w-full grid-cols-3 bg-[#1a2332]">
+              <TabsList
+                className="grid w-full grid-cols-3"
+                style={{ backgroundColor: 'var(--surface-card)' }}
+              >
                 <TabsTrigger value="social" className="data-[state=active]:bg-orange-600">Social Media</TabsTrigger>
                 <TabsTrigger value="display" className="data-[state=active]:bg-orange-600">Display Ads</TabsTrigger>
                 <TabsTrigger value="print" className="data-[state=active]:bg-orange-600">Print Materials</TabsTrigger>
@@ -84,7 +87,10 @@ const AdCreator = memo(function AdCreator() {
 
               <TabsContent value={adType} className="space-y-6">
                 {/* Ad Size Selection */}
-                <Card className="bg-[#1a2332]/50 border-slate-700">
+                <Card
+                  className="border-slate-700"
+                  style={{ backgroundColor: 'var(--surface-card)' }}
+                >
                   <CardHeader>
                     <CardTitle className="text-white">Choose Ad Size</CardTitle>
                     <CardDescription className="text-gray-400">
@@ -107,7 +113,10 @@ const AdCreator = memo(function AdCreator() {
                 </Card>
 
                 {/* Template Selection */}
-                <Card className="bg-[#1a2332]/50 border-slate-700">
+                <Card
+                  className="border-slate-700"
+                  style={{ backgroundColor: 'var(--surface-card)' }}
+                >
                   <CardHeader>
                     <CardTitle className="text-white flex items-center gap-2">
                       <Palette className="w-5 h-5 text-orange-500" />
@@ -139,7 +148,10 @@ const AdCreator = memo(function AdCreator() {
                 </Card>
 
                 {/* Content Input */}
-                <Card className="bg-[#1a2332]/50 border-slate-700">
+                <Card
+                  className="border-slate-700"
+                  style={{ backgroundColor: 'var(--surface-card)' }}
+                >
                   <CardHeader>
                     <CardTitle className="text-white flex items-center gap-2">
                       <Type className="w-5 h-5 text-orange-500" />
@@ -211,7 +223,10 @@ const AdCreator = memo(function AdCreator() {
                 </Card>
 
                 {/* AI Enhancement */}
-                <Card className="bg-[#1a2332]/50 border-slate-700">
+                <Card
+                  className="border-slate-700"
+                  style={{ backgroundColor: 'var(--surface-card)' }}
+                >
                   <CardHeader>
                     <CardTitle className="text-white flex items-center gap-2">
                       <Sparkles className="w-5 h-5 text-purple-500" />
@@ -248,7 +263,10 @@ const AdCreator = memo(function AdCreator() {
 
           {/* Preview Panel */}
           <div className="space-y-6">
-            <Card className="bg-[#1a2332]/50 border-slate-700">
+            <Card
+              className="border-slate-700"
+              style={{ backgroundColor: 'var(--surface-card)' }}
+            >
               <CardHeader>
                 <CardTitle className="text-white flex items-center gap-2">
                   <Eye className="w-5 h-5 text-orange-500" />
@@ -268,7 +286,11 @@ const AdCreator = memo(function AdCreator() {
                       <p className="text-blue-200 text-xs">Expert craftsmanship with guaranteed satisfaction...</p>
                     </div>
                     <div className="flex items-end justify-between">
-                      <Button size="sm" className="bg-[#0f1419] text-blue-600 hover:bg-blue-50">
+                      <Button
+                        size="sm"
+                        className="text-blue-600 hover:bg-blue-50"
+                        style={{ backgroundColor: 'var(--surface-frame)' }}
+                      >
                         Get Free Quote
                       </Button>
                       <p className="text-blue-100 text-xs">(555) 123-4567</p>
@@ -287,7 +309,10 @@ const AdCreator = memo(function AdCreator() {
             </Card>
 
             {/* Export Options */}
-            <Card className="bg-[#1a2332]/50 border-slate-700">
+            <Card
+              className="border-slate-700"
+              style={{ backgroundColor: 'var(--surface-card)' }}
+            >
               <CardHeader>
                 <CardTitle className="text-white">Export & Share</CardTitle>
                 <CardDescription className="text-gray-400">
@@ -313,7 +338,10 @@ const AdCreator = memo(function AdCreator() {
             </Card>
 
             {/* Performance Tips */}
-            <Card className="bg-[#1a2332]/50 border-slate-700">
+            <Card
+              className="border-slate-700"
+              style={{ backgroundColor: 'var(--surface-card)' }}
+            >
               <CardHeader>
                 <CardTitle className="text-white text-sm">Performance Tips</CardTitle>
               </CardHeader>

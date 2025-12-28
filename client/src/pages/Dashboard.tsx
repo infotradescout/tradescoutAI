@@ -51,7 +51,8 @@ const Dashboard = memo(function Dashboard() {
   // NOTE: This still gates the personalized dashboard experience,
   // but community-first users get a softer empty state.
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const anyGlobal: any = typeof workspace !== 'undefined' ? workspace : undefined;
+  const anyGlobal: any =
+    typeof (globalThis as any).workspace !== 'undefined' ? (globalThis as any).workspace : undefined;
   const workspaceId = anyGlobal?.id || (user as any)?.workspaceId || (user as any)?.businessId || null;
   const isAuthenticated = Boolean(user);
   const canLoadDashboard =

@@ -702,7 +702,7 @@ export function TaskCard({ task, onApply }: { task: Task; onApply: () => void })
       ? 'bg-green-500/20 text-green-400 border-green-500/50'
       : task.status === 'assigned'
         ? 'bg-blue-500/20 text-blue-400 border-blue-500/50'
-        : 'bg-[#0f1419]/20 text-gray-400 border-gray-500/50';
+        : 'bg-slate-900/20 text-gray-400 border-gray-500/50';
 
   const getPayDisplay = () => {
     if (task.payType === 'fixed') {

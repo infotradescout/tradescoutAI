@@ -139,7 +139,10 @@ export default function AddressVerification() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-[#0f1419] flex items-center justify-center">
+      <div
+        className="min-h-screen flex items-center justify-center"
+        style={{ backgroundColor: "var(--surface-app-bg)" }}
+      >
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
           <p className="text-gray-600 dark:text-gray-400">Loading verification status...</p>
@@ -151,7 +154,10 @@ export default function AddressVerification() {
   // Show verification status if already verified or has verification in progress
   if ((verificationStatus as any)?.isVerified) {
     return (
-      <div className="min-h-screen bg-[#0f1419] p-6">
+      <div
+        className="min-h-screen p-6"
+        style={{ backgroundColor: "var(--surface-app-bg)" }}
+      >
         <div className="max-w-2xl mx-auto">
           <Card>
             <CardHeader className="text-center">
@@ -176,7 +182,10 @@ export default function AddressVerification() {
   const isExpired = (verificationStatus as any)?.isExpired || false;
 
   return (
-    <div className="min-h-screen bg-[#0f1419] p-6">
+    <div
+      className="min-h-screen p-6"
+      style={{ backgroundColor: "var(--surface-app-bg)" }}
+    >
       <div className="max-w-4xl mx-auto">
         {/* Header */}
         <div className="text-center mb-8">
@@ -338,7 +347,10 @@ export default function AddressVerification() {
                     </div>
                   </div>
 
-                  <div className="flex items-start space-x-3 p-3 bg-[#0f1419] dark:bg-[#1a2332] rounded-lg">
+                  <div
+                    className="flex items-start space-x-3 p-3 rounded-lg"
+                    style={{ backgroundColor: "var(--surface-card)" }}
+                  >
                     <Upload className="w-5 h-5 text-gray-600 mt-1" />
                     <div>
                       <h4 className="font-medium text-gray-900 dark:text-gray-100">Document Upload</h4>

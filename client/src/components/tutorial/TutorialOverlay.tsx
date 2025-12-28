@@ -53,10 +53,10 @@ export function TutorialOverlay({
       left: ${rect.left - 8}px;
       width: ${rect.width + 16}px;
       height: ${rect.height + 16}px;
-      border: 3px solid #f97316;
+      border: 3px solid var(--theme-accent-primary);
       border-radius: 8px;
-      background: rgba(249, 115, 22, 0.1);
-      box-shadow: 0 0 20px rgba(249, 115, 22, 0.3);
+      background: color-mix(in srgb, var(--theme-accent-primary) 10%, transparent);
+      box-shadow: 0 0 20px color-mix(in srgb, var(--theme-accent-primary) 30%, transparent);
       pointer-events: none;
       z-index: 9998;
       animation: tutorialPulse 2s infinite;
@@ -66,8 +66,8 @@ export function TutorialOverlay({
     const style = document.createElement('style');
     style.textContent = `
       @keyframes tutorialPulse {
-        0%, 100% { box-shadow: 0 0 20px rgba(249, 115, 22, 0.3); }
-        50% { box-shadow: 0 0 30px rgba(249, 115, 22, 0.6); }
+        0%, 100% { box-shadow: 0 0 20px color-mix(in srgb, var(--theme-accent-primary) 30%, transparent); }
+        50% { box-shadow: 0 0 30px color-mix(in srgb, var(--theme-accent-primary) 60%, transparent); }
       }
     `;
     document.head.appendChild(style);

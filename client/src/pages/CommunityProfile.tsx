@@ -107,7 +107,13 @@ export default function CommunityProfile() {
     <CommunityShell sectionLabel="Community profile">
       <div className="max-w-4xl mx-auto space-y-6">
         {/* Header */}
-        <Card className="bg-[#0b1220] border border-[#1f2937]">
+        <Card
+          className="border"
+          style={{
+            backgroundColor: "var(--surface-card)",
+            borderColor: "var(--surface-frame-border)",
+          }}
+        >
           <CardHeader className="flex flex-row items-start gap-4">
             <Avatar className="h-14 w-14 ring-2 ring-orange-500/40">
               <AvatarImage src={author?.avatar || undefined} />
@@ -151,7 +157,13 @@ export default function CommunityProfile() {
         </Card>
 
         {/* Wall of posts */}
-        <Card className="bg-[#050816] border border-[#1f2937]">
+        <Card
+          className="border"
+          style={{
+            backgroundColor: "var(--surface-card)",
+            borderColor: "var(--surface-frame-border)",
+          }}
+        >
           <CardHeader>
             <CardTitle className="text-base text-slate-100">Community wall</CardTitle>
           </CardHeader>

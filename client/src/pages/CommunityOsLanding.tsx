@@ -65,7 +65,10 @@ export default function CommunityOsLanding() {
     <div className="space-y-6">
       <div className="relative overflow-hidden rounded-2xl border border-tsBorder bg-slate-950/70 shadow-2xl shadow-black/40 px-5 sm:px-8 py-8">
         <div className="absolute inset-0 pointer-events-none">
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_35%_30%,#0f1d3d,#020617_55%,#020617)] opacity-70" />
+          <div
+            className="absolute inset-0 opacity-70"
+            style={{ backgroundColor: "var(--surface-app-bg)" }}
+          />
           <div className="absolute top-1/3 left-1/4 w-80 h-80 bg-orange-500/15 blur-3xl" />
           <div className="absolute bottom-[-10%] right-1/4 w-96 h-96 bg-cyan-500/12 blur-3xl" />
         </div>
@@ -98,7 +101,8 @@ export default function CommunityOsLanding() {
                 <div className="flex flex-col gap-3">
                   <label className="text-xs uppercase tracking-[0.18em] text-tsTextMuted">Ask Scout</label>
                   <textarea
-                    className="w-full rounded-xl bg-[#0c1a33] border border-white/10 px-4 py-3 text-base text-white placeholder:text-white/55 focus:outline-none focus:ring-2 focus:ring-tsAccent/80 min-h-[96px]"
+                    className="w-full rounded-xl border border-white/10 px-4 py-3 text-base text-white placeholder:text-white/55 focus:outline-none focus:ring-2 focus:ring-tsAccent/80 min-h-[96px]"
+                    style={{ backgroundColor: "var(--surface-card)" }}
                     rows={3}
                     placeholder="Ask a question, find a pro, check local codes, or get advice..."
                     value={question}

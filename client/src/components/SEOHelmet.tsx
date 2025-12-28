@@ -51,7 +51,7 @@ export function SEOHelmet({
     updateMetaTag('twitter:site', '@TradeScout', 'name');
     
     // Additional SEO tags
-    updateMetaTag('theme-color', '#FF6B35', 'name');
+    updateMetaTag('theme-color', 'var(--theme-accent-primary)', 'name');
     updateMetaTag('apple-mobile-web-app-title', 'TradeScout', 'name');
     
     // Canonical link

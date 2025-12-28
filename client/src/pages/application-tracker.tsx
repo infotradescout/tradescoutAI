@@ -115,7 +115,7 @@ const ApplicationTracker = memo(function ApplicationTracker() {
       case 'under_review':
         return 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200';
       default:
-        return 'bg-[#0f1419] text-gray-800 dark:bg-gray-900 dark:text-gray-200';
+        return 'bg-slate-900 text-gray-800 dark:bg-gray-900 dark:text-gray-200';
     }
   };
 
@@ -126,7 +126,7 @@ const ApplicationTracker = memo(function ApplicationTracker() {
       case 'normal':
         return 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200';
       default:
-        return 'bg-[#0f1419] text-gray-800 dark:bg-gray-900 dark:text-gray-200';
+        return 'bg-slate-900 text-gray-800 dark:bg-gray-900 dark:text-gray-200';
     }
   };
 
