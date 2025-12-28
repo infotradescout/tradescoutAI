@@ -19,6 +19,7 @@ import communityVaultRouter from "./routes/community-vault-routes";
 import communityCausesRouter from "./routes/community-causes-routes";
 import platformSupportRouter from "./routes/platform-support-routes";
 import { ROLE_PERMISSIONS, type UserRole as SharedUserRole } from "../shared/roles";
+import { CURRENT_PROFILE_VERSION } from "../shared/profile";
 // DISABLED: WebSocketManager is not instantiated, using Socket.io messaging service instead
 // import { WebSocketManager } from "./websocket";
 import { getMessagingService } from "./messaging-service";
@@ -44,6 +45,8 @@ import {
   workers,
   tasks,
   taskApplications,
+  workRequests,
+  workRequestEvents,
   addressVerifications,
   insertRealtorProfileSchema,
   insertCarSalesmanProfileSchema,
@@ -435,6 +438,7 @@ export async function registerRoutes(app: any) {
       // county-level location. All UX prompts should key off this,
       // not off ad-hoc context checks.
       locationCommitted: hasCanonicalLocation,
+      profileVersion: typeof (user as any).profileVersion === "number" ? (user as any).profileVersion : 0,
       password: undefined,
     };
   };
@@ -938,6 +942,7 @@ export async function registerRoutes(app: any) {
         zipCode,
         county,
         onboardingCompleted: true,
+        profileVersion: CURRENT_PROFILE_VERSION,
       };
 
       // If capability bundles are provided, persist them and derive compatible roles
@@ -1067,15 +1072,6 @@ export async function registerRoutes(app: any) {
     }
   });
 
-  const COMMUNITY_FIRST_EMAILS = [
-    "traderscornerllc@gmail.com",
-  ];
-
-  const isCommunityFirstUser = (user: any | null | undefined) => {
-    if (!user?.email || typeof user.email !== "string") return false;
-    return COMMUNITY_FIRST_EMAILS.includes(user.email.toLowerCase());
-  };
-
   app.get("/api/auth/user", async (req: AuthedRequest, res: Response) => {
     try {
       const authDiagnostics = {
@@ -1144,10 +1140,12 @@ export async function registerRoutes(app: any) {
           return;
         }
       }
-  const finalUser = sanitizeUserForResponse(applyImpersonation(user));
-  const communityFirst = isCommunityFirstUser(finalUser);
 
-  res.json({ authenticated: true, user: { ...finalUser, communityFirst } });
+      const finalUser = sanitizeUserForResponse(applyImpersonation(user));
+      // Graduate pilot: community-first experience is now default for all authenticated users.
+      const communityFirst = true;
+
+      res.json({ authenticated: true, user: { ...finalUser, communityFirst } });
     } catch (error: any) {
       console.error("Error fetching auth user:", error);
       // Fail-soft: auth must never block the app shell.
@@ -1622,7 +1620,10 @@ export async function registerRoutes(app: any) {
         try {
           if (typeof (req as any).isAuthenticated === 'function' && (req as any).isAuthenticated() && (req as any).user) {
             const user = req.user as any;
-            const redirectTo = user?.onboardingCompleted === true ? '/dashboard' : '/create-account';
+            const anyUser: any = user || {};
+            const profileVersion: number = typeof anyUser.profileVersion === 'number' ? anyUser.profileVersion : 0;
+            const needsProfileNormalization = profileVersion < CURRENT_PROFILE_VERSION;
+            const redirectTo = needsProfileNormalization ? '/onboarding/profile' : '/';
             return res.redirect(redirectTo);
           }
         } catch {
@@ -1633,7 +1634,10 @@ export async function registerRoutes(app: any) {
       passport.authenticate('facebook', { failureRedirect: '/login' }),
       (req: Request, res: Response) => {
         const user = req.user as any;
-        const redirectTo = user?.onboardingCompleted === true ? '/dashboard' : '/create-account';
+        const anyUser: any = user || {};
+        const profileVersion: number = typeof anyUser.profileVersion === 'number' ? anyUser.profileVersion : 0;
+        const needsProfileNormalization = profileVersion < CURRENT_PROFILE_VERSION;
+        const redirectTo = needsProfileNormalization ? '/onboarding/profile' : '/';
         res.redirect(redirectTo);
       }
     );
@@ -1654,7 +1658,10 @@ export async function registerRoutes(app: any) {
         try {
           if (typeof (req as any).isAuthenticated === 'function' && (req as any).isAuthenticated() && (req as any).user) {
             const user = req.user as any;
-            const redirectTo = user?.onboardingCompleted === true ? '/dashboard' : '/create-account';
+            const anyUser: any = user || {};
+            const profileVersion: number = typeof anyUser.profileVersion === 'number' ? anyUser.profileVersion : 0;
+            const needsProfileNormalization = profileVersion < CURRENT_PROFILE_VERSION;
+            const redirectTo = needsProfileNormalization ? '/onboarding/profile' : '/';
             return res.redirect(redirectTo);
           }
         } catch {
@@ -1668,7 +1675,10 @@ export async function registerRoutes(app: any) {
       }),
       (req: Request, res: Response) => {
         const user = req.user as any;
-        const redirectTo = user?.onboardingCompleted === true ? '/dashboard' : '/create-account';
+        const anyUser: any = user || {};
+        const profileVersion: number = typeof anyUser.profileVersion === 'number' ? anyUser.profileVersion : 0;
+        const needsProfileNormalization = profileVersion < CURRENT_PROFILE_VERSION;
+        const redirectTo = needsProfileNormalization ? '/onboarding/profile' : '/';
         res.redirect(redirectTo);
       }
     );
@@ -1829,6 +1839,9 @@ export async function registerRoutes(app: any) {
 
         preferences,
         profileImageUrl: normalizedProfileImageUrl,
+        // Any successful profile update via this endpoint means the user is
+        // now on the current profile schema/version.
+        profileVersion: CURRENT_PROFILE_VERSION,
         updatedAt: new Date(),
       });
 
@@ -1843,6 +1856,9 @@ export async function registerRoutes(app: any) {
     try {
       const user = await storage.updateUser((req.user as any)?.id || (req.user as any)?.claims?.sub, {
         onboardingCompleted: true,
+        // Any explicit onboarding completion should also advance
+        // the profile version so that profile gates remain consistent.
+        profileVersion: CURRENT_PROFILE_VERSION,
         updatedAt: new Date(),
       });
       res.json(sanitizeUserForResponse(user));
@@ -3022,7 +3038,6 @@ export async function registerRoutes(app: any) {
 
       const filters: any = {
         limit: parseInt(limit as string),
-        sortBy: 'rating', // Sort by highest rated contractors
       };
 
       // Get county by FIPS code
@@ -3037,8 +3052,124 @@ export async function registerRoutes(app: any) {
         filters.tradeIds = [tradeRecord.id];
       }
 
+      // Base contractor set (county + trade filtered)
       const contractors = await storage.getContractors(filters);
-      res.json(contractors);
+
+      if (!contractors.length) {
+        return res.json([]);
+      }
+
+      const contractorIds = contractors.map((c: any) => c.id);
+      const userIds = contractors
+        .map((c: any) => c.userId as string | undefined)
+        .filter((id): id is string => Boolean(id));
+
+      // Compliance gate: only apply if this trade has explicit requirements
+      let gatedContractors = contractors;
+      if (tradeRecord) {
+          const requirements = await storage.getTradeRequirementsByTradeId(tradeRecord.id);
+        if (requirements && userIds.length > 0) {
+          const compliance = await storage.getUserVerificationSummary(userIds);
+
+          const requiresLicense = requirements.requiresLicense ?? false;
+          const requiresInsurance = requirements.requiresInsurance ?? false;
+          const requiresEin = requirements.requiresEin ?? false;
+
+          const compliantIds = contractors.filter((c: any) => {
+            if (!c.userId) return false;
+            const summary = compliance[c.userId];
+            if (!summary) return false;
+            if (requiresLicense && !summary.hasLicense) return false;
+            if (requiresInsurance && !summary.hasInsurance) return false;
+            if (requiresEin && !summary.hasEin) return false;
+            return true;
+          }).map((c: any) => c.id as string);
+
+          // Only enforce the gate if at least one compliant provider exists;
+          // otherwise, fall back to the full set so we never return zero
+          if (compliantIds.length > 0) {
+            gatedContractors = contractors.filter((c: any) => compliantIds.includes(c.id));
+          }
+        }
+      }
+
+      if (!gatedContractors.length) {
+        return res.json([]);
+      }
+
+      // Reach tier classification based on service area size
+      const serviceAreaCounts = await storage.getContractorServiceAreaCounts(
+        gatedContractors.map((c: any) => c.id),
+      );
+
+      const tierForCount = (count: number | undefined): 'local' | 'regional' | 'wide' => {
+        const n = count ?? 0;
+        if (n <= 1) return 'local';
+        if (n <= 5) return 'regional';
+        return 'wide';
+      };
+
+      // Local credibility stats derived from the XP/events system
+      const enriched = await Promise.all(
+        gatedContractors.map(async (contractor: any) => {
+          const stats = contractor.userId
+            ? await storage.getUserCredibilityStats(contractor.userId)
+            : { jobsCompleted: 0, peopleHelped: 0, activeWeeks: 0 };
+
+          const countyCount = serviceAreaCounts[contractor.id] ?? 0;
+          const reachTier = tierForCount(countyCount);
+
+          const localCredibilityScore =
+            (stats.jobsCompleted ?? 0) * 3 +
+            (stats.peopleHelped ?? 0) * 2 +
+            (stats.activeWeeks ?? 0);
+
+          let presenceLabel: string;
+          if (reachTier === 'local') {
+            presenceLabel = 'Local provider';
+          } else if (reachTier === 'regional') {
+            presenceLabel = 'Regional provider';
+          } else {
+            presenceLabel = 'Serves this area · building local presence';
+          }
+
+          return {
+            id: contractor.id,
+            businessName: contractor.companyName,
+            name: null,
+            rating: null,
+            reviewCount: contractor.totalRecommendations ?? 0,
+            recommendationCount: contractor.positiveRecommendations ?? 0,
+            trades: [],
+            county: countyRecord?.name ?? null,
+            state: countyRecord?.stateCode ?? null,
+            licenseNumber: contractor.licenseNumber,
+            reachTier,
+            localCredibilityScore,
+            localStats: stats,
+            presenceLabel,
+          };
+        }),
+      );
+
+      // Rank: prioritize local over regional over wide, then by credibility
+      const tierRank: Record<'local' | 'regional' | 'wide', number> = {
+        local: 0,
+        regional: 1,
+        wide: 2,
+      };
+
+      enriched.sort((a, b) => {
+        const aTier = tierRank[a.reachTier] ?? 2;
+        const bTier = tierRank[b.reachTier] ?? 2;
+        if (aTier !== bTier) return aTier - bTier;
+        const aScore = a.localCredibilityScore ?? 0;
+        const bScore = b.localCredibilityScore ?? 0;
+        return bScore - aScore;
+      });
+
+      const limited = enriched.slice(0, filters.limit || 3);
+      res.json(limited);
     } catch (error: any) {
       console.error("Error fetching top contractors:", error);
       res.status(500).json({ message: "Failed to fetch top contractors" });
@@ -6018,6 +6149,120 @@ export async function registerRoutes(app: any) {
     }
   });
 
+  // Work Requests - canonical work hub for requesters
+  app.get("/api/work-requests", isAuthenticated, async (req: any, res: any) => {
+    try {
+      const userId = (req.user as any)?.id || req.user?.claims?.sub;
+      if (!userId) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+
+      const statusRaw = typeof req.query?.status === "string" ? req.query.status : "";
+      const status = statusRaw.trim();
+
+      const filters: any[] = [eq(workRequests.createdByUserId, String(userId))];
+      if (status) {
+        filters.push(eq(workRequests.status, status));
+      }
+
+      const whereClause = filters.length === 1 ? filters[0] : and(...filters);
+
+      const rows = await db
+        .select()
+        .from(workRequests)
+        .where(whereClause)
+        .orderBy(desc(workRequests.createdAt));
+
+      res.json(rows);
+    } catch (error: any) {
+      console.error("Error fetching work requests:", error);
+      res.status(500).json({ message: error?.message || "Failed to fetch work requests" });
+    }
+  });
+
+  app.post("/api/work-requests", isAuthenticated, async (req: any, res: any) => {
+    try {
+      const userId = (req.user as any)?.id || req.user?.claims?.sub;
+      if (!userId) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+
+      const body = req.body ?? {};
+      const title = typeof body.title === "string" ? body.title.trim() : "";
+      const description = typeof body.description === "string" ? body.description.trim() : "";
+      const category = typeof body.category === "string" ? body.category.trim() : undefined;
+
+      const budgetMinNumber = body.budgetMin != null ? Number(body.budgetMin) : NaN;
+      const budgetMaxNumber = body.budgetMax != null ? Number(body.budgetMax) : NaN;
+
+      if (!title || !description) {
+        return res.status(400).json({ message: "title and description are required" });
+      }
+
+      let budgetMin: string | undefined;
+      let budgetMax: string | undefined;
+      if (Number.isFinite(budgetMinNumber) && budgetMinNumber > 0) {
+        budgetMin = String(budgetMinNumber);
+      }
+      if (Number.isFinite(budgetMaxNumber) && budgetMaxNumber > 0) {
+        budgetMax = String(budgetMaxNumber);
+      }
+
+      // Use canonical location from the user where available
+      let countyFips: string | undefined;
+      let stateCode: string | undefined;
+      try {
+        const viewer = await storage.getUser(String(userId));
+        if (viewer) {
+          const vState = (viewer as any).stateCode || (viewer as any).state_code;
+          const vCounty = (viewer as any).countyFips || (viewer as any).county_fips;
+          if (typeof vState === "string" && vState.length === 2) stateCode = vState;
+          if (typeof vCounty === "string" && vCounty.length > 0) countyFips = vCounty;
+        }
+      } catch (e) {
+        console.warn("Failed to load user for work request location; continuing without canonical geo", e);
+      }
+
+      const [created] = await db
+        .insert(workRequests)
+        .values({
+          createdByUserId: String(userId),
+          title,
+          description,
+          category,
+          countyFips,
+          stateCode,
+          scope: "community",
+          source: "tasks",
+          status: "open",
+          visibility: "community",
+          exposureMode: "guided",
+          competitionMode: "none",
+          budgetMin,
+          budgetMax,
+        })
+        .returning();
+
+      if (created) {
+        try {
+          await db.insert(workRequestEvents).values({
+            workRequestId: created.id,
+            type: "created",
+            actorUserId: String(userId),
+            metadata: { source: "tasks" },
+          });
+        } catch (e) {
+          console.warn("Failed to record work request created event", e);
+        }
+      }
+
+      res.status(201).json(created ?? null);
+    } catch (error: any) {
+      console.error("Error creating work request:", error);
+      res.status(500).json({ message: error?.message || "Failed to create work request" });
+    }
+  });
+
   app.get("/api/task-categories", async (req: any, res: any) => {
     try {
       const { TASK_CATEGORIES } = await import("@shared/task-categories");
@@ -8356,6 +8601,99 @@ export async function registerRoutes(app: any) {
     } catch (error: any) {
       console.error("Error creating comment:", error);
       res.status(500).json({ message: "Failed to create comment" });
+    }
+  });
+
+  // Community → Work Board: create or return an idempotent Work Request for a post
+  app.post("/api/community/posts/:id/send-to-board", isAuthenticated, requireOnboardingComplete, async (req: any, res: any) => {
+    try {
+      const userId = (req.user as any)?.id || (req.user as any)?.claims?.sub;
+      const { id: postId } = req.params;
+
+      if (!userId) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+
+      const post = await storage.getCommunityPost(postId);
+      if (!post) {
+        return res.status(404).json({ message: "Post not found" });
+      }
+
+      if (post.authorId !== String(userId)) {
+        return res.status(403).json({ message: "Only the original author can send a post to the Work Board" });
+      }
+
+      // Idempotency: if a Work Request already exists for this post, return it.
+      const [existing] = await db
+        .select()
+        .from(workRequests)
+        .where(and(eq(workRequests.source, "community"), eq(workRequests.sourceRefId, String(postId))));
+
+      if (existing) {
+        return res.json(existing);
+      }
+
+      const title = (post as any).title && String((post as any).title).trim().length > 0
+        ? String((post as any).title).trim()
+        : "Work request from community post";
+
+      const description = String((post as any).content || "").trim();
+      if (!description) {
+        return res.status(400).json({ message: "Post must have content to create a Work Request" });
+      }
+
+      const stateCode = typeof (post as any).stateCode === "string" && (post as any).stateCode.length === 2
+        ? (post as any).stateCode
+        : undefined;
+      const countyFips = typeof (post as any).countyFips === "string" && (post as any).countyFips.length > 0
+        ? (post as any).countyFips
+        : undefined;
+
+      const category = typeof (post as any).category === "string" && (post as any).category.trim().length > 0
+        ? (post as any).category.trim()
+        : undefined;
+
+      const [created] = await db
+        .insert(workRequests)
+        .values({
+          createdByUserId: String(userId),
+          title,
+          description,
+          category,
+          countyFips,
+          stateCode,
+          scope: "community",
+          source: "community",
+          sourceRefId: String(postId),
+          status: "open",
+          visibility: "community",
+          exposureMode: "guided",
+          competitionMode: "none",
+        })
+        .returning();
+
+      if (created) {
+        try {
+          await db.insert(workRequestEvents).values({
+            workRequestId: created.id,
+            type: "sent_to_board",
+            actorUserId: String(userId),
+            fromStatus: null,
+            toStatus: "open",
+            metadata: {
+              source: "community",
+              postId: String(postId),
+            },
+          });
+        } catch (e) {
+          console.warn("Failed to record work request sent_to_board event", e);
+        }
+      }
+
+      res.status(201).json(created ?? null);
+    } catch (error: any) {
+      console.error("Error sending community post to Work Board:", error);
+      res.status(500).json({ message: error?.message || "Failed to send post to Work Board" });
     }
   });
 

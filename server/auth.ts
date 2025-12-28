@@ -10,6 +10,7 @@ import { storage } from "./storage";
 import type { User } from "@shared/schema";
 import { getRolePermissions, getRoleHierarchyLevel, canUserPerformAction } from "@shared/roles";
 import type { UserRole } from "@shared/roles";
+import { CURRENT_PROFILE_VERSION } from "../shared/profile";
 
 // Configure session
 export function getSession() {
@@ -203,17 +204,21 @@ export const isAuthenticated: RequestHandler = (req, res, next) => {
   res.status(401).json({ message: "Authentication required" });
 };
 
-// Onboarding completion guard: blocks "real" participation until onboarding is finished.
+// Onboarding completion guard: blocks "real" participation until profile basics
+// have been normalized onto the current profile schema.
 export const requireOnboardingComplete: RequestHandler = (req, res, next) => {
   const user = req.user as User | undefined;
 
-  if (user && (user as any).onboardingCompleted === true) {
+  const anyUser: any = user || {};
+  const profileVersion: number = typeof anyUser.profileVersion === "number" ? anyUser.profileVersion : 0;
+
+  if (user && (anyUser.onboardingCompleted === true || profileVersion >= CURRENT_PROFILE_VERSION)) {
     return next();
   }
 
   return res.status(403).json({
     code: "ONBOARDING_REQUIRED",
-    redirect: "/create-account",
+    redirect: "/onboarding/profile",
   });
 };
 

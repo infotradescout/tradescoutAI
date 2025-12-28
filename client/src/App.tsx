@@ -23,6 +23,7 @@ import ScoutLanding from './pages/ScoutLanding';
 import SimpleMobileGestures from './components/SimpleMobileGestures';
 import SimpleSubtleHints from './components/onboarding/SimpleSubtleHints';
 import SimpleBugReportTool from './components/SimpleBugReportTool';
+import { CURRENT_PROFILE_VERSION } from '@shared/profile';
 import SimpleFloatingHelp from './components/ui/simple-floating-help';
 import ComingSoon from './pages/coming-soon';
 
@@ -39,6 +40,28 @@ const RedirectTo = memo(function RedirectTo({ to }: { to: string }) {
   useEffect(() => {
     if (location !== to) navigate(to);
   }, [location, navigate, to]);
+
+  return null;
+});
+
+// Root landing router: send non-admins into CommunityOS, admins to dashboard.
+const RootLanding = memo(function RootLanding() {
+  const { user, isAuthenticated } = useAuth();
+  const [location, navigate] = useLocation();
+
+  useEffect(() => {
+    // Avoid redirect loops if we're already off root.
+    if (location !== "/") return;
+
+    const anyUser: any = user;
+    const isAdmin = !!(anyUser?.isAdmin || (Array.isArray(anyUser?.roles) && anyUser.roles.some((r: string) => r.includes('admin'))));
+
+    if (isAdmin && isAuthenticated) {
+      navigate('/dashboard');
+    } else {
+      navigate('/community-feed');
+    }
+  }, [user, isAuthenticated, location, navigate]);
 
   return null;
 });
@@ -62,6 +85,8 @@ const AddressVerification = React.lazy(() => import('./pages/address-verificatio
 const Register = React.lazy(() => import('./pages/register'));
 const Signup = React.lazy(() => import('./pages/signup'));
 const CreateAccount = React.lazy(() => import('./pages/create-account'));
+const OnboardingProfile = React.lazy(() => import('./pages/onboarding-profile'));
+const OnboardingIntent = React.lazy(() => import('./pages/onboarding-intent'));
 
 // Contractor Features
 const ContractorApply = React.lazy(() => import('./pages/contractor-apply'));
@@ -332,7 +357,9 @@ const AppLayout = memo(function AppLayout() {
       return [];
     })();
 
-    const hasCompletedProfileBasics = !!(user && (user as any).onboardingCompleted);
+    const anyUser: any = user || {};
+    const profileVersion: number = typeof anyUser.profileVersion === 'number' ? anyUser.profileVersion : 0;
+    const hasCompletedProfileBasics = profileVersion >= CURRENT_PROFILE_VERSION || !!anyUser.onboardingCompleted;
 
     trackShellEvent({
       type: 'identity_session',
@@ -345,6 +372,32 @@ const AppLayout = memo(function AppLayout() {
 
     sessionStorage.setItem(flagKey, '1');
   }, [location, isLoading, user, isAuthenticated]);
+
+  // Profile reset gate: if a signed-in user has an older profileVersion,
+  // softly but consistently route them through the updated profile basics
+  // before allowing normal navigation.
+  useEffect(() => {
+    if (!isAuthenticated || !user) return;
+
+    // Don't interfere with auth/onboarding entry points themselves.
+    if (
+      location.startsWith('/login') ||
+      location.startsWith('/register') ||
+      location.startsWith('/signup') ||
+      location.startsWith('/create-account') ||
+      location.startsWith('/onboarding/profile') ||
+      location.startsWith('/onboarding/intent')
+    ) {
+      return;
+    }
+
+    const anyUser: any = user;
+    const profileVersion: number = typeof anyUser.profileVersion === 'number' ? anyUser.profileVersion : 0;
+
+    if (profileVersion < CURRENT_PROFILE_VERSION) {
+      setLocation('/onboarding/profile');
+    }
+  }, [isAuthenticated, user, location, setLocation]);
 
   // Back-compat: older Scout links were encoded as '/?prompt=...'
   useEffect(() => {
@@ -443,8 +496,9 @@ const AppLayout = memo(function AppLayout() {
             ) : (
               <AppShell>
                 <Switch>
-                  {/* Scout OS: primary AI controller surface and landing page */}
-                  <Route path="/" component={ScoutOS} />
+                  {/* Root: resolve to CommunityOS for most users, dashboard for admins */}
+                  <Route path="/" component={RootLanding} />
+                  {/* Scout OS: primary AI controller surface */}
                   <Route path="/scout" component={ScoutOS} />
                   {/* Home routes */}
                   <Route path="/home" component={SmartHome} />
@@ -478,6 +532,8 @@ const AppLayout = memo(function AppLayout() {
                   </Route>
                   <Route path="/signup"><LazyPage Component={Signup} /></Route>
                   <Route path="/create-account"><LazyPage Component={CreateAccount} /></Route>
+                  <Route path="/onboarding/profile"><LazyPage Component={OnboardingProfile} /></Route>
+                  <Route path="/onboarding/intent"><LazyPage Component={OnboardingIntent} /></Route>
 
                   {/* Legacy auth URLs: redirect old /auth/* paths to current routes */}
                   <Route path="/auth/login">
@@ -491,7 +547,7 @@ const AppLayout = memo(function AppLayout() {
 
                   {/* Legacy guard: hard-redirect any old profile setup links into the canonical account setup portal */}
                   <Route path="/profile-setup">
-                    <RedirectTo to="/create-account" />
+                    <RedirectTo to="/onboarding/profile" />
                   </Route>
                   
                   {/* Core pages */}

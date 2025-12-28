@@ -39,12 +39,21 @@ export function LocalImpactCard({ className }: LocalImpactCardProps) {
       return res.json();
     },
   });
+  const locationLabel = (() => {
+    // If the user has not committed a canonical location yet, keep the
+    // copy consistent with the standard county gate.
+    if (!(user as any)?.locationCommitted) {
+      return 'Set your county';
+    }
 
-  const locationLabel = data?.countyName && data?.stateCode
-    ? `${data.countyName}, ${data.stateCode}`
-    : user?.county && user?.state
-      ? `${user.county}, ${user.state}`
-      : 'Set your location';
+    if (data?.countyName && data?.stateCode) {
+      return `${data.countyName}, ${data.stateCode}`;
+    }
+
+    // Fallback: if the API has not yet populated a summary row, avoid
+    // showing legacy city/state strings and instead keep the label neutral.
+    return 'Your local impact';
+  })();
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('en-US', {

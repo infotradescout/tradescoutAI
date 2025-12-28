@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -54,6 +55,8 @@ export interface CommunityPostCardData {
   comments?: number;
   tags?: string[];
   imageUrls?: string[];
+  hasWorkRequest?: boolean;
+  workRequestId?: string | null;
 }
 
 export interface CommunityPostCardProps {
@@ -127,7 +130,19 @@ export function CommunityPostCard({ post, onLike, formatTimeAgo }: CommunityPost
   const { toast } = useToast();
   const { user, isAuthenticated } = useAuth();
   const [, navigate] = useLocation();
-  const isAuthor = !!user && !!post.author?.id && post.author.id === user.id;
+  const isAuthor = !!user && !!post.author?.id && String(post.author.id) === String((user as any).id);
+  const initialWorkBoardState = (() => {
+    if (post.workRequestId) {
+      return { sent: true, workRequestId: String(post.workRequestId) };
+    }
+    if (post.hasWorkRequest) {
+      return { sent: true, workRequestId: undefined };
+    }
+    return { sent: false, workRequestId: undefined };
+  })();
+  const [workBoardInfo, setWorkBoardInfo] = useState<{ sent: boolean; workRequestId?: string }>(
+    initialWorkBoardState,
+  );
   const role = (user as any)?.role as string | undefined;
   const canModerate = !!user && (
     (user as any)?.isAdmin === true ||
@@ -230,6 +245,24 @@ export function CommunityPostCard({ post, onLike, formatTimeAgo }: CommunityPost
       toast({
         title: "Unable to remove post",
         description: error?.message || "Something went wrong while removing the post.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleSendToWorkBoard = async () => {
+    if (!isAuthor || workBoardInfo.sent) return;
+    try {
+      const workRequest = await apiRequest("POST", `/api/community/posts/${post.id}/send-to-board`);
+      setWorkBoardInfo({
+        sent: true,
+        workRequestId: workRequest?.id ? String(workRequest.id) : workBoardInfo.workRequestId,
+      });
+      return workRequest;
+    } catch (error: any) {
+      toast({
+        title: "Unable to send to Work Board",
+        description: error?.message || "Please try again.",
         variant: "destructive",
       });
     }
@@ -384,7 +417,39 @@ export function CommunityPostCard({ post, onLike, formatTimeAgo }: CommunityPost
                   Open Messages with this neighbor
                 </DropdownMenuItem>
               )}
-              {canOpenMessages && <DropdownMenuSeparator />}
+                {canOpenMessages && <DropdownMenuSeparator />}
+                {isAuthor && (
+                  <>
+                    {!workBoardInfo.sent ? (
+                      <DropdownMenuItem onClick={handleSendToWorkBoard}>
+                        <Hammer className="w-3.5 h-3.5 mr-2" />
+                        Send to Work Board
+                      </DropdownMenuItem>
+                    ) : (
+                      <>
+                        <DropdownMenuItem disabled>
+                          <Hammer className="w-3.5 h-3.5 mr-2 text-emerald-400" />
+                          <span className="text-emerald-300">
+                          
+                          
+                          
+                          
+                          
+                          
+                          
+                          
+                            ✓ On Work Board
+                          </span>
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => navigate("/tasks")}>
+                          <Hammer className="w-3.5 h-3.5 mr-2" />
+                          View Work Board
+                        </DropdownMenuItem>
+                      </>
+                    )}
+                    {canModerate && <DropdownMenuSeparator />}
+                  </>
+                )}
               {canModerate && (
                 <>
                   <DropdownMenuItem onClick={handleTogglePin}>

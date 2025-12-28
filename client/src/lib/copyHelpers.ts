@@ -11,24 +11,39 @@ export function sanitizeAreaLabel(input: string): string {
 }
 
 export function getUserLocationLabel(user: User | null | undefined): string {
-  if (!user) return "your area";
+  if (!user) return "Your area";
 
-  const zip = (user as any)?.zipCode || (user as any)?.zipcode || (user as any)?.postalCode;
+  const u: any = user;
+  const canonicalCountyName = u.countyName;
+  const canonicalStateCode = u.stateCode;
 
-  if (user.city && user.state && zip) return `${user.city}, ${user.state} ${zip}`;
-  if (user.city && user.state) return `${user.city}, ${user.state}`;
-  if (user.city) return user.city;
+  // If the user has committed a canonical county, always prefer that label.
+  if (u.locationCommitted && canonicalCountyName && canonicalStateCode) {
+    return `${sanitizeAreaLabel(String(canonicalCountyName))}, ${canonicalStateCode}`;
+  }
 
-  if ((user as any).location) return String((user as any).location);
+  // Even if not fully committed, prefer canonical county/state when available.
+  if (canonicalCountyName && canonicalStateCode) {
+    return `${sanitizeAreaLabel(String(canonicalCountyName))}, ${canonicalStateCode}`;
+  }
 
-  if (user.county && user.state && zip)
-    return `${sanitizeAreaLabel(String(user.county))}, ${user.state} ${zip}`;
-  if (user.county && user.state)
-    return `${sanitizeAreaLabel(String(user.county))}, ${user.state}`;
-  if (user.county) return sanitizeAreaLabel(String(user.county));
+  const zip = u.zipCode || u.zipcode || u.postalCode;
 
-  if (user.state) return String(user.state);
-  return "your area";
+  if (u.city && u.state && zip) return `${u.city}, ${u.state} ${zip}`;
+  if (u.city && u.state) return `${u.city}, ${u.state}`;
+  if (u.city) return u.city;
+
+  if (u.location) return String(u.location);
+
+  if (u.county && u.state && zip)
+    return `${sanitizeAreaLabel(String(u.county))}, ${u.state} ${zip}`;
+  if (u.county && u.state)
+    return `${sanitizeAreaLabel(String(u.county))}, ${u.state}`;
+  if (u.county) return sanitizeAreaLabel(String(u.county));
+
+  if (u.stateCode) return String(u.stateCode);
+  if (u.state) return String(u.state);
+  return "Your area";
 }
 
 export function getUserAudienceLabel(user: User | null | undefined): string | null {

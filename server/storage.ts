@@ -9,6 +9,7 @@ import {
   counties,
   states,
   trades,
+  tradeRequirements,
   growthPackDownloads,
   acceleratorMemberships,
   pricingData,
@@ -208,6 +209,11 @@ import {
   adFeedback,
   type AdFeedback,
   type InsertAdFeedback,
+  providerLocalStats,
+  businessVerifications,
+  type ProviderLocalStat,
+  type BusinessVerification,
+  type TradeRequirement,
   // Social features
   type CommunityPost,
   type InsertCommunityPost,
@@ -364,6 +370,8 @@ import {
   dealEngagements,
   type DealEngagement,
   type InsertDealEngagement,
+  workRequests,
+  type WorkRequest,
 } from "@shared/schema";
 import { db, pool as neonPool } from "./db";
 import { eq, and, desc, asc, sql, inArray, like, gt, or, lt, isNull, isNotNull, ne, gte, lte, notInArray, type SQL } from "drizzle-orm";
@@ -459,6 +467,12 @@ export interface IStorage {
   getContractorById(id: string): Promise<Contractor | undefined>;
   createContractor(contractor: InsertContractor): Promise<Contractor>;
   updateContractor(id: string, updates: Partial<InsertContractor>): Promise<Contractor>;
+  getContractorServiceAreaCounts(contractorIds: string[]): Promise<Record<string, number>>;
+  getUserVerificationSummary(userIds: string[]): Promise<Record<string, {
+    hasLicense: boolean;
+    hasInsurance: boolean;
+    hasEin: boolean;
+  }>>;
 
   // Business operations (first-class public profiles)
   listBusinessesByOwner(ownerUserId: string): Promise<Business[]>;
@@ -1744,6 +1758,28 @@ export class DatabaseStorage implements IStorage {
     return result;
   }
 
+  // Service area summary per contractor (used for reach tier classification)
+  async getContractorServiceAreaCounts(contractorIds: string[]): Promise<Record<string, number>> {
+    if (!contractorIds.length) {
+      return {};
+    }
+
+    const rows = await db
+      .select({
+        contractorId: contractorCounties.contractorId,
+        countyCount: sql<number>`count(distinct ${contractorCounties.countyId})::int`,
+      })
+      .from(contractorCounties)
+      .where(inArray(contractorCounties.contractorId, contractorIds))
+      .groupBy(contractorCounties.contractorId);
+
+    const map: Record<string, number> = {};
+    for (const row of rows) {
+      map[row.contractorId] = row.countyCount ?? 0;
+    }
+    return map;
+  }
+
   async getContractorBySlug(slug: string): Promise<Contractor | undefined> {
     const [contractor] = await db
       .select()
@@ -2112,6 +2148,50 @@ export class DatabaseStorage implements IStorage {
     const activeWeeks = Number(weeksRes.rows?.[0]?.weeks ?? 0) || 0;
 
     return { jobsCompleted, peopleHelped, activeWeeks };
+  }
+
+  async getTradeRequirementsByTradeId(tradeId: string): Promise<TradeRequirement | undefined> {
+    const [row] = await db
+      .select()
+      .from(tradeRequirements)
+      .where(eq(tradeRequirements.tradeId, tradeId));
+    return row;
+  }
+
+  async getUserVerificationSummary(userIds: string[]): Promise<Record<string, {
+    hasLicense: boolean;
+    hasInsurance: boolean;
+    hasEin: boolean;
+  }>> {
+    const summary: Record<string, { hasLicense: boolean; hasInsurance: boolean; hasEin: boolean }> = {};
+
+    if (!userIds.length) {
+      return summary;
+    }
+
+    const now = new Date();
+    const rows: BusinessVerification[] = await db
+      .select()
+      .from(businessVerifications)
+      .where(and(
+        inArray(businessVerifications.providerUserId, userIds),
+        eq(businessVerifications.status, "approved"),
+      ));
+
+    for (const userId of userIds) {
+      summary[userId] = { hasLicense: false, hasInsurance: false, hasEin: false };
+    }
+
+    for (const row of rows) {
+      if (row.expiresAt && row.expiresAt <= now) continue;
+      const existing = summary[row.providerUserId] ?? { hasLicense: false, hasInsurance: false, hasEin: false };
+      if (row.verificationType === "license") existing.hasLicense = true;
+      if (row.verificationType === "insurance") existing.hasInsurance = true;
+      if (row.verificationType === "ein") existing.hasEin = true;
+      summary[row.providerUserId] = existing;
+    }
+
+    return summary;
   }
 
   // XP & badges read helpers (debug + user-facing)
@@ -3854,6 +3934,8 @@ export class DatabaseStorage implements IStorage {
     comments: number;
     pinned: boolean;
     trending: boolean;
+    hasWorkRequest: boolean;
+    workRequestId?: string | null;
   }>> {
     const scopeValues = communityPosts.scope.enumValues ?? [];
     const categoryValues = communityPosts.category.enumValues ?? [];
@@ -3882,10 +3964,18 @@ export class DatabaseStorage implements IStorage {
     const query = db
       .select({
         post: communityPosts,
-        user: users
+        user: users,
+        workRequest: workRequests,
       })
       .from(communityPosts)
       .leftJoin(users, eq(communityPosts.authorId, users.id))
+      .leftJoin(
+        workRequests,
+        and(
+          eq(workRequests.source, "community" as any),
+          eq(workRequests.sourceRefId, communityPosts.id as any),
+        ),
+      )
       .where(and(...conditions))
       .orderBy(desc(communityPosts.createdAt))
       .limit(filters?.limit ?? 20)
@@ -3894,8 +3984,10 @@ export class DatabaseStorage implements IStorage {
     const results = await query;
 
     // Format posts with author information
-    return results.map(({ post, user }: { post: CommunityPost; user: User | null }) => ({
+    return results.map(({ post, user, workRequest }: { post: CommunityPost; user: User | null; workRequest: WorkRequest | null }) => ({
       ...post,
+      hasWorkRequest: !!workRequest,
+      workRequestId: workRequest?.id ?? null,
       author: {
         id: post.authorId,
         name: user ? `${user.firstName || ''} ${user.lastName || ''}`.trim() || 'Anonymous' : 'Anonymous',
@@ -3912,7 +4004,7 @@ export class DatabaseStorage implements IStorage {
       downvotes: 0,
       comments: post.commentCount ?? 0,
       pinned: post.isPinned ?? false,
-      trending: false
+      trending: false,
     }));
   }
 

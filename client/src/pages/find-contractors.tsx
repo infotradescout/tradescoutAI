@@ -27,6 +27,14 @@ type Contractor = {
   county?: string;
   state?: string;
   licenseNumber?: string | null;
+  reachTier?: 'local' | 'regional' | 'wide';
+  localCredibilityScore?: number;
+  localStats?: {
+    jobsCompleted: number;
+    peopleHelped: number;
+    activeWeeks: number;
+  };
+  presenceLabel?: string;
 };
 
 type FindContractorsProps = {
@@ -60,11 +68,26 @@ const FindContractors = memo(function FindContractors({ title = 'Find Local Cont
   });
 
   const ranked = useMemo(() => {
-    return [...(topContractors || [])].sort((a, b) => {
-      const aRec = (a.recommendationCount ?? a.reviewCount ?? 0);
-      const bRec = (b.recommendationCount ?? b.reviewCount ?? 0);
-      const aScore = (a.rating ?? 0) * 100 + aRec;
-      const bScore = (b.rating ?? 0) * 100 + bRec;
+    const items = [...(topContractors || [])];
+    const tierRank: Record<'local' | 'regional' | 'wide', number> = {
+      local: 0,
+      regional: 1,
+      wide: 2,
+    };
+    return items.sort((a, b) => {
+      const aTier = a.reachTier ? tierRank[a.reachTier] : 2;
+      const bTier = b.reachTier ? tierRank[b.reachTier] : 2;
+      if (aTier !== bTier) return aTier - bTier;
+      const aScore = a.localCredibilityScore ?? 0;
+      const bScore = b.localCredibilityScore ?? 0;
+      // Fallback to rating + recs as a tie-breaker
+      if (aScore === bScore) {
+        const aRec = (a.recommendationCount ?? a.reviewCount ?? 0);
+        const bRec = (b.recommendationCount ?? b.reviewCount ?? 0);
+        const aRatingScore = (a.rating ?? 0) * 100 + aRec;
+        const bRatingScore = (b.rating ?? 0) * 100 + bRec;
+        return bRatingScore - aRatingScore;
+      }
       return bScore - aScore;
     });
   }, [topContractors]);
@@ -170,7 +193,7 @@ const FindContractors = memo(function FindContractors({ title = 'Find Local Cont
           <div className="flex flex-wrap gap-2 text-xs text-gray-300">
             <Badge variant="outline" className="border-orange-400/40 text-orange-200">Pick your state + county</Badge>
             <Badge variant="outline" className="border-blue-400/40 text-blue-200">Choose the trade (occupation)</Badge>
-            <Badge variant="outline" className="border-emerald-400/40 text-emerald-200">Ranked by rating + recommendations</Badge>
+            <Badge variant="outline" className="border-emerald-400/40 text-emerald-200">Ranked by local presence + credibility</Badge>
           </div>
         </div>
 
@@ -178,7 +201,7 @@ const FindContractors = memo(function FindContractors({ title = 'Find Local Cont
           <div className="flex items-center justify-between">
             <div>
               <h2 className="text-2xl font-semibold text-white">Top contractors in your area</h2>
-              <p className="text-sm text-gray-300">Ranked by rating and recommendations for the selected occupation.</p>
+              <p className="text-sm text-gray-300">Ranked by local presence, community credibility, and service area.</p>
             </div>
             <Badge className="bg-orange-600 text-white">
               {countyFips && tradeSlug ? `${ranked.length} results` : 'Select location + trade'}
@@ -217,6 +240,16 @@ const FindContractors = memo(function FindContractors({ title = 'Find Local Cont
                         <MapPin className="h-4 w-4 text-teal-300" />
                         {sanitizeAreaLabel(contractor.location || contractor.county || 'County selected')}
                       </div>
+                      {contractor.presenceLabel && (
+                        <div className="text-xs text-gray-300 mt-1">
+                          {contractor.presenceLabel}
+                          {contractor.localStats && (contractor.localStats.jobsCompleted > 0 || contractor.localStats.peopleHelped > 0) && (
+                            <span className="text-gray-400">
+                              {" "}· {contractor.localStats.jobsCompleted} jobs completed, {contractor.localStats.peopleHelped} people helped
+                            </span>
+                          )}
+                        </div>
+                      )}
                     </div>
                   </div>
 

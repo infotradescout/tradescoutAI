@@ -14,8 +14,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useNotifications } from "@/hooks/useNotifications";
 import { CommunityShell } from "@/components/layout/CommunityShell";
 import { apiRequest } from "@/lib/queryClient";
-import type { Task, TaskCategory } from "@shared/schema";
-import { TaskCard } from "./worker-marketplace";
+import type { WorkRequest, TaskCategory } from "@shared/schema";
 
 export default function TasksHub() {
   const { isAuthenticated } = useAuth();
@@ -26,7 +25,6 @@ export default function TasksHub() {
   const [activeTab, setActiveTab] = useState("browse");
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("");
-  const [locationFilter, setLocationFilter] = useState("");
 
   const [taskTitle, setTaskTitle] = useState("");
   const [taskDescription, setTaskDescription] = useState("");
@@ -35,23 +33,18 @@ export default function TasksHub() {
   const [taskPayAmount, setTaskPayAmount] = useState<string>("");
   const [taskTaskType, setTaskTaskType] = useState<"one_time" | "recurring" | "project_based">("one_time");
   const [taskSchedulingType, setTaskSchedulingType] = useState<"asap" | "scheduled" | "flexible">("asap");
-  const [taskCity, setTaskCity] = useState<string>("");
-  const [taskStateCode, setTaskStateCode] = useState<string>("");
 
-  const [applyTask, setApplyTask] = useState<Task | null>(null);
-  const [applyMessage, setApplyMessage] = useState("");
-
-  const { data: tasks, isLoading: tasksLoading } = useQuery<Task[]>({
-    queryKey: ["/api/tasks", selectedCategory, locationFilter],
+  const { data: workRequests, isLoading: requestsLoading } = useQuery<WorkRequest[]>({
+    queryKey: ["/api/work-requests", selectedCategory],
     queryFn: async () => {
       const params = new URLSearchParams();
       if (selectedCategory) params.append("category", selectedCategory);
-      if (locationFilter) params.append("location", locationFilter);
 
-      const response = await fetch(`/api/tasks?${params.toString()}`);
-      if (!response.ok) throw new Error("Failed to fetch tasks");
+      const response = await fetch(`/api/work-requests?${params.toString()}`);
+      if (!response.ok) throw new Error("Failed to fetch work requests");
       return response.json();
     },
+    enabled: isAuthenticated,
   });
 
   const { data: categories } = useQuery<TaskCategory[]>({
@@ -65,78 +58,57 @@ export default function TasksHub() {
       if (!taskDescription.trim()) throw new Error("Description is required");
       if (!Number.isFinite(payAmount) || payAmount <= 0) throw new Error("Pay amount must be a positive number");
 
-      return apiRequest("POST", "/api/tasks", {
+      return apiRequest("POST", "/api/work-requests", {
         title: taskTitle.trim(),
         description: taskDescription.trim(),
-        categoryId: taskCategoryId || undefined,
-        payType: taskPayType,
-        payAmount,
-        taskType: taskTaskType,
-        schedulingType: taskSchedulingType,
-        city: taskCity.trim() || undefined,
-        stateCode: taskStateCode.trim() || undefined,
+        category: taskCategoryId || undefined,
+        budgetMin: payAmount,
+        budgetMax: payAmount,
       });
     },
     onSuccess: () => {
-      toast({ title: "Task posted", description: "Your task is now visible to helpers." });
+      toast({ title: "Work request posted", description: "Your request is now on your board." });
       setTaskTitle("");
       setTaskDescription("");
       setTaskCategoryId("");
       setTaskPayAmount("");
-      setTaskCity("");
-      setTaskStateCode("");
       setActiveTab("browse");
-      queryClient.invalidateQueries({ queryKey: ["/api/tasks"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/work-requests"] });
     },
     onError: (err: any) => {
       toast({
-        title: "Couldn't post task",
+        title: "Couldn't create work request",
         description: err?.message || "Please try again.",
         variant: "destructive",
       });
     },
   });
 
-  const applyToTaskMutation = useMutation({
-    mutationFn: async ({ taskId, message }: { taskId: string; message?: string }) => {
-      return apiRequest("POST", `/api/tasks/${taskId}/apply`, { message });
-    },
-    onSuccess: () => {
-      toast({ title: "Application sent", description: "The task poster will be notified." });
-      setApplyTask(null);
-      setApplyMessage("");
-    },
-    onError: (err: any) => {
-      toast({
-        title: "Couldn't apply",
-        description: err?.message || "Please try again.",
-        variant: "destructive",
-      });
-    },
-  });
+  const filteredRequests = useMemo(() => {
+    if (!workRequests) return [];
 
-  const filteredTasks = useMemo(() => {
-    if (!tasks) return [];
-
-    return tasks.filter((task) => {
+    return workRequests.filter((request) => {
       const matchesSearch =
         !searchQuery ||
-        task.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        task.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        task.requiredSkills?.some((skill) => skill.toLowerCase().includes(searchQuery.toLowerCase()));
+        request.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        request.description.toLowerCase().includes(searchQuery.toLowerCase());
+
+      if (selectedCategory && request.category !== selectedCategory) {
+        return false;
+      }
 
       return matchesSearch;
     });
-  }, [tasks, searchQuery]);
+  }, [workRequests, searchQuery, selectedCategory]);
 
   return (
     <CommunityShell sectionLabel="Tasks" notificationsCount={unreadCount}>
       <div className="max-w-7xl mx-auto ts-surface px-4 py-6 md:px-10 md:py-8 pb-20">
         <div className="mb-8">
-          <h1 className="text-4xl font-bold text-white mb-3">Tasks</h1>
+          <h1 className="text-4xl font-bold text-white mb-3">Work Board</h1>
           <p className="text-lg text-gray-300 max-w-3xl">
-            Central job posting hub for all user types. Post homeowner jobs, contractor helper roles, and one-time tasks in one
-            place, then manage responses from your TradeScout inbox.
+            Create and track the work you need done. Each request lives here as a Work Request so Scout and your community can
+            help route it over time.
           </p>
         </div>
 
@@ -155,19 +127,19 @@ export default function TasksHub() {
             <Card className="bg-navy-800 border-navy-700 mb-6">
               <CardHeader className="pb-4">
                 <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-                  <h2 className="text-lg font-semibold text-white">Find work that fits you</h2>
+                  <h2 className="text-lg font-semibold text-white">Your Work Requests</h2>
                   <p className="text-sm text-gray-300 max-w-xl">
-                    Filter by category and location to find helper roles, side gigs, and household tasks that match your skills
-                    and availability.
+                    This is your personal board of Work Requests. Over time Scout and your community can help match these to
+                    the right people.
                   </p>
                 </div>
               </CardHeader>
               <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div className="relative">
                     <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
                     <Input
-                      placeholder="Search tasks..."
+                      placeholder="Search work requests..."
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
                       className="pl-10 bg-navy-600 border-navy-500 text-white"
@@ -191,13 +163,6 @@ export default function TasksHub() {
                     </SelectContent>
                   </Select>
 
-                  <Input
-                    placeholder="Location (city, zip)"
-                    value={locationFilter}
-                    onChange={(e) => setLocationFilter(e.target.value)}
-                    className="bg-navy-600 border-navy-500 text-white"
-                  />
-
                   <div className="hidden md:flex items-center justify-end">
                     {isAuthenticated && (
                       <Button
@@ -212,7 +177,18 @@ export default function TasksHub() {
               </CardContent>
             </Card>
 
-            {tasksLoading ? (
+            {!isAuthenticated ? (
+              <Card className="bg-navy-700 border-navy-600">
+                <CardContent className="p-8 text-center">
+                  <Briefcase className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                  <h3 className="text-lg font-semibold text-white mb-2">Sign in to use your Work Board</h3>
+                  <p className="text-gray-300">
+                    Create and track Work Requests from here. Once you sign in, this becomes your command center for projects
+                    Scout can help with.
+                  </p>
+                </CardContent>
+              </Card>
+            ) : requestsLoading ? (
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 {[...Array(4)].map((_, i) => (
                   <Card key={i} className="bg-navy-700 border-navy-600 animate-pulse">
@@ -226,25 +202,42 @@ export default function TasksHub() {
               </div>
             ) : (
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                {filteredTasks.map((task) => (
-                  <TaskCard
-                    key={task.id}
-                    task={task}
-                    onApply={() => {
-                      setApplyTask(task);
-                      setApplyMessage("");
-                    }}
-                  />
+                {filteredRequests.map((request) => (
+                  <Card key={request.id} className="bg-navy-700 border-navy-600">
+                    <CardContent className="p-6">
+                      <div className="flex items-start justify-between mb-3">
+                        <div className="flex-1">
+                          <h3 className="text-lg font-semibold text-white mb-1">{request.title}</h3>
+                          <p className="text-gray-300 text-sm line-clamp-3">{request.description}</p>
+                        </div>
+                        <span className="ml-3 text-xs px-2 py-1 rounded-full border border-orange-400 text-orange-300 bg-orange-500/10 capitalize">
+                          {request.status?.replace("_", " ") || "open"}
+                        </span>
+                      </div>
+
+                      <div className="flex items-center justify-between mt-4 text-xs text-gray-400">
+                        <span>
+                          Budget:{" "}
+                          {request.budgetMin || request.budgetMax
+                            ? `$${request.budgetMin || request.budgetMax}`
+                            : "Not specified"}
+                        </span>
+                        <span>
+                          Created {request.createdAt ? new Date(request.createdAt as any).toLocaleDateString() : "recently"}
+                        </span>
+                      </div>
+                    </CardContent>
+                  </Card>
                 ))}
-                {filteredTasks.length === 0 && (
+                {filteredRequests.length === 0 && (
                   <div className="col-span-full">
                     <Card className="bg-navy-700 border-navy-600">
                       <CardContent className="p-8 text-center">
                         <Briefcase className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                        <h3 className="text-lg font-semibold text-white mb-2">No tasks found</h3>
+                        <h3 className="text-lg font-semibold text-white mb-2">No work requests yet</h3>
                         <p className="text-gray-300">
-                          Try adjusting your search or filters. Tasks include contractor helper roles, homeowner jobs, and
-                          one-time gigs.
+                          Start by posting a Work Request. This will become your single place to track work you want help
+                          with.
                         </p>
                       </CardContent>
                     </Card>
@@ -257,15 +250,16 @@ export default function TasksHub() {
           <TabsContent value="post" className="mt-6">
             <Card className="bg-navy-800 border-navy-700">
               <CardHeader className="pb-4">
-                <h2 className="text-lg font-semibold text-white mb-1">Post a new task</h2>
+                <h2 className="text-lg font-semibold text-white mb-1">Create a new Work Request</h2>
                 <p className="text-sm text-gray-300">
-                  Homeowners can post jobs around the house. Contractors can post helper roles for job sites or overflow work.
+                  Describe the work you need help with. Scout and your community can use this Work Request to help you route it
+                  to the right people over time.
                 </p>
               </CardHeader>
               <CardContent>
                 {!isAuthenticated ? (
                   <p className="text-sm text-gray-300">
-                    You need an account to post tasks. Please sign in or create an account first.
+                    You need an account to create Work Requests. Please sign in or create an account first.
                   </p>
                 ) : (
                   <div className="grid gap-4">
@@ -366,29 +360,6 @@ export default function TasksHub() {
                           </SelectContent>
                         </Select>
                       </div>
-
-                      <div className="grid gap-2">
-                        <Label>City (optional)</Label>
-                        <Input
-                          value={taskCity}
-                          onChange={(e) => setTaskCity(e.target.value)}
-                          className="bg-navy-700 border-navy-600 text-white"
-                          placeholder="e.g., Austin"
-                        />
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div className="grid gap-2">
-                        <Label>State (optional)</Label>
-                        <Input
-                          value={taskStateCode}
-                          onChange={(e) => setTaskStateCode(e.target.value)}
-                          className="bg-navy-700 border-navy-600 text-white"
-                          placeholder="e.g., TX"
-                          maxLength={2}
-                        />
-                      </div>
                     </div>
 
                     <div className="flex justify-end gap-2">
@@ -400,8 +371,6 @@ export default function TasksHub() {
                           setTaskDescription("");
                           setTaskCategoryId("");
                           setTaskPayAmount("");
-                          setTaskCity("");
-                          setTaskStateCode("");
                         }}
                         disabled={createTaskMutation.isPending}
                       >
@@ -412,7 +381,7 @@ export default function TasksHub() {
                         onClick={() => createTaskMutation.mutate()}
                         disabled={createTaskMutation.isPending}
                       >
-                        {createTaskMutation.isPending ? "Posting…" : "Post task"}
+                        {createTaskMutation.isPending ? "Posting…" : "Post Work Request"}
                       </Button>
                     </div>
                   </div>
@@ -421,56 +390,6 @@ export default function TasksHub() {
             </Card>
           </TabsContent>
         </Tabs>
-
-        <Dialog open={Boolean(applyTask)} onOpenChange={(open) => !open && setApplyTask(null)}>
-          <DialogContent className="bg-navy-800 border-navy-600 text-white">
-            <DialogHeader>
-              <DialogTitle>Apply to task</DialogTitle>
-            </DialogHeader>
-
-            {applyTask && (
-              <div className="grid gap-4">
-                <div className="text-sm text-gray-300">
-                  <div className="font-semibold text-white">{applyTask.title}</div>
-                  <div className="mt-1">{applyTask.description}</div>
-                </div>
-
-                <div className="grid gap-2">
-                  <Label>Message (optional)</Label>
-                  <Textarea
-                    value={applyMessage}
-                    onChange={(e) => setApplyMessage(e.target.value)}
-                    className="bg-navy-700 border-navy-600 text-white"
-                    placeholder="Tell them why you're a good fit"
-                  />
-                </div>
-
-                <div className="flex justify-end gap-2">
-                  <Button
-                    variant="outline"
-                    className="border-gray-300 text-gray-300 hover:bg-gray-300 hover:text-navy-800"
-                    onClick={() => setApplyTask(null)}
-                    disabled={applyToTaskMutation.isPending}
-                  >
-                    Cancel
-                  </Button>
-                  <Button
-                    className="bg-orange-500 hover:bg-orange-600"
-                    onClick={() =>
-                      applyToTaskMutation.mutate({
-                        taskId: applyTask.id,
-                        message: applyMessage.trim() || undefined,
-                      })
-                    }
-                    disabled={applyToTaskMutation.isPending}
-                  >
-                    {applyToTaskMutation.isPending ? "Sending…" : "Send application"}
-                  </Button>
-                </div>
-              </div>
-            )}
-          </DialogContent>
-        </Dialog>
       </div>
     </CommunityShell>
   );

@@ -318,6 +318,7 @@ export const users = pgTable("users", {
   addressVerificationDeadline: timestamp("address_verification_deadline"),
   verificationStatus: verificationStatusEnum("verification_status").default('pending'), // Add verificationStatus
   onboardingCompleted: boolean("onboarding_completed").default(false),
+  profileVersion: integer("profile_version").default(0),
   referralCode: varchar("referral_code"),
   invitedBy: varchar("invited_by"),
   preferences: jsonb("preferences").$type<{
@@ -358,6 +359,7 @@ export const users = pgTable("users", {
     };
 
     // Hyper-local geo preferences for nearby deals/alerts
+    startIntent?: "community" | "services" | "business" | "tools";
     geo?: {
       homeLocation?: {
         lat: number;
@@ -662,6 +664,22 @@ export const trades = pgTable("trades", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+// Trade-level compliance requirements (used for regulated/promoted flows)
+export const tradeRequirements = pgTable("trade_requirements", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  tradeId: varchar("trade_id").notNull().references(() => trades.id),
+
+  // Compliance gates
+  requiresLicense: boolean("requires_license").default(false),
+  requiresInsurance: boolean("requires_insurance").default(false),
+  requiresEin: boolean("requires_ein").default(false),
+
+  notes: text("notes"),
+
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
 // Contractors table
 export const contractors = pgTable("contractors", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -695,6 +713,63 @@ export const contractors = pgTable("contractors", {
   isActive: boolean("is_active").default(true),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Provider declarations for service areas and categories (eligibility only)
+export const providerDeclarations = pgTable("provider_declarations", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+
+  // Provider is always a user; can represent contractors, realtors, marketplace sellers, etc.
+  providerUserId: varchar("provider_user_id").notNull().references(() => users.id),
+
+  // Service area and categories are explicit declarations, not ranking signals
+  serviceAreas: jsonb("service_areas").$type<{
+    countyFips: string;
+  }[]>(),
+  tradeIds: jsonb("trade_ids").$type<string[]>(),
+  availabilityFlags: jsonb("availability_flags").$type<{
+    emergency?: boolean;
+    weekends?: boolean;
+    evenings?: boolean;
+  }>(),
+
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Per-county behavioral rollup for providers (derived from events)
+export const providerLocalStats = pgTable("provider_local_stats", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  providerUserId: varchar("provider_user_id").notNull().references(() => users.id),
+  countyFips: varchar("county_fips", { length: 5 }).notNull(),
+
+  jobsCompleted: integer("jobs_completed").default(0),
+  peopleHelped: integer("people_helped").default(0),
+  activeWeeks: integer("active_weeks").default(0),
+  lastActiveAt: timestamp("last_active_at"),
+
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Business-level verification records (append-only)
+export const businessVerifications = pgTable("business_verifications", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  providerUserId: varchar("provider_user_id").notNull().references(() => users.id),
+
+  // 'license' | 'insurance' | 'ein' | 'other'
+  verificationType: varchar("verification_type").notNull(),
+  jurisdiction: varchar("jurisdiction"),
+
+  // 'pending' | 'approved' | 'rejected' | 'expired'
+  status: varchar("status").notNull(),
+
+  verifiedAt: timestamp("verified_at"),
+  expiresAt: timestamp("expires_at"),
+  source: varchar("source"),
+  metadata: jsonb("metadata").$type<Record<string, any>>(),
+
+  createdAt: timestamp("created_at").defaultNow(),
 });
 
 export type InsertBusiness = typeof businesses.$inferInsert;
@@ -1701,6 +1776,12 @@ export type InsertAdEvent = typeof adEvents.$inferInsert;
 export type InsertContractor = typeof contractors.$inferInsert;
 export type Contractor = typeof contractors.$inferSelect;
 
+export type InsertProviderDeclaration = typeof providerDeclarations.$inferInsert;
+export type ProviderDeclaration = typeof providerDeclarations.$inferSelect;
+
+export type InsertProviderLocalStat = typeof providerLocalStats.$inferInsert;
+export type ProviderLocalStat = typeof providerLocalStats.$inferSelect;
+
 export type InsertRecommendation = typeof recommendations.$inferInsert;
 export type Recommendation = typeof recommendations.$inferSelect;
 
@@ -1715,6 +1796,12 @@ export type County = typeof counties.$inferSelect;
 
 export type InsertTrade = typeof trades.$inferInsert;
 export type Trade = typeof trades.$inferSelect;
+
+export type InsertTradeRequirement = typeof tradeRequirements.$inferInsert;
+export type TradeRequirement = typeof tradeRequirements.$inferSelect;
+
+export type InsertBusinessVerification = typeof businessVerifications.$inferInsert;
+export type BusinessVerification = typeof businessVerifications.$inferSelect;
 
 export type InsertGrowthPackDownload = typeof growthPackDownloads.$inferInsert;
 export type GrowthPackDownload = typeof growthPackDownloads.$inferSelect;
@@ -1948,6 +2035,116 @@ export const verificationRequests = pgTable("verification_requests", {
   reviewedAt: timestamp("reviewed_at"),
   expiresAt: timestamp("expires_at"),
   
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Work Requests spine (single canonical object for homeowner/provider work)
+export const workRequests = pgTable("work_requests", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+
+  // Who created the request
+  createdByUserId: varchar("created_by_user_id").notNull(),
+
+  // Core description
+  title: varchar("title").notNull(),
+  description: text("description").notNull(),
+
+  // High-level category (contractor, helper, insurance, etc.)
+  category: varchar("category"),
+
+  // Canonical location
+  countyFips: varchar("county_fips", { length: 5 }),
+  stateCode: varchar("state_code", { length: 2 }),
+  addressId: varchar("address_id"),
+
+  // Where this should be visible / routed
+  scope: varchar("scope", {
+    enum: ["personal", "community", "group", "hoa", "global"],
+  }).default("community"),
+
+  // Source surface that originated the request
+  source: varchar("source", {
+    enum: ["tasks", "community", "scout"],
+  }).default("tasks"),
+  sourceRefId: varchar("source_ref_id"), // e.g. community post id, scout thread id
+
+  // Lifecycle status
+  status: varchar("status", {
+    enum: ["draft", "open", "routed", "in_progress", "completed", "cancelled"],
+  }).default("draft"),
+
+  // Visibility and competition controls
+  visibility: varchar("visibility", {
+    enum: ["public", "community", "private"],
+  }).default("community"),
+  exposureMode: varchar("exposure_mode", {
+    enum: ["guided", "open"],
+  }).default("guided"),
+  competitionMode: varchar("competition_mode", {
+    enum: ["none", "compare_responses"],
+  }).default("none"),
+
+  // Optional budget band
+  budgetMin: decimal("budget_min"),
+  budgetMax: decimal("budget_max"),
+
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Event log for each work request (append-only history)
+export const workRequestEvents = pgTable("work_request_events", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  workRequestId: varchar("work_request_id").notNull(),
+
+  type: varchar("type", {
+    enum: [
+      "created",
+      "updated",
+      "sent_to_board",
+      "routed",
+      "status_changed",
+      "exposure_mode_changed",
+      "provider_suggested",
+      "provider_invited",
+      "provider_accepted",
+      "provider_declined",
+      "provider_completed",
+      "completed",
+      "cancelled",
+    ],
+  }).notNull(),
+
+  actorUserId: varchar("actor_user_id"),
+  fromStatus: varchar("from_status"),
+  toStatus: varchar("to_status"),
+
+  // Flexible metadata blob (routing scores, reasons, etc.)
+  metadata: jsonb("metadata").$type<Record<string, any>>(),
+
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// Provider assignments per work request
+export const workRequestAssignments = pgTable("work_request_assignments", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  workRequestId: varchar("work_request_id").notNull(),
+
+  // Linked provider (contractor profile today)
+  contractorId: varchar("contractor_id"),
+
+  status: varchar("status", {
+    enum: ["suggested", "invited", "accepted", "declined", "completed", "withdrawn"],
+  }).default("suggested"),
+
+  // Snapshot of why this match was suggested (score + reasons)
+  scoreSnapshot: jsonb("score_snapshot").$type<{
+    score?: number;
+    reasons?: string[];
+    distanceMiles?: number;
+  }>(),
+
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
@@ -2251,6 +2448,12 @@ export type WorkerReview = typeof workerReviews.$inferSelect;
 export type InsertWorkerReview = typeof workerReviews.$inferInsert;
 export type VerificationRequest = typeof verificationRequests.$inferSelect;
 export type InsertVerificationRequest = typeof verificationRequests.$inferInsert;
+export type WorkRequest = typeof workRequests.$inferSelect;
+export type InsertWorkRequest = typeof workRequests.$inferInsert;
+export type WorkRequestEvent = typeof workRequestEvents.$inferSelect;
+export type InsertWorkRequestEvent = typeof workRequestEvents.$inferInsert;
+export type WorkRequestAssignment = typeof workRequestAssignments.$inferSelect;
+export type InsertWorkRequestAssignment = typeof workRequestAssignments.$inferInsert;
 
 // Promotional types
 export type ContractorPromo = typeof contractorPromos.$inferSelect;

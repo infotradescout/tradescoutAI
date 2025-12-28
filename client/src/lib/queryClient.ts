@@ -65,9 +65,9 @@ export async function apiRequest(methodOrUrl: string, urlOrData?: string | Recor
 
       if (response.status === 403 && errorCode === "ONBOARDING_REQUIRED") {
         if (typeof window !== "undefined") {
-          window.location.href = "/create-account";
+          window.location.href = "/onboarding/profile";
         }
-        throw new Error("Please finish creating your account before continuing.");
+        throw new Error("Please finish updating your profile before continuing.");
       }
 
       throw new Error(errorMessage);
@@ -136,9 +136,9 @@ export const queryClient = new QueryClient({
 
           if (response.status === 403 && code === "ONBOARDING_REQUIRED") {
             if (typeof window !== "undefined") {
-              window.location.href = "/create-account";
+              window.location.href = "/onboarding/profile";
             }
-            throw new Error("Please finish creating your account before continuing.");
+            throw new Error("Please finish updating your profile before continuing.");
           }
 
           throw new Error(message);
