@@ -261,7 +261,7 @@ export function CommunityPostCard({ post, onLike, formatTimeAgo }: CommunityPost
       return workRequest;
     } catch (error: any) {
       toast({
-        title: "Unable to send to Work Board",
+        title: "Unable to send to Direct Connect",
         description: error?.message || "Please try again.",
         variant: "destructive",
       });
@@ -423,7 +423,7 @@ export function CommunityPostCard({ post, onLike, formatTimeAgo }: CommunityPost
                     {!workBoardInfo.sent ? (
                       <DropdownMenuItem onClick={handleSendToWorkBoard}>
                         <Hammer className="w-3.5 h-3.5 mr-2" />
-                        Send to Work Board
+                        Send to Direct Connect
                       </DropdownMenuItem>
                     ) : (
                       <>
@@ -438,12 +438,12 @@ export function CommunityPostCard({ post, onLike, formatTimeAgo }: CommunityPost
                           
                           
                           
-                            ✓ On Work Board
+                            ✓ Sent to Direct Connect
                           </span>
                         </DropdownMenuItem>
                         <DropdownMenuItem onClick={() => navigate("/tasks")}>
                           <Hammer className="w-3.5 h-3.5 mr-2" />
-                          View Work Board
+                          View Direct Connect
                         </DropdownMenuItem>
                       </>
                     )}

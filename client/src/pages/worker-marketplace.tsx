@@ -196,7 +196,7 @@ export default function WorkerMarketplace() {
         <div className="mt-4 flex flex-wrap gap-3">
           <Link href="/tasks">
             <Button className="bg-orange-500 hover:bg-orange-600 text-white">
-              Start a project (Tasks Portal)
+              Start a project (Direct Connect)
             </Button>
           </Link>
         </div>

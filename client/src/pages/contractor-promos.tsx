@@ -18,6 +18,7 @@ import { apiRequest } from "@/lib/queryClient";
 import { share } from "@/utils/share";
 import { getDeviceType, trackShellEvent } from "@/lib/analytics";
 import { useLocationContext } from "@/hooks/useLocationContext";
+import { OutcomeConfirmationCard } from "@/components/OutcomeConfirmationCard";
 
 const promoFormSchema = z.object({
   title: z.string().min(1, "Title is required").max(100, "Title must be under 100 characters"),
@@ -521,6 +522,8 @@ export default function ContractorPromos() {
   const [draftDefaults, setDraftDefaults] = useState<Partial<PromoFormValues> | null>(null);
   const [fromScoutDraft, setFromScoutDraft] = useState(false);
   const draftStartedAtRef = useRef<number | null>(null);
+  const [showPromoOutcomeCard, setShowPromoOutcomeCard] = useState(false);
+  const [promoInitiatedAtMs, setPromoInitiatedAtMs] = useState<number | undefined>(undefined);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -643,10 +646,13 @@ export default function ContractorPromos() {
                       path,
                       ts,
                       deviceType,
-                        timeToPublishMs,
-                        stateCode,
-                        countyFips,
+                      timeToPublishMs,
+                      stateCode,
+                      countyFips,
                     });
+
+                    setPromoInitiatedAtMs(typeof startedAt === "number" ? startedAt : undefined);
+                    setShowPromoOutcomeCard(true);
                   } catch {
                     // Ignore analytics failures.
                   }
@@ -655,6 +661,18 @@ export default function ContractorPromos() {
             </DialogContent>
           </Dialog>
         </div>
+
+        {showPromoOutcomeCard && (
+          <div className="mb-6">
+            <OutcomeConfirmationCard
+              actionType="promotion"
+              stateCode={stateCode}
+              countyFips={countyFips}
+              initiatedBy="scout"
+              initiatedAtMs={promoInitiatedAtMs}
+            />
+          </div>
+        )}
 
         {promos.length === 0 ? (
           <Card className="text-center py-12">

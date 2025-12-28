@@ -19,6 +19,7 @@ import { useLocationContext, hasCountyContext } from '@/hooks/useLocationContext
 import { CountyRequiredGate } from '@/components/CountyRequiredGate';
 import { useLocation } from 'wouter';
 import { COMMUNITY_TONE } from '../../../shared/communityLanguage';
+import { OutcomeConfirmationCard } from '@/components/OutcomeConfirmationCard';
 
 interface Post {
   id: string;
@@ -213,6 +214,7 @@ const CommunityFeed = memo(function CommunityFeed() {
   const [newPostContent, setNewPostContent] = useState("");
   const [showSidebar, setShowSidebar] = useState(false);
   const [openCommentsForPostId, setOpenCommentsForPostId] = useState<string | null>(null);
+  const [lastCreatedPostId, setLastCreatedPostId] = useState<string | null>(null);
   const composerRef = useRef<HTMLTextAreaElement | null>(null);
   const [route, navigate] = useLocation();
   const { user, isAuthenticated } = useAuth();
@@ -297,9 +299,10 @@ const CommunityFeed = memo(function CommunityFeed() {
         category: 'general',
       });
     },
-    onSuccess: () => {
+    onSuccess: (created: any) => {
       queryClient.invalidateQueries({ queryKey: ['/api/community/posts'] });
       setNewPostContent('');
+      setLastCreatedPostId(created?.id ?? null);
       toast({
         title: "Post Created",
         description: "Your post has been shared with the community!",
@@ -676,6 +679,16 @@ const CommunityFeed = memo(function CommunityFeed() {
                   </div>
                 </CardContent>
               </Card>
+
+              {lastCreatedPostId && (
+                <OutcomeConfirmationCard
+                  actionType="community_notice"
+                  artifactId={lastCreatedPostId}
+                  stateCode={stateCode}
+                  countyFips={countyFips}
+                  initiatedBy="direct"
+                />
+              )}
 
               <TabsContent value="forYou" className="mt-0">
                 <div className="space-y-3 md:space-y-5">

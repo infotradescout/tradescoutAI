@@ -54,7 +54,7 @@ export const scoutActionTiles: ScoutActionTile[] = [
   {
     id: "start_project",
     label: "Post a task",
-    description: "Describe what you need done and reach local pros",
+    description: "Describe what you need done and coordinate local help",
     action: { type: "NAVIGATE", to: "/request-quote" },
     variants: [
       {
@@ -81,21 +81,21 @@ export const scoutActionTiles: ScoutActionTile[] = [
   },
   {
     id: "find_pros",
-    label: "Find a local pro",
-    description: "Browse and contact verified professionals near you",
+    label: "Find a local provider",
+    description: "Browse and contact verified people and services near you",
     action: { type: "NAVIGATE", to: "/contractors" },
     variants: [
       {
         // Proven by: User's geo context (heroLocationLabel from session)
         when: (ctx) => !!ctx.location && ctx.location.length > 0,
-        label: (ctx) => `Find professionals near ${ctx.location}`,
-        description: "Search contractors and vendors in your area",
+        label: (ctx) => `Find local providers near ${ctx.location}`,
+        description: "Search local providers and vendors in your area",
       },
       {
         // Proven by: GET /api/saved-contractors (when array.length > 0)
         when: (ctx) => ctx.savedContractors.length > 0,
-        label: (ctx) => `View ${ctx.savedContractors.length} saved contractor${ctx.savedContractors.length > 1 ? 's' : ''}`,
-        description: "Access your saved professionals",
+	    label: (ctx) => `View ${ctx.savedContractors.length} saved provider${ctx.savedContractors.length > 1 ? 's' : ''}`,
+	    description: "Access your saved local providers",
       },
     ],
   },

@@ -1,4 +1,4 @@
-import { memo, useState } from 'react';
+import { memo, useRef, useState } from 'react';
 import { useAuth } from "@/hooks/useAuth";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
@@ -12,11 +12,15 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { MessageSquare, DollarSign, Calendar, MapPin, CheckCircle2 } from "lucide-react";
 import { useHandedness } from "@/hooks/useHandedness";
 import { Checkbox } from "@/components/ui/checkbox";
+import { useLocationContext } from "@/hooks/useLocationContext";
+import { OutcomeConfirmationCard } from "@/components/OutcomeConfirmationCard";
 
 const RequestQuote = memo(function RequestQuote() {
   const { user } = useAuth();
   const { toast } = useToast();
   const [submitted, setSubmitted] = useState(false);
+  const [lastLeadId, setLastLeadId] = useState<string | null>(null);
+  const leadInitiatedAtRef = useRef<number | null>(null);
   const handedness = useHandedness();
   const [sendToCount, setSendToCount] = useState<string>('3'); // '1', '3', or 'manual'
   const [selectedContractorIds, setSelectedContractorIds] = useState<string[]>([]);
@@ -31,6 +35,10 @@ const RequestQuote = memo(function RequestQuote() {
   });
 
   const isManualSelection = sendToCount === 'manual';
+
+  const locationCtx = useLocationContext();
+  const stateCode = locationCtx.stateCode as string | undefined;
+  const countyFips = locationCtx.countyFips as string | undefined;
 
   const {
     data: localContractors = [],
@@ -78,7 +86,8 @@ const RequestQuote = memo(function RequestQuote() {
 
       return apiRequest('POST', '/api/leads', payload);
     },
-    onSuccess: () => {
+    onSuccess: (created: any) => {
+      setLastLeadId(created?.id ?? null);
       setSubmitted(true);
       toast({
         title: "Quote Request Submitted!",
@@ -116,6 +125,7 @@ const RequestQuote = memo(function RequestQuote() {
       }
     }
 
+    leadInitiatedAtRef.current = Date.now();
     submitQuoteMutation.mutate(formData);
   };
 
@@ -151,6 +161,15 @@ const RequestQuote = memo(function RequestQuote() {
                     Back to Dashboard
                   </Button>
                 </div>
+
+                <OutcomeConfirmationCard
+                  actionType="provider_coordination"
+                  artifactId={lastLeadId ?? undefined}
+                  stateCode={stateCode}
+                  countyFips={countyFips}
+                  initiatedBy="direct"
+                  initiatedAtMs={leadInitiatedAtRef.current ?? undefined}
+                />
               </CardContent>
             </Card>
           </div>
