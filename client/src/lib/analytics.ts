@@ -54,6 +54,21 @@ export type ShellEvent =
         category?: string;
         ts: string;
       };
+    }
+  | {
+      type: "scout_draft_created" | "scout_draft_viewed";
+      draftKind: "promo" | "community";
+      path: string;
+      ts: string;
+      deviceType: DeviceType;
+    }
+  | {
+      type: "scout_draft_published";
+      draftKind: "promo" | "community";
+      path: string;
+      ts: string;
+      deviceType: DeviceType;
+      timeToPublishMs?: number;
     };
 
 export function getDeviceType(): DeviceType {

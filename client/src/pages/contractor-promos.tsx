@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Link, useLocation } from "wouter";
 import { Plus, Share2, Eye, MousePointer, TrendingUp, Calendar, DollarSign, MapPin, Edit, Trash2 } from "lucide-react";
@@ -16,6 +16,7 @@ import { z } from "zod";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { share } from "@/utils/share";
+import { getDeviceType, trackShellEvent } from "@/lib/analytics";
 
 const promoFormSchema = z.object({
   title: z.string().min(1, "Title is required").max(100, "Title must be under 100 characters"),
@@ -56,11 +57,13 @@ function PromoForm({
   onClose,
   initialValues,
   fromScoutDraft,
+  onPublishedFromScoutDraft,
 }: {
   promo?: ContractorPromo;
   onClose: () => void;
   initialValues?: Partial<PromoFormValues>;
   fromScoutDraft?: boolean;
+  onPublishedFromScoutDraft?: () => void;
 }) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -97,6 +100,9 @@ function PromoForm({
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/contractor-promos"] });
       toast({ title: "Promo created successfully!" });
+      if (fromScoutDraft && !promo && typeof onPublishedFromScoutDraft === "function") {
+        onPublishedFromScoutDraft();
+      }
       onClose();
     },
     onError: () => {
@@ -510,6 +516,7 @@ export default function ContractorPromos() {
   const [showForm, setShowForm] = useState(false);
   const [draftDefaults, setDraftDefaults] = useState<Partial<PromoFormValues> | null>(null);
   const [fromScoutDraft, setFromScoutDraft] = useState(false);
+  const draftStartedAtRef = useRef<number | null>(null);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -539,6 +546,29 @@ export default function ContractorPromos() {
           expiresAt,
         });
         setFromScoutDraft(true);
+        draftStartedAtRef.current = Date.now();
+
+        try {
+          const path = window.location.pathname;
+          const ts = new Date().toISOString();
+          const deviceType = getDeviceType();
+          void trackShellEvent({
+            type: "scout_draft_created",
+            draftKind: "promo",
+            path,
+            ts,
+            deviceType,
+          });
+          void trackShellEvent({
+            type: "scout_draft_viewed",
+            draftKind: "promo",
+            path,
+            ts,
+            deviceType,
+          });
+        } catch {
+          // Ignore analytics failures.
+        }
         setShowForm(true);
       }
     } catch {
@@ -590,6 +620,26 @@ export default function ContractorPromos() {
                 onClose={() => setShowForm(false)}
                 initialValues={draftDefaults ?? undefined}
                 fromScoutDraft={fromScoutDraft}
+                onPublishedFromScoutDraft={() => {
+                  try {
+                    const path = typeof window !== "undefined" ? window.location.pathname : "/contractor-promos";
+                    const ts = new Date().toISOString();
+                    const deviceType = getDeviceType();
+                    const startedAt = draftStartedAtRef.current;
+                    draftStartedAtRef.current = null;
+                    const timeToPublishMs = typeof startedAt === "number" ? Date.now() - startedAt : undefined;
+                    void trackShellEvent({
+                      type: "scout_draft_published",
+                      draftKind: "promo",
+                      path,
+                      ts,
+                      deviceType,
+                      timeToPublishMs,
+                    });
+                  } catch {
+                    // Ignore analytics failures.
+                  }
+                }}
               />
             </DialogContent>
           </Dialog>
