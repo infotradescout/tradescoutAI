@@ -578,7 +578,7 @@ export default function ScoutOS() {
         break;
       default:
         base.push(
-          "Turn this into a trackable project on my board",
+          "Start a Direct Connect request for this",
           "Find local contractors or groups who can help with this",
           "Open a floating note to keep this visible"
         );
@@ -2476,15 +2476,15 @@ export default function ScoutOS() {
 
                   // Certain smart suggestions should behave as direct actions
                   // instead of just re-asking Scout with the same text.
-                  if (trimmed === "Turn this into a trackable project on my board") {
+                  if (trimmed === "Start a Direct Connect request for this") {
                     recordActivity({
                       type: "navigate",
                       ts: new Date().toISOString(),
                       path: location,
-                      to: "/request-quote",
+                      to: "/tasks",
                       label: trimmed,
                     });
-                    navigate("/request-quote");
+                    navigate("/tasks");
                     return;
                   }
 
