@@ -14,7 +14,6 @@ import { useNotifications } from '@/hooks/useNotifications';
 import { useToast } from '@/hooks/use-toast';
 import { share } from "@/utils/share";
 import { apiRequest } from '@/lib/queryClient';
-import { CommunityShell } from '@/components/layout/CommunityShell';
 import { TradeScoutIcon } from '@/components/TradeScoutIcons';
 import { useLocationContext, hasCountyContext } from '@/hooks/useLocationContext';
 import { CountyRequiredGate } from '@/components/CountyRequiredGate';
@@ -592,11 +591,7 @@ const CommunityFeed = memo(function CommunityFeed() {
   }), [communityStats, trendingTopics]);
 
   return (
-    <CommunityShell
-      sectionLabel="CommunityOS · A live feed for recommendations, projects, and trusted local pros."
-      notificationsCount={unreadCount}
-      snapshot={snapshotProps}
-    >
+    <div className="w-full max-w-full overflow-x-hidden bg-slate-950">
       <CountyRequiredGate locationOverride={location}>
       <div className="mx-auto w-full max-w-5xl px-3 py-3 md:px-4 md:py-4 overflow-x-hidden">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-8">
@@ -959,7 +954,7 @@ const CommunityFeed = memo(function CommunityFeed() {
         </div>
       </div>
       </CountyRequiredGate>
-    </CommunityShell>
+    </div>
   );
 });
 

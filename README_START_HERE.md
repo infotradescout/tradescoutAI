@@ -160,6 +160,14 @@ If `docker` isn’t found on Windows, install Docker Desktop and reopen PowerShe
 
 ---
 
+## 🧱 Page Shell Architecture (Authoritative)
+
+- AppShell + AppFrame are the only shared shells.
+- Every route owns its own PageShell; no page imports another page’s shell.
+- PageShells may set background, padding, and local gates (county, role, HOA), but may not include nav or manage global notifications.
+
+---
+
 ## ⚙️ Setup Checklist
 
 Before deployment, make sure you have:

@@ -5,11 +5,9 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { CommunityShell } from "@/components/layout/CommunityShell";
-import { useNotifications } from "@/hooks/useNotifications";
+import { RealEstateMarketplaceShell } from '@/shells/RealEstateMarketplaceShell';
 
 const RealEstateMarketplace = memo(function RealEstateMarketplace() {
-  const { unreadCount } = useNotifications();
   const [searchQuery, setSearchQuery] = useState("");
   const [priceRange, setPriceRange] = useState("all");
   const [propertyType, setPropertyType] = useState("all");
@@ -123,8 +121,7 @@ const RealEstateMarketplace = memo(function RealEstateMarketplace() {
   ];
 
   return (
-    <CommunityShell sectionLabel="Real Estate" notificationsCount={unreadCount}>
-      <div className="container mx-auto px-4 py-8 pb-20">
+    <RealEstateMarketplaceShell>
         {/* Header */}
         <div className="mb-8">
           <div className="flex items-center gap-3 mb-4">
@@ -274,7 +271,9 @@ const RealEstateMarketplace = memo(function RealEstateMarketplace() {
               <CardContent className="p-6">
                 <div className="flex justify-between items-start mb-3">
                   <div>
-                    <h3 className="text-xl font-semibold text-white mb-1">{property.title}</h3>
+                    <h2 className="text-xl font-semibold text-white mb-1">{property.title}</h2>
+                  </div>
+                  <div className="text-right">
                     <p className="text-3xl font-bold text-orange-400">{property.price}</p>
                   </div>
                 </div>
@@ -363,8 +362,7 @@ const RealEstateMarketplace = memo(function RealEstateMarketplace() {
             Load More Properties
           </Button>
         </div>
-      </div>
-    </CommunityShell>
+    </RealEstateMarketplaceShell>
   );
 });
 

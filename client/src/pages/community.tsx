@@ -26,7 +26,7 @@ import {
 import { useAuth } from "@/hooks/useAuth";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { CommunityShell } from "@/components/layout/CommunityShell";
+import { CommunityPageShell } from "@/shells/CommunityPageShell";
 import { useLocationContext, hasCountyContext } from "@/hooks/useLocationContext";
 import { CountyRequiredGate } from "@/components/CountyRequiredGate";
 import { CommunityPostCard } from "@/components/community/CommunityPostCard";
@@ -158,6 +158,8 @@ export default function Community() {
             ts,
             deviceType,
             timeToPublishMs,
+            stateCode,
+            countyFips,
           });
         } catch {
           // Ignore analytics failures.
@@ -226,6 +228,8 @@ export default function Community() {
             path,
             ts,
             deviceType,
+            stateCode,
+            countyFips,
           });
           void trackShellEvent({
             type: "scout_draft_viewed",
@@ -233,6 +237,8 @@ export default function Community() {
             path,
             ts,
             deviceType,
+            stateCode,
+            countyFips,
           });
         } catch {
           // Ignore analytics failures.
@@ -344,7 +350,7 @@ export default function Community() {
   }, [posts, activeTab]);
 
   return (
-    <CommunityShell sectionLabel="Community" notificationsCount={unreadCount}>
+    <CommunityPageShell>
       <CountyRequiredGate locationOverride={location}>
       <div className="pb-16 lg:pb-0">
         {/* Header */}
@@ -518,9 +524,8 @@ export default function Community() {
             )}
           </div>
         </div>
-
       </div>
-      </CountyRequiredGate>
-    </CommunityShell>
+    </CountyRequiredGate>
+  </CommunityPageShell>
   );
 }

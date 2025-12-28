@@ -2185,6 +2185,171 @@ export class DatabaseStorage implements IStorage {
     return result?.count || 0;
   }
 
+  async getScoutDraftAnalyticsSummary(fromDate: Date, toDate: Date): Promise<{
+    from: string;
+    to: string;
+    artifacts: Array<{
+      draftKind: "promo" | "community";
+      created: number;
+      viewed: number;
+      published: number;
+      medianTimeToPublishMs: number | null;
+      topCountiesByPublishRate: Array<{
+        stateCode: string | null;
+        countyFips: string | null;
+        created: number;
+        published: number;
+        publishRate: number;
+      }>;
+    }>;
+  }> {
+    const from = new Date(fromDate);
+    const to = new Date(toDate);
+
+    const rowsResult = await neonPool.query(
+      `
+      SELECT
+        event_type,
+        (data->>'draftKind') AS draft_kind,
+        (data->>'timeToPublishMs') AS time_to_publish_ms,
+        (data->>'stateCode') AS state_code,
+        (data->>'countyFips') AS county_fips
+      FROM events
+      WHERE event_type IN ('scout_draft_created','scout_draft_viewed','scout_draft_published')
+        AND created_at >= $1
+        AND created_at < $2
+      `,
+      [from, to],
+    );
+
+    type DraftKind = "promo" | "community";
+
+    type ArtifactAccumulator = {
+      draftKind: DraftKind;
+      created: number;
+      viewed: number;
+      published: number;
+      publishDurations: number[];
+      counties: Map<string, { stateCode: string | null; countyFips: string | null; created: number; published: number }>;
+    };
+
+    const artifactKinds: DraftKind[] = ["promo", "community"];
+    const byKind = new Map<DraftKind, ArtifactAccumulator>();
+
+    for (const kind of artifactKinds) {
+      byKind.set(kind, {
+        draftKind: kind,
+        created: 0,
+        viewed: 0,
+        published: 0,
+        publishDurations: [],
+        counties: new Map(),
+      });
+    }
+
+    const rows: any[] = rowsResult.rows || [];
+
+    for (const row of rows) {
+      const eventType: string = String(row.event_type || "");
+      const draftKindRaw = row.draft_kind;
+      const draftKind: DraftKind | null = draftKindRaw === "promo" || draftKindRaw === "community" ? draftKindRaw : null;
+      if (!draftKind) continue;
+
+      const acc = byKind.get(draftKind);
+      if (!acc) continue;
+
+      const stateCode = row.state_code != null ? String(row.state_code) : null;
+      const countyFips = row.county_fips != null ? String(row.county_fips) : null;
+      const hasCounty = !!stateCode && !!countyFips;
+
+      if (eventType === "scout_draft_created") {
+        acc.created += 1;
+        if (hasCounty) {
+          const key = `${stateCode}:${countyFips}`;
+          const existing = acc.counties.get(key) ?? {
+            stateCode,
+            countyFips,
+            created: 0,
+            published: 0,
+          };
+          existing.created += 1;
+          acc.counties.set(key, existing);
+        }
+      } else if (eventType === "scout_draft_viewed") {
+        acc.viewed += 1;
+      } else if (eventType === "scout_draft_published") {
+        acc.published += 1;
+
+        const rawDuration = row.time_to_publish_ms;
+        if (rawDuration != null) {
+          const n = typeof rawDuration === "number" ? rawDuration : Number(rawDuration);
+          if (Number.isFinite(n) && n >= 0) {
+            acc.publishDurations.push(n);
+          }
+        }
+
+        if (hasCounty) {
+          const key = `${stateCode}:${countyFips}`;
+          const existing = acc.counties.get(key) ?? {
+            stateCode,
+            countyFips,
+            created: 0,
+            published: 0,
+          };
+          existing.published += 1;
+          acc.counties.set(key, existing);
+        }
+      }
+    }
+
+    const computeMedian = (values: number[]): number | null => {
+      if (!values.length) return null;
+      const sorted = [...values].sort((a, b) => a - b);
+      const mid = Math.floor(sorted.length / 2);
+      if (sorted.length % 2 === 0) {
+        return (sorted[mid - 1] + sorted[mid]) / 2;
+      }
+      return sorted[mid];
+    };
+
+    const artifacts = artifactKinds.map((kind) => {
+      const acc = byKind.get(kind)!;
+      const median = computeMedian(acc.publishDurations);
+
+      const countyArray = Array.from(acc.counties.values())
+        .filter((c) => c.created > 0 && c.published > 0)
+        .map((c) => ({
+          stateCode: c.stateCode,
+          countyFips: c.countyFips,
+          created: c.created,
+          published: c.published,
+          publishRate: c.created > 0 ? c.published / c.created : 0,
+        }))
+        .sort((a, b) => {
+          if (b.publishRate !== a.publishRate) {
+            return b.publishRate - a.publishRate;
+          }
+          return b.published - a.published;
+        })
+        .slice(0, 5);
+
+      return {
+        draftKind: acc.draftKind,
+        created: acc.created,
+        viewed: acc.viewed,
+        published: acc.published,
+        medianTimeToPublishMs: median,
+        topCountiesByPublishRate: countyArray,
+      };
+    });
+
+    return {
+      from: from.toISOString(),
+      to: to.toISOString(),
+      artifacts,
+    };
+  }
+
   async getUserCredibilityStats(userId: string): Promise<{
     jobsCompleted: number;
     peopleHelped: number;

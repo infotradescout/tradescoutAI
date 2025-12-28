@@ -61,6 +61,8 @@ export type ShellEvent =
       path: string;
       ts: string;
       deviceType: DeviceType;
+      stateCode?: string;
+      countyFips?: string;
     }
   | {
       type: "scout_draft_published";
@@ -69,6 +71,8 @@ export type ShellEvent =
       ts: string;
       deviceType: DeviceType;
       timeToPublishMs?: number;
+      stateCode?: string;
+      countyFips?: string;
     };
 
 export function getDeviceType(): DeviceType {

@@ -5,11 +5,11 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { CommunityShell } from '@/components/layout/CommunityShell';
+import { HOADashboardShell } from '@/shells/HOADashboardShell';
 import { useNotifications } from "@/hooks/useNotifications";
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/useAuth";
-import { useLocationContext } from "@/hooks/useLocationContext";
+import { useLocationContext, hasCountyContext } from "@/hooks/useLocationContext";
 import { useParams } from "wouter";
 import { CountyRequiredGate } from "@/components/CountyRequiredGate";
 
@@ -45,7 +45,7 @@ const HOADashboard = memo(function HOADashboard() {
     layer: "hoa",
     hoaId: hoaId ?? undefined,
   });
-  const hasCountyContext = Boolean(location.stateCode && location.countyFips);
+  const countyCommitted = hasCountyContext(location);
 
   const { data, isLoading, isError } = useQuery<{ dashboard: HoaDashboard}>(
     {
@@ -58,7 +58,7 @@ const HOADashboard = memo(function HOADashboard() {
         }
         const json = await res.json();
 
-        if (hasCountyContext) {
+        if (countyCommitted) {
           try {
             const { recordActivity } = await import("../agent/activity");
             recordActivity({
@@ -74,28 +74,28 @@ const HOADashboard = memo(function HOADashboard() {
 
         return json;
       },
-      enabled: !!user && hasCountyContext,
+      enabled: !!user && countyCommitted,
     }
   );
 
   const dashboard = data?.dashboard;
 
-  if (hasCountyContext && isLoading) {
+  if (countyCommitted && isLoading) {
     return (
-      <CommunityShell sectionLabel="HOA Dashboard" notificationsCount={unreadCount}>
+      <HOADashboardShell locationOverride={location}>
         <div className="w-full py-12 flex items-center justify-center">
           <div className="flex flex-col items-center gap-3 text-gray-300">
             <div className="animate-spin w-8 h-8 border-4 border-orange-500 border-t-transparent rounded-full" />
             <p>Loading your HOA dashboard&hellip;</p>
           </div>
         </div>
-      </CommunityShell>
+      </HOADashboardShell>
     );
   }
 
-  if (hasCountyContext && (isError || !dashboard)) {
+  if (countyCommitted && (isError || !dashboard)) {
     return (
-      <CommunityShell sectionLabel="HOA Dashboard" notificationsCount={unreadCount}>
+      <HOADashboardShell locationOverride={location}>
         <div className="w-full py-12 flex items-center justify-center">
           <Card className="bg-navy-800/60 border-navy-600 max-w-xl w-full">
             <CardHeader>
@@ -113,14 +113,12 @@ const HOADashboard = memo(function HOADashboard() {
             </CardContent>
           </Card>
         </div>
-      </CommunityShell>
+      </HOADashboardShell>
     );
   }
 
   return (
-    <CommunityShell sectionLabel="HOA Dashboard" notificationsCount={unreadCount}>
-      <CountyRequiredGate locationOverride={location}>
-      <div className="w-full py-8">
+    <HOADashboardShell locationOverride={location}>
         {/* Header */}
         <div className="mb-8">
           <div className="flex items-center gap-3 mb-4">
@@ -421,9 +419,7 @@ const HOADashboard = memo(function HOADashboard() {
             </Card>
           </TabsContent>
         </Tabs>
-      </div>
-      </CountyRequiredGate>
-    </CommunityShell>
+    </HOADashboardShell>
   );
 });
 

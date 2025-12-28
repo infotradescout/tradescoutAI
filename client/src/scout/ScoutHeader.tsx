@@ -1,4 +1,5 @@
 import React from "react";
+import { formatCityOnly } from "@/utils/locationDisplay";
 
 interface ScoutHeaderProps {
   isAuthenticated: boolean;
@@ -8,12 +9,13 @@ interface ScoutHeaderProps {
 
 export function ScoutHeader({ isAuthenticated, isFirstGuestVisit, locationLabel }: ScoutHeaderProps) {
   const hasSpecificLocation = !!locationLabel && locationLabel.toLowerCase() !== "your area";
-  const communityText = hasSpecificLocation ? locationLabel! : "Your Community";
+	const cityOnly = hasSpecificLocation ? formatCityOnly({ label: locationLabel }) : "";
+  const communityText = hasSpecificLocation && cityOnly ? cityOnly : "Your Community";
 
   return (
     <header className="space-y-2 text-center">
       <h1 className="text-2xl font-semibold" style={{ color: 'var(--text-primary)' }}>
-        {hasSpecificLocation ? `Empowering ${communityText}` : "Empowering Your Community"}
+        {hasSpecificLocation && communityText ? `Empowering ${communityText}` : "Empowering Your Community"}
       </h1>
       <p className="text-[13px] font-semibold" style={{ color: 'var(--text-secondary)' }}>Scout</p>
       {!isAuthenticated && (

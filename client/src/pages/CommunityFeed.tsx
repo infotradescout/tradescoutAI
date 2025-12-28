@@ -11,7 +11,6 @@ import { ModerationButtons } from "@/components/moderation/ModerationButtons";
 import { useAuth } from "@/hooks/useAuth";
 import { useNotifications } from "@/hooks/useNotifications";
 import { useToast } from "@/hooks/use-toast";
-import { CommunityShell } from "@/components/layout/CommunityShell";
 import { 
   MessageSquare, 
   Share2, 
@@ -156,7 +155,7 @@ export default function CommunityFeed() {
   });
 
   return (
-    <CommunityShell sectionLabel="Community Feed" notificationsCount={unreadCount}>
+    <div className="w-full max-w-full overflow-x-hidden bg-slate-950">
       <div className="max-w-4xl mx-auto ts-surface px-4 py-6 md:px-10 md:py-8">
         {/* Header */}
         <div className="mb-8">
@@ -365,6 +364,6 @@ export default function CommunityFeed() {
           </Card>
         )}
       </div>
-    </CommunityShell>
+    </div>
   );
 }

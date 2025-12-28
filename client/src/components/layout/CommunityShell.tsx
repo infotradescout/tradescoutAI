@@ -17,6 +17,7 @@ export type CommunityShellProps = {
   sectionLabel: string;
   notificationsCount?: number;
   snapshot?: CommunitySnapshotProps;
+  showSnapshot?: boolean;
   children: React.ReactNode;
 };
 
@@ -24,6 +25,7 @@ export const CommunityShell: React.FC<CommunityShellProps> = ({
   sectionLabel,
   notificationsCount = 0,
   snapshot,
+  showSnapshot = false,
   children,
 }) => {
   const [location] = useLocation();
@@ -137,74 +139,52 @@ export const CommunityShell: React.FC<CommunityShellProps> = ({
           </nav>
         </div>
 
-        {/* Tier 2 – Snapshot row */}
-        <div className="mt-0.5 flex items-center justify-between gap-3 text-[11px] text-slate-400">
-          {/* Desktop/large: inline strip */}
-          <div className="hidden md:flex items-center gap-3 min-w-0">
+        {/* Tier 2 – Snapshot row (informational, not buttons) */}
+        {showSnapshot && (
+        <div className="mt-0.5 text-[11px] text-slate-400">
+          {/* Desktop/large: colorful inline snapshot band */}
+          <div className="hidden md:flex items-center gap-3 min-w-0 rounded-full bg-gradient-to-r from-slate-900 via-slate-900 to-slate-800 px-3 py-1 border border-slate-800">
             <div className="flex items-center gap-1.5 whitespace-nowrap">
-              <Users2 className="h-3.5 w-3.5 text-slate-300" />
-              <span className="truncate">{membersLabel}</span>
+              <Users2 className="h-3.5 w-3.5 text-slate-100" />
+              <span className="truncate text-slate-100">{membersLabel}</span>
             </div>
-            <span className="text-slate-600">·</span>
-            <Link
-              href="/community-vaults"
-              className="flex items-center gap-1.5 whitespace-nowrap hover:text-orange-400 transition-colors"
-            >
-              <Landmark className="h-3.5 w-3.5 text-slate-300" />
-              <span>County Vault</span>
-            </Link>
+            <span className="text-slate-500">·</span>
+            <div className="flex items-center gap-1.5 whitespace-nowrap">
+              <Landmark className="h-3.5 w-3.5 text-orange-300" />
+              <span className="truncate text-slate-100">County Vault snapshot</span>
+            </div>
             {activeHighlight && (
               <>
-                <span className="text-slate-600">·</span>
-                {activeHighlight.href ? (
-                  <Link
-                    href={activeHighlight.href}
-                    className="flex items-center gap-1.5 min-w-0 hover:text-orange-400 transition-colors"
-                  >
-                    {activeHighlight.icon}
-                    <span className="truncate">{activeHighlight.label}</span>
-                  </Link>
-                ) : (
-                  <div className="flex items-center gap-1.5 min-w-0">
-                    {activeHighlight.icon}
-                    <span className="truncate">{activeHighlight.label}</span>
-                  </div>
-                )}
+                <span className="text-slate-500">·</span>
+                <div className="flex items-center gap-1.5 min-w-0">
+                  {activeHighlight.icon}
+                  <span className="truncate text-slate-200">{activeHighlight.label}</span>
+                </div>
               </>
             )}
           </div>
 
-          {/* Mobile: horizontally scrollable chips */}
-          <div className="md:hidden -mx-3 px-3 overflow-x-auto flex items-center gap-2 py-0.5">
-            <div className="flex items-center gap-1.5 whitespace-nowrap rounded-full bg-slate-800/80 px-2 py-0.5">
-              <Users2 className="h-3.5 w-3.5 text-slate-200" />
-              <span>{membersLabel}</span>
+          {/* Mobile: compact stacked snapshot card */}
+          <div className="md:hidden mt-0.5 rounded-xl bg-gradient-to-r from-slate-900 via-slate-900 to-slate-800 px-3 py-2 border border-slate-800 space-y-1.5">
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex items-center gap-1.5 min-w-0">
+                <Users2 className="h-3.5 w-3.5 text-slate-100" />
+                <span className="truncate text-slate-100">{membersLabel}</span>
+              </div>
             </div>
-            <Link
-              href="/community-vaults"
-              className="flex items-center gap-1.5 whitespace-nowrap rounded-full bg-slate-800/80 px-2 py-0.5 hover:bg-slate-700/80 transition-colors"
-            >
-              <Landmark className="h-3.5 w-3.5 text-slate-200" />
-              <span>County Vault</span>
-            </Link>
+            <div className="flex items-center gap-1.5 min-w-0">
+              <Landmark className="h-3.5 w-3.5 text-orange-300" />
+              <span className="truncate text-slate-200">County Vault snapshot for your area</span>
+            </div>
             {activeHighlight && (
-              activeHighlight.href ? (
-                <Link
-                  href={activeHighlight.href}
-                  className="flex items-center gap-1.5 whitespace-nowrap rounded-full bg-slate-800/80 px-2 py-0.5 hover:bg-slate-700/80 transition-colors"
-                >
-                  {activeHighlight.icon}
-                  <span>{activeHighlight.label}</span>
-                </Link>
-              ) : (
-                <div className="flex items-center gap-1.5 whitespace-nowrap rounded-full bg-slate-800/80 px-2 py-0.5">
-                  {activeHighlight.icon}
-                  <span>{activeHighlight.label}</span>
-                </div>
-              )
+              <div className="flex items-center gap-1.5 min-w-0">
+                {activeHighlight.icon}
+                <span className="truncate text-slate-200">{activeHighlight.label}</span>
+              </div>
             )}
           </div>
         </div>
+        )}
       </div>
 
       {/* Content area - keep community views within viewport on mobile */}
