@@ -39,6 +39,11 @@ export interface User {
   latitude?: number;
   longitude?: number;
   county?: string;
+  // Profile normalization & gating
+  profileVersion?: number;
+  locationCommitted?: boolean;
+  // Optional intent/preference hints
+  lastIntent?: string;
   isImpersonating?: boolean;
   originalRole?: string;
   createdAt?: string | Date;

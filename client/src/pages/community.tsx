@@ -56,6 +56,8 @@ interface CommunityPost {
   pinned: boolean;
   trending: boolean;
   imageUrls?: string[];
+  hasWorkRequest?: boolean;
+  workRequestId?: string | null;
 }
 
 const POST_CATEGORIES = [
@@ -384,6 +386,8 @@ export default function Community() {
                       comments: post.comments,
                       tags: post.tags,
                       imageUrls: post.imageUrls,
+                      hasWorkRequest: post.hasWorkRequest,
+                      workRequestId: post.workRequestId ?? undefined,
                     }}
                     onLike={handleLike}
                     formatTimeAgo={formatTimeAgo}

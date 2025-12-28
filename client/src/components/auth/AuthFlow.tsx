@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import { useLocation } from "wouter";
 import { useAuth } from "@/hooks/useAuth";
+import { CURRENT_PROFILE_VERSION } from "@shared/profile";
 
 interface AuthFlowProps {
   onComplete: () => void;
@@ -14,10 +15,15 @@ export function AuthFlow({ onComplete }: AuthFlowProps) {
   useEffect(() => {
     if (!isAuthenticated) return;
 
-    if (user && (user as any).onboardingCompleted) {
+    if (!user) return;
+
+    const anyUser: any = user;
+    const profileVersion: number = typeof anyUser.profileVersion === "number" ? anyUser.profileVersion : 0;
+
+    if (profileVersion >= CURRENT_PROFILE_VERSION || anyUser.onboardingCompleted) {
       onComplete();
     } else {
-      navigate("/create-account");
+      navigate("/onboarding/profile");
     }
   }, [isAuthenticated, user, navigate, onComplete]);
 

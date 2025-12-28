@@ -583,10 +583,19 @@ const CommunityFeed = memo(function CommunityFeed() {
     }
   };
 
+  const snapshotProps = React.useMemo(() => ({
+    membersCount: communityStats.totalMembers,
+    activeToday: communityStats.activeToday,
+    postsToday: communityStats.postsToday,
+    countiesActive: communityStats.countiesActive,
+    trendingTags: trendingTopics.map((t) => t.tag).slice(0, 3),
+  }), [communityStats, trendingTopics]);
+
   return (
     <CommunityShell
       sectionLabel="CommunityOS · A live feed for recommendations, projects, and trusted local pros."
       notificationsCount={unreadCount}
+      snapshot={snapshotProps}
     >
       <CountyRequiredGate locationOverride={location}>
       <div className="mx-auto w-full max-w-5xl px-3 py-3 md:px-4 md:py-4 overflow-x-hidden">
@@ -945,73 +954,8 @@ const CommunityFeed = memo(function CommunityFeed() {
             </Tabs>
           </div>
 
-          {/* Right column: collapsed community context so feed dominates */}
-          <div className="lg:col-span-1 space-y-4">
-            <Card className="bg-[color:var(--surface-card)] border-[color:var(--surface-frame-border)] backdrop-blur-sm">
-              <CardHeader className="flex flex-row items-center justify-between py-3">
-                <CardTitle className="text-white text-sm flex items-center gap-2">
-                  <Users2 className="h-4 w-4 text-orange-400" />
-                  Community context
-                </CardTitle>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="text-xs text-slate-300 hover:text-white px-2 py-1 h-7"
-                  onClick={() => setShowSidebar(!showSidebar)}
-                >
-                  {showSidebar ? 'Hide' : 'Show'}
-                </Button>
-              </CardHeader>
-              {showSidebar && (
-                <CardContent className="pt-0 pb-3">
-                  <div className="space-y-4 text-sm">
-                    <div className="space-y-2">
-                      <div className="text-xs uppercase tracking-wide text-slate-400">Community stats</div>
-                      <div className="text-center">
-                        <div className="text-2xl font-bold text-orange-400">{communityStats.totalMembers.toLocaleString()}</div>
-                        <div className="text-gray-400 text-xs">Total members</div>
-                      </div>
-                      <div className="grid grid-cols-1 gap-2 text-xs">
-                        <div className="flex justify-between">
-                          <span className="text-gray-400">Active today</span>
-                          <span className="text-green-400">{communityStats.activeToday.toLocaleString()}</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-gray-400">Posts today</span>
-                          <span className="text-orange-400">{communityStats.postsToday}</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-gray-400">Active counties</span>
-                          <span className="text-purple-400">{communityStats.countiesActive.toLocaleString()}</span>
-                        </div>
-                      </div>
-                    </div>
-
-                    {Array.isArray(trendingTopics) && trendingTopics.length > 0 && (
-                      <div className="space-y-2">
-                        <div className="text-xs uppercase tracking-wide text-slate-400 flex items-center gap-2">
-                          <TrendingUp className="h-3 w-3" />
-                          <span>Trending topics</span>
-                        </div>
-                        <div className="space-y-2">
-                          {trendingTopics.map((topic, index) => (
-                            <div key={index} className="flex justify-between items-center">
-                              <span className="text-orange-400 hover:text-orange-300 cursor-pointer text-xs">
-                                {topic.tag}
-                              </span>
-                              <span className="text-gray-400 text-[11px]">
-                                {topic.source === 'news' ? 'News' : (typeof topic.posts === 'number' ? topic.posts : 0)}
-                              </span>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                </CardContent>
-              )}
-            </Card>
-          </div>
+          {/* Right column intentionally kept light so feed dominates */}
+          <div className="lg:col-span-1 space-y-4" />
         </div>
       </div>
       </CountyRequiredGate>

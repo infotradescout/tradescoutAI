@@ -9,7 +9,7 @@ export default function Login() {
 
   useEffect(() => {
     if (isAuthenticated) {
-      window.location.href = "/dashboard";
+      window.location.href = "/";
     }
   }, [isAuthenticated]);
 

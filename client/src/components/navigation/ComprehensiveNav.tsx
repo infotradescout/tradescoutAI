@@ -326,6 +326,7 @@ const ComprehensiveNav = memo(function ComprehensiveNav() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const isCommunityFirst = Boolean((user as any)?.communityFirst);
+  const isAdminUser = Boolean((user as any)?.isAdmin);
 
   const hasPermission = (item: NavItem): boolean => {
     if (!user) return !item.roles && !item.permission;
@@ -410,7 +411,7 @@ const ComprehensiveNav = memo(function ComprehensiveNav() {
       <div className="max-w-7xl mx-auto px-4">
         <div className="flex items-center justify-between h-14">
           {/* Logo */}
-          <Link href="/dashboard">
+            <Link href={isAdminUser ? "/dashboard" : "/community-feed"}>
             <div className="flex items-center gap-2 cursor-pointer hover:opacity-80 transition-opacity">
               <div className="w-8 h-8 bg-gradient-to-br from-orange-500 to-orange-600 rounded-lg flex items-center justify-center">
                 <span className="text-white font-bold text-lg">T</span>

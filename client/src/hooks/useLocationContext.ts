@@ -94,14 +94,10 @@ export function useLocationContext(
 ): LocationContext {
   const { user } = useAuth() as any;
 
-  const profileStateCode: string | undefined =
-    user?.stateCode ?? user?.state ?? undefined;
-  const profileCountyFips: string | undefined =
-    (user as any)?.countyFips ?? undefined;
-  const profileCountyId: string | undefined =
-    (user as any)?.countyId ?? undefined;
-  const profileCountyName: string | undefined =
-    (user as any)?.countyName ?? (user?.county ? String(user.county) : undefined);
+  const profileStateCode: string | undefined = user?.stateCode ?? undefined;
+  const profileCountyFips: string | undefined = (user as any)?.countyFips ?? undefined;
+  const profileCountyId: string | undefined = (user as any)?.countyId ?? undefined;
+  const profileCountyName: string | undefined = (user as any)?.countyName ?? undefined;
   const profileLat: number | undefined =
     typeof user?.latitude === "number" ? user.latitude : undefined;
   const profileLng: number | undefined =

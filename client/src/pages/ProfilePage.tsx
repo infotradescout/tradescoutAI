@@ -218,27 +218,7 @@ export default function ProfilePage() {
                 </div>
               )}
 
-              {/* User Types */}
-              {user.roles && user.roles.length > 0 && (
-                <div className="mb-4">
-                  <p className="text-sm text-tsTextMuted mb-2">User Types</p>
-                  <div className="flex flex-wrap gap-2">
-                    {user.roles.map((roleId: string) => {
-                      const userType = USER_TYPES[roleId];
-                      if (!userType) return null;
-
-                      return (
-                        <Badge
-                          key={roleId}
-                          className="bg-tsAccent text-white px-3 py-1"
-                        >
-                          {userType.label}
-                        </Badge>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
+              {/* Roles are used for capabilities and layout only; no public-facing chips here. */}
 
               {/* Share Profile */}
               {isPublic && (

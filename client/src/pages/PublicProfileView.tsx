@@ -368,28 +368,7 @@ export default function PublicProfileView() {
                 )}
               </div>
 
-              {/* User Types */}
-              {showRolesAndBadges && profile.roles && profile.roles.length > 0 && (
-                <div className="flex flex-wrap gap-2 mt-4">
-                  {profile.roles.map((roleId: string) => {
-                    const userType = USER_TYPES[roleId];
-                    if (!userType) return null;
-
-                    return (
-                      <Badge
-                        key={roleId}
-                        className="px-3 py-1 bg-tsAccent text-tsBg"
-                        style={{
-                          backgroundColor: 'var(--user-primary, #f97316)',
-                          color: 'var(--user-background, #0a0f1e)',
-                        }}
-                      >
-                        {userType.label}
-                      </Badge>
-                    );
-                  })}
-                </div>
-              )}
+              {/* Roles exist for capabilities and layout, but are not shown as trust/status chips. */}
 
               {/* Badges */}
               {showRolesAndBadges && showBadges && (badges.length > 0 || hasCommunityBuilder) && (
@@ -533,10 +512,6 @@ export default function PublicProfileView() {
                 <div className="flex justify-between">
                   <span className="opacity-70">Location</span>
                   <span className="font-medium">{location}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="opacity-70">User Types</span>
-                  <span className="font-medium">{profile.roles?.length || 0}</span>
                 </div>
               </div>
             </CardContent>

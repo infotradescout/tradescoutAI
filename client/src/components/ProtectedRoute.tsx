@@ -1,6 +1,7 @@
 import React, { useMemo } from 'react';
 import { useLocation } from 'wouter';
 import { useAuth } from '@/hooks/useAuth';
+import { CURRENT_PROFILE_VERSION } from '@shared/profile';
 import { PageLoadingSpinner } from '@/components/LoadingSpinner';
 
 interface ProtectedRouteProps {
@@ -60,12 +61,13 @@ export function ProtectedRoute({
     return null;
   }
 
-   // Authenticated but has not completed onboarding (non-admin): send to account setup
-   const isAdmin = user?.isAdmin === true;
-   if (!isAdmin && user && user.onboardingCompleted === false) {
-     setLocation('/create-account');
-     return null;
-   }
+  // Authenticated but needs profile normalization: send to onboarding profile
+  const isAdmin = user?.isAdmin === true;
+  const profileVersion = typeof (user as any)?.profileVersion === 'number' ? (user as any).profileVersion : 0;
+  if (!isAdmin && user && profileVersion < CURRENT_PROFILE_VERSION) {
+    setLocation('/onboarding/profile');
+    return null;
+  }
 
   // Authenticated but insufficient permissions
   if (!hasAccess) {
