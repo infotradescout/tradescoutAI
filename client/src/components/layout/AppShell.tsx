@@ -61,7 +61,7 @@ const featureNav: NavItem[] = [
   },
   {
     label: "Direct Connect",
-    href: "/tasks",
+    href: "/direct-connect",
     icon: <ClipboardList className="h-5 w-5" style={{ color: 'var(--theme-accent-primary)' }} />,
   },
   {

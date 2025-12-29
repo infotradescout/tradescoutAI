@@ -60,7 +60,7 @@ export const CommunityShell: React.FC<CommunityShellProps> = ({
     items.push({
       key: "work-request",
       label: "Open Direct Connect",
-      href: "/tasks",
+      href: "/direct-connect",
       icon: <Target className="h-3.5 w-3.5" />,
     });
 
@@ -133,7 +133,7 @@ export const CommunityShell: React.FC<CommunityShellProps> = ({
               Marketplace
             </Link>
             <span className="text-slate-600">·</span>
-            <Link href="/tasks" className="hover:text-orange-400 transition-colors">
+            <Link href="/direct-connect" className="hover:text-orange-400 transition-colors">
               Direct Connect
             </Link>
           </nav>

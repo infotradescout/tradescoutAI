@@ -6,7 +6,6 @@ import "@sentry/tracing";
 import { registerRoutes } from "./routes";
 import { createInvoicingDocumentsRouter } from "./invoicingDocumentsRouter";
 import { pool } from "./db";
-import { setupVite, serveStatic, log } from "./vite";
 import { notificationService } from "./notification-service";
 import { startCrawlerScheduler } from "./services/crawlerScheduler";
 import { initializeMessagingService } from "./messaging-service";
@@ -20,6 +19,18 @@ import { fileURLToPath } from "url";
 // ES module equivalent of __dirname
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+
+// Lightweight log helper (mirrors server/vite.ts without importing Vite in prod)
+function log(message: string, source = "express") {
+  const formattedTime = new Date().toLocaleTimeString("en-US", {
+    hour: "numeric",
+    minute: "2-digit",
+    second: "2-digit",
+    hour12: true,
+  });
+
+  console.log(`${formattedTime} [${source}] ${message}`);
+}
 
 // Global error handlers
 process.on('unhandledRejection', (reason, promise) => {
@@ -375,6 +386,7 @@ app.use((req, res, next) => {
                 );
               } else {
                 console.log("[DEV] Setting up Vite...");
+                const { setupVite } = await import("./vite");
                 await setupVite(app, server);
                 console.log(
                   "[DEV] Vite setup complete - ready to accept connections",

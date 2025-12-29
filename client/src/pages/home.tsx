@@ -138,7 +138,7 @@ export default function Home() {
 
       {/* Quick Actions */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-        <Link href="/tasks">
+        <Link href="/direct-connect">
           <Card className="bg-navy-700 border-navy-600 card-enhanced cursor-pointer">
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
