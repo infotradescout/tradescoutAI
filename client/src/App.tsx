@@ -24,7 +24,6 @@ import SimpleMobileGestures from './components/SimpleMobileGestures';
 import SimpleSubtleHints from './components/onboarding/SimpleSubtleHints';
 import SimpleBugReportTool from './components/SimpleBugReportTool';
 import { CURRENT_PROFILE_VERSION } from '@shared/profile';
-import SimpleFloatingHelp from './components/ui/simple-floating-help';
 import ComingSoon from './pages/coming-soon';
 
 // Loading component for lazy-loaded pages

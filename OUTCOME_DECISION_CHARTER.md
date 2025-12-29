@@ -47,6 +47,39 @@ If these conditions are not met, the freeze continues by default.
   - ✅ Allowed: reading, screenshotting, documenting, analysis.
   - ❌ Not allowed: product changes to outcome UX, Direct Connect behavior, or action taxonomies.
 
+### 14-Day Observation Window (Scout + Direct Connect)
+
+For the first 14 days after Scout's "Your Active Coordination" and "What Scout Has Already Done" panels ship, follow this tighter read plan **without making product changes**:
+
+- **Scout engagement with coordination (behavioral)**
+  - Weekly, review how often Panel 1 is populated (at least one active item) and compare:
+    - Clicks on "View in Direct Connect" from Scout.
+    - Direct visits to `/tasks` (Direct Connect) outside Scout.
+  - Interpretation:
+    - If Scout → Direct Connect clicks rise while direct `/tasks` visits drop, Scout is acting as the primary dashboard.
+    - If users still jump straight to `/tasks`, visibility may not yet be sufficient.
+
+- **Outcome shifts (truth)**
+  - From the Outcome Summary for the same 7-day windows, focus on **deltas**, not absolutes:
+    - Success rate per actionType.
+    - Pending share.
+    - Median time-to-outcome.
+  - Key question: did making coordination visible/explained reduce "pending" or shorten time-to-outcome? If yes, visibility alone is powerful; if no, the bottleneck is likely in decision/action, not awareness.
+
+- **State distribution inside Panel 1 (process)**
+  - Manually eyeball the mix of interpretation states:
+    - Routing vs Awaiting responses vs In discussion (and related states).
+  - Patterns to notice:
+    - Heavy Awaiting responses → external latency problem.
+    - Heavy In discussion but low success → coordination friction.
+    - Many Created/Routing that never move → unclear next step.
+
+During this 14-day window:
+
+- ❌ Do **not** add new prompts, nudges, reminder logic, or auto-escalation.
+- ❌ Do **not** tweak copy related to Direct Connect or Scout coordination.
+- ✅ Only observe and describe. Any urge to "just help users a bit more" is treated as a signal to wait until a trigger fires.
+
 ---
 
 ## Trigger 1 – Clear Winner Action Type (Amplification Only)

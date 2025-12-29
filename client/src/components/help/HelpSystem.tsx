@@ -62,7 +62,7 @@ const helpTopics: HelpTopic[] = [
     category: 'features',
     illustration: 'wrench',
     content: {
-      overview: 'Our project tracker is like having a project manager who never loses paperwork.',
+      overview: 'Your Direct Connect board is like having a project manager who never loses paperwork.',
       steps: [
         'Receive notifications when customers request quotes',
         'Review project details and customer requirements',
