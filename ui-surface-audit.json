@@ -1,9 +1,9 @@
 {
   "summary": {
-    "scannedFiles": 505,
+    "scannedFiles": 506,
     "rootViolations": 120,
     "filesWithMinH": 123,
-    "filesWithBg": 368
+    "filesWithBg": 369
   },
   "results": [
     {
@@ -7844,6 +7844,22 @@
             54,
             54,
             54
+          ]
+        }
+      ]
+    },
+    {
+      "file": "client/src/pages/direct-connect/DirectConnectShell.tsx",
+      "isRootViolation": false,
+      "hits": [
+        {
+          "pattern": "bg-*",
+          "count": 4,
+          "lines": [
+            63,
+            79,
+            80,
+            102
           ]
         }
       ]

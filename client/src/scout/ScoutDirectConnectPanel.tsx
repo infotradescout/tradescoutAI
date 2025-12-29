@@ -144,9 +144,9 @@ export const ScoutDirectConnectPanel: React.FC<ScoutDirectConnectPanelProps> = (
   const [, navigate] = useLocation();
 
   const { data, isLoading } = useQuery<WorkRequest[]>({
-    queryKey: ["/api/work-requests", "scout"],
+    queryKey: ["/api/direct-connect/requests", "scout"],
     queryFn: async () => {
-      const res = await fetch("/api/work-requests");
+      const res = await fetch("/api/direct-connect/requests");
       if (!res.ok) throw new Error("Failed to fetch work requests");
       return res.json();
     },

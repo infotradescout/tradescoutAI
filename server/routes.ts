@@ -8,6 +8,7 @@ import { businessesRouter } from "./routes/businesses";
 import { profilesRouter } from "./routes/profiles";
 import { registerRecommendationGeneratorRoutes } from "./routes/recommendation-generator";
 import { registerNotificationRoutes } from "./routes/notification-routes";
+import { registerDirectConnectRoutes } from "./routes/direct-connect";
 import { registerAnalyticsRoutes } from "./routes/analytics-routes";
 import { registerCrmRoutes } from "./crm-routes";
 import { registerAICodeFixRoutes } from "./ai-code-fixes";
@@ -12376,6 +12377,7 @@ export async function registerRoutes(app: any) {
   
   // Register notification routes
   registerNotificationRoutes(app);
+  registerDirectConnectRoutes(app);
   
   // Register analytics routes
   registerAnalyticsRoutes(app);

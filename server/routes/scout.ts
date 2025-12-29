@@ -1540,6 +1540,51 @@ async function getJobFinancesSnapshot(jobId: string): Promise<{
   return { income, collected, outstanding, expenses, net };
 }
 
+async function getLatestInProgressDirectConnectForContractor(userId: string | null | undefined): Promise<{
+  requestId: string;
+  title: string;
+  clientName?: string | null;
+} | null> {
+  try {
+    if (!userId) return null;
+
+    const contractor = await storage.getContractorByUserId(String(userId));
+    if (!contractor) return null;
+
+    const { rows } = await pool.query(
+      `SELECT
+         wr.id AS request_id,
+         wr.title AS title,
+         COALESCE(
+           NULLIF(TRIM(CONCAT(u.first_name, ' ', u.last_name)), ''),
+           u.email
+         ) AS client_name
+       FROM work_request_assignments a
+       JOIN work_requests wr ON wr.id = a.work_request_id
+       LEFT JOIN users u ON u.id = wr.created_by_user_id
+       WHERE a.contractor_id = $1
+         AND a.status = 'accepted'
+         AND wr.status = 'in_progress'
+         AND wr.source = 'direct_connect'
+       ORDER BY a.updated_at DESC
+       LIMIT 1`,
+      [String(contractor.id)],
+    );
+
+    if (!rows || rows.length === 0) return null;
+
+    const row: any = rows[0];
+    return {
+      requestId: String(row.request_id),
+      title: String(row.title || "Direct Connect job"),
+      clientName: row.client_name ? String(row.client_name) : null,
+    };
+  } catch (err) {
+    console.error("[Scout][DirectConnect] Failed to resolve in-progress Direct Connect job for contractor", err);
+    return null;
+  }
+}
+
 function getRegionFromState(stateCode: string): string {
   const regions: Record<string, string> = {
     // Northeast
@@ -2209,6 +2254,55 @@ router.post("/", async (req: Request, res: Response) => {
       let actions: ScoutClientAction[] = Array.isArray(aiResponse.actions)
         ? aiResponse.actions.slice()
         : [];
+
+      // Context-aware Direct Connect finances nudge: when a contractor has a
+      // Direct Connect job in progress, gently surface a single suggestion to
+      // create an invoice or record payment, deep-linking into Finances with
+      // project/client prefill.
+      const directConnectContext =
+        userRole === "contractor" ? await getLatestInProgressDirectConnectForContractor(userId) : null;
+
+      if (directConnectContext) {
+        const dcPrompt =
+          "This Direct Connect job is in progress — would you like to create an invoice or record payment?";
+
+        const dcLabel = "Create invoice or record payment for this job";
+
+        const existingInvoiceSuggestion = (aiResponse.suggestedActions || []).some((label) =>
+          typeof label === "string" && label.toLowerCase().includes("invoice"),
+        );
+
+        if (!existingInvoiceSuggestion) {
+          const nextSuggestions = [dcLabel, ...(aiResponse.suggestedActions || [])];
+          aiResponse.suggestedActions = nextSuggestions.slice(0, 3);
+        }
+
+        const params = new URLSearchParams();
+        if (directConnectContext.title) params.set("project", directConnectContext.title);
+        if (directConnectContext.clientName) params.set("client", directConnectContext.clientName);
+        const dcFinancesPath = "/finances/invoices" + (params.toString() ? `?${params.toString()}` : "");
+
+        const alreadyHasDcInvoiceNav = actions.some(
+          (a) =>
+            a.type === "NAVIGATE" &&
+            typeof a.to === "string" &&
+            a.to.startsWith("/finances/invoices") &&
+            a.to.includes("project=") &&
+            a.to.includes(encodeURIComponent(directConnectContext.title)),
+        );
+
+        if (!alreadyHasDcInvoiceNav) {
+          actions.push({
+            type: "NAVIGATE",
+            label: "Open Finances for this job",
+            to: dcFinancesPath,
+          });
+        }
+
+        aiResponse.message = trimResponseToScreenFit(
+          `${aiResponse.message}\n\n${dcPrompt}`,
+        );
+      }
 
       const mentionsCommunityQuestion =
         /who\s*(?:'s| is)\s*a?\s*good\s+contractor/.test(lower) ||

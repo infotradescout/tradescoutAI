@@ -555,6 +555,7 @@ export default function ScoutOS() {
       case "contractors":
         base.push(
           "Open my deal room",
+          "Create an invoice for this job",
           "View invoices and payments",
           "Post a new job",
           "Open a floating note to keep this visible"

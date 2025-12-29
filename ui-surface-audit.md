@@ -1,9 +1,9 @@
 # UI Surface Audit
 
-Scanned files: **505**
+Scanned files: **506**
 Root violations (min-h-screen + bg-*): **120**
 Files with min-h-screen: **123**
-Files with bg-* classes: **368**
+Files with bg-* classes: **369**
 
 ## Top offenders
 - 🚫 `client/src/pages/landing.tsx` — min-h-screen (2) @ lines 70,82 | h-screen (2) @ lines 70,82 | bg-* (1001) @ lines 91,113,122,123,123 | gradient (6) @ lines 717,717,717,745,745
