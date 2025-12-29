@@ -147,7 +147,7 @@ export default function AdminPanel() {
   const isSuperAdmin = ['owner', 'ops_admin', 'admin', 'super_admin', 'head_admin'].includes(user?.role || '');
   if (!isAuthenticated || !user || !isSuperAdmin) {
     return (
-      <div className="min-h-screen bg-slate-950 flex items-center justify-center">
+      <div className="bg-slate-950 flex items-center justify-center py-24">
         <Card className="max-w-md">
           <CardContent className="p-6 text-center">
             <h2 className="text-xl font-semibold mb-2">Access Denied</h2>
@@ -340,7 +340,7 @@ export default function AdminPanel() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-950 text-white p-6">
+    <div className="bg-slate-950 text-white p-6">
       <div className="max-w-7xl mx-auto">
         <div className="mb-8">
           <h1 className="text-3xl font-bold mb-2 flex items-center gap-2">

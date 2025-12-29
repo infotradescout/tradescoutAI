@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -14,9 +14,44 @@ import { useToast } from "@/hooks/use-toast";
 import { useNotifications } from "@/hooks/useNotifications";
 import { apiRequest } from "@/lib/queryClient";
 import type { WorkRequest, TaskCategory } from "@shared/schema";
+import { Checkbox } from "@/components/ui/checkbox";
+
+type TopContractor = {
+  id: string;
+  businessName: string | null;
+  reviewCount: number | null;
+  recommendationCount: number | null;
+  county: string | null;
+  state: string | null;
+  presenceLabel: string;
+  reachTier: "local" | "regional" | "wide";
+  localCredibilityScore?: number | null;
+};
+
+function mapTaskCategoryToTradeSlug(categoryId: string | null | undefined): string | null {
+  if (!categoryId) return null;
+
+  const mapping: Record<string, string> = {
+    // Maintenance & home support
+    "yard-work": "landscaper",
+    "seasonal-tasks": "landscaper",
+    "cleaning": "cleaning_service",
+    "organization": "cleaning_service",
+    "basic-repairs": "handyman",
+    "assembly": "handyman",
+    // Light construction / prep
+    "demolition": "general_contractor",
+    "painting-prep": "painter",
+    // Misc personal help -> handyman-style
+    "general-labor": "handyman",
+    "moving-delivery": "handyman",
+  };
+
+  return mapping[categoryId] ?? null;
+}
 
 export default function TasksHub() {
-  const { isAuthenticated } = useAuth();
+  const { user, isAuthenticated } = useAuth();
   const { unreadCount } = useNotifications();
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -32,6 +67,8 @@ export default function TasksHub() {
   const [taskPayAmount, setTaskPayAmount] = useState<string>("");
   const [taskTaskType, setTaskTaskType] = useState<"one_time" | "recurring" | "project_based">("one_time");
   const [taskSchedulingType, setTaskSchedulingType] = useState<"asap" | "scheduled" | "flexible">("asap");
+
+  const [selectedProviderIds, setSelectedProviderIds] = useState<string[]>([]);
 
   const { data: workRequests, isLoading: requestsLoading } = useQuery<WorkRequest[]>({
     queryKey: ["/api/work-requests", selectedCategory],
@@ -50,6 +87,39 @@ export default function TasksHub() {
     queryKey: ["/api/task-categories"],
   });
 
+  const tradeSlugForCategory = useMemo(
+    () => mapTaskCategoryToTradeSlug(taskCategoryId || null),
+    [taskCategoryId],
+  );
+
+  useEffect(() => {
+    // Reset provider picks when the shape of the request changes
+    setSelectedProviderIds([]);
+  }, [taskCategoryId]);
+
+  const { data: recommendedProviders, isLoading: providersLoading } = useQuery<TopContractor[]>({
+    queryKey: [
+      "/api/contractors/top",
+      user?.countyFips || null,
+      tradeSlugForCategory || null,
+    ],
+    queryFn: async () => {
+      const county = user?.countyFips;
+      const trade = tradeSlugForCategory;
+      if (!county || !trade) return [];
+
+      const params = new URLSearchParams({
+        county,
+        trade,
+        limit: "5",
+      });
+      const response = await fetch(`/api/contractors/top?${params.toString()}`);
+      if (!response.ok) throw new Error("Failed to fetch recommended providers");
+      return response.json();
+    },
+    enabled: isAuthenticated && !!user?.countyFips && !!tradeSlugForCategory,
+  });
+
   const createTaskMutation = useMutation({
     mutationFn: async () => {
       const payAmount = Number(taskPayAmount);
@@ -63,6 +133,7 @@ export default function TasksHub() {
         category: taskCategoryId || undefined,
         budgetMin: payAmount,
         budgetMax: payAmount,
+        targetContractorIds: selectedProviderIds.length ? selectedProviderIds : undefined,
       });
     },
     onSuccess: () => {
@@ -74,6 +145,7 @@ export default function TasksHub() {
       setTaskDescription("");
       setTaskCategoryId("");
       setTaskPayAmount("");
+      setSelectedProviderIds([]);
       setActiveTab("browse");
       queryClient.invalidateQueries({ queryKey: ["/api/work-requests"] });
     },
@@ -155,7 +227,7 @@ export default function TasksHub() {
                     <SelectTrigger className="bg-navy-600 border-navy-500 text-white">
                       <SelectValue placeholder="All categories" />
                     </SelectTrigger>
-                    <SelectContent className="bg-navy-600 border-navy-500">
+                    <SelectContent className="bg-navy-600 border-navy-500 text-white">
                       <SelectItem value="all">All categories</SelectItem>
                       {categories?.map((category) => (
                         <SelectItem key={category.id} value={category.id}>
@@ -295,7 +367,7 @@ export default function TasksHub() {
                           <SelectTrigger className="bg-navy-700 border-navy-600 text-white">
                             <SelectValue placeholder="Select a category" />
                           </SelectTrigger>
-                          <SelectContent className="bg-navy-700 border-navy-600">
+                          <SelectContent className="bg-navy-700 border-navy-600 text-white">
                             <SelectItem value="none">No category</SelectItem>
                             {categories?.map((c) => (
                               <SelectItem key={c.id} value={c.id}>
@@ -312,7 +384,7 @@ export default function TasksHub() {
                           <SelectTrigger className="bg-navy-700 border-navy-600 text-white">
                             <SelectValue />
                           </SelectTrigger>
-                          <SelectContent className="bg-navy-700 border-navy-600">
+                          <SelectContent className="bg-navy-700 border-navy-600 text-white">
                             <SelectItem value="one_time">One-time</SelectItem>
                             <SelectItem value="recurring">Recurring</SelectItem>
                             <SelectItem value="project_based">Project-based</SelectItem>
@@ -328,7 +400,7 @@ export default function TasksHub() {
                           <SelectTrigger className="bg-navy-700 border-navy-600 text-white">
                             <SelectValue />
                           </SelectTrigger>
-                          <SelectContent className="bg-navy-700 border-navy-600">
+                          <SelectContent className="bg-navy-700 border-navy-600 text-white">
                             <SelectItem value="fixed">Fixed</SelectItem>
                             <SelectItem value="hourly">Hourly</SelectItem>
                             <SelectItem value="per_task">Per job</SelectItem>
@@ -355,13 +427,87 @@ export default function TasksHub() {
                           <SelectTrigger className="bg-navy-700 border-navy-600 text-white">
                             <SelectValue />
                           </SelectTrigger>
-                          <SelectContent className="bg-navy-700 border-navy-600">
+                          <SelectContent className="bg-navy-700 border-navy-600 text-white">
                             <SelectItem value="asap">ASAP</SelectItem>
                             <SelectItem value="scheduled">Scheduled</SelectItem>
                             <SelectItem value="flexible">Flexible</SelectItem>
                           </SelectContent>
                         </Select>
                       </div>
+                    </div>
+
+                    <div className="grid gap-2">
+                      <Label>
+                        Optional: send this Direct Connect request directly to recommended providers
+                      </Label>
+                      {!isAuthenticated || !user?.countyFips ? (
+                        <p className="text-sm text-gray-300">
+                          We'll post this on your Direct Connect board. Sign in with a saved home location to
+                          see tailored provider suggestions.
+                        </p>
+                      ) : providersLoading ? (
+                        <p className="text-sm text-gray-300">Loading recommended providers…</p>
+                      ) : !tradeSlugForCategory ? (
+                        <p className="text-sm text-gray-300">
+                          We don't have a direct provider match for this category yet. Your request will go to your
+                          Direct Connect board for any eligible provider to respond.
+                        </p>
+                      ) : (recommendedProviders || []).length === 0 ? (
+                        <p className="text-sm text-gray-300">
+                          No specific providers surfaced yet for this combination of category and location. We'll post
+                          this on your Direct Connect board.
+                        </p>
+                      ) : (
+                        <div className="space-y-3">
+                          <p className="text-xs text-gray-300">
+                            Based on your category and home county, you can also send this directly to:
+                          </p>
+                          <div className="space-y-2">
+                            {recommendedProviders!.map((provider) => {
+                              const checked = selectedProviderIds.includes(provider.id);
+                              return (
+                                <label
+                                  key={provider.id}
+                                  className="flex items-start gap-3 rounded-md border border-navy-600 bg-navy-800/60 px-3 py-2 cursor-pointer"
+                                >
+                                  <Checkbox
+                                    checked={checked}
+                                    onCheckedChange={(val) => {
+                                      setSelectedProviderIds((prev) => {
+                                        if (val) {
+                                          const next = [...prev, provider.id];
+                                          return Array.from(new Set(next));
+                                        }
+                                        return prev.filter((id) => id !== provider.id);
+                                      });
+                                    }}
+                                  />
+                                  <div className="flex-1 min-w-0">
+                                    <div className="text-sm text-white font-medium truncate">
+                                      {provider.businessName || "Local provider"}
+                                    </div>
+                                    <div className="text-xs text-gray-300">
+                                      {provider.presenceLabel}
+                                      {provider.county && provider.state
+                                        ? ` · ${provider.county}, ${provider.state}`
+                                        : null}
+                                    </div>
+                                    {provider.recommendationCount && provider.recommendationCount > 0 && (
+                                      <div className="text-[11px] text-gray-400 mt-0.5">
+                                        {provider.recommendationCount} neighbor recommendations
+                                      </div>
+                                    )}
+                                  </div>
+                                </label>
+                              );
+                            })}
+                          </div>
+                          <p className="text-[11px] text-gray-400">
+                            If you don't pick anyone here, your request will just post to your Direct
+                            Connect board and any eligible provider can respond.
+                          </p>
+                        </div>
+                      )}
                     </div>
 
                     <div className="flex justify-end gap-2">
@@ -373,6 +519,7 @@ export default function TasksHub() {
                           setTaskDescription("");
                           setTaskCategoryId("");
                           setTaskPayAmount("");
+                          setSelectedProviderIds([]);
                         }}
                         disabled={createTaskMutation.isPending}
                       >

@@ -1,8 +1,9 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Page } from "@/components/layout/PagePrimitives";
 
 export default function FinancesSettingsPage() {
   return (
-    <div className="flex flex-col gap-4">
+    <Page className="space-y-4">
       <div>
         <h1 className="text-2xl md:text-3xl font-semibold text-slate-50 mb-1">Finances settings</h1>
         <p className="text-sm text-slate-400">
@@ -25,6 +26,6 @@ export default function FinancesSettingsPage() {
           </p>
         </CardContent>
       </Card>
-    </div>
+    </Page>
   );
 }

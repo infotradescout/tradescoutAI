@@ -2,26 +2,22 @@
   "version": "7",
   "dialect": "postgresql",
   "entries": [
-    {
-      "idx": 0,
-      "version": "7",
-      "when": 1754927020776,
-      "tag": "0000_wild_saracen",
-      "breakpoints": true
-    },
-    {
-      "idx": 1,
-      "version": "7",
-      "when": 1760000000000,
-      "tag": "0001_community_builder",
-      "breakpoints": true
-    },
-    {
-      "idx": 2,
-      "version": "7",
-      "when": 1765401600000,
-      "tag": "0002_add_user_badges",
-      "breakpoints": false
-    }
+    { "idx": 0, "version": "7", "when": 1754927020776, "tag": "0000_wild_saracen", "breakpoints": true },
+    { "idx": 1, "version": "7", "when": 1754928020776, "tag": "0001_community_builder", "breakpoints": true },
+    { "idx": 2, "version": "7", "when": 1754929020776, "tag": "0002_add_user_badges", "breakpoints": false },
+    { "idx": 3, "version": "7", "when": 1754930020776, "tag": "0003_business_profiles", "breakpoints": false },
+    { "idx": 4, "version": "7", "when": 1754931020776, "tag": "0004_profiles", "breakpoints": false },
+    { "idx": 5, "version": "7", "when": 1754932020776, "tag": "0005_documents", "breakpoints": false },
+    { "idx": 6, "version": "7", "when": 1754933020776, "tag": "0006_extend_documents_types", "breakpoints": false },
+    { "idx": 7, "version": "7", "when": 1754934020776, "tag": "0007_add_geo_to_marketplace_listings", "breakpoints": false },
+    { "idx": 8, "version": "7", "when": 1754935020776, "tag": "0008_add_location_visibility_to_marketplace_listings", "breakpoints": false },
+    { "idx": 9, "version": "7", "when": 1754936020776, "tag": "0009_capability_bundles_on_users", "breakpoints": false },
+    { "idx": 10, "version": "7", "when": 1754937020776, "tag": "0010_canonical_location_on_users", "breakpoints": false },
+    { "idx": 11, "version": "7", "when": 1754938020776, "tag": "0011_xp", "breakpoints": false },
+    { "idx": 12, "version": "7", "when": 1754939020776, "tag": "0012_badges", "breakpoints": false },
+    { "idx": 13, "version": "7", "when": 1754940020776, "tag": "0013_social_post_saves", "breakpoints": false },
+    { "idx": 14, "version": "7", "when": 1754941020776, "tag": "0014_profile_version_on_users", "breakpoints": false },
+    { "idx": 15, "version": "7", "when": 1754942020776, "tag": "0015_work_requests", "breakpoints": false },
+    { "idx": 16, "version": "7", "when": 1754943020776, "tag": "0016_provider_reach_and_verifications", "breakpoints": false }
   ]
 }

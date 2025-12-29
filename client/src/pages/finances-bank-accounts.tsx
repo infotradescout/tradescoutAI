@@ -1,12 +1,13 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useLocation } from "wouter";
+import { Page } from "@/components/layout/PagePrimitives";
 
 export default function FinancesBankAccountsPage() {
   const [, navigate] = useLocation();
 
   return (
-    <div className="flex flex-col gap-4">
+    <Page className="space-y-4">
       <div className="flex items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl md:text-3xl font-semibold text-slate-50 mb-1">Bank accounts</h1>
@@ -41,6 +42,6 @@ export default function FinancesBankAccountsPage() {
           </p>
         </CardContent>
       </Card>
-    </div>
+    </Page>
   );
 }

@@ -58,7 +58,7 @@ export default function AdminAttachments() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-navy-900 text-white p-6">
+      <div className="bg-navy-900 text-white p-6">
         <div className="max-w-6xl mx-auto">
           <div className="animate-pulse space-y-4">
             {[...Array(6)].map((_, i) => (
@@ -71,7 +71,7 @@ export default function AdminAttachments() {
   }
 
   return (
-    <div className="min-h-screen bg-navy-900 text-white">
+    <div className="bg-navy-900 text-white">
       <div className="max-w-6xl mx-auto p-6">
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-white mb-2">User Submitted Attachments</h1>

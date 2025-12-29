@@ -251,7 +251,7 @@ export default function Chat() {
 
   if (!isAuthenticated) {
     return (
-      <div className="min-h-screen gradient-bg flex items-center justify-center">
+    <div className="py-24 flex items-center justify-center">
         <Card className="bg-navy-700 border-navy-600 max-w-md mx-auto">
           <CardContent className="p-8 text-center">
             <MessageCircle className="h-12 w-12 text-orange-500 mx-auto mb-4" />
@@ -269,7 +269,7 @@ export default function Chat() {
   }
 
   return (
-    <div className="min-h-screen gradient-bg">
+  <div>
       <div className="max-w-7xl mx-auto ts-surface px-4 py-6 md:px-10 md:py-8">
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 h-[calc(100vh-8rem)]">
           

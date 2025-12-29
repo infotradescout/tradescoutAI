@@ -1,0 +1,34 @@
+import { request } from "@playwright/test";
+import fs from "node:fs";
+import path from "node:path";
+
+export default async function globalSetup() {
+  const baseURL = process.env.E2E_BASE_URL || "http://localhost:5000";
+
+  const email = process.env.E2E_EMAIL || process.env.MASTER_ADMIN_EMAIL;
+  const password = process.env.E2E_PASSWORD || process.env.MASTER_ADMIN_PASSWORD;
+
+  if (!email || !password) {
+    throw new Error(
+      "Missing auth creds for E2E. Set E2E_EMAIL + E2E_PASSWORD (or MASTER_ADMIN_EMAIL + MASTER_ADMIN_PASSWORD).",
+    );
+  }
+
+  const authDir = path.resolve(process.cwd(), "tests/.auth");
+  fs.mkdirSync(authDir, { recursive: true });
+
+  const ctx = await request.newContext({ baseURL });
+
+  const resp = await ctx.post("/api/auth/login", {
+    data: { email, password },
+    headers: { "Content-Type": "application/json" },
+  });
+
+  if (!resp.ok()) {
+    const body = await resp.text();
+    throw new Error(`E2E login failed: ${resp.status()} ${resp.statusText()} :: ${body}`);
+  }
+
+  await ctx.storageState({ path: path.join(authDir, "storageState.json") });
+  await ctx.dispose();
+}

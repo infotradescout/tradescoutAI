@@ -1,0 +1,96 @@
+import fs from "fs";
+import path from "path";
+
+const ROOT = process.cwd();
+const PAGES_DIR = path.join(ROOT, "client", "src");
+
+const TARGET_EXTS = new Set([".ts", ".tsx"]);
+const PATTERNS = [
+  { id: "min-h-screen", re: /\bmin-h-screen\b/g },
+  { id: "h-screen", re: /\bh-screen\b/g },
+  { id: "w-screen", re: /\bw-screen\b/g },
+  { id: "bg-*", re: /\bbg-[a-z0-9\-\/\[\]\(\)\.\%]+/gi },
+  { id: "gradient", re: /\b(bg-gradient-to|from-|via-|to-)\b/gi },
+];
+
+function walk(dir, out = []) {
+  const entries = fs.readdirSync(dir, { withFileTypes: true });
+  for (const e of entries) {
+    const p = path.join(dir, e.name);
+    if (e.isDirectory()) {
+      if (e.name === "node_modules" || e.name === "dist") continue;
+      walk(p, out);
+    } else if (e.isFile()) {
+      const ext = path.extname(e.name);
+      if (TARGET_EXTS.has(ext)) out.push(p);
+    }
+  }
+  return out;
+}
+
+function scanFile(filePath) {
+  const text = fs.readFileSync(filePath, "utf8");
+  const rel = path.relative(ROOT, filePath).replaceAll("\\", "/");
+  const hits = [];
+
+  for (const p of PATTERNS) {
+    const matches = [...text.matchAll(p.re)];
+    if (matches.length) {
+      const locs = [];
+      for (const m of matches.slice(0, 5)) {
+        const idx = m.index ?? 0;
+        const before = text.slice(0, idx);
+        const line = before.split("\n").length;
+        locs.push(line);
+      }
+      hits.push({ pattern: p.id, count: matches.length, lines: locs });
+    }
+  }
+
+  const isRootViolation = hits.some((h) => h.pattern === "min-h-screen") && hits.some((h) => h.pattern === "bg-*");
+
+  return { file: rel, isRootViolation, hits };
+}
+
+const files = walk(PAGES_DIR);
+const results = files.map(scanFile);
+
+results.sort((a, b) => {
+  if (a.isRootViolation !== b.isRootViolation) return a.isRootViolation ? -1 : 1;
+  const aCount = a.hits.reduce((s, h) => s + h.count, 0);
+  const bCount = b.hits.reduce((s, h) => s + h.count, 0);
+  return bCount - aCount;
+});
+
+const summary = {
+  scannedFiles: results.length,
+  rootViolations: results.filter((r) => r.isRootViolation).length,
+  filesWithMinH: results.filter((r) => r.hits.some((h) => h.pattern === "min-h-screen")).length,
+  filesWithBg: results.filter((r) => r.hits.some((h) => h.pattern === "bg-*")).length,
+};
+
+fs.writeFileSync(path.join(ROOT, "ui-surface-audit.json"), JSON.stringify({ summary, results }, null, 2));
+
+const top = results.slice(0, 40);
+const md = [
+  `# UI Surface Audit`,
+  ``,
+  `Scanned files: **${summary.scannedFiles}**`,
+  `Root violations (min-h-screen + bg-*): **${summary.rootViolations}**`,
+  `Files with min-h-screen: **${summary.filesWithMinH}**`,
+  `Files with bg-* classes: **${summary.filesWithBg}**`,
+  ``,
+  `## Top offenders`,
+  ...top.map((r) => {
+    const hitStr = r.hits
+      .map((h) => `${h.pattern} (${h.count}) @ lines ${h.lines.join(",")}`)
+      .join(" | ");
+    return `- ${r.isRootViolation ? "🚫" : "•"} \`${r.file}\` — ${hitStr}`;
+  }),
+  ``,
+].join("\n");
+
+fs.writeFileSync(path.join(ROOT, "ui-surface-audit.md"), md);
+
+console.log("Wrote ui-surface-audit.json and ui-surface-audit.md");
+console.log(`Root violations: ${summary.rootViolations}`);

@@ -1,0 +1,12 @@
+node_modules
+dist
+.vercel
+data
+__trash_candidate__
+secrets
+*.rar
+*.zip
+*.log
+validation-results-*.json
+test-results
+server/logs

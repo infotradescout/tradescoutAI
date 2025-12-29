@@ -2,6 +2,7 @@ import scoutRoute from "./routes/scout";
 import { ingestKnowledgeFolder } from "./services/knowledgeIngest";
 import fs from "fs";
 import path from "path";
+import { randomUUID } from "crypto";
 import { contractorSignupRouter } from "./routes/contractor-signup";
 import { businessesRouter } from "./routes/businesses";
 import { profilesRouter } from "./routes/profiles";
@@ -47,10 +48,25 @@ import {
   taskApplications,
   workRequests,
   workRequestEvents,
+  workRequestAssignments,
   addressVerifications,
   insertRealtorProfileSchema,
   insertCarSalesmanProfileSchema,
   insertGeneratedStorySchema,
+  insertLeadSchema,
+  insertGrowthPackDownloadSchema,
+  insertContractorPromoSchema,
+  insertMarketplaceCategorySchema,
+  insertMarketplaceListingSchema,
+  insertMarketplaceInquirySchema,
+  insertMarketplaceFavoriteSchema,
+  insertMarketplaceReportSchema,
+  insertVendorVerificationSchema,
+  insertBuyerVerificationSchema,
+  insertAddressVerificationSchema,
+  insertModerationReportSchema,
+  insertModerationVoteSchema,
+  insertModerationAppealSchema,
   counties,
   userFollows,
   walletTransactions,
@@ -59,7 +75,6 @@ import {
 import { getUserTypeBadgeLabel, getUserTypeMetadata } from "../shared/userTypes";
 import type { AffiliateAccount, AffiliateReferral, AffiliatePayout } from "../shared/schema";
 import { storage } from "./storage";
-import { seedCountiesForState } from "./countySeeder";
 import { setupAuth, isAuthenticated, isAdmin, hashPassword, requireRole, isContractor, isCommunityModerator, requireOnboardingComplete } from "./auth";
 import { localityTrackingMiddleware } from "./localityTracking";
 import passport from "passport";
@@ -103,21 +118,6 @@ const DeviceAuthService = {
   approveDevice: async () => true,
   revokeDevice: async () => true,
 };
-const { randomUUID } = { randomUUID: () => "stub-uuid" };
-const insertLeadSchema = { parse: (data: any) => data };
-const insertGrowthPackDownloadSchema = { parse: (data: any) => data };
-const insertContractorPromoSchema = { parse: (data: any) => data };
-const insertMarketplaceCategorySchema = { parse: (data: any) => data };
-const insertMarketplaceListingSchema = { parse: (data: any) => data };
-const insertMarketplaceInquirySchema = { parse: (data: any) => data };
-const insertMarketplaceFavoriteSchema = { parse: (data: any) => data };
-const insertMarketplaceReportSchema = { parse: (data: any) => data };
-const insertVendorVerificationSchema = { parse: (data: any) => data };
-const insertBuyerVerificationSchema = { parse: (data: any) => data };
-const insertAddressVerificationSchema = { parse: (data: any) => data };
-const insertModerationReportSchema = { parse: (data: any) => data };
-const insertModerationVoteSchema = { parse: (data: any) => data };
-const insertModerationAppealSchema = { parse: (data: any) => data };
 const objectStorageService = new ObjectStorageService();
 const stripe = process.env.STRIPE_SECRET_KEY
   ? new Stripe(process.env.STRIPE_SECRET_KEY, { apiVersion: "2025-07-30.basil" })
@@ -332,21 +332,31 @@ export async function registerRoutes(app: any) {
     });
   });
 
-  const loginLimiter = rateLimit({
-    windowMs: 15 * 60 * 1000, // 15 minutes
-    max: 5,
-    message: "Too many login attempts, please try again later",
-    standardHeaders: true,
-    legacyHeaders: false,
-  });
+  const isProductionEnv = process.env.NODE_ENV === "production";
 
-  const passwordResetLimiter = rateLimit({
-    windowMs: 60 * 60 * 1000, // 1 hour
-    max: 5,
-    message: "Too many reset requests, please try again later",
-    standardHeaders: true,
-    legacyHeaders: false,
-  });
+  // In development/staging we don't want rate limiting to block local testing,
+  // but we keep the limiter fully enabled in production.
+  const noopRateLimiter: any = (_req: any, _res: any, next: any) => next();
+
+  const loginLimiter = isProductionEnv
+    ? rateLimit({
+        windowMs: 15 * 60 * 1000, // 15 minutes
+        max: 5,
+        message: "Too many login attempts, please try again later",
+        standardHeaders: true,
+        legacyHeaders: false,
+      })
+    : noopRateLimiter;
+
+  const passwordResetLimiter = isProductionEnv
+    ? rateLimit({
+        windowMs: 60 * 60 * 1000, // 1 hour
+        max: 5,
+        message: "Too many reset requests, please try again later",
+        standardHeaders: true,
+        legacyHeaders: false,
+      })
+    : noopRateLimiter;
 
   const parseOptionalIsoDate = (value?: string): Date | undefined => {
     if (!value) return undefined;
@@ -3238,45 +3248,33 @@ export async function registerRoutes(app: any) {
 
       const stateCode = ((state as string | undefined) || "").toUpperCase() || undefined;
 
-      // First, try the database-backed counties.
+      // Primary path: rely on pre-seeded database counties.
       let counties = await storage.getCounties(stateCode);
 
-      // If nothing is in the DB for this state, try static fallback and
-      // then, if still empty, seed from the official Census dataset.
+      // As a lightweight safety net (especially for new dev/test
+      // environments), fall back to the static in-repo dataset if the
+      // database has not been seeded yet. This avoids network calls and
+      // write-heavy work on the request path.
       if (stateCode && (!Array.isArray(counties) || counties.length === 0)) {
         try {
           const { getCountiesForState } = await import("@shared/us-counties-complete");
-          const fallback = getCountiesForState(stateCode) || [];
+          const staticCounties = getCountiesForState(stateCode) || [];
 
-          if (fallback.length > 0) {
-            // Seed the DB from the static dataset so subsequent calls
-            // use the normal storage path.
-            for (const c of fallback) {
-              try {
-                await storage.upsertCounty({
-                  name: c.name,
-                  fips: c.fips,
-                  stateCode: c.stateCode,
-                });
-              } catch (err) {
-                console.error("Failed to upsert static fallback county", c, err);
-              }
-            }
-
-            counties = await storage.getCounties(stateCode);
-          }
+          // Map the lightweight static county records into the richer
+          // shape used by the database layer so TypeScript stays happy
+          // and callers always see a consistent payload.
+          counties = staticCounties.map((c) => ({
+            id: `static-${c.fips}`,
+            name: c.name,
+            fips: c.fips,
+            stateCode: c.stateCode,
+            population: null,
+            createdAt: null,
+            updatedAt: null,
+          }));
         } catch (fallbackError) {
           console.error("Error loading static fallback counties for state", stateCode, fallbackError);
-        }
-
-        // If we still have no counties after the static fallback, seed
-        // from the U.S. Census national_county.txt file.
-        if (!Array.isArray(counties) || counties.length === 0) {
-          try {
-            counties = await seedCountiesForState(stateCode);
-          } catch (seedError) {
-            console.error("Error seeding counties for state", stateCode, seedError);
-          }
+          counties = [];
         }
       }
 
@@ -4334,7 +4332,15 @@ export async function registerRoutes(app: any) {
       // LocalityTracker call removed
 
       // Validate lead data
-      const validatedLead = insertLeadSchema.parse(leadData);
+      const parsedLead = insertLeadSchema.safeParse(leadData);
+      if (!parsedLead.success) {
+        return res.status(400).json({
+          message: "Invalid lead payload",
+          issues: parsedLead.error.issues,
+        });
+      }
+
+      const validatedLead = parsedLead.data;
 
       const lead = await storage.createLead(validatedLead);
 
@@ -4504,7 +4510,15 @@ export async function registerRoutes(app: any) {
       const downloadToken = randomUUID();
       const downloadData = { ...req.body, downloadToken, userId };
 
-      const validatedDownload = insertGrowthPackDownloadSchema.parse(downloadData);
+      const parsedDownload = insertGrowthPackDownloadSchema.safeParse(downloadData);
+      if (!parsedDownload.success) {
+        return res.status(400).json({
+          message: "Invalid download payload",
+          issues: parsedDownload.error.issues,
+        });
+      }
+
+      const validatedDownload = parsedDownload.data;
       const download = await storage.createGrowthPackDownload(validatedDownload);
 
       await storage.logEvent('growth_pack_requested', {
@@ -6482,6 +6496,16 @@ export async function registerRoutes(app: any) {
         return res.status(400).json({ message: "title and description are required" });
       }
 
+      const rawTargetIds = Array.isArray(body.targetContractorIds)
+        ? body.targetContractorIds
+        : typeof body.targetContractorIds === "string"
+        ? [body.targetContractorIds]
+        : [];
+
+      const targetContractorIds = rawTargetIds
+        .map((id: any) => (typeof id === "string" ? id.trim() : String(id)))
+        .filter((id: string) => id.length > 0);
+
       let budgetMin: string | undefined;
       let budgetMax: string | undefined;
       if (Number.isFinite(budgetMinNumber) && budgetMinNumber > 0) {
@@ -6536,6 +6560,40 @@ export async function registerRoutes(app: any) {
           });
         } catch (e) {
           console.warn("Failed to record work request created event", e);
+        }
+
+        if (targetContractorIds.length > 0) {
+          try {
+            const invitedContractors = await db
+              .select({ id: contractors.id, userId: contractors.userId })
+              .from(contractors)
+              .where(inArray(contractors.id, targetContractorIds));
+
+            if (invitedContractors.length > 0) {
+              await db.insert(workRequestAssignments).values(
+                invitedContractors.map((c) => ({
+                  workRequestId: created.id,
+                  contractorId: c.id,
+                  status: "invited" as const,
+                })),
+              );
+
+              await db.insert(workRequestEvents).values(
+                invitedContractors.map((c) => ({
+                  workRequestId: created.id,
+                  type: "provider_invited" as const,
+                  actorUserId: String(userId),
+                  metadata: {
+                    contractorId: c.id,
+                    contractorUserId: c.userId ?? null,
+                    source: "tasks",
+                  },
+                })),
+              );
+            }
+          } catch (e) {
+            console.warn("Failed to record work request assignments for invited providers", e);
+          }
         }
       }
 
@@ -6966,7 +7024,15 @@ export async function registerRoutes(app: any) {
         contractorId: contractor.id
       };
 
-      const validatedPromo = insertContractorPromoSchema.parse(promoData);
+      const parsedPromo = insertContractorPromoSchema.safeParse(promoData);
+      if (!parsedPromo.success) {
+        return res.status(400).json({
+          message: "Invalid contractor promo payload",
+          issues: parsedPromo.error.issues,
+        });
+      }
+
+      const validatedPromo = parsedPromo.data;
       const promo = await storage.createContractorPromo(validatedPromo);
 
       res.json(promo);
@@ -7475,7 +7541,15 @@ export async function registerRoutes(app: any) {
 
   app.post("/api/marketplace/categories", isAuthenticated, isAdmin, async (req: any, res: any) => {
     try {
-      const validatedData = insertMarketplaceCategorySchema.parse(req.body);
+      const parsedCategory = insertMarketplaceCategorySchema.safeParse(req.body);
+      if (!parsedCategory.success) {
+        return res.status(400).json({
+          message: "Invalid marketplace category payload",
+          issues: parsedCategory.error.issues,
+        });
+      }
+
+      const validatedData = parsedCategory.data;
       const category = await storage.createMarketplaceCategory(validatedData);
       res.status(201).json(category);
     } catch (error: any) {
@@ -7550,7 +7624,15 @@ export async function registerRoutes(app: any) {
   app.post("/api/marketplace/listings", isAuthenticated, async (req: any, res: any) => {
     try {
       const user = req.user as any;
-      const validatedData = insertMarketplaceListingSchema.parse(req.body);
+      const parsedListing = insertMarketplaceListingSchema.safeParse(req.body);
+      if (!parsedListing.success) {
+        return res.status(400).json({
+          message: "Invalid marketplace listing payload",
+          issues: parsedListing.error.issues,
+        });
+      }
+
+      const validatedData = parsedListing.data;
 
       // All new listings require admin/moderator approval before going live
       const listing = await storage.createMarketplaceListing({
@@ -7758,7 +7840,15 @@ export async function registerRoutes(app: any) {
   app.post("/api/marketplace/inquiries", isAuthenticated, async (req: any, res: any) => {
     try {
       const user = req.user as any;
-      const validatedData = insertMarketplaceInquirySchema.parse(req.body);
+      const parsedInquiry = insertMarketplaceInquirySchema.safeParse(req.body);
+      if (!parsedInquiry.success) {
+        return res.status(400).json({
+          message: "Invalid marketplace inquiry payload",
+          issues: parsedInquiry.error.issues,
+        });
+      }
+
+      const validatedData = parsedInquiry.data;
 
       // Get the listing to find the seller
       const listing = await storage.getMarketplaceListing(validatedData.listingId);
@@ -7844,7 +7934,15 @@ export async function registerRoutes(app: any) {
   app.post("/api/marketplace/favorites", isAuthenticated, async (req: any, res: any) => {
     try {
       const user = req.user as any;
-      const validatedData = insertMarketplaceFavoriteSchema.parse(req.body);
+      const parsedFavorite = insertMarketplaceFavoriteSchema.safeParse(req.body);
+      if (!parsedFavorite.success) {
+        return res.status(400).json({
+          message: "Invalid marketplace favorite payload",
+          issues: parsedFavorite.error.issues,
+        });
+      }
+
+      const validatedData = parsedFavorite.data;
 
       const favorite = await storage.createMarketplaceFavorite({
         ...validatedData,
@@ -7886,7 +7984,15 @@ export async function registerRoutes(app: any) {
   app.post("/api/marketplace/reports", async (req: any, res: any) => {
     try {
       const user = req.user as any;
-      const validatedData = insertMarketplaceReportSchema.parse(req.body);
+      const parsedReport = insertMarketplaceReportSchema.safeParse(req.body);
+      if (!parsedReport.success) {
+        return res.status(400).json({
+          message: "Invalid marketplace report payload",
+          issues: parsedReport.error.issues,
+        });
+      }
+
+      const validatedData = parsedReport.data;
 
       const report = await storage.createMarketplaceReport({
         ...validatedData,
@@ -7927,7 +8033,15 @@ export async function registerRoutes(app: any) {
   app.post("/api/marketplace/vendor-verification", isAuthenticated, async (req: any, res: any) => {
     try {
       const user = req.user as any;
-      const validatedData = insertVendorVerificationSchema.parse(req.body);
+      const parsedVendor = insertVendorVerificationSchema.safeParse(req.body);
+      if (!parsedVendor.success) {
+        return res.status(400).json({
+          message: "Invalid vendor verification payload",
+          issues: parsedVendor.error.issues,
+        });
+      }
+
+      const validatedData = parsedVendor.data;
 
       const verification = await storage.createVendorVerification({
         ...validatedData,
@@ -7944,7 +8058,15 @@ export async function registerRoutes(app: any) {
   app.post("/api/marketplace/buyer-verification", isAuthenticated, async (req: any, res: any) => {
     try {
       const user = req.user as any;
-      const validatedData = insertBuyerVerificationSchema.parse(req.body);
+      const parsedBuyer = insertBuyerVerificationSchema.safeParse(req.body);
+      if (!parsedBuyer.success) {
+        return res.status(400).json({
+          message: "Invalid buyer verification payload",
+          issues: parsedBuyer.error.issues,
+        });
+      }
+
+      const validatedData = parsedBuyer.data;
 
       const verification = await storage.createBuyerVerification({
         ...validatedData,
@@ -8129,7 +8251,15 @@ export async function registerRoutes(app: any) {
   app.post("/api/address-verification", isAuthenticated, async (req: any, res: any) => {
     try {
       const user = req.user as any;
-      const validatedData = insertAddressVerificationSchema.parse(req.body);
+        const parsedAddress = insertAddressVerificationSchema.safeParse(req.body);
+        if (!parsedAddress.success) {
+          return res.status(400).json({
+            message: "Invalid address verification payload",
+            issues: parsedAddress.error.issues,
+          });
+        }
+
+        const validatedData = parsedAddress.data;
 
       // Calculate deadline (14 days from user creation)
       const userCreatedAt = new Date(user.createdAt);
@@ -9486,7 +9616,15 @@ export async function registerRoutes(app: any) {
         reporterState: user.state,
       };
 
-      const validatedReport = insertModerationReportSchema.parse(reportData);
+      const parsedReport = insertModerationReportSchema.safeParse(reportData);
+      if (!parsedReport.success) {
+        return res.status(400).json({
+          message: "Invalid moderation report payload",
+          issues: parsedReport.error.issues,
+        });
+      }
+
+      const validatedReport = parsedReport.data;
       const report = await storage.createModerationReport(validatedReport);
 
       res.json(report);
@@ -9566,7 +9704,15 @@ export async function registerRoutes(app: any) {
         voterState: user.state,
       };
 
-      const validatedVote = insertModerationVoteSchema.parse(voteData);
+      const parsedVote = insertModerationVoteSchema.safeParse(voteData);
+      if (!parsedVote.success) {
+        return res.status(400).json({
+          message: "Invalid moderation vote payload",
+          issues: parsedVote.error.issues,
+        });
+      }
+
+      const validatedVote = parsedVote.data;
       const moderationVote = await storage.createModerationVote(validatedVote);
 
       res.json(moderationVote);
@@ -9617,7 +9763,15 @@ export async function registerRoutes(app: any) {
         appellantId: userId,
       };
 
-      const validatedAppeal = insertModerationAppealSchema.parse(appealData);
+      const parsedAppeal = insertModerationAppealSchema.safeParse(appealData);
+      if (!parsedAppeal.success) {
+        return res.status(400).json({
+          message: "Invalid moderation appeal payload",
+          issues: parsedAppeal.error.issues,
+        });
+      }
+
+      const validatedAppeal = parsedAppeal.data;
       const appeal = await storage.createModerationAppeal(validatedAppeal);
 
       res.json(appeal);
@@ -9942,8 +10096,15 @@ export async function registerRoutes(app: any) {
         return res.status(400).json({ message: "You already have a realtor profile" });
       }
 
-      const validatedData = insertRealtorProfileSchema.parse(req.body);
-      const realtorProfile = await storage.createRealtorProfile(validatedData);
+      const parsedRealtor = insertRealtorProfileSchema.safeParse(req.body);
+      if (!parsedRealtor.success) {
+        return res.status(400).json({
+          message: "Invalid realtor application payload",
+          issues: parsedRealtor.error.issues,
+        });
+      }
+
+      const realtorProfile = await storage.createRealtorProfile(parsedRealtor.data);
 
       // Update user role to realtor
       await storage.updateUserRole(userId, 'realtor');
@@ -9974,8 +10135,15 @@ export async function registerRoutes(app: any) {
         return res.status(400).json({ message: "You already have a car salesman profile" });
       }
 
-      const validatedData = insertCarSalesmanProfileSchema.parse(req.body);
-      const carSalesmanProfile = await storage.createCarSalesmanProfile(validatedData);
+      const parsedCarSalesman = insertCarSalesmanProfileSchema.safeParse(req.body);
+      if (!parsedCarSalesman.success) {
+        return res.status(400).json({
+          message: "Invalid car salesman application payload",
+          issues: parsedCarSalesman.error.issues,
+        });
+      }
+
+      const carSalesmanProfile = await storage.createCarSalesmanProfile(parsedCarSalesman.data);
 
       // Update user role to car_dealer
       await storage.updateUserRole(userId, 'car_dealer');
@@ -12557,7 +12725,15 @@ export async function registerRoutes(app: any) {
       const storyData = { ...req.body, userId };
 
       // Validate input data
-      const validatedStory = insertGeneratedStorySchema.parse(storyData);
+      const parsedStory = insertGeneratedStorySchema.safeParse(storyData);
+      if (!parsedStory.success) {
+        return res.status(400).json({
+          message: "Invalid story payload",
+          issues: parsedStory.error.issues,
+        });
+      }
+
+      const validatedStory = parsedStory.data;
 
       // Save story to database
       const [savedStory] = await db

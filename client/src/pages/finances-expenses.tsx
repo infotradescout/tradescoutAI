@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useToast } from "@/hooks/use-toast";
+import { Page } from "@/components/layout/PagePrimitives";
 
 interface ExpenseEntry {
   id: string;
@@ -112,7 +113,7 @@ export default function FinancesExpensesPage() {
   }, []);
 
   return (
-    <div className="flex flex-col gap-4">
+    <Page className="space-y-4">
       <div className="flex items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl md:text-3xl font-semibold text-slate-50 mb-1">Expenses</h1>
@@ -248,6 +249,6 @@ export default function FinancesExpensesPage() {
           )}
         </CardContent>
       </Card>
-    </div>
+    </Page>
   );
 }

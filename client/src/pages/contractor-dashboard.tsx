@@ -9,7 +9,7 @@ export default function ContractorDashboard() {
   const [, setLocation] = useLocation();
 
   return (
-    <div className="min-h-screen bg-tsBg text-tsTextMain">
+	<div className="text-tsTextMain">
       <div className="max-w-5xl mx-auto px-4 py-10 space-y-8">
         <header className="space-y-2">
           <p className="text-xs uppercase tracking-wide text-orange-400">Contractor workspace</p>

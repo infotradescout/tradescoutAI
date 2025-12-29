@@ -298,7 +298,6 @@ const Dashboard = memo(function Dashboard() {
                         onChange={(e) => setNewPostContent(e.target.value)}
                         className="min-h-[100px] border-slate-200 dark:border-slate-600 resize-none"
                         data-testid="input-post-content"
-                        autoFocus
                       />
                       {newPostImages.length > 0 && (
                         <div className="mt-3 grid grid-cols-3 gap-2">

@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { useLocation } from "wouter";
+import { Page } from "@/components/layout/PagePrimitives";
 
 interface StandaloneInvoice {
   id: string;
@@ -121,7 +122,7 @@ export default function FinancesClientsPage() {
   };
 
   return (
-    <div className="flex flex-col gap-4">
+    <Page className="space-y-4">
       <div className="flex items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl md:text-3xl font-semibold text-slate-50 mb-1">Clients</h1>
@@ -225,6 +226,6 @@ export default function FinancesClientsPage() {
           )}
         </CardContent>
       </Card>
-    </div>
+    </Page>
   );
 }
