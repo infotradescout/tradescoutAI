@@ -18,7 +18,12 @@ import {
   Mail,
   ExternalLink,
   Clock,
-  Filter
+  Filter,
+  Briefcase,
+  Gift,
+  Sparkles,
+  Award,
+  Users
 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { Link } from "wouter";
@@ -72,6 +77,25 @@ export default function Notifications() {
         return <Star className="h-5 w-5 text-yellow-500" />;
       case 'listing':
         return <TrendingUp className="h-5 w-5 text-purple-500" />;
+      case 'new_project_request':
+        return <Briefcase className="h-5 w-5 text-orange-500" />;
+      case 'payment_received':
+        return <ShoppingBag className="h-5 w-5 text-green-500" />;
+      case 'review_received':
+        return <Star className="h-5 w-5 text-yellow-500" />;
+      case 'birthday':
+      case 'anniversary':
+        return <Gift className="h-5 w-5 text-pink-500" />;
+      case 'promotional':
+        return <TrendingUp className="h-5 w-5 text-purple-500" />;
+      case 'welcome':
+        return <Sparkles className="h-5 w-5 text-blue-500" />;
+      case 'milestone':
+        return <Award className="h-5 w-5 text-amber-500" />;
+      case 'social_follow':
+        return <Users className="h-5 w-5 text-indigo-500" />;
+      case 'system_update':
+        return <Bell className="h-5 w-5 text-gray-500" />;
       default:
         return <Bell className="h-5 w-5 text-gray-500" />;
     }
@@ -87,6 +111,26 @@ export default function Notifications() {
         return 'Review';
       case 'listing':
         return 'Listing';
+      case 'new_project_request':
+        return 'Direct Connect request';
+      case 'payment_received':
+        return 'Payment';
+      case 'review_received':
+        return 'Review';
+      case 'birthday':
+        return 'Birthday';
+      case 'anniversary':
+        return 'Anniversary';
+      case 'promotional':
+        return 'Exchange';
+      case 'welcome':
+        return 'Welcome';
+      case 'milestone':
+        return 'Milestone';
+      case 'social_follow':
+        return 'Follower';
+      case 'system_update':
+        return 'System';
       default:
         return 'Notification';
     }
@@ -101,7 +145,7 @@ export default function Notifications() {
           <div>
             <h1 className="text-3xl font-bold mb-2">Notifications</h1>
             <p className="text-muted-foreground">
-              Stay updated on your Exchange activity and conversations
+              Stay updated on your activity across Direct Connect, Helpers, Exchange, and community
             </p>
           </div>
           

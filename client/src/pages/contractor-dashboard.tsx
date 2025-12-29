@@ -17,8 +17,8 @@ export default function ContractorDashboard() {
             Welcome{user?.firstName ? `, ${user.firstName}` : ""}
           </h1>
           <p className="text-sm text-gray-300 max-w-2xl">
-            Scout keeps your jobs, documents, and finances in one place. As you start sending
-            quotes and working jobs, this dashboard will reflect your real pipeline.
+            Scout keeps your jobs, documents, and finances in one place. As you start responding to
+            Direct Connect requests, sending quotes, and working jobs, this dashboard will reflect your real pipeline.
           </p>
         </header>
 
@@ -68,7 +68,8 @@ export default function ContractorDashboard() {
               </div>
               <CardTitle className="text-sm text-white">Coordinate crew and helpers</CardTitle>
               <CardDescription className="text-xs text-gray-300">
-                Use Helpers to post crew needs or pick up extra work alongside Direct Connect jobs.
+                Use Helpers to post crew and helper opportunities for your business. Homeowners still
+                start coordination in Direct Connect – this space is for responders.
               </CardDescription>
             </CardHeader>
             <CardContent className="pt-0">

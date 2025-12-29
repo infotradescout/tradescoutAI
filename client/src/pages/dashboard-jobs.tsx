@@ -35,7 +35,7 @@ const DashboardJobs = memo(function DashboardJobs() {
     <Page className="max-w-7xl">
       <Section
         title={label}
-        subtitle="One board surface, tailored to your role. Scout can route work, vendor search, and follow-ups from here."
+        subtitle="One workspace that sits on top of Direct Connect requests, marketplace listings, and helper opportunities, tailored to your role. Scout can route work and follow-ups from here."
       >
         <FindContractors title={label} />
       </Section>

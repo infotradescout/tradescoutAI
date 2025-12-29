@@ -398,7 +398,11 @@ export default function Exchange() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <div className="mb-8">
         <h1 className="text-3xl font-bold text-white mb-2">Exchange</h1>
-        <p className="text-gray-300">Local exchange for properties, vehicles, businesses, equipment, and other big-ticket deals</p>
+        <p className="text-gray-300">
+          Local marketplace for properties, vehicles, businesses, equipment, and other big-ticket deals.
+          Use Direct Connect when you need to hire people or coordinate work; use Exchange when you&apos;re
+          buying or selling things.
+        </p>
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">

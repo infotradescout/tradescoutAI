@@ -286,8 +286,8 @@ async function routeLeadToTopContractors(lead: any, leadData: any) {
           await notificationService.createNotification({
             userId: recipientUserId,
             type: 'new_project_request',
-            title: 'New project request',
-            message: `You have a new project request: ${lead.title} in ${city}, ${state}.`,
+            title: 'New Direct Connect request',
+            message: `You have a new Direct Connect request: ${lead.title} in ${city}, ${state}.`,
             actionUrl: `/pro-dashboard/leads/${lead.id}`,
             actionText: 'View lead',
             iconName: 'briefcase',
@@ -4360,8 +4360,8 @@ export async function registerRoutes(app: any) {
               await notificationService.createNotification({
                 userId: contractor.userId,
                 type: 'new_project_request',
-                title: 'New project request',
-                message: 'A homeowner selected you to receive a new quote request.',
+                title: 'New Direct Connect request',
+                message: 'A homeowner selected you to respond to a Direct Connect request.',
                 actionUrl: `/pro-dashboard/leads/${lead.id}`,
                 actionText: 'View lead',
                 iconName: 'briefcase',

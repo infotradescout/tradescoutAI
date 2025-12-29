@@ -115,8 +115,9 @@ export const scoutActionTiles: ScoutActionTile[] = [
   },
   {
     id: "manage",
-    label: "Sell or trade something",
-    description: "List items or services to sell or trade",
+    label: "Browse Exchange marketplace",
+    description:
+      "Buy or sell property, vehicles, equipment, or other big-ticket items in Exchange",
     action: { type: "NAVIGATE", to: "/exchange" },
     variants: [
       {
