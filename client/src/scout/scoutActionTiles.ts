@@ -53,9 +53,9 @@ export type ScoutActionTile = {
 export const scoutActionTiles: ScoutActionTile[] = [
   {
     id: "start_project",
-    label: "Post a task",
-    description: "Describe what you need done and coordinate local help",
-    action: { type: "NAVIGATE", to: "/request-quote" },
+    label: "Start a Direct Connect request",
+    description: "Describe what you need done and let Direct Connect coordinate local help",
+    action: { type: "NAVIGATE", to: "/tasks" },
     variants: [
       {
         // Proven by: GET /api/dashboard → myProjects (when count === 1)

@@ -799,9 +799,9 @@ export default function ScoutOS() {
               actions: [
                 {
                   type: "PREFILL_INPUT",
-                  label: "Find help for a project",
+                  label: "Start a Direct Connect request",
                   payload: {
-                    text: "Help me find someone local to do a project.",
+                    text: "Help me start a Direct Connect request for this.",
                   },
                 },
                 {
@@ -1800,9 +1800,9 @@ export default function ScoutOS() {
           if (isGuest) {
             clusters.push({
               id: "first-account-prompt",
-              title: "Save your area and projects",
+              title: "Save your area and requests",
               kind: "generic",
-              body: "Create a free account so Scout can remember your area and keep your projects synced.",
+              body: "Create a free account so Scout can remember your area and keep your Direct Connect requests synced.",
               actions: [
                 {
                   type: "NAVIGATE",

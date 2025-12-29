@@ -4,7 +4,7 @@ import { CheckCircle, PartyPopper, Shield, Sparkles } from 'lucide-react';
 const featureLines = [
   'Unlimited contractor search and messaging',
   'Community intel, playbooks, and local checklists',
-  'Project trackers, quotes, and reminders',
+  'Direct Connect board, quotes, and reminders',
   'Role-specific dashboards for homeowners, pros, and admins',
 ];
 
@@ -34,7 +34,7 @@ const Pricing = memo(function Pricing() {
           </div>
           <h1 className="text-4xl font-bold">Simple pricing: $0</h1>
           <p className="text-lg text-gray-300 max-w-3xl mx-auto">
-            Use everything without a paywall. Search contractors, run community playbooks, manage projects, and chat with Scout — all included. We stay free because partners and advertisers help fund the platform.
+            Use everything without a paywall. Search contractors, run community playbooks, manage your Direct Connect requests, and chat with Scout — all included. We stay free because partners and advertisers help fund the platform.
           </p>
         </div>
 
