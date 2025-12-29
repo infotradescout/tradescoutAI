@@ -12,6 +12,8 @@ import { Badge } from "@/components/ui/badge";
 import { formatDistanceToNow } from "date-fns";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { WhyThisJobModal } from "./WhyThisJobModal";
+import { WhyLink } from "@/components/WhyLink";
+import { getHelpLink } from "@/scout/helpSources";
 
 const SECTIONS = ["post", "board", "inbox", "pros", "engagements"] as const;
 
@@ -440,6 +442,18 @@ function MyDirectConnectRequests() {
     },
   });
 
+  const cancelMutation = useMutation({
+    mutationFn: async (requestId: string) => {
+      return apiRequest("POST", `/api/direct-connect/requests/${requestId}/cancel`, {});
+    },
+  });
+
+  const reopenMutation = useMutation({
+    mutationFn: async (requestId: string) => {
+      return apiRequest("POST", `/api/direct-connect/requests/${requestId}/reopen`, {});
+    },
+  });
+
   if (!isAuthenticated) {
     return (
       <Card className="bg-navy-800 border-navy-700">
@@ -516,9 +530,14 @@ function MyDirectConnectRequests() {
                   <span>
                     {suggested > 0
                       ? `Routed to ${suggested} provider${suggested === 1 ? "" : "s"}`
-                      : status === "open"
-                        ? "Not routed yet"
-                        : "No providers suggested yet"}
+                      : status === "open" ? (
+                        <>
+                          Not routed yet{" "}
+                          <WhyLink to={getHelpLink("directConnect")} />
+                        </>
+                      ) : (
+                        "No providers suggested yet"
+                      )}
                   </span>
                   {hasAccepted && (
                     <Badge variant="outline" className="border-green-500 text-green-200">
@@ -533,17 +552,22 @@ function MyDirectConnectRequests() {
                 </div>
 
                 <div className="flex flex-wrap gap-2 justify-end pt-1">
-                  <Button
-                    size="xs"
-                    variant="outline"
-                    className="border-gray-500 text-gray-100 hover:bg-gray-800"
-                    onClick={() => {
-                      window.location.href = "/messages";
-                    }}
-                    disabled={!hasAccepted}
-                  >
-                    Open conversation
-                  </Button>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      size="xs"
+                      variant="outline"
+                      className="border-gray-500 text-gray-100 hover:bg-gray-800"
+                      onClick={() => {
+                        window.location.href = "/messages";
+                      }}
+                      disabled={!hasAccepted}
+                    >
+                      Open conversation
+                    </Button>
+                    {!hasAccepted && (
+                      <WhyLink to={getHelpLink("messaging")} />
+                    )}
+                  </div>
                   <Button
                     size="xs"
                     variant="outline"
@@ -552,6 +576,27 @@ function MyDirectConnectRequests() {
                     onClick={() => expandMutation.mutate(r.id)}
                   >
                     Expand reach
+                  </Button>
+                  <Button
+                    size="xs"
+                    variant="outline"
+                    className="border-red-500 text-red-200 hover:bg-red-500/10"
+                    disabled={
+                      (status !== "in_progress" && status !== "routed") ||
+                      cancelMutation.isPending
+                    }
+                    onClick={() => cancelMutation.mutate(r.id)}
+                  >
+                    Cancel request
+                  </Button>
+                  <Button
+                    size="xs"
+                    variant="outline"
+                    className="border-green-500 text-green-200 hover:bg-green-500/10"
+                    disabled={status !== "cancelled" || reopenMutation.isPending}
+                    onClick={() => reopenMutation.mutate(r.id)}
+                  >
+                    Reopen request
                   </Button>
                 </div>
               </CardContent>

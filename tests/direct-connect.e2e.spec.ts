@@ -1,5 +1,9 @@
 import { test, expect } from "@playwright/test";
 
+// If there is no dedicated test database configured, skip this suite.
+// CI should set TEST_DATABASE_URL so that E2E runs against a disposable DB.
+test.skip(!process.env.TEST_DATABASE_URL, "TEST_DATABASE_URL not set for Direct Connect E2E");
+
 // Basic Direct Connect smoke: requester can create and route a request,
 // and see it reflected in the My Requests view.
 
@@ -28,6 +32,15 @@ test.describe("Direct Connect", () => {
     const requestCard = page.getByText(titleText).first();
     await expect(requestCard).toBeVisible();
 
+    // Inline "Why?" affordances on an open, not-routed request.
+    const routingLine = page.locator("span").filter({ hasText: "Not routed yet" }).first();
+    await expect(routingLine.getByRole("button", { name: /why\?/i })).toBeVisible();
+
+    // Messaging stays locked until a provider accepts; in this state we expect
+    // a second "Why?" affordance explaining the messaging rule.
+    const whyButtons = page.getByRole("button", { name: /why\?/i });
+    await expect(whyButtons).toHaveCount(2);
+
     // Best-effort: call the routing endpoint via the page's authenticated request context
     const listRes = await page.request.get("/api/direct-connect/requests");
     expect(listRes.ok()).toBeTruthy();
@@ -53,6 +66,18 @@ test.describe("Direct Connect", () => {
 
     const routedRow = page.getByText(titleText).first();
     await expect(routedRow).toBeVisible();
+
+    // Cancel and reopen safety valve: best-effort exercise of the new
+    // defensive endpoints without changing the happy path.
+    const cancelRes = await page.request.post(`/api/direct-connect/requests/${created.id}/cancel`);
+    expect(cancelRes.ok()).toBeTruthy();
+    const cancelBody = (await cancelRes.json()) as any;
+    expect(cancelBody.status).toBe("cancelled");
+
+    const reopenRes = await page.request.post(`/api/direct-connect/requests/${created.id}/reopen`);
+    expect(reopenRes.ok()).toBeTruthy();
+    const reopenBody = (await reopenRes.json()) as any;
+    expect(reopenBody.status).toBe("open");
 
     // Provider inbox decline path (best-effort): if this test user has any
     // Direct Connect inbox items for the created request, decline one and

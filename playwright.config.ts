@@ -1,8 +1,9 @@
 import { defineConfig, devices } from "@playwright/test";
 
 const baseURL = process.env.E2E_BASE_URL || "http://localhost:5000";
+const hasTestDb = Boolean(process.env.TEST_DATABASE_URL);
 
-const serverCommand = process.env.TEST_DATABASE_URL
+const serverCommand = hasTestDb
   ? "node scripts/withTestDb.mjs cross-env NODE_ENV=test tsx -r dotenv/config server/index.ts"
   : "cross-env NODE_ENV=test tsx -r dotenv/config server/index.ts";
 
@@ -12,14 +13,16 @@ export default defineConfig({
   expect: { timeout: 15_000 },
   retries: process.env.CI ? 2 : 0,
 
-  webServer: {
-    command: serverCommand,
-    url: `${baseURL}/health`,
-    reuseExistingServer: !process.env.CI,
-    timeout: 120_000,
-  },
+  webServer: hasTestDb
+    ? {
+        command: serverCommand,
+        url: `${baseURL}/health`,
+        reuseExistingServer: !process.env.CI,
+        timeout: 120_000,
+      }
+    : undefined,
 
-  globalSetup: "./tests/global-setup.ts",
+  globalSetup: hasTestDb ? "./tests/global-setup.ts" : undefined,
 
   use: {
     baseURL,

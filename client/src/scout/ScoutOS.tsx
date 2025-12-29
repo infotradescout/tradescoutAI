@@ -35,6 +35,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { ArrowRight, MessageCircle, Sparkles, Activity, ThumbsUp, ThumbsDown, Ban } from "lucide-react";
+import { getHelpLink } from "./helpSources";
 import { ScoutHeader } from "./ScoutHeader";
 import { ScoutInputRow } from "./ScoutInputRow";
 import { scoutActionTiles } from "./scoutActionTiles";
@@ -716,6 +717,150 @@ export default function ScoutOS() {
             hasLoggedConfusionRef.current = true;
           }
         }
+
+        // ------------------------------------------------------------------
+        // EXPLANATION: "Why can't I route yet?"
+        // Pure explanation + navigation. Does not change routing behavior;
+        // it explains the Direct Connect workflow and links to the guide.
+        // ------------------------------------------------------------------
+        const mentionsRoute = /\b(route|routing|routed)\b/.test(normalized);
+        const mentionsOpen = /\bopen request\b/.test(normalized);
+        const mentionsNotRouted = /not routed yet/.test(normalized);
+        const asksWhyRoute = /\bwhy\b/.test(normalized);
+
+        const looksRoutingQuestion =
+          (mentionsRoute || mentionsNotRouted || mentionsOpen) && asksWhyRoute;
+
+        if (looksRoutingQuestion) {
+          setStatus("ready");
+
+          const helpLink = getHelpLink("directConnect");
+
+          const bodyLines: string[] = [
+            "Principle: Direct Connect only routes jobs when they’re properly scoped so providers don’t get spammed with half-baked requests.",
+            "",
+            "Current state: You’re still in the discovery step. Your request is open on your Direct Connect board, but it hasn’t been routed out to providers yet.",
+            "",
+            "Available actions:",
+            "- From My requests, route this job once you’ve set the basics (what, where, rough budget).",
+            "- If routing is blocked, make sure the request has a trade and county set so Scout knows who to reach.",
+            "- If the job is no longer relevant, cancel it instead of retry-routing it.",
+          ];
+
+          const routingClusters: ScoutCluster[] = [
+            {
+              id: "direct-connect-routing-explainer",
+              title: "How Direct Connect routing works",
+              kind: "generic",
+              body: bodyLines.join("\n"),
+              primaryAction: {
+                type: "NAVIGATE",
+                label: "See routing rules",
+                to: helpLink,
+              },
+            },
+          ];
+
+          const msg: ScoutMessage = {
+            id: `a_${Date.now()}_${Math.random().toString(36).slice(2)}`,
+            role: "assistant",
+            content: "Direct Connect routes jobs when they’re ready and scoped, so providers only see high-intent requests.",
+            timestamp: new Date().toISOString(),
+            clusters: routingClusters,
+            navTarget: helpLink,
+            memoryDelta: {
+              lastIntent: "direct_connect_routing_explainer",
+            },
+            contextRoles,
+          };
+
+          applyServerResponse(msg, []);
+          setStatus("idle");
+
+          const latencyMs = performance.now() - start;
+          logScoutInsight({
+            message: value,
+            mode,
+            locality,
+            success: true,
+            latencyMs,
+          });
+          return;
+        }
+
+        // ------------------------------------------------------------------
+        // EXPLANATION: "Why can’t I message yet?"
+        // This is a pure explanation + navigation branch. It does not
+        // change any Direct Connect or messaging behavior; it only
+        // explains the rule and links to the canonical guide.
+        // ------------------------------------------------------------------
+        const mentionsMessage = /\b(message|messaging)\b/.test(normalized);
+        const hasCant = /\b(can['’]?t|cant|cannot)\b/.test(normalized);
+        const mentionsLocked = /\b(locked|disabled|closed)\b/.test(normalized);
+        const asksWhy = /\bwhy\b/.test(normalized);
+
+        const looksMessagingLockedQuestion =
+          mentionsMessage &&
+          (asksWhy || mentionsLocked || hasCant) &&
+          (hasCant || mentionsLocked);
+
+        if (looksMessagingLockedQuestion) {
+          setStatus("ready");
+
+          const helpLink = getHelpLink("messaging");
+
+          const bodyLines: string[] = [
+            "Principle: TradeScout keeps messaging locked until a provider has accepted your Direct Connect job. This avoids spam, pressure, and side conversations before there’s a clear match.",
+            "",
+            "Current state: You’re still in the discovery step. Your request has been sent, but providers haven’t accepted yet, so messaging stays closed by design.",
+            "",
+            "Available actions:",
+            "- Wait for a provider to accept this job. When they do, messaging opens automatically on that job thread.",
+            "- Adjust the details or routing on your request if you’re not getting the right responses.",
+            "- Cancel this request and start a new one if it’s no longer needed.",
+          ];
+
+          const messagingClusters: ScoutCluster[] = [
+            {
+              id: "messaging-rules-explainer",
+              title: "Why messaging is locked",
+              kind: "generic",
+              body: bodyLines.join("\n"),
+              primaryAction: {
+                type: "NAVIGATE",
+                label: "Why messaging is locked",
+                to: helpLink,
+              },
+            },
+          ];
+
+          const msg: ScoutMessage = {
+            id: `a_${Date.now()}_${Math.random().toString(36).slice(2)}`,
+            role: "assistant",
+            content: "Messaging stays locked until a provider accepts your Direct Connect job.",
+            timestamp: new Date().toISOString(),
+            clusters: messagingClusters,
+            navTarget: helpLink,
+            memoryDelta: {
+              lastIntent: "messaging_rules_explainer",
+            },
+            contextRoles,
+          };
+
+          applyServerResponse(msg, []);
+          setStatus("idle");
+
+          const latencyMs = performance.now() - start;
+          logScoutInsight({
+            message: value,
+            mode,
+            locality,
+            success: true,
+            latencyMs,
+          });
+          return;
+        }
+
         const contractorKeywords = ["contractor", "plumber", "electrician", "roofer", "hvac", "painter", "landscaper", "carpenter", "mason", "find a pro"];
         const providerOfferKeywords = [
           "offer services",

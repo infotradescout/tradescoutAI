@@ -405,6 +405,137 @@ export function registerDirectConnectRoutes(app: Express) {
     }
   });
 
+  // Requester-facing: cancel an in-progress or routed Direct Connect request
+  app.post("/api/direct-connect/requests/:id/cancel", isAuthenticated, async (req: AuthedRequest, res: Response) => {
+    try {
+      const userId = req.user?.id || req.user?.claims?.sub;
+      if (!userId) return res.status(401).json({ message: "Unauthorized" });
+
+      const requestId = String(req.params.id);
+
+      const [requestRow] = await db
+        .select()
+        .from(workRequests)
+        .where(eq(workRequests.id, requestId));
+
+      if (!requestRow) {
+        return res.status(404).json({ message: "Work request not found" });
+      }
+
+      if (String(requestRow.createdByUserId) !== String(userId)) {
+        return res.status(403).json({ message: "You can only cancel your own requests" });
+      }
+
+      if (requestRow.source !== "direct_connect") {
+        return res.status(400).json({ message: "Only Direct Connect requests can be cancelled here" });
+      }
+
+      if (requestRow.status === "cancelled") {
+        return res.status(200).json({ status: "cancelled" });
+      }
+
+      if (requestRow.status !== "in_progress" && requestRow.status !== "routed") {
+        return res.status(400).json({ message: "Only routed or in-progress requests can be cancelled" });
+      }
+
+      const now = new Date();
+
+      await db.transaction(async (tx) => {
+        await tx
+          .update(workRequests)
+          .set({ status: "cancelled", updatedAt: now })
+          .where(eq(workRequests.id, requestId));
+
+        // Mark any outstanding suggested/invited/accepted assignments as withdrawn
+        await tx
+          .update(workRequestAssignments)
+          .set({ status: "withdrawn", updatedAt: now })
+          .where(
+            and(
+              eq(workRequestAssignments.workRequestId, requestId),
+              inArray(workRequestAssignments.status, ["suggested", "invited", "accepted"] as any),
+            ),
+          );
+
+        try {
+          await tx.insert(workRequestEvents).values({
+            workRequestId: requestId,
+            type: "cancelled",
+            actorUserId: String(userId),
+            fromStatus: requestRow.status,
+            toStatus: "cancelled",
+            metadata: { source: "direct_connect" },
+          });
+        } catch (e) {
+          console.warn("[direct-connect] Failed to record cancelled event", e);
+        }
+      });
+
+      res.status(200).json({ status: "cancelled" });
+    } catch (error: any) {
+      console.error("Error cancelling direct connect request:", error);
+      res.status(500).json({ message: error?.message || "Failed to cancel request" });
+    }
+  });
+
+  // Requester-facing: reopen a previously cancelled Direct Connect request
+  app.post("/api/direct-connect/requests/:id/reopen", isAuthenticated, async (req: AuthedRequest, res: Response) => {
+    try {
+      const userId = req.user?.id || req.user?.claims?.sub;
+      if (!userId) return res.status(401).json({ message: "Unauthorized" });
+
+      const requestId = String(req.params.id);
+
+      const [requestRow] = await db
+        .select()
+        .from(workRequests)
+        .where(eq(workRequests.id, requestId));
+
+      if (!requestRow) {
+        return res.status(404).json({ message: "Work request not found" });
+      }
+
+      if (String(requestRow.createdByUserId) !== String(userId)) {
+        return res.status(403).json({ message: "You can only reopen your own requests" });
+      }
+
+      if (requestRow.source !== "direct_connect") {
+        return res.status(400).json({ message: "Only Direct Connect requests can be reopened here" });
+      }
+
+      if (requestRow.status !== "cancelled") {
+        return res.status(400).json({ message: "Only cancelled requests can be reopened" });
+      }
+
+      const now = new Date();
+
+      await db.transaction(async (tx) => {
+        await tx
+          .update(workRequests)
+          .set({ status: "open", updatedAt: now })
+          .where(eq(workRequests.id, requestId));
+
+        try {
+          await tx.insert(workRequestEvents).values({
+            workRequestId: requestId,
+            type: "status_changed",
+            actorUserId: String(userId),
+            fromStatus: "cancelled",
+            toStatus: "open",
+            metadata: { source: "direct_connect", reason: "reopened" },
+          });
+        } catch (e) {
+          console.warn("[direct-connect] Failed to record status_changed event on reopen", e);
+        }
+      });
+
+      res.status(200).json({ status: "open" });
+    } catch (error: any) {
+      console.error("Error reopening direct connect request:", error);
+      res.status(500).json({ message: error?.message || "Failed to reopen request" });
+    }
+  });
+
   // Requester-facing: create a new Direct Connect request
   app.post("/api/direct-connect/requests", isAuthenticated, async (req: AuthedRequest, res: Response) => {
     try {
