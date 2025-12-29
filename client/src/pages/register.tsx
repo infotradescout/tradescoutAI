@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useState } from "react";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -13,7 +13,7 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import UserTypeSelect from "@/components/UserTypeSelect";
-import { US_STATES, getCountiesForState } from "@shared/us-states-counties";
+import { StateCountySelector } from "@/components/state-county-selector";
 
 const registerSchema = z
   .object({
@@ -48,19 +48,7 @@ export default function Register() {
   const { toast } = useToast();
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-
   const [location] = useLocation();
-
-  const createdViaScout = useMemo(() => {
-    try {
-      const query = location.split("?")[1] || "";
-      const params = new URLSearchParams(query);
-      const source = (params.get("source") || params.get("via") || "").toLowerCase();
-      return source === "scout";
-    } catch {
-      return false;
-    }
-  }, [location]);
 
   const beginOAuth = (provider: "google" | "facebook") => {
     window.location.assign(`/api/auth/${provider}`);
@@ -84,21 +72,20 @@ export default function Register() {
     },
   });
 
-  const stateCode = form.watch("state");
+  // State/county selection is handled via StateCountySelector, which
+  // uses the canonical /api/states and /api/counties endpoints.
+  const [selectedCountyFips, setSelectedCountyFips] = useState("");
 
-  const countiesForState = useMemo(() => {
-    if (!stateCode) return [];
-    return getCountiesForState(stateCode) || [];
-  }, [stateCode]);
-
-  const selectedState = useMemo(
-    () => US_STATES.find((s) => s.code === stateCode),
-    [stateCode]
-  );
-
-  const subdivisionType = selectedState?.subdivisionType || "county";
-  const subdivisionLabel =
-    subdivisionType.charAt(0).toUpperCase() + subdivisionType.slice(1);
+  const createdViaScout = (() => {
+    try {
+      const query = location.split("?")[1] || "";
+      const params = new URLSearchParams(query);
+      const source = (params.get("source") || params.get("via") || "").toLowerCase();
+      return source === "scout";
+    } catch {
+      return false;
+    }
+  })();
 
   const registerMutation = useMutation({
     mutationFn: async (data: Omit<RegisterFormData, "confirmPassword">) => {
@@ -327,56 +314,42 @@ export default function Register() {
                 </div>
 
                 <div>
-                  <Label htmlFor="state" className="flex items-center gap-2">
+                  <Label className="flex items-center gap-2">
                     <MapPin className="h-4 w-4" />
-                    State / Territory
+                    State / County
                   </Label>
-                  <select
-                    id="state"
-                    {...form.register("state")}
-                    className="mt-1 w-full rounded-md border border-tsBorder bg-tsBg px-3 py-2 text-sm text-tsTextMain"
-                  >
-                    <option value="">Select state or territory</option>
-                    {US_STATES.map((state) => (
-                      <option key={state.code} value={state.code}>
-                        {state.name}
-                      </option>
-                    ))}
-                  </select>
+                  <div className="mt-1">
+                    <StateCountySelector
+                      selectedState={form.watch("state")}
+                      selectedCounty={selectedCountyFips}
+                      onStateChange={(stateCode) => {
+                        form.setValue("state", stateCode, { shouldValidate: true, shouldDirty: true });
+                        // Reset county whenever state changes
+                        setSelectedCountyFips("");
+                        form.setValue("county", "", { shouldValidate: true, shouldDirty: true });
+                      }}
+                      onCountyChange={(countyFips) => {
+                        setSelectedCountyFips(countyFips);
+                      }}
+                      onCountySelected={(county) => {
+                        form.setValue("county", county?.name || "", { shouldValidate: true, shouldDirty: true });
+                      }}
+                    />
+                  </div>
                   {form.formState.errors.state && (
                     <p className="text-red-400 text-sm mt-1">{form.formState.errors.state.message}</p>
+                  )}
+                  {form.formState.errors.county && (
+                    <p className="text-red-400 text-sm mt-1">{form.formState.errors.county.message}</p>
                   )}
                 </div>
               </div>
 
               <div>
-                <Label htmlFor="county" className="flex items-center gap-2">
-                  <MapPin className="h-4 w-4" />
-                  {subdivisionLabel}
-                </Label>
-                <select
-                  id="county"
-                  {...form.register("county")}
-                  className="mt-1 w-full rounded-md border border-tsBorder bg-tsBg px-3 py-2 text-sm text-tsTextMain"
-                  disabled={!stateCode || countiesForState.length === 0}
-                >
-                  <option value="">
-                    {stateCode
-                      ? `Select ${subdivisionLabel.toLowerCase()}`
-                      : "Select a state first"}
-                  </option>
-                  {countiesForState.map((c) => (
-                    <option key={c.fips} value={c.name}>
-                      {c.name}
-                    </option>
-                  ))}
-                </select>
                 <p className="text-xs text-tsTextMuted mt-1">
-                  Used for local community matching and recommendations.
+                  We use your state and county for neighborhood verification, local feeds, and matching. You can
+                  update this later in your profile settings.
                 </p>
-                {form.formState.errors.county && (
-                  <p className="text-red-400 text-sm mt-1">{form.formState.errors.county.message}</p>
-                )}
               </div>
 
               <div className="my-6">

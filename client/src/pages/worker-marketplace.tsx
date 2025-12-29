@@ -189,9 +189,9 @@ export default function WorkerMarketplace() {
       <div className="mb-8">
         <h1 className="text-4xl font-bold text-white mb-4">Helpers · Direct Connect Responders</h1>
         <p className="text-xl text-gray-300 max-w-3xl">
-          This is the Helpers tab under Direct Connect. Homeowners start Direct Connect requests,
-          then helpers and contractors respond here to keep local work moving without creating a
-          separate job marketplace.
+          This is the Helpers tab under Direct Connect. Homeowners start Direct Connect requests and
+          manage coordination there; contractors and helpers use this space to match on short-term
+          work, crew help, and employment without creating a separate homeowner job board.
         </p>
         <div className="mt-4 flex flex-wrap gap-3">
           <Link href="/tasks">
@@ -357,8 +357,8 @@ export default function WorkerMarketplace() {
               <h3 className="text-2xl font-bold text-white mb-4">Ready to get started?</h3>
               <p className="text-gray-300 mb-6 max-w-2xl mx-auto">
                 {activeTab === "find-workers" 
-                  ? "Contractors: Hire helpers as employees for ongoing work. Homeowners: Find helpers for odd jobs and one-time tasks."
-                  : "Apply for employment opportunities with contractors or one-time tasks from homeowners that match your skills."
+                  ? "Contractors: Post crew and helper needs as employment or shift opportunities. Homeowners: start new repair or project work in Direct Connect, then message helpers you find here."
+                  : "Apply for employment opportunities with contractors or short-term tasks that match your skills."
                 }
               </p>
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
@@ -521,13 +521,13 @@ export default function WorkerMarketplace() {
               >
                 Cancel
               </Button>
-              <Button
-                className="bg-orange-500 hover:bg-orange-600"
-                onClick={() => createTaskMutation.mutate()}
-                disabled={createTaskMutation.isPending}
-              >
-                {createTaskMutation.isPending ? "Posting…" : "Post task"}
-              </Button>
+                <Button
+                  className="bg-orange-500 hover:bg-orange-600"
+                  onClick={() => createTaskMutation.mutate()}
+                  disabled={createTaskMutation.isPending}
+                >
+                  {createTaskMutation.isPending ? "Posting…" : "Post helper opportunity"}
+                </Button>
             </div>
           </div>
         </DialogContent>

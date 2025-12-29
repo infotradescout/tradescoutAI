@@ -759,7 +759,7 @@ export class NotificationService {
     const roleMessages: Record<string, { title: string; message: string; actionUrl?: string }> = {
       homeowner: {
         title: 'Welcome to TradeScout! 🏠',
-        message: 'Ready to find reliable contractors for your home projects? Start by exploring contractors in your area and get quotes for your next project.',
+        message: 'Ready to find reliable contractors for your home? Start by opening a Direct Connect request and exploring contractors in your area. Scout can help you get quotes and coordinate the work.',
         actionUrl: '/contractors/board'
       },
       contractor_user: {
@@ -769,7 +769,7 @@ export class NotificationService {
       },
       helper: {
         title: 'Welcome to TradeScout Helpers! 🤝',
-        message: 'Ready to find work opportunities? Browse available tasks and start earning by helping contractors and homeowners with their projects.',
+        message: 'Ready to find work opportunities? Browse helper and crew opportunities from contractors and communities. Homeowners start coordination in Direct Connect; you respond here.',
         actionUrl: '/helpers'
       },
       accelerator_member: {
