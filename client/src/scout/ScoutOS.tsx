@@ -2481,10 +2481,10 @@ export default function ScoutOS() {
                       type: "navigate",
                       ts: new Date().toISOString(),
                       path: location,
-                      to: "/tasks",
+                      to: "/direct-connect",
                       label: trimmed,
                     });
-                    navigate("/tasks");
+                    navigate("/direct-connect");
                     return;
                   }
 

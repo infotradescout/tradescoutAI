@@ -177,7 +177,7 @@ export default function Community() {
           onClick: () => {
             try {
               if (typeof window !== "undefined") {
-                window.location.href = "/tasks";
+                window.location.href = "/direct-connect";
               }
             } catch {
               // best-effort navigation

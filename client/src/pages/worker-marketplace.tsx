@@ -194,7 +194,7 @@ export default function WorkerMarketplace() {
           work, crew help, and employment without creating a separate homeowner job board.
         </p>
         <div className="mt-4 flex flex-wrap gap-3">
-          <Link href="/tasks">
+          <Link href="/direct-connect">
             <Button className="bg-orange-500 hover:bg-orange-600 text-white">
               Go to Direct Connect
             </Button>

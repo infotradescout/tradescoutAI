@@ -11,7 +11,7 @@ export default function HomeownerDashboard() {
       message="Your homeowner dashboard will fill in as you start Direct Connect requests and work with contractors. Start by opening Direct Connect or browsing contractors."
       action={
         <div className="flex flex-col sm:flex-row gap-3 justify-center">
-          <Button onClick={() => setLocation("/tasks")}>
+          <Button onClick={() => setLocation("/direct-connect")}>
             Open Direct Connect
           </Button>
           <Button variant="outline" onClick={() => setLocation("/contractors")}>

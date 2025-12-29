@@ -441,7 +441,7 @@ export function CommunityPostCard({ post, onLike, formatTimeAgo }: CommunityPost
                             ✓ Sent to Direct Connect
                           </span>
                         </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => navigate("/tasks")}>
+                        <DropdownMenuItem onClick={() => navigate("/direct-connect")}>
                           <Hammer className="w-3.5 h-3.5 mr-2" />
                           View Direct Connect
                         </DropdownMenuItem>

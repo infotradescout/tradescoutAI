@@ -173,7 +173,7 @@ export const ScoutDirectConnectPanel: React.FC<ScoutDirectConnectPanelProps> = (
   }, [data]);
 
   const handleViewBoard = () => {
-    navigate("/tasks");
+    navigate("/direct-connect");
   };
 
   return (

@@ -157,7 +157,7 @@ const FinancesVendors = React.lazy(() => import('./pages/finances-vendors'));
 const FinancesBankAccounts = React.lazy(() => import('./pages/finances-bank-accounts'));
 const FinancesReports = React.lazy(() => import('./pages/finances-reports'));
 const FinancesSettings = React.lazy(() => import('./pages/finances-settings'));
-const TasksHub = React.lazy(() => import('./pages/tasks'));
+const DirectConnectShell = React.lazy(() => import('./pages/direct-connect/DirectConnectShell'));
 const DealRoomPage = React.lazy(() => import('./pages/deal-room'));
 // NOTE: CommunityFeedOld mock has been quarantined to client/src/playgrounds/CommunityFeedMock.tsx
 // and should not be routed. This lazy import is intentionally removed.
@@ -569,7 +569,7 @@ const AppLayout = memo(function AppLayout() {
                     <RedirectTo to="/contractor-leads" />
                   </Route>
 
-                  {/* Helpers + Tasks */}
+                  {/* Helpers + Direct Connect */}
                   <Route path="/helpers"><LazyPage Component={WorkerMarketplace} /></Route>
                   <Route path="/daily-deals/:rest*"><LazyPage Component={DailyDeals} /></Route>
                   <Route path="/help-demo/:rest*"><LazyPage Component={HelpDemo} /></Route>
@@ -1036,7 +1036,12 @@ const AppLayout = memo(function AppLayout() {
                   <Route path="/schedule-consultation"><LazyPage Component={ScheduleConsultation} /></Route>
                   <Route path="/apply-accelerator"><LazyPage Component={ApplyAccelerator} /></Route>
                   <Route path="/request-quote"><LazyPage Component={RequestQuote} /></Route>
-                  <Route path="/tasks"><LazyPage Component={TasksHub} /></Route>
+                  <Route path="/direct-connect/:rest*">
+                    <LazyPage Component={DirectConnectShell} />
+                  </Route>
+                  <Route path="/tasks">
+                    <RedirectTo to="/direct-connect" />
+                  </Route>
                   
                   {/* Notes */}
                   <Route path="/notes"><LazyPage Component={NotesPage} /></Route>

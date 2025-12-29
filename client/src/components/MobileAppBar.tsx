@@ -15,7 +15,7 @@ const mobileNavItems = [
   { href: '/', icon: Home, label: 'Home', guest: true },
   { href: '/contractors/board', icon: Search, label: 'Find', guest: true },
   { href: '/helpers', icon: Wrench, label: 'Helpers', guest: true },
-  { href: '/tasks', icon: ClipboardList, label: 'Direct Connect', guest: true },
+  { href: '/direct-connect', icon: ClipboardList, label: 'Direct Connect', guest: true },
   { href: '/conversations', icon: MessageCircle, label: 'Messages', auth: true },
   { href: '/profile', icon: User, label: 'Profile', auth: true },
 ];
