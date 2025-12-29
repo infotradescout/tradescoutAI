@@ -177,6 +177,7 @@ const BusinessProfileEditor = React.lazy(() => import('./pages/BusinessProfileEd
 const ProfileSiteView = React.lazy(() => import('./pages/ProfileSiteView'));
 const ProfileSiteEditor = React.lazy(() => import('./pages/ProfileSiteEditor'));
 const Help = React.lazy(() => import('./pages/help'));
+const HowTradeScoutWorks = React.lazy(() => import('./pages/how-tradescout-works'));
 const Invite = React.lazy(() => import('./pages/invite'));
 const CustomDashboard = React.lazy(() => import('./pages/Dashboard'));
 const DashboardSettings = React.lazy(() => import('./pages/DashboardSettings'));
@@ -839,6 +840,9 @@ const AppLayout = memo(function AppLayout() {
                     </ProtectedRoute>
                   </Route>
                   <Route path="/help"><LazyPage Component={Help} /></Route>
+                  <Route path="/help/how-tradescout-works">
+                    <LazyPage Component={HowTradeScoutWorks} />
+                  </Route>
                   <Route path="/invite">
                     <ProtectedRoute>
                       <LazyPage Component={Invite} />

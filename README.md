@@ -22,6 +22,13 @@ npm run dev
 ```powershell
 npm run check
 npm run test:run
+
+# Full end-to-end suite (requires a test DB)
+npm run e2e
 ```
 
-Database-backed suites require `TEST_DATABASE_URL` and will be skipped otherwise (see [DEV_QUICK_REFERENCE.md](DEV_QUICK_REFERENCE.md)).
+Database-backed and E2E suites expect a dedicated test database.
+
+- Set `TEST_DATABASE_URL` in CI (and locally in a `.env.test` or shell env) to point at a disposable Postgres database/schema.
+- When `TEST_DATABASE_URL` is not set, Playwright webServer and global auth setup are disabled and E2E specs such as
+	[tests/direct-connect.e2e.spec.ts](tests/direct-connect.e2e.spec.ts) will be marked as skipped instead of failing.
