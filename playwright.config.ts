@@ -16,7 +16,9 @@ export default defineConfig({
   webServer: hasTestDb
     ? {
         command: serverCommand,
-        url: `${baseURL}/health`,
+        // Use the API health endpoint so Playwright waits for the real
+        // app+API server to be ready rather than a non-existent /health.
+        url: `${baseURL}/api/health`,
         reuseExistingServer: !process.env.CI,
         timeout: 120_000,
       }
