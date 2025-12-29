@@ -222,7 +222,7 @@ export async function handleCreateProjectWithTools(
       message: {
         id: `a_${Date.now()}`,
         role: "assistant",
-        content: `Failed to create project: ${result.error?.message || "Unknown error"}.`,
+        content: `Failed to create a project record: ${result.error?.message || "Unknown error"}.`,
         timestamp: new Date().toISOString(),
         toolResult: {
           tool: "create_project",
@@ -241,7 +241,7 @@ export async function handleCreateProjectWithTools(
     message: {
       id: `a_${Date.now()}`,
       role: "assistant",
-      content: `I've created a trackable project for you: "${project?.title}".`,
+      content: `I've created a project record for you in your contractor workspace: "${project?.title}".`,
       timestamp: new Date().toISOString(),
       navTarget: project?.projectUrl,
       toolResult: {

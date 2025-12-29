@@ -185,18 +185,18 @@ export default function WorkerMarketplace() {
 
   return (
     <WorkerMarketplaceShell>
-      {/* Header */}
+      {/* Header - Helpers tab under Direct Connect */}
       <div className="mb-8">
-        <h1 className="text-4xl font-bold text-white mb-4">Helpers</h1>
+        <h1 className="text-4xl font-bold text-white mb-4">Helpers · Direct Connect Responders</h1>
         <p className="text-xl text-gray-300 max-w-3xl">
-          Two-way marketplace: Contractors can hire helpers as employees for ongoing work, 
-          and homeowners can hire helpers for odd jobs and one-time tasks. 
-          All helpers are ID verified and background checked for your peace of mind.
+          This is the Helpers tab under Direct Connect. Homeowners start Direct Connect requests,
+          then helpers and contractors respond here to keep local work moving without creating a
+          separate job marketplace.
         </p>
         <div className="mt-4 flex flex-wrap gap-3">
           <Link href="/tasks">
             <Button className="bg-orange-500 hover:bg-orange-600 text-white">
-              Start a project (Direct Connect)
+              Go to Direct Connect
             </Button>
           </Link>
         </div>
