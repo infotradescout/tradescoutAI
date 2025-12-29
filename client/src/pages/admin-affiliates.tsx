@@ -48,7 +48,7 @@ export default function AdminAffiliatesPage() {
   });
 
   return (
-    <div className="min-h-screen bg-slate-950 text-white pt-24 px-4 pb-16">
+    <div className="bg-slate-950 text-white pt-24 px-4 pb-16">
       <div className="max-w-6xl mx-auto space-y-6">
         <div>
           <h1 className="text-3xl font-bold">Affiliate Management</h1>

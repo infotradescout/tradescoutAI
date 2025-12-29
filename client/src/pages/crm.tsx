@@ -6,7 +6,7 @@ import { Badge } from '@/components/ui/badge';
 
 const CRM = memo(function CRM() {
   return (
-    <div className="min-h-screen gradient-bg text-white">
+    <div className="gradient-bg text-white">
       <div className="container mx-auto px-4 py-8">
         {/* Header */}
         <div className="mb-8">

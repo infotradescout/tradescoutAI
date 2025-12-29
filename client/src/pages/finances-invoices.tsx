@@ -9,6 +9,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { Link } from "wouter";
+import { Page } from "@/components/layout/PagePrimitives";
 
 interface StandaloneInvoice {
   id: string;
@@ -75,9 +76,9 @@ export default function FinancesInvoicesPage() {
 
   if (!isAuthenticated) {
     return (
-      <div className="min-h-screen flex items-center justify-center text-center text-slate-500">
-        Sign in to view and manage invoices.
-      </div>
+      <Page className="py-16">
+        <div className="text-center text-sm text-tsTextMuted">Sign in to view and manage invoices.</div>
+      </Page>
     );
   }
 
@@ -357,7 +358,7 @@ export default function FinancesInvoicesPage() {
   }, []);
 
   return (
-    <div className="flex flex-col gap-4 bg-tsBg">
+    <Page className="space-y-4">
       <div className="flex items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl md:text-3xl font-semibold text-tsText mb-1">Invoices</h1>
@@ -748,6 +749,6 @@ export default function FinancesInvoicesPage() {
           </div>
         </div>
       )}
-    </div>
+    </Page>
   );
 }

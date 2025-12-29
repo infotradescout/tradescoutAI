@@ -51,7 +51,7 @@ export default function CountyTransparencyPage() {
   });
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-white py-10 px-4">
+	<div className="bg-gradient-to-br from-slate-50 to-white py-10 px-4">
       <div className="max-w-6xl mx-auto space-y-6">
         <div className="flex items-center justify-between">
           <div>

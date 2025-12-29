@@ -2,6 +2,7 @@ import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Page } from "@/components/layout/PagePrimitives";
 
 interface ExpenseEntry {
   id: string;
@@ -87,7 +88,7 @@ export default function FinancesVendorsPage() {
   };
 
   return (
-    <div className="flex flex-col gap-4">
+    <Page className="space-y-4">
       <div>
         <h1 className="text-2xl md:text-3xl font-semibold text-slate-50 mb-1">Vendors</h1>
         <p className="text-sm text-slate-400">
@@ -160,6 +161,6 @@ export default function FinancesVendorsPage() {
           )}
         </CardContent>
       </Card>
-    </div>
+    </Page>
   );
 }

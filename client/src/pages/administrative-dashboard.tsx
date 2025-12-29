@@ -7,7 +7,7 @@ import { Progress } from '@/components/ui/progress';
 
 const AdministrativeDashboard = memo(function AdministrativeDashboard() {
   return (
-    <div className="min-h-screen gradient-bg text-white">
+    <div className="gradient-bg text-white">
       <div className="container mx-auto px-4 py-8">
         {/* Header */}
         <div className="mb-8">

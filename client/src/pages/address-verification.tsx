@@ -139,10 +139,7 @@ export default function AddressVerification() {
 
   if (isLoading) {
     return (
-      <div
-        className="min-h-screen flex items-center justify-center"
-        style={{ backgroundColor: "var(--surface-app-bg)" }}
-      >
+      <div className="py-24 flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
           <p className="text-gray-600 dark:text-gray-400">Loading verification status...</p>
@@ -154,10 +151,7 @@ export default function AddressVerification() {
   // Show verification status if already verified or has verification in progress
   if ((verificationStatus as any)?.isVerified) {
     return (
-      <div
-        className="min-h-screen p-6"
-        style={{ backgroundColor: "var(--surface-app-bg)" }}
-      >
+      <div className="px-6 py-10">
         <div className="max-w-2xl mx-auto">
           <Card>
             <CardHeader className="text-center">
@@ -182,10 +176,7 @@ export default function AddressVerification() {
   const isExpired = (verificationStatus as any)?.isExpired || false;
 
   return (
-    <div
-      className="min-h-screen p-6"
-      style={{ backgroundColor: "var(--surface-app-bg)" }}
-    >
+    <div className="px-6 py-10">
       <div className="max-w-4xl mx-auto">
         {/* Header */}
         <div className="text-center mb-8">

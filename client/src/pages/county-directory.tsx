@@ -105,8 +105,8 @@ const CountyDirectory = memo(function CountyDirectory() {
   ];
 
   return (
-    <div className="min-h-screen gradient-bg text-white">
-      <div className="container mx-auto px-4 py-8">
+  <div className="text-white">
+    <div className="container mx-auto px-4 py-8">
         {/* Header */}
         <div className="mb-8">
           <div className="flex items-center gap-3 mb-4">

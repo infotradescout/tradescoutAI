@@ -440,7 +440,7 @@ export default function Marketplace() {
 
   return (
     <Page className="max-w-none px-0">
-      <div className="min-h-screen bg-tsBg">
+      <div className="bg-tsBg">
       {/* Smart Value Banner */}
       <div className="bg-gradient-to-r from-orange-600 via-amber-600 to-orange-500 text-white">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-5 space-y-4">

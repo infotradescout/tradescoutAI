@@ -15,6 +15,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { CartesianGrid, Line, LineChart, XAxis, YAxis } from "recharts";
 import { LayoutDashboard, FileText, Handshake, BarChart3, Settings2, ChevronDown, ChevronUp } from "lucide-react";
 import { useLocation } from "wouter";
+import { Page } from "@/components/layout/PagePrimitives";
 
 interface StandaloneInvoice {
   id: string;
@@ -633,7 +634,7 @@ export default function AccountingWorkspace() {
   }, [location, invoices]);
 
   return (
-    <div className="flex flex-col lg:flex-row gap-6">
+  <Page className="flex flex-col lg:flex-row gap-6">
       <aside className="w-full lg:w-64 xl:w-72 flex-shrink-0">
         <Card className="bg-slate-900 border-slate-800 mb-4 sticky top-0">
           <CardHeader className="pb-3 flex items-center justify-between gap-2">
@@ -1826,7 +1827,7 @@ export default function AccountingWorkspace() {
           </Card>
         </section>
       </div>
-    </div>
+    </Page>
   );
 }
 

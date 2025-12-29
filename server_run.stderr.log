@@ -1,0 +1,20 @@
+Cannot optimize dependency: [36mreact[39m, present in 'optimizeDeps.include'
+Cannot optimize dependency: [36mreact-dom[39m, present in 'optimizeDeps.include'
+Cannot optimize dependency: [36mreact/jsx-dev-runtime[39m, present in 'optimizeDeps.include'
+Cannot optimize dependency: [36mreact/jsx-runtime[39m, present in 'optimizeDeps.include'
+[VITE ERROR] Pre-transform error: Failed to load url /src/main.tsx?v=J0GotJHZK22zibuij8eOB (resolved id: /src/main.tsx?v=J0GotJHZK22zibuij8eOB). Does the file exist? {
+  error: Error: Failed to load url /src/main.tsx?v=J0GotJHZK22zibuij8eOB (resolved id: /src/main.tsx?v=J0GotJHZK22zibuij8eOB). Does the file exist?
+      at loadAndTransform (file:///C:/Users/FlavorGood/Documents/AAATraderCorner/TradeScout/TradeScoutPro/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:51969:17) {
+    code: 'ERR_LOAD_URL'
+  },
+  timestamp: true
+}
+[2m12:47:14 PM[22m [31m[1m[vite][22m[39m Pre-transform error: Failed to load url /src/main.tsx?v=J0GotJHZK22zibuij8eOB (resolved id: /src/main.tsx?v=J0GotJHZK22zibuij8eOB). Does the file exist?
+[VITE ERROR] Pre-transform error: Failed to load url /src/main.tsx?v=0dJ6JJnsUVzY3uZnKtOQz (resolved id: /src/main.tsx?v=0dJ6JJnsUVzY3uZnKtOQz). Does the file exist? {
+  error: Error: Failed to load url /src/main.tsx?v=0dJ6JJnsUVzY3uZnKtOQz (resolved id: /src/main.tsx?v=0dJ6JJnsUVzY3uZnKtOQz). Does the file exist?
+      at loadAndTransform (file:///C:/Users/FlavorGood/Documents/AAATraderCorner/TradeScout/TradeScoutPro/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:51969:17) {
+    code: 'ERR_LOAD_URL'
+  },
+  timestamp: true
+}
+[2m12:47:14 PM[22m [31m[1m[vite][22m[39m Pre-transform error: Failed to load url /src/main.tsx?v=0dJ6JJnsUVzY3uZnKtOQz (resolved id: /src/main.tsx?v=0dJ6JJnsUVzY3uZnKtOQz). Does the file exist?

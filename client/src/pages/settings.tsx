@@ -480,7 +480,7 @@ export default function Settings() {
   };
 
   return (
-    <div className="min-h-screen bg-tsBg pb-20 lg:pb-0">
+    <div className="pb-20 lg:pb-0">
       <div className="container mx-auto px-4 py-6 lg:py-10">
         <div className="max-w-5xl mx-auto ts-surface px-4 py-6 md:px-10 md:py-8">
           {/* Modern Header */}

@@ -56,18 +56,6 @@ const ScoutInput: React.FC<ScoutInputProps> = ({
     }
   };
 
-  // Auto-focus the main Scout input so it feels like the
-  // primary action, matching the ChatGPT-style mental model.
-  useEffect(() => {
-    if (disabled) return;
-    if (!textareaRef.current) return;
-    try {
-      textareaRef.current.focus();
-    } catch {
-      // ignore focus errors (e.g., mobile safari restrictions)
-    }
-  }, [disabled]);
-
   const handleSubmit = (text?: string) => {
     const trimmed = (text ?? value).trim();
     if (!trimmed || disabled || isSubmitting) return;

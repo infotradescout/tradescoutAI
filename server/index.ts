@@ -40,15 +40,18 @@ process.on('beforeExit', (code) => {
   console.log(`Before exit with code: ${code}`);
 });
 
-process.on('SIGINT', () => {
-  console.log('Received SIGINT - ignoring (server should stay running)');
-  // Don't exit - we want the server to keep running
-});
-
-process.on('SIGTERM', () => {
-  console.log('Received SIGTERM - shutting down gracefully');
+const shutdown = (signal: string) => {
+  console.log(`Received ${signal} - shutting down gracefully`);
+  try {
+    void pool.end();
+  } catch (err) {
+    console.error("Error closing database pool during shutdown:", err);
+  }
   process.exit(0);
-});
+};
+
+process.on('SIGINT', () => shutdown('SIGINT'));
+process.on('SIGTERM', () => shutdown('SIGTERM'));
 
 const requiredEnv = ["DATABASE_URL", "SESSION_SECRET"];
 for (const key of requiredEnv) {

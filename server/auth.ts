@@ -33,6 +33,8 @@ export function getSession() {
     sessionSecret = "dev-insecure-session-secret";
   }
 
+  const isProductionEnv = process.env.NODE_ENV === "production";
+
   return session({
     name: "tradescout.sid",
     secret: sessionSecret,
@@ -42,8 +44,11 @@ export function getSession() {
     proxy: true,
     cookie: {
       httpOnly: true,
-      secure: true,
-      sameSite: "none",
+      // In production we require secure, cross-site compatible cookies.
+      // In local development over http, browsers will silently drop
+      // `secure` cookies, which breaks login loops. Relax this there.
+      secure: isProductionEnv,
+      sameSite: isProductionEnv ? "none" : "lax",
       maxAge: sessionTtlMs,
     },
   });
