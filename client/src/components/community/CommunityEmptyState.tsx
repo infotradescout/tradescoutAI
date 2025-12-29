@@ -16,7 +16,7 @@ export function CommunityEmptyState({ onCreateFirstPost }: CommunityEmptyStatePr
             Start the conversation in your community
           </h3>
           <p className="text-slate-300 text-sm max-w-xl mx-auto">
-            Share a project update, ask for a recommendation, or post a tip for your neighbors.
+            Share an update, ask for a recommendation, or post a tip for your neighbors.
             Your first post helps kick off a more helpful local feed for everyone.
           </p>
         </div>
@@ -25,7 +25,7 @@ export function CommunityEmptyState({ onCreateFirstPost }: CommunityEmptyStatePr
             "Looking for a great electrician in our area"
           </span>
           <span className="px-3 py-1 rounded-full bg-orange-500/10 border border-orange-500/30">
-            "Sharing before/after photos from a recent project"
+            "Sharing before/after photos from a recent repair or upgrade"
           </span>
           <span className="px-3 py-1 rounded-full bg-orange-500/10 border border-orange-500/30">
             "Heads up about a local safety issue"

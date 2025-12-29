@@ -1085,7 +1085,6 @@ const App = memo(function App() {
             <Router>
               <AppLayout />
             </Router>
-            <SimpleFloatingHelp />
           </SessionProvider>
         </ThemeProvider>
       </QueryClientProvider>

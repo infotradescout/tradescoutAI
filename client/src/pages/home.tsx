@@ -138,6 +138,24 @@ export default function Home() {
 
       {/* Quick Actions */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        <Link href="/tasks">
+          <Card className="bg-navy-700 border-navy-600 card-enhanced cursor-pointer">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-3">
+                  <div className="w-12 h-12 bg-orange-500/20 rounded-lg flex items-center justify-center glow-orange">
+                    <ClipboardList className="h-6 w-6 text-orange-500" />
+                  </div>
+                  <div>
+                    <h3 className="text-white font-semibold">Open Direct Connect</h3>
+                    <p className="text-gray-400 text-sm">Start and manage Direct Connect requests</p>
+                  </div>
+                </div>
+                <ChevronRight className="h-5 w-5 text-gray-400" />
+              </div>
+            </CardContent>
+          </Card>
+        </Link>
         <Link href="/contractors">
           <Card className="bg-navy-700 border-navy-600 card-enhanced cursor-pointer">
             <CardContent className="p-6">

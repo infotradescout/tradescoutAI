@@ -66,9 +66,9 @@ export default function ContractorDashboard() {
                 <Users className="h-4 w-4" />
                 <span>Crew & helpers</span>
               </div>
-              <CardTitle className="text-sm text-white">Post a job or find helpers</CardTitle>
+              <CardTitle className="text-sm text-white">Coordinate crew and helpers</CardTitle>
               <CardDescription className="text-xs text-gray-300">
-                Use Helpers to post crew needs or pick up extra work.
+                Use Helpers to post crew needs or pick up extra work alongside Direct Connect jobs.
               </CardDescription>
             </CardHeader>
             <CardContent className="pt-0">

@@ -85,7 +85,7 @@ export interface ProjectResult {
 
 const createProjectTool: ToolDefinition<CreateProjectInput, ProjectResult> = {
   name: "create_project",
-  description: "Create a trackable project for the user",
+  description: "Create a project record for the user (contractor-only context)",
   timeout: 10000,
   retries: 2,
   async execute(input, context) {

@@ -41,19 +41,19 @@ export default function ForContractors() {
   return (
     <div className="min-h-screen bg-tsBg">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        {/* Header */}
+        {/* Header - this is the Contractors tab under Direct Connect */}
         <div className="text-center mb-12">
           <h1 className="text-4xl md:text-5xl font-bold text-orange-500 mb-6">
-            Grow Your Contracting Business
+            Contractors · Direct Connect Responders
           </h1>
           <p className="text-xl text-gray-300 max-w-3xl mx-auto mb-4">
-            Access exclusive resources, join our accelerator program, and connect with homeowners 
-            looking for quality contractors in your area.
+            This is the Contractors tab under Direct Connect: grow your business by responding to
+            homeowner Direct Connect requests and staying visible in your local coordination board.
           </p>
           <div className="inline-flex items-center px-4 py-2 bg-tsCard rounded-full border border-tsBorder">
             <Users className="h-5 w-5 text-orange-500 mr-2" />
             <span className="text-gray-300">
-              Connect with verified, local contractors for your next project
+              Homeowners start Direct Connect requests · you respond here as a verified local pro
             </span>
           </div>
           <div className="mt-2">

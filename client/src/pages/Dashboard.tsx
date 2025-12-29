@@ -213,7 +213,7 @@ const Dashboard = memo(function Dashboard() {
               Your tools live here when you need them
             </h1>
             <p className="text-sm text-slate-400">
-              Use this workspace to keep track of projects, saved pros, and activity as your community life grows.
+              Use this workspace to keep track of your Direct Connect requests, saved pros, and activity as your community life grows.
             </p>
             <p className="text-sm text-slate-500">
               For now, see what&apos;s happening in your community and come back here whenever you want to organize things.

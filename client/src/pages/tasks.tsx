@@ -66,7 +66,10 @@ export default function TasksHub() {
       });
     },
     onSuccess: () => {
-      toast({ title: "Work request posted", description: "Your request is now on your board." });
+      toast({
+        title: "Direct Connect request posted",
+        description: "This is now on your Direct Connect board.",
+      });
       setTaskTitle("");
       setTaskDescription("");
       setTaskCategoryId("");
@@ -76,7 +79,7 @@ export default function TasksHub() {
     },
     onError: (err: any) => {
       toast({
-        title: "Couldn't create work request",
+        title: "Couldn't create Direct Connect request",
         description: err?.message || "Please try again.",
         variant: "destructive",
       });
@@ -235,7 +238,7 @@ export default function TasksHub() {
                         <Briefcase className="h-12 w-12 text-gray-400 mx-auto mb-4" />
                         <h3 className="text-lg font-semibold text-white mb-2">Nothing in coordination yet</h3>
                         <p className="text-gray-300">
-                          When you want to get something done  a project, service, or help  it will appear here while Scout
+                          When you want to get something done  something big, a service, or help  it will appear here while Scout
                           and your community work on it.
                         </p>
                       </CardContent>
@@ -249,16 +252,16 @@ export default function TasksHub() {
           <TabsContent value="post" className="mt-6">
             <Card className="bg-navy-800 border-navy-700">
               <CardHeader className="pb-4">
-                <h2 className="text-lg font-semibold text-white mb-1">Create a new Work Request</h2>
+                <h2 className="text-lg font-semibold text-white mb-1">Create a new Direct Connect request</h2>
                 <p className="text-sm text-gray-300">
-                  Describe the work you need help with. Scout and your community can use this Work Request to help you route it
-                  to the right people over time.
+                  Describe the work you need help with. Scout and your community can use this Direct Connect request to help you
+                  route it to the right people over time.
                 </p>
               </CardHeader>
               <CardContent>
                 {!isAuthenticated ? (
                   <p className="text-sm text-gray-300">
-                    You need an account to create Work Requests. Please sign in or create an account first.
+                    You need an account to create Direct Connect requests. Please sign in or create an account first.
                   </p>
                 ) : (
                   <div className="grid gap-4">
@@ -304,7 +307,7 @@ export default function TasksHub() {
                       </div>
 
                       <div className="grid gap-2">
-                        <Label>Task type</Label>
+                        <Label>Request type</Label>
                         <Select value={taskTaskType} onValueChange={(v) => setTaskTaskType(v as any)}>
                           <SelectTrigger className="bg-navy-700 border-navy-600 text-white">
                             <SelectValue />
@@ -328,7 +331,7 @@ export default function TasksHub() {
                           <SelectContent className="bg-navy-700 border-navy-600">
                             <SelectItem value="fixed">Fixed</SelectItem>
                             <SelectItem value="hourly">Hourly</SelectItem>
-                            <SelectItem value="per_task">Per task</SelectItem>
+                            <SelectItem value="per_task">Per job</SelectItem>
                           </SelectContent>
                         </Select>
                       </div>
@@ -380,7 +383,7 @@ export default function TasksHub() {
                         onClick={() => createTaskMutation.mutate()}
                         disabled={createTaskMutation.isPending}
                       >
-                        {createTaskMutation.isPending ? "Posting…" : "Post Work Request"}
+                        {createTaskMutation.isPending ? "Posting" : "Post Direct Connect request"}
                       </Button>
                     </div>
                   </div>

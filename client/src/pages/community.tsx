@@ -111,7 +111,7 @@ export default function Community() {
     mutationFn: async (postId: string) => {
       return apiRequest('POST', `/api/community/posts/${postId}/like`);
     },
-    onSuccess: () => {
+    onSuccess: (createdPost: any) => {
       queryClient.invalidateQueries({ queryKey: ['/api/community/posts', stateCode, countyFips] });
     },
   });
@@ -165,9 +165,25 @@ export default function Community() {
           // Ignore analytics failures.
         }
       }
+      const isHelpLikeCategory = createdPost?.category === "project" || createdPost?.category === "recommendation";
+
       toast({
         title: "Posted!",
-        description: "Your post has been published to your community feed.",
+        description: isHelpLikeCategory
+          ? "Your post is live. If this is a help request, start a Direct Connect request so contractors and helpers can coordinate with you."
+          : "Your post has been published to your community feed.",
+        action: {
+          label: "Open Direct Connect",
+          onClick: () => {
+            try {
+              if (typeof window !== "undefined") {
+                window.location.href = "/tasks";
+              }
+            } catch {
+              // best-effort navigation
+            }
+          },
+        },
       });
     },
     onError: (error: any) => {
