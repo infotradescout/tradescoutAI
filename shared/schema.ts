@@ -2053,6 +2053,9 @@ export const workRequests = pgTable("work_requests", {
   // High-level category (contractor, helper, insurance, etc.)
   category: varchar("category"),
 
+  // Optional linked trade for routing (Direct Connect)
+  tradeId: varchar("trade_id"),
+
   // Canonical location
   countyFips: varchar("county_fips", { length: 5 }),
   stateCode: varchar("state_code", { length: 2 }),
@@ -2143,6 +2146,9 @@ export const workRequestAssignments = pgTable("work_request_assignments", {
     score?: number;
     reasons?: string[];
     distanceMiles?: number;
+    tradeMatch?: boolean;
+    recommendationCount?: number;
+    responseRate?: number;
   }>(),
 
   createdAt: timestamp("created_at").defaultNow(),

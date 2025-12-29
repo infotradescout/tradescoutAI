@@ -71,12 +71,12 @@ export default function TasksHub() {
   const [selectedProviderIds, setSelectedProviderIds] = useState<string[]>([]);
 
   const { data: workRequests, isLoading: requestsLoading } = useQuery<WorkRequest[]>({
-    queryKey: ["/api/work-requests", selectedCategory],
+    queryKey: ["/api/direct-connect/requests", selectedCategory],
     queryFn: async () => {
       const params = new URLSearchParams();
       if (selectedCategory) params.append("category", selectedCategory);
 
-      const response = await fetch(`/api/work-requests?${params.toString()}`);
+      const response = await fetch(`/api/direct-connect/requests?${params.toString()}`);
       if (!response.ok) throw new Error("Failed to fetch work requests");
       return response.json();
     },
@@ -127,7 +127,7 @@ export default function TasksHub() {
       if (!taskDescription.trim()) throw new Error("Description is required");
       if (!Number.isFinite(payAmount) || payAmount <= 0) throw new Error("Pay amount must be a positive number");
 
-      return apiRequest("POST", "/api/work-requests", {
+      return apiRequest("POST", "/api/direct-connect/requests", {
         title: taskTitle.trim(),
         description: taskDescription.trim(),
         category: taskCategoryId || undefined,
@@ -147,7 +147,7 @@ export default function TasksHub() {
       setTaskPayAmount("");
       setSelectedProviderIds([]);
       setActiveTab("browse");
-      queryClient.invalidateQueries({ queryKey: ["/api/work-requests"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/direct-connect/requests"] });
     },
     onError: (err: any) => {
       toast({
