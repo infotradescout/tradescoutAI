@@ -1,7 +1,7 @@
 import { Router } from "express";
-import { db } from "@db";
-import { scoutOutcomeEvents, scoutUserConfidenceState } from "@db/schema";
-import { eq, sql } from "drizzle-orm";
+import { db } from "../db";
+import { scoutOutcomeEvents, scoutUserConfidenceState } from "../../shared/schema";
+import { eq, sql, count } from "drizzle-orm";
 
 const router = Router();
 
@@ -141,24 +141,24 @@ router.get("/health", async (req, res) => {
     const recentOverrides = await db
       .select({
         scope: scoutOutcomeEvents.scope,
-        timestamp: scoutOutcomeEvents.timestamp,
+        createdAt: scoutOutcomeEvents.createdAt,
       })
       .from(scoutOutcomeEvents)
-      .where(eq(scoutOutcomeEvents.outcomeType, "ignored_advice"))
-      .orderBy(scoutOutcomeEvents.timestamp)
+      .where(eq(scoutOutcomeEvents.action, "ignored_advice"))
+      .orderBy(scoutOutcomeEvents.createdAt)
       .limit(50);
 
     let regretCount = 0;
     for (const override of recentOverrides) {
       const nextEvents = await db
-        .select({ outcomeType: scoutOutcomeEvents.outcomeType })
+        .select({ action: scoutOutcomeEvents.action })
         .from(scoutOutcomeEvents)
         .where(
-          sql`${scoutOutcomeEvents.scope} = ${override.scope} AND ${scoutOutcomeEvents.timestamp} > ${override.timestamp}`
+          sql`${scoutOutcomeEvents.scope} = ${override.scope} AND ${scoutOutcomeEvents.createdAt} > ${override.createdAt}`
         )
         .limit(1);
 
-      if (nextEvents[0]?.outcomeType === "failure") {
+      if (nextEvents[0]?.action === "canceled") {
         regretCount++;
       }
     }

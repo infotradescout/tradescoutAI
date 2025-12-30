@@ -59,10 +59,8 @@ export async function observeFlowCompletion(event: FlowCompletionEvent): Promise
       
       // 2. Create pattern instance
       const pattern: PatternInstance = {
-        id: `pattern_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
         userId: event.userId,
         sessionId: event.sessionId,
-        timestamp: event.timestamp,
         
         userMessage: event.userMessage,
         inferredGoal: event.situation.goal,
@@ -76,8 +74,6 @@ export async function observeFlowCompletion(event: FlowCompletionEvent): Promise
           risks: event.situation.risks.map(r => `${r.type}: ${r.description}`),
           unknowns: event.situation.unknowns,
         },
-        
-        outcomeKnown: event.outcomeKnown || false,
         
         fingerprint: generateFingerprint(event.situation.goal, missingCapability),
       };

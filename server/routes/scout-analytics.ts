@@ -1,7 +1,7 @@
 import { Router } from "express";
-import { db } from "@db";
-import { scoutOutcomeEvents, scoutUserConfidenceState } from "@db/schema";
-import { eq, sql, and, gte, desc } from "drizzle-orm";
+import { db } from "../db";
+import { scoutOutcomeEvents, scoutUserConfidenceState } from "../../shared/schema";
+import { eq, sql, and, gte, desc, count } from "drizzle-orm";
 
 const router = Router();
 
@@ -64,20 +64,20 @@ router.get("/authority-diagnostics", async (req, res) => {
 
     // For each override, find next outcome in same scope
     const outcomeSequences = await Promise.all(
-      recentOverrides.map(async (override) => {
-        const nextOutcome = await db
+      recentOverrides.map(async (override: { id: number; createdAt: string; value: any }) => {
+        const subEvents = await db
           .select({
-            outcomeType: scoutOutcomeEvents.outcomeType,
-            timestamp: scoutOutcomeEvents.timestamp,
+            action: scoutOutcomeEvents.action,
+            createdAt: scoutOutcomeEvents.createdAt,
           })
           .from(scoutOutcomeEvents)
           .where(
             and(
               eq(scoutOutcomeEvents.scope, override.scope),
-              gte(scoutOutcomeEvents.timestamp, override.timestamp)
+              gte(scoutOutcomeEvents.createdAt, override.createdAt)
             )
           )
-          .orderBy(scoutOutcomeEvents.timestamp)
+          .orderBy(scoutOutcomeEvents.createdAt)
           .limit(2); // Skip self, get next
 
         const subsequent = nextOutcome[1]; // First is the override itself
