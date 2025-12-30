@@ -1066,6 +1066,9 @@ const AppLayout = memo(function AppLayout() {
                   <Route path="/schedule-consultation"><LazyPage Component={ScheduleConsultation} /></Route>
                   <Route path="/apply-accelerator"><LazyPage Component={ApplyAccelerator} /></Route>
                   <Route path="/request-quote"><LazyPage Component={RequestQuote} /></Route>
+                  <Route path="/direct-connect">
+                    <LazyPage Component={DirectConnectShell} />
+                  </Route>
                   <Route path="/direct-connect/:rest*">
                     <LazyPage Component={DirectConnectShell} />
                   </Route>

@@ -635,6 +635,7 @@ const CommunityFeed = memo(function CommunityFeed() {
           <CommunitySnapshotRail
             countyFips={countyFips}
             limit={10}
+            communityStats={communityStats}
           />
         )}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-8">

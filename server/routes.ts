@@ -6433,12 +6433,46 @@ export async function registerRoutes(app: any) {
   // Object Storage Routes for File Uploads
   app.post("/api/objects/upload", isAuthenticated, async (req: any, res: any) => {
     try {
-      const objectStorageService = new ObjectStorageService();
-      const uploadURL = await objectStorageService.getObjectEntityUploadURL();
-      res.json({ uploadURL });
+      const useR2 = process.env.R2_BUCKET_NAME && process.env.R2_ACCESS_KEY_ID;
+      
+      if (useR2) {
+        const { R2StorageService } = await import("./localStorage");
+        const storageService = new R2StorageService();
+        const { uploadURL, publicUrl } = await storageService.getUploadURL();
+        res.json({ uploadURL, publicUrl });
+      } else {
+        const { LocalStorageService } = await import("./localStorage");
+        const storageService = new LocalStorageService();
+        const uploadURL = await storageService.getUploadURL();
+        res.json({ uploadURL });
+      }
     } catch (error: any) {
       console.error("Error getting upload URL:", error);
       res.status(500).json({ error: "Failed to get upload URL" });
+    }
+  });
+
+  // Handle actual file upload from pre-signed URL
+  app.put("/api/objects/upload/:fileId", async (req: any, res: any) => {
+    try {
+      const { fileId } = req.params;
+      const contentType = req.headers["content-type"] || "application/octet-stream";
+      
+      // Collect buffer from request
+      const chunks: Buffer[] = [];
+      for await (const chunk of req) {
+        chunks.push(chunk);
+      }
+      const buffer = Buffer.concat(chunks);
+
+      const { LocalStorageService } = await import("./localStorage");
+      const storageService = new LocalStorageService();
+      const publicUrl = await storageService.saveFile(fileId, buffer, contentType);
+      
+      res.status(200).send(publicUrl);
+    } catch (error: any) {
+      console.error("Error uploading file:", error);
+      res.status(500).json({ error: "Failed to upload file" });
     }
   });
 

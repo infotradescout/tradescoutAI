@@ -410,6 +410,10 @@ app.use((req, res, next) => {
           if (fs.existsSync(publicDistPath)) {
             console.log("Production mode - serving static files from:", publicDistPath);
 
+            // Serve uploaded files
+            const uploadsPath = path.resolve(process.env.UPLOAD_DIR || "./public/uploads");
+            app.use("/uploads", express.static(uploadsPath, { maxAge: "1y" }));
+
             // 1) Serve hashed asset chunks with long cache first
             const assetsPath = path.join(publicDistPath, "assets");
             if (fs.existsSync(assetsPath)) {

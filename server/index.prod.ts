@@ -320,6 +320,10 @@ app.use((req, res, next) => {
               publicDistPath,
             );
 
+            // Serve uploaded files
+            const uploadsPath = path.resolve(process.env.UPLOAD_DIR || "./public/uploads");
+            app.use("/uploads", express.static(uploadsPath, { maxAge: "1y" }));
+
             const assetsPath = path.join(publicDistPath, "assets");
             if (fs.existsSync(assetsPath)) {
               app.use(
