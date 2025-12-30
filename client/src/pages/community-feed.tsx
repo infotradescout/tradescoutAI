@@ -14,6 +14,7 @@ import { useNotifications } from '@/hooks/useNotifications';
 import { useToast } from '@/hooks/use-toast';
 import { share } from "@/utils/share";
 import { apiRequest } from '@/lib/queryClient';
+import { uploadObject } from '@/lib/objectUpload';
 import { TradeScoutIcon } from '@/components/TradeScoutIcons';
 import { useLocationContext, hasCountyContext } from '@/hooks/useLocationContext';
 import { CountyRequiredGate } from '@/components/CountyRequiredGate';
@@ -230,7 +231,9 @@ const CommunityFeed = memo(function CommunityFeed() {
   const [showSidebar, setShowSidebar] = useState(false);
   const [openCommentsForPostId, setOpenCommentsForPostId] = useState<string | null>(null);
   const [lastCreatedPostId, setLastCreatedPostId] = useState<string | null>(null);
+  const [uploadedImages, setUploadedImages] = useState<string[]>([]);
   const composerRef = useRef<HTMLTextAreaElement | null>(null);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [route, navigate] = useLocation();
   const { user, isAuthenticated } = useAuth();
   const { unreadCount } = useNotifications();
@@ -320,16 +323,18 @@ const CommunityFeed = memo(function CommunityFeed() {
 
   // Create post mutation
   const createPostMutation = useMutation({
-    mutationFn: async (postData: { content: string; title?: string }) => {
+    mutationFn: async (postData: { content: string; title?: string; images?: string[] }) => {
       return apiRequest('POST', '/api/community/posts', {
         content: postData.content,
         title: postData.title,
         category: 'general',
+        images: postData.images,
       });
     },
     onSuccess: (created: any) => {
       queryClient.invalidateQueries({ queryKey: ['/api/community/posts'] });
       setNewPostContent('');
+      setUploadedImages([]);
       setLastCreatedPostId(created?.id ?? null);
       toast({
         title: "Post Created",
@@ -356,8 +361,21 @@ const CommunityFeed = memo(function CommunityFeed() {
   });
 
   const handleCreatePost = () => {
-    if (!newPostContent.trim()) return;
-    createPostMutation.mutate({ content: newPostContent });
+    if (!isAuthenticated) {
+      toast({
+        title: 'Sign In Required',
+        description: 'Please sign in to create posts.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    if (newPostContent.trim()) {
+      createPostMutation.mutate({ 
+        content: newPostContent,
+        images: uploadedImages.length > 0 ? uploadedImages : undefined
+      });
+    }
   };
 
   const handleLikePost = (postId: string) => {
@@ -613,6 +631,72 @@ const CommunityFeed = memo(function CommunityFeed() {
     }
   };
 
+  const handlePhotoClick = () => {
+    if (!isAuthenticated) {
+      toast({
+        title: 'Sign In Required',
+        description: 'Please sign in to upload photos.',
+        variant: 'destructive',
+      });
+      return;
+    }
+    fileInputRef.current?.click();
+  };
+
+  const handleImagesSelected = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(event.target.files || []).slice(0, 8 - uploadedImages.length);
+    
+    for (const file of files) {
+      try {
+        const { publicUrl } = await uploadObject(file);
+        setUploadedImages(prev => [...prev, publicUrl].slice(0, 8));
+      } catch (error) {
+        console.error('Failed to upload image', error);
+        toast({
+          title: 'Upload Failed',
+          description: 'Failed to upload image. Please try again.',
+          variant: 'destructive',
+        });
+      }
+    }
+    
+    event.target.value = '';
+  };
+
+  const handleRemoveImage = (index: number) => {
+    setUploadedImages(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const handleVideoClick = () => {
+    if (!isAuthenticated) {
+      toast({
+        title: 'Sign In Required',
+        description: 'Please sign in to upload videos.',
+        variant: 'destructive',
+      });
+      return;
+    }
+    toast({
+      title: 'Coming Soon',
+      description: 'Video uploads will be available soon!',
+    });
+  };
+
+  const handlePollClick = () => {
+    if (!isAuthenticated) {
+      toast({
+        title: 'Sign In Required',
+        description: 'Please sign in to create polls.',
+        variant: 'destructive',
+      });
+      return;
+    }
+    toast({
+      title: 'Coming Soon',
+      description: 'Poll creation will be available soon!',
+    });
+  };
+
   const snapshotProps = useMemo(() => ({
     membersCount: communityStats.totalMembers,
     activeToday: communityStats.activeToday,
@@ -663,6 +747,37 @@ const CommunityFeed = memo(function CommunityFeed() {
                         rows={3}
                       />
 
+                      {/* Hidden file input */}
+                      <input
+                        ref={fileInputRef}
+                        type="file"
+                        accept="image/*"
+                        multiple
+                        onChange={handleImagesSelected}
+                        className="hidden"
+                      />
+
+                      {/* Image preview grid */}
+                      {uploadedImages.length > 0 && (
+                        <div className="grid grid-cols-4 gap-2">
+                          {uploadedImages.map((url, index) => (
+                            <div key={url} className="relative group">
+                              <img
+                                src={url}
+                                alt={`Upload ${index + 1}`}
+                                className="w-full h-20 object-cover rounded border border-[color:var(--border-subtle)]"
+                              />
+                              <button
+                                onClick={() => handleRemoveImage(index)}
+                                className="absolute top-1 right-1 bg-red-500 hover:bg-red-600 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                              >
+                                <span className="text-xs">×</span>
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+
                       {!hasUserPosts && (
                         <div className="space-y-2">
                           <div className="flex items-center gap-2 text-xs text-slate-400 uppercase tracking-wide">
@@ -686,15 +801,30 @@ const CommunityFeed = memo(function CommunityFeed() {
 
                       <div className="flex flex-col gap-2 sm:flex-row sm:justify-between sm:items-center pt-1">
                         <div className="flex flex-wrap gap-2">
-                          <Button size="sm" variant="outline" className="border-[color:var(--border-subtle)] text-[color:var(--text-secondary)] hover:bg-[color:var(--surface-intermediate)] hover:text-[color:var(--text-primary)]">
+                          <Button 
+                            size="sm" 
+                            variant="outline" 
+                            onClick={handlePhotoClick}
+                            className="border-[color:var(--border-subtle)] text-[color:var(--text-secondary)] hover:bg-[color:var(--surface-intermediate)] hover:text-[color:var(--text-primary)]"
+                          >
                             <Image className="h-4 w-4 mr-1" />
                             Photo
                           </Button>
-                          <Button size="sm" variant="outline" className="border-[color:var(--border-subtle)] text-[color:var(--text-secondary)] hover:bg-[color:var(--surface-intermediate)] hover:text-[color:var(--text-primary)]">
+                          <Button 
+                            size="sm" 
+                            variant="outline" 
+                            onClick={handleVideoClick}
+                            className="border-[color:var(--border-subtle)] text-[color:var(--text-secondary)] hover:bg-[color:var(--surface-intermediate)] hover:text-[color:var(--text-primary)]"
+                          >
                             <Video className="h-4 w-4 mr-1" />
                             Video
                           </Button>
-                          <Button size="sm" variant="outline" className="border-[color:var(--border-subtle)] text-[color:var(--text-secondary)] hover:bg-[color:var(--surface-intermediate)] hover:text-[color:var(--text-primary)]">
+                          <Button 
+                            size="sm" 
+                            variant="outline" 
+                            onClick={handlePollClick}
+                            className="border-[color:var(--border-subtle)] text-[color:var(--text-secondary)] hover:bg-[color:var(--surface-intermediate)] hover:text-[color:var(--text-primary)]"
+                          >
                             <BarChart3 className="h-4 w-4 mr-1" />
                             Poll
                           </Button>
