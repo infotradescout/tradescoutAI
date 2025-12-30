@@ -45,4 +45,4 @@ jobs:
         run: npx playwright install --with-deps
 
       - name: Run Playwright E2E tests (chromium, targeted)
-        run: npm run e2e -- --project=chromium --grep "Direct Connect|Scout routing explainer"
+        run: npx playwright test tests/direct-connect.e2e.spec.ts tests/scout-routing.e2e.spec.ts --project=chromium
