@@ -32,10 +32,10 @@ export default function CreateAccountPortal() {
         <div className="space-y-6">
           <Button
             variant="ghost"
-            onClick={() => navigate("/")}
+            onClick={() => navigate("/community-feed")}
             className="flex items-center gap-2 text-tsTextMuted hover:text-white hover:bg-white/5 pl-0"
           >
-            <span className="text-sm">Back to Scout</span>
+            <span className="text-sm">Skip and browse as guest</span>
           </Button>
 
           <div className="space-y-4">
