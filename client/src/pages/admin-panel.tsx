@@ -32,6 +32,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { UserHeatmap } from "@/components/UserHeatmap";
 import { FinanceLedgerPanel } from "@/components/admin/FinanceLedgerPanel";
+import { AuthorityOperations } from "@/components/admin/AuthorityOperations";
 import { Plus, Edit, Trash2, Gift, Settings, Megaphone, Users, Bell, Map, CheckCircle, Bug, Image, BarChart3, DollarSign, Wrench, MapPin, Clock, Bot, Shield, AlertTriangle, Eye, Database, Lock, Crown, Globe, Upload, KeyRound, Info } from "lucide-react";
 import { useLocation } from "wouter";
 import { Separator } from "@/components/ui/separator";
@@ -134,6 +135,7 @@ export default function AdminPanel() {
         "pricing",
         "finance",
         "llm-admin",
+        "authority",
       ]);
       if (allowedTabs.has(tab)) {
         setSelectedTab(tab);
@@ -402,6 +404,10 @@ export default function AdminPanel() {
             <TabsTrigger value="llm-admin" className="flex items-center gap-2">
               <Upload className="w-4 h-4" />
               LLM Admin
+            </TabsTrigger>
+            <TabsTrigger value="authority" className="flex items-center gap-2">
+              <Shield className="w-4 h-4" />
+              Authority Ops
             </TabsTrigger>
           </TabsList>
 
@@ -1005,6 +1011,10 @@ export default function AdminPanel() {
 
           <TabsContent value="llm-admin" className="space-y-6">
             <LLMAdminPanel />
+          </TabsContent>
+
+          <TabsContent value="authority" className="space-y-4">
+            <AuthorityOperations />
           </TabsContent>
 
           <TabsContent value="pricing" className="space-y-6">
