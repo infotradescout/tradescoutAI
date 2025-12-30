@@ -78,7 +78,7 @@ const FULL_SITE_PAUSED = false;
 const FindContractors = React.lazy(() => import('./pages/find-contractors'));
 const ContractorProfile = React.lazy(() => import('./pages/contractor-profile'));
 const DailyDeals = React.lazy(() => import('./pages/daily-deals'));
-const TradeDealsPage = React.lazy(() => import('./pages/trade-deals'));
+const TradeDealsPage = React.lazy(() => import('./pages/trade-deals-lucky'));
 const HelpDemo = React.lazy(() => import('./pages/help-demo'));
 const TestPage = React.lazy(() => import('./pages/test-page'));
 const Profile = React.lazy(() => import('./pages/ProfilePage'));

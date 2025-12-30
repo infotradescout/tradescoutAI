@@ -17,6 +17,7 @@ import {
   ClipboardList,
   Utensils,
   CircleHelp,
+  Sparkles,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useHandedness } from "@/hooks/useHandedness";
@@ -60,6 +61,11 @@ const featureNav: NavItem[] = [
     label: "Community",
     href: ROUTES.COMMUNITY ?? "/community",
     icon: <Users className="h-5 w-5" style={{ color: 'var(--theme-accent-primary)' }} />,
+  },
+  {
+    label: "TradeDeals",
+    href: "/trade-deals",
+    icon: <Sparkles className="h-5 w-5" style={{ color: 'var(--theme-accent-primary)' }} />,
   },
   {
     label: "EXCHANGE",
