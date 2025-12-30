@@ -98,7 +98,7 @@ export async function checkCTAAuthority(req: CTACheckRequest, userId?: string): 
       allowed: false,
       action: "DEFER",
       ctaMode: "ask_scout",
-      explanation: authorityProof.reasoning || "Scout recommends gathering more context first",
+      explanation: authorityProof.explanation || "Scout recommends gathering more context first",
       label: "Ask Scout first",
     };
   } else if (action === "BLOCK") {
@@ -106,7 +106,7 @@ export async function checkCTAAuthority(req: CTACheckRequest, userId?: string): 
       allowed: false,
       action: "BLOCK",
       ctaMode: "hide",
-      explanation: authorityProof.reasoning || "This action may lead to regret in this context",
+      explanation: authorityProof.explanation || "This action may lead to regret in this context",
       label: "Not recommended",
     };
   } else {

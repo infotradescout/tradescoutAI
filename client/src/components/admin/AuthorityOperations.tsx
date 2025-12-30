@@ -135,7 +135,7 @@ export function AuthorityOperations() {
       return <Badge variant="default" className="bg-green-700">Authority Justified</Badge>;
     }
     if (interpretation.includes("too strict")) {
-      return <Badge variant="destructive">Authority Too Strict</Badge>;
+      return <Badge variant="error">Authority Too Strict</Badge>;
     }
     if (interpretation.includes("tone mismatch")) {
       return <Badge variant="outline" className="text-amber-500 border-amber-500">Tone Mismatch</Badge>;
@@ -155,7 +155,7 @@ export function AuthorityOperations() {
             Observation, interpretation, and unlock governance — no behavior modification
           </p>
         </div>
-        <Badge variant={observationLock?.enabled ? "default" : "destructive"} className="text-sm">
+        <Badge variant={observationLock?.enabled ? "default" : "error"} className="text-sm">
           {observationLock?.enabled ? (
             <>
               <Lock className="h-3 w-3 mr-1" /> Observation Mode
@@ -478,7 +478,7 @@ export function AuthorityOperations() {
                       <div>
                         <h4 className="text-white font-semibold">{item.phase}</h4>
                         <Badge
-                          variant={item.status === "LOCKED" ? "destructive" : "default"}
+                          variant={item.status === "LOCKED" ? "error" : "default"}
                           className="mt-1"
                         >
                           {item.status}
