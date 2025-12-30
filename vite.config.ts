@@ -1,7 +1,10 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import path from "path";
+import { fileURLToPath } from "url";
 import runtimeErrorOverlay from "@replit/vite-plugin-runtime-error-modal";
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 export default defineConfig({
   plugins: [
@@ -20,18 +23,18 @@ export default defineConfig({
     alias: {
       // Force all React imports (including from linked deps) to resolve
       // to the single root instance used by the app.
-      react: path.resolve(import.meta.dirname, "node_modules", "react"),
-      "react-dom": path.resolve(import.meta.dirname, "node_modules", "react-dom"),
-      "@": path.resolve(import.meta.dirname, "client", "src"),
-      "@shared": path.resolve(import.meta.dirname, "shared"),
-      "@assets": path.resolve(import.meta.dirname, "attached_assets"),
+      react: path.resolve(__dirname, "node_modules", "react"),
+      "react-dom": path.resolve(__dirname, "node_modules", "react-dom"),
+      "@": path.resolve(__dirname, "client", "src"),
+      "@shared": path.resolve(__dirname, "shared"),
+      "@assets": path.resolve(__dirname, "attached_assets"),
     },
     // Ensure Vite never loads a second React copy, even via symlinks.
     dedupe: ["react", "react-dom"],
   },
-  root: path.resolve(import.meta.dirname, "client"),
+  root: path.resolve(__dirname, "client"),
   build: {
-    outDir: path.resolve(import.meta.dirname, "dist/public"),
+    outDir: path.resolve(__dirname, "dist/public"),
     emptyOutDir: true,
   },
   server: {
@@ -43,15 +46,15 @@ export default defineConfig({
     watch: {
       ignored: [
         // Absolute dirs outside the Vite root that can change frequently
-        path.resolve(import.meta.dirname, "server", "cache", "**"),
-        path.resolve(import.meta.dirname, "server", "logs"),
-        path.resolve(import.meta.dirname, "data", "**"),
-        path.resolve(import.meta.dirname, "dist", "**"),
+        path.resolve(__dirname, "server", "cache", "**"),
+        path.resolve(__dirname, "server", "logs"),
+        path.resolve(__dirname, "data", "**"),
+        path.resolve(__dirname, "dist", "**"),
         // Workspace-level artifacts
-        path.resolve(import.meta.dirname, "validation-results-*.json"),
-        path.resolve(import.meta.dirname, "test-results", "**"),
-        path.resolve(import.meta.dirname, "response.json"),
-        path.resolve(import.meta.dirname, "test.json"),
+        path.resolve(__dirname, "validation-results-*.json"),
+        path.resolve(__dirname, "test-results", "**"),
+        path.resolve(__dirname, "response.json"),
+        path.resolve(__dirname, "test.json"),
       ],
     },
     proxy: {
