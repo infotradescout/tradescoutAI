@@ -49,7 +49,7 @@ Root: `C:/Users/FlavorGood/Documents/AAATraderCorner/TradeScout/TradeScoutPro`
 | client/src/components/LoadingSkeleton.tsx | 4 |
 | client/src/pages/community.tsx | 4 |
 | client/src/pages/content-moderation.tsx | 4 |
-| __trash_candidate__/docs/PREEXISTING_DEFECTS_LIST.md | 4 |
+| (removed) __trash_candidate__/docs/PREEXISTING_DEFECTS_LIST.md | 4 |
 | client/src/pages/admin-panel.tsx | 4 |
 | components/ContractorCard.tsx | 4 |
 | client/src/pages/Dashboard.tsx | 4 |
@@ -58,7 +58,7 @@ Root: `C:/Users/FlavorGood/Documents/AAATraderCorner/TradeScout/TradeScoutPro`
 | components/AdminDashboard.tsx | 3 |
 | package.json | 3 |
 | client/src/components/community/CommunityComposerInline.tsx | 3 |
-| __trash_candidate__/docs/IMPLEMENTATION_GAP_ANALYSIS.md | 2 |
+| (removed) __trash_candidate__/docs/IMPLEMENTATION_GAP_ANALYSIS.md | 2 |
 | client/src/components/admin/UserManagement.tsx | 2 |
 | client/src/components/auth/RoleSelection.tsx | 2 |
 | client/src/components/EnhancedAdSystem.tsx | 2 |
@@ -95,7 +95,7 @@ Root: `C:/Users/FlavorGood/Documents/AAATraderCorner/TradeScout/TradeScoutPro`
 | shared/schema.ts |
 | shared/tutorial-schema.ts |
 | src/db/drizzle-mock.ts |
-| __trash_candidate__/docs/NO_MOCK_DATA_MIGRATION.md |
+| (removed) __trash_candidate__/docs/NO_MOCK_DATA_MIGRATION.md |
 
 
 ## Likely route files

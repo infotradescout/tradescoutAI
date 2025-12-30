@@ -6395,6 +6395,50 @@ export const dailyDeals = pgTable("daily_deals", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
+// Canonical promotions table for TradeDeals, sponsors, and announcements
+export const promotions = pgTable("promotions", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+
+  // Core content
+  title: varchar("title", { length: 200 }).notNull(),
+  shortDescription: varchar("short_description", { length: 280 }).notNull(),
+  imageAttachmentId: varchar("image_attachment_id"),
+  ctaLabel: varchar("cta_label", { length: 80 }),
+  ctaUrl: text("cta_url"),
+
+  // Semantics
+  type: varchar("type", {
+    enum: ["trade_deal", "sponsor", "affiliate", "announcement"],
+  }).notNull(),
+  exclusive: boolean("exclusive").notNull().default(false),
+
+  // Lifecycle
+  status: varchar("status", {
+    enum: ["draft", "active", "paused", "ended"],
+  }).notNull().default("draft"),
+
+  // Targeting
+  countyFips: text("county_fips").array().notNull().default(sql`ARRAY[]::text[]`),
+  userTypeTags: text("user_type_tags").array().default(sql`ARRAY[]::text[]`),
+  tradeSlugs: text("trade_slugs").array().default(sql`ARRAY[]::text[]`),
+
+  // Placements
+  placementCommunitySnapshot: boolean("placement_community_snapshot").notNull().default(false),
+  placementCommunityFeed: boolean("placement_community_feed").notNull().default(false),
+  placementScout: boolean("placement_scout").notNull().default(false),
+  placementMarketplace: boolean("placement_marketplace").notNull().default(false),
+
+  // Timing
+  startsAt: timestamp("starts_at"),
+  endsAt: timestamp("ends_at"),
+
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export type Promotion = typeof promotions.$inferSelect;
+export type InsertPromotion = typeof promotions.$inferInsert;
+
 // User affiliate system (Phase 1 requirement)
 export const userAffiliates = pgTable("user_affiliates", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),

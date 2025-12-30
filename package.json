@@ -30,7 +30,8 @@
     "seed:states": "cross-env NODE_ENV=development tsx -r dotenv/config scripts/seed-states.ts",
     "seed:counties": "cross-env NODE_ENV=development tsx -r dotenv/config scripts/seed-counties.ts",
     "audit:theme": "powershell -ExecutionPolicy Bypass -File scripts/audit-theme-lock.ps1",
-    "audit:blur": "node scripts/audit-blur-ancestors.mjs"
+    "audit:blur": "node scripts/audit-blur-ancestors.mjs",
+    "validate:scout-deals": "node scripts/validate-deal-guardrail.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.37.0",

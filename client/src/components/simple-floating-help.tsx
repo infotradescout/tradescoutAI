@@ -22,8 +22,8 @@ export function SimpleFloatingHelp() {
     },
     {
       id: 'daily-deals',
-      title: 'Daily Deals',
-      description: 'Save money with exclusive offers'
+      title: 'TradeDeals',
+      description: 'Understand how exclusive TradeDeals work'
     }
   ];
 

@@ -136,7 +136,7 @@ function getPageDisplayName(path: string): string {
     '/contractors': 'For Contractors',
     '/contractors/board': 'Contractors',
     '/dashboard': 'Dashboard',
-    '/foundation': 'Foundation',
+    '/foundation': 'Community Builders',
     '/community': 'Community',
     '/helpers': 'Helpers',
     '/exchange': 'Exchange',

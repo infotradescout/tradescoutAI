@@ -38,7 +38,7 @@ const About = memo(function About() {
   const timeline = [
     {
       year: '2023',
-      title: 'Foundation',
+      title: 'Launch',
       description: 'TradeScout founded with a mission to connect local people, pros, and organizations around real projects and decisions'
     },
     {

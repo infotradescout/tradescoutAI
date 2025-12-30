@@ -170,22 +170,22 @@ export function SavedContractorsWidget({ className }: WidgetProps) {
             <div className="flex items-center justify-between">
               <Link href="/saved-contractors">
                 <Button variant="outline" size="sm" className="h-8 text-xs">
-                  View saved pros
+                  View saved providers
                 </Button>
               </Link>
-              <Link href="/contractors">
+              <Link href="/direct-connect">
                 <Button variant="ghost" size="sm" className="h-8 text-xs">
-                  Find more contractors
+                  Route a job
                 </Button>
               </Link>
             </div>
           </div>
         ) : (
           <div className="text-center py-6 text-sm text-slate-500 dark:text-slate-400">
-            <p className="mb-3">You haven't saved any contractors yet.</p>
-            <Link href="/contractors">
+            <p className="mb-3">You haven't saved any providers yet.</p>
+            <Link href="/direct-connect">
               <Button size="sm" className="h-8 text-xs bg-orange-600 hover:bg-orange-700 text-white">
-                Browse contractors
+                Create a Direct Connect request
               </Button>
             </Link>
           </div>
@@ -435,7 +435,7 @@ export function CommunityBuilderImpactWidget({ className }: WidgetProps) {
               </Link>
               <Link href="/foundation">
                 <Button variant="outline" size="sm" className="flex-1">
-                  View community vault
+                  Open Community Builders
                 </Button>
               </Link>
             </div>

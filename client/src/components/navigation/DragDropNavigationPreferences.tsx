@@ -115,7 +115,7 @@ function getDefaultNavigationItems(userRole: string): NavigationItem[] {
     },
     {
       id: 'foundation',
-      label: 'Foundation',
+      label: 'Community Builders',
       icon: 'Heart',
       href: '/foundation',
       visible: true,

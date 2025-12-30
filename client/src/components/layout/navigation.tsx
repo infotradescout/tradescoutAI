@@ -43,13 +43,13 @@ export default function Navigation() {
   });
 
   const navItems = [
-    { href: "/contractors", label: "Find Contractors", icon: Search, public: true, description: "Find verified local contractors" },
+    { href: "/direct-connect", label: "Direct Connect", icon: Search, public: true, description: "Route jobs to trusted local providers" },
     { href: "/pricing", label: "Pricing", icon: Calculator, public: true, description: "Plans and value guide" },
     ...(!isHomeowner ? [{ href: "/contractor-apply", label: "For Contractors", icon: Wrench, public: true, description: "Join our contractor network" }] : []),
     { href: "/exchange", label: "EXCHANGE", icon: Package, public: true, description: "Premium equipment & valuable items" },
     { href: "/leaderboard", label: "Leaderboard", icon: Trophy, public: true, description: "Top contributors by recommendations" },
     { href: "/community", label: "Community", icon: MessageCircle, public: true, description: "Connect with neighbors" },
-    { href: "/foundation", label: "Foundation", icon: Heart, public: true, description: "Community foundation and charitable initiatives" },
+    { href: "/foundation", label: "Community Builders", icon: Heart, public: true, description: "County-level philanthropy and community vault" },
   ];
 
   const authenticatedNavItems = [

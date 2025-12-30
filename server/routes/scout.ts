@@ -1276,6 +1276,7 @@ interface ScoutCtaHintServer {
   authorId?: string | null;
   canDirectConnect?: boolean;
   canMessage?: boolean;
+  label?: string;
 }
 
 interface ScoutResponse {
@@ -1328,6 +1329,20 @@ function isTradeDealIntent(message: string): boolean {
     lower.includes("material pricing")
   );
 }
+
+function isTaskOrProblemIntent(message: string): boolean {
+  return /(fix|repair|replace|install|build|need help|looking for|how much|estimate|cost|materials for)/i.test(message);
+}
+
+function isDealHelpfulForTask(message: string): boolean {
+  return /(materials|supplies|lumber|roofing|plumbing|electrical|hvac|concrete|windows|insulation)/i.test(message);
+}
+
+function isDealSuppressedContext(message: string): boolean {
+  return /(who do you recommend|best contractor|is this normal|what should i do|legal|code|permit|inspection|complaint|scam)/i.test(message);
+}
+
+const SCOUT_DEAL_ASSIST_ENABLED = process.env.SCOUT_DEAL_ASSIST !== "false";
 
 type ScoutClientAction = {
   type: string;
@@ -2334,10 +2349,23 @@ router.post("/", async (req: Request, res: Response) => {
       // When the user is clearly asking about deals/savings/materials,
       // surface a small, county-scoped set of active daily deals as
       // publicEntities + ctaHints so the client can attach CTAs.
-      const shouldAttachDeals =
-        isTradeDealIntent(message) &&
+      const dealIntent = isTradeDealIntent(message);
+      const taskIntent = isTaskOrProblemIntent(message);
+      const dealHelpfulForTask = taskIntent && isDealHelpfulForTask(message);
+
+      const allowDealAssist =
+        SCOUT_DEAL_ASSIST_ENABLED &&
         !!countyCode &&
-        !lowConfidenceForLocal;
+        !lowConfidenceForLocal &&
+        (dealIntent || dealHelpfulForTask);
+
+      const shouldAttachDeals =
+        allowDealAssist &&
+        !isDealSuppressedContext(message);
+
+      const dealAssistLabel = !dealIntent && dealHelpfulForTask
+        ? "Helpful local deals for materials mentioned"
+        : undefined;
 
       if (shouldAttachDeals) {
         try {
@@ -2374,7 +2402,10 @@ router.post("/", async (req: Request, res: Response) => {
 
             aiResponse.ctaHints = [
               ...(aiResponse.ctaHints || []),
-              ...dealHints,
+              ...dealHints.map((hint) => ({
+                ...hint,
+                label: dealAssistLabel,
+              })),
             ];
           }
         } catch (dealErr) {

@@ -1554,6 +1554,7 @@ export default function ScoutOS() {
                   authorId: h.authorId ?? undefined,
                   canDirectConnect: h.canDirectConnect,
                   canMessage: h.canMessage,
+                  label: h.label,
                 })) as ScoutCtaHint[],
               }) || contractorClusters;
             }
@@ -2029,6 +2030,7 @@ export default function ScoutOS() {
               authorId: h.authorId ?? undefined,
               canDirectConnect: h.canDirectConnect,
               canMessage: h.canMessage,
+              label: h.label,
             })) as ScoutCtaHint[],
           }) || clusters;
         }

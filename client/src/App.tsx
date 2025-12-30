@@ -53,9 +53,13 @@ const RootLanding = memo(function RootLanding() {
     if (location !== "/") return;
 
     const anyUser: any = user;
+    const role: string | undefined = anyUser?.role;
+    const isSuperAdmin = role === 'super_admin' || role === 'head_admin' || anyUser?.isSuperAdmin === true;
     const isAdmin = !!(anyUser?.isAdmin || (Array.isArray(anyUser?.roles) && anyUser.roles.some((r: string) => r.includes('admin'))));
 
-    if (isAdmin && isAuthenticated) {
+    if (isSuperAdmin && isAuthenticated) {
+      navigate('/admin');
+    } else if (isAdmin && isAuthenticated) {
       navigate('/dashboard');
     } else {
       navigate('/community-feed');
@@ -74,6 +78,7 @@ const FULL_SITE_PAUSED = false;
 const FindContractors = React.lazy(() => import('./pages/find-contractors'));
 const ContractorProfile = React.lazy(() => import('./pages/contractor-profile'));
 const DailyDeals = React.lazy(() => import('./pages/daily-deals'));
+const TradeDealsPage = React.lazy(() => import('./pages/trade-deals'));
 const HelpDemo = React.lazy(() => import('./pages/help-demo'));
 const TestPage = React.lazy(() => import('./pages/test-page'));
 const Profile = React.lazy(() => import('./pages/ProfilePage'));
@@ -109,6 +114,8 @@ const AdminAttachments = React.lazy(() => import('./pages/admin-attachments'));
 const AdminPricingAnalytics = React.lazy(() => import('./pages/admin-pricing-analytics'));
 const AdminCreateAccount = React.lazy(() => import('./pages/admin-create-account'));
 const AdminAffiliates = React.lazy(() => import('./pages/admin-affiliates'));
+const AdminShell = React.lazy(() => import('./pages/admin'));
+const AdminPromotions = React.lazy(() => import('./pages/admin-promotions'));
 const PromptAdminPage = React.lazy(() =>
   import('./pages/PromptAdminPage').then(mod => ({ default: (mod as any).default || (mod as any).PromptAdminPage }))
 );
@@ -553,12 +560,16 @@ const AppLayout = memo(function AppLayout() {
                   </Route>
                   
                   {/* Core pages */}
-                  {/* Contractors: licensed/verified contractor search + profiles */}
+                  {/* Contractors: profiles remain addressable; listing surfaces now route through Direct Connect */}
                   <Route path="/contractors/apply"><LazyPage Component={ContractorApply} /></Route>
                   {/* Legacy alias: older pages link to /contractors/board for contractor search */}
-                  <Route path="/contractors/board"><ContractorsBoardLegacy /></Route>
+                  <Route path="/contractors/board">
+                    <RedirectTo to="/direct-connect" />
+                  </Route>
                   <Route path="/contractors/:slug"><LazyPage Component={ContractorProfile} /></Route>
-                  <Route path="/contractors"><LazyPage Component={FindContractors} /></Route>
+                  <Route path="/contractors">
+                    <RedirectTo to="/direct-connect" />
+                  </Route>
 
                   {/* Contractor project requests / leads */}
                   <Route path="/contractor-leads">
@@ -571,7 +582,10 @@ const AppLayout = memo(function AppLayout() {
                   </Route>
 
                   {/* Helpers + Direct Connect */}
-                  <Route path="/helpers"><LazyPage Component={WorkerMarketplace} /></Route>
+                  <Route path="/helpers">
+                    <RedirectTo to="/direct-connect" />
+                  </Route>
+                  <Route path="/trade-deals"><LazyPage Component={TradeDealsPage} /></Route>
                   <Route path="/daily-deals/:rest*"><LazyPage Component={DailyDeals} /></Route>
                   <Route path="/help-demo/:rest*"><LazyPage Component={HelpDemo} /></Route>
                   <Route path="/test-page/:rest*"><LazyPage Component={TestPage} /></Route>
@@ -609,7 +623,9 @@ const AppLayout = memo(function AppLayout() {
                   <Route path="/accelerator"><LazyPage Component={Accelerator} /></Route>
                   
                   {/* Marketplace routes */}
-                  <Route path="/worker-marketplace"><LazyPage Component={WorkerMarketplace} /></Route>
+                  <Route path="/worker-marketplace">
+                    <RedirectTo to="/direct-connect" />
+                  </Route>
                   <Route path="/marketplace"><RedirectTo to="/exchange" /></Route>
                   <Route path="/exchange/list"><RedirectTo to="/exchange" /></Route>
                   <Route path="/vehicle-marketplace"><LazyPage Component={VehicleMarketplace} /></Route>
@@ -656,6 +672,11 @@ const AppLayout = memo(function AppLayout() {
                   </Route>
                   
                   {/* Admin routes (gated by user.isAdmin === true) */}
+                  <Route path="/admin">
+                    <ProtectedRoute adminOnly>
+                      <LazyPage Component={AdminShell} />
+                    </ProtectedRoute>
+                  </Route>
                   <Route path="/admin-panel">
                     <ProtectedRoute adminOnly>
                       <LazyPage Component={AdminPanel} />
@@ -729,6 +750,11 @@ const AppLayout = memo(function AppLayout() {
                   <Route path="/admin/system-prompt">
                     <ProtectedRoute adminOnly>
                       <LazyPage Component={PromptAdminPage} />
+                    </ProtectedRoute>
+                  </Route>
+                  <Route path="/admin/promotions">
+                    <ProtectedRoute adminOnly>
+                      <LazyPage Component={AdminPromotions} />
                     </ProtectedRoute>
                   </Route>
                   <Route path="/admin/community-builder/reconciliation">
@@ -985,8 +1011,8 @@ const AppLayout = memo(function AppLayout() {
                   <Route path="/training-center"><LazyPage Component={TrainingCenter} /></Route>
                   <Route path="/application-tracker"><LazyPage Component={ApplicationTracker} /></Route>
                   <Route path="/administrative-dashboard"><LazyPage Component={AdministrativeDashboard} /></Route>
-                  <Route path="/advanced-search"><RedirectTo to="/contractors" /></Route>
-                  <Route path="/search"><RedirectTo to="/contractors" /></Route>
+                  <Route path="/advanced-search"><RedirectTo to="/direct-connect" /></Route>
+                  <Route path="/search"><RedirectTo to="/direct-connect" /></Route>
                   
                   {/* Applications */}
                   <Route path="/realtor-application"><LazyPage Component={RealtorApplication} /></Route>

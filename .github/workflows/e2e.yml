@@ -46,3 +46,6 @@ jobs:
 
       - name: Run Playwright E2E tests (chromium, targeted)
         run: npx playwright test tests/direct-connect.e2e.spec.ts tests/scout-routing.e2e.spec.ts --project=chromium
+
+      - name: Run CTA Playwright smoke test (chromium, required)
+        run: npx playwright test test/cta-smoke.spec.ts --project=chromium

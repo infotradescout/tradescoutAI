@@ -34,79 +34,78 @@ export function NextGenNavigation({ className = "" }: NextGenNavigationProps) {
   const navItems: NavItem[] = useMemo(() => {
     const userRole = user?.role || 'homeowner';
     const isCommunityFirst = Boolean((user as any)?.communityFirst);
-    
-    // Base navigation items with role-specific priorities
-    const baseItems = [
-      { href: "/contractors", label: "Contractors", icon: Users, priority: isCommunityFirst ? 6 : 10 },
-      { href: "/scout", label: "Scout", icon: Calculator, priority: 9 },
-      { href: "/daily-deals", label: "Daily Deals", icon: Percent, priority: 8 },
-      // Full features available for authenticated users
-      ...(isAuthenticated ? [
-        { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard, priority: isCommunityFirst ? 3 : 7 },
-        { href: "/boosts", label: "Boosts", icon: TrendingUp, priority: isCommunityFirst ? 2 : 6 },
-        { href: "/groups", label: "Groups", icon: Users, priority: 5 },
-        { href: "/hoa-dashboard", label: "HOA", icon: Building, priority: isCommunityFirst ? 2 : 4 },
-        { href: "/county-directory", label: "Area Directory", icon: Users, priority: 3 },
-        { href: "/foundation", label: "Foundation", icon: Building, priority: 2 },
-        { href: "/community", label: "Community", icon: MessageSquare, priority: 3 },
-        { href: "/worker-marketplace", label: "Helpers", icon: Users, priority: 4 },
-        { href: "/exchange", label: "Exchange", icon: ArrowLeftRight, priority: 3 },
-        { href: "/accelerator", label: "Accelerator", icon: Crown, priority: isCommunityFirst ? 1 : 2 },
-        // Admin navigation for admin users
-        ...(userRole === 'head_admin' || userRole === 'ops_admin' || userRole === 'super_admin' ? [
-          { href: "/admin/panel", label: "Admin", icon: Shield, priority: 15 },
-          { href: "/admin/users", label: "Admin Users", icon: Settings, priority: 14 }
-        ] : [])
-      ] : [])
+
+    // Direct Connect is the primary coordination hub; contractors/helpers
+    // are still accessible from within flows but are no longer top-level
+    // navigation for most users.
+    const baseItems: NavItem[] = [
+      { href: "/scout", label: "Scout", icon: Calculator, priority: 10 },
+      { href: "/direct-connect", label: "Direct Connect", icon: LayoutDashboard, priority: 9 },
+      { href: "/community", label: "Community", icon: MessageSquare, priority: isCommunityFirst ? 9 : 8 },
+      { href: "/trade-deals", label: "TradeDeals", icon: Percent, priority: 7 },
+      { href: "/exchange", label: "Exchange", icon: ArrowLeftRight, priority: 6 },
+      ...(isAuthenticated
+        ? [
+            { href: userRole === 'super_admin' || userRole === 'head_admin' ? "/admin" : "/dashboard", label: userRole === 'super_admin' || userRole === 'head_admin' ? "Super Admin" : "Dashboard", icon: LayoutDashboard, priority: 11 },
+            { href: "/groups", label: "Groups", icon: Users, priority: 5 },
+            { href: "/hoa-dashboard", label: "HOA", icon: Building, priority: 5 },
+            { href: "/county-directory", label: "Area Directory", icon: Users, priority: 4 },
+            { href: "/foundation", label: "Community Builders", icon: Building, priority: 3 },
+            { href: "/accelerator", label: "Accelerator", icon: Crown, priority: 2 },
+            // Admin navigation for admin users
+            ...(userRole === 'head_admin' || userRole === 'ops_admin' || userRole === 'super_admin'
+              ? [
+                  { href: "/admin/panel", label: "Admin", icon: Shield, priority: 15 },
+                  { href: "/admin/users", label: "Admin Users", icon: Settings, priority: 14 },
+                ]
+              : []),
+          ]
+        : []),
     ];
 
-    // Adjust priorities based on user role
+    // Adjust priorities based on user role while keeping Direct Connect
+    // and Scout as the primary coordination entry points.
     if (userRole === 'head_admin' || userRole === 'ops_admin' || userRole === 'super_admin') {
-      return baseItems.map(item => {
-        if (item.href === '/admin/panel') return { ...item, priority: 20 }; // Highest priority
+      return baseItems.map((item) => {
+        if (item.href === '/admin/panel') return { ...item, priority: 20 };
         if (item.href === '/admin/users') return { ...item, priority: 19 };
         if (item.href === '/dashboard') return { ...item, priority: 18 };
-        if (item.href === '/contractors') return { ...item, priority: 17 };
-        return item;
-      });
-    } else if (userRole === 'contractor_user' || userRole === 'accelerator_member') {
-      return baseItems.map(item => {
-        if (item.href === '/dashboard') return { ...item, priority: 15 }; // Highest priority
-        if (item.href === '/contractors') return { ...item, priority: 14 };
-        if (item.href === '/accelerator') return { ...item, priority: 13 };
-        if (item.href === '/worker-marketplace') return { ...item, priority: 12 };
-        if (item.href === '/scout') return { ...item, priority: 11 };
-        return item;
-      });
-    } else if (userRole === 'helper') {
-      return baseItems.map(item => {
-        if (item.href === '/dashboard') return { ...item, priority: 15 }; // Highest priority for helper dashboard
-        if (item.href === '/worker-marketplace') return { ...item, priority: 14 }; // Second priority for job listings
-        if (item.href === '/contractors') return { ...item, priority: 13 }; // To find work from contractors
-        if (item.href === '/community') return { ...item, priority: 12 };
-        if (item.href === '/scout') return { ...item, priority: 11 };
-        return item;
-      });
-    } else if (userRole === 'moderator') {
-      return baseItems.map(item => {
-        if (item.href === '/dashboard') return { ...item, priority: 15 };
-        if (item.href === '/community') return { ...item, priority: 14 };
-        if (item.href === '/contractors') return { ...item, priority: 13 };
-        if (item.href === '/foundation') return { ...item, priority: 12 };
-        return item;
-      });
-    } else { // homeowner (default)
-      return baseItems.map(item => {
-        if (item.href === '/community' && isCommunityFirst) return { ...item, priority: 16 };
-        if (item.href === '/dashboard' && isCommunityFirst) return { ...item, priority: 8 };
-        if (item.href === '/dashboard') return { ...item, priority: 15 };
-        if (item.href === '/contractors') return { ...item, priority: 14 };
-        if (item.href === '/scout') return { ...item, priority: 13 };
-        if (item.href === '/community') return { ...item, priority: 12 };
-        if (item.href === '/worker-marketplace') return { ...item, priority: 11 };
         return item;
       });
     }
+
+    if (userRole === 'contractor_user' || userRole === 'accelerator_member') {
+      return baseItems.map((item) => {
+        if (item.href === '/dashboard') return { ...item, priority: 15 };
+        if (item.href === '/direct-connect') return { ...item, priority: 14 };
+        if (item.href === '/scout') return { ...item, priority: 13 };
+        return item;
+      });
+    }
+
+    if (userRole === 'helper') {
+      return baseItems.map((item) => {
+        if (item.href === '/dashboard') return { ...item, priority: 15 };
+        if (item.href === '/direct-connect') return { ...item, priority: 14 };
+        if (item.href === '/scout') return { ...item, priority: 13 };
+        return item;
+      });
+    }
+
+    if (userRole === 'moderator') {
+      return baseItems.map((item) => {
+        if (item.href === '/dashboard') return { ...item, priority: 15 };
+        if (item.href === '/community') return { ...item, priority: 14 };
+        return item;
+      });
+    }
+
+    // homeowner (default)
+    return baseItems.map((item) => {
+      if (item.href === '/community' && isCommunityFirst) return { ...item, priority: 16 };
+      if (item.href === '/dashboard' && isCommunityFirst) return { ...item, priority: 8 };
+      return item;
+    });
   }, [user, isAuthenticated]);
 
   const allPages = useMemo(() => [
@@ -119,7 +118,6 @@ export function NextGenNavigation({ className = "" }: NextGenNavigationProps) {
 
   const isActive = (path: string) => {
     if (path === "/") return location === "/";
-    if (path === "/contractors") return location === "/contractors" || location.startsWith("/contractor-board") || location.startsWith("/contractors");
     return location.startsWith(path);
   };
 

@@ -43,6 +43,8 @@ type AppShellProps = {
 };
 
 // SITE FEATURES ONLY – this is the scrollable bottom bar
+// Direct Connect is the primary coordination hub; contractors/helpers
+// are still available as subordinate surfaces but are not top-level nav.
 const featureNav: NavItem[] = [
   {
     label: "Scout",
@@ -50,29 +52,14 @@ const featureNav: NavItem[] = [
     icon: <Compass className="h-5 w-5" style={{ color: 'var(--theme-accent-primary)' }} />,
   },
   {
-    label: "Community",
-    href: ROUTES.COMMUNITY ?? "/community",
-    icon: <Users className="h-5 w-5" style={{ color: 'var(--theme-accent-primary)' }} />,
-  },
-  {
-    label: "Contractors",
-    href: ROUTES.CONTRACTORS ?? "/contractors",
-    icon: <Home className="h-5 w-5" style={{ color: 'var(--theme-accent-primary)' }} />,
-  },
-  {
     label: "Direct Connect",
     href: "/direct-connect",
     icon: <ClipboardList className="h-5 w-5" style={{ color: 'var(--theme-accent-primary)' }} />,
   },
   {
-    label: "Helpers",
-    href: "/worker-marketplace",
-    icon: <Wrench className="h-5 w-5" style={{ color: 'var(--theme-accent-primary)' }} />,
-  },
-  {
-    label: "MealScout",
-    href: "/mealscout",
-    icon: <Utensils className="h-5 w-5" style={{ color: 'var(--theme-accent-primary)' }} />,
+    label: "Community",
+    href: ROUTES.COMMUNITY ?? "/community",
+    icon: <Users className="h-5 w-5" style={{ color: 'var(--theme-accent-primary)' }} />,
   },
   {
     label: "EXCHANGE",
@@ -85,7 +72,7 @@ const featureNav: NavItem[] = [
     icon: <Trophy className="h-5 w-5" style={{ color: 'var(--theme-accent-primary)' }} />,
   },
   {
-    label: "Foundation",
+    label: "Community Builders",
     href: "/foundation",
     icon: <Heart className="h-5 w-5" style={{ color: 'var(--theme-accent-primary)' }} />,
   },
@@ -112,6 +99,7 @@ export function AppShell({ children, footer }: AppShellProps) {
   const handedness = useHandedness();
   const [location, navigate] = useLocation();
   const isScoutSurface = location === "/" || location.startsWith("/scout");
+  const isSuperAdmin = (user as any)?.isSuperAdmin === true;
 
   // Mobile hero content for context/messaging/CTAs
   const renderMobileHero = () => (
@@ -231,7 +219,7 @@ export function AppShell({ children, footer }: AppShellProps) {
           className="fixed top-0 inset-x-0 z-50 flex items-center h-[52px] px-3 md:hidden"
           style={{ background: 'var(--surface-frame)', borderBottom: '1px solid var(--border-primary)' }}
         >
-          <Link href="/" className="flex items-center cursor-pointer">
+          <Link href={isSuperAdmin ? "/admin" : "/"} className="flex items-center cursor-pointer">
             <TradeScoutLogo size="sm" />
             <span className="ml-2 text-xs font-semibold tracking-wide" style={{ color: 'var(--text-primary)' }}>
               TradeScout

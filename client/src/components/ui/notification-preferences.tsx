@@ -94,7 +94,7 @@ const notificationTypes = [
   { key: 'new_project_request', label: 'New Requests', description: 'New customer inquiries' },
   { key: 'review_received', label: 'Recommendations', description: 'Customer recommendations and ratings' },
   { key: 'system_update', label: 'System Updates', description: 'Platform announcements' },
-  { key: 'promotional', label: 'Promotions', description: 'Special offers and promotions' },
+  { key: 'promotional', label: 'TradeDeals & sponsors', description: 'Exclusive TradeDeals and sponsor updates' },
   { key: 'milestone', label: 'Milestones', description: 'Achievement notifications' },
   { key: 'payment_received', label: 'Payments', description: 'Payment confirmations' },
 ];

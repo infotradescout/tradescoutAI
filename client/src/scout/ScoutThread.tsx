@@ -8,6 +8,7 @@ import type {
   ScoutStatus,
 } from "./state";
 import { validateAction } from "./actionValidation";
+import { CommunityCTA } from "@/components/community/CommunityCTA";
 
 type ScoutThreadProps = {
   messages: ScoutMessage[];
@@ -92,6 +93,25 @@ function ClusterCard({
           >
             {cluster.primaryAction.label}
           </button>
+        </div>
+      )}
+
+      {cluster.ctaSource && cluster.ctaContextId && (
+        <div className="mt-2 space-y-1">
+          {cluster.ctaLabel && cluster.ctaSource === "trade_deal" && (
+            <div className="text-[11px]" style={{ color: 'var(--text-muted)' }}>
+              {cluster.ctaLabel}
+            </div>
+          )}
+          <CommunityCTA
+            layout="inline"
+            source={cluster.ctaSource}
+            contextId={cluster.ctaContextId}
+            ownerUserId={cluster.ctaOwnerUserId}
+            canDirectConnect={cluster.ctaCanDirectConnect}
+            canMessage={cluster.ctaCanMessage}
+            disableDirectConnect={cluster.ctaDisableDirectConnect}
+          />
         </div>
       )}
     </div>

@@ -97,6 +97,7 @@ import {
   platformSupportLedgerEntries,
   walletAccounts,
   walletTransactions,
+  promotions,
   // Affiliate accounts
   affiliateAccounts,
   affiliateReferrals,
@@ -320,6 +321,8 @@ import {
   type AffiliateAccount,
   type AffiliateReferral as DbAffiliateReferral,
   type AffiliatePayout as DbAffiliatePayout,
+  type Promotion,
+  type InsertPromotion,
   // Community Builder types
   type CommunityBuilderProfile,
   type InsertCommunityBuilderProfile,
@@ -680,7 +683,7 @@ export interface IStorage {
   }>>;
 
   // Contractor Promo operations
-  createContractorPromo(promo: InsertContractorPromo): Promise<ContractorPromo>;
+  createContractorPromo(promo: Omit<InsertContractorPromo, "slug" | "viewCount" | "clickCount" | "projectRequestCount" | "currentUses" | "createdAt" | "updatedAt">): Promise<ContractorPromo>;
   getContractorPromo(id: string): Promise<ContractorPromo | undefined>;
   getContractorPromoBySlug(slug: string): Promise<ContractorPromo | undefined>;
   getContractorPromos(contractorId: string): Promise<ContractorPromo[]>;
@@ -3613,7 +3616,9 @@ export class DatabaseStorage implements IStorage {
   }
 
   // Contractor Promo Operations
-  async createContractorPromo(promo: InsertContractorPromo): Promise<ContractorPromo> {
+  async createContractorPromo(
+    promo: Omit<InsertContractorPromo, "slug" | "viewCount" | "clickCount" | "projectRequestCount" | "currentUses" | "createdAt" | "updatedAt">
+  ): Promise<ContractorPromo> {
     const slug = await this.generatePromoSlug(promo.title);
     const [newPromo] = await db
       .insert(contractorPromos)
@@ -4331,6 +4336,12 @@ export class DatabaseStorage implements IStorage {
     authorId?: string;
     limit?: number;
     offset?: number;
+    // Social feed tuning
+    sort?: "recent" | "distance" | "recommended";
+    followingOnly?: boolean;
+    excludeFollowing?: boolean;
+    viewerId?: string;
+    radiusMiles?: number;
   }): Promise<Array<CommunityPost & {
     author: {
       id: string;
@@ -4376,7 +4387,36 @@ export class DatabaseStorage implements IStorage {
       conditions.push(eq(communityPosts.authorId, filters.authorId));
     }
 
-    const query = db
+    // Following / recommendations selectors
+    if ((filters?.followingOnly || filters?.excludeFollowing) && filters?.viewerId) {
+      const followRows = await db
+        .select({ followeeId: userFollows.followeeId })
+        .from(userFollows)
+        .where(eq(userFollows.followerId, filters.viewerId));
+
+      const followeeIds = followRows
+        .map((r) => r.followeeId)
+        .filter((id): id is string => Boolean(id));
+
+      if (filters.followingOnly) {
+        if (!followeeIds.length) {
+          return [];
+        }
+        conditions.push(inArray(communityPosts.authorId, followeeIds));
+      } else if (filters.excludeFollowing && followeeIds.length) {
+        conditions.push(notInArray(communityPosts.authorId, followeeIds));
+      }
+    } else if (filters?.followingOnly && !filters?.viewerId) {
+      // Without a viewer, "following" has no meaning; return empty deterministically.
+      return [];
+    }
+
+    const sortMode: "recent" | "distance" | "recommended" =
+      (filters?.sort as any) === "recommended"
+        ? "recommended"
+        : "recent";
+
+    const baseQuery = db
       .select({
         post: communityPosts,
         user: users,
@@ -4391,12 +4431,21 @@ export class DatabaseStorage implements IStorage {
           eq(workRequests.sourceRefId, communityPosts.id as any),
         ),
       )
-      .where(and(...conditions))
-      .orderBy(desc(communityPosts.createdAt))
+      .where(and(...conditions));
+
+    // Ordering: keep recent as baseline; "recommended" boosts high-intent, high-signal posts.
+    const orderedQuery = sortMode === "recommended"
+      ? baseQuery.orderBy(
+          // Boost recommendation-style posts and those with attached work requests
+          desc(sql`CASE WHEN ${communityPosts.category} = 'recommendation_request' THEN 1 ELSE 0 END`),
+          desc(communityPosts.likeCount),
+          desc(communityPosts.createdAt),
+        )
+      : baseQuery.orderBy(desc(communityPosts.createdAt));
+
+    const results = await orderedQuery
       .limit(filters?.limit ?? 20)
       .offset(filters?.offset ?? 0);
-
-    const results = await query;
 
     // Format posts with author information
     return results.map(({ post, user, workRequest }: { post: CommunityPost; user: User | null; workRequest: WorkRequest | null }) => ({
@@ -8170,31 +8219,31 @@ export class DatabaseStorage implements IStorage {
     activeOnly?: boolean;
   }): Promise<DailyDeal[]> {
     const conditions: SQL[] = [];
-    
+
     if (filters?.countyFips) {
       conditions.push(eq(dailyDeals.countyFips, filters.countyFips));
     }
-    
+
     if (filters?.featured) {
       conditions.push(eq(dailyDeals.featured, true));
     }
-    
+
     if (filters?.dealType) {
       conditions.push(eq(dailyDeals.dealType, filters.dealType));
     }
-    
+
     if (filters?.activeOnly !== false) {
       conditions.push(eq(dailyDeals.isActive, true));
       conditions.push(gte(dailyDeals.endDate, new Date()));
     }
-    
+
     const results = await db
       .select()
       .from(dailyDeals)
-      .where(and(...conditions) ?? sql`true`)
+      .where(conditions.length ? and(...conditions) : sql`true`)
       .orderBy(desc(dailyDeals.featured), desc(dailyDeals.priority), desc(dailyDeals.createdAt))
       .limit(filters?.limit || 50);
-    
+
     return results;
   }
   
@@ -8219,6 +8268,55 @@ export class DatabaseStorage implements IStorage {
   
   async deleteDailyDeal(id: string): Promise<void> {
     await db.delete(dailyDeals).where(eq(dailyDeals.id, id));
+  }
+
+  // Canonical promotions helpers
+  async createPromotion(input: InsertPromotion): Promise<Promotion> {
+    const [row] = await db.insert(promotions).values(input).returning();
+    return row;
+  }
+
+  async listPromotions(filters?: {
+    status?: string;
+    countyFips?: string;
+    limit?: number;
+  }): Promise<Promotion[]> {
+    const conditions: SQL[] = [];
+
+    if (filters?.status) {
+      conditions.push(eq(promotions.status, filters.status as any));
+    }
+
+    if (filters?.countyFips) {
+      conditions.push(sql`${promotions.countyFips} @> ARRAY[${filters.countyFips}]::text[]`);
+    }
+
+    const query = db
+      .select()
+      .from(promotions)
+      .where(conditions.length ? and(...conditions) : sql`true`)
+      .orderBy(desc(promotions.createdAt))
+      .limit(filters?.limit || 100);
+
+    return await query;
+  }
+
+  async getPromotion(id: string): Promise<Promotion | undefined> {
+    const [row] = await db.select().from(promotions).where(eq(promotions.id, id));
+    return row;
+  }
+
+  async updatePromotion(id: string, updates: Partial<Promotion>): Promise<Promotion> {
+    const [row] = await db
+      .update(promotions)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(promotions.id, id))
+      .returning();
+    return row;
+  }
+
+  async deletePromotion(id: string): Promise<void> {
+    await db.delete(promotions).where(eq(promotions.id, id));
   }
   
   async updateDealStats(dealId: string, engagementType: string): Promise<void> {

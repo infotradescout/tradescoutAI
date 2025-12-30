@@ -113,6 +113,7 @@ export interface ScoutBackendResponse {
     authorId?: string | null;
     canDirectConnect?: boolean;
     canMessage?: boolean;
+    label?: string;
   }>;
   knowledge?: {
     layer?: number;

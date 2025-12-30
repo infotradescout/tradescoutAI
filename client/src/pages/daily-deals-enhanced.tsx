@@ -118,10 +118,10 @@ export default function DailyDealsEnhanced() {
         <div className="text-center mb-12">
           <div className="flex items-center justify-center space-x-3 mb-6">
             <Sparkles className="w-8 h-8 text-yellow-400" />
-            <h1 className="text-4xl md:text-5xl font-bold text-white">Daily Deals</h1>
+            <h1 className="text-4xl md:text-5xl font-bold text-white">TradeDeals</h1>
             <HelpBubble
               id="daily-deals-overview"
-              title="Daily Deals & LuckyBucks System"
+              title="TradeDeals & LuckyBucks System"
               content="Discover exclusive deals from local contractors and suppliers. Every purchase earns you LuckyBucks that can be used for future discounts!"
               illustration="lightbulb"
               variant="tip"
@@ -130,7 +130,7 @@ export default function DailyDealsEnhanced() {
             />
           </div>
           <p className="text-xl text-slate-300 mb-6 max-w-3xl mx-auto">
-            Exclusive discounts on home improvement services and materials. Limited time offers from verified local professionals.
+            Exclusive TradeDeals on home improvement services and materials. Limited-time, vetted offers from verified local professionals.
           </p>
           
           {/* Stats */}
@@ -310,9 +310,9 @@ export default function DailyDealsEnhanced() {
         <Card className="bg-gradient-to-r from-blue-600/20 to-purple-600/20 border-blue-500/30">
           <CardContent className="p-8 text-center">
             <Target className="w-12 h-12 text-blue-400 mx-auto mb-4" />
-            <h2 className="text-2xl font-bold text-white mb-4">Want to Offer Deals?</h2>
+              <h2 className="text-2xl font-bold text-white mb-4">Want to run a TradeDeal?</h2>
             <p className="text-slate-300 mb-6 max-w-2xl mx-auto">
-              Join TradeScout as a contractor or supplier and reach thousands of potential customers with exclusive daily deals.
+              Join TradeScout as a contractor or supplier and reach people with exclusive TradeDeals tied to real projects.
             </p>
             <Button className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3">
               Become a Deal Provider

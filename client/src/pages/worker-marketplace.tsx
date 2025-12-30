@@ -207,11 +207,11 @@ export default function WorkerMarketplace() {
         <TabsList className="grid w-full grid-cols-2 bg-navy-700 border-navy-600">
           <TabsTrigger value="find-workers" className="data-[state=active]:bg-orange-500">
             <Users className="h-4 w-4 mr-2" />
-            Find Helpers
+            Find providers
           </TabsTrigger>
           <TabsTrigger value="find-tasks" className="data-[state=active]:bg-orange-500">
             <Briefcase className="h-4 w-4 mr-2" />
-            Find Tasks
+            Find work
           </TabsTrigger>
         </TabsList>
 
@@ -221,7 +221,7 @@ export default function WorkerMarketplace() {
             <div className="relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
               <Input
-                placeholder={activeTab === "find-workers" ? "Search helpers..." : "Search tasks..."}
+                placeholder={activeTab === "find-workers" ? "Search providers..." : "Search work..."}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="pl-10 bg-navy-600 border-navy-500 text-white"
@@ -266,7 +266,7 @@ export default function WorkerMarketplace() {
           </div>
         </div>
 
-        {/* Find Helpers Tab */}
+        {/* Find Providers Tab */}
         <TabsContent value="find-workers">
           {workersLoading ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -357,8 +357,8 @@ export default function WorkerMarketplace() {
               <h3 className="text-2xl font-bold text-white mb-4">Ready to get started?</h3>
               <p className="text-gray-300 mb-6 max-w-2xl mx-auto">
                 {activeTab === "find-workers" 
-                  ? "Contractors: Post crew and helper needs as employment or shift opportunities. Homeowners: start new repair or project work in Direct Connect, then message helpers you find here."
-                  : "Apply for employment opportunities with contractors or short-term tasks that match your skills."
+                  ? "Providers: Describe the kind of work you want to see. Homeowners: start new repair or project work in Direct Connect, then follow up with providers here as needed."
+                  : "Apply for employment opportunities or short-term work that matches your skills."
                 }
               </p>
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
@@ -367,14 +367,14 @@ export default function WorkerMarketplace() {
                   onClick={() => setIsPostTaskOpen(true)}
                 >
                   <Plus className="h-4 w-4 mr-2" />
-                  Post a Task
+                  Create Direct Connect request
                 </Button>
                 <Button
                   variant="outline"
                   className="border-gray-300 text-gray-300 hover:bg-gray-300 hover:text-navy-800"
                   onClick={() => {
-                    // Route helpers into the dedicated Helpers hub to create or manage profiles
-                    window.location.href = "/helpers";
+                    // Route helpers into Direct Connect flows instead of a separate Helpers hub
+                    window.location.href = "/direct-connect";
                   }}
                 >
                   {activeTab === "find-workers" ? "Join as Helper" : "Create Helper Profile"}
@@ -389,7 +389,7 @@ export default function WorkerMarketplace() {
       <Dialog open={isPostTaskOpen} onOpenChange={setIsPostTaskOpen}>
         <DialogContent className="bg-navy-800 border-navy-600 text-white">
           <DialogHeader>
-            <DialogTitle>Post a task</DialogTitle>
+            <DialogTitle>Create Direct Connect request</DialogTitle>
           </DialogHeader>
 
           <div className="grid gap-4">

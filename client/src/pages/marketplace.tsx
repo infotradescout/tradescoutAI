@@ -491,6 +491,9 @@ export default function Marketplace() {
             <p className="text-sm text-gray-600 dark:text-gray-300">
               Where smart buyers and quality sellers connect for lasting value
             </p>
+            <p className="text-xs text-gray-500 dark:text-gray-400 max-w-xl">
+              The Marketplace never runs outside ads. Every placement is a real listing from someone in the TradeScout network, and boosts only change how community listings are ordered and highlighted, never what you see from third parties.
+            </p>
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
               <div className="flex items-center text-sm bg-orange-50 dark:bg-orange-900/20 text-orange-700 dark:text-orange-300 px-3 py-2 rounded-lg">
                 <CheckCircle className="h-4 w-4 mr-2" />

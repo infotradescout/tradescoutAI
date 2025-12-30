@@ -5,7 +5,7 @@ const DailyDeals = memo(function DailyDeals() {
     <div className="min-h-screen bg-navy-900 text-white">
       <div className="container mx-auto px-4 py-8">
         <h1 className="text-3xl font-bold mb-8 text-orange-400">
-          Daily Deals
+          TradeDeals Directory (legacy view)
         </h1>
         
         {/* Featured Deal */}
@@ -57,7 +57,7 @@ const DailyDeals = memo(function DailyDeals() {
 
         {/* How It Works */}
         <section>
-          <h2 className="text-2xl font-semibold mb-6">How Daily Deals Work</h2>
+          <h2 className="text-2xl font-semibold mb-6">How TradeDeals work with LuckyBucks</h2>
           <div className="bg-navy-800 p-6 rounded-lg">
             <div className="grid md:grid-cols-3 gap-6">
               <div className="text-center">

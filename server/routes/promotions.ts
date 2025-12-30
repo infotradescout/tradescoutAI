@@ -1,0 +1,76 @@
+import type { Request, Response } from 'express';
+import { storage } from '../storage';
+
+// List promotions for admin
+export async function listPromotionsHandler(req: Request, res: Response) {
+  try {
+    const { status, countyFips, limit } = req.query as any;
+    const rows = await storage.listPromotions({
+      status: status as string | undefined,
+      countyFips: countyFips as string | undefined,
+      limit: limit ? parseInt(limit as string, 10) : undefined,
+    });
+    res.json(rows);
+  } catch (error) {
+    console.error('Error listing promotions:', error);
+    res.status(500).json({ message: 'Failed to list promotions' });
+  }
+}
+
+// Create promotion
+export async function createPromotionHandler(req: Request, res: Response) {
+  try {
+    const body = req.body ?? {};
+
+    // Enforce required snapshot constraints server-side
+    if (body.type === 'trade_deal' && body.placementCommunitySnapshot) {
+      if (!Array.isArray(body.countyFips) || body.countyFips.length === 0) {
+        return res.status(400).json({ message: 'county_fips is required for snapshot TradeDeals' });
+      }
+      if (body.exclusive !== true) {
+        return res.status(400).json({ message: 'exclusive=true is required for snapshot TradeDeals' });
+      }
+    }
+
+    const created = await storage.createPromotion(body);
+    res.status(201).json(created);
+  } catch (error) {
+    console.error('Error creating promotion:', error);
+    res.status(500).json({ message: 'Failed to create promotion' });
+  }
+}
+
+// Update promotion
+export async function updatePromotionHandler(req: Request, res: Response) {
+  try {
+    const { id } = req.params;
+    const body = req.body ?? {};
+
+    if (body.type === 'trade_deal' && body.placementCommunitySnapshot) {
+      if (!Array.isArray(body.countyFips) || body.countyFips.length === 0) {
+        return res.status(400).json({ message: 'county_fips is required for snapshot TradeDeals' });
+      }
+      if (body.exclusive !== true) {
+        return res.status(400).json({ message: 'exclusive=true is required for snapshot TradeDeals' });
+      }
+    }
+
+    const updated = await storage.updatePromotion(id, body);
+    res.json(updated);
+  } catch (error) {
+    console.error('Error updating promotion:', error);
+    res.status(500).json({ message: 'Failed to update promotion' });
+  }
+}
+
+// Delete promotion
+export async function deletePromotionHandler(req: Request, res: Response) {
+  try {
+    const { id } = req.params;
+    await storage.deletePromotion(id);
+    res.status(204).send();
+  } catch (error) {
+    console.error('Error deleting promotion:', error);
+    res.status(500).json({ message: 'Failed to delete promotion' });
+  }
+}

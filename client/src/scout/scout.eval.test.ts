@@ -21,7 +21,7 @@ describe("Scout Tool Evals", () => {
   describe("Action Validation", () => {
     it("should allow all valid action types", () => {
       const validActions: ScoutAction[] = [
-        { type: "NAVIGATE", label: "Go to contractors", to: "/contractors" },
+        { type: "NAVIGATE", label: "Go to Direct Connect", to: "/direct-connect" },
         { type: "OPEN_APP_DRAWER", label: "Open menu" },
         { type: "PREFILL_INPUT", label: "Edit", payload: { text: "Hello" } },
         { type: "ASK_SCOUT", label: "Ask", payload: { prompt: "Help me" } },
@@ -46,12 +46,12 @@ describe("Scout Tool Evals", () => {
 
     it("should validate NAVIGATE paths against allowlist", () => {
       const validPaths = [
-        "/contractors",
         "/community",
         "/exchange",
         "/notes",
         "/profile",
         "/scout",
+        "/direct-connect",
       ];
 
       validPaths.forEach((path) => {
@@ -108,7 +108,7 @@ describe("Scout Tool Evals", () => {
 
     it("should filter out invalid actions from array", () => {
       const mixedActions: ScoutAction[] = [
-        { type: "NAVIGATE", label: "Valid", to: "/contractors" },
+        { type: "NAVIGATE", label: "Valid", to: "/direct-connect" },
         { type: "HACK", label: "Invalid" } as any,
         { type: "NOOP", label: "Also valid" },
         { type: "NAVIGATE", label: "Bad path", to: "/admin/secret" },
@@ -118,7 +118,7 @@ describe("Scout Tool Evals", () => {
       // Invalid actions downgrade to NOOP, so we get 3: valid NAVIGATE, downgraded NOOP, original NOOP
       expect(validated.length).toBe(3);
       expect(validated[0].type).toBe("NAVIGATE");
-      expect(validated[0].to).toBe("/contractors");
+      expect(validated[0].to).toBe("/direct-connect");
       expect(validated[1].type).toBe("NOOP");
       expect(validated[2].type).toBe("NOOP");
     });

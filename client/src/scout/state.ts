@@ -36,6 +36,14 @@ export interface ScoutCluster {
   items?: ScoutClusterItem[];
   primaryAction?: ScoutAction;
   actions?: ScoutAction[];
+  // Optional CTA metadata for surfaces like CommunityCTA
+  ctaSource?: "trade_deal" | "community_post";
+  ctaContextId?: string;
+  ctaOwnerUserId?: string;
+  ctaCanDirectConnect?: boolean;
+  ctaCanMessage?: boolean;
+  ctaDisableDirectConnect?: boolean;
+  ctaLabel?: string;
 }
 
 export type ScoutActionType =

@@ -19,7 +19,6 @@ export function EnhancedNavigation({ className = "" }: EnhancedNavigationProps) 
 
   const isActive = (path: string) => {
     if (path === "/") return location === "/";
-    if (path === "/contractors") return location === "/contractors" || location.startsWith("/contractors");
     return location.startsWith(path);
   };
 
@@ -40,47 +39,35 @@ export function EnhancedNavigation({ className = "" }: EnhancedNavigationProps) 
           </div>
         </Link>
 
-        {/* Desktop Navigation - All 7 Items in Header */}
+        {/* Desktop Navigation - Scout, Direct Connect, Community, TradeDeals, Exchange */}
         <nav className="hidden lg:flex items-center space-x-1 flex-1 justify-center">
-          <Link href="/contractors">
-            <Button variant={isActive("/contractors") ? "secondary" : "ghost"} size="sm" className="px-3 py-2 rounded-lg nav-button hover:bg-slate-800/60 text-sm">
-              Find Contractors
-            </Button>
-          </Link>
-          
           <Link href="/scout">
-          <Button variant={isActive("/scout") ? "secondary" : "ghost"} size="sm" className="px-3 py-2 rounded-lg nav-button hover:bg-slate-800/60 text-sm">
-            Scout
-          </Button>
-          </Link>
-          
-          <Link href="/contractor-apply">
-            <Button variant={isActive("/contractor-board") ? "secondary" : "ghost"} size="sm" className="px-3 py-2 rounded-lg nav-button hover:bg-slate-800/60 text-sm">
-              For Contractors
+            <Button variant={isActive("/scout") ? "secondary" : "ghost"} size="sm" className="px-3 py-2 rounded-lg nav-button hover:bg-slate-800/60 text-sm">
+              Scout
             </Button>
           </Link>
-          
-          <Link href="/worker-marketplace">
-            <Button variant={isActive("/worker-marketplace") ? "secondary" : "ghost"} size="sm" className="px-3 py-2 rounded-lg nav-button hover:bg-slate-800/60 text-sm">
-              Helpers
+
+          <Link href="/direct-connect">
+            <Button variant={isActive("/direct-connect") ? "secondary" : "ghost"} size="sm" className="px-3 py-2 rounded-lg nav-button hover:bg-slate-800/60 text-sm">
+              Direct Connect
             </Button>
           </Link>
-          
-          <Link href="/dashboard">
-            <Button variant={isActive("/dashboard") ? "secondary" : "ghost"} size="sm" className="px-3 py-2 rounded-lg nav-button hover:bg-slate-800/60 text-sm">
-              Dashboard
+
+          <Link href="/community">
+            <Button variant={isActive("/community") ? "secondary" : "ghost"} size="sm" className="px-3 py-2 rounded-lg nav-button hover:bg-slate-800/60 text-sm">
+              Community
+            </Button>
+          </Link>
+
+          <Link href="/trade-deals">
+            <Button variant={isActive("/trade-deals") ? "secondary" : "ghost"} size="sm" className="px-3 py-2 rounded-lg nav-button hover:bg-slate-800/60 text-sm">
+              TradeDeals
             </Button>
           </Link>
           
           <Link href="/exchange">
             <Button variant={isActive("/exchange") ? "secondary" : "ghost"} size="sm" className="px-3 py-2 rounded-lg nav-button hover:bg-slate-800/60 text-sm">
               Exchange
-            </Button>
-          </Link>
-          
-          <Link href="/foundation">
-            <Button variant={isActive("/foundation") ? "secondary" : "ghost"} size="sm" className="px-3 py-2 rounded-lg nav-button hover:bg-slate-800/60 text-sm">
-              Foundation
             </Button>
           </Link>
 
@@ -137,39 +124,29 @@ export function EnhancedNavigation({ className = "" }: EnhancedNavigationProps) 
                   <h3 className="text-sm font-semibold text-gray-400 uppercase tracking-wider">
                     Navigation
                   </h3>
-                  <Link href="/contractors" onClick={() => setIsMobileMenuOpen(false)}>
-                    <Button variant="ghost" className="w-full justify-start text-slate-200 hover:text-white hover:bg-slate-800/60">
-                      Find Contractors
-                    </Button>
-                  </Link>
                   <Link href="/scout" onClick={() => setIsMobileMenuOpen(false)}>
-                  <Button variant="ghost" className="w-full justify-start text-slate-200 hover:text-white hover:bg-slate-800/60">
-                    Scout
-                  </Button>
-                  </Link>
-                  <Link href="/contractor-apply" onClick={() => setIsMobileMenuOpen(false)}>
                     <Button variant="ghost" className="w-full justify-start text-slate-200 hover:text-white hover:bg-slate-800/60">
-                      For Contractors
+                      Scout
                     </Button>
                   </Link>
-                  <Link href="/worker-marketplace" onClick={() => setIsMobileMenuOpen(false)}>
+                  <Link href="/direct-connect" onClick={() => setIsMobileMenuOpen(false)}>
                     <Button variant="ghost" className="w-full justify-start text-slate-200 hover:text-white hover:bg-slate-800/60">
-                      Helpers
+                      Direct Connect
                     </Button>
                   </Link>
-                  <Link href="/dashboard" onClick={() => setIsMobileMenuOpen(false)}>
+                  <Link href="/community" onClick={() => setIsMobileMenuOpen(false)}>
                     <Button variant="ghost" className="w-full justify-start text-slate-200 hover:text-white hover:bg-slate-800/60">
-                      Dashboard
+                      Community
+                    </Button>
+                  </Link>
+                  <Link href="/trade-deals" onClick={() => setIsMobileMenuOpen(false)}>
+                    <Button variant="ghost" className="w-full justify-start text-slate-200 hover:text-white hover:bg-slate-800/60">
+                      TradeDeals
                     </Button>
                   </Link>
                   <Link href="/exchange" onClick={() => setIsMobileMenuOpen(false)}>
                     <Button variant="ghost" className="w-full justify-start text-slate-200 hover:text-white hover:bg-slate-800/60">
                       Exchange
-                    </Button>
-                  </Link>
-                  <Link href="/foundation" onClick={() => setIsMobileMenuOpen(false)}>
-                    <Button variant="ghost" className="w-full justify-start text-slate-200 hover:text-white hover:bg-slate-800/60">
-                      Foundation
                     </Button>
                   </Link>
                 </div>
