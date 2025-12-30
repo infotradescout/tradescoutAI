@@ -1,6 +1,7 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { CheckCircle2, AlertCircle, XCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { recordActivity } from "@/agent/activity";
 
 type ScoutAction = "COMPLY" | "DEFER" | "BLOCK";
 
@@ -35,6 +36,19 @@ export const DecisionCard: React.FC<DecisionCardProps> = ({
   onCancel,
 }) => {
   const actionLabel = action === "message" ? "Message" : "Direct Connect";
+
+  // Track card exposure (metric: card exposure rate)
+  useEffect(() => {
+    recordActivity({
+      type: "decision_card_shown",
+      ts: new Date().toISOString(),
+      meta: {
+        action,
+        scoutAction,
+        targetRole: context.targetRole,
+      },
+    });
+  }, [action, scoutAction, context.targetRole]);
 
   // Map Scout action to guidance state
   const guidanceState = scoutAction === "COMPLY" ? "safe" : scoutAction === "DEFER" ? "caution" : "blocked";
@@ -119,7 +133,18 @@ export const DecisionCard: React.FC<DecisionCardProps> = ({
           {/* Show "Contact now" only if COMPLY */}
           {scoutAction === "COMPLY" && (
             <Button
-              onClick={onProceed}
+              onClick={() => {
+                recordActivity({
+                  type: "decision_card_choice",
+                  ts: new Date().toISOString(),
+                  meta: {
+                    action,
+                    scoutAction,
+                    choice: "contact_now",
+                  },
+                });
+                onProceed();
+              }}
               className="bg-slate-900 hover:bg-slate-800 text-white"
             >
               {actionLabel} now
@@ -129,7 +154,18 @@ export const DecisionCard: React.FC<DecisionCardProps> = ({
           {/* Show "Ask Scout first" for DEFER or BLOCK */}
           {(scoutAction === "DEFER" || scoutAction === "BLOCK") && (
             <Button
-              onClick={onAskScout}
+              onClick={() => {
+                recordActivity({
+                  type: "decision_card_choice",
+                  ts: new Date().toISOString(),
+                  meta: {
+                    action,
+                    scoutAction,
+                    choice: "ask_scout",
+                  },
+                });
+                onAskScout();
+              }}
               variant="outline"
               className="border-slate-300 text-slate-700 hover:bg-slate-50"
             >
@@ -140,7 +176,18 @@ export const DecisionCard: React.FC<DecisionCardProps> = ({
           {/* Always show "Proceed anyway" for DEFER, require confirmation for BLOCK */}
           {scoutAction === "DEFER" && (
             <Button
-              onClick={onProceed}
+              onClick={() => {
+                recordActivity({
+                  type: "decision_card_override",
+                  ts: new Date().toISOString(),
+                  meta: {
+                    action,
+                    scoutAction: "DEFER",
+                    choice: "proceed_anyway",
+                  },
+                });
+                onProceed();
+              }}
               variant="outline"
               className="border-slate-300 text-slate-700 hover:bg-slate-50"
             >
@@ -154,7 +201,18 @@ export const DecisionCard: React.FC<DecisionCardProps> = ({
                 const confirmed = window.confirm(
                   "Scout strongly recommends against this action. Are you sure you want to proceed?"
                 );
-                if (confirmed) onProceed();
+                if (confirmed) {
+                  recordActivity({
+                    type: "decision_card_override",
+                    ts: new Date().toISOString(),
+                    meta: {
+                      action,
+                      scoutAction: "BLOCK",
+                      choice: "understand_risk",
+                    },
+                  });
+                  onProceed();
+                }
               }}
               variant="outline"
               className="border-slate-300 text-slate-700 hover:bg-slate-50"
@@ -165,7 +223,18 @@ export const DecisionCard: React.FC<DecisionCardProps> = ({
 
           {/* Cancel always available */}
           <Button
-            onClick={onCancel}
+            onClick={() => {
+              recordActivity({
+                type: "decision_card_choice",
+                ts: new Date().toISOString(),
+                meta: {
+                  action,
+                  scoutAction,
+                  choice: "cancel",
+                },
+              });
+              onCancel();
+            }}
             variant="ghost"
             className="text-slate-600 hover:bg-slate-50"
           >

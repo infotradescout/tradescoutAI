@@ -12,7 +12,11 @@ export type RecentActivityEventType =
   | "county_explained_followup_action"
   | "county_explained_shown"
   | "scout_confusion_location"
-  | "settings_location_saved";
+  | "settings_location_saved"
+  // Decision Card (canonical pre-action contract)
+  | "decision_card_shown"
+  | "decision_card_choice"
+  | "decision_card_override";
 
 export interface RecentActivityEvent {
   type: RecentActivityEventType;
