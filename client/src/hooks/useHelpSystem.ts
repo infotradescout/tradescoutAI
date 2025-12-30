@@ -97,7 +97,7 @@ export function useHelpSystem() {
       {
         id: 'deals-intro',
         target: '.daily-deals-grid',
-        title: 'Daily Deals & LuckyBucks',
+        title: 'TradeDeals & LuckyBucks',
         content: 'Discover amazing deals from local contractors and suppliers. Earn LuckyBucks with every purchase!',
         illustration: 'lightbulb',
         position: 'bottom'

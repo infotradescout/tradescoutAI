@@ -173,13 +173,23 @@ export function RightToolsPanel({ footer, onNavigate }: RightToolsPanelProps) {
             Workspaces
           </div>
           <div className="space-y-2">
-            <NavLink
-              href="/dashboard"
-              icon={<LayoutDashboard className="h-3.5 w-3.5" style={{ color: 'var(--theme-accent-primary)' }} />}
-              label="Dashboard"
-              description="Your personal hub and live metrics."
-              onClick={onNavigate}
-            />
+            {user?.isAdmin && (user as any)?.isSuperAdmin ? (
+              <NavLink
+                href="/admin"
+                icon={<LayoutDashboard className="h-3.5 w-3.5" style={{ color: 'var(--theme-accent-primary)' }} />}
+                label="Super Admin OS"
+                description="Full-site controls for TradeScout."
+                onClick={onNavigate}
+              />
+            ) : (
+              <NavLink
+                href="/dashboard"
+                icon={<LayoutDashboard className="h-3.5 w-3.5" style={{ color: 'var(--theme-accent-primary)' }} />}
+                label="Dashboard"
+                description="Your personal hub and live metrics."
+                onClick={onNavigate}
+              />
+            )}
             <NavLink
               href="/finances"
               icon={<ClipboardList className="h-3.5 w-3.5" style={{ color: 'var(--theme-accent-primary)' }} />}

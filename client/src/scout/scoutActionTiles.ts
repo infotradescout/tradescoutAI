@@ -81,21 +81,21 @@ export const scoutActionTiles: ScoutActionTile[] = [
   },
   {
     id: "find_pros",
-    label: "Find a local provider",
-    description: "Browse and contact verified people and services near you",
-    action: { type: "NAVIGATE", to: "/contractors" },
+    label: "Route this job to providers",
+    description: "Send a Direct Connect request to matched providers",
+    action: { type: "NAVIGATE", to: "/direct-connect" },
     variants: [
       {
         // Proven by: User's geo context (heroLocationLabel from session)
         when: (ctx) => !!ctx.location && ctx.location.length > 0,
-        label: (ctx) => `Find local providers near ${ctx.location}`,
-        description: "Search local providers and vendors in your area",
+        label: (ctx) => `Route jobs near ${ctx.location}`,
+        description: "Send a Direct Connect request to local providers",
       },
       {
         // Proven by: GET /api/saved-contractors (when array.length > 0)
         when: (ctx) => ctx.savedContractors.length > 0,
-	    label: (ctx) => `View ${ctx.savedContractors.length} saved provider${ctx.savedContractors.length > 1 ? 's' : ''}`,
-	    description: "Access your saved local providers",
+      label: (ctx) => `Route a job to ${ctx.savedContractors.length} saved provider${ctx.savedContractors.length > 1 ? 's' : ''}`,
+      description: "Use Direct Connect with your saved providers",
       },
     ],
   },

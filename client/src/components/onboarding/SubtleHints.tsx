@@ -60,17 +60,17 @@ export function SubtleHints() {
         {
           id: 'homeowner-welcome',
           title: "Welcome to TradeScout!",
-          description: "Find verified contractors and get instant project quotes",
+          description: "Use Scout and Direct Connect to route jobs to trusted providers",
           icon: <Users className="w-5 h-5 text-orange-500" />,
           delay: 2
         },
         {
           id: 'find-contractors',
-          title: "Browse Contractors",
-          description: "Filter by location and trade to find the perfect match",
+          title: "Route this job",
+          description: "Describe your project and let Direct Connect reach the right providers",
           icon: <Search className="w-5 h-5 text-blue-500" />,
           action: "Browse Now",
-          actionUrl: "/contractors",
+          actionUrl: "/direct-connect",
           delay: 8
         },
         {

@@ -5,7 +5,7 @@ import Stripe from 'stripe';
 
 const router = Router();
 const stripe = process.env.STRIPE_SECRET_KEY
-  ? new Stripe(process.env.STRIPE_SECRET_KEY, { apiVersion: '2025-07-30.basil' })
+  ? new Stripe(process.env.STRIPE_SECRET_KEY, { apiVersion: '2025-08-27.basil' })
   : null;
 
 // ==================== COMMUNITY BUILDER ROUTES ====================

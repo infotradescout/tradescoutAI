@@ -147,7 +147,7 @@ const ALL_NAVIGATION: NavItem[] = [
       { label: 'Handmade & Crafts', href: '/handmade-marketplace', icon: Sparkles },
       { label: 'Services', href: '/marketplace/services', icon: Briefcase },
       { label: 'Products', href: '/marketplace/products', icon: Package },
-      { label: 'Daily Deals', href: '/daily-deals', icon: Tags },
+      { label: 'TradeDeals Directory', href: '/trade-deals', icon: Tags },
       { label: 'My Listings', href: '/marketplace/my-listings', icon: FileText },
       { label: 'Saved Items', href: '/saved-ads', icon: Heart },
     ],
@@ -245,9 +245,9 @@ const ALL_NAVIGATION: NavItem[] = [
     ],
   },
 
-  // FOUNDATION (CHARITY)
+  // COMMUNITY BUILDERS (PHILANTHROPY OS)
   {
-    label: 'Foundation',
+    label: 'Community Builders',
     href: '/foundation',
     icon: Heart,
   },

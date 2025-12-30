@@ -1,7 +1,7 @@
 import { Request, Response } from 'express';
 import { storage } from '../storage';
 import { eq, desc, and, gte, lte, sql } from 'drizzle-orm';
-import { dailyDeals, dealEngagements, userAffiliates } from '@shared/schema';
+import { dailyDeals, dealEngagements, userAffiliates, promotions } from '@shared/schema';
 
 // Mock data for when database is offline
 const mockDeals = [
@@ -102,33 +102,99 @@ const mockUserAffiliate = {
   updatedAt: new Date().toISOString()
 };
 
-// Get daily deals for a county/area
+// Get daily deals for a county/area - now backed by promotions as canonical source
 export async function getDailyDeals(req: Request, res: Response) {
   try {
     const { county, limit = '20', featured, dealType } = req.query;
-    
-    let deals;
-    try {
-      // Try database first
-      deals = await storage.getDailyDeals({
-        countyFips: county as string,
-        limit: parseInt(limit as string),
-        featured: featured === 'true',
-        dealType: dealType as string,
-        activeOnly: true
-      });
-    } catch (dbError) {
-      console.log('Database offline, using mock data for daily deals');
-      // Filter mock deals based on query parameters
-      deals = mockDeals.filter(deal => {
-        if (county && deal.countyFips !== county) return false;
-        if (featured === 'true' && !deal.featured) return false;
-        if (dealType && deal.dealType !== dealType) return false;
-        return deal.isActive;
-      }).slice(0, parseInt(limit as string));
-    }
+    const max = parseInt(limit as string) || 20;
 
-    res.json(deals);
+    try {
+      // Canonical view: promotions-based TradeDeals for Community Snapshot
+      const now = new Date();
+      const whereClauses = [
+        eq(promotions.type, 'trade_deal' as any),
+        eq(promotions.exclusive, true),
+        eq(promotions.status, 'active' as any),
+        eq(promotions.placementCommunitySnapshot, true),
+      ];
+
+      if (county) {
+        whereClauses.push(sql`${promotions.countyFips} @> ARRAY[${county}]::text[]`);
+      }
+
+      // Time window: optional start/end
+      whereClauses.push(
+        and(
+          sql`(promotions.starts_at IS NULL OR promotions.starts_at <= ${now})`,
+          sql`(promotions.ends_at IS NULL OR promotions.ends_at >= ${now})`
+        )
+      );
+
+      const rows = await storage.listPromotions({
+        status: 'active',
+        countyFips: county as string | undefined,
+        limit: max,
+      });
+
+      // For now, reuse the listPromotions filter as primary selector; any stricter
+      // placement/time logic can be enforced here as we evolve.
+      const deals = rows.slice(0, max).map((p) => ({
+        id: p.id,
+        title: p.title,
+        description: p.shortDescription,
+        dealType: 'service_discount',
+        originalPrice: null,
+        discountPrice: null,
+        discountPercentage: null,
+        countyFips: (p.countyFips && p.countyFips[0]) || (county as string | undefined) || '',
+        serviceArea: [],
+        startDate: p.startsAt?.toISOString?.() ?? now.toISOString(),
+        endDate: p.endsAt?.toISOString?.() ?? now.toISOString(),
+        isActive: p.status === 'active',
+        maxRedemptions: null,
+        currentRedemptions: 0,
+        views: 0,
+        clicks: 0,
+        saves: 0,
+        tags: [],
+        featured: featured === 'true',
+        providerId: '',
+        providerType: 'contractor_user',
+        priority: 0,
+        createdAt: p.createdAt,
+        updatedAt: p.updatedAt,
+        imageAttachmentId: p.imageAttachmentId,
+        ctaLabel: p.ctaLabel,
+        ctaUrl: p.ctaUrl,
+      }));
+
+      if (!deals.length) {
+        // Fallback to legacy daily_deals for backward compatibility
+        const legacy = await storage.getDailyDeals({
+          countyFips: county as string,
+          limit: max,
+          featured: featured === 'true',
+          dealType: dealType as string,
+          activeOnly: true,
+        });
+        return res.json(legacy);
+      }
+
+      return res.json(deals);
+    } catch (dbError) {
+      console.log('Promotions view failed, using legacy/mocks for daily deals');
+      // Filter mock deals based on query parameters
+      const deals = mockDeals
+        .filter((deal) => {
+          if (county && deal.countyFips !== county) return false;
+          if (featured === 'true' && !deal.featured) return false;
+          if (dealType && deal.dealType !== dealType) return false;
+          return deal.isActive;
+        })
+        .slice(0, max);
+
+      return res.json(deals);
+    }
   } catch (error) {
     console.error('Error fetching daily deals:', error);
     res.status(500).json({ message: 'Failed to fetch daily deals' });

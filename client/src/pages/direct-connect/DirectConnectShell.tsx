@@ -243,7 +243,7 @@ function DirectConnectInbox() {
                       {reasons.length > primaryReasons.length && "  b7 more"}
                     </div>
                     <Button
-                      size="xs"
+                      size="sm"
                       variant="outline"
                       className="border-navy-600 text-gray-200 hover:bg-navy-700 flex-shrink-0"
                       onClick={() => setWhyJobAssignmentId(assignment.id)}
@@ -255,7 +255,7 @@ function DirectConnectInbox() {
 
                 <div className="flex flex-wrap gap-2 justify-end pt-1">
                   <Button
-                    size="xs"
+                    size="sm"
                     variant="outline"
                     className="border-gray-500 text-gray-100 hover:bg-gray-800"
                     onClick={() => {
@@ -266,7 +266,7 @@ function DirectConnectInbox() {
                     Open thread
                   </Button>
                   <Button
-                    size="xs"
+                    size="sm"
                     variant="outline"
                     className="border-gray-500 text-gray-100 hover:bg-gray-800"
                     disabled={status !== "accepted" || !!creatingInvoice}
@@ -279,7 +279,7 @@ function DirectConnectInbox() {
                     Create invoice
                   </Button>
                   <Button
-                    size="xs"
+                    size="sm"
                     className="bg-green-500 hover:bg-green-600 text-white"
                     disabled={status !== "suggested" || respondMutation.isPending}
                     onClick={() => handleRespond(assignment.id, "accept")}
@@ -287,7 +287,7 @@ function DirectConnectInbox() {
                     Accept
                   </Button>
                   <Button
-                    size="xs"
+                    size="sm"
                     variant="outline"
                     className="border-red-500 text-red-200 hover:bg-red-500/10"
                     disabled={status !== "suggested" || respondMutation.isPending}
@@ -332,7 +332,7 @@ function DirectConnectInbox() {
             )}
             <div className="flex justify-between items-center pt-2">
               <Button
-                size="xs"
+                size="sm"
                 variant="ghost"
                 className="text-gray-300 hover:bg-transparent hover:text-white"
                 onClick={() => setCreatingInvoice(null)}
@@ -340,7 +340,7 @@ function DirectConnectInbox() {
                 Cancel
               </Button>
               <Button
-                size="xs"
+                size="sm"
                 className="bg-orange-500 hover:bg-orange-600 text-white"
                 onClick={() => {
                   const title =
@@ -379,7 +379,7 @@ function DirectConnectInbox() {
               ].map((label) => (
                 <Button
                   key={label}
-                  size="xs"
+                  size="sm"
                   variant="outline"
                   className="border-navy-600 text-gray-100 hover:bg-navy-700"
                   disabled={!declineAssignmentId || respondMutation.isPending}
@@ -395,7 +395,7 @@ function DirectConnectInbox() {
             </div>
             <div className="pt-3 flex justify-between items-center">
               <Button
-                size="xs"
+                size="sm"
                 variant="ghost"
                 className="text-gray-300 hover:bg-transparent hover:text-white"
                 onClick={() => setDeclineAssignmentId(null)}
@@ -403,7 +403,7 @@ function DirectConnectInbox() {
                 Keep for now
               </Button>
               <Button
-                size="xs"
+                size="sm"
                 variant="outline"
                 className="border-red-500 text-red-200 hover:bg-red-500/10"
                 disabled={!declineAssignmentId || respondMutation.isPending}
@@ -554,7 +554,7 @@ function MyDirectConnectRequests() {
                 <div className="flex flex-wrap gap-2 justify-end pt-1">
                   <div className="flex items-center gap-2">
                     <Button
-                      size="xs"
+                      size="sm"
                       variant="outline"
                       className="border-gray-500 text-gray-100 hover:bg-gray-800"
                       onClick={() => {
@@ -569,7 +569,7 @@ function MyDirectConnectRequests() {
                     )}
                   </div>
                   <Button
-                    size="xs"
+                    size="sm"
                     variant="outline"
                     className="border-orange-500 text-orange-200 hover:bg-orange-500/10"
                     disabled={status !== "routed" || expandMutation.isPending}
@@ -578,7 +578,7 @@ function MyDirectConnectRequests() {
                     Expand reach
                   </Button>
                   <Button
-                    size="xs"
+                    size="sm"
                     variant="outline"
                     className="border-red-500 text-red-200 hover:bg-red-500/10"
                     disabled={
@@ -590,7 +590,7 @@ function MyDirectConnectRequests() {
                     Cancel request
                   </Button>
                   <Button
-                    size="xs"
+                    size="sm"
                     variant="outline"
                     className="border-green-500 text-green-200 hover:bg-green-500/10"
                     disabled={status !== "cancelled" || reopenMutation.isPending}

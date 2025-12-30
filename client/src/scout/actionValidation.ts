@@ -26,12 +26,11 @@ const ALLOWED_ACTION_TYPES: Set<ScoutActionType> = new Set<ScoutActionType>([
 const ALLOWED_NAVIGATION_PATHS = new Set([
   "/scout",
   "/community",
-  "/contractors",
   "/exchange",
   "/marketplace",
   "/notes",
   "/direct-connect",
-  "/tasks",
+  "/trade-deals",
   "/projects",
   "/request-quote",
   "/leaderboard",

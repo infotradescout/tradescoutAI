@@ -197,7 +197,7 @@ export default function NationwideExpansion() {
                   <Heart className="w-4 h-4 text-pink-400" />
                 </div>
                 <div className="text-lg font-bold text-white">${parseInt(metrics.foundationDonations).toLocaleString()}</div>
-                <p className="text-xs text-slate-400">Foundation</p>
+                <p className="text-xs text-slate-400">Community Builders fund</p>
                 <div className="text-xs text-pink-400 mt-1">
                   10% of revenue
                 </div>
@@ -214,7 +214,7 @@ export default function NationwideExpansion() {
             <TabsTrigger value="overview" className="data-[state=active]:bg-purple-500">Overview</TabsTrigger>
             <TabsTrigger value="counties" className="data-[state=active]:bg-purple-500">Top Areas</TabsTrigger>
             <TabsTrigger value="expansion" className="data-[state=active]:bg-purple-500">Expansion</TabsTrigger>
-            <TabsTrigger value="foundation" className="data-[state=active]:bg-purple-500">Foundation</TabsTrigger>
+            <TabsTrigger value="foundation" className="data-[state=active]:bg-purple-500">Community Builders</TabsTrigger>
             <TabsTrigger value="affiliates" className="data-[state=active]:bg-purple-500">Affiliates</TabsTrigger>
           </TabsList>
 

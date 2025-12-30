@@ -26,6 +26,7 @@ import { Link, useLocation } from "wouter";
 import { useAuth } from "@/hooks/useAuth";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { UserBadges } from "@/components/user-badges";
+import { CommunityCTA } from "./CommunityCTA";
 
 export interface CommunityPostCardAuthor {
   id?: string;
@@ -188,7 +189,11 @@ export function CommunityPostCard({ post, onLike, formatTimeAgo }: CommunityPost
       });
       return;
     }
-    navigate("/messages");
+    if (!post.author?.id) {
+      navigate("/messages");
+      return;
+    }
+    navigate(`/messages?user=${encodeURIComponent(String(post.author.id))}`);
   };
 
   const handleTogglePin = async () => {
@@ -277,6 +282,13 @@ export function CommunityPostCard({ post, onLike, formatTimeAgo }: CommunityPost
     }
     return null;
   })();
+
+  const canDirectConnect =
+    !!post.hasWorkRequest ||
+    post.category === "recommendation_request" ||
+    post.postType === "recommendation_request";
+
+  const isContractor = (role || "").toLowerCase().includes("contractor");
 
   return (
     <Card className={`bg-tsCard border border-tsBorder shadow-sm rounded-xl hover:border-orange-500/30 transition-all ${isAdminNotice ? "ring-1 ring-orange-400/40 bg-tsCard/95" : ""}`}>
@@ -539,6 +551,15 @@ export function CommunityPostCard({ post, onLike, formatTimeAgo }: CommunityPost
                 <span>Share</span>
               </button>
             </div>
+            <CommunityCTA
+              layout="grid"
+              source="community_post"
+              contextId={post.id}
+              ownerUserId={post.author?.id ? String(post.author.id) : undefined}
+              canDirectConnect={canDirectConnect}
+              canMessage={canOpenMessages}
+              disableDirectConnect={isContractor}
+            />
           </>
         )}
       </CardContent>

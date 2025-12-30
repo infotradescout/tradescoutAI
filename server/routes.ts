@@ -20,6 +20,7 @@ import adminCommunityBuilderRouter from "./routes/admin-community-builder-routes
 import communityVaultRouter from "./routes/community-vault-routes";
 import communityCausesRouter from "./routes/community-causes-routes";
 import platformSupportRouter from "./routes/platform-support-routes";
+import { mountAdminRoutes } from "./routes/admin";
 import { ROLE_PERMISSIONS, type UserRole as SharedUserRole } from "../shared/roles";
 import { CURRENT_PROFILE_VERSION } from "../shared/profile";
 // DISABLED: WebSocketManager is not instantiated, using Socket.io messaging service instead
@@ -76,7 +77,7 @@ import {
 import { getUserTypeBadgeLabel, getUserTypeMetadata } from "../shared/userTypes";
 import type { AffiliateAccount, AffiliateReferral, AffiliatePayout } from "../shared/schema";
 import { storage } from "./storage";
-import { setupAuth, isAuthenticated, isAdmin, hashPassword, requireRole, isContractor, isCommunityModerator, requireOnboardingComplete } from "./auth";
+import { setupAuth, isAuthenticated, isAdmin, isSuperAdmin, hashPassword, requireRole, isContractor, isCommunityModerator, requireOnboardingComplete } from "./auth";
 import { localityTrackingMiddleware } from "./localityTracking";
 import passport from "passport";
 import { Strategy as GoogleStrategy, Profile as GoogleProfile } from "passport-google-oauth20";
@@ -121,7 +122,7 @@ const DeviceAuthService = {
 };
 const objectStorageService = new ObjectStorageService();
 const stripe = process.env.STRIPE_SECRET_KEY
-  ? new Stripe(process.env.STRIPE_SECRET_KEY, { apiVersion: "2025-07-30.basil" })
+  ? new Stripe(process.env.STRIPE_SECRET_KEY, { apiVersion: "2025-08-27.basil" })
   : null;
 const dataManagementService = new DataManagementService();
 // Helper function to route leads to top contractors
@@ -322,6 +323,10 @@ export async function registerRoutes(app: any) {
 
   // Anti-scraping guard: blocks obvious bots and throttles bursts
   app.use(antiScrapeShield);
+
+  // Admin OS routes (health + heatmap) now mounted via dedicated module.
+  // URLs and behavior remain identical; this simply centralizes admin authority.
+  mountAdminRoutes(app);
 
   // Public config for client (safe, read-only)
   app.get("/api/public/config", (req: any, res: any) => {
@@ -725,129 +730,6 @@ export async function registerRoutes(app: any) {
     } catch (error: any) {
       console.error("Error updating affiliate settings:", error);
       res.status(500).json({ message: "Failed to update affiliate settings" });
-    }
-  });
-
-  // ---------------------------------------------------------------------------
-  // Admin Affiliate Management (super_admin only)
-  // ---------------------------------------------------------------------------
-  app.get("/api/admin/affiliates", isAuthenticated, isAdmin, async (req: AuthedRequest, res: Response) => {
-    try {
-      const rows = await db
-        .select({
-          id: affiliateAccounts.id,
-          affiliateId: affiliateAccounts.affiliateId,
-          status: affiliateAccounts.status,
-          lifetimeEarned: affiliateAccounts.lifetimeEarned,
-          available: affiliateAccounts.available,
-          pending: affiliateAccounts.pending,
-          referralCode: affiliateAccounts.referralCode,
-          commissionRate: affiliateAccounts.commissionRate,
-          createdAt: affiliateAccounts.createdAt,
-          email: users.email,
-          firstName: users.firstName,
-          lastName: users.lastName,
-        })
-        .from(affiliateAccounts)
-        .leftJoin(users, eq(affiliateAccounts.affiliateId, users.id))
-        .orderBy(desc(affiliateAccounts.createdAt));
-
-      const payload = rows.map((row) => ({
-        id: row.id,
-        affiliateId: row.affiliateId,
-        email: row.email ?? undefined,
-        name: `${row.firstName || ""} ${row.lastName || ""}`.trim() || undefined,
-        status: row.status ?? undefined,
-        lifetimeEarned: String(row.lifetimeEarned ?? "0"),
-        available: String(row.available ?? "0"),
-        pending: String(row.pending ?? "0"),
-        referralCode: row.referralCode ?? undefined,
-        commissionRate: row.commissionRate != null ? String(row.commissionRate) : undefined,
-        createdAt: (row.createdAt as Date | null)?.toISOString?.() || new Date().toISOString(),
-      }));
-
-      res.json(payload);
-    } catch (error: any) {
-      console.error("Error listing affiliates:", error);
-      res.status(500).json({ message: "Failed to load affiliates" });
-    }
-  });
-
-  app.put("/api/admin/affiliates/:id/commission-rate", isAuthenticated, isAdmin, async (req: AuthedRequest, res: Response) => {
-    try {
-      const { id } = req.params;
-      const { commissionRate } = req.body || {};
-
-      if (commissionRate === undefined || commissionRate === null || commissionRate === "") {
-        return res.status(400).json({ message: "commissionRate is required" });
-      }
-
-      const numeric = Number(commissionRate);
-      if (!Number.isFinite(numeric) || numeric <= 0 || numeric >= 1) {
-        return res.status(400).json({ message: "commissionRate must be a decimal between 0 and 1 (e.g. 0.05 for 5%)" });
-      }
-
-      const [updated] = await db
-        .update(affiliateAccounts)
-        .set({ commissionRate: numeric.toString() })
-        .where(eq(affiliateAccounts.id, id))
-        .returning();
-
-      if (!updated) {
-        return res.status(404).json({ message: "Affiliate program not found" });
-      }
-
-      res.json({
-        id: updated.id,
-        commissionRate: updated.commissionRate,
-      });
-    } catch (error: any) {
-      console.error("Error updating affiliate commission rate:", error);
-      res.status(500).json({ message: "Failed to update commission rate" });
-    }
-  });
-
-  app.get("/api/admin/affiliates/:id/detail", isAuthenticated, isAdmin, async (req: AuthedRequest, res: Response) => {
-    try {
-      const affiliateId = req.params.id;
-      const account = ([] as AffiliateAccount[]).find((a) => a.id === affiliateId);
-      if (!account) return res.status(404).json({ message: "Affiliate not found" });
-
-      const referrals = ([] as AffiliateReferral[]).filter(
-        (r) => r.affiliateId === affiliateId
-      );
-      const payouts = ([] as AffiliatePayout[]).filter(
-        (p) => p.affiliateId === affiliateId
-      );
-
-      res.json({ account, referrals, payouts });
-    } catch (error: any) {
-      console.error("Error loading affiliate detail:", error);
-      res.status(500).json({ message: "Failed to load affiliate detail" });
-    }
-  });
-
-  app.post("/api/admin/affiliates/:id/payout", isAuthenticated, isAdmin, async (req: AuthedRequest, res: Response) => {
-    try {
-      const affiliateId = req.params.id;
-      const { amount, method, note } = req.body || {};
-      if (!amount) return res.status(400).json({ message: "amount is required" });
-
-      // Simulate payout creation
-      const payout: AffiliatePayout = {
-        id: "stub-payout-id",
-        affiliateId,
-        payoutAmount: amount,
-        status: "pending",
-        method: method || "manual",
-        note: note || null,
-        createdAt: new Date(),
-      };
-
-      res.json(payout);
-    } catch (error: any) {
-      console.error("Error creating admin payout:", error);
-      res.status(500).json({ message: "Failed to create payout" });
     }
   });
 
@@ -4134,29 +4016,6 @@ export async function registerRoutes(app: any) {
     }
   });
 
-  // Admin heatmap data endpoint (same as public but with admin context)
-  app.get("/api/admin/heatmap", isAuthenticated, async (req: any, res: any) => {
-    try {
-      const userId = (req.user as any)?.id;
-      const user = await storage.getUser(userId);
-
-      if (!user || !['head_admin', 'moderator', 'ops_admin'].includes(user.role || '')) {
-        return res.status(403).json({ message: "Admin access required" });
-      }
-
-      const timeframe = (req.query.timeframe as string) || '30d';
-      const days = timeframe === '7d' ? 7 : timeframe === '30d' ? 30 : 90;
-
-      // Get heatmap data from locality interactions
-      const heatmapData = await storage.getLocalityHeatmapData(days);
-
-      res.json(heatmapData);
-    } catch (error: any) {
-      console.error("Error fetching heatmap data:", error);
-      res.status(500).json({ message: "Failed to fetch heatmap data" });
-    }
-  });
-
   // Admin user management endpoints
   app.get("/api/admin/users", isAuthenticated, async (req: any, res: any) => {
     try {
@@ -5741,154 +5600,6 @@ export async function registerRoutes(app: any) {
     }
   });
 
-  // Feature Flags API Routes  
-  app.get("/api/admin/feature-flags", isAuthenticated, requireAdmin, async (req: any, res: any) => {
-    try {
-      const features = await storage.getFeatureFlags();
-      res.json(features);
-    } catch (error: any) {
-      console.error("Error fetching feature flags:", error);
-      res.status(500).json({ message: "Failed to fetch feature flags" });
-    }
-  });
-
-  app.post("/api/admin/feature-flags", isAuthenticated, requireAdmin, async (req: any, res: any) => {
-    try {
-      const feature = await storage.createFeatureFlag(req.body);
-      res.json(feature);
-    } catch (error: any) {
-      console.error("Error creating feature flag:", error);
-      res.status(500).json({ message: "Failed to create feature flag" });
-    }
-  });
-
-  app.patch("/api/admin/feature-flags/:id", isAuthenticated, requireAdmin, async (req: any, res: any) => {
-    try {
-      const { id } = req.params;
-      const feature = await storage.updateFeatureFlag(id, req.body);
-      res.json(feature);
-    } catch (error: any) {
-      console.error("Error updating feature flag:", error);
-      res.status(500).json({ message: "Failed to update feature flag" });
-    }
-  });
-
-  // User Management API Routes
-  app.get("/api/admin/users", isAuthenticated, requireAdmin, async (req: any, res: any) => {
-    try {
-      const allUsers = await db.select({
-        id: users.id,
-        email: users.email,
-        firstName: users.firstName,
-        lastName: users.lastName,
-        role: users.role,
-        roles: users.roles,
-        activeRole: users.activeRole,
-        badges: users.badges,
-        profileImageUrl: users.profileImageUrl,
-        emailVerified: users.emailVerified,
-        addressVerified: users.addressVerified,
-        createdAt: users.createdAt,
-        facebookId: users.facebookId,
-        provider: users.provider
-      }).from(users).orderBy(desc(users.createdAt));
-      
-      res.json(allUsers);
-    } catch (error: any) {
-      console.error("Error fetching users:", error);
-      res.status(500).json({ message: "Failed to fetch users" });
-    }
-  });
-
-  app.patch("/api/admin/users/:userId/roles", isAuthenticated, requireAdmin, async (req: any, res: any) => {
-    try {
-      const { userId } = req.params;
-      const { roles, activeRole } = req.body;
-
-      if (!Array.isArray(roles) || roles.length === 0) {
-        return res.status(400).json({ message: "Roles must be a non-empty array" });
-      }
-
-      if (!activeRole || !roles.includes(activeRole)) {
-        return res.status(400).json({ message: "Active role must be one of the assigned roles" });
-      }
-
-      // Update user roles and active role
-      await db.update(users)
-        .set({ 
-          roles: roles, 
-          activeRole: activeRole,
-          role: activeRole, // Keep primary role in sync
-          updatedAt: new Date()
-        })
-        .where(eq(users.id, userId));
-
-      res.json({ message: "User roles updated successfully" });
-    } catch (error: any) {
-      console.error("Error updating user roles:", error);
-      res.status(500).json({ message: "Failed to update user roles" });
-    }
-  });
-
-  // Admin: update user badges (manual or special)
-  app.patch("/api/admin/users/:userId/badges", isAuthenticated, requireAdmin, async (req: any, res: any) => {
-    try {
-      const { userId } = req.params;
-      const { badges } = req.body;
-
-      if (!Array.isArray(badges)) {
-        return res.status(400).json({ message: "Badges must be an array" });
-      }
-
-      await db.update(users)
-        .set({ badges, updatedAt: new Date() })
-        .where(eq(users.id, userId));
-
-      res.json({ message: "Badges updated successfully", badges });
-    } catch (error: any) {
-      console.error("Error updating user badges:", error);
-      res.status(500).json({ message: "Failed to update user badges" });
-    }
-  });
-
-  app.post("/api/admin/users/:userId/impersonate", isAuthenticated, requireAdmin, async (req: any, res: any) => {
-    try {
-      const { userId } = req.params;
-      
-      // Get user to impersonate
-      const [targetUser] = await db.select().from(users).where(eq(users.id, userId));
-      if (!targetUser) {
-        return res.status(404).json({ message: "User not found" });
-      }
-
-      // Store original user info for restoration
-      const originalUser = req.user;
-      
-      // Update session to impersonate target user
-      req.user = {
-        id: targetUser.id,
-        email: targetUser.email,
-        role: targetUser.activeRole || targetUser.role,
-        firstName: targetUser.firstName,
-        lastName: targetUser.lastName,
-        profileImageUrl: targetUser.profileImageUrl,
-        roles: targetUser.roles || [targetUser.role],
-        activeRole: targetUser.activeRole || targetUser.role,
-        impersonating: true,
-        originalAdminId: originalUser.id
-      };
-
-      res.json({ 
-        message: "Impersonation active", 
-        user: req.user,
-        originalAdmin: originalUser 
-      });
-    } catch (error: any) {
-      console.error("Error impersonating user:", error);
-      res.status(500).json({ message: "Failed to impersonate user" });
-    }
-  });
-
   app.post("/api/auth/switch-role", isAuthenticated, async (req: any, res: any) => {
     try {
       const { role } = req.body;
@@ -5924,136 +5635,11 @@ export async function registerRoutes(app: any) {
     }
   });
 
-  // Site settings management
-  app.get("/api/admin/site-settings", isAuthenticated, requireAdmin, async (req: any, res: any) => {
-    try {
-      const { category } = req.query;
-      const settings = await storage.getSiteSettings(category as string);
-      res.json(settings);
-    } catch (error: any) {
-      console.error("Error fetching site settings:", error);
-      res.status(500).json({ message: "Failed to fetch site settings" });
-    }
-  });
-
-  app.post("/api/admin/site-settings", isAuthenticated, requireAdmin, async (req: any, res: any) => {
-    try {
-      const setting = await storage.createSiteSetting(req.body);
-      res.json(setting);
-    } catch (error: any) {
-      console.error("Error creating site setting:", error);
-      res.status(500).json({ message: "Failed to create site setting" });
-    }
-  });
-
-  app.put("/api/admin/site-settings/:id", isAuthenticated, requireAdmin, async (req: any, res: any) => {
-    try {
-      const setting = await storage.updateSiteSetting(req.params.id, req.body);
-      res.json(setting);
-    } catch (error: any) {
-      console.error("Error updating site setting:", error);
-      res.status(500).json({ message: "Failed to update site setting" });
-    }
-  });
-
-  app.delete("/api/admin/site-settings/:id", isAuthenticated, requireAdmin, async (req: any, res: any) => {
-    try {
-      await storage.deleteSiteSetting(req.params.id);
-      res.status(204).send();
-    } catch (error: any) {
-      console.error("Error deleting site setting:", error);
-      res.status(500).json({ message: "Failed to delete site setting" });
-    }
-  });
-
-  // Prize configuration management
-  app.get("/api/admin/prizes", isAuthenticated, requireAdmin, async (req: any, res: any) => {
-    try {
-      const prizes = await storage.getPrizeConfigurations();
-      res.json(prizes);
-    } catch (error: any) {
-      console.error("Error fetching prizes:", error);
-      res.status(500).json({ message: "Failed to fetch prizes" });
-    }
-  });
-
-  app.post("/api/admin/prizes", isAuthenticated, requireAdmin, async (req: any, res: any) => {
-    try {
-      const prize = await storage.createPrizeConfiguration(req.body);
-      res.json(prize);
-    } catch (error: any) {
-      console.error("Error creating prize:", error);
-      res.status(500).json({ message: "Failed to create prize" });
-    }
-  });
-
-  app.put("/api/admin/prizes/:id", isAuthenticated, requireAdmin, async (req: any, res: any) => {
-    try {
-      const prize = await storage.updatePrizeConfiguration(req.params.id, req.body);
-      res.json(prize);
-    } catch (error: any) {
-      console.error("Error updating prize:", error);
-      res.status(500).json({ message: "Failed to update prize" });
-    }
-  });
-
-  app.delete("/api/admin/prizes/:id", isAuthenticated, requireAdmin, async (req: any, res: any) => {
-    try {
-      await storage.deletePrizeConfiguration(req.params.id);
-      res.status(204).send();
-    } catch (error: any) {
-      console.error("Error deleting prize:", error);
-      res.status(500).json({ message: "Failed to delete prize" });
-    }
-  });
-
-  // Advertisement management
-  app.get("/api/admin/advertisements", isAuthenticated, requireAdmin, async (req: any, res: any) => {
-    try {
-      const { placement } = req.query;
-      const ads = await storage.getAdvertisements(placement as string);
-      res.json(ads);
-    } catch (error: any) {
-      console.error("Error fetching advertisements:", error);
-      res.status(500).json({ message: "Failed to fetch advertisements" });
-    }
-  });
-
-  app.post("/api/admin/advertisements", isAuthenticated, requireAdmin, async (req: any, res: any) => {
-    try {
-      const ad = await storage.createAdvertisement(req.body);
-      res.json(ad);
-    } catch (error: any) {
-      console.error("Error creating advertisement:", error);
-      res.status(500).json({ message: "Failed to create advertisement" });
-    }
-  });
-
   // 1b. CORS DIAGNOSTICS
   app.get('/api/cors-test', (req: Request, res: Response) => {
     const origin = (req.headers.origin || '') as string;
     const responseHeaders = res.getHeaders();
     res.json({ origin, responseHeaders });
-  });
-
-  app.put("/api/admin/advertisements/:id", isAuthenticated, requireAdmin, async (req: any, res: any) => {
-    try {
-      const ad = await storage.updateAdvertisement(req.params.id, req.body);
-      res.json(ad);
-    } catch (error: any) {
-      console.error("Error updating advertisement:", error);
-      res.status(500).json({ message: "Failed to update advertisement" });
-    }
-  });
-
-  app.delete("/api/admin/advertisements/:id", isAuthenticated, requireAdmin, async (req: any, res: any) => {
-    try {
-      await storage.deleteAdvertisement(req.params.id);
-      res.status(204).send();
-    } catch (error: any) {
-      console.error("Error deleting advertisement:", error);
-      res.status(500).json({ message: "Failed to delete advertisement" });
-    }
   });
 
   // Marketplace conversation endpoints
@@ -8589,6 +8175,41 @@ export async function registerRoutes(app: any) {
         offset: req.query.offset ? parseInt(req.query.offset as string, 10) : 0,
       };
 
+      // Attach viewer context for social scopes when authenticated
+      if (authUserId) {
+        (filters as any).viewerId = authUserId;
+      }
+
+      const normalizedScope =
+        scopeParam ||
+        ((filters.scope as string | undefined) ?? (bypassLocation ? "all" : "county"));
+
+      // Deterministic scope selectors
+      switch (normalizedScope) {
+        case "following":
+          (filters as any).followingOnly = true;
+          (filters as any).sort = "recent";
+          break;
+
+        case "nearby":
+          // Nearby keeps county scoping and uses recency ordering for now.
+          (filters as any).sort = "recent";
+          break;
+
+        case "recent":
+          (filters as any).sort = "recent";
+          break;
+
+        case "recommendations":
+          (filters as any).sort = "recommended";
+          (filters as any).excludeFollowing = true;
+          break;
+
+        default:
+          // for_you / county / state / global fall back to existing behavior
+          break;
+      }
+
       if (user) {
         try {
           let scopeType: string | null = null;
@@ -8629,7 +8250,18 @@ export async function registerRoutes(app: any) {
         }
       }
 
-      const posts = await storage.getCommunityPosts(filters);
+      let posts = await storage.getCommunityPosts(filters);
+
+      // One-release guard: if recommendations are empty, fall back to recent
+      if (!posts.length && normalizedScope === "recommendations") {
+        const fallbackFilters: Parameters<typeof storage.getCommunityPosts>[0] = {
+          ...filters,
+          sort: "recent",
+          excludeFollowing: false,
+        };
+        posts = await storage.getCommunityPosts(fallbackFilters);
+      }
+
       res.json(posts);
     } catch (error: any) {
       console.error("Error fetching community posts:", error);
@@ -12511,6 +12143,19 @@ export async function registerRoutes(app: any) {
   // Affiliate system endpoints (daily deals performance)
   app.get("/api/user/affiliate", isAuthenticated, getUserAffiliate);
   app.get("/api/affiliate/performance", isAuthenticated, getAffiliateDashboard as any);
+
+  const {
+    listPromotionsHandler,
+    createPromotionHandler,
+    updatePromotionHandler,
+    deletePromotionHandler,
+  } = await import("./routes/promotions");
+
+  // Promotions admin endpoints (super admin only)
+  app.get("/api/admin/promotions", isAuthenticated, isSuperAdmin, listPromotionsHandler as any);
+  app.post("/api/admin/promotions", isAuthenticated, isSuperAdmin, createPromotionHandler as any);
+  app.put("/api/admin/promotions/:id", isAuthenticated, isSuperAdmin, updatePromotionHandler as any);
+  app.delete("/api/admin/promotions/:id", isAuthenticated, isSuperAdmin, deletePromotionHandler as any);
 
   // Phase 2: Boost System Routes for Realtors & Dealers
   const {

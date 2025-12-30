@@ -382,7 +382,7 @@ function Profile() {
                   Email notifications for new deals
                 </p>
                 <p className="text-slate-400 text-sm">
-                  Get notified about special offers and deals
+                  Get notified about exclusive TradeDeals from trusted partners
                 </p>
               </div>
               <Switch

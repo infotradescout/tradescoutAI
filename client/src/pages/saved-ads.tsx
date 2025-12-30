@@ -148,7 +148,7 @@ export default function SavedAds() {
           Saved Ads
         </h1>
         <p className="text-gray-300">
-          Your collection of saved advertisements and offers
+          Your collection of saved sponsor messages and TradeDeals
         </p>
       </div>
 

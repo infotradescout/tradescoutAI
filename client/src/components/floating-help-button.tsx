@@ -37,8 +37,8 @@ export function FloatingHelpButton() {
     },
     {
       id: 'daily-deals',
-      title: 'Daily Deals Tour', 
-      description: 'Discover how to save with daily deals',
+      title: 'TradeDeals Tour', 
+      description: 'See how exclusive TradeDeals support real projects',
       icon: <Play className="w-4 h-4" />,
       available: true
     },

@@ -100,7 +100,7 @@ const NAVIGATION_ITEMS: NavigationItem[] = [
   
   // Community Features (avoid duplicating what's in main nav)
   {
-    label: "Foundation",
+    label: "Community Builders",
     href: "/foundation",
     icon: Heart,
   },
