@@ -58,7 +58,7 @@ export async function recordOutcomeEvent(event: OutcomeEventInput): Promise<void
     contextId: event.contextId ?? null,
     scope,
     action: event.action,
-    value: event.value ?? null,
+    value: event.value != null ? String(event.value) : null,
     confidenceDeltaHint: event.confidenceDeltaHint ?? null,
   });
 }

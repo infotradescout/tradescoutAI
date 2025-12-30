@@ -17,7 +17,7 @@ router.get("/authority-diagnostics", async (req, res) => {
 
   // Admin-only gate
   const adminEmail = "traderscornerllc@gmail.com";
-  if (req.user?.email !== adminEmail) {
+  if ((req.user as any)?.email !== adminEmail) {
     return res.status(403).json({ message: "Admin access required" });
   }
 
@@ -27,10 +27,10 @@ router.get("/authority-diagnostics", async (req, res) => {
       .select({
         scope: scoutOutcomeEvents.scope,
         count: sql<number>`count(*)`,
-        recentTimestamp: sql<string>`max(${scoutOutcomeEvents.timestamp})`,
+        recentTimestamp: sql<string>`max(${scoutOutcomeEvents.createdAt})`,
       })
       .from(scoutOutcomeEvents)
-      .where(eq(scoutOutcomeEvents.outcomeType, "ignored_advice"))
+      .where(eq(scoutOutcomeEvents.action, "ignored_advice"))
       .groupBy(scoutOutcomeEvents.scope)
       .orderBy(desc(sql`count(*)`))
       .limit(50);
@@ -39,13 +39,12 @@ router.get("/authority-diagnostics", async (req, res) => {
     const confidenceDistribution = await db
       .select({
         scope: scoutUserConfidenceState.scope,
-        successCount: scoutUserConfidenceState.successCount,
-        failureCount: scoutUserConfidenceState.failureCount,
-        confidence: scoutUserConfidenceState.confidence,
-        lastUpdated: scoutUserConfidenceState.lastUpdated,
+        baselineConfidence: scoutUserConfidenceState.baselineConfidence,
+        currentConfidence: scoutUserConfidenceState.currentConfidence,
+        lastUpdatedAt: scoutUserConfidenceState.lastUpdatedAt,
       })
       .from(scoutUserConfidenceState)
-      .orderBy(desc(scoutUserConfidenceState.confidence))
+      .orderBy(desc(scoutUserConfidenceState.currentConfidence))
       .limit(100);
 
     // 3. Outcome sequences (what happened after overrides)
@@ -54,17 +53,17 @@ router.get("/authority-diagnostics", async (req, res) => {
       .select({
         id: scoutOutcomeEvents.id,
         scope: scoutOutcomeEvents.scope,
-        timestamp: scoutOutcomeEvents.timestamp,
-        metadata: scoutOutcomeEvents.metadata,
+        createdAt: scoutOutcomeEvents.createdAt,
+        value: scoutOutcomeEvents.value,
       })
       .from(scoutOutcomeEvents)
-      .where(eq(scoutOutcomeEvents.outcomeType, "ignored_advice"))
-      .orderBy(desc(scoutOutcomeEvents.timestamp))
+      .where(eq(scoutOutcomeEvents.action, "ignored_advice"))
+      .orderBy(desc(scoutOutcomeEvents.createdAt))
       .limit(100);
 
     // For each override, find next outcome in same scope
     const outcomeSequences = await Promise.all(
-      recentOverrides.map(async (override: { id: number; createdAt: string; value: any }) => {
+      recentOverrides.map(async (override: { id: number; scope: string; createdAt: Date; value: any }) => {
         const subEvents = await db
           .select({
             action: scoutOutcomeEvents.action,
@@ -80,15 +79,15 @@ router.get("/authority-diagnostics", async (req, res) => {
           .orderBy(scoutOutcomeEvents.createdAt)
           .limit(2); // Skip self, get next
 
-        const subsequent = nextOutcome[1]; // First is the override itself
+        const subsequent = subEvents[1]; // First is the override itself
         return {
           overrideId: override.id,
           scope: override.scope,
-          overrideTime: override.timestamp,
+          overrideTime: override.createdAt,
           followedBy: subsequent
             ? {
-                outcome: subsequent.outcomeType,
-                when: subsequent.timestamp,
+                outcome: subsequent.action,
+                when: subsequent.createdAt,
               }
             : null,
         };
@@ -99,17 +98,17 @@ router.get("/authority-diagnostics", async (req, res) => {
     const totalOverrides = await db
       .select({ count: sql<number>`count(*)` })
       .from(scoutOutcomeEvents)
-      .where(eq(scoutOutcomeEvents.outcomeType, "ignored_advice"));
+      .where(eq(scoutOutcomeEvents.action, "ignored_advice"));
 
     const totalSuccesses = await db
       .select({ count: sql<number>`count(*)` })
       .from(scoutOutcomeEvents)
-      .where(eq(scoutOutcomeEvents.outcomeType, "success"));
+      .where(eq(scoutOutcomeEvents.action, "success_reported"));
 
     const totalFailures = await db
       .select({ count: sql<number>`count(*)` })
       .from(scoutOutcomeEvents)
-      .where(eq(scoutOutcomeEvents.outcomeType, "failure"));
+      .where(eq(scoutOutcomeEvents.action, "canceled"));
 
     res.json({
       summary: {

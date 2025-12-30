@@ -3,7 +3,7 @@ import { randomUUID } from "crypto";
 import { db } from "../db";
 import { eq, sql, and, gte } from "drizzle-orm";
 import { isAuthenticated, requireRole } from "../auth";
-import { adminSystemControlConditions } from "../../shared/schema";
+import { siteSettings } from "../../shared/schema";
 
 const router = Router();
 
@@ -22,13 +22,12 @@ router.get("/observation-lock", isAuthenticated, requireRole(['head_admin', 'ops
     // Check if observation mode lock exists in settings
     const [setting] = await db
       .select()
-      .from(db.schema.siteSettings)
-      .where(eq(db.schema.siteSettings.key, "observation_mode_enabled"))
+      .from(siteSettings)
+      .where(eq(siteSettings.key, "observation_mode_enabled"))
       .limit(1);
 
     res.json({
       enabled: setting?.value !== false, // Default to true (locked)
-      lastChangedBy: setting?.meta?.lastChangedBy,
       lastChangedAt: setting?.updatedAt,
     });
   } catch (error) {
@@ -44,22 +43,19 @@ router.post("/observation-lock", isAuthenticated, requireRole(['head_admin', 'op
 
     // Upsert setting
     await db
-      .insert(db.schema.siteSettings)
+      .insert(siteSettings)
       .values({
-        id: randomUUID(),
         category: "authority",
         key: "observation_mode_enabled",
         value: enabled,
         description: "Locks authority to action-gating only. No interpretive signals allowed.",
         isActive: true,
-        meta: { lastChangedBy: (req.user as any)?.email },
       })
       .onConflictDoUpdate({
-        target: db.schema.siteSettings.key,
+        target: siteSettings.key,
         set: {
           value: enabled,
           updatedAt: new Date(),
-          meta: { lastChangedBy: (req.user as any)?.email },
         },
       });
 
@@ -198,8 +194,8 @@ router.get("/unlock-ledger", isAuthenticated, requireRole(['head_admin', 'ops_ad
     // Query unlock conditions from settings
     const conditions = await db
       .select()
-      .from(db.schema.siteSettings)
-      .where(eq(db.schema.siteSettings.category, "authority_unlock"));
+      .from(siteSettings)
+      .where(eq(siteSettings.category, "authority_unlock"));
 
     const ledger = [
       {
@@ -239,7 +235,7 @@ router.post("/unlock-condition", isAuthenticated, requireRole(['head_admin', 'op
     }
 
     await db
-      .insert(db.schema.siteSettings)
+      .insert(siteSettings)
       .values({
         id: randomUUID(),
         category: "authority_unlock",
@@ -249,7 +245,7 @@ router.post("/unlock-condition", isAuthenticated, requireRole(['head_admin', 'op
         isActive: true,
       })
       .onConflictDoUpdate({
-        target: db.schema.siteSettings.key,
+        target: siteSettings.key,
         set: {
           value: condition,
           updatedAt: new Date(),
