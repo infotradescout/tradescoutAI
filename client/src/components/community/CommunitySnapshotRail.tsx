@@ -97,7 +97,9 @@ export const CommunitySnapshotRail: React.FC<{
           ownerUserId: r.ownerUserId ?? r.providerUserId ?? null,
           canDirectConnect: Boolean(r.canDirectConnect ?? r.supportsDirectConnect ?? false),
           canMessage: Boolean((r.ownerUserId ?? r.providerUserId) && !r.disableMessaging),
-        }));feed filters + deals + stats + invitations
+        }));
+        
+        // Compose cards: feed filters + deals + stats + invitations
         const composedCards: SnapshotCard[] = [];
 
         // Always add feed filter cards first
@@ -245,9 +247,6 @@ export const CommunitySnapshotRail: React.FC<{
             label: "Get Started",
             icon: "message",
             gradient: "from-emerald-950 via-slate-900 to-slate-950",
-          });
-        }
-            href: "/trade-deals",
           });
         }
 
