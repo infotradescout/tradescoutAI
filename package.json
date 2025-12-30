@@ -5,7 +5,7 @@
   "license": "MIT",
   "scripts": {
     "dev": "cross-env NODE_ENV=development tsx -r dotenv/config server/index.ts",
-    "build": "vite build && esbuild server/index.prod.ts --platform=node --packages=external --bundle --format=esm --outfile=dist/index.js --external:vite --external:@vitejs/* --external:@replit/*",
+    "build": "vite build && esbuild server/index.prod.ts --platform=node --packages=external --bundle --format=esm --outfile=dist/index.js --external:vite --external:@vitejs/* --external:@replit/* --external:@db --external:@shared",
     "audit:ui": "node ./scripts/ui-surface-audit.mjs",
     "audit:ui:next5": "node ./scripts/ui-surface-next5.mjs",
     "audit:ui:enforce": "node ./scripts/ui-surface-audit.mjs && node ./scripts/ui-surface-enforce.mjs",
