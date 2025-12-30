@@ -23,6 +23,7 @@ type AdminSectionKey =
   | "feedback"
   | "communityBuilders"
   | "toolDiscovery"
+  | "authority"
   | "system";
 
 const sections: { key: AdminSectionKey; label: string; description: string; icon: React.ComponentType<any> }[] = [
@@ -67,6 +68,12 @@ const sections: { key: AdminSectionKey; label: string; description: string; icon
     label: "Tool Discovery",
     description: "Scout-learned capabilities and institutional memory",
     icon: Sparkles,
+  },
+  {
+    key: "authority",
+    label: "Authority Operations",
+    description: "Observation mode, decision card metrics, unlock ledger",
+    icon: Shield,
   },
   {
     key: "system",
@@ -315,6 +322,37 @@ export default function AdminShell() {
                       <Link href="/admin/tool-discovery">
                         <Button size="sm" variant="outline">
                           Manage Tool Discovery
+                        </Button>
+                      </Link>
+                    </CardContent>
+                  </Card>
+                </div>
+              )}
+
+              {activeSection === "authority" && (
+                <div className="space-y-4">
+                  <p className="text-sm text-slate-300">
+                    Authority Operations governs observation mode enforcement, decision card
+                    metrics aggregation, override legitimacy tracking, and phase unlock conditions.
+                    This is control, not analytics — designed to prevent premature feature
+                    activation before learning completes.
+                  </p>
+                  <Separator className="bg-slate-800" />
+                  <Card className="bg-slate-950/60 border-slate-800">
+                    <CardHeader className="pb-2">
+                      <CardTitle className="text-sm text-slate-100 flex items-center gap-2">
+                        <Shield className="w-4 h-4 text-blue-400" />
+                        Open Authority Operations Panel
+                      </CardTitle>
+                      <CardDescription className="text-xs text-slate-400">
+                        Monitor observation lock, decision card exposure, override patterns, and
+                        unlock conditions for Phase 2B/2C authority features.
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent className="pt-0 flex justify-end">
+                      <Link href="/admin/panel?tab=authority">
+                        <Button size="sm" variant="outline">
+                          Manage Authority Operations
                         </Button>
                       </Link>
                     </CardContent>
