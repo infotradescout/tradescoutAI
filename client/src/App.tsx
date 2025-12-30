@@ -43,7 +43,7 @@ const RedirectTo = memo(function RedirectTo({ to }: { to: string }) {
   return null;
 });
 
-// Root landing router: send non-admins into CommunityOS, admins to dashboard.
+// Root landing router: send non-authenticated users to create account, authenticated users to appropriate dashboard
 const RootLanding = memo(function RootLanding() {
   const { user, isAuthenticated } = useAuth();
   const [location, navigate] = useLocation();
@@ -57,9 +57,12 @@ const RootLanding = memo(function RootLanding() {
     const isSuperAdmin = role === 'super_admin' || role === 'head_admin' || anyUser?.isSuperAdmin === true;
     const isAdmin = !!(anyUser?.isAdmin || (Array.isArray(anyUser?.roles) && anyUser.roles.some((r: string) => r.includes('admin'))));
 
-    if (isSuperAdmin && isAuthenticated) {
+    if (!isAuthenticated) {
+      // Non-authenticated users go to create account/login page
+      navigate('/create-account');
+    } else if (isSuperAdmin) {
       navigate('/admin');
-    } else if (isAdmin && isAuthenticated) {
+    } else if (isAdmin) {
       navigate('/dashboard');
     } else {
       navigate('/community-feed');
