@@ -35,6 +35,9 @@ jobs:
       - name: Push schema to Neon test database
         run: npm run db:push:test
 
+      - name: Seed E2E user in Neon test database
+        run: npm run seed:e2e-user
+
       - name: Build app
         run: npm run build
 
