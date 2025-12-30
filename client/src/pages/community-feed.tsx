@@ -299,30 +299,6 @@ const CommunityFeed = memo(function CommunityFeed() {
 
   const isSuperAdmin = Boolean((user as any)?.isSuperAdmin);
 
-  // Local TradeDeals snapshot (community header only shows deals from the user's county)
-  const { data: localDeals = [], isLoading: localDealsLoading } = useQuery<DailyDealSnapshot[]>({
-    queryKey: ["/api/daily-deals", countyFips, "community-snapshot"],
-    enabled: countyCommitted && !!countyFips,
-    queryFn: async () => {
-      const params = new URLSearchParams({
-        county: countyFips!,
-        limit: "3",
-        featured: "true",
-      });
-
-      const res = await fetch(`/api/daily-deals?${params.toString()}`, {
-        credentials: "include",
-        headers: { Accept: "application/json" },
-      });
-
-      if (!res.ok) {
-        throw new Error(`Failed to load local TradeDeals (${res.status})`);
-      }
-
-      return (await res.json()) as DailyDealSnapshot[];
-    },
-  });
-
   const { data: globalPostsData, isLoading: globalPostsLoading } = useQuery<Post[]>({
     queryKey: [
       "/api/community/posts",
@@ -645,137 +621,21 @@ const CommunityFeed = memo(function CommunityFeed() {
     trendingTags: trendingTopics.map((t) => t.tag).slice(0, 3),
   }), [communityStats, trendingTopics]);
 
-  const [snapshotRailHasItems, setSnapshotRailHasItems] = useState(false);
-
   return (
     <div className="w-full max-w-full overflow-x-hidden bg-slate-950">
       <CountyRequiredGate locationOverride={location}>
       <div className="mx-auto w-full max-w-5xl px-3 py-3 md:px-4 md:py-4 overflow-x-hidden">
         <CommunityTopNav />
+        {/* 
+          CommunitySnapshotRail owns populated + empty states.
+          Do not add fallback Snapshot UI elsewhere.
+          This is the single authority for Community Snapshot—data, layout, and CTAs.
+        */}
         {countyFips && (
           <CommunitySnapshotRail
             countyFips={countyFips}
             limit={10}
-            onItemsLoaded={(count) => setSnapshotRailHasItems(count > 0)}
           />
-        )}
-        {/* Community Snapshot – local-only TradeDeals + pulse */}
-        {(!snapshotRailHasItems) && (
-        <div className="mb-4 md:mb-6">
-          <div className="rounded-2xl border border-slate-800 bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 px-3 py-3 md:px-5 md:py-4">
-            <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-3 md:gap-4">
-              {/* Community pulse */}
-              <div className="space-y-1 md:space-y-2 flex-1 min-w-0">
-                <div className="inline-flex items-center gap-1.5 rounded-full border border-slate-700/80 bg-slate-900/80 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-200">
-                  <Compass className="h-3 w-3 text-orange-400" />
-                  <span>Community Snapshot</span>
-                </div>
-                <div className="flex flex-wrap items-center gap-2 text-[11px] text-slate-300">
-                  <div className="inline-flex items-center gap-1.5">
-                    <Users2 className="h-3.5 w-3.5 text-slate-100" />
-                    <span>
-                      {communityStats.totalMembers > 0
-                        ? `${communityStats.totalMembers.toLocaleString()} neighbors in your community`
-                        : "Neighbors are just starting to join"}
-                    </span>
-                  </div>
-                  <span className="hidden md:inline text-slate-600">·</span>
-                  <div className="inline-flex items-center gap-1.5">
-                    <MessageSquare className="h-3.5 w-3.5 text-emerald-300" />
-                    <span>
-                      {communityStats.postsToday > 0
-                        ? `${communityStats.postsToday.toLocaleString()} posts today`
-                        : "Start the first conversation today"}
-                    </span>
-                  </div>
-                  <span className="hidden md:inline text-slate-600">·</span>
-                  <div className="inline-flex items-center gap-1.5">
-                    <TrendingUp className="h-3.5 w-3.5 text-indigo-300" />
-                    <span>
-                      {communityStats.activeToday > 0
-                        ? `${communityStats.activeToday.toLocaleString()} neighbors active now`
-                        : "Be the first to check in"}
-                    </span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Local TradeDeals – strictly county-scoped */}
-              <div className="w-full md:w-[52%] lg:w-[50%]">
-                <div className="flex items-center justify-between gap-2 mb-2">
-                  <div className="inline-flex items-center gap-1.5 text-[11px] font-medium text-slate-200">
-                    <Tag className="h-3.5 w-3.5 text-orange-400" />
-                    <span>Local TradeDeals</span>
-                  </div>
-                  <Button
-                    asChild
-                    variant="ghost"
-                    size="xs"
-                    className="h-6 px-2 text-[10px] text-slate-300 hover:text-white hover:bg-slate-800/80"
-                  >
-                    <a href="/trade-deals">View all</a>
-                  </Button>
-                </div>
-
-                {localDealsLoading && (
-                  <div className="text-[11px] text-slate-400">
-                    Loading nearby TradeDeals for your county...
-                  </div>
-                )}
-
-                {!localDealsLoading && localDeals.length === 0 && (
-                  <div className="text-[11px] text-slate-400">
-                    No active TradeDeals are live for your county yet. When vetted local partners go live here,
-                    they'll appear at the top of your community feed.
-                  </div>
-                )}
-
-                {!localDealsLoading && localDeals.length > 0 && (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                    {localDeals.slice(0, 3).map((deal) => (
-                      <div
-                        key={deal.id}
-                        className="rounded-xl border border-slate-800 bg-slate-900/80 px-3 py-2.5 text-[11px] text-slate-200 flex flex-col gap-1.5"
-                      >
-                        <div className="flex items-start justify-between gap-2">
-                          <div className="min-w-0">
-                            <div className="flex items-center gap-1.5 mb-0.5">
-                              <span className="inline-flex items-center rounded-full bg-orange-500/10 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-orange-300">
-                                Exclusive TradeDeal
-                              </span>
-                            </div>
-                            <div className="font-semibold text-slate-50 truncate">
-                              {deal.title}
-                            </div>
-                            <div className="text-[10px] text-slate-400 line-clamp-2">
-                              {deal.description}
-                            </div>
-                          </div>
-                        </div>
-                        <div className="flex items-center justify-between gap-2 mt-1">
-                          <div className="flex items-center gap-1.5 text-[10px] text-slate-300">
-                            <MapPin className="h-3 w-3 text-emerald-300" />
-                            <span>Only shown in your county</span>
-                          </div>
-                          <div className="flex items-center gap-1.5 text-[10px] text-slate-400">
-                            <button
-                              type="button"
-                              className="inline-flex items-center gap-1 rounded-full border border-slate-700 px-1.5 py-0.5 hover:border-emerald-400 hover:text-emerald-200 transition-colors"
-                              aria-label="I like this TradeDeal"
-                            >
-                              <Heart className="h-2.5 w-2.5" />
-                              <span>Like</span>
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-        </div>
         )}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-8">
           {/* Main Feed */}
