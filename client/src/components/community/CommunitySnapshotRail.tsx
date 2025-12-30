@@ -169,6 +169,32 @@ export const CommunitySnapshotRail: React.FC<{
         // Add TradeDeal cards first
         composedCards.push(...dealCards);
 
+        // If no deals, add placeholder cards indicating deals are coming soon
+        if (dealCards.length === 0) {
+          composedCards.push(
+            {
+              id: "deals-coming-soon-1",
+              type: "starter_invitation",
+              title: "TradeDeals Coming Soon",
+              description: "Exclusive offers from verified partners will appear here",
+              label: "Coming Soon",
+              icon: "sparkles",
+              gradient: "from-orange-950 via-slate-900 to-slate-950",
+              href: "/trade-deals",
+            },
+            {
+              id: "deals-coming-soon-2",
+              type: "starter_invitation",
+              title: "Partner Network Growing",
+              description: "We're building relationships with local suppliers and manufacturers",
+              label: "In Progress",
+              icon: "zap",
+              gradient: "from-slate-900 via-slate-900 to-slate-950",
+              href: "/trade-deals",
+            }
+          );
+        }
+
         // If we have community stats and few/no deals, add a stats card
         if (communityStats && dealCards.length < 2) {
           const isNewCommunity = communityStats.totalMembers < 10;
@@ -187,18 +213,9 @@ export const CommunitySnapshotRail: React.FC<{
         }
 
         // Add starter/invitation cards if empty or very sparse
-        if (composedCards.length === 0) {
+        if (composedCards.length === 0 || (composedCards.length === 2 && dealCards.length === 0)) {
+          // Only filter cards exist, or filter cards + deal placeholders
           composedCards.push(
-            {
-              id: "starter-deal",
-              type: "starter_invitation",
-              title: "First TradeDeal here gets featured",
-              description: "Your local business could be pinned at the top of this community",
-              label: "Early Access",
-              icon: "zap",
-              gradient: "from-orange-950 via-slate-900 to-slate-950",
-              href: "/trade-deals",
-            },
             {
               id: "starter-conversation",
               type: "starter_invitation",
@@ -218,16 +235,18 @@ export const CommunitySnapshotRail: React.FC<{
               gradient: "from-purple-950 via-slate-900 to-slate-950",
             }
           );
-        } else if (composedCards.length === 1 && dealCards.length === 0) {
-          // Only stats card, add one invitation
+        } else if (composedCards.length > 0 && dealCards.length === 0 && composedCards.filter(c => c.type === 'local_stats').length === 1) {
+          // Only stats card exists (no deals), add one community invitation
           composedCards.push({
-            id: "starter-first-deal",
+            id: "starter-first-post",
             type: "starter_invitation",
-            title: "First local deal gets prime placement",
-            description: "Vetted partners get featured in Community Snapshot",
-            label: "Opportunity",
-            icon: "trending",
-            gradient: "from-orange-950 via-slate-900 to-slate-950",
+            title: "Share what's happening",
+            description: "Post a project update, ask for recommendations, or start a discussion",
+            label: "Get Started",
+            icon: "message",
+            gradient: "from-emerald-950 via-slate-900 to-slate-950",
+          });
+        }
             href: "/trade-deals",
           });
         }
