@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Star, Sparkles, TrendingUp, Clock, MapPin, DollarSign, ChevronRight } from "lucide-react";
+import { Star, Sparkles, TrendingUp, Clock, MapPin, DollarSign, ChevronRight, PackageX, Rocket } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 
@@ -25,116 +25,8 @@ interface TradeDeal {
   revealed: boolean;
 }
 
-const MOCK_DEALS: TradeDeal[] = [
-  {
-    id: "1",
-    brand: "Premium Roofing Supply",
-    title: "20% Off Shingles",
-    description: "Premium architectural shingles for active roof projects",
-    discount: "20% OFF",
-    originalPrice: "$240",
-    discountedPrice: "$192",
-    category: "Roofing",
-    location: "County-wide",
-    expiresIn: "3 days",
-    featured: true,
-    rating: 4.8,
-    claimed: 23,
-    totalAvailable: 50,
-    scratched: false,
-    revealed: false,
-  },
-  {
-    id: "2",
-    brand: "Regional Plumbing Warehouse",
-    title: "Fixture Bundle Deal",
-    description: "Complete bathroom fixture package - exclusive pricing",
-    discount: "30% OFF",
-    originalPrice: "$899",
-    discountedPrice: "$629",
-    category: "Plumbing",
-    location: "Service Area",
-    expiresIn: "5 days",
-    featured: true,
-    rating: 4.9,
-    claimed: 17,
-    totalAvailable: 30,
-    scratched: false,
-    revealed: false,
-  },
-  {
-    id: "3",
-    brand: "Local Lumber & Yard",
-    title: "Framing Lumber Special",
-    description: "Community-backed pricing for local builds",
-    discount: "15% OFF",
-    originalPrice: "$450",
-    discountedPrice: "$382",
-    category: "Materials",
-    location: "Local only",
-    expiresIn: "7 days",
-    featured: false,
-    rating: 4.6,
-    claimed: 41,
-    totalAvailable: 100,
-    scratched: false,
-    revealed: false,
-  },
-  {
-    id: "4",
-    brand: "Elite HVAC Solutions",
-    title: "AC Unit Upgrade",
-    description: "High-efficiency AC replacement with installation",
-    discount: "$500 OFF",
-    originalPrice: "$4,500",
-    discountedPrice: "$4,000",
-    category: "HVAC",
-    location: "Metro Area",
-    expiresIn: "10 days",
-    featured: false,
-    rating: 4.7,
-    claimed: 8,
-    totalAvailable: 20,
-    scratched: false,
-    revealed: false,
-  },
-  {
-    id: "5",
-    brand: "Professional Paint Co",
-    title: "Premium Paint Package",
-    description: "Top-tier interior paint + primer combo",
-    discount: "25% OFF",
-    originalPrice: "$320",
-    discountedPrice: "$240",
-    category: "Painting",
-    location: "State-wide",
-    expiresIn: "2 days",
-    featured: true,
-    rating: 4.5,
-    claimed: 56,
-    totalAvailable: 75,
-    scratched: false,
-    revealed: false,
-  },
-  {
-    id: "6",
-    brand: "Quality Flooring Depot",
-    title: "Hardwood Flooring Deal",
-    description: "Premium oak flooring - limited stock",
-    discount: "18% OFF",
-    originalPrice: "$6.50/sqft",
-    discountedPrice: "$5.33/sqft",
-    category: "Flooring",
-    location: "Regional",
-    expiresIn: "4 days",
-    featured: false,
-    rating: 4.8,
-    claimed: 12,
-    totalAvailable: 40,
-    scratched: false,
-    revealed: false,
-  },
-];
+// Empty array - no deals available yet
+const MOCK_DEALS: TradeDeal[] = [];
 
 export default function TradeDealsLuckyPage() {
   const { user, isAuthenticated } = useAuth();
@@ -198,6 +90,138 @@ export default function TradeDealsLuckyPage() {
 
   const featuredDeals = deals.filter(d => d.featured);
   const regularDeals = deals.filter(d => !d.featured);
+
+  // Show empty state when no deals are available
+  if (deals.length === 0) {
+    return (
+      <div className="min-h-screen pb-24" style={{ backgroundColor: 'var(--surface-base)' }}>
+        <div className="max-w-4xl mx-auto px-4 py-12 space-y-8">
+          {/* Header */}
+          <div className="text-center space-y-3">
+            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full border" style={{ backgroundColor: 'var(--surface-card)', borderColor: 'var(--border-subtle)' }}>
+              <Sparkles className="h-4 w-4" style={{ color: 'var(--theme-accent-primary)' }} />
+              <span className="text-sm font-medium" style={{ color: 'var(--theme-accent-primary)' }}>TradeDeals Coming Soon</span>
+            </div>
+            <h1 className="text-3xl md:text-4xl font-bold" style={{ color: 'var(--text-primary)' }}>
+              Exclusive deals are on the way
+            </h1>
+            <p className="text-sm md:text-base max-w-2xl mx-auto" style={{ color: 'var(--text-secondary)' }}>
+              We're partnering with trusted suppliers, manufacturers, and local businesses to bring you exclusive TradeDeals you won't find anywhere else.
+            </p>
+          </div>
+
+          {/* Empty State Illustration */}
+          <Card className="border-2 border-dashed" style={{ backgroundColor: 'var(--surface-card)', borderColor: 'var(--border-subtle)' }}>
+            <CardContent className="p-12 text-center space-y-6">
+              <div className="flex justify-center">
+                <div className="relative">
+                  <PackageX className="h-24 w-24" style={{ color: 'var(--text-tertiary)' }} />
+                  <Rocket className="h-8 w-8 absolute -top-2 -right-2" style={{ color: 'var(--theme-accent-primary)' }} />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <h3 className="text-xl font-semibold" style={{ color: 'var(--text-primary)' }}>No TradeDeals Available Yet</h3>
+                <p className="text-sm max-w-md mx-auto" style={{ color: 'var(--text-secondary)' }}>
+                  We're building partnerships with quality suppliers and manufacturers. TradeDeals will start appearing here as our partner network grows.
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* What to Expect */}
+          <div className="space-y-4">
+            <h2 className="text-xl font-semibold text-center" style={{ color: 'var(--text-primary)' }}>What to expect from TradeDeals</h2>
+            <div className="grid md:grid-cols-3 gap-4">
+              <Card style={{ backgroundColor: 'var(--surface-card)', borderColor: 'var(--border-subtle)' }}>
+                <CardContent className="p-6 space-y-3">
+                  <div className="h-10 w-10 rounded-full flex items-center justify-center" style={{ backgroundColor: 'color-mix(in oklab, var(--theme-accent-primary) 20%, transparent)' }}>
+                    <Sparkles className="h-5 w-5" style={{ color: 'var(--theme-accent-primary)' }} />
+                  </div>
+                  <h3 className="font-semibold" style={{ color: 'var(--text-primary)' }}>Exclusive Offers</h3>
+                  <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
+                    Deals available only through TradeScout - not found anywhere else online or in stores.
+                  </p>
+                </CardContent>
+              </Card>
+
+              <Card style={{ backgroundColor: 'var(--surface-card)', borderColor: 'var(--border-subtle)' }}>
+                <CardContent className="p-6 space-y-3">
+                  <div className="h-10 w-10 rounded-full flex items-center justify-center" style={{ backgroundColor: 'color-mix(in oklab, var(--theme-accent-primary) 20%, transparent)' }}>
+                    <Star className="h-5 w-5" style={{ color: 'var(--theme-accent-primary)' }} />
+                  </div>
+                  <h3 className="font-semibold" style={{ color: 'var(--text-primary)' }}>Verified Partners</h3>
+                  <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
+                    Every deal comes from vetted suppliers, manufacturers, and trusted local businesses.
+                  </p>
+                </CardContent>
+              </Card>
+
+              <Card style={{ backgroundColor: 'var(--surface-card)', borderColor: 'var(--border-subtle)' }}>
+                <CardContent className="p-6 space-y-3">
+                  <div className="h-10 w-10 rounded-full flex items-center justify-center" style={{ backgroundColor: 'color-mix(in oklab, var(--theme-accent-primary) 20%, transparent)' }}>
+                    <DollarSign className="h-5 w-5" style={{ color: 'var(--theme-accent-primary)' }} />
+                  </div>
+                  <h3 className="font-semibold" style={{ color: 'var(--text-primary)' }}>Project-Based</h3>
+                  <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
+                    Deals matched to your active projects - materials and services when you actually need them.
+                  </p>
+                </CardContent>
+              </Card>
+            </div>
+          </div>
+
+          {/* How It Works */}
+          <Card style={{ backgroundColor: 'var(--surface-card)', borderColor: 'var(--border-subtle)' }}>
+            <CardContent className="p-6 space-y-4">
+              <h3 className="text-lg font-semibold" style={{ color: 'var(--text-primary)' }}>How TradeDeals will work</h3>
+              <div className="space-y-3 text-sm" style={{ color: 'var(--text-secondary)' }}>
+                <div className="flex gap-3">
+                  <div className="flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center text-xs font-semibold" style={{ backgroundColor: 'var(--theme-accent-primary)', color: 'var(--text-primary)' }}>1</div>
+                  <div>
+                    <strong style={{ color: 'var(--text-primary)' }}>Scratch to reveal</strong> - Each deal appears as a scratcher card. Scratch it to see the discount and details.
+                  </div>
+                </div>
+                <div className="flex gap-3">
+                  <div className="flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center text-xs font-semibold" style={{ backgroundColor: 'var(--theme-accent-primary)', color: 'var(--text-primary)' }}>2</div>
+                  <div>
+                    <strong style={{ color: 'var(--text-primary)' }}>Claim what you need</strong> - When you find a deal for your project, claim it to lock in the pricing.
+                  </div>
+                </div>
+                <div className="flex gap-3">
+                  <div className="flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center text-xs font-semibold" style={{ backgroundColor: 'var(--theme-accent-primary)', color: 'var(--text-primary)' }}>3</div>
+                  <div>
+                    <strong style={{ color: 'var(--text-primary)' }}>Rate your experience</strong> - Help the community by rating deals after you use them.
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* CTA */}
+          <div className="text-center space-y-4 pt-4">
+            <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
+              In the meantime, use <strong style={{ color: 'var(--text-primary)' }}>Direct Connect</strong> to start your project and <strong style={{ color: 'var(--text-primary)' }}>Community</strong> to get contractor recommendations.
+            </p>
+            <div className="flex gap-3 justify-center">
+              <Button
+                onClick={() => window.location.href = '/direct-connect'}
+                style={{ backgroundColor: 'var(--theme-accent-primary)', color: 'var(--text-primary)' }}
+              >
+                Start a Project
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => window.location.href = '/community'}
+                style={{ borderColor: 'var(--border-active)', color: 'var(--text-primary)' }}
+              >
+                Browse Community
+              </Button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen pb-24" style={{ backgroundColor: 'var(--surface-base)' }}>
