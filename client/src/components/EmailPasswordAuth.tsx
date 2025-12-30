@@ -42,7 +42,7 @@ export function EmailPasswordAuth() {
         }!`,
       });
 
-      const anyUser: any = data?.user || data;
+      const anyUser: any = result?.user || result;
       const role: string | undefined = anyUser?.role;
       const isSuperAdmin = role === "super_admin" || role === "head_admin" || anyUser?.isSuperAdmin === true;
       window.location.href = isSuperAdmin ? "/admin" : "/dashboard";
