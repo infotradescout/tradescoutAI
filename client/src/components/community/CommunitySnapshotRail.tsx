@@ -1,10 +1,10 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useLocation } from "wouter";
 import { CommunityCTA } from "./CommunityCTA";
-import { Tag, Users2, MessageSquare, Sparkles, TrendingUp, Zap } from "lucide-react";
+import { Tag, Users2, MessageSquare, Sparkles, TrendingUp, Zap, Star, MapPin, Clock, Eye, Vault } from "lucide-react";
 
 // Card types that can appear in the snapshot
-export type SnapshotCardType = "trade_deal" | "community_post" | "local_stats" | "starter_invitation";
+export type SnapshotCardType = "trade_deal" | "community_post" | "local_stats" | "starter_invitation" | "feed_filter";
 
 export type SnapshotCard = {
   id: string;
@@ -19,6 +19,7 @@ export type SnapshotCard = {
   ownerUserId?: string;
   canDirectConnect?: boolean;
   canMessage?: boolean;
+  filterValue?: string; // For feed filter cards
   stats?: {
     membersCount?: number;
     activeToday?: number;
@@ -60,7 +61,9 @@ export const CommunitySnapshotRail: React.FC<{
     activeToday: number;
     postsToday: number;
   };
-}> = ({ countyFips, limit = 10, className, communityStats }) => {
+  activeFilter?: string;
+  onFilterChange?: (filter: string) => void;
+}> = ({ countyFips, limit = 10, className, communityStats, activeFilter = "forYou", onFilterChange }) => {
   const [, navigate] = useLocation();
   const [cards, setCards] = useState<SnapshotCard[]>([]);
   const [loading, setLoading] = useState(false);
@@ -94,10 +97,74 @@ export const CommunitySnapshotRail: React.FC<{
           ownerUserId: r.ownerUserId ?? r.providerUserId ?? null,
           canDirectConnect: Boolean(r.canDirectConnect ?? r.supportsDirectConnect ?? false),
           canMessage: Boolean((r.ownerUserId ?? r.providerUserId) && !r.disableMessaging),
-        }));
-
-        // Build composed card array: deals + stats + invitations
+        }));feed filters + deals + stats + invitations
         const composedCards: SnapshotCard[] = [];
+
+        // Always add feed filter cards first
+        composedCards.push(
+          {
+            id: "filter-for-you",
+            type: "feed_filter",
+            title: "For You",
+            description: "Personalized content based on your interests",
+            label: "Recommended",
+            icon: "star",
+            gradient: activeFilter === "forYou" ? "from-orange-500 to-orange-600" : "from-slate-800 to-slate-900",
+            filterValue: "forYou",
+          },
+          {
+            id: "filter-recent",
+            type: "feed_filter",
+            title: "Recent",
+            description: "Latest posts from your community",
+            label: "Latest",
+            icon: "clock",
+            gradient: activeFilter === "recent" ? "from-orange-500 to-orange-600" : "from-slate-800 to-slate-900",
+            filterValue: "recent",
+          },
+          {
+            id: "filter-nearby",
+            type: "feed_filter",
+            title: "Nearby",
+            description: "Posts from neighbors close to you",
+            label: "Local",
+            icon: "mappin",
+            gradient: activeFilter === "nearby" ? "from-orange-500 to-orange-600" : "from-slate-800 to-slate-900",
+            filterValue: "nearby",
+          },
+          {
+            id: "filter-trending",
+            type: "feed_filter",
+            title: "Trending",
+            description: "Most popular conversations right now",
+            label: "Hot",
+            icon: "trending",
+            gradient: activeFilter === "trending" ? "from-orange-500 to-orange-600" : "from-slate-800 to-slate-900",
+            filterValue: "trending",
+          },
+          {
+            id: "filter-recs",
+            type: "feed_filter",
+            title: "Recs",
+            description: "Recommendations and endorsements",
+            label: "Trusted",
+            icon: "eye",
+            gradient: activeFilter === "recs" ? "from-orange-500 to-orange-600" : "from-slate-800 to-slate-900",
+            filterValue: "recs",
+          },
+          {
+            id: "filter-vault",
+            type: "feed_filter",
+            title: "Vault",
+            description: "Saved and bookmarked content",
+            label: "Saved",
+            icon: "vault",
+            gradient: activeFilter === "vault" ? "from-orange-500 to-orange-600" : "from-slate-800 to-slate-900",
+            filterValue: "vault",
+          }
+        );
+
+        // Add TradeDeal cardstCard[] = [];
 
         // Add TradeDeal cards first
         composedCards.push(...dealCards);
@@ -182,7 +249,9 @@ export const CommunitySnapshotRail: React.FC<{
   }, [apiUrl, communityStats]);
 
   const onCardClick = (card: SnapshotCard) => {
-    if (card.href) {
+    if (card.type === "feed_filter" && onFilterChange && card.filterValue) {
+      onFilterChange(card.filterValue);
+    } else if (card.href) {
       navigate(card.href);
     }
   };
@@ -194,6 +263,11 @@ export const CommunitySnapshotRail: React.FC<{
       case "message": return <MessageSquare className="h-5 w-5" />;
       case "sparkles": return <Sparkles className="h-5 w-5" />;
       case "trending": return <TrendingUp className="h-5 w-5" />;
+      case "star": return <Star className="h-5 w-5" />;
+      case "clock": return <Clock className="h-5 w-5" />;
+      case "mappin": return <MapPin className="h-5 w-5" />;
+      case "eye": return <Eye className="h-5 w-5" />;
+      case "vault": return <Vault className="h-5 w-5" />;
       default: return <Tag className="h-5 w-5" />;
     }
   };
@@ -202,6 +276,8 @@ export const CommunitySnapshotRail: React.FC<{
     const isInvitation = card.type === "starter_invitation";
     const isStats = card.type === "local_stats";
     const isTradeDeal = card.type === "trade_deal";
+    const isFilter = card.type === "feed_filter";
+    const isActive = isFilter && card.filterValue === activeFilter;
 
     return (
       <div
@@ -219,12 +295,13 @@ export const CommunitySnapshotRail: React.FC<{
           snap-start shrink-0 
           w-[260px] sm:w-[280px] md:w-[300px]
           h-[280px] sm:h-[300px]
-          rounded-2xl border border-slate-800 
+          rounded-2xl border 
+          ${isActive ? 'border-orange-500 ring-2 ring-orange-500/20' : 'border-slate-800'}
           ${card.gradient ? `bg-gradient-to-br ${card.gradient}` : 'bg-slate-950/50'}
           hover:bg-slate-900/40 hover:border-slate-700
           transition-all shadow-lg
           flex flex-col justify-between p-5 text-left 
-          ${card.href ? 'cursor-pointer' : 'cursor-default'}
+          ${card.href || isFilter ? 'cursor-pointer' : 'cursor-default'}
           relative overflow-hidden
         `}
       >
