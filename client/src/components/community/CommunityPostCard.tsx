@@ -7,6 +7,10 @@ import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { useToast } from "@/hooks/use-toast";
 import { share } from "@/utils/share";
+
+// NOTE: Authority labels intentionally disabled (Phase 2B).
+// See CommunitySnapshotRail.tsx for full rationale.
+const ENABLE_AUTHORITY_LABELS = false;
 import {
   MapPin,
   MessageSquare,
@@ -58,6 +62,7 @@ export interface CommunityPostCardData {
   imageUrls?: string[];
   hasWorkRequest?: boolean;
   workRequestId?: string | null;
+  authorityLabel?: string; // Scout authority interpretive label
 }
 
 export interface CommunityPostCardProps {
@@ -559,7 +564,19 @@ export function CommunityPostCard({ post, onLike, formatTimeAgo }: CommunityPost
               canDirectConnect={canDirectConnect}
               canMessage={canOpenMessages}
               disableDirectConnect={isContractor}
+              scope={post.county} // Pass county for authority scope
             />
+            
+            {/* Authority label - interpretive guidance from Scout */}
+            {/* DISABLED (Phase 2B): See ENABLE_AUTHORITY_LABELS flag */}
+            {ENABLE_AUTHORITY_LABELS && post.authorityLabel && (
+              <div className="mt-3 pt-3 border-t border-tsBorder/50 flex items-start gap-2">
+                <Info className="h-4 w-4 text-slate-500 mt-0.5 shrink-0" />
+                <span className="text-xs text-slate-400 italic leading-relaxed">
+                  {post.authorityLabel}
+                </span>
+              </div>
+            )}
           </>
         )}
       </CardContent>

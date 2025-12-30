@@ -37,6 +37,7 @@ import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
 import { govern, type GovernorDecision } from "../scout/governor";
+import { recordOutcomeEvent, updateUserConfidenceStateFromOutcome } from "../scout/outcomeTracker";
 
 const router = Router();
 const __filename = fileURLToPath(import.meta.url);
@@ -87,6 +88,14 @@ const FRAUD_PATTERNS = [
   /routing\s*number|account\s*number/i,
   /ssn|social\s*security/i,
 ];
+
+const ALLOWED_OUTCOME_CONTEXTS = new Set([
+  "direct_connect",
+  "community",
+  "trade_deal",
+  "tool",
+  "general",
+]);
 
 type DealRoomStage =
   | "EMPTY"
@@ -1306,6 +1315,14 @@ interface ScoutResponse {
    * The client maps this 1:1 to ScoutCtaHint in client/src/scout/ctaHelpers.ts.
    */
   ctaHints?: ScoutCtaHintServer[];
+  overrideOption?: {
+    label: string;
+    message: string;
+    scope?: string;
+    logAction: "ignored_advice";
+    contextType?: string;
+    contextId?: string | null;
+  };
   metadata?: {
     intent?: string;
     thought_flow?: string[];
@@ -1927,6 +1944,43 @@ function resolveDealRoomContextFromDocs(
  * Main endpoint for AI Scout interactions with 4-layer knowledge resolution
  * Includes role-based access control and action execution
  */
+router.post("/override", async (req: Request, res: Response) => {
+  try {
+    const userId = (req as any).user?.id;
+    if (!userId) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+
+    const { scope, contextType, contextId } = (req.body ?? {}) as {
+      scope?: string;
+      contextType?: string;
+      contextId?: string;
+    };
+
+    const normalizedScope = typeof scope === "string" && scope.trim() ? scope.trim() : "global";
+    const normalizedContext =
+      typeof contextType === "string" && ALLOWED_OUTCOME_CONTEXTS.has(contextType)
+        ? contextType
+        : "general";
+
+    const outcomeEvent = {
+      userId: Number(userId),
+      contextType: normalizedContext as any,
+      contextId: contextId ? String(contextId) : null,
+      scope: normalizedScope,
+      action: "ignored_advice" as const,
+    } satisfies Parameters<typeof recordOutcomeEvent>[0];
+
+    await recordOutcomeEvent(outcomeEvent);
+    await updateUserConfidenceStateFromOutcome(Number(userId), outcomeEvent, normalizedScope);
+
+    return res.json({ status: "ok" });
+  } catch (err) {
+    console.error("[Scout] Failed to record override", err);
+    return res.status(500).json({ message: "Failed to record override" });
+  }
+});
+
 router.post("/", async (req: Request, res: Response) => {
   recordQuery();
   try {
@@ -2055,6 +2109,13 @@ router.post("/", async (req: Request, res: Response) => {
         suggestedActions,
         actions: [],
         sponsored: null,
+        overrideOption: intervention.overrideOption
+          ? {
+              ...intervention.overrideOption,
+              contextType: "general",
+              contextId: governorDecision.outcomeGraph?.situationId ?? null,
+            }
+          : undefined,
         metadata: {
           governorAction: intervention.action,
           governorRole: intervention.role,

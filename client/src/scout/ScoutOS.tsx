@@ -13,6 +13,7 @@ import { ScoutHasDonePanel } from "./ScoutHasDonePanel";
 import ScoutInput from "./ScoutInput";
 import ScoutToolsDrawer from "./ScoutToolsDrawer";
 import {
+  apiBase,
   sendToScout,
   logScoutInsight,
   type ScoutLocality,
@@ -258,6 +259,7 @@ export default function ScoutOS() {
   const [activeMode, setActiveMode] = useState<ScoutMode>("default");
   const [hasGuestInteracted, setHasGuestInteracted] = useState(false);
   const [firstIntroAppendix, setFirstIntroAppendix] = useState<string>("");
+  const [overridePendingScope, setOverridePendingScope] = useState<string | null>(null);
   const [introDemoText, setIntroDemoText] = useState("");
   const [introDemoState, setIntroDemoState] = useState<
     "idle" | "typing" | "armingSend" | "sending" | "done"
@@ -2041,6 +2043,7 @@ export default function ScoutOS() {
           content: finalContent,
           timestamp: res.timestamp || new Date().toISOString(),
           suggestedActions: smartSuggestions,
+          overrideOption: res.overrideOption,
           clusters: clusters.length ? clusters : undefined,
           frame: res.frame,
           contextRoles: getContextRoles(value),
@@ -2213,6 +2216,46 @@ export default function ScoutOS() {
       navigate,
       handleSend,
     ]
+  );
+
+  const handleOverride = useCallback(
+    async (option: NonNullable<ScoutMessage["overrideOption"]>) => {
+      const scope = option.scope ?? "global";
+      if (overridePendingScope === scope) return;
+
+      setOverridePendingScope(scope);
+      try {
+        const res = await fetch(`${apiBase}/scout/override`, {
+          method: "POST",
+          credentials: "include",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            scope,
+            contextType: option.contextType ?? "general",
+            contextId: option.contextId ?? null,
+          }),
+        });
+
+        if (!res.ok) {
+          const text = await res.text().catch(() => "");
+          throw new Error(text || `Override HTTP ${res.status}`);
+        }
+
+        const ack: ScoutMessage = {
+          id: `a_${Date.now()}_${Math.random().toString(36).slice(2)}`,
+          role: "assistant",
+          content:
+            "Understood. I'll proceed and record that you chose to continue so Scout can learn from this scope.",
+          timestamp: new Date().toISOString(),
+        };
+        applyServerResponse(ack, []);
+      } catch (err: any) {
+        setError(err?.message || "Failed to record override");
+      } finally {
+        setOverridePendingScope(null);
+      }
+    },
+    [applyServerResponse, overridePendingScope, setError]
   );
 
   // Auto-consume Help Center intents: when arriving from Help, send the
@@ -2648,6 +2691,8 @@ export default function ScoutOS() {
                 status={state.status}
                 mode={activeMode}
                 onAction={handleClusterAction}
+                onOverride={handleOverride}
+                overridePendingScope={overridePendingScope}
                 onQuickAction={(text) => {
                   const trimmed = text.trim();
 

@@ -12,6 +12,7 @@ import { and, asc, desc, eq, inArray } from "drizzle-orm";
 import { z } from "zod";
 import { storage } from "../storage";
 import { notificationService } from "../notification-service";
+import { recordOutcomeEvent, updateUserConfidenceStateFromOutcome } from "../scout/outcomeTracker";
 
 type AuthedRequest = Request & { user?: { id?: string; claims?: { sub?: string }; role?: string; [key: string]: any } };
 
@@ -470,6 +471,22 @@ export function registerDirectConnectRoutes(app: Express) {
           console.warn("[direct-connect] Failed to record cancelled event", e);
         }
       });
+
+      // Outcome feedback: user cancelled a guided flow (negative confidence signal)
+      try {
+        const scope = "direct_connect";
+        const outcomeEvent = {
+          userId: Number(userId),
+          contextType: "direct_connect" as const,
+          contextId: requestId,
+          action: "canceled" as const,
+          scope,
+        };
+        await recordOutcomeEvent(outcomeEvent);
+        await updateUserConfidenceStateFromOutcome(Number(userId), outcomeEvent, scope);
+      } catch (e) {
+        console.warn("[direct-connect] Failed to record outcome event for cancel", e);
+      }
 
       res.status(200).json({ status: "cancelled" });
     } catch (error: any) {

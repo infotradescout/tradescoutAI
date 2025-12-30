@@ -1,7 +1,20 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useLocation } from "wouter";
 import { CommunityCTA } from "./CommunityCTA";
-import { Tag, Users2, MessageSquare, Sparkles, TrendingUp, Zap, Star, MapPin, Clock, Eye, Vault } from "lucide-react";
+import { Tag, Users2, MessageSquare, Sparkles, TrendingUp, Zap, Star, MapPin, Clock, Eye, Vault, Info } from "lucide-react";
+
+// NOTE: Authority labels intentionally disabled (Phase 2B).
+// These signals imply validated judgment before outcomes exist.
+// REASONING:
+// - CTA gating (Phase 2A) is now the primary authority seam.
+// - Labels should only render after we observe override + outcome data.
+// - Premature labels pollute learning data and bias user expectations.
+// ENABLE WHEN:
+// - >= 100 gated CTAs have executed
+// - >= 20 overrides recorded
+// - Clear override/regret correlation visible in admin diagnostics
+// See: COMMUNITY_AUTHORITY_INTEGRATION_COMPLETE.md
+const ENABLE_AUTHORITY_LABELS = false;
 
 // Card types that can appear in the snapshot
 export type SnapshotCardType = "trade_deal" | "community_post" | "local_stats" | "starter_invitation" | "feed_filter";
@@ -20,6 +33,7 @@ export type SnapshotCard = {
   canDirectConnect?: boolean;
   canMessage?: boolean;
   filterValue?: string; // For feed filter cards
+  authorityLabel?: string; // Scout authority interpretive label
   stats?: {
     membersCount?: number;
     activeToday?: number;
@@ -97,6 +111,12 @@ export const CommunitySnapshotRail: React.FC<{
           ownerUserId: r.ownerUserId ?? r.providerUserId ?? null,
           canDirectConnect: Boolean(r.canDirectConnect ?? r.supportsDirectConnect ?? false),
           canMessage: Boolean((r.ownerUserId ?? r.providerUserId) && !r.disableMessaging),
+          // Simple authority label based on engagement patterns
+          authorityLabel: r.verified 
+            ? "Verified provider in your area" 
+            : r.isNew 
+              ? "New listing — Scout recommends gathering context" 
+              : undefined,
         }));
         
         // Compose cards: feed filters + deals + stats + invitations
@@ -384,6 +404,18 @@ export const CommunitySnapshotRail: React.FC<{
           {isInvitation && (
             <div className="text-xs text-slate-500 italic">
               Tap to explore
+            </div>
+          )}
+          
+          {/* Authority label - interpretive guidance from Scout */}
+          {/* Authority label - interpretive guidance from Scout */}
+          {/* DISABLED (Phase 2B): See ENABLE_AUTHORITY_LABELS flag */}
+          {ENABLE_AUTHORITY_LABELS && card.authorityLabel && (
+            <div className="mt-2 pt-2 border-t border-slate-800/50 flex items-start gap-1.5">
+              <Info className="h-3.5 w-3.5 text-slate-500 mt-0.5 shrink-0" />
+              <span className="text-xs text-slate-400 italic leading-tight">
+                {card.authorityLabel}
+              </span>
             </div>
           )}
         </div>

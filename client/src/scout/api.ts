@@ -94,6 +94,14 @@ export interface ScoutBackendResponse {
   message: string;
   suggestedActions?: string[];
   actions?: ScoutAction[];
+  overrideOption?: {
+    label: string;
+    message: string;
+    scope?: string;
+    logAction: "ignored_advice";
+    contextType?: string;
+    contextId?: string | null;
+  };
    frame?: ScoutResponseFrame;
    workingContext?: ScoutWorkingContext;
   sponsored?: SponsoredResult | null;
