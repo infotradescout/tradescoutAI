@@ -97,6 +97,23 @@ export interface ScoutBackendResponse {
    frame?: ScoutResponseFrame;
    workingContext?: ScoutWorkingContext;
   sponsored?: SponsoredResult | null;
+  publicEntities?: Array<{
+    type: "trade_deal" | "community_post";
+    id: string;
+    href?: string;
+    ownerUserId?: string | null;
+    authorId?: string | null;
+    canDirectConnect?: boolean;
+    canMessage?: boolean;
+  }>;
+  ctaHints?: Array<{
+    type: "trade_deal" | "community_post";
+    id: string;
+    ownerUserId?: string | null;
+    authorId?: string | null;
+    canDirectConnect?: boolean;
+    canMessage?: boolean;
+  }>;
   knowledge?: {
     layer?: number;
     sources?: Array<{ title: string; url?: string; type?: string }>;
