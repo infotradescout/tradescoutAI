@@ -41,6 +41,7 @@ import { ScoutInputRow } from "./ScoutInputRow";
 import { scoutActionTiles } from "./scoutActionTiles";
 import { resolveAllTiles } from "./resolveScoutTiles";
 import type { ScoutTileContext } from "./scoutActionTiles";
+import { applyCtasToClusters, type ScoutCtaHint } from "./ctaHelpers";
 import { updateGeoPreferencesFromDeviceLocation } from "../agent/tools/geoPreferences";
 import { useLocationContext, hasCountyContext } from "@/hooks/useLocationContext";
 import { formatCityOnly } from "@/utils/locationDisplay";
@@ -1540,13 +1541,30 @@ export default function ScoutOS() {
               },
             }));
 
-            const msg: ScoutMessage = {
+            let contractorClustersWithCtas = contractorClusters;
+
+            // If server has returned CTA hints (e.g., related trade_deals or community_posts),
+            // attach them to these contractor result clusters as well.
+            if (Array.isArray((contractorResult as any).ctaHints) && (contractorResult as any).ctaHints.length > 0) {
+              contractorClustersWithCtas = applyCtasToClusters(contractorClusters, {
+                hints: ((contractorResult as any).ctaHints as any[]).map((h) => ({
+                  type: h.type,
+                  id: h.id,
+                  ownerUserId: h.ownerUserId ?? undefined,
+                  authorId: h.authorId ?? undefined,
+                  canDirectConnect: h.canDirectConnect,
+                  canMessage: h.canMessage,
+                })) as ScoutCtaHint[],
+              }) || contractorClusters;
+            }
+
+            const msgBase: ScoutMessage = {
               id: `a_${Date.now()}_${Math.random().toString(36).slice(2)}`,
               role: "assistant",
               content: `Found ${contractors.length} ${trade} contractors near ${locality.county}, ${locality.state}. Here are the top matches:`,
               timestamp: new Date().toISOString(),
-              clusters: contractorClusters,
-              navTarget: "/contractors",
+              clusters: contractorClustersWithCtas,
+              navTarget: "/direct-connect",
               memoryDelta: {
                 lastViewedTrade: trade,
                 lastIntent: "find_contractors",
@@ -1560,6 +1578,7 @@ export default function ScoutOS() {
               },
             };
 
+            const msg = msgBase;
             applyServerResponse(msg, []);
             setStatus("idle");
 
@@ -1577,17 +1596,17 @@ export default function ScoutOS() {
             const msg: ScoutMessage = {
               id: `a_${Date.now()}_${Math.random().toString(36).slice(2)}`,
               role: "assistant",
-              content: `I couldn't find any ${trade} contractors in ${locality.county}, ${locality.state} right now. Try browsing all contractors or ask me about a different trade.`,
+              content: `I couldn't find any ${trade} contractors in ${locality.county}, ${locality.state} right now. Try creating a Direct Connect request so providers in this trade can raise their hand, or ask me about a different trade.`,
               timestamp: new Date().toISOString(),
               clusters: [
                 {
-                  id: "browse-all-contractors",
-                  title: "Browse all contractors",
+                  id: "direct-connect-request",
+                  title: "Create a Direct Connect request",
                   kind: "generic",
                   primaryAction: {
                     type: "NAVIGATE",
                     label: "Open",
-                    to: "/contractors",
+                    to: "/direct-connect",
                   },
                 },
               ],
@@ -1854,7 +1873,7 @@ export default function ScoutOS() {
           }
         );
 
-        const clusters: ScoutCluster[] = [];
+        let clusters: ScoutCluster[] = [];
 
         // Sponsored/affiliate guardrails:
         // - never on the first real Scout answer
@@ -1999,6 +2018,20 @@ export default function ScoutOS() {
           isFirstAnswer && typeof enrichedContent === "string" && enrichedContent.length > MAX_FIRST_MESSAGE_CHARS
             ? `${enrichedContent.slice(0, MAX_FIRST_MESSAGE_CHARS).trimEnd()}…`
             : enrichedContent;
+
+        // Attach CTA hints from server (community posts, trade deals, etc.)
+        if (Array.isArray(res.ctaHints) && res.ctaHints.length > 0) {
+          clusters = applyCtasToClusters(clusters, {
+            hints: res.ctaHints.map((h) => ({
+              type: h.type,
+              id: h.id,
+              ownerUserId: h.ownerUserId ?? undefined,
+              authorId: h.authorId ?? undefined,
+              canDirectConnect: h.canDirectConnect,
+              canMessage: h.canMessage,
+            })) as ScoutCtaHint[],
+          }) || clusters;
+        }
 
         const msg: ScoutMessage = {
           id: `a_${Date.now()}_${Math.random().toString(36).slice(2)}`,

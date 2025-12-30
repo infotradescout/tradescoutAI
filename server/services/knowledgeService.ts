@@ -737,10 +737,10 @@ export async function resolveKnowledge(
       ? dbResult.data.items.length
       : 0;
     if (dbResult.data.category === "community_posts") {
-      meta.communityPosts = { count };
+      meta.communityPosts = { count, items: dbResult.data.items } as any;
     }
     if (dbResult.data.category === "contractors") {
-      meta.contractors = { count };
+      meta.contractors = { count } as any;
     }
     highestLayer = Math.min(highestLayer, 2);
   }

@@ -1248,6 +1248,36 @@ interface ScoutWorkingContext {
   lastTemplateId?: string;
 }
 
+interface ScoutPublicEntityBase {
+  id: string;
+  href?: string;
+}
+
+interface ScoutPublicTradeDeal extends ScoutPublicEntityBase {
+  type: "trade_deal";
+  ownerUserId?: string | null;
+  canDirectConnect?: boolean;
+  canMessage?: boolean;
+}
+
+interface ScoutPublicCommunityPost extends ScoutPublicEntityBase {
+  type: "community_post";
+  authorId?: string | null;
+  canDirectConnect?: boolean;
+  canMessage?: boolean;
+}
+
+type ScoutPublicEntity = ScoutPublicTradeDeal | ScoutPublicCommunityPost;
+
+interface ScoutCtaHintServer {
+  type: "trade_deal" | "community_post";
+  id: string;
+  ownerUserId?: string | null;
+  authorId?: string | null;
+  canDirectConnect?: boolean;
+  canMessage?: boolean;
+}
+
 interface ScoutResponse {
   message: string;
   suggestedActions?: string[];
@@ -1264,6 +1294,16 @@ interface ScoutResponse {
     isAffiliate?: boolean | null;
     targetLocation?: string | null;
   } | null;
+  /**
+   * Structured, public entities that Scout surfaced while answering.
+   * These are safe to show in UI and can be used for CTAs and deep-links.
+   */
+  publicEntities?: ScoutPublicEntity[];
+  /**
+   * Lightweight CTA hints derived from publicEntities or deterministic tools.
+   * The client maps this 1:1 to ScoutCtaHint in client/src/scout/ctaHelpers.ts.
+   */
+  ctaHints?: ScoutCtaHintServer[];
   metadata?: {
     intent?: string;
     thought_flow?: string[];
@@ -1272,6 +1312,21 @@ interface ScoutResponse {
     resolvedContext?: ResolvedContext | null;
     currentJobId?: string;
   };
+}
+
+function isTradeDealIntent(message: string): boolean {
+  const lower = message.toLowerCase();
+  return (
+    lower.includes("deal") ||
+    lower.includes("deals") ||
+    lower.includes("discount") ||
+    lower.includes("promo") ||
+    lower.includes("promotion") ||
+    lower.includes("special offer") ||
+    lower.includes("savings") ||
+    lower.includes("materials pricing") ||
+    lower.includes("material pricing")
+  );
 }
 
 type ScoutClientAction = {
@@ -1967,6 +2022,9 @@ router.post("/", async (req: Request, res: Response) => {
 
     const communityPostCount = knowledge.meta?.communityPosts?.count ?? 0;
     const contractorCount = knowledge.meta?.contractors?.count ?? 0;
+    const communityPostItems: any[] = Array.isArray((knowledge.meta as any)?.communityPosts?.items)
+      ? ((knowledge.meta as any).communityPosts.items as any[])
+      : [];
 
     // Load system prompt (with version)
     const { content: systemPrompt, version: promptVersion } = loadSystemPrompt();
@@ -2237,6 +2295,21 @@ router.post("/", async (req: Request, res: Response) => {
       suggestedActions: synthesized.suggestedActions,
       actions: [],
       sponsored: null,
+      publicEntities: communityPostItems.slice(0, 6).map((p) => ({
+        type: "community_post",
+        id: String(p.id),
+        href: "/community?post=" + encodeURIComponent(String(p.id)),
+        authorId: p.authorId ?? p.author_id ?? null,
+        canDirectConnect: false,
+        canMessage: !!(p.authorId || p.author_id),
+      })),
+      ctaHints: communityPostItems.slice(0, 6).map((p) => ({
+        type: "community_post",
+        id: String(p.id),
+        authorId: p.authorId ?? p.author_id ?? null,
+        canDirectConnect: false,
+        canMessage: !!(p.authorId || p.author_id),
+      })),
       metadata: {
         intent: synthesized.intent,
         thought_flow: synthesized.thought_flow,
@@ -2254,6 +2327,60 @@ router.post("/", async (req: Request, res: Response) => {
       let actions: ScoutClientAction[] = Array.isArray(aiResponse.actions)
         ? aiResponse.actions.slice()
         : [];
+
+      // -----------------------------------------------------------------
+      // TradeDeals / Daily Deals CTA hints
+      // -----------------------------------------------------------------
+      // When the user is clearly asking about deals/savings/materials,
+      // surface a small, county-scoped set of active daily deals as
+      // publicEntities + ctaHints so the client can attach CTAs.
+      const shouldAttachDeals =
+        isTradeDealIntent(message) &&
+        !!countyCode &&
+        !lowConfidenceForLocal;
+
+      if (shouldAttachDeals) {
+        try {
+          const deals = await storage.getDailyDeals({
+            countyFips: countyCode,
+            activeOnly: true,
+            limit: 5,
+          });
+
+          if (Array.isArray(deals) && deals.length > 0) {
+            const topDeals = deals.slice(0, 5);
+
+            const dealEntities: ScoutPublicEntity[] = topDeals.map((d) => ({
+              type: "trade_deal",
+              id: String(d.id),
+              href: "/trade-deals?deal=" + encodeURIComponent(String(d.id)),
+              ownerUserId: (d as any).providerId ?? null,
+              canDirectConnect: true,
+              canMessage: !!(d as any).providerId,
+            }));
+
+            const dealHints: ScoutCtaHintServer[] = topDeals.map((d) => ({
+              type: "trade_deal",
+              id: String(d.id),
+              ownerUserId: (d as any).providerId ?? null,
+              canDirectConnect: true,
+              canMessage: !!(d as any).providerId,
+            }));
+
+            aiResponse.publicEntities = [
+              ...(aiResponse.publicEntities || []),
+              ...dealEntities,
+            ];
+
+            aiResponse.ctaHints = [
+              ...(aiResponse.ctaHints || []),
+              ...dealHints,
+            ];
+          }
+        } catch (dealErr) {
+          console.error("[Scout] Failed to attach trade_deal hints", dealErr);
+        }
+      }
 
       // Context-aware Direct Connect finances nudge: when a contractor has a
       // Direct Connect job in progress, gently surface a single suggestion to
