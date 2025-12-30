@@ -1,8 +1,9 @@
 import { Router, type Request, type Response } from "express";
 import { randomUUID } from "crypto";
-import { db } from "@db";
+import { db } from "../db";
 import { eq, sql, and, gte } from "drizzle-orm";
 import { isAuthenticated, requireRole } from "../auth";
+import { adminSystemControlConditions } from "../../shared/schema";
 
 const router = Router();
 
@@ -39,7 +40,7 @@ router.get("/observation-lock", isAuthenticated, requireRole(['head_admin', 'ops
 router.post("/observation-lock", isAuthenticated, requireRole(['head_admin', 'ops_admin']), async (req: Request, res: Response) => {
   try {
     const { enabled } = req.body;
-    const userId = req.user?.id;
+    const userId = (req.user as any)?.id;
 
     // Upsert setting
     await db
@@ -51,14 +52,14 @@ router.post("/observation-lock", isAuthenticated, requireRole(['head_admin', 'op
         value: enabled,
         description: "Locks authority to action-gating only. No interpretive signals allowed.",
         isActive: true,
-        meta: { lastChangedBy: req.user?.email },
+        meta: { lastChangedBy: (req.user as any)?.email },
       })
       .onConflictDoUpdate({
         target: db.schema.siteSettings.key,
         set: {
           value: enabled,
           updatedAt: new Date(),
-          meta: { lastChangedBy: req.user?.email },
+          meta: { lastChangedBy: (req.user as any)?.email },
         },
       });
 
@@ -204,13 +205,13 @@ router.get("/unlock-ledger", isAuthenticated, requireRole(['head_admin', 'ops_ad
       {
         phase: "Phase 2B: Authority Labels",
         status: "LOCKED" as const,
-        condition: conditions.find((c) => c.key === "phase_2b_unlock")?.value || 
+        condition: conditions.find((c: any) => c.key === "phase_2b_unlock")?.value || 
           "Unlock only after override → regret pattern stabilizes (≥100 overrides, regret rate >60%)",
       },
       {
         phase: "Phase 2C: Outcome Weighting",
         status: "LOCKED" as const,
-        condition: conditions.find((c) => c.key === "phase_2c_unlock")?.value || 
+        condition: conditions.find((c: any) => c.key === "phase_2c_unlock")?.value || 
           "Unlock only after labels prove predictive (AUC >0.75 for 30 days)",
       },
     ];

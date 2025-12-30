@@ -56,7 +56,7 @@ function setCache(key: string, result: CTACheckResponse): void {
   // Simple cache cleanup: remove entries older than 2x TTL
   if (cache.size > 1000) {
     const cutoff = Date.now() - (CACHE_TTL_MS * 2);
-    for (const [k, v] of cache.entries()) {
+    for (const [k, v] of Array.from(cache.entries())) {
       if (v.timestamp < cutoff) cache.delete(k);
     }
   }
@@ -73,7 +73,7 @@ export async function checkCTAAuthority(req: CTACheckRequest, userId?: string): 
   // Construct minimal situation for Governor
   const situation = await inferSituation({
     userQuery: `User wants to ${req.action} on ${req.context}`,
-    user: userId ? { id: userId } : undefined,
+    user: userId ? { id: parseInt(userId), role: 'user' as const } : undefined,
     context: {
       source: req.context,
       contextId: req.contextId,
@@ -98,7 +98,7 @@ export async function checkCTAAuthority(req: CTACheckRequest, userId?: string): 
       allowed: false,
       action: "DEFER",
       ctaMode: "ask_scout",
-      explanation: authorityProof.explanation || "Scout recommends gathering more context first",
+      explanation: authorityProof.hasProof ? "Scout suggests gathering more context" : "Insufficient authority to proceed",
       label: "Ask Scout first",
     };
   } else if (action === "BLOCK") {
@@ -106,7 +106,7 @@ export async function checkCTAAuthority(req: CTACheckRequest, userId?: string): 
       allowed: false,
       action: "BLOCK",
       ctaMode: "hide",
-      explanation: authorityProof.explanation || "This action may lead to regret in this context",
+      explanation: "This action may lead to regret in this context",
       label: "Not recommended",
     };
   } else {

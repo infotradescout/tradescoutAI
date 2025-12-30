@@ -13,7 +13,7 @@ import { and, desc, eq, gte } from "drizzle-orm";
 import { isOutcomeLearningEnabled } from "../routes/admin-control";
 
 // NOTE: Drizzle type helpers may not be exported for these inserts; we guard with inline types.
-type OutcomeAction = "followed_advice" | "ignored_advice" | "completed_flow" | "canceled" | "dispute" | "defer" | "escalate" | "success_reported" | "failure_reported";
+type OutcomeAction = "followed_advice" | "ignored_advice" | "completed_flow" | "canceled" | "dispute" | "refund" | "reported_spam" | "regret_reported" | "success_reported";
 type OutcomeContext = "general" | "trade_deal" | "direct_connect" | "community" | "tool";
 
 type OutcomeEventInput = {
@@ -76,7 +76,7 @@ export async function getUserConfidenceState(userId: number, scope: string = DEF
 
   if (existing) {
     return {
-      userId: existing.userId,
+      userId: existing.userId!,  // Non-null assertion: userId is primary key, always exists
       scope: existing.scope,
       baselineConfidence: Number(existing.baselineConfidence ?? DEFAULT_BASELINE),
       currentConfidence: Number(existing.currentConfidence ?? DEFAULT_BASELINE),
