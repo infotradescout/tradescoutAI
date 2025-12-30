@@ -18,6 +18,7 @@ import {
   Utensils,
   CircleHelp,
   Sparkles,
+  Shield,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useHandedness } from "@/hooks/useHandedness";
@@ -46,53 +47,69 @@ type AppShellProps = {
 // SITE FEATURES ONLY – this is the scrollable bottom bar
 // Direct Connect is the primary coordination hub; contractors/helpers
 // are still available as subordinate surfaces but are not top-level nav.
-const featureNav: NavItem[] = [
-  {
-    label: "Scout",
-    href: "/scout",
-    icon: <Compass className="h-5 w-5" style={{ color: 'var(--theme-accent-primary)' }} />,
-  },
-  {
-    label: "Direct Connect",
-    href: "/direct-connect",
-    icon: <ClipboardList className="h-5 w-5" style={{ color: 'var(--theme-accent-primary)' }} />,
-  },
-  {
-    label: "Community",
-    href: ROUTES.COMMUNITY ?? "/community",
-    icon: <Users className="h-5 w-5" style={{ color: 'var(--theme-accent-primary)' }} />,
-  },
-  {
-    label: "TradeDeals",
-    href: "/trade-deals",
-    icon: <Sparkles className="h-5 w-5" style={{ color: 'var(--theme-accent-primary)' }} />,
-  },
-  {
-    label: "EXCHANGE",
-    href: ROUTES.EXCHANGE ?? "/exchange",
-    icon: <ShoppingBag className="h-5 w-5" style={{ color: 'var(--theme-accent-primary)' }} />,
-  },
-  {
-    label: "Leaderboard",
-    href: "/leaderboard",
-    icon: <Trophy className="h-5 w-5" style={{ color: 'var(--theme-accent-primary)' }} />,
-  },
-  {
-    label: "Community Builders",
-    href: "/foundation",
-    icon: <Heart className="h-5 w-5" style={{ color: 'var(--theme-accent-primary)' }} />,
-  },
-  {
-    label: "Help",
-    href: ROUTES.HELP ?? "/help",
-    icon: <CircleHelp className="h-5 w-5" style={{ color: 'var(--theme-accent-primary)' }} />,
-  },
-  {
-    label: "Share",
-    href: "/affiliate",
-    icon: <Share2 className="h-5 w-5" style={{ color: 'var(--theme-accent-primary)' }} />,
-  },
-];
+const buildFeatureNav = (isSuperAdmin: boolean): NavItem[] => {
+  const baseNav: NavItem[] = [
+    {
+      label: "Scout",
+      href: "/scout",
+      icon: <Compass className="h-5 w-5" style={{ color: 'var(--theme-accent-primary)' }} />,
+    },
+    {
+      label: "Direct Connect",
+      href: "/direct-connect",
+      icon: <ClipboardList className="h-5 w-5" style={{ color: 'var(--theme-accent-primary)' }} />,
+    },
+    {
+      label: "Community",
+      href: ROUTES.COMMUNITY ?? "/community",
+      icon: <Users className="h-5 w-5" style={{ color: 'var(--theme-accent-primary)' }} />,
+    },
+    {
+      label: "TradeDeals",
+      href: "/trade-deals",
+      icon: <Sparkles className="h-5 w-5" style={{ color: 'var(--theme-accent-primary)' }} />,
+    },
+    {
+      label: "EXCHANGE",
+      href: ROUTES.EXCHANGE ?? "/exchange",
+      icon: <ShoppingBag className="h-5 w-5" style={{ color: 'var(--theme-accent-primary)' }} />,
+    },
+    {
+      label: "Leaderboard",
+      href: "/leaderboard",
+      icon: <Trophy className="h-5 w-5" style={{ color: 'var(--theme-accent-primary)' }} />,
+    },
+    {
+      label: "Community Builders",
+      href: "/foundation",
+      icon: <Heart className="h-5 w-5" style={{ color: 'var(--theme-accent-primary)' }} />,
+    },
+    {
+      label: "Help",
+      href: ROUTES.HELP ?? "/help",
+      icon: <CircleHelp className="h-5 w-5" style={{ color: 'var(--theme-accent-primary)' }} />,
+    },
+    {
+      label: "Share",
+      href: "/affiliate",
+      icon: <Share2 className="h-5 w-5" style={{ color: 'var(--theme-accent-primary)' }} />,
+    },
+  ];
+
+  // Add Admin link at the FRONT for super admins
+  if (isSuperAdmin) {
+    return [
+      {
+        label: "Admin",
+        href: "/admin",
+        icon: <Shield className="h-5 w-5" style={{ color: 'var(--theme-accent-primary)' }} />,
+      },
+      ...baseNav,
+    ];
+  }
+
+  return baseNav;
+};
 
 export function AppShell({ children, footer }: AppShellProps) {
   const { user, isAuthenticated } = useAuth();
@@ -106,6 +123,8 @@ export function AppShell({ children, footer }: AppShellProps) {
   const [location, navigate] = useLocation();
   const isScoutSurface = location === "/" || location.startsWith("/scout");
   const isSuperAdmin = (user as any)?.isSuperAdmin === true;
+  
+  const featureNav = buildFeatureNav(isSuperAdmin);
 
   // Mobile hero content for context/messaging/CTAs
   const renderMobileHero = () => (
