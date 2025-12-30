@@ -21,6 +21,7 @@ import communityVaultRouter from "./routes/community-vault-routes";
 import communityCausesRouter from "./routes/community-causes-routes";
 import platformSupportRouter from "./routes/platform-support-routes";
 import { mountAdminRoutes } from "./routes/admin";
+import { registerAuthorityOperationsRoutes } from "./routes/authority-operations";
 import { ROLE_PERMISSIONS, type UserRole as SharedUserRole } from "../shared/roles";
 import { CURRENT_PROFILE_VERSION } from "../shared/profile";
 // DISABLED: WebSocketManager is not instantiated, using Socket.io messaging service instead
@@ -327,6 +328,9 @@ export async function registerRoutes(app: any) {
   // Admin OS routes (health + heatmap) now mounted via dedicated module.
   // URLs and behavior remain identical; this simply centralizes admin authority.
   mountAdminRoutes(app);
+  
+  // Authority Operations admin panel (observation mode, decision card metrics, unlock ledger)
+  registerAuthorityOperationsRoutes(app);
 
   // Public config for client (safe, read-only)
   app.get("/api/public/config", (req: any, res: any) => {
