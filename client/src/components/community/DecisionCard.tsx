@@ -1,0 +1,178 @@
+import React from "react";
+import { CheckCircle2, AlertCircle, XCircle } from "lucide-react";
+import { Button } from "@/components/ui/button";
+
+type ScoutAction = "COMPLY" | "DEFER" | "BLOCK";
+
+interface DecisionContext {
+  targetName: string;
+  targetRole: string;
+  communitySignal: string;
+  absenceNote?: string;
+}
+
+interface DecisionCardProps {
+  action: "message" | "direct_connect";
+  context: DecisionContext;
+  scoutAction: ScoutAction;
+  riskFraming: string[];
+  guidance: string;
+  explanation: string;
+  onProceed: () => void;
+  onAskScout: () => void;
+  onCancel: () => void;
+}
+
+export const DecisionCard: React.FC<DecisionCardProps> = ({
+  action,
+  context,
+  scoutAction,
+  riskFraming,
+  guidance,
+  explanation,
+  onProceed,
+  onAskScout,
+  onCancel,
+}) => {
+  const actionLabel = action === "message" ? "Message" : "Direct Connect";
+
+  // Map Scout action to guidance state
+  const guidanceState = scoutAction === "COMPLY" ? "safe" : scoutAction === "DEFER" ? "caution" : "blocked";
+
+  const getGuidanceIcon = () => {
+    switch (guidanceState) {
+      case "safe":
+        return <CheckCircle2 className="w-5 h-5 text-emerald-600" />;
+      case "caution":
+        return <AlertCircle className="w-5 h-5 text-amber-600" />;
+      case "blocked":
+        return <XCircle className="w-5 h-5 text-slate-600" />;
+    }
+  };
+
+  const getGuidanceText = () => {
+    switch (guidanceState) {
+      case "safe":
+        return "Safe to proceed";
+      case "caution":
+        return "Pause recommended";
+      case "blocked":
+        return "Not recommended yet";
+    }
+  };
+
+  return (
+    <div className="bg-white border border-slate-200 rounded-lg p-6 shadow-sm space-y-5">
+      {/* 1. Context */}
+      <div className="space-y-2">
+        <h3 className="text-sm font-medium text-slate-900">
+          Who am I about to {action === "message" ? "message" : "connect with"}?
+        </h3>
+        <div className="space-y-1 text-sm text-slate-700">
+          <p className="font-medium">{context.targetName}</p>
+          <p className="text-slate-600">{context.targetRole}</p>
+          <p className="text-slate-500">{context.communitySignal}</p>
+          {context.absenceNote && (
+            <p className="text-slate-400 italic">{context.absenceNote}</p>
+          )}
+        </div>
+      </div>
+
+      {/* 2. Risk Framing */}
+      {riskFraming.length > 0 && (
+        <div className="space-y-2">
+          <h3 className="text-sm font-medium text-slate-900">
+            What could go wrong here?
+          </h3>
+          <div className="space-y-1">
+            {riskFraming.slice(0, 2).map((risk, i) => (
+              <p key={i} className="text-sm text-slate-600">
+                {risk}
+              </p>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* 3. Scout Guidance */}
+      <div className="space-y-2">
+        <h3 className="text-sm font-medium text-slate-900">
+          What Scout recommends right now
+        </h3>
+        <div className="flex items-start gap-3">
+          {getGuidanceIcon()}
+          <div className="flex-1 space-y-1">
+            <p className="text-sm font-medium text-slate-900">
+              {getGuidanceText()}
+            </p>
+            <p className="text-sm text-slate-600">{guidance}</p>
+          </div>
+        </div>
+      </div>
+
+      {/* 4. Action Choice */}
+      <div className="space-y-2 pt-2 border-t border-slate-100">
+        <h3 className="text-sm font-medium text-slate-900">
+          What do you want to do?
+        </h3>
+        <div className="flex flex-wrap gap-2">
+          {/* Show "Contact now" only if COMPLY */}
+          {scoutAction === "COMPLY" && (
+            <Button
+              onClick={onProceed}
+              className="bg-slate-900 hover:bg-slate-800 text-white"
+            >
+              {actionLabel} now
+            </Button>
+          )}
+
+          {/* Show "Ask Scout first" for DEFER or BLOCK */}
+          {(scoutAction === "DEFER" || scoutAction === "BLOCK") && (
+            <Button
+              onClick={onAskScout}
+              variant="outline"
+              className="border-slate-300 text-slate-700 hover:bg-slate-50"
+            >
+              Ask Scout first
+            </Button>
+          )}
+
+          {/* Always show "Proceed anyway" for DEFER, require confirmation for BLOCK */}
+          {scoutAction === "DEFER" && (
+            <Button
+              onClick={onProceed}
+              variant="outline"
+              className="border-slate-300 text-slate-700 hover:bg-slate-50"
+            >
+              Proceed anyway
+            </Button>
+          )}
+
+          {scoutAction === "BLOCK" && (
+            <Button
+              onClick={() => {
+                const confirmed = window.confirm(
+                  "Scout strongly recommends against this action. Are you sure you want to proceed?"
+                );
+                if (confirmed) onProceed();
+              }}
+              variant="outline"
+              className="border-slate-300 text-slate-700 hover:bg-slate-50"
+            >
+              I understand the risk
+            </Button>
+          )}
+
+          {/* Cancel always available */}
+          <Button
+            onClick={onCancel}
+            variant="ghost"
+            className="text-slate-600 hover:bg-slate-50"
+          >
+            Cancel
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+};
