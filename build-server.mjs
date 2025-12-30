@@ -23,6 +23,11 @@ const aliasPlugin = {
       return { path: path.resolve(__dirname, 'shared', importPath) };
     });
     
+    // Resolve bare @db to ./shared/db.ts
+    build.onResolve({ filter: /^@db$/ }, args => {
+      return { path: path.resolve(__dirname, 'shared', 'db.ts') };
+    });
+    
     // Resolve @db/* to ./shared/*.ts
     build.onResolve({ filter: /^@db\// }, args => {
       const importPath = args.path.replace('@db/', '');
@@ -46,7 +51,6 @@ await esbuild.build({
   format: 'esm',
   outfile: 'dist/index.js',
   external: ['vite', '@vitejs/*', '@replit/*'],
-  packages: 'external',
   plugins: [aliasPlugin],
 });
 
