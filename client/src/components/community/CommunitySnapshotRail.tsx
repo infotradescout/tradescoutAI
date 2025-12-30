@@ -1,14 +1,38 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useLocation } from "wouter";
 import { CommunityCTA } from "./CommunityCTA";
+import { Tag, Users2, MessageSquare, Sparkles, TrendingUp, Zap } from "lucide-react";
+
+// Card types that can appear in the snapshot
+export type SnapshotCardType = "trade_deal" | "community_post" | "local_stats" | "starter_invitation";
+
+export type SnapshotCard = {
+  id: string;
+  type: SnapshotCardType;
+  title: string;
+  description: string;
+  label?: string;
+  icon?: string; // Icon identifier
+  gradient?: string; // Tailwind gradient classes
+  imageUrl?: string | null;
+  href?: string;
+  ownerUserId?: string;
+  canDirectConnect?: boolean;
+  canMessage?: boolean;
+  stats?: {
+    membersCount?: number;
+    activeToday?: number;
+    postsToday?: number;
+  };
+};
 
 export type SnapshotDeal = {
   id: number | string;
   title: string;
   shortDescription: string;
-  label?: string; // e.g. "Exclusive TradeDeal"
+  label?: string;
   imageUrl?: string | null;
-  href?: string; // optional deep link
+  href?: string;
   ownerUserId?: string;
   canDirectConnect?: boolean;
   canMessage?: boolean;
@@ -29,12 +53,16 @@ async function fetchJson<T>(url: string): Promise<T> {
 
 export const CommunitySnapshotRail: React.FC<{
   countyFips: string;
-  limit?: number; // default 10 (UI can show fewer)
+  limit?: number;
   className?: string;
-  onItemsLoaded?: (count: number) => void;
-}> = ({ countyFips, limit = 10, className, onItemsLoaded }) => {
+  communityStats?: {
+    totalMembers: number;
+    activeToday: number;
+    postsToday: number;
+  };
+}> = ({ countyFips, limit = 10, className, communityStats }) => {
   const [, navigate] = useLocation();
-  const [items, setItems] = useState<SnapshotDeal[]>([]);
+  const [cards, setCards] = useState<SnapshotCard[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -55,11 +83,12 @@ export const CommunitySnapshotRail: React.FC<{
       .then((rows) => {
         if (cancelled) return;
 
-        const normalized: SnapshotDeal[] = (rows || []).map((r) => ({
-          id: r.id ?? r.promotionId ?? r.dealId ?? (crypto?.randomUUID?.() ?? Math.random().toString(36)),
+        const dealCards: SnapshotCard[] = (rows || []).map((r) => ({
+          id: String(r.id ?? r.promotionId ?? r.dealId ?? crypto?.randomUUID?.() ?? Math.random().toString(36)),
+          type: "trade_deal" as const,
           title: String(r.title ?? ""),
-          shortDescription: String(r.shortDescription ?? r.description ?? ""),
-          label: r.label ?? r.badge ?? "Community Snapshot",
+          description: String(r.shortDescription ?? r.description ?? ""),
+          label: r.label ?? "Featured Local TradeDeal",
           imageUrl: r.imageUrl ?? r.image ?? null,
           href: r.href ?? (r.id ? `/trade-deals/${r.id}` : "/trade-deals"),
           ownerUserId: r.ownerUserId ?? r.providerUserId ?? null,
@@ -67,10 +96,76 @@ export const CommunitySnapshotRail: React.FC<{
           canMessage: Boolean((r.ownerUserId ?? r.providerUserId) && !r.disableMessaging),
         }));
 
-        setItems(normalized);
-        if (onItemsLoaded) {
-          onItemsLoaded(normalized.length);
+        // Build composed card array: deals + stats + invitations
+        const composedCards: SnapshotCard[] = [];
+
+        // Add TradeDeal cards first
+        composedCards.push(...dealCards);
+
+        // If we have community stats and few/no deals, add a stats card
+        if (communityStats && dealCards.length < 2) {
+          const isNewCommunity = communityStats.totalMembers < 10;
+          composedCards.push({
+            id: "local-stats",
+            type: "local_stats",
+            title: isNewCommunity ? "You're early in this community" : `${communityStats.totalMembers} neighbors here`,
+            description: isNewCommunity 
+              ? "Be among the first to shape your local network"
+              : `${communityStats.activeToday} active today • ${communityStats.postsToday} posts`,
+            label: "Community Pulse",
+            icon: "users",
+            gradient: "from-indigo-950 via-slate-900 to-slate-950",
+            stats: communityStats,
+          });
         }
+
+        // Add starter/invitation cards if empty or very sparse
+        if (composedCards.length === 0) {
+          composedCards.push(
+            {
+              id: "starter-deal",
+              type: "starter_invitation",
+              title: "First TradeDeal here gets featured",
+              description: "Your local business could be pinned at the top of this community",
+              label: "Early Access",
+              icon: "zap",
+              gradient: "from-orange-950 via-slate-900 to-slate-950",
+              href: "/trade-deals",
+            },
+            {
+              id: "starter-conversation",
+              type: "starter_invitation",
+              title: "Start the first conversation",
+              description: "Ask a question, share a project, or introduce yourself",
+              label: "Be First",
+              icon: "message",
+              gradient: "from-emerald-950 via-slate-900 to-slate-950",
+            },
+            {
+              id: "starter-community",
+              type: "starter_invitation",
+              title: "New county — early access",
+              description: "You're among the first neighbors here. Help shape this community",
+              label: "Pioneer",
+              icon: "sparkles",
+              gradient: "from-purple-950 via-slate-900 to-slate-950",
+            }
+          );
+        } else if (composedCards.length === 1 && dealCards.length === 0) {
+          // Only stats card, add one invitation
+          composedCards.push({
+            id: "starter-first-deal",
+            type: "starter_invitation",
+            title: "First local deal gets prime placement",
+            description: "Vetted partners get featured in Community Snapshot",
+            label: "Opportunity",
+            icon: "trending",
+            gradient: "from-orange-950 via-slate-900 to-slate-950",
+            href: "/trade-deals",
+          });
+        }
+
+        setCards(composedCards);
       })
       .catch((e: any) => {
         if (cancelled) return;
@@ -84,81 +179,155 @@ export const CommunitySnapshotRail: React.FC<{
     return () => {
       cancelled = true;
     };
-  }, [apiUrl]);
+  }, [apiUrl, communityStats]);
 
-  const onCardClick = (it: SnapshotDeal) => {
-    const href = it.href || "/trade-deals";
-    navigate(href);
+  const onCardClick = (card: SnapshotCard) => {
+    if (card.href) {
+      navigate(card.href);
+    }
+  };
+
+  const getCardIcon = (iconName?: string) => {
+    switch (iconName) {
+      case "users": return <Users2 className="h-5 w-5" />;
+      case "zap": return <Zap className="h-5 w-5" />;
+      case "message": return <MessageSquare className="h-5 w-5" />;
+      case "sparkles": return <Sparkles className="h-5 w-5" />;
+      case "trending": return <TrendingUp className="h-5 w-5" />;
+      default: return <Tag className="h-5 w-5" />;
+    }
+  };
+
+  const renderCard = (card: SnapshotCard) => {
+    const isInvitation = card.type === "starter_invitation";
+    const isStats = card.type === "local_stats";
+    const isTradeDeal = card.type === "trade_deal";
+
+    return (
+      <div
+        key={card.id}
+        role="button"
+        tabIndex={0}
+        onClick={() => onCardClick(card)}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            onCardClick(card);
+          }
+        }}
+        className={`
+          snap-start shrink-0 
+          w-[260px] sm:w-[280px] md:w-[300px]
+          h-[280px] sm:h-[300px]
+          rounded-2xl border border-slate-800 
+          ${card.gradient ? `bg-gradient-to-br ${card.gradient}` : 'bg-slate-950/50'}
+          hover:bg-slate-900/40 hover:border-slate-700
+          transition-all shadow-lg
+          flex flex-col justify-between p-5 text-left 
+          ${card.href ? 'cursor-pointer' : 'cursor-default'}
+          relative overflow-hidden
+        `}
+      >
+        {/* Background decoration for visual interest */}
+        <div className="absolute inset-0 bg-gradient-to-br from-white/[0.02] to-transparent pointer-events-none" />
+        
+        {/* Card header */}
+        <div className="relative z-10">
+          <div className="flex items-center justify-between gap-2 mb-3">
+            <div className="inline-flex items-center gap-1.5 rounded-full border border-slate-700/80 bg-slate-900/80 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.15em] text-slate-200">
+              {card.icon && (
+                <span className="text-orange-400">
+                  {getCardIcon(card.icon)}
+                </span>
+              )}
+              <span>{card.label ?? "Snapshot"}</span>
+            </div>
+            {card.href && (
+              <div className="text-sm text-slate-500">›</div>
+            )}
+          </div>
+        </div>
+
+        {/* Card content */}
+        <div className="relative z-10 flex-1 flex flex-col justify-center gap-2">
+          <div className="text-xl font-bold text-white leading-tight">
+            {card.title}
+          </div>
+          <div className="text-sm text-slate-300 leading-relaxed line-clamp-3">
+            {card.description}
+          </div>
+        </div>
+
+        {/* Card footer - CTAs or stats */}
+        <div className="relative z-10 mt-4">
+          {isTradeDeal && (
+            <CommunityCTA
+              layout="inline"
+              source="trade_deal"
+              contextId={card.id}
+              ownerUserId={card.ownerUserId}
+              canDirectConnect={card.canDirectConnect}
+              canMessage={card.canMessage}
+            />
+          )}
+          
+          {isStats && card.stats && (
+            <div className="flex items-center gap-4 text-xs text-slate-400">
+              <div className="flex items-center gap-1">
+                <Users2 className="h-3.5 w-3.5 text-emerald-300" />
+                <span>{card.stats.totalMembers || 0} neighbors</span>
+              </div>
+              {card.stats.activeToday > 0 && (
+                <div className="flex items-center gap-1">
+                  <TrendingUp className="h-3.5 w-3.5 text-indigo-300" />
+                  <span>{card.stats.activeToday} active</span>
+                </div>
+              )}
+            </div>
+          )}
+
+          {isInvitation && (
+            <div className="text-xs text-slate-500 italic">
+              Tap to explore
+            </div>
+          )}
+        </div>
+      </div>
+    );
   };
 
   return (
-    <div className={["w-full px-3 pt-3", className || ""].join(" ")}>
-      <div className="flex items-center justify-between">
-        <div className="text-sm font-semibold text-white">Community Snapshot</div>
+    <div className={["w-full px-3 pt-3 pb-4", className || ""].join(" ")}>
+      <div className="flex items-center justify-between mb-3">
+        <div className="text-base font-bold text-white">Community Snapshot</div>
         <button
           type="button"
           onClick={() => navigate("/trade-deals")}
-          className="text-xs text-neutral-300 hover:text-white"
+          className="text-xs text-slate-400 hover:text-white transition-colors"
         >
-          View all
+          View all deals
         </button>
       </div>
 
-      <div className="mt-2">
+      <div className="relative">
         {loading && (
-          <div className="text-sm text-neutral-400 py-2">Loading…</div>
+          <div className="text-sm text-slate-400 py-8 text-center">Loading snapshot…</div>
         )}
 
         {!loading && error && (
-          <div className="text-sm text-red-400 py-2">{error}</div>
+          <div className="text-sm text-red-400 py-8 text-center">{error}</div>
         )}
 
-        {!loading && !error && items.length === 0 && (
-          <div className="text-sm text-neutral-400 py-2">No Snapshot items yet.</div>
-        )}
-
-        {!loading && !error && items.length > 0 && (
+        {!loading && !error && (
           <div
-            className="flex gap-3 overflow-x-auto pb-2 snap-x snap-mandatory [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+            className="flex gap-4 overflow-x-auto pb-3 snap-x snap-mandatory [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
           >
-            {items.map((it) => (
-              <div
-                key={String(it.id)}
-                role="button"
-                tabIndex={0}
-                onClick={() => onCardClick(it)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" || e.key === " ") {
-                    e.preventDefault();
-                    onCardClick(it);
-                  }
-                }}
-                className="snap-start shrink-0 w-[220px] h-[140px] rounded-2xl border border-neutral-800 bg-neutral-950/50 hover:bg-neutral-900/40 transition-all shadow-sm flex flex-col justify-between p-3 text-left cursor-pointer"
-              >
-                <div className="flex items-center justify-between gap-2">
-                  <div className="text-[11px] text-neutral-300">{it.label ?? "Snapshot"}</div>
-                  <div className="text-[11px] text-neutral-500">›</div>
-                </div>
-
-                <div>
-                  <div className="text-sm font-semibold text-white line-clamp-1">{it.title}</div>
-                  <div className="text-xs text-neutral-300 line-clamp-2 mt-1">{it.shortDescription}</div>
-                </div>
-                <CommunityCTA
-                  layout="inline"
-                  source="trade_deal"
-                  contextId={it.id}
-                  ownerUserId={it.ownerUserId}
-                  canDirectConnect={it.canDirectConnect}
-                  canMessage={it.canMessage}
-                />
-              </div>
-            ))}
+            {cards.map((card) => renderCard(card))}
           </div>
         )}
       </div>
 
-      <div className="mt-3 border-b border-neutral-900" />
+      <div className="mt-4 border-b border-slate-900" />
     </div>
   );
 };

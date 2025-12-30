@@ -13,7 +13,7 @@ interface AdminToolLink {
   description?: string;
 }
 
-const SUPER_ADMIN_ROLES = ["owner", "head_admin", "ops_admin", "super_admin", "admin"] as const;
+const SUPER_ADMIN_ROLES = ["head_admin", "ops_admin", "super_admin", "admin"] as const;
 
 function buildPageTools(path: string): AdminToolLink[] {
   const tools: AdminToolLink[] = [];
@@ -78,10 +78,11 @@ export function AdminPageToolsBar() {
   const [path, navigate] = useLocation();
   const [open, setOpen] = useState(false);
 
+  // Use the computed isSuperAdmin flag from the auth payload, with fallback to role check
   const isSuperAdmin = !!(
     isAuthenticated &&
-    user?.role &&
-    SUPER_ADMIN_ROLES.includes(user.role as (typeof SUPER_ADMIN_ROLES)[number])
+    ((user as any)?.isSuperAdmin === true ||
+     (user?.role && SUPER_ADMIN_ROLES.includes(user.role as (typeof SUPER_ADMIN_ROLES)[number])))
   );
 
   const tools = useMemo(() => {
