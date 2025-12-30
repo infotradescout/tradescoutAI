@@ -636,21 +636,14 @@ const CommunityFeed = memo(function CommunityFeed() {
             countyFips={countyFips}
             limit={10}
             communityStats={communityStats}
+            activeFilter={activeTab}
+            onFilterChange={setActiveTab}
           />
         )}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-8">
           {/* Main Feed */}
           <div className="lg:col-span-2 space-y-3 md:space-y-6">
             <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-              <TabsList className="inline-flex w-full justify-between rounded-full bg-[color:var(--surface-card)] border border-[color:var(--border-subtle)] backdrop-blur mb-4 md:mb-5 px-1 py-1">
-                <TabsTrigger value="forYou" className="flex-1 rounded-full data-[state=active]:bg-orange-500 data-[state=active]:text-slate-950 data-[state=inactive]:text-slate-300 text-xs md:text-sm">For you</TabsTrigger>
-                <TabsTrigger value="recent" className="flex-1 rounded-full data-[state=active]:bg-orange-500 data-[state=active]:text-slate-950 data-[state=inactive]:text-slate-300 text-xs md:text-sm">Recent</TabsTrigger>
-                <TabsTrigger value="nearby" className="flex-1 rounded-full data-[state=active]:bg-orange-500 data-[state=active]:text-slate-950 data-[state=inactive]:text-slate-300 text-xs md:text-sm">Nearby</TabsTrigger>
-                <TabsTrigger value="trending" className="flex-1 rounded-full data-[state=active]:bg-orange-500 data-[state=active]:text-slate-950 data-[state=inactive]:text-slate-300 text-xs md:text-sm">Trending</TabsTrigger>
-                {isSuperAdmin && (
-                  <TabsTrigger value="all" className="flex-1 rounded-full data-[state=active]:bg-orange-500 data-[state=active]:text-slate-950 data-[state=inactive]:text-slate-300 text-xs md:text-sm">All</TabsTrigger>
-                )}
-              </TabsList>
               {/* Inline composer always visible at top of feed */}
               <Card className="bg-[color:var(--surface-card)] border border-[color:var(--border-subtle)] shadow-sm mb-3 md:mb-5 md:sticky md:top-16">
                 <CardContent className="p-3 md:p-5">
@@ -998,6 +991,22 @@ const CommunityFeed = memo(function CommunityFeed() {
                   <Users2 className="h-16 w-16 text-gray-400 mx-auto mb-4" />
                   <h3 className="text-white text-xl mb-2">Trending</h3>
                   <p className="text-gray-400">Posts getting the most engagement right now</p>
+                </div>
+              </TabsContent>
+
+              <TabsContent value="recs" className="mt-0">
+                <div className="text-center py-12">
+                  <Eye className="h-16 w-16 text-gray-400 mx-auto mb-4" />
+                  <h3 className="text-white text-xl mb-2">Recommendations</h3>
+                  <p className="text-gray-400">Trusted endorsements from your community</p>
+                </div>
+              </TabsContent>
+
+              <TabsContent value="vault" className="mt-0">
+                <div className="text-center py-12">
+                  <Trophy className="h-16 w-16 text-gray-400 mx-auto mb-4" />
+                  <h3 className="text-white text-xl mb-2">Your Vault</h3>
+                  <p className="text-gray-400">Saved posts and bookmarked content</p>
                 </div>
               </TabsContent>
             </Tabs>

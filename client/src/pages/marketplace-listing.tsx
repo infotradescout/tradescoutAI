@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -23,6 +23,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { isUnauthorizedError } from "@/lib/authUtils";
 import { apiRequest } from "@/lib/queryClient";
+import { uploadObject } from "@/lib/objectUpload";
 import { 
   ArrowLeft, 
   AlertCircle, 
@@ -33,7 +34,10 @@ import {
   Clock,
   Shield,
   Eye,
-  Info
+  Info,
+  Image as ImageIcon,
+  X,
+  Upload
 } from "lucide-react";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 
@@ -50,6 +54,7 @@ const marketplaceListingSchema = z.object({
   state: z.string().min(2, "State is required"),
   zipCode: z.string().min(5, "ZIP code is required"),
   locationVisibility: z.enum(["exact", "meetup_only"]),
+  images: z.array(z.string()).optional(),
 });
 
 type MarketplaceListingForm = z.infer<typeof marketplaceListingSchema>;
@@ -58,6 +63,9 @@ export default function MarketplaceListing() {
   const { user, isAuthenticated } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [uploadedImages, setUploadedImages] = useState<string[]>([]);
+  const [uploadingImage, setUploadingImage] = useState(false);
 
   const form = useForm<MarketplaceListingForm>({
     resolver: zodResolver(marketplaceListingSchema),
@@ -74,8 +82,60 @@ export default function MarketplaceListing() {
       state: "",
       zipCode: "",
       locationVisibility: "exact",
+      images: [],
     },
   });
+
+  const handleImagesSelected = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    if (files.length === 0) return;
+
+    setUploadingImage(true);
+    try {
+      const newImageUrls: string[] = [];
+      
+      for (const file of files) {
+        if (uploadedImages.length + newImageUrls.length >= 8) {
+          toast({
+            title: "Upload limit reached",
+            description: "You can upload a maximum of 8 images per listing.",
+            variant: "destructive",
+          });
+          break;
+        }
+
+        const { publicUrl } = await uploadObject(file);
+        newImageUrls.push(publicUrl);
+      }
+
+      const updatedImages = [...uploadedImages, ...newImageUrls];
+      setUploadedImages(updatedImages);
+      form.setValue("images", updatedImages);
+
+      toast({
+        title: "Images uploaded",
+        description: `${newImageUrls.length} image(s) added successfully.`,
+      });
+    } catch (error) {
+      console.error("Image upload failed:", error);
+      toast({
+        title: "Upload failed",
+        description: "Could not upload images. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setUploadingImage(false);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
+    }
+  };
+
+  const removeImage = (index: number) => {
+    const updated = uploadedImages.filter((_, i) => i !== index);
+    setUploadedImages(updated);
+    form.setValue("images", updated);
+  };
 
   // Fetch marketplace categories
   const { data: categories = [], isLoading: categoriesLoading } = useQuery({
@@ -195,7 +255,68 @@ export default function MarketplaceListing() {
                           <Input placeholder="Enter item title" {...field} />
                         </FormControl>
                         <FormMessage />
-                      </FormItem>
+                    Image Upload Section */}
+                <div className="space-y-3">
+                  <FormLabel className="flex items-center gap-2">
+                    <ImageIcon className="h-4 w-4 text-orange-500" />
+                    Photos (up to 8)
+                  </FormLabel>
+                  
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                    {uploadedImages.map((url, index) => (
+                      <div key={index} className="relative group aspect-square">
+                        <img
+                          src={url}
+                          alt={`Upload ${index + 1}`}
+                          className="w-full h-full object-cover rounded-lg border-2 border-navy-600"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => removeImage(index)}
+                          className="absolute top-2 right-2 p-1 bg-red-500 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                        >
+                          <X className="h-4 w-4 text-white" />
+                        </button>
+                      </div>
+                    ))}
+                    
+                    {uploadedImages.length < 8 && (
+                      <button
+                        type="button"
+                        onClick={() => fileInputRef.current?.click()}
+                        disabled={uploadingImage}
+                        className="aspect-square border-2 border-dashed border-navy-600 rounded-lg flex flex-col items-center justify-center gap-2 hover:border-orange-500 hover:bg-orange-500/5 transition-colors"
+                      >
+                        {uploadingImage ? (
+                          <>
+                            <div className="h-8 w-8 border-2 border-orange-500 border-t-transparent rounded-full animate-spin" />
+                            <span className="text-xs text-gray-400">Uploading...</span>
+                          </>
+                        ) : (
+                          <>
+                            <Upload className="h-8 w-8 text-gray-400" />
+                            <span className="text-xs text-gray-400">Add Photo</span>
+                          </>
+                        )}
+                      </button>
+                    )}
+                  </div>
+                  
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    multiple
+                    className="hidden"
+                    onChange={handleImagesSelected}
+                  />
+                  
+                  <p className="text-xs text-gray-400">
+                    Upload clear, well-lit photos of your item from multiple angles. Maximum 8 images.
+                  </p>
+                </div>
+
+                {/*   </FormItem>
                     )}
                   />
 
