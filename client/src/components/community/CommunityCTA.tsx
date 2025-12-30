@@ -3,6 +3,7 @@ import { useLocation } from "wouter";
 import { MessagesSquare, Hammer, Info } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
+import { DecisionCard } from "./DecisionCard";
 
 type CommunityCTASource = "trade_deal" | "community_post";
 type CTAMode = "show" | "ask_scout" | "hide";
@@ -95,6 +96,10 @@ export const CommunityCTA: React.FC<CommunityCTAProps> = ({
   const [directConnectAuthority, setDirectConnectAuthority] = useState<CTAAuthority | null>(null);
   const [messageAuthority, setMessageAuthority] = useState<CTAAuthority | null>(null);
   const [loading, setLoading] = useState(true);
+  
+  // Decision card state
+  const [showDecisionCard, setShowDecisionCard] = useState(false);
+  const [pendingAction, setPendingAction] = useState<"message" | "direct_connect" | null>(null);
 
   const id = encodeURIComponent(String(contextId));
   
@@ -143,32 +148,13 @@ export const CommunityCTA: React.FC<CommunityCTAProps> = ({
     }
   };
 
-  const handleDirectConnect = async () => {
-    if (!directConnectAuthority?.allowed) {
-      // Redirect to Scout if deferred
-      if (directConnectAuthority?.ctaMode === "ask_scout") {
-        void handleAskScout();
-      }
-      return;
-    }
-    
-    await trackCTA("direct_connect", source);
-    if (source === "trade_deal") {
-      navigate(`/direct-connect?dealId=${id}`);
-    } else {
-      navigate(`/direct-connect?source=community_post&postId=${id}`);
-    }
+  // Show decision card before taking action
+  const handleDirectConnectClick = () => {
+    setPendingAction("direct_connect");
+    setShowDecisionCard(true);
   };
 
-  const handleMessage = async () => {
-    if (!messageAuthority?.allowed) {
-      // Redirect to Scout if deferred
-      if (messageAuthority?.ctaMode === "ask_scout") {
-        void handleAskScout();
-      }
-      return;
-    }
-    
+  const handleMessageClick = () => {
     if (!isAuthenticated) {
       toast({
         title: "Sign In Required",
@@ -177,8 +163,38 @@ export const CommunityCTA: React.FC<CommunityCTAProps> = ({
       });
       return;
     }
+    setPendingAction("message");
+    setShowDecisionCard(true);
+  };
+
+  // Execute action after decision card confirms
+  const executeDirectConnect = async () => {
+    await trackCTA("direct_connect", source);
+    if (source === "trade_deal") {
+      navigate(`/direct-connect?dealId=${id}`);
+    } else {
+      navigate(`/direct-connect?source=community_post&postId=${id}`);
+    }
+    setShowDecisionCard(false);
+  };
+
+  const executeMessage = async () => {
     await trackCTA("message", source);
     navigate(`/messages?user=${encodeURIComponent(ownerUserId!)}`);
+    setShowDecisionCard(false);
+  };
+
+  const handleDecisionProceed = () => {
+    if (pendingAction === "direct_connect") {
+      void executeDirectConnect();
+    } else if (pendingAction === "message") {
+      void executeMessage();
+    }
+  };
+
+  const handleDecisionCancel = () => {
+    setShowDecisionCard(false);
+    setPendingAction(null);
   };
   
   // Determine what to show for Direct Connect CTA
@@ -195,6 +211,39 @@ export const CommunityCTA: React.FC<CommunityCTAProps> = ({
     ? (messageAuthority?.label || "Ask Scout")
     : "Message";
   
+  // Get authority for pending action
+  const currentAuthority = pendingAction === "direct_connect" ? directConnectAuthority : messageAuthority;
+  
+  // Render DecisionCard if active
+  if (showDecisionCard && pendingAction && currentAuthority) {
+    return (
+      <div className="mt-4">
+        <DecisionCard
+          action={pendingAction}
+          context={{
+            targetName: ownerUserId || "Community member",
+            targetRole: source === "trade_deal" ? "Trade Deal Author" : "Community Post Author",
+            communitySignal: "Active in this community",
+            absenceNote: !ownerUserId ? "No prior connections yet" : undefined,
+          }}
+          scoutAction={currentAuthority.action}
+          riskFraming={currentAuthority.explanation ? [currentAuthority.explanation] : []}
+          guidance={
+            currentAuthority.action === "COMPLY"
+              ? "This looks like a normal contact. You're good to proceed."
+              : currentAuthority.action === "DEFER"
+              ? "Before contacting, Scout suggests clarifying your scope to avoid misalignment."
+              : "Scout recommends waiting. Missing details here increase the chance of a bad outcome."
+          }
+          explanation={currentAuthority.explanation}
+          onProceed={handleDecisionProceed}
+          onAskScout={handleAskScout}
+          onCancel={handleDecisionCancel}
+        />
+      </div>
+    );
+  }
+
   // Show loading state briefly
   if (loading) {
     return (
@@ -227,7 +276,7 @@ export const CommunityCTA: React.FC<CommunityCTAProps> = ({
             type="button"
             onClick={(e) => {
               e.stopPropagation();
-              void handleDirectConnect();
+              handleDirectConnectClick();
             }}
             className={`flex-1 min-w-0 px-2 py-1 rounded-md text-left truncate ml-1 ${
               directConnectMode === "ask_scout"
@@ -243,7 +292,7 @@ export const CommunityCTA: React.FC<CommunityCTAProps> = ({
             type="button"
             onClick={(e) => {
               e.stopPropagation();
-              void handleMessage();
+              handleMessageClick();
             }}
             className={`flex-1 min-w-0 px-2 py-1 rounded-md text-left truncate ml-1 hidden sm:block ${
               messageMode === "ask_scout"
@@ -279,9 +328,7 @@ export const CommunityCTA: React.FC<CommunityCTAProps> = ({
       {showDirectConnect && (
         <button
           type="button"
-          onClick={() => {
-            void handleDirectConnect();
-          }}
+          onClick={handleDirectConnectClick}
           className={`flex items-center justify-center gap-1.5 py-2 border-l border-tsBorder ${
             directConnectMode === "ask_scout"
               ? "bg-tsBg hover:bg-tsBg/80 text-slate-100"
@@ -301,9 +348,7 @@ export const CommunityCTA: React.FC<CommunityCTAProps> = ({
       {showMessage && (
         <button
           type="button"
-          onClick={() => {
-            void handleMessage();
-          }}
+          onClick={handleMessageClick}
           className={`flex items-center justify-center gap-1.5 py-2 border-l border-tsBorder ${
             messageMode === "ask_scout"
               ? "bg-tsBg hover:bg-tsBg/80 text-slate-100"
