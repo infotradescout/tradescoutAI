@@ -226,8 +226,8 @@ export function scoreAmbiguity(
   // Conflicting signals (constraints that oppose each other)
   if (situation.constraints && situation.constraints.length > 1) {
     // Simple heuristic: timeline + budget constraints often conflict
-    const hasTimeline = situation.constraints.some(c => /time|deadline|urgent|asap/i.test(c.description));
-    const hasBudget = situation.constraints.some(c => /budget|cost|price|cheap|afford/i.test(c.description));
+    const hasTimeline = situation.constraints.some(c => /time|deadline|urgent|asap/i.test(c));
+    const hasBudget = situation.constraints.some(c => /budget|cost|price|cheap|afford/i.test(c));
     if (hasTimeline && hasBudget) {
       ambiguityScore += 0.15; // time vs money trade-off = ambiguity
     }
@@ -261,7 +261,7 @@ export function scoreOutcomeRiskMagnitude(
   };
 
   const maxRisk = situation.risks.reduce((max, risk) => {
-    const level = riskLevels[risk.level] || 0.5;
+    const level = riskLevels[risk.severity] || 0.5;
     return Math.max(max, level);
   }, 0.1);
 
@@ -269,8 +269,8 @@ export function scoreOutcomeRiskMagnitude(
   let weightedRisk = maxRisk;
 
   // Safety and irreversibility amplify risk magnitude
-  const hasSafetyRisk = situation.risks.some(r => r.type === 'safety');
-  const hasIrreversibleRisk = situation.risks.some(r => r.type === 'irreversibility');
+  const hasSafetyRisk = false; // safety not in current risk enum
+  const hasIrreversibleRisk = situation.risks.some(r => r.type === 'irreversible');
   const hasFinancialRisk = situation.risks.some(r => r.type === 'financial');
 
   if (hasSafetyRisk) weightedRisk = Math.min(weightedRisk * 1.3, 1.0);

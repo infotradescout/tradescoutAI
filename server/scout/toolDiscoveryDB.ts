@@ -397,7 +397,7 @@ export async function mergeBlueprints(
       proposalId,
       decidedByUserId: adminUserId,
       decision: 'merged',
-      mergedIntoId,
+      mergeIntoId,
       notes,
     });
 
