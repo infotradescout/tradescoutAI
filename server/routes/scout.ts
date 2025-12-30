@@ -36,6 +36,7 @@ import { desc, eq } from "drizzle-orm";
 import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
+import { govern, type GovernorDecision } from "../scout/governor";
 
 const router = Router();
 const __filename = fileURLToPath(import.meta.url);
@@ -1998,6 +1999,88 @@ router.post("/", async (req: Request, res: Response) => {
 
     const wantsWelcomeDraft = isWelcomeIntroRequest(message);
     const wantsExchangeListingDraft = isExchangeListingRequest(message);
+
+    // ==========================================================================
+    // GOVERNOR MODE: Situation-driven intelligence
+    // ==========================================================================
+    // Scout assesses the situation and decides whether to comply, defer,
+    // redirect, or block BEFORE generating a response.
+    const governorDecision = await govern({
+      message,
+      user,
+      history,
+      recentActivity,
+      countyCode,
+      stateCode,
+    });
+
+    // Log governor decision for development
+    if (process.env.NODE_ENV === "development") {
+      console.log("[Scout Governor]", {
+        action: governorDecision.intervention.action,
+        role: governorDecision.intervention.role,
+        reasoning: governorDecision.intervention.reasoning,
+        requiresLLM: governorDecision.requiresLLM,
+        risks: governorDecision.situation.risks.map(r => ({
+          type: r.type,
+          severity: r.severity,
+          description: r.description,
+        })),
+        unknowns: governorDecision.situation.unknowns,
+      });
+    }
+
+    // If governor decided to DEFER, REDIRECT, or BLOCK, return immediately
+    // with structured intervention (no LLM needed for these)
+    if (["DEFER", "REDIRECT", "BLOCK"].includes(governorDecision.intervention.action)) {
+      const intervention = governorDecision.intervention;
+      let fullMessage = intervention.userMessage;
+      
+      // Add next steps if present
+      if (intervention.nextSteps && intervention.nextSteps.length > 0) {
+        fullMessage += "\n\n" + intervention.nextSteps
+          .filter(s => s.userFacing)
+          .map((s, i) => `${i + 1}. ${s.action}`)
+          .join("\n");
+      }
+      
+      // Build suggested actions from next steps
+      const suggestedActions = intervention.nextSteps
+        ?.filter(s => s.userFacing)
+        .map(s => s.action)
+        .slice(0, 3) || [];
+      
+      const aiResponse: ScoutResponse = {
+        message: trimResponseToScreenFit(fullMessage),
+        suggestedActions,
+        actions: [],
+        sponsored: null,
+        metadata: {
+          governorAction: intervention.action,
+          governorRole: intervention.role,
+          governorReasoning: intervention.reasoning,
+          situation: {
+            goal: governorDecision.situation.goal,
+            risks: governorDecision.situation.risks,
+            unknowns: governorDecision.situation.unknowns,
+            confidence: governorDecision.situation.confidence,
+          },
+          outcomeGraph: governorDecision.outcomeGraph,
+        },
+      };
+
+      return res.json({
+        ...aiResponse,
+        knowledge: {
+          layer: 0,
+          sources: ["Governor Decision Engine"],
+          confidence: governorDecision.confidence,
+        },
+        llmProvider: "governor",
+        promptVersion,
+        timestamp: new Date().toISOString(),
+      });
+    }
 
     // BUILD CAPABILITY SIGNALS: Multi-source inference from profile, behavior, context, and message
     // This enables Scout to personalize responses without explicit role-based gating
