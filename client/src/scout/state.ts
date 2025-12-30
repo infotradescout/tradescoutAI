@@ -100,6 +100,14 @@ export interface ScoutMessage {
   content: string;
   timestamp: string; // ISO string
   suggestedActions?: string[];
+  overrideOption?: {
+    label: string;
+    message: string;
+    scope?: string;
+    logAction: "ignored_advice";
+    contextType?: string;
+    contextId?: string | null;
+  };
   clusters?: ScoutCluster[];
   frame?: ScoutResponseFrame;
   // Structured agent outputs

@@ -116,8 +116,8 @@ const AdminCreateAccount = React.lazy(() => import('./pages/admin-create-account
 const AdminAffiliates = React.lazy(() => import('./pages/admin-affiliates'));
 const AdminShell = React.lazy(() => import('./pages/admin'));
 const AdminPromotions = React.lazy(() => import('./pages/admin-promotions'));
-const PromptAdminPage = React.lazy(() =>
-  import('./pages/PromptAdminPage').then(mod => ({ default: (mod as any).default || (mod as any).PromptAdminPage }))
+const AdminToolDiscovery = React.lazy(() => import('./pages/admin-tool-discovery'));
+const PromptAdminPage = React.lazy(() => import('./pages/PromptAdminPage').then(mod => ({ default: (mod as any).default || (mod as any).PromptAdminPage }))
 );
 
 // Marketplace & Social
@@ -712,6 +712,22 @@ const AppLayout = memo(function AppLayout() {
                       <LazyPage Component={AdminTestingControls} />
                     </ProtectedRoute>
                   </Route>
+                  <Route path="/admin/authority-diagnostics">
+                    <ProtectedRoute adminOnly>
+                      <LazyPage
+                        Component={lazy(() =>
+                          import("./pages/admin-authority-diagnostics")
+                        )}
+                      />
+                    </ProtectedRoute>
+                  </Route>
+                  <Route path="/admin/control">
+                    <ProtectedRoute adminOnly>
+                      <LazyPage
+                        Component={lazy(() => import("./pages/admin-control"))}
+                      />
+                    </ProtectedRoute>
+                  </Route>
                   <Route path="/admin/address-verifications">
                     <ProtectedRoute adminOnly>
                       <LazyPage Component={AdminAddressVerifications} />
@@ -755,6 +771,11 @@ const AppLayout = memo(function AppLayout() {
                   <Route path="/admin/promotions">
                     <ProtectedRoute adminOnly>
                       <LazyPage Component={AdminPromotions} />
+                    </ProtectedRoute>
+                  </Route>
+                  <Route path="/admin/tool-discovery">
+                    <ProtectedRoute adminOnly>
+                      <LazyPage Component={AdminToolDiscovery} />
                     </ProtectedRoute>
                   </Route>
                   <Route path="/admin/community-builder/reconciliation">

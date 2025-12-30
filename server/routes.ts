@@ -8295,6 +8295,27 @@ export async function registerRoutes(app: any) {
         };
         posts = await storage.getCommunityPosts(fallbackFilters);
       }
+      
+      // NOTE: Outcome-based feed weighting is intentionally disabled (Phase 2C).
+      // REASONING:
+      // - Weighting implies earned trust before outcome data is reliable.
+      // - CTA gating (Phase 2A) generates the foundation outcomes.
+      // - Feed influence should follow, not precede, action gating validation.
+      // ENABLE WHEN:
+      // - >= 50 completed outcomes recorded
+      // - Outcome variance across posts is measurable  
+      // - Admin diagnostics show stable override/regret calibration
+      // STATUS: DISABLED - waiting for Phase 2A data
+      const ENABLE_OUTCOME_WEIGHTING = false;
+      if (ENABLE_OUTCOME_WEIGHTING) {
+        const { applyOutcomeWeighting, sortByOutcomeScore } = await import("./community/outcomeScoring");
+        await applyOutcomeWeighting(posts);
+        
+        // If sorting by recommended, re-sort by outcome score
+        if (normalizedScope === "recommendations" || normalizedScope === "forYou") {
+          sortByOutcomeScore(posts);
+        }
+      }
 
       res.json(posts);
     } catch (error: any) {
@@ -12076,6 +12097,18 @@ export async function registerRoutes(app: any) {
   // Register AI Scout routes (with assistant alias for backward compatibility)
   app.use("/api/scout", scoutRoute);
   app.use("/api/assistant", scoutRoute);
+
+  // Admin-only: authority diagnostics (observe, not feature)
+  const scoutAnalyticsRouter = (await import("./routes/scout-analytics")).default;
+  app.use("/api/scout-analytics", scoutAnalyticsRouter);
+
+  // Super admin only: control plane (emergency brakes and governors)
+  const adminControlRouter = (await import("./routes/admin-control")).default;
+  app.use("/api/admin-control", adminControlRouter);
+
+  // Scout CTA authority check (lightweight, cached)
+  const { setupScoutCTACheckRoutes } = await import("./routes/scout-cta-check");
+  setupScoutCTACheckRoutes(app);
 
   // Admin insights for Scout usage
   const scoutInsightsHandler: ExpressHandler = async (req, res) => {

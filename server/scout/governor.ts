@@ -8,9 +8,25 @@
  * 
  * Primary loop:
  * Signal → Situation Inference → Outcome Risk Assessment → Action Selection → Intervention → Memory
+ * 
+ * Tool Discovery runs OFFLINE (not in this flow).
  */
 
 import type { User } from "../assistantActions";
+import { classifyRisk, explainRisk, type RiskAssessment } from "./riskClassifier";
+import { assessConfidence, type ConfidenceAssessment } from "./confidenceScorer";
+import { getUserConfidenceState, getOutcomeStats } from "./outcomeTracker";
+import { computeConfidenceScope, type ConfidenceScope } from "./confidenceScope";
+import { db } from "../db";
+import { toolProposals } from "../../shared/schema";
+import { and, eq, sql } from "drizzle-orm";
+
+// Import admin control state
+import {
+  getAuthorityMode,
+  getConfidenceDampener,
+  isOutcomeLearningEnabled,
+} from "../routes/admin-control";
 
 // ============================================================================
 // PRIMITIVES - Universal building blocks that never change
@@ -43,6 +59,28 @@ export type ScoutRole =
   | "SAFEGUARD"    // "Stop. Here's what could go wrong"
   | "EXECUTOR";    // "I've got this. Here's how we proceed"
 
+export interface AuthorityEvidence {
+  scopeKey?: string;
+  scopeFlowType?: string;
+  scopeDominantRisk?: string;
+  institutionalMemoryDensity: number;
+  approvedToolsForScope: number;
+  successes: number;
+  regrets: number;
+  recentSuccesses: number;
+  recentRegrets: number;
+}
+
+type AuthorityProof = {
+  hasProof: boolean;
+  proofSources: {
+    institutionalMemory: boolean;
+    approvedTool: boolean;
+    repeatedOutcomes: boolean;
+  };
+  imd: number;
+};
+
 // ============================================================================
 // SITUATION - Working memory of the current real-world context
 // ============================================================================
@@ -59,11 +97,16 @@ export interface Situation {
   nextBestAction: Step | null; // Computed next move
   confidence: "low" | "medium" | "high";
   
+  // Authority assessment (NEW: confidence-weighted governance)
+  confidenceAssessment?: ConfidenceAssessment;
+  
   // Context
   local: LocalContext | null;
   temporal: TemporalContext | null;
   financial: FinancialContext | null;
   trust: TrustContext | null;
+  confidenceScope?: ConfidenceScope;
+  authorityEvidence?: AuthorityEvidence;
 }
 
 export interface Risk {
@@ -141,6 +184,12 @@ export interface Intervention {
   userMessage: string;         // What Scout says to user
   nextSteps?: Step[];          // If DEFER/REDIRECT, what must happen first
   blockedReason?: string;      // If BLOCK, specific reason
+  overrideOption?: {
+    label: string;
+    message: string;
+    scope?: string;
+    logAction: "ignored_advice";
+  };
 }
 
 // ============================================================================
@@ -195,7 +244,7 @@ export async function inferSituation(args: {
   const situation: Situation = {
     goal: inferGoal(message, lower),
     constraints: inferConstraints(message, lower, user),
-    risks: await assessRisks(message, lower, { hasPriceQuestion, serviceRequest, priceMatch }),
+    risks: [], // Will be populated below
     unknowns: inferUnknowns(message, lower, { serviceRequest }),
     completedSteps: [],
     nextBestAction: null,
@@ -217,6 +266,70 @@ export async function inferSituation(args: {
       reputationSignals: [],
       trustGaps: serviceRequest ? ["No verified contractors yet", "No local reviews"] : [],
     },
+  };
+  
+  // Assess risks using domain-agnostic classifier
+  situation.risks = await assessRisks(
+    message,
+    lower,
+    situation.goal,
+    situation.constraints,
+    situation.unknowns
+  );
+
+  // Confidence scope: bound authority to a context fingerprint
+  const confidenceScope = computeConfidenceScope(situation);
+  situation.confidenceScope = confidenceScope;
+  
+  // Load confidence state and outcome stats (real signals only)
+  const userIdNum = user?.id ? Number(user.id) : undefined;
+  const userState = userIdNum ? await getUserConfidenceState(userIdNum, confidenceScope.key) : undefined;
+  const outcomeStats = userIdNum ? await getOutcomeStats({ userId: userIdNum, scope: confidenceScope.key }) : { successes: 0, regrets: 0, recentSuccesses: 0, recentRegrets: 0 };
+  const approvedTools = await db
+    .select({ count: sql<number>`count(*)` })
+    .from(toolProposals)
+    .where(
+      and(
+        eq(toolProposals.status, "approved" as any),
+        eq(toolProposals.fingerprint, confidenceScope.contextFingerprint),
+      )
+    );
+  const approvedToolsCount = approvedTools?.[0]?.count ? Number(approvedTools[0].count) : 0;
+  
+  // Assess confidence in authority (how safe to intervene strongly)
+  situation.confidenceAssessment = assessConfidence(
+    message,
+    situation,
+    {
+      userId: user?.id?.toString(),
+      // Evidence signals
+      hasMedia: false, // TODO: detect from recentActivity
+      hasDocuments: false,
+      hasVerifiedRecords: false,
+      // Institutional memory signals (real counts)
+      approvedToolsCount,
+      regretPatternsCount: outcomeStats.regrets,
+      successfulOutcomesCount: outcomeStats.successes,
+      // User familiarity signals (inferred trajectory)
+      priorSimilarInteractions: history.length > 3 ? Math.min(history.length, 10) : 0,
+      correctTerminologyUsed: serviceRequest, // Heuristic for now
+      stateConfidence: userState?.currentConfidence,
+    }
+  );
+
+  // Update confidence label and authority evidence for downstream gating
+  const blendedConfidence = situation.confidenceAssessment.confidence;
+  situation.confidence = blendedConfidence < 0.5 ? "low" : blendedConfidence < 0.7 ? "medium" : "high";
+  situation.authorityEvidence = {
+    scopeKey: confidenceScope.key,
+    scopeFlowType: confidenceScope.flowType,
+    scopeDominantRisk: confidenceScope.dominantRisk,
+    institutionalMemoryDensity: situation.confidenceAssessment.signals.institutionalMemoryDensity,
+    approvedToolsForScope: approvedToolsCount,
+    successes: outcomeStats.successes,
+    regrets: outcomeStats.regrets,
+    recentSuccesses: outcomeStats.recentSuccesses,
+    recentRegrets: outcomeStats.recentRegrets,
   };
   
   return situation;
@@ -275,58 +388,85 @@ function inferConstraints(message: string, lower: string, user?: User): string[]
 async function assessRisks(
   message: string,
   lower: string,
-  context: { hasPriceQuestion: boolean; serviceRequest: boolean; priceMatch: RegExpMatchArray | null }
+  goal: string,
+  constraints: string[],
+  unknowns: string[],
 ): Promise<Risk[]> {
+  // Use domain-agnostic risk classifier
+  const riskAssessment = classifyRisk({
+    message,
+    goal,
+    constraints,
+    unknowns,
+  });
+  
   const risks: Risk[] = [];
   
-  // Price anchoring risk - user asking "is $X too much?" is dangerous
-  if (context.hasPriceQuestion && context.priceMatch) {
+  // Convert risk dimensions to Risk objects
+  if (riskAssessment.dimensions.financial >= 5) {
     risks.push({
       type: "financial",
-      severity: "high",
-      description: "User is price-anchored on a number without context",
-      reversibility: "irreversible",
+      severity: riskAssessment.dimensions.financial >= 8 ? "critical" : 
+                riskAssessment.dimensions.financial >= 6 ? "high" : "medium",
+      description: `Financial exposure detected (score: ${riskAssessment.dimensions.financial}/10)`,
+      reversibility: riskAssessment.reversibility,
       consequences: [
-        "May overpay by accepting overpriced bid",
-        "May accept low bid that leads to poor work",
-        "Focusing on price rather than quality/scope",
+        "Potential financial loss",
+        ...(riskAssessment.criticalMissingInfo.filter(i => i.includes('Cost') || i.includes('budget'))),
       ],
     });
   }
   
-  // High-stakes contractor work (foundation, roof, electrical, HVAC)
-  const highStakesWork = /foundation|structural|roof|electrical|hvac|plumb/i.test(lower);
-  
-  // Contractor connection without verification
-  if (context.serviceRequest || highStakesWork) {
-    const severity = highStakesWork ? "high" : "medium";
+  if (riskAssessment.dimensions.safety >= 5) {
     risks.push({
-      type: "trust",
-      severity,
-      description: highStakesWork 
-        ? "High-stakes irreversible work without verified contractor"
-        : "Connecting to unverified contractor for irreversible work",
+      type: "trust", // Using trust as proxy for safety verification
+      severity: riskAssessment.dimensions.safety >= 8 ? "critical" : 
+                riskAssessment.dimensions.safety >= 6 ? "high" : "medium",
+      description: `Safety concerns require verification (score: ${riskAssessment.dimensions.safety}/10)`,
       reversibility: "irreversible",
       consequences: [
-        "Poor quality work that must be redone",
-        "Financial loss if contractor doesn't complete",
-        "Property damage from unqualified work",
-        ...(highStakesWork ? ["Structural/safety issues from improper work"] : []),
+        "Potential safety hazard",
+        "Property or personal injury risk",
+        ...(riskAssessment.criticalMissingInfo.filter(i => i.includes('qualification') || i.includes('licensing'))),
       ],
     });
   }
   
-  // Financial risk for expensive work
-  if (highStakesWork && !context.hasPriceQuestion) {
+  if (riskAssessment.dimensions.legal >= 5) {
     risks.push({
-      type: "financial",
+      type: "legal",
+      severity: riskAssessment.dimensions.legal >= 7 ? "high" : "medium",
+      description: `Legal/regulatory implications (score: ${riskAssessment.dimensions.legal}/10)`,
+      reversibility: "irreversible",
+      consequences: [
+        "Potential legal complications",
+        ...(riskAssessment.criticalMissingInfo.filter(i => i.includes('Permit') || i.includes('compliance'))),
+      ],
+    });
+  }
+  
+  if (riskAssessment.dimensions.irreversibility >= 6) {
+    risks.push({
+      type: "irreversible",
+      severity: riskAssessment.dimensions.irreversibility >= 8 ? "high" : "medium",
+      description: `Irreversible decision point (score: ${riskAssessment.dimensions.irreversibility}/10)`,
+      reversibility: "irreversible",
+      consequences: [
+        "Cannot be undone easily",
+        ...(riskAssessment.criticalMissingInfo.filter(i => i.includes('scope') || i.includes('implications'))),
+      ],
+    });
+  }
+  
+  if (riskAssessment.dimensions.timeCritical >= 7) {
+    risks.push({
+      type: "timing",
       severity: "medium",
-      description: "High-cost work without price context",
+      description: `Time-sensitive decision (score: ${riskAssessment.dimensions.timeCritical}/10)`,
       reversibility: "partially_reversible",
       consequences: [
-        "May not budget correctly",
-        "Surprised by actual costs",
-        "Unable to compare bids effectively",
+        "Rushed decision may lead to regret",
+        "Need to verify before acting urgently",
       ],
     });
   }
@@ -341,25 +481,27 @@ function inferUnknowns(
 ): string[] {
   const unknowns: string[] = [];
   
-  const highStakesWork = /foundation|structural|roof|electrical|hvac|plumb/i.test(lower);
-  
-  if (context.serviceRequest || highStakesWork) {
-    // Critical missing info for contractor work
+  // Generic unknowns for any service request
+  if (context.serviceRequest) {
+    // Visual context
     if (!/photo|picture|image/.test(lower)) {
       unknowns.push("No photos of the issue/area");
     }
     
-    if (!/age|old|built|installed/.test(lower)) {
-      unknowns.push("Age of system/structure unknown");
+    // Timeline context
+    if (!/age|old|built|installed|when/.test(lower)) {
+      unknowns.push("Age/timeline information missing");
     }
     
-    if (!/square|size|footage/.test(lower)) {
+    // Scope context
+    if (!/square|size|footage|how (much|many|big)/.test(lower)) {
       unknowns.push("Scope/size not specified");
     }
     
-    // For foundation work, also need severity info
-    if (/foundation/i.test(lower) && !/crack|settle|slope|shift/.test(lower)) {
-      unknowns.push("Severity/symptoms not described");
+    // Severity/urgency context
+    if (!/urgent|emergency|asap|bad|severe|critical/.test(lower) && 
+        !/minor|small|simple|easy/.test(lower)) {
+      unknowns.push("Severity/urgency level unclear");
     }
   }
   
@@ -377,44 +519,105 @@ function getRegionFromState(stateCode: string): string {
   return regions[stateCode] || "Unknown";
 }
 
+function evaluateAuthorityProof(situation: Situation): AuthorityProof {
+  const imd = situation.authorityEvidence?.institutionalMemoryDensity ?? 0;
+  const approvedTool = (situation.authorityEvidence?.approvedToolsForScope ?? 0) > 0;
+  const repeatedOutcomes = (situation.authorityEvidence?.recentSuccesses ?? 0) >= 2;
+
+  const hasProof = imd >= 0.35 || approvedTool || repeatedOutcomes;
+
+  return {
+    hasProof,
+    proofSources: {
+      institutionalMemory: imd >= 0.35,
+      approvedTool,
+      repeatedOutcomes,
+    },
+    imd,
+  };
+}
+
 /**
  * Select Scout's action based on situation and risk assessment.
  * This is the core decision point that determines whether Scout
  * complies, defers, redirects, or blocks.
  */
-export function selectAction(situation: Situation): { action: ScoutAction; role: ScoutRole } {
-  // BLOCK: Critical risks that must prevent action
-  const criticalRisks = situation.risks.filter(r => r.severity === "critical");
-  if (criticalRisks.length > 0) {
-    return { action: "BLOCK", role: "SAFEGUARD" };
+export function selectAction(situation: Situation): { action: ScoutAction; role: ScoutRole; authorityProof: AuthorityProof; allowOverride: boolean } {
+  // Apply global admin controls
+  const authorityMode = getAuthorityMode();
+  const dampener = getConfidenceDampener();
+  
+  const authorityProof = evaluateAuthorityProof(situation);
+  const rawConfidence = situation.confidenceAssessment?.confidence ?? 0.25;
+  const confidence = rawConfidence * dampener; // Apply dampener
+  const allowedActions = situation.confidenceAssessment?.allowedActions ?? ["COMPLY", "DEFER"];
+  let allowOverride = false;
+  
+  // AUTHORITY MODE OVERRIDES
+  if (authorityMode === "advisory") {
+    // Advisory mode: only COMPLY or DEFER, never BLOCK/REDIRECT
+    const highRisks = situation.risks.filter(r => r.severity === "high" || r.severity === "critical");
+    if (highRisks.length > 0) {
+      allowOverride = true;
+      return { action: "DEFER", role: "INTERPRETER", authorityProof, allowOverride };
+    }
+    return { action: "COMPLY", role: "INTERPRETER", authorityProof, allowOverride };
   }
   
-  // DEFER: High risks + missing critical info
+  // BLOCK: Only allowed when confidence > 0.85 AND critical risks present
+  const criticalRisks = situation.risks.filter(r => r.severity === "critical");
+  
+  // Conservative mode: never BLOCK
+  if (authorityMode === "conservative" && criticalRisks.length > 0) {
+    allowOverride = true;
+    return { action: "DEFER", role: "SAFEGUARD", authorityProof, allowOverride };
+  }
+  
+  if (criticalRisks.length > 0 && allowedActions.includes("BLOCK") && authorityProof.hasProof) {
+    allowOverride = true;
+    return { action: "BLOCK", role: "SAFEGUARD", authorityProof, allowOverride };
+  }
+
+  if (criticalRisks.length > 0 && allowedActions.includes("BLOCK") && !authorityProof.hasProof) {
+    allowOverride = true;
+    return { action: "DEFER", role: "SAFEGUARD", authorityProof, allowOverride };
+  }
+  
+  // If BLOCK needed but confidence too low, DEFER instead
+  if (criticalRisks.length > 0 && !allowedActions.includes("BLOCK")) {
+    allowOverride = true;
+    return { action: "DEFER", role: "SAFEGUARD", authorityProof, allowOverride };
+  }
+  
+  // DEFER: High risks + missing critical info (allowed at confidence >= 0.30)
   const highRisks = situation.risks.filter(r => r.severity === "high");
   if (highRisks.length > 0 && situation.unknowns.length > 0) {
-    return { action: "DEFER", role: "SAFEGUARD" };
+    allowOverride = !authorityProof.hasProof;
+    return { action: "DEFER", role: "SAFEGUARD", authorityProof, allowOverride };
   }
   
-  // REDIRECT: User goal is valid but framing is wrong
-  const hasAnchoringRisk = situation.risks.some(r => 
-    r.type === "financial" && r.description.includes("anchored")
-  );
-  if (hasAnchoringRisk) {
-    return { action: "REDIRECT", role: "AUTHORITY" };
+  // REDIRECT: User goal valid but framing wrong (requires confidence >= 0.30)
+  const hasAnchoringRisk = situation.financial?.anchoringRisk || 
+    situation.risks.some(r => r.description.includes('Financial exposure'));
+  if (hasAnchoringRisk && allowedActions.includes("REDIRECT")) {
+    // Soft redirect at low confidence, assertive at high confidence
+    const role = confidence < 0.7 ? "INTERPRETER" : "AUTHORITY";
+    return { action: "REDIRECT", role, authorityProof, allowOverride };
   }
   
   // DEFER: Missing critical unknowns for high-stakes decision
   if (situation.unknowns.length >= 2 && highRisks.length > 0) {
-    return { action: "DEFER", role: "INTERPRETER" };
+    allowOverride = !authorityProof.hasProof;
+    return { action: "DEFER", role: "INTERPRETER", authorityProof, allowOverride };
   }
   
   // COMPLY: Low risk, sufficient info, clear path
   if (situation.risks.length === 0 || situation.risks.every(r => r.severity === "low")) {
-    return { action: "COMPLY", role: "EXECUTOR" };
+    return { action: "COMPLY", role: "EXECUTOR", authorityProof, allowOverride };
   }
   
-  // Default: COMPLY with guidance
-  return { action: "COMPLY", role: "INTERPRETER" };
+  // Default: COMPLY with guidance (always allowed)
+  return { action: "COMPLY", role: "INTERPRETER", authorityProof, allowOverride };
 }
 
 /**
@@ -500,17 +703,28 @@ export function composeFlow(situation: Situation, action: ScoutAction): OutcomeG
 /**
  * Generate intervention message based on action and role.
  * Scout must explain why it's taking this action.
+ * 
+ * NEW: Explanation depth and tone scale with confidence.
+ * - Low confidence (< 0.5): Gentle framing, more questions
+ * - Medium confidence (0.5-0.7): Structured guidance
+ * - High confidence (> 0.7): Assertive, decisive
  */
 export function generateIntervention(
   situation: Situation,
   action: ScoutAction,
   role: ScoutRole,
-  outcomeGraph: OutcomeGraph | null
+  outcomeGraph: OutcomeGraph | null,
+  options: { authorityProof?: AuthorityProof; allowOverride?: boolean } = {}
 ): Intervention {
+  const { authorityProof, allowOverride } = options;
+  const confidence = situation.confidenceAssessment?.confidence ?? 0.25;
+  const confidenceLevel = confidence < 0.5 ? "low" : confidence < 0.7 ? "medium" : "high";
+  
   let reasoning = "";
   let userMessage = "";
   let nextSteps: Step[] | undefined = undefined;
   let blockedReason: string | undefined = undefined;
+  let overrideOption: Intervention["overrideOption"] = undefined;
   
   switch (action) {
     case "DEFER":
@@ -518,29 +732,76 @@ export function generateIntervention(
       const unknownsText = situation.unknowns.length === 1 
         ? situation.unknowns[0] 
         : `${situation.unknowns.length} pieces of critical information`;
-      userMessage = `Before we proceed, I need ${unknownsText}. ${situation.risks[0]?.consequences[0] || "This will help ensure a good outcome."}\n\nHere's what I need:`;
+      
+      // Explanation depth scales with confidence
+      if (confidenceLevel === "low") {
+        // Gentle, questioning approach
+        userMessage = `I want to make sure you get the best outcome here. To do that, I need to understand ${unknownsText}.\n\nCould you help me with:`;
+      } else if (confidenceLevel === "medium") {
+        // Structured guidance
+        userMessage = `Before we proceed, I need ${unknownsText}. ${situation.risks[0]?.consequences[0] || "This will help ensure a good outcome."}\n\nHere's what I need:`;
+      } else {
+        // Assertive, protective
+        userMessage = `We need to pause here. Based on similar situations, proceeding without ${unknownsText} typically leads to ${situation.risks[0]?.consequences[0]?.toLowerCase() || "poor outcomes"}.\n\nHere's what's required:`;
+      }
+      if (allowOverride && !authorityProof?.hasProof) {
+        userMessage += "\n\nI'm being careful because this scope doesn't have institutional proof yet. If you proceed anyway, we'll log it so we can learn from the outcome.";
+      }
       nextSteps = outcomeGraph?.steps.filter(s => s.userFacing) || [];
+      if (allowOverride) {
+        overrideOption = {
+          label: "Proceed anyway",
+          message: "You can continue, but we'll record that you chose to bypass protective steps so we can learn from the outcome.",
+          scope: situation.confidenceScope?.key,
+          logAction: "ignored_advice",
+        };
+      }
       break;
     
     case "REDIRECT":
       reasoning = `User's framing would lead to suboptimal decision. Need to reframe around actual goal.`;
       const risk = situation.risks[0];
-      userMessage = `I'll answer your question — but if you focus on ${risk?.type === "financial" ? "price" : "this"} right now, you're likely to make a worse decision.\n\nHere's why: ${risk?.consequences[0] || "Your framing doesn't match your actual goal."}\n\nLet me help you approach this differently:`;
+      
+      // Tone scales with confidence
+      if (confidenceLevel === "low") {
+        // Soft redirect - suggest alternative framing
+        userMessage = `I can answer that, but there might be a better way to think about this.\n\nConsider: ${risk?.consequences[0] || "Your framing might not match your actual goal."}\n\nWould you like to explore:`;
+      } else if (confidenceLevel === "medium") {
+        // Structured redirect
+        userMessage = `I'll answer your question — but if you focus on ${risk?.type === "financial" ? "price" : "this"} right now, you might make a less optimal decision.\n\nHere's why: ${risk?.consequences[0] || "Your framing doesn't match your actual goal."}\n\nLet me help you approach this differently:`;
+      } else {
+        // Assertive redirect - protective authority
+        userMessage = `I need to redirect you here. Focusing on ${risk?.type === "financial" ? "price alone" : "this"} consistently leads to worse outcomes.\n\nHere's what actually matters: ${risk?.consequences[0] || "Your underlying goal deserves a better approach."}\n\nHere's the right way to frame this:`;
+      }
       nextSteps = outcomeGraph?.steps.slice(0, 3) || [];
       break;
     
     case "BLOCK":
       reasoning = `Critical risks with irreversible consequences. Cannot proceed safely.`;
       blockedReason = situation.risks.filter(r => r.severity === "critical")[0]?.description || "High risk of harm";
-      userMessage = `I can't help you proceed yet.\n\n${blockedReason}\n\nHere's what must happen first:`;
+      
+      // BLOCK requires high confidence (> 0.85), so always assertive
+      userMessage = `I can't help you proceed yet.\n\n${blockedReason}\n\nThis isn't arbitrary — this pattern has led to serious regret in the past. Here's what must happen first:`;
       nextSteps = outcomeGraph?.steps.slice(0, 3) || [];
+      overrideOption = {
+        label: "Proceed anyway",
+        message: "Proceeding overrides Scout's safeguard. We'll log this so we can strengthen protections if regret occurs.",
+        scope: situation.confidenceScope?.key,
+        logAction: "ignored_advice",
+      };
       break;
     
     case "COMPLY":
       reasoning = `Low risk, sufficient context, clear path forward.`;
-      userMessage = role === "EXECUTOR" 
-        ? "I've got this. Here's how we proceed:"
-        : "Here's what you need to know:";
+      
+      // Even COMPLY tone varies
+      if (confidenceLevel === "low") {
+        userMessage = "Here's what I can tell you:";
+      } else if (role === "EXECUTOR") {
+        userMessage = "I've got this. Here's how we proceed:";
+      } else {
+        userMessage = "Here's what you need to know:";
+      }
       break;
   }
   
@@ -551,6 +812,7 @@ export function generateIntervention(
     userMessage,
     nextSteps,
     blockedReason,
+    overrideOption,
   };
 }
 
@@ -565,21 +827,25 @@ export async function govern(args: {
   recentActivity?: Array<{ type: string; timestamp: string }>;
   countyCode?: string;
   stateCode?: string;
+  sessionId?: string;
 }): Promise<GovernorDecision> {
   // 1. Infer situation (not just intent)
   const situation = await inferSituation(args);
   
   // 2. Select action based on risk assessment
-  const { action, role } = selectAction(situation);
+  const { action, role, authorityProof, allowOverride } = selectAction(situation);
   
   // 3. Compose flow if needed
   const outcomeGraph = composeFlow(situation, action);
   
   // 4. Generate intervention
-  const intervention = generateIntervention(situation, action, role, outcomeGraph);
+  const intervention = generateIntervention(situation, action, role, outcomeGraph, { authorityProof, allowOverride });
   
   // 5. Determine if LLM is needed for response text
   const requiresLLM = action === "COMPLY" || (action === "REDIRECT" && !outcomeGraph);
+  
+  // Tool Discovery runs OFFLINE after completion
+  // See observeFlowCompletion() in toolDiscoveryObserver.ts
   
   return {
     situation,
@@ -588,4 +854,135 @@ export async function govern(args: {
     confidence: situation.confidence,
     requiresLLM,
   };
+}
+
+/**
+ * Detect if Scout is working around a missing capability
+ */
+function detectMissingCapability(
+  situation: Situation,
+  outcomeGraph: OutcomeGraph | null,
+  action: ScoutAction
+): string | null {
+  // If we're deferring due to missing info, that's a missing capability
+  if (action === "DEFER" && situation.unknowns.length > 0) {
+    // Check if this is a pattern we're handling ad-hoc
+    const adHocPatterns = [
+      "photo upload", "document storage", "scope capture",
+      "contractor tracking", "commitment tracking", "follow-up reminders"
+    ];
+    
+    for (const pattern of adHocPatterns) {
+      if (situation.goal.toLowerCase().includes(pattern) ||
+          situation.unknowns.some(u => u.toLowerCase().includes(pattern))) {
+        return `Missing tool: Structured ${pattern} capture`;
+      }
+    }
+  }
+  
+  // If we're using multiple CAPTURE steps, might indicate need for structured tool
+  if (outcomeGraph && outcomeGraph.steps.filter(s => s.primitive === "CAPTURE").length >= 3) {
+    return `Missing tool: Multi-step ${situation.goal} workflow`;
+  }
+  
+  // Detect commitment/reminder patterns
+  if (/track|remember|remind|follow.?up|commitment/i.test(situation.goal)) {
+    return "Missing tool: Commitment and follow-up tracker";
+  }
+  
+  // Detect note-taking patterns
+  if (/note|record|save|keep track of|document/i.test(situation.goal)) {
+    return "Missing tool: Action-oriented notes system";
+  }
+  
+  return null;
+}
+
+/**
+ * Describe how Scout worked around the missing capability
+ */
+function describeWorkaround(action: ScoutAction, outcomeGraph: OutcomeGraph | null): string {
+  if (action === "DEFER") {
+    return `Manually requested info through conversation, ${outcomeGraph?.steps.length || 0} ad-hoc steps`;
+  }
+  if (action === "REDIRECT") {
+    return "Reframed user's question to avoid capability gap";
+  }
+  if (action === "BLOCK") {
+    return "Blocked action due to missing verification capability";
+  }
+  return "Provided ad-hoc guidance";
+}
+
+/**
+ * Generate fingerprint for clustering similar patterns
+ */
+function generateFingerprint(goal: string, missingCapability: string): string {
+  // Extract capability type from missing capability string
+  const capabilityMatch = missingCapability.match(/Missing tool: (.+)/);
+  if (capabilityMatch) {
+    const capabilityType = capabilityMatch[1]
+      .toLowerCase()
+      .replace(/\b(multi-step|structured|action-oriented)\b/g, "") // Remove modifiers
+      .replace(/\s+/g, "_")
+      .trim();
+    
+    // Normalize to common patterns
+    if (capabilityType.includes("commitment") || capabilityType.includes("follow")) {
+      return "commitment_tracker";
+    }
+    if (capabilityType.includes("note") || capabilityType.includes("record")) {
+      return "notes_system";
+    }
+    if (capabilityType.includes("photo") || capabilityType.includes("document")) {
+      return "document_capture";
+    }
+    if (capabilityType.includes("contractor") || capabilityType.includes("vendor")) {
+      return "contractor_tracking";
+    }
+    
+    return capabilityType;
+  }
+  
+  // Fallback: normalize goal
+  const normalizedGoal = goal.toLowerCase()
+    .replace(/\b(i|my|me|you|we|they|need|want|how|what)\b/g, "")
+    .replace(/\s+/g, "_")
+    .trim()
+    .substring(0, 30);
+  
+  return normalizedGoal || "general_workflow";
+}
+
+/**
+ * Track regret event (called when user expresses regret)
+ */
+export function trackRegret(args: {
+  userId: string;
+  originalDecision: string;
+  originalTimestamp: string;
+  regretStatement: string;
+  consequences: string[];
+  missingInfo: string[];
+  preventionPattern: string;
+}): void {
+  toolDiscovery.trackRegret({
+    id: `regret_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+    userId: args.userId,
+    timestamp: new Date().toISOString(),
+    originalDecision: args.originalDecision,
+    originalTimestamp: args.originalTimestamp,
+    regretStatement: args.regretStatement,
+    consequences: args.consequences,
+    reversibility: args.consequences.some(c => /irreversible|permanent|can't undo/i.test(c))
+      ? "irreversible"
+      : args.consequences.some(c => /expensive|costly/i.test(c))
+      ? "reversible_expensive"
+      : "partially_reversible",
+    shouldHaveBeenBlocked: args.consequences.some(c => /financial loss|property damage/i.test(c)),
+    shouldHaveBeenDeferred: args.missingInfo.length > 0,
+    missingInfo: args.missingInfo,
+    preventionPattern: args.preventionPattern,
+    scoutFailure: null, // Would analyze Scout's original decision
+  });
 }

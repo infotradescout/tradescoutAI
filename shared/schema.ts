@@ -10,7 +10,9 @@ import {
   integer,
   boolean,
   decimal,
+  numeric,
   pgEnum,
+  primaryKey,
 } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
@@ -7080,3 +7082,184 @@ export type GeneratedStory = typeof generatedStories.$inferSelect;
 export type InsertGeneratedStory = typeof generatedStories.$inferInsert;
 export type StoryInteraction = typeof storyInteractions.$inferSelect;
 export type InsertStoryInteraction = typeof storyInteractions.$inferInsert;
+
+// ============================================================================
+// SCOUT INSTITUTIONAL INTELLIGENCE - Tool Discovery System
+// ============================================================================
+
+// Tool proposal status enum
+export const toolProposalStatusEnum = pgEnum('tool_proposal_status', [
+  'proposed',
+  'approved',
+  'rejected',
+  'deferred',
+  'merged'
+]);
+
+// Evidence source type enum
+export const evidenceSourceTypeEnum = pgEnum('evidence_source_type', [
+  'conversation',
+  'action',
+  'regret'
+]);
+
+// Tool proposals - emitted when patterns converge
+export const toolProposals = pgTable('tool_proposals', {
+  id: integer('id').primaryKey().generatedAlwaysAsIdentity(),
+  fingerprint: varchar('fingerprint', { length: 255 }).notNull().unique(),
+  title: varchar('title', { length: 255 }).notNull(),
+  problemStatement: text('problem_statement').notNull(),
+  status: toolProposalStatusEnum('status').notNull().default('proposed'),
+  riskScore: integer('risk_score').notNull().default(0),
+  impactScore: integer('impact_score').notNull().default(0),
+  uniqueUserCount: integer('unique_user_count').notNull().default(0),
+  totalEventCount: integer('total_event_count').notNull().default(0),
+  approvedAt: timestamp('approved_at'), // when institutionalized
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+  updatedAt: timestamp('updated_at').notNull().defaultNow(),
+}, (table) => [
+  index('idx_tool_proposals_status').on(table.status),
+  index('idx_tool_proposals_fingerprint').on(table.fingerprint),
+  index('idx_tool_proposals_created_at').on(table.createdAt),
+]);
+
+// Tool proposal evidence - real user interactions that led to proposal
+export const toolProposalEvidence = pgTable('tool_proposal_evidence', {
+  id: integer('id').primaryKey().generatedAlwaysAsIdentity(),
+  proposalId: integer('proposal_id').notNull().references(() => toolProposals.id, { onDelete: 'cascade' }),
+  userId: integer('user_id').references(() => users.id, { onDelete: 'set null' }), // nullable for privacy
+  sourceType: evidenceSourceTypeEnum('source_type').notNull(),
+  sourceRef: varchar('source_ref', { length: 255 }), // message_id, flow_id, etc.
+  snippet: text('snippet').notNull(), // redacted conversation snippet
+  metadata: jsonb('metadata'), // additional context (risk level, primitives used, etc.)
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+}, (table) => [
+  index('idx_tool_proposal_evidence_proposal_id').on(table.proposalId),
+  index('idx_tool_proposal_evidence_user_id').on(table.userId),
+  index('idx_tool_proposal_evidence_created_at').on(table.createdAt),
+]);
+
+// Tool proposal decisions - admin review outcomes
+export const toolProposalDecisions = pgTable('tool_proposal_decisions', {
+  id: integer('id').primaryKey().generatedAlwaysAsIdentity(),
+  proposalId: integer('proposal_id').notNull().references(() => toolProposals.id, { onDelete: 'cascade' }),
+  decidedByUserId: integer('decided_by_user_id').notNull().references(() => users.id),
+  decision: toolProposalStatusEnum('decision').notNull(), // approved, rejected, deferred, merged
+  notes: text('notes'),
+  mergedIntoId: integer('merged_into_id').references(() => toolProposals.id, { onDelete: 'set null' }),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+}, (table) => [
+  index('idx_tool_proposal_decisions_proposal_id').on(table.proposalId),
+  index('idx_tool_proposal_decisions_decided_by').on(table.decidedByUserId),
+  index('idx_tool_proposal_decisions_created_at').on(table.createdAt),
+]);
+
+// Relations
+export const toolProposalsRelations = relations(toolProposals, ({ many }) => ({
+  evidence: many(toolProposalEvidence),
+  decisions: many(toolProposalDecisions),
+}));
+
+export const toolProposalEvidenceRelations = relations(toolProposalEvidence, ({ one }) => ({
+  proposal: one(toolProposals, {
+    fields: [toolProposalEvidence.proposalId],
+    references: [toolProposals.id],
+  }),
+  user: one(users, {
+    fields: [toolProposalEvidence.userId],
+    references: [users.id],
+  }),
+}));
+
+export const toolProposalDecisionsRelations = relations(toolProposalDecisions, ({ one }) => ({
+  proposal: one(toolProposals, {
+    fields: [toolProposalDecisions.proposalId],
+    references: [toolProposals.id],
+  }),
+  decidedBy: one(users, {
+    fields: [toolProposalDecisions.decidedByUserId],
+    references: [users.id],
+  }),
+  mergedInto: one(toolProposals, {
+    fields: [toolProposalDecisions.mergedIntoId],
+    references: [toolProposals.id],
+  }),
+}));
+
+// ============================================================================
+// Scout Outcome Feedback Loop (authority legitimacy)
+// ============================================================================
+
+export const scoutOutcomeContextEnum = pgEnum("scout_outcome_context", [
+  "direct_connect",
+  "community",
+  "trade_deal",
+  "tool",
+  "general",
+]);
+
+export const scoutOutcomeActionEnum = pgEnum("scout_outcome_action", [
+  "followed_advice",
+  "ignored_advice",
+  "completed_flow",
+  "canceled",
+  "dispute",
+  "refund",
+  "reported_spam",
+  "regret_reported",
+  "success_reported",
+]);
+
+export const scoutOutcomeEvents = pgTable("scout_outcome_events", {
+  id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
+  userId: integer("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  conversationId: varchar("conversation_id", { length: 255 }),
+  contextType: scoutOutcomeContextEnum("context_type").notNull(),
+  contextId: varchar("context_id", { length: 255 }),
+  scope: varchar("scope", { length: 64 }).notNull().default("global"),
+  action: scoutOutcomeActionEnum("action").notNull(),
+  value: numeric("value"),
+  confidenceDeltaHint: integer("confidence_delta_hint"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+}, (table) => [
+  index("idx_scout_outcome_user_id").on(table.userId),
+  index("idx_scout_outcome_context").on(table.contextType, table.contextId),
+  index("idx_scout_outcome_created_at").on(table.createdAt),
+  index("idx_scout_outcome_scope").on(table.scope),
+]);
+
+export const scoutUserConfidenceState = pgTable("scout_user_confidence_state", {
+  userId: integer("user_id").references(() => users.id, { onDelete: "cascade" }),
+  scope: varchar("scope", { length: 64 }).notNull().default("global"),
+  baselineConfidence: numeric("baseline_confidence").notNull().default("0.20" as any),
+  currentConfidence: numeric("current_confidence").notNull().default("0.20" as any),
+  lastUpdatedAt: timestamp("last_updated_at").notNull().defaultNow(),
+}, (table) => [
+  primaryKey({ columns: [table.userId, table.scope] }),
+  index("idx_scout_confidence_updated_at").on(table.lastUpdatedAt),
+]);
+
+// Zod schemas
+export const insertToolProposalSchema = createInsertSchema(toolProposals).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertToolProposalEvidenceSchema = createInsertSchema(toolProposalEvidence).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertToolProposalDecisionSchema = createInsertSchema(toolProposalDecisions).omit({
+  id: true,
+  createdAt: true,
+});
+
+// Type exports
+export type ToolProposal = typeof toolProposals.$inferSelect;
+export type InsertToolProposal = typeof toolProposals.$inferInsert;
+export type ToolProposalEvidence = typeof toolProposalEvidence.$inferSelect;
+export type InsertToolProposalEvidence = typeof toolProposalEvidence.$inferInsert;
+export type ToolProposalDecision = typeof toolProposalDecisions.$inferSelect;
+export type InsertToolProposalDecision = typeof toolProposalDecisions.$inferInsert;

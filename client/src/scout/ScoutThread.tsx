@@ -16,6 +16,8 @@ type ScoutThreadProps = {
   mode?: ScoutMode;
   onAction?: (action: ScoutAction) => void;
   onQuickAction?: (text: string) => void;
+  onOverride?: (option: NonNullable<ScoutMessage["overrideOption"]>) => void;
+  overridePendingScope?: string | null;
 };
 
 function ClusterCard({
@@ -124,6 +126,8 @@ const ScoutThread: React.FC<ScoutThreadProps> = ({
   mode,
   onAction,
   onQuickAction,
+  onOverride,
+  overridePendingScope,
 }) => {
   const [progress, setProgress] = React.useState(0);
   const phaseStartRef = React.useRef<number | null>(null);
@@ -343,6 +347,34 @@ const ScoutThread: React.FC<ScoutThreadProps> = ({
                     onAction={onAction}
                   />
                 ))}
+
+              {msg.overrideOption && (
+                <div
+                  className="mt-3 rounded-lg border border-dashed p-3"
+                  style={{
+                    backgroundColor: 'color-mix(in oklab, var(--bg-quaternary) 85%, black)',
+                    borderColor: 'color-mix(in oklab, var(--border-muted, var(--charcoal-700)) 80%, transparent)',
+                  }}
+                >
+                  <div className="text-xs" style={{ color: 'var(--text-secondary)' }}>
+                    {msg.overrideOption.message}
+                  </div>
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      onClick={() => onOverride && onOverride(msg.overrideOption!)}
+                      disabled={
+                        overridePendingScope === (msg.overrideOption.scope ?? "global")
+                      }
+                      className="scout-action-button"
+                    >
+                      {overridePendingScope === (msg.overrideOption.scope ?? "global")
+                        ? "Logging override..."
+                        : msg.overrideOption.label}
+                    </button>
+                  </div>
+                </div>
+              )}
 
               {msg.suggestedActions && msg.suggestedActions.length > 0 && (
                 <div className="mt-2 flex flex-wrap gap-2">

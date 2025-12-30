@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { PageLoadingSpinner } from "@/components/LoadingSpinner";
-import { Megaphone, Layers, Star, Target, Heart, Shield, Settings } from "lucide-react";
+import { Megaphone, Layers, Star, Target, Heart, Shield, Settings, Sparkles } from "lucide-react";
 
 type AdminHealthResponse = {
   ok: boolean;
@@ -22,6 +22,7 @@ type AdminSectionKey =
   | "placements"
   | "feedback"
   | "communityBuilders"
+  | "toolDiscovery"
   | "system";
 
 const sections: { key: AdminSectionKey; label: string; description: string; icon: React.ComponentType<any> }[] = [
@@ -60,6 +61,12 @@ const sections: { key: AdminSectionKey; label: string; description: string; icon
     label: "Community Builders",
     description: "County-level vaults and philanthropy OS",
     icon: Heart,
+  },
+  {
+    key: "toolDiscovery",
+    label: "Tool Discovery",
+    description: "Scout-learned capabilities and institutional memory",
+    icon: Sparkles,
   },
   {
     key: "system",
@@ -282,6 +289,36 @@ export default function AdminShell() {
                       Open Community Builders
                     </Button>
                   </Link>
+                </div>
+              )}
+
+              {activeSection === "toolDiscovery" && (
+                <div className="space-y-4">
+                  <p className="text-sm text-slate-300">
+                    Scout learns from real user friction and proposes new capabilities. When users
+                    repeatedly encounter dead ends or friction patterns, Scout's observation layer
+                    tracks convergence and surfaces blueprints here for admin review.
+                  </p>
+                  <Separator className="bg-slate-800" />
+                  <Card className="bg-slate-950/60 border-slate-800">
+                    <CardHeader className="pb-2">
+                      <CardTitle className="text-sm text-slate-100 flex items-center gap-2">
+                        <Sparkles className="w-4 h-4 text-scout-500" />
+                        Open Tool Discovery Dashboard
+                      </CardTitle>
+                      <CardDescription className="text-xs text-slate-400">
+                        Review proposed tools, see convergence evidence, and approve capabilities
+                        that become part of Scout's institutional memory.
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent className="pt-0 flex justify-end">
+                      <Link href="/admin/tool-discovery">
+                        <Button size="sm" variant="outline">
+                          Manage Tool Discovery
+                        </Button>
+                      </Link>
+                    </CardContent>
+                  </Card>
                 </div>
               )}
 

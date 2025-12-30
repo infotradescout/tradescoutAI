@@ -10,6 +10,7 @@ import {
   type AffiliatePayout,
 } from "../../shared/schema";
 import { eq, desc } from "drizzle-orm";
+import adminToolDiscoveryRouter from "./admin-tool-discovery";
 
 /**
  * Admin OS routes: health and high-level telemetry endpoints.
@@ -18,6 +19,11 @@ import { eq, desc } from "drizzle-orm";
  * implementation; only the registration location has changed.
  */
 export function mountAdminRoutes(app: any) {
+  // ---------------------------------------------------------------------------
+  // Tool Discovery Admin (super_admin / head_admin only)
+  // ---------------------------------------------------------------------------
+  app.use("/api/admin", adminToolDiscoveryRouter);
+
   // ---------------------------------------------------------------------------
   // Super Admin OS Health
   // ---------------------------------------------------------------------------
