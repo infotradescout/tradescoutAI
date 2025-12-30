@@ -62,6 +62,7 @@ await esbuild.build({
     'passport',
     'passport-local',
     'connect-pg-simple',
+    'bcrypt',
     'depd',
     'send',
     'mime',
@@ -73,7 +74,11 @@ await esbuild.build({
   banner: {
     js: `
 import { createRequire } from 'module';
+import { dirname } from 'path';
+import { fileURLToPath } from 'url';
 const require = createRequire(import.meta.url);
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 `
   }
 });
