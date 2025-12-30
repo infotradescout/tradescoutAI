@@ -130,7 +130,7 @@ router.get("/health", async (req, res) => {
     const overrides = await db
       .select({ count: sql<number>`count(*)` })
       .from(scoutOutcomeEvents)
-      .where(eq(scoutOutcomeEvents.outcomeType, "ignored_advice"));
+      .where(eq(scoutOutcomeEvents.action, "ignored_advice"));
 
     const overrideRate =
       totalOutcomes[0]?.count > 0

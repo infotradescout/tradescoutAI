@@ -72,14 +72,10 @@ export async function checkCTAAuthority(req: CTACheckRequest, userId?: string): 
   
   // Construct minimal situation for Governor
   const situation = await inferSituation({
-    userQuery: `User wants to ${req.action} on ${req.context}`,
+    message: `User wants to ${req.action} on ${req.context}`,
     user: userId ? { id: parseInt(userId), role: 'user' as const } : undefined,
-    context: {
-      source: req.context,
-      contextId: req.contextId,
-      scope: req.scope,
-      action: req.action,
-    },
+    history: [],
+    countyCode: req.scope,
   });
   
   const { action, authorityProof } = selectAction(situation);
