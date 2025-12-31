@@ -45,12 +45,15 @@ const RedirectTo = memo(function RedirectTo({ to }: { to: string }) {
 
 // Root landing router: send non-authenticated users to create account, authenticated users to appropriate dashboard
 const RootLanding = memo(function RootLanding() {
-  const { user, isAuthenticated } = useAuth();
+  const { user, isAuthenticated, isLoading } = useAuth();
   const [location, navigate] = useLocation();
 
   useEffect(() => {
     // Avoid redirect loops if we're already off root.
     if (location !== "/") return;
+
+    // Wait for auth to load before redirecting
+    if (isLoading) return;
 
     const anyUser: any = user;
     const role: string | undefined = anyUser?.role;
@@ -67,7 +70,7 @@ const RootLanding = memo(function RootLanding() {
     } else {
       navigate('/community-feed');
     }
-  }, [user, isAuthenticated, location, navigate]);
+  }, [user, isAuthenticated, isLoading, location, navigate]);
 
   return null;
 });
