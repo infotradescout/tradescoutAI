@@ -15,6 +15,7 @@ import { registerAICodeFixRoutes } from "./ai-code-fixes";
 import { registerUIIssuesRoutes } from "./routes/admin/ui-issues";
 import { setupModerationRoutes } from "./moderation";
 import { registerSocialRoutes } from "./social-routes";
+import { registerSocialFeatures } from "./social-features";
 import communityBuilderRouter from "./routes/community-builder-routes";
 import adminCommunityBuilderRouter from "./routes/admin-community-builder-routes";
 import communityVaultRouter from "./routes/community-vault-routes";
@@ -12106,6 +12107,9 @@ export async function registerRoutes(app: any) {
 
   // Register social media routes
   registerSocialRoutes(app);
+  
+  // Register social features (search, friends, messaging)
+  registerSocialFeatures(app);
 
   // Fallback for legacy client trending endpoint
   const trendingHandler: ExpressHandler = (_req, res) => {
