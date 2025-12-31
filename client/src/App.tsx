@@ -658,6 +658,18 @@ const AppLayout = memo(function AppLayout() {
                   <Route path="/community/u/:userId"><LazyPage Component={CommunityProfile} /></Route>
                   <Route path="/community-moderation"><LazyPage Component={CommunityModerationDemo} /></Route>
                   
+                  {/* Social features: discovery, friends, messaging */}
+                  <Route path="/discover-people">
+                    <ProtectedRoute>
+                      <LazyPage Component={lazy(() => import('./components/social/SocialDiscovery'))} />
+                    </ProtectedRoute>
+                  </Route>
+                  <Route path="/conversations">
+                    <ProtectedRoute>
+                      <LazyPage Component={lazy(() => import('./components/messages/MessagesPanel'))} />
+                    </ProtectedRoute>
+                  </Route>
+                  
                   {/* Community Builder routes */}
                   <Route path="/profile/:profileId/community">
                     <LazyPage Component={ProfileCommunity} />
