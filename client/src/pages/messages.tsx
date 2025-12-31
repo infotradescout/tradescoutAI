@@ -1,7 +1,7 @@
 import { useAuth } from '@/hooks/useAuth';
 import { Loader2 } from 'lucide-react';
 import { useNotifications } from '@/hooks/useNotifications';
-import { MessagesPanel } from '@/components/messages/MessagesPanel';
+import MessagesPanel from '@/components/messages/MessagesPanel';
 
 export default function MessagesPage() {
   const { user, isLoading } = useAuth();
