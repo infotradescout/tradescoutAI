@@ -4593,74 +4593,13 @@ export async function registerRoutes(app: any) {
     }
   });
 
-  // Growth Pack download (requires contractor account)
-  app.post("/api/growth-pack", isAuthenticated, async (req: any, res: any) => {
-    try {
-      const userId = (req.user as any)?.id || (req.user as any)?.claims?.sub;
-      const user = await storage.getUser(userId);
-
-      if (!user) {
-        return res.status(401).json({ message: "User not found" });
-      }
-
-      const downloadToken = randomUUID();
-      const downloadData = { ...req.body, downloadToken, userId };
-
-      const parsedDownload = insertGrowthPackDownloadSchema.safeParse(downloadData);
-      if (!parsedDownload.success) {
-        return res.status(400).json({
-          message: "Invalid download payload",
-          issues: parsedDownload.error.issues,
-        });
-      }
-
-      const validatedDownload = parsedDownload.data;
-      const download = await storage.createGrowthPackDownload(validatedDownload);
-
-      await storage.logEvent('growth_pack_requested', {
-        email: download.email,
-        companyName: download.companyName,
-        userId: userId,
-      });
-
-      res.json({ 
-        message: "Growth Pack requested successfully",
-        downloadToken,
-        downloadUrl: `/api/growth-pack/download/${downloadToken}`
-      });
-    } catch (error: any) {
-      console.error("Error creating Growth Pack download:", error);
-      res.status(500).json({ message: "Failed to request Growth Pack" });
-    }
+  // Growth Pack endpoints retired
+  app.post("/api/growth-pack", isAuthenticated, async (_req: any, res: any) => {
+    return res.status(410).json({ message: "Growth Pack is no longer offered." });
   });
 
-  // Growth Pack download link
-  app.get("/api/growth-pack/download/:token", async (req: any, res: any) => {
-    try {
-      const { token } = req.params;
-      const download = await storage.getGrowthPackDownload(token);
-
-      if (!download) {
-        return res.status(404).json({ message: "Download not found" });
-      }
-
-      // Update download timestamp
-      await storage.logEvent('growth_pack_downloaded', {
-        downloadId: download.id,
-        email: download.email,
-      });
-
-      // Generate actual PDF download URL
-      const pdfUrl = `/api/growth-pack/pdf/${token}`;
-      res.json({ 
-        message: "Growth Pack download ready",
-        filename: "Trade-Scout-Growth-Pack.pdf",
-        downloadUrl: pdfUrl
-      });
-    } catch (error: any) {
-      console.error("Error processing Growth Pack download:", error);
-      res.status(500).json({ message: "Failed to process download" });
-    }
+  app.get("/api/growth-pack/download/:token", async (_req: any, res: any) => {
+    return res.status(410).json({ message: "Growth Pack downloads are no longer available." });
   });
 
   // Pricing Analytics Routes (Admin Only)
@@ -5384,51 +5323,9 @@ export async function registerRoutes(app: any) {
     }
   });
 
-  // Accelerator enrollment
-  app.post("/api/accelerator/enroll", isAuthenticated, async (req: any, res: any) => {
-    try {
-      const userId = (req.user as any)?.id || (req.user as any)?.claims?.sub;
-      const user = await storage.getUser(userId);
-
-      if (!user) {
-        return res.status(401).json({ message: "User not found" });
-      }
-
-      // Check if user is a verified contractor
-      if (user.role !== 'contractor') {
-        return res.status(403).json({ message: "Only contractors can join the Accelerator program" });
-      }
-
-      if (user.verificationStatus !== 'approved') {
-        return res.status(403).json({ message: "Contractor verification required to join Accelerator program" });
-      }
-
-      const { planType } = (req.body ?? {}) as any;
-
-      // Track accelerator enrollment with locality context
-      // LocalityTracker call removed
-
-      // Store enrollment (mock for now)
-      const enrollment = {
-        id: Date.now().toString(),
-        userId,
-        planType,
-        enrolledAt: new Date(),
-        status: 'pending_payment'
-      };
-
-      // In production, this would integrate with Stripe for payment processing
-      console.log('New accelerator enrollment:', enrollment);
-
-      res.json({ 
-        message: "Enrollment initiated successfully",
-        enrollmentId: enrollment.id,
-        status: 'pending_payment'
-      });
-    } catch (error: any) {
-      console.error("Error processing accelerator enrollment:", error);
-      res.status(500).json({ message: "Failed to process enrollment" });
-    }
+  // Accelerator enrollment retired
+  app.post("/api/accelerator/enroll", isAuthenticated, async (_req: any, res: any) => {
+    return res.status(410).json({ message: "Accelerator program is no longer offered." });
   });
 
   // Exchange routes

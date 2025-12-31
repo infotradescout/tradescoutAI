@@ -51,7 +51,7 @@ export default function AdminControl() {
   };
 
   useEffect(() => {
-    if (!user || user.email !== "traderscornerllc@gmail.com") return;
+    if (!user || (user.role !== "super_admin" && user.role !== "head_admin")) return;
 
     Promise.all([loadState(), loadHealth()]).finally(() => setLoading(false));
   }, [user]);
@@ -130,7 +130,7 @@ export default function AdminControl() {
     }
   };
 
-  if (!user || user.email !== "traderscornerllc@gmail.com") {
+  if (!user || (user.role !== "super_admin" && user.role !== "head_admin")) {
     return (
       <div className="p-8 text-center">
         <p className="text-destructive font-semibold">Super admin access required</p>

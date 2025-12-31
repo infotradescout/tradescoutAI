@@ -103,7 +103,7 @@ export function mountAdminRoutes(app: any) {
       const days = timeframe === "7d" ? 7 : timeframe === "30d" ? 30 : 90;
       const requestedMetric = (req.query.metric as string) || "users";
 
-      // 1) Try to serve from county_metrics for the requested key
+      // 1) Serve strictly from county_metrics for the requested key
       const metricRows = await storage.getCountyMetricsByKey(requestedMetric);
       let metric = requestedMetric;
       const byCounty: Record<string, number> = {};
@@ -115,16 +115,9 @@ export function mountAdminRoutes(app: any) {
           if (!Number.isFinite(value)) continue;
           byCounty[row.countyFips] = value;
         }
-      } else if (requestedMetric === "users" || requestedMetric === "users_total") {
-        // 2) Fallback: derive "users" metric from canonical users table
-        const rows = await storage.getUserCountsByCounty(days);
-        for (const row of rows) {
-          if (!row.countyFips) continue;
-          byCounty[row.countyFips] = (byCounty[row.countyFips] || 0) + row.userCount;
-        }
-        metric = "users";
       } else {
-        // No stored values and no safe fallback: return empty container for this metric
+        // No stored values for this metric key. The client treats this as
+        // "metric not populated yet" and renders a neutral map.
         metric = requestedMetric;
       }
 

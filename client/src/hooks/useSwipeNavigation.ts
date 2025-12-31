@@ -110,9 +110,8 @@ const PAGE_ORDER = [
   '/community',
   '/helpers',
   '/exchange',
-  '/accelerator',
   '/leaderboard',
-  '/growth-pack'
+  // '/growth-pack' retired
 ];
 
 // Unauthenticated user page order
@@ -124,9 +123,8 @@ const GUEST_PAGE_ORDER = [
   '/community',
   '/helpers',
   '/exchange',
-  '/accelerator',
   '/leaderboard',
-  '/growth-pack'
+  // '/growth-pack' retired
 ];
 
 // Helper function to get display names for pages
@@ -140,9 +138,8 @@ function getPageDisplayName(path: string): string {
     '/community': 'Community',
     '/helpers': 'Helpers',
     '/exchange': 'Exchange',
-    '/accelerator': 'Accelerator',
     '/leaderboard': 'Leaderboard',
-    '/growth-pack': 'Growth Pack'
+    // '/growth-pack': 'Growth Pack' retired
   };
   
   return displayNames[path] || path;

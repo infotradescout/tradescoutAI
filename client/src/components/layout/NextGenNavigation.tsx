@@ -51,7 +51,7 @@ export function NextGenNavigation({ className = "" }: NextGenNavigationProps) {
             { href: "/hoa-dashboard", label: "HOA", icon: Building, priority: 5 },
             { href: "/county-directory", label: "Area Directory", icon: Users, priority: 4 },
             { href: "/foundation", label: "Community Builders", icon: Building, priority: 3 },
-            { href: "/accelerator", label: "Accelerator", icon: Crown, priority: 2 },
+            // Accelerator entry removed
             // Admin navigation for admin users
             ...(userRole === 'head_admin' || userRole === 'ops_admin' || userRole === 'super_admin'
               ? [
@@ -113,7 +113,7 @@ export function NextGenNavigation({ className = "" }: NextGenNavigationProps) {
     ...navItems,
 
     { href: "/leaderboard", label: "Leaderboard", icon: Building },
-    { href: "/growth-pack", label: "Growth Pack", icon: Wrench }
+    // Growth Pack entry removed
   ], [navItems]);
 
   const isActive = (path: string) => {
@@ -240,7 +240,7 @@ export function NextGenNavigation({ className = "" }: NextGenNavigationProps) {
                     data-nav-item={item.label.toLowerCase().replace(/\s+/g, '-')} 
                     data-nav-contractors={item.href === '/contractors' ? 'true' : undefined}
                     data-nav-dashboard={item.href === '/dashboard' ? 'true' : undefined}
-                    data-nav-growth={item.href === '/growth-pack' ? 'true' : undefined}
+                    data-nav-growth={undefined}
                   >
                     <Icon className={`w-4 h-4 flex-shrink-0 transition-colors duration-300 ${
                       active ? 'text-white' : 'text-orange-400'

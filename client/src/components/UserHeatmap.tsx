@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -61,7 +61,12 @@ type HoveredCounty = {
   fips: string;
   countyName: string;
   stateCode: string;
-  count: number;
+  lens: "metric" | "coverage";
+  count?: number;
+  metricHasData?: boolean;
+  coverageStatus?: CountyCoverageStatus;
+  territoryManagerCount?: number;
+  affiliateCount?: number;
   clientX: number;
   clientY: number;
 } | null;
@@ -86,6 +91,19 @@ type CountyEntity = {
   metadata: Record<string, unknown> | null;
   createdAt: string;
   updatedAt: string;
+};
+
+type CountyCoverageStatus = "unassigned" | "partial" | "full";
+
+type CountyCoverageRow = {
+  countyFips: string;
+  coverageStatus: CountyCoverageStatus;
+  territoryManagerCount: number;
+  affiliateCount: number;
+};
+
+type CountyCoverageResponse = {
+  rows: CountyCoverageRow[];
 };
 
 type CountySearchResult = {
@@ -119,16 +137,26 @@ function getCountyFillColor(count: number): string {
   return "#0c4a6e"; // darkest
 }
 
+function getCoverageFillColor(status?: CountyCoverageStatus): string {
+  if (!status) return "#1e293b"; // slate-800 neutral
+  if (status === "unassigned") return "#b91c1c"; // red-700
+  if (status === "partial") return "#b45309"; // amber-700
+  return "#15803d"; // green-700 for full
+}
+
 function CountyHeatmapMap({
   byCounty,
+  coverageByCounty,
   selectedFips,
   onSelectCounty,
   metricLabel,
 }: {
   byCounty: Record<string, number>;
+  coverageByCounty?: Record<string, CountyCoverageRow>;
   selectedFips?: string | null;
   onSelectCounty?: (fips: string) => void;
   metricLabel: string;
+  lens: "metric" | "coverage";
 }) {
   const [hovered, setHovered] = useState<HoveredCounty>(null);
   const [searchQuery, setSearchQuery] = useState("");
@@ -173,7 +201,9 @@ function CountyHeatmapMap({
         <g>
           {counties.map((c) => {
             const fips = typeof c.id === "string" || typeof c.id === "number" ? String(c.id).padStart(5, "0") : "";
-            const count = fips ? byCounty[fips] || 0 : 0;
+            const coverage = fips && coverageByCounty ? coverageByCounty[fips] : undefined;
+            const hasMetric = !!(fips && Object.prototype.hasOwnProperty.call(byCounty, fips));
+            const count = fips && hasMetric ? byCounty[fips] || 0 : 0;
             const d = path(c as any) || "";
             if (!d) return null;
 
@@ -181,23 +211,46 @@ function CountyHeatmapMap({
 
             const isSelected = selectedFips && fips === selectedFips;
 
+            const fillColor =
+              lens === "coverage"
+                ? getCoverageFillColor(coverage?.coverageStatus)
+                : hasMetric
+                ? getCountyFillColor(count)
+                : "#1e293b"; // neutral when metric not populated
+
             return (
               <path
                 key={fips || d}
                 d={d}
-                fill={getCountyFillColor(count)}
+                fill={fillColor}
                 stroke={isSelected ? "#f97316" : "#020617"}
                 strokeWidth={isSelected ? 1 : 0.25}
                 onMouseEnter={(evt) => {
                   if (!fips || !info) return;
-                  setHovered({
-                    fips,
-                    countyName: info.countyName,
-                    stateCode: info.stateCode,
-                    count,
-                    clientX: evt.clientX,
-                    clientY: evt.clientY,
-                  });
+                  if (lens === "coverage") {
+                    setHovered({
+                      fips,
+                      countyName: info.countyName,
+                      stateCode: info.stateCode,
+                      lens: "coverage",
+                      coverageStatus: coverage?.coverageStatus,
+                      territoryManagerCount: coverage?.territoryManagerCount ?? 0,
+                      affiliateCount: coverage?.affiliateCount ?? 0,
+                      clientX: evt.clientX,
+                      clientY: evt.clientY,
+                    });
+                  } else {
+                    setHovered({
+                      fips,
+                      countyName: info.countyName,
+                      stateCode: info.stateCode,
+                      lens: "metric",
+                      count,
+                      metricHasData: hasMetric,
+                      clientX: evt.clientX,
+                      clientY: evt.clientY,
+                    });
+                  }
                 }}
                 onMouseMove={(evt) => {
                   if (!hovered) return;
@@ -222,7 +275,22 @@ function CountyHeatmapMap({
           <div className="font-medium text-slate-100">
             {hovered.countyName}, {hovered.stateCode}
           </div>
-          <div className="mt-1 text-slate-300">{metricLabel}: {hovered.count.toLocaleString()}</div>
+          {hovered.lens === "coverage" ? (
+            <>
+              <div className="mt-1 text-slate-300">
+                Coverage: {hovered.coverageStatus ? hovered.coverageStatus.charAt(0).toUpperCase() + hovered.coverageStatus.slice(1) : "Not set"}
+              </div>
+              <div className="mt-1 text-slate-400 text-[11px]">
+                TM: {hovered.territoryManagerCount ?? 0} • Affiliate/partner: {hovered.affiliateCount ?? 0}
+              </div>
+            </>
+          ) : (
+            <div className="mt-1 text-slate-300">
+              {hovered.metricHasData
+                ? `${metricLabel}: ${((hovered.count ?? 0) as number).toLocaleString()}`
+                : "Metric not populated yet."}
+            </div>
+          )}
         </div>
       )}
 
@@ -279,7 +347,9 @@ export function UserHeatmap() {
   const [noteCategory, setNoteCategory] = useState<CountyNote["category"]>("general");
   const [noteContent, setNoteContent] = useState("");
   const [countyPanelTab, setCountyPanelTab] = useState<"notes" | "entities">("notes");
-  const [countyMetric, setCountyMetric] = useState<string>("users");
+  const [countyMetric, setCountyMetric] = useState<string>("users_total");
+  const [countyLens, setCountyLens] = useState<"coverage" | "metric">("coverage");
+  const noteTextareaRef = useRef<HTMLTextAreaElement | null>(null);
 
   const isSuperAdmin = user?.role === "super_admin" || user?.role === "head_admin";
 
@@ -296,6 +366,17 @@ export function UserHeatmap() {
   } = useQuery<CountyHeatmapResponse>({
     queryKey: ["/api/admin/heatmap/users-by-county", timeframe, countyMetric],
     queryFn: () => apiRequest("GET", `/api/admin/heatmap/users-by-county?timeframe=${timeframe}&metric=${countyMetric}`),
+    enabled: isSuperAdmin && viewMode === "counties" && countyLens === "metric",
+    retry: false,
+  });
+
+  const {
+    data: countyCoverage,
+    isLoading: coverageLoading,
+    error: coverageError,
+  } = useQuery<CountyCoverageResponse>({
+    queryKey: ["/api/admin/geo/coverage"],
+    queryFn: () => apiRequest("GET", "/api/admin/geo/coverage"),
     enabled: isSuperAdmin && viewMode === "counties",
     retry: false,
   });
@@ -350,6 +431,7 @@ export function UserHeatmap() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/geo/counties", selectedCountyFips, "entities"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/geo/coverage"] });
     },
   });
 
@@ -361,6 +443,7 @@ export function UserHeatmap() {
       if (selectedCountyFips) {
         queryClient.invalidateQueries({ queryKey: ["/api/admin/geo/counties", selectedCountyFips, "entities"] });
       }
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/geo/coverage"] });
     },
   });
 
@@ -372,6 +455,7 @@ export function UserHeatmap() {
       if (selectedCountyFips) {
         queryClient.invalidateQueries({ queryKey: ["/api/admin/geo/counties", selectedCountyFips, "entities"] });
       }
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/geo/coverage"] });
     },
   });
 
@@ -444,6 +528,39 @@ export function UserHeatmap() {
     }
   }, [countyMetric]);
 
+  const coverageByCounty = useMemo(() => {
+    const map: Record<string, CountyCoverageRow> = {};
+    if (!countyCoverage?.rows) return map;
+    for (const row of countyCoverage.rows) {
+      map[row.countyFips] = row;
+    }
+    return map;
+  }, [countyCoverage]);
+
+  const handleAssignTerritoryManager = () => {
+    if (!selectedCountyFips || createEntityMutation.isPending) return;
+    createEntityMutation.mutate({
+      entityType: "territory_manager",
+      status: "active",
+    } as any);
+  };
+
+  const handleAssignAffiliateOrPartner = () => {
+    if (!selectedCountyFips || createEntityMutation.isPending) return;
+    createEntityMutation.mutate({
+      entityType: "affiliate",
+      status: "active",
+    } as any);
+  };
+
+  const handleStartNoteForCounty = () => {
+    if (!selectedCountyFips) return;
+    setCountyPanelTab("notes");
+    setTimeout(() => {
+      noteTextareaRef.current?.focus();
+    }, 0);
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
@@ -490,36 +607,64 @@ export function UserHeatmap() {
 
           {isSuperAdmin && viewMode === "counties" && (
             <div className="flex items-center gap-2">
-              <Select value={countyMetric} onValueChange={setCountyMetric}>
-                <SelectTrigger className="w-40 bg-slate-800 border-slate-700 text-white">
-                  <SelectValue placeholder="Metric" />
-                </SelectTrigger>
-                <SelectContent className="bg-slate-800 border-slate-700 text-sm">
-                  <SelectItem value="users">Users (total)</SelectItem>
-                  <SelectItem value="users_verified">Verified users</SelectItem>
-                  <SelectItem value="contractors">Contractors</SelectItem>
-                  <SelectItem value="affiliates_count">Affiliates</SelectItem>
-                </SelectContent>
-              </Select>
-              <TooltipProvider delayDuration={200}>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      disabled={refreshMetricsMutation.isPending}
-                      onClick={() => refreshMetricsMutation.mutate()}
-                      className="bg-slate-800 border-slate-700 text-xs text-slate-100 hover:bg-slate-700"
-                    >
-                      {refreshMetricsMutation.isPending ? "Refreshing..." : "Refresh metrics"}
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent className="max-w-xs text-xs">
-                    Recomputes county metrics from canonical data. No roles or permissions are changed.
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
+              <div className="inline-flex rounded-full bg-slate-800 border border-slate-700 p-1 text-xs text-slate-200">
+                <button
+                  type="button"
+                  onClick={() => setCountyLens("coverage")}
+                  className={`px-3 py-1 rounded-full transition-colors ${
+                    countyLens === "coverage" ? "bg-slate-200 text-slate-900" : "text-slate-300"
+                  }`}
+                >
+                  Coverage
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setCountyLens("metric")}
+                  className={`px-3 py-1 rounded-full transition-colors ${
+                    countyLens === "metric" ? "bg-slate-200 text-slate-900" : "text-slate-300"
+                  }`}
+                >
+                  Metrics
+                </button>
+              </div>
+              {countyLens === "metric" && (
+                <>
+                  <Select value={countyMetric} onValueChange={setCountyMetric}>
+                    <SelectTrigger className="w-44 bg-slate-800 border-slate-700 text-white">
+                      <SelectValue placeholder="Metric" />
+                    </SelectTrigger>
+                    <SelectContent className="bg-slate-800 border-slate-700 text-sm">
+                      <SelectItem value="users_total">Users (total)</SelectItem>
+                      <SelectItem value="users_verified">Verified users</SelectItem>
+                      <SelectItem value="contractors">Contractors</SelectItem>
+                      <SelectItem value="affiliates_count">Affiliates</SelectItem>
+                      <SelectItem value="businesses_total">Businesses</SelectItem>
+                      <SelectItem value="homeowners_total">Homeowners</SelectItem>
+                      <SelectItem value="tradedeals_active">TradeDeals (active)</SelectItem>
+                      <SelectItem value="unmet_demand_score">Unmet demand score</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <TooltipProvider delayDuration={200}>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          disabled={refreshMetricsMutation.isPending}
+                          onClick={() => refreshMetricsMutation.mutate()}
+                          className="bg-slate-800 border-slate-700 text-xs text-slate-100 hover:bg-slate-700"
+                        >
+                          {refreshMetricsMutation.isPending ? "Refreshing..." : "Refresh metrics"}
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent className="max-w-xs text-xs">
+                        Recomputes county metrics from canonical data. No roles or permissions are changed.
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                </>
+              )}
             </div>
           )}
         </div>
@@ -582,20 +727,40 @@ export function UserHeatmap() {
             <CardContent>
               {viewMode === "counties" && isSuperAdmin ? (
                 <>
-                  {isCountyLoading && (
+                  {countyLens === "metric" && isCountyLoading && (
                     <div className="skeleton-enhanced h-[420px] rounded-lg" />
                   )}
-                  {countyError && !isCountyLoading && (
+                  {countyLens === "coverage" && coverageLoading && (
+                    <div className="skeleton-enhanced h-[420px] rounded-lg" />
+                  )}
+                  {countyLens === "metric" && countyError && !isCountyLoading && (
                     <div className="text-sm text-red-400">
-                      County heatmap unavailable. This feature may be disabled or restricted.
+                      County metric heatmap unavailable. This feature may be disabled or restricted.
                     </div>
                   )}
-                  {countyHeatmap && !isCountyLoading && !countyError && (
+                  {countyLens === "coverage" && coverageError && !coverageLoading && (
+                    <div className="text-sm text-red-400">
+                      Coverage view unavailable. This feature may be disabled or restricted.
+                    </div>
+                  )}
+                  {countyLens === "metric" && countyHeatmap && !isCountyLoading && !countyError && (
                     <CountyHeatmapMap
                       byCounty={countyHeatmap.byCounty}
+                      coverageByCounty={coverageByCounty}
                       selectedFips={selectedCountyFips}
                       onSelectCounty={(fips) => setSelectedCountyFips(fips)}
                       metricLabel={countyMetricLabel}
+                      lens="metric"
+                    />
+                  )}
+                  {countyLens === "coverage" && countyCoverage && !coverageLoading && !coverageError && (
+                    <CountyHeatmapMap
+                      byCounty={{}}
+                      coverageByCounty={coverageByCounty}
+                      selectedFips={selectedCountyFips}
+                      onSelectCounty={(fips) => setSelectedCountyFips(fips)}
+                      metricLabel={"Coverage"}
+                      lens="coverage"
                     />
                   )}
                 </>
@@ -694,6 +859,43 @@ export function UserHeatmap() {
                             {countyMetricLabel}: {(countyHeatmap.byCounty[selectedCountyFips] || 0).toLocaleString()}
                           </p>
                         )}
+                        {coverageByCounty[selectedCountyFips] && (
+                          <p className="text-xs text-slate-300 mt-1">
+                            Coverage: {coverageByCounty[selectedCountyFips].coverageStatus.charAt(0).toUpperCase() + coverageByCounty[selectedCountyFips].coverageStatus.slice(1)}
+                            {" "}• TM: {coverageByCounty[selectedCountyFips].territoryManagerCount} • Affiliate/partner: {coverageByCounty[selectedCountyFips].affiliateCount}
+                          </p>
+                        )}
+                        {coverageByCounty[selectedCountyFips] && (
+                          <div className="mt-3 flex flex-wrap gap-2 text-[11px]">
+                            <span className="text-slate-400 mr-2">Actions:</span>
+                            <Button
+                              size="xs"
+                              variant="outline"
+                              disabled={createEntityMutation.isPending}
+                              className="h-6 px-2 text-[11px]"
+                              onClick={handleAssignTerritoryManager}
+                            >
+                              Assign Territory Manager
+                            </Button>
+                            <Button
+                              size="xs"
+                              variant="outline"
+                              disabled={createEntityMutation.isPending}
+                              className="h-6 px-2 text-[11px]"
+                              onClick={handleAssignAffiliateOrPartner}
+                            >
+                              Assign Affiliate / Partner
+                            </Button>
+                            <Button
+                              size="xs"
+                              variant="ghost"
+                              className="h-6 px-2 text-[11px] text-slate-300"
+                              onClick={handleStartNoteForCounty}
+                            >
+                              Add note
+                            </Button>
+                          </div>
+                        )}
                       </div>
                       <Tabs value={countyPanelTab} onValueChange={(v) => setCountyPanelTab(v as "notes" | "entities")} className="mt-4">
                         <TabsList className="grid grid-cols-2 mb-3 bg-slate-900/80 border border-slate-700">
@@ -721,6 +923,7 @@ export function UserHeatmap() {
                               value={noteContent}
                               onChange={(e) => setNoteContent(e.target.value)}
                               placeholder="Operational note (affiliates, partners, risk, ops...)"
+                              ref={noteTextareaRef}
                               className="min-h-[80px] bg-slate-900 border-slate-700 text-sm text-slate-100"
                             />
                             <div className="flex justify-end">

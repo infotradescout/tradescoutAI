@@ -204,7 +204,7 @@ export default function Home() {
                   </div>
                   <div>
                     <h3 className="text-white font-semibold">For Contractors</h3>
-                    <p className="text-gray-400 text-sm">FREE Growth Pack resources</p>
+                    <p className="text-gray-500 text-sm">Legacy Growth Pack resources (retired)</p>
                   </div>
                 </div>
                 <Badge className="bg-orange-500 text-white">
@@ -213,7 +213,8 @@ export default function Home() {
               </div>
             </CardContent>
           </Card>
-        </Link>
+          {/* Legacy Growth Pack card retired */}
+          </div>
       </div>
 
       {/* Platform Statistics */}

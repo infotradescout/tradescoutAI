@@ -18,7 +18,7 @@ export default function GrowthPack() {
   const isHomeowner = user && user.role === 'homeowner';
   const { toast } = useToast();
 
-  // Redirect homeowners away from Growth Pack
+    // Legacy Growth Pack page is retired; keep content but disable server calls
   if (isHomeowner) {
     return (
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12 text-center">
@@ -53,8 +53,14 @@ export default function GrowthPack() {
 
   const downloadMutation = useMutation({
     mutationFn: async (data: any) => {
-      const response = await apiRequest('POST', '/api/growth-pack', data);
-      return response.json();
+        // Disable server calls for Growth Pack
+        setIsDownloaded(true);
+        toast({
+          title: "Growth Pack retired",
+          description: "The Growth Pack download is no longer available.",
+          variant: "destructive",
+        });
+        return { downloadUrl: '', downloadToken: '' }; // Simulate response
     },
     onSuccess: (data) => {
       setIsDownloaded(true);

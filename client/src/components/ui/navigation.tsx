@@ -28,7 +28,7 @@ export default function Navigation() {
     { href: "/", label: "Home", icon: Home },
     { href: "/scout", label: "Scout", icon: Calculator },
     { href: "/direct-connect", label: "Direct Connect", icon: Building },
-    { href: "/growth-pack", label: "Growth Pack", icon: Gift },
+    // Growth Pack entry removed
   ];
 
   const authNavItems = [
@@ -40,7 +40,6 @@ export default function Navigation() {
       ? [
           { href: "/contractor-dashboard", label: "My Dashboard", icon: Building },
           { href: "/contractors", label: "Contractors", icon: Users },
-          { href: "/contractors/accelerator", label: "Accelerator", icon: Crown },
         ]
       : []),
     ...(isAdmin ? [{ href: "/admin", label: "Admin", icon: BarChart3 }] : []),

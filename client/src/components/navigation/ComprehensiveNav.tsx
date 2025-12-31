@@ -126,7 +126,6 @@ const ALL_NAVIGATION: NavItem[] = [
       { label: 'Dashboard', href: '/contractor-dashboard', icon: LayoutDashboard },
       { label: 'Project Requests', href: '/contractor/leads', icon: ClipboardList, roles: ['contractor_user'] },
       { label: 'My Projects', href: '/contractor/projects', icon: ListChecks, roles: ['contractor_user'] },
-      { label: 'Accelerator Program', href: '/contractors/accelerator', icon: Zap, roles: ['contractor_user'] },
       { label: 'Promotions', href: '/contractor-promos', icon: Megaphone, roles: ['contractor_user'] },
       { label: 'Growth Pack', href: '/growth-pack', icon: TrendingUp, roles: ['contractor_user'] },
       { label: 'Performance Analytics', href: '/contractor/analytics', icon: ChartBar, roles: ['contractor_user'] },
