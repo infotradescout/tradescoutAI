@@ -416,18 +416,44 @@ export function registerSocialFeatures(app: Express) {
         }
       }
 
-      // If initiating from a Decision or Scout Recommendation, validate it exists
-      // (This would require additional validation queries to the appropriate tables)
-      // For now, we accept the metadata as provided but will validate in a future version
+      // ========================================
+      // VALIDATION CHECKPOINT 4: Authority gate validation
+      // ========================================
+      const { 
+        authorityGate, 
+        sourceDecisionCardId,
+        confidenceScore,
+        decisionScope 
+      } = req.body;
 
-      // ========================================
-      // AUTHORITY CHECK: Scout assessment
-      // ========================================
-      // In a full implementation, Scout would assess confidence here
-      // For now, we capture intent and defer Scout's assessment to the messages endpoint
-      const authorityGate = 'allow'; // Would be computed by Scout rules engine
-      const confidenceScope = 0.7; // Would be computed from prior interactions
-      const riskScope = 'standard'; // Would be computed from user profiles
+      // Validate authority gate
+      if (!authorityGate || !['decision_card', 'scout_recommendation', 'user_search'].includes(authorityGate)) {
+        return res.status(400).json({ 
+          reasonCode: 'MISSING_AUTHORITY_GATE',
+          message: "Authority gate required: 'decision_card', 'scout_recommendation', or 'user_search'" 
+        });
+      }
+
+      // D1: If from decision_card, require sourceDecisionCardId
+      if (authorityGate === 'decision_card') {
+        if (!sourceDecisionCardId) {
+          return res.status(400).json({ 
+            reasonCode: 'MISSING_DECISION_CARD_ID',
+            message: "Decision Card ID required when authorityGate is 'decision_card'" 
+          });
+        }
+        // Future: Validate decision card exists and is active
+        // const decision = await db.select().from(decisionCards).where(eq(decisionCards.id, sourceDecisionCardId)).limit(1);
+        // if (!decision || decision.status === 'expired') { return 400 }
+      }
+
+      // D2: If from scout_recommendation, require sourceScoutRecommendationId (future phase)
+      if (authorityGate === 'scout_recommendation' && !initiatedFromScoutRecommendationId) {
+        return res.status(400).json({ 
+          reasonCode: 'MISSING_SCOUT_RECOMMENDATION_ID',
+          message: "Scout Recommendation ID required when authorityGate is 'scout_recommendation'" 
+        });
+      }
 
       // ========================================
       // CHECK: Conversation already exists?
@@ -455,12 +481,14 @@ export function registerSocialFeatures(app: Express) {
         return res.json({ 
           threadId: existing.id, 
           created: false,
+          intent: existing.intent,
+          authorityGate: existing.authorityGate,
           message: "Existing conversation retrieved" 
         });
       }
 
       // ========================================
-      // CREATE: Conversation with metadata
+      // CREATE: Conversation with immutable metadata
       // ========================================
       const [newConv] = await db
         .insert(marketplaceConversations)
@@ -470,20 +498,17 @@ export function registerSocialFeatures(app: Express) {
           sellerId: targetUserId,
           status: "active" as any,
           lastMessageAt: new Date(),
-          // Metadata stored as JSON in notes field (or could use separate column in future)
-          notes: JSON.stringify({
-            intent,
-            initiatedFromDecisionId,
-            initiatedFromScoutRecommendationId,
-            authorityGate,
-            confidenceScope,
-            riskScope,
-            createdAt: new Date().toISOString(),
-          }),
+          // D1: Immutable metadata fields
+          intent,
+          authorityGate,
+          sourceDecisionCardId: authorityGate === 'decision_card' ? sourceDecisionCardId : null,
+          sourceScoutRecommendationId: authorityGate === 'scout_recommendation' ? initiatedFromScoutRecommendationId : null,
+          confidenceScore: confidenceScore ? String(confidenceScore) : null,
+          decisionScope: decisionScope || null,
         })
         .returning();
 
-      console.log(`[MESSAGING] Conversation created: intent=${intent}, initiator=${userId}, recipient=${targetUserId}`);
+      console.log(`[MESSAGING D1] Conversation created: intent=${intent}, gate=${authorityGate}, initiator=${userId}, recipient=${targetUserId}`);
 
       res.status(201).json({ 
         threadId: newConv.id, 

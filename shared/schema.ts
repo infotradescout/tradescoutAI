@@ -2514,6 +2514,13 @@ export const marketplaceConversations = pgTable("marketplace_conversations", {
   sellerFeedback: text("seller_feedback"),
   isReadByBuyer: boolean("is_read_by_buyer").default(false),
   isReadBySeller: boolean("is_read_by_seller").default(false),
+  // D1: Messaging Authority Contract metadata (immutable after creation)
+  intent: varchar("intent", { enum: ["hire", "advise", "collaborate", "reconnect"] }), // Why contact was made
+  authorityGate: varchar("authority_gate", { enum: ["decision_card", "scout_recommendation", "user_search"] }), // How contact was authorized
+  sourceDecisionCardId: varchar("source_decision_card_id"), // If from Decision Card outcome
+  sourceScoutRecommendationId: varchar("source_scout_recommendation_id"), // If from Scout recommendation
+  confidenceScore: decimal("confidence_score", { precision: 3, scale: 2 }), // Scout's confidence (0.00-1.00)
+  decisionScope: text("decision_scope"), // Context from decision
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
