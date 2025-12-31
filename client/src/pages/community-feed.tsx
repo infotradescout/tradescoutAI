@@ -1,6 +1,6 @@
 import { memo, useState, useRef, useEffect, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { MessageSquare, Zap, TrendingUp, MoreHorizontal, Image, Video, Calendar, Compass, Users2, Crown, Award, Flag, Plus, SlidersHorizontal, Trophy, BarChart3, Share, Target, Heart, Send, Tag, MapPin, Eye } from 'lucide-react';
+import { MessageSquare, Zap, TrendingUp, MoreHorizontal, Image, Video, Calendar, Compass, Users2, Crown, Award, Flag, Plus, SlidersHorizontal, Trophy, BarChart3, Share, Target, Heart, Send, Tag, MapPin, Eye, HelpCircle, Wrench, Lightbulb, AlertTriangle, DollarSign } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -232,8 +232,10 @@ const CommunityFeed = memo(function CommunityFeed() {
   const [openCommentsForPostId, setOpenCommentsForPostId] = useState<string | null>(null);
   const [lastCreatedPostId, setLastCreatedPostId] = useState<string | null>(null);
   const [uploadedImages, setUploadedImages] = useState<string[]>([]);
+  const [selectedCategory, setSelectedCategory] = useState<string>("general");
   const composerRef = useRef<HTMLTextAreaElement | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const videoInputRef = useRef<HTMLInputElement | null>(null);
   const [route, navigate] = useLocation();
   const { user, isAuthenticated } = useAuth();
   const { unreadCount } = useNotifications();
@@ -323,11 +325,11 @@ const CommunityFeed = memo(function CommunityFeed() {
 
   // Create post mutation
   const createPostMutation = useMutation({
-    mutationFn: async (postData: { content: string; title?: string; images?: string[] }) => {
+    mutationFn: async (postData: { content: string; title?: string; images?: string[]; category?: string }) => {
       return apiRequest('POST', '/api/community/posts', {
         content: postData.content,
         title: postData.title,
-        category: 'general',
+        category: postData.category || 'general',
         images: postData.images,
       });
     },
@@ -335,6 +337,7 @@ const CommunityFeed = memo(function CommunityFeed() {
       queryClient.invalidateQueries({ queryKey: ['/api/community/posts'] });
       setNewPostContent('');
       setUploadedImages([]);
+      setSelectedCategory('general');
       setLastCreatedPostId(created?.id ?? null);
       toast({
         title: "Post Created",
@@ -373,7 +376,8 @@ const CommunityFeed = memo(function CommunityFeed() {
     if (newPostContent.trim()) {
       createPostMutation.mutate({ 
         content: newPostContent,
-        images: uploadedImages.length > 0 ? uploadedImages : undefined
+        images: uploadedImages.length > 0 ? uploadedImages : undefined,
+        category: selectedCategory
       });
     }
   };
@@ -676,10 +680,56 @@ const CommunityFeed = memo(function CommunityFeed() {
       });
       return;
     }
+    videoInputRef.current?.click();
+  };
+
+  const handleVideoSelected = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = event.target.files;
+    if (!files || files.length === 0) return;
+
+    const file = files[0];
+    
+    // Check file size (max 100MB for video)
+    if (file.size > 100 * 1024 * 1024) {
+      toast({
+        title: 'File Too Large',
+        description: 'Video must be under 100MB',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    if (!file.type.startsWith('video/')) {
+      toast({
+        title: 'Invalid File',
+        description: 'Please select a video file',
+        variant: 'destructive',
+      });
+      return;
+    }
+
     toast({
-      title: 'Coming Soon',
-      description: 'Video uploads will be available soon!',
+      title: 'Uploading Video',
+      description: 'This may take a moment...',
     });
+
+    try {
+      const { publicUrl } = await uploadObject(file);
+      setUploadedImages(prev => [...prev, publicUrl]); // Videos stored with images for now
+      toast({
+        title: 'Upload Complete',
+        description: 'Video attached to your post',
+      });
+    } catch (error) {
+      console.error('Failed to upload video', error);
+      toast({
+        title: 'Upload Failed',
+        description: 'Failed to upload video. Please try again.',
+        variant: 'destructive',
+      });
+    }
+    
+    event.target.value = '';
   };
 
   const handlePollClick = () => {
@@ -691,10 +741,11 @@ const CommunityFeed = memo(function CommunityFeed() {
       });
       return;
     }
-    toast({
-      title: 'Coming Soon',
-      description: 'Poll creation will be available soon!',
-    });
+    
+    // Add poll template to post content
+    const pollTemplate = newPostContent ? newPostContent + '\n\n' : '';
+    setNewPostContent(pollTemplate + '📊 Poll:\n- Option 1\n- Option 2\n- Option 3');
+    composerRef.current?.focus();
   };
 
   const snapshotProps = useMemo(() => ({
@@ -741,13 +792,20 @@ const CommunityFeed = memo(function CommunityFeed() {
                     <div className="flex-1 space-y-3">
                       <Textarea
                         ref={composerRef}
-                        placeholder="What's happening in your community today? Ask a question or share a project..."
+                        placeholder={
+                          selectedCategory === 'request' ? "What do you need help with? (e.g., 'Need someone to fix my fence')" :
+                          selectedCategory === 'question' ? "What do you want to know? Scout or your neighbors can help..." :
+                          selectedCategory === 'forsale' ? "What are you selling? Include price and condition..." :
+                          selectedCategory === 'alert' ? "What should everyone know about right now?" :
+                          selectedCategory === 'event' ? "What's happening? When and where?" :
+                          "What's happening in your community today?"
+                        }
                         value={newPostContent}
                         onChange={(e) => setNewPostContent(e.target.value)}
                         rows={3}
                       />
 
-                      {/* Hidden file input */}
+                      {/* Hidden file inputs */}
                       <input
                         ref={fileInputRef}
                         type="file"
@@ -756,6 +814,48 @@ const CommunityFeed = memo(function CommunityFeed() {
                         onChange={handleImagesSelected}
                         className="hidden"
                       />
+                      <input
+                        ref={videoInputRef}
+                        type="file"
+                        accept="video/*"
+                        onChange={handleVideoSelected}
+                        className="hidden"
+                      />
+
+                      {/* Category selection - Maps human intent to system routing
+                          PHILOSOPHY: Users think in outcomes, not systems
+                          - "I need help" → Scout + Direct Connect (invisible)
+                          - "What's for sale?" → Marketplace integration (transparent)
+                          - "What's happening?" → Community feed (default)
+                          Categories route information WITHOUT exposing internal system names
+                      */}
+                      <div className="flex flex-wrap gap-1.5">
+                        {[
+                          { key: 'general', label: 'General', icon: MessageSquare, intent: 'Share with neighbors' },
+                          { key: 'question', label: 'Question', icon: HelpCircle, intent: 'Get help from Scout or locals' },
+                          { key: 'recommendation', label: 'Recommendation', icon: Award, intent: 'Recommend someone you trust' },
+                          { key: 'event', label: 'Event', icon: Calendar, intent: 'Let people know about an event' },
+                          { key: 'tip', label: 'Tip', icon: Lightbulb, intent: 'Share something useful' },
+                          { key: 'request', label: 'Need Help', icon: Wrench, intent: 'Find someone to do work' },
+                          { key: 'alert', label: 'Alert', icon: AlertTriangle, intent: 'Important: everyone should see this' },
+                          { key: 'forsale', label: 'For Sale', icon: DollarSign, intent: 'Sell something locally' },
+                        ].map(({ key, label, icon: Icon, intent }) => (
+                          <button
+                            key={key}
+                            type="button"
+                            onClick={() => setSelectedCategory(key)}
+                            title={intent}
+                            className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium transition-all ${
+                              selectedCategory === key
+                                ? 'bg-orange-500 text-white shadow-md shadow-orange-500/25'
+                                : 'bg-[color:var(--surface-intermediate)] text-[color:var(--text-secondary)] hover:bg-[color:var(--surface-card)] border border-[color:var(--border-subtle)]'
+                            }`}
+                          >
+                            <Icon className="h-3 w-3" />
+                            {label}
+                          </button>
+                        ))}
+                      </div>
 
                       {/* Image preview grid */}
                       {uploadedImages.length > 0 && (

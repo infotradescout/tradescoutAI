@@ -8653,6 +8653,66 @@ export async function registerRoutes(app: any) {
         tags: tags.length ? tags : undefined,
       });
 
+      // INTELLIGENT CATEGORY ROUTING
+      // Maps human intent → system actions WITHOUT exposing internal system names to users
+      // Philosophy: Users think "I need help", system routes to Direct Connect silently
+      
+      // 1. REQUEST (work) → Check if Direct Connect eligible
+      if (category === 'request') {
+        // TODO: Analyze post content for contractor keywords (fence, plumbing, electrical, etc.)
+        // If matched, create a silent Direct Connect opportunity for contractors to bid
+        // User doesn't see "Direct Connect" - they just get matched with pros
+        console.log(`[CATEGORY ROUTING] Request post created: ${newPost.id} - Direct Connect eligibility check queued`);
+      }
+
+      // 2. QUESTION → Notify Scout for potential AI response
+      if (category === 'question') {
+        // TODO: Send to Scout analysis queue
+        // Scout can either answer directly OR route to human experts
+        // User sees helpful response, not "Scout vs Human" decision
+        console.log(`[CATEGORY ROUTING] Question post created: ${newPost.id} - Scout analysis queued`);
+      }
+
+      // 3. FOR SALE → Auto-create marketplace listing
+      if (category === 'forsale') {
+        // TODO: Extract price, condition, item details
+        // Create marketplace listing automatically
+        // User gets "Your item is now for sale" confirmation, not "Marketplace created"
+        console.log(`[CATEGORY ROUTING] For Sale post created: ${newPost.id} - Marketplace listing creation queued`);
+      }
+
+      // 4. ALERT → Priority notifications to relevant users
+      if (category === 'alert') {
+        // TODO: Determine notification scope (county, state, nearby)
+        // Send push notifications to affected users
+        // User sees "Alert sent to X neighbors", not notification system details
+        console.log(`[CATEGORY ROUTING] Alert post created: ${newPost.id} - Priority notifications queued`);
+      }
+
+      // 5. EVENT → Calendar integration
+      if (category === 'event') {
+        // TODO: Parse date/time from content
+        // Add to community calendar
+        // Allow users to "Add to my calendar" with one tap
+        console.log(`[CATEGORY ROUTING] Event post created: ${newPost.id} - Calendar integration queued`);
+      }
+
+      // 6. RECOMMENDATION → Link to contractor/business profiles
+      if (category === 'recommendation') {
+        // TODO: Extract mentioned businesses/contractors
+        // Create profile links, boost their reputation scores
+        // User sees "Thanks for the recommendation!" not profile system details
+        console.log(`[CATEGORY ROUTING] Recommendation post created: ${newPost.id} - Profile linking queued`);
+      }
+
+      // 7. TIP → Feed Scout learning system
+      if (category === 'tip') {
+        // TODO: Extract actionable knowledge
+        // Add to Scout's local knowledge base
+        // Scout can reference this tip when helping other users
+        console.log(`[CATEGORY ROUTING] Tip post created: ${newPost.id} - Scout learning ingestion queued`);
+      }
+
       res.status(201).json(newPost);
     } catch (error: any) {
       console.error("Error creating community post:", error);

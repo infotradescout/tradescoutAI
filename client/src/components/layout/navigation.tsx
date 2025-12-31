@@ -195,6 +195,17 @@ export default function Navigation() {
                     </Button>
                   </Link>
 
+                  <Link href="/conversations">
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      className="border-white/20 text-gray-300 hover:bg-white/10 hover:text-white transition-all duration-200"
+                    >
+                      <MessageCircle className="h-4 w-4 mr-1" />
+                      <span className="hidden xl:inline">Messages</span>
+                    </Button>
+                  </Link>
+
                   <Link href="/profile">
                     <Button 
                       variant="outline" 
