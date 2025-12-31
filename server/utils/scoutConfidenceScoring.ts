@@ -16,8 +16,8 @@
  * - <0.50: blocked (don't show, offer alternatives)
  */
 
-import { db } from './db';
-import { users, marketplaceConversations } from '../shared/schema';
+import { db } from '../../src/db/drizzle-mock';
+import { users, marketplaceConversations } from '@shared/schema';
 import { eq, and, desc, sql } from 'drizzle-orm';
 
 export type Intent = 'hire' | 'advise' | 'collaborate' | 'reconnect';
@@ -71,7 +71,7 @@ async function calculateExpertiseMatch(
     return 0.9;
   }
 
-  if (intent === 'advise' && target.role === 'hoa_board_member') {
+  if (intent === 'advise' && (target.role === 'hoa_member' || target.role === 'hoa_board')) {
     return 0.85;
   }
 
@@ -128,8 +128,8 @@ async function calculateTrustSignal(
     score += 0.5;
   }
 
-  // Active account (+0.2)
-  if (target.isActive) {
+  // Has profile image (+0.2)
+  if (target.profileImageUrl) {
     score += 0.2;
   }
 
