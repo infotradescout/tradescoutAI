@@ -5,7 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { PageLoadingSpinner } from "@/components/LoadingSpinner";
-import { Shield, Sparkles } from "lucide-react";
+import { Shield, Sparkles, Map as MapIcon, Activity, Users as UsersIcon } from "lucide-react";
+import { apiRequest } from "@/lib/queryClient";
 import { SuperAdminOSLayout } from "@/admin/SuperAdminOSLayout";
 import AdminUsers from "@/pages/admin-users";
 import AdminErrorReports from "@/pages/admin-error-reports";
@@ -202,55 +203,139 @@ function AdminContentRouter() {
 }
 
 function SuperAdminDashboard() {
+  type CoverageSummary = {
+    ok: boolean;
+    totalCounties: number;
+    unassignedCounties: number;
+    partiallyCoveredCounties: number;
+    fullyCoveredCounties: number;
+    verifiedCoverageRatePercent: number;
+    fullCoverageNewLast30: number;
+  };
+
+  const { data: coverage } = useQuery<CoverageSummary>({
+    queryKey: ["/api/admin/geo/coverage", "overview"],
+    queryFn: () => apiRequest("GET", "/api/admin/geo/coverage"),
+    staleTime: 60_000,
+  });
+
+  // This acts as the Admin Operations Overview: single landing surface for
+  // coverage, readiness, and urgent work, backed entirely by canonical
+  // geo endpoints and the existing map/console tools.
   return (
     <div className="space-y-4">
-      <p className="text-sm text-slate-300">
-        This is the canonical Super Admin OS for TradeDeals, promotions, county operations, and
-        high-safety placements. Use the tools in the left nav to open specific workspaces.
-      </p>
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+        <div>
+          <h1 className="text-base font-semibold text-slate-100 flex items-center gap-2">
+            <Shield className="w-4 h-4 text-scout-500" />
+            Admin Operations Overview
+          </h1>
+          <p className="text-xs text-slate-400 mt-1 max-w-2xl">
+            One control surface for coverage, readiness, and high-safety operations. Use the
+            map and coverage console below to drive assignments and repairs.
+          </p>
+        </div>
+        <div className="flex flex-wrap gap-2 text-[10px] text-slate-400">
+          <span className="inline-flex items-center gap-1"><MapIcon className="w-3 h-3 text-sky-400" />Map</span>
+          <span className="inline-flex items-center gap-1"><UsersIcon className="w-3 h-3 text-emerald-400" />Coverage</span>
+          <span className="inline-flex items-center gap-1"><Activity className="w-3 h-3 text-orange-400" />Queues</span>
+        </div>
+      </div>
+
       <Separator className="bg-slate-800" />
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <Card className="bg-slate-950/60 border-slate-800">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm text-slate-100">Promotions & TradeDeals</CardTitle>
-            <CardDescription className="text-xs text-slate-400">
-              Manage promotions that power TradeDeals and community discovery surfaces.
-            </CardDescription>
+
+      {/* Map + queues */}
+      <div className="grid grid-cols-1 xl:grid-cols-3 gap-4 items-start">
+        <Card className="bg-slate-950/60 border-slate-800 xl:col-span-2">
+          <CardHeader className="pb-2 flex flex-row items-center justify-between gap-2">
+            <div>
+              <CardTitle className="text-sm text-slate-100 flex items-center gap-2">
+                <MapIcon className="w-4 h-4 text-sky-400" />
+                Coverage & Demand Map
+              </CardTitle>
+              <CardDescription className="text-xs text-slate-400">
+                Counties colored by coverage or metrics, with inline tools to assign TMs,
+                affiliates, and notes.
+              </CardDescription>
+            </div>
           </CardHeader>
-          <CardContent className="pt-0 flex justify-end gap-2">
-            <Link href="/admin/promotions">
-              <Button size="sm" variant="outline">
-                Open Promotions manager
-              </Button>
-            </Link>
-            <Link href="/trade-deals">
-              <Button size="sm" variant="outline">
-                View TradeDeals
-              </Button>
-            </Link>
+          <CardContent className="pt-0">
+            <div className="border border-slate-800 rounded-xl overflow-hidden bg-slate-950/40">
+              <UserHeatmap />
+            </div>
           </CardContent>
         </Card>
 
         <Card className="bg-slate-950/60 border-slate-800">
           <CardHeader className="pb-2">
             <CardTitle className="text-sm text-slate-100 flex items-center gap-2">
-              <Sparkles className="w-4 h-4 text-scout-500" />
-              Tool Discovery
+              <Activity className="w-4 h-4 text-orange-400" />
+              Coverage & Risk Queues
             </CardTitle>
             <CardDescription className="text-xs text-slate-400">
-              Review proposed tools, see convergence evidence, and graduate capabilities into
-              Scout's institutional memory.
+              High-signal slices from the coverage console: focus on where we are not ready
+              or recently changed.
             </CardDescription>
           </CardHeader>
-          <CardContent className="pt-0 flex justify-end">
-            <Link href="/admin/tool-discovery">
-              <Button size="sm" variant="outline">
-                Open Tool Discovery
-              </Button>
-            </Link>
+          <CardContent className="pt-0 text-xs text-slate-400 space-y-3">
+            {!coverage && (
+              <p className="text-slate-500">Loading coverage queues hellip;</p>
+            )}
+            {coverage && (
+              <div className="space-y-2">
+                <div className="flex flex-wrap gap-2">
+                  <Badge variant="outline" className="border-red-500/40 text-red-300">
+                    {coverage.unassignedCounties} unassigned counties
+                  </Badge>
+                  <Badge variant="outline" className="border-amber-500/40 text-amber-200">
+                    {coverage.partiallyCoveredCounties} partial
+                  </Badge>
+                  <Badge variant="outline" className="border-emerald-500/40 text-emerald-200">
+                    {coverage.fullyCoveredCounties} full
+                  </Badge>
+                  <Badge variant="outline" className="border-sky-500/40 text-sky-200">
+                    {Math.round(coverage.verifiedCoverageRatePercent)}% verified coverage
+                  </Badge>
+                </div>
+                <ul className="space-y-1 list-disc list-inside">
+                  <li>
+                    Focus first on <span className="font-semibold text-red-300">unassigned</span> counties to
+                    prevent demand from landing with no TM or affiliate.
+                  </li>
+                  <li>
+                    Use the Coverage Console filters for quick slices like
+                    <span className="font-mono text-[11px]"> status = partial</span> or
+                    <span className="font-mono text-[11px]"> hasRiskNote = true</span>.
+                  </li>
+                </ul>
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>
+
+      {/* Embedded coverage console */}
+      <Card className="bg-slate-950/60 border-slate-800">
+        <CardHeader className="pb-2 flex flex-row items-center justify-between gap-2">
+          <div>
+            <CardTitle className="text-sm text-slate-100">County Coverage Console</CardTitle>
+            <CardDescription className="text-xs text-slate-400">
+              Full county list with readiness filters. Use this table to assign TMs and
+              affiliates, then jump into map view for spatial context.
+            </CardDescription>
+          </div>
+          <Link href="/admin/geo/coverage">
+            <Button size="xs" variant="outline" className="text-[11px]">
+              Open full console
+            </Button>
+          </Link>
+        </CardHeader>
+        <CardContent className="pt-0 text-xs text-slate-400">
+          <p className="mb-2">
+            The dedicated Coverage Console remains available at <span className="font-mono text-[11px]">/admin/geo/coverage</span>.
+          </p>
+        </CardContent>
+      </Card>
     </div>
   );
 }

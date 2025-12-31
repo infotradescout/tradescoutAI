@@ -115,22 +115,12 @@ const NAVIGATION_ITEMS: NavigationItem[] = [
     requiredPermission: "canModerateContent",
   },
   
-  // Admin Features
+  // Admin OS (single entry point)
   {
-    label: "Admin Panel",
-    href: "/admin/panel",
+    label: "Admin Operations",
+    href: "/admin",
     icon: Settings,
     requiredPermission: "canAccessAdminPanel",
-    children: [
-      { label: "Dashboard", href: "/admin/panel", icon: Home },
-      { label: "Panel", href: "/admin/panel", icon: Settings },
-      { label: "Users", href: "/admin/users", icon: Users },
-      { label: "Analytics", href: "/admin/workspace", icon: BarChart },
-      { label: "Error Reports", href: "/admin/error-reports", icon: FileText },
-      { label: "Testing", href: "/admin/testing", icon: Settings },
-      { label: "Listings", href: "/admin/listings", icon: Briefcase },
-      { label: "Verification", href: "/admin/professional-verification", icon: Shield },
-    ],
   },
   
   // Account Features - These should be embedded elsewhere, not in header navigation
