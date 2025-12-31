@@ -435,6 +435,7 @@ export async function registerRoutes(app: any) {
 
     const computedIsAdmin =
       user.isAdmin === true ||
+      (user.role && ["super_admin", "head_admin", "moderator", "ops_admin"].includes(user.role)) ||
       Boolean(
         basePermissions?.canAccessAdminPanel ||
         basePermissions?.canAccessSuperAdmin ||
@@ -443,6 +444,7 @@ export async function registerRoutes(app: any) {
 
     const computedIsSuperAdmin =
       user.isSuperAdmin === true ||
+      (user.role && ["super_admin", "head_admin"].includes(user.role)) ||
       Boolean(primaryRole && ["super_admin", "head_admin"].includes(primaryRole));
 
     const hasCanonicalLocation =
