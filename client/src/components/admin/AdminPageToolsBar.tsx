@@ -82,14 +82,8 @@ export function buildAdminTools(path: string): AdminToolLink[] {
     {
       id: "admin-dashboard",
       label: "Admin Dashboard",
-      href: "/admin/workspace",
-      description: "Ops workspace: stats, flags, and queues",
-    },
-    {
-      id: "admin-panel",
-      label: "Admin Panel",
-      href: "/admin/panel",
-      description: "Site ops, feature flags, and monitoring",
+      href: "/admin",
+      description: "Admin OS overview: coverage, ops, and queues",
     },
     {
       id: "admin-users",

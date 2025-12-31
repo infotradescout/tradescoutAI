@@ -57,13 +57,10 @@ export default function Navigation() {
     { href: "/invite", label: "Invite Friends", icon: UserPlus, description: "Invite friends to join TradeScout" },
     { href: "/affiliate", label: "Affiliate Program", icon: Share, description: "Earn 25% commissions on referrals" },
     { href: "/wallet", label: "Wallet", icon: DollarSign, description: "Your TradeScout balance" },
-    { href: "/moderation", label: "Moderation", icon: Shield, description: "Community moderation" },
+    { href: "/moderation", label: "Moderate Community", icon: Shield, description: "Review posts, reports, and flags" },
     { href: "/dashboard", label: "Dashboard", icon: Layout, description: "Your personalized dashboard" },
     ...(isAdmin ? [
-      { href: "/admin", label: "Admin", icon: Settings, description: "Admin controls" },
-      { href: "/admin/control", label: "System Control", icon: Shield, description: "Scout authority & learning controls" },
-      { href: "/admin/panel", label: "Admin Panel", icon: Crown, description: "Management panel" },
-      { href: "/admin/professional-verification", label: "Professional Verification", icon: Shield, description: "Verify professionals" }
+      { href: "/admin", label: "Admin Operations", icon: Settings, description: "Open Admin OS for all tools" },
     ] : []),
   ];
 
