@@ -150,52 +150,6 @@ const Icons = {
 export const CommunityTopNav: React.FC<{
   basePath?: string; // default /community-feed
 }> = ({ basePath = "/community-feed" }) => {
-  const [route, navigate] = useLocation();
-  const scope = (useQueryParam("scope") as CommunityScope | null) ?? "for_you";
-
-  const items: NavItem[] = [
-    { key: "for_you", label: "For You", icon: Icons.ForYou, href: basePath },
-    { key: "following", label: "Following", icon: Icons.Following, href: basePath },
-    { key: "nearby", label: "Nearby", icon: Icons.Nearby, href: basePath },
-    { key: "recent", label: "Recent", icon: Icons.Recent, href: basePath },
-    { key: "recommendations", label: "Recs", icon: Icons.Recs, href: basePath },
-    { key: "vault", label: "Vault", icon: Icons.Vault, href: "/community-vault" },
-  ];
-
-  const onClick = (item: NavItem) => {
-    if (item.key === "vault") {
-      navigate(item.href);
-      return;
-    }
-
-    const idx = route.indexOf("?");
-    const currentSearch = idx >= 0 ? route.slice(idx + 1) : "";
-    const url = setQueryParam(basePath, currentSearch, "scope", item.key);
-    navigate(url);
-  };
-
-  return (
-    <div className="w-full">
-      <div className="flex items-center justify-between gap-2 px-3 pt-2">
-        {items.map((item) => {
-          const isVaultRoute = route.startsWith("/community-vault");
-          const active =
-            item.key === scope || (item.key === "vault" && isVaultRoute);
-          return (
-            <button
-              key={item.key}
-              type="button"
-              onClick={() => onClick(item)}
-              className="flex flex-col items-center select-none"
-              aria-pressed={active}
-            >
-              <IconWrap active={active}>{item.icon}</IconWrap>
-              <Label active={active}>{item.label}</Label>
-            </button>
-          );
-        })}
-      </div>
-      <div className="mt-3 border-b border-neutral-900" />
-    </div>
-  );
+  // Top nav buttons removed per user request - using story-style cards instead
+  return null;
 };
