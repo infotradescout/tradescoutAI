@@ -28,7 +28,6 @@ import { NotificationCenter } from "@/components/ui/notification-center";
 import { RightToolsPanel } from "@/components/layout/RightToolsPanel";
 import MobileAppBar from "@/components/navigation/MobileAppBar";
 import { TradeScoutLogo } from "@/components/TradeScoutIcons";
-import { AdminPageToolsBar } from "@/components/admin/AdminPageToolsBar";
 import { useLocation } from "wouter";
 import { setSessionLocationOverride } from "@/hooks/useLocationContext";
 
@@ -412,10 +411,6 @@ export function AppShell({ children, footer }: AppShellProps) {
           <RightToolsPanel />
         </aside>
       )}
-
-        {/* Super admin tools bar appears on app surfaces, but never on
-          public or onboarding Scout surfaces to avoid confusion. */}
-        {!isScoutSurface && <AdminPageToolsBar />}
 
       {/* BOTTOM BAR: SCROLLABLE SITE FEATURE NAV (mobile + desktop) */}
       <div style={{ position: 'fixed', left: 0, right: 0, bottom: 0, zIndex: 1000 }}>

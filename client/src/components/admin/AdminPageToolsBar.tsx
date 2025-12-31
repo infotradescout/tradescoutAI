@@ -6,16 +6,16 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 
-interface AdminToolLink {
+export interface AdminToolLink {
   id: string;
   label: string;
   href: string;
   description?: string;
 }
 
-const SUPER_ADMIN_ROLES = ["head_admin", "ops_admin", "super_admin", "admin"] as const;
+export const SUPER_ADMIN_ROLES = ["head_admin", "ops_admin", "super_admin", "admin"] as const;
 
-function buildPageTools(path: string): AdminToolLink[] {
+export function buildPageTools(path: string): AdminToolLink[] {
   const tools: AdminToolLink[] = [];
 
   if (path.startsWith("/community")) {
@@ -73,6 +73,48 @@ function buildPageTools(path: string): AdminToolLink[] {
   return tools;
 }
 
+export function buildAdminTools(path: string): AdminToolLink[] {
+  if (!path) return [] as AdminToolLink[];
+
+  const pageTools = buildPageTools(path);
+
+  const baseTools: AdminToolLink[] = [
+    {
+      id: "admin-dashboard",
+      label: "Admin Dashboard",
+      href: "/admin/workspace",
+      description: "Ops workspace: stats, flags, and queues",
+    },
+    {
+      id: "admin-panel",
+      label: "Admin Panel",
+      href: "/admin/panel",
+      description: "Site ops, feature flags, and monitoring",
+    },
+    {
+      id: "admin-users",
+      label: "User Management",
+      href: "/admin/users",
+      description: "Search, edit roles, and impersonate users",
+    },
+    {
+      id: "messages",
+      label: "Message Users",
+      href: "/messages",
+      description: "Jump into conversations & outreach",
+    },
+  ];
+
+  const byId = new Map<string, AdminToolLink>();
+  [...pageTools, ...baseTools].forEach((tool) => {
+    if (!byId.has(tool.id)) {
+      byId.set(tool.id, tool);
+    }
+  });
+
+  return Array.from(byId.values());
+}
+
 export function AdminPageToolsBar() {
   const { user, isAuthenticated } = useAuth();
   const [path, navigate] = useLocation();
@@ -86,45 +128,7 @@ export function AdminPageToolsBar() {
   );
 
   const tools = useMemo(() => {
-    if (!path) return [] as AdminToolLink[];
-
-    const pageTools = buildPageTools(path);
-
-    const baseTools: AdminToolLink[] = [
-      {
-        id: "admin-dashboard",
-        label: "Admin Dashboard",
-        href: "/admin/workspace",
-        description: "Ops workspace: stats, flags, and queues",
-      },
-      {
-        id: "admin-panel",
-        label: "Admin Panel",
-        href: "/admin/panel",
-        description: "Site ops, feature flags, and monitoring",
-      },
-      {
-        id: "admin-users",
-        label: "User Management",
-        href: "/admin/users",
-        description: "Search, edit roles, and impersonate users",
-      },
-      {
-        id: "messages",
-        label: "Message Users",
-        href: "/messages",
-        description: "Jump into conversations & outreach",
-      },
-    ];
-
-    const byId = new Map<string, AdminToolLink>();
-    [...pageTools, ...baseTools].forEach((tool) => {
-      if (!byId.has(tool.id)) {
-        byId.set(tool.id, tool);
-      }
-    });
-
-    return Array.from(byId.values());
+    return buildAdminTools(path || "");
   }, [path]);
 
   if (!isSuperAdmin || tools.length === 0) {
