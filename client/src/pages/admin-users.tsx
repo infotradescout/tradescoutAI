@@ -61,12 +61,13 @@ type SavedView = {
 };
 
 const roleHierarchy = {
-  'head_admin': { level: 100, label: 'Head Admin', icon: Crown, color: 'bg-purple-500' },
-  'moderator': { level: 80, label: 'Moderator', icon: Shield, color: 'bg-blue-500' },
-  'ops_admin': { level: 70, label: 'Operations Admin', icon: UserCog, color: 'bg-green-500' },
-  'contractor_user': { level: 20, label: 'Contractor', icon: Users, color: 'bg-orange-500' },
-  'accelerator_member': { level: 15, label: 'Accelerator Member', icon: Users, color: 'bg-yellow-500' },
-  'homeowner': { level: 10, label: 'Homeowner', icon: Users, color: 'bg-slate-900/60' },
+  head_admin: { level: 100, label: "Head Admin", icon: Crown, color: "bg-purple-500" },
+  super_admin: { level: 90, label: "Super Admin", icon: Crown, color: "bg-indigo-500" },
+  moderator: { level: 80, label: "Moderator", icon: Shield, color: "bg-blue-500" },
+  ops_admin: { level: 70, label: "Operations Admin", icon: UserCog, color: "bg-green-500" },
+  contractor_user: { level: 20, label: "Contractor", icon: Users, color: "bg-orange-500" },
+  accelerator_member: { level: 15, label: "Accelerator Member", icon: Users, color: "bg-yellow-500" },
+  homeowner: { level: 10, label: "Homeowner", icon: Users, color: "bg-slate-900/60" },
 };
 
 export default function AdminUsers() {
