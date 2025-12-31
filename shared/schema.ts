@@ -7247,21 +7247,21 @@ export const scoutUserConfidenceState = pgTable("scout_user_confidence_state", {
 ]);
 
 // Zod schemas
-export const insertToolProposalSchema = createInsertSchema(toolProposals).omit({
-  id: true,
-  createdAt: true,
-  updatedAt: true,
-});
+// export const insertToolProposalSchema = createInsertSchema(toolProposals).omit({
+//   id: true,
+//   createdAt: true,
+//   updatedAt: true,
+// });
 
-export const insertToolProposalEvidenceSchema = createInsertSchema(toolProposalEvidence).omit({
-  id: true,
-  createdAt: true,
-});
+// export const insertToolProposalEvidenceSchema = createInsertSchema(toolProposalEvidence).omit({
+//   id: true,
+//   createdAt: true,
+// });
 
-export const insertToolProposalDecisionSchema = createInsertSchema(toolProposalDecisions).omit({
-  id: true,
-  createdAt: true,
-});
+// export const insertToolProposalDecisionSchema = createInsertSchema(toolProposalDecisions).omit({
+//   id: true,
+//   createdAt: true,
+// });
 
 // Type exports
 export type ToolProposal = typeof toolProposals.$inferSelect;

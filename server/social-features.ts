@@ -68,7 +68,6 @@ export function registerSocialFeatures(app: Express) {
 
       // Build search conditions
       const searchConditions = [
-        eq(users.isActive, true),
         eq(users.addressVerified, true), // Only show verified users
       ];
 
@@ -78,13 +77,14 @@ export function registerSocialFeatures(app: Express) {
       // Search by name (first name, last name, or email)
       if (q) {
         const searchTerm = `%${q}%`;
-        searchConditions.push(
-          or(
-            ilike(users.firstName, searchTerm),
-            ilike(users.lastName, searchTerm),
-            ilike(users.email, searchTerm),
-          )
+        const nameCondition = or(
+          ilike(users.firstName, searchTerm),
+          ilike(users.lastName, searchTerm),
+          ilike(users.email, searchTerm),
         );
+        if (nameCondition) {
+          searchConditions.push(nameCondition);
+        }
       }
 
       // Scope by location
@@ -351,7 +351,6 @@ export function registerSocialFeatures(app: Express) {
       res.status(500).json({ message: "Failed to remove friend" });
     }
     */
-  });
   });
 
   /**

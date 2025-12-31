@@ -13,8 +13,8 @@
  */
 
 import { describe, it, expect, beforeEach } from 'vitest';
-import { db } from '../server/db';
-import { users, marketplaceConversations } from '../shared/schema';
+import { db } from '../../src/db/drizzle-mock';
+import { users, marketplaceConversations } from '@shared/schema';
 import { eq, and } from 'drizzle-orm';
 
 // Test utilities

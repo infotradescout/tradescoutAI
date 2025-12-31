@@ -4390,21 +4390,21 @@ export class DatabaseStorage implements IStorage {
     // Following / recommendations selectors
     if ((filters?.followingOnly || filters?.excludeFollowing) && filters?.viewerId) {
       const followRows = await db
-        .select({ followeeId: userFollows.followeeId })
+        .select({ followingId: userFollows.followingId })
         .from(userFollows)
         .where(eq(userFollows.followerId, filters.viewerId));
 
-      const followeeIds = followRows
-        .map((r) => r.followeeId)
+      const followingIds = followRows
+        .map((r) => r.followingId)
         .filter((id): id is string => Boolean(id));
 
       if (filters.followingOnly) {
-        if (!followeeIds.length) {
+        if (!followingIds.length) {
           return [];
         }
-        conditions.push(inArray(communityPosts.authorId, followeeIds));
-      } else if (filters.excludeFollowing && followeeIds.length) {
-        conditions.push(notInArray(communityPosts.authorId, followeeIds));
+        conditions.push(inArray(communityPosts.authorId, followingIds));
+      } else if (filters.excludeFollowing && followingIds.length) {
+        conditions.push(notInArray(communityPosts.authorId, followingIds));
       }
     } else if (filters?.followingOnly && !filters?.viewerId) {
       // Without a viewer, "following" has no meaning; return empty deterministically.
