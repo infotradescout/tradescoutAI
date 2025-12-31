@@ -445,17 +445,6 @@ export async function registerRoutes(app: any) {
       user.isSuperAdmin === true ||
       Boolean(primaryRole && ["super_admin", "head_admin"].includes(primaryRole));
 
-    // Debug logging for admin flag issues
-    if (primaryRole === 'super_admin' && !computedIsAdmin) {
-      console.warn('[sanitizeUserForResponse] super_admin with isAdmin=false!', {
-        userId: user.id,
-        primaryRole,
-        userIsAdmin: user.isAdmin,
-        basePermissions: basePermissions ? Object.keys(basePermissions) : null,
-        computedIsAdmin,
-      });
-    }
-
     const hasCanonicalLocation =
       typeof (user as any).stateCode === "string" &&
       (user as any).stateCode.length === 2 &&
