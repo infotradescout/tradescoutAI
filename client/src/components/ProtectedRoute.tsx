@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useEffect } from 'react';
 import { useLocation } from 'wouter';
 import { useAuth } from '@/hooks/useAuth';
 import { CURRENT_PROFILE_VERSION } from '@shared/profile';
@@ -50,30 +50,39 @@ export function ProtectedRoute({
     return requiredRoles.includes(user.role);
   }, [user, isAuthenticated, requiredRoles, adminOnly]);
 
+  // Handle redirects in useEffect to avoid setState during render
+  useEffect(() => {
+    if (isLoading) return;
+
+    if (!isAuthenticated) {
+      setLocation('/create-account');
+      return;
+    }
+
+    // Check profile normalization needs
+    const isAdmin = user?.isAdmin === true;
+    const role = (user as any)?.role as string | undefined;
+    const isSuperAdminLike = role === 'super_admin' || role === 'head_admin';
+    const profileVersion = typeof (user as any)?.profileVersion === 'number' ? (user as any).profileVersion : 0;
+    
+    if (!isAdmin && !isSuperAdminLike && user && profileVersion < CURRENT_PROFILE_VERSION) {
+      setLocation('/onboarding/profile');
+      return;
+    }
+
+    // Check access permissions
+    if (!hasAccess) {
+      setLocation('/unauthorized');
+    }
+  }, [isLoading, isAuthenticated, user, hasAccess, setLocation]);
+
   // Loading state
   if (isLoading) {
     return fallback || <PageLoadingSpinner message="Verifying permissions..." />;
   }
 
-  // Not authenticated
-  if (!isAuthenticated) {
-    setLocation('/create-account');
-    return null;
-  }
-
-  // Authenticated but needs profile normalization: send to onboarding profile
-  const isAdmin = user?.isAdmin === true;
-  const role = (user as any)?.role as string | undefined;
-  const isSuperAdminLike = role === 'super_admin' || role === 'head_admin';
-  const profileVersion = typeof (user as any)?.profileVersion === 'number' ? (user as any).profileVersion : 0;
-  if (!isAdmin && !isSuperAdminLike && user && profileVersion < CURRENT_PROFILE_VERSION) {
-    setLocation('/onboarding/profile');
-    return null;
-  }
-
-  // Authenticated but insufficient permissions
-  if (!hasAccess) {
-    setLocation('/unauthorized');
+  // Not authenticated or no access - show nothing while redirecting
+  if (!isAuthenticated || !hasAccess) {
     return null;
   }
 
