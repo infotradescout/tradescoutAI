@@ -11,6 +11,7 @@ import {
 } from "../../shared/schema";
 import { eq, desc } from "drizzle-orm";
 import adminToolDiscoveryRouter from "./admin-tool-discovery";
+import { refreshCountyMetrics } from "../services/geographicMetrics";
 
 /**
  * Admin OS routes: health and high-level telemetry endpoints.
@@ -142,6 +143,59 @@ export function mountAdminRoutes(app: any) {
       res.status(500).json({ message: "Failed to fetch county heatmap data" });
     }
   });
+
+  // ---------------------------------------------------------------------------
+  // Admin county metrics refresh (super/head admin only)
+  // ---------------------------------------------------------------------------
+  const lastGeoMetricsRefreshByUser: Record<string, number> = {};
+
+  app.post(
+    "/api/admin/geo/metrics/refresh",
+    isAuthenticated,
+    isSuperAdmin,
+    async (req: Request & { user?: any }, res: Response) => {
+      try {
+        if (!process.env.ADMIN_COUNTY_HEATMAP_ENABLED) {
+          return res.status(404).end();
+        }
+
+        const userId = (req.user as any)?.id;
+        if (!userId) {
+          return res.status(401).json({ message: "Authentication required" });
+        }
+
+        const now = Date.now();
+        const last = lastGeoMetricsRefreshByUser[userId] || 0;
+        const minIntervalMs = 60_000; // simple in-memory rate limit: 1/min per user
+
+        if (now - last < minIntervalMs) {
+          return res.status(429).json({
+            message: "Metrics refresh is rate-limited. Please wait a moment and try again.",
+          });
+        }
+
+        lastGeoMetricsRefreshByUser[userId] = now;
+
+        const startedAt = Date.now();
+        const result = await refreshCountyMetrics();
+        const durationMs = Date.now() - startedAt;
+
+        console.log(
+          `[ADMIN_GEO_METRICS_REFRESH] user=${userId} activeCounties=${result.activeCountyCount} metricsWritten=${result.metricsWritten} durationMs=${durationMs} at=${new Date().toISOString()}`,
+        );
+
+        res.json({
+          ok: true,
+          activeCountyCount: result.activeCountyCount,
+          metricsWritten: result.metricsWritten,
+          durationMs,
+        });
+      } catch (error: any) {
+        console.error("Error refreshing county metrics:", error);
+        res.status(500).json({ message: "Failed to refresh county metrics" });
+      }
+    },
+  );
 
   // ---------------------------------------------------------------------------
   // Admin county notes (super/head admin only)

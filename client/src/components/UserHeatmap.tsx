@@ -28,6 +28,8 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { useToast } from "@/components/ui/use-toast";
 
 type HeatmapDataPoint = {
   state: string;
@@ -270,6 +272,7 @@ function CountyHeatmapMap({
 export function UserHeatmap() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
+  const { toast } = useToast();
   const [timeframe, setTimeframe] = useState<string>("30d");
   const [viewMode, setViewMode] = useState<"heatmap" | "counties">("heatmap");
   const [selectedCountyFips, setSelectedCountyFips] = useState<string | null>(null);
@@ -372,6 +375,30 @@ export function UserHeatmap() {
     },
   });
 
+  const refreshMetricsMutation = useMutation({
+    mutationFn: async () => {
+      return apiRequest("POST", "/api/admin/geo/metrics/refresh");
+    },
+    onSuccess: (data: any) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/heatmap/users-by-county"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/heatmap/users-by-county", timeframe, countyMetric] });
+      const summary = (data || {}) as { activeCountyCount?: number; metricsWritten?: number };
+      const activeCountyCount = summary.activeCountyCount ?? 0;
+      const metricsWritten = summary.metricsWritten ?? 0;
+      toast({
+        title: "County metrics refreshed",
+        description: `Updated ${metricsWritten.toLocaleString()} metric rows across ${activeCountyCount.toLocaleString()} counties.`,
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Refresh failed",
+        description: error?.message ?? "Unable to refresh county metrics. Please try again in a minute.",
+        variant: "destructive",
+      });
+    },
+  });
+
   const totalInteractions = heatmapData.reduce((sum: number, point: HeatmapDataPoint) => sum + point.interactions, 0);
   const totalUsers = heatmapData.reduce((sum: number, point: HeatmapDataPoint) => sum + point.users, 0);
   const topLocations = [...heatmapData].sort((a: HeatmapDataPoint, b: HeatmapDataPoint) => b.interactions - a.interactions).slice(0, 5);
@@ -448,17 +475,38 @@ export function UserHeatmap() {
           </Select>
 
           {isSuperAdmin && viewMode === "counties" && (
-            <Select value={countyMetric} onValueChange={setCountyMetric}>
-              <SelectTrigger className="w-40 bg-slate-800 border-slate-700 text-white">
-                <SelectValue placeholder="Metric" />
-              </SelectTrigger>
-              <SelectContent className="bg-slate-800 border-slate-700 text-sm">
-                <SelectItem value="users">Users (total)</SelectItem>
-                <SelectItem value="users_verified">Verified users</SelectItem>
-                <SelectItem value="contractors">Contractors</SelectItem>
-                <SelectItem value="affiliates_count">Affiliates</SelectItem>
-              </SelectContent>
-            </Select>
+            <div className="flex items-center gap-2">
+              <Select value={countyMetric} onValueChange={setCountyMetric}>
+                <SelectTrigger className="w-40 bg-slate-800 border-slate-700 text-white">
+                  <SelectValue placeholder="Metric" />
+                </SelectTrigger>
+                <SelectContent className="bg-slate-800 border-slate-700 text-sm">
+                  <SelectItem value="users">Users (total)</SelectItem>
+                  <SelectItem value="users_verified">Verified users</SelectItem>
+                  <SelectItem value="contractors">Contractors</SelectItem>
+                  <SelectItem value="affiliates_count">Affiliates</SelectItem>
+                </SelectContent>
+              </Select>
+              <TooltipProvider delayDuration={200}>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      disabled={refreshMetricsMutation.isPending}
+                      onClick={() => refreshMetricsMutation.mutate()}
+                      className="bg-slate-800 border-slate-700 text-xs text-slate-100 hover:bg-slate-700"
+                    >
+                      {refreshMetricsMutation.isPending ? "Refreshing..." : "Refresh metrics"}
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent className="max-w-xs text-xs">
+                    Recomputes county metrics from canonical data. No roles or permissions are changed.
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            </div>
           )}
         </div>
       </div>
