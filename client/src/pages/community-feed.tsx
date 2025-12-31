@@ -1057,9 +1057,9 @@ const CommunityFeed = memo(function CommunityFeed() {
                                   </div>
                                 )}
 
-                                {Array.isArray(post.images) && post.images.length > 0 && (
+                                {Array.isArray(post.imageUrls) && post.imageUrls.length > 0 && (
                                   <div className="grid grid-cols-2 gap-2 mb-3">
-                                    {post.images.map((image: string, index: number) => (
+                                    {post.imageUrls.map((image: string, index: number) => (
                                       <img
                                         key={index}
                                         src={image}
