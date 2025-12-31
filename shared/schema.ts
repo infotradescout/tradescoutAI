@@ -228,6 +228,30 @@ export const reportReasonEnum = pgEnum('report_reason', [
   'other'
 ]);
 
+// County-level entity and note categories for geographic storage layer
+export const countyNoteCategoryEnum = pgEnum("county_note_category", [
+  "affiliate",
+  "employee",
+  "partner",
+  "operations",
+  "risk",
+  "general",
+]);
+
+export const countyEntityTypeEnum = pgEnum("county_entity_type", [
+  "affiliate",
+  "employee",
+  "partner",
+  "territory_manager",
+  "vendor",
+]);
+
+export const countyEntityStatusEnum = pgEnum("county_entity_status", [
+  "active",
+  "inactive",
+  "pending",
+]);
+
 // Invitation status enum
 export const invitationStatusEnum = pgEnum('invitation_status', [
   'pending',
@@ -644,6 +668,59 @@ export const counties = pgTable("counties", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
+// County notes for admin-only operational memory
+export const countyNotes = pgTable(
+  "county_notes",
+  {
+    id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+    countyFips: varchar("county_fips", { length: 5 }).notNull(),
+    authorUserId: varchar("author_user_id").notNull().references(() => users.id),
+    category: countyNoteCategoryEnum("category").notNull().default("general"),
+    content: text("content").notNull(),
+    createdAt: timestamp("created_at").defaultNow(),
+    updatedAt: timestamp("updated_at").defaultNow(),
+  },
+  (table) => [
+    index("county_notes_fips_idx").on(table.countyFips),
+    index("county_notes_author_idx").on(table.authorUserId),
+  ],
+);
+
+// County metrics: computed, replaceable numeric aggregates per FIPS
+export const countyMetrics = pgTable(
+  "county_metrics",
+  {
+    countyFips: varchar("county_fips", { length: 5 }).notNull().references(() => counties.fips),
+    metricKey: varchar("metric_key", { length: 64 }).notNull(),
+    metricValue: numeric("metric_value", { precision: 20, scale: 4 }).notNull().default("0"),
+    updatedAt: timestamp("updated_at").defaultNow(),
+  },
+  (table) => [
+    primaryKey({ columns: [table.countyFips, table.metricKey] }),
+    index("county_metrics_fips_idx").on(table.countyFips),
+  ],
+);
+
+// County entities: affiliates, employees, partners and other assets mapped to counties
+export const countyEntities = pgTable(
+  "county_entities",
+  {
+    id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+    countyFips: varchar("county_fips", { length: 5 }).notNull().references(() => counties.fips),
+    entityType: countyEntityTypeEnum("entity_type").notNull(),
+    entityId: varchar("entity_id"),
+    label: varchar("label", { length: 255 }),
+    status: countyEntityStatusEnum("status").notNull().default("active"),
+    metadata: jsonb("metadata"),
+    createdAt: timestamp("created_at").defaultNow(),
+    updatedAt: timestamp("updated_at").defaultNow(),
+  },
+  (table) => [
+    index("county_entities_fips_idx").on(table.countyFips),
+    index("county_entities_type_idx").on(table.entityType),
+  ],
+);
+
 // Business service areas (many-to-many with counties)
 export const businessCounties = pgTable("business_counties", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -753,6 +830,13 @@ export const providerLocalStats = pgTable("provider_local_stats", {
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
+
+export type InsertCountyNote = typeof countyNotes.$inferInsert;
+export type CountyNote = typeof countyNotes.$inferSelect;
+export type InsertCountyMetric = typeof countyMetrics.$inferInsert;
+export type CountyMetric = typeof countyMetrics.$inferSelect;
+export type InsertCountyEntity = typeof countyEntities.$inferInsert;
+export type CountyEntity = typeof countyEntities.$inferSelect;
 
 // Business-level verification records (append-only)
 export const businessVerifications = pgTable("business_verifications", {

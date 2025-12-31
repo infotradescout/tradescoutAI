@@ -256,6 +256,15 @@ import {
   type InsertRealtorProfile,
   type CarSalesmanProfile,
   type InsertCarSalesmanProfile,
+  countyNotes,
+  countyMetrics,
+  countyEntities,
+  type CountyNote,
+  type InsertCountyNote,
+  type CountyMetric,
+  type InsertCountyMetric,
+  type CountyEntity,
+  type InsertCountyEntity,
   // Leaderboard
   contractorLeaderboardStats,
   type ContractorLeaderboardStats,
@@ -377,6 +386,9 @@ import {
   type InsertDealEngagement,
   workRequests,
   type WorkRequest,
+  countyNotes,
+  type CountyNote,
+  type InsertCountyNote,
 } from "@shared/schema";
 import { db, pool as neonPool } from "./db";
 import { eq, and, desc, asc, sql, inArray, like, gt, or, lt, isNull, isNotNull, ne, gte, lte, notInArray, type SQL } from "drizzle-orm";
@@ -3580,6 +3592,122 @@ export class DatabaseStorage implements IStorage {
         longitude: row.longitude ? Number(row.longitude) : 0,
       }))
       .filter((row) => row.state && row.county);
+  }
+
+  async getUserCountsByCounty(days: number): Promise<Array<{
+    countyFips: string;
+    stateCode: string | null;
+    countyName: string | null;
+    userCount: number;
+  }>> {
+    const startDate = new Date();
+    startDate.setDate(startDate.getDate() - days);
+
+    const rows = await db
+      .select({
+        countyFips: users.countyFips,
+        stateCode: users.stateCode,
+        countyName: users.countyName,
+        userCount: sql<number>`COUNT(*)`,
+      })
+      .from(users)
+      .where(
+        and(
+          gte(users.createdAt, startDate),
+          isNotNull(users.countyFips),
+        ),
+      )
+      .groupBy(users.countyFips, users.stateCode, users.countyName);
+
+    return rows
+      .filter((row) => !!row.countyFips)
+      .map((row) => ({
+        countyFips: row.countyFips as string,
+        stateCode: row.stateCode ?? null,
+        countyName: row.countyName ?? null,
+        userCount: Number(row.userCount || 0),
+      }));
+  }
+
+  async getCountyNotes(countyFips: string): Promise<CountyNote[]> {
+    return await db
+      .select()
+      .from(countyNotes)
+      .where(eq(countyNotes.countyFips, countyFips))
+      .orderBy(desc(countyNotes.createdAt));
+  }
+
+  async getCountyNoteById(id: string): Promise<CountyNote | undefined> {
+    const [note] = await db.select().from(countyNotes).where(eq(countyNotes.id, id));
+    return note;
+  }
+
+  async createCountyNote(input: InsertCountyNote): Promise<CountyNote> {
+    const [note] = await db
+      .insert(countyNotes)
+      .values({ ...input, updatedAt: new Date() })
+      .returning();
+    return note;
+  }
+
+  async updateCountyNote(
+    id: string,
+    update: Partial<Pick<InsertCountyNote, "category" | "content">>,
+  ): Promise<CountyNote | undefined> {
+    const [note] = await db
+      .update(countyNotes)
+      .set({ ...update, updatedAt: new Date() })
+      .where(eq(countyNotes.id, id))
+      .returning();
+    return note;
+  }
+
+  async deleteCountyNote(id: string): Promise<void> {
+    await db.delete(countyNotes).where(eq(countyNotes.id, id));
+  }
+
+  async getCountyEntities(countyFips: string): Promise<CountyEntity[]> {
+    return await db
+      .select()
+      .from(countyEntities)
+      .where(eq(countyEntities.countyFips, countyFips))
+      .orderBy(desc(countyEntities.createdAt));
+  }
+
+  async getCountyEntityById(id: string): Promise<CountyEntity | undefined> {
+    const [entity] = await db.select().from(countyEntities).where(eq(countyEntities.id, id));
+    return entity;
+  }
+
+  async createCountyEntity(input: InsertCountyEntity): Promise<CountyEntity> {
+    const [entity] = await db
+      .insert(countyEntities)
+      .values({ ...input, updatedAt: new Date() })
+      .returning();
+    return entity;
+  }
+
+  async updateCountyEntity(
+    id: string,
+    update: Partial<Pick<InsertCountyEntity, "label" | "status" | "metadata" | "entityId" | "entityType">>,
+  ): Promise<CountyEntity | undefined> {
+    const [entity] = await db
+      .update(countyEntities)
+      .set({ ...update, updatedAt: new Date() })
+      .where(eq(countyEntities.id, id))
+      .returning();
+    return entity;
+  }
+
+  async deleteCountyEntity(id: string): Promise<void> {
+    await db.delete(countyEntities).where(eq(countyEntities.id, id));
+  }
+
+  async getCountyMetricsByKey(metricKey: string): Promise<CountyMetric[]> {
+    return await db
+      .select()
+      .from(countyMetrics)
+      .where(eq(countyMetrics.metricKey, metricKey));
   }
 
   // Contractor Promo Operations

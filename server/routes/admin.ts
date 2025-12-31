@@ -60,7 +60,7 @@ export function mountAdminRoutes(app: any) {
       const userId = (req.user as any)?.id;
       const user = await storage.getUser(userId);
 
-      if (!user || !["head_admin", "moderator", "ops_admin"].includes(user.role || "")) {
+      if (!user || !["head_admin", "moderator", "ops_admin", "super_admin"].includes(user.role || "")) {
         return res.status(403).json({ message: "Admin access required" });
       }
 
@@ -75,6 +75,442 @@ export function mountAdminRoutes(app: any) {
       res.status(500).json({ message: "Failed to fetch heatmap data" });
     }
   });
+
+  // ---------------------------------------------------------------------------
+  // Admin county heatmap: metrics by county FIPS (super/head admin only)
+  // ---------------------------------------------------------------------------
+  app.get("/api/admin/heatmap/users-by-county", isAuthenticated, async (req: Request & { user?: any }, res: Response) => {
+    try {
+      if (!process.env.ADMIN_COUNTY_HEATMAP_ENABLED) {
+        return res.status(404).end();
+      }
+
+      const userId = (req.user as any)?.id;
+      const user = await storage.getUser(userId);
+      const role = user?.role || "";
+
+      if (role !== "super_admin" && role !== "head_admin") {
+        return res.status(403).json({
+          reasonCode: "INSUFFICIENT_ROLE",
+          message: "Admin-only analytics",
+          metric: null,
+        });
+      }
+
+      const timeframe = (req.query.timeframe as string) || "30d";
+      const days = timeframe === "7d" ? 7 : timeframe === "30d" ? 30 : 90;
+      const requestedMetric = (req.query.metric as string) || "users";
+
+      // 1) Try to serve from county_metrics for the requested key
+      const metricRows = await storage.getCountyMetricsByKey(requestedMetric);
+      let metric = requestedMetric;
+      const byCounty: Record<string, number> = {};
+
+      if (metricRows.length > 0) {
+        for (const row of metricRows) {
+          if (!row.countyFips) continue;
+          const value = Number(row.metricValue || 0);
+          if (!Number.isFinite(value)) continue;
+          byCounty[row.countyFips] = value;
+        }
+      } else if (requestedMetric === "users" || requestedMetric === "users_total") {
+        // 2) Fallback: derive "users" metric from canonical users table
+        const rows = await storage.getUserCountsByCounty(days);
+        for (const row of rows) {
+          if (!row.countyFips) continue;
+          byCounty[row.countyFips] = (byCounty[row.countyFips] || 0) + row.userCount;
+        }
+        metric = "users";
+      } else {
+        // No stored values and no safe fallback: return empty container for this metric
+        metric = requestedMetric;
+      }
+
+      console.log(
+        `[ADMIN_MAP] ${userId} viewed county metric=${metric} heatmap at ${new Date().toISOString()}`
+      );
+
+      res.json({
+        updatedAt: new Date().toISOString(),
+        metric,
+        timeframe,
+        days,
+        byCounty,
+      });
+    } catch (error: any) {
+      console.error("Error fetching county heatmap data:", error);
+      res.status(500).json({ message: "Failed to fetch county heatmap data" });
+    }
+  });
+
+  // ---------------------------------------------------------------------------
+  // Admin county notes (super/head admin only)
+  // ---------------------------------------------------------------------------
+  const COUNTY_NOTE_CATEGORIES = ["affiliate", "employee", "partner", "operations", "risk", "general"] as const;
+  const COUNTY_ENTITY_TYPES = ["affiliate", "employee", "partner", "territory_manager", "vendor"] as const;
+  const COUNTY_ENTITY_STATUSES = ["active", "inactive", "pending"] as const;
+
+  function isValidFips(fips: string): boolean {
+    return /^\d{5}$/.test(fips);
+  }
+
+  app.get(
+    "/api/admin/geo/counties/:fips/notes",
+    isAuthenticated,
+    isSuperAdmin,
+    async (req: Request & { user?: any }, res: Response) => {
+      try {
+        const { fips } = req.params;
+
+        if (!isValidFips(fips)) {
+          return res.status(400).json({ message: "Invalid county FIPS" });
+        }
+
+        const notes = await storage.getCountyNotes(fips);
+        res.json(notes);
+      } catch (error: any) {
+        console.error("Error fetching county notes:", error);
+        res.status(500).json({ message: "Failed to fetch county notes" });
+      }
+    },
+  );
+
+  app.post(
+    "/api/admin/geo/counties/:fips/notes",
+    isAuthenticated,
+    isSuperAdmin,
+    async (req: Request & { user?: any }, res: Response) => {
+      try {
+        const { fips } = req.params;
+        const userId = (req.user as any)?.id;
+        const role = (req.user as any)?.role || "";
+
+        if (!isValidFips(fips)) {
+          return res.status(400).json({ message: "Invalid county FIPS" });
+        }
+
+        if (!userId) {
+          return res.status(401).json({ message: "Authentication required" });
+        }
+
+        const { category, content } = (req.body || {}) as { category?: string; content?: string };
+
+        if (!content || typeof content !== "string" || !content.trim()) {
+          return res.status(400).json({ message: "Content is required" });
+        }
+
+        const normalizedCategory = (category || "general").toLowerCase();
+        if (!COUNTY_NOTE_CATEGORIES.includes(normalizedCategory as any)) {
+          return res.status(400).json({ message: "Invalid category" });
+        }
+
+        const note = await storage.createCountyNote({
+          countyFips: fips,
+          authorUserId: userId,
+          category: normalizedCategory as any,
+          content: content.trim(),
+        });
+
+        console.log(
+          `[ADMIN_COUNTY_NOTE] user=${userId} county=${fips} action=add role=${role} timestamp=${new Date().toISOString()} noteId=${note.id}`,
+        );
+
+        res.status(201).json(note);
+      } catch (error: any) {
+        console.error("Error creating county note:", error);
+        res.status(500).json({ message: "Failed to create county note" });
+      }
+    },
+  );
+
+  app.patch(
+    "/api/admin/geo/notes/:noteId",
+    isAuthenticated,
+    isSuperAdmin,
+    async (req: Request & { user?: any }, res: Response) => {
+      try {
+        const { noteId } = req.params;
+        const userId = (req.user as any)?.id;
+        const role = (req.user as any)?.role || "";
+
+        if (!userId) {
+          return res.status(401).json({ message: "Authentication required" });
+        }
+
+        const existing = await storage.getCountyNoteById(noteId);
+        if (!existing) {
+          return res.status(404).json({ message: "Note not found" });
+        }
+
+        if (existing.authorUserId !== userId && role !== "head_admin") {
+          return res.status(403).json({ message: "Only the author or head admin can edit this note" });
+        }
+
+        const { category, content } = (req.body || {}) as { category?: string; content?: string };
+        const update: any = {};
+
+        if (typeof content === "string") {
+          const trimmed = content.trim();
+          if (!trimmed) {
+            return res.status(400).json({ message: "Content cannot be empty" });
+          }
+          update.content = trimmed;
+        }
+
+        if (typeof category === "string") {
+          const normalizedCategory = category.toLowerCase();
+          if (!COUNTY_NOTE_CATEGORIES.includes(normalizedCategory as any)) {
+            return res.status(400).json({ message: "Invalid category" });
+          }
+          update.category = normalizedCategory;
+        }
+
+        const updated = await storage.updateCountyNote(noteId, update);
+
+        console.log(
+          `[ADMIN_COUNTY_NOTE] user=${userId} county=${existing.countyFips} action=edit role=${role} timestamp=${new Date().toISOString()} noteId=${noteId}`,
+        );
+
+        res.json(updated);
+      } catch (error: any) {
+        console.error("Error updating county note:", error);
+        res.status(500).json({ message: "Failed to update county note" });
+      }
+    },
+  );
+
+  app.delete(
+    "/api/admin/geo/notes/:noteId",
+    isAuthenticated,
+    isSuperAdmin,
+    async (req: Request & { user?: any }, res: Response) => {
+      try {
+        const { noteId } = req.params;
+        const userId = (req.user as any)?.id;
+        const role = (req.user as any)?.role || "";
+
+        if (!userId) {
+          return res.status(401).json({ message: "Authentication required" });
+        }
+
+        const existing = await storage.getCountyNoteById(noteId);
+        if (!existing) {
+          return res.status(404).json({ message: "Note not found" });
+        }
+
+        if (existing.authorUserId !== userId && role !== "head_admin") {
+          return res.status(403).json({ message: "Only the author or head admin can delete this note" });
+        }
+
+        await storage.deleteCountyNote(noteId);
+
+        console.log(
+          `[ADMIN_COUNTY_NOTE] user=${userId} county=${existing.countyFips} action=delete role=${role} timestamp=${new Date().toISOString()} noteId=${noteId}`,
+        );
+
+        res.status(204).end();
+      } catch (error: any) {
+        console.error("Error deleting county note:", error);
+        res.status(500).json({ message: "Failed to delete county note" });
+      }
+    },
+  );
+
+  // ---------------------------------------------------------------------------
+  // Admin county entities (super/head admin only)
+  // ---------------------------------------------------------------------------
+  app.get(
+    "/api/admin/geo/counties/:fips/entities",
+    isAuthenticated,
+    isSuperAdmin,
+    async (req: Request & { user?: any }, res: Response) => {
+      try {
+        const { fips } = req.params;
+
+        if (!isValidFips(fips)) {
+          return res.status(400).json({ message: "Invalid county FIPS" });
+        }
+
+        const entities = await storage.getCountyEntities(fips);
+        res.json(entities);
+      } catch (error: any) {
+        console.error("Error fetching county entities:", error);
+        res.status(500).json({ message: "Failed to fetch county entities" });
+      }
+    },
+  );
+
+  app.post(
+    "/api/admin/geo/counties/:fips/entities",
+    isAuthenticated,
+    isSuperAdmin,
+    async (req: Request & { user?: any }, res: Response) => {
+      try {
+        const { fips } = req.params;
+        const userId = (req.user as any)?.id;
+        const role = (req.user as any)?.role || "";
+
+        if (!isValidFips(fips)) {
+          return res.status(400).json({ message: "Invalid county FIPS" });
+        }
+
+        if (!userId) {
+          return res.status(401).json({ message: "Authentication required" });
+        }
+
+        const { entityType, entityId, label, status, metadata } = (req.body || {}) as {
+          entityType?: string;
+          entityId?: string | null;
+          label?: string | null;
+          status?: string;
+          metadata?: unknown;
+        };
+
+        if (!entityType || typeof entityType !== "string") {
+          return res.status(400).json({ message: "entityType is required" });
+        }
+
+        const normalizedType = entityType.toLowerCase();
+        if (!COUNTY_ENTITY_TYPES.includes(normalizedType as any)) {
+          return res.status(400).json({ message: "Invalid entityType" });
+        }
+
+        let normalizedStatus: (typeof COUNTY_ENTITY_STATUSES)[number] = "active";
+        if (typeof status === "string") {
+          const s = status.toLowerCase();
+          if (!COUNTY_ENTITY_STATUSES.includes(s as any)) {
+            return res.status(400).json({ message: "Invalid status" });
+          }
+          normalizedStatus = s as any;
+        }
+
+        const safeLabel = typeof label === "string" ? label.trim() : null;
+        const safeEntityId = typeof entityId === "string" ? entityId.trim() : null;
+
+        const entity = await storage.createCountyEntity({
+          countyFips: fips,
+          entityType: normalizedType as any,
+          entityId: safeEntityId || null,
+          label: safeLabel || null,
+          status: normalizedStatus,
+          metadata: metadata as any,
+        });
+
+        console.log(
+          `[ADMIN_COUNTY_ENTITY] user=${userId} county=${fips} action=add type=${normalizedType} status=${normalizedStatus} role=${role} timestamp=${new Date().toISOString()} entityId=${entity.id}`,
+        );
+
+        res.status(201).json(entity);
+      } catch (error: any) {
+        console.error("Error creating county entity:", error);
+        res.status(500).json({ message: "Failed to create county entity" });
+      }
+    },
+  );
+
+  app.patch(
+    "/api/admin/geo/entities/:entityId",
+    isAuthenticated,
+    isSuperAdmin,
+    async (req: Request & { user?: any }, res: Response) => {
+      try {
+        const { entityId } = req.params;
+        const userId = (req.user as any)?.id;
+        const role = (req.user as any)?.role || "";
+
+        if (!userId) {
+          return res.status(401).json({ message: "Authentication required" });
+        }
+
+        const existing = await storage.getCountyEntityById(entityId);
+        if (!existing) {
+          return res.status(404).json({ message: "Entity not found" });
+        }
+
+        const { entityType, entityId: bodyEntityId, label, status, metadata } = (req.body || {}) as {
+          entityType?: string;
+          entityId?: string | null;
+          label?: string | null;
+          status?: string;
+          metadata?: unknown;
+        };
+
+        const update: any = {};
+
+        if (typeof entityType === "string") {
+          const normalizedType = entityType.toLowerCase();
+          if (!COUNTY_ENTITY_TYPES.includes(normalizedType as any)) {
+            return res.status(400).json({ message: "Invalid entityType" });
+          }
+          update.entityType = normalizedType;
+        }
+
+        if (typeof status === "string") {
+          const s = status.toLowerCase();
+          if (!COUNTY_ENTITY_STATUSES.includes(s as any)) {
+            return res.status(400).json({ message: "Invalid status" });
+          }
+          update.status = s;
+        }
+
+        if (typeof label === "string") {
+          update.label = label.trim();
+        }
+
+        if (typeof bodyEntityId === "string") {
+          update.entityId = bodyEntityId.trim();
+        }
+
+        if (metadata !== undefined) {
+          update.metadata = metadata as any;
+        }
+
+        const updated = await storage.updateCountyEntity(entityId, update);
+
+        console.log(
+          `[ADMIN_COUNTY_ENTITY] user=${userId} county=${existing.countyFips} action=edit role=${role} timestamp=${new Date().toISOString()} entityId=${entityId}`,
+        );
+
+        res.json(updated);
+      } catch (error: any) {
+        console.error("Error updating county entity:", error);
+        res.status(500).json({ message: "Failed to update county entity" });
+      }
+    },
+  );
+
+  app.delete(
+    "/api/admin/geo/entities/:entityId",
+    isAuthenticated,
+    isSuperAdmin,
+    async (req: Request & { user?: any }, res: Response) => {
+      try {
+        const { entityId } = req.params;
+        const userId = (req.user as any)?.id;
+        const role = (req.user as any)?.role || "";
+
+        if (!userId) {
+          return res.status(401).json({ message: "Authentication required" });
+        }
+
+        const existing = await storage.getCountyEntityById(entityId);
+        if (!existing) {
+          return res.status(404).json({ message: "Entity not found" });
+        }
+
+        await storage.deleteCountyEntity(entityId);
+
+        console.log(
+          `[ADMIN_COUNTY_ENTITY] user=${userId} county=${existing.countyFips} action=delete role=${role} timestamp=${new Date().toISOString()} entityId=${entityId}`,
+        );
+
+        res.status(204).end();
+      } catch (error: any) {
+        console.error("Error deleting county entity:", error);
+        res.status(500).json({ message: "Failed to delete county entity" });
+      }
+    },
+  );
 
   // ---------------------------------------------------------------------------
   // Feature Flags & Admin User Management
