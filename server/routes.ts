@@ -3658,7 +3658,7 @@ export async function registerRoutes(app: any) {
       const userId = (req.user as any)?.claims?.sub;
       const user = await storage.getUser(userId);
 
-      if (!user || !['head_admin', 'moderator', 'ops_admin'].includes(user.role || '')) {
+      if (!user || !['head_admin', 'super_admin', 'moderator', 'ops_admin'].includes(user.role || '')) {
         return res.status(403).json({ message: "Admin access required" });
       }
 
@@ -4049,7 +4049,7 @@ export async function registerRoutes(app: any) {
       const { userId } = req.params;
       const { role } = (req.body ?? {}) as any;
 
-      if (!adminUser || !['head_admin', 'moderator', 'ops_admin'].includes(adminUser.role || '')) {
+      if (!adminUser || !['head_admin', 'super_admin', 'moderator', 'ops_admin'].includes(adminUser.role || '')) {
         return res.status(403).json({ message: "Admin access required" });
       }
 
@@ -4077,7 +4077,7 @@ export async function registerRoutes(app: any) {
       const adminUser = await storage.getUser(adminUserId);
       const { userId } = req.params;
 
-      if (!adminUser || !['head_admin', 'moderator'].includes(adminUser.role || '')) {
+      if (!adminUser || !['head_admin', 'super_admin', 'moderator'].includes(adminUser.role || '')) {
         return res.status(403).json({ message: "Admin access required" });
       }
 
