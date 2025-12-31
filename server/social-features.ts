@@ -1,13 +1,20 @@
 /**
- * SOCIAL FEATURES
+ * MESSAGING AUTHORITY SYSTEM
  * 
- * Provides APIs for:
- * - Searching users and community members
- * - Managing friends/connections
- * - Direct messaging
- * - Friend suggestions
+ * Core Rule:
+ * "Messaging is a consequence of decisions, never a discovery action."
+ * "All conversations require explicit authority, intent, and scope."
  * 
- * Philosophy: Human-first, discoverable, low-friction social graph
+ * Authority Gates (Decision → Contact):
+ * - decision_card: Contact from Decision Card outcome
+ * - scout_recommendation: Contact from Scout recommendation
+ * 
+ * Deprecated (no longer supported):
+ * - Social graph endpoints (friends, suggestions)
+ * - Direct search-to-message flows
+ * - user_search authority gate
+ * 
+ * See: MESSAGING_AUTHORITY_CONTRACT.md
  */
 
 import type { Express } from "express";
@@ -151,10 +158,18 @@ export function registerSocialFeatures(app: Express) {
   });
 
   /**
-   * FRIENDS: Get user's friends/connections
+   * DEPRECATED: Social graph discovery is no longer supported
+   * @deprecated Use Decision Cards or Scout Recommendations to connect
    * GET /api/social/friends?filter=all|friends|suggestions
    */
   app.get("/api/social/friends", isAuthenticated, requireOnboardingComplete, async (req: any, res: any) => {
+    console.warn('[DEPRECATED] GET /api/social/friends called - endpoint is deprecated');
+    return res.status(410).json({ 
+      message: "Social graph actions are deprecated. Use Scout or Decision Cards to connect.",
+      reasonCode: 'ENDPOINT_DEPRECATED'
+    });
+    
+    /* ORIGINAL IMPLEMENTATION ARCHIVED
     try {
       const userId = req.user?.id || req.user?.claims?.sub;
       if (!userId) return res.status(401).json({ message: "Authentication required" });
@@ -243,13 +258,22 @@ export function registerSocialFeatures(app: Express) {
       console.error("Friends error:", error);
       res.status(500).json({ message: "Failed to fetch friends" });
     }
+    */
   });
 
   /**
-   * ADD FRIEND: Follow a user
+   * DEPRECATED: Direct friend/follow actions no longer supported
+   * @deprecated Use Decision Cards or Scout Recommendations to connect
    * POST /api/social/friends/:userId/add
    */
   app.post("/api/social/friends/:userId/add", isAuthenticated, requireOnboardingComplete, async (req: any, res: any) => {
+    console.warn('[DEPRECATED] POST /api/social/friends/:userId/add called - endpoint is deprecated');
+    return res.status(410).json({ 
+      message: "Social graph actions are deprecated. Contact requires explicit intent via Scout or Decision Card.",
+      reasonCode: 'ENDPOINT_DEPRECATED'
+    });
+    
+    /* ORIGINAL IMPLEMENTATION ARCHIVED
     try {
       const followerId = req.user?.id || req.user?.claims?.sub;
       const { userId: followingId } = req.params;
@@ -288,13 +312,22 @@ export function registerSocialFeatures(app: Express) {
       console.error("Add friend error:", error);
       res.status(500).json({ message: "Failed to add friend" });
     }
+    */
   });
 
   /**
-   * REMOVE FRIEND: Unfollow a user
+   * DEPRECATED: Unfriend/unfollow actions no longer supported
+   * @deprecated Conversations persist for audit trail; blocking is handled separately
    * POST /api/social/friends/:userId/remove
    */
   app.post("/api/social/friends/:userId/remove", isAuthenticated, requireOnboardingComplete, async (req: any, res: any) => {
+    console.warn('[DEPRECATED] POST /api/social/friends/:userId/remove called - endpoint is deprecated');
+    return res.status(410).json({ 
+      message: "Social graph actions are deprecated. Use blocking/reporting if needed.",
+      reasonCode: 'ENDPOINT_DEPRECATED'
+    });
+    
+    /* ORIGINAL IMPLEMENTATION ARCHIVED
     try {
       const followerId = req.user?.id || req.user?.claims?.sub;
       const { userId: followingId } = req.params;
@@ -317,6 +350,8 @@ export function registerSocialFeatures(app: Express) {
       console.error("Remove friend error:", error);
       res.status(500).json({ message: "Failed to remove friend" });
     }
+    */
+  });
   });
 
   /**
@@ -426,11 +461,11 @@ export function registerSocialFeatures(app: Express) {
         decisionScope 
       } = req.body;
 
-      // Validate authority gate
-      if (!authorityGate || !['decision_card', 'scout_recommendation', 'user_search'].includes(authorityGate)) {
+      // Validate authority gate (LOCKED: only decision_card and scout_recommendation)
+      if (!authorityGate || !['decision_card', 'scout_recommendation'].includes(authorityGate)) {
         return res.status(400).json({ 
           reasonCode: 'MISSING_AUTHORITY_GATE',
-          message: "Authority gate required: 'decision_card', 'scout_recommendation', or 'user_search'" 
+          message: "Authority gate required: 'decision_card' or 'scout_recommendation'. Direct search-to-message is not supported." 
         });
       }
 
@@ -503,7 +538,7 @@ export function registerSocialFeatures(app: Express) {
           authorityGate,
           sourceDecisionCardId: authorityGate === 'decision_card' ? sourceDecisionCardId : null,
           sourceScoutRecommendationId: authorityGate === 'scout_recommendation' ? initiatedFromScoutRecommendationId : null,
-          confidenceScore: confidenceScore ? String(confidenceScore) : null,
+          confidenceScore: confidenceScore ? confidenceScore.toString() : null,
           decisionScope: decisionScope || null,
         })
         .returning();
