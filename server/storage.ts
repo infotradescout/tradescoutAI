@@ -3546,73 +3546,40 @@ export class DatabaseStorage implements IStorage {
   }>> {
     const startDate = new Date();
     startDate.setDate(startDate.getDate() - days);
+    // Aggregate real user data by canonical location
+    const rows = await db
+      .select({
+        stateCode: users.stateCode,
+        countyName: users.countyName,
+        latitude: users.latitude,
+        longitude: users.longitude,
+        userCount: sql<number>`COUNT(*)`,
+        contractorCount: sql<number>`SUM(CASE WHEN ${users.role} IN ('contractor','handyman','service_provider','specialty_tradesperson','inspector','realtor','mortgage_broker','insurance_agent','car_dealer','auto_service') THEN 1 ELSE 0 END)` ,
+        homeownerCount: sql<number>`SUM(CASE WHEN ${users.role} IN ('homeowner','renter','landlord','hoa_member','property_manager') THEN 1 ELSE 0 END)`,
+      })
+      .from(users)
+      .where(
+        and(
+          gte(users.createdAt, startDate),
+          isNotNull(users.stateCode),
+          isNotNull(users.countyName),
+        ),
+      )
+      .groupBy(users.stateCode, users.countyName, users.latitude, users.longitude);
 
-    // For now, return sample data based on existing counties
-    // In the future, this would query the locality_interactions table
-    const sampleData = [
-      {
-        state: 'CA',
-        county: 'Los Angeles County',
-        interactions: 145,
-        users: 34,
-        contractors: 12,
-        homeowners: 22,
-        latitude: 34.0522,
-        longitude: -118.2437
-      },
-      {
-        state: 'TX',
-        county: 'Harris County',
-        interactions: 98,
-        users: 28,
-        contractors: 9,
-        homeowners: 19,
-        latitude: 29.7604,
-        longitude: -95.3698
-      },
-      {
-        state: 'FL',
-        county: 'Miami-Dade County',
-        interactions: 76,
-        users: 22,
-        contractors: 7,
-        homeowners: 15,
-        latitude: 25.7617,
-        longitude: -80.1918
-      },
-      {
-        state: 'NY',
-        county: 'New York County',
-        interactions: 189,
-        users: 45,
-        contractors: 18,
-        homeowners: 27,
-        latitude: 40.7128,
-        longitude: -74.0060
-      },
-      {
-        state: 'IL',
-        county: 'Cook County',
-        interactions: 67,
-        users: 19,
-        contractors: 6,
-        homeowners: 13,
-        latitude: 41.8781,
-        longitude: -87.6298
-      },
-      {
-        state: 'WA',
-        county: 'King County',
-        interactions: 54,
-        users: 16,
-        contractors: 5,
-        homeowners: 11,
-        latitude: 47.6062,
-        longitude: -122.3321
-      }
-    ];
-
-    return sampleData;
+    return rows
+      .map((row) => ({
+        state: row.stateCode || '',
+        county: row.countyName || '',
+        // For now, treat interactions as the count of active users in the timeframe
+        interactions: Number(row.userCount || 0),
+        users: Number(row.userCount || 0),
+        contractors: Number(row.contractorCount || 0),
+        homeowners: Number(row.homeownerCount || 0),
+        latitude: row.latitude ? Number(row.latitude) : 0,
+        longitude: row.longitude ? Number(row.longitude) : 0,
+      }))
+      .filter((row) => row.state && row.county);
   }
 
   // Contractor Promo Operations
