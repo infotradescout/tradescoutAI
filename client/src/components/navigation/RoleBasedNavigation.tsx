@@ -75,12 +75,12 @@ const NAVIGATION_ITEMS: NavigationItem[] = [
     label: "Contractor Tools",
     href: "/contractor-dashboard",
     icon: Hammer,
-    requiredRoles: ['contractor_user', 'accelerator_member'],
+    requiredRoles: ['contractor_user'],
     children: [
       { label: "Dashboard", href: "/contractor-dashboard", icon: Home },
-      { label: "Accelerator", href: "/accelerator", icon: Star },
+      // Accelerator entry removed
       { label: "Promotions", href: "/promotions", icon: Star },
-      { label: "Growth Pack", href: "/growth-pack", icon: UserPlus },
+      // Growth Pack entry removed
     ],
   },
   

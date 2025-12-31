@@ -41,7 +41,7 @@ export default function AdminAuthorityDiagnostics() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!user || user.email !== "traderscornerllc@gmail.com") return;
+    if (!user || (user.role !== "super_admin" && user.role !== "head_admin")) return;
 
     fetch("/api/scout-analytics/authority-diagnostics")
       .then((res) => {
@@ -61,7 +61,7 @@ export default function AdminAuthorityDiagnostics() {
     );
   }
 
-  if (!user || user.email !== "traderscornerllc@gmail.com") {
+  if (!user || (user.role !== "super_admin" && user.role !== "head_admin")) {
     return <div className="p-8 text-center">Admin access required</div>;
   }
 

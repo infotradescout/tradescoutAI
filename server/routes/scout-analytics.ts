@@ -15,9 +15,8 @@ router.get("/authority-diagnostics", async (req, res) => {
     return res.status(401).json({ message: "Unauthorized" });
   }
 
-  // Admin-only gate
-  const adminEmail = "traderscornerllc@gmail.com";
-  if ((req.user as any)?.email !== adminEmail) {
+    // Role-based access gate
+    if (!req.user || (req.user.role !== "super_admin" && req.user.role !== "head_admin")) {
     return res.status(403).json({ message: "Admin access required" });
   }
 

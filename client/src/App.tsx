@@ -103,7 +103,6 @@ const ContractorApply = React.lazy(() => import('./pages/contractor-apply'));
 const ContractorBoard = React.lazy(() => import('./pages/contractor-board'));
 const BusinessListing = React.lazy(() => import('./pages/business-listing'));
 const BusinessOwnerDashboard = React.lazy(() => import('./pages/business-owner-dashboard'));
-const Accelerator = React.lazy(() => import('./pages/accelerator'));
 
 // Admin Features (heavy components)
 const AdminPanel = React.lazy(() => import('./pages/admin-panel'));
@@ -132,7 +131,6 @@ const Chat = React.lazy(() => import('./pages/chat'));
 const Messages = React.lazy(() => import('./pages/messages'));
 const SavedAds = React.lazy(() => import('./pages/saved-ads'));
 const Affiliate = React.lazy(() => import('./pages/affiliate'));
-const GrowthPack = React.lazy(() => import('./pages/growth-pack'));
 const Boosts = React.lazy(() => import('./pages/boosts'));
 const AdvancedSearch = React.lazy(() => import('./pages/advanced-search'));
 
@@ -275,7 +273,6 @@ const SupportTickets = React.lazy(() => import('./pages/support-tickets'));
 
 // Interactive Action Pages
 const ScheduleConsultation = React.lazy(() => import('./pages/schedule-consultation'));
-const ApplyAccelerator = React.lazy(() => import('./pages/apply-accelerator'));
 const PlatformAnalytics = React.lazy(() => import('./pages/platform-analytics'));
 const ManageUsers = React.lazy(() => import('./pages/manage-users'));
 const PaymentProcessing = React.lazy(() => import('./pages/payment-processing'));
@@ -625,7 +622,6 @@ const AppLayout = memo(function AppLayout() {
                   </Route>
                   <Route path="/business-listing"><LazyPage Component={BusinessListing} /></Route>
                   <Route path="/business-owner-dashboard"><LazyPage Component={BusinessOwnerDashboard} /></Route>
-                  <Route path="/accelerator"><LazyPage Component={Accelerator} /></Route>
                   
                   {/* Marketplace routes */}
                   <Route path="/worker-marketplace">
@@ -911,7 +907,6 @@ const AppLayout = memo(function AppLayout() {
                   <Route path="/lead-management"><LazyPage Component={ProjectTracker} /></Route>
                   <Route path="/ad-creator"><LazyPage Component={AdCreator} /></Route>
                   <Route path="/promotions"><LazyPage Component={Promotions} /></Route>
-                  <Route path="/growth-pack"><LazyPage Component={GrowthPack} /></Route>
                   <Route path="/quote-calculator"><RedirectTo to="/scout?intent=estimate" /></Route>
                   <Route path="/quote"><RedirectTo to="/scout?intent=estimate" /></Route>
                   <Route path="/recommendations">
@@ -996,7 +991,6 @@ const AppLayout = memo(function AppLayout() {
                   
                   {/* Interactive Pages */}
                   <Route path="/schedule-consultation"><LazyPage Component={ScheduleConsultation} /></Route>
-                  <Route path="/apply-accelerator"><LazyPage Component={ApplyAccelerator} /></Route>
                   <Route path="/request-quote"><LazyPage Component={RequestQuote} /></Route>
                   <Route path="/direct-connect">
                     <LazyPage Component={DirectConnectShell} />

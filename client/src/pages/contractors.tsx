@@ -7,15 +7,10 @@ import { useAuth } from "@/hooks/useAuth";
 import { useQuery } from "@tanstack/react-query";
 import { 
   Download, 
-  TrendingUp, 
   Users, 
-  Star, 
   CheckCircle, 
   ArrowRight,
-  Target,
   DollarSign,
-  Clock,
-  Award,
   Briefcase,
   FileText
 } from "lucide-react";
@@ -24,7 +19,7 @@ import { InteractiveCountyMap } from "@/components/InteractiveCountyMap";
 
 export default function ForContractors() {
   const { user, isAuthenticated } = useAuth();
-  const isContractor = user && user.role && ['contractor_user', 'accelerator_member'].includes(user.role);
+  const isContractor = user && user.role === 'contractor_user';
 
   // Get total site-wide contractor count
   const { data: allContractors } = useQuery({
@@ -65,7 +60,7 @@ export default function ForContractors() {
 
         {/* Main Content Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-12">
-          {/* Free Growth Pack */}
+          {/* Legacy Growth Pack (retired) */}
           <Card className="bg-tsCard border-tsBorder glow-effect">
             <CardHeader>
               <div className="flex items-center justify-between">
@@ -103,70 +98,11 @@ export default function ForContractors() {
                 </div>
               </div>
 
-              <Link href="/growth-pack">
-                <Button className="w-full bg-orange-500 hover:bg-orange-600 text-white py-3 text-lg font-semibold">
-                  Download Free Growth Pack
-                  <ArrowRight className="h-5 w-5 ml-2" />
-                </Button>
-              </Link>
+              {/* Growth Pack download retired */}
             </CardContent>
           </Card>
 
-          {/* Accelerator Program */}
-          <Card className="bg-gradient-to-br from-purple-500/20 to-blue-500/20 border-purple-500/50">
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <CardTitle className="text-2xl font-bold text-orange-500 flex items-center">
-                  <Award className="h-6 w-6 mr-2 text-purple-500" />
-                  Accelerator Program
-                </CardTitle>
-                <Badge className="bg-purple-500 text-white">
-                  PREMIUM
-                </Badge>
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <p className="text-gray-300">
-                Join our exclusive accelerator program for advanced business coaching, priority opportunities, 
-                and networking with top contractors.
-              </p>
-
-              <div className="space-y-2">
-                <div className="flex items-center text-sm text-gray-300">
-                  <Star className="h-4 w-4 mr-2 text-yellow-400" />
-                  1-on-1 business coaching
-                </div>
-                <div className="flex items-center text-sm text-gray-300">
-                  <Target className="h-4 w-4 mr-2 text-blue-400" />
-                  Priority project access
-                </div>
-                <div className="flex items-center text-sm text-gray-300">
-                  <Users className="h-4 w-4 mr-2 text-green-400" />
-                  Exclusive contractor network
-                </div>
-                <div className="flex items-center text-sm text-gray-300">
-                  <TrendingUp className="h-4 w-4 mr-2 text-purple-400" />
-                  Advanced marketing tools
-                </div>
-              </div>
-
-              {isContractor ? (
-                <Link href="/contractors/accelerator">
-                  <Button className="w-full bg-purple-500 hover:bg-purple-600 text-white py-3 text-lg font-semibold">
-                    Join Accelerator Program
-                    <ArrowRight className="h-5 w-5 ml-2" />
-                  </Button>
-                </Link>
-              ) : (
-                <Link href="/contractors/apply">
-                  <Button className="w-full bg-purple-500 hover:bg-purple-600 text-white py-3 text-lg font-semibold">
-                    Apply to Join
-                    <ArrowRight className="h-5 w-5 ml-2" />
-                  </Button>
-                </Link>
-              )}
-            </CardContent>
-          </Card>
+          {/* Accelerator Program retired */}
         </div>
 
         {/* Additional Features */}
@@ -216,11 +152,7 @@ export default function ForContractors() {
               <p className="text-gray-300 text-sm mb-4">
                 Access contracts, pricing guides, and industry best practices.
               </p>
-              <Link href="/growth-pack">
-                <Button variant="outline" className="border-blue-500 text-blue-500 hover:bg-blue-500 hover:text-white">
-                  Get Resources
-                </Button>
-              </Link>
+              {/* Legacy Growth Pack resources entry retired */}
             </CardContent>
           </Card>
         </div>
@@ -235,20 +167,7 @@ export default function ForContractors() {
               <p className="text-xl text-gray-300 mb-6 max-w-2xl mx-auto">
                 Join thousands of contractors who have transformed their businesses with TradeScout.
               </p>
-              <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                <Link href="/growth-pack">
-                  <Button className="bg-orange-500 hover:bg-orange-600 text-white px-8 py-3 text-lg">
-                    Start with Free Pack
-                  </Button>
-                </Link>
-                {!isContractor && (
-                  <Link href="/contractors/apply">
-                    <Button variant="outline" className="border-white text-orange-500 hover:bg-white hover:text-navy-800 px-8 py-3 text-lg">
-                      Accelerator Program
-                    </Button>
-                  </Link>
-                )}
-              </div>
+              {/* Legacy Growth Pack and Accelerator CTAs retired */}
             </CardContent>
           </Card>
         </div>

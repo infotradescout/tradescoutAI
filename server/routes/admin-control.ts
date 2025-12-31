@@ -15,10 +15,11 @@ let globalAuthorityMode: "normal" | "conservative" | "advisory" = "normal";
 let confidenceDampener: number = 1.0; // multiplier
 let outcomeLearningEnabled: boolean = true;
 
-const SUPER_ADMIN_EMAIL = "traderscornerllc@gmail.com";
-
 function isSuperAdmin(req: any): boolean {
-  return req.isAuthenticated() && req.user?.email === SUPER_ADMIN_EMAIL;
+  return (
+    req.isAuthenticated() &&
+    (req.user?.role === "super_admin" || req.user?.role === "head_admin")
+  );
 }
 
 // Get current control state
