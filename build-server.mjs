@@ -75,8 +75,6 @@ await esbuild.build({
     js: `
 import { createRequire } from 'module';
 const require = createRequire(import.meta.url);
-const __filename = (await import('url')).fileURLToPath(import.meta.url);
-const __dirname = (await import('path')).dirname(__filename);
 `
   }
 });
