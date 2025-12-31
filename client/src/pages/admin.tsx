@@ -23,6 +23,15 @@ import { AICodeFixingDashboard } from "@/components/admin/AICodeFixingDashboard"
 import { AdminPanelContent } from "@/pages/admin-panel";
 import { AdminWorkspaceContent } from "@/pages/admin-workspace";
 import AdminGeoCoverageConsole from "@/pages/admin-geo-coverage";
+import AdminUserManagement from "@/pages/AdminUserManagement";
+import AdminTestingControls from "@/pages/admin-testing-controls";
+import AdminProfessionalVerification from "@/pages/admin-professional-verification";
+import AdminCreateAccount from "@/pages/admin-create-account";
+import AdminPromotions from "@/pages/admin-promotions";
+import AdminControl from "@/pages/admin-control";
+import AdminAuthorityDiagnostics from "@/pages/admin-authority-diagnostics";
+import PlatformAnalytics from "@/pages/platform-analytics";
+import ContentModeration from "@/pages/content-moderation";
 
 type AdminHealthResponse = {
   ok: boolean;
@@ -92,6 +101,10 @@ function AdminContentRouter() {
     return <AdminUsers />;
   }
 
+  if (subPath === "/user-management") {
+    return <AdminUserManagement />;
+  }
+
   if (subPath.startsWith("/geo/counties")) {
     return <UserHeatmap />;
   }
@@ -114,6 +127,10 @@ function AdminContentRouter() {
 
   if (subPath === "/verification" || subPath === "/address-verifications") {
     return <AdminAddressVerifications />;
+  }
+
+  if (subPath === "/professional-verification") {
+    return <AdminProfessionalVerification />;
   }
 
   if (subPath === "/ai-monitoring") {
@@ -140,6 +157,10 @@ function AdminContentRouter() {
     return <AdminAffiliates />;
   }
 
+  if (subPath === "/testing" || subPath === "/testing-controls") {
+    return <AdminTestingControls />;
+  }
+
   if (subPath === "/system-prompt") {
     return <PromptAdminPage />;
   }
@@ -150,6 +171,30 @@ function AdminContentRouter() {
 
   if (subPath === "/listings") {
     return <AdminListings />;
+  }
+
+   if (subPath === "/promotions") {
+     return <AdminPromotions />;
+   }
+
+  if (subPath === "/control") {
+    return <AdminControl />;
+  }
+
+  if (subPath === "/authority-diagnostics") {
+    return <AdminAuthorityDiagnostics />;
+  }
+
+  if (subPath === "/platform-analytics") {
+    return <PlatformAnalytics />;
+  }
+
+  if (subPath === "/moderation") {
+    return <ContentModeration />;
+  }
+
+  if (subPath === "/dashboard") {
+    return <SuperAdminDashboard />;
   }
 
   // For now, any unmapped admin path under /admin is treated as an unknown tool.
