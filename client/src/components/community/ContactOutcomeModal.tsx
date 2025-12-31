@@ -16,7 +16,8 @@ export interface ContactOutcome {
   reasonForContact: string;
   confidenceScore: number; // 0.0-1.0
   riskFlags: string[];
-  sourceDecisionCardId: string;
+  sourceDecisionCardId?: string; // Optional: only if from Decision Card
+  sourceScoutRecommendationId?: string; // Optional: only if from Scout rec
   decisionScope: string;
   decisionTitle: string;
 }
@@ -45,8 +46,16 @@ export const ContactOutcomeModal: React.FC<ContactOutcomeModalProps> = ({
         body: JSON.stringify({
           targetUserId: outcome.targetUserId,
           intent: outcome.suggestedIntent,
-          authorityGate: "decision_card",
-          sourceDecisionCardId: outcome.sourceDecisionCardId,
+          // D1: If from Decision Card
+          ...(outcome.sourceDecisionCardId && {
+            authorityGate: "decision_card",
+            sourceDecisionCardId: outcome.sourceDecisionCardId,
+          }),
+          // D2: If from Scout Recommendation
+          ...(outcome.sourceScoutRecommendationId && {
+            authorityGate: "scout_recommendation",
+            initiatedFromScoutRecommendationId: outcome.sourceScoutRecommendationId,
+          }),
           confidenceScore: outcome.confidenceScore,
           decisionScope: outcome.decisionScope,
         }),
