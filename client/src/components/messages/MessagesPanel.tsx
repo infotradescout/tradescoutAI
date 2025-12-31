@@ -48,7 +48,7 @@ type Message = {
   isMine: boolean;
 };
 
-export function MessagesPanel() {
+export default function MessagesPanel() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const [activeThreadId, setActiveThreadId] = useState<string | null>(null);

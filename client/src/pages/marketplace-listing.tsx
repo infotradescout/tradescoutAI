@@ -255,8 +255,13 @@ export default function MarketplaceListing() {
                           <Input placeholder="Enter item title" {...field} />
                         </FormControl>
                         <FormMessage />
-                    Image Upload Section */}
-                <div className="space-y-3">
+                      </FormItem>
+                    )}
+                  />
+
+                  <div>
+                    {/* Image Upload Section */}
+                    <div className="space-y-3">
                   <FormLabel className="flex items-center gap-2">
                     <ImageIcon className="h-4 w-4 text-orange-500" />
                     Photos (up to 8)
@@ -314,15 +319,13 @@ export default function MarketplaceListing() {
                   <p className="text-xs text-gray-400">
                     Upload clear, well-lit photos of your item from multiple angles. Maximum 8 images.
                   </p>
+                    </div>
+                  </div>
                 </div>
 
-                {/*   </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="category"
+                <FormField
+                  control={form.control}
+                  name="category"
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>Category</FormLabel>
@@ -348,11 +351,10 @@ export default function MarketplaceListing() {
                       </FormItem>
                     )}
                   />
-                </div>
 
-                <FormField
-                  control={form.control}
-                  name="description"
+                  <FormField
+                    control={form.control}
+                    name="description"
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Description</FormLabel>

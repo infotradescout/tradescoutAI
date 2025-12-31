@@ -6,7 +6,18 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { CheckCircle2, XCircle, Clock, Sparkles, AlertTriangle, TrendingUp, Users, Zap } from "lucide-react";
-import type { ToolBlueprint } from "../../server/scout/toolDiscovery";
+
+type ToolBlueprint = {
+  id: string;
+  name: string;
+  description: string;
+  status: 'pending_review' | 'approved' | 'rejected' | 'archived';
+  priority: 'critical' | 'high' | 'medium' | 'low';
+  exampleConversations: Array<{
+    userId: string;
+    context: string;
+  }>;
+};
 
 export default function ToolDiscoveryAdmin() {
   const [blueprints, setBlueprints] = useState<ToolBlueprint[]>([]);
@@ -150,7 +161,7 @@ export default function ToolDiscoveryAdmin() {
             <CardContent>
               <div className="flex items-center justify-between">
                 <div className="text-2xl font-bold text-charcoal-50">
-                  {new Set(blueprints.flatMap(b => b.exampleConversations.map(c => c.userId))).size}
+                  {new Set(blueprints.flatMap(b => b.exampleConversations.map((c: any) => c.userId))).size}
                 </div>
                 <Users className="w-5 h-5 text-purple-500" />
               </div>
