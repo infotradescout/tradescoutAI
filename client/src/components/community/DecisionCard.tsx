@@ -1,7 +1,8 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { CheckCircle2, AlertCircle, XCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { recordActivity } from "@/agent/activity";
+import { ContactOutcomeModal, ContactOutcome } from "./ContactOutcomeModal";
 
 type ScoutAction = "COMPLY" | "DEFER" | "BLOCK";
 
@@ -13,7 +14,7 @@ interface DecisionContext {
 }
 
 interface DecisionCardProps {
-  action: "message" | "direct_connect";
+  action: "message" | "direct_connect" | "contact_person";
   context: DecisionContext;
   scoutAction: ScoutAction;
   riskFraming: string[];
@@ -22,6 +23,8 @@ interface DecisionCardProps {
   onProceed: () => void;
   onAskScout: () => void;
   onCancel: () => void;
+  // D1: Contact outcome metadata (only if action === "contact_person")
+  contactOutcome?: ContactOutcome;
 }
 
 export const DecisionCard: React.FC<DecisionCardProps> = ({
@@ -34,8 +37,12 @@ export const DecisionCard: React.FC<DecisionCardProps> = ({
   onProceed,
   onAskScout,
   onCancel,
+  contactOutcome,
 }) => {
-  const actionLabel = action === "message" ? "Message" : "Direct Connect";
+  const actionLabel = action === "message" ? "Message" : action === "contact_person" ? "Contact" : "Direct Connect";
+  
+  // D1: Contact outcome modal state
+  const [showContactModal, setShowContactModal] = useState(false);
 
   // Track card exposure (metric: card exposure rate)
   useEffect(() => {
@@ -143,7 +150,12 @@ export const DecisionCard: React.FC<DecisionCardProps> = ({
                     choice: "contact_now",
                   },
                 });
-                onProceed();
+                // D1: If contact_person outcome, show modal; otherwise proceed directly
+                if (action === "contact_person" && contactOutcome) {
+                  setShowContactModal(true);
+                } else {
+                  onProceed();
+                }
               }}
               className="bg-slate-900 hover:bg-slate-800 text-white"
             >
@@ -242,6 +254,17 @@ export const DecisionCard: React.FC<DecisionCardProps> = ({
           </Button>
         </div>
       </div>
+
+      {/* D1: Contact Outcome Modal */}
+      {showContactModal && contactOutcome && (
+        <ContactOutcomeModal
+          outcome={contactOutcome}
+          onClose={() => {
+            setShowContactModal(false);
+            onCancel(); // Close parent decision card
+          }}
+        />
+      )}
     </div>
   );
 };
