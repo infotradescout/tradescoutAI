@@ -1,351 +1,336 @@
-# Copilot Instructions for TradeScout
+TradeScout Copilot Authority Contract (v1.1 — Canonical)
 
-## 1. Mission: AI as the site controller
+This document is binding.
+If any instruction, code change, suggestion, or AI behavior conflicts with this document, the AI must pause and ask the operator (Thomas) for clarification before proceeding.
 
-- The **AI chat experience is the primary controller** for the TradeScout website.
-- Users should be able to:
-  - Perform all major site actions **from inside the chat box**.
-  - Receive **links and actions attached to chat bubbles** that open the correct pages or trigger flows.
-  - Have the agent **read/write to knowledge bases and caches** on their behalf (projects, contractors, communities, etc.).
-- When adding or changing features, assume:
-  > "How would Scout do this for the user in chat?"  
-  and build that path first, then the direct UI.
+0. Operator Authority & Escalation (Highest Priority)
 
----
+Thomas is the final authority on product meaning, monetization philosophy, and system behavior.
 
-## 2. Repo structure & projects
+When uncertainty exists, the AI must ask Thomas — not guess, not reinterpret, not proceed partially.
 
-- This folder contains **at least two front-end surfaces**:
-  - An **AI app** (chat controller) – e.g. `App.tsx` + `components/Chatbot.tsx` / `ProjectAssistant.tsx`.
-  - A **broader site experience** (pages for community, contractors, projects, etc.) in sibling code.
-- Treat the non-AI pages as **tools / surfaces** that the AI orchestrates:
-  - The AI decides *what* to do.
-  - The site pages/components are *where* the action visually happens.
+Mandatory escalation protocol
 
-When wiring new code, prefer:
+If an instruction touches or could affect:
 
-- AI-side: add intents, tool calls, and message metadata.
-- Site-side: expose clean functions / routes that the AI can call.
+Product meaning or positioning
 
----
+Monetization behavior
 
-## 3. Chat message model & actions
+Promotion / ad relevance or eligibility
 
-When working on chat-related code (e.g. `components/Chatbot.tsx`):
+Trust / CVS logic
 
-- Represent messages with a **typed structure** that can carry actions and links, not just text. For example:
+Geographic readiness / coverage logic
 
-  ```ts
-  export type ChatLink = {
-    label: string;
-    href: string;
-    kind: "internal" | "external";
-  };
+User-visible behavior with unclear intent
 
-  export type ChatAction =
-    | { type: "NAVIGATE"; path: string }
-    | { type: "CALL_TOOL"; name: string; args: unknown };
+The AI must stop and ask using this format:
 
-  export interface ChatMessage {
-    id: string;
-    role: "user" | "assistant" | "system";
-    text: string;
-    links?: ChatLink[];
-    actions?: ChatAction[];
-    createdAt: string;
-  }
-  ```
+Issue: what is ambiguous
 
-- Do not hide URLs in raw text; prefer links on the message and render them as buttons/chips in the UI.
-- Navigation from chat should use `NAVIGATE` actions that call the site router (e.g. go to `/community`, `/projects/:id`, `/hoa-dashboard/...`).
-- Any new chat feature must decide:
-  - What text to show.
-  - What links to attach.
-  - What actions (if any) the UI should be able to trigger.
+Impact: what could change if guessed
 
----
+Options: up to 3 concrete paths
 
-## 4. Agent "tools" and site integration
+Question: one direct question to Thomas
 
-Treat core site capabilities as agent tools exposed via typed wrappers, not ad-hoc fetches scattered across components.
+Until clarified, no code or behavior changes may be made.
 
-Create and extend a small tool layer, e.g. under `src/agent/tools/`:
+1. Identity & Mission (Frozen)
+What TradeScout is
 
-```ts
-// Example: a typed tool wrapper
-export async function searchContractors(args: {
-  stateCode: string;
-  trade: string;
-}) {
-  const res = await fetch(
-    `/api/contractors/search?state=${args.stateCode}&trade=${args.trade}`
-  );
-  if (!res.ok) throw new Error("Failed to search contractors");
-  return res.json();
-}
-```
+TradeScout is a trust-verified, relevance-controlled local marketing and transaction infrastructure where:
 
-The chat controller should call these tool functions, then:
+Users can fully participate without being charged.
 
-- Update the conversation with a message summarizing the result.
-- Attach links into the site (e.g. `/contractors?trade=plumber&state=TX`) so the user can click through.
+Promotions (ads, boosts, deals, TradeDeals/affiliates) are shown only when contextually relevant.
 
-When adding new site features, always:
+The system prioritizes conversion quality and trust, not impression volume.
 
-1. Add/extend a tool function (backend interaction).
-2. Plug it into the chat agent as an action.
-3. Optionally build a dedicated page/component for richer UI.
+What TradeScout is NOT
 
----
+Not a SaaS subscription product for users
 
-## 5. Knowledge base & caching
+Not a generic ad network
 
-All long-lived user or community data (projects, preferences, local context) should go through a knowledge/caching layer, not be stored ad-hoc in React state.
+Not a social network driven by open-ended feeds
 
-Wrap knowledge-base operations behind functions (e.g. `src/agent/knowledgeBase.ts`) such as:
+Core principles (non-negotiable)
 
-```ts
-export async function upsertUserNote(userId: string, note: string) {
-  const res = await fetch("/api/agent/notes", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ userId, note }),
-  });
-  if (!res.ok) throw new Error("Failed to save note");
-  return res.json();
-}
-```
+AI chat is the primary controller of the site.
 
-When the agent learns something about a user’s project or preferences that should persist, call these wrappers from the chat flow.
+UI pages/components are surfaces/tools the AI orchestrates.
 
-Avoid writing directly to storage or DB from UI components; go through the agent/knowledge abstractions.
+Promotion is suppressed by default unless eligibility + relevance are satisfied.
 
----
+Never charge users to participate.
+Any paid tools must be:
 
-## 6. Front-end patterns & conventions
+Optional
 
-- Use TypeScript React function components in `.tsx` files.
-- Match existing styling patterns:
-  - If current components use utility classes (e.g. Tailwind-like), copy that approach.
-  - Keep layouts clean and “app-like” rather than marketing-page heavy.
-- Use a central Agent/Chat context (if present) to share state between:
-  - Chat UI (`Chatbot` or `ProjectAssistant` components).
-  - Global layout / main site components (for navigation and side effects).
+Non-blocking
 
-When adding a new page or component, ask:
+Cost + $1
 
-> “What is the AI version of this?”
+Treated as a business/marketing expense.
 
-and expose:
+2. Canonical Authority Systems (Single Sources of Truth)
 
-- Tool function(s).
-- Link path(s) the agent can generate.
-- Any knowledge-base operations.
+The following systems define truth and must not be duplicated or reinterpreted:
 
----
+Admin OS (Authority Plane)
 
-## 7. Dev, build, and tests
+Config-driven navigation and visibility
 
-- Always read `package.json` for actual script names; don’t invent new ones in suggestions.
-- Use existing scripts like `dev`, `build`, `test` if present.
-- If you add new scripts, keep them short and conventional (e.g. `dev:ai`, `dev:site`) and ensure they’re documented in the README.
-- If there are tests for chat/agent behavior, mirror their patterns when adding new tools or message flows.
+Role-aware permissions and routing
 
----
+No structural/nav refactors unless adding a new tool using the same pattern
 
-## 8. Safety & brand boundaries
+Geographic Readiness Engine
 
-- This codebase is for TradeScout. Do not mix Trader’s Corner, MealScout, or unrelated brands/features into this app.
-- Keep the mental model:
-  - **TradeScout = the real world operating system for community interaction.**
-  - **Scout = Scout controller for everything in this site.**
-- When in doubt, route new features through the chat first.
+County-level readiness states (unassigned / partial / full)
 
-Never give mock data, placeholders or stubs in production code. Always use real data fetching and handling patterns.
-always fix problems, dont remove just because they are hard to fix
-always use the best ai model for each task
+Verified Coverage Rate and time-based deltas
 
----
+Logic lives in one backend service and is consumed by UI
 
-## 9. Pilot user rollout (community-first & future changes)
+Promotion Eligibility & Relevance Engine
 
-- All new behavioral or UX changes MUST roll out to the pilot account first:
-  - Pilot user (by email): `traderscornerllc@gmail.com`.
-- Implementation pattern:
-  - Server-side: expose a truthy flag on the auth payload (e.g. `user.communityFirst`, `user.isPilotX`) derived from an allowlist in the API layer (not from localStorage or client-only checks).
-  - Client-side: branch on that flag so that:
-    - Pilot user sees the new behavior (routing, layout, empty states, copy, etc.).
-    - All other users keep existing behavior until an explicit decision to graduate the feature.
-- When graduating a feature from pilot to general availability:
-  - Invert or remove the pilot gate so the new behavior becomes the default.
-  - Keep the pilot flag wiring available for future experiments unless explicitly retired.
-- Do NOT:
-  - Introduce per-feature pilots based solely on client heuristics.
-  - Change production behavior for all users without first wiring and testing it through the pilot account.
+Decides if a user should see:
 
-# Copilot Instructions for TradeScout
+Ads (local / regional / national)
 
-## 1. Mission: AI as the site controller
+Boosted marketplace items
 
-- The **AI chat experience is the primary controller** for the TradeScout website.
-- Users should be able to:
-  - Perform all major site actions **from inside the chat box**.
-  - Receive **links and actions attached to chat bubbles** that open the correct pages or trigger flows.
-  - Have the agent **read/write to knowledge bases and caches** on their behalf (projects, contractors, communities, etc.).
-- When adding or changing features, assume:
-  > "How would Scout do this for the user in chat?"  
-  and build that path first, then the direct UI.
+Local business deals
 
----
+MealScout-style promotions
 
-## 2. Repo structure & projects
+TradeDeals / affiliate offers
 
-- This folder contains **at least two front-end surfaces**:
-  - An **AI app** (chat controller) – e.g. `App.tsx` + `components/Chatbot.tsx` / `ProjectAssistant.tsx`.
-  - A **broader site experience** (pages for community, contractors, projects, etc.) in sibling code.
-- Treat the non-AI pages as **tools / surfaces** that the AI orchestrates:
-  - The AI decides *what* to do.
-  - The site pages/components are *where* the action visually happens.
+Rule: suppression by default
 
-When wiring new code, prefer:
+Trust / CVS Gating
 
-- AI-side: add intents, tool calls, and message metadata.
-- Site-side: expose clean functions / routes that the AI can call.
+Trust-weighted control of promotion visibility
 
----
+Spend alone must never override trust constraints
 
-## 3. Chat message model & actions
+Monetization Rules (Frozen)
 
-When working on chat-related code (e.g. `components/Chatbot.tsx`):
+Allowed revenue:
 
-- Represent messages with a **typed structure** that can carry actions and links, not just text. For example:
+Paid boosts (marketplace + local deals)
 
-  ```ts
-  export type ChatLink = {
-    label: string;
-    href: string;
-    kind: "internal" | "external";
-  };
+MealScout-style promotions
 
-  export type ChatAction =
-    | { type: "NAVIGATE"; path: string }
-    | { type: "CALL_TOOL"; name: string; args: unknown };
+Ads (local / regional / national)
 
-  export interface ChatMessage {
-    id: string;
-    role: "user" | "assistant" | "system";
-    text: string;
-    links?: ChatLink[];
-    actions?: ChatAction[];
-    createdAt: string;
-  }
-  ```
+Marketplace transaction fees
 
-- Do not hide URLs in raw text; prefer links on the message and render them as buttons/chips in the UI.
-- Navigation from chat should use `NAVIGATE` actions that call the site router (e.g. go to `/community`, `/projects/:id`, `/hoa-dashboard/...`).
-- Any new chat feature must decide:
-  - What text to show.
-  - What links to attach.
-  - What actions (if any) the UI should be able to trigger.
+Community Builder donations (with redistribution)
 
----
+Affiliate / TradeDeals revenue share
 
-## 4. Agent "tools" and site integration
+Optional cost-plus-$1 tools
 
-Treat core site capabilities as agent tools exposed via typed wrappers, not ad-hoc fetches scattered across components.
+Forbidden:
 
-Create and extend a small tool layer, e.g. under `src/agent/tools/`:
+Charging users to participate
 
-```ts
-// Example: a typed tool wrapper
-export async function searchContractors(args: {
-  stateCode: string;
-  trade: string;
-}) {
-  const res = await fetch(
-    `/api/contractors/search?state=${args.stateCode}&trade=${args.trade}`
-  );
-  if (!res.ok) throw new Error("Failed to search contractors");
-  return res.json();
-}
-```
+Paywalls for core functionality
 
-The chat controller should call these tool functions, then:
+Degrading usability for non-payment
 
-- Update the conversation with a message summarizing the result.
-- Attach links into the site (e.g. `/contractors?trade=plumber&state=TX`) so the user can click through.
+3. Relevance-Only Promotion Rules (Critical)
 
-When adding new site features, always:
+Users must never see ads or TradeDeals that do not apply to their life, interests, or context.
 
-1. Add/extend a tool function (backend interaction).
-2. Plug it into the chat agent as an action.
-3. Optionally build a dedicated page/component for richer UI.
+Promotions are shown only when alignment is present.
 
----
+The system may gently guide users toward relevant offers but must never spam or interrupt core flows.
 
-## 5. Knowledge base & caching
+Enforcement rules
 
-All long-lived user or community data (projects, preferences, local context) should go through a knowledge/caching layer, not be stored ad-hoc in React state.
+If relevance or eligibility is unclear → do not show promotion.
 
-Wrap knowledge-base operations behind functions (e.g. `src/agent/knowledgeBase.ts`) such as:
+Promotion decisions must be internally explainable (admin/observability).
 
-```ts
-export async function upsertUserNote(userId: string, note: string) {
-  const res = await fetch("/api/agent/notes", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ userId, note }),
-  });
-  if (!res.ok) throw new Error("Failed to save note");
-  return res.json();
-}
-```
+Relevance always outranks revenue.
 
-When the agent learns something about a user’s project or preferences that should persist, call these wrappers from the chat flow.
+4. Chat-First Control Plane
+AI chat as controller
 
-Avoid writing directly to storage or DB from UI components; go through the agent/knowledge abstractions.
+From the chat, users should be able to:
 
----
+Perform major site actions
 
-## 6. Front-end patterns & conventions
+Receive messages with attached links and actions
 
-- Use TypeScript React function components in `.tsx` files.
-- Match existing styling patterns:
-  - If current components use utility classes (e.g. Tailwind-like), copy that approach.
-  - Keep layouts clean and “app-like” rather than marketing-page heavy.
-- Use a central Agent/Chat context (if present) to share state between:
-  - Chat UI (`Chatbot` or `ProjectAssistant` components).
-  - Global layout / main site components (for navigation and side effects).
+Have the agent read/write to knowledge bases and caches
 
-When adding a new page or component, ask:
+Build order (mandatory)
 
-> “What is the AI version of this?”
+When adding or changing features:
 
-and expose:
+Design the chat path first (intent → tool → response + links/actions)
 
-- Tool function(s).
-- Link path(s) the agent can generate.
-- Any knowledge-base operations.
+Then implement or adjust the UI surface
 
----
+5. Chat Message Model (Typed & Actionable)
 
-## 7. Dev, build, and tests
+Chat messages must support:
 
-- Always read `package.json` for actual script names; don’t invent new ones in suggestions.
-- Use existing scripts like `dev`, `build`, `test` if present.
-- If you add new scripts, keep them short and conventional (e.g. `dev:ai`, `dev:site`) and ensure they’re documented in the README.
-- If there are tests for chat/agent behavior, mirror their patterns when adding new tools or message flows.
+Structured text
 
----
+Explicit links (rendered as UI elements, not hidden URLs)
 
-## 8. Safety & brand boundaries
+Explicit actions (navigation, tool calls)
 
-- This codebase is for TradeScout. Do not mix Trader’s Corner, MealScout, or unrelated brands/features into this app.
-- Keep the mental model:
-  - **TradeScout = the real world operating system for community interaction.**
-  - **Scout = Scout controller for everything in this site.**
-- When in doubt, route new features through the chat first.
+Do not embed navigation or actions inside raw text.
 
-Never give mock data, placeholders or stubs in production code. Always use real data fetching and handling patterns.
-always fix problems, dont remove just because they are hard to fix
-always use the best ai model for each task
+Every new chat feature must define:
+
+Message text
+
+Attached links
+
+Attached actions
+
+Typed message/action patterns from the original document remain valid and encouraged.
+
+6. Agent Tools Layer (No Ad-Hoc Fetching)
+
+Core capabilities must be exposed via typed tool wrappers (e.g. src/agent/tools/*).
+
+UI components must not scatter raw fetch() calls for core behavior.
+
+Required pattern:
+
+Tool wrapper (backend interaction)
+
+Agent calls tool
+
+Agent emits message + links/actions
+
+Optional richer UI page
+
+7. Knowledge Base & Caching
+
+Long-lived user or community data must go through a knowledge/caching abstraction.
+
+Do not store durable context in local React state.
+
+UI components must not write directly to DB/storage.
+
+8. Protected Zones (Hard Lock)
+
+The AI may not modify the following without explicit approval from Thomas naming exact files and intent:
+
+Authority Plane (Admin OS, config, guards)
+
+Geographic Readiness computation logic
+
+Promotion Eligibility & Relevance logic
+
+Trust / CVS logic
+
+Monetization rules or pricing philosophy
+
+Role and permission semantics
+
+If unsure whether a change touches a protected zone → escalate.
+
+9. Change Protocol (No Silent Drift)
+
+Every change must state:
+
+What changed
+
+Why it changed
+
+Which principle it enforces
+
+What it does not change
+
+How to verify (route, page, or API)
+
+Refactors that alter behavior require explicit approval.
+
+10. Pilot Rollout (Scoped)
+
+Pilot-first rollout is now scoped to high-risk, user-facing changes only.
+
+Pilot user:
+
+traderscornerllc@gmail.com
+
+Pilot-first is REQUIRED for:
+
+- End-user messaging and chat behavior (Scout conversation flows)
+- Promotion / TradeDeals / monetization behavior
+- Trust / CVS logic that changes what normal users see
+
+Pilot-first is NOT required for:
+
+- Admin-only tools and consoles (Admin OS, Geo Tools, coverage consoles)
+- Pure observability / diagnostics / analytics views
+- Backend-only selectors, metrics, and storage helpers
+
+Rules:
+
+- Pilot flag must be server-derived (auth payload) when used.
+- Client may branch on that flag only for the REQUIRED categories above.
+- Admin-only features may go directly to all authorized admins (role-gated) without a pilot gate.
+- Graduation to GA for pilot-gated flows still requires an explicit decision.
+
+11. Dev & Build Discipline
+
+Always read package.json for script names.
+
+Keep builds green.
+
+Fix problems; do not remove features because they are hard.
+
+Never ship mock data in production flows.
+
+12. Brand Boundaries
+
+This codebase is TradeScout only.
+
+Do not mix Trader’s Corner.
+
+Do not add MealScout as a separate brand.
+
+MealScout-style promotions may exist only as a promotion type within TradeScout.
+
+13. Legacy Operational Rules (Explicit Carryover)
+
+These rules are intentionally preserved verbatim from the original document and remain binding:
+
+Never give mock data, placeholders, or stubs in production code.
+
+Always use real data fetching and handling patterns.
+
+Always fix problems; do not remove functionality because it is hard to fix.
+
+Always prefer improving what exists over replacing it.
+
+Always use the best available AI model for the task.
+
+Preserve existing functionality unless explicitly instructed otherwise.
+
+Final Rule
+
+When in doubt:
+
+Ask Thomas
+
+Get clarification
+
+Implement narrowly
+
+Verify explicitly
+
+This contract exists to stabilize TradeScout, prevent AI drift, and protect the valuation thesis.

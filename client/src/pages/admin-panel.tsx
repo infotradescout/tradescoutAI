@@ -342,17 +342,8 @@ export default function AdminPanel() {
   };
 
   return (
-    <div className="bg-slate-950 text-white p-6">
-      <div className="max-w-7xl mx-auto">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold mb-2 flex items-center gap-2">
-            <Settings className="w-8 h-8 text-orange-500" />
-            Admin Panel
-          </h1>
-          <p className="text-gray-400">Manage site features, prizes, advertisements, contractor settings, and AI monitoring</p>
-        </div>
-
-        <Tabs value={selectedTab} onValueChange={setSelectedTab} className="space-y-6">
+    <div className="space-y-6">
+      <Tabs value={selectedTab} onValueChange={setSelectedTab} className="space-y-6">
           <TabsList
             className="grid w-full grid-cols-12"
             style={{ backgroundColor: "var(--surface-frame)" }}
@@ -1096,32 +1087,33 @@ export default function AdminPanel() {
 
             <FinanceLedgerPanel />
           </TabsContent>
-        </Tabs>
+      </Tabs>
 
-        {/* Edit/Create Dialog */}
-        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-          <DialogContent className="bg-slate-900 text-white max-w-2xl">
-            <DialogHeader>
-              <DialogTitle>
-                {editingItem ? "Edit" : "Create"} {selectedTab === "contractor-settings" ? "Contractor Setting" : selectedTab === "ai-fixes" ? "AI Fix" : selectedTab.replace("-", " ").replace(/\b\w/g, l => l.toUpperCase())}
-              </DialogTitle>
-              <DialogDescription>
-                {editingItem ? "Update the" : "Create a new"} {selectedTab === "contractor-settings" ? "contractor setting" : selectedTab === "ai-fixes" ? "AI fix" : selectedTab.replace("-", " ")} configuration.
-              </DialogDescription>
-            </DialogHeader>
+      {/* Edit/Create Dialog */}
+      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        <DialogContent className="bg-slate-900 text-white max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>
+              {editingItem ? "Edit" : "Create"} {selectedTab === "contractor-settings" ? "Contractor Setting" : selectedTab === "ai-fixes" ? "AI Fix" : selectedTab.replace("-", " ").replace(/\b\w/g, l => l.toUpperCase())}
+            </DialogTitle>
+            <DialogDescription>
+              {editingItem ? "Update the" : "Create a new"} {selectedTab === "contractor-settings" ? "contractor setting" : selectedTab === "ai-fixes" ? "AI fix" : selectedTab.replace("-", " ")} configuration.
+            </DialogDescription>
+          </DialogHeader>
 
-            <AdminItemForm
-              type={selectedTab}
-              item={editingItem}
-              onSubmit={handleSubmit}
-              onCancel={() => setIsDialogOpen(false)}
-            />
-          </DialogContent>
-        </Dialog>
-      </div>
+          <AdminItemForm
+            type={selectedTab}
+            item={editingItem}
+            onSubmit={handleSubmit}
+            onCancel={() => setIsDialogOpen(false)}
+          />
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
+
+export const AdminPanelContent = AdminPanel;
 
 function LLMAdminPanel() {
   const { toast } = useToast();

@@ -284,7 +284,7 @@ function getDefaultNavigationItems(userRole: string): NavigationItem[] {
         id: 'admin-dashboard',
         label: 'Admin Dashboard',
         icon: 'Settings',
-        href: '/admin-panel',
+        href: '/admin/panel',
         visible: true,
       },
       {

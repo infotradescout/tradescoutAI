@@ -12,6 +12,7 @@ import {
 import { eq, desc } from "drizzle-orm";
 import adminToolDiscoveryRouter from "./admin-tool-discovery";
 import { refreshCountyMetrics } from "../services/geographicMetrics";
+import { getCountyCoverageSummary } from "../services/geographicCoverage";
 
 /**
  * Admin OS routes: health and high-level telemetry endpoints.
@@ -193,6 +194,34 @@ export function mountAdminRoutes(app: any) {
       } catch (error: any) {
         console.error("Error refreshing county metrics:", error);
         res.status(500).json({ message: "Failed to refresh county metrics" });
+      }
+    },
+  );
+
+  // ---------------------------------------------------------------------------
+  // Admin county coverage summary (super/head admin only)
+  // ---------------------------------------------------------------------------
+  app.get(
+    "/api/admin/geo/coverage",
+    isAuthenticated,
+    isSuperAdmin,
+    async (req: Request & { user?: any }, res: Response) => {
+      try {
+        const userId = (req.user as any)?.id;
+        const role = (req.user as any)?.role || "";
+
+        const startedAt = Date.now();
+        const summary = await getCountyCoverageSummary();
+        const durationMs = Date.now() - startedAt;
+
+        console.log(
+          `[ADMIN_GEO_COVERAGE] user=${userId || "unknown"} role=${role} durationMs=${durationMs} total=${summary.totalCounties} full=${summary.fullyCoveredCounties} partial=${summary.partiallyCoveredCounties} unassigned=${summary.unassignedCounties} at=${new Date().toISOString()}`,
+        );
+
+        res.json({ ...summary, durationMs });
+      } catch (error: any) {
+        console.error("Error fetching county coverage summary:", error);
+        res.status(500).json({ message: "Failed to fetch county coverage summary" });
       }
     },
   );

@@ -1,15 +1,6 @@
-import { memo, useEffect } from 'react';
-import { useLocation } from 'wouter';
+// Legacy admin dashboard has been fully retired.
+// This file is kept as a no-op placeholder to avoid breaking imports during cleanup.
 
-const AdminDashboard = memo(function AdminDashboard() {
-  const [, setLocation] = useLocation();
-
-  useEffect(() => {
-    // Retire legacy dashboard in favor of the Ops workspace
-    setLocation('/admin/workspace');
-  }, [setLocation]);
-
+export default function AdminDashboard() {
   return null;
-});
-
-export default AdminDashboard;
+}

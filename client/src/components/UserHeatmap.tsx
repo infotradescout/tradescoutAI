@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -374,6 +374,20 @@ export function UserHeatmap() {
       }
     },
   });
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    try {
+      const params = new URLSearchParams(window.location.search);
+      const fips = params.get("fips");
+      if (fips && /^\d{5}$/.test(fips)) {
+        setViewMode("counties");
+        setSelectedCountyFips(fips);
+      }
+    } catch {
+      // ignore malformed URLs
+    }
+  }, []);
 
   const refreshMetricsMutation = useMutation({
     mutationFn: async () => {
