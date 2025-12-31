@@ -113,41 +113,27 @@ const RoleDashboardRouter = memo(function RoleDashboardRouter() {
     return null;
   }
 
-  // Use activeRole if available, otherwise use primary role
-  const currentRole = user.activeRole || user.role || 'homeowner';
-
-  // Map roles to their dashboards
+  // Everyone gets the unified activity/interest-based Dashboard
+  // Role-based routing removed per user request
   const getDashboardComponent = () => {
-    switch (currentRole) {
-      // Contractor roles
-      case 'contractor':
-      case 'contractor_user':
-      case 'service_provider':
-      case 'accelerator_member':
-        return ContractorDashboard;
-      
-      // Professional service roles
-      case 'realtor':
-        return RealtorDashboard;
-      
-      case 'car_salesman':
-        return CarSalesmanDashboard;
-      
-      case 'car_dealer':
-      case 'vehicle_dealer':
-        return DealerDashboard;
-      
-      case 'insurance_agent':
-        return InsuranceAgentDashboard;
-      
-      case 'mortgage_broker':
-        return MortgageBrokerDashboard;
-      
-      case 'property_manager':
-        return PropertyManagerDashboard;
-      
-      // HOA roles
-      case 'hoa_admin':
+    // Legacy admin roles still get their specific dashboards
+    if (user.role === 'super_admin' || user.role === 'head_admin') {
+      return AdminDashboard;
+    }
+    
+    if (user.role === 'ops_admin' || user.role === 'territory_manager') {
+      return StaffDashboard;
+    }
+    
+    // Everyone else (homeowners, contractors, realtors, etc.) gets the unified Dashboard
+    // This Dashboard shows content based on user activity and interests, not role
+    return lazy(() => import('@/pages/Dashboard'));
+  };
+
+  // Old role-based routing (deprecated, kept for reference):
+  // const getDashboardComponent = () => {
+  //   switch (currentRole) {
+  //     case 'hoa_admin':
       case 'hoa_board':
       case 'hoa_manager':
         return HOADashboard;
@@ -161,28 +147,11 @@ const RoleDashboardRouter = memo(function RoleDashboardRouter() {
       case 'super_admin':
         return AdminDashboard;
       
-      case 'support_agent':
-      case 'content_moderator':
-      case 'territory_manager':
-      case 'contractor_success':
-      case 'content_seo':
-      case 'operations':
-      case 'staff':
-        return StaffDashboard;
-      
-      // Helper/Worker
-      case 'helper':
-        return HelperDashboard;
-      
-      // Default: Homeowner/Community Member
-      case 'homeowner':
-      case 'community_member':
-      case 'community_moderator':
-      case 'community_leader':
-      default:
-        return SimpleHome;
-    }
-  };
+  //     case 'hoa_board':
+  //       return HOADashboard;
+  //     // ... rest of old role-based switches
+  //   }
+  // };
 
   const DashboardComponent = getDashboardComponent();
 
