@@ -130,29 +130,6 @@ const RoleDashboardRouter = memo(function RoleDashboardRouter() {
     return lazy(() => import('@/pages/Dashboard'));
   };
 
-  // Old role-based routing (deprecated, kept for reference):
-  // const getDashboardComponent = () => {
-  //   switch (currentRole) {
-  //     case 'hoa_admin':
-      case 'hoa_board':
-      case 'hoa_manager':
-        return HOADashboard;
-      
-      // Business owner
-      case 'business_owner':
-        return BusinessOwnerDashboard;
-      
-      // Staff/Admin roles
-      case 'admin':
-      case 'super_admin':
-        return AdminDashboard;
-      
-  //     case 'hoa_board':
-  //       return HOADashboard;
-  //     // ... rest of old role-based switches
-  //   }
-  // };
-
   const DashboardComponent = getDashboardComponent();
 
   return (
