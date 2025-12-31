@@ -58,10 +58,7 @@ export default function Navigation() {
     { href: "/affiliate", label: "Affiliate Program", icon: Share, description: "Earn 25% commissions on referrals" },
     { href: "/wallet", label: "Wallet", icon: DollarSign, description: "Your TradeScout balance" },
     { href: "/moderation", label: "Moderation", icon: Shield, description: "Community moderation" },
-    ...(isContractor ? [
-      { href: "/contractor-dashboard", label: "Dashboard", icon: Layout, description: "Your contractor hub" },
-      { href: "/contractor-promos", label: "My Promos", icon: Star, description: "Manage promotions" }
-    ] : []),
+    { href: "/dashboard", label: "Dashboard", icon: Layout, description: "Your personalized dashboard" },
     ...(isAdmin ? [
       { href: "/admin", label: "Admin", icon: Settings, description: "Admin controls" },
       { href: "/admin/control", label: "System Control", icon: Shield, description: "Scout authority & learning controls" },
@@ -395,12 +392,12 @@ export default function Navigation() {
 
             {/* Dashboard - Only show if authenticated */}
             {isAuthenticated && (
-              <Link href={isContractor ? "/contractor-dashboard" : "/dashboard"}>
+              <Link href="/dashboard">
                 <Button 
                   variant="ghost" 
                   size="sm"
                   className={`text-[11px] px-2 py-1 rounded-md ${
-                    (location === '/contractor-dashboard' || location === '/dashboard') 
+                    location === '/dashboard'
                       ? 'text-orange-500 bg-orange-500/15' 
                       : 'text-gray-300 hover:text-white'
                   }`}
