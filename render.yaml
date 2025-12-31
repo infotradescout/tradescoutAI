@@ -1,0 +1,13 @@
+services:
+  - type: web
+    name: tradescout-pro
+    runtime: node
+    buildCommand: npm run build
+    startCommand: node server.mjs
+    envVars:
+      - key: SCOUT_RECOMMENDATIONS_ENABLED
+        value: "true"
+        scope: run
+      - key: NODE_ENV
+        value: production
+        scope: run
