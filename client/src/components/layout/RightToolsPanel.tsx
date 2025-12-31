@@ -38,7 +38,7 @@ const NavLink: React.FC<NavLinkProps> = ({
   <Link
     href={href}
     onClick={onClick}
-    className="flex flex-col gap-1 rounded-xl border transition-colors"
+    className="flex flex-col gap-1 rounded-xl transition-colors"
     style={{
       borderColor: 'var(--border-primary)',
       backgroundColor: 'var(--surface-intermediate)',
@@ -83,7 +83,7 @@ const ActionButton = ({
   <button
     type="button"
     onClick={onClick}
-    className="w-full text-left flex flex-col gap-1 rounded-xl border transition-colors focus:outline-none focus-visible:outline-none"
+    className="w-full text-left flex flex-col gap-1 rounded-xl transition-colors focus:outline-none focus-visible:outline-none"
     style={{
       borderColor: 'var(--border-primary)',
       backgroundColor: 'var(--surface-intermediate)',

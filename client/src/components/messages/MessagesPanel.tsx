@@ -113,7 +113,7 @@ export default function MessagesPanel() {
   return (
     <div className="flex h-full gap-4">
       {/* Thread list */}
-      <Card className="w-80 flex flex-col bg-slate-900 border-slate-700">
+      <Card className="w-80 flex flex-col bg-slate-900 border-none shadow-none">
         <div className="p-4 border-b border-slate-700">
           <h2 className="font-semibold text-white">Messages</h2>
         </div>
@@ -164,7 +164,7 @@ export default function MessagesPanel() {
       </Card>
 
       {/* Messages column */}
-      <Card className="flex-1 flex flex-col bg-slate-900 border-slate-700">
+      <Card className="flex-1 flex flex-col bg-slate-900 border-none shadow-none">
         <div className="p-4 border-b border-slate-700">
           <h2 className="font-semibold text-white">
             {activeThread ? activeThread.subject || "Conversation" : "Select a thread"}
