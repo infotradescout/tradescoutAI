@@ -206,17 +206,6 @@ export default function Navigation() {
                     </Button>
                   </Link>
 
-                  <Link href="/discover-people">
-                    <Button 
-                      variant="outline" 
-                      size="sm"
-                      className="border-white/20 text-gray-300 hover:bg-white/10 hover:text-white transition-all duration-200"
-                    >
-                      <Users className="h-4 w-4 mr-1" />
-                      <span className="hidden xl:inline">Discover</span>
-                    </Button>
-                  </Link>
-
                   <Link href="/profile">
                     <Button 
                       variant="outline" 
