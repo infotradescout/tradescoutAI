@@ -34,6 +34,7 @@ import {
 } from "@/components/ui/table";
 import { Shield, Crown, UserCog, Users, Search, MoreHorizontal, Trash2 } from "lucide-react";
 import { Label } from "@/components/ui/label";
+import { Link } from "wouter";
 
 type User = {
   id: string;
@@ -328,6 +329,14 @@ export default function AdminUsers() {
                               }
                             </div>
                             <div className="text-sm text-gray-400">{user.email}</div>
+                            <div className="mt-1 text-xs">
+                              <Link
+                                href={`/profile/${user.id}`}
+                                className="text-orange-400 hover:text-orange-300 hover:underline"
+                              >
+                                View public profile
+                              </Link>
+                            </div>
                           </div>
                         </TableCell>
                         <TableCell>
