@@ -284,7 +284,7 @@ const ALL_NAVIGATION: NavItem[] = [
       { label: 'Attachments', href: '/admin/attachments', icon: Package },
       { label: 'Pricing Analytics', href: '/admin/pricing-analytics', icon: ChartBar },
       { label: 'Create Account', href: '/admin/create-account', icon: UserPlus },
-      { label: 'Platform Analytics', href: '/analytics', icon: ChartBar },
+      { label: 'Platform Analytics', href: '/admin/platform-analytics', icon: ChartBar },
     ],
   },
 
