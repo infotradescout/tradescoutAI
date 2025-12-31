@@ -4099,6 +4099,234 @@ export async function registerRoutes(app: any) {
     }
   });
 
+  // Super admin user controls (minimal, but real)
+  app.post("/api/admin/user-controls/suspend/:userId", isAuthenticated, async (req: any, res: any) => {
+    try {
+      const adminUserId = (req.user as any)?.id || (req.user as any)?.claims?.sub;
+      const adminUser = await storage.getUser(adminUserId);
+
+      if (!adminUser || adminUser.role !== "head_admin") {
+        return res.status(403).json({ message: "Head admin access required" });
+      }
+
+      const { userId } = req.params;
+      if (userId === adminUserId) {
+        return res.status(400).json({ message: "Cannot suspend your own account" });
+      }
+
+      const targetUser = await storage.getUser(userId);
+      if (!targetUser) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      if (targetUser.role === "head_admin") {
+        return res.status(403).json({ message: "Cannot suspend another head admin" });
+      }
+
+      const updated = await storage.updateUser(userId, {
+        verificationStatus: "suspended" as any,
+      });
+
+      return res.json({
+        id: updated.id,
+        role: updated.role,
+        verificationStatus: (updated as any).verificationStatus,
+      });
+    } catch (error: any) {
+      console.error("Error suspending user:", error);
+      return res.status(500).json({ message: "Failed to suspend user" });
+    }
+  });
+
+  app.post("/api/admin/user-controls/unsuspend/:userId", isAuthenticated, async (req: any, res: any) => {
+    try {
+      const adminUserId = (req.user as any)?.id || (req.user as any)?.claims?.sub;
+      const adminUser = await storage.getUser(adminUserId);
+
+      if (!adminUser || adminUser.role !== "head_admin") {
+        return res.status(403).json({ message: "Head admin access required" });
+      }
+
+      const { userId } = req.params;
+
+      const targetUser = await storage.getUser(userId);
+      if (!targetUser) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      if (targetUser.role === "head_admin" && adminUser.id !== targetUser.id) {
+        // Only the same head admin account owner should manage their status
+        return res.status(403).json({ message: "Cannot modify another head admin" });
+      }
+
+      const updated = await storage.updateUser(userId, {
+        verificationStatus: "pending" as any,
+      });
+
+      return res.json({
+        id: updated.id,
+        role: updated.role,
+        verificationStatus: (updated as any).verificationStatus,
+      });
+    } catch (error: any) {
+      console.error("Error unsuspending user:", error);
+      return res.status(500).json({ message: "Failed to unsuspend user" });
+    }
+  });
+
+  app.post("/api/admin/user-controls/verify/:userId", isAuthenticated, async (req: any, res: any) => {
+    try {
+      const adminUserId = (req.user as any)?.id || (req.user as any)?.claims?.sub;
+      const adminUser = await storage.getUser(adminUserId);
+
+      if (!adminUser || adminUser.role !== "head_admin") {
+        return res.status(403).json({ message: "Head admin access required" });
+      }
+
+      const { userId } = req.params;
+
+      const targetUser = await storage.getUser(userId);
+      if (!targetUser) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      const updated = await storage.updateUser(userId, {
+        verificationStatus: "approved" as any,
+        addressVerified: true,
+      });
+
+      return res.json({
+        id: updated.id,
+        role: updated.role,
+        verificationStatus: (updated as any).verificationStatus,
+        addressVerified: (updated as any).addressVerified,
+      });
+    } catch (error: any) {
+      console.error("Error verifying user:", error);
+      return res.status(500).json({ message: "Failed to verify user" });
+    }
+  });
+
+  app.post("/api/admin/user-controls/revoke-verify/:userId", isAuthenticated, async (req: any, res: any) => {
+    try {
+      const adminUserId = (req.user as any)?.id || (req.user as any)?.claims?.sub;
+      const adminUser = await storage.getUser(adminUserId);
+
+      if (!adminUser || adminUser.role !== "head_admin") {
+        return res.status(403).json({ message: "Head admin access required" });
+      }
+
+      const { userId } = req.params;
+
+      const targetUser = await storage.getUser(userId);
+      if (!targetUser) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      const updated = await storage.updateUser(userId, {
+        verificationStatus: "pending" as any,
+      });
+
+      return res.json({
+        id: updated.id,
+        role: updated.role,
+        verificationStatus: (updated as any).verificationStatus,
+      });
+    } catch (error: any) {
+      console.error("Error revoking verification:", error);
+      return res.status(500).json({ message: "Failed to revoke verification" });
+    }
+  });
+
+  app.post("/api/admin/user-controls/role/:userId", isAuthenticated, async (req: any, res: any) => {
+    try {
+      const adminUserId = (req.user as any)?.id || (req.user as any)?.claims?.sub;
+      const adminUser = await storage.getUser(adminUserId);
+
+      if (!adminUser || adminUser.role !== "head_admin") {
+        return res.status(403).json({ message: "Head admin access required" });
+      }
+
+      const { userId } = req.params;
+      const body = (req.body ?? {}) as any;
+      let newRole = typeof body.newRole === "string" ? body.newRole.trim() : "";
+
+      if (!newRole) {
+        return res.status(400).json({ message: "newRole is required" });
+      }
+
+      // Map UI helper roles to canonical enum values
+      if (newRole === "contractor_user") {
+        newRole = "contractor";
+      }
+
+      const allowedRoles = [
+        "homeowner",
+        "renter",
+        "landlord",
+        "property_manager",
+        "hoa_member",
+        "business_owner",
+        "commercial_property",
+        "franchise_owner",
+        "startup_founder",
+        "contractor",
+        "handyman",
+        "service_provider",
+        "specialty_tradesperson",
+        "designer",
+        "inspector",
+        "realtor",
+        "mortgage_broker",
+        "insurance_agent",
+        "title_company",
+        "car_dealer",
+        "auto_service",
+        "hoa_board",
+        "community_builder",
+        "nonprofit_org",
+        "affiliate",
+        "content_creator",
+        "admin",
+        "content_seo",
+        "analytics_specialist",
+        "marketing_specialist",
+        "moderator",
+        "ops_admin",
+        "super_admin",
+        "head_admin",
+      ];
+
+      if (!allowedRoles.includes(newRole)) {
+        return res.status(400).json({ message: "Invalid role" });
+      }
+
+      const targetUser = await storage.getUser(userId);
+      if (!targetUser) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      // Only head_admin can promote to head_admin or modify other head_admins
+      if (newRole === "head_admin" && adminUser.role !== "head_admin") {
+        return res.status(403).json({ message: "Only head admin can promote to head admin" });
+      }
+
+      if (targetUser.role === "head_admin" && adminUser.role !== "head_admin") {
+        return res.status(403).json({ message: "Only head admin can modify other head admins" });
+      }
+
+      const updated = await storage.updateUser(userId, { role: newRole as any });
+
+      return res.json({
+        id: updated.id,
+        role: updated.role,
+      });
+    } catch (error: any) {
+      console.error("Error updating user role via quick control:", error);
+      return res.status(500).json({ message: "Failed to update user role" });
+    }
+  });
+
   // Quote calculator pricing
   app.get("/api/pricing/:service", async (req: any, res: any) => {
     try {
