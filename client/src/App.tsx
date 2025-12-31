@@ -1,4 +1,4 @@
-import React, { memo, Suspense, useEffect, useState } from 'react';
+import React, { memo, Suspense, lazy, useEffect, useState } from 'react';
 // In-app browser detection and safe storage utilities
 import { isFacebookInAppBrowser, useInAppBrowser } from './utils/inAppBrowser';
 import { safeStorage } from './utils/safeStorage';
