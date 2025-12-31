@@ -122,7 +122,7 @@ const NAVIGATION_ITEMS: NavigationItem[] = [
     icon: Settings,
     requiredPermission: "canAccessAdminPanel",
     children: [
-      { label: "Dashboard", href: "/admin-panel", icon: Home },
+      { label: "Dashboard", href: "/admin/panel", icon: Home },
       { label: "Panel", href: "/admin/panel", icon: Settings },
       { label: "Users", href: "/admin/users", icon: Users },
       { label: "Analytics", href: "/admin/workspace", icon: BarChart },

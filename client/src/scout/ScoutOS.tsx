@@ -2859,10 +2859,10 @@ export default function ScoutOS() {
                       type: "navigate",
                       ts: new Date().toISOString(),
                       path: location,
-                      to: "/admin-panel",
+                      to: "/admin/panel",
                       label: trimmed,
                     });
-                    navigate("/admin-panel");
+                    navigate("/admin/panel");
                     return;
                   }
 
@@ -2871,10 +2871,10 @@ export default function ScoutOS() {
                       type: "navigate",
                       ts: new Date().toISOString(),
                       path: location,
-                      to: "/admin-panel?tab=finance",
+                      to: "/admin/panel?tab=finance",
                       label: trimmed,
                     });
-                    navigate("/admin-panel?tab=finance");
+                    navigate("/admin/panel?tab=finance");
                     return;
                   }
 
@@ -2935,10 +2935,10 @@ export default function ScoutOS() {
                       type: "navigate",
                       ts: new Date().toISOString(),
                       path: location,
-                      to: "/admin-panel?tab=notification-ops",
+                      to: "/admin/panel?tab=notification-ops",
                       label: trimmed,
                     });
-                    navigate("/admin-panel?tab=notification-ops");
+                    navigate("/admin/panel?tab=notification-ops");
                     return;
                   }
 

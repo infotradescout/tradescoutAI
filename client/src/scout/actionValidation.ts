@@ -41,7 +41,7 @@ const ALLOWED_NAVIGATION_PATHS = new Set([
   "/messages",
   "/notifications",
   "/help",
-  "/admin-panel",
+  "/admin/panel",
   "/hoa-management",
   "/hoa-dashboard",
   "/deal-room",

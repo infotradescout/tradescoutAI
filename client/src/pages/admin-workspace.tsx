@@ -139,10 +139,8 @@ export default function AdminWorkspace() {
 
   if (authLoading || statsLoading) {
     return (
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <div className="flex items-center justify-center min-h-96">
-          <div className="animate-spin w-8 h-8 border-4 border-orange-500 border-t-transparent rounded-full" />
-        </div>
+      <div className="flex items-center justify-center min-h-[200px]">
+        <div className="animate-spin w-8 h-8 border-4 border-orange-500 border-t-transparent rounded-full" />
       </div>
     );
   }
@@ -150,24 +148,7 @@ export default function AdminWorkspace() {
   if (unauthorized) return null;
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-      {/* Admin Header */}
-      <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center mb-8">
-        <div>
-          <h1 className="text-3xl font-bold text-white mb-2">TradeScout Admin</h1>
-          <p className="text-gray-300">System overview and management tools</p>
-        </div>
-        <div className="flex space-x-4 mt-4 lg:mt-0">
-          <Button variant="outline" className="border-navy-600 text-white hover:bg-navy-600">
-            <Settings className="h-4 w-4 mr-2" />
-            Settings
-          </Button>
-          <Button className="bg-orange-500 hover:bg-orange-600 glow-effect">
-            <Upload className="h-4 w-4 mr-2" />
-            Import Data
-          </Button>
-        </div>
-      </div>
+    <div className="space-y-8">
 
       {/* KPI Dashboard */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
@@ -770,3 +751,5 @@ export default function AdminWorkspace() {
     </div>
   );
 }
+
+export const AdminWorkspaceContent = AdminWorkspace;

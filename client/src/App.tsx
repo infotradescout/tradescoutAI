@@ -107,7 +107,6 @@ const Accelerator = React.lazy(() => import('./pages/accelerator'));
 
 // Admin Features (heavy components)
 const AdminPanel = React.lazy(() => import('./pages/admin-panel'));
-const AdminDashboard = React.lazy(() => import('./pages/admin-dashboard'));
 const AdminUserManagement = React.lazy(() => import('./pages/AdminUserManagement'));
 const AdminUsers = React.lazy(() => import('./pages/admin-users'));
 const AdminWorkspace = React.lazy(() => import('./pages/admin-workspace'));
@@ -697,118 +696,12 @@ const AppLayout = memo(function AppLayout() {
                   </Route>
                   <Route path="/admin-panel">
                     <ProtectedRoute adminOnly>
-                      <LazyPage Component={AdminPanel} />
-                    </ProtectedRoute>
-                  </Route>
-                  <Route path="/admin/panel">
-                    <ProtectedRoute adminOnly>
-                      <LazyPage Component={AdminPanel} />
-                    </ProtectedRoute>
-                  </Route>
-                  <Route path="/admin/users">
-                    <ProtectedRoute adminOnly>
-                      <LazyPage Component={AdminUsers} />
-                    </ProtectedRoute>
-                  </Route>
-                  <Route path="/admin/user-management">
-                    <ProtectedRoute adminOnly>
-                      <LazyPage Component={AdminUserManagement} />
-                    </ProtectedRoute>
-                  </Route>
-                  <Route path="/admin/workspace">
-                    <ProtectedRoute adminOnly>
-                      <LazyPage Component={AdminWorkspace} />
-                    </ProtectedRoute>
-                  </Route>
-                  <Route path="/admin/error-reports">
-                    <ProtectedRoute adminOnly>
-                      <LazyPage Component={AdminErrorReports} />
-                    </ProtectedRoute>
-                  </Route>
-                  <Route path="/admin/testing">
-                    <ProtectedRoute adminOnly>
-                      <LazyPage Component={AdminTestingControls} />
-                    </ProtectedRoute>
-                  </Route>
-                  <Route path="/admin/authority-diagnostics">
-                    <ProtectedRoute adminOnly>
-                      <LazyPage
-                        Component={lazy(() =>
-                          import("./pages/admin-authority-diagnostics")
-                        )}
-                      />
-                    </ProtectedRoute>
-                  </Route>
-                  <Route path="/admin/control">
-                    <ProtectedRoute adminOnly>
-                      <LazyPage
-                        Component={lazy(() => import("./pages/admin-control"))}
-                      />
-                    </ProtectedRoute>
-                  </Route>
-                  <Route path="/admin/address-verifications">
-                    <ProtectedRoute adminOnly>
-                      <LazyPage Component={AdminAddressVerifications} />
-                    </ProtectedRoute>
-                  </Route>
-                  <Route path="/admin/professional-verification">
-                    <ProtectedRoute adminOnly>
-                      <LazyPage Component={AdminProfessionalVerification} />
-                    </ProtectedRoute>
-                  </Route>
-                  <Route path="/admin/listings">
-                    <ProtectedRoute adminOnly>
-                      <LazyPage Component={AdminListings} />
-                    </ProtectedRoute>
-                  </Route>
-                  <Route path="/admin/attachments">
-                    <ProtectedRoute adminOnly>
-                      <LazyPage Component={AdminAttachments} />
-                    </ProtectedRoute>
-                  </Route>
-                  <Route path="/admin/pricing-analytics">
-                    <ProtectedRoute adminOnly>
-                      <LazyPage Component={AdminPricingAnalytics} />
-                    </ProtectedRoute>
-                  </Route>
-                  <Route path="/admin/create-account">
-                    <ProtectedRoute adminOnly>
-                      <LazyPage Component={AdminCreateAccount} />
-                    </ProtectedRoute>
-                  </Route>
-                  <Route path="/admin/affiliates">
-                    <ProtectedRoute adminOnly>
-                      <LazyPage Component={AdminAffiliates} />
-                    </ProtectedRoute>
-                  </Route>
-                  <Route path="/admin/system-prompt">
-                    <ProtectedRoute adminOnly>
-                      <LazyPage Component={PromptAdminPage} />
-                    </ProtectedRoute>
-                  </Route>
-                  <Route path="/admin/promotions">
-                    <ProtectedRoute adminOnly>
-                      <LazyPage Component={AdminPromotions} />
-                    </ProtectedRoute>
-                  </Route>
-                  <Route path="/admin/tool-discovery">
-                    <ProtectedRoute adminOnly>
-                      <LazyPage Component={AdminToolDiscovery} />
-                    </ProtectedRoute>
-                  </Route>
-                  <Route path="/admin/community-builder/reconciliation">
-                    <ProtectedRoute adminOnly>
-                      <LazyPage Component={AdminCommunityBuilderReconciliation} />
-                    </ProtectedRoute>
-                  </Route>
-                  <Route path="/admin/community-builder/builders">
-                    <ProtectedRoute adminOnly>
-                      <LazyPage Component={AdminCommunityBuilderBuilders} />
+                      <RedirectTo to="/admin/panel" />
                     </ProtectedRoute>
                   </Route>
                   <Route path="/admin/:rest*">
                     <ProtectedRoute adminOnly>
-                      <LazyPage Component={AdminDashboard} />
+                      <LazyPage Component={AdminShell} />
                     </ProtectedRoute>
                   </Route>
                   
