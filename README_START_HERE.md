@@ -160,6 +160,48 @@ If `docker` isn’t found on Windows, install Docker Desktop and reopen PowerShe
 
 ---
 
+## 🌎 Geographic Storage Seeding (County Map)
+
+The admin county map is backed by a **Geographic Storage Layer** (`county_metrics`, `county_entities`, `county_notes`).
+
+- Metrics (`county_metrics`) store per-county aggregates like total users, verified users, contractors, businesses, and affiliates.
+- Entities (`county_entities`) store descriptive assignments such as affiliates, internal staff, and territory managers by county.
+- Notes (`county_notes`) store admin-only operational notes per county.
+
+You can (re)seed this layer from existing production data using:
+
+```powershell
+npm run seed:geo
+```
+
+This script is **idempotent** and safe to run multiple times. It:
+
+- Upserts metrics per `(county_fips, metric_key)`.
+- Adds missing entities for affiliates, staff, and territory managers.
+- Optionally seeds one system “operations” note per active county.
+
+### Required Environment
+
+- `DATABASE_URL` – points at the target database (dev/stage/prod).
+- `SYSTEM_USER_ID` – (recommended) user ID to attribute system notes to.
+
+If `SYSTEM_USER_ID` is not set, metrics and entities will still be seeded, but **no notes** will be created.
+
+**Scope & Safety:** This script only writes to the geographic storage tables. It does **not** change roles, permissions, messaging, or any public-facing behavior.
+
+### Admin County Metrics Refresh (UI)
+
+For super/head admins, the **Counties** view of the admin heatmap includes a **Refresh metrics** button:
+
+- Location: Admin heatmap → toggle to "Counties" (admin-only) → header controls.
+- Behavior: Calls `POST /api/admin/geo/metrics/refresh` to recompute `county_metrics` from canonical data.
+- Scope: **Metrics only** – it does **not** touch `county_entities`, `county_notes`, user roles, or permissions.
+- Safety: In-memory rate limited (roughly one request per minute per admin). On success, the county map refetches and shows updated values for the active metric lens.
+
+Use this when you need a **fast, on-demand refresh** of county metrics without re-running `npm run seed:geo` or redeploying.
+
+---
+
 ## 🧱 Page Shell Architecture (Authoritative)
 
 - AppShell + AppFrame are the only shared shells.
