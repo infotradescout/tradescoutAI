@@ -119,74 +119,8 @@ export const CommunitySnapshotRail: React.FC<{
               : undefined,
         }));
         
-        // Compose cards: feed filters + deals + stats + invitations
+        // Compose cards: deals + stats + invitations (filters removed)
         const composedCards: SnapshotCard[] = [];
-
-        // Always add feed filter cards first
-        composedCards.push(
-          {
-            id: "filter-for-you",
-            type: "feed_filter",
-            title: "For You",
-            description: "Personalized content based on your interests",
-            label: "Recommended",
-            icon: "star",
-            gradient: activeFilter === "forYou" ? "from-orange-500 to-orange-600" : "from-slate-800 to-slate-900",
-            filterValue: "forYou",
-          },
-          {
-            id: "filter-recent",
-            type: "feed_filter",
-            title: "Recent",
-            description: "Latest posts from your community",
-            label: "Latest",
-            icon: "clock",
-            gradient: activeFilter === "recent" ? "from-orange-500 to-orange-600" : "from-slate-800 to-slate-900",
-            filterValue: "recent",
-          },
-          {
-            id: "filter-nearby",
-            type: "feed_filter",
-            title: "Nearby",
-            description: "Posts from neighbors close to you",
-            label: "Local",
-            icon: "mappin",
-            gradient: activeFilter === "nearby" ? "from-orange-500 to-orange-600" : "from-slate-800 to-slate-900",
-            filterValue: "nearby",
-          },
-          {
-            id: "filter-trending",
-            type: "feed_filter",
-            title: "Trending",
-            description: "Most popular conversations right now",
-            label: "Hot",
-            icon: "trending",
-            gradient: activeFilter === "trending" ? "from-orange-500 to-orange-600" : "from-slate-800 to-slate-900",
-            filterValue: "trending",
-          },
-          {
-            id: "filter-recs",
-            type: "feed_filter",
-            title: "Recs",
-            description: "Recommendations and endorsements",
-            label: "Trusted",
-            icon: "eye",
-            gradient: activeFilter === "recs" ? "from-orange-500 to-orange-600" : "from-slate-800 to-slate-900",
-            filterValue: "recs",
-          },
-          {
-            id: "filter-vault",
-            type: "feed_filter",
-            title: "Vault",
-            description: "Saved and bookmarked content",
-            label: "Saved",
-            icon: "vault",
-            gradient: activeFilter === "vault" ? "from-orange-500 to-orange-600" : "from-slate-800 to-slate-900",
-            filterValue: "vault",
-          }
-        );
-
-        // Add TradeDeal cardstCard[] = [];
 
         // Add TradeDeal cards first
         composedCards.push(...dealCards);
@@ -296,17 +230,17 @@ export const CommunitySnapshotRail: React.FC<{
 
   const getCardIcon = (iconName?: string) => {
     switch (iconName) {
-      case "users": return <Users2 className="h-5 w-5" />;
-      case "zap": return <Zap className="h-5 w-5" />;
-      case "message": return <MessageSquare className="h-5 w-5" />;
-      case "sparkles": return <Sparkles className="h-5 w-5" />;
-      case "trending": return <TrendingUp className="h-5 w-5" />;
-      case "star": return <Star className="h-5 w-5" />;
-      case "clock": return <Clock className="h-5 w-5" />;
-      case "mappin": return <MapPin className="h-5 w-5" />;
-      case "eye": return <Eye className="h-5 w-5" />;
-      case "vault": return <Vault className="h-5 w-5" />;
-      default: return <Tag className="h-5 w-5" />;
+      case "users": return <Users2 className="h-3.5 w-3.5" />;
+      case "zap": return <Zap className="h-3.5 w-3.5" />;
+      case "message": return <MessageSquare className="h-3.5 w-3.5" />;
+      case "sparkles": return <Sparkles className="h-3.5 w-3.5" />;
+      case "trending": return <TrendingUp className="h-3.5 w-3.5" />;
+      case "star": return <Star className="h-3.5 w-3.5" />;
+      case "clock": return <Clock className="h-3.5 w-3.5" />;
+      case "mappin": return <MapPin className="h-3.5 w-3.5" />;
+      case "eye": return <Eye className="h-3.5 w-3.5" />;
+      case "vault": return <Vault className="h-3.5 w-3.5" />;
+      default: return <Tag className="h-3.5 w-3.5" />;
     }
   };
 
@@ -331,14 +265,14 @@ export const CommunitySnapshotRail: React.FC<{
         }}
         className={`
           snap-start shrink-0 
-          w-[260px] sm:w-[280px] md:w-[300px]
-          h-[280px] sm:h-[300px]
+          w-[140px] sm:w-[160px]
+          h-[200px] sm:h-[220px]
           rounded-2xl border 
           ${isActive ? 'border-orange-500 ring-2 ring-orange-500/20' : 'border-slate-800'}
           ${card.gradient ? `bg-gradient-to-br ${card.gradient}` : 'bg-slate-950/50'}
           hover:bg-slate-900/40 hover:border-slate-700
           transition-all shadow-lg
-          flex flex-col justify-between p-5 text-left 
+          flex flex-col justify-between p-3.5 text-left 
           ${card.href || isFilter ? 'cursor-pointer' : 'cursor-default'}
           relative overflow-hidden
         `}
@@ -348,77 +282,34 @@ export const CommunitySnapshotRail: React.FC<{
         
         {/* Card header */}
         <div className="relative z-10">
-          <div className="flex items-center justify-between gap-2 mb-3">
-            <div className="inline-flex items-center gap-1.5 rounded-full border border-slate-700/80 bg-slate-900/80 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.15em] text-slate-200">
-              {card.icon && (
-                <span className="text-orange-400">
-                  {getCardIcon(card.icon)}
-                </span>
-              )}
-              <span>{card.label ?? "Snapshot"}</span>
-            </div>
-            {card.href && (
-              <div className="text-sm text-slate-500">›</div>
+          <div className="inline-flex items-center gap-1 rounded-full border border-slate-700/80 bg-slate-900/80 px-2 py-0.5 text-[9px] font-semibold uppercase tracking-wider text-slate-200">
+            {card.icon && (
+              <span className="text-orange-400">
+                {getCardIcon(card.icon)}
+              </span>
             )}
+            <span className="truncate">{card.label ?? "Snapshot"}</span>
           </div>
         </div>
 
         {/* Card content */}
-        <div className="relative z-10 flex-1 flex flex-col justify-center gap-2">
-          <div className="text-xl font-bold text-white leading-tight">
+        <div className="relative z-10 flex-1 flex flex-col justify-end gap-1.5">
+          <div className="text-sm font-bold text-white leading-snug line-clamp-2">
             {card.title}
           </div>
-          <div className="text-sm text-slate-300 leading-relaxed line-clamp-3">
+          <div className="text-xs text-slate-300 leading-tight line-clamp-2">
             {card.description}
           </div>
         </div>
 
-        {/* Card footer - CTAs or stats */}
-        <div className="relative z-10 mt-4">
-          {isTradeDeal && (
-            <CommunityCTA
-              layout="inline"
-              source="trade_deal"
-              contextId={card.id}
-              ownerUserId={card.ownerUserId}
-              canDirectConnect={card.canDirectConnect}
-              canMessage={card.canMessage}
-            />
-          )}
-          
-          {isStats && card.stats && (
-            <div className="flex items-center gap-4 text-xs text-slate-400">
-              <div className="flex items-center gap-1">
-                <Users2 className="h-3.5 w-3.5 text-emerald-300" />
-                <span>{card.stats.totalMembers || 0} neighbors</span>
-              </div>
-              {card.stats.activeToday > 0 && (
-                <div className="flex items-center gap-1">
-                  <TrendingUp className="h-3.5 w-3.5 text-indigo-300" />
-                  <span>{card.stats.activeToday} active</span>
-                </div>
-              )}
+        {/* Minimal footer */}
+        {isTradeDeal && card.canDirectConnect && (
+          <div className="relative z-10 mt-2">
+            <div className="text-[10px] text-orange-400 font-medium">
+              ⚡ Quick Connect
             </div>
-          )}
-
-          {isInvitation && (
-            <div className="text-xs text-slate-500 italic">
-              Tap to explore
-            </div>
-          )}
-          
-          {/* Authority label - interpretive guidance from Scout */}
-          {/* Authority label - interpretive guidance from Scout */}
-          {/* DISABLED (Phase 2B): See ENABLE_AUTHORITY_LABELS flag */}
-          {ENABLE_AUTHORITY_LABELS && card.authorityLabel && (
-            <div className="mt-2 pt-2 border-t border-slate-800/50 flex items-start gap-1.5">
-              <Info className="h-3.5 w-3.5 text-slate-500 mt-0.5 shrink-0" />
-              <span className="text-xs text-slate-400 italic leading-tight">
-                {card.authorityLabel}
-              </span>
-            </div>
-          )}
-        </div>
+          </div>
+        )}
       </div>
     );
   };

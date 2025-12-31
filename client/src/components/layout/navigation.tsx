@@ -64,6 +64,7 @@ export default function Navigation() {
     ] : []),
     ...(isAdmin ? [
       { href: "/admin", label: "Admin", icon: Settings, description: "Admin controls" },
+      { href: "/admin/control", label: "System Control", icon: Shield, description: "Scout authority & learning controls" },
       { href: "/admin/panel", label: "Admin Panel", icon: Crown, description: "Management panel" },
       { href: "/admin/professional-verification", label: "Professional Verification", icon: Shield, description: "Verify professionals" }
     ] : []),
