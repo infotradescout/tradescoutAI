@@ -98,6 +98,20 @@ export interface ScoutMemoryDelta {
   [key: string]: unknown;
 }
 
+export interface OnboardingQuestion {
+  key: "Q1" | "Q2" | "Q3" | "Q4";
+  prompt: string;
+  options: { label: string; value: string }[];
+  skippable: boolean;
+}
+
+export interface OnboardingMetadata {
+  active: boolean;
+  sessionId: string;
+  confidence: number;
+  question?: OnboardingQuestion;
+}
+
 export interface ScoutMessage {
   id: string;
   role: ScoutRole;
@@ -121,22 +135,8 @@ export interface ScoutMessage {
   memoryDelta?: ScoutMemoryDelta; // working context updates
   // Ephemeral, derived context roles used for tone + defaults
   contextRoles?: string[];
-  // D2: Onboarding metadata (client-side wiring)
-  onboarding?: {
-    sessionId: string;
-    onboardingQuestion?: {
-      key: 'Q1' | 'Q2' | 'Q3' | 'Q4';
-      question: string;
-      options: Array<{ label: string; value: string; why: string }>;
-      skipLabel: string;
-      explanation: string;
-    };
-    snapshot?: {
-      confidence: number;
-      answeredQuestions: number;
-      totalQuestions: number;
-    };
-  };
+  // D2: Onboarding metadata (server-controlled, client renders only)
+  onboarding?: OnboardingMetadata;
 }
 
 export interface ScoutState {
