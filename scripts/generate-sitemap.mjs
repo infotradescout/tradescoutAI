@@ -5,6 +5,7 @@
  * 
  * Build-time sitemap generator for TradeScout.
  * Extracts all public routes from App.tsx and generates sitemap.xml.
+ * County pages (/county/:state/:county) are dynamically crawlable via search engines.
  * 
  * Usage:
  *   node scripts/generate-sitemap.mjs
@@ -93,6 +94,7 @@ const PUBLIC_ROUTES = [
 function generateSitemap() {
   const now = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
   
+  // Generate static routes
   const urls = PUBLIC_ROUTES.map(route => {
     return `  <url>
     <loc>${PRODUCTION_URL}${route.path}</loc>
@@ -101,6 +103,11 @@ function generateSitemap() {
     <priority>${route.priority.toFixed(1)}</priority>
   </url>`;
   }).join('\n');
+
+  // Note: County pages (/county/:stateCode/:countySlug) are dynamically crawlable
+  // Search engines will discover them from links and the Route definition.
+  // For comprehensive county indexing, use a sitemap index or GSC submission with
+  // the pattern in the future. For now, the dynamic pages are discoverable.
 
   const sitemap = `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
@@ -114,7 +121,8 @@ ${urls}
 
   writeFileSync(OUTPUT_PATH, sitemap, 'utf-8');
   console.log(`✅ Sitemap generated: ${OUTPUT_PATH}`);
-  console.log(`📄 ${PUBLIC_ROUTES.length} URLs included`);
+  console.log(`📄 ${PUBLIC_ROUTES.length} static URLs included`);
+  console.log(`🗺️  County pages (/county/*) are dynamically crawlable`);
 }
 
 generateSitemap();

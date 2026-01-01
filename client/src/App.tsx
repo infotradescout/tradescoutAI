@@ -238,6 +238,7 @@ const ProjectTracker = React.lazy(() => import('./pages/lead-management'));
 
 // Additional Missing Pages
 const CountyHub = React.lazy(() => import('./pages/county-hub'));
+const CountyPage = React.lazy(() => import('./pages/county/CountyPage'));
 const Verification = React.lazy(() => import('./pages/verification'));
 const InsuranceVerification = React.lazy(() => import('./pages/insurance-verification'));
 const LicenseVerification = React.lazy(() => import('./pages/license-verification'));
@@ -905,6 +906,7 @@ const AppLayout = memo(function AppLayout() {
                   </Route>
                   
                   {/* Community & Geographic */}
+                  <Route path="/county/:stateCode/:countySlug"><LazyPage Component={CountyPage} /></Route>
                   <Route path="/county-directory"><LazyPage Component={CountyDirectory} /></Route>
                   <Route path="/county-hub"><LazyPage Component={CountyHub} /></Route>
                   <Route path="/leaderboard"><LazyPage Component={Leaderboard} /></Route>
