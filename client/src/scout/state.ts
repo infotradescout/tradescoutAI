@@ -121,6 +121,22 @@ export interface ScoutMessage {
   memoryDelta?: ScoutMemoryDelta; // working context updates
   // Ephemeral, derived context roles used for tone + defaults
   contextRoles?: string[];
+  // D2: Onboarding metadata (client-side wiring)
+  onboarding?: {
+    sessionId: string;
+    onboardingQuestion?: {
+      key: 'Q1' | 'Q2' | 'Q3' | 'Q4';
+      question: string;
+      options: Array<{ label: string; value: string; why: string }>;
+      skipLabel: string;
+      explanation: string;
+    };
+    snapshot?: {
+      confidence: number;
+      answeredQuestions: number;
+      totalQuestions: number;
+    };
+  };
 }
 
 export interface ScoutState {

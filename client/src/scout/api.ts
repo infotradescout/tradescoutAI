@@ -48,6 +48,11 @@ export interface SendToScoutOptions {
   roles?: string[];
   recentActivity?: RecentActivityEvent[];
   shownAdIds?: string[];
+  // D2 Client Wiring: Onboarding fields
+  onboarding?: boolean;
+  sessionId?: string;
+  onboardingAnswer?: string;
+  onboardingQuestionKey?: 'Q1' | 'Q2' | 'Q3' | 'Q4';
 }
 
 export interface SponsoredResult {
@@ -213,6 +218,11 @@ export async function sendToScout(
     roles: options.roles ?? [],
     recentActivity: options.recentActivity ?? [],
     shownAdIds: options.shownAdIds ?? [],
+    // D2 Client Wiring: Pass onboarding fields if present
+    ...(options.onboarding !== undefined && { onboarding: options.onboarding }),
+    ...(options.sessionId !== undefined && { sessionId: options.sessionId }),
+    ...(options.onboardingAnswer !== undefined && { onboardingAnswer: options.onboardingAnswer }),
+    ...(options.onboardingQuestionKey !== undefined && { onboardingQuestionKey: options.onboardingQuestionKey }),
   };
 
   const res = await fetch(`${apiBase}/scout`, {
