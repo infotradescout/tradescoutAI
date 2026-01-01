@@ -262,4 +262,43 @@ export const createBreadcrumbStructuredData = (items: Array<{name: string, url: 
   }))
 });
 
+export const createPlaceStructuredData = (county: {
+  name: string;
+  state: string;
+  stateCode: string;
+  fipsCode: string;
+}) => ({
+  "@context": "https://schema.org",
+  "@type": "Place",
+  "name": `${county.name}, ${county.stateCode}`,
+  "areaServed": {
+    "@type": "AdministrativeArea",
+    "name": county.name,
+    "areaType": "County",
+    "containedIn": {
+      "@type": "State",
+      "name": county.state,
+      "addressCountry": "US"
+    }
+  },
+  "url": window.location.href,
+  "identifier": county.fipsCode
+});
+
+export const createAdministrativeAreaStructuredData = (area: {
+  name: string;
+  areaType: string;
+  state: string;
+}) => ({
+  "@context": "https://schema.org",
+  "@type": "AdministrativeArea",
+  "name": area.name,
+  "areaType": area.areaType,
+  "containedIn": {
+    "@type": "State",
+    "name": area.state,
+    "addressCountry": "US"
+  }
+});
+
 // Deprecated duplicate; use the top-level createFAQStructuredData instead
