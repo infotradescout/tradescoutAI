@@ -9,6 +9,7 @@ import type {
 } from "./state";
 import { validateAction } from "./actionValidation";
 import { CommunityCTA } from "@/components/community/CommunityCTA";
+import { OnboardingPrompt } from "./OnboardingPrompt";
 
 type ScoutThreadProps = {
   messages: ScoutMessage[];
@@ -18,6 +19,15 @@ type ScoutThreadProps = {
   onQuickAction?: (text: string) => void;
   onOverride?: (option: NonNullable<ScoutMessage["overrideOption"]>) => void;
   overridePendingScope?: string | null;
+  onOnboardingAnswer?: (payload: {
+    sessionId: string;
+    questionKey: 'Q1' | 'Q2' | 'Q3' | 'Q4';
+    value: string;
+  }) => void;
+  onOnboardingSkip?: (payload: {
+    sessionId: string;
+    questionKey: 'Q1' | 'Q2' | 'Q3' | 'Q4';
+  }) => void;
 };
 
 function ClusterCard({
@@ -148,9 +158,36 @@ const ScoutThread: React.FC<ScoutThreadProps> = ({
   onQuickAction,
   onOverride,
   overridePendingScope,
+  onOnboardingAnswer,
+  onOnboardingSkip,
 }) => {
   const [progress, setProgress] = React.useState(0);
   const phaseStartRef = React.useRef<number | null>(null);
+
+  /**
+   * Handle onboarding question answers - delegate to parent (ScoutOS)
+   */
+  const handleOnboardingAnswer = (payload: {
+    sessionId: string;
+    questionKey: 'Q1' | 'Q2' | 'Q3' | 'Q4';
+    value: string;
+  }) => {
+    if (onOnboardingAnswer) {
+      onOnboardingAnswer(payload);
+    }
+  };
+
+  /**
+   * Handle onboarding question skip - delegate to parent (ScoutOS)
+   */
+  const handleOnboardingSkip = (payload: {
+    sessionId: string;
+    questionKey: 'Q1' | 'Q2' | 'Q3' | 'Q4';
+  }) => {
+    if (onOnboardingSkip) {
+      onOnboardingSkip(payload);
+    }
+  };
 
   // Reset progress whenever Scout is fully idle or in an error state.
   React.useEffect(() => {
@@ -417,6 +454,16 @@ const ScoutThread: React.FC<ScoutThreadProps> = ({
                     </button>
                   ))}
                 </div>
+              )}
+
+              {/* Onboarding Prompt: Render if server sent onboarding metadata with active question */}
+              {!isUser && msg.onboarding && msg.onboarding.onboardingQuestion && (
+                <OnboardingPrompt
+                  onboarding={msg.onboarding}
+                  mode="card"
+                  onAnswer={handleOnboardingAnswer}
+                  onSkip={handleOnboardingSkip}
+                />
               )}
             </div>
           </div>
