@@ -50,7 +50,7 @@ function mapTaskCategoryToTradeSlug(categoryId: string | null | undefined): stri
   return mapping[categoryId] ?? null;
 }
 
-export default function TasksHub() {
+export default function TasksHub({ defaultCountyFips }: { defaultCountyFips?: string }) {
   const { user, isAuthenticated } = useAuth();
   const { unreadCount } = useNotifications();
   const { toast } = useToast();
@@ -59,6 +59,12 @@ export default function TasksHub() {
   const [activeTab, setActiveTab] = useState("browse");
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("");
+
+  // Phase 1: County selection (defaults to user.countyFips or URL param, with override affordance)
+  const [selectedCountyFips, setSelectedCountyFips] = useState<string | undefined>(
+    defaultCountyFips || user?.countyFips || undefined
+  );
+  const [showCountySelector, setShowCountySelector] = useState(false);
 
   const [taskTitle, setTaskTitle] = useState("");
   const [taskDescription, setTaskDescription] = useState("");
@@ -100,11 +106,11 @@ export default function TasksHub() {
   const { data: recommendedProviders, isLoading: providersLoading } = useQuery<TopContractor[]>({
     queryKey: [
       "/api/contractors/top",
-      user?.countyFips || null,
+      selectedCountyFips || null,
       tradeSlugForCategory || null,
     ],
     queryFn: async () => {
-      const county = user?.countyFips;
+      const county = selectedCountyFips;
       const trade = tradeSlugForCategory;
       if (!county || !trade) return [];
 
@@ -117,7 +123,7 @@ export default function TasksHub() {
       if (!response.ok) throw new Error("Failed to fetch recommended providers");
       return response.json();
     },
-    enabled: isAuthenticated && !!user?.countyFips && !!tradeSlugForCategory,
+    enabled: isAuthenticated && !!selectedCountyFips && !!tradeSlugForCategory,
   });
 
   const createTaskMutation = useMutation({
@@ -126,6 +132,7 @@ export default function TasksHub() {
       if (!taskTitle.trim()) throw new Error("Title is required");
       if (!taskDescription.trim()) throw new Error("Description is required");
       if (!Number.isFinite(payAmount) || payAmount <= 0) throw new Error("Pay amount must be a positive number");
+      if (!selectedCountyFips) throw new Error("County is required");
 
       return apiRequest("POST", "/api/direct-connect/requests", {
         title: taskTitle.trim(),
@@ -133,6 +140,7 @@ export default function TasksHub() {
         category: taskCategoryId || undefined,
         budgetMin: payAmount,
         budgetMax: payAmount,
+        countyFips: selectedCountyFips,
         targetContractorIds: selectedProviderIds.length ? selectedProviderIds : undefined,
       });
     },
@@ -201,11 +209,23 @@ export default function TasksHub() {
             <Card className="bg-navy-800 border-navy-700 mb-6">
               <CardHeader className="pb-4">
                 <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-                  <h2 className="text-lg font-semibold text-white">Active coordination</h2>
-                  <p className="text-sm text-gray-300 max-w-xl">
-                    These are the things you're currently trying to get done. Scout, your community, and local providers all
-                    coordinate from here.
-                  </p>
+                  <div className="flex-1">
+                    <h2 className="text-lg font-semibold text-white">Active coordination</h2>
+                    <p className="text-sm text-gray-300 max-w-xl mt-1">
+                      These are the things you're currently trying to get done. Scout, your community, and local providers all
+                      coordinate from here.
+                    </p>
+                  </div>
+                  {selectedCountyFips && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="border-orange-500 text-orange-300 hover:bg-orange-500/10 md:w-auto"
+                      onClick={() => setShowCountySelector(true)}
+                    >
+                      Change area
+                    </Button>
+                  )}
                 </div>
               </CardHeader>
               <CardContent>
@@ -539,6 +559,66 @@ export default function TasksHub() {
             </Card>
           </TabsContent>
         </Tabs>
+
+        {/* County Selector Dialog - Phase 1 Telemetry Support */}
+        <Dialog open={showCountySelector} onOpenChange={setShowCountySelector}>
+          <DialogContent className="bg-navy-900 border-navy-700">
+            <DialogHeader>
+              <DialogTitle className="text-white">Change your area</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4 text-sm text-gray-300">
+              <p>
+                Your current area: <span className="font-semibold text-orange-300">{selectedCountyFips || "Not set"}</span>
+              </p>
+              <p className="text-xs text-gray-400">
+                Enter a county FIPS code to see contractors and requests for a different area. You can always change this again.
+              </p>
+              <Input
+                type="text"
+                placeholder="Enter county FIPS code (e.g., 04013 for Maricopa, AZ)"
+                defaultValue={selectedCountyFips || ""}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    const newFips = (e.target as HTMLInputElement).value.trim();
+                    if (newFips) {
+                      setSelectedCountyFips(newFips);
+                      setShowCountySelector(false);
+                      // Telemetry: dc.county_override
+                    }
+                  }
+                }}
+                className="bg-navy-600 border-navy-500 text-white"
+              />
+              <div className="flex justify-end gap-2">
+                <Button
+                  variant="outline"
+                  className="border-gray-500 text-gray-300"
+                  onClick={() => setShowCountySelector(false)}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  className="bg-orange-500 hover:bg-orange-600"
+                  onClick={() => {
+                    const input = document.querySelector(
+                      'input[placeholder="Enter county FIPS code (e.g., 04013 for Maricopa, AZ)"]'
+                    ) as HTMLInputElement | null;
+                    if (input) {
+                      const newFips = input.value.trim();
+                      if (newFips) {
+                        setSelectedCountyFips(newFips);
+                        setShowCountySelector(false);
+                        // Telemetry: dc.county_override
+                      }
+                    }
+                  }}
+                >
+                  Change area
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
   );

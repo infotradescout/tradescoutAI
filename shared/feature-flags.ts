@@ -20,6 +20,12 @@ export const FEATURE_FLAGS = {
   USER_DASHBOARDS: true,
   MESSAGING_SYSTEM: true,
   PAYMENT_SYSTEM: true,
+
+  // Phase 3B: Jurisdiction-aware routing feature flags
+  ENABLE_COUNTY_DEFAULTS: true, // Global flag to enable/disable county-aware defaults
+  COUNTY_DEFAULTS_DIRECT_CONNECT: true, // County preselection in Direct Connect
+  COUNTY_DEFAULTS_SCOUT: true, // Scout context injection for county bias
+  COUNTY_DEFAULTS_COMMUNITY: true, // Community feed county-first defaults
 } as const;
 
 export type FeatureFlag = keyof typeof FEATURE_FLAGS;
