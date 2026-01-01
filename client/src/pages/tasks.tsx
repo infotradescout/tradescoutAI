@@ -13,6 +13,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { useNotifications } from "@/hooks/useNotifications";
 import { apiRequest } from "@/lib/queryClient";
+import { recordActivity } from "@/agent/activity";
 import type { WorkRequest, TaskCategory } from "@shared/schema";
 import { Checkbox } from "@/components/ui/checkbox";
 
@@ -75,6 +76,32 @@ export default function TasksHub({ defaultCountyFips }: { defaultCountyFips?: st
   const [taskSchedulingType, setTaskSchedulingType] = useState<"asap" | "scheduled" | "flexible">("asap");
 
   const [selectedProviderIds, setSelectedProviderIds] = useState<string[]>([]);
+
+  // Telemetry: Track when county defaults are applied from URL params (Phase 1)
+  useEffect(() => {
+    if (defaultCountyFips && selectedCountyFips === defaultCountyFips) {
+      try {
+        // Pilot flag enforcement: only fire for traderscornerllc@gmail.com
+        if (user?.email === "traderscornerllc@gmail.com") {
+          recordActivity({
+            type: "dc.county_default_applied",
+            ts: new Date().toISOString(),
+            path: window.location.pathname,
+            meta: {
+              surface: "direct_connect",
+              scope: "county",
+              countyFips: defaultCountyFips,
+              source: new URLSearchParams(window.location.search).has("county") ? "county_page" : "manual_change",
+              sessionId: sessionStorage.getItem("sessionId") || crypto.randomUUID(),
+              asOf: new Date().toISOString(),
+            },
+          });
+        }
+      } catch {
+        // fire-and-forget: ignore telemetry failures
+      }
+    }
+  }, [defaultCountyFips, user]);
 
   const { data: workRequests, isLoading: requestsLoading } = useQuery<WorkRequest[]>({
     queryKey: ["/api/direct-connect/requests", selectedCategory],
@@ -580,10 +607,31 @@ export default function TasksHub({ defaultCountyFips }: { defaultCountyFips?: st
                 onKeyDown={(e) => {
                   if (e.key === "Enter") {
                     const newFips = (e.target as HTMLInputElement).value.trim();
-                    if (newFips) {
+                    if (newFips && newFips !== selectedCountyFips) {
+                      // Telemetry: dc.county_override (Enter key)
+                      try {
+                        // Pilot flag enforcement: only fire for traderscornerllc@gmail.com
+                        if (user?.email === "traderscornerllc@gmail.com") {
+                          recordActivity({
+                            type: "dc.county_override",
+                            ts: new Date().toISOString(),
+                            path: typeof window !== "undefined" ? window.location.pathname : "",
+                            meta: {
+                              surface: "direct_connect",
+                              scope: "county",
+                              countyFips: newFips,
+                              source: "manual_change",
+                              sessionId: sessionStorage.getItem("sessionId") || crypto.randomUUID(),
+                              asOf: new Date().toISOString(),
+                              previousCounty: selectedCountyFips,
+                            },
+                          });
+                        }
+                      } catch {
+                        // fire-and-forget: ignore telemetry failures
+                      }
                       setSelectedCountyFips(newFips);
                       setShowCountySelector(false);
-                      // Telemetry: dc.county_override
                     }
                   }
                 }}
@@ -605,10 +653,31 @@ export default function TasksHub({ defaultCountyFips }: { defaultCountyFips?: st
                     ) as HTMLInputElement | null;
                     if (input) {
                       const newFips = input.value.trim();
-                      if (newFips) {
+                      if (newFips && newFips !== selectedCountyFips) {
+                        // Telemetry: dc.county_override (button click)
+                        try {
+                          // Pilot flag enforcement: only fire for traderscornerllc@gmail.com
+                          if (user?.email === "traderscornerllc@gmail.com") {
+                            recordActivity({
+                              type: "dc.county_override",
+                              ts: new Date().toISOString(),
+                              path: typeof window !== "undefined" ? window.location.pathname : "",
+                              meta: {
+                                surface: "direct_connect",
+                                scope: "county",
+                                countyFips: newFips,
+                                source: "manual_change",
+                                sessionId: sessionStorage.getItem("sessionId") || crypto.randomUUID(),
+                                asOf: new Date().toISOString(),
+                                previousCounty: selectedCountyFips,
+                              },
+                            });
+                          }
+                        } catch {
+                          // fire-and-forget: ignore telemetry failures
+                        }
                         setSelectedCountyFips(newFips);
                         setShowCountySelector(false);
-                        // Telemetry: dc.county_override
                       }
                     }
                   }}

@@ -15,6 +15,7 @@ import { useToast } from '@/hooks/use-toast';
 import { share } from "@/utils/share";
 import { apiRequest } from '@/lib/queryClient';
 import { uploadObject } from '@/lib/objectUpload';
+import { recordActivity } from "@/agent/activity";
 import { TradeScoutIcon } from '@/components/TradeScoutIcons';
 import { useLocationContext, hasCountyContext } from '@/hooks/useLocationContext';
 import { CountyRequiredGate } from '@/components/CountyRequiredGate';
@@ -258,6 +259,64 @@ const CommunityFeed = memo(function CommunityFeed() {
   }, [route]);
 
   const effectiveScope = (scopeFromRoute as string | null) || "county";
+  const previousScopeRef = useRef<string>("county");
+
+  // Telemetry: Track when community feed defaults to county scope
+  useEffect(() => {
+    if (effectiveScope === "county" && countyCommitted) {
+      try {
+        // Pilot flag enforcement: only fire for traderscornerllc@gmail.com
+        if (user?.email === "traderscornerllc@gmail.com") {
+          recordActivity({
+            type: "community.county_default",
+            ts: new Date().toISOString(),
+            path: typeof window !== "undefined" ? window.location.pathname : "",
+            meta: {
+              surface: "community",
+              scope: "county",
+              countyFips: countyFips || undefined,
+              stateCode: stateCode || undefined,
+              source: new URLSearchParams(window.location.search).has("scope") ? "manual_change" : "nav",
+              sessionId: sessionStorage.getItem("sessionId") || crypto.randomUUID(),
+              asOf: new Date().toISOString(),
+            },
+          });
+        }
+      } catch {
+        // fire-and-forget: ignore telemetry failures
+      }
+    }
+  }, [effectiveScope, countyCommitted, countyFips, stateCode, user]);
+
+  // Telemetry: Track when user changes scope (county <-> state <-> all)
+  useEffect(() => {
+    if (effectiveScope !== previousScopeRef.current) {
+      const previousScope = previousScopeRef.current;
+      previousScopeRef.current = effectiveScope;
+      try {
+        // Pilot flag enforcement: only fire for traderscornerllc@gmail.com
+        if (user?.email === "traderscornerllc@gmail.com") {
+          recordActivity({
+            type: "community.scope_override",
+            ts: new Date().toISOString(),
+            path: typeof window !== "undefined" ? window.location.pathname : "",
+            meta: {
+              surface: "community",
+              scope: effectiveScope,
+              countyFips: effectiveScope === "county" ? countyFips : undefined,
+              stateCode: effectiveScope === "state" ? stateCode : undefined,
+              source: "manual_change",
+              sessionId: sessionStorage.getItem("sessionId") || crypto.randomUUID(),
+              asOf: new Date().toISOString(),
+              previousScope,
+            },
+          });
+        }
+      } catch {
+        // fire-and-forget: ignore telemetry failures
+      }
+    }
+  }, [effectiveScope, countyFips, stateCode, user]);
 
   // Fetch posts from the API scoped to the user's county and nav scope
   const { data: postsData, isLoading: postsLoading } = useQuery<Post[]>({
