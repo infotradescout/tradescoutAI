@@ -1,6 +1,6 @@
 import { memo, useState, useRef, useEffect, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { MessageSquare, Zap, TrendingUp, MoreHorizontal, Image, Video, Calendar, Compass, Users2, Crown, Award, Flag, Plus, SlidersHorizontal, Trophy, BarChart3, Share, Target, Heart, Send, Tag, MapPin, Eye, HelpCircle, Wrench, Lightbulb, AlertTriangle, DollarSign } from 'lucide-react';
+import { MessageSquare, Zap, TrendingUp, MoreHorizontal, Image, Video, Calendar, Compass, Users2, Crown, Award, Flag, Plus, SlidersHorizontal, Trophy, BarChart3, Share, Target, Heart, Send, Tag, MapPin, Eye, HelpCircle, Wrench, Lightbulb, AlertTriangle, DollarSign, Globe } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -248,7 +248,7 @@ const CommunityFeed = memo(function CommunityFeed() {
   const countyFips = location.countyFips as string | undefined;
   const countyCommitted = hasCountyContext(location);
 
-  // Read scope from query params (driven by CommunityTopNav)
+  // Read scope from query params
   const scopeFromRoute = useMemo(() => {
     if (!route) return null;
     const idx = route.indexOf("?");
@@ -258,8 +258,16 @@ const CommunityFeed = memo(function CommunityFeed() {
     return params.get("scope");
   }, [route]);
 
-  const effectiveScope = (scopeFromRoute as string | null) || "county";
-  const previousScopeRef = useRef<string>("county");
+  // Phase 1: Global community toggle (default: local/county)
+  const effectiveScope = (scopeFromRoute as string | null) || "local";
+  const isGlobalView = effectiveScope === "global";
+  const previousScopeRef = useRef<string>("local");
+  
+  // Toggle scope handler (Phase 1: UI toggle)
+  const handleScopeToggle = (newScope: "local" | "global") => {
+    const currentPath = route.split("?")[0];
+    navigate(`${currentPath}?scope=${newScope}`);
+  };
 
   // Telemetry: Track when community feed defaults to county scope
   useEffect(() => {
@@ -326,15 +334,20 @@ const CommunityFeed = memo(function CommunityFeed() {
       countyFips,
       effectiveScope,
     ],
-    enabled: countyCommitted,
+    // Phase 1: Global view doesn't require county commitment
+    enabled: isGlobalView || countyCommitted,
     queryFn: async () => {
       const params = new URLSearchParams({
-        scope: effectiveScope,
-        stateCode: stateCode!,
-        countyFips: countyFips!,
+        scope: isGlobalView ? 'global' : effectiveScope,
         limit: '20',
         offset: '0',
       });
+      
+      // Only include geo params for local scope
+      if (!isGlobalView && stateCode && countyFips) {
+        params.set('stateCode', stateCode);
+        params.set('countyFips', countyFips);
+      }
 
       const response = await fetch(`/api/community/posts?${params.toString()}`);
       if (!response.ok) throw new Error('Failed to fetch posts');
@@ -834,6 +847,54 @@ const CommunityFeed = memo(function CommunityFeed() {
             onFilterChange={setActiveTab}
           />
         )}
+        
+        {/* Phase 1: Global Community Toggle (read-only visibility) */}
+        <div className="mb-4 flex items-center justify-between gap-4">
+          <div className="flex items-center gap-2 bg-[color:var(--surface-card)] border border-[color:var(--border-subtle)] rounded-full p-1">
+            <button
+              onClick={() => handleScopeToggle("local")}
+              className={`px-4 py-1.5 rounded-full text-sm font-medium transition-all ${
+                !isGlobalView
+                  ? 'bg-orange-500 text-white shadow-md shadow-orange-500/25'
+                  : 'text-[color:var(--text-secondary)] hover:text-[color:var(--text-primary)]'
+              }`}
+            >
+              <MapPin className="inline h-4 w-4 mr-1" />
+              Local
+            </button>
+            <button
+              onClick={() => handleScopeToggle("global")}
+              className={`px-4 py-1.5 rounded-full text-sm font-medium transition-all ${
+                isGlobalView
+                  ? 'bg-orange-500 text-white shadow-md shadow-orange-500/25'
+                  : 'text-[color:var(--text-secondary)] hover:text-[color:var(--text-primary)]'
+              }`}
+            >
+              <Globe className="inline h-4 w-4 mr-1" />
+              Everywhere
+            </button>
+          </div>
+        </div>
+        
+        {/* Phase 1: Global view notice (prevents confusion) */}
+        {isGlobalView && (
+          <Card className="mb-4 bg-orange-500/10 border-orange-500/30">
+            <CardContent className="p-4">
+              <div className="flex items-start gap-3">
+                <Globe className="h-5 w-5 text-orange-400 mt-0.5 flex-shrink-0" />
+                <div className="space-y-1">
+                  <p className="text-sm font-medium text-[color:var(--text-primary)]">
+                    You're viewing posts from across the community
+                  </p>
+                  <p className="text-xs text-[color:var(--text-secondary)]">
+                    To connect with someone, Scout will help you decide if it makes sense.
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+        
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-8">
           {/* Main Feed */}
           <div className="lg:col-span-2 space-y-3 md:space-y-6">
