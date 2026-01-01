@@ -4,6 +4,7 @@ import type { SuperAdminNavSection, SuperAdminNavItem } from "./superAdminNav";
 
 interface SuperAdminLeftNavProps {
   sections: SuperAdminNavSection[];
+  onNavigate?: () => void;
 }
 
 function isItemActive(pathname: string, item: SuperAdminNavItem): boolean {
@@ -13,7 +14,7 @@ function isItemActive(pathname: string, item: SuperAdminNavItem): boolean {
   return false;
 }
 
-export function SuperAdminLeftNav({ sections }: SuperAdminLeftNavProps) {
+export function SuperAdminLeftNav({ sections, onNavigate }: SuperAdminLeftNavProps) {
   const [location, setLocation] = useLocation();
 
   return (
@@ -40,7 +41,10 @@ export function SuperAdminLeftNav({ sections }: SuperAdminLeftNavProps) {
                 <button
                   key={item.id}
                   type="button"
-                  onClick={() => setLocation(item.path)}
+                  onClick={() => {
+                    setLocation(item.path);
+                    if (onNavigate) onNavigate();
+                  }}
                   className={`w-full flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors text-left border
                     ${
                       active

@@ -242,14 +242,17 @@ const MyTradeScoutPage = memo(function MyTradeScoutPage() {
                     You can tell TradeScout more about how you use the platform in Profile Settings.
                   </p>
                 )}
-                <div className="pt-3 flex flex-wrap gap-2">
+                <div className="pt-3 flex flex-wrap gap-2 thumb-action-row">
                   <Link href="/profile-settings">
                     <Button variant="outline" size="sm" className="h-8 text-xs">
                       Update profile & roles
                     </Button>
                   </Link>
                   <Link href="/scout">
-                    <Button size="sm" className="h-8 text-xs bg-orange-600 hover:bg-orange-700 text-white">
+                    <Button
+                      size="sm"
+                      className="h-8 text-xs bg-orange-600 hover:bg-orange-700 text-white thumb-primary-action"
+                    >
                       Ask Scout about my next step
                     </Button>
                   </Link>

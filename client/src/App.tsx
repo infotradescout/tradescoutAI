@@ -1031,19 +1031,27 @@ const App = memo(function App() {
   // VERIFICATION: Ensure this is the REAL TradeScout App being loaded
   console.log('✅ REAL TRADE SCOUT APP LOADED - client/src/App.tsx');
 
+  // Thumb-zone UX toggle: wrap the entire app in a root class that
+  // can be flipped off or gated to pilots without touching layout
+  // structure. For now this is a simple constant; reversing the
+  // behavior is a one-line change.
+  const enableThumbUX = true;
+
   return (
-    <ErrorBoundary fallback={<PageLoader />}>
-      <QueryClientProvider client={queryClient}>
-        <ThemeProvider>
-          <SessionProvider>
-            <ThemeApplier />
-            <Router>
-              <AppLayout />
-            </Router>
-          </SessionProvider>
-        </ThemeProvider>
-      </QueryClientProvider>
-    </ErrorBoundary>
+    <div className={`app-root ${enableThumbUX ? 'thumb-ux' : ''}`}>
+      <ErrorBoundary fallback={<PageLoader />}>
+        <QueryClientProvider client={queryClient}>
+          <ThemeProvider>
+            <SessionProvider>
+              <ThemeApplier />
+              <Router>
+                <AppLayout />
+              </Router>
+            </SessionProvider>
+          </ThemeProvider>
+        </QueryClientProvider>
+      </ErrorBoundary>
+    </div>
   );
 });
 
