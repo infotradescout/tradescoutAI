@@ -11,4 +11,4 @@ Disallow: /scout/
 Disallow: /auth/
 Disallow: /api/
 
-Sitemap: https://www.thetradescout.com/sitemap-index.xml
+Sitemap: https://www.thetradescout.com/sitemap.xml
