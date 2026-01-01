@@ -759,6 +759,46 @@ export const tradeRequirements = pgTable("trade_requirements", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
+// Scout Snapshots — Dynamic user identity inference
+// Replaces hard-coded roles with signal-inferred identity snapshots
+// B1/B2: Snapshot model implementation
+export const snapshots = pgTable("snapshots", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  snapshotId: varchar("snapshot_id").unique().notNull(), // Unique per computation
+  computedAt: timestamp("computed_at").notNull().defaultNow(),
+  
+  // Inferred identity
+  primaryRole: varchar("primary_role").notNull(), // homeowner, contractor, vendor, admin, unknown
+  secondaryRoles: text("secondary_roles").array().default([]),
+  
+  // Confidence scores
+  primaryRoleConfidence: numeric("primary_role_confidence", { precision: 3, scale: 2 }).notNull(), // 0.00-1.00
+  secondaryRoleConfidences: jsonb("secondary_role_confidences").$type<Record<string, number>>(),
+  
+  // Decision confidence
+  decisionConfidence: varchar("decision_confidence").notNull(), // low, medium, high
+  
+  // Signals that contributed
+  signals: jsonb("signals").$type<any>().notNull(),
+  
+  // Validity & decay
+  validUntil: timestamp("valid_until").notNull(),
+  confidenceDecayRate: numeric("confidence_decay_rate", { precision: 3, scale: 2 }).default("0.05"),
+  
+  // Metadata
+  version: varchar("version").default("1.0"),
+  experimental: boolean("experimental").default(false),
+  tags: text("tags").array().default([]),
+  
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+}, (table) => [
+  index("idx_snapshots_user_id").on(table.userId),
+  index("idx_snapshots_validity").on(table.userId, table.validUntil),
+  uniqueIndex("idx_snapshots_unique_per_user").on(table.userId, table.snapshotId),
+]);
+
 // Contractors table
 export const contractors = pgTable("contractors", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),

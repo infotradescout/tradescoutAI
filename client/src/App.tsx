@@ -544,23 +544,16 @@ const AppLayout = memo(function AppLayout() {
                 </ProtectedRoute>
               </Route>
 
-                {/* Auth routes */}
+                {/* Auth routes — canonical signup is /create-account; all others redirect */}
                   <Route path="/login"><LazyPage Component={Login} /></Route>
-                  <Route path="/register">
-                    <RedirectTo to="/create-account" />
-                  </Route>
-                  <Route path="/signup"><LazyPage Component={Signup} /></Route>
+                  <Route path="/register"><RedirectTo to="/create-account" /></Route>
+                  <Route path="/signup"><RedirectTo to="/create-account" /></Route>
                   <Route path="/create-account"><LazyPage Component={CreateAccount} /></Route>
-                  <Route path="/onboarding/profile"><LazyPage Component={OnboardingProfile} /></Route>
                   <Route path="/onboarding/intent"><LazyPage Component={OnboardingIntent} /></Route>
 
                   {/* Legacy auth URLs: redirect old /auth/* paths to current routes */}
-                  <Route path="/auth/login">
-                    <RedirectTo to="/login" />
-                  </Route>
-                  <Route path="/auth/signup">
-                    <RedirectTo to="/create-account" />
-                  </Route>
+                  <Route path="/auth/login"><RedirectTo to="/login" /></Route>
+                  <Route path="/auth/signup"><RedirectTo to="/create-account" /></Route>
                   <Route path="/address-verification"><LazyPage Component={AddressVerification} /></Route>
                   <Route path="/unauthorized"><LazyPage Component={Unauthorized} /></Route>
 
@@ -1036,9 +1029,10 @@ const App = memo(function App() {
   // structure. For now this is a simple constant; reversing the
   // behavior is a one-line change.
   const enableThumbUX = true;
+  const enableDarkDepth = true;
 
   return (
-    <div className={`app-root ${enableThumbUX ? 'thumb-ux' : ''}`}>
+    <div className={`app-root ${enableThumbUX ? 'thumb-ux' : ''} ${enableDarkDepth ? 'dark-depth' : ''}`}>
       <ErrorBoundary fallback={<PageLoader />}>
         <QueryClientProvider client={queryClient}>
           <ThemeProvider>

@@ -407,18 +407,53 @@ export function registerSocialFeatures(app: Express) {
         return res.status(404).json({ message: "User not found" });
       }
 
-      // Only verified users can initiate contact
-      if (!(initiator as any).addressVerified) {
-        return res.status(403).json({ 
-          message: "You must complete address verification before contacting others" 
+      // ========================================
+      // VERIFICATION GATE (C2-3): Action-triggered, not upfront
+      // ========================================
+      // C2 Pattern: Check verification requirements when action is executed
+      // NOT when user navigates to messaging UI
+      
+      // Asymmetric verification (C2-4):
+      // - Sender (initiator) must verify address to send
+      // - Recipient is checked but not blocking (may not be verified yet)
+      
+      const missingInitiatorVerification = !(initiator as any).addressVerified;
+      const recipientUnverified = !(recipient as any).addressVerified;
+
+      // If initiator (sender) is not verified, offer verification with alternate path
+      if (missingInitiatorVerification) {
+        // Import the C2-2 helper
+        const { buildVerificationGateResponse } = await import('../utils/explainAndOfferVerification');
+        
+        const gateResponse = buildVerificationGateResponse({
+          action: 'MESSAGE_USER',
+          missingRequirements: ['address'],
+          userRole: (initiator as any).role,
+          targetUserId: targetUserId,
+          targetRole: (recipient as any).role,
+          context: { conversationId, intent },
+        });
+
+        // Return Scout-style response with verification option + alternate path
+        // User can either verify OR use Scout-mediated contact
+        return res.status(200).json({
+          ...gateResponse,
+          // Include context so client can retry after verification
+          verificationRequired: {
+            action: 'MESSAGE_USER',
+            retryPath: `/api/user/${targetUserId}/conversations`,
+            context: { targetUserId, intent },
+          },
         });
       }
 
-      // Only verified users can be contacted
-      if (!(recipient as any).addressVerified) {
-        return res.status(403).json({ 
-          message: "This user is not verified for messaging" 
-        });
+      // If recipient (target) is not verified, WARN but don't block
+      // (They may have been recently created; messaging can still happen)
+      if (recipientUnverified) {
+        console.warn(
+          `[Messaging] Recipient ${targetUserId} is not verified. Conversation may have limited success.`
+        );
+        // Continue; don't block. Scout can explain risk in UI if needed.
       }
 
       // ========================================

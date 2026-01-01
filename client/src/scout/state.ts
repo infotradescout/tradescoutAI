@@ -70,6 +70,10 @@ export interface ScoutAction {
   path?: string;
   prompt?: string;
   payload?: Record<string, unknown>;
+  subtitle?: string;
+  why?: string;
+  _scoutWhy?: string;
+  primary?: boolean;
 }
 
 export interface ScoutToolCall {

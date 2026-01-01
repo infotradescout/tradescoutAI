@@ -114,8 +114,27 @@ function AdminContentRouter() {
     return <AdminGeoCoverageConsole />;
   }
 
+  if (subPath === "/impersonate") {
+    // Deep-link into the admin workspace, which already hosts
+    // the RoleImpersonation tool. We keep all logic in the
+    // existing workspace component and only route from the
+    // Super Admin OS shell.
+    return <AdminWorkspaceContent />;
+  }
+
   if (subPath === "/errors" || subPath === "/error-reports") {
     return <AdminErrorReports />;
+  }
+
+  // Growth & Marketplace: reuse the legacy Admin Panel tabs
+  // for Ads and Prizes while keeping everything inside the
+  // Super Admin OS shell.
+  if (subPath === "/ads") {
+    return <AdminPanelTabRedirect tab="advertisements" />;
+  }
+
+  if (subPath === "/prizes") {
+    return <AdminPanelTabRedirect tab="prizes" />;
   }
 
   if (subPath === "/pricing" || subPath === "/pricing-analytics") {
@@ -158,6 +177,22 @@ function AdminContentRouter() {
     return <AdminAffiliates />;
   }
 
+  // Platform Ops: Site and contractor settings, plus
+  // notification ops, are still administered via the
+  // consolidated Admin Panel tabs. We deep-link into those
+  // tabs instead of duplicating logic.
+  if (subPath === "/site-settings") {
+    return <AdminPanelTabRedirect tab="site-settings" />;
+  }
+
+  if (subPath === "/contractors") {
+    return <AdminPanelTabRedirect tab="contractor-settings" />;
+  }
+
+  if (subPath === "/notifications") {
+    return <AdminPanelTabRedirect tab="notification-ops" />;
+  }
+
   if (subPath === "/testing" || subPath === "/testing-controls") {
     return <AdminTestingControls />;
   }
@@ -190,6 +225,12 @@ function AdminContentRouter() {
     return <PlatformAnalytics />;
   }
 
+   // Intelligence & Automation: LLM admin / knowledge upload
+   // still live inside the Admin Panel as a dedicated tab.
+   if (subPath === "/llm" || subPath === "/knowledge") {
+     return <AdminPanelTabRedirect tab="llm-admin" />;
+   }
+
   if (subPath === "/moderation") {
     return <ContentModeration />;
   }
@@ -200,6 +241,16 @@ function AdminContentRouter() {
 
   // For now, any unmapped admin path under /admin is treated as an unknown tool.
   return <UnknownAdminRoute />;
+}
+
+function AdminPanelTabRedirect({ tab }: { tab: string }) {
+  const [, navigate] = useLocation();
+
+  React.useEffect(() => {
+    navigate(`/admin/panel?tab=${encodeURIComponent(tab)}`);
+  }, [navigate, tab]);
+
+  return <PageLoadingSpinner message="Opening admin workspace..." />;
 }
 
 function SuperAdminDashboard() {

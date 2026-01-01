@@ -1,15 +1,26 @@
-TradeScout Copilot Authority Contract (v1.1 — Canonical)
+TradeScout Copilot Authority Contract
+
+v1.2 — Canonical + Scout v1 Execution Layer (Binding)
 
 This document is binding.
+
 If any instruction, code change, suggestion, or AI behavior conflicts with this document, the AI must pause and ask the operator (Thomas) for clarification before proceeding.
+
+This contract exists to prevent drift, enforce outcome quality, and protect valuation.
 
 0. Operator Authority & Escalation (Highest Priority)
 
-Thomas is the final authority on product meaning, monetization philosophy, and system behavior.
+Thomas is the final authority on:
 
-When uncertainty exists, the AI must ask Thomas — not guess, not reinterpret, not proceed partially.
+Product meaning
 
-Mandatory escalation protocol
+Monetization philosophy
+
+Trust and verification behavior
+
+System intent and user outcomes
+
+Mandatory Escalation Protocol
 
 If an instruction touches or could affect:
 
@@ -25,28 +36,33 @@ Geographic readiness / coverage logic
 
 User-visible behavior with unclear intent
 
-The AI must stop and ask using this format:
+The AI must stop and ask using this exact format:
 
 Issue: what is ambiguous
-
 Impact: what could change if guessed
-
 Options: up to 3 concrete paths
-
 Question: one direct question to Thomas
 
-Until clarified, no code or behavior changes may be made.
+Until clarified:
+
+❌ No code changes
+
+❌ No partial implementation
+
+❌ No reinterpretation
 
 1. Identity & Mission (Frozen)
-What TradeScout is
+What TradeScout IS
 
-TradeScout is a trust-verified, relevance-controlled local marketing and transaction infrastructure where:
+TradeScout is a trust-verified, relevance-controlled local operating system where:
 
-Users can fully participate without being charged.
+Users can fully participate without being charged
 
-Promotions (ads, boosts, deals, TradeDeals/affiliates) are shown only when contextually relevant.
+Promotions are shown only when contextually relevant
 
-The system prioritizes conversion quality and trust, not impression volume.
+Conversion quality and trust outrank impressions and revenue
+
+Community + transactions + discovery are orchestrated together
 
 What TradeScout is NOT
 
@@ -54,18 +70,19 @@ Not a SaaS subscription product for users
 
 Not a generic ad network
 
-Not a social network driven by open-ended feeds
+Not a feed-driven social network
 
-Core principles (non-negotiable)
+Core Principles (Non-Negotiable)
 
-AI chat is the primary controller of the site.
+AI chat (Scout) is the primary controller
 
-UI pages/components are surfaces/tools the AI orchestrates.
+UI pages are surfaces/tools Scout orchestrates
 
-Promotion is suppressed by default unless eligibility + relevance are satisfied.
+Promotion is suppressed by default
 
-Never charge users to participate.
-Any paid tools must be:
+Users are never charged to participate
+
+Paid tools (allowed only if):
 
 Optional
 
@@ -73,11 +90,11 @@ Non-blocking
 
 Cost + $1
 
-Treated as a business/marketing expense.
+Treated as a business/marketing expense
 
 2. Canonical Authority Systems (Single Sources of Truth)
 
-The following systems define truth and must not be duplicated or reinterpreted:
+The following systems define truth and must never be duplicated or reinterpreted:
 
 Admin OS (Authority Plane)
 
@@ -89,15 +106,15 @@ No structural/nav refactors unless adding a new tool using the same pattern
 
 Geographic Readiness Engine
 
-County-level readiness states (unassigned / partial / full)
+County-level states: unassigned / partial / full
 
-Verified Coverage Rate and time-based deltas
+Verified Coverage Rate + deltas
 
-Logic lives in one backend service and is consumed by UI
+Logic lives only in backend service
 
 Promotion Eligibility & Relevance Engine
 
-Decides if a user should see:
+Determines eligibility for:
 
 Ads (local / regional / national)
 
@@ -107,7 +124,7 @@ Local business deals
 
 MealScout-style promotions
 
-TradeDeals / affiliate offers
+TradeDeals / affiliates
 
 Rule: suppression by default
 
@@ -115,150 +132,230 @@ Trust / CVS Gating
 
 Trust-weighted control of promotion visibility
 
-Spend alone must never override trust constraints
+Spend must never override trust
 
 Monetization Rules (Frozen)
 
-Allowed revenue:
+Allowed revenue
 
-Paid boosts (marketplace + local deals)
+Paid boosts
 
 MealScout-style promotions
 
-Ads (local / regional / national)
+Ads
 
 Marketplace transaction fees
 
-Community Builder donations (with redistribution)
+Community Builder donations (redistributed)
 
-Affiliate / TradeDeals revenue share
+Affiliate / TradeDeals revenue
 
 Optional cost-plus-$1 tools
 
-Forbidden:
+Forbidden
 
 Charging users to participate
 
-Paywalls for core functionality
+Paywalls on core flows
 
-Degrading usability for non-payment
+Degrading non-paying users
 
 3. Relevance-Only Promotion Rules (Critical)
 
-Users must never see ads or TradeDeals that do not apply to their life, interests, or context.
+Users must never see irrelevant promotions
 
-Promotions are shown only when alignment is present.
+Alignment is required (context + intent)
 
-The system may gently guide users toward relevant offers but must never spam or interrupt core flows.
+Guidance is allowed; spam is not
 
-Enforcement rules
+Enforcement
 
-If relevance or eligibility is unclear → do not show promotion.
+If relevance or eligibility is unclear → suppress
 
-Promotion decisions must be internally explainable (admin/observability).
+All promo decisions must be internally explainable
 
-Relevance always outranks revenue.
+Relevance always outranks revenue
 
 3.1 Context-Aware Static Language (Aggregated Only)
 
-Static site language may adapt using aggregated, location- and interest-scoped data only.
+Static language may adapt using aggregated, scoped data only.
 
-Personalized copy must:
+Allowed
 
-- Use only group-level, time-bounded aggregates (e.g. "contractors in Maricopa County completed 31 projects last month").
-- Be backed by a real, server-side query or aggregate endpoint (no client-side guesswork or mock stats).
-- Degrade gracefully to neutral, non-numeric language when data is unavailable or ambiguous.
+Group-level, time-bounded aggregates
 
-Personalized copy must not:
+Server-side queries only
 
-- Reference individual behavior (e.g. searches, clicks, conversions, messages) or private signals.
-- Invent or interpolate counts, earnings, performance, or rankings.
-- Leak any user-specific detail that could feel like surveillance.
+Graceful neutral fallback
 
-If an aggregate endpoint is unavailable or returns an error, the correct behavior is to suppress numbers and show neutral copy such as "New listings are being added in your area" rather than fabricating values.
+Forbidden
 
-4. Chat-First Control Plane
-AI chat as controller
+Individual behavior references
 
-From the chat, users should be able to:
+Invented stats
+
+Surveillance-like language
+
+If aggregates are unavailable → suppress numbers.
+
+4. Scout-First Control Plane (Expanded)
+Scout as Controller
+
+From chat, users must be able to:
 
 Perform major site actions
 
-Receive messages with attached links and actions
+Navigate via explicit actions
 
-Have the agent read/write to knowledge bases and caches
+Complete full A→Z flows
 
-Build order (mandatory)
+Mandatory Build Order
 
-When adding or changing features:
+Chat path (intent → decision → action)
 
-Design the chat path first (intent → tool → response + links/actions)
+Tool execution
 
-Then implement or adjust the UI surface
+UI surface (if needed)
+
+4.1 Scout v1 Execution Guarantees (NEW — Binding)
+
+Every Scout response must:
+
+Answer the user’s question
+
+Provide at least one actionable path
+
+Never leave the user at a dead end
+
+Include community when applicable
+
+Be shaped by confidence
+
+Confidence-Shaped Options
+
+Low confidence: 1 primary + community
+
+Medium confidence: up to 2 options
+
+High confidence: 1 decisive option (+ override)
+
+Defaults
+
+Hiring / connection flows default to Direct Connect
+
+Community path is included when:
+
+confidence is low, OR
+
+locality exists, OR
+
+urgency is high
+
+End-State Rule
+
+Scout may never return:
+
+empty actions
+
+empty suggestedActions
+
+“just text” with no outcome
+
+4.2 Hire vs DIY Pattern (NEW)
+
+For “how-to” or provider-search intents:
+
+Primary: Hire / Direct Connect
+
+Secondary: DIY / Learn
+
+Both must include:
+
+why this option exists
+
+full A→Z flow
+
+4.3 Deals & Promotions in Scout (NEW)
+
+If deals are shown:
+
+Max 3
+
+Clearly labeled “Paid recommendation”
+
+Include why relevant
+
+Must never be prioritized because paid
+
+Suppressed when:
+
+low confidence AND
+
+no locality
+
+Scout must never create a situation where:
+
+A user clicks a deal they cannot redeem
+
+Eligibility is discovered after the click
 
 5. Chat Message Model (Typed & Actionable)
 
-Chat messages must support:
+Messages must support:
 
 Structured text
 
-Explicit links (rendered as UI elements, not hidden URLs)
+Explicit links
 
-Explicit actions (navigation, tool calls)
+Explicit actions
 
-Do not embed navigation or actions inside raw text.
+Do not hide navigation inside text.
 
-Every new chat feature must define:
+Each feature must define:
 
-Message text
+Text
 
-Attached links
+Links
 
-Attached actions
+Actions
 
-Typed message/action patterns from the original document remain valid and encouraged.
+Why (internal or visible)
 
 6. Agent Tools Layer (No Ad-Hoc Fetching)
 
-Core capabilities must be exposed via typed tool wrappers (e.g. src/agent/tools/*).
+Core behavior via typed tools
 
-UI components must not scatter raw fetch() calls for core behavior.
+No raw fetch scattered in UI
 
-Required pattern:
+Pattern:
 
-Tool wrapper (backend interaction)
-
-Agent calls tool
-
-Agent emits message + links/actions
-
-Optional richer UI page
+Tool → Agent → Message + Actions
 
 7. Knowledge Base & Caching
 
-Long-lived user or community data must go through a knowledge/caching abstraction.
+Durable context via KB layer
 
-Do not store durable context in local React state.
+No DB writes from UI
 
-UI components must not write directly to DB/storage.
+No long-lived React state for truth
 
 8. Protected Zones (Hard Lock)
 
-The AI may not modify the following without explicit approval from Thomas naming exact files and intent:
+May not be modified without explicit approval:
 
-Authority Plane (Admin OS, config, guards)
+Admin OS
 
-Geographic Readiness computation logic
+Geo readiness logic
 
-Promotion Eligibility & Relevance logic
+Promotion eligibility
 
 Trust / CVS logic
 
-Monetization rules or pricing philosophy
+Monetization philosophy
 
-Role and permission semantics
+Authority semantics
 
-If unsure whether a change touches a protected zone → escalate.
+If unsure → escalate.
 
 9. Change Protocol (No Silent Drift)
 
@@ -266,89 +363,75 @@ Every change must state:
 
 What changed
 
-Why it changed
+Why
 
 Which principle it enforces
 
-What it does not change
+What it does NOT change
 
-How to verify (route, page, or API)
+How to verify
 
-Refactors that alter behavior require explicit approval.
+Behavior-changing refactors require approval.
 
 10. Pilot Rollout (Scoped)
 
-Pilot-first rollout is now scoped to high-risk, user-facing changes only.
-
-Pilot user:
+Pilot user
 
 traderscornerllc@gmail.com
 
-Pilot-first is REQUIRED for:
+Pilot-first required for
 
-- End-user messaging and chat behavior (Scout conversation flows)
-- Promotion / TradeDeals / monetization behavior
-- Trust / CVS logic that changes what normal users see
+Scout conversation behavior
 
-Pilot-first is NOT required for:
+Promotion / monetization behavior
 
-- Admin-only tools and consoles (Admin OS, Geo Tools, coverage consoles)
-- Pure observability / diagnostics / analytics views
-- Backend-only selectors, metrics, and storage helpers
+Trust / CVS changes
 
-Rules:
+Not required for
 
-- Pilot flag must be server-derived (auth payload) when used.
-- Client may branch on that flag only for the REQUIRED categories above.
-- Admin-only features may go directly to all authorized admins (role-gated) without a pilot gate.
-- Graduation to GA for pilot-gated flows still requires an explicit decision.
+Admin OS
+
+Observability
+
+Backend helpers
 
 11. Dev & Build Discipline
 
-Always read package.json for script names.
+Read package.json
 
-Keep builds green.
+Keep builds green
 
-Fix problems; do not remove features because they are hard.
+Never ship mock data
 
-Never ship mock data in production flows.
+Fix problems — don’t delete them
 
 12. Brand Boundaries
 
-This codebase is TradeScout only.
+TradeScout only
 
-Do not mix Trader’s Corner.
+No Trader’s Corner
 
-Do not add MealScout as a separate brand.
+MealScout only as a promotion type
 
-MealScout-style promotions may exist only as a promotion type within TradeScout.
+13. Legacy Rules (Preserved Verbatim)
 
-13. Legacy Operational Rules (Explicit Carryover)
+Never ship mock data
 
-These rules are intentionally preserved verbatim from the original document and remain binding:
+Always use real data
 
-Never give mock data, placeholders, or stubs in production code.
+Always fix problems
 
-Always use real data fetching and handling patterns.
+Improve existing systems
 
-Always fix problems; do not remove functionality because it is hard to fix.
+Preserve functionality
 
-Always prefer improving what exists over replacing it.
-
-Always use the best available AI model for the task.
-
-Preserve existing functionality unless explicitly instructed otherwise.
+Use best available model
 
 Final Rule
 
 When in doubt:
 
 Ask Thomas
-
-Get clarification
-
+Get clarity
 Implement narrowly
-
 Verify explicitly
-
-This contract exists to stabilize TradeScout, prevent AI drift, and protect the valuation thesis.
