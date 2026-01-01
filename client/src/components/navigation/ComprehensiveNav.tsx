@@ -88,8 +88,8 @@ interface NavItem {
 const ALL_NAVIGATION: NavItem[] = [
   // CORE PLATFORM
   {
-    label: 'Home',
-    href: '/dashboard',
+    label: 'My TradeScout',
+    href: '/my-tradescout',
     icon: Home,
   },
   {
@@ -177,13 +177,13 @@ const ALL_NAVIGATION: NavItem[] = [
       { label: 'Realtor Application', href: '/realtor-application', icon: UserPlus },
       { label: 'Car Sales Dashboard', href: '/car-salesman-dashboard', icon: Car, roles: ['car_salesman'] },
       { label: 'Car Sales Application', href: '/car-salesman-application', icon: UserPlus },
-      { label: 'Dealer Dashboard', href: '/dealer-dashboard', icon: Car },
+      // Dealer Dashboard deprecated in favor of action-aware flows
       { label: 'Dealer Application', href: '/dealer-application', icon: UserPlus },
-      { label: 'Insurance Dashboard', href: '/insurance-agent-dashboard', icon: Shield, roles: ['insurance_agent'] },
+      // Insurance Dashboard deprecated in favor of action-aware flows
       { label: 'Insurance Application', href: '/insurance-agent-application', icon: UserPlus },
-      { label: 'Mortgage Dashboard', href: '/mortgage-broker-dashboard', icon: DollarSign, roles: ['mortgage_broker'] },
+      // Mortgage Dashboard deprecated in favor of action-aware flows
       { label: 'Mortgage Application', href: '/mortgage-broker-application', icon: UserPlus },
-      { label: 'Property Manager Dashboard', href: '/property-manager-dashboard', icon: Building2, roles: ['property_manager'] },
+      // Property Manager Dashboard deprecated in favor of action-aware flows
       { label: 'Property Manager Application', href: '/property-manager-application', icon: UserPlus },
       // Calculator and financial tools hidden from nav, contextual only
     ],

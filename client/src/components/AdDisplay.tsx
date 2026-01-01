@@ -249,18 +249,10 @@ export function useUserLocation() {
   }>({});
 
   useEffect(() => {
-    // Try to get location from user's browser or IP
-    // For now, we'll use a placeholder - in production this could use:
-    // - Browser geolocation API
-    // - IP-based location service
-    // - User's profile location if available
-    
-    // Mock location for demo (you would replace with actual location detection)
-    setLocation({
-      state: "CA",
-      county: "Los Angeles County", 
-      fips: "06037"
-    });
+    // Location is currently unknown in production; callers must
+    // treat missing state/county/fips as "no geo targeting available".
+    // When a real location pipeline is added (geolocation/IP/profile),
+    // this hook should be updated to use it instead of a hard-coded value.
   }, []);
 
   return location;

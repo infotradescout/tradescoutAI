@@ -16,7 +16,8 @@ import {
   Zap,
   Target,
   Award,
-  TrendingUp
+  TrendingUp,
+  ClipboardList
 } from "lucide-react";
 import { AdDisplay, useUserLocation } from "@/components/AdDisplay";
 import { InteractiveCountyMap } from "@/components/InteractiveCountyMap";
@@ -193,28 +194,6 @@ export default function Home() {
             </CardContent>
           </Card>
         </Link>
-
-        <Link href="/growth-pack">
-          <Card className="bg-gradient-to-r from-orange-500/20 to-orange-600/20 border-orange-500/30 card-enhanced cursor-pointer glow-orange">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-3">
-                  <div className="w-12 h-12 bg-orange-500/30 rounded-lg flex items-center justify-center glow-orange-strong">
-                    <TrendingUp className="h-6 w-6 text-orange-500" />
-                  </div>
-                  <div>
-                    <h3 className="text-white font-semibold">For Contractors</h3>
-                    <p className="text-gray-500 text-sm">Legacy Growth Pack resources (retired)</p>
-                  </div>
-                </div>
-                <Badge className="bg-orange-500 text-white">
-                  FREE
-                </Badge>
-              </div>
-            </CardContent>
-          </Card>
-          {/* Legacy Growth Pack card retired */}
-          </div>
       </div>
 
       {/* Platform Statistics */}

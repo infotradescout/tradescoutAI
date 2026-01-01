@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
 import { storage } from '../storage';
-import { eq, desc, and, gte, lte, sql } from 'drizzle-orm';
+import { eq, desc, and, gte, lte, sql, type SQL } from 'drizzle-orm';
 import { dailyDeals, dealEngagements, userAffiliates, promotions } from '@shared/schema';
 
 // Mock data for when database is offline
@@ -123,12 +123,11 @@ export async function getDailyDeals(req: Request, res: Response) {
       }
 
       // Time window: optional start/end
-      whereClauses.push(
-        and(
-          sql`(promotions.starts_at IS NULL OR promotions.starts_at <= ${now})`,
-          sql`(promotions.ends_at IS NULL OR promotions.ends_at >= ${now})`
-        )
-      );
+      const timeWindow = and(
+        sql`(promotions.starts_at IS NULL OR promotions.starts_at <= ${now})`,
+        sql`(promotions.ends_at IS NULL OR promotions.ends_at >= ${now})`
+      ) as SQL<unknown>;
+      whereClauses.push(timeWindow);
 
       const rows = await storage.listPromotions({
         status: 'active',
@@ -182,18 +181,8 @@ export async function getDailyDeals(req: Request, res: Response) {
 
       return res.json(deals);
     } catch (dbError) {
-      console.log('Promotions view failed, using legacy/mocks for daily deals');
-      // Filter mock deals based on query parameters
-      const deals = mockDeals
-        .filter((deal) => {
-          if (county && deal.countyFips !== county) return false;
-          if (featured === 'true' && !deal.featured) return false;
-          if (dealType && deal.dealType !== dealType) return false;
-          return deal.isActive;
-        })
-        .slice(0, max);
-
-      return res.json(deals);
+      console.error('Promotions view failed, daily deals unavailable:', dbError);
+      return res.status(503).json({ message: 'Daily deals are temporarily unavailable' });
     }
   } catch (error) {
     console.error('Error fetching daily deals:', error);

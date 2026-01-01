@@ -15,8 +15,9 @@ router.get("/authority-diagnostics", async (req, res) => {
     return res.status(401).json({ message: "Unauthorized" });
   }
 
-    // Role-based access gate
-    if (!req.user || (req.user.role !== "super_admin" && req.user.role !== "head_admin")) {
+    // Role-based access gate (use claims.role from auth payload)
+    const role = (req.user as any)?.role ?? (req.user as any)?.claims?.role;
+    if (!role || (role !== "super_admin" && role !== "head_admin")) {
     return res.status(403).json({ message: "Admin access required" });
   }
 

@@ -13,9 +13,11 @@ export default function Help() {
   useEffect(() => {
     try {
       void trackShellEvent({
-        type: "help_home_view",
-        path: "/help",
-        ts: new Date().toISOString(),
+        type: "community_shell_nav_click",
+        fromPath: "/community",
+        toPath: "/help",
+        deviceType: "desktop",
+        hasUnreadNotifications: false,
       });
     } catch {
       // Ignore analytics failures.

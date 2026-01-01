@@ -1330,6 +1330,16 @@ interface ScoutResponse {
     redirect?: string;
     resolvedContext?: ResolvedContext | null;
     currentJobId?: string;
+    governorAction?: string;
+    governorRole?: string;
+    governorReasoning?: string;
+    situation?: {
+      goal: string;
+      risks: import("../scout/governor").Risk[];
+      unknowns: string[];
+      confidence: "low" | "medium" | "high";
+    };
+    outcomeGraph?: import("../scout/governor").OutcomeGraph | null;
   };
 }
 
@@ -2054,6 +2064,9 @@ router.post("/", async (req: Request, res: Response) => {
     const wantsWelcomeDraft = isWelcomeIntroRequest(message);
     const wantsExchangeListingDraft = isExchangeListingRequest(message);
 
+    // Load system prompt (with version) once so promptVersion is available
+    const { content: systemPrompt, version: promptVersion } = loadSystemPrompt();
+
     // ==========================================================================
     // GOVERNOR MODE: Situation-driven intelligence
     // ==========================================================================
@@ -2063,7 +2076,7 @@ router.post("/", async (req: Request, res: Response) => {
       message,
       user,
       history,
-      recentActivity,
+      recentActivity: recentActivity.map((a) => ({ type: a.type, timestamp: a.ts })),
       countyCode,
       stateCode,
     });
@@ -2184,9 +2197,6 @@ router.post("/", async (req: Request, res: Response) => {
     const communityPostItems: any[] = Array.isArray((knowledge.meta as any)?.communityPosts?.items)
       ? ((knowledge.meta as any).communityPosts.items as any[])
       : [];
-
-    // Load system prompt (with version)
-    const { content: systemPrompt, version: promptVersion } = loadSystemPrompt();
 
     // If no LLM providers configured, return a structured offline response so app can be tested
     if (!llmAvailable) {

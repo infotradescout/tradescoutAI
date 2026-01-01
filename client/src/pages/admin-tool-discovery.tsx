@@ -11,12 +11,25 @@ type ToolBlueprint = {
   id: string;
   name: string;
   description: string;
-  status: 'pending_review' | 'approved' | 'rejected' | 'archived';
+  status: 'proposed' | 'approved' | 'rejected' | 'archived' | 'implemented' | 'merged';
   priority: 'critical' | 'high' | 'medium' | 'low';
+  problemStatement: string;
+  estimatedImpact: {
+    timesSaved: number;
+    outcomeImprovement: string;
+    regretPrevention: string;
+  };
+  frequency: number;
+  affectedUsers: number;
+  primitivesUsed: string[];
   exampleConversations: Array<{
     userId: string;
     context: string;
+    message: string;
+    workaround: string;
   }>;
+  riskLevel: 'low' | 'medium' | 'high';
+  reviewNotes?: string;
 };
 
 export default function ToolDiscoveryAdmin() {
@@ -321,6 +334,7 @@ function BlueprintCard({
     rejected: "text-red-400 bg-red-950",
     implemented: "text-blue-400 bg-blue-950",
     merged: "text-purple-400 bg-purple-950",
+    archived: "text-charcoal-400 bg-charcoal-900",
   };
 
   return (

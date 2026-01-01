@@ -5,15 +5,10 @@ import { Loader2 } from 'lucide-react';
 import { trackShellEvent } from '@/lib/analytics';
 import { OrientationCard } from '@/components/orientation/OrientationCard';
 
-// Import all role-specific dashboards
+// Import dashboards
 const SimpleHome = lazy(() => import('@/pages/SimpleHome'));
 const ContractorDashboard = lazy(() => import('@/pages/contractor-dashboard'));
 const RealtorDashboard = lazy(() => import('@/pages/realtor-dashboard'));
-const DealerDashboard = lazy(() => import('@/pages/dealer-dashboard'));
-const CarSalesmanDashboard = lazy(() => import('@/pages/car-salesman-dashboard'));
-const InsuranceAgentDashboard = lazy(() => import('@/pages/insurance-agent-dashboard'));
-const MortgageBrokerDashboard = lazy(() => import('@/pages/mortgage-broker-dashboard'));
-const PropertyManagerDashboard = lazy(() => import('@/pages/property-manager-dashboard'));
 const HOADashboard = lazy(() => import('@/pages/hoa-dashboard'));
 const BusinessOwnerDashboard = lazy(() => import('@/pages/business-owner-dashboard'));
 const AdminDashboard = lazy(() => import('@/pages/admin-dashboard'));
@@ -114,7 +109,8 @@ const RoleDashboardRouter = memo(function RoleDashboardRouter() {
   }
 
   // Everyone gets the unified activity/interest-based Dashboard
-  // Role-based routing removed per user request
+  // Role-based dashboards (insurance/mortgage/property/dealer, etc.) are deprecated
+  // and no longer routed here.
   const getDashboardComponent = () => {
     // Legacy admin roles still get their specific dashboards
     if (user.role === 'super_admin' || user.role === 'head_admin') {

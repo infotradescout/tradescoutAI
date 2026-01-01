@@ -191,6 +191,7 @@ const HowTradeScoutWorks = React.lazy(() => import('./pages/how-tradescout-works
 const Invite = React.lazy(() => import('./pages/invite'));
 const CustomDashboard = React.lazy(() => import('./pages/Dashboard'));
 const DashboardSettings = React.lazy(() => import('./pages/DashboardSettings'));
+const MyTradeScoutPage = React.lazy(() => import('./pages/my-tradescout'));
 const RoleDashboardRouter = React.lazy(() => import('./components/RoleDashboardRouter'));
 const DashboardJobs = React.lazy(() => import('./pages/dashboard-jobs'));
 const RecommendationGeneratorPage = React.lazy(() => import('./pages/contractor/recommendation-generator'));
@@ -200,12 +201,14 @@ const ContractorDashboard = React.lazy(() => import('./pages/contractor-dashboar
 const HomeownerDashboard = React.lazy(() => import('./pages/homeowner-dashboard'));
 const RealtorDashboard = React.lazy(() => import('./pages/realtor-dashboard'));
 const StoryGeneratorPage = React.lazy(() => import('./pages/StoryGeneratorPage'));
-const DealerDashboard = React.lazy(() => import('./pages/dealer-dashboard'));
+// DealerDashboard deprecated in favor of unified dashboard
+// const DealerDashboard = React.lazy(() => import('./pages/dealer-dashboard'));
 const CarSalesmanDashboard = React.lazy(() => import('./pages/car-salesman-dashboard'));
 const HelperDashboard = React.lazy(() => import('./pages/helper-dashboard'));
-const InsuranceAgentDashboard = React.lazy(() => import('./pages/insurance-agent-dashboard'));
-const PropertyManagerDashboard = React.lazy(() => import('./pages/property-manager-dashboard'));
-const MortgageBrokerDashboard = React.lazy(() => import('./pages/mortgage-broker-dashboard'));
+// Role-specific KPI dashboards (insurance/property/mortgage) deprecated
+// const InsuranceAgentDashboard = React.lazy(() => import('./pages/insurance-agent-dashboard'));
+// const PropertyManagerDashboard = React.lazy(() => import('./pages/property-manager-dashboard'));
+// const MortgageBrokerDashboard = React.lazy(() => import('./pages/mortgage-broker-dashboard'));
 // const StaffDashboard = React.lazy(() => import('./pages/staff-dashboard'));
 
 // Applications
@@ -520,6 +523,11 @@ const AppLayout = memo(function AppLayout() {
               </Route>
 
               {/* Dashboard routes (auth required) */}
+              <Route path="/my-tradescout">
+                <ProtectedRoute>
+                  <LazyPage Component={MyTradeScoutPage} />
+                </ProtectedRoute>
+              </Route>
               <Route path="/dashboard">
                 <ProtectedRoute>
                   <LazyPage Component={RoleDashboardRouter} />
@@ -717,11 +725,6 @@ const AppLayout = memo(function AppLayout() {
                       <LazyPage Component={RealtorDashboard} />
                     </ProtectedRoute>
                   </Route>
-                  <Route path="/dealer-dashboard">
-                    <ProtectedRoute>
-                      <LazyPage Component={DealerDashboard} />
-                    </ProtectedRoute>
-                  </Route>
                   <Route path="/car-salesman-dashboard">
                     <ProtectedRoute>
                       <LazyPage Component={CarSalesmanDashboard} />
@@ -732,21 +735,9 @@ const AppLayout = memo(function AppLayout() {
                       <LazyPage Component={HelperDashboard} />
                     </ProtectedRoute>
                   </Route>
-                  <Route path="/insurance-agent-dashboard">
-                    <ProtectedRoute>
-                      <LazyPage Component={InsuranceAgentDashboard} />
-                    </ProtectedRoute>
-                  </Route>
-                  <Route path="/property-manager-dashboard">
-                    <ProtectedRoute>
-                      <LazyPage Component={PropertyManagerDashboard} />
-                    </ProtectedRoute>
-                  </Route>
-                  <Route path="/mortgage-broker-dashboard">
-                    <ProtectedRoute>
-                      <LazyPage Component={MortgageBrokerDashboard} />
-                    </ProtectedRoute>
-                  </Route>
+                  {/* Role-specific KPI dashboards (dealer/insurance/property/mortgage) have been
+                      deprecated in favor of the unified, action-aware dashboard. Routes are
+                      intentionally removed to avoid exposing mock performance metrics. */}
                   {/* Staff dashboard route is disabled for now while we stabilize core flows */}
                   {/*
                   <Route path="/staff-dashboard">

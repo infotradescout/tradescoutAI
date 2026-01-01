@@ -325,7 +325,7 @@ function SuperAdminDashboard() {
             </CardDescription>
           </div>
           <Link href="/admin/geo/coverage">
-            <Button size="xs" variant="outline" className="text-[11px]">
+            <Button size="sm" variant="outline" className="text-[11px]">
               Open full console
             </Button>
           </Link>

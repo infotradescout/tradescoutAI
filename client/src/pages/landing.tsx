@@ -12,6 +12,8 @@ import { BugReportButton } from "@/components/BugReportButton";
 import { SEOHelmet, createWebsiteStructuredData, createOrganizationStructuredData, createFAQStructuredData } from "@/components/SEOHelmet";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useAuth } from "@/hooks/useAuth";
+import { useLocationContext } from "@/hooks/useLocationContext";
+import { useContextualCopy } from "@/hooks/useContextualCopy";
 
 export default function Landing() {
   const { user, isAuthenticated } = useAuth();
@@ -22,6 +24,7 @@ export default function Landing() {
   const [isGuestMode, setIsGuestMode] = useState(false);
   const [, setLocation] = useLocation();
   const userLocation = useUserLocation();
+  const locationCtx = useLocationContext();
 
   const addressParts = user?.address?.split(',').map((part: string) => part.trim()).filter(Boolean) || [];
   const addressDerivedCommunity = addressParts[1] || addressParts[0] || "";
@@ -29,6 +32,14 @@ export default function Landing() {
   const communityLabel = rawCommunity.trim();
   const heroCommunity = isAuthenticated && communityLabel ? communityLabel : "Your Community";
   const ownerName = user?.firstName || user?.lastName || "you";
+
+  const { line: contextualHeroLine } = useContextualCopy({
+    stateCode: locationCtx.stateCode,
+    countyFips: locationCtx.countyFips,
+    interest: "auto_dealers",
+    timeframe: "7d",
+    fallback: "New local activity will show up here as TradeScout onboards more neighbors in your area.",
+  });
 
   const handleGuestContinue = () => {
     setIsGuestMode(true);
@@ -103,9 +114,7 @@ export default function Landing() {
               <span className="text-orange-500"> In {heroCommunity}</span>
             </h1>
             <p className="text-base md:text-xl text-gray-300 mb-6 md:mb-8 max-w-3xl mx-auto px-2">
-              {isAuthenticated
-                ? `${ownerName}, this workspace is yours—connect with verified pros and run projects for ${heroCommunity}.`
-                : "Connect with verified, local contractors. Get quotes, read recommendations, and hire with confidence."}
+              {contextualHeroLine}
             </p>
 
             {/* County Search */}

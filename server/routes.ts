@@ -11910,6 +11910,138 @@ export async function registerRoutes(app: any) {
     }
   });
 
+  // ==================== CONTEXTUAL AGGREGATES (STATIC LANGUAGE SUPPORT) ====================
+
+  // Read-only aggregate endpoint backing context-aware but non-creepy static language.
+  // This intentionally exposes only group-level counts that can be backed by real queries.
+  // If locality is missing or counts are zero, callers should fall back to neutral copy.
+  app.get('/api/aggregates/context', async (req: any, res: any) => {
+    try {
+      const stateCode = typeof req.query.stateCode === 'string' ? req.query.stateCode : undefined;
+      const countyFips = typeof req.query.countyFips === 'string' ? req.query.countyFips : undefined;
+      const timeframe = typeof req.query.timeframe === 'string' ? req.query.timeframe : undefined;
+
+      // For now we support a single interest segment representing auto-related providers.
+      const interests: string[] = ['auto_dealers'];
+
+      // If we have no locality hints at all, return a neutral, data-empty payload.
+      if (!stateCode && !countyFips) {
+        res.json({
+          location: null,
+          interests,
+          activity: {
+            auto_dealers: {
+              last_7_days: null,
+              last_30_days: null,
+            },
+          },
+          asOf: new Date().toISOString().slice(0, 10),
+        });
+        return;
+      }
+
+      const now = new Date();
+      const from7 = new Date(now);
+      from7.setDate(from7.getDate() - 7);
+      const from30 = new Date(now);
+      from30.setDate(from30.getDate() - 30);
+
+      const roleFilter = inArray(users.role, ['car_dealer', 'auto_service']);
+      const localityFilters: any[] = [roleFilter];
+
+      if (stateCode) {
+        localityFilters.push(eq(users.stateCode, stateCode));
+      }
+      if (countyFips) {
+        localityFilters.push(eq(users.countyFips, countyFips));
+      }
+
+      const baseWhere = and(...localityFilters);
+
+      const [rows7, rows30] = await Promise.all([
+        db
+          .select({ count: sql<number>`COUNT(*)` })
+          .from(users)
+          .where(and(baseWhere, gte(users.createdAt, from7))),
+        db
+          .select({ count: sql<number>`COUNT(*)` })
+          .from(users)
+          .where(and(baseWhere, gte(users.createdAt, from30))),
+      ]);
+
+      const count7 = rows7[0]?.count ?? 0;
+      const count30 = rows30[0]?.count ?? 0;
+
+      // Look up a human-friendly county label when we have a FIPS code; otherwise fall back to state-only.
+      let location: { city: string | null; state: string | null; county: string | null } | null = null;
+      if (countyFips) {
+        try {
+          const county = await storage.getCountyByFips(countyFips);
+          if (county) {
+            location = {
+              city: null,
+              state: county.stateCode,
+              county: county.name,
+            };
+          }
+        } catch (err) {
+          console.warn('[aggregates:context] Failed to resolve county by FIPS', err);
+        }
+      }
+
+      if (!location && stateCode) {
+        location = {
+          city: null,
+          state: stateCode,
+          county: null,
+        };
+      }
+
+      const payload = {
+        location,
+        interests,
+        activity: {
+          auto_dealers: {
+            last_7_days: count7 > 0 ? Number(count7) : null,
+            last_30_days: count30 > 0 ? Number(count30) : null,
+          },
+        },
+        asOf: now.toISOString().slice(0, 10),
+      } as const;
+
+      // Light observability: event-level logging with no user identifiers.
+      const scope: 'state' | 'county' = countyFips ? 'county' : 'state';
+      const effectiveTimeframe = timeframe === '30d' ? '30d' : '7d';
+      const seriesForWindow = effectiveTimeframe === '7d'
+        ? payload.activity.auto_dealers.last_7_days
+        : payload.activity.auto_dealers.last_30_days;
+
+      const hasData = seriesForWindow != null;
+
+      try {
+        await storage.logEvent('aggregates.context.requested', {
+          scope,
+          interest: 'auto_dealers',
+          timeframe: effectiveTimeframe,
+          hasData,
+          asOf: payload.asOf,
+          // Explicitly omit any user-identifying fields
+          ipAddress: null,
+          userAgent: null,
+          userId: null,
+          contractorId: null,
+        });
+      } catch (err) {
+        console.warn('[aggregates:context] Failed to log observability event', err);
+      }
+
+      res.json(payload);
+    } catch (error: any) {
+      console.error('[aggregates:context] Failed to compute contextual aggregates', error);
+      res.status(500).json({ message: 'Failed to fetch contextual aggregates' });
+    }
+  });
+
   // County vault balances (community reinvestment)
   app.get('/api/vaults/my-county', isAuthenticated, async (req: any, res: any) => {
     try {

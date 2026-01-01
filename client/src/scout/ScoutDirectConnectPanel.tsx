@@ -128,7 +128,7 @@ function ActiveCoordinationPanel({
         <div className="mt-3 pt-2 border-t border-slate-800 flex justify-end">
           <Button
             type="button"
-            size="xs" asChild={false}
+            size="sm" asChild={false}
             className="h-7 px-3 text-[11px] bg-orange-500 hover:bg-orange-600 text-black font-semibold"
             onClick={onViewBoard}
           >
@@ -160,14 +160,16 @@ export const ScoutDirectConnectPanel: React.FC<ScoutDirectConnectPanelProps> = (
       .map((wr) => {
         const interpreted = interpretWorkRequestStateForScout(wr);
         if (!isActiveCoordinationState(interpreted.state)) return null;
-        return {
+        const base = {
           id: String(wr.id),
           title: wr.title,
           state: interpreted.state,
           primaryPhrase: interpreted.primaryPhrase,
-          secondaryPhrase: interpreted.secondaryPhrase,
           updatedAt: (wr as any).updatedAt ?? null,
-        } satisfies ActiveCoordinationItem;
+        };
+        return interpreted.secondaryPhrase
+          ? ({ ...base, secondaryPhrase: interpreted.secondaryPhrase } as ActiveCoordinationItem)
+          : (base as ActiveCoordinationItem);
       })
       .filter((v): v is ActiveCoordinationItem => v !== null);
   }, [data]);
