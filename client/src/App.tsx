@@ -222,6 +222,11 @@ const PrivacyRequest = React.lazy(() => import('./pages/privacy-request'));
 const About = React.lazy(() => import('./pages/about'));
 const Contact = React.lazy(() => import('./pages/contact'));
 const Pricing = React.lazy(() => import('./pages/pricing'));
+const HowItWorks = React.lazy(() => import('./pages/how-it-works'));
+const TrustModel = React.lazy(() => import('./pages/trust-model'));
+const DirectConnectInfo = React.lazy(() => import('./pages/direct-connect-info'));
+const CompareAngi = React.lazy(() => import('./pages/compare-angi'));
+const CompareHomeAdvisor = React.lazy(() => import('./pages/compare-homeadvisor'));
 const NotFound = React.lazy(() => import('./pages/not-found'));
 const Unauthorized = React.lazy(() => import('./pages/Unauthorized'));
 
@@ -991,6 +996,11 @@ const AppLayout = memo(function AppLayout() {
                   
                   {/* Legal pages */}
                   <Route path="/pricing"><LazyPage Component={Pricing} /></Route>
+                    <Route path="/how-it-works"><LazyPage Component={HowItWorks} /></Route>
+                      <Route path="/trust-model"><LazyPage Component={TrustModel} /></Route>
+                        <Route path="/direct-connect-info"><LazyPage Component={DirectConnectInfo} /></Route>
+                          <Route path="/compare/angi"><LazyPage Component={CompareAngi} /></Route>
+                          <Route path="/compare/homeadvisor"><LazyPage Component={CompareHomeAdvisor} /></Route>
                   <Route path="/terms"><LazyPage Component={Terms} /></Route>
                   <Route path="/privacy"><LazyPage Component={Privacy} /></Route>
                   <Route path="/privacy-request"><LazyPage Component={PrivacyRequest} /></Route>
