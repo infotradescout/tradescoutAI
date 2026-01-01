@@ -165,25 +165,31 @@ export default function Community() {
           // Ignore analytics failures.
         }
       }
-      const isHelpLikeCategory = createdPost?.category === "project" || createdPost?.category === "recommendation";
+      const createdCategory = lastPostTypeRef.current;
+      const isHelpLikeCategory = createdCategory === "project" || createdCategory === "recommendation";
 
       toast({
         title: "Posted!",
         description: isHelpLikeCategory
           ? "Your post is live. If this is a help request, start a Direct Connect request so contractors and helpers can coordinate with you."
           : "Your post has been published to your community feed.",
-        action: {
-          label: "Open Direct Connect",
-          onClick: () => {
-            try {
-              if (typeof window !== "undefined") {
-                window.location.href = "/direct-connect";
+        action: (
+          <button
+            type="button"
+            className="ml-auto inline-flex h-8 items-center justify-center rounded-md border border-orange-500 px-3 text-xs font-medium text-orange-100 hover:bg-orange-500/10"
+            onClick={() => {
+              try {
+                if (typeof window !== "undefined") {
+                  window.location.href = "/direct-connect";
+                }
+              } catch {
+                // best-effort navigation
               }
-            } catch {
-              // best-effort navigation
-            }
-          },
-        },
+            }}
+          >
+            Open Direct Connect
+          </button>
+        ),
       });
     },
     onError: (error: any) => {

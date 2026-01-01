@@ -1,7 +1,5 @@
-// Load dotenv only in development - never in production ESM bundles
-if (process.env.NODE_ENV !== 'production') {
-  await import('dotenv/config');
-}
+// Load dotenv configuration before anything else (safe in all envs)
+import "dotenv/config";
 
 import express, { type Request, Response, NextFunction } from "express";
 import cors from "cors";

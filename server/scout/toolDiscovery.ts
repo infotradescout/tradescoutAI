@@ -392,12 +392,12 @@ export class ToolDiscoveryEngine {
    */
   private amplifyBlueprintFromRegret(regret: RegretEvent): void {
     // Find blueprints that would have prevented this regret
-    for (const [fingerprint, blueprint] of this.blueprints) {
+    for (const [fingerprint, blueprint] of Array.from(this.blueprints.entries())) {
       if (blueprint.status !== "proposed") continue;
       
       // If regret mentions missing info that blueprint would have captured
       const wouldHavePrevented = regret.missingInfo.some(missing =>
-        blueprint.inputs.some(input => 
+        blueprint.inputs.some((input: string) => 
           input.toLowerCase().includes(missing.toLowerCase()) ||
           missing.toLowerCase().includes(input.toLowerCase())
         )
@@ -510,7 +510,7 @@ export class ToolDiscoveryEngine {
    * Approve a blueprint (admin action)
    */
   approveBlueprint(blueprintId: string, adminId: string, notes?: string): void {
-    for (const [fingerprint, blueprint] of this.blueprints) {
+    for (const [fingerprint, blueprint] of Array.from(this.blueprints.entries())) {
       if (blueprint.id === blueprintId) {
         blueprint.status = "approved";
         blueprint.reviewedAt = new Date().toISOString();
@@ -525,7 +525,7 @@ export class ToolDiscoveryEngine {
    * Reject a blueprint (admin action)
    */
   rejectBlueprint(blueprintId: string, adminId: string, reason: string): void {
-    for (const [fingerprint, blueprint] of this.blueprints) {
+    for (const [fingerprint, blueprint] of Array.from(this.blueprints.entries())) {
       if (blueprint.id === blueprintId) {
         blueprint.status = "rejected";
         blueprint.reviewedAt = new Date().toISOString();

@@ -2,6 +2,7 @@ import type { Express, Request, Response } from "express";
 import { isAuthenticated } from "../auth";
 import { db } from "../db";
 import {
+  type WorkRequest,
   workRequests,
   workRequestEvents,
   workRequestAssignments,
@@ -53,7 +54,7 @@ export function registerDirectConnectRoutes(app: Express) {
       }
 
       // Only allow routing for Direct Connect-originated, open requests created by this user
-      if (requestRow.source !== "direct_connect") {
+      if ((requestRow.source as string | null) !== "direct_connect") {
         return res.status(400).json({ message: "Only Direct Connect requests can be routed here" });
       }
 
@@ -335,7 +336,7 @@ export function registerDirectConnectRoutes(app: Express) {
       if (!userId) return res.status(401).json({ message: "Unauthorized" });
 
       const statusRaw = typeof req.query?.status === "string" ? (req.query.status as string) : "";
-      const status = statusRaw.trim();
+      const status = statusRaw.trim() as WorkRequest["status"] | "";
 
       const filters: any[] = [eq(workRequests.createdByUserId, String(userId))];
       if (status) {
@@ -427,7 +428,7 @@ export function registerDirectConnectRoutes(app: Express) {
         return res.status(403).json({ message: "You can only cancel your own requests" });
       }
 
-      if (requestRow.source !== "direct_connect") {
+      if ((requestRow.source as string | null) !== "direct_connect") {
         return res.status(400).json({ message: "Only Direct Connect requests can be cancelled here" });
       }
 
@@ -516,7 +517,7 @@ export function registerDirectConnectRoutes(app: Express) {
         return res.status(403).json({ message: "You can only reopen your own requests" });
       }
 
-      if (requestRow.source !== "direct_connect") {
+      if ((requestRow.source as string | null) !== "direct_connect") {
         return res.status(400).json({ message: "Only Direct Connect requests can be reopened here" });
       }
 

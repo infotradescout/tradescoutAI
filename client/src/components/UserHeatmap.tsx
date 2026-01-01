@@ -4,7 +4,7 @@ import { apiRequest } from "@/lib/queryClient";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Map, Users, TrendingUp, MapPin } from "lucide-react";
+import { Map as MapIcon, Users, TrendingUp, MapPin } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { US_STATES_COUNTIES } from "@shared/states-counties";
 import { geoAlbersUsa, geoPath } from "d3-geo";
@@ -150,6 +150,7 @@ function CountyHeatmapMap({
   selectedFips,
   onSelectCounty,
   metricLabel,
+  lens,
 }: {
   byCounty: Record<string, number>;
   coverageByCounty?: Record<string, CountyCoverageRow>;
@@ -173,7 +174,7 @@ function CountyHeatmapMap({
 
   const allCounties = useMemo<CountySearchResult[]>(() => {
     const results: CountySearchResult[] = [];
-    for (const [fips, info] of FIPS_LOOKUP.entries()) {
+    for (const [fips, info] of Array.from(FIPS_LOOKUP.entries())) {
       results.push({ fips, countyName: info.countyName, stateCode: info.stateCode });
     }
     return results;
@@ -566,7 +567,7 @@ export function UserHeatmap() {
       <div className="flex justify-between items-center">
         <div>
           <h2 className="text-2xl font-bold text-white flex items-center gap-2">
-            <Map className="w-6 h-6 text-orange-500" />
+            <MapIcon className="w-6 h-6 text-orange-500" />
             User Activity Heatmap
           </h2>
           <p className="text-gray-400 mt-1">Geographic distribution of user interactions across the United States</p>
@@ -720,7 +721,7 @@ export function UserHeatmap() {
           <Card className="bg-slate-800 border-slate-700">
             <CardHeader>
               <CardTitle className="text-white flex items-center gap-2">
-                <Map className="w-5 h-5" />
+                <MapIcon className="w-5 h-5" />
                 {viewMode === "counties" && isSuperAdmin ? "County Heatmap (Admin only)" : "Activity Heatmap"}
               </CardTitle>
             </CardHeader>
@@ -869,7 +870,7 @@ export function UserHeatmap() {
                           <div className="mt-3 flex flex-wrap gap-2 text-[11px]">
                             <span className="text-slate-400 mr-2">Actions:</span>
                             <Button
-                              size="xs"
+                              size="sm"
                               variant="outline"
                               disabled={createEntityMutation.isPending}
                               className="h-6 px-2 text-[11px]"
@@ -878,7 +879,7 @@ export function UserHeatmap() {
                               Assign Territory Manager
                             </Button>
                             <Button
-                              size="xs"
+                              size="sm"
                               variant="outline"
                               disabled={createEntityMutation.isPending}
                               className="h-6 px-2 text-[11px]"
@@ -887,7 +888,7 @@ export function UserHeatmap() {
                               Assign Affiliate / Partner
                             </Button>
                             <Button
-                              size="xs"
+                              size="sm"
                               variant="ghost"
                               className="h-6 px-2 text-[11px] text-slate-300"
                               onClick={handleStartNoteForCounty}
@@ -1182,7 +1183,7 @@ export function UserHeatmap() {
 
                   {topLocations.length === 0 && (
                     <div className="text-center py-8 text-gray-400">
-                      <Map className="w-12 h-12 mx-auto mb-3 opacity-50" />
+                      <MapIcon className="w-12 h-12 mx-auto mb-3 opacity-50" />
                       <p>No activity data available for the selected timeframe</p>
                     </div>
                   )}

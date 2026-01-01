@@ -159,6 +159,24 @@ Promotion decisions must be internally explainable (admin/observability).
 
 Relevance always outranks revenue.
 
+3.1 Context-Aware Static Language (Aggregated Only)
+
+Static site language may adapt using aggregated, location- and interest-scoped data only.
+
+Personalized copy must:
+
+- Use only group-level, time-bounded aggregates (e.g. "contractors in Maricopa County completed 31 projects last month").
+- Be backed by a real, server-side query or aggregate endpoint (no client-side guesswork or mock stats).
+- Degrade gracefully to neutral, non-numeric language when data is unavailable or ambiguous.
+
+Personalized copy must not:
+
+- Reference individual behavior (e.g. searches, clicks, conversions, messages) or private signals.
+- Invent or interpolate counts, earnings, performance, or rankings.
+- Leak any user-specific detail that could feel like surveillance.
+
+If an aggregate endpoint is unavailable or returns an error, the correct behavior is to suppress numbers and show neutral copy such as "New listings are being added in your area" rather than fabricating values.
+
 4. Chat-First Control Plane
 AI chat as controller
 

@@ -69,47 +69,8 @@ router.post("/observation-lock", isAuthenticated, requireRole(['head_admin', 'op
 // Decision Card Metrics
 router.get("/decision-card-metrics", isAuthenticated, requireRole(['head_admin', 'ops_admin']), async (req: Request, res: Response) => {
   try {
-    // In production, query from analytics events table
-    // For now, return aggregated mock structure (replace with real query)
-    
-    // This would be: SELECT COUNT(*) FROM activity_events WHERE type = 'decision_card_shown'
-    // GROUP BY meta->scoutAction, meta->choice, etc.
-    
-    const metrics = {
-      totalShown: 0,
-      guidanceDistribution: {
-        COMPLY: 0,
-        DEFER: 0,
-        BLOCK: 0,
-      },
-      choiceSplit: {
-        contact_now: 0,
-        ask_scout: 0,
-        proceed_anyway: 0,
-        cancel: 0,
-        understand_risk: 0,
-      },
-      trend: {
-        shown_7d_change: 0,
-        choice_7d_deltas: {
-          contact_now: 0,
-          ask_scout: 0,
-          proceed_anyway: 0,
-          cancel: 0,
-          understand_risk: 0,
-        },
-      },
-    };
-
-    // TODO: Replace with actual analytics query when events table exists
-    // Example query structure:
-    // const shownEvents = await db.select().from(activityEvents)
-    //   .where(eq(activityEvents.type, 'decision_card_shown'));
-    // 
-    // const choiceEvents = await db.select().from(activityEvents)
-    //   .where(eq(activityEvents.type, 'decision_card_choice'));
-
-    res.json(metrics);
+    // Analytics pipeline not yet wired; return explicit unavailable status
+    return res.status(503).json({ error: "Decision card analytics are not yet available" });
   } catch (error) {
     console.error("Error fetching decision card metrics:", error);
     res.status(500).json({ error: "Failed to fetch metrics" });

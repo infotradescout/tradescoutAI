@@ -25,7 +25,8 @@ interface TradeDeal {
   revealed: boolean;
 }
 
-// Empty array - no deals available yet
+// Empty array - no deals available yet. In production this page does not
+// fabricate deals; if no live feed is wired, it simply shows no cards.
 const MOCK_DEALS: TradeDeal[] = [];
 
 export default function TradeDealsLuckyPage() {

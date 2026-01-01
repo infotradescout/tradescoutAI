@@ -20,6 +20,7 @@ import { computeConfidenceScope, type ConfidenceScope } from "./confidenceScope"
 import { db } from "../db";
 import { toolProposals } from "../../shared/schema";
 import { and, eq, sql } from "drizzle-orm";
+import { toolDiscovery } from "./toolDiscovery";
 
 // Import admin control state
 import {
@@ -257,10 +258,12 @@ export async function inferSituation(args: {
     temporal: {
       urgency,
     },
-    financial: priceMatch ? {
-      estimatedCost: undefined,
-      anchoringRisk: hasPriceQuestion,
-    } : undefined,
+    financial: priceMatch
+      ? {
+          estimatedCost: undefined,
+          anchoringRisk: hasPriceQuestion,
+        }
+      : null,
     trust: {
       verification: "none",
       reputationSignals: [],

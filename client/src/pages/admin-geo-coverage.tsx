@@ -434,7 +434,7 @@ export default function AdminGeoCoverageConsole() {
                         <div className="flex flex-col gap-1">
                           <Button
                             variant="outline"
-                            size="xs"
+                            size="sm"
                             className="h-6 px-2 text-[11px]"
                             onClick={() => {
                               setAssignCounty(row);
@@ -446,7 +446,7 @@ export default function AdminGeoCoverageConsole() {
                           </Button>
                           <Button
                             variant="outline"
-                            size="xs"
+                            size="sm"
                             className="h-6 px-2 text-[11px]"
                             onClick={() => {
                               setAssignAffiliateCounty(row);
@@ -460,7 +460,7 @@ export default function AdminGeoCoverageConsole() {
                           <Link href={`/admin/geo/counties?fips=${row.countyFips}`}>
                             <Button
                               variant="ghost"
-                              size="xs"
+                              size="sm"
                               className="h-6 px-2 text-[11px] text-slate-300"
                             >
                               Open county detail
@@ -578,7 +578,7 @@ export default function AdminGeoCoverageConsole() {
             <Button
               size="sm"
               className="text-xs"
-              disabled={!assignCounty || !selectedTmId || assignTerritoryManager.isLoading}
+              disabled={!assignCounty || !selectedTmId || assignTerritoryManager.isPending}
               onClick={() => {
                 if (!assignCounty || !selectedTmId) return;
                 assignTerritoryManager.mutate({
@@ -587,7 +587,7 @@ export default function AdminGeoCoverageConsole() {
                 });
               }}
             >
-              {assignTerritoryManager.isLoading ? "Assigning…" : "Assign"}
+              {assignTerritoryManager.isPending ? "Assigning…" : "Assign"}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -697,7 +697,7 @@ export default function AdminGeoCoverageConsole() {
             <Button
               size="sm"
               className="text-xs"
-              disabled={!assignAffiliateCounty || !selectedAffiliateUserId || assignAffiliateOrPartner.isLoading}
+              disabled={!assignAffiliateCounty || !selectedAffiliateUserId || assignAffiliateOrPartner.isPending}
               onClick={() => {
                 if (!assignAffiliateCounty || !selectedAffiliateUserId) return;
                 assignAffiliateOrPartner.mutate({
@@ -707,7 +707,7 @@ export default function AdminGeoCoverageConsole() {
                 });
               }}
             >
-              {assignAffiliateOrPartner.isLoading ? "Assigning…" : "Assign"}
+              {assignAffiliateOrPartner.isPending ? "Assigning…" : "Assign"}
             </Button>
           </DialogFooter>
         </DialogContent>
