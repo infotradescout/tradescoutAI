@@ -323,3 +323,68 @@ export function formatValidationErrors(errors: ValidationError[]): string {
 
   return errors.map((e) => `[${e.severity.toUpperCase()}] ${e.field}: ${e.message}`).join('; ');
 }
+
+/**
+ * ClaimEventValidator class wrapper for Phase 3a integration
+ * Provides method-based interface while reusing validation functions
+ */
+export class ClaimEventValidator {
+  /**
+   * Field-only validation (no DB reads, no existence checks)
+   * Used by ClaimIntakeGate for precheck before full write validation
+   */
+  public validateFieldsOnly(input: {
+    userId: string;
+    countyFips: string;
+    claimType: unknown;
+    source: unknown;
+    claimTimestamp: Date;
+    metadata?: unknown;
+  }): { ok: boolean; errors: string[]; warnings: string[] } {
+    const errors: string[] = [];
+    const warnings: string[] = [];
+
+    // Basic presence checks
+    if (!input.userId || typeof input.userId !== 'string') {
+      errors.push('userId is required and must be a string');
+    }
+    if (!input.countyFips || typeof input.countyFips !== 'string') {
+      errors.push('countyFips is required and must be a string');
+    }
+
+    // Enum checks (reuse existing validators)
+    const claimTypeError = validateClaimType(input.claimType);
+    if (claimTypeError) {
+      errors.push(claimTypeError.message);
+    }
+
+    const sourceError = validateClaimSource(input.source);
+    if (sourceError) {
+      errors.push(sourceError.message);
+    }
+
+    // FIPS format check (existence check remains in service write flow)
+    const fipsError = validateCountyFips(input.countyFips);
+    if (fipsError) {
+      errors.push(fipsError.message);
+    }
+
+    // Timestamp bounds check (partial — future check only; user creation bound is in write flow)
+    if (!(input.claimTimestamp instanceof Date) || isNaN(input.claimTimestamp.getTime())) {
+      errors.push('claimTimestamp must be a valid Date');
+    } else {
+      const now = Date.now();
+      if (input.claimTimestamp.getTime() > now + 1_000) {
+        errors.push('claimTimestamp cannot be in the future');
+      }
+    }
+
+    // Metadata shape check (reserved keys validation)
+    const metadataError = validateMetadata(input.metadata);
+    if (metadataError) {
+      errors.push(metadataError.message);
+    }
+
+    return { ok: errors.length === 0, errors, warnings };
+  }
+}
