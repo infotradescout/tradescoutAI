@@ -8416,7 +8416,8 @@ export async function registerRoutes(app: any) {
 
       const scopeParam = typeof req.query.scope === "string" ? (req.query.scope as string) : undefined;
 
-      // Super-admins can intentionally bypass county/state scoping to see all posts.
+      // Phase 1: Global community toggle (read-only visibility)
+      // Allow all users to view global posts (posts-only, no new contact paths)
       const roleFromClaims = (req.user as any)?.claims?.role;
       const rawRoles = Array.isArray((req.user as any)?.roles) ? (req.user as any).roles : [];
       const roles: string[] = [roleFromClaims, ...(rawRoles || [])].filter(
@@ -8425,7 +8426,8 @@ export async function registerRoutes(app: any) {
       const isSuperAdminLike = roles.some((r) => ["head_admin", "super_admin"].includes(r));
 
       const wantsGlobalScope = scopeParam === "all" || scopeParam === "global";
-      const bypassLocation = Boolean(isSuperAdminLike && wantsGlobalScope);
+      // Phase 1: Allow global scope for all users (not just super-admins)
+      const bypassLocation = wantsGlobalScope;
 
       const hasExplicitLocationFilters =
         Boolean(req.query.stateCode) || Boolean(req.query.countyFips);
@@ -8536,6 +8538,28 @@ export async function registerRoutes(app: any) {
           excludeFollowing: false,
         };
         posts = await storage.getCommunityPosts(fallbackFilters);
+      }
+      
+      // Phase 1: Fail-safe field stripping for global scope (posts-only)
+      // Strip contact fields, profile shortcuts, action-enabling metadata
+      if (wantsGlobalScope && !isSuperAdminLike) {
+        posts = posts.map(post => {
+          const { author, ...safePost } = post as any;
+          
+          // Strip sensitive author fields, keep only safe display fields
+          const safeAuthor = author ? {
+            id: author.id,
+            firstName: author.firstName,
+            lastName: author.lastName,
+            profileImageUrl: author.profileImageUrl,
+            // Explicitly exclude: email, phone, address, city, state, zipCode, etc.
+          } : null;
+          
+          return {
+            ...safePost,
+            author: safeAuthor,
+          };
+        });
       }
       
       // NOTE: Outcome-based feed weighting is intentionally disabled (Phase 2C).
