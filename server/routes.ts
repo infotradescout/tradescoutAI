@@ -517,17 +517,23 @@ export async function registerRoutes(app: any) {
         if (role === 'contractor_user') return 'contractor';
         if (role === 'vehicle_dealer') return 'car_dealer';
         if (role === 'car_salesman') return 'car_dealer';
+        if (role === 'homeowner') return 'homeowner';
+        if (role === 'contractor') return 'contractor';
+        if (role === 'other') return 'homeowner'; // Map 'other' to homeowner
         return role;
       };
 
       const userTypesRaw = Array.isArray(body.userTypes) ? body.userTypes : undefined;
       const roleRaw = typeof body.role === 'string' ? body.role : undefined;
+      const roleIntentRaw = typeof body.roleIntent === 'string' ? body.roleIntent : undefined;
       const userTypesInput =
         userTypesRaw && userTypesRaw.length > 0
           ? userTypesRaw
-          : roleRaw
-            ? [roleRaw]
-            : [];
+          : roleIntentRaw
+            ? [roleIntentRaw]
+            : roleRaw
+              ? [roleRaw]
+              : [];
 
       const userTypes = userTypesInput
         .filter((t: any) => typeof t === 'string')
@@ -2357,6 +2363,48 @@ export async function registerRoutes(app: any) {
       const currentUser = await storage.getUser(userId);
       if (!currentUser) {
         return res.status(404).json({ message: "User not found" });
+      }
+
+      // C2-3: Soft gate - offer verification for better visibility (PUBLISH_PUBLIC_PROFILE action)
+      // Not blocking; contractor can publish unverified but gets visibility boost if verified
+      if (profileVisibility === 'public') {
+        const isContractor = currentUser.role === 'contractor';
+        const isVerified = (currentUser as any)?.verificationStatus === 'approved' || (currentUser as any)?.licenseVerified;
+        
+        if (isContractor && !isVerified) {
+          // Offer verification as optional boost, don't block
+          try {
+            const { buildVerificationGateResponse } = await import('../utils/explainAndOfferVerification');
+            
+            const gateResponse = buildVerificationGateResponse({
+              action: 'PUBLISH_PUBLIC_PROFILE',
+              missingRequirements: ['license'],  // Light requirement for visibility boost
+              userRole: 'contractor',
+              targetUserId: undefined,
+              targetRole: undefined,
+              context: { visibility: 'public', intent: 'publish_profile' },
+            });
+
+            // Return soft gate offer but don't block if they choose to proceed
+            // Client can either verify or confirm to continue unverified
+            res.status(200).json({
+              ...gateResponse,
+              message: gateResponse.message + " (Your profile will still be visible, but verified profiles rank higher.)",
+              verificationOptional: true,
+              verificationSuggested: {
+                action: 'PUBLISH_PUBLIC_PROFILE',
+                retryPath: `/api/users/profile-visibility`,
+                context: { profileVisibility },
+              },
+              // Allow client to confirm without verification
+              allowProceedUnverified: true,
+            });
+            return;
+          } catch (e) {
+            console.warn("[profile-visibility] Failed to build soft verification gate", e);
+            // Continue on error; don't block
+          }
+        }
       }
 
       const currentPrefs = currentUser.preferences || {};
@@ -5042,6 +5090,39 @@ export async function registerRoutes(app: any) {
 
       if (!user) {
         return res.status(401).json({ message: "User not found" });
+      }
+
+      // C2-3: Verification gate - check contractor verification (APPLY_AS_CONTRACTOR action)
+      // Requires: license, insurance, identity
+      const hasLicense = (user as any)?.licenseVerified || (user as any)?.verificationStatus === 'approved';
+      const hasInsurance = (user as any)?.insuranceVerified;
+      const hasIdentity = (user as any)?.identityVerified;
+      
+      const missingRequirements = [];
+      if (!hasLicense) missingRequirements.push('license');
+      if (!hasInsurance) missingRequirements.push('insurance');
+      if (!hasIdentity) missingRequirements.push('identity');
+
+      if (missingRequirements.length > 0) {
+        const { buildVerificationGateResponse } = await import('../utils/explainAndOfferVerification');
+        
+        const gateResponse = buildVerificationGateResponse({
+          action: 'APPLY_AS_CONTRACTOR',
+          missingRequirements: missingRequirements as any,
+          userRole: 'contractor',
+          targetUserId: undefined,
+          targetRole: undefined,
+          context: { intent: 'apply_as_contractor' },
+        });
+
+        return res.status(200).json({
+          ...gateResponse,
+          verificationRequired: {
+            action: 'APPLY_AS_CONTRACTOR',
+            retryPath: `/api/contractors/apply`,
+            context: { companyName: req.body?.companyName },
+          },
+        });
       }
 
       // Track contractor application with locality context

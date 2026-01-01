@@ -240,6 +240,109 @@ function buildCommunityPrefill(
   return "Looking for trustworthy local help — who do you recommend?";
 }
 
+// ====================== DEALS COMPLIANCE HELPERS ======================
+
+type ConfidenceLabel = "low" | "medium" | "high";
+
+function normalizeConfidenceLabel(confidence: unknown): ConfidenceLabel {
+  if (confidence === "low" || confidence === "medium" || confidence === "high") {
+    return confidence;
+  }
+  return "medium";
+}
+
+function shapeDealsForScout({
+  deals,
+  confidence,
+  localityPresent,
+  taskSummary,
+}: {
+  deals: Array<any>;
+  confidence: ConfidenceLabel;
+  localityPresent: boolean;
+  taskSummary?: string;
+}): Array<any> {
+  if (!deals || deals.length === 0) return [];
+
+  // Suppress weak matches entirely
+  if (confidence === "low" && !localityPresent) {
+    return [];
+  }
+
+  const ranked = [...deals].sort((a, b) => {
+    return (
+      (b.recommendationScore ?? 0) - (a.recommendationScore ?? 0) ||
+      (b.taskRelevance ?? 0) - (a.taskRelevance ?? 0) ||
+      (b.successRate ?? 0) - (a.successRate ?? 0)
+    );
+  });
+
+  const top = ranked.slice(0, 3);
+
+  // Filter to only deals that can be applied
+  const appliable = top.filter((d) => typeof d?.applyPath === "string" && d.applyPath.trim());
+
+  return appliable.map((deal) => ({
+    ...deal,
+    _scoutWhy: `Shown because it directly supports ${taskSummary ?? "your current goal"}`,
+  }));
+}
+
+/**
+ * Enforce action path + community escape with confidence-shaped option count.
+ * - Low: 1 primary action + community
+ * - Medium: up to 2 actions (community counts as one if added)
+ * - High: 1 decisive action (+ community when locality is present)
+ */
+function shapeActionsByConfidence(
+  actions: any[],
+  ctx: { confidence: ConfidenceLabel; hasLocality: boolean; communityPrefill?: string }
+): any[] {
+  const primary: any[] = Array.isArray(actions) ? actions.filter(Boolean) : [];
+
+  const hasCommunity = primary.some(
+    (a) => typeof a?.to === "string" && a.to.startsWith("/community")
+  );
+
+  const shouldAttachCommunity = ctx.hasLocality || ctx.confidence === "low";
+  const communityAction = shouldAttachCommunity
+    ? {
+        type: "NAVIGATE",
+        label: "Ask neighbors (local experiences)",
+        to:
+          ctx.communityPrefill && ctx.communityPrefill.trim()
+            ? `/community?compose=1&prefill=${encodeURIComponent(ctx.communityPrefill)}`
+            : "/community?tab=for-you",
+      }
+    : null;
+
+  // If we somehow have no actions yet, seed with a decisive Direct Connect path.
+  if (primary.length === 0) {
+    primary.push({
+      type: "NAVIGATE",
+      label: "Open Direct Connect (fastest match)",
+      to: "/direct-connect",
+    });
+  }
+
+  const maxPrimary = ctx.confidence === "low" ? 1 : ctx.confidence === "medium" ? 2 : 1;
+  const trimmed = primary.slice(0, Math.max(1, maxPrimary));
+
+  if (!hasCommunity && communityAction) {
+    trimmed.push(communityAction);
+  } else if (hasCommunity) {
+    // Ensure community action respects quota placement
+    const existingCommunity = primary.find(
+      (a) => typeof a?.to === "string" && a.to.startsWith("/community")
+    );
+    if (existingCommunity && !trimmed.includes(existingCommunity)) {
+      trimmed.push(existingCommunity);
+    }
+  }
+
+  return trimmed;
+}
+
 function isWelcomeIntroRequest(message: string): boolean {
   const lower = message.toLowerCase();
 
@@ -2120,7 +2223,14 @@ router.post("/", async (req: Request, res: Response) => {
       const aiResponse: ScoutResponse = {
         message: trimResponseToScreenFit(fullMessage),
         suggestedActions,
-        actions: [],
+        actions: shapeActionsByConfidence(
+          [],
+          {
+            confidence: normalizeConfidenceLabel(governorDecision.confidence),
+            hasLocality: Boolean(countyCode || stateCode),
+            communityPrefill: buildCommunityPrefill(message, countyCode, stateCode),
+          }
+        ),
         sponsored: null,
         overrideOption: intervention.overrideOption
           ? {
@@ -2306,7 +2416,14 @@ router.post("/", async (req: Request, res: Response) => {
       const aiResponse: ScoutResponse = {
         message: trimResponseToScreenFit(deterministic.message),
         suggestedActions: deterministic.suggestedActions,
-        actions: deterministic.actions as any,
+        actions: shapeActionsByConfidence(
+          deterministic.actions as any,
+          {
+            confidence: normalizeConfidenceLabel(governorDecision.confidence),
+            hasLocality: Boolean(countyCode || stateCode),
+            communityPrefill: buildCommunityPrefill(message, countyCode, stateCode),
+          }
+        ),
         sponsored: null,
         metadata: deterministic.metadata as any,
       };
@@ -2528,25 +2645,40 @@ router.post("/", async (req: Request, res: Response) => {
             activeOnly: true,
             limit: 5,
           });
+          const compliantDeals = shapeDealsForScout({
+            deals,
+            confidence: normalizeConfidenceLabel(governorDecision.confidence),
+            localityPresent: Boolean(countyCode || stateCode),
+            taskSummary: synthesized.intent ?? intent ?? undefined,
+          });
 
-          if (Array.isArray(deals) && deals.length > 0) {
-            const topDeals = deals.slice(0, 5);
-
-            const dealEntities: ScoutPublicEntity[] = topDeals.map((d) => ({
+          if (Array.isArray(compliantDeals) && compliantDeals.length > 0) {
+            const dealEntities: ScoutPublicEntity[] = compliantDeals.map((d) => ({
               type: "trade_deal",
               id: String(d.id),
-              href: "/trade-deals?deal=" + encodeURIComponent(String(d.id)),
+              href: typeof d.applyPath === "string" ? d.applyPath : "/trade-deals",
               ownerUserId: (d as any).providerId ?? null,
               canDirectConnect: true,
               canMessage: !!(d as any).providerId,
             }));
 
-            const dealHints: ScoutCtaHintServer[] = topDeals.map((d) => ({
+            const dealHints: ScoutCtaHintServer[] = compliantDeals.map((d) => ({
               type: "trade_deal",
               id: String(d.id),
               ownerUserId: (d as any).providerId ?? null,
               canDirectConnect: true,
               canMessage: !!(d as any).providerId,
+            }));
+
+            const dealActions: ScoutClientAction[] = compliantDeals.map((d) => ({
+              type: "NAVIGATE",
+              label: `Apply deal: ${d.title ?? "Local offer"}`,
+              to: typeof d.applyPath === "string" ? d.applyPath : "/trade-deals",
+              path: typeof d.applyPath === "string" ? d.applyPath : "/trade-deals",
+              // Disclosure + relevance rationale baked into label/why to avoid separate UI changes
+              subtitle: "Paid recommendation",
+              why: d._scoutWhy || dealAssistLabel || "Relevant to your current request",
+              payload: { dealId: d.id },
             }));
 
             aiResponse.publicEntities = [
@@ -2558,9 +2690,11 @@ router.post("/", async (req: Request, res: Response) => {
               ...(aiResponse.ctaHints || []),
               ...dealHints.map((hint) => ({
                 ...hint,
-                label: dealAssistLabel,
+                label: dealAssistLabel ?? "Paid recommendation",
               })),
             ];
+
+            actions.push(...dealActions);
           }
         } catch (dealErr) {
           console.error("[Scout] Failed to attach trade_deal hints", dealErr);
@@ -2780,6 +2914,60 @@ router.post("/", async (req: Request, res: Response) => {
           `${aiResponse.message}\n\nThese recommendations come from people in your community — they’re ${COMMUNITY_TONE.accountability} reviews.`,
         );
       }
+
+      // Hire vs DIY paired options for how-to or provider intents
+      const shouldPairHireDIY =
+        (synthesized as any)?.intent?.category === "how_to" ||
+        (synthesized as any)?.intent?.category === "provider_search";
+
+      if (shouldPairHireDIY) {
+        const hireAction: ScoutClientAction = {
+          type: "NAVIGATE",
+          path: "/direct-connect",
+          to: "/direct-connect",
+          label: "Create a Direct Connect request",
+          subtitle: "Fastest way to coordinate locally",
+          why: "Community coordination improves outcomes and saves time",
+          primary: true as any,
+        };
+
+        const diyAction: ScoutClientAction = {
+          type: "NAVIGATE",
+          path: `/learn/${(synthesized as any)?.intent?.slug ?? "how-to"}`,
+          to: `/learn/${(synthesized as any)?.intent?.slug ?? "how-to"}`,
+          label: "Try fixing it yourself",
+          subtitle: "DIY steps and safety tips",
+          why: "If you prefer to handle it on your own",
+          primary: false as any,
+        };
+
+        actions = [hireAction, diyAction, ...actions];
+      }
+
+      // Confidence-shaped action guardrail + community bias
+      actions = shapeActionsByConfidence(actions, {
+        confidence: normalizeConfidenceLabel(governorDecision.confidence),
+        hasLocality: Boolean(countyCode || stateCode),
+        communityPrefill: buildCommunityPrefill(message, countyCode, stateCode),
+      });
+
+      // Deal dead-end guardrail: suppress any deal actions lacking applyPath
+      if (actions.some((a) => (a as any).subtitle === "Paid recommendation")) {
+        actions = actions.filter(
+          (a) => (a as any).subtitle !== "Paid recommendation" || (a as any).to
+        );
+      }
+
+      // Ensure actions always exist; if trimming removed all, re-seed
+      if (!actions || actions.length === 0) {
+        actions = shapeActionsByConfidence([], {
+          confidence: normalizeConfidenceLabel(governorDecision.confidence),
+          hasLocality: Boolean(countyCode || stateCode),
+          communityPrefill: buildCommunityPrefill(message, countyCode, stateCode),
+        });
+      }
+
+      aiResponse.actions = actions;
 
       const isCommunityVaultTopic =
         lower.includes("community vault") ||

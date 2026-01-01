@@ -921,7 +921,41 @@ export function createInvoicingDocumentsRouter(pool: Pool) {
 			}
 
 			const markPaid = !!req.body?.markPaid;
+			
+			// C2-3: Verification gate - check contractor tax/identity verification (ACCEPT_CONTRACTOR_PAYMENT action)
 			if (markPaid) {
+				const user = await storage.getUser(req.user?.id || req.user?.claims?.sub);
+				const hasTaxId = (user as any)?.taxIdVerified;
+				const hasBankAccount = (user as any)?.bankAccountVerified;
+				const hasIdentity = (user as any)?.identityVerified;
+				
+				const missingRequirements = [];
+				if (!hasTaxId) missingRequirements.push('tax_id');
+				if (!hasBankAccount) missingRequirements.push('bank_account');
+				if (!hasIdentity) missingRequirements.push('identity');
+
+				if (missingRequirements.length > 0) {
+					const { buildVerificationGateResponse } = await import('./utils/explainAndOfferVerification');
+					
+					const gateResponse = buildVerificationGateResponse({
+						action: 'ACCEPT_CONTRACTOR_PAYMENT',
+						missingRequirements: missingRequirements as any,
+						userRole: 'contractor',
+						targetUserId: undefined,
+						targetRole: undefined,
+						context: { jobId, intent: 'mark_invoice_paid' },
+					});
+
+					return res.status(200).json({
+						...gateResponse,
+						verificationRequired: {
+							action: 'ACCEPT_CONTRACTOR_PAYMENT',
+							retryPath: `/api/jobs/${jobId}/receipt`,
+							context: { jobId, markPaid: true },
+						},
+					});
+				}
+
 				await pool.query("UPDATE documents SET status='paid' WHERE id=$1", [invoiceRes.rows[0].id]);
 			}
 

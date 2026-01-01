@@ -233,6 +233,19 @@ html {
   50% { transform: translateY(-3px); opacity: 1; }
 }
 
+/* Dark depth experiment: borderless surfaces with ambient orange glow.
+   Opt-in only when the root `dark-depth` class is present. */
+@media (min-width: 640px) {
+  .dark-depth .surface-panel {
+    background: #0b0f14;
+    border: none;
+    box-shadow:
+      0 8px 24px rgba(0, 0, 0, 0.6),
+      0 0 0 1px rgba(255, 140, 0, 0.08),
+      0 0 18px rgba(255, 140, 0, 0.06);
+  }
+}
+
 /* Thumb UX opt-in: sticky primary actions in thumb zone on mobile */
 @media (max-width: 768px) {
   .thumb-ux .thumb-primary-action {

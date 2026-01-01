@@ -79,7 +79,17 @@ function ClusterCard({
               onClick={() => handleAction(action)}
               className="scout-action-button"
             >
-              {action.label}
+              <div className="flex flex-col items-start text-left">
+                <span>{action.label}</span>
+                {action.subtitle && (
+                  <span className="text-[11px] opacity-80">{action.subtitle}</span>
+                )}
+                {(action.why || (action as any)._scoutWhy) && (
+                  <span className="text-[10px] opacity-70">
+                    {action.why ?? (action as any)._scoutWhy}
+                  </span>
+                )}
+              </div>
             </button>
           ))}
         </div>
@@ -93,7 +103,17 @@ function ClusterCard({
             className="inline-flex items-center justify-center rounded-full px-3 py-2 text-xs font-semibold text-black transition"
             style={{ backgroundColor: 'var(--theme-accent-primary)' }}
           >
-            {cluster.primaryAction.label}
+            <div className="flex flex-col items-start text-left">
+              <span>{cluster.primaryAction.label}</span>
+              {cluster.primaryAction.subtitle && (
+                <span className="text-[11px] opacity-80">{cluster.primaryAction.subtitle}</span>
+              )}
+              {(cluster.primaryAction.why || (cluster.primaryAction as any)._scoutWhy) && (
+                <span className="text-[10px] opacity-70">
+                  {cluster.primaryAction.why ?? (cluster.primaryAction as any)._scoutWhy}
+                </span>
+              )}
+            </div>
           </button>
         </div>
       )}
@@ -332,7 +352,15 @@ const ScoutThread: React.FC<ScoutThreadProps> = ({
                       }}
                       className="scout-action-button"
                     >
-                      {chip.label}
+                      <div className="flex flex-col items-start text-left">
+                        <span>{chip.label}</span>
+                        {chip.subtitle && (
+                          <span className="text-[11px] opacity-80">{chip.subtitle}</span>
+                        )}
+                        {(chip as any).why && (
+                          <span className="text-[10px] opacity-70">{(chip as any).why}</span>
+                        )}
+                      </div>
                     </button>
                   ))}
                 </div>

@@ -30,7 +30,10 @@ export function SuperAdminOSLayout({ children }: SuperAdminOSLayoutProps) {
   const navSections = getSuperAdminNavForRole(role);
   const activeItem = findActiveItem(location);
 
-  const [isNavOpen, setIsNavOpen] = React.useState(false);
+  // Default the nav to open so the classic layout remains the
+  // baseline experience, but allow it to be collapsed on any
+  // viewport to create a "windowed" Admin OS surface.
+  const [isNavOpen, setIsNavOpen] = React.useState(true);
 
   const handleToggleNav = () => {
     setIsNavOpen((prev) => !prev);
@@ -45,7 +48,7 @@ export function SuperAdminOSLayout({ children }: SuperAdminOSLayoutProps) {
   return (
     <div className="min-h-screen bg-slate-950 py-6">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row gap-6">
-        <div className={`${isNavOpen ? "block" : "hidden"} md:block md:shrink-0`}> 
+        <div className={isNavOpen ? "block md:shrink-0" : "hidden"}>
           <SuperAdminLeftNav sections={navSections} onNavigate={handleNavigate} />
         </div>
         <div className="flex-1 flex flex-col space-y-4">

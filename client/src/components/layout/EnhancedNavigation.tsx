@@ -23,7 +23,7 @@ export function EnhancedNavigation({ className = "" }: EnhancedNavigationProps) 
   };
 
   return (
-    <header className={`sticky top-0 z-50 w-full border-b border-slate-700/50 bg-slate-900/98 backdrop-blur-xl shadow-lg ${className}`}>
+    <header className={`sticky top-0 z-50 w-full bg-slate-900/98 backdrop-blur-xl shadow-lg ${className}`}>
       <div className="w-full flex items-center justify-between px-6 py-4">
         {/* Logo */}
         <Link href="/">
@@ -99,7 +99,7 @@ export function EnhancedNavigation({ className = "" }: EnhancedNavigationProps) 
                 <Menu className="h-6 w-6" />
               </Button>
             </SheetTrigger>
-            <SheetContent side="right" className="w-80 bg-slate-900 border-slate-700">
+            <SheetContent side="right" className="w-80 bg-slate-900 surface-panel">
               <div className="flex items-center justify-between mb-6">
                 <div className="flex items-center space-x-2">
                   <TradeScoutIcon 

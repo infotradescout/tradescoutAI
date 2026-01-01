@@ -566,6 +566,32 @@ export function registerDirectConnectRoutes(app: Express) {
       }
       const body = parse.data;
 
+      // C2-3: Verification gate - check homeowner address verification (REQUEST_CONTRACTOR_QUOTE action)
+      const viewer = await storage.getUser(String(userId));
+      const requesterRole = (viewer as any)?.role || 'homeowner';
+      
+      if (requesterRole === 'homeowner' && !(viewer as any)?.addressVerified) {
+        const { buildVerificationGateResponse } = await import('../utils/explainAndOfferVerification');
+        
+        const gateResponse = buildVerificationGateResponse({
+          action: 'REQUEST_CONTRACTOR_QUOTE',
+          missingRequirements: ['address'],
+          userRole: requesterRole,
+          targetUserId: undefined,
+          targetRole: 'contractor',
+          context: { intent: 'create_work_request', category: body.category },
+        });
+
+        return res.status(200).json({
+          ...gateResponse,
+          verificationRequired: {
+            action: 'REQUEST_CONTRACTOR_QUOTE',
+            retryPath: `/api/direct-connect/requests`,
+            context: { category: body.category, title: body.title },
+          },
+        });
+      }
+
       const budgetMinNumber = body.budgetMin ?? NaN;
       const budgetMaxNumber = body.budgetMax ?? NaN;
 
@@ -582,7 +608,6 @@ export function registerDirectConnectRoutes(app: Express) {
       let countyFips: string | undefined;
       let stateCode: string | undefined;
       try {
-        const viewer = await storage.getUser(String(userId));
         if (viewer) {
           const vState = (viewer as any).stateCode || (viewer as any).state_code;
           const vCounty = (viewer as any).countyFips || (viewer as any).county_fips;
