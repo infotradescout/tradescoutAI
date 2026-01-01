@@ -38,6 +38,20 @@ import path from "path";
 import { fileURLToPath } from "url";
 import { govern, type GovernorDecision } from "../scout/governor";
 import { recordOutcomeEvent, updateUserConfidenceStateFromOutcome } from "../scout/outcomeTracker";
+import {
+  isOnboardingRequest,
+  initializeOnboardingSession,
+  getOnboardingSession,
+  getNextQuestion,
+  recordAnswer,
+  recordSkip,
+  checkAutoExpiration,
+  expireOnboarding,
+  recordFirstAction,
+  getQuestionPrompt,
+  applySofterLanguage,
+  type OnboardingSession,
+} from "../utils/onboardingService";
 
 const router = Router();
 const __filename = fileURLToPath(import.meta.url);
@@ -1329,6 +1343,10 @@ interface ScoutRequest {
     meta?: Record<string, unknown>;
   }>;
   shownAdIds?: string[];
+  onboarding?: boolean;          // D2-1: Onboarding flag
+  sessionId?: string;            // D2-1: Session tracking
+  onboardingAnswer?: string;     // D2-2: Answer to onboarding question
+  onboardingQuestionKey?: string; // D2-2: Which question is being answered
 }
 
 interface ScoutActionChip {
@@ -2115,7 +2133,38 @@ router.post("/", async (req: Request, res: Response) => {
       roles = [],
       recentActivity = [],
       shownAdIds = [],
+      onboarding,
+      sessionId,
+      onboardingAnswer,
+      onboardingQuestionKey,
     } = rawBody as ScoutRequest;
+
+    // D2-1: Detect and initialize onboarding session
+    const userId = (req as any).user?.id;
+    const clientSessionId = sessionId || `${userId || 'guest'}_${Date.now()}`;
+    let onboardingSession: OnboardingSession | undefined = getOnboardingSession(clientSessionId);
+
+    if (onboarding && !onboardingSession) {
+      // D2-1: Initialize onboarding session on first request
+      onboardingSession = initializeOnboardingSession(clientSessionId);
+    }
+
+    // D2-2: Process onboarding answer if provided
+    if (onboardingSession && onboardingAnswer && onboardingQuestionKey) {
+      if (onboardingAnswer === 'skip') {
+        recordSkip(onboardingSession, onboardingQuestionKey);
+      } else {
+        recordAnswer(onboardingSession, onboardingQuestionKey, onboardingAnswer);
+      }
+    }
+
+    // D2-4: Check auto-expiration conditions
+    if (onboardingSession && onboardingSession.isOnboarding) {
+      const expirationReason = checkAutoExpiration(onboardingSession);
+      if (expirationReason) {
+        expireOnboarding(onboardingSession, expirationReason);
+      }
+    }
 
     // SPECIAL HANDLING: Detect intro/overview questions and use comprehensive synthesis
     if (isIntroQuestion(message)) {
@@ -2143,7 +2192,6 @@ router.post("/", async (req: Request, res: Response) => {
     const llmAvailable = llmProviders.some((p) => p.isConfigured());
 
     // Extract user information from session/request
-    const userId = (req as any).user?.id;
     const userRole = (req as any).user?.role || "user";
     const userCounty = (req as any).user?.county || countyCode;
     const userState = (req as any).user?.state || stateCode;
@@ -3641,6 +3689,43 @@ router.post("/", async (req: Request, res: Response) => {
       requestId: (req as any).requestId,
     };
 
+    // D2-2: Inject onboarding question contextually if active
+    let finalMessage = aiResponse.message;
+    const onboardingMeta: Record<string, unknown> = {};
+
+    if (onboardingSession && onboardingSession.isOnboarding) {
+      // D2-5: Apply softer language when onboarding
+      finalMessage = applySofterLanguage(finalMessage, onboardingSession);
+
+      // D2-2: Determine next question to ask
+      const nextQuestion = getNextQuestion(onboardingSession);
+      if (nextQuestion) {
+        const questionPrompt = getQuestionPrompt(nextQuestion, {
+          scope: onboardingSession.snapshot.context?.scope,
+          intent: onboardingSession.snapshot.intent,
+        });
+
+        if (questionPrompt) {
+          // Inject question into metadata for client to display
+          onboardingMeta.onboardingQuestion = {
+            key: nextQuestion,
+            question: questionPrompt.question,
+            options: questionPrompt.options,
+            skipLabel: questionPrompt.skipLabel,
+            explanation: questionPrompt.explanation,
+          };
+
+          onboardingMeta.snapshot = {
+            confidence: onboardingSession.snapshot.confidence,
+            answeredQuestions: onboardingSession.answeredQuestions.length,
+            totalQuestions: 4,
+          };
+
+          onboardingMeta.sessionId = clientSessionId;
+        }
+      }
+    }
+
     // Tag actions with guard context so they can self-recover if needed
     const guardedActions = aiResponse.actions?.map((action: any) => ({
       ...action,
@@ -3648,7 +3733,7 @@ router.post("/", async (req: Request, res: Response) => {
     })) || [];
 
     res.json({
-      message: aiResponse.message,
+      message: finalMessage,
       actions: guardedActions,
       actionResults: [],
       sponsored: aiResponse.sponsored ?? null,
@@ -3664,6 +3749,7 @@ router.post("/", async (req: Request, res: Response) => {
       llmProvider: "gemini",
       promptVersion,
       timestamp: new Date().toISOString(),
+      onboarding: onboardingMeta.onboardingQuestion ? onboardingMeta : undefined,
     });
   } catch (error) {
     console.error("Scout API error:", error);
