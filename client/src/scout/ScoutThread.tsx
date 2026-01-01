@@ -19,15 +19,7 @@ type ScoutThreadProps = {
   onQuickAction?: (text: string) => void;
   onOverride?: (option: NonNullable<ScoutMessage["overrideOption"]>) => void;
   overridePendingScope?: string | null;
-  onOnboardingAnswer?: (payload: {
-    sessionId: string;
-    questionKey: 'Q1' | 'Q2' | 'Q3' | 'Q4';
-    value: string;
-  }) => void;
-  onOnboardingSkip?: (payload: {
-    sessionId: string;
-    questionKey: 'Q1' | 'Q2' | 'Q3' | 'Q4';
-  }) => void;
+  onSendMessage?: (payload: any) => void;
 };
 
 function ClusterCard({
@@ -158,36 +150,10 @@ const ScoutThread: React.FC<ScoutThreadProps> = ({
   onQuickAction,
   onOverride,
   overridePendingScope,
-  onOnboardingAnswer,
-  onOnboardingSkip,
+  onSendMessage,
 }) => {
   const [progress, setProgress] = React.useState(0);
   const phaseStartRef = React.useRef<number | null>(null);
-
-  /**
-   * Handle onboarding question answers - delegate to parent (ScoutOS)
-   */
-  const handleOnboardingAnswer = (payload: {
-    sessionId: string;
-    questionKey: 'Q1' | 'Q2' | 'Q3' | 'Q4';
-    value: string;
-  }) => {
-    if (onOnboardingAnswer) {
-      onOnboardingAnswer(payload);
-    }
-  };
-
-  /**
-   * Handle onboarding question skip - delegate to parent (ScoutOS)
-   */
-  const handleOnboardingSkip = (payload: {
-    sessionId: string;
-    questionKey: 'Q1' | 'Q2' | 'Q3' | 'Q4';
-  }) => {
-    if (onOnboardingSkip) {
-      onOnboardingSkip(payload);
-    }
-  };
 
   // Reset progress whenever Scout is fully idle or in an error state.
   React.useEffect(() => {
@@ -456,13 +422,29 @@ const ScoutThread: React.FC<ScoutThreadProps> = ({
                 </div>
               )}
 
-              {/* Onboarding Prompt: Render if server sent onboarding metadata with active question */}
-              {!isUser && msg.onboarding && msg.onboarding.onboardingQuestion && (
+              {/* Onboarding: Server-controlled, renders only when active + question exists */}
+              {!isUser && msg.onboarding?.active && msg.onboarding.question && onSendMessage && (
                 <OnboardingPrompt
                   onboarding={msg.onboarding}
                   mode="card"
-                  onAnswer={handleOnboardingAnswer}
-                  onSkip={handleOnboardingSkip}
+                  onAnswer={(value) =>
+                    onSendMessage({
+                      onboardingAnswer: {
+                        sessionId: msg.onboarding!.sessionId,
+                        questionKey: msg.onboarding!.question!.key,
+                        value,
+                      },
+                    })
+                  }
+                  onSkip={() =>
+                    onSendMessage({
+                      onboardingAnswer: {
+                        sessionId: msg.onboarding!.sessionId,
+                        questionKey: msg.onboarding!.question!.key,
+                        skipped: true,
+                      },
+                    })
+                  }
                 />
               )}
             </div>

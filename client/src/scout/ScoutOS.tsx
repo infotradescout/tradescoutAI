@@ -2137,15 +2137,11 @@ export default function ScoutOS() {
   );
 
   /**
-   * Handle onboarding question answer
-   * Sends the answer back to Scout with proper metadata
+   * Handle onboarding answer/skip via unified sendMessage pattern
+   * Server controls everything; client just sends payload
    */
-  const handleOnboardingAnswer = useCallback(
-    async (payload: {
-      sessionId: string;
-      questionKey: 'Q1' | 'Q2' | 'Q3' | 'Q4';
-      value: string;
-    }) => {
+  const handleOnboardingMessage = useCallback(
+    async (payload: { onboardingAnswer: { sessionId: string; questionKey: string; value?: string; skipped?: boolean } }) => {
       try {
         const rolesForRequest =
           (userRoles && userRoles.length > 0
@@ -2160,121 +2156,56 @@ export default function ScoutOS() {
         const recentActivity = getRecentActivity();
         const shownAdIds = getSeenAdIds();
 
+        const { sessionId, questionKey, value, skipped } = payload.onboardingAnswer;
+
         const res = await sendToScout({
           history: state.messages.map((m) => ({ role: m.role, content: m.content })),
-          message: payload.value, // Include answer value in message for context
+          message: skipped ? "skip" : (value || ""),
           locality,
           mode: "general",
           roles: rolesForRequest,
           recentActivity,
           shownAdIds,
-          // Pass onboarding metadata
-          sessionId: payload.sessionId,
-          onboardingAnswer: payload.value,
-          onboardingQuestionKey: payload.questionKey,
+          sessionId,
+          onboardingAnswer: skipped ? "skip" : value,
+          onboardingQuestionKey: questionKey as 'Q1' | 'Q2' | 'Q3' | 'Q4',
         });
 
         setStatus("ready");
 
-        // Record as a user answer (for conversation history)
-        recordUserMessage(payload.value);
+        // Record user interaction (for history)
+        if (!skipped && value) {
+          recordUserMessage(value);
+        }
 
-        // Process the response (which should contain the next question or expiration)
+        // Apply server response (includes next question or expiration)
         const msg: ScoutMessage = {
           id: `a_${Date.now()}_${Math.random().toString(36).slice(2)}`,
           role: "assistant",
           content: res.message,
           timestamp: res.timestamp || new Date().toISOString(),
           suggestedActions: res.suggestedActions,
-          onboarding: (res as any).onboarding, // Pass onboarding metadata through
+          onboarding: (res as any).onboarding,
           contextRoles: [],
         };
 
         applyServerResponse(msg, res.actions || []);
 
         recordActivity({
-          type: "onboarding_answer",
+          type: skipped ? "onboarding_skip" : "onboarding_answer",
           ts: new Date().toISOString(),
           path: location,
-          label: `Question ${payload.questionKey}: ${payload.value}`,
-          meta: { sessionId: payload.sessionId },
+          label: skipped ? `Skipped ${questionKey}` : `${questionKey}: ${value}`,
+          meta: { sessionId },
         });
       } catch (err: any) {
-        setError(err.message || "Failed to process onboarding answer");
-        console.error("[Onboarding Answer Error]", err);
+        setError(err.message || "Failed to process onboarding");
+        console.error("[Onboarding Error]", err);
       } finally {
         setStatus("idle");
       }
     },
-    [userRoles, sessionRole, isGuest, state.messages, locality, location]
-  );
-
-  /**
-   * Handle onboarding question skip
-   */
-  const handleOnboardingSkip = useCallback(
-    async (payload: {
-      sessionId: string;
-      questionKey: 'Q1' | 'Q2' | 'Q3' | 'Q4';
-    }) => {
-      try {
-        const rolesForRequest =
-          (userRoles && userRoles.length > 0
-            ? userRoles
-            : sessionRole
-            ? [sessionRole]
-            : isGuest
-            ? ["just-browsing"]
-            : undefined) ?? undefined;
-
-        setStatus("checking_documents");
-        const recentActivity = getRecentActivity();
-        const shownAdIds = getSeenAdIds();
-
-        const res = await sendToScout({
-          history: state.messages.map((m) => ({ role: m.role, content: m.content })),
-          message: "skip", // Indicate this was a skip
-          locality,
-          mode: "general",
-          roles: rolesForRequest,
-          recentActivity,
-          shownAdIds,
-          // Pass onboarding metadata with skip indicator
-          sessionId: payload.sessionId,
-          onboardingAnswer: "skip",
-          onboardingQuestionKey: payload.questionKey,
-        });
-
-        setStatus("ready");
-
-        // Process the response (next question or expiration)
-        const msg: ScoutMessage = {
-          id: `a_${Date.now()}_${Math.random().toString(36).slice(2)}`,
-          role: "assistant",
-          content: res.message,
-          timestamp: res.timestamp || new Date().toISOString(),
-          suggestedActions: res.suggestedActions,
-          onboarding: (res as any).onboarding, // Pass onboarding metadata through
-          contextRoles: [],
-        };
-
-        applyServerResponse(msg, res.actions || []);
-
-        recordActivity({
-          type: "onboarding_skip",
-          ts: new Date().toISOString(),
-          path: location,
-          label: `Skipped question ${payload.questionKey}`,
-          meta: { sessionId: payload.sessionId },
-        });
-      } catch (err: any) {
-        setError(err.message || "Failed to process onboarding skip");
-        console.error("[Onboarding Skip Error]", err);
-      } finally {
-        setStatus("idle");
-      }
-    },
-    [userRoles, sessionRole, isGuest, state.messages, locality, location]
+    [userRoles, sessionRole, isGuest, state.messages, locality, location, applyServerResponse, recordUserMessage, setStatus, setError, recordActivity]
   );
 
   // Auto-consume one-time onboarding marker set by post-signup/dashboard flows.
@@ -2834,8 +2765,7 @@ export default function ScoutOS() {
                 onAction={handleClusterAction}
                 onOverride={handleOverride}
                 overridePendingScope={overridePendingScope}
-                onOnboardingAnswer={handleOnboardingAnswer}
-                onOnboardingSkip={handleOnboardingSkip}
+                onSendMessage={handleOnboardingMessage}
                 onQuickAction={(text) => {
                   const trimmed = text.trim();
 
