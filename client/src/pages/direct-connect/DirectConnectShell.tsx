@@ -613,6 +613,12 @@ export default function DirectConnectShell() {
 
   const activeSection = useMemo<Section>(() => getSectionFromPath(location), [location]);
 
+  // Extract ?county=FIPS parameter from URL for jurisdiction-aware defaults
+  const defaultCountyFips = useMemo(() => {
+    const params = new URLSearchParams(window.location.search);
+    return params.get("county") || undefined;
+  }, [location]);
+
   const navigateSection = (section: Section) => {
     setLocation(buildHref(section));
   };
@@ -620,10 +626,10 @@ export default function DirectConnectShell() {
   let centerContent: ReactNode = null;
   switch (activeSection) {
     case "post":
-      centerContent = <TasksHub />;
+      centerContent = <TasksHub defaultCountyFips={defaultCountyFips} />;
       break;
     case "board":
-      centerContent = <TasksHub />;
+      centerContent = <TasksHub defaultCountyFips={defaultCountyFips} />;
       break;
     case "inbox":
       centerContent = <DirectConnectInbox />;

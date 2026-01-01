@@ -38,6 +38,7 @@ interface LocationContext {
   county?: string;
   state?: string;
   zipcode?: string;
+  countyHint?: string; // Phase 3B: County FIPS code for jurisdiction-aware bias
 }
 
 interface RecentInteraction {
@@ -109,8 +110,10 @@ function getNormalizedUserTypesFromUser(user: User): string[] {
 /**
  * Build comprehensive user context from user ID and recent interactions
  * Used to personalize LLM prompts with user-specific language
+ * @param userId - User ID to fetch context for
+ * @param countyHint - Optional county FIPS code for jurisdiction-aware bias (Phase 3B)
  */
-export async function buildUserContext(userId?: string): Promise<UserContext> {
+export async function buildUserContext(userId?: string, countyHint?: string): Promise<UserContext> {
   const defaultContext: UserContext = {
     profile: {},
     userTypes: [],
@@ -155,8 +158,8 @@ export async function buildUserContext(userId?: string): Promise<UserContext> {
     // Preferences based on normalized types (handles future roles automatically)
     const preferences = buildUserPreferences(userTypes);
 
-    // Build location context
-    const location = buildLocationContext(user);
+    // Build location context (with optional countyHint for jurisdiction-aware bias)
+    const location = buildLocationContext(user, countyHint);
 
     // Fetch recent interactions (last 30 days)
     const recentInteractions = await fetchRecentInteractions(userId);
@@ -264,23 +267,29 @@ function buildUserPreferences(userTypes: string[]): UserPreferences {
 /**
  * Build location context from user profile
  */
-function buildLocationContext(user: any): LocationContext {
+function buildLocationContext(user: any, countyHint?: string): LocationContext {
+  // Phase 3B: If countyHint provided (FIPS code), prefer it for county-aware responses
+  const effectiveCounty = countyHint || user.county;
+  const effectiveCountyName = countyHint ? `County ${countyHint}` : user.county;
+
   if (user.city && user.state) {
     return {
       level: "city",
       city: user.city,
       state: user.state,
-      county: user.county,
+      county: effectiveCountyName,
       zipcode: user.zipcode,
+      countyHint: countyHint, // Include hint for language/bias injection
     };
   }
 
-  if (user.county && user.state) {
+  if (effectiveCounty && user.state) {
     return {
       level: "county",
-      county: user.county,
+      county: effectiveCountyName,
       state: user.state,
       zipcode: user.zipcode,
+      countyHint: countyHint, // Include hint for language/bias injection
     };
   }
 

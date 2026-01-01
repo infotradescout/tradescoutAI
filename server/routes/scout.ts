@@ -1332,6 +1332,7 @@ interface ScoutRequest {
   history?: ChatMessage[];
   countyCode?: string;
   stateCode?: string;
+  countyHint?: string;          // Phase 3B: County FIPS for jurisdiction-aware bias
   intent?: string;
   roles?: string[];
   recentActivity?: Array<{
@@ -2428,7 +2429,9 @@ router.post("/", async (req: Request, res: Response) => {
     // SMART SYNTHESIS / DETERMINISTIC ROUTING
     // Instead of passing raw knowledge to the LLM, first synthesize it smartly
     // [USER-CONTEXT] Build and inject user context for personalized responses
-    const userContext = await buildUserContext(userId);
+    // Phase 3B: Accept optional countyHint from request for jurisdiction-aware bias
+    const countyHint = rawBody.countyHint || countyCode; // countyHint from URL param (?county=FIPS)
+    const userContext = await buildUserContext(userId, countyHint);
     // Add inferred capabilities to user context for use in response synthesis
     if (userContext) {
       (userContext as any).inferredCapabilities = capabilities.getAll();
