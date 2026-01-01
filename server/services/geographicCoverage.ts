@@ -36,6 +36,13 @@ function computeCoverageStatus(hasTm: boolean, hasAffiliate: boolean): CountyCov
   return "partial";
 }
 
+function toIsoOrNull(value: unknown): string | null {
+  if (!value) return null;
+  const d = value instanceof Date ? value : new Date(value as any);
+  if (Number.isNaN(d.getTime())) return null;
+  return d.toISOString();
+}
+
 export async function getCountyCoverageSummary(): Promise<CountyCoverageSummary> {
   // Base set of counties
   const countyRows = await db
@@ -121,10 +128,11 @@ export async function getCountyCoverageSummary(): Promise<CountyCoverageSummary>
     if (coverageStatus === "full") {
       fullCount += 1;
 
-      const lastChange = entity?.lastEntityChangeAt as Date | null | undefined;
-      if (lastChange) {
-        const lastMs = lastChange.getTime();
-        if (now - lastMs <= THIRTY_DAYS_MS) {
+      const rawLastChange = entity?.lastEntityChangeAt as Date | string | null | undefined;
+      if (rawLastChange) {
+        const d = rawLastChange instanceof Date ? rawLastChange : new Date(rawLastChange as any);
+        const lastMs = d.getTime();
+        if (!Number.isNaN(lastMs) && now - lastMs <= THIRTY_DAYS_MS) {
           fullCoverageNewLast30 += 1;
         }
       }
@@ -137,12 +145,12 @@ export async function getCountyCoverageSummary(): Promise<CountyCoverageSummary>
       coverageStatus,
       territoryManagerCount: Number(entity?.territoryManagerCount || 0),
       affiliateCount: Number(entity?.affiliateCount || 0),
-      lastEntityChangeAt: entity?.lastEntityChangeAt ? (entity.lastEntityChangeAt as Date).toISOString() : null,
+      lastEntityChangeAt: toIsoOrNull(entity?.lastEntityChangeAt),
       hasNotes: Boolean(notes?.hasNotes),
       hasOpsNote: Boolean(notes?.hasOpsNote),
       hasRiskNote: Boolean(notes?.hasRiskNote),
       hasPartnerNote: Boolean(notes?.hasPartnerNote),
-      lastNoteAt: notes?.lastNoteAt ? (notes.lastNoteAt as Date).toISOString() : null,
+      lastNoteAt: toIsoOrNull(notes?.lastNoteAt),
     });
   }
 

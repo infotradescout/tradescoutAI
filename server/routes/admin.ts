@@ -214,7 +214,18 @@ export function mountAdminRoutes(app: any) {
         res.json({ ...summary, durationMs });
       } catch (error: any) {
         console.error("Error fetching county coverage summary:", error);
-        res.status(500).json({ message: "Failed to fetch county coverage summary" });
+        const code = (error && (error.code || error.errno || error.name)) || "UNKNOWN";
+
+        // Geo coverage must never surface as a raw 500. If the
+        // underlying storage or schema is not ready, treat this as a
+        // temporary unavailability so the Admin OS can show an honest
+        // "coverage data unavailable" state instead of crashing.
+        res.status(503).json({
+          ok: false,
+          reasonCode: "GEO_COVERAGE_UNAVAILABLE",
+          message: "Geographic coverage data is temporarily unavailable. Please verify schema and try again.",
+          errorCode: code,
+        });
       }
     },
   );

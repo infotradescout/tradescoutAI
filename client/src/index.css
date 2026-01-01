@@ -137,6 +137,11 @@ html {
     overflow: hidden;
   }
 
+  .app-root {
+    height: 100%;
+    width: 100%;
+  }
+
   body {
     @apply font-sans antialiased;
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
@@ -226,6 +231,21 @@ html {
 @keyframes dotPulse {
   0%, 100% { transform: translateY(0); opacity: 0.6; }
   50% { transform: translateY(-3px); opacity: 1; }
+}
+
+/* Thumb UX opt-in: sticky primary actions in thumb zone on mobile */
+@media (max-width: 768px) {
+  .thumb-ux .thumb-primary-action {
+    position: sticky;
+    bottom: calc(env(safe-area-inset-bottom, 0px) + 12px);
+    margin-left: auto;
+    margin-right: 12px;
+    z-index: 40;
+  }
+
+  .thumb-ux .thumb-action-row {
+    margin-top: 12px;
+  }
 }
 
 /* Scout suggestion buttons - TradeScout dark blueprint style */
