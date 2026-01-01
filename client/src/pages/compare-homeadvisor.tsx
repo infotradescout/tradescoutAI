@@ -1,6 +1,6 @@
 import { memo } from 'react';
 import { Link } from 'wouter';
-import { SEOHelmet } from '@/components/SEOHelmet';
+import { SEOHelmet, createFAQStructuredData } from '@/components/SEOHelmet';
 import { Check, X, AlertTriangle } from 'lucide-react';
 
 /**
@@ -20,12 +20,36 @@ import { Check, X, AlertTriangle } from 'lucide-react';
  */
 
 const CompareHomeAdvisorPage = memo(function CompareHomeAdvisorPage() {
+  const faqs = [
+    {
+      question: "What is the main difference between TradeScout and HomeAdvisor?",
+      answer: "HomeAdvisor uses a lead-sales model where contractors pay per request. TradeScout uses trust-based matching where contractors pay only on completed work. This fundamentally changes incentives: HomeAdvisor maximizes lead volume; TradeScout maximizes match quality."
+    },
+    {
+      question: "Why do I get bombarded with calls on HomeAdvisor?",
+      answer: "When you request a quote, HomeAdvisor sells your request to 10-20+ contractors. Each paid upfront, so each wants to reach you before competitors. You become the product, not the customer. TradeScout sends your request to 1-3 pre-matched contractors only."
+    },
+    {
+      question: "Can I avoid lowball quotes and bidding wars?",
+      answer: "On HomeAdvisor, contractors compete on price because they're desperate to win after paying for leads. Lowball quotes lead to cutting corners and bad outcomes. TradeScout matches on trust and relevance, not price competition. Contractors accept or decline upfront, so no wasted time on mismatched jobs."
+    },
+    {
+      question: "How does HomeAdvisor verify contractors?",
+      answer: "HomeAdvisor uses reviews and ratings, which can be gamed. TradeScout uses Community Verification Score (CVS): verified identity, license/insurance, work history, and community recommendations. CVS is public, auditable, and payment cannot override it."
+    },
+    {
+      question: "What is different about Scout?",
+      answer: "Scout is TradeScout's AI helper that controls the platform. You ask Scout questions, request matches, and manage projects from one conversation. Scout prioritizes outcomes over impressions. HomeAdvisor requires navigating forms and browsing listings."
+    }
+  ];
+
   return (
     <>
       <SEOHelmet
         title="TradeScout vs. HomeAdvisor – Trust-First vs. Lead Sales Comparison"
         description="Compare TradeScout and HomeAdvisor. Learn how business models, incentives, and trust verification differ. Why TradeScout matches on trust, not payment."
         keywords="tradescout vs homeadvisor, homeadvisor alternative, no lead spam, trust-verified contractors, no pay-per-lead, no bidding wars"
+        structuredData={createFAQStructuredData(faqs)}
       />
 
       <div className="min-h-screen bg-tsBg text-tsTextMain">

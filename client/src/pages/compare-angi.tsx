@@ -1,6 +1,6 @@
 import { memo } from 'react';
 import { Link } from 'wouter';
-import { SEOHelmet } from '@/components/SEOHelmet';
+import { SEOHelmet, createFAQStructuredData } from '@/components/SEOHelmet';
 import { Check, X, AlertTriangle } from 'lucide-react';
 
 /**
@@ -20,12 +20,36 @@ import { Check, X, AlertTriangle } from 'lucide-react';
  */
 
 const CompareAngiPage = memo(function CompareAngiPage() {
+  const faqs = [
+    {
+      question: "What is the main difference between TradeScout and Angi?",
+      answer: "Angi uses a lead-sales model where contractors pay per request. TradeScout uses trust-based matching where contractors pay only on completed work. This fundamentally changes incentives: Angi maximizes lead volume; TradeScout maximizes match quality."
+    },
+    {
+      question: "Why do I get so many calls on lead-buying platforms?",
+      answer: "When you request a quote, platforms sell your request to 10-20+ contractors. Each paid upfront, so each wants to reach you before competitors. You become the product, not the customer. TradeScout sends your request to 1-3 pre-matched contractors only."
+    },
+    {
+      question: "Can I avoid bidding wars?",
+      answer: "On lead-buying platforms, contractors compete on price because they're desperate to win after paying for leads. TradeScout matches on trust and relevance, not price competition. Contractors accept or decline upfront, so no wasted time on mismatched jobs."
+    },
+    {
+      question: "What is the Community Verification Score (CVS)?",
+      answer: "CVS is a composite trust metric based on verified identity, license/insurance, work history, and community recommendations. It's public and auditable. Payment cannot override it. On Angi and HomeAdvisor, reviews can be gamed and trust is opaque."
+    },
+    {
+      question: "Is TradeScout really free?",
+      answer: "Yes, residents never pay. Contractors pay transaction fees only when work completes (not per lead). No subscriptions, no paywalls."
+    }
+  ];
+
   return (
     <>
       <SEOHelmet
         title="TradeScout vs. Angi – Trust-First vs. Lead Sales Comparison"
         description="Compare TradeScout and Angi (formerly Angie's List). Learn how business models, incentives, and trust verification differ. Why TradeScout matches on trust, not payment."
         keywords="tradescout vs angi, angi alternative, angie's list alternative, no lead spam, trust-verified contractors, no pay-per-lead"
+        structuredData={createFAQStructuredData(faqs)}
       />
 
       <div className="min-h-screen bg-tsBg text-tsTextMain">

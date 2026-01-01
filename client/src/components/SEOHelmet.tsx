@@ -160,6 +160,19 @@ export const createOrganizationStructuredData = () => ({
     "contactType": "customer service",
     "availableLanguage": ["English"]
   },
+  "potentialAction": [
+    {
+      "@type": "SearchAction",
+      "target": `${window.location.origin}/direct-connect?search={search_term_string}`,
+      "query-input": "required name=search_term_string",
+      "description": "Find contractors"
+    },
+    {
+      "@type": "InteractAction",
+      "target": `${window.location.origin}/scout`,
+      "description": "Ask Scout for help"
+    }
+  ],
   "sameAs": [
     "https://facebook.com/tradescout",
     "https://twitter.com/tradescout",
