@@ -7868,6 +7868,34 @@ export async function registerRoutes(app: any) {
   app.post("/api/marketplace/vendor-verification", isAuthenticated, async (req: any, res: any) => {
     try {
       const user = req.user as any;
+      
+      // C2-3: Soft gate - offer address verification for marketplace vendor trust (BECOME_MARKETPLACE_VENDOR)
+      const currentUser = await storage.getUser(user?.id);
+      const isVerified = (currentUser as any)?.addressVerified;
+      
+      if (!isVerified) {
+        const { buildSoftGateOffer, buildSoftGateResponse } = await import('../utils/softGateFramework');
+        
+        const offer = buildSoftGateOffer({
+          action: 'BECOME_MARKETPLACE_VENDOR',
+          userRole: (currentUser as any)?.role || 'user',
+          missingRequirements: ['address'],
+          context: { intent: 'become_vendor' },
+        });
+
+        const response = buildSoftGateResponse(offer, 'BECOME_MARKETPLACE_VENDOR');
+
+        // Return soft gate but allow proceeding
+        return res.status(200).json({
+          ...response,
+          verificationSuggested: {
+            action: 'BECOME_MARKETPLACE_VENDOR',
+            benefits: offer.benefits,
+          },
+          allowProceedUnverified: true,
+        });
+      }
+
       const parsedVendor = insertVendorVerificationSchema.safeParse(req.body);
       if (!parsedVendor.success) {
         return res.status(400).json({
