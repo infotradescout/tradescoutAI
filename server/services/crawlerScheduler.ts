@@ -1,16 +1,21 @@
 // @ts-expect-error - runtime module without TypeScript types in this build
 import cron from "node-cron";
 import { runCrawler } from "../crawler/crawl";
+import { runUsersAggregationJob } from "./usersAggregationJob";
+import { runAffiliatesAggregationJob } from "./affiliatesAggregationJob";
+import { runTradeDealsAggregationJob } from "./tradeDealsAggregationJob";
 
 /**
- * Crawler Scheduler - Auto-crawling for cache updates
+ * Crawler Scheduler - Auto-crawling for cache updates + aggregation jobs
  *
- * This sets up automated crawling on a schedule
+ * This sets up automated crawling on a schedule.
+ * Also manages background job scheduling (e.g., nightly aggregation jobs).
  */
 
 let crawlerTask: any = null;
-
-/**
+let usersAggregationTask: any = null;
+let affiliatesAggregationTask: any = null;
+let tradeDealsAggregationTask: any = null;/**
  * Start the cron scheduler
  * Runs every 5 minutes by default (configurable via env)
  */
@@ -35,6 +40,107 @@ export function startCrawlerScheduler() {
   });
 
   console.log("✅ Crawler scheduler started\n");
+
+  // Start nightly users aggregation job (2 AM by default)
+  startUsersAggregationScheduler();
+  startAffiliatesAggregationScheduler();
+  startTradeDealsAggregationScheduler();
+}
+
+/**
+ * Start nightly users aggregation job
+ * Runs daily at 2 AM UTC by default (configurable via env)
+ */
+function startUsersAggregationScheduler() {
+  if (process.env.DISABLE_USERS_AGGREGATION === "true") {
+    console.log("Users aggregation job disabled via DISABLE_USERS_AGGREGATION env flag");
+    return;
+  }
+
+  const schedule = process.env.USERS_AGGREGATION_SCHEDULE || "0 2 * * *"; // 2 AM daily
+
+  console.log(
+    `\n📊 Starting users aggregation scheduler with schedule: "${schedule}"`
+  );
+
+  usersAggregationTask = cron.schedule(schedule, async () => {
+    console.log(
+      `\n📊 [${new Date().toISOString()}] Running nightly users aggregation job...`
+    );
+    try {
+      const result = await runUsersAggregationJob();
+      console.log("✅ Users aggregation job completed", result);
+    } catch (error) {
+      console.error("❌ Users aggregation job failed:", error);
+      // Fire-and-forget: don't crash server on job failure
+    }
+  });
+
+  console.log("✅ Users aggregation scheduler started\n");
+}
+
+/**
+ * Start nightly affiliates aggregation job
+ * Runs daily at 2 AM UTC by default (same window as users job)
+ */
+function startAffiliatesAggregationScheduler() {
+  if (process.env.DISABLE_AFFILIATES_AGGREGATION === "true") {
+    console.log("Affiliates aggregation job disabled via DISABLE_AFFILIATES_AGGREGATION env flag");
+    return;
+  }
+
+  const schedule = process.env.AFFILIATES_AGGREGATION_SCHEDULE || "0 2 * * *"; // 2 AM daily
+
+  console.log(
+    `\n📊 Starting affiliates aggregation scheduler with schedule: "${schedule}"`
+  );
+
+  affiliatesAggregationTask = cron.schedule(schedule, async () => {
+    console.log(
+      `\n📊 [${new Date().toISOString()}] Running nightly affiliates aggregation job...`
+    );
+    try {
+      const result = await runAffiliatesAggregationJob();
+      console.log("✅ Affiliates aggregation job completed", result);
+    } catch (error) {
+      console.error("❌ Affiliates aggregation job failed:", error);
+      // Fire-and-forget: don't crash server on job failure
+    }
+  });
+
+  console.log("✅ Affiliates aggregation scheduler started\n");
+}
+
+/**
+ * Start nightly trade deals aggregation job
+ * Runs daily at 2 AM UTC by default (same window as other jobs)
+ */
+function startTradeDealsAggregationScheduler() {
+  if (process.env.DISABLE_TRADEDEALS_AGGREGATION === "true") {
+    console.log("TradeDeals aggregation job disabled via DISABLE_TRADEDEALS_AGGREGATION env flag");
+    return;
+  }
+
+  const schedule = process.env.TRADEDEALS_AGGREGATION_SCHEDULE || "0 2 * * *"; // 2 AM daily
+
+  console.log(
+    `\n📊 Starting trade deals aggregation scheduler with schedule: "${schedule}"`
+  );
+
+  tradeDealsAggregationTask = cron.schedule(schedule, async () => {
+    console.log(
+      `\n📊 [${new Date().toISOString()}] Running nightly trade deals aggregation job...`
+    );
+    try {
+      const result = await runTradeDealsAggregationJob();
+      console.log("✅ TradeDeals aggregation job completed", result);
+    } catch (error) {
+      console.error("❌ TradeDeals aggregation job failed:", error);
+      // Fire-and-forget: don't crash server on job failure
+    }
+  });
+
+  console.log("✅ TradeDeals aggregation scheduler started\n");
 }
 
 /**
@@ -47,6 +153,27 @@ export function stopCrawlerScheduler() {
     crawlerTask = null;
     console.log("🛑 Crawler scheduler stopped");
   }
+
+  if (usersAggregationTask) {
+    usersAggregationTask.stop();
+    usersAggregationTask.destroy();
+    usersAggregationTask = null;
+    console.log("🛑 Users aggregation scheduler stopped");
+  }
+
+  if (affiliatesAggregationTask) {
+    affiliatesAggregationTask.stop();
+    affiliatesAggregationTask.destroy();
+    affiliatesAggregationTask = null;
+    console.log("🛑 Affiliates aggregation scheduler stopped");
+  }
+
+  if (tradeDealsAggregationTask) {
+    tradeDealsAggregationTask.stop();
+    tradeDealsAggregationTask.destroy();
+    tradeDealsAggregationTask = null;
+    console.log("🛑 TradeDeals aggregation scheduler stopped");
+  }
 }
 
 /**
@@ -54,8 +181,22 @@ export function stopCrawlerScheduler() {
  */
 export function getCrawlerSchedulerStatus() {
   return {
-    active: crawlerTask !== null,
-    schedule: process.env.CRAWLER_SCHEDULE || "*/5 * * * *",
+    crawler: {
+      active: crawlerTask !== null,
+      schedule: process.env.CRAWLER_SCHEDULE || "*/5 * * * *",
+    },
+    usersAggregation: {
+      active: usersAggregationTask !== null,
+      schedule: process.env.USERS_AGGREGATION_SCHEDULE || "0 2 * * *",
+    },
+    affiliatesAggregation: {
+      active: affiliatesAggregationTask !== null,
+      schedule: process.env.AFFILIATES_AGGREGATION_SCHEDULE || "0 2 * * *",
+    },
+    tradeDealsAggregation: {
+      active: tradeDealsAggregationTask !== null,
+      schedule: process.env.TRADEDEALS_AGGREGATION_SCHEDULE || "0 2 * * *",
+    },
   };
 }
 
