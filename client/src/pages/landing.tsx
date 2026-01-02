@@ -95,6 +95,7 @@ export default function Landing() {
         title="TradeScout - Find Trusted Local Contractors | Get 3 Free Quotes"
         description="Connect with verified local contractors. Get 3 free quotes, read RECOMMENDATIONS, and hire with confidence. Local pros for roofing, plumbing, electrical, and more."
         keywords="local contractors, home improvement, verified contractors, free quotes, trusted contractors, roofing contractors, plumbing contractors, electrical contractors, kitchen remodeling, bathroom renovation"
+        canonical="https://www.thetradescout.com"
         structuredData={structuredData}
       />
       
