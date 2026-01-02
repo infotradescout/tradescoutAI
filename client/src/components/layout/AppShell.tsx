@@ -272,7 +272,7 @@ export function AppShell({ children, footer }: AppShellProps) {
                 </button>
               </>
             )}
-            <NotificationCenter />
+            {isAuthenticated && <NotificationCenter />}
             <button
               type="button"
               onClick={() => setIsToolsOpen(true)}
