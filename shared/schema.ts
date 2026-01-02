@@ -6760,6 +6760,11 @@ export const promotions = pgTable("promotions", {
   }).notNull(),
   exclusive: boolean("exclusive").notNull().default(false),
 
+  // Monetization tier: free_directory (no placements) vs paid_campaign (placements allowed)
+  tier: varchar("tier", {
+    enum: ["free_directory", "paid_campaign"],
+  }).notNull().default("free_directory"),
+
   // Lifecycle
   status: varchar("status", {
     enum: ["draft", "active", "paused", "ended"],
