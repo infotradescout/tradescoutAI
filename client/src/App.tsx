@@ -17,7 +17,7 @@ import { AppShell } from './components/layout/AppShell';
 import { resolveDefaultHomeRoute } from './lib/homeRoute';
 import ScoutOS from './scout';
 import { PreferredSourcePrompt } from './components/PreferredSourcePrompt';
-import { FEATURE_HOLD_TO_EXPLAIN, FEATURE_EDUCATION_REPLACEMENT } from '@shared/governanceFlags';
+import { FEATURE_HOLD_TO_EXPLAIN, FEATURE_HOLD_INTRO_TUTORIAL, FEATURE_EDUCATION_REPLACEMENT } from '@shared/governanceFlags';
 import { HoldToExplainProvider } from './components/hold/HoldToExplainProvider';
 import { HoldIntroTutorial } from './components/onboarding/HoldIntroTutorial';
 import { registerStarterActionDescriptors } from './lib/actionDescriptorSeeds';
@@ -1034,7 +1034,7 @@ const AppLayout = memo(function AppLayout() {
       {FEATURE_HOLD_TO_EXPLAIN && <HoldToExplainProvider />}
 
       {/* One-time Hold explainer (ships dark behind flag) */}
-      {FEATURE_EDUCATION_REPLACEMENT && <HoldIntroTutorial />}
+      {FEATURE_HOLD_INTRO_TUTORIAL && <HoldIntroTutorial />}
 
       {/* Subtle onboarding hints for new users (hide on Scout landing) */}
       {!isLlmRoute && !FEATURE_EDUCATION_REPLACEMENT && <SimpleSubtleHints />}
