@@ -1,6 +1,8 @@
 import { Router } from "express";
 import { z } from "zod";
 import { emailService } from "../services/emailService";
+import { ClaimSource, ClaimType, isValidCountyFips } from "../services/claimEventSchema";
+import { writeClaimEvent } from "../services/claimEventService";
 
 const router = Router();
 
@@ -27,6 +29,14 @@ const contractorSignupSchema = z.object({
 router.post('/api/contractor-signup', async (req, res) => {
   try {
     console.log('Contractor signup request received:', req.body);
+
+    const userId = (req as any)?.user?.id || (req as any)?.user?.claims?.sub;
+    if (!userId) {
+      return res.status(401).json({
+        success: false,
+        message: 'Authentication required. System agents and users must identify before declaring contractor claims.',
+      });
+    }
     
     const validatedData = contractorSignupSchema.parse(req.body);
     
@@ -35,6 +45,7 @@ router.post('/api/contractor-signup', async (req, res) => {
     
     // Create a contractor application record
     const application = await storage.createContractorApplication({
+      userId,
       companyName: validatedData.companyName,
       email: validatedData.email,
       phone: validatedData.phone,
@@ -51,10 +62,41 @@ router.post('/api/contractor-signup', async (req, res) => {
       preferredContact: validatedData.preferredContact,
       agreeToTerms: validatedData.agreeToTerms,
       agreeToVerification: validatedData.agreeToVerification,
+      status: 'starter_pending',
+      starterPath: true,
+      verificationStatus: 'pending',
     });
     
     console.log('Contractor application saved to database:', application.id);
     
+    // Claims-first: record intent to provide services as a starter path (no capabilities unlocked)
+    const countyFips = validatedData.primaryCounty;
+    if (isValidCountyFips(countyFips)) {
+      try {
+        await writeClaimEvent({
+          userId,
+          claimType: ClaimType.PROVIDES_SERVICES,
+          countyFips,
+          countyName: validatedData.primaryCounty,
+          source: ClaimSource.SIGNUP,
+          claimTimestamp: new Date(),
+          metadata: {
+            path: 'contractor_starter',
+            verificationStatus: 'pending',
+            companyName: validatedData.companyName,
+            email: validatedData.email,
+          },
+        });
+      } catch (claimErr) {
+        console.warn('Contractor starter claim write skipped', { claimErr });
+      }
+    } else {
+      console.warn('Contractor starter claim skipped due to invalid county fips', {
+        userId,
+        countyFips,
+      });
+    }
+
     // Send email notifications (if SendGrid configured)
     try {
       if (emailService.isConfigured()) {
@@ -88,7 +130,7 @@ router.post('/api/contractor-signup', async (req, res) => {
     
     res.json({ 
       success: true, 
-      message: 'Application submitted successfully! We will review your application and contact you within 24-48 hours.',
+      message: 'Contractor starter recorded. We will verify your information before any contractor capabilities are unlocked.',
       applicationId: application.id
     });
     

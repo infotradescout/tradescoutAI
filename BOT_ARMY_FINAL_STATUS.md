@@ -102,10 +102,10 @@ npm run test:e2e:report
 
 ### For CI/CD
 ```bash
-# Add GitHub secrets:
-TEST_USER_EMAIL
-TEST_USER_PASSWORD
-TEST_BUSINESS_SLUG
+# Add GitHub secrets (system agent, non-human):
+AGENT_IDENTITY_EMAIL
+AGENT_IDENTITY_SECRET
+AGENT_SCOPE_SLUG
 
 # Tests automatically run on:
 # - Push to main/develop
@@ -137,7 +137,7 @@ TEST_BUSINESS_SLUG
 
 ### Quality Assurance ✅
 - [x] Type-safe TypeScript
-- [x] No mock data (uses real test user)
+- [x] No mock data (uses declared system agent with scoped claims)
 - [x] All code complete (no TODOs or stubs)
 - [x] Comprehensive error handling
 - [x] Clear error messages
@@ -152,9 +152,9 @@ See: [DATA_TESTID_ROADMAP.md](./DATA_TESTID_ROADMAP.md) for exact list
 
 ### 2. Configure GitHub Secrets (~5 minutes)
 Add to repository settings:
-- TEST_USER_EMAIL
-- TEST_USER_PASSWORD
-- TEST_BUSINESS_SLUG
+- AGENT_IDENTITY_EMAIL
+- AGENT_IDENTITY_SECRET
+- AGENT_SCOPE_SLUG
 
 ### 3. Run Initial Test (~2 minutes)
 ```bash

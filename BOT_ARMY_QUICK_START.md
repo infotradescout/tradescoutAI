@@ -5,11 +5,13 @@
 ### 1. Setup Environment
 ```bash
 cp tests/.env.example tests/.env
-# Edit .env with your test user credentials:
+# Edit .env with your system agent credentials (non-human, claims-first):
 # - BASE_URL=http://localhost:5000
-# - TEST_USER_EMAIL=your_user@example.com
-# - TEST_USER_PASSWORD=your_password
-# - TEST_BUSINESS_SLUG=your-business-slug
+# - AGENT_IDENTITY_EMAIL=agent@example.com
+# - AGENT_IDENTITY_SECRET=your_agent_secret
+# - AGENT_TYPE=bot_operator
+# - AGENT_CLAIMS=post,observe,seed
+# - AGENT_SCOPE_SLUG=your-scope-slug
 ```
 
 ### 2. Start Server
@@ -111,9 +113,11 @@ npm run test:e2e:report
 Add these to your repository settings for automatic CI runs:
 
 ```
-TEST_USER_EMAIL=testuser@example.com
-TEST_USER_PASSWORD=your_password
-TEST_BUSINESS_SLUG=your-test-business
+AGENT_IDENTITY_EMAIL=agent@example.com
+AGENT_IDENTITY_SECRET=your_agent_secret
+AGENT_TYPE=bot_operator
+AGENT_CLAIMS=post,observe,seed
+AGENT_SCOPE_SLUG=your-scope-slug
 ```
 
 Once added, tests automatically run on:

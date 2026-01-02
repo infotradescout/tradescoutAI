@@ -56,9 +56,11 @@ jobs:
         run: npm run test:e2e
         env:
           BASE_URL: http://localhost:5000
-          TEST_USER_EMAIL: ${{ secrets.TEST_USER_EMAIL }}
-          TEST_USER_PASSWORD: ${{ secrets.TEST_USER_PASSWORD }}
-          TEST_BUSINESS_SLUG: ${{ secrets.TEST_BUSINESS_SLUG }}
+          AGENT_IDENTITY_EMAIL: ${{ secrets.AGENT_IDENTITY_EMAIL }}
+          AGENT_IDENTITY_SECRET: ${{ secrets.AGENT_IDENTITY_SECRET }}
+          AGENT_TYPE: bot_operator
+          AGENT_CLAIMS: post,observe,seed
+          AGENT_SCOPE_SLUG: ${{ secrets.AGENT_SCOPE_SLUG }}
           DEBUG: false
           CI: true
         continue-on-error: true

@@ -56,7 +56,7 @@ test.describe('Model-Based Testing - Deterministic Flow Runner', () => {
     '/',
     '/login',
     '/create-account',
-    `/business/${env.TEST_BUSINESS_SLUG}`,
+    `/business/${env.AGENT_SCOPE_SLUG}`,
   ];
 
   const ACTIONS = {
@@ -106,7 +106,7 @@ test.describe('Model-Based Testing - Deterministic Flow Runner', () => {
         state.visitedPages.add(state.currentUrl);
 
         // Check mission invariant (if on business profile)
-        if (state.currentUrl.includes(`/business/${env.TEST_BUSINESS_SLUG}`)) {
+        if (state.currentUrl.includes(`/business/${env.AGENT_SCOPE_SLUG}`)) {
           const missionElement = page.locator(selectors.businessProfileView.mission);
           const isMissionVisible = await missionElement.isVisible().catch(() => false);
 

@@ -24,6 +24,7 @@ import communityVaultRouter from "./routes/community-vault-routes";
 import communityCausesRouter from "./routes/community-causes-routes";
 import platformSupportRouter from "./routes/platform-support-routes";
 import { mountAdminRoutes } from "./routes/admin";
+import missionControlRouter from "./routes/mission-control";
 import { registerAuthorityOperationsRoutes } from "./routes/authority-operations";
 import { ROLE_PERMISSIONS, type UserRole as SharedUserRole } from "../shared/roles";
 import { CURRENT_PROFILE_VERSION } from "../shared/profile";
@@ -334,6 +335,7 @@ export async function registerRoutes(app: any) {
   // Admin OS routes (health + heatmap) now mounted via dedicated module.
   // URLs and behavior remain identical; this simply centralizes admin authority.
   mountAdminRoutes(app);
+  app.use("/api/admin/mission-control", missionControlRouter);
   
   // Authority Operations admin panel (observation mode, decision card metrics, unlock ledger)
   registerAuthorityOperationsRoutes(app);

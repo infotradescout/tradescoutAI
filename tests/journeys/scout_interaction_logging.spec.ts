@@ -40,7 +40,7 @@ test.describe('Scout Interaction Logging - Bot Army', () => {
 
   test('should log Scout offering control (do it vs route it)', async ({ page }, testInfo) => {
     try {
-      await page.goto(`${env.BASE_URL}/business/${env.TEST_BUSINESS_SLUG}`);
+      await page.goto(`${env.BASE_URL}/business/${env.AGENT_SCOPE_SLUG}`);
 
       // Simulate Scout offering control to user
       scoutLogger.addTurn({
@@ -110,7 +110,7 @@ test.describe('Scout Interaction Logging - Bot Army', () => {
 
   test('should record friction signal when user hesitates', async ({ page }, testInfo) => {
     try {
-      await page.goto(`${env.BASE_URL}/business/${env.TEST_BUSINESS_SLUG}`);
+      await page.goto(`${env.BASE_URL}/business/${env.AGENT_SCOPE_SLUG}`);
 
       // Scout offers action
       scoutLogger.addTurn({
@@ -192,7 +192,7 @@ test.describe('Scout Interaction Logging - Bot Army', () => {
 
   test('should log failed action execution with error', async ({ page }, testInfo) => {
     try {
-      await page.goto(`${env.BASE_URL}/business/${env.TEST_BUSINESS_SLUG}`);
+      await page.goto(`${env.BASE_URL}/business/${env.AGENT_SCOPE_SLUG}`);
 
       // Scout attempts action
       scoutLogger.addTurn({
@@ -251,7 +251,7 @@ test.describe('Scout Interaction Logging - Bot Army', () => {
 
   test('should log partial success with recovery', async ({ page }, testInfo) => {
     try {
-      await page.goto(`${env.BASE_URL}/business/${env.TEST_BUSINESS_SLUG}`);
+      await page.goto(`${env.BASE_URL}/business/${env.AGENT_SCOPE_SLUG}`);
 
       // Scout offers batch action
       scoutLogger.addTurn({
@@ -312,7 +312,7 @@ test.describe('Scout Interaction Logging - Bot Army', () => {
 
   test('should generate session summary for analysis', async ({ page }, testInfo) => {
     try {
-      await page.goto(`${env.BASE_URL}/business/${env.TEST_BUSINESS_SLUG}`);
+      await page.goto(`${env.BASE_URL}/business/${env.AGENT_SCOPE_SLUG}`);
 
       // Simulate full session
       scoutLogger.addTurn({
