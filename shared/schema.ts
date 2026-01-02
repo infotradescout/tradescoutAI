@@ -13,6 +13,7 @@ import {
   numeric,
   pgEnum,
   primaryKey,
+  date,
 } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
@@ -301,6 +302,11 @@ export const missionControlActionStatusEnum = pgEnum("mission_control_action_sta
   "deferred",
 ]);
 
+export const missionControlDecisionActionEnum = pgEnum("mission_control_decision_action", [
+  "done",
+  "defer",
+]);
+
 // Invitation status enum
 export const invitationStatusEnum = pgEnum('invitation_status', [
   'pending',
@@ -467,6 +473,11 @@ export const users = pgTable("users", {
   }>(),
   themePreference: varchar("theme_preference").default('default'), // Selected theme ID
   customThemeColors: text("custom_theme_colors"), // JSON string of custom colors
+  
+  // Preferred Source Prompt: Earned organic Google gravity (5th action moment)
+  preferredSourcePromptShownAt: timestamp("preferred_source_prompt_shown_at"),
+  preferredSourcePromptAcceptedAt: timestamp("preferred_source_prompt_accepted_at"),
+  
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
@@ -2515,6 +2526,47 @@ export const missionControlActions = pgTable(
   ],
 );
 
+// Mission Control decision tracking: daily operating loop
+export const missionControlDecisions = pgTable(
+  "mission_control_decisions",
+  {
+    id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+    decisionDate: date("decision_date").notNull(),
+    recommendedFixSourceType: missionControlSourceEnum("recommended_fix_source_type").notNull(),
+    recommendedFixSourceId: varchar("recommended_fix_source_id", { length: 128 }).notNull(),
+    action: missionControlDecisionActionEnum("action").notNull(),
+    deferReason: text("defer_reason"),
+    actorUserId: varchar("actor_user_id").references(() => users.id),
+    createdAt: timestamp("created_at").defaultNow(),
+  },
+  (table) => [
+    uniqueIndex("mission_control_decision_unique").on(
+      table.decisionDate,
+      table.recommendedFixSourceType,
+      table.recommendedFixSourceId,
+    ),
+    index("mission_control_decisions_date_idx").on(table.decisionDate),
+    index("mission_control_decisions_action_idx").on(table.action),
+  ],
+);
+
+// User completed actions log: Append-only record of real outcome-based actions
+// Used for Preferred Source Prompt (5th action moment) and Mission Control
+export const userCompletedActions = pgTable(
+  "user_completed_actions",
+  {
+    id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+    userId: varchar("user_id").notNull().references(() => users.id),
+    actionType: varchar("action_type", { length: 120 }).notNull(),
+    source: varchar("source", { length: 20 }).notNull(),
+    createdAt: timestamp("created_at").defaultNow(),
+  },
+  (table) => [
+    index("user_completed_actions_user_idx").on(table.userId),
+    index("user_completed_actions_created_idx").on(table.createdAt),
+  ],
+);
+
 // Contractor promotional campaigns
 export const contractorPromos = pgTable("contractor_promos", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -3011,6 +3063,16 @@ export const insertMissionControlActionSchema = createInsertSchema(missionContro
   resolvedAt: true,
 });
 
+export const insertMissionControlDecisionSchema = createInsertSchema(missionControlDecisions).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertUserCompletedActionSchema = createInsertSchema(userCompletedActions).omit({
+  id: true,
+  createdAt: true,
+});
+
 export const insertErrorReportSchema = createInsertSchema(errorReports).omit({
   id: true,
   createdAt: true,
@@ -3031,6 +3093,10 @@ export type InsertScoutInteraction = typeof scoutInteractions.$inferInsert;
 export type ScoutInteraction = typeof scoutInteractions.$inferSelect;
 export type InsertMissionControlAction = typeof missionControlActions.$inferInsert;
 export type MissionControlAction = typeof missionControlActions.$inferSelect;
+export type InsertMissionControlDecision = typeof missionControlDecisions.$inferInsert;
+export type MissionControlDecision = typeof missionControlDecisions.$inferSelect;
+export type InsertUserCompletedAction = typeof userCompletedActions.$inferInsert;
+export type UserCompletedAction = typeof userCompletedActions.$inferSelect;
 
 // Export types for data privacy and security
 export type InsertUserDataRequest = typeof userDataRequests.$inferInsert;

@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from "./fixtures/botArmy";
 
 // Basic e2e guard: community feed shows posts for the user's county
 

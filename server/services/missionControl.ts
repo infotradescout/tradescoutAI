@@ -3,16 +3,33 @@ import {
   botUiFindings,
   errorReports,
   missionControlActions,
+  missionControlDecisions,
   missionControlSourceEnum,
+  scoutInteractionFailureReasonEnum,
+  scoutInteractionIntentEnum,
   scoutInteractions,
   type BotUiFinding,
   type InsertBotUiFinding,
   type InsertMissionControlAction,
+  type InsertMissionControlDecision,
   type InsertScoutInteraction,
   type MissionControlAction,
+  type MissionControlDecision,
   type ScoutInteraction,
 } from "../../shared/schema";
 import { db } from "../db";
+import {
+  FEATURE_CUSTOMER_IMPACT,
+  FEATURE_RISK_SENTINEL,
+  FEATURE_SCOPE_GOVERNOR,
+  FEATURE_CHIEF_OF_STAFF,
+} from "../../shared/governanceFlags";
+import {
+  type UserImpact,
+  type RiskTag,
+  type ChiefOfStaffStatus,
+  type ScopeGovernorState,
+} from "../../shared/missionControlGovernance";
 
 const ONE_DAY_MS = 24 * 60 * 60 * 1000;
 const ONE_WEEK_MS = ONE_DAY_MS * 7;
@@ -23,6 +40,8 @@ export interface MissionControlSummary {
   successfulConnections: number;
   blockedConnections: number;
   confusingExperiences: number;
+  scopeGovernor?: ScopeGovernorState;
+  chiefOfStaffStatus?: ChiefOfStaffStatus;
 }
 
 export interface MissionControlFailure {
@@ -42,6 +61,8 @@ export interface MissionControlFailure {
   intentStrength: number;
   latestAt: string;
   tags?: string[];
+  userImpact?: UserImpact;
+  riskTags?: RiskTag[];
 }
 
 export interface MissionControlCompromise {
@@ -71,6 +92,63 @@ const PRIORITY_TO_SEVERITY: Record<string, number> = {
   medium: 3,
   low: 2,
 };
+
+const FIX_LEVER_EFFORT: Record<MissionControlFailure["fixLever"], number> = {
+  copy: 1,
+  ui: 2,
+  route: 3,
+  permission: 4,
+  data: 5,
+};
+
+function deriveUserImpact(failure: MissionControlFailure): UserImpact {
+  if (failure.occurrences > 1) return "confusing";
+  if (failure.where === "Permission" || failure.fixLever === "permission") return "frustrating";
+  if (failure.tags?.includes("stub") || failure.tags?.includes("partial")) return "trust_breaking";
+  return "neutral_incomplete";
+}
+
+function deriveRiskTags(failure: MissionControlFailure): RiskTag[] {
+  const tags: RiskTag[] = [];
+  const text = `${failure.why || ""} ${failure.what || ""}`.toLowerCase();
+
+  if (text.includes("legal") || text.includes("license") || text.includes("compliance")) {
+    tags.push("legal");
+  }
+  if (text.includes("safety") || text.includes("hazard") || text.includes("permit")) {
+    tags.push("safety");
+  }
+  if (failure.fixLever === "permission" || text.includes("trust") || text.includes("fraud")) {
+    tags.push("trust");
+  }
+
+  if (!tags.length) tags.push("operational");
+  return tags;
+}
+
+function riskPriority(riskTags?: RiskTag[]): number {
+  if (!riskTags || riskTags.length === 0) return 0;
+  if (riskTags.includes("legal") || riskTags.includes("safety")) return 2;
+  if (riskTags.includes("trust")) return 1;
+  return 0;
+}
+
+function computeChiefStatus(failures: MissionControlFailure[]): ChiefOfStaffStatus {
+  const highImpact = failures.some((f) => f.severity >= 4);
+  const trustIssues = failures.some((f) => {
+    const impact = f.userImpact ?? deriveUserImpact(f);
+    const risks = f.riskTags ?? deriveRiskTags(f);
+    return impact === "trust_breaking" || risks.includes("trust");
+  });
+  const safetyLegal = failures.some((f) => {
+    const risks = f.riskTags ?? deriveRiskTags(f);
+    return risks.some((r) => r === "legal" || r === "safety");
+  });
+  const repeats = failures.some((f) => f.occurrences > 1);
+
+  if (highImpact || trustIssues || safetyLegal || repeats) return "action_required";
+  return "no_action_required";
+}
 
 function clampSeverity(value: number | null | undefined): number {
   if (!Number.isFinite(value as number)) return 1;
@@ -157,12 +235,32 @@ export async function recordBotUiFinding(input: InsertBotUiFinding) {
 }
 
 export async function recordScoutInteraction(input: InsertScoutInteraction) {
+  const allowedFailureReasons = new Set(scoutInteractionFailureReasonEnum.enumValues);
+  const allowedIntents = new Set(scoutInteractionIntentEnum.enumValues);
+
+  const intent = allowedIntents.has(input.intent as any) ? input.intent : "unknown";
+  const failureReason = input.failureReason;
+  const outcome = input.outcome;
+
+  if (!outcome) {
+    throw new Error("Outcome is required for Scout interaction logging");
+  }
+
+  if (outcome !== "completed" && !failureReason) {
+    throw new Error("failure_reason is required for non-completed Scout outcomes");
+  }
+
+  if (failureReason && !allowedFailureReasons.has(failureReason as any)) {
+    throw new Error(`Invalid failure_reason for Scout interaction: ${failureReason}`);
+  }
+
   const sanitized: InsertScoutInteraction = {
     ...input,
-    intent: input.intent ?? "unknown",
+    intent,
     scoutConfidence: Number.isFinite(input.scoutConfidence)
       ? Math.max(0, Math.min(100, Math.round(input.scoutConfidence as number)))
       : 0,
+    failureReason: outcome === "completed" ? null : failureReason,
   };
 
   await db.insert(scoutInteractions).values(sanitized);
@@ -197,13 +295,24 @@ export async function getMissionControlSummary(now = new Date()): Promise<Missio
       ),
     );
 
-  return {
+  const summary: MissionControlSummary = {
     last24hRange: { start: since.toISOString(), end: now.toISOString() },
     totalConnectionAttempts: total?.count ?? 0,
     successfulConnections: success?.count ?? 0,
     blockedConnections: blocked?.count ?? 0,
     confusingExperiences: confusing?.count ?? 0,
   };
+
+  if (FEATURE_SCOPE_GOVERNOR) {
+    summary.scopeGovernor = await getScopeGovernorState(now);
+  }
+
+  if (FEATURE_CHIEF_OF_STAFF) {
+    const failures = await getMissionControlFailures(now);
+    summary.chiefOfStaffStatus = computeChiefStatus(failures);
+  }
+
+  return summary;
 }
 
 async function fetchBotFailures(since: Date): Promise<MissionControlFailure[]> {
@@ -367,14 +476,36 @@ async function fetchErrorFailures(since: Date): Promise<MissionControlFailure[]>
 }
 
 export async function getMissionControlFailures(now = new Date()): Promise<MissionControlFailure[]> {
-  const since = new Date(now.getTime() - ONE_WEEK_MS);
+  const since = new Date(now.getTime() - ONE_DAY_MS);
   const [bot, scout, errors] = await Promise.all([
     fetchBotFailures(since),
     fetchScoutFailures(since),
     fetchErrorFailures(since),
   ]);
 
-  return [...bot, ...scout, ...errors].sort((a, b) => b.impactScore - a.impactScore);
+  let combined: MissionControlFailure[] = [...bot, ...scout, ...errors];
+
+  if (FEATURE_CUSTOMER_IMPACT || FEATURE_RISK_SENTINEL) {
+    combined = combined.map((failure) => {
+      const updated: MissionControlFailure = { ...failure };
+      if (FEATURE_CUSTOMER_IMPACT) {
+        updated.userImpact = deriveUserImpact(updated);
+      }
+      if (FEATURE_RISK_SENTINEL) {
+        updated.riskTags = deriveRiskTags(updated);
+      }
+      return updated;
+    });
+  }
+
+  return combined.sort((a, b) => {
+    if (FEATURE_RISK_SENTINEL) {
+      const riskDelta = riskPriority(b.riskTags) - riskPriority(a.riskTags);
+      if (riskDelta !== 0) return riskDelta;
+    }
+    if (b.impactScore !== a.impactScore) return b.impactScore - a.impactScore;
+    return (FIX_LEVER_EFFORT[a.fixLever] ?? 5) - (FIX_LEVER_EFFORT[b.fixLever] ?? 5);
+  });
 }
 
 export async function getMissionControlCompromises(now = new Date()): Promise<MissionControlCompromise[]> {
@@ -408,6 +539,48 @@ export async function getMissionControlCompromises(now = new Date()): Promise<Mi
   }
 
   return compromises;
+}
+
+export async function getScopeGovernorState(now = new Date()): Promise<ScopeGovernorState> {
+  if (!FEATURE_SCOPE_GOVERNOR) {
+    return { scopeFrozen: false, reasons: [] };
+  }
+
+  const since = new Date(now.getTime() - ONE_DAY_MS * 3);
+  const sinceDate = since.toISOString().split("T")[0];
+
+  const [bot, scout, errors] = await Promise.all([
+    fetchBotFailures(since),
+    fetchScoutFailures(since),
+    fetchErrorFailures(since),
+  ]);
+
+  const combined = [...bot, ...scout, ...errors];
+  const reasons: string[] = [];
+
+  if (combined.some((f) => f.occurrences > 1)) {
+    reasons.push("Repeated failures in last 3 days");
+  }
+
+  const deferredWithoutReason = await db
+    .select({ id: missionControlDecisions.id })
+    .from(missionControlDecisions)
+    .where(
+      and(
+        gte(missionControlDecisions.decisionDate, sinceDate),
+        eq(missionControlDecisions.action, "defer" as const),
+        sql`coalesce(${missionControlDecisions.deferReason}, '') = ''`,
+      ),
+    );
+
+  if (deferredWithoutReason.length > 0) {
+    reasons.push("Deferred fixes without reasons in last 3 days");
+  }
+
+  return {
+    scopeFrozen: reasons.length > 0,
+    reasons,
+  };
 }
 
 export async function getScoutHealthSummary(now = new Date()): Promise<string> {
@@ -451,6 +624,23 @@ export async function getScoutHealthSummary(now = new Date()): Promise<string> {
 }
 
 export async function getOrCreateOneFix(now = new Date()): Promise<OneFixResult | null> {
+  const today = new Date(now);
+  today.setUTCHours(0, 0, 0, 0);
+  const todayStr = today.toISOString().split("T")[0];
+
+  // Check for already-decided fixes today to avoid recommending again
+  const decidedToday = await db
+    .select({
+      sourceType: missionControlDecisions.recommendedFixSourceType,
+      sourceId: missionControlDecisions.recommendedFixSourceId,
+    })
+    .from(missionControlDecisions)
+    .where(eq(missionControlDecisions.decisionDate, todayStr));
+
+  const excludedKeys = new Set(
+    decidedToday.map((d) => `${d.sourceType}::${d.sourceId}`)
+  );
+
   const existing = await db
     .select()
     .from(missionControlActions)
@@ -459,14 +649,23 @@ export async function getOrCreateOneFix(now = new Date()): Promise<OneFixResult 
     .limit(1);
 
   if (existing.length > 0) {
-    const [failure] = (await getMissionControlFailures(now)).filter((f) => f.sourceId === existing[0].sourceId);
-    if (failure) {
-      return { action: existing[0], failure };
+    const key = `${existing[0].sourceType}::${existing[0].sourceId}`;
+    if (excludedKeys.has(key)) {
+      // Already decided today; skip to next
+    } else {
+      const [failure] = (await getMissionControlFailures(now)).filter((f) => f.sourceId === existing[0].sourceId);
+      if (failure) {
+        return { action: existing[0], failure };
+      }
     }
   }
 
   const failures = await getMissionControlFailures(now);
-  const candidate = failures[0];
+  const candidate = failures.find((f) => {
+    const key = `${f.sourceType}::${f.sourceId}`;
+    return !excludedKeys.has(key);
+  });
+
   if (!candidate) return null;
 
   const upsertPayload: InsertMissionControlAction = {
@@ -515,4 +714,40 @@ export async function updateOneFixStatus(
     .returning();
 
   return updated ?? null;
+}
+
+export async function recordDecision(input: {
+  recommendedFixSourceType: string;
+  recommendedFixSourceId: string;
+  action: "done" | "defer";
+  deferReason?: string;
+  actorUserId?: string;
+}): Promise<MissionControlDecision> {
+  const today = new Date();
+  today.setUTCHours(0, 0, 0, 0);
+  const todayStr = today.toISOString().split("T")[0];
+
+  const payload: InsertMissionControlDecision = {
+    decisionDate: todayStr,
+    recommendedFixSourceType: input.recommendedFixSourceType as any,
+    recommendedFixSourceId: input.recommendedFixSourceId,
+    action: input.action,
+    deferReason: input.deferReason ?? null,
+    actorUserId: input.actorUserId ?? null,
+  };
+
+  const [decision] = await db.insert(missionControlDecisions).values(payload).returning();
+  return decision;
+}
+
+export async function getTodayDecisions(now = new Date()): Promise<MissionControlDecision[]> {
+  const today = new Date(now);
+  today.setUTCHours(0, 0, 0, 0);
+  const todayStr = today.toISOString().split("T")[0];
+
+  return db
+    .select()
+    .from(missionControlDecisions)
+    .where(eq(missionControlDecisions.decisionDate, todayStr))
+    .orderBy(desc(missionControlDecisions.createdAt));
 }

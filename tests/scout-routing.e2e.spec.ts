@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from './fixtures/botArmy';
 
 // Minimal e2e check that Scout's routing explainer
 // includes a navigate action to the canonical Direct Connect help URL.

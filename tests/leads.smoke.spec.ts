@@ -1,4 +1,4 @@
-import { test, expect } from "@playwright/test";
+import { test, expect } from "./fixtures/botArmy";
 
 test("Lead submit API accepts a valid payload (uses real trade + county IDs)", async ({ page }) => {
   // 1) Get a real trade

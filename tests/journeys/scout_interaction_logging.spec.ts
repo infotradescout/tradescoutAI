@@ -9,7 +9,7 @@
  * This test runs as isTestRun=true, so learning pipeline is hard-disabled.
  */
 
-import { test, expect } from '@playwright/test';
+import { test, expect } from '../fixtures/botArmy';
 import { env } from '../utils/env';
 import { selectors } from '../utils/selectors';
 import { NetworkWatcher } from '../utils/networkWatch';

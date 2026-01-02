@@ -8,6 +8,7 @@ import { PageLoadingSpinner } from "@/components/LoadingSpinner";
 import { Shield, Sparkles, Map as MapIcon, Activity, Users as UsersIcon } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import { SuperAdminOSLayout } from "@/admin/SuperAdminOSLayout";
+import MissionControlV0 from "@/pages/MissionControlV0";
 import AdminUsers from "@/pages/admin-users";
 import AdminErrorReports from "@/pages/admin-error-reports";
 import AdminPricingAnalytics from "@/pages/admin-pricing-analytics";
@@ -94,11 +95,16 @@ function AdminContentRouter() {
   const path = location || "/admin";
   const subPath = path.startsWith("/admin") ? path.substring("/admin".length) || "/" : path;
 
+  // Default: Mission Control v0 (Super Admin home)
   if (subPath === "/" || subPath === "") {
-    return <SuperAdminDashboard />;
+    return <MissionControlV0 />;
   }
 
-  if (subPath.startsWith("/users")) {
+  if (subPath === "/mission-control") {
+    return <MissionControlV0 />;
+  }
+
+  if (subPath === "/users") {
     return <AdminUsers />;
   }
 

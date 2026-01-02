@@ -1,4 +1,4 @@
-import { test, expect } from "@playwright/test";
+import { test, expect } from "./fixtures/botArmy";
 
 // If there is no dedicated test database configured, skip this suite.
 // CI should set TEST_DATABASE_URL so that E2E runs against a disposable DB.

@@ -9,7 +9,7 @@
  * 5. No unintended side effects (auto-save, page reload, etc.)
  */
 
-import { test, expect } from '@playwright/test';
+import { test, expect } from '../fixtures/botArmy';
 import { env } from '../utils/env';
 import { selectors, hasStubContent } from '../utils/selectors';
 import { NetworkWatcher } from '../utils/networkWatch';

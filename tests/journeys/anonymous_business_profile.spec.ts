@@ -8,7 +8,7 @@
  * 4. Not see admin or edit controls
  */
 
-import { test, expect } from '@playwright/test';
+import { test, expect } from '../fixtures/botArmy';
 import { env } from '../utils/env';
 import { selectors, hasStubContent } from '../utils/selectors';
 import { NetworkWatcher } from '../utils/networkWatch';

@@ -1,0 +1,271 @@
+import { useEffect, useState } from "react";
+import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
+import { Badge } from "@/components/ui/badge";
+
+interface MissionControlSummary {
+  last24hRange: { start: string; end: string };
+  totalConnectionAttempts: number;
+  successfulConnections: number;
+  blockedConnections: number;
+  confusingExperiences: number;
+}
+
+interface MissionControlFailure {
+  id: string;
+  sourceType: string;
+  who: string;
+  what: string;
+  where: string;
+  why: string;
+  fixLever: string;
+  impactScore: number;
+  occurrences: number;
+  severity: number;
+  latestAt: string;
+  tags?: string[];
+}
+
+interface MissionControlCompromise {
+  id: string;
+  sourceType: string;
+  description: string;
+  route?: string;
+  tag: string;
+  observedAt: string;
+}
+
+interface OneFixResult {
+  action: {
+    id: string;
+    sourceType: string;
+    sourceId: string;
+    summary: string;
+    suggestedFix: string;
+    impactScore: number;
+  };
+  failure: MissionControlFailure;
+}
+
+export default function MissionControlV0() {
+  const [summary, setSummary] = useState<MissionControlSummary | null>(null);
+  const [failures, setFailures] = useState<MissionControlFailure[]>([]);
+  const [compromises, setCompromises] = useState<MissionControlCompromise[]>([]);
+  const [scoutHealth, setScoutHealth] = useState<string>("");
+  const [oneFix, setOneFix] = useState<OneFixResult | null>(null);
+  const [deferReason, setDeferReason] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const fetchData = async () => {
+    try {
+      const [summaryRes, failuresRes, compromisesRes, healthRes, oneFixRes] = await Promise.all([
+        fetch("/api/admin/mission-control/summary"),
+        fetch("/api/admin/mission-control/failures"),
+        fetch("/api/admin/mission-control/compromises"),
+        fetch("/api/admin/mission-control/scout-health"),
+        fetch("/api/admin/mission-control/one-fix"),
+      ]);
+
+      if (summaryRes.ok) setSummary(await summaryRes.json());
+      if (failuresRes.ok) setFailures(await failuresRes.json());
+      if (compromisesRes.ok) setCompromises(await compromisesRes.json());
+      if (healthRes.ok) {
+        const health = await healthRes.json();
+        setScoutHealth(health.summary);
+      }
+      if (oneFixRes.status === 200) {
+        setOneFix(await oneFixRes.json());
+      } else if (oneFixRes.status === 204) {
+        setOneFix(null);
+      }
+    } catch (err) {
+      console.error("[MissionControl] Failed to fetch data", err);
+    }
+  };
+
+  useEffect(() => {
+    fetchData();
+  }, []);
+
+  const markDone = async () => {
+    if (!oneFix) return;
+    setIsSubmitting(true);
+    try {
+      const res = await fetch(`/api/admin/mission-control/one-fix/${oneFix.action.id}/done`, {
+        method: "POST",
+      });
+      if (res.ok) {
+        await fetchData();
+      }
+    } catch (err) {
+      console.error("[MissionControl] Failed to mark done", err);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const markDefer = async () => {
+    if (!oneFix || !deferReason.trim()) return;
+    setIsSubmitting(true);
+    try {
+      const res = await fetch(`/api/admin/mission-control/one-fix/${oneFix.action.id}/defer`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ reason: deferReason.trim() }),
+      });
+      if (res.ok) {
+        setDeferReason("");
+        await fetchData();
+      }
+    } catch (err) {
+      console.error("[MissionControl] Failed to defer", err);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  return (
+    <div className="p-6 space-y-6 max-w-7xl mx-auto">
+      <h1 className="text-3xl font-bold">Mission Control v0</h1>
+      <p className="text-muted-foreground">One fix/day. Truth-driven. No polish.</p>
+
+      {/* Today's Reality */}
+      {summary && (
+        <Card className="p-6">
+          <h2 className="text-xl font-semibold mb-4">Today's Reality</h2>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div>
+              <div className="text-2xl font-bold">{summary.totalConnectionAttempts}</div>
+              <div className="text-sm text-muted-foreground">Connection Attempts</div>
+            </div>
+            <div>
+              <div className="text-2xl font-bold text-green-600">{summary.successfulConnections}</div>
+              <div className="text-sm text-muted-foreground">Successful</div>
+            </div>
+            <div>
+              <div className="text-2xl font-bold text-red-600">{summary.blockedConnections}</div>
+              <div className="text-sm text-muted-foreground">Blocked</div>
+            </div>
+            <div>
+              <div className="text-2xl font-bold text-yellow-600">{summary.confusingExperiences}</div>
+              <div className="text-sm text-muted-foreground">Confusing</div>
+            </div>
+          </div>
+        </Card>
+      )}
+
+      {/* One Fix */}
+      <Card className="p-6 border-2 border-primary">
+        <h2 className="text-xl font-semibold mb-4">One Fix That Matters Today</h2>
+        {oneFix ? (
+          <div className="space-y-4">
+            <div>
+              <Badge variant="outline" className="mb-2">
+                Impact: {oneFix.action.impactScore}
+              </Badge>
+              <Badge variant="outline" className="ml-2">
+                Fix: {oneFix.action.suggestedFix}
+              </Badge>
+              <h3 className="text-lg font-semibold mt-2">{oneFix.action.summary}</h3>
+              <p className="text-sm text-muted-foreground mt-1">
+                {oneFix.failure.who} • {oneFix.failure.where} • {oneFix.failure.why}
+              </p>
+              <p className="text-sm mt-2">
+                {oneFix.failure.occurrences} occurrence{oneFix.failure.occurrences > 1 ? "s" : ""} • 
+                Severity {oneFix.failure.severity}/5
+              </p>
+            </div>
+
+            <div className="flex gap-4 items-end">
+              <Button onClick={markDone} disabled={isSubmitting} variant="default">
+                ✅ Mark Done
+              </Button>
+              <div className="flex-1">
+                <Textarea
+                  placeholder="Why defer? (required)"
+                  value={deferReason}
+                  onChange={(e) => setDeferReason(e.target.value)}
+                  rows={2}
+                />
+                <Button
+                  onClick={markDefer}
+                  disabled={isSubmitting || !deferReason.trim()}
+                  variant="outline"
+                  className="mt-2"
+                >
+                  ⏭ Defer
+                </Button>
+              </div>
+            </div>
+          </div>
+        ) : (
+          <p className="text-muted-foreground">No fixes needed right now. Check back tomorrow.</p>
+        )}
+      </Card>
+
+      {/* Scout Health */}
+      {scoutHealth && (
+        <Card className="p-6">
+          <h2 className="text-xl font-semibold mb-4">Scout Health</h2>
+          <p className="text-sm">{scoutHealth}</p>
+        </Card>
+      )}
+
+      {/* Connection Failures */}
+      <Card className="p-6">
+        <h2 className="text-xl font-semibold mb-4">Connection Failures (Last 24h)</h2>
+        {failures.length > 0 ? (
+          <div className="space-y-2">
+            {failures.slice(0, 10).map((failure) => (
+              <div key={failure.id} className="border-l-4 border-red-500 pl-4 py-2">
+                <div className="flex items-center gap-2">
+                  <Badge variant="destructive">{failure.impactScore}</Badge>
+                  <span className="font-semibold">{failure.what}</span>
+                  <Badge variant="outline">{failure.fixLever}</Badge>
+                </div>
+                <div className="text-sm text-muted-foreground">
+                  {failure.who} • {failure.where} • {failure.why} • {failure.occurrences}x
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p className="text-muted-foreground">No failures detected.</p>
+        )}
+      </Card>
+
+      {/* Compromises */}
+      <Card className="p-6">
+        <h2 className="text-xl font-semibold mb-4">Compromises Detected</h2>
+        {compromises.length > 0 ? (
+          <div className="space-y-2">
+            {compromises.map((compromise) => (
+              <div key={compromise.id} className="flex items-start gap-2 py-2">
+                <Badge
+                  variant={
+                    compromise.tag === "stub"
+                      ? "destructive"
+                      : compromise.tag === "partial"
+                      ? "secondary"
+                      : "outline"
+                  }
+                >
+                  {compromise.tag}
+                </Badge>
+                <div className="flex-1">
+                  <p className="text-sm font-medium">{compromise.description}</p>
+                  {compromise.route && (
+                    <p className="text-xs text-muted-foreground">{compromise.route}</p>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p className="text-muted-foreground">No compromises detected.</p>
+        )}
+      </Card>
+    </div>
+  );
+}

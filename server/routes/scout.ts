@@ -31,7 +31,7 @@ import { resolveCountyFips, resolveRegionSlug } from "../services/regionResolver
 import { shouldInjectSponsored } from "../services/sponsoredEligibility";
 import { COMMUNITY_TONE } from "../../shared/communityLanguage";
 import { db, pool } from "../db";
-import { leads, type InsertScoutInteraction } from "../../shared/schema";
+import { leads, scoutInteractionFailureReasonEnum, type InsertScoutInteraction } from "../../shared/schema";
 import { desc, eq } from "drizzle-orm";
 import fs from "fs";
 import path from "path";
@@ -40,6 +40,9 @@ import { createHash } from "crypto";
 import { govern, type GovernorDecision } from "../scout/governor";
 import { recordOutcomeEvent, updateUserConfidenceStateFromOutcome } from "../scout/outcomeTracker";
 import { recordScoutInteraction } from "../services/missionControl";
+import { logCompletedAction } from "../services/preferredSource";
+// ⚠️ IMPORT ZONE — NO EXECUTABLE CODE ALLOWED
+// Any logic here will break the entire Scout router
 import {
   isOnboardingRequest,
   initializeOnboardingSession,
@@ -48,8 +51,9 @@ import {
   recordAnswer,
   recordSkip,
   checkAutoExpiration,
-    if (!gemini || !llmProviders.some(p => p.isConfigured())) {
-      return "I need the Gemini API configured to provide a comprehensive overview.";
+  expireOnboarding,
+  applySofterLanguage,
+  getQuestionPrompt,
 } from "../utils/onboardingService";
 
 const router = Router();
@@ -63,6 +67,21 @@ const SCOUT_CORS_ALLOWED_ORIGINS = new Set(
     "https://thetradescout.com",
   ].map((o) => o.toLowerCase())
 );
+
+const VALID_SCOUT_FAILURE_REASONS = new Set(scoutInteractionFailureReasonEnum.enumValues);
+
+function normalizeFailureReason(
+  reason: InsertScoutInteraction["failureReason"] | null | undefined,
+): InsertScoutInteraction["failureReason"] | null {
+  if (reason && VALID_SCOUT_FAILURE_REASONS.has(reason)) return reason;
+  return null;
+}
+
+function ensureFailureReason(
+  reason: InsertScoutInteraction["failureReason"] | null | undefined,
+): InsertScoutInteraction["failureReason"] {
+  return normalizeFailureReason(reason) ?? "unclear_copy";
+}
 
 router.use((req, res, next) => {
   const originHeader = req.headers.origin;
@@ -2196,8 +2215,27 @@ router.post("/", async (req: Request, res: Response) => {
           }
         }
 
+        if (scoutInteractionLog.outcome !== "completed") {
+          scoutInteractionLog.failureReason = ensureFailureReason(
+            scoutInteractionLog.failureReason || (res.statusCode >= 400 ? "ui_dead_end" : null),
+          );
+        } else {
+          scoutInteractionLog.failureReason = null;
+        }
+
         try {
           await recordScoutInteraction(scoutInteractionLog);
+          
+          // Track completed Scout actions for Preferred Source Prompt eligibility
+          if (scoutInteractionLog.outcome === "completed" && (requestUser as any)?.id) {
+            await logCompletedAction({
+              userId: (requestUser as any).id,
+              actionType: "scout_flow_completed",
+              source: "scout",
+            }).catch((err) => {
+              console.error("[Scout][PreferredSource] failed to log completed action", err);
+            });
+          }
         } catch (err) {
           console.error("[Scout][MissionControl] failed to record scout interaction", err);
         }
@@ -2349,15 +2387,21 @@ router.post("/", async (req: Request, res: Response) => {
       if (scoutInteractionLog) {
         if (intervention.action === "BLOCK") {
           scoutInteractionLog.outcome = "blocked";
-          scoutInteractionLog.failureReason = scoutInteractionLog.failureReason || "permission";
+          scoutInteractionLog.failureReason = ensureFailureReason(
+            scoutInteractionLog.failureReason || "permission",
+          );
         } else if (intervention.action === "REDIRECT") {
           scoutInteractionLog.outcome = "handed_off";
-          scoutInteractionLog.failureReason = scoutInteractionLog.failureReason || "no_route";
+          scoutInteractionLog.failureReason = ensureFailureReason(
+            scoutInteractionLog.failureReason || "no_route",
+          );
         } else {
           scoutInteractionLog.outcome = "blocked";
           const missingDataDetected = Boolean(intervention.reasoning?.toLowerCase().includes("missing"))
             || (governorDecision.situation?.unknowns?.length ?? 0) > 0;
-          scoutInteractionLog.failureReason = scoutInteractionLog.failureReason || (missingDataDetected ? "missing_data" : "not_supported");
+          scoutInteractionLog.failureReason = ensureFailureReason(
+            scoutInteractionLog.failureReason || (missingDataDetected ? "missing_data" : "unclear_copy"),
+          );
         }
       }
       let fullMessage = intervention.userMessage;
@@ -3901,6 +3945,12 @@ router.post("/", async (req: Request, res: Response) => {
       onboarding: onboardingMeta.onboardingQuestion ? onboardingMeta : undefined,
     });
   } catch (error) {
+    if (!isTestRun && scoutInteractionLog) {
+      scoutInteractionLog.outcome = "abandoned";
+      scoutInteractionLog.failureReason = ensureFailureReason(
+        scoutInteractionLog.failureReason || "ui_dead_end",
+      );
+    }
     console.error("Scout API error:", error);
     res.status(500).json({
       error: "Failed to process Scout request",
