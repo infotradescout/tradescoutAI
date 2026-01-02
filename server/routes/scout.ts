@@ -2436,18 +2436,14 @@ router.post("/", async (req: Request, res: Response) => {
     // Telemetry: Track county hint injection (Phase 2)
     if (countyHint && userId) {
       try {
-        // Pilot flag enforcement: only fire for traderscornerllc@gmail.com
-        const pilotUser = await db.select().from(users).where(eq(users.id, userId)).limit(1);
-        if (pilotUser[0]?.email === "traderscornerllc@gmail.com") {
-          console.log("[Scout Telemetry] scout.county_bias_used", {
-            surface: "scout",
-            scope: "county",
-            countyFips: countyHint,
-            source: "county_page",
-            sessionId: userId, // Use userId as session identifier for server-side
-            asOf: new Date().toISOString(),
-          });
-        }
+        console.log("[Scout Telemetry] scout.county_bias_used", {
+          surface: "scout",
+          scope: "county",
+          countyFips: countyHint,
+          source: "county_page",
+          sessionId: userId, // Use userId as session identifier for server-side
+          asOf: new Date().toISOString(),
+        });
       } catch (err) {
         // fire-and-forget: ignore telemetry failures
       }
@@ -2457,19 +2453,15 @@ router.post("/", async (req: Request, res: Response) => {
     const overrideKeywords = /(statewide|anywhere|entire state|all of|nationally|across|everywhere)/i;
     if (countyHint && userId && overrideKeywords.test(message)) {
       try {
-        // Pilot flag enforcement: only fire for traderscornerllc@gmail.com
-        const pilotUser = await db.select().from(users).where(eq(users.id, userId)).limit(1);
-        if (pilotUser[0]?.email === "traderscornerllc@gmail.com") {
-          console.log("[Scout Telemetry] scout.county_bias_overridden", {
-            surface: "scout",
-            scope: "state",
-            countyFips: countyHint,
-            source: "scout_action",
-            sessionId: userId,
-            asOf: new Date().toISOString(),
-            overrideReason: "user_requested_broader_scope",
-          });
-        }
+        console.log("[Scout Telemetry] scout.county_bias_overridden", {
+          surface: "scout",
+          scope: "state",
+          countyFips: countyHint,
+          source: "scout_action",
+          sessionId: userId,
+          asOf: new Date().toISOString(),
+          overrideReason: "user_requested_broader_scope",
+        });
       } catch (err) {
         // fire-and-forget: ignore telemetry failures
       }
