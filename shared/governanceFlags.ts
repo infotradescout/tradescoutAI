@@ -5,7 +5,9 @@
 const env = typeof process !== "undefined" ? process.env : {};
 const flagFromEnv = (value: string | undefined): boolean => value === "true";
 
-export const FEATURE_HOLD_TO_EXPLAIN = flagFromEnv((env as any).FEATURE_HOLD_TO_EXPLAIN);
+// Day 1 activation defaults (Hold-to-Explain + Intro tutorial)
+export const FEATURE_HOLD_TO_EXPLAIN = flagFromEnv((env as any).FEATURE_HOLD_TO_EXPLAIN) || true;
+export const FEATURE_HOLD_INTRO_TUTORIAL = flagFromEnv((env as any).FEATURE_HOLD_INTRO_TUTORIAL) || true;
 export const FEATURE_ACTION_DESCRIPTOR_ENFORCEMENT = flagFromEnv((env as any).FEATURE_ACTION_DESCRIPTOR_ENFORCEMENT);
 export const FEATURE_EDUCATION_REPLACEMENT = flagFromEnv((env as any).FEATURE_EDUCATION_REPLACEMENT);
 export const FEATURE_SCOPE_GOVERNOR = flagFromEnv((env as any).FEATURE_SCOPE_GOVERNOR);
@@ -16,6 +18,7 @@ export const FEATURE_CHIEF_OF_STAFF = flagFromEnv((env as any).FEATURE_CHIEF_OF_
 export function describeGovernanceFlags() {
   return {
     FEATURE_HOLD_TO_EXPLAIN,
+    FEATURE_HOLD_INTRO_TUTORIAL,
     FEATURE_ACTION_DESCRIPTOR_ENFORCEMENT,
     FEATURE_EDUCATION_REPLACEMENT,
     FEATURE_SCOPE_GOVERNOR,
