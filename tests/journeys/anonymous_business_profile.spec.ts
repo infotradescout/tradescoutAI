@@ -22,7 +22,7 @@ test.describe('Anonymous User - Business Profile View', () => {
 
   test('should load business profile without authentication', async ({ page }, testInfo) => {
     try {
-      const businessUrl = `${env.BASE_URL}/business/${env.TEST_BUSINESS_SLUG}`;
+      const businessUrl = `${env.BASE_URL}/business/${env.AGENT_SCOPE_SLUG}`;
       const response = await page.goto(businessUrl);
 
       expect(response?.status()).toBeLessThan(400);
@@ -37,7 +37,7 @@ test.describe('Anonymous User - Business Profile View', () => {
 
   test('should display business profile with mission statement', async ({ page }, testInfo) => {
     try {
-      await page.goto(`${env.BASE_URL}/business/${env.TEST_BUSINESS_SLUG}`);
+      await page.goto(`${env.BASE_URL}/business/${env.AGENT_SCOPE_SLUG}`);
 
       // Mission element should always be visible (core invariant)
       const missionElement = page.locator(selectors.businessProfileView.mission);
@@ -56,7 +56,7 @@ test.describe('Anonymous User - Business Profile View', () => {
 
   test('should display contact CTA on business profile', async ({ page }, testInfo) => {
     try {
-      await page.goto(`${env.BASE_URL}/business/${env.TEST_BUSINESS_SLUG}`);
+      await page.goto(`${env.BASE_URL}/business/${env.AGENT_SCOPE_SLUG}`);
 
       // Contact CTA should be visible and clickable
       const contactCTA = page.locator(selectors.businessProfileView.contactCTA);
@@ -72,7 +72,7 @@ test.describe('Anonymous User - Business Profile View', () => {
 
   test('should not show edit controls for anonymous user', async ({ page }, testInfo) => {
     try {
-      await page.goto(`${env.BASE_URL}/business/${env.TEST_BUSINESS_SLUG}`);
+      await page.goto(`${env.BASE_URL}/business/${env.AGENT_SCOPE_SLUG}`);
 
       // Edit button should NOT be visible
       const editButton = page.locator(selectors.businessProfileView.editButton);
@@ -88,7 +88,7 @@ test.describe('Anonymous User - Business Profile View', () => {
 
   test('should display headline and services summary', async ({ page }, testInfo) => {
     try {
-      await page.goto(`${env.BASE_URL}/business/${env.TEST_BUSINESS_SLUG}`);
+      await page.goto(`${env.BASE_URL}/business/${env.AGENT_SCOPE_SLUG}`);
 
       // Headline should be visible
       const headline = page.locator(selectors.businessProfileView.headline);

@@ -19,9 +19,9 @@ Please copy .env.example to .env and fill in the required values:
 
 Required variables:
   BASE_URL              - Base URL of the application (e.g., http://localhost:5000)
-  TEST_USER_EMAIL       - Test user email (must exist in test database)
-  TEST_USER_PASSWORD    - Test user password
-  TEST_BUSINESS_SLUG    - Business slug owned by test user (must exist)
+  AGENT_IDENTITY_EMAIL  - System agent email (must exist in test database)
+  AGENT_IDENTITY_SECRET - System agent secret/password
+  AGENT_SCOPE_SLUG      - Scoped business slug this agent can exercise
 
 Optional variables:
   DEBUG                 - Set to 'true' to run tests in headed mode
@@ -36,9 +36,9 @@ dotenv.config({ path: envFile });
 
 const REQUIRED_VARS = [
   'BASE_URL',
-  'TEST_USER_EMAIL',
-  'TEST_USER_PASSWORD',
-  'TEST_BUSINESS_SLUG',
+  'AGENT_IDENTITY_EMAIL',
+  'AGENT_IDENTITY_SECRET',
+  'AGENT_SCOPE_SLUG',
 ];
 
 const missingVars = REQUIRED_VARS.filter(v => !process.env[v]);
@@ -55,9 +55,11 @@ Please set these in tests/.env
 
 export const env = {
   BASE_URL: process.env.BASE_URL || 'http://localhost:5000',
-  TEST_USER_EMAIL: process.env.TEST_USER_EMAIL || '',
-  TEST_USER_PASSWORD: process.env.TEST_USER_PASSWORD || '',
-  TEST_BUSINESS_SLUG: process.env.TEST_BUSINESS_SLUG || '',
+  AGENT_IDENTITY_EMAIL: process.env.AGENT_IDENTITY_EMAIL || '',
+  AGENT_IDENTITY_SECRET: process.env.AGENT_IDENTITY_SECRET || '',
+  AGENT_SCOPE_SLUG: process.env.AGENT_SCOPE_SLUG || '',
+  AGENT_TYPE: process.env.AGENT_TYPE || 'bot_operator',
+  AGENT_CLAIMS: process.env.AGENT_CLAIMS || 'post,observe,seed',
   TEST_INVOICE_RECIPIENT_EMAIL: process.env.TEST_INVOICE_RECIPIENT_EMAIL || 'invoice@example.com',
   TEST_INVOICE_RECIPIENT_NAME: process.env.TEST_INVOICE_RECIPIENT_NAME || 'Test Client',
   DEBUG: process.env.DEBUG === 'true',

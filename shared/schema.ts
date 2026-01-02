@@ -252,6 +252,55 @@ export const countyEntityStatusEnum = pgEnum("county_entity_status", [
   "pending",
 ]);
 
+// Mission Control + Scout enums
+export const botUiFailureTypeEnum = pgEnum("bot_ui_failure_type", [
+  "broken",
+  "stub",
+  "confusing",
+  "misleading",
+  "permission_block",
+]);
+
+export const scoutInteractionIntentEnum = pgEnum("scout_interaction_intent", [
+  "hire",
+  "advise",
+  "collaborate",
+  "unknown",
+]);
+
+export const scoutInteractionOutcomeEnum = pgEnum("scout_interaction_outcome", [
+  "completed",
+  "handed_off",
+  "blocked",
+  "abandoned",
+]);
+
+export const scoutInteractionFailureReasonEnum = pgEnum("scout_interaction_failure_reason", [
+  "missing_data",
+  "no_route",
+  "ui_dead_end",
+  "permission",
+  "unclear_copy",
+]);
+
+export const scoutInteractionUserRoleEnum = pgEnum("scout_interaction_user_role", [
+  "homeowner",
+  "contractor",
+  "admin",
+]);
+
+export const missionControlSourceEnum = pgEnum("mission_control_source", [
+  "bot_ui",
+  "scout",
+  "error_report",
+]);
+
+export const missionControlActionStatusEnum = pgEnum("mission_control_action_status", [
+  "open",
+  "done",
+  "deferred",
+]);
+
 // Invitation status enum
 export const invitationStatusEnum = pgEnum('invitation_status', [
   'pending',
@@ -1455,6 +1504,7 @@ export const userReputationRelations = relations(userReputation, ({ one }) => ({
 // Contractor applications table
 export const contractorApplications = pgTable("contractor_applications", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id"),
   companyName: varchar("company_name").notNull(),
   email: varchar("email").notNull(),
   phone: varchar("phone").notNull(),
@@ -1472,6 +1522,8 @@ export const contractorApplications = pgTable("contractor_applications", {
   agreeToTerms: boolean("agree_to_terms").notNull(),
   agreeToVerification: boolean("agree_to_verification").notNull(),
   status: varchar("status").default("pending"), // pending, under_review, approved, rejected
+  starterPath: boolean("starter_path").default(true).notNull(),
+  verificationStatus: varchar("verification_status").default("pending"), // pending, verified, rejected
   reviewNotes: text("review_notes"),
   reviewedBy: varchar("reviewed_by"),
   reviewedAt: timestamp("reviewed_at"),
@@ -1480,6 +1532,7 @@ export const contractorApplications = pgTable("contractor_applications", {
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 }, (table) => [
+  index("idx_contractor_applications_user").on(table.userId),
   index("idx_contractor_applications_email").on(table.email),
   index("idx_contractor_applications_status").on(table.status),
   index("idx_contractor_applications_submitted").on(table.submittedAt),
@@ -1489,6 +1542,9 @@ export const contractorApplications = pgTable("contractor_applications", {
 export const insertContractorApplicationSchema = createInsertSchema(contractorApplications).omit({
   id: true,
   status: true,
+  userId: true,
+  starterPath: true,
+  verificationStatus: true,
   reviewNotes: true,
   reviewedBy: true,
   reviewedAt: true,
@@ -2390,6 +2446,75 @@ export const errorReports = pgTable("error_reports", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
+// Bot Army: UI failure ingestion (real Playwright events only)
+export const botUiFindings = pgTable(
+  "bot_ui_findings",
+  {
+    id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+    botName: varchar("bot_name", { length: 120 }).notNull(),
+    route: varchar("route", { length: 512 }).notNull(),
+    actionAttempted: text("action_attempted"),
+    expectedOutcome: text("expected_outcome"),
+    actualOutcome: text("actual_outcome"),
+    failureType: botUiFailureTypeEnum("failure_type").notNull(),
+    severity: integer("severity").notNull().default(1),
+    screenshotUrl: text("screenshot_url"),
+    createdAt: timestamp("created_at").defaultNow(),
+  },
+  (table) => [
+    index("bot_ui_findings_route_idx").on(table.route),
+    index("bot_ui_findings_created_idx").on(table.createdAt),
+  ],
+);
+
+// Scout interactions: real user intent/resolution log (bots excluded)
+export const scoutInteractions = pgTable(
+  "scout_interactions",
+  {
+    id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+    userRole: scoutInteractionUserRoleEnum("user_role").notNull(),
+    countyFips: varchar("county_fips", { length: 5 }),
+    intent: scoutInteractionIntentEnum("intent").notNull().default("unknown"),
+    scoutConfidence: integer("scout_confidence").notNull().default(0),
+    outcome: scoutInteractionOutcomeEnum("outcome").notNull(),
+    failureReason: scoutInteractionFailureReasonEnum("failure_reason"),
+    scoutMessageHash: varchar("scout_message_hash", { length: 64 }),
+    createdAt: timestamp("created_at").defaultNow(),
+  },
+  (table) => [
+    index("scout_interactions_created_idx").on(table.createdAt),
+    index("scout_interactions_intent_idx").on(table.intent),
+    index("scout_interactions_role_idx").on(table.userRole),
+  ],
+);
+
+// Mission Control action log: one-fix decisions
+export const missionControlActions = pgTable(
+  "mission_control_actions",
+  {
+    id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+    sourceType: missionControlSourceEnum("source_type").notNull(),
+    sourceId: varchar("source_id", { length: 128 }).notNull(),
+    status: missionControlActionStatusEnum("status").notNull().default("open"),
+    summary: text("summary"),
+    suggestedFix: text("suggested_fix"),
+    decisionReason: text("decision_reason"),
+    decidedByUserId: varchar("decided_by_user_id").references(() => users.id),
+    impactScore: integer("impact_score"),
+    suggestedAt: timestamp("suggested_at").defaultNow(),
+    updatedAt: timestamp("updated_at").defaultNow(),
+    resolvedAt: timestamp("resolved_at"),
+    createdAt: timestamp("created_at").defaultNow(),
+  },
+  (table) => [
+    uniqueIndex("mission_control_action_source_unique").on(
+      table.sourceType,
+      table.sourceId,
+    ),
+    index("mission_control_action_status_idx").on(table.status),
+  ],
+);
+
 // Contractor promotional campaigns
 export const contractorPromos = pgTable("contractor_promos", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -2868,6 +2993,24 @@ export const insertPromoInteractionSchema = createInsertSchema(promoInteractions
   createdAt: true,
 });
 
+export const insertBotUiFindingSchema = createInsertSchema(botUiFindings).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertScoutInteractionSchema = createInsertSchema(scoutInteractions).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertMissionControlActionSchema = createInsertSchema(missionControlActions).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+  suggestedAt: true,
+  resolvedAt: true,
+});
+
 export const insertErrorReportSchema = createInsertSchema(errorReports).omit({
   id: true,
   createdAt: true,
@@ -2882,6 +3025,12 @@ export const insertErrorReportSchema = createInsertSchema(errorReports).omit({
 
 export type InsertErrorReport = typeof errorReports.$inferInsert;
 export type ErrorReport = typeof errorReports.$inferSelect;
+export type InsertBotUiFinding = typeof botUiFindings.$inferInsert;
+export type BotUiFinding = typeof botUiFindings.$inferSelect;
+export type InsertScoutInteraction = typeof scoutInteractions.$inferInsert;
+export type ScoutInteraction = typeof scoutInteractions.$inferSelect;
+export type InsertMissionControlAction = typeof missionControlActions.$inferInsert;
+export type MissionControlAction = typeof missionControlActions.$inferSelect;
 
 // Export types for data privacy and security
 export type InsertUserDataRequest = typeof userDataRequests.$inferInsert;

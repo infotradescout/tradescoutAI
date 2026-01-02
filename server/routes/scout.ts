@@ -31,13 +31,15 @@ import { resolveCountyFips, resolveRegionSlug } from "../services/regionResolver
 import { shouldInjectSponsored } from "../services/sponsoredEligibility";
 import { COMMUNITY_TONE } from "../../shared/communityLanguage";
 import { db, pool } from "../db";
-import { leads } from "../../shared/schema";
+import { leads, type InsertScoutInteraction } from "../../shared/schema";
 import { desc, eq } from "drizzle-orm";
 import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
+import { createHash } from "crypto";
 import { govern, type GovernorDecision } from "../scout/governor";
 import { recordOutcomeEvent, updateUserConfidenceStateFromOutcome } from "../scout/outcomeTracker";
+import { recordScoutInteraction } from "../services/missionControl";
 import {
   isOnboardingRequest,
   initializeOnboardingSession,
@@ -46,11 +48,8 @@ import {
   recordAnswer,
   recordSkip,
   checkAutoExpiration,
-  expireOnboarding,
-  recordFirstAction,
-  getQuestionPrompt,
-  applySofterLanguage,
-  type OnboardingSession,
+    if (!gemini || !llmProviders.some(p => p.isConfigured())) {
+      return "I need the Gemini API configured to provide a comprehensive overview.";
 } from "../utils/onboardingService";
 
 const router = Router();
@@ -91,6 +90,41 @@ router.use((req, res, next) => {
 
   next();
 });
+
+function normalizeScoutRole(role?: string | null): InsertScoutInteraction["userRole"] {
+  if (!role) return "homeowner";
+  const lower = role.toLowerCase();
+  if (lower.includes("admin") || lower.includes("moderator")) return "admin";
+  if (lower.includes("contractor") || lower.includes("service") || lower.includes("provider")) return "contractor";
+  return "homeowner";
+}
+
+function normalizeScoutIntent(intent?: string | null, message?: string | null): InsertScoutInteraction["intent"] {
+  const source = (intent || "").toLowerCase();
+  const text = (message || "").toLowerCase();
+
+  if (source.includes("hire") || text.includes("hire") || text.includes("connect")) return "hire";
+  if (source.includes("collab") || text.includes("collaborate") || text.includes("partner")) return "collaborate";
+  if (source.includes("advis") || text.includes("advice") || text.includes("help")) return "advise";
+  return "unknown";
+}
+
+function confidenceToScore(confidence: unknown): number {
+  if (typeof confidence === "number" && Number.isFinite(confidence)) {
+    const bounded = Math.max(0, Math.min(1, confidence));
+    return Math.round(bounded * 100);
+  }
+  const label = typeof confidence === "string" ? confidence.toLowerCase() : "";
+  if (label === "high") return 85;
+  if (label === "medium") return 60;
+  if (label === "low") return 30;
+  return 0;
+}
+
+function hashMessageForScout(message: string | null | undefined): string | undefined {
+  if (!message || !message.trim()) return undefined;
+  return createHash("sha256").update(message).digest("hex").slice(0, 32);
+}
 
 // Lightweight fraud/scam guard for generated answers
 const FRAUD_PATTERNS = [
@@ -2115,11 +2149,66 @@ router.post("/override", async (req: Request, res: Response) => {
 
 router.post("/", async (req: Request, res: Response) => {
   recordQuery();
+  const requestUser = (req as any)?.user || {};
+  const userAgent = String(req.headers["user-agent"] || "");
+  const isTestRun =
+    String(req.headers["x-test-run"] || "").toLowerCase() === "true" ||
+    /scoutbot/i.test(userAgent) ||
+    Boolean((requestUser as any)?.isTestAccount);
+  let scoutInteractionLog: InsertScoutInteraction | null = null;
   try {
     const rawBody = (req.body ?? {}) as Partial<ScoutRequest>;
     const message = rawBody.message;
 
+    const normalizedMessage = typeof message === "string" ? message : "";
+    const countyCandidate =
+      (rawBody.countyHint as string | undefined) ||
+      (rawBody.countyCode as string | undefined) ||
+      (requestUser as any)?.countyFips ||
+      (requestUser as any)?.county_fips;
+    const normalizedFips = typeof countyCandidate === "string" && countyCandidate.trim().length >= 5
+      ? countyCandidate.trim().slice(0, 5)
+      : undefined;
+
+    scoutInteractionLog = {
+      userRole: normalizeScoutRole((requestUser as any)?.role),
+      countyFips: normalizedFips,
+      intent: normalizeScoutIntent(rawBody.intent, normalizedMessage),
+      scoutConfidence: 0,
+      outcome: "completed",
+      failureReason: null,
+      scoutMessageHash: hashMessageForScout(normalizedMessage),
+    } as InsertScoutInteraction;
+
+    if (!isTestRun) {
+      res.on("finish", async () => {
+        if (!scoutInteractionLog) return;
+        if (!scoutInteractionLog.outcome) {
+          scoutInteractionLog.outcome = res.statusCode >= 400 ? "blocked" : "completed";
+        }
+        if (res.statusCode >= 400 && !scoutInteractionLog.failureReason) {
+          if (res.statusCode === 400) {
+            scoutInteractionLog.failureReason = "missing_data";
+          } else if (res.statusCode === 403) {
+            scoutInteractionLog.failureReason = "permission";
+          } else {
+            scoutInteractionLog.failureReason = "ui_dead_end";
+          }
+        }
+
+        try {
+          await recordScoutInteraction(scoutInteractionLog);
+        } catch (err) {
+          console.error("[Scout][MissionControl] failed to record scout interaction", err);
+        }
+      });
+    }
+
     if (typeof message !== "string" || !message.trim()) {
+      if (scoutInteractionLog) {
+        scoutInteractionLog.outcome = "blocked";
+        scoutInteractionLog.failureReason = "missing_data";
+      }
       return res.status(400).json({
         error: "Invalid Scout request",
         details: "Missing or invalid 'message' in request body",
@@ -2233,6 +2322,10 @@ router.post("/", async (req: Request, res: Response) => {
       stateCode,
     });
 
+    if (scoutInteractionLog) {
+      scoutInteractionLog.scoutConfidence = confidenceToScore((governorDecision as any)?.confidence);
+    }
+
     // Log governor decision for development
     if (process.env.NODE_ENV === "development") {
       console.log("[Scout Governor]", {
@@ -2253,6 +2346,20 @@ router.post("/", async (req: Request, res: Response) => {
     // with structured intervention (no LLM needed for these)
     if (["DEFER", "REDIRECT", "BLOCK"].includes(governorDecision.intervention.action)) {
       const intervention = governorDecision.intervention;
+      if (scoutInteractionLog) {
+        if (intervention.action === "BLOCK") {
+          scoutInteractionLog.outcome = "blocked";
+          scoutInteractionLog.failureReason = scoutInteractionLog.failureReason || "permission";
+        } else if (intervention.action === "REDIRECT") {
+          scoutInteractionLog.outcome = "handed_off";
+          scoutInteractionLog.failureReason = scoutInteractionLog.failureReason || "no_route";
+        } else {
+          scoutInteractionLog.outcome = "blocked";
+          const missingDataDetected = Boolean(intervention.reasoning?.toLowerCase().includes("missing"))
+            || (governorDecision.situation?.unknowns?.length ?? 0) > 0;
+          scoutInteractionLog.failureReason = scoutInteractionLog.failureReason || (missingDataDetected ? "missing_data" : "not_supported");
+        }
+      }
       let fullMessage = intervention.userMessage;
       
       // Add next steps if present
@@ -2539,6 +2646,10 @@ router.post("/", async (req: Request, res: Response) => {
       requestState,
       resolvedContext
     );
+
+    if (scoutInteractionLog) {
+      scoutInteractionLog.intent = normalizeScoutIntent(synthesized.intent ?? intent, normalizedMessage);
+    }
 
     // Brand identity firewall: if the synthesized answer clearly violates
     // TradeScout identity rules (e.g., mentions CME futures, "as an AI",

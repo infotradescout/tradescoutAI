@@ -20,14 +20,14 @@ test.describe('Copy Assist - Variant Injection', () => {
   test.beforeEach(async ({ page }) => {
     networkWatcher = new NetworkWatcher(page);
 
-    // Login as test user
+    // Login as declared system agent (claims-scoped)
     await page.goto(`${env.BASE_URL}/login`);
     
     const emailInput = page.locator(selectors.auth.loginEmailInput);
-    await emailInput.fill(env.TEST_USER_EMAIL);
+    await emailInput.fill(env.AGENT_IDENTITY_EMAIL);
 
     const passwordInput = page.locator(selectors.auth.loginPasswordInput);
-    await passwordInput.fill(env.TEST_USER_PASSWORD);
+    await passwordInput.fill(env.AGENT_IDENTITY_SECRET);
 
     const submitButton = page.locator(selectors.auth.loginSubmitButton);
     await submitButton.click();
@@ -39,7 +39,7 @@ test.describe('Copy Assist - Variant Injection', () => {
   test('should open Copy Assist from headline field', async ({ page }, testInfo) => {
     try {
       // Navigate to business profile editor
-      await page.goto(`${env.BASE_URL}/business/${env.TEST_BUSINESS_SLUG}/edit`);
+      await page.goto(`${env.BASE_URL}/business/${env.AGENT_SCOPE_SLUG}/edit`);
 
       // Click "improve" or Copy Assist button on headline field
       const copyAssistHeadlineButton = page.locator(selectors.copyAssist.openHeadline);
@@ -56,7 +56,7 @@ test.describe('Copy Assist - Variant Injection', () => {
 
   test('should display variant options in Copy Assist modal', async ({ page }, testInfo) => {
     try {
-      await page.goto(`${env.BASE_URL}/business/${env.TEST_BUSINESS_SLUG}/edit`);
+      await page.goto(`${env.BASE_URL}/business/${env.AGENT_SCOPE_SLUG}/edit`);
 
       const copyAssistButton = page.locator(selectors.copyAssist.openHeadline);
       await copyAssistButton.click();
@@ -84,7 +84,7 @@ test.describe('Copy Assist - Variant Injection', () => {
 
   test('should inject Safe variant without auto-saving', async ({ page }, testInfo) => {
     try {
-      await page.goto(`${env.BASE_URL}/business/${env.TEST_BUSINESS_SLUG}/edit`);
+      await page.goto(`${env.BASE_URL}/business/${env.AGENT_SCOPE_SLUG}/edit`);
 
       const copyAssistButton = page.locator(selectors.copyAssist.openHeadline);
       await copyAssistButton.click();
@@ -122,7 +122,7 @@ test.describe('Copy Assist - Variant Injection', () => {
 
   test('should inject Growth variant without auto-saving', async ({ page }, testInfo) => {
     try {
-      await page.goto(`${env.BASE_URL}/business/${env.TEST_BUSINESS_SLUG}/edit`);
+      await page.goto(`${env.BASE_URL}/business/${env.AGENT_SCOPE_SLUG}/edit`);
 
       const copyAssistButton = page.locator(selectors.copyAssist.openHeadline);
       await copyAssistButton.click();
@@ -153,7 +153,7 @@ test.describe('Copy Assist - Variant Injection', () => {
 
   test('should close Copy Assist modal on cancel/close', async ({ page }, testInfo) => {
     try {
-      await page.goto(`${env.BASE_URL}/business/${env.TEST_BUSINESS_SLUG}/edit`);
+      await page.goto(`${env.BASE_URL}/business/${env.AGENT_SCOPE_SLUG}/edit`);
 
       const copyAssistButton = page.locator(selectors.copyAssist.openHeadline);
       await copyAssistButton.click();
@@ -179,7 +179,7 @@ test.describe('Copy Assist - Variant Injection', () => {
 
   test('should work on services and description fields', async ({ page }, testInfo) => {
     try {
-      await page.goto(`${env.BASE_URL}/business/${env.TEST_BUSINESS_SLUG}/edit`);
+      await page.goto(`${env.BASE_URL}/business/${env.AGENT_SCOPE_SLUG}/edit`);
 
       // Test Copy Assist on services field
       const copyAssistServicesButton = page.locator(selectors.copyAssist.openServices);

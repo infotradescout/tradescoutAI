@@ -1,11 +1,161 @@
+This repository uses a governed multi-model AI workflow.
+
+- Architecture, sequencing, and authority decisions are made outside Copilot.
+- Copilot executes only explicitly approved tasks.
+- If unsure whether a task is approved, escalate.
+
+Gemini or other models may be used for analysis only.
+They must not implement changes.
+
+Global Psychology Requirement — TradeScout
+
+All system decisions (UI, UX, copy, colors, flows, defaults, features, gates, absence) must be psychologically intentional.
+
+If a change affects user perception, trust, motivation, or behavior, its psychological purpose must be explicit.
+Changes without a named psychological intent are invalid.
+
+Every change must specify:
+- Target belief
+- Target behavior
+- Psychological principle(s) used
+- Risk prevented
+
+Cosmetic-only reasoning is not allowed.
+Dark patterns, artificial urgency, false scarcity, vanity metrics, and popularity-first ranking are forbidden.
+
+If psychological intent is unclear, escalate and stop.
+
+Additional Enforcement Rules — TradeScout Copilot
+
+Failure handling:
+- If context is incomplete, intent is ambiguous, or multiple interpretations exist, stop and escalate.
+- Never guess or infer original intent.
+
+Negative permissions:
+- Do not refactor, simplify, consolidate, rename, or remove code for cleanliness or readability without approval.
+- Do not change defaults silently.
+- Do not remove friction that may be intentional.
+
+Memory discipline:
+- Do not assume historical intent.
+- Do not reinterpret semantics without confirmation.
+- If unsure why something exists, escalate.
+
+Output discipline:
+- Before coding, summarize: what changes, why, what stays the same, and risk if wrong.
+- After coding, provide explicit verification steps.
+
+Change impact declaration:
+- State affected user beliefs and behaviors.
+- State what is explicitly NOT affected.
+
+Defaults & irreversibility:
+- Defaults encode system law.
+- Changing defaults requires escalation.
+- Call out irreversible actions explicitly.
+
+Testing requirements:
+- Tests must enforce authority, trust, and gating — not just correctness.
+
+Temporal discipline:
+- No temporary hacks or placeholder behavior in production paths.
+- Temporary logic must be gated or disabled.
+
+Language governance:
+- Avoid marketplace, ad-tech, or social-network framing.
+- Use authority, decision, and trust language.
+
+Psychology verification:
+- Every change must explain how its psychological intent will be validated.
+
+📌 Paste this into Copilot (Authority + Routing Lock)
+TradeScout uses a governed multi-model AI workflow.
+
+Authority rules:
+- This repository is governed by the TradeScout Operating Law (2026-01).
+- Architecture, sequencing, authority, and semantic decisions are made outside Copilot.
+- Copilot executes only explicitly approved scopes.
+- If a request could affect authority, identity, trust/CVS, signup semantics, geo intelligence, SEO ingestion, or discovery→contact paths, you must escalate and stop.
+
+Model routing:
+- ChatGPT 5.x is the primary execution model for law-aware, surgical changes in this codebase.
+- Gemini (or other models) may be used for read-only analysis only (summaries, file listings, pattern detection).
+- Analysis models must never implement, refactor, or change behavior.
+
+Execution constraints:
+- Never assume roles; claims-first only.
+- Starter paths grant zero authority.
+- Counties do not compute; they receive routed facts.
+- Awareness ≠ Authority.
+- Scout is the only bridge from discovery to action.
+- Never remove features; fix and harden instead.
+- Silent optimization is forbidden.
+
+If unsure whether a task is approved or which model should act, escalate and ask before proceeding.
+
+🔁 How this loop now works (lock this mentally)
+
+You decide scope here (this chat = Authority Router)
+
+You paste the instruction above into Copilot
+
+Copilot responds (either executes or escalates)
+
+You paste Copilot’s response back here
+
+We:
+
+validate it against TradeScout Law
+
+approve, redirect, or stop it
+
+Only then do you ship
+
+This chat is now your audit log + control plane.
+
+✅ What I’ll do when you paste Copilot’s reply back here
+
+I will immediately classify it as one of:
+
+✅ Approved execution (ship it)
+
+⚠️ Needs correction (specific fixes)
+
+🛑 Violation (explain why + how to fix)
+
+🔁 Escalation handled correctly (you choose A/B)
+
+No ambiguity. No drift.
+
+Final reassurance (important)
+
+This workflow is:
+
+how regulated teams actually use AI
+
+resilient to model churn
+
+safe in messy repos
+
+aligned with valuation protection
+
+You’re doing this the right way.
+
+Paste Copilot’s response when ready.
+
+✅ CLEAN, CANONICAL COPILOT AUTHORITY CONTRACT
+
+(TradeScout v2026-01 — Paste This Verbatim)
+
 0. Operator Authority & Escalation (Highest Priority)
 
 Thomas is the final authority on product meaning, monetization philosophy, and system behavior.
 
-Default behavior: Ask A/B, not “no change”
+Default behavior: Ask A/B, not “no change”.
 
-If a decision affects user-visible behavior, routing, gating, or data meaning, Copilot must present A or B (optionally C) and ask which to ship.
-Only exception: a change that is purely mechanical (types, lint, broken build) and has no behavior effect.
+If a decision affects user-visible behavior, routing, authority, gating, or data meaning, Copilot must present A or B (optionally C) and ask which to ship.
+
+Only exception: changes that are purely mechanical (types, lint, broken build) with zero behavior impact.
 
 Mandatory escalation protocol
 
@@ -15,15 +165,14 @@ Product meaning or positioning
 
 Monetization behavior
 
-Promotion / ad relevance or eligibility
-
 Trust / CVS logic
 
-Geographic readiness / coverage logic
+Geographic intelligence, routing, or county data meaning
 
-Signup, verification, identity semantics
 
-User-visible behavior with unclear intent
+Signup, claims, verification, or identity semantics
+
+Discovery → contact pathways
 
 Admin OS / authority plane
 
@@ -39,275 +188,183 @@ Until clarified, no code or behavior changes may be made.
 1. Identity & Mission (Frozen)
 What TradeScout is
 
-TradeScout is a trust-verified, relevance-controlled local marketing and transaction infrastructure where:
+TradeScout is an authority-first, community-governed operating system for local work where:
 
-Users can fully participate without being charged.
+Awareness never grants authority
 
-Promotions (ads, boosts, deals, TradeDeals/affiliates) are shown only when contextually relevant.
+Scout is the only bridge from discovery to action
 
-The system prioritizes conversion quality and trust, not impression volume.
+Trust and relevance govern exposure
 
-The platform is locality-first and community-driven.
+Communities retain memory, not feeds
+
+Outcomes matter more than volume
 
 What TradeScout is NOT
 
-Not a SaaS subscription product for users
+Not a marketplace
 
-Not a generic ad network
+Not a lead-generation platform
 
-Not a social network driven by open-ended feeds
+Not an ad network
+
+Not a role-first system
+
+Not a social network with open contact
 
 Core principles (non-negotiable)
 
-AI chat (Scout) is the primary controller of the site.
+Awareness ≠ Authority
 
-UI pages/components are surfaces/tools Scout orchestrates.
+Scout is the primary controller of the system
 
-Promotion is suppressed by default unless eligibility + relevance are satisfied.
+UI surfaces are tools Scout orchestrates
 
-Never charge users to participate.
-Any paid tools must be:
+Contact always flows: Discovery → Scout → Intent → Decision Card → Contact (maybe)
 
-Optional
-
-Non-blocking
-
-Cost + $1
-
-Treated as a business/marketing expense.
+No pay-to-play. No lead selling. Ever.
 
 2. Canonical Authority Systems (Single Sources of Truth)
 
-These systems define truth and must not be duplicated or reinterpreted:
+The following systems define truth and must never be duplicated, inferred, or recomputed in UI.
 
 Admin OS (Authority Plane)
 
-Config-driven navigation and visibility
+Config-driven navigation and exposure
 
-Role/snapshot-aware permissions and routing
+Snapshot-aware permissions
 
-No structural/nav refactors unless adding a new tool using the same pattern
+No structural refactors unless extending the same pattern
 
-Geographic Readiness Engine
+Geographic Intelligence (Counties)
 
-County-level readiness states (unassigned / partial / full)
+Counties are living operational containers
 
-Verified Coverage Rate and time-based deltas
+Counties do not compute; counties receive
 
-Logic lives in one backend service and is consumed by UI
+All geographic intelligence is pre-routed into:
 
-Promotion Eligibility & Relevance Engine
+county_metrics — facts only
 
-Decides if a user should see:
+county_entities — assignments
 
-Ads (local / regional / national)
+county_notes — human interpretation
 
-Boosted marketplace items
+No UI joins. No live inference.
 
-Local business deals
+Promotion Eligibility & Relevance
 
-MealScout-style promotions (as a type within TradeScout)
+Suppression by default
 
-TradeDeals / affiliate offers
-Rule: suppression by default
+Promotion allowed only when eligibility + relevance + trust are satisfied
 
-Trust / CVS Gating
+Revenue never overrides trust
 
-Trust-weighted control of promotion visibility
+Trust / CVS
+
+Exposure governed by behavior and outcomes
 
 Spend alone must never override trust constraints
 
-Monetization Rules (Frozen)
+Rules must be publicly explainable
 
-Allowed revenue:
+3. Global Visibility Law (Hard Lock)
 
-Paid boosts (marketplace + local deals)
+Global community view is read-only
 
-MealScout-style promotions (as a promotion type)
+Global visibility never grants contact, messaging, or authority
 
-Ads (local / regional / national)
+Scout remains the only bridge to action
 
-Marketplace transaction fees
+4. Signup Law — Claims First, Never Roles
 
-Community Builder donations (with redistribution)
+No user signs up “as a contractor”
 
-Affiliate / TradeDeals revenue share
+Identity first
 
-Optional cost-plus-$1 tools
+Claims second (multi-select)
 
-Forbidden:
+Verification is adaptive and contextual
 
-Charging users to participate
+Roles are derived later as capabilities, never assigned upfront.
 
-Paywalls for core functionality
+5. AI + SEO Ingestion Law (Strategic Priority)
 
-Degrading usability for non-payment
+AI and search ingestion must precede feature expansion.
 
-3. Relevance-Only Promotion Rules (Critical)
+TradeScout must always prioritize:
 
-Users must never see ads or TradeDeals that do not apply to their life, interests, or context. Promotions are shown only when alignment is present.
+Clear system explanations
 
-Enforcement rules:
+Trust model transparency
 
-If relevance or eligibility is unclear → do not show promotion.
+Comparison clarity
 
-Promotion decisions must be internally explainable (admin/observability).
+Deterministic behavior
 
-Relevance always outranks revenue.
+Features that are not explainable to AI systems do not ship.
 
-3.1 Context-Aware Static Language (Aggregated Only)
+6. Chat-First Control Plane
 
-Static site language may adapt using aggregated, location- and interest-scoped data only.
+Users must be able to complete their entire TradeScout journey through Scout.
 
-Personalized copy must:
+When adding or changing features:
 
-Use only group-level, time-bounded aggregates (e.g., “dealers in Dallas posted 12 new cars this week”)
+Design the chat path first
 
-Be backed by a real, server-side query or aggregate endpoint
+Then implement the UI surface as a tool
 
-Degrade gracefully to neutral, non-numeric language when data is unavailable or ambiguous
+7. Scout Output Contract
 
-Must not:
+Scout responses must:
 
-Reference individual behavior (searches, clicks, conversions, messages)
+Answer the question
 
-Invent or interpolate counts, earnings, performance, or rankings
+Offer at least one actionable next step when appropriate
 
-Leak user-specific details that feel like surveillance
+Attach explicit actions or links
 
-If aggregate endpoint is unavailable/errors:
+Use local context when relevant
 
-Suppress numbers
+If monetized:
 
-Show neutral copy (“New listings are being added in your area”)
+Must be disclosed
 
-4. Chat-First Control Plane
+Must explain relevance
 
-From Scout, users should be able to handle their entire TradeScout experience:
+Must never override trust
 
-Ask questions and receive an answer
+Scout must never return a dead end.
 
-Receive suggested actions whenever warranted
+8. Agent Tools Layer
 
-Click through full A→Z flows (not just text instructions)
+Core capabilities must be exposed via typed tool wrappers.
 
-Use A/B and Yes/No navigation, naturally
+No ad-hoc fetch calls for core behavior
 
-Build order (mandatory)
+Agent calls tools
 
-When adding/changing features:
+Agent emits messages + actions
 
-Design the chat path first (intent → tool/action → response + links/actions)
+8a. System Agents Are Not Users
 
-Then implement/adjust the UI surface as an orchestrated tool
-
-5. Scout Output Contract (Must Hold)
-
-Scout responses must satisfy:
-
-Answer the user’s question
-
-Provide at least one actionable next step when the situation warrants action
-
-Attach clickable actions/links (not hidden URLs)
-
-Use local context when relevant and available
-
-Include community path when useful, especially on low confidence or limited local supply
-
-If a recommendation is monetized:
-
-It must be disclosed (“Paid recommendation”)
-
-It must include why it’s relevant
-
-It must never override trust/relevance or appear just because it’s paid
-
-Defaults you locked
-
-Default to Hire / Direct Connect as primary when applicable, but show both paths.
-
-If no earned path exists, suggest: Ask your community (plus a clear flow).
-
-If local supply seems thin: broaden radius + ask to post to community (together).
-
-Ads: fit the situation, not just the user (conversion quality is the advertiser value).
-
-Prioritize successful outcomes (Connection Without Compromise).
-
-No dead ends
-
-Scout must never return an empty action set.
-If no tool/action qualifies, Scout must still offer a safe fallback:
-
-Create request (Direct Connect)
-
-Ask community
-
-Browse providers
-
-Save note / set reminder (if exists)
-
-6. Typed & Actionable Message Model (No raw navigation in text)
-
-Chat messages must support:
-
-Structured text
-
-Explicit links (UI elements)
-
-Explicit actions (navigation/tool calls)
-
-Do not embed navigation or actions inside raw text.
-
-Every new chat feature must define:
-
-Message text
-
-Attached links
-
-Attached actions
-
-Typed message/action patterns
-
-7. Agent Tools Layer (No Ad-Hoc Fetching)
-
-Core capabilities must be exposed via typed tool wrappers (e.g., src/agent/tools/*).
-UI components must not scatter raw fetch() calls for core behavior.
-
-Required pattern:
-
-Tool wrapper (backend interaction)
-
-Agent calls tool
-
-Agent emits message + links/actions
-
-Optional richer UI page
-
-8. Knowledge Base & Caching
-
-Long-lived user/community data must go through a knowledge/caching abstraction.
-Do not store durable context in local React state.
-UI components must not write directly to DB/storage.
+System agents (non-human identities) must declare claims and scope explicitly. They never bypass Scout, Trust, CVS, or geographic rules. Treat all bot/automation identities as constrained operators, not homeowners or contractors, and keep them scoped to declared claims.
 
 9. Protected Zones (Hard Lock)
 
-Copilot may not modify the following without explicit approval from Thomas naming exact files and intent:
+Copilot may not modify the following without explicit approval from Thomas:
 
-Authority Plane (Admin OS, config, guards)
+Authority Plane
 
-Geographic Readiness computation logic
-
-Promotion Eligibility & Relevance logic
+Geographic intelligence logic
 
 Trust / CVS logic
 
-Monetization rules/pricing philosophy
+Monetization philosophy
 
-Role/claims/snapshot semantics (identity meaning)
+Identity / claims semantics
 
-Verification policy meaning (what requires verification and why)
+Verification meaning
 
 If unsure → escalate.
 
@@ -317,154 +374,30 @@ Every change must state:
 
 What changed
 
-Why it changed
+Why
 
-Which principle it enforces
+Which law it enforces
 
 What it does not change
 
-How to verify (route/page/API)
+How to verify
 
-Refactors that alter behavior require explicit approval.
+11. Brand Boundaries
 
-11. Pilot Rollout (Scoped)
+This codebase is TradeScout only
 
-Pilot-first rollout is required for:
+No Trader’s Corner
 
-End-user messaging and chat behavior (Scout conversation flows)
+MealScout exists only as a promotion type, not a brand
 
-Promotion / TradeDeals / monetization behavior
-
-Trust / CVS logic that changes what normal users see
-
-Signup/verification flow semantics (claim-first/intake meaning)
-
-Pilot-first is NOT required for:
-
-Admin-only tools/consoles
-
-Pure observability/diagnostics/analytics views
-
-Backend-only helpers that do not change user-visible outcomes
-
-Pilot user:
-
-traderscornerllc@gmail.com
-
-Pilot flags must be server-derived when used.
-
-12. Dev & Build Discipline
-
-Always read package.json for script names.
-
-Keep builds green.
-
-Fix problems; do not remove features because they are hard.
-
-Never ship mock data in production flows.
-
-Use honest “unavailable” states (503) instead of fabricated data.
-
-13. Brand Boundaries
-
-This codebase is TradeScout only.
-
-Do not mix Trader’s Corner.
-
-Do not add MealScout as a separate brand.
-
-MealScout-style promotions may exist only as a promotion type within TradeScout.
-
-14. 3-Phase Execution Doctrine (Locked Delivery Order)
-
-Copilot must execute large upgrades using locked phases that ship as small, testable units.
-
-PHASE 1 — Global Community View Toggle (Read-only, posts-only)
-
-Goal: allow “Everywhere” viewing without creating “browse → contact” behavior.
-
-Requirements:
-
-UI toggle: [Local] [Everywhere]
-
-Everywhere mode: posts only, same payload shape
-
-No new contact paths; keep existing Intent → Decision Card → Contact gate
-
-Add notice: “You’re viewing posts from across the community. To connect, Scout will help you decide if it makes sense.”
-
-Fail-safe: if scope=global, strip any sensitive fields server-side
-
-PHASE 2 — County Data Router (Counties are containers, not calculators)
-
-Goal: counties become operational “files” with clean, historical, admin-friendly facts.
-
-Hard rules:
-
-county_metrics = facts (numbers + small JSON summaries)
-
-county_entities = assignments (TM, affiliates, partners)
-
-county_notes = human interpretation (no auto-AI writes)
-
-Counties do not compute; counties receive.
-
-Metric Registry:
-
-Only registered keys can be written.
-
-If not registered, metric cannot be written.
-
-Router service:
-
-Server-only write path for metrics (jobs only)
-
-Validates metricKey and countyFips
-
-Upserts snapshots with asOf/updatedAt
-
-Job order:
-
-Users aggregation nightly (set mode, idempotent)
-
-Affiliates + TradeDeals
-
-Derived demand/gap scores only after facts exist
-
-PHASE 3 — Claim-First Signup → Adaptive Verification (No role-first)
-
-Goal: stop guessing identity; claims drive verification and routing.
-
-Rules:
-
-No route may assign “contractor” (or any role) by default.
-
-Signup Phase 1: identity only (name/email/pass/OAuth + optional location)
-
-Phase 2: claims intake (multi-select, not roles)
-
-wantsToHire, providesServices, representsBusiness, postsDeals, communityBuilder, exploring
-
-Phase 3: adaptive follow-ups based on claims
-
-Verification becomes a path, not a wall:
-
-Explore/profile building allowed
-
-Verification required only to unlock specific outcomes (being listed, receiving routed requests, taking payments, etc.)
-
-Roles are derived later as capabilities; never collapse user into one role.
-
-15. Final Rule
+12. Final Rule
 
 When in doubt:
 
 Ask Thomas (A/B)
-
 Implement narrowly
-
 Verify explicitly
+Preserve reversibility
 
-Keep reversibility
-
-This contract exists to stabilize TradeScout, prevent AI drift, and protect the valuation
+This contract exists to prevent AI drift, protect authority, and preserve valuation.
+Check if something exists before adding it new.

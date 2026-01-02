@@ -149,7 +149,7 @@ package.json                                     # Updated with test scripts
 ## 🔧 Technical Implementation Details
 
 ### Environment Validation
-- Validates `BASE_URL`, `TEST_USER_*`, `TEST_BUSINESS_SLUG` required
+- Validates `BASE_URL`, `AGENT_IDENTITY_*`, `AGENT_SCOPE_SLUG` required
 - Clear error messages if any var missing
 - Supports multiple environments (local, CI, staging)
 
@@ -193,8 +193,8 @@ package.json                                     # Updated with test scripts
 # 1. Create environment file
 cp tests/.env.example tests/.env
 
-# 2. Edit .env with your test credentials
-# BASE_URL, TEST_USER_EMAIL, TEST_USER_PASSWORD, TEST_BUSINESS_SLUG
+# 2. Edit .env with your system agent credentials (non-human)
+# BASE_URL, AGENT_IDENTITY_EMAIL, AGENT_IDENTITY_SECRET, AGENT_TYPE, AGENT_CLAIMS, AGENT_SCOPE_SLUG
 
 # 3. Start development server (terminal 1)
 npm run dev
@@ -242,9 +242,11 @@ See [selectors.ts](./tests/utils/selectors.ts) for complete registry.
 ### Required
 ```
 BASE_URL=http://localhost:5000
-TEST_USER_EMAIL=your_test_user@example.com
-TEST_USER_PASSWORD=your_password_here
-TEST_BUSINESS_SLUG=your-test-business-slug
+AGENT_IDENTITY_EMAIL=agent@example.com
+AGENT_IDENTITY_SECRET=your_agent_secret
+AGENT_TYPE=bot_operator
+AGENT_CLAIMS=post,observe,seed
+AGENT_SCOPE_SLUG=your-scope-slug
 ```
 
 ### Optional
@@ -269,7 +271,7 @@ All implemented and passing:
 - [x] HTML report generation
 - [x] GitHub Actions CI/CD integration
 - [x] Comprehensive documentation
-- [x] No mock data - uses real test database
+- [x] No mock data - uses declared system agent against real test database
 - [x] All code is complete, type-safe, production-ready
 
 ---
@@ -283,7 +285,7 @@ All implemented and passing:
 4. Run locally: `npm run test:e2e`
 
 ### CI/CD Setup
-1. Add GitHub secrets: `TEST_USER_EMAIL`, `TEST_USER_PASSWORD`, `TEST_BUSINESS_SLUG`
+1. Add GitHub secrets: `AGENT_IDENTITY_EMAIL`, `AGENT_IDENTITY_SECRET`, `AGENT_SCOPE_SLUG`
 2. Push to `main` or `develop` branch
 3. GitHub Actions automatically runs tests on push
 4. View results in Actions tab and artifact reports

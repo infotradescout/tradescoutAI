@@ -22,13 +22,15 @@ Create a `.env` file in the `tests/` directory:
 cp tests/.env.example tests/.env
 ```
 
-Configure with your test credentials:
+Configure with your system agent credentials (claims-first, non-human):
 
 ```env
 BASE_URL=http://localhost:5000
-TEST_USER_EMAIL=testuser@example.com
-TEST_USER_PASSWORD=your_password_here
-TEST_BUSINESS_SLUG=your-test-business
+AGENT_IDENTITY_EMAIL=test.agent@example.com
+AGENT_IDENTITY_SECRET=your_agent_secret_here
+AGENT_TYPE=bot_operator
+AGENT_CLAIMS=post,observe,seed
+AGENT_SCOPE_SLUG=your-scope-slug
 DEBUG=false
 TEST_SEED=12345
 ```
@@ -109,7 +111,7 @@ npm run test:e2e:report:bot-army
 **Shared testing infrastructure**:
 
 - **env.ts**: Environment variable loader with validation
-  - Validates required vars (BASE_URL, TEST_USER_*, TEST_BUSINESS_SLUG)
+  - Validates required vars (BASE_URL, AGENT_IDENTITY_*, AGENT_SCOPE_SLUG)
   - Clear error messages if config missing
   - Type-safe access to all settings
 
@@ -149,9 +151,9 @@ npm run test:e2e:report:bot-army
 
 **Secrets Required**:
 ```
-TEST_USER_EMAIL
-TEST_USER_PASSWORD
-TEST_BUSINESS_SLUG
+AGENT_IDENTITY_EMAIL
+AGENT_IDENTITY_SECRET
+AGENT_SCOPE_SLUG
 ```
 
 ### Local Pre-commit

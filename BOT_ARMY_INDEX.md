@@ -71,10 +71,10 @@
 
 ### 🏗️ I'm Setting Up CI/CD
 1. Read: [.github/workflows/bot-army.yml](./.github/workflows/bot-army.yml)
-2. Add GitHub Secrets (3 vars):
-   - TEST_USER_EMAIL
-   - TEST_USER_PASSWORD
-   - TEST_BUSINESS_SLUG
+2. Add GitHub Secrets (claims-first, non-human agent):
+   - AGENT_IDENTITY_EMAIL
+   - AGENT_IDENTITY_SECRET
+   - AGENT_SCOPE_SLUG
 3. Push to main/develop
 4. Check: GitHub Actions → bot-army job
 
@@ -99,11 +99,13 @@
 # Create environment file
 cp tests/.env.example tests/.env
 
-# Edit with your test credentials:
+# Edit with your system agent credentials (non-human, claims-first):
 # - BASE_URL=http://localhost:5000
-# - TEST_USER_EMAIL=your_email
-# - TEST_USER_PASSWORD=your_password
-# - TEST_BUSINESS_SLUG=your_slug
+# - AGENT_IDENTITY_EMAIL=agent@example.com
+# - AGENT_IDENTITY_SECRET=your_agent_secret
+# - AGENT_TYPE=bot_operator
+# - AGENT_CLAIMS=post,observe,seed
+# - AGENT_SCOPE_SLUG=your-scope-slug
 ```
 
 ### Step 2: Run Tests (2 minutes)

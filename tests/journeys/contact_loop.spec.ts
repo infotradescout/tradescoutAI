@@ -24,7 +24,7 @@ test.describe('Contact Loop - Direct Connect', () => {
 
   test('should show contact modal when clicking Contact CTA', async ({ page }, testInfo) => {
     try {
-      await page.goto(`${env.BASE_URL}/business/${env.TEST_BUSINESS_SLUG}`);
+      await page.goto(`${env.BASE_URL}/business/${env.AGENT_SCOPE_SLUG}`);
 
       // Click Contact/Connect CTA
       const contactCTA = page.locator(selectors.businessProfileView.contactCTA);
@@ -41,7 +41,7 @@ test.describe('Contact Loop - Direct Connect', () => {
 
   test('should display contact form fields', async ({ page }, testInfo) => {
     try {
-      await page.goto(`${env.BASE_URL}/business/${env.TEST_BUSINESS_SLUG}`);
+      await page.goto(`${env.BASE_URL}/business/${env.AGENT_SCOPE_SLUG}`);
 
       const contactCTA = page.locator(selectors.businessProfileView.contactCTA);
       await contactCTA.click();
@@ -73,7 +73,7 @@ test.describe('Contact Loop - Direct Connect', () => {
 
   test('should accept and validate contact form input', async ({ page }, testInfo) => {
     try {
-      await page.goto(`${env.BASE_URL}/business/${env.TEST_BUSINESS_SLUG}`);
+      await page.goto(`${env.BASE_URL}/business/${env.AGENT_SCOPE_SLUG}`);
 
       const contactCTA = page.locator(selectors.businessProfileView.contactCTA);
       await contactCTA.click();
@@ -111,7 +111,7 @@ test.describe('Contact Loop - Direct Connect', () => {
           response.url().includes('/api/message')
       );
 
-      await page.goto(`${env.BASE_URL}/business/${env.TEST_BUSINESS_SLUG}`);
+      await page.goto(`${env.BASE_URL}/business/${env.AGENT_SCOPE_SLUG}`);
 
       const contactCTA = page.locator(selectors.businessProfileView.contactCTA);
       await contactCTA.click();
@@ -157,7 +157,7 @@ test.describe('Contact Loop - Direct Connect', () => {
 
   test('should require email field', async ({ page }, testInfo) => {
     try {
-      await page.goto(`${env.BASE_URL}/business/${env.TEST_BUSINESS_SLUG}`);
+      await page.goto(`${env.BASE_URL}/business/${env.AGENT_SCOPE_SLUG}`);
 
       const contactCTA = page.locator(selectors.businessProfileView.contactCTA);
       await contactCTA.click();
@@ -186,7 +186,7 @@ test.describe('Contact Loop - Direct Connect', () => {
 
   test('should close contact form on cancel', async ({ page }, testInfo) => {
     try {
-      await page.goto(`${env.BASE_URL}/business/${env.TEST_BUSINESS_SLUG}`);
+      await page.goto(`${env.BASE_URL}/business/${env.AGENT_SCOPE_SLUG}`);
 
       const contactCTA = page.locator(selectors.businessProfileView.contactCTA);
       await contactCTA.click();

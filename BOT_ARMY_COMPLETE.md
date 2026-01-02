@@ -144,10 +144,10 @@ npm run test:e2e:report
 
 ### GitHub Actions
 ```bash
-# Add secrets to repository
-TEST_USER_EMAIL=...
-TEST_USER_PASSWORD=...
-TEST_BUSINESS_SLUG=...
+# Add secrets to repository (system agent, claims-first)
+AGENT_IDENTITY_EMAIL=...
+AGENT_IDENTITY_SECRET=...
+AGENT_SCOPE_SLUG=...
 
 # Tests run automatically on push/PR
 ```
@@ -177,7 +177,7 @@ Start → BOT_ARMY_INDEX.md
 ✅ **Complete Implementation** - All 13 deliverables finished  
 ✅ **Production Ready** - No stubs, no TODOs, full functionality  
 ✅ **Type Safe** - Full TypeScript, no `any` types  
-✅ **Zero Mock Data** - Uses real test database and credentials  
+✅ **Zero Mock Data** - Uses declared system agent against real test database  
 ✅ **Comprehensive** - 28 tests covering all major flows  
 ✅ **Well Documented** - 6 documentation files, 3,000+ lines  
 ✅ **CI/CD Ready** - GitHub Actions workflow included  
@@ -197,10 +197,10 @@ Start → BOT_ARMY_INDEX.md
    - Review `npm run test:e2e:report`
 
 ### Week 2: CI/CD Setup (30 minutes)
-1. Add GitHub secrets (3 vars):
-   - TEST_USER_EMAIL
-   - TEST_USER_PASSWORD
-   - TEST_BUSINESS_SLUG
+1. Add GitHub secrets (claims-first agent):
+   - AGENT_IDENTITY_EMAIL
+   - AGENT_IDENTITY_SECRET
+   - AGENT_SCOPE_SLUG
 
 2. Push to main/develop branch
 3. Watch GitHub Actions run automatically
@@ -219,7 +219,7 @@ Start → BOT_ARMY_INDEX.md
 - ✅ No hardcoded credentials
 - ✅ Uses GitHub secrets for CI
 - ✅ Type-safe code (TypeScript)
-- ✅ Real test user (not mocked)
+- ✅ System agent identity (non-human, scoped claims)
 - ✅ Error handling for edge cases
 - ✅ Network request validation
 
