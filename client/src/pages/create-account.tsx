@@ -111,7 +111,7 @@ export default function CreateAccountPortal() {
     const profileVersion: number = typeof anyUser.profileVersion === "number" ? anyUser.profileVersion : 0;
 
     if (profileVersion <= 0) {
-      navigate("/onboarding/intent");
+      navigate("/pre-scout-setup");
       return;
     }
 
@@ -154,9 +154,9 @@ export default function CreateAccountPortal() {
         description: "Welcome to TradeScout. Let's get you started.",
       });
       
-      // CLAIM-FIRST: Explicit navigation to Scout for intent capture
+      // CLAIM-FIRST: Route through the pre-Scout gate before Scout intent capture
       // No setTimeout - immediate redirect maintains flow authority
-      navigate("/scout?onboarding=true");
+      navigate("/pre-scout-setup");
     },
     onError: (error: any) => {
       console.error('[CREATE_ACCOUNT] Registration failed:', error);

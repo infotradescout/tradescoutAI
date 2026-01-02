@@ -11,6 +11,7 @@
  */
 
 import type { ClaimType, ClaimInferenceOutput } from './claimTypes';
+import type { ProfileDraft } from '@/types/profileDraft';
 
 /**
  * System prompt for Scout inference
@@ -58,10 +59,22 @@ Output JSON only.`;
 function buildUserPrompt(
   userIntentText: string,
   provisionalUserTypes: string[] = [],
-  countyName: string | null = null
+  countyName: string | null = null,
+  profileDraft?: ProfileDraft
 ): string {
   const userTypesJson = JSON.stringify(provisionalUserTypes);
   const countyText = countyName || 'null';
+  const draftSummary = profileDraft
+    ? JSON.stringify({
+        presenceType: profileDraft.presenceType,
+        countyName: profileDraft.countyName,
+        countyFips: profileDraft.countyFips,
+        stateCode: profileDraft.stateCode,
+        businessName: profileDraft.businessName,
+        businessCategory: profileDraft.businessCategory,
+        serviceAreasCount: profileDraft.serviceAreas?.length || 0,
+      })
+    : 'null';
   
   return `User intent text:
 "${userIntentText}"
@@ -70,7 +83,10 @@ Optional signals from provisional userTypes (may be empty):
 ${userTypesJson}
 
 User county context (may be null):
-${countyText}`;
+${countyText}
+
+Structured setup from pre-Scout gate (may be null):
+${draftSummary}`;
 }
 
 /**
@@ -79,10 +95,11 @@ ${countyText}`;
 export async function inferClaimsFromIntent(
   userIntentText: string,
   provisionalUserTypes: string[] = [],
-  countyName: string | null = null
+  countyName: string | null = null,
+  profileDraft?: ProfileDraft
 ): Promise<ClaimInferenceOutput> {
   try {
-    const userPrompt = buildUserPrompt(userIntentText, provisionalUserTypes, countyName);
+    const userPrompt = buildUserPrompt(userIntentText, provisionalUserTypes, countyName, profileDraft);
     
     const response = await fetch('/api/ai/inference', {
       method: 'POST',

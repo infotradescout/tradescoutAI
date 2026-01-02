@@ -97,6 +97,7 @@ const Signup = React.lazy(() => import('./pages/signup'));
 const CreateAccount = React.lazy(() => import('./pages/create-account'));
 const OnboardingProfile = React.lazy(() => import('./pages/onboarding-profile'));
 const OnboardingIntent = React.lazy(() => import('./pages/onboarding-intent'));
+const PreScoutSetup = React.lazy(() => import('./pages/pre-scout-setup'));
 
 // Contractor Features
 const ContractorApply = React.lazy(() => import('./pages/contractor-apply'));
@@ -548,10 +549,15 @@ const AppLayout = memo(function AppLayout() {
                   <Route path="/register"><RedirectTo to="/create-account" /></Route>
                   <Route path="/signup"><RedirectTo to="/create-account" /></Route>
                   <Route path="/create-account"><LazyPage Component={CreateAccount} /></Route>
-                  {/* DEPRECATED: Old onboarding routes → Scout onboarding flow */}
-                  <Route path="/onboarding/intent"><RedirectTo to="/scout?onboarding=true" /></Route>
-                  <Route path="/onboarding/profile"><RedirectTo to="/scout?onboarding=true" /></Route>
-                  <Route path="/profile-setup"><RedirectTo to="/scout?onboarding=true" /></Route>
+                  <Route path="/pre-scout-setup">
+                    <ProtectedRoute>
+                      <LazyPage Component={PreScoutSetup} />
+                    </ProtectedRoute>
+                  </Route>
+                  {/* DEPRECATED: Old onboarding routes → Pre-Scout gate */}
+                  <Route path="/onboarding/intent"><RedirectTo to="/pre-scout-setup" /></Route>
+                  <Route path="/onboarding/profile"><RedirectTo to="/pre-scout-setup" /></Route>
+                  <Route path="/profile-setup"><RedirectTo to="/pre-scout-setup" /></Route>
 
                   {/* Legacy auth URLs: redirect old /auth/* paths to current routes */}
                   <Route path="/auth/login"><RedirectTo to="/login" /></Route>
