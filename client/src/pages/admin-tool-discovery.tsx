@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
+import { useScopeGovernorGate } from "@/hooks/useScopeGovernorGate";
 import { CheckCircle2, XCircle, Clock, Sparkles, AlertTriangle, TrendingUp, Users, Zap } from "lucide-react";
 
 type ToolBlueprint = {
@@ -38,6 +39,8 @@ export default function ToolDiscoveryAdmin() {
   const [selectedBlueprint, setSelectedBlueprint] = useState<ToolBlueprint | null>(null);
   const [reviewNotes, setReviewNotes] = useState("");
   const { toast } = useToast();
+  const scopeGate = useScopeGovernorGate();
+  const featureCreationBlocked = scopeGate.blocked;
 
   useEffect(() => {
     fetchBlueprints();
@@ -58,6 +61,14 @@ export default function ToolDiscoveryAdmin() {
   };
 
   const approveBlueprint = async (blueprintId: string) => {
+    if (featureCreationBlocked) {
+      toast({
+        title: "Scope is temporarily frozen",
+        description: "Fixes and safety work are always allowed. Resolve the listed issues to unfreeze.",
+      });
+      return;
+    }
+
     try {
       const res = await fetch(`/api/admin/tool-blueprints/${blueprintId}/approve`, {
         method: "POST",
@@ -126,6 +137,27 @@ export default function ToolDiscoveryAdmin() {
             <div className="text-sm text-charcoal-400">Pending Review</div>
           </div>
         </div>
+
+        {scopeGate.enforced && featureCreationBlocked && (
+          <Card className="border-amber-200 bg-amber-50 text-amber-900">
+            <CardContent className="p-4 space-y-2">
+              <div className="flex items-start gap-2">
+                <AlertTriangle className="h-5 w-5" />
+                <div className="space-y-1">
+                  <p className="text-sm font-semibold">Scope is temporarily frozen due to unresolved issues.</p>
+                  <p className="text-sm">Fixes and safety work are always allowed.</p>
+                </div>
+              </div>
+              {scopeGate.reasons.length > 0 && (
+                <ul className="text-sm list-disc pl-6 space-y-1">
+                  {scopeGate.reasons.map((reason, idx) => (
+                    <li key={idx}>{reason}</li>
+                  ))}
+                </ul>
+              )}
+            </CardContent>
+          </Card>
+        )}
 
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
@@ -283,6 +315,7 @@ export default function ToolDiscoveryAdmin() {
                   <Button
                     onClick={() => approveBlueprint(selectedBlueprint.id)}
                     className="flex-1 bg-green-600 hover:bg-green-700"
+                    disabled={featureCreationBlocked}
                   >
                     <CheckCircle2 className="w-4 h-4 mr-2" />
                     Approve for Implementation
@@ -305,6 +338,11 @@ export default function ToolDiscoveryAdmin() {
                   >
                     Cancel
                   </Button>
+                  {featureCreationBlocked && (
+                    <p className="text-sm text-charcoal-400 mt-2">
+                      Scope is frozen while impact/risk issues are open. Fixes and safety work stay unblocked.
+                    </p>
+                  )}
                 </div>
               </CardContent>
             </Card>
