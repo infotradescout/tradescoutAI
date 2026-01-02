@@ -1,7 +1,9 @@
 User-agent: *
 Allow: /contractors/
 Allow: /profile/
+Allow: /business/
 Allow: /community/
+Allow: /county/
 
 Disallow: /admin/
 Disallow: /dashboard/

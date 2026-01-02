@@ -1,6 +1,7 @@
 import { defineConfig, devices } from "@playwright/test";
+import path from "path";
 
-const baseURL = process.env.E2E_BASE_URL || "http://localhost:5000";
+const baseURL = process.env.BASE_URL || process.env.E2E_BASE_URL || "http://localhost:5000";
 const hasTestDb = Boolean(process.env.TEST_DATABASE_URL);
 
 const serverCommand = hasTestDb
@@ -9,6 +10,7 @@ const serverCommand = hasTestDb
 
 export default defineConfig({
   testDir: "./tests",
+  testMatch: "**/*.spec.ts",
   timeout: 60_000,
   expect: { timeout: 15_000 },
   retries: process.env.CI ? 2 : 0,
@@ -25,6 +27,15 @@ export default defineConfig({
     : undefined,
 
   globalSetup: hasTestDb ? "./tests/global-setup.ts" : undefined,
+
+  outputDir: path.join(process.cwd(), ".playwright", "test-results"),
+
+  reporter: [
+    ["html", { outputFolder: "playwright-report" }],
+    ["json", { outputFile: ".playwright/test-results/results.json" }],
+    ["junit", { outputFile: ".playwright/test-results/junit.xml" }],
+    ["list"],
+  ],
 
   use: {
     baseURL,
