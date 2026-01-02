@@ -51,6 +51,7 @@ const DirectConnectInfoPage = memo(function DirectConnectInfoPage() {
         title="Direct Connect – Trust-First Contractor Matching"
         description="TradeScout Direct Connect routes your request to 1-3 verified contractors based on trust and relevance, not payment. No lead spam, no bidding wars — just qualified matches."
         keywords="direct connect, contractor matching, no lead spam, trust-verified contractors, no bidding wars, qualified matches"
+        canonical="https://www.thetradescout.com/direct-connect-info"
         structuredData={createFAQStructuredData(faqs)}
       />
 

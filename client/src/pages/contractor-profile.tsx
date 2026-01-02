@@ -96,6 +96,7 @@ export default function ContractorProfile() {
         title={seoTitle}
         description={seoDescription}
         keywords={`${contractor.companyName}, local contractor, home improvement, verified contractor, licensed contractor, free quotes`}
+        canonical={`https://www.thetradescout.com/contractor/${slug}`}
         structuredData={contractorStructuredData}
       />
       

@@ -11,6 +11,7 @@ export default function HowTradeScoutWorks() {
           <SEOHelmet
             title="How TradeScout Works"
             description="Connection Without Compromise: how jobs, messaging, money, and community fit together in TradeScout."
+            canonical="https://www.thetradescout.com/how-tradescout-works"
           />
 
           <header className="mb-8 md:mb-10">

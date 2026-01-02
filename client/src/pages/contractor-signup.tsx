@@ -179,6 +179,7 @@ export default function ContractorSignup() {
         <SEOHelmet
           title="Application Submitted - TradeScout Contractor Signup"
           description="Your contractor application has been submitted successfully."
+          canonical="https://www.thetradescout.com/contractors/apply"
         />
         <div className="max-w-2xl mx-auto px-4">
           <Card className="bg-navy-700 border-navy-600">
@@ -216,6 +217,7 @@ export default function ContractorSignup() {
         title="Join TradeScout - Contractor Registration"
         description="Join TradeScout's verified contractor network. Get more leads, showcase your work, and grow your business with our contractor platform."
         keywords="contractor registration, join contractor network, get more leads, contractor marketing"
+        canonical="https://www.thetradescout.com/contractors/apply"
       />
       
       <div className="max-w-4xl mx-auto px-4">

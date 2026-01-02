@@ -30,6 +30,7 @@ export default function Help() {
         <SEOHelmet
           title="TradeScout Help Center – Articles and Guides"
           description="Browse help overviews for how TradeScout actually works. If you still don't see the answer, you can ask Scout from here for step-by-step help."
+          canonical="https://www.thetradescout.com/help"
           structuredData={createFAQStructuredData([
             {
               question: "What is TradeScout?",
