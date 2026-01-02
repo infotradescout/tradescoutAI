@@ -583,13 +583,10 @@ export async function registerRoutes(app: any) {
 
       // Founder badge: users who joined during the beta period
       // (configured via BETA_START_AT/BETA_END_AT environment variables)
-      if (isWithinBetaPeriod(new Date())) {
-        if (userTypes && userTypes.length > 0) {
-          for (const role of userTypes) {
-            badges.add(`Founder (${formatRoleLabel(role)})`);
-          }
-        } else {
-          badges.add('Founder');
+      // CLAIM-FIRST: Only grant badges for confirmed types, not provisional selections
+      if (isWithinBetaPeriod(new Date()) && userTypes && userTypes.length > 0) {
+        for (const role of userTypes) {
+          badges.add(`Founder (${formatRoleLabel(role)})`);
         }
       }
 
@@ -622,7 +619,7 @@ export async function registerRoutes(app: any) {
       };
 
       // Create user with multi-role support
-      // CLAIM-FIRST: roles array may be empty, primaryRole defaults to homeowner as neutral starting point
+      // CLAIM-FIRST: roles array may be empty - identity is derived later from claims
       const user = await storage.createUser({
         email,
         password: hashedPassword,
@@ -632,9 +629,9 @@ export async function registerRoutes(app: any) {
         address,
         state,
         county,
-        role: primaryRole as any, // Primary role for backward compatibility (defaults to homeowner)
-        roles: userTypes && userTypes.length > 0 ? userTypes : ['homeowner'], // Store all selected user types or neutral default
-        activeRole: primaryRole, // Default active role
+        role: primaryRole as any, // Primary role for backward compatibility (defaults to homeowner for routing)
+        roles: userTypes || [], // Empty array allowed - provisional preferences stored separately
+        activeRole: primaryRole, // Default active role for routing
         emailVerified: false,
         addressVerified: false,
         verificationStatus: status,
