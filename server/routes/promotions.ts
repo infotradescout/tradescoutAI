@@ -4,10 +4,11 @@ import { storage } from '../storage';
 // List promotions for admin
 export async function listPromotionsHandler(req: Request, res: Response) {
   try {
-    const { status, countyFips, limit } = req.query as any;
+    const { status, countyFips, tier, limit } = req.query as any;
     const rows = await storage.listPromotions({
       status: status as string | undefined,
       countyFips: countyFips as string | undefined,
+      tier: tier as string | undefined,
       limit: limit ? parseInt(limit as string, 10) : undefined,
     });
     res.json(rows);
@@ -21,6 +22,15 @@ export async function listPromotionsHandler(req: Request, res: Response) {
 export async function createPromotionHandler(req: Request, res: Response) {
   try {
     const body = req.body ?? {};
+
+    // Enforce tier placement rules: free_directory cannot enable any placements
+    const tier = body.tier ?? 'free_directory';
+    if (tier === 'free_directory') {
+      body.placementCommunitySnapshot = false;
+      body.placementCommunityFeed = false;
+      body.placementScout = false;
+      body.placementMarketplace = false;
+    }
 
     // Enforce required snapshot constraints server-side
     if (body.type === 'trade_deal' && body.placementCommunitySnapshot) {
@@ -45,6 +55,15 @@ export async function updatePromotionHandler(req: Request, res: Response) {
   try {
     const { id } = req.params;
     const body = req.body ?? {};
+
+    // Enforce tier placement rules: free_directory cannot enable any placements
+    const tier = body.tier ?? 'free_directory';
+    if (tier === 'free_directory') {
+      body.placementCommunitySnapshot = false;
+      body.placementCommunityFeed = false;
+      body.placementScout = false;
+      body.placementMarketplace = false;
+    }
 
     if (body.type === 'trade_deal' && body.placementCommunitySnapshot) {
       if (!Array.isArray(body.countyFips) || body.countyFips.length === 0) {
