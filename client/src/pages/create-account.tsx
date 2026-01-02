@@ -9,22 +9,34 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { TradeScoutLogo } from "@/components/TradeScoutIcons";
-import { StateCountySelector } from "@/components/state-county-selector";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Facebook } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
+import { Checkbox } from "@/components/ui/checkbox";
+
+const roleOptions = ["homeowner", "contractor", "realtor", "car_dealer"] as const;
+type RoleOption = (typeof roleOptions)[number];
 
 const signupSchema = z.object({
   email: z.string().email("Please enter a valid email address"),
-  password: z.string().min(8, "Password must be at least 8 characters"),
+  phone: z
+    .string()
+    .min(1, "Phone number is required")
+    .refine((value) => value.replace(/\D/g, "").length >= 10, "Please enter a valid phone number"),
+  password: z.string().min(8, "Password must be at least 8 characters")
+    .regex(/[A-Z]/, "Password must contain at least one uppercase letter")
+    .regex(/[a-z]/, "Password must contain at least one lowercase letter")
+    .regex(/[0-9]/, "Password must contain at least one number"),
   confirmPassword: z.string(),
   firstName: z.string().min(1, "First name is required"),
   lastName: z.string().min(1, "Last name is required"),
-  state: z.string().min(2, "State is required"),
-  county: z.string().min(2, "County is required"),
-  roleIntent: z.enum(["homeowner", "contractor", "other"]),
+  userTypes: z
+    .array(z.enum(roleOptions))
+    .min(1, "Please select at least one way you plan to use TradeScout"),
+  acceptTerms: z.boolean().refine((val) => val === true, "You must accept the Terms of Service"),
+  allowPhoneCalls: z.boolean().optional(),
 }).refine((data) => data.password === data.confirmPassword, {
   message: "Passwords don't match",
   path: ["confirmPassword"],
@@ -44,15 +56,24 @@ export default function CreateAccountPortal() {
     facebook: false,
   });
 
-  const { control, handleSubmit, formState: { errors }, watch } = useForm<SignupFormData>({
+  const { control, handleSubmit, formState: { errors }, watch, setValue } = useForm<SignupFormData>({
     resolver: zodResolver(signupSchema),
     defaultValues: {
-      roleIntent: "homeowner",
+      email: "",
+      phone: "",
+      password: "",
+      confirmPassword: "",
+      firstName: "",
+      lastName: "",
+      userTypes: [],
+      acceptTerms: false,
+      allowPhoneCalls: false,
     },
   });
 
   const stateValue = watch("state");
   const countyValue = watch("county");
+  const userTypesValue = watch("userTypes");
 
   // Fetch OAuth providers
   useEffect(() => {
@@ -92,33 +113,50 @@ export default function CreateAccountPortal() {
 
   const signupMutation = useMutation({
     mutationFn: async (data: SignupFormData) => {
+      console.log('[CREATE_ACCOUNT] Submitting payload:', {
+        email: data.email,
+        userTypes: data.userTypes,
+        hasPassword: !!data.password,
+        hasPhone: !!data.phone,
+        acceptTerms: data.acceptTerms,
+      });
+      
       return apiRequest("POST", "/api/auth/register", {
         email: data.email,
+        phone: data.phone,
         password: data.password,
         firstName: data.firstName,
         lastName: data.lastName,
-        stateCode: data.state,
-        countyFips: data.county,
-        roleIntent: data.roleIntent,
+        userTypes: data.userTypes,
+        acceptTerms: data.acceptTerms,
+        allowPhoneCalls: data.allowPhoneCalls,
       });
     },
     onSuccess: () => {
+      console.log('[CREATE_ACCOUNT] Registration successful');
       queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
       refetch?.();
+      
+      // Set Scout onboarding marker
+      localStorage.setItem("scout_onboarding_marker", "__SCOUT_ONBOARDING__");
+      
       toast({
         title: "Account created",
-        description: "Welcome to TradeScout. Let's set up your profile.",
+        description: "Welcome to TradeScout. Let's get you started.",
       });
-      // Route to intent if contractor, else straight to Scout
+      
+      // Route to Scout with onboarding flag
       setTimeout(() => {
-        const roleIntent = watch("roleIntent");
-        navigate(roleIntent === "contractor" ? "/onboarding/intent" : "/scout?onboarding=true");
+        navigate("/scout?onboarding=true");
       }, 500);
     },
     onError: (error: any) => {
+      console.error('[CREATE_ACCOUNT] Registration failed:', error);
+      const errorMessage = error?.message || error?.error || "Registration failed. Please try again.";
+      
       toast({
         title: "Signup failed",
-        description: error?.message || "Please try again.",
+        description: errorMessage,
         variant: "destructive",
       });
     },
@@ -317,61 +355,145 @@ export default function CreateAccountPortal() {
                 </div>
               </div>
 
-              {/* Location */}
+              {/* Phone */}
               <div>
-                <Label className="text-sm text-tsTextMain">Where are you active?</Label>
-                <div className="mt-1">
+                <Label htmlFor="phone" className="text-sm text-tsTextMain">Phone number</Label>
+                <Controller
+                  name="phone"
+                  control={control}
+                  render={({ field }) => (
+                    <Input
+                      {...field}
+                      id="phone"
+                      type="tel"
+                      placeholder="(555) 123-4567"
+                      className="mt-1"
+                    />
+                  )}
+                />
+                {errors.phone && <p className="text-xs text-red-500 mt-1">{errors.phone.message}</p>}
+              </div>
+
+              {/* User Types (Multi-select Claims) */}
+              <div>
+                <Label className="text-sm text-tsTextMain mb-2 block">How will you use TradeScout? (Select all that apply)</Label>
+                <div className="space-y-3 bg-tsBg/50 rounded-lg p-4 border border-tsBorder/50">
                   <Controller
-                    name="state"
+                    name="userTypes"
                     control={control}
                     render={({ field }) => (
-                      <Controller
-                        name="county"
-                        control={control}
-                        render={({ field: countyField }) => (
-                          <StateCountySelector
-                            stateCode={field.value}
-                            onStateChange={field.onChange}
-                            countyFips={countyField.value}
-                            onCountyChange={countyField.onChange}
+                      <>
+                        <label className="flex items-start gap-3 cursor-pointer hover:bg-tsCard/30 p-2 rounded">
+                          <Checkbox
+                            checked={field.value?.includes("homeowner")}
+                            onCheckedChange={(checked) => {
+                              const newValue = checked
+                                ? [...(field.value || []), "homeowner"]
+                                : (field.value || []).filter(v => v !== "homeowner");
+                              field.onChange(newValue);
+                            }}
                           />
-                        )}
-                      />
+                          <div className="flex-1">
+                            <div className="text-sm font-medium text-tsTextMain">Homeowner / Resident</div>
+                            <div className="text-xs text-tsTextMuted">Find trusted contractors for home projects</div>
+                          </div>
+                        </label>
+                        
+                        <label className="flex items-start gap-3 cursor-pointer hover:bg-tsCard/30 p-2 rounded">
+                          <Checkbox
+                            checked={field.value?.includes("contractor")}
+                            onCheckedChange={(checked) => {
+                              const newValue = checked
+                                ? [...(field.value || []), "contractor"]
+                                : (field.value || []).filter(v => v !== "contractor");
+                              field.onChange(newValue);
+                            }}
+                          />
+                          <div className="flex-1">
+                            <div className="text-sm font-medium text-tsTextMain">Contractor / Service Provider</div>
+                            <div className="text-xs text-tsTextMuted">Get leads and grow your business</div>
+                          </div>
+                        </label>
+                        
+                        <label className="flex items-start gap-3 cursor-pointer hover:bg-tsCard/30 p-2 rounded">
+                          <Checkbox
+                            checked={field.value?.includes("realtor")}
+                            onCheckedChange={(checked) => {
+                              const newValue = checked
+                                ? [...(field.value || []), "realtor"]
+                                : (field.value || []).filter(v => v !== "realtor");
+                              field.onChange(newValue);
+                            }}
+                          />
+                          <div className="flex-1">
+                            <div className="text-sm font-medium text-tsTextMain">Real Estate Professional</div>
+                            <div className="text-xs text-tsTextMuted">Connect with clients and contractors</div>
+                          </div>
+                        </label>
+                        
+                        <label className="flex items-start gap-3 cursor-pointer hover:bg-tsCard/30 p-2 rounded">
+                          <Checkbox
+                            checked={field.value?.includes("car_dealer")}
+                            onCheckedChange={(checked) => {
+                              const newValue = checked
+                                ? [...(field.value || []), "car_dealer"]
+                                : (field.value || []).filter(v => v !== "car_dealer");
+                              field.onChange(newValue);
+                            }}
+                          />
+                          <div className="flex-1">
+                            <div className="text-sm font-medium text-tsTextMain">Auto Dealer / Sales</div>
+                            <div className="text-xs text-tsTextMuted">List vehicles and manage sales</div>
+                          </div>
+                        </label>
+                      </>
                     )}
                   />
                 </div>
-                {errors.state && <p className="text-xs text-red-500 mt-1">{errors.state.message}</p>}
-                {errors.county && <p className="text-xs text-red-500 mt-1">{errors.county.message}</p>}
+                {errors.userTypes && <p className="text-xs text-red-500 mt-1">{errors.userTypes.message}</p>}
               </div>
 
-              {/* Role Intent */}
-              <div>
-                <Label className="text-sm text-tsTextMain">What describes you best?</Label>
-                <div className="mt-2 space-y-2">
-                  {[
-                    { value: "homeowner", label: "Homeowner or resident" },
-                    { value: "contractor", label: "Contractor or service provider" },
-                    { value: "other", label: "Other" },
-                  ].map((option) => (
-                    <label key={option.value} className="flex items-center gap-2 cursor-pointer">
-                      <Controller
-                        name="roleIntent"
-                        control={control}
-                        render={({ field }) => (
-                          <input
-                            type="radio"
-                            value={option.value}
-                            checked={field.value === option.value}
-                            onChange={(e) => field.onChange(e.target.value)}
-                            className="w-4 h-4"
-                          />
-                        )}
+              {/* Terms & Permissions */}
+              <div className="space-y-3 bg-tsBg/50 rounded-lg p-4 border border-tsBorder/50">
+                <label className="flex items-start gap-3 cursor-pointer">
+                  <Controller
+                    name="acceptTerms"
+                    control={control}
+                    render={({ field }) => (
+                      <Checkbox
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
                       />
-                      <span className="text-sm text-tsTextMain">{option.label}</span>
-                    </label>
-                  ))}
-                </div>
-                {errors.roleIntent && <p className="text-xs text-red-500 mt-1">{errors.roleIntent.message}</p>}
+                    )}
+                  />
+                  <div className="flex-1">
+                    <span className="text-sm text-tsTextMain">
+                      I accept the{" "}
+                      <a href="/terms" target="_blank" className="text-tsAccent hover:underline">Terms of Service</a>
+                      {" "}and{" "}
+                      <a href="/privacy" target="_blank" className="text-tsAccent hover:underline">Privacy Policy</a>
+                    </span>
+                  </div>
+                </label>
+                {errors.acceptTerms && <p className="text-xs text-red-500">{errors.acceptTerms.message}</p>}
+                
+                <label className="flex items-start gap-3 cursor-pointer">
+                  <Controller
+                    name="allowPhoneCalls"
+                    control={control}
+                    render={({ field }) => (
+                      <Checkbox
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
+                      />
+                    )}
+                  />
+                  <div className="flex-1">
+                    <span className="text-sm text-tsTextMuted">
+                      I agree to receive phone calls from verified contractors (optional)
+                    </span>
+                  </div>
+                </label>
               </div>
 
               {/* Submit */}
