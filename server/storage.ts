@@ -8376,6 +8376,7 @@ export class DatabaseStorage implements IStorage {
   async listPromotions(filters?: {
     status?: string;
     countyFips?: string;
+    tier?: string;
     limit?: number;
   }): Promise<Promotion[]> {
     const conditions: SQL[] = [];
@@ -8386,6 +8387,10 @@ export class DatabaseStorage implements IStorage {
 
     if (filters?.countyFips) {
       conditions.push(sql`${promotions.countyFips} @> ARRAY[${filters.countyFips}]::text[]`);
+    }
+
+    if (filters?.tier) {
+      conditions.push(eq(promotions.tier, filters.tier as any));
     }
 
     const query = db
