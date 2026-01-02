@@ -20,6 +20,7 @@ import { PreferredSourcePrompt } from './components/PreferredSourcePrompt';
 import { FEATURE_HOLD_TO_EXPLAIN, FEATURE_EDUCATION_REPLACEMENT } from '@shared/governanceFlags';
 import { HoldToExplainProvider } from './components/hold/HoldToExplainProvider';
 import { HoldIntroTutorial } from './components/onboarding/HoldIntroTutorial';
+import { registerStarterActionDescriptors } from './lib/actionDescriptorSeeds';
 
 // Only load essential components eagerly
 import SmartHome from './SmartHome';
@@ -1054,6 +1055,10 @@ const App = memo(function App() {
   // behavior is a one-line change.
   const enableThumbUX = true;
   const enableDarkDepth = true;
+
+  useEffect(() => {
+    registerStarterActionDescriptors();
+  }, []);
 
   return (
     <div className={`app-root ${enableThumbUX ? 'thumb-ux' : ''} ${enableDarkDepth ? 'dark-depth' : ''}`}>
