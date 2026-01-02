@@ -526,6 +526,8 @@ export async function registerRoutes(app: any) {
       const userTypesRaw = Array.isArray(body.userTypes) ? body.userTypes : undefined;
       const roleRaw = typeof body.role === 'string' ? body.role : undefined;
       const roleIntentRaw = typeof body.roleIntent === 'string' ? body.roleIntent : undefined;
+      const userIntent = typeof body.userIntent === 'string' ? body.userIntent.trim() : undefined;
+      
       const userTypesInput =
         userTypesRaw && userTypesRaw.length > 0
           ? userTypesRaw
@@ -561,10 +563,8 @@ export async function registerRoutes(app: any) {
         return res.status(400).json({ message: 'User already exists' });
       }
 
-      // Validate user types
-      if (!userTypes || userTypes.length === 0) {
-        return res.status(400).json({ message: 'Please select at least one account type' });
-      }
+      // CLAIM-FIRST: userTypes are now optional provisional preferences, not required identity
+      // Empty array is valid - allows users to skip and define intent later
 
       // Hash password
       const hashedPassword = await hashPassword(password);
@@ -573,29 +573,36 @@ export async function registerRoutes(app: any) {
       const formatRoleLabel = (role: string) => role.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
       const badges = new Set<string>();
 
-      // Role badges for each selected user type
-      for (const role of userTypes) {
-        const roleBadge = getUserTypeBadgeLabel(role);
-        if (roleBadge) badges.add(roleBadge);
+      // Role badges for each selected user type (only if userTypes provided)
+      if (userTypes && userTypes.length > 0) {
+        for (const role of userTypes) {
+          const roleBadge = getUserTypeBadgeLabel(role);
+          if (roleBadge) badges.add(roleBadge);
+        }
       }
 
       // Founder badge: users who joined during the beta period
       // (configured via BETA_START_AT/BETA_END_AT environment variables)
       if (isWithinBetaPeriod(new Date())) {
-        for (const role of userTypes) {
-          badges.add(`Founder (${formatRoleLabel(role)})`);
+        if (userTypes && userTypes.length > 0) {
+          for (const role of userTypes) {
+            badges.add(`Founder (${formatRoleLabel(role)})`);
+          }
+        } else {
+          badges.add('Founder');
         }
       }
 
       // Verified badge: if verificationStatus is approved
       const allowedStatuses = ['pending', 'under_review', 'approved', 'rejected', 'expired', 'suspended'];
       const status = allowedStatuses.includes(verificationStatus) ? verificationStatus : 'pending';
-      if (status === 'approved') {
+      if (status === 'approved' && userTypes && userTypes.length > 0) {
         userTypes.forEach((role: string) => badges.add(`Verified ${formatRoleLabel(role)}`));
       }
 
-      // Determine primary role from user types (use first selected for backward compatibility)
-      const primaryRole = userTypes[0] || 'homeowner';
+      // Determine primary role from user types
+      // CLAIM-FIRST: Default to 'homeowner' if no types selected (neutral starting point)
+      const primaryRole = (userTypes && userTypes.length > 0) ? userTypes[0] : 'homeowner';
 
       const preferences = {
         ...(body.preferences || {}),
@@ -606,9 +613,16 @@ export async function registerRoutes(app: any) {
           ...(body?.preferences?.communication || {}),
           allowPhoneCalls,
         },
+        // Store provisional userTypes selections and free-form intent
+        provisional: {
+          userTypes: userTypes || [],
+          userIntent: userIntent || undefined,
+          capturedAt: new Date().toISOString(),
+        },
       };
 
       // Create user with multi-role support
+      // CLAIM-FIRST: roles array may be empty, primaryRole defaults to homeowner as neutral starting point
       const user = await storage.createUser({
         email,
         password: hashedPassword,
@@ -618,8 +632,8 @@ export async function registerRoutes(app: any) {
         address,
         state,
         county,
-        role: primaryRole as any, // Primary role for backward compatibility
-        roles: userTypes, // Store all selected user types
+        role: primaryRole as any, // Primary role for backward compatibility (defaults to homeowner)
+        roles: userTypes && userTypes.length > 0 ? userTypes : ['homeowner'], // Store all selected user types or neutral default
         activeRole: primaryRole, // Default active role
         emailVerified: false,
         addressVerified: false,
