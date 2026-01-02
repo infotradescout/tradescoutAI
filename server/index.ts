@@ -115,6 +115,8 @@ const ALLOWED_ORIGINS: string[] = [
   "https://www.thetradescout.com",
   "https://thetradescout.com",
   "https://tradescoutai.onrender.com",
+  "https://mealscout.us",
+  "https://www.mealscout.us",
 ].map((o) => o.toLowerCase());
 
 // Optionally extend/override CORS allowlist from env
