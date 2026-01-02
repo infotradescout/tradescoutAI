@@ -72,13 +72,25 @@ export function RegisterForm({ onSuccess, onSwitchToLogin }: RegisterFormProps) 
   const registerMutation = useMutation({
     mutationFn: async (data: Omit<RegisterFormData, "confirmPassword">) => {
       try {
+        console.log('[REGISTER] Submitting payload:', {
+          email: data.email,
+          userTypes: data.userTypes,
+          hasPassword: !!data.password,
+          hasPhone: !!data.phone,
+          acceptTerms: data.acceptTerms,
+        });
         return await apiRequest("POST", "/api/auth/register", data);
-      } catch (error) {
-        console.error('Registration request failed:', error);
+      } catch (error: any) {
+        console.error('[REGISTER] Request failed:', {
+          message: error.message,
+          error: error,
+          stack: error.stack,
+        });
         throw error;
       }
     },
     onSuccess: (data) => {
+      console.log('[REGISTER] Success, user created');
       toast({
         title: "Welcome to TradeScout!",
         description: "Your account has been created successfully.",
@@ -96,10 +108,30 @@ export function RegisterForm({ onSuccess, onSwitchToLogin }: RegisterFormProps) 
       onSuccess?.();
     },
     onError: (error: any) => {
-      console.error('Registration error:', error);
+      console.error('[REGISTER] Mutation error:', {
+        message: error.message,
+        error: error,
+      });
+      
+      // Extract more specific error message if available
+      let errorDescription = error.message || "Unable to create account. Please try again.";
+      
+      // Check for common validation errors
+      if (errorDescription.includes('email')) {
+        errorDescription = error.message || "Please check your email address.";
+      } else if (errorDescription.includes('password')) {
+        errorDescription = error.message || "Password must be at least 8 characters with uppercase, lowercase, and number.";
+      } else if (errorDescription.includes('phone')) {
+        errorDescription = error.message || "Please enter a valid phone number.";
+      } else if (errorDescription.includes('terms') || errorDescription.includes('Terms')) {
+        errorDescription = error.message || "You must accept the Terms of Service.";
+      } else if (errorDescription.includes('already exists')) {
+        errorDescription = "An account with this email already exists. Try logging in instead.";
+      }
+      
       toast({
         title: "Registration Failed",
-        description: error.message || "Unable to create account. Please try again.",
+        description: errorDescription,
         variant: "destructive",
       });
     },
