@@ -9,8 +9,8 @@ export default function HowTradeScoutWorks() {
       <div className="min-h-screen bg-slate-950 text-white">
         <div className="max-w-4xl mx-auto px-4 py-8 md:py-10">
           <SEOHelmet
-            title="How TradeScout Works"
-            description="Connection Without Compromise: how jobs, messaging, money, and community fit together in TradeScout."
+            title="How TradeScout Works – Connection Without Compromise | TradeScout"
+            description="Learn how jobs, messaging, money, and community fit together in TradeScout. Trust-first matching, verified contractors, and direct connections."
             canonical="https://www.thetradescout.com/how-tradescout-works"
           />
 

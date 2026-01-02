@@ -43,7 +43,7 @@ const HowItWorksPage = memo(function HowItWorksPage() {
   return (
     <>
       <SEOHelmet
-        title="How TradeScout Works – Trust-First Contractor Matching"
+        title="How It Works – Trust-First Contractor Matching | TradeScout"
         description="TradeScout matches you with verified contractors based on trust and relevance, not payment. Learn how our AI-controlled platform works: matching, verification, Direct Connect, and community trust."
         keywords="how tradescout works, contractor matching, trust verification, direct connect, community verification score, no pay-to-play"
         canonical="https://www.thetradescout.com/how-it-works"
