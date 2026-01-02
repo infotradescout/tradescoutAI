@@ -1,173 +1,281 @@
-import { useEffect, useState } from "react";
-import { useRoute, Link } from "wouter";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Building2, MapPin, Globe, Phone } from "lucide-react";
+import { useEffect, useState } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Separator } from '@/components/ui/separator';
+import { Building2, MapPin, Globe, Edit, MessageSquare, Loader2 } from 'lucide-react';
+import type { BusinessProfile } from '@/../../shared/businessProfile';
+import { recordActivity } from '@/agent/activity';
+import { useAuth } from '@/hooks/useAuth';
+import { SEOHelmet } from '@/components/SEOHelmet';
 
-type PublicCounty = {
-  id: string;
-  name: string;
-  stateCode: string;
-  fips: string;
-};
-
-type PublicBusiness = {
-  id: string;
-  name: string;
-  slug: string;
-  type: string;
-  roleContext: string;
-  status: string;
-  profile?: {
-    tagline?: string;
-    description?: string;
-    category?: string;
-    services?: string[];
-    website?: string;
-    phone?: string;
-    contactPreference?: "call" | "email" | "message";
-  };
-  counties?: PublicCounty[];
-};
-
+/**
+ * PublicBusinessProfileView
+ * 
+ * Renders a public business profile page at /business/:slug.
+ * 
+ * Contract:
+ * - Fetches via GET /api/business-profile/slug/:slug
+ * - Renders: name, location, description, service areas, website
+ * - Primary CTA: "Contact via TradeScout" → routes to Direct Connect or Scout
+ * - Owner-only: Shows "Edit Profile" button
+ * - Telemetry: business_profile_viewed { slug, isOwner }
+ * - Empty state: "Tell your community about your business" if no description
+ */
 export default function BusinessProfileView() {
-  const [, params] = useRoute("/business/:slug");
-  const [business, setBusiness] = useState<PublicBusiness | null>(null);
+  const { slug } = useParams<{ slug: string }>();
+  const navigate = useNavigate();
+  const { user } = useAuth();
+  
+  const [profile, setProfile] = useState<BusinessProfile | null>(null);
   const [loading, setLoading] = useState(true);
-  const [notFound, setNotFound] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const isOwner = user?.businessSlug === slug;
 
   useEffect(() => {
-    const fetchBusiness = async () => {
-      const slug = params?.slug;
-      if (!slug) return;
+    if (!slug) {
+      setError('Invalid profile URL');
+      setLoading(false);
+      return;
+    }
 
+    async function fetchProfile() {
       try {
-        const response = await fetch(`/api/public/businesses/${encodeURIComponent(slug)}`);
-        if (response.status === 404) {
-          setNotFound(true);
+        const response = await fetch(`/api/business-profile/slug/${slug}`);
+        
+        if (!response.ok) {
+          if (response.status === 404) {
+            setError('Business profile not found');
+          } else {
+            setError('Failed to load profile');
+          }
+          setLoading(false);
           return;
         }
-        if (!response.ok) throw new Error("Failed to fetch business");
 
-        const data = (await response.json()) as PublicBusiness;
-        setBusiness(data);
-      } catch (error) {
-        console.error("Error fetching business:", error);
+        const data = await response.json();
+        setProfile(data);
+
+        // Non-optional telemetry
+        recordActivity({
+          type: 'business_profile_viewed' as any,
+          ts: new Date().toISOString(),
+          path: window.location.pathname,
+          context: {
+            slug,
+            isOwner: user?.businessSlug === slug,
+          },
+        });
+      } catch (err) {
+        console.error('Error fetching business profile:', err);
+        setError('Failed to load profile');
       } finally {
         setLoading(false);
       }
-    };
+    }
 
-    fetchBusiness();
-  }, [params?.slug]);
+    fetchProfile();
+  }, [slug, user?.businessSlug]);
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-navy-900 flex items-center justify-center">
-        <div className="ts-surface px-4 py-6 md:px-10 md:py-8 text-white">Loading business profile…</div>
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
       </div>
     );
   }
 
-  if (notFound || !business) {
+  if (error || !profile) {
     return (
-      <div className="min-h-screen bg-navy-900 flex items-center justify-center px-4">
-        <Card className="bg-navy-800 border-navy-700 w-full max-w-xl">
-          <CardHeader>
-            <CardTitle className="text-white">Business not found</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <p className="text-gray-300">This business profile may be private or unavailable.</p>
-            <Link href="/">
-              <Button className="bg-orange-500 hover:bg-orange-600 text-white">Back to Scout</Button>
-            </Link>
+      <div className="container max-w-4xl mx-auto py-8 px-4">
+        <Card>
+          <CardContent className="pt-6">
+            <div className="text-center">
+              <Building2 className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+              <h2 className="text-xl font-semibold mb-2">{error || 'Profile not found'}</h2>
+              <p className="text-muted-foreground mb-6">
+                This business profile could not be loaded.
+              </p>
+              <Button onClick={() => navigate('/community')}>
+                Browse Community
+              </Button>
+            </div>
           </CardContent>
         </Card>
       </div>
     );
   }
 
-  const profile = business.profile || {};
+  const hasDescription = profile.description && profile.description.trim().length > 0;
+  const hasServiceAreas = profile.serviceAreas && profile.serviceAreas.length > 0;
+
+  // SEO metadata
+  const pageTitle = profile.countyName && profile.stateCode
+    ? `${profile.businessName} in ${profile.countyName}, ${profile.stateCode} | TradeScout`
+    : `${profile.businessName} | TradeScout`;
+  
+  const pageDescription = hasDescription
+    ? profile.description.slice(0, 155) // Meta description limit
+    : `${profile.businessName} serving ${profile.countyName || 'local areas'}${profile.serviceAreas && profile.serviceAreas.length > 0 ? ' and nearby areas' : ''}. Contact via TradeScout.`;
+  
+  const canonicalUrl = `https://www.thetradescout.com/business/${profile.slug}`;
 
   return (
-    <div className="min-h-screen bg-navy-900 py-8">
-      <div className="container mx-auto px-4 max-w-5xl">
-        <Card className="bg-navy-800 border-navy-700">
-          <CardHeader className="space-y-3">
-            <div className="flex items-start justify-between gap-4">
-              <div className="space-y-2">
-                <div className="flex items-center gap-2 text-gray-300">
-                  <Building2 className="h-5 w-5 text-orange-400" />
-                  <span className="text-xs uppercase tracking-[0.18em]">Business Profile</span>
-                </div>
-                <CardTitle className="text-white text-3xl">{business.name}</CardTitle>
-                {profile.tagline ? (
-                  <p className="text-gray-300">{profile.tagline}</p>
-                ) : null}
+    <div className="container max-w-4xl mx-auto py-8 px-4">
+      {/* SEO Metadata */}
+      <SEOHelmet
+        title={pageTitle}
+        description={pageDescription}
+        canonical={canonicalUrl}
+        ogType="profile"
+      />
+      {/* Header Card */}
+      <Card className="mb-6">
+        <CardHeader>
+          <div className="flex flex-col sm:flex-row items-start sm:justify-between gap-4">
+            <div className="flex-1">
+              <CardTitle className="text-3xl mb-2 flex items-center gap-2">
+                <Building2 className="h-8 w-8" />
+                {profile.businessName}
+              </CardTitle>
+              
+              {/* Location */}
+              <div className="flex items-center gap-2 text-muted-foreground mb-2">
+                <MapPin className="h-4 w-4" />
+                <span>
+                  {profile.city && `${profile.city}, `}
+                  {profile.countyName && profile.stateCode ? (
+                    <a
+                      href={`/county/${profile.stateCode.toLowerCase()}/${profile.countyName.toLowerCase().replace(/\s+/g, '-')}`}
+                      className="text-primary hover:underline"
+                    >
+                      {profile.countyName}, {profile.stateCode}
+                    </a>
+                  ) : (
+                    profile.countyName && `${profile.countyName}, ${profile.stateCode}`
+                  )}
+                </span>
               </div>
-              {business.type ? <Badge variant="secondary">{business.type}</Badge> : null}
-            </div>
 
-            <div className="flex flex-wrap gap-3 text-sm text-gray-300">
-              {profile.website ? (
-                <a
-                  className="inline-flex items-center gap-2 hover:text-white"
-                  href={profile.website}
-                  target="_blank"
-                  rel="noreferrer"
-                >
+              {/* Website */}
+              {profile.website && (
+                <div className="flex items-center gap-2 text-muted-foreground">
                   <Globe className="h-4 w-4" />
-                  Website
-                </a>
-              ) : null}
-              {profile.phone ? (
-                <span className="inline-flex items-center gap-2">
-                  <Phone className="h-4 w-4" />
-                  {profile.phone}
-                </span>
-              ) : null}
-              {(business.counties && business.counties.length > 0) ? (
-                <span className="inline-flex items-center gap-2">
-                  <MapPin className="h-4 w-4" />
-                  {business.counties.slice(0, 3).map((c) => `${c.name} (${c.stateCode})`).join(", ")}
-                  {business.counties.length > 3 ? ` +${business.counties.length - 3} more` : ""}
-                </span>
-              ) : null}
-            </div>
-          </CardHeader>
-
-          <CardContent className="space-y-6">
-            {profile.description ? (
-              <section className="space-y-2">
-                <h2 className="text-white font-semibold">About</h2>
-                <p className="text-gray-300 whitespace-pre-wrap">{profile.description}</p>
-              </section>
-            ) : null}
-
-            {(profile.services && profile.services.length > 0) ? (
-              <section className="space-y-2">
-                <h2 className="text-white font-semibold">Services</h2>
-                <div className="flex flex-wrap gap-2">
-                  {profile.services.map((s) => (
-                    <Badge key={s} variant="outline" className="border-navy-500 text-gray-200">
-                      {s}
-                    </Badge>
-                  ))}
+                  <a
+                    href={profile.website}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-primary hover:underline"
+                  >
+                    {profile.website.replace(/^https?:\/\//, '')}
+                  </a>
                 </div>
-              </section>
-            ) : null}
+              )}
+            </div>
 
-            <div className="pt-2">
-              <Link href="/">
-                <Button variant="outline" className="border-navy-500 text-gray-200">
-                  Ask Scout about this business
-                </Button>
-              </Link>
+            {/* Owner-only: Edit button */}
+            {isOwner && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => navigate(`/business/${slug}/edit`)}
+              >
+                <Edit className="h-4 w-4 mr-2" />
+                Edit Profile
+              </Button>
+            )}
+          </div>
+        </CardHeader>
+
+        <CardContent>
+          {/* Description */}
+          {hasDescription ? (
+            <p className="text-base leading-relaxed">{profile.description}</p>
+          ) : (
+            <div className="text-center py-8 text-muted-foreground">
+              {isOwner ? (
+                <>
+                  <p className="mb-4">Tell your community about your business.</p>
+                  <Button
+                    variant="outline"
+                    onClick={() => navigate(`/business/${slug}/edit`)}
+                  >
+                    Add Description
+                  </Button>
+                </>
+              ) : (
+                <p>This business hasn't added a description yet.</p>
+              )}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Service Areas */}
+      {hasServiceAreas && (
+        <Card className="mb-6">
+          <CardHeader>
+            <CardTitle className="text-xl">Service Areas</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex flex-wrap gap-2">
+              {profile.serviceAreas.map((area, idx) => (
+                <Badge key={idx} variant="secondary">
+                  {area}
+                </Badge>
+              ))}
             </div>
           </CardContent>
         </Card>
-      </div>
+      )}
+
+      <Separator className="my-6" />
+
+      {/* Primary CTA: Contact via TradeScout */}
+      {!isOwner && (
+        <Card>
+          <CardContent className="pt-6">
+            <div className="text-center">
+              <h3 className="text-lg font-semibold mb-2">Connect with {profile.businessName}</h3>
+              <p className="text-muted-foreground mb-4">
+                Reach out through TradeScout for trusted local connections.
+              </p>
+              <Button
+                size="lg"
+                onClick={() => {
+                  // Route to Direct Connect with business context
+                  navigate('/direct-connect', {
+                    state: {
+                      prefill: {
+                        businessName: profile.businessName,
+                        businessSlug: profile.slug,
+                        countyFips: profile.countyFips,
+                      },
+                    },
+                  });
+                }}
+              >
+                <MessageSquare className="h-5 w-5 mr-2" />
+                Contact via TradeScout
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Footer: Explore more in county */}
+      {profile.countyName && profile.stateCode && (
+        <div className="mt-6 text-center text-sm text-muted-foreground">
+          <a
+            href={`/county/${profile.stateCode.toLowerCase()}/${profile.countyName.toLowerCase().replace(/\s+/g, '-')}`}
+            className="text-primary hover:underline"
+          >
+            Explore more businesses in {profile.countyName}
+          </a>
+        </div>
+      )}
     </div>
   );
 }

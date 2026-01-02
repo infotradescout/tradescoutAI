@@ -1124,6 +1124,11 @@ export interface IStorage {
   // Platform Support ledger (MVP)
   insertPlatformSupportLedgerEntry(data: InsertPlatformSupportLedgerEntry): Promise<PlatformSupportLedgerEntry>;
   getPlatformSupportLedgerEntries(params: { originatingProfileId?: string; limit?: number }): Promise<PlatformSupportLedgerEntry[]>;
+
+  // Business Profile v1 operations (PHASE 3d-C)
+  getBusinessProfileBySlug(slug: string): Promise<import('../../shared/businessProfile').BusinessProfile | undefined>;
+  getBusinessProfileByUserId(userId: string): Promise<import('../../shared/businessProfile').BusinessProfile | undefined>;
+  saveBusinessProfile(profile: import('../../shared/businessProfile').BusinessProfile): Promise<import('../../shared/businessProfile').BusinessProfile>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -10116,6 +10121,84 @@ export class DatabaseStorage implements IStorage {
       completedCount: completed.length,
       verificationRate: contributions.length > 0 ? (verified.length / contributions.length) * 100 : 100,
     };
+  }
+
+  /**
+   * PHASE 3d-C: Business Profile v1 Methods
+   * Published presence surface for profileDraft → businessProfiles
+   */
+
+  async getBusinessProfileBySlug(slug: string): Promise<import('../../shared/businessProfile').BusinessProfile | undefined> {
+    // For now, using user preferences.provisional.profileDraft as temporary storage
+    // Until businessProfiles table is added to schema
+    const rows = await db.select().from(users).where(eq(users.businessSlug, slug));
+    if (rows.length === 0) return undefined;
+
+    const user = rows[0];
+    const provisional = (user.preferences as any)?.provisional;
+    const profileDraft = provisional?.profileDraft;
+
+    if (!profileDraft) return undefined;
+
+    return {
+      id: user.id,
+      userId: user.id,
+      slug,
+      name: profileDraft.businessName || user.displayName || `${user.firstName} ${user.lastName}`,
+      description: profileDraft.description || null,
+      countyFips: profileDraft.countyFips,
+      countyName: profileDraft.countyName || null,
+      city: profileDraft.city || null,
+      stateCode: profileDraft.stateCode,
+      serviceAreas: profileDraft.serviceAreas?.map((sa: any) => sa.countyFips) || [profileDraft.countyFips],
+      website: profileDraft.website || null,
+      createdAt: user.createdAt.toISOString(),
+      updatedAt: user.updatedAt?.toISOString() || user.createdAt.toISOString(),
+      publishedAt: user.createdAt.toISOString(),
+    };
+  }
+
+  async getBusinessProfileByUserId(userId: string): Promise<import('../../shared/businessProfile').BusinessProfile | undefined> {
+    const user = await this.getUser(userId);
+    if (!user || !user.businessSlug) return undefined;
+
+    return this.getBusinessProfileBySlug(user.businessSlug);
+  }
+
+  async saveBusinessProfile(profile: import('../../shared/businessProfile').BusinessProfile): Promise<import('../../shared/businessProfile').BusinessProfile> {
+    // Update user record with slug
+    const user = await this.getUser(profile.userId);
+    if (!user) throw new Error('User not found');
+
+    // Store business profile data in preferences.provisional.profileDraft for now
+    const preferences = (user.preferences as any) || {};
+    const provisional = preferences.provisional || {};
+
+    provisional.profileDraft = {
+      presenceType: 'represent_business',
+      stateCode: profile.stateCode,
+      countyFips: profile.countyFips,
+      countyName: profile.countyName,
+      city: profile.city,
+      businessName: profile.name,
+      description: profile.description,
+      website: profile.website,
+      serviceAreas: profile.serviceAreas.map((fips: string) => ({ countyFips: fips })),
+      capturedAt: new Date().toISOString(),
+    };
+
+    preferences.provisional = provisional;
+
+    await db
+      .update(users)
+      .set({
+        businessSlug: profile.slug,
+        preferences: preferences as any,
+        updatedAt: new Date(),
+      })
+      .where(eq(users.id, profile.userId));
+
+    return profile;
   }
 }
 

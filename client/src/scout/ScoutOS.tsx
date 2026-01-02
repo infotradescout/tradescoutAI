@@ -73,6 +73,10 @@ import { useScoutOnboarding } from "./useScoutOnboarding";
 import { ClaimConfirmationCard as ClaimConfirmationCardComponent } from "./ClaimConfirmationCard";
 import type { ClaimType } from "./claimTypes";
 import type { ProfileDraft } from "@/types/profileDraft";
+import { useScoutMode } from "./useScoutMode";
+import { PostOnboardingActionCard } from "./PostOnboardingActionCard";
+import { resolvePostOnboardingActions } from "./resolvePostOnboardingActions";
+import type { ScoutMode as ScoutModeType } from "./scoutModeTypes";
 
 const INTRO_DEMO_TEXT = "What can TradeScout do for my community?";
 const INTRO_DEMO_SESSION_KEY = "ts_intro_demo_played_session";
@@ -425,6 +429,18 @@ export default function ScoutOS() {
 
   // PHASE 3d-A: Scout Onboarding Flow with Claim Inference
   const onboarding = useScoutOnboarding();
+
+  // PHASE 3d-B: Scout Mode State Machine (onboarding → post_onboarding → freeform)
+  const provisional = (user as any)?.preferences?.provisional;
+  const profileDraft: ProfileDraft | undefined = provisional?.profileDraft;
+  const scoutModeHook = useScoutMode({
+    userId: (user as any)?.id,
+    profileDraftComplete: !!(profileDraft?.countyFips && profileDraft?.presenceType),
+    profileDraftPublished: !!(profileDraft?.countyFips && profileDraft?.presenceType), // Will expand as business profile is saved
+    claimsConfirmed: !!(user as any)?.confirmedClaims && Array.isArray((user as any)?.confirmedClaims) && (user as any).confirmedClaims.length > 0,
+    confirmedClaims: Array.isArray((user as any)?.confirmedClaims) ? (user as any).confirmedClaims : [],
+    publishedProfileSlug: (user as any)?.businessSlug || undefined,
+  });
 
   // Enforce pre-Scout gate completion before running onboarding
   useEffect(() => {
@@ -2761,8 +2777,14 @@ export default function ScoutOS() {
                       },
                       countyFips
                     );
+
+                    // PHASE 3d-B: Trigger ScoutMode state machine transition
+                    scoutModeHook.completeOnboarding(selectedClaims);
                   }}
-                  onSkip={() => onboarding.skipOnboarding()}
+                  onSkip={() => {
+                    onboarding.skipOnboarding();
+                    scoutModeHook.skipOnboarding();
+                  }}
                   onEdit={() => {
                     // TODO: Implement edit flow (navigate back to profile/signup)
                     onboarding.resetFlow();
@@ -2802,6 +2824,26 @@ export default function ScoutOS() {
                 <Card className="w-full max-w-2xl border-destructive/20 bg-destructive/10 backdrop-blur p-4">
                   <p className="text-sm text-destructive">{onboarding.flowState.error}</p>
                 </Card>
+              </div>
+            )}
+
+            {/* PHASE 3d-B: Post-Onboarding Action Card (deterministic action selection) */}
+            {scoutModeHook.scoutMode === 'post_onboarding' && scoutModeHook.confirmedClaims && (
+              <div className="mt-4 mb-6 flex justify-center">
+                <PostOnboardingActionCard
+                  claims={scoutModeHook.confirmedClaims as ClaimType[]}
+                  actions={resolvePostOnboardingActions(
+                    scoutModeHook.confirmedClaims as ClaimType[],
+                    {
+                      slug: scoutModeHook.publishedProfileSlug || 'my-business',
+                      businessName: profileDraft?.businessName,
+                    }
+                  )}
+                  onActionSelected={(actionId: string, destination: string) => {
+                    scoutModeHook.selectPostOnboardingAction(actionId);
+                    navigate(destination);
+                  }}
+                />
               </div>
             )}
 

@@ -5,7 +5,7 @@
  * 
  * Build-time sitemap generator for TradeScout.
  * Extracts all public routes from App.tsx and generates sitemap.xml.
- * County pages (/county/:state/:county) are dynamically crawlable via search engines.
+ * Business profiles (/business/:slug) and county pages are dynamically crawlable.
  * 
  * Usage:
  *   node scripts/generate-sitemap.mjs
@@ -104,10 +104,21 @@ function generateSitemap() {
   </url>`;
   }).join('\n');
 
-  // Note: County pages (/county/:stateCode/:countySlug) are dynamically crawlable
-  // Search engines will discover them from links and the Route definition.
-  // For comprehensive county indexing, use a sitemap index or GSC submission with
-  // the pattern in the future. For now, the dynamic pages are discoverable.
+  // Note: Business profiles (/business/:slug) and county pages (/county/:stateCode/:countySlug)
+  // are dynamically crawlable. Search engines will discover them from internal links.
+  // 
+  // Future enhancement: Add database query to fetch published business profiles
+  // and generate explicit <url> entries for each. For now, relying on crawlability
+  // from internal links (county pages, service areas, footer explore links).
+  //
+  // Example future code:
+  // const businessProfiles = await fetchPublishedBusinessProfiles();
+  // const businessUrls = businessProfiles.map(profile => `  <url>
+  //   <loc>${PRODUCTION_URL}/business/${profile.slug}</loc>
+  //   <lastmod>${profile.updatedAt}</lastmod>
+  //   <changefreq>weekly</changefreq>
+  //   <priority>0.7</priority>
+  // </url>`).join('\n');
 
   const sitemap = `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
@@ -122,7 +133,7 @@ ${urls}
   writeFileSync(OUTPUT_PATH, sitemap, 'utf-8');
   console.log(`✅ Sitemap generated: ${OUTPUT_PATH}`);
   console.log(`📄 ${PUBLIC_ROUTES.length} static URLs included`);
-  console.log(`🗺️  County pages (/county/*) are dynamically crawlable`);
+  console.log(`🗺️  County pages (/county/*) and business profiles (/business/*) are dynamically crawlable`);
 }
 
 generateSitemap();
