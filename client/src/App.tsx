@@ -398,25 +398,18 @@ const AppLayout = memo(function AppLayout() {
   useEffect(() => {
     if (!isAuthenticated || !user) return;
 
-    // Don't interfere with auth/onboarding entry points themselves.
+    // Don't interfere with auth entry points.
     if (
       location.startsWith('/login') ||
       location.startsWith('/register') ||
       location.startsWith('/signup') ||
-      location.startsWith('/create-account') ||
-      location.startsWith('/onboarding/profile') ||
-      location.startsWith('/onboarding/intent')
+      location.startsWith('/create-account')
     ) {
       return;
     }
 
-    const anyUser: any = user;
-    const profileVersion: number = typeof anyUser.profileVersion === 'number' ? anyUser.profileVersion : 0;
-    const isSuperAdminLike = anyUser.role === 'super_admin' || anyUser.role === 'head_admin';
-
-    if (!isSuperAdminLike && profileVersion < CURRENT_PROFILE_VERSION) {
-      setLocation('/onboarding/profile');
-    }
+    // DEPRECATED: Profile version gate removed (Claim-First handles onboarding via Scout)
+    // Old redirect to /onboarding/profile has been removed
   }, [isAuthenticated, user, location, setLocation]);
 
   // Back-compat: older Scout links were encoded as '/?prompt=...'
@@ -555,18 +548,16 @@ const AppLayout = memo(function AppLayout() {
                   <Route path="/register"><RedirectTo to="/create-account" /></Route>
                   <Route path="/signup"><RedirectTo to="/create-account" /></Route>
                   <Route path="/create-account"><LazyPage Component={CreateAccount} /></Route>
-                  <Route path="/onboarding/intent"><LazyPage Component={OnboardingIntent} /></Route>
+                  {/* DEPRECATED: Old onboarding routes → Scout onboarding flow */}
+                  <Route path="/onboarding/intent"><RedirectTo to="/scout?onboarding=true" /></Route>
+                  <Route path="/onboarding/profile"><RedirectTo to="/scout?onboarding=true" /></Route>
+                  <Route path="/profile-setup"><RedirectTo to="/scout?onboarding=true" /></Route>
 
                   {/* Legacy auth URLs: redirect old /auth/* paths to current routes */}
                   <Route path="/auth/login"><RedirectTo to="/login" /></Route>
                   <Route path="/auth/signup"><RedirectTo to="/create-account" /></Route>
                   <Route path="/address-verification"><LazyPage Component={AddressVerification} /></Route>
                   <Route path="/unauthorized"><LazyPage Component={Unauthorized} /></Route>
-
-                  {/* Legacy guard: hard-redirect any old profile setup links into the canonical account setup portal */}
-                  <Route path="/profile-setup">
-                    <RedirectTo to="/onboarding/profile" />
-                  </Route>
                   
                   {/* Core pages */}
                   {/* Contractors: profiles remain addressable; listing surfaces now route through Direct Connect */}
