@@ -28,7 +28,7 @@ export default function Help() {
     <div className="min-h-screen gradient-bg">
       <div className="w-full max-w-4xl mx-auto px-3 md:px-4 py-6 md:py-10">
         <SEOHelmet
-          title="TradeScout Help Center – Articles and Guides"
+          title="Help Center – Articles and Guides | TradeScout"
           description="Browse help overviews for how TradeScout actually works. If you still don't see the answer, you can ask Scout from here for step-by-step help."
           canonical="https://www.thetradescout.com/help"
           structuredData={createFAQStructuredData([
