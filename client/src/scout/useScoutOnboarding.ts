@@ -14,6 +14,7 @@ import { useState, useCallback } from 'react';
 import { useLocation as useWouterLocation } from 'wouter';
 import { inferClaimsFromIntent, buildConfirmationOptions } from './claimInference';
 import { routeFromClaims, type ClaimType, type ClaimConfirmationCard as ClaimConfirmationCardData } from './claimTypes';
+import type { ProfileDraft } from '@/types/profileDraft';
 import { apiRequest } from '@/lib/queryClient';
 
 const SESSION_DONE_KEY = 'ts:onboardingClaimsDone';
@@ -70,7 +71,8 @@ export function useScoutOnboarding() {
   const startOnboardingFlow = useCallback(async (
     userIntentText: string,
     provisionalUserTypes: string[] = [],
-    countyName: string | null = null
+    countyName: string | null = null,
+    profileDraft?: ProfileDraft
   ) => {
     console.log('[ONBOARDING] Starting claim inference...');
     setFlowState({ phase: 'inferring', confirmationCard: null, error: null });
@@ -79,7 +81,8 @@ export function useScoutOnboarding() {
       const inference = await inferClaimsFromIntent(
         userIntentText,
         provisionalUserTypes,
-        countyName
+        countyName,
+        profileDraft
       );
 
       const options = buildConfirmationOptions(inference);
@@ -127,8 +130,7 @@ export function useScoutOnboarding() {
 
     try {
       // Write claims to backend
-      const response = await apiRequest({
-        endpoint: '/api/claims/write',
+      const response = await apiRequest('/api/claims/write', {
         method: 'POST',
         body: {
           confirmedClaimTypes: confirmedClaims,

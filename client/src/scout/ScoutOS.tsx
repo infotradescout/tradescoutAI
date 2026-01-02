@@ -72,6 +72,7 @@ import { inferContextRoles, deriveModeFromContextRoles } from "./contextRoles";
 import { useScoutOnboarding } from "./useScoutOnboarding";
 import { ClaimConfirmationCard as ClaimConfirmationCardComponent } from "./ClaimConfirmationCard";
 import type { ClaimType } from "./claimTypes";
+import type { ProfileDraft } from "@/types/profileDraft";
 
 const INTRO_DEMO_TEXT = "What can TradeScout do for my community?";
 const INTRO_DEMO_SESSION_KEY = "ts_intro_demo_played_session";
@@ -425,10 +426,29 @@ export default function ScoutOS() {
   // PHASE 3d-A: Scout Onboarding Flow with Claim Inference
   const onboarding = useScoutOnboarding();
 
+  // Enforce pre-Scout gate completion before running onboarding
+  useEffect(() => {
+    if (!isAuthenticated) return;
+
+    try {
+      const params = new URLSearchParams(location.split("?")[1] || "");
+      const wantsOnboarding = params.get("onboarding") === "true";
+      const provisional = (user as any)?.preferences?.provisional;
+      const profileDraft: ProfileDraft | undefined = provisional?.profileDraft;
+
+      if (wantsOnboarding && (!profileDraft?.countyFips || !profileDraft.presenceType)) {
+        navigate("/pre-scout-setup");
+      }
+    } catch {
+      // Ignore malformed URLs; do not block navigation.
+    }
+  }, [isAuthenticated, user, location, navigate]);
+
   // Trigger onboarding flow when ?onboarding=true
   useEffect(() => {
     const userId = (user as any)?.id;
     const provisional = (user as any)?.preferences?.provisional;
+    const profileDraft: ProfileDraft | undefined = provisional?.profileDraft;
     
     if (!onboarding.shouldTriggerOnboarding(location, userId, provisional)) {
       return;
@@ -437,10 +457,10 @@ export default function ScoutOS() {
     // Extract intent data
     const userIntentText = provisional?.userIntent || '';
     const provisionalUserTypes = provisional?.userTypes || [];
-    const countyName = locality.county || null;
+    const countyName = profileDraft?.countyName || locality.county || null;
 
     // Start inference flow
-    onboarding.startOnboardingFlow(userIntentText, provisionalUserTypes, countyName);
+    onboarding.startOnboardingFlow(userIntentText, provisionalUserTypes, countyName, profileDraft);
   }, [location, user, locality.county, onboarding]);
 
   // First-time guest state: controls entire top half of Scout.
@@ -2730,6 +2750,8 @@ export default function ScoutOS() {
                     });
 
                     const provisional = (user as any)?.preferences?.provisional;
+                    const profileDraft: ProfileDraft | undefined = provisional?.profileDraft;
+                    const countyFips = profileDraft?.countyFips || (user as any)?.countyFips || null;
                     onboarding.confirmClaims(
                       selectedClaims,
                       {
@@ -2737,7 +2759,7 @@ export default function ScoutOS() {
                         evidenceByClaim,
                         rawUserIntentText: provisional?.userIntent || '',
                       },
-                      (user as any)?.countyFips || null
+                      countyFips
                     );
                   }}
                   onSkip={() => onboarding.skipOnboarding()}
