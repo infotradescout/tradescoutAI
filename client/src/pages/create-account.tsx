@@ -154,14 +154,25 @@ export default function CreateAccountPortal() {
         description: "Welcome to TradeScout. Let's get you started.",
       });
       
-      // Route to Scout with onboarding flag
-      setTimeout(() => {
-        navigate("/scout?onboarding=true");
-      }, 500);
+      // CLAIM-FIRST: Explicit navigation to Scout for intent capture
+      // No setTimeout - immediate redirect maintains flow authority
+      navigate("/scout?onboarding=true");
     },
     onError: (error: any) => {
       console.error('[CREATE_ACCOUNT] Registration failed:', error);
       const errorMessage = error?.message || error?.error || "Registration failed. Please try again.";
+      
+      // Recovery path: if user already exists, redirect to login with email pre-filled
+      if (errorMessage.toLowerCase().includes('already exists')) {
+        toast({
+          title: "Account exists",
+          description: "An account with this email already exists. Redirecting to login...",
+        });
+        setTimeout(() => {
+          navigate('/login');
+        }, 1500);
+        return;
+      }
       
       toast({
         title: "Signup failed",

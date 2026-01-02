@@ -69,6 +69,9 @@ import {
   type ProviderProfileProposal,
 } from "@/agent/tools/providers";
 import { inferContextRoles, deriveModeFromContextRoles } from "./contextRoles";
+import { useScoutOnboarding } from "./useScoutOnboarding";
+import { ClaimConfirmationCard as ClaimConfirmationCardComponent } from "./ClaimConfirmationCard";
+import type { ClaimType } from "./claimTypes";
 
 const INTRO_DEMO_TEXT = "What can TradeScout do for my community?";
 const INTRO_DEMO_SESSION_KEY = "ts_intro_demo_played_session";
@@ -418,6 +421,27 @@ export default function ScoutOS() {
       return undefined;
     }
   }, [location]);
+
+  // PHASE 3d-A: Scout Onboarding Flow with Claim Inference
+  const onboarding = useScoutOnboarding();
+
+  // Trigger onboarding flow when ?onboarding=true
+  useEffect(() => {
+    const userId = (user as any)?.id;
+    const provisional = (user as any)?.preferences?.provisional;
+    
+    if (!onboarding.shouldTriggerOnboarding(location, userId, provisional)) {
+      return;
+    }
+
+    // Extract intent data
+    const userIntentText = provisional?.userIntent || '';
+    const provisionalUserTypes = provisional?.userTypes || [];
+    const countyName = locality.county || null;
+
+    // Start inference flow
+    onboarding.startOnboardingFlow(userIntentText, provisionalUserTypes, countyName);
+  }, [location, user, locality.county, onboarding]);
 
   // First-time guest state: controls entire top half of Scout.
   // We treat this as "guest has not actively interacted yet" so that
@@ -2685,6 +2709,79 @@ export default function ScoutOS() {
               isFirstGuestVisit={isFirstGuestVisit}
                         locationLabel={heroLocationLabel}
             />
+
+            {/* PHASE 3d-A: Claim Confirmation Card during onboarding */}
+            {onboarding.flowState.phase === 'confirming' && onboarding.flowState.confirmationCard && (
+              <div className="mt-4 mb-6 flex justify-center">
+                <ClaimConfirmationCardComponent
+                  data={onboarding.flowState.confirmationCard}
+                  onConfirm={(selectedClaims: ClaimType[]) => {
+                    const card = onboarding.flowState.confirmationCard;
+                    if (!card) return;
+
+                    // Build metadata from original inference
+                    const confidenceByClaim: Record<string, number> = {};
+                    const evidenceByClaim: Record<string, number> = {};
+                    card.options.forEach(opt => {
+                      if (selectedClaims.includes(opt.claimType)) {
+                        confidenceByClaim[opt.claimType] = opt.confidence;
+                        evidenceByClaim[opt.claimType] = opt.description || '';
+                      }
+                    });
+
+                    const provisional = (user as any)?.preferences?.provisional;
+                    onboarding.confirmClaims(
+                      selectedClaims,
+                      {
+                        confidenceByClaim,
+                        evidenceByClaim,
+                        rawUserIntentText: provisional?.userIntent || '',
+                      },
+                      (user as any)?.countyFips || null
+                    );
+                  }}
+                  onSkip={() => onboarding.skipOnboarding()}
+                  onEdit={() => {
+                    // TODO: Implement edit flow (navigate back to profile/signup)
+                    onboarding.resetFlow();
+                    navigate('/settings/profile');
+                  }}
+                />
+              </div>
+            )}
+
+            {/* Show loading state during inference */}
+            {onboarding.flowState.phase === 'inferring' && (
+              <div className="mt-4 mb-6 flex justify-center">
+                <Card className="w-full max-w-2xl border-primary/20 bg-card/95 backdrop-blur p-6">
+                  <div className="flex items-center gap-3">
+                    <div className="animate-spin h-5 w-5 border-2 border-primary border-t-transparent rounded-full" />
+                    <span className="text-sm text-muted-foreground">Understanding your intent...</span>
+                  </div>
+                </Card>
+              </div>
+            )}
+
+            {/* Show writing state */}
+            {onboarding.flowState.phase === 'writing' && (
+              <div className="mt-4 mb-6 flex justify-center">
+                <Card className="w-full max-w-2xl border-primary/20 bg-card/95 backdrop-blur p-6">
+                  <div className="flex items-center gap-3">
+                    <div className="animate-spin h-5 w-5 border-2 border-primary border-t-transparent rounded-full" />
+                    <span className="text-sm text-muted-foreground">Setting up your experience...</span>
+                  </div>
+                </Card>
+              </div>
+            )}
+
+            {/* Show error if any */}
+            {onboarding.flowState.error && (
+              <div className="mt-4 mb-6 flex justify-center">
+                <Card className="w-full max-w-2xl border-destructive/20 bg-destructive/10 backdrop-blur p-4">
+                  <p className="text-sm text-destructive">{onboarding.flowState.error}</p>
+                </Card>
+              </div>
+            )}
 
               {/* Thread + input in a single chat container that stretches toward
                   the bottom of the viewport, with the input pinned just above
