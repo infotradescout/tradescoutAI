@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from './fixtures/botArmy';
 
 // Minimal e2e checks for HOA pages
 

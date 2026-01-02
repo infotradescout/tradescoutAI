@@ -1,4 +1,4 @@
-import { test, expect } from "@playwright/test";
+import { test, expect } from "./fixtures/botArmy";
 
 test.describe("Finances smoke", () => {
   test("Finances dashboard loads", async ({ page }) => {

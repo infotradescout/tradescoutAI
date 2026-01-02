@@ -1,4 +1,4 @@
-import { test, expect } from "@playwright/test";
+import { test, expect } from "./fixtures/botArmy";
 
 test("Address verification can start postcard flow (or is already verified)", async ({ page }) => {
   await page.goto("/address-verification");

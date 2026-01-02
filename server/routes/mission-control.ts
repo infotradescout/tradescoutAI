@@ -6,10 +6,13 @@ import {
   getMissionControlSummary,
   getOrCreateOneFix,
   getScoutHealthSummary,
+  getTodayDecisions,
   recordBotUiFinding,
+  recordDecision,
   updateOneFixStatus,
 } from "../services/missionControl";
 import { recordScoutInteraction } from "../services/missionControl";
+import { getPreferredSourceMetrics } from "../services/preferredSource";
 import type { InsertBotUiFinding } from "../../shared/schema";
 
 const router = Router();
@@ -57,11 +60,20 @@ router.get("/one-fix", isAuthenticated, isSuperAdmin, async (_req: Request, res:
 
 router.post("/one-fix/:id/done", isAuthenticated, isSuperAdmin, async (req: Request, res: Response) => {
   const { id } = req.params;
-  const updated = await updateOneFixStatus(id, "done", undefined, (req as any)?.user?.id);
-  if (!updated) {
+  const action = await updateOneFixStatus(id, "done", undefined, (req as any)?.user?.id);
+  if (!action) {
     return res.status(404).json({ message: "Action not found" });
   }
-  res.json(updated);
+
+  // Record decision
+  await recordDecision({
+    recommendedFixSourceType: action.sourceType,
+    recommendedFixSourceId: action.sourceId,
+    action: "done",
+    actorUserId: (req as any)?.user?.id,
+  });
+
+  res.json(action);
 });
 
 router.post("/one-fix/:id/defer", isAuthenticated, isSuperAdmin, async (req: Request, res: Response) => {
@@ -70,11 +82,34 @@ router.post("/one-fix/:id/defer", isAuthenticated, isSuperAdmin, async (req: Req
   if (!reason || typeof reason !== "string" || !reason.trim()) {
     return res.status(400).json({ message: "Defer reason is required" });
   }
-  const updated = await updateOneFixStatus(id, "deferred", reason.trim(), (req as any)?.user?.id);
-  if (!updated) {
+  const action = await updateOneFixStatus(id, "deferred", reason.trim(), (req as any)?.user?.id);
+  if (!action) {
     return res.status(404).json({ message: "Action not found" });
   }
-  res.json(updated);
+
+  // Record decision
+  await recordDecision({
+    recommendedFixSourceType: action.sourceType,
+    recommendedFixSourceId: action.sourceId,
+    action: "defer",
+    deferReason: reason.trim(),
+    actorUserId: (req as any)?.user?.id,
+  });
+
+  res.json(action);
+});
+
+router.get("/today-decisions", isAuthenticated, isSuperAdmin, async (_req: Request, res: Response) => {
+  const decisions = await getTodayDecisions();
+  res.json(decisions);
+});
+
+router.get("/preferred-source-metrics", isAuthenticated, isSuperAdmin, async (req: Request, res: Response) => {
+  const sinceParam = req.query.since as string | undefined;
+  const since = sinceParam ? new Date(sinceParam) : new Date(Date.now() - 7 * 24 * 60 * 60 * 1000); // Default: last 7 days
+  
+  const metrics = await getPreferredSourceMetrics(since);
+  res.json(metrics);
 });
 
 router.post("/bot-ui-findings", async (req: Request, res: Response) => {

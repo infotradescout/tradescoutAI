@@ -151,6 +151,7 @@ export const SUPER_ADMIN_NAV: SuperAdminNavSection[] = [
   {
     section: "Intelligence & Automation",
     items: [
+      { id: "mission-control", label: "Mission Control", path: "/admin/mission-control", icon: Brain },
       { id: "ai-monitoring", label: "AI Monitoring", path: "/admin/ai-monitoring", icon: Brain },
       { id: "ai-fixes", label: "AI Fixes", path: "/admin/ai-fixes", icon: Wrench },
       { id: "pricing", label: "Pricing Analytics", path: "/admin/pricing", icon: BarChart3 },

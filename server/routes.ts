@@ -25,6 +25,7 @@ import communityCausesRouter from "./routes/community-causes-routes";
 import platformSupportRouter from "./routes/platform-support-routes";
 import { mountAdminRoutes } from "./routes/admin";
 import missionControlRouter from "./routes/mission-control";
+import preferredSourceRouter from "./routes/preferred-source";
 import { registerAuthorityOperationsRoutes } from "./routes/authority-operations";
 import { ROLE_PERMISSIONS, type UserRole as SharedUserRole } from "../shared/roles";
 import { CURRENT_PROFILE_VERSION } from "../shared/profile";
@@ -336,6 +337,7 @@ export async function registerRoutes(app: any) {
   // URLs and behavior remain identical; this simply centralizes admin authority.
   mountAdminRoutes(app);
   app.use("/api/admin/mission-control", missionControlRouter);
+  app.use("/api/preferred-source", preferredSourceRouter);
   
   // Authority Operations admin panel (observation mode, decision card metrics, unlock ledger)
   registerAuthorityOperationsRoutes(app);

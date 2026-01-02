@@ -1,4 +1,4 @@
-import { test, expect } from "@playwright/test";
+import { test, expect } from "./fixtures/botArmy";
 
 const routes: { path: string; sectionLabel: string }[] = [
   { path: "/community", sectionLabel: "Community" },

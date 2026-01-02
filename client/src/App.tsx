@@ -16,6 +16,10 @@ import { useAuth } from './hooks/useAuth';
 import { AppShell } from './components/layout/AppShell';
 import { resolveDefaultHomeRoute } from './lib/homeRoute';
 import ScoutOS from './scout';
+import { PreferredSourcePrompt } from './components/PreferredSourcePrompt';
+import { FEATURE_HOLD_TO_EXPLAIN, FEATURE_EDUCATION_REPLACEMENT } from '@shared/governanceFlags';
+import { HoldToExplainProvider } from './components/hold/HoldToExplainProvider';
+import { HoldIntroTutorial } from './components/onboarding/HoldIntroTutorial';
 
 // Only load essential components eagerly
 import SmartHome from './SmartHome';
@@ -1020,8 +1024,19 @@ const AppLayout = memo(function AppLayout() {
 
       {/* Global components - CONTENT ONLY, NO NAV (AppShell owns all navigation) */}
 
+      {/* Preferred Source Prompt - earned at 5 completed actions */}
+      {isAuthenticated && user?.id && (
+        <PreferredSourcePrompt userId={user.id} onClose={() => {}} />
+      )}
+
+      {/* Hold-to-Explain (ships dark behind flag) */}
+      {FEATURE_HOLD_TO_EXPLAIN && <HoldToExplainProvider />}
+
+      {/* One-time Hold explainer (ships dark behind flag) */}
+      {FEATURE_EDUCATION_REPLACEMENT && <HoldIntroTutorial />}
+
       {/* Subtle onboarding hints for new users (hide on Scout landing) */}
-      {!isLlmRoute && <SimpleSubtleHints />}
+      {!isLlmRoute && !FEATURE_EDUCATION_REPLACEMENT && <SimpleSubtleHints />}
 
       {/* Bug report tool - always available */}
       <SimpleBugReportTool />

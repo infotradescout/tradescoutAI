@@ -10,7 +10,7 @@
  * 6. Message gets routed to business owner
  */
 
-import { test, expect } from '@playwright/test';
+import { test, expect } from '../fixtures/botArmy';
 import { env } from '../utils/env';
 import { selectors, hasStubContent } from '../utils/selectors';
 import { NetworkWatcher } from '../utils/networkWatch';
