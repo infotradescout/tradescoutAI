@@ -61,8 +61,7 @@ type SavedView = {
 };
 
 const roleHierarchy = {
-  head_admin: { level: 100, label: "Head Admin", icon: Crown, color: "bg-purple-500" },
-  super_admin: { level: 90, label: "Super Admin", icon: Crown, color: "bg-indigo-500" },
+  super_admin: { level: 100, label: "Super Admin", icon: Crown, color: "bg-indigo-500" },
   moderator: { level: 80, label: "Moderator", icon: Shield, color: "bg-blue-500" },
   ops_admin: { level: 70, label: "Operations Admin", icon: UserCog, color: "bg-green-500" },
   contractor_user: { level: 20, label: "Contractor", icon: Users, color: "bg-orange-500" },
@@ -88,13 +87,13 @@ export default function AdminUsers() {
   // Pending state for each user action (by userId + action)
   const [pendingAction, setPendingAction] = useState<{ [key: string]: boolean }>({});
 
-  // Check if current user is head admin
-  const isHeadAdmin = user?.role === 'head_admin';
+  // Super Admin is the highest role
+  const isSuperAdmin = user?.role === 'super_admin';
   const currentUserLevel = roleHierarchy[user?.role as keyof typeof roleHierarchy]?.level || 0;
 
   const { data: users = [], isLoading } = useQuery<User[]>({
     queryKey: ["/api/admin/users"],
-    enabled: isHeadAdmin || currentUserLevel >= 70, // Moderators and above can view users
+    enabled: isSuperAdmin || currentUserLevel >= 70, // Ops admins and above can view users
   });
 
   const updateUserRoleMutation = useMutation({
@@ -183,8 +182,8 @@ export default function AdminUsers() {
     if (userToEdit && newRole) {
       const targetLevel = roleHierarchy[newRole as keyof typeof roleHierarchy]?.level || 0;
       
-      // Prevent elevation to head_admin unless current user is head_admin
-      if (newRole === 'head_admin' && !isHeadAdmin) {
+      // Prevent elevation to super_admin unless current user is super_admin
+      if (newRole === 'super_admin' && !isSuperAdmin) {
         toast({
           title: "Access Denied",
           description: "Only the head admin can promote users to head admin status.",
@@ -193,8 +192,8 @@ export default function AdminUsers() {
         return;
       }
 
-      // Prevent modification of head_admin by non-head_admin
-      if (userToEdit.role === 'head_admin' && !isHeadAdmin) {
+      // Prevent modification of super_admin by non-super_admin
+      if (userToEdit.role === 'super_admin' && !isSuperAdmin) {
         toast({
           title: "Access Denied",
           description: "Only the head admin can modify other head admin accounts.",
@@ -208,8 +207,8 @@ export default function AdminUsers() {
   };
 
   const handleDeleteUser = (userId: string, userRole: string) => {
-    // Prevent deletion of head_admin by non-head_admin
-    if (userRole === 'head_admin' && !isHeadAdmin) {
+    // Prevent deletion of super_admin by non-super_admin
+    if (userRole === 'super_admin' && !isSuperAdmin) {
       toast({
         title: "Access Denied",
         description: "Only the head admin can delete other head admin accounts.",
@@ -233,14 +232,14 @@ export default function AdminUsers() {
   };
 
   const getAvailableRoles = () => {
-    if (isHeadAdmin) {
+    if (isSuperAdmin) {
       // Head admin can assign any role
       return Object.keys(roleHierarchy);
     } else if (currentUserLevel >= 80) {
-      // Moderators can assign roles below their level, but not head_admin
+      // Moderators can assign roles below their level, but not super_admin
       return Object.keys(roleHierarchy).filter(role => 
         roleHierarchy[role as keyof typeof roleHierarchy].level < currentUserLevel &&
-        role !== 'head_admin'
+        role !== 'super_admin'
       );
     }
     return [];
@@ -497,10 +496,10 @@ export default function AdminUsers() {
             <p className="text-gray-300">Manage user roles and permissions</p>
           </div>
           <div className="flex items-center gap-2">
-            {isHeadAdmin && (
+            {isSuperAdmin && (
               <Badge className="bg-purple-500 text-white">
                 <Crown className="w-3 h-3 mr-1" />
-                Head Admin
+                Super Admin
               </Badge>
             )}
             {user.role === 'moderator' && (
@@ -758,7 +757,7 @@ export default function AdminUsers() {
                         <TableCell>
                           {/* Admin Controls: Grouped and with dropdown for less common actions */}
                           {(currentUserLevel > roleHierarchy[user.role as keyof typeof roleHierarchy]?.level || 
-                            (isHeadAdmin && user.role === 'head_admin')) && (
+                            (isSuperAdmin && user.role === 'super_admin')) && (
                             <div className="flex flex-wrap gap-2 items-center">
                               {/* Primary Actions */}
                               <Button
@@ -773,7 +772,7 @@ export default function AdminUsers() {
                               >
                                 Edit Role
                               </Button>
-                              {isHeadAdmin && user.id !== (userToEdit?.id || '') && user.role !== 'head_admin' && (
+                              {isSuperAdmin && user.id !== (userToEdit?.id || '') && user.role !== 'super_admin' && (
                                 <Button
                                   size="sm"
                                   variant="outline"
@@ -808,7 +807,7 @@ export default function AdminUsers() {
                                 </Button>
                               )}
                               {/* Status Controls */}
-                              {isHeadAdmin && user.id !== (userToEdit?.id || '') && user.role !== 'head_admin' && (
+                              {isSuperAdmin && user.id !== (userToEdit?.id || '') && user.role !== 'super_admin' && (
                                 <div className="flex gap-1">
                                   <Button
                                     size="sm"
@@ -857,7 +856,7 @@ export default function AdminUsers() {
                                 </div>
                               )}
                               {/* Role Quick Set Dropdown */}
-                              {isHeadAdmin && user.id !== (userToEdit?.id || '') && user.role !== 'head_admin' && (
+                              {isSuperAdmin && user.id !== (userToEdit?.id || '') && user.role !== 'super_admin' && (
                                 <div className="relative group">
                                   <Button size="sm" variant="outline" className="border-orange-500 text-orange-600 group-hover:bg-orange-50" title="Quick set role">
                                     More

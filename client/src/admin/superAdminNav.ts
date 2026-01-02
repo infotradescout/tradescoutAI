@@ -15,7 +15,7 @@ import {
   Briefcase,
 } from "lucide-react";
 
-export type AdminRole = "super_admin" | "head_admin";
+export type AdminRole = "super_admin";
 
 export type VisibilityRule = {
   roles?: AdminRole[];
@@ -51,35 +51,35 @@ export const SUPER_ADMIN_NAV: SuperAdminNavSection[] = [
         label: "Overview",
         path: "/admin",
         icon: ShieldCheck,
-        visibleIf: { roles: ["super_admin", "head_admin"] },
+        visibleIf: { roles: ["super_admin"] },
       },
       {
         id: "users",
         label: "Users",
         path: "/admin/users",
         icon: Users,
-        visibleIf: { roles: ["super_admin", "head_admin"] },
+        visibleIf: { roles: ["super_admin"] },
       },
       {
         id: "verification",
         label: "Verification",
         path: "/admin/verification",
         icon: ShieldCheck,
-        visibleIf: { roles: ["super_admin", "head_admin"] },
+        visibleIf: { roles: ["super_admin"] },
       },
       {
         id: "moderation",
         label: "Moderation",
         path: "/admin/moderation",
         icon: AlertTriangle,
-        visibleIf: { roles: ["super_admin", "head_admin"] },
+        visibleIf: { roles: ["super_admin"] },
       },
       {
         id: "impersonation",
         label: "Impersonation",
         path: "/admin/impersonate",
         icon: Users,
-        visibleIf: { roles: ["super_admin", "head_admin"] },
+        visibleIf: { roles: ["super_admin"] },
       },
     ],
   },
@@ -92,14 +92,14 @@ export const SUPER_ADMIN_NAV: SuperAdminNavSection[] = [
         label: "Geography",
         path: "/admin/geo/counties",
         icon: Map,
-        visibleIf: { roles: ["super_admin", "head_admin"] },
+        visibleIf: { roles: ["super_admin"] },
       },
       {
         id: "county-coverage",
         label: "Coverage Console",
         path: "/admin/geo/coverage",
         icon: Map,
-        visibleIf: { roles: ["super_admin", "head_admin"] },
+        visibleIf: { roles: ["super_admin"] },
       },
     ],
   },

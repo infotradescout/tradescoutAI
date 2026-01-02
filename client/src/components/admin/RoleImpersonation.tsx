@@ -44,7 +44,7 @@ export function RoleImpersonation() {
   });
 
   // Check if user has admin permissions
-  const canImpersonate = user?.role === 'head_admin' || user?.role === 'ops_admin';
+  const canImpersonate = user?.role === 'super_admin' || user?.role === 'ops_admin';
 
   // Start impersonation mutation
   const startImpersonationMutation = useMutation({

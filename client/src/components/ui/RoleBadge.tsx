@@ -13,7 +13,7 @@ interface RoleBadgeProps {
 function getRoleIcon(role: UserRole) {
   const level = ROLE_HIERARCHY[role];
   
-  if (level >= 90) return <Crown className="h-3 w-3" />; // Super/Head Admin
+  if (level >= 90) return <Crown className="h-3 w-3" />; // Super Admin
   if (level >= 50) return <Shield className="h-3 w-3" />; // Admin/Moderator
   if (level >= 30) return <Star className="h-3 w-3" />; // Staff
   if (level >= 20) return <Users className="h-3 w-3" />; // Community
@@ -24,7 +24,7 @@ function getRoleIcon(role: UserRole) {
 function getRoleVariant(role: UserRole): "default" | "secondary" | "error" | "outline" {
   const level = ROLE_HIERARCHY[role];
   
-  if (level >= 90) return "error"; // Super/Head Admin - Error (red)
+  if (level >= 90) return "error"; // Super Admin - Error (red)
   if (level >= 50) return "default"; // Admin/Moderator - Primary
   if (level >= 30) return "secondary"; // Staff - Secondary
   if (level >= 20) return "outline"; // Community - Outline
@@ -34,8 +34,8 @@ function getRoleVariant(role: UserRole): "default" | "secondary" | "error" | "ou
 function getRoleColor(role: UserRole): string {
   const level = ROLE_HIERARCHY[role];
   
-  if (level >= 100) return "bg-red-600 text-white"; // Head Admin
-  if (level >= 90) return "bg-red-500 text-white"; // Super Admin
+  if (level >= 100) return "bg-red-600 text-white"; // Super Admin
+  if (level >= 90) return "bg-red-500 text-white"; // Legacy high admin
   if (level >= 70) return "bg-purple-600 text-white"; // Ops Admin
   if (level >= 50) return "bg-blue-600 text-white"; // Moderator
   if (level >= 40) return "bg-green-600 text-white"; // Senior Staff

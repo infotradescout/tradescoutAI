@@ -9,6 +9,7 @@ import { UserMenu } from "@/components/navigation/RoleBasedNavigation";
 import { TradeScoutLogo } from "@/components/TradeScoutIcons";
 import { ContextualHelp } from "@/components/help/HelpSystem";
 import { NotificationCenter } from "@/components/ui/notification-center";
+import { isSuperAdminLike, isAdminTier } from "@/lib/roleChecks";
 
 interface NextGenNavigationProps {
   className?: string;
@@ -46,14 +47,14 @@ export function NextGenNavigation({ className = "" }: NextGenNavigationProps) {
       { href: "/exchange", label: "Exchange", icon: ArrowLeftRight, priority: 6 },
       ...(isAuthenticated
         ? [
-            { href: userRole === 'super_admin' || userRole === 'head_admin' ? "/admin" : "/dashboard", label: userRole === 'super_admin' || userRole === 'head_admin' ? "Super Admin" : "Dashboard", icon: LayoutDashboard, priority: 11 },
+            { href: isAdminTier(userRole) ? "/admin" : "/dashboard", label: isSuperAdminLike(userRole) ? "Super Admin" : "Dashboard", icon: LayoutDashboard, priority: 11 },
             { href: "/groups", label: "Groups", icon: Users, priority: 5 },
             { href: "/hoa-dashboard", label: "HOA", icon: Building, priority: 5 },
             { href: "/county-directory", label: "Area Directory", icon: Users, priority: 4 },
             { href: "/foundation", label: "Community Builders", icon: Building, priority: 3 },
             // Accelerator entry removed
-            // Admin navigation for admin users
-            ...(userRole === 'head_admin' || userRole === 'ops_admin' || userRole === 'super_admin'
+            // Admin navigation for admin tier only (super_admin + ops_admin)
+            ...(isAdminTier(userRole)
               ? [
                   { href: "/admin/panel", label: "Admin", icon: Shield, priority: 15 },
                   { href: "/admin/users", label: "Admin Users", icon: Settings, priority: 14 },
@@ -65,7 +66,7 @@ export function NextGenNavigation({ className = "" }: NextGenNavigationProps) {
 
     // Adjust priorities based on user role while keeping Direct Connect
     // and Scout as the primary coordination entry points.
-    if (userRole === 'head_admin' || userRole === 'ops_admin' || userRole === 'super_admin') {
+    if (isAdminTier(userRole)) {
       return baseItems.map((item) => {
         if (item.href === '/admin/panel') return { ...item, priority: 20 };
         if (item.href === '/admin/users') return { ...item, priority: 19 };
@@ -378,7 +379,7 @@ export function NextGenNavigation({ className = "" }: NextGenNavigationProps) {
                   <Users className="w-3.5 h-3.5 text-orange-400" />
                 </div>
                 <span className="text-sm text-slate-300 hover:text-white transition-colors duration-200 hidden lg:inline">
-                  {user?.role === 'head_admin' ? 'Admin' : 'Profile'}
+                  {isSuperAdminLike(user?.role) ? 'Admin' : 'Profile'}
                 </span>
               </div>
             </Link>

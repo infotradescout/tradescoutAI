@@ -106,7 +106,8 @@ const BASE_ROLE_UI_CONFIG: Record<string, RoleUiConfig> = {
     color: "bg-red-500",
     dashboard: "/admin/dashboard",
   },
-  head_admin: {
+  // Super Admin is the highest admin role.
+  super_admin: {
     userTypeId: "admin",
     icon: Crown,
     color: "bg-gradient-to-r from-yellow-400 to-red-500",
@@ -141,7 +142,9 @@ function prettifyId(id: string): string {
 
 export function getRoleUiConfig(roleKey: string): RoleUiConfig {
   if (!roleKey) return {};
-  const baseRole = roleKey.split(":")[0];
+  let baseRole = roleKey.split(":")[0];
+  // Backward-compat: treat head_admin as super_admin.
+  if (baseRole === "head_admin") baseRole = "super_admin";
   const base = BASE_ROLE_UI_CONFIG[baseRole] || {};
   const userTypeId = base.userTypeId || baseRole;
   const meta = getUserTypeMetadata(userTypeId);
@@ -157,7 +160,8 @@ export function getRoleUiConfig(roleKey: string): RoleUiConfig {
 }
 
 export function getRoleDashboardPath(roleKey: string): string | undefined {
-  const baseRole = roleKey.split(":")[0];
+  let baseRole = roleKey.split(":")[0];
+  if (baseRole === "head_admin") baseRole = "super_admin";
   const base = BASE_ROLE_UI_CONFIG[baseRole];
   return base?.dashboard;
 }

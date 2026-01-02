@@ -40,7 +40,7 @@ const AVAILABLE_ROLES = [
   { value: 'helper', label: 'Helper', icon: Users, color: 'bg-cyan-500' },
   { value: 'moderator', label: 'Moderator', icon: Shield, color: 'bg-yellow-500' },
   { value: 'ops_admin', label: 'Admin', icon: Eye, color: 'bg-red-500' },
-  { value: 'head_admin', label: 'Master Admin', icon: Crown, color: 'bg-gradient-to-r from-yellow-400 to-red-500' },
+  { value: 'super_admin', label: 'Super Admin', icon: Crown, color: 'bg-gradient-to-r from-yellow-400 to-red-500' },
 ];
 
 const ROLE_HIERARCHY = {
@@ -55,7 +55,7 @@ const ROLE_HIERARCHY = {
    'bar_owner': 4,
   'moderator': 5,
   'ops_admin': 6,
-  'head_admin': 7
+  'super_admin': 7
 };
 
 export default function UserManagement() {

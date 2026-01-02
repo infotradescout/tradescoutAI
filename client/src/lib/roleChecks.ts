@@ -1,0 +1,48 @@
+/**
+ * ROLE CHECK AUTHORITY
+ * 
+ * Single source of truth for role-based access checks.
+ * Used for navigation visibility, not permissions.
+ * 
+ * RULE: Navigation must be stricter than permissions.
+ * If a user can't act, they shouldn't see it.
+ */
+
+export type UserRole = string | undefined;
+
+/**
+ * Super Admin check (highest authority tier)
+ * 
+ * Temporary legacy support for head_admin → super_admin transition.
+ * DO NOT expand this list.
+ */
+export const isSuperAdminLike = (role: UserRole): boolean => {
+  return role === "super_admin" || role === "head_admin";
+};
+
+/**
+ * Operations Admin check (platform operations tier)
+ * 
+ * Can access admin tools but not authority-sensitive features.
+ */
+export const isOpsAdmin = (role: UserRole): boolean => {
+  return role === "ops_admin";
+};
+
+/**
+ * Any admin-tier access (super_admin OR ops_admin)
+ * 
+ * Use for features that both admin tiers can access.
+ */
+export const isAdminTier = (role: UserRole): boolean => {
+  return isSuperAdminLike(role) || isOpsAdmin(role);
+};
+
+/**
+ * Moderator check (content moderation only)
+ * 
+ * NOT admin tier. Should not see admin navigation.
+ */
+export const isModerator = (role: UserRole): boolean => {
+  return role === "moderator";
+};

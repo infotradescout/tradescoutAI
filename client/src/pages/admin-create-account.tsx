@@ -20,7 +20,7 @@ const createAdminSchema = z.object({
   username: z.string().min(3, 'Username must be at least 3 characters'),
   password: z.string().min(8, 'Password must be at least 8 characters'),
   confirmPassword: z.string(),
-  role: z.enum(['moderator', 'ops_admin', 'head_admin'], {
+  role: z.enum(['moderator', 'ops_admin', 'super_admin'], {
     required_error: 'Please select a role'
   }),
   address: z.string().min(1, 'Address is required')
@@ -82,7 +82,7 @@ export default function AdminCreateAccount() {
   };
 
   // Check if user has permission to create admin accounts
-  const canCreateAdmins = user?.role === 'head_admin' || user?.role === 'ops_admin' || user?.role === 'super_admin';
+  const canCreateAdmins = user?.role === 'ops_admin' || user?.role === 'super_admin';
 
   if (!canCreateAdmins) {
     return (
@@ -235,9 +235,9 @@ export default function AdminCreateAccount() {
                     <SelectItem value="ops_admin" className="text-slate-200 hover:bg-slate-700">
                       Operations Admin - Platform operations and configuration
                     </SelectItem>
-                    {user?.role === 'head_admin' && (
-                      <SelectItem value="head_admin" className="text-slate-200 hover:bg-slate-700">
-                        Head Admin - Full platform control
+                    {user?.role === 'super_admin' && (
+                      <SelectItem value="super_admin" className="text-slate-200 hover:bg-slate-700">
+                        Super Admin - Full platform control
                       </SelectItem>
                     )}
                   </SelectContent>

@@ -13,7 +13,7 @@ export interface AdminToolLink {
   description?: string;
 }
 
-export const SUPER_ADMIN_ROLES = ["head_admin", "ops_admin", "super_admin", "admin"] as const;
+export const SUPER_ADMIN_ROLES = ["ops_admin", "super_admin", "admin"] as const;
 
 export function buildPageTools(path: string): AdminToolLink[] {
   const tools: AdminToolLink[] = [];

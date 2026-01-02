@@ -98,7 +98,7 @@ const ManageUsers = memo(function ManageUsers() {
         return <Shield className="h-4 w-4 text-blue-400" />;
       case 'moderator':
         return <Crown className="h-4 w-4 text-purple-400" />;
-      case 'head_admin':
+      case 'super_admin':
         return <Crown className="h-4 w-4 text-red-400" />;
       default:
         return <User className="h-4 w-4 text-gray-400" />;
@@ -115,7 +115,7 @@ const ManageUsers = memo(function ManageUsers() {
         return 'bg-purple-600';
       case 'moderator':
         return 'bg-orange-600';
-      case 'head_admin':
+      case 'super_admin':
         return 'bg-red-600';
       default:
         return 'bg-gray-600';
@@ -232,7 +232,7 @@ const ManageUsers = memo(function ManageUsers() {
                   <SelectItem value="contractor_user">Contractors</SelectItem>
                   <SelectItem value="realtor">Realtors</SelectItem>
                   <SelectItem value="moderator">Moderators</SelectItem>
-                  <SelectItem value="head_admin">Admins</SelectItem>
+                  <SelectItem value="super_admin">Admins</SelectItem>
                 </SelectContent>
               </Select>
             </div>
