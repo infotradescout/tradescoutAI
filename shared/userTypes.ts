@@ -411,7 +411,9 @@ export function getUserTypesByCategory(category: string): UserTypeMetadata[] {
 
 // Helper to determine default dashboard based on user types
 export function getDefaultDashboard(userTypes: string[]): string {
-  if (!userTypes || userTypes.length === 0) return 'homeowner';
+  // PHASE 3d-B: Empty roles array returns 'explore' (neutral non-identity surface)
+  // Temporary: /community serves as neutral fallback until /explore ships
+  if (!userTypes || userTypes.length === 0) return 'explore';
   
   // Priority order: admin > contractor > business > professional > homeowner
   const priorities: Record<string, number> = {

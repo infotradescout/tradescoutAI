@@ -22,7 +22,14 @@
  */
 
 import { Pool, QueryResult } from '@neondatabase/serverless';
-import { logger } from '../logger.js';
+
+// Simple inline logger (avoids circular dependency)
+const logger = {
+  info: (msg: string, data?: any) => console.log(`[INFO] ${msg}`, data || ''),
+  error: (msg: string, data?: any) => console.error(`[ERROR] ${msg}`, data || ''),
+  warn: (msg: string, data?: any) => console.warn(`[WARN] ${msg}`, data || ''),
+};
+
 import {
   ClaimEvent,
   WriteClaimEventRequest,

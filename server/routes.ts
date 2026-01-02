@@ -81,6 +81,9 @@ import { getUserTypeBadgeLabel, getUserTypeMetadata } from "../shared/userTypes"
 import type { AffiliateAccount, AffiliateReferral, AffiliatePayout } from "../shared/schema";
 import { storage } from "./storage";
 import { setupAuth, isAuthenticated, isAdmin, isSuperAdmin, hashPassword, requireRole, isContractor, isCommunityModerator, requireOnboardingComplete } from "./auth";
+import { writeClaimEvent } from "./services/claimEventService.js";
+import type { WriteClaimEventRequest } from "./services/claimEventSchema.js";
+import { callAIInference } from "./services/aiInference.js";
 import { localityTrackingMiddleware } from "./localityTracking";
 import passport from "passport";
 import { Strategy as GoogleStrategy, Profile as GoogleProfile } from "passport-google-oauth20";
@@ -1783,6 +1786,82 @@ export async function registerRoutes(app: any) {
     } catch (error: any) {
       console.error("Error completing onboarding:", error);
       res.status(500).json({ message: "Failed to complete onboarding" });
+    }
+  });
+
+  // PHASE 3d-A: AI inference for Scout claim suggestion
+  app.post('/api/ai/inference', isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const { systemPrompt, userPrompt, temperature, maxTokens, model } = req.body;
+      
+      if (!systemPrompt || !userPrompt) {
+        return res.status(400).json({ error: 'systemPrompt and userPrompt are required' });
+      }
+
+      const result = await callAIInference({
+        systemPrompt,
+        userPrompt,
+        temperature,
+        maxTokens,
+        model,
+      });
+
+      res.json(result);
+    } catch (error: any) {
+      logger.error('[API] AI inference error', { error: error.message });
+      res.status(500).json({ error: 'AI inference failed' });
+    }
+  });
+
+  // PHASE 3d-A: Write confirmed claims from Scout onboarding
+  app.post('/api/claims/write', isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const userId = (req.user as any)?.id || (req.user as any)?.claims?.sub;
+      const { confirmedClaimTypes, countyFips, metadata } = req.body;
+
+      if (!Array.isArray(confirmedClaimTypes) || confirmedClaimTypes.length === 0) {
+        return res.status(400).json({ error: 'confirmedClaimTypes must be a non-empty array' });
+      }
+
+      // Write each claim individually
+      const results = await Promise.all(
+        confirmedClaimTypes.map(async (claimType: string) => {
+          const writeRequest: WriteClaimEventRequest = {
+            userId,
+            claimType: claimType as any,
+            countyFips: countyFips || null,
+            source: 'scout_inferred',
+            metadata: {
+              confidence: metadata?.confidenceByClaim?.[claimType] || 0.70,
+              evidence: metadata?.evidenceByClaim?.[claimType] || 'User confirmed via Scout onboarding',
+              textSource: metadata?.textSource || 'provisional_userIntent',
+              rawUserIntentText: metadata?.rawUserIntentText || '',
+            },
+          };
+
+          return await writeClaimEvent(writeRequest);
+        })
+      );
+
+      // Check if any writes failed
+      const failures = results.filter(r => !r.success);
+      if (failures.length > 0) {
+        logger.warn('[API] Some claim writes failed', { 
+          userId, 
+          total: results.length, 
+          failed: failures.length 
+        });
+      }
+
+      res.json({ 
+        success: failures.length === 0, 
+        results,
+        written: results.filter(r => r.success).length,
+        failed: failures.length,
+      });
+    } catch (error: any) {
+      logger.error('[API] Claim write error', { error: error.message });
+      res.status(500).json({ error: 'Failed to write claims' });
     }
   });
 
