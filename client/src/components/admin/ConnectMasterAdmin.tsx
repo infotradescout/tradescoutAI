@@ -70,7 +70,7 @@ export default function ConnectMasterAdmin() {
             </div>
             <p className="text-sm text-slate-400">
               Connect to: mrplatypus4777@gmail.com<br/>
-              Role: Head Admin
+              Role: Super Admin
             </p>
           </div>
 

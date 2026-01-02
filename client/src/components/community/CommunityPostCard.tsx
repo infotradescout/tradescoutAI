@@ -158,7 +158,6 @@ export function CommunityPostCard({ post, onLike, formatTimeAgo }: CommunityPost
       "moderator",
       "ops_admin",
       "super_admin",
-      "head_admin",
     ].includes(role) : false)
   );
 

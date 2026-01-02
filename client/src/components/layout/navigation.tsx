@@ -15,6 +15,7 @@ import {
 import { ConstructionEmblem } from "@/components/ConstructionEmblem";
 import { NotificationBell } from "@/components/NotificationBell";
 import { cn } from "@/lib/utils";
+import { isAdminTier } from "@/lib/roleChecks";
 
 export default function Navigation() {
   const [location] = useLocation();
@@ -32,7 +33,9 @@ export default function Navigation() {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  const isAdmin = user && user.role && ['head_admin', 'ops_admin', 'super_admin', 'analytics_read', 'territory_manager', 'contractor_success', 'moderator'].includes(user.role);
+  // Admin tier = super_admin or ops_admin only
+  // Moderators, analytics, territory managers are NOT admin tier and should not see admin nav
+  const isAdmin = isAdminTier(user?.role);
   const isContractor = user && user.role && ['contractor_user', 'accelerator_member'].includes(user.role);
   const isHomeowner = user && user.role === 'homeowner';
 
