@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useLocation } from 'wouter';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -25,7 +25,7 @@ import { SEOHelmet } from '@/components/SEOHelmet';
  */
 export default function BusinessProfileView() {
   const { slug } = useParams<{ slug: string }>();
-  const navigate = useNavigate();
+  const [, setLocation] = useLocation();
   const { user } = useAuth();
   
   const [profile, setProfile] = useState<BusinessProfile | null>(null);
@@ -94,11 +94,11 @@ export default function BusinessProfileView() {
           <CardContent className="pt-6">
             <div className="text-center">
               <Building2 className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-              <h2 className="text-xl font-semibold mb-2">{error || 'Profile not found'}</h2>
+              <h2 className="text-xl font-semibold mb-2" data-testid="not-found">{error || 'Profile not found'}</h2>
               <p className="text-muted-foreground mb-6">
                 This business profile could not be loaded.
               </p>
-              <Button onClick={() => navigate('/community')}>
+              <Button onClick={() => setLocation('/community')}>
                 Browse Community
               </Button>
             </div>
@@ -136,7 +136,7 @@ export default function BusinessProfileView() {
         <CardHeader>
           <div className="flex flex-col sm:flex-row items-start sm:justify-between gap-4">
             <div className="flex-1">
-              <CardTitle className="text-3xl mb-2 flex items-center gap-2">
+              <CardTitle className="text-3xl mb-2 flex items-center gap-2" data-testid="bp-headline">
                 <Building2 className="h-8 w-8" />
                 {profile.businessName}
               </CardTitle>
@@ -180,7 +180,7 @@ export default function BusinessProfileView() {
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => navigate(`/business/${slug}/edit`)}
+                onClick={() => setLocation(`/business/${slug}/edit`)}
               >
                 <Edit className="h-4 w-4 mr-2" />
                 Edit Profile
@@ -192,7 +192,7 @@ export default function BusinessProfileView() {
         <CardContent>
           {/* Description */}
           {hasDescription ? (
-            <p className="text-base leading-relaxed">{profile.description}</p>
+            <p className="text-base leading-relaxed" data-testid="bp-mission">{profile.description}</p>
           ) : (
             <div className="text-center py-8 text-muted-foreground">
               {isOwner ? (
@@ -200,7 +200,7 @@ export default function BusinessProfileView() {
                   <p className="mb-4">Tell your community about your business.</p>
                   <Button
                     variant="outline"
-                    onClick={() => navigate(`/business/${slug}/edit`)}
+                    onClick={() => setLocation(`/business/${slug}/edit`)}
                   >
                     Add Description
                   </Button>
@@ -244,17 +244,16 @@ export default function BusinessProfileView() {
               </p>
               <Button
                 size="lg"
+                data-testid="bp-contact-cta"
                 onClick={() => {
                   // Route to Direct Connect with business context
-                  navigate('/direct-connect', {
-                    state: {
-                      prefill: {
-                        businessName: profile.businessName,
-                        businessSlug: profile.slug,
-                        countyFips: profile.countyFips,
-                      },
-                    },
+                  // wouter doesn't support state, so we pass via query params
+                  const params = new URLSearchParams({
+                    prefill_businessName: profile.businessName,
+                    prefill_businessSlug: profile.slug,
+                    prefill_countyFips: profile.countyFips || ''
                   });
+                  setLocation(`/direct-connect?${params.toString()}`);
                 }}
               >
                 <MessageSquare className="h-5 w-5 mr-2" />
