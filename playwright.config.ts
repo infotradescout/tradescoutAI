@@ -1,12 +1,16 @@
 import { defineConfig, devices } from "@playwright/test";
 import path from "path";
+import dotenv from "dotenv";
+
+// Load test environment variables
+dotenv.config({ path: "tests/.env" });
 
 const baseURL = process.env.BASE_URL || process.env.E2E_BASE_URL || "http://localhost:5000";
 const hasTestDb = Boolean(process.env.TEST_DATABASE_URL);
 
 const serverCommand = hasTestDb
   ? "node scripts/withTestDb.mjs cross-env NODE_ENV=test tsx -r dotenv/config server/index.ts"
-  : "cross-env NODE_ENV=test tsx -r dotenv/config server/index.ts";
+  : "cross-env NODE_ENV=development tsx -r dotenv/config server/index.ts";
 
 export default defineConfig({
   testDir: "./tests",
@@ -15,16 +19,19 @@ export default defineConfig({
   expect: { timeout: 15_000 },
   retries: process.env.CI ? 2 : 0,
 
-  webServer: hasTestDb
-    ? {
-        command: serverCommand,
-        // Use the API health endpoint so Playwright waits for the real
-        // app+API server to be ready rather than a non-existent /health.
-        url: `${baseURL}/api/health`,
-        reuseExistingServer: !process.env.CI,
-        timeout: 120_000,
-      }
-    : undefined,
+  /*
+  webServer: {
+    command: serverCommand,
+    // Use the API health endpoint so Playwright waits for the real
+    // app+API server to be ready rather than a non-existent /health.
+    url: `${baseURL}/api/health`,
+    reuseExistingServer: !process.env.CI,
+    timeout: 120_000,
+    env: {
+      PORT: "5002",
+    },
+  },
+  */
 
   globalSetup: hasTestDb ? "./tests/global-setup.ts" : undefined,
 
