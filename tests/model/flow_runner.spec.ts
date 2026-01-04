@@ -228,7 +228,7 @@ test.describe('Model-Based Testing - Deterministic Flow Runner', () => {
     }
   });
 
-  test.afterEach(({ testInfo }) => {
+  test.afterEach(async ({}, testInfo) => {
     if (testInfo.status !== 'passed') {
       networkWatcher.logErrors();
     }

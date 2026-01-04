@@ -19,7 +19,7 @@ import {
   ScoutAction,
   ScoutMode,
 } from '../utils/scoutLogger';
-import { v4 as uuidv4 } from 'crypto';
+import { randomUUID } from 'crypto';
 
 test.describe('Scout Interaction Logging - Bot Army', () => {
   let networkWatcher: NetworkWatcher;
@@ -31,7 +31,7 @@ test.describe('Scout Interaction Logging - Bot Army', () => {
     // Initialize Scout logger as test run
     // CRITICAL: isTestRun=true means this session will NOT influence learning
     scoutLogger = new ScoutInteractionLogger({
-      sessionId: uuidv4(),
+      sessionId: randomUUID(),
       userId: null, // Anonymous bot
       isTestRun: true, // ← HARD GUARD: Bots cannot learn
       mode: 'freeform',
@@ -409,7 +409,7 @@ test.describe('Scout Interaction Logging - Bot Army', () => {
     }
   });
 
-  test.afterEach(({ testInfo }) => {
+  test.afterEach(async ({}, testInfo) => {
     // Log session even on failure
     const sessionLog = scoutLogger.getSessionLog();
     console.log(`📝 Scout Session (${scoutLogger.getSummary().totalTurns} turns):`, {

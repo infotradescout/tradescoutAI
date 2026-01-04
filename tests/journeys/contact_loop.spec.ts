@@ -205,7 +205,7 @@ test.describe('Contact Loop - Direct Connect', () => {
     }
   });
 
-  test.afterEach(({ testInfo }) => {
+  test.afterEach(async ({}, testInfo) => {
     if (testInfo.status !== 'passed') {
       networkWatcher.logErrors();
     }

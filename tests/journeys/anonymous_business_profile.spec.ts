@@ -125,7 +125,7 @@ test.describe('Anonymous User - Business Profile View', () => {
     }
   });
 
-  test.afterEach(({ testInfo }) => {
+  test.afterEach(async ({}, testInfo) => {
     if (testInfo.status !== 'passed') {
       networkWatcher.logErrors();
     }
