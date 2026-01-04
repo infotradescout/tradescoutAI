@@ -13,8 +13,8 @@ interface SEOHelmetProps {
 }
 
 export function SEOHelmet({
-  title = "TradeScout – Scout for Contractors and Communities",
-  description = "Scout, your local helper, connects you with verified local contractors, helps you compare options, and run your projects with confidence.",
+  title = "TradeScout | Connection Without Compromise",
+  description = "TradeScout is the authority-first operating system for local work. Connection without compromise.",
   keywords = "scout, local helper, local contractors, home improvement, verified contractors, free quotes, trusted contractors, roofing, plumbing, electrical",
   canonical,
   ogType = "website",
