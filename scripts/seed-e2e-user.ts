@@ -19,19 +19,60 @@ async function main() {
     .limit(1);
 
   if (existing.length) {
-    console.log(`[seed-e2e-user] User ${email} already exists. Skipping insert.`);
+    console.log(`[seed-e2e-user] User ${email} already exists. Updating profile data...`);
+    await db.update(users)
+      .set({
+        businessSlug: 'test-business',
+        role: 'business_owner',
+        preferences: {
+          provisional: {
+            profileDraft: {
+              businessName: 'Test Business',
+              description: 'We are a test business serving the community.',
+              countyFips: '12345',
+              countyName: 'Test County',
+              stateCode: 'TS',
+              city: 'Test City',
+              website: 'https://example.com',
+              serviceAreas: [{ countyFips: '12345' }]
+            }
+          }
+        }
+      })
+      .where(eq(users.email, email));
+    console.log(`[seed-e2e-user] Updated user ${email} with business profile 'test-business'.`);
     return;
   }
 
   const password = await hashPassword(plaintext);
+  
+  // Create user with business profile data for E2E tests
   await db.insert(users).values({
     email,
     password,
+    businessSlug: 'test-business',
+    firstName: 'Test',
+    lastName: 'Business',
+    role: 'business_owner',
+    preferences: {
+      provisional: {
+        profileDraft: {
+          businessName: 'Test Business',
+          description: 'We are a test business serving the community.',
+          countyFips: '12345',
+          countyName: 'Test County',
+          stateCode: 'TS',
+          city: 'Test City',
+          website: 'https://example.com',
+          serviceAreas: [{ countyFips: '12345' }]
+        }
+      }
+    },
     createdAt: new Date(),
     updatedAt: new Date(),
   });
 
-  console.log(`[seed-e2e-user] Seeded user ${email} for E2E login.`);
+  console.log(`[seed-e2e-user] Seeded user ${email} for E2E login with business profile 'test-business'.`);
 }
 
 main()
