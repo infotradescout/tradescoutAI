@@ -15,3 +15,5 @@ secrets
 playwright-report/
 tests/.auth/
 test-results/
+
+test-db-connection.js
