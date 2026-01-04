@@ -9,3 +9,9 @@ vite.config.ts.*
 .env
 .env.*
 secrets
+
+# Playwright
+.playwright/
+playwright-report/
+tests/.auth/
+test-results/
