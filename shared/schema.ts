@@ -386,6 +386,7 @@ export const users = pgTable("users", {
   roles: text("roles").array().default([]), // Multi-role support - array of role strings
   activeRole: varchar("active_role").default('homeowner'), // Currently active role for dashboard switching
   activeBusinessId: varchar("active_business_id"), // Currently active business profile for the active role
+  businessSlug: varchar("business_slug").unique(), // Public URL slug for business profile
   activeProfileId: varchar("active_profile_id"), // Currently active Profile (public website) for the active role
   capabilityBundles: text("capability_bundles").array().default([]), // Capability bundles derived from onboarding
   participationModes: text("participation_modes").array().default([]), // Self vs business/organization participation
