@@ -78,7 +78,7 @@ export default function BusinessProfileEditor() {
         }
 
         setProfile(data);
-        setBusinessName(data.businessName || '');
+        setBusinessName(data.name || '');
         setHeadline(data.headline || '');
         setDescription(data.description || '');
         setServices(data.services || []);
@@ -90,7 +90,7 @@ export default function BusinessProfileEditor() {
           type: 'business_profile_edit_opened' as any,
           ts: new Date().toISOString(),
           path: window.location.pathname,
-          context: {
+          meta: {
             slug: data.slug,
           },
         });
@@ -116,7 +116,7 @@ export default function BusinessProfileEditor() {
       const response = await generateCopyVariants({
         field,
         businessName: businessName.trim(),
-        countyName: profile.countyName,
+        countyName: profile.countyName || '',
         stateCode: profile.stateCode,
         serviceAreas: serviceAreasText
           .split(',')
@@ -125,10 +125,10 @@ export default function BusinessProfileEditor() {
         existingDescription: description.trim(),
         existingHeadline: headline.trim(),
         existingServices: services,
-        userType: profile.userType || 'business_owner',
+        userType: 'business_owner',
       });
 
-      setCopyVariants(response.variants);
+      setCopyVariants(response.data?.variants || []);
       setShowCopyModal(true);
     } catch (err) {
       console.error('Error generating copy variants:', err);
@@ -169,7 +169,7 @@ export default function BusinessProfileEditor() {
 
     try {
       const payload: UpdateProfilePayload = {
-        businessName: businessName.trim() || undefined,
+        name: businessName.trim() || undefined,
         headline: headline.trim() || undefined,
         description: description.trim() || undefined,
         services: services.filter(Boolean),
@@ -203,7 +203,7 @@ export default function BusinessProfileEditor() {
         type: 'business_profile_updated' as any,
         ts: new Date().toISOString(),
         path: window.location.pathname,
-        context: {
+        meta: {
           slug: updated.slug,
         },
       });

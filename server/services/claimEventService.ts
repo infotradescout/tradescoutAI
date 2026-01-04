@@ -33,7 +33,7 @@ const logger = {
 import {
   ClaimEvent,
   WriteClaimEventRequest,
-  ClaimEventWriteResult,
+  WriteClaimEventResult,
   InvalidateClaimEventRequest,
   InvalidateClaimEventResult,
   generateIdempotencyKey,
@@ -134,7 +134,7 @@ async function getExistingClaimId(
  * - Idempotent insert (ON CONFLICT DO NOTHING)
  * - Duplicate detection (returns existing claim id)
  */
-export async function writeClaimEvent(req: WriteClaimEventRequest): Promise<ClaimEventWriteResult> {
+export async function writeClaimEvent(req: WriteClaimEventRequest): Promise<WriteClaimEventResult> {
   // Check if claim writes are enabled
   if (!isClaimWritesEnabled()) {
     logger.warn('Claim write attempted but disabled', {

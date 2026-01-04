@@ -72,6 +72,7 @@ export interface ScoutActionChip {
   target: string;
   args?: unknown;
   priority?: "primary" | "secondary";
+  subtitle?: string;
 }
 
 export interface ScoutResponseFrame {

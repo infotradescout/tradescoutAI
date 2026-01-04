@@ -92,7 +92,7 @@ export async function aggregateDailyKpis(
     // For now, we'll assume a simple log structure with timestamp, tag, metadata
     // In production, this could integrate with CloudWatch, Datadog, ELK, etc.
     
-    const logsQuery = sql`
+    const logsQuery = `
       SELECT
         tag,
         COUNT(*) as count,
@@ -101,13 +101,13 @@ export async function aggregateDailyKpis(
       FROM app_telemetry_logs
       WHERE
         tag LIKE 'claim_intake_%'
-        AND timestamp >= ${startOfDay}
-        AND timestamp < ${endOfDay}
+        AND timestamp >= $1
+        AND timestamp < $2
       GROUP BY tag, metadata->>'errorReason', metadata->>'fieldErrors'
       ORDER BY tag, count DESC
     `;
 
-    const result = await pool.query(logsQuery.toSQL().strings.join(''), logsQuery.toSQL().values);
+    const result = await pool.query(logsQuery, [startOfDay, endOfDay]);
     const rows = result.rows || [];
 
     // Aggregate by event type
@@ -274,7 +274,7 @@ export async function storeSnapshot(
   snapshot: Phase3cKpiSnapshot
 ): Promise<Phase3cKpiSnapshot> {
   try {
-    const upsertQuery = sql`
+    const upsertQuery = `
       INSERT INTO monitoring_snapshots (
         snapshot_date,
         total_attempted,
@@ -299,34 +299,36 @@ export async function storeSnapshot(
         breach_details,
         snapshot_json
       ) VALUES (
-        ${snapshot.date},
-        ${snapshot.totalAttempted},
-        ${snapshot.totalWritten},
-        ${snapshot.totalDuplicates},
-        ${snapshot.totalFailed},
-        ${snapshot.totalFieldPrecheckFailed},
-        ${snapshot.totalRateWarnings},
-        ${snapshot.writeSuccessRate},
-        ${snapshot.writeFailedRate},
-        ${snapshot.fieldPrecheckFailRate},
-        ${snapshot.rateWarningRate},
-        ${snapshot.idempotencyRate},
-        ${snapshot.varietyOfErrorTypes},
-        ${JSON.stringify(snapshot.topErrorReasons)},
-        ${JSON.stringify(snapshot.topFieldErrors)},
-        ${snapshot.passedWriteHealth},
-        ${snapshot.passedDataQuality},
-        ${snapshot.passedRateDiscipline},
-        ${snapshot.passedIdempotency},
-        ${snapshot.allKpisPassed},
-        ${JSON.stringify(snapshot.breachDetails || [])},
-        ${JSON.stringify(snapshot)}
+        $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22
       )
       ON CONFLICT (snapshot_date) DO NOTHING
       RETURNING *
     `;
 
-    const result = await pool.query(upsertQuery.toSQL().strings.join(''), upsertQuery.toSQL().values);
+    const result = await pool.query(upsertQuery, [
+      snapshot.date,
+      snapshot.totalAttempted,
+      snapshot.totalWritten,
+      snapshot.totalDuplicates,
+      snapshot.totalFailed,
+      snapshot.totalFieldPrecheckFailed,
+      snapshot.totalRateWarnings,
+      snapshot.writeSuccessRate,
+      snapshot.writeFailedRate,
+      snapshot.fieldPrecheckFailRate,
+      snapshot.rateWarningRate,
+      snapshot.idempotencyRate,
+      snapshot.varietyOfErrorTypes,
+      JSON.stringify(snapshot.topErrorReasons),
+      JSON.stringify(snapshot.topFieldErrors),
+      snapshot.passedWriteHealth,
+      snapshot.passedDataQuality,
+      snapshot.passedRateDiscipline,
+      snapshot.passedIdempotency,
+      snapshot.allKpisPassed,
+      JSON.stringify(snapshot.breachDetails || []),
+      JSON.stringify(snapshot)
+    ]);
 
     if (result.rows && result.rows.length > 0) {
       logger.info('phase3c:snapshot:stored', {
@@ -349,14 +351,14 @@ export async function storeSnapshot(
  */
 export async function getLatestSnapshot(pool: Pool): Promise<Phase3cKpiSnapshot | null> {
   try {
-    const query = sql`
+    const query = `
       SELECT snapshot_json
       FROM monitoring_snapshots
       ORDER BY snapshot_date DESC
       LIMIT 1
     `;
 
-    const result = await pool.query(query.toSQL().strings.join(''), query.toSQL().values);
+    const result = await pool.query(query);
 
     if (result.rows && result.rows.length > 0) {
       return JSON.parse(result.rows[0].snapshot_json) as Phase3cKpiSnapshot;
@@ -378,14 +380,14 @@ export async function getSnapshotRange(
   endDate: string // YYYY-MM-DD
 ): Promise<Phase3cKpiSnapshot[]> {
   try {
-    const query = sql`
+    const query = `
       SELECT snapshot_json
       FROM monitoring_snapshots
-      WHERE snapshot_date >= ${startDate} AND snapshot_date <= ${endDate}
+      WHERE snapshot_date >= $1 AND snapshot_date <= $2
       ORDER BY snapshot_date ASC
     `;
 
-    const result = await pool.query(query.toSQL().strings.join(''), query.toSQL().values);
+    const result = await pool.query(query, [startDate, endDate]);
 
     return (result.rows || []).map((row) => JSON.parse(row.snapshot_json) as Phase3cKpiSnapshot);
   } catch (error) {

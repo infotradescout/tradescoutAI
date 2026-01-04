@@ -219,7 +219,7 @@ export function validateClaimTimestamp(claimTimestamp: unknown, context: Validat
   }
 
   const now = new Date();
-  if (claimTimestamp > now) {
+  if ((claimTimestamp as Date) > now) {
     return {
       field: 'claimTimestamp',
       message: `Claim timestamp cannot be in the future`,
@@ -227,7 +227,7 @@ export function validateClaimTimestamp(claimTimestamp: unknown, context: Validat
     };
   }
 
-  if (context.userCreatedAt && claimTimestamp < context.userCreatedAt) {
+  if (context.userCreatedAt && (claimTimestamp as Date) < context.userCreatedAt) {
     return {
       field: 'claimTimestamp',
       message: `Claim timestamp cannot be before user creation (user created at ${context.userCreatedAt.toISOString()})`,

@@ -423,7 +423,7 @@ export function registerSocialFeatures(app: Express) {
       // If initiator (sender) is not verified, offer verification with alternate path
       if (missingInitiatorVerification) {
         // Import the C2-2 helper
-        const { buildVerificationGateResponse } = await import('../utils/explainAndOfferVerification');
+        const { buildVerificationGateResponse } = await import('./utils/explainAndOfferVerification');
         
         const gateResponse = buildVerificationGateResponse({
           action: 'MESSAGE_USER',
@@ -431,7 +431,7 @@ export function registerSocialFeatures(app: Express) {
           userRole: (initiator as any).role,
           targetUserId: targetUserId,
           targetRole: (recipient as any).role,
-          context: { conversationId, intent },
+          context: { intent },
         });
 
         // Return Scout-style response with verification option + alternate path

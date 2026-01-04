@@ -54,6 +54,7 @@ import {
   expireOnboarding,
   applySofterLanguage,
   getQuestionPrompt,
+  type OnboardingSession,
 } from "../utils/onboardingService";
 
 const router = Router();
@@ -1410,6 +1411,7 @@ interface ScoutActionChip {
   target: string;
   args?: unknown;
   priority?: "primary" | "secondary";
+  subtitle?: string;
 }
 
 interface ScoutResponseFrame {
@@ -1464,7 +1466,7 @@ interface ScoutCtaHintServer {
   label?: string;
 }
 
-interface ScoutResponse {
+export interface ScoutResponse {
   message: string;
   suggestedActions?: string[];
   actions?: ScoutClientAction[];
@@ -1547,14 +1549,19 @@ function isDealSuppressedContext(message: string): boolean {
 
 const SCOUT_DEAL_ASSIST_ENABLED = process.env.SCOUT_DEAL_ASSIST !== "false";
 
-type ScoutClientAction = {
-  type: string;
-  label?: string;
+export type ScoutClientAction = {
+  type: "NAVIGATE" | "CALL_TOOL" | "PREFILL_INPUT" | "OPEN_APP_DRAWER" | "OPEN_TOOLS_DRAWER" | "ASK_SCOUT" | "NOOP" | string;
+  label: string;
   to?: string;
   path?: string;
   prompt?: string;
   payload?: Record<string, unknown>;
+  subtitle?: string;
+  why?: string;
+  primary?: boolean;
 };
+
+export type ScoutAction = ScoutClientAction;
 function allowsAction(ctx: ResolvedContext | null, action: AllowedAction): boolean {
   if (!ctx) return false;
   return ctx.allowedActions.includes(action);

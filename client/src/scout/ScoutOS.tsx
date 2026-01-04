@@ -2222,7 +2222,7 @@ export default function ScoutOS() {
           history: state.messages.map((m) => ({ role: m.role, content: m.content })),
           message: skipped ? "skip" : (value || ""),
           locality,
-          mode: "general",
+          mode: "general" as any,
           roles: rolesForRequest,
           recentActivity,
           shownAdIds,
@@ -2757,7 +2757,7 @@ export default function ScoutOS() {
 
                     // Build metadata from original inference
                     const confidenceByClaim: Record<string, number> = {};
-                    const evidenceByClaim: Record<string, number> = {};
+                    const evidenceByClaim: Record<string, string> = {};
                     card.options.forEach(opt => {
                       if (selectedClaims.includes(opt.claimType)) {
                         confidenceByClaim[opt.claimType] = opt.confidence;

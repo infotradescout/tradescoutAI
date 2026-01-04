@@ -161,8 +161,8 @@ const CountyPage = memo(function CountyPage() {
   }
 
   // Build content
-  const faqs = buildCountyFAQs(county.name, state.name, coverage);
-  const description = buildCountyDescription(county.name, state.name, coverage);
+  const faqs = buildCountyFAQs(county.name, state.name, coverage || null);
+  const description = buildCountyDescription(county.name, state.name, coverage || null);
   const keywords = buildCountyKeywords(county.name, state.name);
   const breadcrumbs = buildBreadcrumbs(state.code, state.name, county.name);
 

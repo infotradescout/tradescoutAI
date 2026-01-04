@@ -44,6 +44,7 @@ export enum ClaimSource {
   DIRECT_CLAIM = 'direct_claim', // User claimed directly in app
   IMPORT = 'import',           // From backfill/import job
   ADMIN = 'admin',             // From admin OS
+  SCOUT_INFERRED = 'scout_inferred', // Inferred by Scout AI
 }
 
 // Canonical claim event interface
@@ -74,7 +75,7 @@ export interface WriteClaimEventRequest {
 }
 
 // Write result contract
-export interface ClaimEventWriteResult {
+export interface WriteClaimEventResult {
   success: boolean;
   claimId?: string;
   isDuplicate?: boolean;
@@ -161,4 +162,5 @@ export const CLAIM_SOURCE_DESCRIPTIONS: Record<ClaimSource, string> = {
   [ClaimSource.DIRECT_CLAIM]: 'User claimed directly',
   [ClaimSource.IMPORT]: 'From backfill import',
   [ClaimSource.ADMIN]: 'From admin OS',
+  [ClaimSource.SCOUT_INFERRED]: 'Inferred by Scout AI',
 };

@@ -131,10 +131,18 @@ export async function getOrCompute(userId: string, context?: SnapshotInferenceCo
   if (dbSnapshot && new Date(dbSnapshot.validUntil) > new Date()) {
     // Cache it
     snapshotCache.set(userId, {
-      snapshot: dbSnapshot as Snapshot,
+      snapshot: { 
+        ...dbSnapshot, 
+        primaryRoleConfidence: Number(dbSnapshot.primaryRoleConfidence),
+        confidenceDecayRate: Number(dbSnapshot.confidenceDecayRate)
+      } as Snapshot,
       expiresAt: Date.now() + CACHE_TTL_MS,
     });
-    return dbSnapshot as Snapshot;
+    return { 
+      ...dbSnapshot, 
+      primaryRoleConfidence: Number(dbSnapshot.primaryRoleConfidence),
+      confidenceDecayRate: Number(dbSnapshot.confidenceDecayRate)
+    } as Snapshot;
   }
   
   // Compute new snapshot

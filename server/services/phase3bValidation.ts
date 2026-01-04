@@ -9,9 +9,9 @@
  */
 
 import { Pool } from '@neondatabase/serverless';
-import { logger } from '../logger.js';
-import { ClaimBackfillSimulationJob, ClaimBackfillStats } from '../jobs/claimBackfillSimulationJob.js';
-import { ClaimType } from './claimEventSchema.js';
+import { logger } from './logger';
+import { ClaimBackfillSimulationJob, ClaimBackfillStats } from '../jobs/claimBackfillSimulationJob';
+import { ClaimSource, ClaimType } from './claimEventSchema';
 
 export interface Phase3bValidationResult {
   valid: boolean;
@@ -86,7 +86,7 @@ export async function validatePhase3b(pool: Pool): Promise<Phase3bValidationResu
     const job = new ClaimBackfillSimulationJob({
       pool,
       dryRun: true,
-      source: 'import',
+      source: ClaimSource.IMPORT,
       defaultClaimType: ClaimType.EXPLORING,
       batchSize: 50,
       maxUsers: 1,
@@ -125,7 +125,7 @@ export async function smokeTestBackfillDryRun(pool: Pool): Promise<Phase3bSmokeT
   const job = new ClaimBackfillSimulationJob({
     pool,
     dryRun: true, // No writes, validation only
-    source: 'import',
+    source: ClaimSource.IMPORT,
     defaultClaimType: ClaimType.EXPLORING,
     batchSize: 50,
     maxUsers: 500, // Small set for smoke test
@@ -229,7 +229,7 @@ export async function smokeTestBackfillWriteRun(pool: Pool): Promise<Phase3bSmok
   const job = new ClaimBackfillSimulationJob({
     pool,
     dryRun: false, // Real writes
-    source: 'import',
+    source: ClaimSource.IMPORT,
     defaultClaimType: ClaimType.EXPLORING,
     batchSize: 50,
     maxUsers: 200,

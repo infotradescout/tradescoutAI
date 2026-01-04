@@ -13,11 +13,11 @@
  * - Confirms rate limiter is wired
  */
 
-import { logger } from '../logger.js';
-import { getClaimIntakeGate } from './claimIntakeGate.js';
-import { ClaimEventValidator } from './claimEventValidator.js';
-import { ClaimIntakeRateLimiter } from './claimIntakeRateLimiter.js';
-import { ClaimType, ClaimSource } from './claimEventSchema.js';
+import { logger } from './logger';
+import { getClaimIntakeGate } from './claimIntakeGate';
+import { ClaimEventValidator } from './claimEventValidator';
+import { ClaimIntakeRateLimiter } from './claimIntakeRateLimiter';
+import { ClaimType, ClaimSource } from './claimEventSchema';
 
 export interface Phase3aValidationResult {
   valid: boolean;

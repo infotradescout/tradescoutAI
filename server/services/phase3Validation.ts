@@ -15,7 +15,7 @@
  */
 
 import { Pool } from '@neondatabase/serverless';
-import { logger } from '../logger.js';
+import { logger } from './logger';
 import {
   WriteClaimEventRequest,
   ClaimType,
@@ -210,7 +210,7 @@ export async function smokeTestClaimWrite(): Promise<Phase3SmokeTestResult> {
   const idempotentPassed = duplicateResult.success && duplicateResult.isDuplicate && duplicateResult.claimId === writeResult.claimId;
   details.push({
     test: 'Idempotent write (duplicate)',
-    passed: idempotentPassed,
+    passed: !!idempotentPassed,
     message: idempotentPassed
       ? 'Duplicate write returned same claim ID'
       : `Idempotent write failed (expected duplicate, got ${duplicateResult.isDuplicate ? 'duplicate' : 'new'})`,

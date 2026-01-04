@@ -93,10 +93,12 @@ const scoutCopyAssistTool: ToolDefinition<ScoutCopyAssistInput, ScoutCopyAssistR
  * });
  * ```
  */
+import { ToolResult } from './toolRunner';
+
 export async function generateCopyVariants(
   input: ScoutCopyAssistInput,
   context?: ToolContext
-): Promise<ScoutCopyAssistResponse> {
+): Promise<ToolResult<ScoutCopyAssistResponse>> {
   return runTool(scoutCopyAssistTool, input, context);
 }
 
