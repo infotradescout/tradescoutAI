@@ -9,8 +9,8 @@ interface PageHeadProps {
 }
 
 export function PageHead({ 
-  title = "TradeScout – Scout for Contractors and Communities", 
-  description = "Scout, your local helper, connects you with verified local contractors, helps you compare options, and manage projects with confidence.",
+  title = "TradeScout | Connection Without Compromise", 
+  description = "TradeScout is the authority-first operating system for local work. Connection without compromise.",
   keywords = "scout, local helper, contractors, home improvement, quotes, local contractors, verified contractors",
   ogImage = "/icon-512.png",
   canonicalUrl
