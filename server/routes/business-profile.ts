@@ -21,7 +21,7 @@ interface AuthedRequest extends Request {
   user?: {
     id: string;
     [key: string]: any;
-  };
+  } & Express.User;
 }
 
 /**
@@ -67,9 +67,9 @@ export function registerBusinessProfileRoutes(app: Express) {
   app.post(
     '/api/business-profile/publish',
     isAuthenticated,
-    async (req: AuthedRequest, res: Response) => {
+    async (req: Request, res: Response) => {
       try {
-        const userId = req.user?.id;
+        const userId = (req as AuthedRequest).user?.id;
         if (!userId) {
           return res.status(401).json({ message: 'Unauthorized' });
         }
@@ -155,9 +155,9 @@ export function registerBusinessProfileRoutes(app: Express) {
   app.get(
     '/api/business-profile/me',
     isAuthenticated,
-    async (req: AuthedRequest, res: Response) => {
+    async (req: Request, res: Response) => {
       try {
-        const userId = req.user?.id;
+        const userId = (req as AuthedRequest).user?.id;
         if (!userId) {
           return res.status(401).json({ message: 'Unauthorized' });
         }
@@ -183,9 +183,9 @@ export function registerBusinessProfileRoutes(app: Express) {
   app.patch(
     '/api/business-profile/me',
     isAuthenticated,
-    async (req: AuthedRequest, res: Response) => {
+    async (req: Request, res: Response) => {
       try {
-        const userId = req.user?.id;
+        const userId = (req as AuthedRequest).user?.id;
         if (!userId) {
           return res.status(401).json({ message: 'Unauthorized' });
         }
@@ -230,7 +230,7 @@ export function registerBusinessProfileRoutes(app: Express) {
   app.post(
     '/api/scout/copy-assist',
     isAuthenticated,
-    async (req: AuthedRequest, res: Response) => {
+    async (req: Request, res: Response) => {
       try {
         const {
           businessName,
@@ -266,7 +266,7 @@ export function registerBusinessProfileRoutes(app: Express) {
           ? `\nCurrent headline: "${existingHeadline}"`
           : '';
         const currentServicesContext = existingServices && existingServices.length > 0
-          ? `\nCurrent services:\n${existingServices.map(s => `- ${s}`).join('\n')}`
+          ? `\nCurrent services:\n${(existingServices as string[]).map(s => `- ${s}`).join('\n')}`
           : '';
 
         // Field-specific prompt contracts

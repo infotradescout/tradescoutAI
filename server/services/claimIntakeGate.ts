@@ -11,7 +11,7 @@
  * - Field-only validation precheck + full validation in write service
  */
 
-import { logger } from '../logger.js';
+import { logger } from './logger';
 import {
   ClaimSource,
   ClaimType,
@@ -19,10 +19,10 @@ import {
   WriteClaimEventResult,
   isValidClaimSource,
   isValidClaimType,
-} from './claimEventSchema.js';
-import { writeClaimEvent } from './claimEventService.js';
-import { ClaimEventValidator } from './claimEventValidator.js';
-import { ClaimIntakeRateLimiter, RateLimitSignal } from './claimIntakeRateLimiter.js';
+} from './claimEventSchema';
+import { writeClaimEvent } from './claimEventService';
+import { ClaimEventValidator } from './claimEventValidator';
+import { ClaimIntakeRateLimiter, RateLimitSignal } from './claimIntakeRateLimiter';
 
 export type IntakeChannel = 'signup' | 'direct_claim' | 'import' | 'admin';
 
@@ -96,7 +96,7 @@ const defaultLogger = {
 export class ClaimIntakeGate {
   private validator: ClaimEventValidator;
   private limiter: ClaimIntakeRateLimiter;
-  private logger: ClaimIntakeGateDeps['logger'];
+  private logger: NonNullable<ClaimIntakeGateDeps['logger']>;
 
   constructor(deps: ClaimIntakeGateDeps) {
     this.validator = deps.validator;
@@ -206,7 +206,7 @@ export class ClaimIntakeGate {
       countyName: '', // Will be resolved by service
       source: normalized.source,
       claimTimestamp: normalized.claimTimestamp,
-      metadata: normalized.metadata,
+      metadata: normalized.metadata as Record<string, unknown>,
     };
 
     const write = await writeClaimEvent(writeReq);

@@ -175,22 +175,21 @@ export function explainAndOfferVerification(
   const verifyPath = getVerificationPath(missingRequirements, context);
 
   const primaryAction: ScoutAction = {
-    id: `verify_${action}`,
+    type: 'NAVIGATE',
     label: `Verify now (${estimatedTime})`,
-    kind: 'NAVIGATE',
-    target: verifyPath,
+    path: verifyPath,
     subtitle: missingRequirements.join(' + '),
     why: `Required to ${action.toLowerCase().replace(/_/g, ' ')}`,
+    primary: true
   };
 
   // Build secondary action (alternate path)
   const alternatePath = ALTERNATE_PATHS[action];
-  const secondaryAction: ScoutAction = alternatePath
+  const secondaryAction: ScoutAction | null = alternatePath
     ? {
-        id: `skip_${action}`,
+        type: 'NAVIGATE',
         label: `Continue without verification`,
-        kind: 'NAVIGATE',
-        target: alternatePath.path,
+        path: alternatePath.path,
         subtitle: alternatePath.label,
         why: alternatePath.why,
       }

@@ -79,8 +79,8 @@ export default function CreateAccountPortal() {
     },
   });
 
-  const stateValue = watch("state");
-  const countyValue = watch("county");
+  const stateValue = watch("state" as any);
+  const countyValue = watch("county" as any);
   const userTypesValue = watch("userTypes");
 
   // Fetch OAuth providers

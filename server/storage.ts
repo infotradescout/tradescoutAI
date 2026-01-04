@@ -1126,9 +1126,9 @@ export interface IStorage {
   getPlatformSupportLedgerEntries(params: { originatingProfileId?: string; limit?: number }): Promise<PlatformSupportLedgerEntry[]>;
 
   // Business Profile v1 operations (PHASE 3d-C)
-  getBusinessProfileBySlug(slug: string): Promise<import('../../shared/businessProfile').BusinessProfile | undefined>;
-  getBusinessProfileByUserId(userId: string): Promise<import('../../shared/businessProfile').BusinessProfile | undefined>;
-  saveBusinessProfile(profile: import('../../shared/businessProfile').BusinessProfile): Promise<import('../../shared/businessProfile').BusinessProfile>;
+  getBusinessProfileBySlug(slug: string): Promise<import('../shared/businessProfile').BusinessProfile | undefined>;
+  getBusinessProfileByUserId(userId: string): Promise<import('../shared/businessProfile').BusinessProfile | undefined>;
+  saveBusinessProfile(profile: import('../shared/businessProfile').BusinessProfile): Promise<import('../shared/businessProfile').BusinessProfile>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -10133,7 +10133,7 @@ export class DatabaseStorage implements IStorage {
    * Published presence surface for profileDraft → businessProfiles
    */
 
-  async getBusinessProfileBySlug(slug: string): Promise<import('../../shared/businessProfile').BusinessProfile | undefined> {
+  async getBusinessProfileBySlug(slug: string): Promise<import('../shared/businessProfile').BusinessProfile | undefined> {
     // For now, using user preferences.provisional.profileDraft as temporary storage
     // Until businessProfiles table is added to schema
     const rows = await db.select().from(users).where(eq(users.businessSlug, slug));
@@ -10145,11 +10145,13 @@ export class DatabaseStorage implements IStorage {
 
     if (!profileDraft) return undefined;
 
+    const createdAt = user.createdAt ? user.createdAt.toISOString() : new Date().toISOString();
+
     return {
       id: user.id,
       userId: user.id,
       slug,
-      name: profileDraft.businessName || user.displayName || `${user.firstName} ${user.lastName}`,
+      name: profileDraft.businessName || `${user.firstName} ${user.lastName}`,
       description: profileDraft.description || null,
       countyFips: profileDraft.countyFips,
       countyName: profileDraft.countyName || null,
@@ -10157,20 +10159,20 @@ export class DatabaseStorage implements IStorage {
       stateCode: profileDraft.stateCode,
       serviceAreas: profileDraft.serviceAreas?.map((sa: any) => sa.countyFips) || [profileDraft.countyFips],
       website: profileDraft.website || null,
-      createdAt: user.createdAt.toISOString(),
-      updatedAt: user.updatedAt?.toISOString() || user.createdAt.toISOString(),
-      publishedAt: user.createdAt.toISOString(),
+      createdAt,
+      updatedAt: user.updatedAt?.toISOString() || createdAt,
+      publishedAt: createdAt,
     };
   }
 
-  async getBusinessProfileByUserId(userId: string): Promise<import('../../shared/businessProfile').BusinessProfile | undefined> {
+  async getBusinessProfileByUserId(userId: string): Promise<import('../shared/businessProfile').BusinessProfile | undefined> {
     const user = await this.getUser(userId);
     if (!user || !user.businessSlug) return undefined;
 
     return this.getBusinessProfileBySlug(user.businessSlug);
   }
 
-  async saveBusinessProfile(profile: import('../../shared/businessProfile').BusinessProfile): Promise<import('../../shared/businessProfile').BusinessProfile> {
+  async saveBusinessProfile(profile: import('../shared/businessProfile').BusinessProfile): Promise<import('../shared/businessProfile').BusinessProfile> {
     // Update user record with slug
     const user = await this.getUser(profile.userId);
     if (!user) throw new Error('User not found');

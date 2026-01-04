@@ -18,9 +18,9 @@
  */
 
 import { Pool, QueryResult } from '@neondatabase/serverless';
-import { logger } from '../logger.js';
-import { getClaimIntakeGate } from './claimIntakeGate.js';
-import { ClaimType, ClaimSource } from './claimEventSchema.js';
+import { logger } from '../services/logger';
+import { getClaimIntakeGate } from '../services/claimIntakeGate';
+import { ClaimType, ClaimSource } from '../services/claimEventSchema';
 
 export interface ClaimBackfillConfig {
   pool: Pool;

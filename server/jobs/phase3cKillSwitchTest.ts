@@ -1,5 +1,5 @@
 import { Pool } from '@neondatabase/serverless';
-import { claimIntakeGate } from '../services/claimIntakeGate';
+import { getClaimIntakeGate } from '../services/claimIntakeGate';
 import { logger } from '../services/logger';
 
 /**
@@ -62,14 +62,13 @@ export async function runPhase3cKillSwitchTest(pool: Pool): Promise<Phase3cKillS
       const requestSource = requestSources[i % requestSources.length];
 
       try {
-        await claimIntakeGate.intake({
-          user_id: `test-killswitch-${i}`,
-          user_email: `test-killswitch-${i}@test.local`,
-          user_location_county_fips: '48201', // Dallas
-          claim_type: requestType as any,
+        await getClaimIntakeGate().intake({
+          userId: `test-killswitch-${i}`,
+          countyFips: '48201', // Dallas
+          claimType: requestType as any,
           source: requestSource as any,
-          source_details: { test: true },
-          timestamp: new Date(),
+          metadata: { test: true },
+          claimTimestamp: new Date(),
         });
       } catch (err) {
         // Expected: feature flag disabled

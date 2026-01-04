@@ -63,7 +63,7 @@ export default function BusinessProfileView() {
           type: 'business_profile_viewed' as any,
           ts: new Date().toISOString(),
           path: window.location.pathname,
-          context: {
+          meta: {
             slug,
             isOwner: user?.businessSlug === slug,
           },
@@ -113,12 +113,12 @@ export default function BusinessProfileView() {
 
   // SEO metadata
   const pageTitle = profile.countyName && profile.stateCode
-    ? `${profile.businessName} in ${profile.countyName}, ${profile.stateCode} | TradeScout`
-    : `${profile.businessName} | TradeScout`;
+    ? `${profile.name} in ${profile.countyName}, ${profile.stateCode} | TradeScout`
+    : `${profile.name} | TradeScout`;
   
   const pageDescription = hasDescription
-    ? profile.description.slice(0, 155) // Meta description limit
-    : `${profile.businessName} serving ${profile.countyName || 'local areas'}${profile.serviceAreas && profile.serviceAreas.length > 0 ? ' and nearby areas' : ''}. Contact via TradeScout.`;
+    ? (profile.description || '').slice(0, 155) // Meta description limit
+    : `${profile.name} serving ${profile.countyName || 'local areas'}${profile.serviceAreas && profile.serviceAreas.length > 0 ? ' and nearby areas' : ''}. Contact via TradeScout.`;
   
   const canonicalUrl = `https://www.thetradescout.com/business/${profile.slug}`;
 
@@ -138,7 +138,7 @@ export default function BusinessProfileView() {
             <div className="flex-1">
               <CardTitle className="text-3xl mb-2 flex items-center gap-2" data-testid="bp-headline">
                 <Building2 className="h-8 w-8" />
-                {profile.businessName}
+                {profile.name}
               </CardTitle>
               
               {/* Location */}
@@ -238,7 +238,7 @@ export default function BusinessProfileView() {
         <Card>
           <CardContent className="pt-6">
             <div className="text-center">
-              <h3 className="text-lg font-semibold mb-2">Connect with {profile.businessName}</h3>
+              <h3 className="text-lg font-semibold mb-2">Connect with {profile.name}</h3>
               <p className="text-muted-foreground mb-4">
                 Reach out through TradeScout for trusted local connections.
               </p>
@@ -249,7 +249,7 @@ export default function BusinessProfileView() {
                   // Route to Direct Connect with business context
                   // wouter doesn't support state, so we pass via query params
                   const params = new URLSearchParams({
-                    prefill_businessName: profile.businessName,
+                    prefill_businessName: profile.name,
                     prefill_businessSlug: profile.slug,
                     prefill_countyFips: profile.countyFips || ''
                   });

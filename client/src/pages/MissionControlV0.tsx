@@ -220,7 +220,7 @@ export default function MissionControlV0() {
             {failures.slice(0, 10).map((failure) => (
               <div key={failure.id} className="border-l-4 border-red-500 pl-4 py-2">
                 <div className="flex items-center gap-2">
-                  <Badge variant="destructive">{failure.impactScore}</Badge>
+                  <Badge variant="error">{failure.impactScore}</Badge>
                   <span className="font-semibold">{failure.what}</span>
                   <Badge variant="outline">{failure.fixLever}</Badge>
                 </div>
@@ -245,7 +245,7 @@ export default function MissionControlV0() {
                 <Badge
                   variant={
                     compromise.tag === "stub"
-                      ? "destructive"
+                      ? "error"
                       : compromise.tag === "partial"
                       ? "secondary"
                       : "outline"

@@ -16,7 +16,15 @@ export type RecentActivityEventType =
   // Decision Card (canonical pre-action contract)
   | "decision_card_shown"
   | "decision_card_choice"
-  | "decision_card_override";
+  | "decision_card_override"
+  // Community & County
+  | "community.county_default"
+  | "community.scope_override"
+  | "dc.county_default_applied"
+  | "dc.county_override"
+  // Onboarding
+  | "onboarding_skip"
+  | "onboarding_answer";
 
 export interface RecentActivityEvent {
   type: RecentActivityEventType;

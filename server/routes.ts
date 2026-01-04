@@ -1,4 +1,7 @@
 import scoutRoute from "./routes/scout";
+import { ClaimSource } from './services/claimEventSchema';
+import { resolveCountyFips } from './services/regionResolver';
+import { logger } from "./services/logger";
 import { ingestKnowledgeFolder } from "./services/knowledgeIngest";
 import fs from "fs";
 import path from "path";
@@ -1835,7 +1838,9 @@ export async function registerRoutes(app: any) {
             userId,
             claimType: claimType as any,
             countyFips: countyFips || null,
-            source: 'scout_inferred',
+            countyName: '',
+            source: ClaimSource.SCOUT_INFERRED,
+            claimTimestamp: new Date(),
             metadata: {
               confidence: metadata?.confidenceByClaim?.[claimType] || 0.70,
               evidence: metadata?.evidenceByClaim?.[claimType] || 'User confirmed via Scout onboarding',
@@ -2469,7 +2474,7 @@ export async function registerRoutes(app: any) {
         if (isContractor && !isVerified) {
           // Offer verification as optional boost, don't block
           try {
-            const { buildVerificationGateResponse } = await import('../utils/explainAndOfferVerification');
+            const { buildVerificationGateResponse } = await import('./utils/explainAndOfferVerification');
             
             const gateResponse = buildVerificationGateResponse({
               action: 'PUBLISH_PUBLIC_PROFILE',
@@ -5199,7 +5204,7 @@ export async function registerRoutes(app: any) {
       if (!hasIdentity) missingRequirements.push('identity');
 
       if (missingRequirements.length > 0) {
-        const { buildVerificationGateResponse } = await import('../utils/explainAndOfferVerification');
+        const { buildVerificationGateResponse } = await import('./utils/explainAndOfferVerification');
         
         const gateResponse = buildVerificationGateResponse({
           action: 'APPLY_AS_CONTRACTOR',
@@ -7969,7 +7974,7 @@ export async function registerRoutes(app: any) {
       const isVerified = (currentUser as any)?.addressVerified;
       
       if (!isVerified) {
-        const { buildSoftGateOffer, buildSoftGateResponse } = await import('../utils/softGateFramework');
+        const { buildSoftGateOffer, buildSoftGateResponse } = await import('./utils/softGateFramework');
         
         const offer = buildSoftGateOffer({
           action: 'BECOME_MARKETPLACE_VENDOR',
