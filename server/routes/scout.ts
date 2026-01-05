@@ -2156,7 +2156,7 @@ router.post("/override", async (req: Request, res: Response) => {
         : "general";
 
     const outcomeEvent = {
-      userId: Number(userId),
+      userId: String(userId),
       contextType: normalizedContext as any,
       contextId: contextId ? String(contextId) : null,
       scope: normalizedScope,
@@ -2164,7 +2164,7 @@ router.post("/override", async (req: Request, res: Response) => {
     } satisfies Parameters<typeof recordOutcomeEvent>[0];
 
     await recordOutcomeEvent(outcomeEvent);
-    await updateUserConfidenceStateFromOutcome(Number(userId), outcomeEvent, normalizedScope);
+    await updateUserConfidenceStateFromOutcome(String(userId), outcomeEvent, normalizedScope);
 
     return res.json({ status: "ok" });
   } catch (err) {

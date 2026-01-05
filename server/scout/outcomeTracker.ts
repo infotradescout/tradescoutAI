@@ -17,7 +17,7 @@ type OutcomeAction = "followed_advice" | "ignored_advice" | "completed_flow" | "
 type OutcomeContext = "general" | "trade_deal" | "direct_connect" | "community" | "tool";
 
 type OutcomeEventInput = {
-  userId: number;
+  userId: string;
   conversationId?: string | null;
   contextType: OutcomeContext;
   contextId?: string | null;
@@ -28,7 +28,7 @@ type OutcomeEventInput = {
 };
 
 type ConfidenceState = {
-  userId: number;
+  userId: string;
   scope: string;
   baselineConfidence: number;
   currentConfidence: number;
@@ -66,7 +66,7 @@ export async function recordOutcomeEvent(event: OutcomeEventInput): Promise<void
 /**
  * Load or initialize the user's confidence state.
  */
-export async function getUserConfidenceState(userId: number, scope: string = DEFAULT_SCOPE): Promise<ConfidenceState> {
+export async function getUserConfidenceState(userId: string, scope: string = DEFAULT_SCOPE): Promise<ConfidenceState> {
   const existing = await db.query.scoutUserConfidenceState.findFirst({
     where: and(
       eq(scoutUserConfidenceState.userId, userId),
@@ -124,7 +124,7 @@ function applyDecay(state: ConfidenceState, now: Date): ConfidenceState {
  * Update user confidence state based on an outcome event.
  */
 export async function updateUserConfidenceStateFromOutcome(
-  userId: number,
+  userId: string,
   event: OutcomeEventInput,
   scope: string = DEFAULT_SCOPE
 ): Promise<ConfidenceState> {
@@ -194,7 +194,7 @@ export function computeFinalConfidence(rawConfidence: number, stateConfidence: n
 /**
  * Convenience helper to fetch recent outcome stats for IMD.
  */
-export async function getOutcomeStats(args: { userId: number; contextType?: OutcomeContext; scope?: string }): Promise<{ successes: number; regrets: number; recentSuccesses: number; recentRegrets: number; }> {
+export async function getOutcomeStats(args: { userId: string; contextType?: OutcomeContext; scope?: string }): Promise<{ successes: number; regrets: number; recentSuccesses: number; recentRegrets: number; }> {
   const windowStart = new Date();
   windowStart.setDate(windowStart.getDate() - 30);
 

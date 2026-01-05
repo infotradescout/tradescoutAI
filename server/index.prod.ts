@@ -9,6 +9,7 @@ import { registerRoutes } from "./routes";
 import { createInvoicingDocumentsRouter } from "./invoicingDocumentsRouter";
 import { pool } from "./db";
 import { notificationService } from "./notification-service";
+import { startCrawlerScheduler } from "./services/crawlerScheduler";
 import { initializeMessagingService } from "./messaging-service";
 import { storage } from "./storage";
 import { ensureProfilesTable } from "./ensureDb";
@@ -254,6 +255,15 @@ app.use((req, res, next) => {
 
     initializeMessagingService(server);
     console.log("[Messaging] Socket.io service initialized");
+
+    // Start the crawler scheduler for auto-caching
+    // Controlled by SCHEDULER_ENABLED env flag (default: false)
+    if (process.env.SCHEDULER_ENABLED === "true") {
+      console.log("[Scheduler] Enabling background jobs...");
+      startCrawlerScheduler();
+    } else {
+      console.log("[Scheduler] Background jobs disabled (SCHEDULER_ENABLED != true)");
+    }
 
     setInterval(async () => {
       const now = new Date();

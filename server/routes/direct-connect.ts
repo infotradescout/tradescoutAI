@@ -477,14 +477,14 @@ export function registerDirectConnectRoutes(app: Express) {
       try {
         const scope = "direct_connect";
         const outcomeEvent = {
-          userId: Number(userId),
+          userId: String(userId),
           contextType: "direct_connect" as const,
           contextId: requestId,
           action: "canceled" as const,
           scope,
         };
         await recordOutcomeEvent(outcomeEvent);
-        await updateUserConfidenceStateFromOutcome(Number(userId), outcomeEvent, scope);
+        await updateUserConfidenceStateFromOutcome(String(userId), outcomeEvent, scope);
       } catch (e) {
         console.warn("[direct-connect] Failed to record outcome event for cancel", e);
       }

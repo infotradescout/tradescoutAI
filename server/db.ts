@@ -2,6 +2,7 @@ import { Pool, neonConfig } from '@neondatabase/serverless';
 import { drizzle } from 'drizzle-orm/neon-serverless';
 import ws from "ws";
 import * as schema from "@shared/schema";
+import { emitPoolMetrics } from "./observability/metrics";
 
 neonConfig.webSocketConstructor = ws;
 
@@ -41,6 +42,35 @@ if (!connectionString) {
 } else {
   pool = new Pool({ connectionString });
   db = drizzle({ client: pool, schema });
+
+  // Emit DB pool metrics every 60 seconds
+  setInterval(() => {
+    try {
+      const totalCount = pool.totalCount || 0;
+      const idleCount = pool.idleCount || 0;
+      const waitingCount = pool.waitingCount || 0;
+
+      emitPoolMetrics({
+        active: totalCount - idleCount,
+        idle: idleCount,
+        waiting: waitingCount,
+      });
+    } catch (error) {
+      // Silent failure: never crash on metrics emission
+      console.error("Failed to emit pool metrics:", error);
+    }
+  }, 60_000); // Every 60 seconds
+
+  // Evaluate alerts every 15 seconds (Phase 3)
+  const { evaluateAlerts } = await import("./observability/alerts");
+  setInterval(() => {
+    try {
+      evaluateAlerts();
+    } catch (error) {
+      // Silent failure: never crash on alert evaluation
+      console.error("Failed to evaluate alerts:", error);
+    }
+  }, 15_000); // Every 15 seconds
 }
 
 export { db, pool };

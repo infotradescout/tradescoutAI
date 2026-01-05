@@ -127,6 +127,7 @@ const AdminAffiliates = React.lazy(() => import('./pages/admin-affiliates'));
 const AdminShell = React.lazy(() => import('./pages/admin'));
 const AdminPromotions = React.lazy(() => import('./pages/admin-promotions'));
 const AdminToolDiscovery = React.lazy(() => import('./pages/admin-tool-discovery'));
+const AdminObservability = React.lazy(() => import('./pages/admin-observability'));
 const PromptAdminPage = React.lazy(() => import('./pages/PromptAdminPage').then(mod => ({ default: (mod as any).default || (mod as any).PromptAdminPage }))
 );
 
@@ -707,6 +708,13 @@ const AppLayout = memo(function AppLayout() {
                   <Route path="/admin/:rest*">
                     <ProtectedRoute adminOnly>
                       <LazyPage Component={AdminShell} />
+                    </ProtectedRoute>
+                  </Route>
+                  
+                  {/* Admin Observability Dashboard (Phase 2) */}
+                  <Route path="/admin-observability">
+                    <ProtectedRoute adminOnly>
+                      <LazyPage Component={AdminObservability} />
                     </ProtectedRoute>
                   </Route>
                   
