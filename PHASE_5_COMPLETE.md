@@ -342,6 +342,23 @@ Actions taken: none (observe-only)
 Confidence: stable | watch | investigate
 ```
 
+### Canary Observations (Non-Blocking)
+
+**Observation 1: Lifecycle Bug (Deployment Topology)**
+- **Timestamp**: 2026-01-05 (T+6h)
+- **Event**: Crawler process exits cleanly after completion.
+- **Output**:
+  ```
+  Crawler complete in 982ms
+  Success: 7, Errors: 0
+  Process exiting with code: 0
+  Trace: at process.exit (node:internal/process/per_thread:184:15)
+  ```
+- **Analysis**: Explicit `process.exit(0)` called after crawler job. This terminates the API server if running in the same process.
+- **Phase 5 Impact**: **NONE**. No CRITICAL alerts fired. Exit code 0 (clean).
+- **Action**: Logged as "Known lifecycle bug — non-canary". Deferred to Phase 6 (Runtime Topology Correction).
+- **Status**: **GREEN** (Canary continues).
+
 ---
 
 ## Operational Guidance
