@@ -7564,7 +7564,7 @@ export const scoutOutcomeActionEnum = pgEnum("scout_outcome_action", [
 
 export const scoutOutcomeEvents = pgTable("scout_outcome_events", {
   id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
-  userId: integer("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
   conversationId: varchar("conversation_id", { length: 255 }),
   contextType: scoutOutcomeContextEnum("context_type").notNull(),
   contextId: varchar("context_id", { length: 255 }),
@@ -7581,7 +7581,7 @@ export const scoutOutcomeEvents = pgTable("scout_outcome_events", {
 ]);
 
 export const scoutUserConfidenceState = pgTable("scout_user_confidence_state", {
-  userId: integer("user_id").references(() => users.id, { onDelete: "cascade" }),
+  userId: varchar("user_id").references(() => users.id, { onDelete: "cascade" }),
   scope: varchar("scope", { length: 64 }).notNull().default("global"),
   baselineConfidence: numeric("baseline_confidence").notNull().default("0.20" as any),
   currentConfidence: numeric("current_confidence").notNull().default("0.20" as any),

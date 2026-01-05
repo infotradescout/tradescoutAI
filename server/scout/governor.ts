@@ -285,9 +285,9 @@ export async function inferSituation(args: {
   situation.confidenceScope = confidenceScope;
   
   // Load confidence state and outcome stats (real signals only)
-  const userIdNum = user?.id ? Number(user.id) : undefined;
-  const userState = userIdNum ? await getUserConfidenceState(userIdNum, confidenceScope.key) : undefined;
-  const outcomeStats = userIdNum ? await getOutcomeStats({ userId: userIdNum, scope: confidenceScope.key }) : { successes: 0, regrets: 0, recentSuccesses: 0, recentRegrets: 0 };
+  const userIdStr = user?.id ? String(user.id) : undefined;
+  const userState = userIdStr ? await getUserConfidenceState(userIdStr, confidenceScope.key) : undefined;
+  const outcomeStats = userIdStr ? await getOutcomeStats({ userId: userIdStr, scope: confidenceScope.key }) : { successes: 0, regrets: 0, recentSuccesses: 0, recentRegrets: 0 };
   const approvedTools = await db
     .select({ count: sql<number>`count(*)` })
     .from(toolProposals)

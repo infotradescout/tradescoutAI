@@ -129,20 +129,30 @@ export async function getOrCompute(userId: string, context?: SnapshotInferenceCo
   });
   
   if (dbSnapshot && new Date(dbSnapshot.validUntil) > new Date()) {
+    const primaryRoleConfidence = Number(dbSnapshot.primaryRoleConfidence);
+    const confidenceDecayRate = Number(dbSnapshot.confidenceDecayRate);
+
+    if (!Number.isFinite(primaryRoleConfidence) || !Number.isFinite(confidenceDecayRate)) {
+      console.error('[CRITICAL] Snapshot numeric safety check failed', { 
+        userId, 
+        primaryRoleConfidence: dbSnapshot.primaryRoleConfidence,
+        confidenceDecayRate: dbSnapshot.confidenceDecayRate 
+      });
+      throw new Error(`Snapshot numeric safety check failed for user ${userId}`);
+    }
+
+    const safeSnapshot = { 
+      ...dbSnapshot, 
+      primaryRoleConfidence,
+      confidenceDecayRate
+    } as Snapshot;
+
     // Cache it
     snapshotCache.set(userId, {
-      snapshot: { 
-        ...dbSnapshot, 
-        primaryRoleConfidence: Number(dbSnapshot.primaryRoleConfidence),
-        confidenceDecayRate: Number(dbSnapshot.confidenceDecayRate)
-      } as Snapshot,
+      snapshot: safeSnapshot,
       expiresAt: Date.now() + CACHE_TTL_MS,
     });
-    return { 
-      ...dbSnapshot, 
-      primaryRoleConfidence: Number(dbSnapshot.primaryRoleConfidence),
-      confidenceDecayRate: Number(dbSnapshot.confidenceDecayRate)
-    } as Snapshot;
+    return safeSnapshot;
   }
   
   // Compute new snapshot

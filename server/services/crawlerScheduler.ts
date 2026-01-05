@@ -4,6 +4,11 @@ import { runCrawler } from "../crawler/crawl";
 import { runUsersAggregationJob } from "./usersAggregationJob";
 import { runAffiliatesAggregationJob } from "./affiliatesAggregationJob";
 import { runTradeDealsAggregationJob } from "./tradeDealsAggregationJob";
+import {
+  emitJobStart,
+  emitJobEnd,
+  emitJobError,
+} from "../observability/metrics";
 
 /**
  * Crawler Scheduler - Auto-crawling for cache updates + aggregation jobs
@@ -20,10 +25,20 @@ let tradeDealsAggregationTask: any = null;/**
  * Runs every 5 minutes by default (configurable via env)
  */
 export function startCrawlerScheduler() {
+  // Tier 3 (Crawler) — hard guard
   if (process.env.DISABLE_CRAWLER === "true") {
     console.log("Crawler scheduler disabled via DISABLE_CRAWLER env flag");
-    return;
+  } else {
+    startCrawlerJobs();
   }
+
+  // Tier 2 (Aggregations) — always attempt; each job has its own guard
+  startUsersAggregationScheduler();
+  startAffiliatesAggregationScheduler();
+  startTradeDealsAggregationScheduler();
+}
+
+function startCrawlerJobs() {
   // Get schedule from env, default to every 5 minutes: "*/5 * * * *"
   const schedule = process.env.CRAWLER_SCHEDULE || "*/5 * * * *";
 
@@ -40,11 +55,6 @@ export function startCrawlerScheduler() {
   });
 
   console.log("✅ Crawler scheduler started\n");
-
-  // Start nightly users aggregation job (2 AM by default)
-  startUsersAggregationScheduler();
-  startAffiliatesAggregationScheduler();
-  startTradeDealsAggregationScheduler();
 }
 
 /**
@@ -64,14 +74,18 @@ function startUsersAggregationScheduler() {
   );
 
   usersAggregationTask = cron.schedule(schedule, async () => {
+    const jobName = "users_aggregation";
     console.log(
       `\n📊 [${new Date().toISOString()}] Running nightly users aggregation job...`
     );
+    emitJobStart(jobName);
     try {
       const result = await runUsersAggregationJob();
       console.log("✅ Users aggregation job completed", result);
+      emitJobEnd(jobName, result.metricsWritten || 0, false);
     } catch (error) {
       console.error("❌ Users aggregation job failed:", error);
+      emitJobError(jobName, error);
       // Fire-and-forget: don't crash server on job failure
     }
   });
@@ -96,14 +110,18 @@ function startAffiliatesAggregationScheduler() {
   );
 
   affiliatesAggregationTask = cron.schedule(schedule, async () => {
+    const jobName = "affiliates_aggregation";
     console.log(
       `\n📊 [${new Date().toISOString()}] Running nightly affiliates aggregation job...`
     );
+    emitJobStart(jobName);
     try {
       const result = await runAffiliatesAggregationJob();
       console.log("✅ Affiliates aggregation job completed", result);
+      emitJobEnd(jobName, result.metricsWritten || 0, false);
     } catch (error) {
       console.error("❌ Affiliates aggregation job failed:", error);
+      emitJobError(jobName, error);
       // Fire-and-forget: don't crash server on job failure
     }
   });
@@ -128,14 +146,18 @@ function startTradeDealsAggregationScheduler() {
   );
 
   tradeDealsAggregationTask = cron.schedule(schedule, async () => {
+    const jobName = "trade_deals_aggregation";
     console.log(
       `\n📊 [${new Date().toISOString()}] Running nightly trade deals aggregation job...`
     );
+    emitJobStart(jobName);
     try {
       const result = await runTradeDealsAggregationJob();
       console.log("✅ TradeDeals aggregation job completed", result);
+      emitJobEnd(jobName, result.metricsWritten || 0, false);
     } catch (error) {
       console.error("❌ TradeDeals aggregation job failed:", error);
+      emitJobError(jobName, error);
       // Fire-and-forget: don't crash server on job failure
     }
   });

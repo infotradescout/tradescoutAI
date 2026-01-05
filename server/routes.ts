@@ -32,6 +32,7 @@ import preferredSourceRouter from "./routes/preferred-source";
 import { registerAuthorityOperationsRoutes } from "./routes/authority-operations";
 import { ROLE_PERMISSIONS, type UserRole as SharedUserRole } from "../shared/roles";
 import { CURRENT_PROFILE_VERSION } from "../shared/profile";
+import { sendInternalServerError, sendAutoClassifiedError } from "./utils/httpErrors";
 // DISABLED: WebSocketManager is not instantiated, using Socket.io messaging service instead
 // import { WebSocketManager } from "./websocket";
 import { getMessagingService } from "./messaging-service";
@@ -341,6 +342,10 @@ export async function registerRoutes(app: any) {
   mountAdminRoutes(app);
   app.use("/api/admin/mission-control", missionControlRouter);
   app.use("/api/preferred-source", preferredSourceRouter);
+  
+  // Observability metrics API (Phase 2: Dashboards)
+  const { observabilityRouter } = await import("./routes/observability");
+  app.use("/api/admin/observability", observabilityRouter);
   
   // Authority Operations admin panel (observation mode, decision card metrics, unlock ledger)
   registerAuthorityOperationsRoutes(app);
@@ -675,7 +680,7 @@ export async function registerRoutes(app: any) {
       });
     } catch (error: any) {
       console.error('Registration error:', error);
-      res.status(500).json({ message: 'Registration failed' });
+      sendAutoClassifiedError(res, error, 'Registration failed', { userId: req.user?.id });
     }
   };
 
@@ -2851,7 +2856,7 @@ export async function registerRoutes(app: any) {
     } catch (error: any) {
       console.error('[REQUEST-PASSWORD-RESET] CRITICAL ERROR:', error);
       console.error('[REQUEST-PASSWORD-RESET] Stack:', error?.stack);
-      res.status(500).json({ message: 'Failed to request password reset' });
+      sendAutoClassifiedError(res, error, 'Failed to request password reset');
     }
   });
 
@@ -2898,7 +2903,7 @@ export async function registerRoutes(app: any) {
     } catch (error: any) {
       console.error('[RESET-PASSWORD] CRITICAL ERROR:', error);
       console.error('[RESET-PASSWORD] Stack:', error?.stack);
-      return res.status(500).json({ message: 'Failed to reset password', error: error?.message });
+      return sendAutoClassifiedError(res, error, 'Failed to reset password');
     }
   });
 

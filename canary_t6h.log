@@ -1,0 +1,20 @@
+
+> rest-express@1.0.0 start
+> cross-env NODE_ENV=production node dist/index.js
+
+(node:27356) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+[SchemaPreflight] OK - no drift detected for critical tables.
+FACEBOOK ENV CHECK {
+  id: '1976330596455364',
+  secret: true,
+  callback: 'http://localhost:5000/api/auth/facebook/callback',
+  disable: 'false'
+}
+[AUTH] Using Facebook callback URL: http://localhost:5000/api/auth/facebook/callback
+Registering Facebook strategy with App ID: 1976...
+Facebook strategy successfully registered
+[AUTH] Using Google callback URL: http://localhost:5000/api/auth/google/callback
+[Messaging] Socket.io service initialized
+(node:27356) [DEP0169] DeprecationWarning: `url.parse()` behavior is not standardized and prone to errors that have security implications. Use the WHATWG URL API instead. CVEs are not issued for `url.parse()` vulnerabilities.
+2:44:32 PM [express] serving on port 5006

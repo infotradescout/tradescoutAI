@@ -157,3 +157,15 @@ git restore client/src/scout/ScoutSuggestions.tsx
 5. **Legacy code:** ScoutSuggestions deleted (no accidental resurrection)
 
 **No more inconsistency. No more regressions. System is deterministic.**
+
+### 5. Runtime Audit Fixes (Server-Side)
+**Edits:**
+- ✅ **server/services/logger.ts**: Added `safeStringify` to handle `BigInt` and circular references.
+- ✅ **server/services/snapshotService.ts**: Added `Number.isFinite` guards to prevent `NaN` propagation.
+- ✅ **server/scout/outcomeTracker.ts**: Refactored `userId` from `number` to `string` (UUID).
+- ✅ **server/scout/governor.ts**: Updated to use `string` userId for outcome stats.
+- ✅ **server/routes/direct-connect.ts**: Updated to use `string` userId for outcome events.
+- ✅ **shared/schema.ts**: Updated `scoutOutcomeEvents` and `scoutUserConfidenceState` to use `varchar` for `userId`.
+
+**Result:** Runtime safety against crashes (BigInt/NaN) and logical ID mismatches.
+

@@ -68,7 +68,8 @@ await esbuild.build({
     'mime',
     'etag',
     'fresh',
-    'range-parser'
+    'range-parser',
+    'node-cron'
   ],
   plugins: [aliasPlugin],
   banner: {

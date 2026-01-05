@@ -14,6 +14,7 @@ import { initializeMessagingService } from "./messaging-service";
 import { storage } from "./storage";
 import { ensureProfilesTable } from "./ensureDb";
 import { runSchemaPreflight } from "./schemaPreflight";
+import { emitHttpStatus } from "./observability/metrics";
 import path from "path";
 import fs from "fs";
 import { fileURLToPath } from "url";
@@ -212,6 +213,10 @@ app.use((req, res, next) => {
 
   res.on("finish", () => {
     const duration = Date.now() - start;
+
+    // Emit HTTP status metrics (Phase 1: Observability)
+    emitHttpStatus(res.statusCode);
+
     if (path.startsWith("/api")) {
       let logLine = `${req.method} ${path} ${res.statusCode} in ${duration}ms`;
       if (capturedJsonResponse) {
@@ -290,8 +295,13 @@ app.use((req, res, next) => {
   console.log('[Messaging] Socket.io service initialized');
 
   // Start the crawler scheduler for auto-caching
-  // TEMPORARILY DISABLED for smoke testing (pre-existing bug in hoa.ts extractor)
-  // startCrawlerScheduler();
+  // Controlled by SCHEDULER_ENABLED env flag (default: false)
+  if (process.env.SCHEDULER_ENABLED === "true") {
+    console.log("[Scheduler] Enabling background jobs...");
+    startCrawlerScheduler();
+  } else {
+    console.log("[Scheduler] Background jobs disabled (SCHEDULER_ENABLED != true)");
+  }
 
   // Start birthday notification processing - runs daily at 9 AM
   setInterval(async () => {
