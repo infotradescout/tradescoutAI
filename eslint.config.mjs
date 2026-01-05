@@ -1,0 +1,67 @@
+import typescriptEslintPlugin from '@typescript-eslint/eslint-plugin';
+import typescriptEslintParser from '@typescript-eslint/parser';
+import eslintConfigPrettier from 'eslint-config-prettier';
+import js from '@eslint/js';
+
+export default [
+    {
+        ignores: ['dist/**', 'node_modules/**', 'client/dist/**', '*.mjs', '*.js', 'vite.config.ts']
+    },
+    js.configs.recommended,
+    {
+        files: ['**/*.ts', '**/*.tsx'],
+        languageOptions: {
+            parser: typescriptEslintParser,
+            parserOptions: {
+                ecmaVersion: 2022,
+                sourceType: 'module',
+                project: './tsconfig.lint.json',
+            },
+            globals: {
+                process: 'readonly',
+                console: 'readonly',
+                window: 'readonly',
+                document: 'readonly',
+                setTimeout: 'readonly',
+                clearTimeout: 'readonly',
+                setInterval: 'readonly',
+                clearInterval: 'readonly',
+                module: 'readonly',
+                require: 'readonly'
+            }
+        },
+        plugins: {
+            '@typescript-eslint': typescriptEslintPlugin,
+        },
+        rules: {
+            ...typescriptEslintPlugin.configs.recommended.rules,
+            
+            // Ported rules from .eslintrc.cjs
+            'no-undef': 'off', // TypeScript handles this
+            'no-unused-vars': 'off',
+            '@typescript-eslint/no-unused-vars': ['warn', { argsIgnorePattern: '^_' }],
+            '@typescript-eslint/no-explicit-any': 'warn',
+            '@typescript-eslint/explicit-function-return-type': 'off',
+            '@typescript-eslint/no-non-null-assertion': 'warn',
+            
+            'no-console': 'off',
+            'prefer-const': 'error',
+            'no-var': 'error',
+            'eqeqeq': ['error', 'always'],
+
+            // Guardrails
+            'no-restricted-syntax': [
+                'warn',
+                {
+                    selector: "JSXAttribute[name.name='className'] Literal[value=/\\b(bg|text|border)-(navy|slate|gray|blue|orange|red|green)\\b/]",
+                    message: 'Use system theme tokens (bg-card, bg-background, text-foreground, etc.).',
+                },
+                {
+                    selector: "JSXAttribute[name.name='style']",
+                    message: 'Inline color styles are not allowed. Use theme tokens.',
+                },
+            ],
+        }
+    },
+    eslintConfigPrettier
+];
