@@ -38,7 +38,9 @@
     "seed:geo": "cross-env NODE_ENV=development tsx -r dotenv/config scripts/seed-geographic-storage.ts",
     "audit:theme": "powershell -ExecutionPolicy Bypass -File scripts/audit-theme-lock.ps1",
     "audit:blur": "node scripts/audit-blur-ancestors.mjs",
-    "validate:scout-deals": "node scripts/validate-deal-guardrail.mjs"
+    "validate:scout-deals": "node scripts/validate-deal-guardrail.mjs",
+    "prepare": "husky",
+    "lint": "eslint . --ext .ts,.tsx"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.37.0",
@@ -176,17 +178,27 @@
     "@types/react": "^18.3.11",
     "@types/react-dom": "^18.3.1",
     "@types/ws": "^8.5.13",
+    "@typescript-eslint/eslint-plugin": "^8.51.0",
+    "@typescript-eslint/parser": "^8.51.0",
     "@vitejs/plugin-react": "^4.3.2",
     "@vitest/ui": "^4.0.15",
     "autocannon": "^8.0.0",
     "autoprefixer": "^10.4.20",
+    "clinic": "^13.0.0",
     "cross-env": "^10.1.0",
+    "debug": "^4.4.3",
     "drizzle-kit": "^0.31.8",
     "esbuild": "^0.25.0",
+    "eslint": "^9.39.2",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-prettier": "^5.5.4",
+    "husky": "^9.1.7",
     "knip": "^5.75.1",
+    "lint-staged": "^16.2.7",
     "nodemon": "^3.1.11",
     "playwright": "^1.57.0",
     "postcss": "^8.4.47",
+    "prettier": "^3.7.4",
     "tailwindcss": "^3.4.17",
     "tsx": "^4.19.1",
     "typescript": "5.6.3",
@@ -195,5 +207,14 @@
   },
   "optionalDependencies": {
     "bufferutil": "^4.0.8"
+  },
+  "lint-staged": {
+    "*.{ts,tsx}": [
+      "eslint --fix",
+      "prettier --write"
+    ],
+    "*.{json,md}": [
+      "prettier --write"
+    ]
   }
 }
