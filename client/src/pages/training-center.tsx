@@ -157,26 +157,26 @@ const TrainingCenter = memo(function TrainingCenter() {
   const getLevelColor = (level: string) => {
     switch (level) {
       case 'Beginner':
-        return 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200';
+        return 'bg-primary/10 text-primary';
       case 'Intermediate':
-        return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200';
+        return 'bg-secondary/10 text-secondary-foreground';
       case 'Advanced':
-        return 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200';
+        return 'bg-destructive/10 text-destructive';
       default:
-        return 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200';
+        return 'bg-muted text-muted-foreground';
     }
   };
 
   return (
-    <div className="min-h-screen gradient-bg text-white">
+    <div className="h-full gradient-bg text-foreground">
       <div className="container mx-auto px-4 py-8">
         {/* Header */}
         <div className="mb-8">
           <div className="flex items-center gap-3 mb-4">
-            <GraduationCap className="h-8 w-8 text-orange-400" />
-            <h1 className="text-4xl font-bold text-white">Training Center</h1>
+            <GraduationCap className="h-8 w-8 text-primary" />
+            <h1 className="text-4xl font-bold text-foreground">Training Center</h1>
           </div>
-          <p className="text-gray-300 text-lg">
+          <p className="text-muted-foreground text-lg">
             Advance your skills with professional training courses and certifications
           </p>
         </div>

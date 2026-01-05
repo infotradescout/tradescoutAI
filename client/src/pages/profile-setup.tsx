@@ -116,37 +116,37 @@ export default function ProfileSetup() {
 
   if (!user) {
     return (
-      <div className="min-h-screen bg-navy-900 flex items-center justify-center">
-        <div className="ts-surface px-4 py-6 md:px-10 md:py-8 text-white">Please log in to complete your profile setup.</div>
+      <div className="flex items-center justify-center py-12">
+        <div className="ts-surface px-4 py-6 md:px-10 md:py-8 text-foreground">Please log in to complete your profile setup.</div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-navy-900 py-8">
+    <div className="py-8">
       <div className="container mx-auto px-4 max-w-4xl ts-surface px-4 py-6 md:px-10 md:py-8">
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-white mb-2">Complete Your Profile</h1>
-          <p className="text-gray-300">Tell us about yourself to get the best TradeScout experience</p>
+          <h1 className="text-3xl font-bold text-foreground mb-2">Complete Your Profile</h1>
+          <p className="text-muted-foreground">Tell us about yourself to get the best TradeScout experience</p>
         </div>
 
         {!selectedRole ? (
           <div className="grid md:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
             <Card 
-              className="cursor-pointer transition-all hover:ring-2 hover:ring-orange-500 bg-navy-800 border-navy-700"
+              className="cursor-pointer transition-all hover:ring-2 hover:ring-primary bg-card border-border"
               onClick={() => handleRoleSelection('homeowner')}
             >
               <CardHeader className="text-center">
                 <div className="mx-auto w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mb-4">
                   <Users className="w-8 h-8 text-blue-600" />
                 </div>
-                <CardTitle className="text-white">I'm a Homeowner</CardTitle>
-                <CardDescription className="text-gray-300">
+                <CardTitle className="text-card-foreground">I'm a Homeowner</CardTitle>
+                <CardDescription className="text-muted-foreground">
                   I need contractors for home improvement projects
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <ul className="space-y-2 text-sm text-gray-300">
+                <ul className="space-y-2 text-sm text-muted-foreground">
                   <li>• Find verified local contractors</li>
                   <li>• Get free project estimates</li>
                   <li>• Read RECOMMENDATIONS and ratings</li>
@@ -156,20 +156,20 @@ export default function ProfileSetup() {
             </Card>
 
             <Card 
-              className="cursor-pointer transition-all hover:ring-2 hover:ring-orange-500 bg-navy-800 border-navy-700"
+              className="cursor-pointer transition-all hover:ring-2 hover:ring-primary bg-card border-border"
               onClick={() => handleRoleSelection('contractor_user')}
             >
               <CardHeader className="text-center">
                 <div className="mx-auto w-16 h-16 bg-orange-100 rounded-full flex items-center justify-center mb-4">
                   <HardHat className="w-8 h-8 text-orange-600" />
                 </div>
-                <CardTitle className="text-white">I'm a Contractor</CardTitle>
-                <CardDescription className="text-gray-300">
+                <CardTitle className="text-card-foreground">I'm a Contractor</CardTitle>
+                <CardDescription className="text-muted-foreground">
                   I provide home improvement services
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <ul className="space-y-2 text-sm text-gray-300">
+                <ul className="space-y-2 text-sm text-muted-foreground">
                   <li>• Get qualified project connections</li>
                   <li>• Build your online presence</li>
                   <li>• Connect with homeowners</li>
@@ -179,7 +179,7 @@ export default function ProfileSetup() {
             </Card>
 
             <Card 
-              className="cursor-pointer transition-all hover:ring-2 hover:ring-orange-500 bg-navy-800 border-navy-700"
+              className="cursor-pointer transition-all hover:ring-2 hover:ring-primary bg-card border-border"
               onClick={() => handleRoleSelection('realtor')}
               data-testid="card-select-realtor"
             >
@@ -187,13 +187,13 @@ export default function ProfileSetup() {
                 <div className="mx-auto w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mb-4">
                   <Building className="w-8 h-8 text-green-600" />
                 </div>
-                <CardTitle className="text-white">I'm a Realtor</CardTitle>
-                <CardDescription className="text-gray-300">
+                <CardTitle className="text-card-foreground">I'm a Realtor</CardTitle>
+                <CardDescription className="text-muted-foreground">
                   I help clients buy and sell properties
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <ul className="space-y-2 text-sm text-gray-300">
+                <ul className="space-y-2 text-sm text-muted-foreground">
                   <li>• Connect with trusted contractors</li>
                   <li>• Refer clients to quality professionals</li>
                   <li>• Build referral partnerships</li>
@@ -203,7 +203,7 @@ export default function ProfileSetup() {
             </Card>
 
             <Card 
-              className="cursor-pointer transition-all hover:ring-2 hover:ring-orange-500 bg-navy-800 border-navy-700"
+              className="cursor-pointer transition-all hover:ring-2 hover:ring-primary bg-card border-border"
               onClick={() => handleRoleSelection('vehicle_dealer')}
               data-testid="card-select-vehicle-dealer"
             >
@@ -211,13 +211,13 @@ export default function ProfileSetup() {
                 <div className="mx-auto w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mb-4">
                   <Car className="w-8 h-8 text-blue-600" />
                 </div>
-                <CardTitle className="text-white">I'm a Vehicle Dealer</CardTitle>
-                <CardDescription className="text-gray-300">
+                <CardTitle className="text-card-foreground">I'm a Vehicle Dealer</CardTitle>
+                <CardDescription className="text-muted-foreground">
                   I sell cars, trucks, and other vehicles
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <ul className="space-y-2 text-sm text-gray-300">
+                <ul className="space-y-2 text-sm text-muted-foreground">
                   <li>• Connect with homeowner customers</li>
                   <li>• Partner with contractors for financing</li>
                   <li>• Build referral networks</li>
@@ -227,7 +227,7 @@ export default function ProfileSetup() {
             </Card>
 
             <Card 
-              className="cursor-pointer transition-all hover:ring-2 hover:ring-orange-500 bg-navy-800 border-navy-700"
+              className="cursor-pointer transition-all hover:ring-2 hover:ring-primary bg-card border-border"
               onClick={() => handleRoleSelection('helper')}
               data-testid="card-select-helper"
             >
@@ -235,13 +235,13 @@ export default function ProfileSetup() {
                 <div className="mx-auto w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center mb-4">
                   <Wrench className="w-8 h-8 text-purple-600" />
                 </div>
-                <CardTitle className="text-white">I'm a Helper</CardTitle>
-                <CardDescription className="text-gray-300">
+                <CardTitle className="text-card-foreground">I'm a Helper</CardTitle>
+                <CardDescription className="text-muted-foreground">
                   I help with tasks and projects
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <ul className="space-y-2 text-sm text-gray-300">
+                <ul className="space-y-2 text-sm text-muted-foreground">
                   <li>• Find flexible work opportunities</li>
                   <li>• Help residents, pros, and local teams</li>
                   <li>• Build experience and reputation</li>
@@ -251,9 +251,9 @@ export default function ProfileSetup() {
             </Card>
           </div>
         ) : (
-          <Card className="bg-navy-800 border-navy-700">
+          <Card className="bg-card border-border">
             <CardHeader>
-              <CardTitle className="text-white flex items-center gap-2">
+              <CardTitle className="text-card-foreground flex items-center gap-2">
                 {selectedRole === 'contractor_user' ? (
                   <>
                     <HardHat className="w-5 h-5" />
@@ -281,7 +281,7 @@ export default function ProfileSetup() {
                   </>
                 )}
               </CardTitle>
-              <CardDescription className="text-gray-300">
+              <CardDescription className="text-muted-foreground">
                 {selectedRole === 'contractor_user' 
                   ? "Tell us about your contracting business"
                   : selectedRole === 'realtor'
@@ -304,7 +304,7 @@ export default function ProfileSetup() {
                       name="phone"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel className="text-gray-300 flex items-center gap-2">
+                          <FormLabel className="text-muted-foreground flex items-center gap-2">
                             <Phone className="w-4 h-4" />
                             Phone Number
                           </FormLabel>
@@ -312,7 +312,7 @@ export default function ProfileSetup() {
                             <Input
                               placeholder="(555) 123-4567"
                               {...field}
-                              className="bg-navy-700 border-navy-600 text-white placeholder-gray-400"
+                              className="bg-background border-input text-foreground placeholder:text-muted-foreground"
                             />
                           </FormControl>
                           <FormMessage />
@@ -325,12 +325,12 @@ export default function ProfileSetup() {
                       name="zipCode"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel className="text-gray-300">ZIP Code</FormLabel>
+                          <FormLabel className="text-muted-foreground">ZIP Code</FormLabel>
                           <FormControl>
                             <Input
                               placeholder="12345"
                               {...field}
-                              className="bg-navy-700 border-navy-600 text-white placeholder-gray-400"
+                              className="bg-background border-input text-foreground placeholder:text-muted-foreground"
                             />
                           </FormControl>
                           <FormMessage />
@@ -345,7 +345,7 @@ export default function ProfileSetup() {
                     name="address"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel className="text-gray-300 flex items-center gap-2">
+                        <FormLabel className="text-muted-foreground flex items-center gap-2">
                           <MapPin className="w-4 h-4" />
                           Address
                         </FormLabel>
@@ -353,7 +353,7 @@ export default function ProfileSetup() {
                           <Input
                             placeholder="123 Main Street"
                             {...field}
-                            className="bg-navy-700 border-navy-600 text-white placeholder-gray-400"
+                            className="bg-background border-input text-foreground placeholder:text-muted-foreground"
                           />
                         </FormControl>
                         <FormMessage />
@@ -367,12 +367,12 @@ export default function ProfileSetup() {
                       name="city"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel className="text-gray-300">City</FormLabel>
+                          <FormLabel className="text-muted-foreground">City</FormLabel>
                           <FormControl>
                             <Input
                               placeholder="Los Angeles"
                               {...field}
-                              className="bg-navy-700 border-navy-600 text-white placeholder-gray-400"
+                              className="bg-background border-input text-foreground placeholder:text-muted-foreground"
                             />
                           </FormControl>
                           <FormMessage />
@@ -385,12 +385,12 @@ export default function ProfileSetup() {
                       name="state"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel className="text-gray-300">State</FormLabel>
+                          <FormLabel className="text-muted-foreground">State</FormLabel>
                           <FormControl>
                             <Input
                               placeholder="CA"
                               {...field}
-                              className="bg-navy-700 border-navy-600 text-white placeholder-gray-400"
+                              className="bg-background border-input text-foreground placeholder:text-muted-foreground"
                             />
                           </FormControl>
                           <FormMessage />
@@ -402,8 +402,8 @@ export default function ProfileSetup() {
                   {/* Contractor-specific fields */}
                   {selectedRole === 'contractor_user' && (
                     <>
-                      <div className="border-t border-navy-600 pt-6">
-                        <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+                      <div className="border-t border-border pt-6">
+                        <h3 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
                           <Building className="w-5 h-5" />
                           Business Information
                         </h3>
@@ -414,12 +414,12 @@ export default function ProfileSetup() {
                             name="companyName"
                             render={({ field }) => (
                               <FormItem>
-                                <FormLabel className="text-gray-300">Company Name</FormLabel>
+                                <FormLabel className="text-muted-foreground">Company Name</FormLabel>
                                 <FormControl>
                                   <Input
                                     placeholder="ABC Construction LLC"
                                     {...field}
-                                    className="bg-navy-700 border-navy-600 text-white placeholder-gray-400"
+                                    className="bg-background border-input text-foreground placeholder:text-muted-foreground"
                                   />
                                 </FormControl>
                                 <FormMessage />
@@ -432,12 +432,12 @@ export default function ProfileSetup() {
                             name="licenseNumber"
                             render={({ field }) => (
                               <FormItem>
-                                <FormLabel className="text-gray-300">License Number</FormLabel>
+                                <FormLabel className="text-muted-foreground">License Number</FormLabel>
                                 <FormControl>
                                   <Input
                                     placeholder="Professional license ID"
                                     {...field}
-                                    className="bg-navy-700 border-navy-600 text-white placeholder-gray-400"
+                                    className="bg-background border-input text-foreground placeholder:text-muted-foreground"
                                   />
                                 </FormControl>
                                 <FormMessage />
@@ -451,12 +451,12 @@ export default function ProfileSetup() {
                           name="businessDescription"
                           render={({ field }) => (
                             <FormItem>
-                              <FormLabel className="text-gray-300">Business Description</FormLabel>
+                              <FormLabel className="text-muted-foreground">Business Description</FormLabel>
                               <FormControl>
                                 <Textarea
                                   placeholder="Tell us about your services, specialties, and what makes your business unique..."
                                   {...field}
-                                  className="bg-navy-700 border-navy-600 text-white placeholder-gray-400 min-h-[100px]"
+                                  className="bg-background border-input text-foreground placeholder:text-muted-foreground min-h-[100px]"
                                 />
                               </FormControl>
                               <FormMessage />
@@ -465,9 +465,9 @@ export default function ProfileSetup() {
                         />
 
                         {/* Contractor Type */}
-                        <div className="border-t border-navy-600 pt-4">
-                          <h4 className="text-md font-semibold text-white mb-3">Contractor Type</h4>
-                          <p className="text-gray-400 text-sm mb-4">Select all that apply to describe your business</p>
+                        <div className="border-t border-border pt-4">
+                          <h4 className="text-md font-semibold text-foreground mb-3">Contractor Type</h4>
+                          <p className="text-muted-foreground text-sm mb-4">Select all that apply to describe your business</p>
                           
                           <div className="space-y-3">
                             <FormField
@@ -482,10 +482,10 @@ export default function ProfileSetup() {
                                     />
                                   </FormControl>
                                   <div className="space-y-1 leading-none">
-                                    <FormLabel className="text-gray-300">
+                                    <FormLabel className="text-muted-foreground">
                                       General Contractor
                                     </FormLabel>
-                                    <p className="text-sm text-gray-400">
+                                    <p className="text-sm text-muted-foreground">
                                       I manage complete construction projects and coordinate with other trades
                                     </p>
                                   </div>
@@ -505,10 +505,10 @@ export default function ProfileSetup() {
                                     />
                                   </FormControl>
                                   <div className="space-y-1 leading-none">
-                                    <FormLabel className="text-gray-300">
+                                    <FormLabel className="text-muted-foreground">
                                       Residential Contractor
                                     </FormLabel>
-                                    <p className="text-sm text-gray-400">
+                                    <p className="text-sm text-muted-foreground">
                                       I specialize in home improvement and residential projects
                                     </p>
                                   </div>
@@ -528,10 +528,10 @@ export default function ProfileSetup() {
                                     />
                                   </FormControl>
                                   <div className="space-y-1 leading-none">
-                                    <FormLabel className="text-gray-300">
+                                    <FormLabel className="text-muted-foreground">
                                       Accept Subcontract Work
                                     </FormLabel>
-                                    <p className="text-sm text-gray-400">
+                                    <p className="text-sm text-muted-foreground">
                                       I'm available to work as a subcontractor for other contractors
                                     </p>
                                   </div>
@@ -549,14 +549,14 @@ export default function ProfileSetup() {
                       type="button"
                       variant="outline"
                       onClick={() => setSelectedRole(null)}
-                      className="border-navy-500 text-gray-300 hover:bg-navy-600"
+                      className="border-input text-muted-foreground hover:bg-accent hover:text-accent-foreground"
                     >
                       Back
                     </Button>
                     <Button
                       type="submit"
                       disabled={setupProfileMutation.isPending}
-                      className="bg-orange-500 hover:bg-orange-600 text-white"
+                      className="bg-primary hover:bg-primary/90 text-primary-foreground"
                     >
                       {setupProfileMutation.isPending ? 'Setting up...' : 'Complete Setup'}
                     </Button>

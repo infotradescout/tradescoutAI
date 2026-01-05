@@ -207,15 +207,15 @@ const Dashboard = memo(function Dashboard() {
   if (!canLoadDashboard) {
     if (isCommunityFirst) {
       return (
-        <div className="min-h-screen flex items-center justify-center text-center text-slate-300 bg-tsBg">
+        <div className="h-full flex items-center justify-center text-center text-muted-foreground bg-background">
           <div className="max-w-md px-6 space-y-3">
-            <h1 className="text-lg font-semibold text-white">
+            <h1 className="text-lg font-semibold text-foreground">
               Your tools live here when you need them
             </h1>
-            <p className="text-sm text-slate-400">
+            <p className="text-sm text-muted-foreground">
               Use this workspace to keep track of your Direct Connect requests, saved pros, and activity as your community life grows.
             </p>
-            <p className="text-sm text-slate-500">
+            <p className="text-sm text-muted-foreground">
               For now, see what&apos;s happening in your community and come back here whenever you want to organize things.
             </p>
             <div className="mt-4">
@@ -228,26 +228,26 @@ const Dashboard = memo(function Dashboard() {
       );
     }
     return (
-      <div className="min-h-screen flex items-center justify-center text-center text-slate-500">
+      <div className="h-full flex items-center justify-center text-center text-muted-foreground">
         Finish setup to unlock your dashboard.
       </div>
     );
   }
   if (preferencesLoading) {
     return (
-      <div className="min-h-screen bg-tsBg dark:bg-slate-900 flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500"></div>
+      <div className="h-full bg-background flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-tsBg dark:bg-slate-900 pb-16 lg:pb-0">
+    <div className="h-full bg-background pb-16 lg:pb-0">
       <div className="max-w-6xl mx-auto px-4 py-6 space-y-6">
         {/* Header */}
         <div className="flex items-center justify-between">
           <div className="space-y-1">
-            <h1 className="text-lg font-semibold text-orange-500">
+            <h1 className="text-lg font-semibold text-primary">
               Welcome back, {user?.firstName || 'Friend'}!
             </h1>
             <p className="text-sm text-slate-600 dark:text-slate-400">

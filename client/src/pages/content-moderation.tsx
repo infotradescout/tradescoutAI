@@ -121,65 +121,65 @@ const ContentModeration = memo(function ContentModeration() {
   };
 
   return (
-    <div className="min-h-screen bg-navy-900 text-white">
+    <div className="text-foreground">
       <div className="container mx-auto px-4 py-8">
         {/* Header */}
         <div className="mb-8">
           <div className="flex items-center gap-3 mb-4">
-            <Shield className="h-8 w-8 text-orange-400" />
-            <h1 className="text-4xl font-bold text-white">Content Moderation</h1>
+            <Shield className="h-8 w-8 text-primary" />
+            <h1 className="text-4xl font-bold text-foreground">Content Moderation</h1>
           </div>
-          <p className="text-gray-300 text-lg">
+          <p className="text-muted-foreground text-lg">
             Monitor and moderate platform content to maintain community standards
           </p>
         </div>
 
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-          <Card className="bg-navy-800/50 border-navy-600 backdrop-blur-sm">
+          <Card className="bg-card border-border backdrop-blur-sm">
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-gray-400 text-sm">Flagged Content</p>
-                  <p className="text-2xl font-bold text-white">{flaggedContent.length}</p>
+                  <p className="text-muted-foreground text-sm">Flagged Content</p>
+                  <p className="text-2xl font-bold text-card-foreground">{flaggedContent.length}</p>
                 </div>
-                <Flag className="h-8 w-8 text-red-400" />
+                <Flag className="h-8 w-8 text-destructive" />
               </div>
             </CardContent>
           </Card>
 
-          <Card className="bg-navy-800/50 border-navy-600 backdrop-blur-sm">
+          <Card className="bg-card border-border backdrop-blur-sm">
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-gray-400 text-sm">User Reports</p>
-                  <p className="text-2xl font-bold text-white">{reports.length}</p>
+                  <p className="text-muted-foreground text-sm">User Reports</p>
+                  <p className="text-2xl font-bold text-card-foreground">{reports.length}</p>
                 </div>
-                <AlertTriangle className="h-8 w-8 text-yellow-400" />
+                <AlertTriangle className="h-8 w-8 text-yellow-500" />
               </div>
             </CardContent>
           </Card>
 
-          <Card className="bg-navy-800/50 border-navy-600 backdrop-blur-sm">
+          <Card className="bg-card border-border backdrop-blur-sm">
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-gray-400 text-sm">Resolved Today</p>
-                  <p className="text-2xl font-bold text-white">18</p>
+                  <p className="text-muted-foreground text-sm">Resolved Today</p>
+                  <p className="text-2xl font-bold text-card-foreground">18</p>
                 </div>
-                <CheckCircle2 className="h-8 w-8 text-green-400" />
+                <CheckCircle2 className="h-8 w-8 text-green-500" />
               </div>
             </CardContent>
           </Card>
 
-          <Card className="bg-navy-800/50 border-navy-600 backdrop-blur-sm">
+          <Card className="bg-card border-border backdrop-blur-sm">
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-gray-400 text-sm">Response Time</p>
-                  <p className="text-2xl font-bold text-white">1.2h</p>
+                  <p className="text-muted-foreground text-sm">Response Time</p>
+                  <p className="text-2xl font-bold text-card-foreground">1.2h</p>
                 </div>
-                <Eye className="h-8 w-8 text-blue-400" />
+                <Eye className="h-8 w-8 text-blue-500" />
               </div>
             </CardContent>
           </Card>
@@ -187,31 +187,31 @@ const ContentModeration = memo(function ContentModeration() {
 
         {/* Moderation Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="bg-navy-800 border-navy-600">
-            <TabsTrigger value="flagged" className="data-[state=active]:bg-orange-600">
+          <TabsList className="bg-muted border-border">
+            <TabsTrigger value="flagged" className="data-[state=active]:bg-background">
               Flagged Content ({flaggedContent.length})
             </TabsTrigger>
-            <TabsTrigger value="reports" className="data-[state=active]:bg-orange-600">
+            <TabsTrigger value="reports" className="data-[state=active]:bg-background">
               User Reports ({reports.length})
             </TabsTrigger>
-            <TabsTrigger value="history" className="data-[state=active]:bg-orange-600">
+            <TabsTrigger value="history" className="data-[state=active]:bg-background">
               Moderation History
             </TabsTrigger>
           </TabsList>
 
           <TabsContent value="flagged" className="space-y-6">
             {flaggedContent.map((item) => (
-              <Card key={item.id} className="bg-navy-800/50 border-navy-600 backdrop-blur-sm">
+              <Card key={item.id} className="bg-card border-border backdrop-blur-sm">
                 <CardHeader>
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
                       <Badge variant="outline" className={getPriorityColor(item.priority)}>
                         {item.priority.toUpperCase()}
                       </Badge>
-                      <Badge variant="outline" className="border-gray-600 text-gray-400">
+                      <Badge variant="outline" className="border-border text-muted-foreground">
                         {item.type.toUpperCase()}
                       </Badge>
-                      <span className="text-gray-400 text-sm">
+                      <span className="text-muted-foreground text-sm">
                         Flagged by {item.flaggedBy} users
                       </span>
                     </div>
@@ -229,24 +229,24 @@ const ContentModeration = memo(function ContentModeration() {
                         </Avatar>
                         <div className="flex-1">
                           <div className="flex items-center gap-2 mb-2">
-                            <span className="font-medium text-white">{item.author.name}</span>
-                            <Badge variant="outline" className="border-blue-600 text-blue-400">
+                            <span className="font-medium text-foreground">{item.author.name}</span>
+                            <Badge variant="outline" className="border-blue-500 text-blue-500">
                               {item.author.role}
                             </Badge>
                             {item.author.verified && (
-                              <CheckCircle2 className="h-4 w-4 text-green-400" />
+                              <CheckCircle2 className="h-4 w-4 text-green-500" />
                             )}
                           </div>
-                          <div className="bg-navy-700 p-4 rounded-lg">
-                            <p className="text-white">{item.content}</p>
+                          <div className="bg-muted p-4 rounded-lg">
+                            <p className="text-foreground">{item.content}</p>
                           </div>
                         </div>
                       </div>
 
                       <div className="flex items-center gap-2">
-                        <span className="text-gray-400 text-sm">Flag reasons:</span>
+                        <span className="text-muted-foreground text-sm">Flag reasons:</span>
                         {item.flagReasons.map((reason, index) => (
-                          <Badge key={index} variant="outline" className="border-red-600 text-red-400">
+                          <Badge key={index} variant="outline" className="border-destructive text-destructive">
                             {reason}
                           </Badge>
                         ))}
@@ -255,10 +255,10 @@ const ContentModeration = memo(function ContentModeration() {
 
                     {/* Actions */}
                     <div className="space-y-4">
-                      <h4 className="text-white font-medium">Moderation Actions</h4>
+                      <h4 className="text-foreground font-medium">Moderation Actions</h4>
                       <div className="space-y-3">
                         <Button 
-                          className="w-full bg-green-600 hover:bg-green-700"
+                          className="w-full bg-green-600 hover:bg-green-700 text-white"
                           onClick={() => handleApproveContent(item.id)}
                         >
                           <CheckCircle2 className="h-4 w-4 mr-2" />
@@ -266,7 +266,7 @@ const ContentModeration = memo(function ContentModeration() {
                         </Button>
                         <Button 
                           variant="outline" 
-                          className="w-full border-yellow-600 text-yellow-400 hover:bg-yellow-600/20"
+                          className="w-full border-yellow-500 text-yellow-600 hover:bg-yellow-50"
                           onClick={() => handleHideContent(item.id)}
                         >
                           <EyeOff className="h-4 w-4 mr-2" />
@@ -274,7 +274,7 @@ const ContentModeration = memo(function ContentModeration() {
                         </Button>
                         <Button 
                           variant="outline" 
-                          className="w-full border-red-600 text-red-400 hover:bg-red-600/20"
+                          className="w-full border-destructive text-destructive hover:bg-destructive/10"
                           onClick={() => handleRemoveContent(item.id)}
                         >
                           <Trash2 className="h-4 w-4 mr-2" />
@@ -283,10 +283,10 @@ const ContentModeration = memo(function ContentModeration() {
                       </div>
 
                       <div className="mt-4">
-                        <h5 className="text-white font-medium mb-2">Moderation Notes</h5>
+                        <h5 className="text-foreground font-medium mb-2">Moderation Notes</h5>
                         <Textarea 
                           placeholder="Add moderation notes..."
-                          className="bg-navy-700 border-navy-600 text-white"
+                          className="bg-background border-input text-foreground"
                         />
                       </div>
                     </div>
@@ -298,12 +298,12 @@ const ContentModeration = memo(function ContentModeration() {
 
           <TabsContent value="reports" className="space-y-6">
             {reports.map((report) => (
-              <Card key={report.id} className="bg-navy-800/50 border-navy-600 backdrop-blur-sm">
+              <Card key={report.id} className="bg-card border-border backdrop-blur-sm">
                 <CardContent className="p-6">
                   <div className="flex items-center justify-between mb-4">
                     <div>
-                      <h3 className="text-white font-medium">{report.reason}</h3>
-                      <p className="text-gray-400 text-sm">
+                      <h3 className="text-foreground font-medium">{report.reason}</h3>
+                      <p className="text-muted-foreground text-sm">
                         {report.reportedUser} reported by {report.reportedBy}
                       </p>
                     </div>
@@ -312,18 +312,18 @@ const ContentModeration = memo(function ContentModeration() {
                     </Badge>
                   </div>
                   
-                  <p className="text-gray-300 mb-4">{report.description}</p>
+                  <p className="text-muted-foreground mb-4">{report.description}</p>
                   
                   <div className="flex items-center justify-between">
-                    <span className="text-gray-400 text-sm">
+                    <span className="text-muted-foreground text-sm">
                       Reported on {new Date(report.date).toLocaleDateString()}
                     </span>
                     <div className="flex gap-2">
-                      <Button size="sm" variant="outline" className="border-orange-600 text-orange-400 hover:bg-orange-600/20">
+                      <Button size="sm" variant="outline" className="border-primary text-primary hover:bg-primary/10">
                         <Users2 className="h-4 w-4 mr-1" />
                         View User
                       </Button>
-                      <Button size="sm" variant="outline" className="border-orange-600 text-orange-400 hover:bg-orange-600/20">
+                      <Button size="sm" variant="outline" className="border-primary text-primary hover:bg-primary/10">
                         <MessageSquare className="h-4 w-4 mr-1" />
                         Contact
                       </Button>
@@ -336,9 +336,9 @@ const ContentModeration = memo(function ContentModeration() {
 
           <TabsContent value="history" className="space-y-6">
             <div className="text-center py-12">
-              <Shield className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-              <h3 className="text-white text-xl mb-2">Moderation History</h3>
-              <p className="text-gray-400">View complete history of moderation actions and decisions</p>
+              <Shield className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
+              <h3 className="text-foreground text-xl mb-2">Moderation History</h3>
+              <p className="text-muted-foreground">View complete history of moderation actions and decisions</p>
             </div>
           </TabsContent>
         </Tabs>

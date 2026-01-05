@@ -125,23 +125,23 @@ function buildFipsLookup() {
 const FIPS_LOOKUP = buildFipsLookup();
 
 function getCountyFillColor(count: number): string {
-  if (!count || count <= 0) return "#020617"; // slate-950 background
+  if (!count || count <= 0) return "var(--heatmap-bg)"; // slate-950 background
 
   const value = Math.log10(count);
 
-  if (value <= 0) return "#f1f5f9"; // slate-100
-  if (value <= 1) return "#bae6fd"; // light blue
-  if (value <= 2) return "#7dd3fc";
-  if (value <= 3) return "#38bdf8";
-  if (value <= 4) return "#0284c7";
-  return "#0c4a6e"; // darkest
+  if (value <= 0) return "var(--heatmap-0)"; // slate-100
+  if (value <= 1) return "var(--heatmap-1)"; // light blue
+  if (value <= 2) return "var(--heatmap-2)";
+  if (value <= 3) return "var(--heatmap-3)";
+  if (value <= 4) return "var(--heatmap-4)";
+  return "var(--heatmap-5)"; // darkest
 }
 
 function getCoverageFillColor(status?: CountyCoverageStatus): string {
-  if (!status) return "#1e293b"; // slate-800 neutral
-  if (status === "unassigned") return "#b91c1c"; // red-700
-  if (status === "partial") return "#b45309"; // amber-700
-  return "#15803d"; // green-700 for full
+  if (!status) return "var(--coverage-neutral)"; // slate-800 neutral
+  if (status === "unassigned") return "var(--coverage-unassigned)"; // red-700
+  if (status === "partial") return "var(--coverage-partial)"; // amber-700
+  return "var(--coverage-full)"; // green-700 for full
 }
 
 function CountyHeatmapMap({
@@ -217,14 +217,14 @@ function CountyHeatmapMap({
                 ? getCoverageFillColor(coverage?.coverageStatus)
                 : hasMetric
                 ? getCountyFillColor(count)
-                : "#1e293b"; // neutral when metric not populated
+                : "var(--coverage-neutral)"; // neutral when metric not populated
 
             return (
               <path
                 key={fips || d}
                 d={d}
                 fill={fillColor}
-                stroke={isSelected ? "#f97316" : "#020617"}
+                stroke={isSelected ? "var(--heatmap-stroke-selected)" : "var(--heatmap-stroke-default)"}
                 strokeWidth={isSelected ? 1 : 0.25}
                 onMouseEnter={(evt) => {
                   if (!fips || !info) return;

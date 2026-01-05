@@ -147,15 +147,15 @@ const ReferralDashboard = memo(function ReferralDashboard() {
   };
 
   return (
-    <div className="min-h-screen gradient-bg text-white">
+    <div className="h-full gradient-bg text-foreground">
       <div className="container mx-auto px-4 py-8">
         {/* Header */}
         <div className="mb-8">
           <div className="flex items-center gap-3 mb-4">
-            <TrendingUp className="h-8 w-8 text-orange-400" />
-            <h1 className="text-4xl font-bold text-white">Referral Dashboard</h1>
+            <TrendingUp className="h-8 w-8 text-primary" />
+            <h1 className="text-4xl font-bold text-foreground">Referral Dashboard</h1>
           </div>
-          <p className="text-gray-300 text-lg">
+          <p className="text-muted-foreground text-lg">
             Earn 10-20% commission by referring new users to TradeScout
           </p>
         </div>

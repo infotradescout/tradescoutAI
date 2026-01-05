@@ -175,23 +175,23 @@ export default function ContractorSignup() {
 
   if (currentStep === 5) {
     return (
-      <div className="min-h-screen bg-navy-900 py-12">
+      <div className="h-full bg-background py-12">
         <SEOHelmet
           title="Application Submitted - TradeScout Contractor Signup"
           description="Your contractor application has been submitted successfully."
           canonical="https://www.thetradescout.com/contractors/apply"
         />
         <div className="max-w-2xl mx-auto px-4">
-          <Card className="bg-navy-700 border-navy-600">
+          <Card className="bg-card border-border">
             <CardContent className="p-12 text-center">
-              <CheckCircle className="h-16 w-16 text-green-500 mx-auto mb-6" />
-              <h1 className="text-3xl font-bold text-white mb-4">Application Submitted!</h1>
-              <p className="text-gray-300 mb-6">
+              <CheckCircle className="h-16 w-16 text-primary mx-auto mb-6" />
+              <h1 className="text-3xl font-bold text-foreground mb-4">Application Submitted!</h1>
+              <p className="text-muted-foreground mb-6">
                 Thank you for applying to join TradeScout. We'll review your application and contact you within 24-48 hours.
               </p>
-              <div className="bg-navy-600 rounded-lg p-4 mb-6">
-                <h3 className="text-lg font-semibold text-white mb-2">Next Steps:</h3>
-                <ul className="text-gray-300 text-left space-y-2">
+              <div className="bg-muted rounded-lg p-4 mb-6">
+                <h3 className="text-lg font-semibold text-foreground mb-2">Next Steps:</h3>
+                <ul className="text-muted-foreground text-left space-y-2">
                   <li>• We'll verify your license and insurance</li>
                   <li>• Our team will review your business information</li>
                   <li>• You'll receive an email with your approval status</li>
@@ -200,7 +200,7 @@ export default function ContractorSignup() {
               </div>
               <Button 
                 onClick={() => window.location.href = '/contractor-dashboard'}
-                className="bg-orange-500 hover:bg-orange-600 text-white"
+                className="bg-primary hover:bg-primary/90 text-primary-foreground"
               >
                 Go to Contractor Dashboard
               </Button>
@@ -212,7 +212,7 @@ export default function ContractorSignup() {
   }
 
   return (
-    <div className="min-h-screen bg-navy-900 py-12">
+    <div className="h-full bg-background py-12">
       <SEOHelmet
         title="Join TradeScout - Contractor Registration"
         description="Join TradeScout's verified contractor network. Get more leads, showcase your work, and grow your business with our contractor platform."

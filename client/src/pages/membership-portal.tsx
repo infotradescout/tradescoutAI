@@ -101,33 +101,33 @@ const MembershipPortal = memo(function MembershipPortal() {
   };
 
   return (
-    <div className="min-h-screen gradient-bg text-white">
+    <div className="h-full bg-background">
       <div className="container mx-auto px-4 py-8">
         {/* Header */}
         <div className="mb-8">
           <div className="flex items-center gap-3 mb-4">
-            <Crown className="h-8 w-8 text-orange-400" />
-            <h1 className="text-4xl font-bold text-white">Membership Portal</h1>
+            <Crown className="h-8 w-8 text-primary" />
+            <h1 className="text-4xl font-bold text-foreground">Membership Portal</h1>
           </div>
-          <p className="text-gray-300 text-lg">
+          <p className="text-muted-foreground text-lg">
             Manage your TradeScout membership and unlock premium features
           </p>
         </div>
 
         <Tabs defaultValue="current" className="w-full">
-          <TabsList className="grid w-full grid-cols-3 bg-navy-800/50 backdrop-blur-sm mb-8">
-            <TabsTrigger value="current" className="data-[state=active]:bg-orange-600">Current Plan</TabsTrigger>
-            <TabsTrigger value="plans" className="data-[state=active]:bg-orange-600">All Plans</TabsTrigger>
-            <TabsTrigger value="billing" className="data-[state=active]:bg-orange-600">Billing</TabsTrigger>
+          <TabsList className="grid w-full grid-cols-3 bg-muted mb-8">
+            <TabsTrigger value="current" className="data-[state=active]:bg-background">Current Plan</TabsTrigger>
+            <TabsTrigger value="plans" className="data-[state=active]:bg-background">All Plans</TabsTrigger>
+            <TabsTrigger value="billing" className="data-[state=active]:bg-background">Billing</TabsTrigger>
           </TabsList>
 
           <TabsContent value="current">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
               {/* Current Plan Overview */}
-              <Card className="bg-navy-800/50 border-navy-600 backdrop-blur-sm">
+              <Card className="bg-card border-border">
                 <CardHeader>
-                  <CardTitle className="text-white flex items-center gap-2">
-                    <Star className="h-5 w-5 text-orange-400" />
+                  <CardTitle className="text-foreground flex items-center gap-2">
+                    <Star className="h-5 w-5 text-primary" />
                     Current Membership
                   </CardTitle>
                 </CardHeader>
@@ -135,39 +135,39 @@ const MembershipPortal = memo(function MembershipPortal() {
                   <div className="space-y-6">
                     <div className="flex justify-between items-center">
                       <div>
-                        <h3 className="text-2xl font-bold text-white">{currentMembershipData.plan}</h3>
-                        <p className="text-gray-400">Active since January 2024</p>
+                        <h3 className="text-2xl font-bold text-foreground">{currentMembershipData.plan}</h3>
+                        <p className="text-muted-foreground">Active since January 2024</p>
                       </div>
                       <Badge className="bg-green-600 hover:bg-green-700">
                         {currentMembershipData.status}
                       </Badge>
                     </div>
 
-                    <div className="bg-navy-700/50 rounded-lg p-4">
-                      <h4 className="text-white font-medium mb-3">Next Billing</h4>
-                      <p className="text-orange-400 text-lg">
+                    <div className="bg-muted rounded-lg p-4">
+                      <h4 className="text-foreground font-medium mb-3">Next Billing</h4>
+                      <p className="text-primary text-lg">
                         {new Date(currentMembershipData.nextBilling).toLocaleDateString()}
                       </p>
-                      <p className="text-gray-400 text-sm">$29.00 will be charged</p>
+                      <p className="text-muted-foreground text-sm">$29.00 will be charged</p>
                     </div>
 
                     <div>
-                      <h4 className="text-white font-medium mb-3">Active Benefits</h4>
+                      <h4 className="text-foreground font-medium mb-3">Active Benefits</h4>
                       <div className="space-y-2">
                         {currentMembershipData.benefits.map((benefit, index) => (
                           <div key={index} className="flex items-center gap-2">
-                            <CheckCircle className="h-4 w-4 text-green-400" />
-                            <span className="text-gray-300">{benefit.name}</span>
+                            <CheckCircle className="h-4 w-4 text-green-600" />
+                            <span className="text-muted-foreground">{benefit.name}</span>
                           </div>
                         ))}
                       </div>
                     </div>
 
                     <div className="flex gap-3">
-                      <Button className="flex-1 bg-orange-600 hover:bg-orange-700">
+                      <Button className="flex-1 bg-primary hover:bg-primary/90">
                         Upgrade Plan
                       </Button>
-                      <Button variant="outline" className="flex-1 border-orange-600 text-orange-400 hover:bg-orange-600/20">
+                      <Button variant="outline" className="flex-1 border-primary text-primary hover:bg-primary/10">
                         Manage
                       </Button>
                     </div>
@@ -176,10 +176,10 @@ const MembershipPortal = memo(function MembershipPortal() {
               </Card>
 
               {/* Usage Statistics */}
-              <Card className="bg-navy-800/50 border-navy-600 backdrop-blur-sm">
+              <Card className="bg-card border-border">
                 <CardHeader>
-                  <CardTitle className="text-white flex items-center gap-2">
-                    <Zap className="h-5 w-5 text-orange-400" />
+                  <CardTitle className="text-foreground flex items-center gap-2">
+                    <Zap className="h-5 w-5 text-primary" />
                     Usage This Month
                   </CardTitle>
                 </CardHeader>
@@ -187,30 +187,30 @@ const MembershipPortal = memo(function MembershipPortal() {
                   <div className="space-y-6">
                     <div>
                       <div className="flex justify-between text-sm mb-2">
-                        <span className="text-gray-300">Quote Requests</span>
-                        <span className="text-white">
+                        <span className="text-muted-foreground">Quote Requests</span>
+                        <span className="text-foreground">
                           {currentMembershipData.usage.quotes.used} / {currentMembershipData.usage.quotes.limit}
                         </span>
                       </div>
                       <Progress value={75} className="h-2" />
-                      <p className="text-gray-400 text-xs mt-1">No limits on Premium plan</p>
+                      <p className="text-muted-foreground text-xs mt-1">No limits on Premium plan</p>
                     </div>
 
                     <div>
                       <div className="flex justify-between text-sm mb-2">
-                        <span className="text-gray-300">Leads Generated</span>
-                        <span className="text-white">
+                        <span className="text-muted-foreground">Leads Generated</span>
+                        <span className="text-foreground">
                           {currentMembershipData.usage.leads.used} / {currentMembershipData.usage.leads.limit}
                         </span>
                       </div>
                       <Progress value={60} className="h-2" />
-                      <p className="text-gray-400 text-xs mt-1">Up 15% from last month</p>
+                      <p className="text-muted-foreground text-xs mt-1">Up 15% from last month</p>
                     </div>
 
-                    <div className="bg-navy-700/50 rounded-lg p-4">
-                      <h4 className="text-white font-medium mb-2">Member Since</h4>
-                      <p className="text-orange-400">January 15, 2024</p>
-                      <p className="text-gray-400 text-sm">2 months, 8 days</p>
+                    <div className="bg-muted rounded-lg p-4">
+                      <h4 className="text-foreground font-medium mb-2">Member Since</h4>
+                      <p className="text-primary">January 15, 2024</p>
+                      <p className="text-muted-foreground text-sm">2 months, 8 days</p>
                     </div>
 
                     <Button className="w-full bg-blue-600 hover:bg-blue-700">
@@ -225,34 +225,34 @@ const MembershipPortal = memo(function MembershipPortal() {
           <TabsContent value="plans">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
               {membershipTiers.map((tier, index) => (
-                <Card key={index} className={`bg-navy-800/50 border-navy-600 backdrop-blur-sm relative ${
-                  tier.popular ? 'ring-2 ring-orange-500' : ''
+                <Card key={index} className={`bg-card border-border relative ${
+                  tier.popular ? 'ring-2 ring-primary' : ''
                 }`}>
                   {tier.popular && (
                     <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
-                      <Badge className="bg-orange-600 hover:bg-orange-700">
+                      <Badge className="bg-primary hover:bg-primary/90">
                         Most Popular
                       </Badge>
                     </div>
                   )}
                   
                   <CardHeader className="text-center">
-                    <CardTitle className="text-white">{tier.name}</CardTitle>
+                    <CardTitle className="text-foreground">{tier.name}</CardTitle>
                     <div className="mt-4">
-                      <span className="text-4xl font-bold text-orange-400">{tier.price}</span>
-                      <span className="text-gray-400">{tier.period}</span>
+                      <span className="text-4xl font-bold text-primary">{tier.price}</span>
+                      <span className="text-muted-foreground">{tier.period}</span>
                     </div>
                   </CardHeader>
                   
                   <CardContent>
                     <div className="space-y-4">
                       <div>
-                        <h4 className="text-white font-medium mb-2">Features Included:</h4>
+                        <h4 className="text-foreground font-medium mb-2">Features Included:</h4>
                         <ul className="space-y-2">
                           {tier.features.map((feature, featureIndex) => (
                             <li key={featureIndex} className="flex items-start gap-2 text-sm">
-                              <CheckCircle className="h-4 w-4 text-green-400 mt-0.5 flex-shrink-0" />
-                              <span className="text-gray-300">{feature}</span>
+                              <CheckCircle className="h-4 w-4 text-green-600 mt-0.5 flex-shrink-0" />
+                              <span className="text-muted-foreground">{feature}</span>
                             </li>
                           ))}
                         </ul>
@@ -260,12 +260,12 @@ const MembershipPortal = memo(function MembershipPortal() {
 
                       {tier.limitations.length > 0 && (
                         <div>
-                          <h4 className="text-white font-medium mb-2">Limitations:</h4>
+                          <h4 className="text-foreground font-medium mb-2">Limitations:</h4>
                           <ul className="space-y-2">
                             {tier.limitations.map((limitation, limIndex) => (
                               <li key={limIndex} className="flex items-start gap-2 text-sm">
-                                <Clock className="h-4 w-4 text-yellow-400 mt-0.5 flex-shrink-0" />
-                                <span className="text-gray-400">{limitation}</span>
+                                <Clock className="h-4 w-4 text-yellow-600 mt-0.5 flex-shrink-0" />
+                                <span className="text-muted-foreground">{limitation}</span>
                               </li>
                             ))}
                           </ul>
@@ -275,9 +275,9 @@ const MembershipPortal = memo(function MembershipPortal() {
                       <Button 
                         className={`w-full ${
                           tier.name === currentPlan 
-                            ? 'bg-gray-600 hover:bg-gray-700' 
+                            ? 'bg-muted hover:bg-muted/80' 
                             : tier.popular 
-                              ? 'bg-orange-600 hover:bg-orange-700' 
+                              ? 'bg-primary hover:bg-primary/90' 
                               : 'bg-blue-600 hover:bg-blue-700'
                         }`}
                         disabled={tier.name === currentPlan}
@@ -294,33 +294,33 @@ const MembershipPortal = memo(function MembershipPortal() {
           <TabsContent value="billing">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
               {/* Payment Method */}
-              <Card className="bg-navy-800/50 border-navy-600 backdrop-blur-sm">
+              <Card className="bg-card border-border">
                 <CardHeader>
-                  <CardTitle className="text-white flex items-center gap-2">
-                    <CreditCard className="h-5 w-5 text-orange-400" />
+                  <CardTitle className="text-foreground flex items-center gap-2">
+                    <CreditCard className="h-5 w-5 text-primary" />
                     Payment Method
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-4">
-                    <div className="bg-navy-700/50 rounded-lg p-4">
+                    <div className="bg-muted rounded-lg p-4">
                       <div className="flex justify-between items-center mb-2">
                         <div className="flex items-center gap-3">
                           <div className="w-8 h-5 bg-blue-600 rounded flex items-center justify-center text-white text-xs font-bold">
                             VISA
                           </div>
-                          <span className="text-white">•••• •••• •••• 4242</span>
+                          <span className="text-foreground">•••• •••• •••• 4242</span>
                         </div>
                         <Badge variant="outline">Primary</Badge>
                       </div>
-                      <p className="text-gray-400 text-sm">Expires 12/2026</p>
+                      <p className="text-muted-foreground text-sm">Expires 12/2026</p>
                     </div>
 
                     <div className="space-y-3">
-                      <Button className="w-full bg-orange-600 hover:bg-orange-700">
+                      <Button className="w-full bg-primary hover:bg-primary/90">
                         Update Payment Method
                       </Button>
-                      <Button variant="outline" className="w-full border-orange-600 text-orange-400 hover:bg-orange-600/20">
+                      <Button variant="outline" className="w-full border-primary text-primary hover:bg-primary/10">
                         Add New Card
                       </Button>
                     </div>
@@ -329,9 +329,9 @@ const MembershipPortal = memo(function MembershipPortal() {
               </Card>
 
               {/* Billing History */}
-              <Card className="bg-navy-800/50 border-navy-600 backdrop-blur-sm">
+              <Card className="bg-card border-border">
                 <CardHeader>
-                  <CardTitle className="text-white">Billing History</CardTitle>
+                  <CardTitle className="text-foreground">Billing History</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-4">
@@ -340,13 +340,13 @@ const MembershipPortal = memo(function MembershipPortal() {
                       { date: "2024-02-15", amount: "$29.00", status: "Paid", plan: "Premium" },
                       { date: "2024-01-15", amount: "$29.00", status: "Paid", plan: "Premium" },
                     ].map((invoice, index) => (
-                      <div key={index} className="flex justify-between items-center p-3 bg-navy-700/50 rounded-lg">
+                      <div key={index} className="flex justify-between items-center p-3 bg-muted rounded-lg">
                         <div>
-                          <p className="text-white font-medium">{invoice.plan} Plan</p>
-                          <p className="text-gray-400 text-sm">{new Date(invoice.date).toLocaleDateString()}</p>
+                          <p className="text-foreground font-medium">{invoice.plan} Plan</p>
+                          <p className="text-muted-foreground text-sm">{new Date(invoice.date).toLocaleDateString()}</p>
                         </div>
                         <div className="text-right">
-                          <p className="text-white">{invoice.amount}</p>
+                          <p className="text-foreground">{invoice.amount}</p>
                           <Badge className="bg-green-600 hover:bg-green-700 text-xs">
                             {invoice.status}
                           </Badge>
@@ -354,7 +354,7 @@ const MembershipPortal = memo(function MembershipPortal() {
                       </div>
                     ))}
 
-                    <Button variant="outline" className="w-full border-orange-600 text-orange-400 hover:bg-orange-600/20">
+                    <Button variant="outline" className="w-full border-primary text-primary hover:bg-primary/10">
                       View All Invoices
                     </Button>
                   </div>

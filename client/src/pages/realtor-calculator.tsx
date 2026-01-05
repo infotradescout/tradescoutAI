@@ -52,21 +52,21 @@ export default function RealtorCalculator() {
   const maxHomePrice = maxLoanAmount + downPaymentAmount;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white">
+    <div className="text-foreground">
       <div className="container mx-auto px-6 py-8">
         <div className="max-w-6xl mx-auto">
           <div className="flex items-center gap-3 mb-8">
-            <div className="p-3 bg-blue-500/20 rounded-xl">
-              <Calculator className="h-8 w-8 text-blue-400" />
+            <div className="p-3 bg-primary/10 rounded-xl">
+              <Calculator className="h-8 w-8 text-primary" />
             </div>
             <div>
               <h1 className="text-3xl font-bold">Real Estate Calculators</h1>
-              <p className="text-gray-400">Tools to help your clients make informed decisions</p>
+              <p className="text-muted-foreground">Tools to help your clients make informed decisions</p>
             </div>
           </div>
 
           <Tabs defaultValue="mortgage" className="space-y-6">
-            <TabsList className="bg-navy-800/50 border border-navy-600">
+            <TabsList className="bg-muted border border-border">
               <TabsTrigger value="mortgage">Mortgage Calculator</TabsTrigger>
               <TabsTrigger value="commission">Commission Calculator</TabsTrigger>
               <TabsTrigger value="affordability">Affordability Calculator</TabsTrigger>
@@ -74,28 +74,28 @@ export default function RealtorCalculator() {
 
             <TabsContent value="mortgage" className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               {/* Mortgage Calculator Input */}
-              <Card className="bg-navy-800/50 border-navy-600">
+              <Card className="bg-card border-border">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
-                    <Home className="h-5 w-5 text-blue-400" />
+                    <Home className="h-5 w-5 text-primary" />
                     Mortgage Details
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-6">
                   <div>
-                    <Label htmlFor="homePrice">Home Price ($)</Label>
+                    <Label htmlFor="homePrice" className="text-foreground">Home Price ($)</Label>
                     <Input
                       id="homePrice"
                       type="number"
                       value={homePrice}
                       onChange={(e) => setHomePrice(Number(e.target.value))}
-                      className="bg-navy-700/50 border-navy-600 text-lg"
+                      className="bg-background border-input text-lg text-foreground"
                       data-testid="input-home-price"
                     />
                   </div>
 
                   <div>
-                    <Label>Down Payment: {downPayment[0]}% (${(homePrice * downPayment[0] / 100).toLocaleString()})</Label>
+                    <Label className="text-muted-foreground">Down Payment: {downPayment[0]}% (${(homePrice * downPayment[0] / 100).toLocaleString()})</Label>
                     <Slider
                       value={downPayment}
                       onValueChange={setDownPayment}
@@ -108,7 +108,7 @@ export default function RealtorCalculator() {
                   </div>
 
                   <div>
-                    <Label>Interest Rate: {interestRate[0]}%</Label>
+                    <Label className="text-muted-foreground">Interest Rate: {interestRate[0]}%</Label>
                     <Slider
                       value={interestRate}
                       onValueChange={setInterestRate}
@@ -121,7 +121,7 @@ export default function RealtorCalculator() {
                   </div>
 
                   <div>
-                    <Label>Loan Term: {loanTerm[0]} years</Label>
+                    <Label className="text-muted-foreground">Loan Term: {loanTerm[0]} years</Label>
                     <Slider
                       value={loanTerm}
                       onValueChange={setLoanTerm}
@@ -136,35 +136,35 @@ export default function RealtorCalculator() {
               </Card>
 
               {/* Mortgage Results */}
-              <Card className="bg-navy-800/50 border-navy-600">
+              <Card className="bg-card border-border">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
-                    <DollarSign className="h-5 w-5 text-green-400" />
+                    <DollarSign className="h-5 w-5 text-green-500" />
                     Payment Breakdown
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="text-center p-6 bg-blue-500/10 rounded-lg mb-6">
-                    <p className="text-sm text-gray-400 mb-2">Monthly Payment</p>
-                    <p className="text-4xl font-bold text-blue-400">${monthlyPayment.toFixed(2)}</p>
+                  <div className="text-center p-6 bg-primary/10 rounded-lg mb-6">
+                    <p className="text-sm text-muted-foreground mb-2">Monthly Payment</p>
+                    <p className="text-4xl font-bold text-primary">${monthlyPayment.toFixed(2)}</p>
                   </div>
 
-                  <div className="space-y-4">
+                  <div className="space-y-4 text-foreground">
                     <div className="flex justify-between">
-                      <span className="text-gray-400">Home Price</span>
+                      <span className="text-muted-foreground">Home Price</span>
                       <span>${homePrice.toLocaleString()}</span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-gray-400">Down Payment ({downPayment[0]}%)</span>
-                      <span className="text-green-400">${(homePrice * downPayment[0] / 100).toLocaleString()}</span>
+                      <span className="text-muted-foreground">Down Payment ({downPayment[0]}%)</span>
+                      <span className="text-green-500">${(homePrice * downPayment[0] / 100).toLocaleString()}</span>
                     </div>
-                    <div className="flex justify-between border-t border-navy-700 pt-3">
-                      <span className="text-gray-400">Loan Amount</span>
+                    <div className="flex justify-between border-t border-border pt-3">
+                      <span className="text-muted-foreground">Loan Amount</span>
                       <span>${loanAmount.toLocaleString()}</span>
                     </div>
                   </div>
 
-                  <Button className="w-full mt-6 bg-blue-600 hover:bg-blue-700" data-testid="button-generate-amortization">
+                  <Button className="w-full mt-6 bg-primary hover:bg-primary/90 text-primary-foreground" data-testid="button-generate-amortization">
                     <FileText className="h-4 w-4 mr-2" />
                     Generate Amortization Schedule
                   </Button>
@@ -174,28 +174,28 @@ export default function RealtorCalculator() {
 
             <TabsContent value="commission" className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               {/* Commission Calculator Input */}
-              <Card className="bg-navy-800/50 border-navy-600">
+              <Card className="bg-card border-border">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
-                    <Percent className="h-5 w-5 text-green-400" />
+                    <Percent className="h-5 w-5 text-green-500" />
                     Commission Details
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-6">
                   <div>
-                    <Label htmlFor="salesPrice">Sales Price ($)</Label>
+                    <Label htmlFor="salesPrice" className="text-foreground">Sales Price ($)</Label>
                     <Input
                       id="salesPrice"
                       type="number"
                       value={salesPrice}
                       onChange={(e) => setSalesPrice(Number(e.target.value))}
-                      className="bg-navy-700/50 border-navy-600 text-lg"
+                      className="bg-background border-input text-lg text-foreground"
                       data-testid="input-sales-price"
                     />
                   </div>
 
                   <div>
-                    <Label>Total Commission Rate: {commissionRate[0]}%</Label>
+                    <Label className="text-muted-foreground">Total Commission Rate: {commissionRate[0]}%</Label>
                     <Slider
                       value={commissionRate}
                       onValueChange={setCommissionRate}
@@ -208,7 +208,7 @@ export default function RealtorCalculator() {
                   </div>
 
                   <div>
-                    <Label>Your Split: {splitPercentage[0]}%</Label>
+                    <Label className="text-muted-foreground">Your Split: {splitPercentage[0]}%</Label>
                     <Slider
                       value={splitPercentage}
                       onValueChange={setSplitPercentage}
@@ -223,31 +223,31 @@ export default function RealtorCalculator() {
               </Card>
 
               {/* Commission Results */}
-              <Card className="bg-navy-800/50 border-navy-600">
+              <Card className="bg-card border-border">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
-                    <TrendingUp className="h-5 w-5 text-green-400" />
+                    <TrendingUp className="h-5 w-5 text-green-500" />
                     Commission Breakdown
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="text-center p-6 bg-green-500/10 rounded-lg mb-6">
-                    <p className="text-sm text-gray-400 mb-2">Your Commission</p>
-                    <p className="text-4xl font-bold text-green-400">${agentCommission.toLocaleString()}</p>
+                    <p className="text-sm text-muted-foreground mb-2">Your Commission</p>
+                    <p className="text-4xl font-bold text-green-500">${agentCommission.toLocaleString()}</p>
                   </div>
 
-                  <div className="space-y-4">
+                  <div className="space-y-4 text-foreground">
                     <div className="flex justify-between">
-                      <span className="text-gray-400">Sales Price</span>
+                      <span className="text-muted-foreground">Sales Price</span>
                       <span>${salesPrice.toLocaleString()}</span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-gray-400">Total Commission ({commissionRate[0]}%)</span>
+                      <span className="text-muted-foreground">Total Commission ({commissionRate[0]}%)</span>
                       <span>${grossCommission.toLocaleString()}</span>
                     </div>
-                    <div className="flex justify-between border-t border-navy-700 pt-3">
-                      <span className="text-gray-400">Your Share ({splitPercentage[0]}%)</span>
-                      <span className="text-green-400">${agentCommission.toLocaleString()}</span>
+                    <div className="flex justify-between border-t border-border pt-3">
+                      <span className="text-muted-foreground">Your Share ({splitPercentage[0]}%)</span>
+                      <span className="text-green-500">${agentCommission.toLocaleString()}</span>
                     </div>
                   </div>
                 </CardContent>
@@ -256,46 +256,46 @@ export default function RealtorCalculator() {
 
             <TabsContent value="affordability" className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               {/* Affordability Input */}
-              <Card className="bg-navy-800/50 border-navy-600">
+              <Card className="bg-card border-border">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
-                    <PiggyBank className="h-5 w-5 text-orange-400" />
+                    <PiggyBank className="h-5 w-5 text-orange-500" />
                     Financial Information
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div>
-                    <Label htmlFor="annualIncome">Annual Income ($)</Label>
+                    <Label htmlFor="annualIncome" className="text-foreground">Annual Income ($)</Label>
                     <Input
                       id="annualIncome"
                       type="number"
                       value={annualIncome}
                       onChange={(e) => setAnnualIncome(Number(e.target.value))}
-                      className="bg-navy-700/50 border-navy-600"
+                      className="bg-background border-input text-foreground"
                       data-testid="input-annual-income"
                     />
                   </div>
 
                   <div>
-                    <Label htmlFor="monthlyDebts">Monthly Debts ($)</Label>
+                    <Label htmlFor="monthlyDebts" className="text-foreground">Monthly Debts ($)</Label>
                     <Input
                       id="monthlyDebts"
                       type="number"
                       value={monthlyDebts}
                       onChange={(e) => setMonthlyDebts(Number(e.target.value))}
-                      className="bg-navy-700/50 border-navy-600"
+                      className="bg-background border-input text-foreground"
                       data-testid="input-monthly-debts"
                     />
                   </div>
 
                   <div>
-                    <Label htmlFor="downPaymentAmount">Available Down Payment ($)</Label>
+                    <Label htmlFor="downPaymentAmount" className="text-foreground">Available Down Payment ($)</Label>
                     <Input
                       id="downPaymentAmount"
                       type="number"
                       value={downPaymentAmount}
                       onChange={(e) => setDownPaymentAmount(Number(e.target.value))}
-                      className="bg-navy-700/50 border-navy-600"
+                      className="bg-background border-input text-foreground"
                       data-testid="input-down-payment-amount"
                     />
                   </div>
@@ -303,40 +303,40 @@ export default function RealtorCalculator() {
               </Card>
 
               {/* Affordability Results */}
-              <Card className="bg-navy-800/50 border-navy-600">
+              <Card className="bg-card border-border">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
-                    <Home className="h-5 w-5 text-orange-400" />
+                    <Home className="h-5 w-5 text-orange-500" />
                     Home Affordability
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="text-center p-6 bg-orange-500/10 rounded-lg mb-6">
-                    <p className="text-sm text-gray-400 mb-2">Maximum Home Price</p>
-                    <p className="text-4xl font-bold text-orange-400">${maxHomePrice.toLocaleString()}</p>
+                    <p className="text-sm text-muted-foreground mb-2">Maximum Home Price</p>
+                    <p className="text-4xl font-bold text-orange-500">${maxHomePrice.toLocaleString()}</p>
                   </div>
 
-                  <div className="space-y-4">
+                  <div className="space-y-4 text-foreground">
                     <div className="flex justify-between">
-                      <span className="text-gray-400">Monthly Income</span>
+                      <span className="text-muted-foreground">Monthly Income</span>
                       <span>${(annualIncome / 12).toLocaleString()}</span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-gray-400">Max Housing Payment</span>
-                      <span className="text-orange-400">${maxMonthlyPayment.toFixed(2)}</span>
+                      <span className="text-muted-foreground">Max Housing Payment</span>
+                      <span className="text-orange-500">${maxMonthlyPayment.toFixed(2)}</span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-gray-400">Max Loan Amount</span>
+                      <span className="text-muted-foreground">Max Loan Amount</span>
                       <span>${maxLoanAmount.toLocaleString()}</span>
                     </div>
-                    <div className="flex justify-between border-t border-navy-700 pt-3">
-                      <span className="text-gray-400">Down Payment</span>
-                      <span className="text-green-400">${downPaymentAmount.toLocaleString()}</span>
+                    <div className="flex justify-between border-t border-border pt-3">
+                      <span className="text-muted-foreground">Down Payment</span>
+                      <span className="text-green-500">${downPaymentAmount.toLocaleString()}</span>
                     </div>
                   </div>
 
-                  <div className="mt-4 p-3 bg-blue-500/10 rounded-lg text-center">
-                    <p className="text-sm text-blue-400">
+                  <div className="mt-4 p-3 bg-primary/10 rounded-lg text-center">
+                    <p className="text-sm text-primary">
                       Based on 28% debt-to-income ratio
                     </p>
                   </div>

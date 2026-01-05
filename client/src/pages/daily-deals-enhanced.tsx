@@ -99,11 +99,11 @@ export default function DailyDealsEnhanced() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen gradient-bg p-6">
+      <div className="p-6">
         <div className="max-w-7xl mx-auto">
           <div className="animate-pulse space-y-6">
             {[...Array(6)].map((_, i) => (
-              <div key={i} className="h-64 bg-slate-700 rounded-lg"></div>
+              <div key={i} className="h-64 bg-muted rounded-lg"></div>
             ))}
           </div>
         </div>
@@ -112,13 +112,13 @@ export default function DailyDealsEnhanced() {
   }
 
   return (
-    <div className="min-h-screen gradient-bg p-6" data-testid="daily-deals-page">
+    <div className="p-6" data-testid="daily-deals-page">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="text-center mb-12">
           <div className="flex items-center justify-center space-x-3 mb-6">
-            <Sparkles className="w-8 h-8 text-yellow-400" />
-            <h1 className="text-4xl md:text-5xl font-bold text-white">TradeDeals</h1>
+            <Sparkles className="w-8 h-8 text-yellow-500" />
+            <h1 className="text-4xl md:text-5xl font-bold text-foreground">TradeDeals</h1>
             <HelpBubble
               id="daily-deals-overview"
               title="TradeDeals & LuckyBucks System"
@@ -129,38 +129,38 @@ export default function DailyDealsEnhanced() {
               position="bottom"
             />
           </div>
-          <p className="text-xl text-slate-300 mb-6 max-w-3xl mx-auto">
+          <p className="text-xl text-muted-foreground mb-6 max-w-3xl mx-auto">
             Exclusive TradeDeals on home improvement services and materials. Limited-time, vetted offers from verified local professionals.
           </p>
           
           {/* Stats */}
           <div className="flex justify-center space-x-6 mb-8">
             <div className="text-center">
-              <div className="text-2xl font-bold text-yellow-400">{deals.length}</div>
-              <div className="text-sm text-slate-400">Active Deals</div>
+              <div className="text-2xl font-bold text-yellow-500">{deals.length}</div>
+              <div className="text-sm text-muted-foreground">Active Deals</div>
             </div>
             <div className="text-center">
-              <div className="text-2xl font-bold text-green-400">50%</div>
-              <div className="text-sm text-slate-400">Avg Savings</div>
+              <div className="text-2xl font-bold text-green-600">50%</div>
+              <div className="text-sm text-muted-foreground">Avg Savings</div>
             </div>
             <div className="text-center">
-              <div className="text-2xl font-bold text-blue-400">2.4k</div>
-              <div className="text-sm text-slate-400">Happy Customers</div>
+              <div className="text-2xl font-bold text-blue-500">2.4k</div>
+              <div className="text-sm text-muted-foreground">Happy Customers</div>
             </div>
           </div>
         </div>
 
         {/* LuckyBucks Banner */}
-        <Card className="bg-gradient-to-r from-yellow-500/20 to-orange-500/20 border-yellow-500/30 mb-8">
+        <Card className="bg-card border-border mb-8">
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-4">
-                <div className="w-12 h-12 bg-yellow-400 rounded-full flex items-center justify-center">
-                  <Sparkles className="w-6 h-6 text-yellow-900" />
+                <div className="w-12 h-12 bg-yellow-100 dark:bg-yellow-900/20 rounded-full flex items-center justify-center">
+                  <Sparkles className="w-6 h-6 text-yellow-600 dark:text-yellow-400" />
                 </div>
                 <div>
-                  <h3 className="text-xl font-bold text-white mb-1">Earn LuckyBucks with Every Purchase!</h3>
-                  <p className="text-slate-300">Get 5% back in LuckyBucks on all deal purchases. Use them for future discounts!</p>
+                  <h3 className="text-xl font-bold text-foreground mb-1">Earn LuckyBucks with Every Purchase!</h3>
+                  <p className="text-muted-foreground">Get 5% back in LuckyBucks on all deal purchases. Use them for future discounts!</p>
                 </div>
               </div>
               <HelpBubble
@@ -179,7 +179,7 @@ export default function DailyDealsEnhanced() {
         {/* Category Filter */}
         <div className="mb-8">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-xl font-semibold text-white">Browse by Category</h2>
+            <h2 className="text-xl font-semibold text-foreground">Browse by Category</h2>
             <HelpBubble
               id="category-filter"
               title="Deal Categories"
@@ -196,7 +196,7 @@ export default function DailyDealsEnhanced() {
                 key={category}
                 variant={selectedCategory === category ? 'default' : 'outline'}
                 onClick={() => setSelectedCategory(category)}
-                className={selectedCategory === category ? 'bg-orange-500 hover:bg-orange-600' : ''}
+                className={selectedCategory === category ? 'bg-primary hover:bg-primary/90' : ''}
               >
                 {category === 'all' ? 'All Deals' : 
                  category === 'service_discount' ? 'Service Discounts' :
@@ -213,14 +213,13 @@ export default function DailyDealsEnhanced() {
             .map((deal: DailyDeal) => (
             <Card
               key={deal.id}
-              className="border-slate-600 hover:border-orange-500/50 transition-all duration-300 deal-card"
+              className="bg-card border-border hover:border-primary/50 transition-all duration-300 deal-card"
               data-testid={`deal-${deal.id}`}
-              style={{ backgroundColor: "var(--surface-card)" }}
             >
               <CardHeader className="pb-3">
                 <div className="flex items-start justify-between mb-2">
                   <Badge 
-                    className={deal.featured ? 'bg-yellow-500 text-yellow-900' : 'bg-blue-500/20 text-blue-400'}
+                    className={deal.featured ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400' : 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400'}
                   >
                     {deal.featured ? (
                       <>
@@ -236,58 +235,58 @@ export default function DailyDealsEnhanced() {
                       variant="ghost"
                       size="sm"
                       onClick={() => handleSaveDeal(deal.id)}
-                      className="h-8 w-8 p-0 hover:bg-slate-700"
+                      className="h-8 w-8 p-0 hover:bg-muted"
                     >
-                      <Heart className={`w-4 h-4 ${savedDeals.includes(deal.id) ? 'fill-red-500 text-red-500' : 'text-slate-400'}`} />
+                      <Heart className={`w-4 h-4 ${savedDeals.includes(deal.id) ? 'fill-red-500 text-red-500' : 'text-muted-foreground'}`} />
                     </Button>
-                    <Button variant="ghost" size="sm" className="h-8 w-8 p-0 hover:bg-slate-700">
-                      <Share2 className="w-4 h-4 text-slate-400" />
+                    <Button variant="ghost" size="sm" className="h-8 w-8 p-0 hover:bg-muted">
+                      <Share2 className="w-4 h-4 text-muted-foreground" />
                     </Button>
                   </div>
                 </div>
-                <CardTitle className="text-white text-lg leading-tight">{deal.title}</CardTitle>
+                <CardTitle className="text-foreground text-lg leading-tight">{deal.title}</CardTitle>
               </CardHeader>
               
               <CardContent className="space-y-4">
-                <p className="text-slate-300 text-sm leading-relaxed">{deal.description}</p>
+                <p className="text-muted-foreground text-sm leading-relaxed">{deal.description}</p>
                 
                 {/* Pricing */}
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center space-x-2">
-                      <span className="text-2xl font-bold text-green-400">${deal.discountPrice}</span>
-                      <span className="text-lg text-slate-400 line-through">${deal.originalPrice}</span>
+                      <span className="text-2xl font-bold text-green-600 dark:text-green-400">${deal.discountPrice}</span>
+                      <span className="text-lg text-muted-foreground line-through">${deal.originalPrice}</span>
                     </div>
-                    <Badge className="bg-green-500/20 text-green-400">
+                    <Badge className="bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400">
                       {deal.discountPercentage}% OFF
                     </Badge>
                   </div>
-                  <div className="text-sm text-green-400">
+                  <div className="text-sm text-green-600 dark:text-green-400">
                     You save ${(parseFloat(deal.originalPrice) - parseFloat(deal.discountPrice)).toFixed(2)}
                   </div>
                 </div>
 
                 {/* Location & Time */}
                 <div className="space-y-2 text-sm">
-                  <div className="flex items-center text-slate-400">
+                  <div className="flex items-center text-muted-foreground">
                     <MapPin className="w-4 h-4 mr-2" />
                     <span>{deal.serviceArea.join(', ')}</span>
                   </div>
-                  <div className="flex items-center text-slate-400">
+                  <div className="flex items-center text-muted-foreground">
                     <Clock className="w-4 h-4 mr-2" />
-                    <span className="text-orange-400">{getTimeRemaining(deal.endDate)}</span>
+                    <span className="text-orange-600 dark:text-orange-400">{getTimeRemaining(deal.endDate)}</span>
                   </div>
                 </div>
 
                 {/* Progress Bar */}
                 <div className="space-y-1">
                   <div className="flex justify-between text-sm">
-                    <span className="text-slate-400">Claimed</span>
-                    <span className="text-slate-400">{deal.currentRedemptions}/{deal.maxRedemptions}</span>
+                    <span className="text-muted-foreground">Claimed</span>
+                    <span className="text-muted-foreground">{deal.currentRedemptions}/{deal.maxRedemptions}</span>
                   </div>
-                  <div className="w-full bg-slate-700 rounded-full h-2">
+                  <div className="w-full bg-muted rounded-full h-2">
                     <div 
-                      className="bg-orange-500 h-2 rounded-full transition-all duration-300"
+                      className="bg-primary h-2 rounded-full transition-all duration-300"
                       style={{ width: `${(deal.currentRedemptions / deal.maxRedemptions) * 100}%` }}
                     />
                   </div>
@@ -295,7 +294,7 @@ export default function DailyDealsEnhanced() {
 
                 {/* Action Button */}
                 <Button 
-                  className="w-full bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white"
+                  className="w-full bg-primary hover:bg-primary/90 text-primary-foreground"
                   data-testid={`claim-deal-${deal.id}`}
                 >
                   <Gift className="w-4 h-4 mr-2" />
@@ -307,11 +306,11 @@ export default function DailyDealsEnhanced() {
         </div>
 
         {/* Call to Action */}
-        <Card className="bg-gradient-to-r from-blue-600/20 to-purple-600/20 border-blue-500/30">
+        <Card className="bg-card border-border">
           <CardContent className="p-8 text-center">
-            <Target className="w-12 h-12 text-blue-400 mx-auto mb-4" />
-              <h2 className="text-2xl font-bold text-white mb-4">Want to run a TradeDeal?</h2>
-            <p className="text-slate-300 mb-6 max-w-2xl mx-auto">
+            <Target className="w-12 h-12 text-blue-500 mx-auto mb-4" />
+              <h2 className="text-2xl font-bold text-foreground mb-4">Want to run a TradeDeal?</h2>
+            <p className="text-muted-foreground mb-6 max-w-2xl mx-auto">
               Join TradeScout as a contractor or supplier and reach people with exclusive TradeDeals tied to real projects.
             </p>
             <Button className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3">

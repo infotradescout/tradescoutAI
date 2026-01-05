@@ -139,24 +139,24 @@ const PaymentProcessing = memo(function PaymentProcessing() {
   };
 
   return (
-    <div className="min-h-screen bg-tsBg text-tsText">
+    <div className="h-full bg-background text-foreground">
       <div className="container mx-auto px-4 py-8">
         {/* Header */}
         <div className="mb-8 text-center">
           <div className="flex items-center justify-center gap-3 mb-4">
-            <CreditCard className="h-8 w-8 text-tsWarning" />
-            <h1 className="text-4xl font-bold text-tsText">Payment & Billing</h1>
+            <CreditCard className="h-8 w-8 text-primary" />
+            <h1 className="text-4xl font-bold text-foreground">Payment & Billing</h1>
           </div>
-          <p className="text-tsTextSecondary text-lg max-w-2xl mx-auto">
+          <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
             Manage your subscription, billing information, and payment history
           </p>
         </div>
         <Tabs defaultValue="plans" className="space-y-8">
-          <TabsList className="bg-tsCard border-tsBorder mx-auto">
-            <TabsTrigger value="plans" className="data-[state=active]:bg-tsWarning">Subscription Plans</TabsTrigger>
-            <TabsTrigger value="payment" className="data-[state=active]:bg-tsWarning">Payment Method</TabsTrigger>
-            <TabsTrigger value="history" className="data-[state=active]:bg-tsWarning">Payment History</TabsTrigger>
-            <TabsTrigger value="billing" className="data-[state=active]:bg-tsWarning">Billing Info</TabsTrigger>
+          <TabsList className="bg-muted border-border mx-auto">
+            <TabsTrigger value="plans" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">Subscription Plans</TabsTrigger>
+            <TabsTrigger value="payment" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">Payment Method</TabsTrigger>
+            <TabsTrigger value="history" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">Payment History</TabsTrigger>
+            <TabsTrigger value="billing" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">Billing Info</TabsTrigger>
           </TabsList>
           <TabsContent value="plans" className="space-y-8">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">

@@ -62,12 +62,12 @@ const AdCreator = memo(function AdCreator() {
   };
 
   return (
-    <div className="min-h-screen p-6" style={{ backgroundColor: 'var(--surface-app-bg)' }}>
+    <div className="h-full p-6 bg-background">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-4xl font-bold text-white mb-4">Advertisement Creator</h1>
-          <p className="text-xl text-gray-300">
+          <h1 className="text-4xl font-bold text-foreground mb-4">Advertisement Creator</h1>
+          <p className="text-xl text-muted-foreground">
             Create professional marketing materials to promote your services
           </p>
         </div>
@@ -77,23 +77,21 @@ const AdCreator = memo(function AdCreator() {
           <div className="lg:col-span-2 space-y-6">
             <Tabs value={adType} onValueChange={setAdType}>
               <TabsList
-                className="grid w-full grid-cols-3"
-                style={{ backgroundColor: 'var(--surface-card)' }}
+                className="grid w-full grid-cols-3 bg-muted"
               >
-                <TabsTrigger value="social" className="data-[state=active]:bg-orange-600">Social Media</TabsTrigger>
-                <TabsTrigger value="display" className="data-[state=active]:bg-orange-600">Display Ads</TabsTrigger>
-                <TabsTrigger value="print" className="data-[state=active]:bg-orange-600">Print Materials</TabsTrigger>
+                <TabsTrigger value="social" className="data-[state=active]:bg-background">Social Media</TabsTrigger>
+                <TabsTrigger value="display" className="data-[state=active]:bg-background">Display Ads</TabsTrigger>
+                <TabsTrigger value="print" className="data-[state=active]:bg-background">Print Materials</TabsTrigger>
               </TabsList>
 
               <TabsContent value={adType} className="space-y-6">
                 {/* Ad Size Selection */}
                 <Card
-                  className="border-slate-700"
-                  style={{ backgroundColor: 'var(--surface-card)' }}
+                  className="border-border bg-card"
                 >
                   <CardHeader>
-                    <CardTitle className="text-white">Choose Ad Size</CardTitle>
-                    <CardDescription className="text-gray-400">
+                    <CardTitle className="text-foreground">Choose Ad Size</CardTitle>
+                    <CardDescription className="text-muted-foreground">
                       Select the format for your advertisement
                     </CardDescription>
                   </CardHeader>
@@ -102,10 +100,10 @@ const AdCreator = memo(function AdCreator() {
                       {adSizes[adType as keyof typeof adSizes].map((size, index) => (
                         <div 
                           key={index}
-                          className="p-4 border-2 border-slate-600 rounded-lg cursor-pointer hover:border-orange-500 transition-colors"
+                          className="p-4 border-2 border-border rounded-lg cursor-pointer hover:border-primary transition-colors"
                         >
-                          <h3 className="font-semibold text-white mb-1">{size.name}</h3>
-                          <p className="text-gray-400 text-sm">{size.size} • {size.ratio}</p>
+                          <h3 className="font-semibold text-foreground mb-1">{size.name}</h3>
+                          <p className="text-muted-foreground text-sm">{size.size} • {size.ratio}</p>
                         </div>
                       ))}
                     </div>
@@ -114,15 +112,14 @@ const AdCreator = memo(function AdCreator() {
 
                 {/* Template Selection */}
                 <Card
-                  className="border-slate-700"
-                  style={{ backgroundColor: 'var(--surface-card)' }}
+                  className="border-border bg-card"
                 >
                   <CardHeader>
-                    <CardTitle className="text-white flex items-center gap-2">
-                      <Palette className="w-5 h-5 text-orange-500" />
+                    <CardTitle className="text-foreground flex items-center gap-2">
+                      <Palette className="w-5 h-5 text-primary" />
                       Design Template
                     </CardTitle>
-                    <CardDescription className="text-gray-400">
+                    <CardDescription className="text-muted-foreground">
                       Choose a template style for your advertisement
                     </CardDescription>
                   </CardHeader>
@@ -133,14 +130,14 @@ const AdCreator = memo(function AdCreator() {
                           key={template.id}
                           className={`p-4 border-2 rounded-lg cursor-pointer transition-all ${
                             selectedTemplate === template.id 
-                              ? 'border-orange-500 bg-orange-500/10' 
-                              : 'border-slate-600 hover:border-slate-500'
+                              ? 'border-primary bg-primary/10' 
+                              : 'border-border hover:border-muted-foreground'
                           }`}
                           onClick={() => setSelectedTemplate(template.id)}
                         >
                           <div className={`h-20 rounded-lg mb-3 ${template.preview}`}></div>
-                          <h3 className="font-semibold text-white mb-1">{template.name}</h3>
-                          <p className="text-gray-400 text-sm">{template.style}</p>
+                          <h3 className="font-semibold text-foreground mb-1">{template.name}</h3>
+                          <p className="text-muted-foreground text-sm">{template.style}</p>
                         </div>
                       ))}
                     </div>
@@ -149,71 +146,70 @@ const AdCreator = memo(function AdCreator() {
 
                 {/* Content Input */}
                 <Card
-                  className="border-slate-700"
-                  style={{ backgroundColor: 'var(--surface-card)' }}
+                  className="border-border bg-card"
                 >
                   <CardHeader>
-                    <CardTitle className="text-white flex items-center gap-2">
-                      <Type className="w-5 h-5 text-orange-500" />
+                    <CardTitle className="text-foreground flex items-center gap-2">
+                      <Type className="w-5 h-5 text-primary" />
                       Ad Content
                     </CardTitle>
-                    <CardDescription className="text-gray-400">
+                    <CardDescription className="text-muted-foreground">
                       Add your text, images, and promotional content
                     </CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-4">
                     <div>
-                      <Label htmlFor="headline" className="text-gray-300">Headline</Label>
+                      <Label htmlFor="headline" className="text-muted-foreground">Headline</Label>
                       <Input 
                         id="headline"
                         placeholder="e.g., Transform Your Kitchen Today!"
-                        className="bg-slate-700 border-slate-600 text-white"
+                        className="bg-background border-input text-foreground"
                       />
                     </div>
 
                     <div>
-                      <Label htmlFor="subheading" className="text-gray-300">Subheading</Label>
+                      <Label htmlFor="subheading" className="text-muted-foreground">Subheading</Label>
                       <Input 
                         id="subheading"
                         placeholder="e.g., Professional Renovation Services"
-                        className="bg-slate-700 border-slate-600 text-white"
+                        className="bg-background border-input text-foreground"
                       />
                     </div>
 
                     <div>
-                      <Label htmlFor="description" className="text-gray-300">Description</Label>
+                      <Label htmlFor="description" className="text-muted-foreground">Description</Label>
                       <Textarea 
                         id="description"
                         placeholder="Brief description of your services and what makes you special..."
-                        className="bg-slate-700 border-slate-600 text-white"
+                        className="bg-background border-input text-foreground"
                         rows={3}
                       />
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
-                        <Label htmlFor="cta-text" className="text-gray-300">Call-to-Action</Label>
+                        <Label htmlFor="cta-text" className="text-muted-foreground">Call-to-Action</Label>
                         <Input 
                           id="cta-text"
                           placeholder="Get Free Quote"
-                          className="bg-slate-700 border-slate-600 text-white"
+                          className="bg-background border-input text-foreground"
                         />
                       </div>
                       <div>
-                        <Label htmlFor="contact-info" className="text-gray-300">Contact Info</Label>
+                        <Label htmlFor="contact-info" className="text-muted-foreground">Contact Info</Label>
                         <Input 
                           id="contact-info"
                           placeholder="(555) 123-4567"
-                          className="bg-slate-700 border-slate-600 text-white"
+                          className="bg-background border-input text-foreground"
                         />
                       </div>
                     </div>
 
                     <div>
-                      <Label htmlFor="image-upload" className="text-gray-300">Upload Image</Label>
-                      <div className="border-2 border-dashed border-slate-600 rounded-lg p-6 text-center">
-                        <Image className="w-8 h-8 text-gray-400 mx-auto mb-2" />
-                        <p className="text-gray-400 text-sm">Drag & drop an image or click to browse</p>
+                      <Label htmlFor="image-upload" className="text-muted-foreground">Upload Image</Label>
+                      <div className="border-2 border-dashed border-border rounded-lg p-6 text-center">
+                        <Image className="w-8 h-8 text-muted-foreground mx-auto mb-2" />
+                        <p className="text-muted-foreground text-sm">Drag & drop an image or click to browse</p>
                         <Button variant="outline" size="sm" className="mt-2">
                           Upload Image
                         </Button>
@@ -224,15 +220,14 @@ const AdCreator = memo(function AdCreator() {
 
                 {/* AI Enhancement */}
                 <Card
-                  className="border-slate-700"
-                  style={{ backgroundColor: 'var(--surface-card)' }}
+                  className="border-border bg-card"
                 >
                   <CardHeader>
-                    <CardTitle className="text-white flex items-center gap-2">
-                      <Sparkles className="w-5 h-5 text-purple-500" />
+                    <CardTitle className="text-foreground flex items-center gap-2">
+                      <Sparkles className="w-5 h-5 text-primary" />
                       AI Enhancement
                     </CardTitle>
-                    <CardDescription className="text-gray-400">
+                    <CardDescription className="text-muted-foreground">
                       Use AI to optimize your ad content and design
                     </CardDescription>
                   </CardHeader>
@@ -264,36 +259,34 @@ const AdCreator = memo(function AdCreator() {
           {/* Preview Panel */}
           <div className="space-y-6">
             <Card
-              className="border-slate-700"
-              style={{ backgroundColor: 'var(--surface-card)' }}
+              className="border-border bg-card"
             >
               <CardHeader>
-                <CardTitle className="text-white flex items-center gap-2">
-                  <Eye className="w-5 h-5 text-orange-500" />
+                <CardTitle className="text-foreground flex items-center gap-2">
+                  <Eye className="w-5 h-5 text-primary" />
                   Live Preview
                 </CardTitle>
-                <CardDescription className="text-gray-400">
+                <CardDescription className="text-muted-foreground">
                   See how your ad will look
                 </CardDescription>
               </CardHeader>
               <CardContent>
                 {/* Ad Preview */}
-                <div className="bg-gradient-to-br from-blue-600 to-purple-600 rounded-lg p-6 text-white aspect-video">
+                <div className="bg-primary rounded-lg p-6 text-primary-foreground aspect-video">
                   <div className="h-full flex flex-col justify-between">
                     <div>
                       <h2 className="text-xl font-bold mb-2">Transform Your Kitchen Today!</h2>
-                      <p className="text-blue-100 text-sm mb-2">Professional Renovation Services</p>
-                      <p className="text-blue-200 text-xs">Expert craftsmanship with guaranteed satisfaction...</p>
+                      <p className="text-primary-foreground/80 text-sm mb-2">Professional Renovation Services</p>
+                      <p className="text-primary-foreground/60 text-xs">Expert craftsmanship with guaranteed satisfaction...</p>
                     </div>
                     <div className="flex items-end justify-between">
                       <Button
                         size="sm"
-                        className="text-blue-600 hover:bg-blue-50"
-                        style={{ backgroundColor: 'var(--surface-frame)' }}
+                        className="text-primary hover:bg-primary-foreground bg-background"
                       >
                         Get Free Quote
                       </Button>
-                      <p className="text-blue-100 text-xs">(555) 123-4567</p>
+                      <p className="text-primary-foreground/80 text-xs">(555) 123-4567</p>
                     </div>
                   </div>
                 </div>
@@ -310,17 +303,16 @@ const AdCreator = memo(function AdCreator() {
 
             {/* Export Options */}
             <Card
-              className="border-slate-700"
-              style={{ backgroundColor: 'var(--surface-card)' }}
+              className="border-border bg-card"
             >
               <CardHeader>
-                <CardTitle className="text-white">Export & Share</CardTitle>
-                <CardDescription className="text-gray-400">
+                <CardTitle className="text-foreground">Export & Share</CardTitle>
+                <CardDescription className="text-muted-foreground">
                   Download or share your advertisement
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-3">
-                <Button className="w-full bg-orange-600 hover:bg-orange-700">
+                <Button className="w-full bg-primary hover:bg-primary/90">
                   <Download className="w-4 h-4 mr-2" />
                   Download High-Res
                 </Button>
@@ -339,14 +331,13 @@ const AdCreator = memo(function AdCreator() {
 
             {/* Performance Tips */}
             <Card
-              className="border-slate-700"
-              style={{ backgroundColor: 'var(--surface-card)' }}
+              className="border-border bg-card"
             >
               <CardHeader>
-                <CardTitle className="text-white text-sm">Performance Tips</CardTitle>
+                <CardTitle className="text-foreground text-sm">Performance Tips</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="space-y-2 text-sm text-gray-400">
+                <div className="space-y-2 text-sm text-muted-foreground">
                   <p>• Use clear, action-oriented headlines</p>
                   <p>• Include your phone number prominently</p>
                   <p>• Highlight your unique value proposition</p>

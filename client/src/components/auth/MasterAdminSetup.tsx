@@ -76,21 +76,21 @@ export default function MasterAdminSetup() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800 flex items-center justify-center px-4">
+    <div className="h-full bg-background flex items-center justify-center px-4">
       <div className="max-w-md w-full">
-        <Card className="shadow-xl border-0 bg-white dark:bg-gray-900">
+        <Card className="shadow-xl border-0 bg-card">
           <CardHeader className="text-center pb-8">
-            <div className="mx-auto w-16 h-16 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-full flex items-center justify-center mb-4">
-              <Shield className="h-8 w-8 text-white" />
+            <div className="mx-auto w-16 h-16 bg-primary rounded-full flex items-center justify-center mb-4">
+              <Shield className="h-8 w-8 text-primary-foreground" />
             </div>
-            <CardTitle className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
+            <CardTitle className="text-3xl font-bold text-primary">
               Platform Setup
             </CardTitle>
-            <p className="text-gray-600 dark:text-gray-400 mt-2">
+            <p className="text-muted-foreground mt-2">
               Create the master administrator account to initialize TradeScout
             </p>
-            <div className="mt-4 p-3 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg border border-yellow-200 dark:border-yellow-800">
-              <p className="text-sm text-yellow-800 dark:text-yellow-200">
+            <div className="mt-4 p-3 bg-yellow-500/10 rounded-lg border border-yellow-500/20">
+              <p className="text-sm text-yellow-600">
                 <strong>Important:</strong> This is a one-time setup. The master admin will have full platform control.
               </p>
             </div>
@@ -107,11 +107,11 @@ export default function MasterAdminSetup() {
                   <Input
                     id="firstName"
                     {...form.register("firstName")}
-                    className="mt-1 bg-white dark:bg-gray-800 text-gray-900 dark:text-white border-gray-300 dark:border-gray-600"
+                    className="mt-1 bg-background text-foreground border-input"
                     placeholder="John"
                   />
                   {form.formState.errors.firstName && (
-                    <p className="text-red-500 text-sm mt-1">{form.formState.errors.firstName.message}</p>
+                    <p className="text-destructive text-sm mt-1">{form.formState.errors.firstName.message}</p>
                   )}
                 </div>
                 
@@ -120,11 +120,11 @@ export default function MasterAdminSetup() {
                   <Input
                     id="lastName"
                     {...form.register("lastName")}
-                    className="mt-1 bg-white dark:bg-gray-800 text-gray-900 dark:text-white border-gray-300 dark:border-gray-600"
+                    className="mt-1 bg-background text-foreground border-input"
                     placeholder="Smith"
                   />
                   {form.formState.errors.lastName && (
-                    <p className="text-red-500 text-sm mt-1">{form.formState.errors.lastName.message}</p>
+                    <p className="text-destructive text-sm mt-1">{form.formState.errors.lastName.message}</p>
                   )}
                 </div>
               </div>
@@ -138,11 +138,11 @@ export default function MasterAdminSetup() {
                   id="email"
                   type="email"
                   {...form.register("email")}
-                  className="mt-1 bg-white dark:bg-gray-800 text-gray-900 dark:text-white border-gray-300 dark:border-gray-600"
+                  className="mt-1 bg-background text-foreground border-input"
                   placeholder="admin@tradescout.com"
                 />
                 {form.formState.errors.email && (
-                  <p className="text-red-500 text-sm mt-1">{form.formState.errors.email.message}</p>
+                  <p className="text-destructive text-sm mt-1">{form.formState.errors.email.message}</p>
                 )}
               </div>
 
@@ -156,7 +156,7 @@ export default function MasterAdminSetup() {
                     id="password"
                     type={showPassword ? "text" : "password"}
                     {...form.register("password")}
-                    className="bg-white dark:bg-gray-800 text-gray-900 dark:text-white border-gray-300 dark:border-gray-600"
+                    className="bg-background text-foreground border-input"
                     placeholder="Create a strong password"
                   />
                   <button
@@ -165,14 +165,14 @@ export default function MasterAdminSetup() {
                     onClick={() => setShowPassword(!showPassword)}
                   >
                     {showPassword ? (
-                      <EyeOff className="h-4 w-4 text-gray-400" />
+                      <EyeOff className="h-4 w-4 text-muted-foreground" />
                     ) : (
-                      <Eye className="h-4 w-4 text-gray-400" />
+                      <Eye className="h-4 w-4 text-muted-foreground" />
                     )}
                   </button>
                 </div>
                 {form.formState.errors.password && (
-                  <p className="text-red-500 text-sm mt-1">{form.formState.errors.password.message}</p>
+                  <p className="text-destructive text-sm mt-1">{form.formState.errors.password.message}</p>
                 )}
               </div>
 
@@ -183,7 +183,7 @@ export default function MasterAdminSetup() {
                     id="confirmPassword"
                     type={showConfirmPassword ? "text" : "password"}
                     {...form.register("confirmPassword")}
-                    className="bg-white dark:bg-gray-800 text-gray-900 dark:text-white border-gray-300 dark:border-gray-600"
+                    className="bg-background text-foreground border-input"
                     placeholder="Confirm your password"
                   />
                   <button
@@ -192,20 +192,20 @@ export default function MasterAdminSetup() {
                     onClick={() => setShowConfirmPassword(!showConfirmPassword)}
                   >
                     {showConfirmPassword ? (
-                      <EyeOff className="h-4 w-4 text-gray-400" />
+                      <EyeOff className="h-4 w-4 text-muted-foreground" />
                     ) : (
-                      <Eye className="h-4 w-4 text-gray-400" />
+                      <Eye className="h-4 w-4 text-muted-foreground" />
                     )}
                   </button>
                 </div>
                 {form.formState.errors.confirmPassword && (
-                  <p className="text-red-500 text-sm mt-1">{form.formState.errors.confirmPassword.message}</p>
+                  <p className="text-destructive text-sm mt-1">{form.formState.errors.confirmPassword.message}</p>
                 )}
               </div>
 
               <Button 
                 type="submit" 
-                className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-semibold py-3 mt-6"
+                className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-semibold py-3 mt-6"
                 disabled={setupMasterMutation.isPending}
               >
                 {setupMasterMutation.isPending ? "Creating Master Admin..." : "Initialize Platform"}

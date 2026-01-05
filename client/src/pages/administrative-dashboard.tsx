@@ -7,65 +7,65 @@ import { Progress } from '@/components/ui/progress';
 
 const AdministrativeDashboard = memo(function AdministrativeDashboard() {
   return (
-    <div className="gradient-bg text-white">
+    <div className="min-h-[calc(100vh-4rem)] bg-background text-foreground">
       <div className="container mx-auto px-4 py-8">
         {/* Header */}
         <div className="mb-8">
           <div className="flex items-center gap-3 mb-4">
-            <Shield className="h-8 w-8 text-orange-400" />
-            <h1 className="text-4xl font-bold text-white">Administrative Dashboard</h1>
+            <Shield className="h-8 w-8 text-primary" />
+            <h1 className="text-4xl font-bold text-foreground">Administrative Dashboard</h1>
           </div>
-          <p className="text-gray-300 text-lg">
+          <p className="text-muted-foreground text-lg">
             Platform oversight and management controls
           </p>
         </div>
 
         {/* Key Metrics */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-          <Card className="bg-navy-800/50 border-navy-600 backdrop-blur-sm">
+          <Card className="bg-card border-border">
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-gray-400 text-sm">Platform Health</p>
-                  <p className="text-2xl font-bold text-green-400">98.5%</p>
+                  <p className="text-muted-foreground text-sm">Platform Health</p>
+                  <p className="text-2xl font-bold text-green-500">98.5%</p>
                 </div>
-                <CheckCircle className="h-8 w-8 text-green-400" />
+                <CheckCircle className="h-8 w-8 text-green-500" />
               </div>
             </CardContent>
           </Card>
 
-          <Card className="bg-navy-800/50 border-navy-600 backdrop-blur-sm">
+          <Card className="bg-card border-border">
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-gray-400 text-sm">Active Users</p>
-                  <p className="text-2xl font-bold text-white">87,420</p>
+                  <p className="text-muted-foreground text-sm">Active Users</p>
+                  <p className="text-2xl font-bold text-foreground">87,420</p>
                 </div>
-                <Users className="h-8 w-8 text-blue-400" />
+                <Users className="h-8 w-8 text-blue-500" />
               </div>
             </CardContent>
           </Card>
 
-          <Card className="bg-navy-800/50 border-navy-600 backdrop-blur-sm">
+          <Card className="bg-card border-border">
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-gray-400 text-sm">Pending Approvals</p>
-                  <p className="text-2xl font-bold text-yellow-400">234</p>
+                  <p className="text-muted-foreground text-sm">Pending Approvals</p>
+                  <p className="text-2xl font-bold text-yellow-500">234</p>
                 </div>
-                <Clock className="h-8 w-8 text-yellow-400" />
+                <Clock className="h-8 w-8 text-yellow-500" />
               </div>
             </CardContent>
           </Card>
 
-          <Card className="bg-navy-800/50 border-navy-600 backdrop-blur-sm">
+          <Card className="bg-card border-border">
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-gray-400 text-sm">System Alerts</p>
-                  <p className="text-2xl font-bold text-red-400">3</p>
+                  <p className="text-muted-foreground text-sm">System Alerts</p>
+                  <p className="text-2xl font-bold text-red-500">3</p>
                 </div>
-                <AlertTriangle className="h-8 w-8 text-red-400" />
+                <AlertTriangle className="h-8 w-8 text-red-500" />
               </div>
             </CardContent>
           </Card>
@@ -74,23 +74,23 @@ const AdministrativeDashboard = memo(function AdministrativeDashboard() {
         {/* Management Sections */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
           {/* User Management */}
-          <Card className="bg-navy-800/50 border-navy-600 backdrop-blur-sm">
+          <Card className="bg-card border-border">
             <CardHeader>
-              <CardTitle className="text-white flex items-center gap-2">
+              <CardTitle className="text-foreground flex items-center gap-2">
                 <Users className="h-5 w-5" />
                 User Management
               </CardTitle>
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                <div className="flex justify-between items-center p-3 bg-navy-700/50 rounded-lg">
+                <div className="flex justify-between items-center p-3 bg-muted/50 rounded-lg">
                   <div>
-                    <p className="text-white font-medium">Total Registered Users</p>
-                    <p className="text-gray-400 text-sm">All time platform users</p>
+                    <p className="text-foreground font-medium">Total Registered Users</p>
+                    <p className="text-muted-foreground text-sm">All time platform users</p>
                   </div>
                   <div className="text-right">
-                    <p className="text-2xl font-bold text-white">125,847</p>
-                    <p className="text-green-400 text-xs">↑ 12% this month</p>
+                    <p className="text-2xl font-bold text-foreground">125,847</p>
+                    <p className="text-green-500 text-xs">↑ 12% this month</p>
                   </div>
                 </div>
 
@@ -103,8 +103,8 @@ const AdministrativeDashboard = memo(function AdministrativeDashboard() {
                   ].map((role, index) => (
                     <div key={index} className="space-y-1">
                       <div className="flex justify-between text-sm">
-                        <span className="text-gray-300">{role.role}</span>
-                        <span className="text-white">{role.count.toLocaleString()}</span>
+                        <span className="text-muted-foreground">{role.role}</span>
+                        <span className="text-foreground">{role.count.toLocaleString()}</span>
                       </div>
                       <Progress value={role.percentage} className="h-2" />
                     </div>
@@ -112,10 +112,10 @@ const AdministrativeDashboard = memo(function AdministrativeDashboard() {
                 </div>
 
                 <div className="flex gap-2 pt-4">
-                  <Button className="flex-1 bg-orange-600 hover:bg-orange-700">
+                  <Button className="flex-1">
                     Manage Users
                   </Button>
-                  <Button variant="outline" className="flex-1 border-orange-600 text-orange-400 hover:bg-orange-600/20">
+                  <Button variant="outline" className="flex-1">
                     Export Data
                   </Button>
                 </div>
@@ -124,9 +124,9 @@ const AdministrativeDashboard = memo(function AdministrativeDashboard() {
           </Card>
 
           {/* System Monitoring */}
-          <Card className="bg-navy-800/50 border-navy-600 backdrop-blur-sm">
+          <Card className="bg-card border-border">
             <CardHeader>
-              <CardTitle className="text-white flex items-center gap-2">
+              <CardTitle className="text-foreground flex items-center gap-2">
                 <BarChart3 className="h-5 w-5" />
                 System Performance
               </CardTitle>
@@ -139,16 +139,16 @@ const AdministrativeDashboard = memo(function AdministrativeDashboard() {
                   { metric: "Storage Usage", value: "67%", status: "good", target: "< 80%" },
                   { metric: "API Availability", value: "99.9%", status: "excellent", target: "> 99%" },
                 ].map((metric, index) => (
-                  <div key={index} className="flex justify-between items-center p-3 bg-navy-700/50 rounded-lg">
+                  <div key={index} className="flex justify-between items-center p-3 bg-muted/50 rounded-lg">
                     <div>
-                      <p className="text-white font-medium text-sm">{metric.metric}</p>
-                      <p className="text-gray-400 text-xs">Target: {metric.target}</p>
+                      <p className="text-foreground font-medium text-sm">{metric.metric}</p>
+                      <p className="text-muted-foreground text-xs">Target: {metric.target}</p>
                     </div>
                     <div className="text-right">
-                      <p className="text-white font-bold">{metric.value}</p>
+                      <p className="text-foreground font-bold">{metric.value}</p>
                       <Badge variant={
                         metric.status === 'excellent' ? 'default' :
-                        metric.status === 'good' ? 'secondary' : 'error'
+                        metric.status === 'good' ? 'secondary' : 'destructive'
                       } className="text-xs">
                         {metric.status}
                       </Badge>
@@ -157,7 +157,7 @@ const AdministrativeDashboard = memo(function AdministrativeDashboard() {
                 ))}
               </div>
 
-              <Button className="w-full mt-4 bg-orange-600 hover:bg-orange-700">
+              <Button className="w-full mt-4">
                 View Detailed Analytics
               </Button>
             </CardContent>
@@ -167,9 +167,9 @@ const AdministrativeDashboard = memo(function AdministrativeDashboard() {
         {/* Recent Activities & Alerts */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           {/* Recent Admin Actions */}
-          <Card className="bg-navy-800/50 border-navy-600 backdrop-blur-sm">
+          <Card className="bg-card border-border">
             <CardHeader>
-              <CardTitle className="text-white flex items-center gap-2">
+              <CardTitle className="text-foreground flex items-center gap-2">
                 <Eye className="h-5 w-5" />
                 Recent Admin Actions
               </CardTitle>
@@ -183,15 +183,15 @@ const AdministrativeDashboard = memo(function AdministrativeDashboard() {
                   { action: "New contractor application", user: "Elite Landscaping", time: "8 hours ago", admin: "Auto-System" },
                   { action: "Error report investigated", user: "Bug Report #1205", time: "1 day ago", admin: "Tech Support" },
                 ].map((activity, index) => (
-                  <div key={index} className="flex items-center gap-3 p-3 bg-navy-700/50 rounded-lg">
-                    <div className="w-2 h-2 rounded-full bg-blue-400" />
+                  <div key={index} className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg">
+                    <div className="w-2 h-2 rounded-full bg-blue-500" />
                     <div className="flex-1">
-                      <p className="text-white text-sm">{activity.action}</p>
-                      <p className="text-gray-400 text-xs">
+                      <p className="text-foreground text-sm">{activity.action}</p>
+                      <p className="text-muted-foreground text-xs">
                         {activity.user} • by {activity.admin}
                       </p>
                     </div>
-                    <div className="text-gray-400 text-xs">{activity.time}</div>
+                    <div className="text-muted-foreground text-xs">{activity.time}</div>
                   </div>
                 ))}
               </div>
@@ -199,9 +199,9 @@ const AdministrativeDashboard = memo(function AdministrativeDashboard() {
           </Card>
 
           {/* System Alerts */}
-          <Card className="bg-navy-800/50 border-navy-600 backdrop-blur-sm">
+          <Card className="bg-card border-border">
             <CardHeader>
-              <CardTitle className="text-white flex items-center gap-2">
+              <CardTitle className="text-foreground flex items-center gap-2">
                 <AlertTriangle className="h-5 w-5" />
                 System Alerts
               </CardTitle>
@@ -231,19 +231,19 @@ const AdministrativeDashboard = memo(function AdministrativeDashboard() {
                     action: "View report"
                   }
                 ].map((alert, index) => (
-                  <div key={index} className="p-4 bg-navy-700/50 rounded-lg border-l-4 border-l-orange-400">
+                  <div key={index} className="p-4 bg-muted/50 rounded-lg border-l-4 border-l-orange-500">
                     <div className="flex justify-between items-start mb-2">
-                      <h4 className="text-white font-medium text-sm">{alert.title}</h4>
+                      <h4 className="text-foreground font-medium text-sm">{alert.title}</h4>
                       <Badge variant={
-                        alert.type === 'warning' ? 'error' :
+                        alert.type === 'warning' ? 'destructive' :
                         alert.type === 'success' ? 'default' : 'secondary'
                       } className="text-xs">
                         {alert.type}
                       </Badge>
                     </div>
-                    <p className="text-gray-400 text-sm mb-3">{alert.message}</p>
+                    <p className="text-muted-foreground text-sm mb-3">{alert.message}</p>
                     <div className="flex justify-between items-center">
-                      <span className="text-gray-500 text-xs">{alert.time}</span>
+                      <span className="text-muted-foreground text-xs">{alert.time}</span>
                       <Button size="sm" variant="outline" className="text-xs">
                         {alert.action}
                       </Button>
@@ -256,28 +256,28 @@ const AdministrativeDashboard = memo(function AdministrativeDashboard() {
         </div>
 
         {/* Quick Actions */}
-        <Card className="bg-navy-800/50 border-navy-600 backdrop-blur-sm mt-8">
+        <Card className="bg-card border-border mt-8">
           <CardHeader>
-            <CardTitle className="text-white flex items-center gap-2">
+            <CardTitle className="text-foreground flex items-center gap-2">
               <Settings className="h-5 w-5" />
               Administrative Actions
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-              <Button className="h-24 flex flex-col items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700">
+              <Button className="h-24 flex flex-col items-center justify-center gap-2" variant="outline">
                 <FileText className="h-6 w-6" />
                 Generate Reports
               </Button>
-              <Button className="h-24 flex flex-col items-center justify-center gap-2 bg-green-600 hover:bg-green-700">
+              <Button className="h-24 flex flex-col items-center justify-center gap-2" variant="outline">
                 <Users className="h-6 w-6" />
                 User Management
               </Button>
-              <Button className="h-24 flex flex-col items-center justify-center gap-2 bg-purple-600 hover:bg-purple-700">
+              <Button className="h-24 flex flex-col items-center justify-center gap-2" variant="outline">
                 <BarChart3 className="h-6 w-6" />
                 System Analytics
               </Button>
-              <Button className="h-24 flex flex-col items-center justify-center gap-2 bg-orange-600 hover:bg-orange-700">
+              <Button className="h-24 flex flex-col items-center justify-center gap-2" variant="outline">
                 <Settings className="h-6 w-6" />
                 Platform Settings
               </Button>

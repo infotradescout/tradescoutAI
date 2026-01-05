@@ -142,13 +142,13 @@ const APIIntegrations = memo(function APIIntegrations() {
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'connected':
-        return 'bg-green-600 hover:bg-green-700';
+        return 'bg-primary hover:bg-primary/90';
       case 'error':
-        return 'bg-red-600 hover:bg-red-700';
+        return 'bg-destructive hover:bg-destructive/90';
       case 'pending':
-        return 'bg-yellow-600 hover:bg-yellow-700';
+        return 'bg-secondary hover:bg-secondary/90';
       default:
-        return 'bg-gray-600 hover:bg-gray-700';
+        return 'bg-muted hover:bg-muted/90';
     }
   };
 
@@ -161,13 +161,13 @@ const APIIntegrations = memo(function APIIntegrations() {
   };
 
   return (
-    <div className="min-h-screen gradient-bg text-white">
+    <div className="h-full gradient-bg text-foreground">
       <div className="container mx-auto px-4 py-8">
         {/* Header */}
         <div className="mb-8">
           <div className="flex items-center gap-3 mb-4">
-            <Network className="h-8 w-8 text-orange-400" />
-            <h1 className="text-4xl font-bold text-white">API & Integrations</h1>
+            <Network className="h-8 w-8 text-primary" />
+            <h1 className="text-4xl font-bold text-foreground">API & Integrations</h1>
           </div>
           <p className="text-gray-300 text-lg">
             Manage third-party integrations and API configurations

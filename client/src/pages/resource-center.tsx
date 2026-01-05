@@ -144,35 +144,35 @@ const ResourceCenter = memo(function ResourceCenter() {
   };
 
   return (
-    <div className="min-h-screen gradient-bg text-white">
+    <div className="h-full bg-background">
       <div className="container mx-auto px-4 py-8">
         {/* Header */}
         <div className="mb-8">
           <div className="flex items-center gap-3 mb-4">
-            <BookOpen className="h-8 w-8 text-orange-400" />
-            <h1 className="text-4xl font-bold text-white">Resource Center</h1>
+            <BookOpen className="h-8 w-8 text-primary" />
+            <h1 className="text-4xl font-bold text-foreground">Resource Center</h1>
           </div>
-          <p className="text-gray-300 text-lg">
+          <p className="text-muted-foreground text-lg">
             Educational materials, guides, and tools to advance your trade skills
           </p>
         </div>
 
         {/* Search and Filters */}
-        <Card className="bg-navy-800/50 border-navy-600 backdrop-blur-sm mb-8">
+        <Card className="bg-card border-border mb-8">
           <CardContent className="p-6">
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
               <div className="relative">
-                <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                 <Input
                   placeholder="Search resources..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-10 bg-navy-700 border-navy-600 text-white"
+                  className="pl-10 bg-background border-input text-foreground"
                 />
               </div>
               
               <Select value={category} onValueChange={setCategory}>
-                <SelectTrigger className="bg-navy-700 border-navy-600 text-white">
+                <SelectTrigger className="bg-background border-input text-foreground">
                   <SelectValue placeholder="Category" />
                 </SelectTrigger>
                 <SelectContent>
@@ -185,7 +185,7 @@ const ResourceCenter = memo(function ResourceCenter() {
               </Select>
 
               <Select value={resourceType} onValueChange={setResourceType}>
-                <SelectTrigger className="bg-navy-700 border-navy-600 text-white">
+                <SelectTrigger className="bg-background border-input text-foreground">
                   <SelectValue placeholder="Resource Type" />
                 </SelectTrigger>
                 <SelectContent>
@@ -197,28 +197,28 @@ const ResourceCenter = memo(function ResourceCenter() {
                 </SelectContent>
               </Select>
 
-              <Button className="bg-orange-600 hover:bg-orange-700 flex items-center gap-2">
+              <Button className="bg-primary hover:bg-primary/90 flex items-center gap-2">
                 <Filter className="h-4 w-4" />
                 Advanced Filters
               </Button>
             </div>
             
             <div className="flex items-center gap-2">
-              <span className="text-gray-400 text-sm">{resources.length} resources found</span>
+              <span className="text-muted-foreground text-sm">{resources.length} resources found</span>
             </div>
           </CardContent>
         </Card>
 
         {/* Featured Resources */}
-        <Card className="bg-navy-800/50 border-navy-600 backdrop-blur-sm mb-8">
+        <Card className="bg-card border-border mb-8">
           <CardHeader>
-            <CardTitle className="text-white">Featured Resources</CardTitle>
-            <p className="text-gray-400">Essential learning materials for trade professionals</p>
+            <CardTitle className="text-foreground">Featured Resources</CardTitle>
+            <p className="text-muted-foreground">Essential learning materials for trade professionals</p>
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               {resources.filter(resource => resource.featured).map((resource) => (
-                <div key={resource.id} className="bg-navy-700/50 rounded-lg overflow-hidden hover:bg-navy-600/50 transition-colors">
+                <div key={resource.id} className="bg-muted rounded-lg overflow-hidden hover:bg-muted/80 transition-colors">
                   <div className="relative">
                     <img
                       src={resource.thumbnail}
@@ -226,7 +226,7 @@ const ResourceCenter = memo(function ResourceCenter() {
                       className="w-full h-48 object-cover"
                     />
                     <div className="absolute top-4 left-4">
-                      <Badge className="bg-orange-600 hover:bg-orange-700 flex items-center gap-1">
+                      <Badge className="bg-primary hover:bg-primary/90 flex items-center gap-1">
                         {getTypeIcon(resource.type)}
                         {resource.type}
                       </Badge>
@@ -241,20 +241,20 @@ const ResourceCenter = memo(function ResourceCenter() {
                   </div>
                   
                   <div className="p-4">
-                    <h3 className="text-white font-semibold mb-2 line-clamp-2">{resource.title}</h3>
-                    <p className="text-gray-400 text-sm mb-3 line-clamp-2">{resource.description}</p>
+                    <h3 className="text-foreground font-semibold mb-2 line-clamp-2">{resource.title}</h3>
+                    <p className="text-muted-foreground text-sm mb-3 line-clamp-2">{resource.description}</p>
                     
                     <div className="flex items-center gap-2 mb-3">
                       <Badge className={getLevelColor(resource.level)}>
                         {resource.level}
                       </Badge>
-                      <div className="flex items-center gap-1 text-yellow-400 text-sm">
+                      <div className="flex items-center gap-1 text-yellow-600 text-sm">
                         <Star className="h-3 w-3 fill-current" />
                         {resource.rating}
                       </div>
                     </div>
 
-                    <div className="flex justify-between items-center text-sm text-gray-400 mb-3">
+                    <div className="flex justify-between items-center text-sm text-muted-foreground mb-3">
                       <span>{resource.duration}</span>
                       <div className="flex items-center gap-3">
                         <span className="flex items-center gap-1">
@@ -270,7 +270,7 @@ const ResourceCenter = memo(function ResourceCenter() {
                       </div>
                     </div>
 
-                    <Button className="w-full bg-orange-600 hover:bg-orange-700">
+                    <Button className="w-full bg-primary hover:bg-primary/90">
                       {resource.type === 'video' ? 'Watch Now' : 'Access Resource'}
                     </Button>
                   </div>
@@ -283,16 +283,16 @@ const ResourceCenter = memo(function ResourceCenter() {
         {/* All Resources */}
         <Tabs defaultValue="grid" className="w-full">
           <div className="flex justify-between items-center mb-6">
-            <TabsList className="grid w-48 grid-cols-2 bg-navy-800/50 backdrop-blur-sm">
-              <TabsTrigger value="grid" className="data-[state=active]:bg-orange-600">Grid</TabsTrigger>
-              <TabsTrigger value="list" className="data-[state=active]:bg-orange-600">List</TabsTrigger>
+            <TabsList className="grid w-48 grid-cols-2 bg-muted">
+              <TabsTrigger value="grid" className="data-[state=active]:bg-background">Grid</TabsTrigger>
+              <TabsTrigger value="list" className="data-[state=active]:bg-background">List</TabsTrigger>
             </TabsList>
           </div>
 
           <TabsContent value="grid">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {resources.map((resource) => (
-                <Card key={resource.id} className="bg-navy-800/50 border-navy-600 backdrop-blur-sm hover:bg-navy-700/50 transition-colors">
+                <Card key={resource.id} className="bg-card border-border hover:bg-muted/50 transition-colors">
                   <div className="relative">
                     <img
                       src={resource.thumbnail}
@@ -300,7 +300,7 @@ const ResourceCenter = memo(function ResourceCenter() {
                       className="w-full h-48 object-cover rounded-t-lg"
                     />
                     <div className="absolute top-4 left-4">
-                      <Badge className="bg-navy-900/80 text-white flex items-center gap-1">
+                      <Badge className="bg-secondary text-secondary-foreground flex items-center gap-1">
                         {getTypeIcon(resource.type)}
                         {resource.type}
                       </Badge>
@@ -315,20 +315,20 @@ const ResourceCenter = memo(function ResourceCenter() {
                   </div>
                   
                   <CardContent className="p-6">
-                    <h3 className="text-white font-semibold text-lg mb-2 line-clamp-2">{resource.title}</h3>
-                    <p className="text-gray-400 text-sm mb-4 line-clamp-3">{resource.description}</p>
+                    <h3 className="text-foreground font-semibold text-lg mb-2 line-clamp-2">{resource.title}</h3>
+                    <p className="text-muted-foreground text-sm mb-4 line-clamp-3">{resource.description}</p>
                     
                     <div className="flex items-center gap-2 mb-4">
                       <Badge className={getLevelColor(resource.level)}>
                         {resource.level}
                       </Badge>
-                      <div className="flex items-center gap-1 text-yellow-400 text-sm">
+                      <div className="flex items-center gap-1 text-yellow-600 text-sm">
                         <Star className="h-3 w-3 fill-current" />
                         {resource.rating}
                       </div>
                     </div>
 
-                    <div className="flex justify-between items-center text-sm text-gray-400 mb-4">
+                    <div className="flex justify-between items-center text-sm text-muted-foreground mb-4">
                       <span className="flex items-center gap-1">
                         <Clock className="h-3 w-3" />
                         {resource.duration}
@@ -340,11 +340,11 @@ const ResourceCenter = memo(function ResourceCenter() {
                     </div>
 
                     <div className="mb-4">
-                      <p className="text-gray-400 text-xs mb-2">By {resource.author}</p>
-                      <p className="text-gray-500 text-xs">Updated {new Date(resource.lastUpdated).toLocaleDateString()}</p>
+                      <p className="text-muted-foreground text-xs mb-2">By {resource.author}</p>
+                      <p className="text-muted-foreground text-xs">Updated {new Date(resource.lastUpdated).toLocaleDateString()}</p>
                     </div>
 
-                    <Button className="w-full bg-orange-600 hover:bg-orange-700">
+                    <Button className="w-full bg-primary hover:bg-primary/90">
                       {resource.type === 'video' ? 'Watch Now' : 'Access Resource'}
                     </Button>
                   </CardContent>
@@ -356,7 +356,7 @@ const ResourceCenter = memo(function ResourceCenter() {
           <TabsContent value="list">
             <div className="space-y-4">
               {resources.map((resource) => (
-                <Card key={resource.id} className="bg-navy-800/50 border-navy-600 backdrop-blur-sm">
+                <Card key={resource.id} className="bg-card border-border">
                   <CardContent className="p-6">
                     <div className="flex gap-6">
                       <img
@@ -367,25 +367,25 @@ const ResourceCenter = memo(function ResourceCenter() {
                       
                       <div className="flex-1">
                         <div className="flex justify-between items-start mb-2">
-                          <h3 className="text-white font-semibold text-lg">{resource.title}</h3>
-                          <Badge className="bg-navy-700 text-white flex items-center gap-1">
+                          <h3 className="text-foreground font-semibold text-lg">{resource.title}</h3>
+                          <Badge className="bg-secondary text-secondary-foreground flex items-center gap-1">
                             {getTypeIcon(resource.type)}
                             {resource.type}
                           </Badge>
                         </div>
                         
-                        <p className="text-gray-400 text-sm mb-3">{resource.description}</p>
+                        <p className="text-muted-foreground text-sm mb-3">{resource.description}</p>
                         
                         <div className="flex items-center gap-4 mb-3">
                           <Badge className={getLevelColor(resource.level)}>
                             {resource.level}
                           </Badge>
-                          <div className="flex items-center gap-1 text-yellow-400 text-sm">
+                          <div className="flex items-center gap-1 text-yellow-600 text-sm">
                             <Star className="h-3 w-3 fill-current" />
                             {resource.rating}
                           </div>
-                          <span className="text-gray-400 text-sm">{resource.duration}</span>
-                          <span className="text-gray-400 text-sm flex items-center gap-1">
+                          <span className="text-muted-foreground text-sm">{resource.duration}</span>
+                          <span className="text-muted-foreground text-sm flex items-center gap-1">
                             <Eye className="h-3 w-3" />
                             {resource.views.toLocaleString()} views
                           </span>
@@ -393,10 +393,10 @@ const ResourceCenter = memo(function ResourceCenter() {
 
                         <div className="flex justify-between items-center">
                           <div>
-                            <p className="text-gray-400 text-sm">By {resource.author}</p>
-                            <p className="text-gray-500 text-xs">Updated {new Date(resource.lastUpdated).toLocaleDateString()}</p>
+                            <p className="text-muted-foreground text-sm">By {resource.author}</p>
+                            <p className="text-muted-foreground text-xs">Updated {new Date(resource.lastUpdated).toLocaleDateString()}</p>
                           </div>
-                          <Button className="bg-orange-600 hover:bg-orange-700">
+                          <Button className="bg-primary hover:bg-primary/90">
                             {resource.type === 'video' ? 'Watch Now' : 'Access Resource'}
                           </Button>
                         </div>

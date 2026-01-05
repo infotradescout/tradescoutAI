@@ -112,21 +112,21 @@ export default function RealtorContacts() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white">
+    <div className="h-full bg-background text-foreground">
       <div className="container mx-auto px-6 py-8">
         <div className="max-w-7xl mx-auto">
           <div className="flex items-center justify-between mb-8">
             <div className="flex items-center gap-3">
-              <div className="p-3 bg-purple-500/20 rounded-xl">
-                <Users className="h-8 w-8 text-purple-400" />
+              <div className="p-3 bg-primary/10 rounded-xl">
+                <Users className="h-8 w-8 text-primary" />
               </div>
               <div>
                 <h1 className="text-3xl font-bold">Contact Management</h1>
-                <p className="text-gray-400">Manage clients, leads, and professional contacts</p>
+                <p className="text-muted-foreground">Manage clients, leads, and professional contacts</p>
               </div>
             </div>
             
-            <Button className="bg-purple-600 hover:bg-purple-700" data-testid="button-add-contact">
+            <Button className="bg-primary hover:bg-primary/90" data-testid="button-add-contact">
               <Plus className="h-4 w-4 mr-2" />
               Add Contact
             </Button>
@@ -135,23 +135,23 @@ export default function RealtorContacts() {
           {/* Search and Filter */}
           <div className="flex gap-4 mb-6">
             <div className="relative flex-1">
-              <Search className="h-4 w-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+              <Search className="h-4 w-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground" />
               <Input
                 placeholder="Search contacts..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10 bg-navy-800/50 border-navy-600"
+                className="pl-10 bg-background border-input"
                 data-testid="input-search-contacts"
               />
             </div>
-            <Button variant="outline" className="border-navy-600" data-testid="button-filter-contacts">
+            <Button variant="outline" className="border-border" data-testid="button-filter-contacts">
               <Filter className="h-4 w-4 mr-2" />
               Filter
             </Button>
           </div>
 
           <Tabs defaultValue="all" className="space-y-6">
-            <TabsList className="bg-navy-800/50 border border-navy-600">
+            <TabsList className="bg-muted border border-border">
               <TabsTrigger value="all">All Contacts</TabsTrigger>
               <TabsTrigger value="clients">Clients</TabsTrigger>
               <TabsTrigger value="leads">Leads</TabsTrigger>
@@ -160,37 +160,37 @@ export default function RealtorContacts() {
 
             <TabsContent value="all" className="space-y-4">
               {contacts.map((contact) => (
-                <Card key={contact.id} className="bg-navy-800/50 border-navy-600">
+                <Card key={contact.id} className="bg-card border-border">
                   <CardContent className="p-6">
                     <div className="flex items-start justify-between">
                       <div className="flex items-start gap-4">
-                        <div className="w-12 h-12 bg-purple-500/20 rounded-full flex items-center justify-center">
+                        <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center">
                           {getTypeIcon(contact.type)}
                         </div>
                         
                         <div className="flex-1">
                           <div className="flex items-center gap-3 mb-2">
                             <h3 className="font-semibold text-lg">{contact.name}</h3>
-                            <Badge className="bg-blue-600">{contact.type}</Badge>
-                            <Badge className={getStatusColor(contact.status)}>
+                            <Badge className="bg-blue-600 text-white">{contact.type}</Badge>
+                            <Badge className={`${getStatusColor(contact.status)} text-white`}>
                               {contact.status}
                             </Badge>
                           </div>
                           
                           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 text-sm mb-3">
-                            <div className="flex items-center gap-2 text-gray-400">
+                            <div className="flex items-center gap-2 text-muted-foreground">
                               <Mail className="h-4 w-4" />
                               {contact.email}
                             </div>
-                            <div className="flex items-center gap-2 text-gray-400">
+                            <div className="flex items-center gap-2 text-muted-foreground">
                               <Phone className="h-4 w-4" />
                               {contact.phone}
                             </div>
-                            <div className="flex items-center gap-2 text-gray-400">
+                            <div className="flex items-center gap-2 text-muted-foreground">
                               <Calendar className="h-4 w-4" />
                               Last contact: {contact.lastContact}
                             </div>
-                            <div className="flex items-center gap-2 text-gray-400">
+                            <div className="flex items-center gap-2 text-muted-foreground">
                               <Home className="h-4 w-4" />
                               Source: {contact.source}
                             </div>
@@ -198,7 +198,7 @@ export default function RealtorContacts() {
 
                           <div className="flex items-center gap-4 mb-3">
                             <div className="flex items-center gap-2">
-                              <Tag className="h-4 w-4 text-purple-400" />
+                              <Tag className="h-4 w-4 text-primary" />
                               <div className="flex gap-1">
                                 {contact.tags.map((tag, index) => (
                                   <Badge key={index} variant="secondary" className="text-xs">
@@ -208,14 +208,14 @@ export default function RealtorContacts() {
                               </div>
                             </div>
                             <div className="flex items-center gap-2">
-                              <span className="text-sm text-gray-400">Rating:</span>
+                              <span className="text-sm text-muted-foreground">Rating:</span>
                               {renderStars(contact.rating)}
                             </div>
                           </div>
 
                           {contact.notes && (
-                            <div className="p-3 bg-navy-700/30 rounded-lg">
-                              <p className="text-sm text-gray-300">{contact.notes}</p>
+                            <div className="p-3 bg-muted/50 rounded-lg">
+                              <p className="text-sm text-muted-foreground">{contact.notes}</p>
                             </div>
                           )}
                         </div>
@@ -233,7 +233,7 @@ export default function RealtorContacts() {
                           <Mail className="h-4 w-4 mr-2" />
                           Email
                         </Button>
-                        <Button size="sm" className="bg-purple-600 hover:bg-purple-700" data-testid="button-schedule-contact">
+                        <Button size="sm" className="bg-primary hover:bg-primary/90" data-testid="button-schedule-contact">
                           <Calendar className="h-4 w-4 mr-2" />
                           Schedule
                         </Button>
@@ -247,16 +247,16 @@ export default function RealtorContacts() {
             <TabsContent value="clients">
               <div className="space-y-4">
                 {contacts.filter(c => c.type === "Client").map((contact) => (
-                  <Card key={contact.id} className="bg-navy-800/50 border-navy-600">
+                  <Card key={contact.id} className="bg-card border-border">
                     <CardContent className="p-6">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-4">
-                          <div className="w-12 h-12 bg-green-500/20 rounded-full flex items-center justify-center">
-                            <Users className="h-6 w-6 text-green-400" />
+                          <div className="w-12 h-12 bg-green-500/10 rounded-full flex items-center justify-center">
+                            <Users className="h-6 w-6 text-green-500" />
                           </div>
                           <div>
                             <h3 className="font-semibold text-lg">{contact.name}</h3>
-                            <p className="text-sm text-gray-400">{contact.email} • {contact.phone}</p>
+                            <p className="text-sm text-muted-foreground">{contact.email} • {contact.phone}</p>
                             <div className="flex gap-1 mt-1">
                               {contact.tags.map((tag, index) => (
                                 <Badge key={index} variant="secondary" className="text-xs">
@@ -266,7 +266,7 @@ export default function RealtorContacts() {
                             </div>
                           </div>
                         </div>
-                        <Badge className={getStatusColor(contact.status)}>
+                        <Badge className={`${getStatusColor(contact.status)} text-white`}>
                           {contact.status}
                         </Badge>
                       </div>
@@ -279,20 +279,20 @@ export default function RealtorContacts() {
             <TabsContent value="leads">
               <div className="space-y-4">
                 {contacts.filter(c => c.type === "Lead").map((contact) => (
-                  <Card key={contact.id} className="bg-navy-800/50 border-navy-600">
+                  <Card key={contact.id} className="bg-card border-border">
                     <CardContent className="p-6">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-4">
-                          <div className="w-12 h-12 bg-yellow-500/20 rounded-full flex items-center justify-center">
-                            <Star className="h-6 w-6 text-yellow-400" />
+                          <div className="w-12 h-12 bg-yellow-500/10 rounded-full flex items-center justify-center">
+                            <Star className="h-6 w-6 text-yellow-500" />
                           </div>
                           <div>
                             <h3 className="font-semibold text-lg">{contact.name}</h3>
-                            <p className="text-sm text-gray-400">{contact.email} • {contact.phone}</p>
-                            <p className="text-sm text-gray-500">Source: {contact.source}</p>
+                            <p className="text-sm text-muted-foreground">{contact.email} • {contact.phone}</p>
+                            <p className="text-sm text-muted-foreground">Source: {contact.source}</p>
                           </div>
                         </div>
-                        <Button size="sm" className="bg-yellow-600 hover:bg-yellow-700" data-testid="button-convert-lead">
+                        <Button size="sm" className="bg-yellow-600 hover:bg-yellow-700 text-white" data-testid="button-convert-lead">
                           Convert to Client
                         </Button>
                       </div>
@@ -305,22 +305,22 @@ export default function RealtorContacts() {
             <TabsContent value="partners">
               <div className="space-y-4">
                 {contacts.filter(c => c.type === "Partner").map((contact) => (
-                  <Card key={contact.id} className="bg-navy-800/50 border-navy-600">
+                  <Card key={contact.id} className="bg-card border-border">
                     <CardContent className="p-6">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-4">
-                          <div className="w-12 h-12 bg-red-500/20 rounded-full flex items-center justify-center">
-                            <Heart className="h-6 w-6 text-red-400" />
+                          <div className="w-12 h-12 bg-destructive/10 rounded-full flex items-center justify-center">
+                            <Heart className="h-6 w-6 text-destructive" />
                           </div>
                           <div>
                             <h3 className="font-semibold text-lg">{contact.name}</h3>
-                            <p className="text-sm text-gray-400">{contact.email} • {contact.phone}</p>
+                            <p className="text-sm text-muted-foreground">{contact.email} • {contact.phone}</p>
                             <div className="flex items-center gap-2 mt-1">
                               {renderStars(contact.rating)}
                             </div>
                           </div>
                         </div>
-                        <Button size="sm" className="bg-red-600 hover:bg-red-700" data-testid="button-send-referral">
+                        <Button size="sm" className="bg-destructive hover:bg-destructive/90" data-testid="button-send-referral">
                           <MessageSquare className="h-4 w-4 mr-2" />
                           Send Referral
                         </Button>

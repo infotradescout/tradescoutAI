@@ -61,12 +61,12 @@ type SavedView = {
 };
 
 const roleHierarchy = {
-  super_admin: { level: 100, label: "Super Admin", icon: Crown, color: "bg-indigo-500" },
-  moderator: { level: 80, label: "Moderator", icon: Shield, color: "bg-blue-500" },
-  ops_admin: { level: 70, label: "Operations Admin", icon: UserCog, color: "bg-green-500" },
-  contractor_user: { level: 20, label: "Contractor", icon: Users, color: "bg-orange-500" },
-  accelerator_member: { level: 15, label: "Accelerator Member", icon: Users, color: "bg-yellow-500" },
-  homeowner: { level: 10, label: "Homeowner", icon: Users, color: "bg-slate-900/60" },
+  super_admin: { level: 100, label: "Super Admin", icon: Crown, color: "bg-primary text-primary-foreground" },
+  moderator: { level: 80, label: "Moderator", icon: Shield, color: "bg-primary/90 text-primary-foreground" },
+  ops_admin: { level: 70, label: "Operations Admin", icon: UserCog, color: "bg-primary/80 text-primary-foreground" },
+  contractor_user: { level: 20, label: "Contractor", icon: Users, color: "bg-secondary text-secondary-foreground" },
+  accelerator_member: { level: 15, label: "Accelerator Member", icon: Users, color: "bg-accent text-accent-foreground" },
+  homeowner: { level: 10, label: "Homeowner", icon: Users, color: "bg-muted text-muted-foreground" },
 };
 
 export default function AdminUsers() {
@@ -227,7 +227,7 @@ export default function AdminUsers() {
       level: 0,
       label: role,
       icon: Users,
-      color: 'bg-slate-900/60'
+      color: 'bg-muted text-muted-foreground'
     };
   };
 
@@ -477,33 +477,33 @@ export default function AdminUsers() {
 
   if (!user || currentUserLevel < 70) {
     return (
-      <div className="min-h-screen bg-navy-900 flex items-center justify-center">
+      <div className="h-full bg-background flex items-center justify-center">
         <div className="text-center">
-          <Shield className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-          <h1 className="text-2xl font-bold text-white mb-2">Access Denied</h1>
-          <p className="text-gray-300">You don't have permission to access user management.</p>
+          <Shield className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
+          <h1 className="text-2xl font-bold text-foreground mb-2">Access Denied</h1>
+          <p className="text-muted-foreground">You don't have permission to access user management.</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-navy-900 p-6">
+    <div className="h-full bg-background p-6">
       <div className="container mx-auto max-w-7xl">
         <div className="flex items-center justify-between mb-8">
           <div>
-            <h1 className="text-3xl font-bold text-white mb-2">User Management</h1>
-            <p className="text-gray-300">Manage user roles and permissions</p>
+            <h1 className="text-3xl font-bold text-foreground mb-2">User Management</h1>
+            <p className="text-muted-foreground">Manage user roles and permissions</p>
           </div>
           <div className="flex items-center gap-2">
             {isSuperAdmin && (
-              <Badge className="bg-purple-500 text-white">
+              <Badge className="bg-primary text-primary-foreground">
                 <Crown className="w-3 h-3 mr-1" />
                 Super Admin
               </Badge>
             )}
             {user.role === 'moderator' && (
-              <Badge className="bg-blue-500 text-white">
+              <Badge className="bg-primary/90 text-primary-foreground">
                 <Shield className="w-3 h-3 mr-1" />
                 Moderator
               </Badge>
@@ -512,24 +512,24 @@ export default function AdminUsers() {
         </div>
 
         {/* Filters */}
-        <Card className="bg-navy-800 border-navy-700 mb-6">
+        <Card className="bg-card border-border mb-6">
           <CardContent className="p-4">
             <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
               <div className="flex-1 min-w-[220px]">
                 <div className="relative">
-                  <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                  <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                   <Input
                     placeholder="Search users by name or email..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    className="pl-10 bg-navy-700 border-navy-600 text-white placeholder-gray-400"
+                    className="pl-10 bg-input border-input text-foreground placeholder:text-muted-foreground"
                   />
                 </div>
               </div>
               <div className="flex flex-col gap-3 items-stretch lg:flex-row lg:items-center lg:justify-end">
                 {user && (
-                  <div className="flex flex-wrap items-center gap-2 text-xs text-gray-300">
-                    <span className="font-semibold text-gray-200">Saved views</span>
+                  <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+                    <span className="font-semibold text-foreground">Saved views</span>
                     <Select
                       value={activeViewId || ""}
                       onValueChange={(v: string) => {
@@ -537,10 +537,10 @@ export default function AdminUsers() {
                         applySavedView(v);
                       }}
                     >
-                      <SelectTrigger className="w-44 bg-navy-700 border-navy-600 text-white text-xs">
+                      <SelectTrigger className="w-44 bg-input border-input text-foreground text-xs">
                         <SelectValue placeholder={savedViews.length ? "Choose view" : "No views yet"} />
                       </SelectTrigger>
-                      <SelectContent className="bg-navy-700 border-navy-600 text-xs">
+                      <SelectContent className="bg-popover border-border text-xs">
                         {savedViews.length === 0 && (
                           <SelectItem value="" disabled>
                             No saved views
@@ -557,7 +557,7 @@ export default function AdminUsers() {
                     <Button
                       size="sm"
                       variant="outline"
-                      className="border-navy-600 text-gray-200 hover:bg-navy-600"
+                      className="border-input text-foreground hover:bg-muted"
                       onClick={saveCurrentView}
                     >
                       Save view
@@ -567,7 +567,7 @@ export default function AdminUsers() {
                         <Button
                           size="sm"
                           variant="outline"
-                          className="border-red-600 text-red-400 hover:bg-red-600 hover:text-white"
+                          className="border-destructive text-destructive hover:bg-destructive hover:text-destructive-foreground"
                           onClick={() => deleteSavedView(activeViewId)}
                         >
                           Delete
@@ -575,7 +575,7 @@ export default function AdminUsers() {
                         <Button
                           size="sm"
                           variant="outline"
-                          className="border-amber-500 text-amber-300 hover:bg-amber-500/10"
+                          className="border-accent text-accent-foreground hover:bg-accent/10"
                           onClick={() => pinSavedView(activeViewId)}
                         >
                           Pin default
@@ -585,10 +585,10 @@ export default function AdminUsers() {
                   </div>
                 )}
                 <Select value={statusFilter} onValueChange={(v: any) => setStatusFilter(v)}>
-                  <SelectTrigger className="w-40 bg-navy-700 border-navy-600 text-white text-xs">
+                  <SelectTrigger className="w-40 bg-input border-input text-foreground text-xs">
                     <SelectValue placeholder="Status" />
                   </SelectTrigger>
-                  <SelectContent className="bg-navy-700 border-navy-600 text-xs">
+                  <SelectContent className="bg-popover border-border text-xs">
                     <SelectItem value="all">Status: All</SelectItem>
                     <SelectItem value="verified">Status: Verified</SelectItem>
                     <SelectItem value="pending">Status: Pending</SelectItem>
@@ -596,20 +596,20 @@ export default function AdminUsers() {
                   </SelectContent>
                 </Select>
                 <Select value={addressFilter} onValueChange={(v: any) => setAddressFilter(v)}>
-                  <SelectTrigger className="w-44 bg-navy-700 border-navy-600 text-white text-xs">
+                  <SelectTrigger className="w-44 bg-input border-input text-foreground text-xs">
                     <SelectValue placeholder="Address" />
                   </SelectTrigger>
-                  <SelectContent className="bg-navy-700 border-navy-600 text-xs">
+                  <SelectContent className="bg-popover border-border text-xs">
                     <SelectItem value="all">Address: All</SelectItem>
                     <SelectItem value="verified">Address: Verified</SelectItem>
                     <SelectItem value="not_verified">Address: Not Verified</SelectItem>
                   </SelectContent>
                 </Select>
                 <Select value={roleFilter} onValueChange={(v: any) => setRoleFilter(v)}>
-                  <SelectTrigger className="w-40 bg-navy-700 border-navy-600 text-white text-xs">
+                  <SelectTrigger className="w-40 bg-input border-input text-foreground text-xs">
                     <SelectValue placeholder="Role" />
                   </SelectTrigger>
-                  <SelectContent className="bg-navy-700 border-navy-600 text-xs">
+                  <SelectContent className="bg-popover border-border text-xs">
                     <SelectItem value="all">Role: All</SelectItem>
                     <SelectItem value="contractor">Role: Contractor</SelectItem>
                     <SelectItem value="homeowner">Role: Homeowner</SelectItem>
@@ -617,20 +617,20 @@ export default function AdminUsers() {
                   </SelectContent>
                 </Select>
                 <Select value={onboardingFilter} onValueChange={(v: any) => setOnboardingFilter(v)}>
-                  <SelectTrigger className="w-44 bg-navy-700 border-navy-600 text-white text-xs">
+                  <SelectTrigger className="w-44 bg-input border-input text-foreground text-xs">
                     <SelectValue placeholder="Onboarding" />
                   </SelectTrigger>
-                  <SelectContent className="bg-navy-700 border-navy-600 text-xs">
+                  <SelectContent className="bg-popover border-border text-xs">
                     <SelectItem value="all">Onboarding: All</SelectItem>
                     <SelectItem value="complete">Onboarding: Complete</SelectItem>
                     <SelectItem value="pending">Onboarding: Pending</SelectItem>
                   </SelectContent>
                 </Select>
                 <Select value={timeFilter} onValueChange={(v: any) => setTimeFilter(v)}>
-                  <SelectTrigger className="w-40 bg-navy-700 border-navy-600 text-white text-xs">
+                  <SelectTrigger className="w-40 bg-input border-input text-foreground text-xs">
                     <SelectValue placeholder="Time" />
                   </SelectTrigger>
-                  <SelectContent className="bg-navy-700 border-navy-600 text-xs">
+                  <SelectContent className="bg-popover border-border text-xs">
                     <SelectItem value="all">Time: All</SelectItem>
                     <SelectItem value="24h">Time: Last 24h</SelectItem>
                     <SelectItem value="7d">Time: Last 7 days</SelectItem>
@@ -643,11 +643,11 @@ export default function AdminUsers() {
         </Card>
 
         {/* Users Table */}
-        <Card className="bg-navy-800 border-navy-700">
+        <Card className="bg-card border-border">
           <CardHeader>
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div className="flex items-center gap-3">
-                <CardTitle className="text-white">
+                <CardTitle className="text-foreground">
                   Users ({filteredUsers.length}{users.length !== filteredUsers.length ? ` of ${users.length}` : ""})
                 </CardTitle>
                 <Button
@@ -679,11 +679,11 @@ export default function AdminUsers() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead className="text-gray-300">User</TableHead>
-                    <TableHead className="text-gray-300">Role</TableHead>
-                    <TableHead className="text-gray-300">Status</TableHead>
-                    <TableHead className="text-gray-300">Joined</TableHead>
-                    <TableHead className="text-gray-300">Actions</TableHead>
+                    <TableHead className="text-muted-foreground">User</TableHead>
+                    <TableHead className="text-muted-foreground">Role</TableHead>
+                    <TableHead className="text-muted-foreground">Status</TableHead>
+                    <TableHead className="text-muted-foreground">Joined</TableHead>
+                    <TableHead className="text-muted-foreground">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -694,18 +694,18 @@ export default function AdminUsers() {
                     return (
                       <TableRow key={user.id}>
                         <TableCell>
-                          <div className="text-white">
+                          <div className="text-foreground">
                             <div className="font-medium">
                               {user.firstName && user.lastName 
                                 ? `${user.firstName} ${user.lastName}`
                                 : user.email
                               }
                             </div>
-                            <div className="text-sm text-gray-400">{user.email}</div>
+                            <div className="text-sm text-muted-foreground">{user.email}</div>
                             <div className="mt-1 text-xs">
                               <Link
                                 href={`/profile/${user.id}`}
-                                className="text-orange-400 hover:text-orange-300 hover:underline"
+                                className="text-primary hover:text-primary/80 hover:underline"
                               >
                                 View public profile
                               </Link>
@@ -725,10 +725,10 @@ export default function AdminUsers() {
                             <Badge
                               className={
                                 user.verificationStatus === 'approved'
-                                  ? 'bg-emerald-600 text-white'
+                                  ? 'bg-primary text-primary-foreground'
                                   : user.verificationStatus === 'suspended'
-                                  ? 'bg-red-600 text-white'
-                                  : 'bg-amber-500/80 text-black'
+                                  ? 'bg-destructive text-destructive-foreground'
+                                  : 'bg-secondary text-secondary-foreground'
                               }
                             >
                               {user.verificationStatus === 'approved'
@@ -740,8 +740,8 @@ export default function AdminUsers() {
                             <Badge
                               className={
                                 user.addressVerified
-                                  ? 'bg-emerald-700 text-white'
-                                  : 'bg-slate-700 text-slate-100'
+                                  ? 'bg-primary text-primary-foreground'
+                                  : 'bg-muted text-muted-foreground'
                               }
                             >
                               {user.addressVerified ? 'Address verified' : 'Address not verified'}
@@ -751,7 +751,7 @@ export default function AdminUsers() {
                             </Badge>
                           </div>
                         </TableCell>
-                        <TableCell className="text-gray-300">
+                        <TableCell className="text-muted-foreground">
                           {new Date(user.createdAt).toLocaleDateString()}
                         </TableCell>
                         <TableCell>
@@ -767,7 +767,7 @@ export default function AdminUsers() {
                                   setUserToEdit(user);
                                   setNewRole(user.role);
                                 }}
-                                className="border-navy-600 text-gray-300 hover:bg-navy-600"
+                                className="border-border text-muted-foreground hover:bg-muted"
                                 title="Edit user role"
                               >
                                 Edit Role
@@ -799,7 +799,7 @@ export default function AdminUsers() {
                                       setPendingAction((prev) => ({ ...prev, [key]: false }));
                                     }
                                   }}
-                                  className="border-yellow-500 text-yellow-600 hover:bg-yellow-100"
+                                  className="border-accent text-accent-foreground hover:bg-accent/10"
                                   title="Impersonate user"
                                   disabled={pendingAction[`${user.id}:impersonate`]}
                                 >
@@ -813,7 +813,7 @@ export default function AdminUsers() {
                                     size="sm"
                                     variant="outline"
                                     onClick={() => handleUserControl('suspend', user.id)}
-                                    className="border-red-500 text-red-600"
+                                    className="border-destructive text-destructive hover:bg-destructive/10"
                                     title={user.verificationStatus === 'suspended' ? 'User is already suspended' : 'Suspend user'}
                                     disabled={
                                       pendingAction[`${user.id}:suspend`] || user.verificationStatus === 'suspended'
@@ -825,7 +825,7 @@ export default function AdminUsers() {
                                     size="sm"
                                     variant="outline"
                                     onClick={() => handleUserControl('unsuspend', user.id)}
-                                    className="border-green-500 text-green-600"
+                                    className="border-primary text-primary hover:bg-primary/10"
                                     title="Unsuspend user"
                                     disabled={pendingAction[`${user.id}:unsuspend`]}
                                   >
@@ -835,7 +835,7 @@ export default function AdminUsers() {
                                     size="sm"
                                     variant="outline"
                                     onClick={() => handleUserControl('verify', user.id)}
-                                    className="border-blue-500 text-blue-600"
+                                    className="border-primary text-primary hover:bg-primary/10"
                                     title={user.verificationStatus === 'approved' ? 'User is already verified' : 'Verify user'}
                                     disabled={
                                       pendingAction[`${user.id}:verify`] || user.verificationStatus === 'approved'
@@ -847,7 +847,7 @@ export default function AdminUsers() {
                                     size="sm"
                                     variant="outline"
                                     onClick={() => handleUserControl('revoke_verify', user.id)}
-                                    className="border-gray-500 text-gray-600"
+                                    className="border-muted text-muted-foreground hover:bg-muted/10"
                                     title="Revoke verification"
                                     disabled={pendingAction[`${user.id}:revoke_verify`]}
                                   >
@@ -858,12 +858,12 @@ export default function AdminUsers() {
                               {/* Role Quick Set Dropdown */}
                               {isSuperAdmin && user.id !== (userToEdit?.id || '') && user.role !== 'super_admin' && (
                                 <div className="relative group">
-                                  <Button size="sm" variant="outline" className="border-orange-500 text-orange-600 group-hover:bg-orange-50" title="Quick set role">
+                                  <Button size="sm" variant="outline" className="border-secondary text-secondary-foreground group-hover:bg-secondary/10" title="Quick set role">
                                     More
                                   </Button>
-                                  <div className="absolute left-0 z-10 hidden group-hover:block bg-navy-700 border border-navy-600 rounded shadow-lg mt-1 min-w-[160px]">
-                                    <button onClick={() => handleUserControl('role', user.id, 'contractor_user')} className="block w-full text-left px-4 py-2 text-orange-500 hover:bg-orange-100" disabled={pendingAction[`${user.id}:role:contractor_user`]}> {pendingAction[`${user.id}:role:contractor_user`] ? 'Working…' : 'Set Contractor'} </button>
-                                    <button onClick={() => handleUserControl('role', user.id, 'homeowner')} className="block w-full text-left px-4 py-2 text-purple-500 hover:bg-purple-100" disabled={pendingAction[`${user.id}:role:homeowner`]}> {pendingAction[`${user.id}:role:homeowner`] ? 'Working…' : 'Set Homeowner'} </button>
+                                  <div className="absolute left-0 z-10 hidden group-hover:block bg-popover border border-border rounded shadow-lg mt-1 min-w-[160px]">
+                                    <button onClick={() => handleUserControl('role', user.id, 'contractor_user')} className="block w-full text-left px-4 py-2 text-foreground hover:bg-muted" disabled={pendingAction[`${user.id}:role:contractor_user`]}> {pendingAction[`${user.id}:role:contractor_user`] ? 'Working…' : 'Set Contractor'} </button>
+                                    <button onClick={() => handleUserControl('role', user.id, 'homeowner')} className="block w-full text-left px-4 py-2 text-foreground hover:bg-muted" disabled={pendingAction[`${user.id}:role:homeowner`]}> {pendingAction[`${user.id}:role:homeowner`] ? 'Working…' : 'Set Homeowner'} </button>
                                   </div>
                                 </div>
                               )}
@@ -873,7 +873,7 @@ export default function AdminUsers() {
                                   size="sm"
                                   variant="outline"
                                   onClick={() => handleDeleteUser(user.id, user.role)}
-                                  className="border-red-600 text-red-400 hover:bg-red-600 hover:text-white"
+                                  className="border-destructive text-destructive hover:bg-destructive hover:text-destructive-foreground"
                                   title="Delete user"
                                 >
                                   <Trash2 className="w-3 h-3" />
@@ -893,10 +893,10 @@ export default function AdminUsers() {
 
         {/* Edit Role Dialog */}
         <Dialog open={!!userToEdit} onOpenChange={() => setUserToEdit(null)}>
-          <DialogContent className="bg-navy-800 border-navy-700">
+          <DialogContent className="bg-card border-border">
             <DialogHeader>
-              <DialogTitle className="text-white">Edit User Role</DialogTitle>
-              <DialogDescription className="text-gray-300">
+              <DialogTitle className="text-foreground">Edit User Role</DialogTitle>
+              <DialogDescription className="text-muted-foreground">
                 Change the role for {userToEdit?.firstName && userToEdit?.lastName 
                   ? `${userToEdit.firstName} ${userToEdit.lastName}`
                   : userToEdit?.email
@@ -905,22 +905,22 @@ export default function AdminUsers() {
             </DialogHeader>
             <div className="space-y-4">
               <div>
-                <Label className="text-gray-300">Current Role</Label>
+                <Label className="text-muted-foreground">Current Role</Label>
                 <div className="mt-1">
-                  <Badge className={`${getRoleInfo(userToEdit?.role || '').color} text-white`}>
+                  <Badge className={`${getRoleInfo(userToEdit?.role || '').color}`}>
                     {getRoleInfo(userToEdit?.role || '').label}
                   </Badge>
                 </div>
               </div>
               <div>
-                <Label className="text-gray-300">New Role</Label>
+                <Label className="text-muted-foreground">New Role</Label>
                 <Select value={newRole || undefined} onValueChange={setNewRole}>
-                  <SelectTrigger className="bg-navy-700 border-navy-600 text-white">
+                  <SelectTrigger className="bg-input border-input text-foreground">
                     <SelectValue placeholder="Select new role" />
                   </SelectTrigger>
-                  <SelectContent className="bg-navy-700 border-navy-600">
+                  <SelectContent className="bg-popover border-border">
                     {getAvailableRoles().map((role) => (
-                      <SelectItem key={role} value={role} className="text-white">
+                      <SelectItem key={role} value={role} className="text-foreground">
                         {getRoleInfo(role).label}
                       </SelectItem>
                     ))}
@@ -932,14 +932,14 @@ export default function AdminUsers() {
               <Button
                 variant="outline"
                 onClick={() => setUserToEdit(null)}
-                className="border-navy-600 text-gray-300 hover:bg-navy-600"
+                className="border-input text-muted-foreground hover:bg-muted"
               >
                 Cancel
               </Button>
               <Button
                 onClick={handleUpdateRole}
                 disabled={updateUserRoleMutation.isPending || !newRole}
-                className="bg-orange-500 hover:bg-orange-600 text-white"
+                className="bg-primary hover:bg-primary/90 text-primary-foreground"
               >
                 {updateUserRoleMutation.isPending ? 'Updating...' : 'Update Role'}
               </Button>

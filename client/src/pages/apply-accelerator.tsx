@@ -451,15 +451,15 @@ const ApplyAccelerator = memo(function ApplyAccelerator() {
   };
 
   return (
-    <div className="min-h-screen bg-navy-900 text-white">
+    <div className="h-full bg-background text-foreground">
       <div className="container mx-auto px-4 py-8">
         {/* Header */}
         <div className="mb-8 text-center">
           <div className="flex items-center justify-center gap-3 mb-4">
-            <Crown className="h-8 w-8 text-orange-400" />
-            <h1 className="text-4xl font-bold text-white">Accelerator Program Application</h1>
+            <Crown className="h-8 w-8 text-primary" />
+            <h1 className="text-4xl font-bold text-foreground">Accelerator Program Application</h1>
           </div>
-          <p className="text-gray-300 text-lg max-w-2xl mx-auto">
+          <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
             Join an exclusive group of contractors committed to rapid business growth and success
           </p>
         </div>
@@ -467,7 +467,7 @@ const ApplyAccelerator = memo(function ApplyAccelerator() {
         {/* Progress Bar */}
         <div className="max-w-2xl mx-auto mb-8">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-gray-400 text-sm">Step {currentStep} of {totalSteps}</span>
+            <span className="text-muted-foreground text-sm">Step {currentStep} of {totalSteps}</span>
             <span className="text-gray-400 text-sm">{Math.round(progress)}% Complete</span>
           </div>
           <Progress value={progress} className="h-2" />

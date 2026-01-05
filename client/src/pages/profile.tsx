@@ -97,27 +97,27 @@ function Profile() {
   };
 
   return (
-    <div className="min-h-screen bg-tsBg text-white pb-20 lg:pb-0">
+    <div className="h-full bg-background text-foreground pb-20 lg:pb-0">
       <div className="max-w-6xl mx-auto px-4 py-6 lg:py-10 space-y-6">
         <div>
           <div className="flex items-center gap-4 mb-3">
-            <div className="h-12 w-12 bg-gradient-to-br from-orange-500 to-orange-600 rounded-xl flex items-center justify-center shadow-sm">
-              <User className="h-6 w-6 text-white" />
+            <div className="h-12 w-12 bg-primary rounded-xl flex items-center justify-center shadow-sm">
+              <User className="h-6 w-6 text-primary-foreground" />
             </div>
             <div>
-              <h1 className="text-lg font-semibold text-white mb-1">My Profile</h1>
-              <p className="text-sm text-slate-400">
+              <h1 className="text-lg font-semibold text-foreground mb-1">My Profile</h1>
+              <p className="text-sm text-muted-foreground">
                 Manage your personal information and preferences
               </p>
             </div>
           </div>
         </div>
 
-  <Card className="bg-tsCard border border-tsBorder shadow-sm rounded-xl">
+  <Card className="bg-card border border-border shadow-sm rounded-xl">
           <CardContent className="pt-6 pb-6">
             <div className="flex flex-col sm:flex-row items-center sm:items-start gap-6">
               <div className="relative">
-                <div className="w-24 h-24 bg-gradient-to-br from-orange-500 to-orange-600 rounded-full flex items-center justify-center text-3xl font-bold text-white shadow-lg overflow-hidden">
+                <div className="w-24 h-24 bg-primary rounded-full flex items-center justify-center text-3xl font-bold text-primary-foreground shadow-lg overflow-hidden">
                   {formData.profileImageUrl ? (
                     <img
                       src={formData.profileImageUrl}
@@ -134,9 +134,9 @@ function Profile() {
                 <button
                   type="button"
                   onClick={handleUploadClick}
-                  className="absolute bottom-0 right-0 h-8 w-8 bg-orange-500 rounded-full flex items-center justify-center border-2 border-tsCard hover:bg-orange-600 transition-colors"
+                  className="absolute bottom-0 right-0 h-8 w-8 bg-primary rounded-full flex items-center justify-center border-2 border-card hover:bg-primary/90 transition-colors"
                 >
-                  <Camera className="h-4 w-4 text-white" />
+                  <Camera className="h-4 w-4 text-primary-foreground" />
                 </button>
                 <input
                   ref={fileInputRef}
@@ -147,16 +147,16 @@ function Profile() {
                 />
               </div>
               <div className="text-center sm:text-left flex-1">
-                <h2 className="text-2xl font-bold text-white mb-2">
+                <h2 className="text-2xl font-bold text-foreground mb-2">
                   {user?.firstName} {user?.lastName}
                 </h2>
                 <div className="space-y-1">
-                  <p className="text-slate-300 flex items-center gap-2 justify-center sm:justify-start">
+                  <p className="text-muted-foreground flex items-center gap-2 justify-center sm:justify-start">
                     <User className="h-4 w-4" />
                     {user?.role || "Homeowner"}
                   </p>
                   {user?.address && (
-                    <p className="text-slate-300 flex items-center gap-2 justify-center sm:justify-start">
+                    <p className="text-muted-foreground flex items-center gap-2 justify-center sm:justify-start">
                       <MapPin className="h-4 w-4" />
                       {user.address}
                     </p>
@@ -167,17 +167,17 @@ function Profile() {
           </CardContent>
         </Card>
 
-        <Card className="bg-tsCard border border-tsBorder shadow-sm rounded-xl">
-          <CardHeader className="border-b border-tsBorder pb-4">
+        <Card className="bg-card border border-border shadow-sm rounded-xl">
+          <CardHeader className="border-b border-border pb-4">
             <div className="flex items-center gap-3">
-              <div className="h-10 w-10 bg-orange-500/20 rounded-lg flex items-center justify-center">
-                <User className="w-5 h-5 text-orange-500" />
+              <div className="h-10 w-10 bg-primary/20 rounded-lg flex items-center justify-center">
+                <User className="w-5 h-5 text-primary" />
               </div>
               <div>
-                <CardTitle className="text-base font-medium text-white">
+                <CardTitle className="text-base font-medium text-foreground">
                   Profile Information
                 </CardTitle>
-                <p className="text-sm text-slate-400 mt-1">
+                <p className="text-sm text-muted-foreground mt-1">
                   Update your personal details
                 </p>
               </div>
@@ -187,7 +187,7 @@ function Profile() {
             <form onSubmit={handleSubmit}>
               <div className="grid md:grid-cols-2 gap-6">
                 <div className="space-y-2">
-                  <Label htmlFor="firstName" className="text-white font-medium">
+                  <Label htmlFor="firstName" className="text-foreground font-medium">
                     First Name
                   </Label>
                     <Input
@@ -197,11 +197,11 @@ function Profile() {
                     onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
                       setFormData((prev) => ({ ...prev, firstName: e.target.value }))
                     }
-                    className="bg-tsBg border-tsBorder text-white h-11 focus:border-orange-500 transition-colors"
+                    className="bg-background border-input text-foreground h-11 focus:border-primary transition-colors"
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="lastName" className="text-white font-medium">
+                  <Label htmlFor="lastName" className="text-foreground font-medium">
                     Last Name
                   </Label>
                     <Input
@@ -211,15 +211,15 @@ function Profile() {
                     onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
                       setFormData((prev) => ({ ...prev, lastName: e.target.value }))
                     }
-                    className="bg-tsBg border-tsBorder text-white h-11 focus:border-orange-500 transition-colors"
+                    className="bg-background border-input text-foreground h-11 focus:border-primary transition-colors"
                   />
                 </div>
                 <div className="space-y-2">
                   <Label
                     htmlFor="email"
-                    className="text-white font-medium flex items-center gap-2"
+                    className="text-foreground font-medium flex items-center gap-2"
                   >
-                    <Mail className="h-4 w-4 text-orange-500" />
+                    <Mail className="h-4 w-4 text-primary" />
                     Email
                   </Label>
                   <Input
@@ -229,15 +229,15 @@ function Profile() {
                     onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
                       setFormData((prev) => ({ ...prev, email: e.target.value }))
                     }
-                    className="bg-tsBg border-tsBorder text-white h-11 focus:border-orange-500 transition-colors"
+                    className="bg-background border-input text-foreground h-11 focus:border-primary transition-colors"
                   />
                 </div>
                 <div className="space-y-2">
                   <Label
                     htmlFor="phone"
-                    className="text-white font-medium flex items-center gap-2"
+                    className="text-foreground font-medium flex items-center gap-2"
                   >
-                    <Phone className="h-4 w-4 text-orange-500" />
+                    <Phone className="h-4 w-4 text-primary" />
                     Phone
                   </Label>
                   <Input
@@ -247,15 +247,15 @@ function Profile() {
                     onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
                       setFormData((prev) => ({ ...prev, phone: e.target.value }))
                     }
-                    className="bg-tsBg border-tsBorder text-white h-11 focus:border-orange-500 transition-colors"
+                    className="bg-background border-input text-foreground h-11 focus:border-primary transition-colors"
                   />
                 </div>
                 <div className="md:col-span-2 space-y-2">
                   <Label
                     htmlFor="address"
-                    className="text-white font-medium flex items-center gap-2"
+                    className="text-foreground font-medium flex items-center gap-2"
                   >
-                    <MapPin className="h-4 w-4 text-orange-500" />
+                    <MapPin className="h-4 w-4 text-primary" />
                     Address
                   </Label>
                   <Input
@@ -265,11 +265,11 @@ function Profile() {
                     onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
                       setFormData((prev) => ({ ...prev, address: e.target.value }))
                     }
-                    className="bg-tsBg border-tsBorder text-white h-11 focus:border-orange-500 transition-colors"
+                    className="bg-background border-input text-foreground h-11 focus:border-primary transition-colors"
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="city" className="text-white font-medium">
+                  <Label htmlFor="city" className="text-foreground font-medium">
                     City
                   </Label>
                   <Input
@@ -279,11 +279,11 @@ function Profile() {
                     onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
                       setFormData((prev) => ({ ...prev, city: e.target.value }))
                     }
-                    className="bg-tsBg border-tsBorder text-white h-11 focus:border-orange-500 transition-colors"
+                    className="bg-background border-input text-foreground h-11 focus:border-primary transition-colors"
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="state" className="text-white font-medium">
+                  <Label htmlFor="state" className="text-foreground font-medium">
                     State
                   </Label>
                   <Input
@@ -293,11 +293,11 @@ function Profile() {
                     onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
                       setFormData((prev) => ({ ...prev, state: e.target.value }))
                     }
-                    className="bg-tsBg border-tsBorder text-white h-11 focus:border-orange-500 transition-colors"
+                    className="bg-background border-input text-foreground h-11 focus:border-primary transition-colors"
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="zipCode" className="text-white font-medium">
+                  <Label htmlFor="zipCode" className="text-foreground font-medium">
                     ZIP Code
                   </Label>
                   <Input
@@ -307,11 +307,11 @@ function Profile() {
                     onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
                       setFormData((prev) => ({ ...prev, zipCode: e.target.value }))
                     }
-                    className="bg-tsBg border-tsBorder text-white h-11 focus:border-orange-500 transition-colors"
+                    className="bg-background border-input text-foreground h-11 focus:border-primary transition-colors"
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="county" className="text-white font-medium">
+                  <Label htmlFor="county" className="text-foreground font-medium">
                     County
                   </Label>
                   <Input
@@ -321,22 +321,22 @@ function Profile() {
                     onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
                       setFormData((prev) => ({ ...prev, county: e.target.value }))
                     }
-                    className="bg-tsBg border-tsBorder text-white h-11 focus:border-orange-500 transition-colors"
+                    className="bg-background border-input text-foreground h-11 focus:border-primary transition-colors"
                   />
                 </div>
               </div>
-              <div className="flex items-center gap-3 mt-8 pt-6 border-t border-tsBorder">
+              <div className="flex items-center gap-3 mt-8 pt-6 border-t border-border">
                 <Button
                   type="submit"
                   disabled={updateProfileMutation.isPending}
-                  className="bg-orange-500 hover:bg-orange-600 text-white px-8 shadow-lg"
+                  className="bg-primary hover:bg-primary/90 text-primary-foreground px-8 shadow-lg"
                 >
                   {updateProfileMutation.isPending ? "Saving..." : "Update Profile"}
                 </Button>
                 <Button
                   type="button"
                   variant="outline"
-                  className="border-tsBorder text-slate-300 hover:bg-tsBg"
+                  className="border-border text-muted-foreground hover:bg-muted"
                   onClick={() =>
                     setFormData({
                       firstName: user?.firstName || "",
@@ -359,29 +359,29 @@ function Profile() {
           </CardContent>
         </Card>
 
-        <Card className="bg-tsCard border border-tsBorder shadow-sm rounded-xl">
-          <CardHeader className="border-b border-tsBorder pb-4">
+        <Card className="bg-card border border-border shadow-sm rounded-xl">
+          <CardHeader className="border-b border-border pb-4">
             <div className="flex items-center gap-3">
-              <div className="h-10 w-10 bg-orange-500/20 rounded-lg flex items-center justify-center">
-                <Bell className="w-5 h-5 text-orange-500" />
+              <div className="h-10 w-10 bg-primary/20 rounded-lg flex items-center justify-center">
+                <Bell className="w-5 h-5 text-primary" />
               </div>
               <div>
-                <CardTitle className="text-base font-medium text-white">
+                <CardTitle className="text-base font-medium text-foreground">
                   Notification Preferences
                 </CardTitle>
-                <p className="text-sm text-slate-400 mt-1">
+                <p className="text-sm text-muted-foreground mt-1">
                   Manage how you receive updates
                 </p>
               </div>
             </div>
           </CardHeader>
           <CardContent className="space-y-4 pt-4 pb-6">
-            <div className="flex items-center justify-between p-4 bg-tsBg rounded-xl border border-tsBorder">
+            <div className="flex items-center justify-between p-4 bg-background rounded-xl border border-border">
               <div>
-                <p className="text-white font-medium">
+                <p className="text-foreground font-medium">
                   Email notifications for new deals
                 </p>
-                <p className="text-slate-400 text-sm">
+                <p className="text-muted-foreground text-sm">
                   Get notified about exclusive TradeDeals from trusted partners
                 </p>
               </div>
@@ -392,12 +392,12 @@ function Profile() {
                 }
               />
             </div>
-            <div className="flex items-center justify-between p-4 bg-tsBg rounded-xl border border-tsBorder">
+            <div className="flex items-center justify-between p-4 bg-background rounded-xl border border-border">
               <div>
-                <p className="text-white font-medium">
+                <p className="text-foreground font-medium">
                   SMS notifications for project updates
                 </p>
-                <p className="text-slate-400 text-sm">
+                <p className="text-muted-foreground text-sm">
                   Receive text messages about your projects
                 </p>
               </div>
@@ -408,12 +408,12 @@ function Profile() {
                 }
               />
             </div>
-            <div className="flex items-center justify-between p-4 bg-tsBg rounded-xl border border-tsBorder">
+            <div className="flex items-center justify-between p-4 bg-background rounded-xl border border-border">
               <div>
-                <p className="text-white font-medium">
+                <p className="text-foreground font-medium">
                   Weekly contractor recommendations
                 </p>
-                <p className="text-slate-400 text-sm">
+                <p className="text-muted-foreground text-sm">
                   Get personalized contractor suggestions
                 </p>
               </div>
